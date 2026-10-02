@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {useI18n} from 'vue-i18n'
-import type {FlowProblem} from '@/api/movements'
+import type {FlowProblem} from '@/api/generated/schema'
 import {apiErrorBody} from '@/util/apiError'
 import {describeFailure, type Failure} from '@/util/failure'
 

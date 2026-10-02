@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.question;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * Why an answer is not one this question takes.
  *
@@ -16,7 +18,8 @@ package dev.chojo.ember.feature.question;
  * @param question what the question is called
  * @param detail   the part of the answer that is wrong, or what was expected, where saying it helps
  */
-public record QuestionProblem(Code code, String question, String detail) {
+public record QuestionProblem(
+        Code code, String question, @Nullable String detail) {
 
     /** What can be wrong with an answer. */
     public enum Code {
@@ -37,21 +40,10 @@ public record QuestionProblem(Code code, String question, String detail) {
         /** The answer is not a web address. */
         NOT_A_URL,
         /** The answer does not name a member. */
-        NOT_A_MEMBER
-    }
-
-    /** What to say to whoever gave the answer. */
-    public String message() {
-        return switch (code) {
-            case REQUIRED -> "Field '" + question + "' is required";
-            case NOT_AN_OPTION -> "Field '" + question + "' does not allow the value '" + detail + "'";
-            case NOT_A_NUMBER -> "Field '" + question + "' expects a number";
-            case OUT_OF_RANGE -> "Field '" + question + "' expects a number " + detail;
-            case NOT_A_DATE -> "Field '" + question + "' expects a date";
-            case NOT_A_TIME -> "Field '" + question + "' expects a time";
-            case NOT_A_BOOLEAN -> "Field '" + question + "' expects yes or no";
-            case NOT_A_URL -> "Field '" + question + "' expects a web address";
-            case NOT_A_MEMBER -> "Field '" + question + "' expects a member";
-        };
+        NOT_A_MEMBER,
+        /** The answer names a member outside the group, user type or tag the field is narrowed to. */
+        NOT_ELIGIBLE,
+        /** The field is narrowed to a group, user type or tag it no longer names. */
+        MISSING_REFERENCE
     }
 }

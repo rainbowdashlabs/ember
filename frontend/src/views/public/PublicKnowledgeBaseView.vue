@@ -12,8 +12,7 @@ import {usePublicFailure} from '@/composables/usePublicFailure'
 import SearchInput from '@/components/input/text/SearchInput.vue'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import * as publicKb from '@/api/publicKb'
-import type {PublicStationInfo, PublicBrowseResponse, PublicSearchResult} from '@/api/publicKb'
-import type {KbFile, KbFolder} from '@/api/knowledgeBase'
+import type {KbFile, KbFolder, PublicBrowseResponse, PublicKbInfo, SearchResultItem} from '@/api/generated/schema'
 import KnowledgeBaseBreadcrumbs from './publicknowledgebaseview/KnowledgeBaseBreadcrumbs.vue'
 import KbSearchResults from '@/views/stationview/knowledge/knowledgebaseview/KbSearchResults.vue'
 import KnowledgeBaseBrowse from './publicknowledgebaseview/KnowledgeBaseBrowse.vue'
@@ -41,7 +40,7 @@ const {
     searching,
     isSearching,
     onInput: onSearchInput,
-} = useDebouncedSearch<PublicSearchResult>(query => publicKb.search(stationUid.value, query))
+} = useDebouncedSearch<SearchResultItem>(query => publicKb.search(stationUid.value, query))
 
 /** Tiles or one entry to a line, the same choice the station's own members have in their wiki. */
 const viewMode = ref<'grid' | 'list'>('grid')
@@ -65,7 +64,7 @@ const {data: wiki, error: loadError, status} = await useAsyncData(
     async () => {
         const folderQuery = currentFolderId.value == null ? '' : `?folderId=${currentFolderId.value}`
         const [info, browsed] = await Promise.all([
-            $fetch<PublicStationInfo>(`${apiBase}/public/kb/${stationUid.value}/info`),
+            $fetch<PublicKbInfo>(`${apiBase}/public/kb/${stationUid.value}/info`),
             $fetch<PublicBrowseResponse>(`${apiBase}/public/kb/${stationUid.value}/browse${folderQuery}`),
         ])
         return {info, browsed}
@@ -73,7 +72,7 @@ const {data: wiki, error: loadError, status} = await useAsyncData(
     {watch: [stationUid, currentFolderId]},
 )
 
-const stationInfo = computed<PublicStationInfo | null>(() => wiki.value?.info ?? null)
+const stationInfo = computed<PublicKbInfo | null>(() => wiki.value?.info ?? null)
 const currentFolder = computed<KbFolder | null>(() => wiki.value?.browsed.currentFolder ?? null)
 const folders = computed<KbFolder[]>(() => wiki.value?.browsed.folders ?? [])
 const files = computed<KbFile[]>(() => wiki.value?.browsed.files ?? [])

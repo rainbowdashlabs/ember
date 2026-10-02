@@ -6,19 +6,23 @@
 package dev.chojo.ember.feature.passkey.service;
 
 import dev.chojo.ember.conf.Conf;
+import dev.chojo.ember.conf.ConfigChanges;
 import dev.chojo.ember.conf.file.elements.PasskeySettings;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.mail.repository.EmailQueueRepository;
+import dev.chojo.ember.feature.passkey.entity.AdoptionFigures;
+import dev.chojo.ember.feature.passkey.entity.PasswordlessReport;
+import dev.chojo.ember.feature.passkey.entity.ResidueEntry;
 import dev.chojo.ember.feature.passkey.repository.PasskeyRepository;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorEvent;
 import dev.chojo.ember.feature.twofactor.service.RelyingParties;
 import dev.chojo.ember.feature.twofactor.service.TwoFactorAuditService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.lang.reflect.Field;
 import java.time.Instant;
 import java.util.Optional;
 
@@ -33,6 +37,7 @@ public class PasskeyAdminService {
     private static final Logger log = LoggerFactory.getLogger(PasskeyAdminService.class);
 
     private final Conf conf;
+    private final ConfigChanges changes;
     private final PasskeyModeService modeService;
     private final PasskeyRepository passkeyRepository;
     private final EmailQueueRepository emailQueueRepository;
@@ -43,6 +48,7 @@ public class PasskeyAdminService {
     @Inject
     public PasskeyAdminService(
             Conf conf,
+            ConfigChanges changes,
             PasskeyModeService modeService,
             PasskeyRepository passkeyRepository,
             EmailQueueRepository emailQueueRepository,
@@ -50,6 +56,7 @@ public class PasskeyAdminService {
             AccountRepository accountRepository,
             TwoFactorAuditService auditService) {
         this.conf = conf;
+        this.changes = changes;
         this.modeService = modeService;
         this.passkeyRepository = passkeyRepository;
         this.emailQueueRepository = emailQueueRepository;
@@ -73,11 +80,11 @@ public class PasskeyAdminService {
                 passkeyRepository.adoptionFigures());
     }
 
-    public PasskeyRepository.PasswordlessReport passwordlessReport() {
+    public PasswordlessReport passwordlessReport() {
         return passkeyRepository.passwordlessReport();
     }
 
-    public java.util.List<PasskeyRepository.ResidueEntry> residue() {
+    public java.util.List<ResidueEntry> residue() {
         return passkeyRepository.listResidue();
     }
 
@@ -87,7 +94,8 @@ public class PasskeyAdminService {
      * where a passkey has completed a sign-in ceremony; ends no sessions and revokes nothing
      * else, so it is a small step rather than a cliff.
      */
-    public RetireOutcome retirePassword(int accountId, Integer actorAccountId, String userAgent, String country) {
+    public RetireOutcome retirePassword(
+            int accountId, Integer actorAccountId, @Nullable String userAgent, @Nullable String country) {
         if (accountRepository.findCredential(accountId).isEmpty()) return RetireOutcome.NO_PASSWORD;
         if (!passkeyRepository.hasTriedSignInPasskey(accountId)) return RetireOutcome.NO_TRIED_PASSKEY;
         accountRepository.deleteCredential(accountId);
@@ -102,7 +110,8 @@ public class PasskeyAdminService {
      * it passed over: an operator who ends sixty sessions on a Tuesday has a Tuesday nobody
      * forgets, which is why this one ends none at all.
      */
-    public BulkRetireResult retireAllEligible(Integer actorAccountId, String userAgent, String country) {
+    public BulkRetireResult retireAllEligible(
+            Integer actorAccountId, @Nullable String userAgent, @Nullable String country) {
         int total = passkeyRepository.adoptionFigures().accountsWithPassword();
         int retired = 0;
         for (int accountId : passkeyRepository.listRetireEligibleAccounts()) {
@@ -143,14 +152,9 @@ public class PasskeyAdminService {
                 return SetModeResult.accountsDepend(depending);
             }
         }
-        try {
-            Field field = PasskeySettings.class.getDeclaredField("mode");
-            field.setAccessible(true);
-            field.set(conf.main().auth().passkeys(), requested.name());
-        } catch (ReflectiveOperationException e) {
-            throw new IllegalStateException("Failed to update the passkey mode", e);
-        }
-        conf.save();
+        var passkeys = conf.main().auth().passkeys();
+        var before = passkeys.mode();
+        changes.apply(() -> passkeys.mode(requested), () -> passkeys.mode(before));
         log.info("Passkey mode set to {}", requested);
         return SetModeResult.ok();
     }
@@ -167,7 +171,7 @@ public class PasskeyAdminService {
             String rpId,
             Instant lastMailSentAt,
             int dependentAccounts,
-            PasskeyRepository.AdoptionFigures figures) {}
+            AdoptionFigures figures) {}
 
     public record SetModeResult(Outcome outcome, int dependentAccounts) {
         public enum Outcome {

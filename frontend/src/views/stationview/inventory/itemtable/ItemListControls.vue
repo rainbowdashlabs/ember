@@ -11,7 +11,7 @@ import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import TableColumnPicker from '@/components/table/TableColumnPicker.vue'
-import type { InventoryItem } from '@/api/inventory'
+import type { InventoryItem } from '@/api/generated/schema'
 import type { DataTableApi } from '@/composables/useDataTable'
 
 defineProps<{
@@ -51,7 +51,7 @@ const { t } = useI18n()
   </div>
   <slot/>
   <div v-if="showSearch" class="flex items-center gap-2">
-    <TextInput v-model="table.search" :placeholder="t('inventory.edit.searchItems')" class="flex-1"/>
+    <TextInput :model-value="table.search" :placeholder="t('inventory.edit.searchItems')" class="flex-1" @update:model-value="table.searchFor($event ?? '')"/>
     <TableColumnPicker :table="table"/>
   </div>
 </template>

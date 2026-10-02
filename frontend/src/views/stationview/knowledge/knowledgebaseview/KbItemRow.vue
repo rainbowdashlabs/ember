@@ -6,6 +6,7 @@
 <script setup lang="ts">
 import RowLink from '@/components/navigation/RowLink.vue'
 import StationBadge from '@/components/badge/StationBadge.vue'
+import PillBadge from '@/components/badge/PillBadge.vue'
 import KbReachEye from './KbReachEye.vue'
 import MutedIcon from '@/components/display/MutedIcon.vue'
 import KbItemSelectBox from './KbItemSelectBox.vue'
@@ -55,11 +56,10 @@ function onCheckboxClick(event: MouseEvent) {
             <span class="text-sm font-medium truncate min-w-0 flex-1">{{ item.title }}</span>
             <MutedIcon v-if="item.restricted" :icon="['fas', 'lock']" class="flex-shrink-0 ml-1"/>
             <KbReachEye v-if="item.shared" :reach="item.shared" class="ml-1"/>
-            <span
-                v-if="item.levelLabel"
-                class="hidden sm:block text-[10px] text-[var(--text-muted)] border border-[var(--border)] rounded-full px-2 py-0.5 flex-shrink-0"
-            >
-                {{ item.levelLabel }}
+            <span v-if="item.levelLabel" class="hidden sm:block flex-shrink-0">
+                <PillBadge class="text-[10px] text-[var(--text-muted)] border border-[var(--border)] px-2 py-0.5">
+                    {{ item.levelLabel }}
+                </PillBadge>
             </span>
             <StationBadge v-if="item.stationName" :station-name="item.stationName"/>
 

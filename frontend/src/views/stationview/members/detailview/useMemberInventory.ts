@@ -5,7 +5,7 @@
  */
 import { ref, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { MemberRequirements, MyInventoryItem } from '@/api/inventory'
+import type { MemberRequirements, MyInventoryItem } from '@/api/generated/schema'
 import { inventory, movements } from '@/api'
 import { describeFailure, type Failure } from '@/util/failure'
 
@@ -13,8 +13,9 @@ import { describeFailure, type Failure } from '@/util/failure'
  * Owns the equipment handed out to the viewed member: the assigned items, what is still missing, and
  * the assignment actions performed on them.
  *
- * <p>Nothing here reads movements. Whatever is running on a piece travels with the piece, so the rows
- * say where they stand without a second list to join them against.
+ * <p>Nothing here reads movements. Whatever is running on a piece travels with the piece as the
+ * movement's own standing, the last step that happened and whose turn it is, so the rows say where they
+ * stand in the very words of the movement list without a second list to join them against.
  */
 export function useMemberInventory(memberId: Ref<number>, failure: Ref<Failure | null>) {
   const { t } = useI18n()

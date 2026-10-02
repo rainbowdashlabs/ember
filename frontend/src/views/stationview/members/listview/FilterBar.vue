@@ -12,7 +12,8 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import RestrictionPicker from '@/components/input/RestrictionPicker.vue'
 import TableColumnPicker from '@/components/table/TableColumnPicker.vue'
-import { type RestrictionSelection, emptyRestriction } from '@/components/input/restriction'
+import { emptyRestriction } from '@/components/input/restriction'
+import type { RestrictionSelection } from '@/api/types'
 import { useBreakpoint } from '@/composables/useBreakpoint'
 import type { MemberListConfig } from './useMemberListConfig'
 
@@ -58,14 +59,21 @@ function submitSaveFilter() {
     <span class="text-xs text-(--text-muted)">{{ t('membersList.savedFilters') }}:</span>
     <SecondaryButton v-for="(preset, idx) in c.savedFilters.value" :key="idx" @click="c.applyFilter(preset)">
       {{ preset.name }}
-      <span class="text-(--text-muted) hover:text-error ml-1" @click.stop="c.deleteFilter(idx)">&times;</span>
+      <span
+          role="button"
+          tabindex="0"
+          :aria-label="t('common.remove')"
+          class="text-(--text-muted) hover:text-error ml-1"
+          @click.stop="c.deleteFilter(idx)"
+          @keydown.enter.space.stop.prevent="c.deleteFilter(idx)"
+      >&times;</span>
     </SecondaryButton>
   </div>
 
   <RestrictionPicker v-model="restriction" :groups="c.allGroups.value" :tags="c.allTags.value" @update:model-value="emitFilter"/>
 
   <div class="space-y-2">
-    <SearchInput v-model="table.search" :placeholder="t('membersList.filter')" autofocus/>
+    <SearchInput v-model="table.search" :placeholder="t('membersList.filter')"/>
     <div class="grid grid-cols-2 sm:flex sm:flex-wrap sm:items-center gap-2">
       <TableColumnPicker :empty-label="t('membersList.noExtraColumns')" :full-width="isMobile" :table="table"/>
       <SecondaryButton :icon="['fas', 'xmark']" :full-width="isMobile" @click="c.clearFilters">

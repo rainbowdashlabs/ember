@@ -10,7 +10,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import TableColumnPicker from '@/components/table/TableColumnPicker.vue'
 import RecordTable from '@/components/table/RecordTable.vue'
-import type {BeaconMetricsRow} from '@/api/beacon'
+import type {BeaconMetricsRow} from '@/api/generated/schema'
 import {useDataTable} from '@/composables/useDataTable'
 import {beaconMetricColumns} from './beaconMetricColumns'
 

@@ -7,7 +7,7 @@ import {ref, type Ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {waitingList} from '@/api'
 import {describeFailure, type Failure} from '@/util/failure'
-import type {WaitingListEntryWithScore} from '@/api/waitingList'
+import type {WaitingListEntryWithScore} from '@/api/generated/schema'
 import type {EventOccurrenceRef} from '@/api/events'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 

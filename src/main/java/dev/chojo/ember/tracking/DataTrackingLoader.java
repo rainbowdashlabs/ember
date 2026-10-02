@@ -5,10 +5,10 @@
  */
 package dev.chojo.ember.tracking;
 
+import dev.chojo.ember.util.FilePaths;
+import dev.chojo.ember.util.Json;
 import tools.jackson.core.JsonGenerator;
-import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.SerializationContext;
-import tools.jackson.databind.SerializationFeature;
 import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.module.SimpleModule;
 import tools.jackson.databind.ser.std.StdSerializer;
@@ -32,12 +32,8 @@ import java.util.TreeMap;
  */
 public final class DataTrackingLoader {
 
-    private static final JsonMapper MAPPER = JsonMapper.builder()
-            .enable(SerializationFeature.INDENT_OUTPUT)
-            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
-            .disable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
-            .addModule(instantModule())
-            .build();
+    private static final JsonMapper MAPPER =
+            Json.PRETTY.rebuild().addModule(instantModule()).build();
 
     private DataTrackingLoader() {}
 
@@ -66,7 +62,7 @@ public final class DataTrackingLoader {
     public static void write(Path file, DataTracking tracking) throws IOException {
         var sorted = withSortedMaps(tracking);
         String json = MAPPER.writeValueAsString(sorted) + System.lineSeparator();
-        Files.createDirectories(file.getParent());
+        FilePaths.createParentDirectories(file);
         Files.writeString(file, json, StandardCharsets.UTF_8);
     }
 

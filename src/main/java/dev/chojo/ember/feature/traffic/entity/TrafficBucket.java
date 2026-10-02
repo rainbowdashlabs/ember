@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.traffic.entity;
 
+import org.jspecify.annotations.Nullable;
+
 import java.time.Instant;
 
 /**
@@ -13,4 +15,9 @@ import java.time.Instant;
  * the recorder and as the read row when listing hourly data.
  */
 public record TrafficBucket(
-        Instant hour, Integer stationId, AuthBucket auth, long ingressBytes, long egressBytes, long requests) {}
+        Instant hour,
+        @Nullable Integer stationId,
+        AuthBucket auth,
+        long ingressBytes,
+        long egressBytes,
+        long requests) {}

@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.inventory.entity;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.List;
 
 /**
@@ -21,7 +23,10 @@ import java.util.List;
  * @param containers the name of every container carrying it, which shares the same numbering
  */
 public record SelfCheckIdentifierMatch(
-        SelfCheckIdentifierFinding finding, String typed, List<Piece> pieces, List<String> containers) {
+        SelfCheckIdentifierFinding finding,
+        @Nullable String typed,
+        List<SelfCheckMatchedPiece> pieces,
+        List<String> containers) {
 
     /**
      * The answer for a member who typed nothing, which is a perfectly ordinary answer.
@@ -38,11 +43,12 @@ public record SelfCheckIdentifierMatch(
      * @param containers every container carrying it
      * @return the finding, with everything that was found beside it
      */
-    public static SelfCheckIdentifierMatch of(String typed, List<Piece> pieces, List<String> containers) {
+    public static SelfCheckIdentifierMatch of(
+            String typed, List<SelfCheckMatchedPiece> pieces, List<String> containers) {
         return new SelfCheckIdentifierMatch(finding(pieces, containers), typed, pieces, containers);
     }
 
-    private static SelfCheckIdentifierFinding finding(List<Piece> pieces, List<String> containers) {
+    private static SelfCheckIdentifierFinding finding(List<SelfCheckMatchedPiece> pieces, List<String> containers) {
         if (pieces.size() + containers.size() > 1) return SelfCheckIdentifierFinding.SEVERAL;
         if (pieces.isEmpty()) {
             return containers.isEmpty() ? SelfCheckIdentifierFinding.NO_MATCH : SelfCheckIdentifierFinding.A_CONTAINER;
@@ -60,6 +66,11 @@ public record SelfCheckIdentifierMatch(
      * @param heldBy        whoever has it on their record, or {@code null} where it is free
      * @param heldByName    that person's name, empty where the piece is free
      */
-    public record Piece(
-            int itemId, String name, String internalId, String inventoryName, Integer heldBy, String heldByName) {}
+    public record SelfCheckMatchedPiece(
+            int itemId,
+            String name,
+            String internalId,
+            String inventoryName,
+            @Nullable Integer heldBy,
+            String heldByName) {}
 }

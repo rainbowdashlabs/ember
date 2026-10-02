@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.members.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -28,9 +29,9 @@ public record MemberAbsence(
         int memberId,
         LocalDate absentFrom,
         LocalDate absentUntil,
-        String reason,
+        @Nullable String reason,
         Instant createdAt,
-        Integer createdBy) {
+        @Nullable Integer createdBy) {
     /**
      * Creates a row mapping for database result set conversion.
      */

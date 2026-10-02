@@ -6,6 +6,7 @@
 <script setup lang="ts">
 import {ref} from 'vue'
 import QuestionCard from '@/views/stationview/forms/fillview/QuestionCard.vue'
+import type {FormAnswerValue} from '@/api/generated/schema'
 import type {PitchForm} from './pitchTypes'
 
 /** A form being filled in, drawn by the application's own question cards. */
@@ -13,7 +14,7 @@ const props = defineProps<{
   form: PitchForm
 }>()
 
-const answers = ref<Record<number, Record<string, unknown>>>({...props.form.answers})
+const answers = ref<Record<number, FormAnswerValue>>({...props.form.answers})
 </script>
 
 <template>

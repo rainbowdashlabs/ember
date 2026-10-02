@@ -6,9 +6,9 @@
 package dev.chojo.ember.feature.events.repository;
 
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
-import dev.chojo.ember.feature.attendance.entity.AttendanceFieldType;
 import dev.chojo.ember.feature.events.entity.EventFieldDefault;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
@@ -39,7 +39,7 @@ class EventFieldDefaultRepositoryTest extends RepositoryTestBase {
     void replaceAndReadDefaults() {
         var template = attendanceRepo.createTemplate(station.id(), "FDTemplate");
         attendanceRepo.createTemplateField(
-                template.id(), "SignedBy", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 0);
+                template.id(), "SignedBy", FieldType.TEXT, AttendanceFieldConfig.parse("{}"), 0);
         int templateFieldId =
                 attendanceRepo.findTemplateFields(template.id()).getFirst().id();
 
@@ -73,7 +73,7 @@ class EventFieldDefaultRepositoryTest extends RepositoryTestBase {
             assertTrue(eventFieldDefaultRepo.findByEvent(event.id()).isEmpty());
         } finally {
             eventRepo.delete(event.id());
-            attendanceRepo.deleteTemplate(template.id());
+            attendanceRepo.archiveTemplate(template.id());
         }
     }
 

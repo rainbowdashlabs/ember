@@ -5,8 +5,9 @@
  */
 package dev.chojo.ember.feature.knowledgebase.route;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.RouteHarness;
+import dev.chojo.ember.api.refusal.KnowledgeBaseRefusal;
+import dev.chojo.ember.api.refusal.Refusal;
 import dev.chojo.ember.feature.cluster.entity.StationKind;
 import dev.chojo.ember.feature.content.entity.ContentMode;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
@@ -21,32 +22,29 @@ import dev.chojo.ember.feature.knowledgebase.service.KbPdfExportService;
 import dev.chojo.ember.feature.knowledgebase.service.KbSearchService;
 import dev.chojo.ember.feature.knowledgebase.service.KbTagService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
-import dev.chojo.ember.feature.media.service.ImageVariantService;
+import dev.chojo.ember.feature.media.entity.MediaContent;
 import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.ThemeFeel;
-import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.service.StationService;
-import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
-import io.javalin.validation.Validator;
+import io.javalin.testtools.Response;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 
+import static dev.chojo.ember.api.RouteHarness.header;
+import static dev.chojo.ember.api.RouteHarness.refusalOf;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.contains;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -87,7 +85,6 @@ class PublicKbFileAccessRouteTest {
                 ThemeFeel.ROUNDED,
                 false,
                 PublicKbMode.DENY_ALL,
-                null,
                 DiscoveryVisibility.NONE,
                 null,
                 false,
@@ -142,44 +139,31 @@ class PublicKbFileAccessRouteTest {
         accessService = mock(KbAccessService.class);
         pictureService = mock(KbFilePictureService.class);
         pdfExportService = mock(KbPdfExportService.class);
-        var stationRepository = mock(StationRepository.class);
-        when(stationRepository.findByUid(STATION_UID)).thenReturn(Optional.of(station()));
+        var stationService = mock(StationService.class);
+        when(stationService.findByUid(STATION_UID)).thenReturn(Optional.of(station()));
         routes = new PublicKnowledgeBaseRoutes(
                 kbService,
                 mock(KbContentService.class),
                 mock(KbSearchService.class),
                 accessService,
                 mock(KbTagService.class),
-                mock(StationService.class),
-                stationRepository,
+                stationService,
                 mock(KbIconService.class),
                 mock(KbImageService.class),
                 pictureService,
                 pdfExportService);
     }
 
-    @SuppressWarnings("unchecked")
-    private static Context asking() {
-        Context ctx = mock(Context.class);
-        when(ctx.pathParam("stationUid")).thenReturn(STATION_UID.toString());
-        Validator<Integer> id = mock(Validator.class);
-        when(id.get()).thenReturn(FILE_ID);
-        when(ctx.pathParamAsClass("id", Integer.class)).thenReturn(id);
-        Validator<Integer> size = mock(Validator.class);
-        when(size.getOrDefault(anyInt())).thenReturn(256);
-        when(ctx.queryParamAsClass("size", Integer.class)).thenReturn(size);
-        return ctx;
-    }
-
-    private void ask(String handlerName, Context ctx) throws Exception {
-        Method handler = PublicKnowledgeBaseRoutes.class.getDeclaredMethod(handlerName, Context.class);
-        handler.setAccessible(true);
-        try {
-            handler.invoke(routes, ctx);
-        } catch (InvocationTargetException e) {
-            if (e.getCause() instanceof RuntimeException cause) throw cause;
-            throw e;
-        }
+    /**
+     * Asks for one rendering of the file, the way a stranger's browser does.
+     *
+     * @param rendering the last segment of the address: {@code picture} or {@code pdf}
+     * @return the response
+     */
+    private Response ask(String rendering) {
+        return RouteHarness.serving(routes)
+                .request(client -> client.get(RouteHarness.PREFIX
+                        + "/public/kb/%s/files/%d/%s?size=256".formatted(STATION_UID, FILE_ID, rendering)));
     }
 
     private void published(boolean visible) {
@@ -199,22 +183,22 @@ class PublicKbFileAccessRouteTest {
      * expects. That is the part worth pinning: the three ways a file can be out of reach all have
      * to answer with one code, or the code itself tells a stranger which of the three it was.
      *
-     * @param handler the endpoint to ask
-     * @return the refusal it raised
+     * @param rendering the rendering to ask for
+     * @return the refusal it answered with
      */
-    private Refusal absent(String handler) {
-        var refused = assertThrows(RefusalResponse.class, () -> ask(handler, asking()));
-        assertEquals(HttpStatus.NOT_FOUND.getCode(), refused.getStatus());
-        return refused.refusal();
+    private Refusal absent(String rendering) {
+        var refused = ask(rendering);
+        assertEquals(HttpStatus.NOT_FOUND.getCode(), refused.code());
+        return refusalOf(refused);
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"getFilePicture", "getFilePdf"})
-    void aFileTheStationKeepsToItselfIsAbsent(String handler) throws Exception {
+    @ValueSource(strings = {"picture", "pdf"})
+    void aFileTheStationKeepsToItselfIsAbsent(String rendering) throws Exception {
         when(kbService.findFile(FILE_ID)).thenReturn(Optional.of(file(STATION_ID, KbFileType.MARKDOWN)));
         published(false);
 
-        assertEquals(Refusal.PUBLIC_KB_ENTRY_NOT_HERE, absent(handler));
+        assertEquals(KnowledgeBaseRefusal.PUBLIC_KB_ENTRY_NOT_HERE, absent(rendering));
         nothingWasServed();
     }
 
@@ -223,37 +207,37 @@ class PublicKbFileAccessRouteTest {
      * that other station published it as.
      */
     @ParameterizedTest
-    @ValueSource(strings = {"getFilePicture", "getFilePdf"})
-    void aFileOfAnotherStationIsAbsent(String handler) throws Exception {
+    @ValueSource(strings = {"picture", "pdf"})
+    void aFileOfAnotherStationIsAbsent(String rendering) throws Exception {
         when(kbService.findFile(FILE_ID)).thenReturn(Optional.of(file(STATION_ID + 1, KbFileType.MARKDOWN)));
         published(true);
 
-        assertEquals(Refusal.PUBLIC_KB_ENTRY_NOT_HERE, absent(handler));
+        assertEquals(KnowledgeBaseRefusal.PUBLIC_KB_ENTRY_NOT_HERE, absent(rendering));
         nothingWasServed();
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"getFilePicture", "getFilePdf"})
-    void anUnknownFileIsAbsent(String handler) throws Exception {
+    @ValueSource(strings = {"picture", "pdf"})
+    void anUnknownFileIsAbsent(String rendering) throws Exception {
         when(kbService.findFile(FILE_ID)).thenReturn(Optional.empty());
 
-        assertEquals(Refusal.PUBLIC_KB_ENTRY_NOT_HERE, absent(handler));
+        assertEquals(KnowledgeBaseRefusal.PUBLIC_KB_ENTRY_NOT_HERE, absent(rendering));
         nothingWasServed();
     }
 
     @Test
-    void aPublishedFileShowsItsPicture() throws Exception {
+    void aPublishedFileShowsItsPicture() {
         when(kbService.findFile(FILE_ID)).thenReturn(Optional.of(file(STATION_ID, KbFileType.PDF)));
         published(true);
         when(pictureService.read(STATION_ID, FILE_ID, "application/pdf", 256))
-                .thenReturn(Optional.of(new ImageVariantService.ImageData(PICTURE, "image/webp")));
+                .thenReturn(Optional.of(new MediaContent(PICTURE, "image/webp")));
 
-        var ctx = asking();
-        ask("getFilePicture", ctx);
+        var served = ask("picture");
 
-        verify(ctx).contentType("image/webp");
-        verify(ctx).header("Cache-Control", "public, max-age=300");
-        verify(ctx).result(PICTURE);
+        assertEquals(200, served.code());
+        assertTrue(header(served, "Content-Type").startsWith("image/webp"));
+        assertTrue(header(served, "Cache-Control").startsWith("public"));
+        assertEquals(new String(PICTURE, StandardCharsets.UTF_8), served.body().string());
     }
 
     @Test
@@ -262,12 +246,12 @@ class PublicKbFileAccessRouteTest {
         published(true);
         when(pdfExportService.renderPublic(any(), any())).thenReturn(PDF);
 
-        var ctx = asking();
-        ask("getFilePdf", ctx);
+        var served = ask("pdf");
 
-        verify(ctx).contentType("application/pdf");
-        verify(ctx).header(eq("Content-Disposition"), contains("Handbuch.pdf"));
-        verify(ctx).result(PDF);
+        assertEquals(200, served.code());
+        assertTrue(header(served, "Content-Type").startsWith("application/pdf"));
+        assertTrue(header(served, "Content-Disposition").contains("Handbuch.pdf"));
+        assertEquals(new String(PDF, StandardCharsets.UTF_8), served.body().string());
     }
 
     /**
@@ -280,6 +264,6 @@ class PublicKbFileAccessRouteTest {
         published(true);
         when(pictureService.read(STATION_ID, FILE_ID, "application/pdf", 256)).thenReturn(Optional.empty());
 
-        assertEquals(Refusal.PUBLIC_KB_ARTICLE_PICTURE_NOT_HERE, absent("getFilePicture"));
+        assertEquals(KnowledgeBaseRefusal.PUBLIC_KB_ARTICLE_PICTURE_NOT_HERE, absent("picture"));
     }
 }

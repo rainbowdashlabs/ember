@@ -12,7 +12,6 @@ import DiffView from '@/components/display/DiffView.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
-import {describeFailure} from '@/util/failure'
 import Modal from '@/components/feedback/Modal.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
@@ -22,12 +21,12 @@ import {useSession} from '@/composables/useSession'
 import {useConfirmAction} from '@/composables/useConfirmAction'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {knowledgeBase} from '@/api'
-import {formatDateTime} from '@/util/format'
 import PageHeader from '@/components/typography/PageHeader.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
-import type {KbFile, KbFileVersion} from '@/api/knowledgeBase'
+import type {KbFile, KbFileVersion, KbVersionResponse} from '@/api/generated/schema'
 import {ContentMode} from '@/api/news'
 import {STATION_KB_ROUTES, type KbRoutes} from './knowledgebaseview/useKbNavigation'
+import KbVersionList from './kbversionsview/KbVersionList.vue'
 
 const props = defineProps<{
     /** The pages this knowledge base is mounted on, which differ when an association opens its own. */
@@ -42,10 +41,9 @@ const route = useRoute()
 const {loaded} = useSession()
 
 const file = ref<KbFile | null>(null)
-const versions = ref<KbFileVersion[]>([])
+const versions = ref<KbVersionResponse[]>([])
 
 const selectedVersion = ref<KbFileVersion | null>(null)
-const loadingVersion = ref(false)
 
 const fileId = computed(() => Number(route.params.id))
 
@@ -77,21 +75,24 @@ const {
     show: showRevertModal,
     request: requestRevert,
     confirm: handleRevert,
-} = useConfirmAction<KbFileVersion>({
+} = useConfirmAction<KbVersionResponse>({
     onConfirm: v => knowledgeBase.revertToVersion(fileId.value, v.version),
     onSuccess: () => { router.push({name: routes.value.file, params: {id: fileId.value}}) },
     failure,
 })
 
-async function viewVersion(version: KbFileVersion) {
-    loadingVersion.value = true
-    try {
-        selectedVersion.value = await knowledgeBase.getVersion(fileId.value, version.version)
-    } catch (e) {
-        failure.value = {...describeFailure(e, t), message: t('kb.versionsLoadFailed')}
-    } finally {
-        loadingVersion.value = false
-    }
+const versionAsked = ref(0)
+
+const {loading: loadingVersion, failure: versionFailure, reload: fetchVersion} = useAsyncLoader(async (isCurrent) => {
+    const found = await knowledgeBase.getVersion(fileId.value, versionAsked.value)
+    if (isCurrent()) selectedVersion.value = found
+}, {autoLoad: false, errorMessageKey: 'kb.versionsLoadFailed'})
+
+/** Opens one version, saying so above the page where it cannot be read. */
+async function viewVersion(version: KbVersionResponse) {
+    versionAsked.value = version.version
+    await fetchVersion()
+    if (versionFailure.value) failure.value = versionFailure.value
 }
 
 watch(loaded, (isLoaded) => {
@@ -113,49 +114,21 @@ watch(loaded, (isLoaded) => {
                 <PageHeader class="text-xl font-bold">{{ t('kb.versions') }} - {{ file?.name }}</PageHeader>
             </div>
 
-            <div v-if="versions.length === 0" class="text-[var(--text-muted)] text-center py-8">
-                {{ t('kb.noContent') }}
-            </div>
-
-            <div v-else class="flex flex-col gap-3">
-                <NeutralContainer
-                    v-for="version in versions"
-                    :key="version.id"
-                    data-testid="kb-version"
-                    :data-version="version.version"
-                    class="flex flex-col sm:flex-row sm:items-center gap-3"
-                >
-                    <div class="flex-1">
-                        <span class="font-semibold">{{ t('kb.version') }} {{ version.version }}</span>
-                        <span class="text-sm text-[var(--text-muted)] ml-2">
-                            {{ formatDateTime(version.createdAt) }}
-                        </span>
-                        <span
-                            v-if="version.createdByName"
-                            class="text-sm text-[var(--text-muted)]"
-                        >, {{ version.createdByName }}</span>
-                    </div>
-                    <div class="flex gap-2">
-                        <SecondaryButton @click="viewVersion(version)">
-                            <font-awesome-icon :icon="['fas', 'eye']"/>
-                        </SecondaryButton>
-                        <PrimaryButton v-if="canRevert" @click="requestRevert(version)">
-                            {{ t('kb.revert') }}
-                        </PrimaryButton>
-                    </div>
-                </NeutralContainer>
-            </div>
+            <KbVersionList
+                :versions="versions"
+                :can-revert="canRevert"
+                @view="viewVersion"
+                @revert="requestRevert"
+            />
 
             <Alert v-if="!canRevert" variant="info" class="mt-3">{{ t('kb.revertUnavailableForBlocks') }}</Alert>
 
-            <!-- Version content view -->
             <div v-if="selectedVersion" class="mt-6">
                 <SectionHeader class="text-lg font-semibold mb-2">
                     {{ t('kb.version') }} {{ selectedVersion.version }} - {{ t('kb.content') }}
                 </SectionHeader>
                 <Spinner v-if="loadingVersion"/>
 
-                <!-- First version: show full content -->
                 <template v-else-if="selectedVersion.isFull">
                     <p class="text-sm text-[var(--text-muted)] mb-2">{{ t('kb.initialVersion') }}</p>
                     <NeutralContainer>
@@ -163,7 +136,6 @@ watch(loaded, (isLoaded) => {
                     </NeutralContainer>
                 </template>
 
-                <!-- Subsequent versions: colored diff -->
                 <template v-else>
                     <NeutralContainer class="!p-0 overflow-hidden">
                         <DiffView :patch="selectedVersion.patch" show-line-numbers/>
@@ -172,7 +144,6 @@ watch(loaded, (isLoaded) => {
             </div>
         </template>
 
-        <!-- Revert Confirmation -->
         <Modal v-model="showRevertModal">
             <template #title>{{ t('kb.revert') }}</template>
             <p class="mb-4">{{ t('kb.revertConfirm') }}</p>

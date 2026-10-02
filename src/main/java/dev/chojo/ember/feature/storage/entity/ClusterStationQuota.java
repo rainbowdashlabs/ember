@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.storage.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import org.jspecify.annotations.Nullable;
 
 /**
  * What a cluster granted one of its stations.
@@ -29,14 +30,14 @@ import de.chojo.sadu.mapper.rowmapper.RowMapping;
 public record ClusterStationQuota(
         int stationId,
         int clusterId,
-        Long quotaBytes,
-        Long quotaKbBytes,
-        Long quotaBoardBytes,
-        Long quotaImagesBytes,
-        Long quotaPagesBytes,
-        Long perFileBytes,
-        Long perImageBytes,
-        Integer presetId) {
+        @Nullable Long quotaBytes,
+        @Nullable Long quotaKbBytes,
+        @Nullable Long quotaBoardBytes,
+        @Nullable Long quotaImagesBytes,
+        @Nullable Long quotaPagesBytes,
+        @Nullable Long perFileBytes,
+        @Nullable Long perImageBytes,
+        @Nullable Integer presetId) {
 
     public static RowMapping<ClusterStationQuota> map() {
         return row -> new ClusterStationQuota(

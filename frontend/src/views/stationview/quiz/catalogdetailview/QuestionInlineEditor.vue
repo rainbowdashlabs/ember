@@ -8,7 +8,8 @@ import { useI18n } from 'vue-i18n'
 import MutedIconButton from '@/components/button/MutedIconButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import QuestionEditor from '../QuestionEditor.vue'
-import type { QuizCategory, QuizQuestionTypeName } from '@/api/quiz'
+import type { QuizQuestionTypeName } from '@/api/quiz'
+import type { QuizCategory } from '@/api/generated/schema'
 
 const title = defineModel<string>('title', {required: true})
 const description = defineModel<string>('description', {required: true})
@@ -40,7 +41,7 @@ const { t } = useI18n()
   <div class="space-y-4">
     <div class="flex items-center justify-between">
       <SubHeader>{{ isEditing ? t('quiz.questions.edit') : t('quiz.questions.create') }}</SubHeader>
-      <MutedIconButton :icon="['fas', 'xmark']" label="Close" hover="error" @click="emit('cancel')" />
+      <MutedIconButton :icon="['fas', 'xmark']" :label="t('common.close')" hover="error" @click="emit('cancel')" />
     </div>
     <QuestionEditor
       v-model:title="title"

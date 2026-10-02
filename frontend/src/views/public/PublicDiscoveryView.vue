@@ -6,18 +6,20 @@
 <script setup lang="ts">
 import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
+import {useRoute} from 'vue-router'
 import MutedText from '@/components/typography/MutedText.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
-import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import DiscoveryGroups from '@/components/discovery/DiscoveryGroups.vue'
 import StationMap, {type MapStation} from '@/components/map/StationMap.vue'
+import DiscoveryToolbar from '@/views/public/publicdiscoveryview/DiscoveryToolbar.vue'
+import {initialSearchTerm, searchDiscovery} from '@/views/public/publicdiscoveryview/discoverySearch'
 import {discovery} from '@/api'
-import type {DiscoveryEntry} from '@/api/discovery'
+import type {DiscoveryEntry} from '@/api/generated/schema'
 import {useSession} from '@/composables/useSession'
 import {useFlashMessage} from '@/composables/useFlashMessage'
 import {describeFailure, type Failure} from '@/util/failure'
@@ -25,6 +27,7 @@ import {apiUrl} from '@/util/apiUrl'
 
 const {t} = useI18n()
 const {canManageFederation} = useSession()
+const route = useRoute()
 
 /**
  * Loaded during the server render rather than after mount. This page is public and indexed, and a
@@ -43,19 +46,27 @@ const failure = ref<Failure | null>(null)
 const {message: success, flash} = useFlashMessage(3000)
 const inviteCode = ref('')
 const tab = ref<'list' | 'map'>('list')
+const search = ref(initialSearchTerm(route.query.q))
 
-const mapStations = computed<MapStation[]>(() => stations.value
+const shown = computed(() => searchDiscovery(stations.value, search.value))
+
+const mapStations = computed<MapStation[]>(() => shown.value
     .filter((s) => typeof s.latitude === 'number' && typeof s.longitude === 'number')
     .map((s) => ({
-      uid: s.stationUid,
+      uid: `${s.instanceHost ?? ''}/${s.stationUid}`,
       name: s.name,
       latitude: s.latitude as number,
       longitude: s.longitude as number,
-      subtitle: [s.city, s.country].filter(Boolean).join(', ') || null,
-      href: s.publicSlug ? `/public/station/${s.publicSlug}` : null,
+      subtitle: [s.city, s.country, s.instanceHost].filter(Boolean).join(', ') || null,
+      href: mapLink(s),
       tint: s.isOwnStation ? 'local' : s.alreadyFederated ? 'near' : null,
     })),
 )
+
+function mapLink(station: DiscoveryEntry): string | null {
+  if (station.publicPageUrl) return station.publicPageUrl
+  return station.publicSlug ? `/public/station/${station.publicSlug}` : null
+}
 
 /**
  * Asking to federate, and refreshing the list afterwards, which are two things and not one.
@@ -104,21 +115,13 @@ async function handleInvite(station: DiscoveryEntry) {
     </div>
 
     <AsyncSection :empty="stations.length === 0" :empty-message="t('discovery.empty')" :loading="loading">
-      <div class="mb-4 flex justify-end gap-1">
-        <SelectionToggleButton :selected="tab === 'list'" @toggle="tab = 'list'">
-          <font-awesome-icon :icon="['fas', 'list']" class="mr-1"/>
-          {{ t('stationDiscovery.listTab') }}
-        </SelectionToggleButton>
-        <SelectionToggleButton :selected="tab === 'map'" @toggle="tab = 'map'">
-          <font-awesome-icon :icon="['fas', 'map-location-dot']" class="mr-1"/>
-          {{ t('stationDiscovery.mapTab') }}
-        </SelectionToggleButton>
-      </div>
-      <NeutralContainer v-if="tab === 'map'">
+      <DiscoveryToolbar v-model:search="search" v-model:tab="tab"/>
+      <EmptyState v-if="shown.length === 0" :message="t('discovery.noSearchResults')"/>
+      <NeutralContainer v-else-if="tab === 'map'">
         <EmptyState v-if="mapStations.length === 0" :message="t('stationDiscovery.noCoordinatesForFilter')"/>
         <StationMap v-else :stations="mapStations" height="520px"/>
       </NeutralContainer>
-      <DiscoveryGroups v-else :stations="stations" :can-connect="canManageFederation()" :show-invite="true" @connect="handleConnect" @invite="handleInvite"/>
+      <DiscoveryGroups v-else :stations="shown" :can-connect="canManageFederation()" :show-invite="true" @connect="handleConnect" @invite="handleInvite"/>
     </AsyncSection>
   </div>
   </ViewContent>

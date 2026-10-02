@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.events.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import org.jspecify.annotations.Nullable;
 
 /**
  * What a partner station may do with an appointment shared with it.
@@ -16,7 +17,8 @@ import de.chojo.sadu.mapper.rowmapper.RowMapping;
  * @param slotBudget      how many places this partner may fill on one date, or {@code null} for no cap
  * @param partnerConfirms whether the partner decides who fills them rather than the host
  */
-public record EventPartnerPlaces(int eventId, int partnerId, Integer slotBudget, boolean partnerConfirms) {
+public record EventPartnerPlaces(
+        int eventId, int partnerId, @Nullable Integer slotBudget, boolean partnerConfirms) {
 
     /** What holds where nobody has said otherwise: the host decides and there is no cap. */
     public static EventPartnerPlaces hostDecides(int eventId, int partnerId) {

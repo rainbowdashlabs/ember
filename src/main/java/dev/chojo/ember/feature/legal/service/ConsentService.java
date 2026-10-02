@@ -5,17 +5,17 @@
  */
 package dev.chojo.ember.feature.legal.service;
 
+import dev.chojo.ember.api.refusal.LegalRefusal;
 import dev.chojo.ember.conf.file.elements.Api;
-import dev.chojo.ember.conf.file.elements.Network;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.legal.entity.ConsentProof;
 import dev.chojo.ember.feature.legal.entity.DocumentVersions;
 import dev.chojo.ember.feature.legal.entity.GdprConsent;
-import dev.chojo.ember.util.ClientIp;
-import io.javalin.http.BadRequestResponse;
+import dev.chojo.ember.util.FilePaths;
 import io.javalin.http.Context;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,7 +37,6 @@ public class ConsentService {
     private static final Logger log = LoggerFactory.getLogger(ConsentService.class);
 
     private final AccountRepository accountRepository;
-    private final Network network;
     private final LegalDocumentService documentService;
     private final Path privacyPolicyDir;
     private final Path consentDir;
@@ -45,9 +44,8 @@ public class ConsentService {
     private final Path imprintDir;
 
     @Inject
-    public ConsentService(AccountRepository accountRepository, Api apiConfig, Network network) {
+    public ConsentService(AccountRepository accountRepository, Api apiConfig) {
         this.accountRepository = accountRepository;
-        this.network = network;
         this.documentService = new LegalDocumentService(apiConfig.placeholderFile());
         this.privacyPolicyDir = Path.of(apiConfig.privacyPolicyDir());
         this.consentDir = Path.of(apiConfig.consentDir());
@@ -78,8 +76,6 @@ public class ConsentService {
             return address.getHostAddress();
         }
     }
-
-    // -- Document retrieval --
 
     /**
      * Called on application startup. Initializes all legal documents,
@@ -145,15 +141,13 @@ public class ConsentService {
     private static boolean holdsMarkdown(Path dir) {
         if (!Files.isDirectory(dir)) return false;
         try (var paths = Files.walk(dir)) {
-            return paths.anyMatch(path ->
-                    Files.isRegularFile(path) && path.getFileName().toString().endsWith(".md"));
+            return paths.anyMatch(
+                    path -> Files.isRegularFile(path) && FilePaths.nameOf(path).endsWith(".md"));
         } catch (IOException e) {
             log.warn("Failed to look for legal texts in {}", dir, e);
             return false;
         }
     }
-
-    // -- Version info --
 
     /**
      * Retrieves the GDPR consent text rendered for the given locale.
@@ -164,8 +158,6 @@ public class ConsentService {
     public LegalDocumentService.RenderedDocument getConsentText(String locale) {
         return documentService.getDocument(consentDir, locale);
     }
-
-    // -- Diff --
 
     /**
      * Returns the current version hashes of all legal documents.
@@ -186,11 +178,9 @@ public class ConsentService {
      * @param toVersion   the version hash to diff to
      * @return the line-based diff text, or null if unavailable
      */
-    public String getPrivacyDiff(String fromVersion, String toVersion) {
+    public @Nullable String getPrivacyDiff(String fromVersion, String toVersion) {
         return documentService.getDiff(privacyPolicyDir, fromVersion, toVersion);
     }
-
-    // -- Consent recording --
 
     /**
      * Gets the diff between two terms of service versions.
@@ -199,7 +189,7 @@ public class ConsentService {
      * @param toVersion   the version hash to diff to
      * @return the line-based diff text, or null if unavailable
      */
-    public String getTosDiff(String fromVersion, String toVersion) {
+    public @Nullable String getTosDiff(String fromVersion, String toVersion) {
         return documentService.getDiff(tosDir, fromVersion, toVersion);
     }
 
@@ -220,8 +210,8 @@ public class ConsentService {
             String privacyVersion,
             String tosVersion,
             String ipAddress,
-            String country,
-            String userAgent) {
+            @Nullable String country,
+            @Nullable String userAgent) {
         accountRepository.recordConsent(
                 accountId, consentVersion, privacyVersion, tosVersion, ipAddress, country, userAgent);
         log.info(
@@ -253,31 +243,33 @@ public class ConsentService {
      * @param privacyVersion the privacy policy version the submitter clicked through
      * @param tosVersion     the terms of service version the submitter clicked through
      * @return a populated {@link ConsentProof} ready to persist on the submission row
-     * @throws BadRequestResponse if any hash is missing or does not match the current
-     *                            published version (the caller's UI should refresh the
-     *                            documents and re-prompt)
+     * @throws dev.chojo.ember.api.refusal.RefusalResponse if any hash is missing or does not match the
+     *                                             current published version (the caller's UI
+     *                                             should refresh the documents and re-prompt)
      */
     public ConsentProof requireAcceptance(
-            Context ctx, String consentVersion, String privacyVersion, String tosVersion) {
+            Context ctx,
+            @Nullable String consentVersion,
+            @Nullable String privacyVersion,
+            @Nullable String tosVersion) {
         if (consentVersion == null || consentVersion.isBlank()) {
-            throw new BadRequestResponse("consentVersion is required");
+            throw LegalRefusal.LEGAL_CONSENT_VERSION_MISSING.raise();
         }
         if (privacyVersion == null || privacyVersion.isBlank()) {
-            throw new BadRequestResponse("privacyVersion is required");
+            throw LegalRefusal.LEGAL_PRIVACY_VERSION_MISSING.raise();
         }
         if (tosVersion == null || tosVersion.isBlank()) {
-            throw new BadRequestResponse("tosVersion is required");
+            throw LegalRefusal.LEGAL_TERMS_VERSION_MISSING.raise();
         }
 
         var current = getCurrentVersions();
         if (!current.consentVersion().equals(consentVersion)
                 || !current.privacyVersion().equals(privacyVersion)
                 || !current.tosVersion().equals(tosVersion)) {
-            throw new BadRequestResponse(
-                    "Legal documents have changed since the form was loaded. Please reload and accept again.");
+            throw LegalRefusal.LEGAL_DOCUMENTS_CHANGED.raise();
         }
 
-        String ipAddress = anonymizeIp(ClientIp.resolve(ctx, network));
+        String ipAddress = anonymizeIp(InetAddress.ofLiteral(ctx.ip()));
         String country = ctx.header("CF-IPCountry");
         String userAgent = ctx.userAgent();
         return new ConsentProof(

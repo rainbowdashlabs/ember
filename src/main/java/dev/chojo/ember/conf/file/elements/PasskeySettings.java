@@ -73,4 +73,8 @@ public class PasskeySettings {
     public boolean printAdminEnrollmentLink() {
         return printAdminEnrollmentLink;
     }
+
+    public void mode(Mode mode) {
+        this.mode = mode.name();
+    }
 }

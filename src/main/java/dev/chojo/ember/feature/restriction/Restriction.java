@@ -7,12 +7,18 @@ package dev.chojo.ember.feature.restriction;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import dev.chojo.ember.api.auth.StationUserType;
+import org.jspecify.annotations.Nullable;
 
 /**
  * A single restriction entry. Exactly one of userType, groupId, tagId, memberId is set.
  * Used uniformly across events, quiz tests, forms, news, and KB.
  */
-public record Restriction(int id, StationUserType userType, Integer groupId, Integer tagId, Integer memberId) {
+public record Restriction(
+        int id,
+        @Nullable StationUserType userType,
+        @Nullable Integer groupId,
+        @Nullable Integer tagId,
+        @Nullable Integer memberId) {
 
     public static RowMapping<Restriction> map() {
         return row -> new Restriction(

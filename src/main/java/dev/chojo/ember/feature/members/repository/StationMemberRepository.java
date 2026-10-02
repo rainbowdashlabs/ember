@@ -17,15 +17,18 @@ import dev.chojo.ember.feature.members.entity.Permission;
 import dev.chojo.ember.feature.members.entity.RichMember;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.util.sql.MemberNameSql;
+import dev.chojo.ember.util.sql.PermissionHolderSql;
 import dev.chojo.ember.util.sql.SqlSupport;
 import dev.chojo.ember.util.sql.WhereBuilder;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
@@ -103,6 +106,19 @@ public class StationMemberRepository {
      */
     public Optional<StationMember> findById(int id) {
         return SqlSupport.findById("station_member", STATION_MEMBER_COLUMNS, id, StationMember.map());
+    }
+
+    /**
+     * Finds the station members with the given identifiers in one round trip, for a list that would
+     * otherwise read them one row at a time. Identifiers that no longer resolve are simply absent.
+     */
+    public List<StationMember> findByIds(List<Integer> ids) {
+        if (ids == null || ids.isEmpty()) return List.of();
+        return query("""
+                SELECT %s FROM station_member WHERE id = ANY(:ids);""", STATION_MEMBER_COLUMNS)
+                .single(call().bind("ids", ids, PostgreSqlTypes.INTEGER))
+                .map(StationMember.map())
+                .all();
     }
 
     /**
@@ -192,8 +208,9 @@ public class StationMemberRepository {
     }
 
     /**
-     * Finds members of a station with all associated data (roles, groups, tags, profile values)
-     * aggregated in a single query. Avoids N+1 queries when loading the member list.
+     * Finds members of a station with all associated data (roles, groups, tags, profile values and
+     * whether their profile is complete) aggregated in a single query. Avoids N+1 queries when loading
+     * the member list.
      *
      * @param stationId     the station identifier
      * @param includeFormer whether to include former members
@@ -202,6 +219,7 @@ public class StationMemberRepository {
     public List<RichMember> findRichMembers(int stationId, boolean includeFormer) {
         return query("""
                 SELECT sm.id, sm.station_id, sm.uid, sm.account_id, sm.former, sm.user_type, sm.join_date,
+                       (SELECT s.uid FROM station s WHERE s.id = sm.station_id) AS station_uid,
                        %s AS name,
                        coalesce(a.first_name, sm.display_name, '') AS first_name,
                        coalesce(a.last_name, '') AS last_name,
@@ -228,11 +246,15 @@ public class StationMemberRepository {
                        coalesce((SELECT json_agg(sp.name) FROM station_member_permission smp JOIN station_permission sp ON sp.id = smp.permission_id WHERE smp.member_id = sm.id), '[]'::JSON)::TEXT AS roles,
                        coalesce((SELECT json_agg(json_build_object('id', mg.id, 'name', mg.name)) FROM member_group_entry mge JOIN member_group mg ON mg.id = mge.group_id WHERE mge.member_id = sm.id), '[]'::JSON)::TEXT AS groups,
                        coalesce((SELECT json_agg(json_build_object('id', ut.id, 'name', ut.name)) FROM user_tag_entry ute JOIN user_tag ut ON ut.id = ute.tag_id WHERE ute.member_id = sm.id), '[]'::JSON)::TEXT AS tags,
-                       coalesce((SELECT json_object_agg(pfv.field_id, pfv.value) FROM profile_field_value pfv WHERE pfv.member_id = sm.id), '{}'::JSON)::TEXT AS profile_values
+                       coalesce((SELECT json_object_agg(pfv.field_id, pfv.value) FROM profile_field_value pfv WHERE pfv.member_id = sm.id), '{}'::JSON)::TEXT AS profile_values,
+                       NOT %s AS profile_complete
                 FROM station_member sm
                 LEFT JOIN account a ON a.id = sm.account_id
                 WHERE sm.station_id = :station_id AND (sm.former = FALSE OR :include_former)
-                ORDER BY %s;""".formatted(MemberNameSql.identifiedOfMember("sm", "a"), MemberNameSql.order("sm", "a")))
+                ORDER BY %s;""".formatted(
+                                MemberNameSql.identifiedOfMember("sm", "a"),
+                                ProfileCompletenessSql.incomplete("sm"),
+                                MemberNameSql.order("sm", "a")))
                 .single(call().bind("station_id", stationId).bind("include_former", includeFormer))
                 .map(RichMember.map())
                 .all();
@@ -255,9 +277,9 @@ public class StationMemberRepository {
      */
     public List<ClusterMemberRow> findClusterMembers(
             int clusterId,
-            String search,
-            Integer stationId,
-            StationUserType userType,
+            @Nullable String search,
+            @Nullable Integer stationId,
+            @Nullable StationUserType userType,
             boolean includeFormer,
             int limit,
             int offset) {
@@ -307,7 +329,11 @@ public class StationMemberRepository {
      * How many members that same search would find, for the paging.
      */
     public int countClusterMembers(
-            int clusterId, String search, Integer stationId, StationUserType userType, boolean includeFormer) {
+            int clusterId,
+            @Nullable String search,
+            @Nullable Integer stationId,
+            @Nullable StationUserType userType,
+            boolean includeFormer) {
         return SqlSupport.count(
                 """
                 SELECT count(*) AS cnt
@@ -399,7 +425,7 @@ public class StationMemberRepository {
      * small cap. Empty {@code search} returns the most recently joined active members so the
      * picker has something to show on first focus. Returns active members only (former excluded).
      */
-    public List<PickerMember> searchForPicker(int stationId, String search, int limit) {
+    public List<PickerMember> searchForPicker(int stationId, @Nullable String search, int limit) {
         boolean hasSearch = search != null && !search.isBlank();
         String order = hasSearch ? "display_name" : "sm.join_date DESC";
         var where = WhereBuilder.create()
@@ -595,7 +621,7 @@ public class StationMemberRepository {
      * @param nickname the name, or null to give them their register name back
      * @param setBy the member who wrote it
      */
-    public void setNickname(int id, String nickname, int setBy) {
+    public void setNickname(int id, @Nullable String nickname, int setBy) {
         query("""
                 UPDATE station_member
                 SET nickname = :nickname, nickname_set_by = :set_by, nickname_set_at = now()
@@ -609,23 +635,6 @@ public class StationMemberRepository {
                 .single()
                 .map(Permission.map())
                 .all();
-    }
-
-    public boolean hasLoginPermission(int accountId) {
-        return SqlSupport.exists("""
-                SELECT 1
-                FROM station_member sm
-                WHERE sm.account_id = :account_id
-                  AND sm.former = FALSE
-                  AND (
-                    sm.user_type IN ('GUARDIAN', 'TEAM', 'MANAGER')
-                    OR exists (
-                        SELECT 1 FROM station_member_permission smp
-                        JOIN station_permission sp ON sp.id = smp.permission_id
-                        WHERE smp.member_id = sm.id AND sp.name = 'LOGIN'
-                    )
-                  )
-                LIMIT 1;""", call().bind("account_id", accountId));
     }
 
     public List<Permission> findPermissions(int memberId) {
@@ -674,32 +683,25 @@ public class StationMemberRepository {
     }
 
     /**
-     * Find all active members of a station who have the given permission (directly or via group).
+     * Find all active members of a station who hold the given permission, by the same rule the
+     * member permission resolver applies to one member: what their user type carries everywhere,
+     * what the station grants their user type, what was granted to them directly or through a
+     * group, and the guardian right that follows from looking after somebody.
      *
      * <p>A wider right that carries the asked-for one counts. Somebody holding only the station
      * administrator right may do everything a manager may do, and a search by the manager's name
      * alone passed them over: the screens let them in and the notifications about that work never
-     * reached them.
+     * reached them. The same holds for a station manager whose right comes from their user type
+     * and was never written down as a grant.
+     *
+     * <p>The rule itself is {@link PermissionHolderSql}, shared with the notifications.
      */
     public List<StationMember> findMembersWithPermission(int stationId, StationPermission permission) {
         return query("""
-                SELECT DISTINCT %s FROM station_member sm
+                SELECT %s FROM station_member sm
                 WHERE sm.station_id = :station_id AND sm.former = FALSE
-                  AND (
-                    exists (
-                        SELECT 1 FROM station_member_permission smp
-                        JOIN station_permission sp ON sp.id = smp.permission_id
-                        WHERE smp.member_id = sm.id AND sp.name = ANY(:permission_names)
-                    )
-                    OR exists (
-                        SELECT 1 FROM member_group_entry mge
-                        JOIN member_group_permission mgp ON mgp.group_id = mge.group_id
-                        JOIN station_permission sp ON sp.id = mgp.permission_id
-                        WHERE mge.member_id = sm.id AND sp.name = ANY(:permission_names)
-                    )
-                  );""", SqlSupport.alias("sm", STATION_MEMBER_COLUMNS))
-                .single(call().bind("station_id", stationId)
-                        .bind("permission_names", permission.grantedBy(), PostgreSqlTypes.VARCHAR))
+                  AND (%s);""", SqlSupport.alias("sm", STATION_MEMBER_COLUMNS), PermissionHolderSql.HOLDS_PERMISSION)
+                .single(PermissionHolderSql.bind(call().bind("station_id", stationId), Set.of(permission)))
                 .map(StationMember.map())
                 .all();
     }
@@ -775,11 +777,21 @@ public class StationMemberRepository {
                 .orElse(false);
     }
 
+    /**
+     * The guardians of a member who are still at the station.
+     *
+     * <p>A guardian who has left is nobody's guardian any more, the same as a ward who has left is
+     * nobody's ward in {@link #findManaged(int)}: they are neither told about the member nor listed
+     * as looking after them.
+     *
+     * @param managedId the member looked after
+     * @return their guardians who have not left
+     */
     public List<StationMember> findManagers(int managedId) {
         return query("""
                 SELECT %s FROM station_member sm
                 JOIN member_manager mm ON sm.id = mm.manager_id
-                WHERE mm.managed_id = :managed_id;""", SqlSupport.alias("sm", STATION_MEMBER_COLUMNS))
+                WHERE mm.managed_id = :managed_id AND sm.former = FALSE;""", SqlSupport.alias("sm", STATION_MEMBER_COLUMNS))
                 .single(call().bind("managed_id", managedId))
                 .map(StationMember.map())
                 .all();

@@ -5,11 +5,11 @@
  */
 <script lang="ts" setup>
 import RecordTable from '@/components/table/RecordTable.vue'
+import MovementStandingBadges from '@/components/inventory/MovementStandingBadges.vue'
 import type {DataTableApi} from '@/composables/useDataTable'
-import type {Movement} from '@/api/movements'
+import type {MovementResponse} from '@/api/generated/schema'
 import MovementMemberCell from './MovementMemberCell.vue'
 import MovementPurposeCell from './MovementPurposeCell.vue'
-import MovementStandingCell from './MovementStandingCell.vue'
 import MovementSubjectCell from './MovementSubjectCell.vue'
 import {MovementColumn} from './movementColumns'
 
@@ -19,7 +19,7 @@ import {MovementColumn} from './movementColumns'
  * `actions` of a row and its own words for an empty list.
  */
 const props = withDefaults(defineProps<{
-  table: DataTableApi<Movement>
+  table: DataTableApi<MovementResponse>
   testId?: string
   clickable?: boolean
 }>(), {
@@ -28,14 +28,14 @@ const props = withDefaults(defineProps<{
 })
 
 const emit = defineEmits<{
-  'row-click': [movement: Movement]
+  'row-click': [movement: MovementResponse]
 }>()
 
 defineSlots<{
-  actions?: (scope: {row: Movement}) => unknown
+  actions?: (scope: {row: MovementResponse}) => unknown
   empty?: () => unknown
   /** The naming cell, where a screen makes it the link to whatever a press on the row opens. */
-  'cell-subject'?: (scope: {row: Movement}) => unknown
+  'cell-subject'?: (scope: {row: MovementResponse}) => unknown
 }>()
 </script>
 
@@ -59,7 +59,7 @@ defineSlots<{
       <MovementMemberCell :movement="row" :text="text"/>
     </template>
     <template #[`cell-${MovementColumn.STANDING}`]="{row}">
-      <MovementStandingCell :movement="row"/>
+      <MovementStandingBadges :movement="row"/>
     </template>
     <template v-if="$slots.actions" #actions="{row}">
       <slot :row="row" name="actions"/>

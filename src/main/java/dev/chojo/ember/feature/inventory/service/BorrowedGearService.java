@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
+import dev.chojo.ember.feature.inventory.entity.BorrowedItem;
 import dev.chojo.ember.feature.inventory.entity.Glyph;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
@@ -143,7 +144,7 @@ public class BorrowedGearService {
      * @param stationId the borrowing station
      * @return one entry per borrowed piece, by partner and then by name
      */
-    public List<InventoryRepository.BorrowedItem> borrowedAt(int stationId) {
+    public List<BorrowedItem> borrowedAt(int stationId) {
         return inventoryRepository.findBorrowedItems(stationId);
     }
 }

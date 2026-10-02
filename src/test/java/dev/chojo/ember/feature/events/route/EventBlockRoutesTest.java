@@ -9,19 +9,20 @@ import dev.chojo.ember.api.LocalRouteServer;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.feature.attendance.service.AttendanceTemplateGuards;
 import dev.chojo.ember.feature.content.BlockReferenceTestBase;
 import dev.chojo.ember.feature.equipment.service.EquipmentReleaseService;
 import dev.chojo.ember.feature.events.service.BatchEventService;
 import dev.chojo.ember.feature.events.service.EventCategoryService;
 import dev.chojo.ember.feature.events.service.EventCrudService;
-import dev.chojo.ember.feature.events.service.EventDateResolver;
 import dev.chojo.ember.feature.events.service.EventExportService;
 import dev.chojo.ember.feature.events.service.EventFieldRegistrationService;
 import dev.chojo.ember.feature.events.service.EventOccurrenceService;
-import dev.chojo.ember.feature.events.service.EventRegistrationFieldService;
 import dev.chojo.ember.feature.events.service.EventReminderService;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
-import dev.chojo.ember.feature.members.service.StationMemberService;
+import dev.chojo.ember.feature.events.service.EventTemplateService;
+import dev.chojo.ember.feature.events.service.OccurrenceCalendar;
+import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -47,10 +48,14 @@ class EventBlockRoutesTest extends BlockReferenceTestBase {
 
     @BeforeAll
     static void setupClass() {
-        var crudService =
-                new EventCrudService(eventRepo, new DomainEventBus(Set.of()), mock(EquipmentReleaseService.class));
+        var crudService = new EventCrudService(
+                eventRepo,
+                new DomainEventBus(Set.of()),
+                mock(EquipmentReleaseService.class),
+                restrictionService,
+                mock(AttendanceTemplateGuards.class));
         var visibility =
-                new EventVisibility(crudService, mock(EventRestrictionService.class), mock(StationMemberService.class));
+                new EventVisibility(crudService, mock(EventRestrictionService.class), mock(GuardianPolicy.class));
         var embedRoutes = new EventEmbedRoutes(crudService, new EventCategoryService(eventCategoryRepo), visibility);
         var eventRoutes = new EventRoutes(
                 crudService,
@@ -58,11 +63,11 @@ class EventBlockRoutesTest extends BlockReferenceTestBase {
                 mock(EventRestrictionService.class),
                 mock(EventReminderService.class),
                 mock(BatchEventService.class),
-                mock(StationMemberService.class),
+                mock(GuardianPolicy.class),
                 mock(EventExportService.class),
-                mock(EventRegistrationFieldService.class),
+                mock(EventTemplateService.class),
                 mock(EventFieldRegistrationService.class),
-                mock(EventDateResolver.class),
+                mock(OccurrenceCalendar.class),
                 visibility);
         var editor = new UserSession(
                 account,

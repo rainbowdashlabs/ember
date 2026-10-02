@@ -17,11 +17,8 @@ import {emberLogo} from '@/composables/useEmberLogo'
 import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import NewsViewBadge from '../newsshared/NewsViewBadge.vue'
-import type {NewsEntry} from '@/api/news'
-import type {MemberIdentity} from '@/api/types'
+import type {MemberIdentity, NewsResponse} from '@/api/generated/schema'
 import {formatDateTime} from '@/util/format'
-
-interface BadgeHandle {refresh: () => Promise<void>}
 
 const props = defineProps<{
   kind: 'local' | 'federated' | 'system'
@@ -29,14 +26,14 @@ const props = defineProps<{
   title: string
   author?: MemberIdentity | null
   authorName?: string
-  publishedAt?: string
+  publishedAt?: string | null
   restricted?: boolean
   publicBlog?: boolean
   stationName?: string
-  localEntry?: NewsEntry
+  localEntry?: NewsResponse
   canEditNews: boolean
   setViewBadgeRef: (el: unknown, newsId: number) => void
-  onRequestDelete: (entry: NewsEntry) => void
+  onRequestDelete: (entry: NewsResponse) => void
 }>()
 
 const {t} = useI18n()

@@ -12,9 +12,8 @@ import Alert from '@/components/feedback/Alert.vue'
 import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import FederatedBoardStationGroup from './federatedboardsview/FederatedBoardStationGroup.vue'
 import {useSession} from '@/composables/useSession'
+import type {DiscoveredBoard, EnrichedBookmark} from '@/api/generated/schema'
 import {
-    type DiscoveredBoard,
-    type FederatedBoardBookmark,
     discoverBoards,
     listBookmarks,
     createBookmark,
@@ -29,7 +28,7 @@ const {loaded} = useSession()
 const {refresh: refreshSidebarBookmarks} = useFederatedBoardBookmarks()
 
 const boards = ref<DiscoveredBoard[]>([])
-const bookmarks = ref<FederatedBoardBookmark[]>([])
+const bookmarks = ref<EnrichedBookmark[]>([])
 const togglingBookmark = ref<string | null>(null)
 
 const groupedBoards = computed(() => {
@@ -48,7 +47,7 @@ function bookmarkKey(partnerStationUid: string, remoteBoardUid: string): string 
     return `${partnerStationUid}:${remoteBoardUid}`
 }
 
-function findBookmark(partnerStationUid: string, remoteBoardUid: string): FederatedBoardBookmark | undefined {
+function findBookmark(partnerStationUid: string, remoteBoardUid: string): EnrichedBookmark | undefined {
     return bookmarks.value.find(b => b.partnerStationUid === partnerStationUid && b.remoteBoardUid === remoteBoardUid)
 }
 
@@ -82,7 +81,7 @@ async function toggleBookmark(board: DiscoveredBoard) {
                 remoteBoardShortKey: board.shortKey,
                 shareMode: board.shareMode,
             })
-            bookmarks.value.push(created)
+            bookmarks.value.push({...created, partnerStationUid: board.partnerStationUid})
         }
         await refreshSidebarBookmarks()
     } catch (e) {

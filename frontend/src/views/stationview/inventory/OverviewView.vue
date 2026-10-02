@@ -9,10 +9,8 @@ import { useI18n } from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
-import {MovementState, type Movement} from '@/api/movements'
-import type { Inventory, InventorySize } from '@/api/inventory'
-import type { ProcurementEntry } from '@/api/procurement'
-import type { StationMember } from '@/api/types'
+import {MovementState} from '@/api/movements'
+import type { Inventory, InventorySize, MemberWithName, MovementResponse, ProcurementResponse } from '@/api/generated/schema'
 import { inventory, stationMembers, movements, procurement } from '@/api'
 import { useStations } from '@/composables/useStations'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
@@ -27,8 +25,8 @@ const { t } = useI18n()
 const { activeStation } = useStations()
 
 const lostItems = ref<LostItem[]>([])
-const exchangeList = ref<Movement[]>([])
-const openProcurement = ref<ProcurementEntry[]>([])
+const exchangeList = ref<MovementResponse[]>([])
+const openProcurement = ref<ProcurementResponse[]>([])
 const inventoryTypeMap = ref<Map<number, string>>(new Map())
 const inventoryList = ref<Inventory[]>([])
 /** The association above that keeps its gear here, which is who a request would go to. */
@@ -68,7 +66,7 @@ const {loading, failure, reload} = useAsyncLoader(async () => {
   for (const inv of inventories) typeMap.set(inv.id, inv.inventoryType ?? '')
   inventoryTypeMap.value = typeMap
 
-  const memberMap = new Map<number, StationMember>()
+  const memberMap = new Map<number, MemberWithName>()
   for (const m of members) memberMap.set(m.id, m)
 
   const lost: LostItem[] = []

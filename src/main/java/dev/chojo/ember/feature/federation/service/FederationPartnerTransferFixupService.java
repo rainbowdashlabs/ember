@@ -9,9 +9,9 @@ import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.route.RemoteFederationRoutes;
-import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,10 +28,9 @@ import static de.chojo.sadu.queries.api.query.Query.query;
  * <ul>
  *   <li>The partner moved with this station (a multi-station transfer to the same destination)
  *       or already lived on the destination - the partnership becomes intra-instance, so
- *       {@code remote_host} and {@code webhook_url} are cleared.</li>
+ *       {@code remote_host} is cleared.</li>
  *   <li>The partner stayed on the source instance - the partnership becomes cross-instance
- *       pointing back at the source, so {@code remote_host} / {@code webhook_url} are set to
- *       the source instance URL.</li>
+ *       pointing back at the source, so {@code remote_host} is set to the source instance URL.</li>
  *   <li>The partner was already remote on the source (third instance) - the existing
  *       {@code remote_host} is left untouched and round-trips verbatim.</li>
  * </ul>
@@ -47,16 +46,12 @@ public class FederationPartnerTransferFixupService {
 
     private final FederationRepository federationRepository;
     private final FederationHttpClient federationHttpClient;
-    private final StationRepository stationRepository;
 
     @Inject
     public FederationPartnerTransferFixupService(
-            FederationRepository federationRepository,
-            FederationHttpClient federationHttpClient,
-            StationRepository stationRepository) {
+            FederationRepository federationRepository, FederationHttpClient federationHttpClient) {
         this.federationRepository = federationRepository;
         this.federationHttpClient = federationHttpClient;
-        this.stationRepository = stationRepository;
     }
 
     /**
@@ -81,7 +76,7 @@ public class FederationPartnerTransferFixupService {
         int cleared =
                 query("""
                         UPDATE federation_partner
-                        SET remote_host = NULL, webhook_url = NULL
+                        SET remote_host = NULL
                         WHERE station_id = :station_id
                           AND NOT cluster_managed
                           AND EXISTS (
@@ -94,7 +89,7 @@ public class FederationPartnerTransferFixupService {
         if (url != null && !url.isEmpty()) {
             retargeted = query("""
                             UPDATE federation_partner
-                            SET remote_host = :url, webhook_url = :url
+                            SET remote_host = :url
                             WHERE station_id = :station_id
                               AND NOT cluster_managed
                               AND remote_host IS NULL
@@ -129,32 +124,35 @@ public class FederationPartnerTransferFixupService {
             log.warn("skip new-host announce for station {}: destination instance URL not configured", stationId);
             return;
         }
-        var station = stationRepository.findById(stationId).orElse(null);
-        if (station == null || station.federationPrivateKey() == null) {
+        var partners = federationRepository.findPartners(stationId);
+        var remote = partners.stream()
+                .filter(partner -> partner.status() == FederationPartner.FederationStatus.ACTIVE)
+                .filter(partner -> {
+                    String host = partner.remoteHost();
+                    return host != null && !host.isBlank();
+                })
+                .toList();
+        int skipped = partners.size() - remote.size();
+        if (remote.isEmpty()) {
+            log.info("no remote partner to announce new host {} to for station {}", url, stationId);
+            return;
+        }
+        if (!federationHttpClient.canSign(stationId)) {
             log.warn(
                     "skip new-host announce for station {}: no federation private key on the imported station",
                     stationId);
             return;
         }
-        var partners = federationRepository.findPartners(stationId);
         var payload = new AnnounceBody(url);
         int sent = 0;
-        int skipped = 0;
-        for (FederationPartner partner : partners) {
-            if (partner.status() != FederationPartner.FederationStatus.ACTIVE
-                    || partner.remoteHost() == null
-                    || partner.remoteHost().isBlank()) {
-                skipped++;
-                continue;
-            }
+        for (FederationPartner partner : remote) {
             try {
                 boolean ok = federationHttpClient.post(
-                        partner.remoteHost(),
+                        partner.requireRemoteHost(),
                         RemoteFederationRoutes.ANNOUNCE.at(),
                         payload,
                         partner.partnerStationId(),
-                        stationId,
-                        station.federationPrivateKey());
+                        stationId);
                 if (ok) {
                     sent++;
                 } else {
@@ -182,7 +180,7 @@ public class FederationPartnerTransferFixupService {
      * UID and was previously intra-instance is flipped to point at the destination URL.
      * Already-remote rows are left untouched.
      */
-    public void flipSourceSideRetainedPartners(UUID departedStationUid, String destinationInstanceUrl) {
+    public void flipSourceSideRetainedPartners(UUID departedStationUid, @Nullable String destinationInstanceUrl) {
         String url = destinationInstanceUrl == null ? null : destinationInstanceUrl.trim();
         if (url == null || url.isEmpty()) {
             log.warn(
@@ -192,7 +190,7 @@ public class FederationPartnerTransferFixupService {
         }
         int flipped = query("""
                         UPDATE federation_partner
-                        SET remote_host = :url, webhook_url = :url
+                        SET remote_host = :url
                         WHERE partner_station_id = :partner_uid::UUID
                           AND remote_host IS NULL;
                         """)

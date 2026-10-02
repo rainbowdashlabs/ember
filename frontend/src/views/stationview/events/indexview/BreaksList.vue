@@ -13,7 +13,7 @@ import DeleteButton from '@/components/button/DeleteButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
-import type {EventBreak} from '@/api/events'
+import type {EventBreak} from '@/api/generated/schema'
 import MutedText from '@/components/typography/MutedText.vue'
 import {formatDate} from '@/util/format'
 
@@ -45,7 +45,7 @@ const emit = defineEmits<{
       </ButtonRow>
     </div>
 
-    <EmptyState compact v-if="breaks.length === 0">{{ t('events.noBreaks') }}</EmptyState>
+    <EmptyState v-if="breaks.length === 0" compact>{{ t('events.noBreaks') }}</EmptyState>
 
     <div class="space-y-2">
       <NeutralContainer v-for="br in breaks" :key="br.id" class="flex items-center justify-between flex-wrap gap-2">

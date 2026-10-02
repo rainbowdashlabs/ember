@@ -14,7 +14,7 @@ import GearIconPicker from '@/components/input/select/GearIconPicker.vue'
 import GearGlyph from '@/components/inventory/GearGlyph.vue'
 import {glyphFor} from '@/util/glyph'
 import {inventoryContainers} from '@/api'
-import type {InventoryContainerKind} from '@/api/inventoryContainers'
+import type {InventoryContainerKind} from '@/api/generated/schema'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 
@@ -24,15 +24,15 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'update:modelValue', value: number | null): void
-  (e: 'kind-created', kind: InventoryContainerKind): void
+  'update:modelValue': [value: number | null]
+  'kind-created': [kind: InventoryContainerKind]
   /**
    * The kind that was just chosen, whether picked from the list or made on the spot.
    *
    * <p>Beside the id, because what a container is called usually is what it is, and a caller that
    * wants to offer that has the label here rather than having to look the id up again.
    */
-  (e: 'picked', kind: InventoryContainerKind): void
+  picked: [kind: InventoryContainerKind]
 }>()
 
 const {t} = useI18n()

@@ -16,7 +16,7 @@ import InfoBadge from '@/components/badge/InfoBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
 import type {MemberOption} from '@/components/input/select/memberOption'
-import type {FederatedRegistration} from '@/api/events'
+import type {RemoteMemberRegistration} from '@/api/generated/schema'
 import {useConfirmAction} from '@/composables/useConfirmAction'
 import SignOffConfirm from '@/views/stationview/events/eventshared/eventregistrationactions/SignOffConfirm.vue'
 
@@ -29,7 +29,7 @@ const selectedMemberUid = defineModel<string>('selectedMemberUid', {required: tr
 
 const props = defineProps<{
   eligibleMembers: EligibleMember[]
-  registrations: FederatedRegistration[]
+  registrations: RemoteMemberRegistration[]
   eventId: number
   registering: boolean
   /**
@@ -63,7 +63,7 @@ const {
   onConfirm: async uid => emit('withdraw', uid),
 })
 
-function getRegistration(uid: string): FederatedRegistration | undefined {
+function getRegistration(uid: string): RemoteMemberRegistration | undefined {
   return props.registrations.find(r => r.eventId === props.eventId && r.remoteMemberId === uid)
 }
 

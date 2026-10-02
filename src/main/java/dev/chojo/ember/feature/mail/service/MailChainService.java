@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.mail.repository.StationMailProviderRepository;
 import dev.chojo.ember.feature.station.entity.MailProviderType;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -59,7 +60,7 @@ public class MailChainService {
                     entry.provider(),
                     entry.host(),
                     entry.port(),
-                    entry.ssl(),
+                    entry.encryption(),
                     entry.user(),
                     entry.password(),
                     entry.apiKey(),
@@ -90,14 +91,14 @@ public class MailChainService {
     }
 
     /**
-     * The signing secret Sweego issued for whoever owns this chain, or null when reports from it
+     * The signing secret Sweego issued for whoever owns this chain, or empty when reports from it
      * are not checked against one.
      *
      * @param stationId the station, or null for the instance
      */
-    public String sweegoSecret(Integer stationId) {
+    public String sweegoSecret(@Nullable Integer stationId) {
         if (stationId == null) return mailing.sweegoWebhookSecret();
-        return secretRepository.find(stationId, MailProviderType.SWEEGO).orElse(null);
+        return secretRepository.find(stationId, MailProviderType.SWEEGO).orElse("");
     }
 
     /**
@@ -125,7 +126,7 @@ public class MailChainService {
                     entry.provider(),
                     entry.smtpHost(),
                     entry.smtpPort(),
-                    entry.smtpSsl(),
+                    entry.smtpEncryption(),
                     entry.smtpUser(),
                     entry.smtpPassword(),
                     entry.apiKey(),

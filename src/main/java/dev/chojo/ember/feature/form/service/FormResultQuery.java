@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.form.service;
 
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.form.service.FormRespondents.Respondent;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.Objects;
@@ -18,7 +19,8 @@ import java.util.Set;
  * @param filter  which respondents count at all; {@code null} counts everybody
  * @param groupBy how to split them; {@code null} counts them as one group
  */
-public record FormResultQuery(Filter filter, Grouping groupBy) {
+public record FormResultQuery(
+        @Nullable ResultFilter filter, @Nullable ResultGrouping groupBy) {
 
     /** Whether a respondent has to belong to one of several groups or tags, or to all of them. */
     public enum Match {
@@ -50,15 +52,15 @@ public record FormResultQuery(Filter filter, Grouping groupBy) {
      * @param ageFrom    the youngest age that counts, inclusive
      * @param ageTo      the oldest age that counts, inclusive
      */
-    public record Filter(
+    public record ResultFilter(
             List<StationUserType> userTypes,
             List<Integer> groupIds,
             Match groupMatch,
             List<Integer> tagIds,
             Match tagMatch,
-            List<FieldCondition> fields,
-            Integer ageFrom,
-            Integer ageTo) {
+            List<ResultFieldCondition> fields,
+            @Nullable Integer ageFrom,
+            @Nullable Integer ageTo) {
 
         /**
          * Whether a respondent passes every condition of this filter.
@@ -79,7 +81,7 @@ public record FormResultQuery(Filter filter, Grouping groupBy) {
             return true;
         }
 
-        private boolean withinAge(Integer age) {
+        private boolean withinAge(@Nullable Integer age) {
             if (age == null) return false;
             return (ageFrom == null || age >= ageFrom) && (ageTo == null || age <= ageTo);
         }
@@ -102,7 +104,11 @@ public record FormResultQuery(Filter filter, Grouping groupBy) {
      * @param from    the smallest number that counts
      * @param to      the largest number that counts
      */
-    public record FieldCondition(int fieldId, List<String> values, Double from, Double to) {
+    public record ResultFieldCondition(
+            int fieldId,
+            List<String> values,
+            @Nullable Double from,
+            @Nullable Double to) {
         boolean matches(String answer) {
             if (answer == null) return false;
             if (notEmpty(values) && values.stream().noneMatch(value -> Objects.equals(value, answer))) return false;
@@ -122,13 +128,13 @@ public record FormResultQuery(Filter filter, Grouping groupBy) {
      * @param bounds  where the brackets start, when grouping by age or a number field: {@code 14, 18}
      *                makes "0-13", "14-17" and "18+"; empty groups numbers by their value
      */
-    public record Grouping(Dimension by, Integer fieldId, List<String> only, List<Integer> bounds) {}
+    public record ResultGrouping(Dimension by, @Nullable Integer fieldId, List<String> only, List<Integer> bounds) {}
 
     static boolean notEmpty(List<?> list) {
         return list != null && !list.isEmpty();
     }
 
-    static Double numberOf(String answer) {
+    static @Nullable Double numberOf(String answer) {
         try {
             return Double.parseDouble(answer.strip());
         } catch (NumberFormatException e) {

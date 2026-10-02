@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {computed, ref} from 'vue'
+import {ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
@@ -21,7 +21,7 @@ import {describeFailure, type Failure} from '@/util/failure'
 import {normaliseScannedPayload} from '@/components/scanner/useBarcodeScanner'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {inventoryContainers} from '@/api'
-import type {InventoryContainer, InventoryContainerKind} from '@/api/inventoryContainers'
+import type {InventoryContainer, InventoryContainerKind} from '@/api/generated/schema'
 
 const props = defineProps<{
   kinds: InventoryContainerKind[]
@@ -92,7 +92,7 @@ function onClose() {
 </script>
 
 <template>
-  <Modal v-model="open" size="md" @update:modelValue="(v) => { if (!v) onClose() }">
+  <Modal v-model="open" size="md" @update:model-value="(v) => { if (!v) onClose() }">
     <SubHeader class="mb-3">{{ t('inventory.storage.newContainer') }}</SubHeader>
     <div v-if="validationError || createFailure" class="mb-3 space-y-2">
       <FailureAlert :message="validationError" expected/>

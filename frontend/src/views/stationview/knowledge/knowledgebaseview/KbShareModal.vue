@@ -10,7 +10,7 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import {knowledgeBase} from '@/api'
-import type {KbFileSummary, KbFolder} from '@/api/knowledgeBase'
+import type {KbFileSummary, KbFolder} from '@/api/generated/schema'
 import {useSession} from '@/composables/useSession'
 import KbRestrictionsField from './KbRestrictionsField.vue'
 import KbPublicVisibilityField from './KbPublicVisibilityField.vue'
@@ -18,6 +18,7 @@ import {useKbEntrySharing} from './useKbEntrySharing'
 import {useKbStationAudience} from './useKbStationAudience'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
+import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import type {KbEntryApi} from './useKbEntryEditor'
 
 const {t} = useI18n()
@@ -80,7 +81,7 @@ async function handleSave() {
         <SubHeader class="mb-1">{{ t('kb.share') }}</SubHeader>
         <p class="mb-3 text-xs text-(--text-muted)">{{ t('kb.shareHint') }}</p>
         <FailureAlert :failure="failure" class="mb-3"/>
-        <form @submit.prevent="handleSave" class="flex flex-col gap-3">
+        <form class="flex flex-col gap-3" @submit.prevent="handleSave">
             <div v-if="audience.stations.value.length > 0" class="space-y-2">
                 <FieldLabel>{{ ofCluster ? t('kb.reachStations') : t('kb.reachPartners') }}</FieldLabel>
                 <SelectInput v-model="audience.mode.value">
@@ -95,10 +96,9 @@ async function handleSave() {
                         :key="station.partnerId"
                         class="flex items-center gap-2 text-sm"
                     >
-                        <input
-                            type="checkbox"
-                            :checked="audience.chosen.value.includes(station.partnerId)"
-                            @change="audience.toggle(station.partnerId)"
+                        <CheckboxInput
+                            :model-value="audience.chosen.value.includes(station.partnerId)"
+                            @update:model-value="audience.toggle(station.partnerId)"
                         />
                         {{ station.name }}
                     </label>
@@ -106,12 +106,12 @@ async function handleSave() {
             </div>
 
             <KbRestrictionsField
-                :all-groups="allGroups"
-                :all-tags="allTags"
                 v-model="restriction"
                 v-model:levels="grantLevels"
+                :all-groups="allGroups"
+                :all-tags="allTags"
             />
-            <KbPublicVisibilityField :disabled="!isKbPublic()" v-model="publicVisibility"/>
+            <KbPublicVisibilityField v-model="publicVisibility" :disabled="!isKbPublic()"/>
             <PrimaryButton type="submit">{{ t('common.save') }}</PrimaryButton>
         </form>
     </Modal>

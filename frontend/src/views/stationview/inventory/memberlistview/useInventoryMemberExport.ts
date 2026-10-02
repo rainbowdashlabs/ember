@@ -6,12 +6,9 @@
 import { ref, type Ref } from 'vue'
 import client from '@/api/client'
 import { profileFields } from '@/api'
-import type { ProfileField } from '@/api/profileFields'
-import type { Inventory, InventoryItem } from '@/api/inventory'
-import type { StationMember } from '@/api/types'
+import type { MemberWithName, ProfileField } from '@/api/generated/schema'
 import { useAsyncAction } from '@/composables/useAsyncAction'
-import {presentFile} from '@/util/documentFile'
-import {documentFrom} from '@/util/documentFile'
+import {presentFile, documentFrom} from '@/util/documentFile'
 import type {ExportFormat, ExportSeparator} from '@/util/exportFormat'
 
 /**
@@ -28,26 +25,17 @@ export interface ItemLabelOptions {
  * Exporting the member/inventory matrix as CSV or PDF.
  *
  * Entering export mode preselects everyone currently visible, so the common case - "export what I
- * am looking at" - needs no selection at all. The CSV is built in the browser from the same
- * labels the table shows; the PDF is rendered by the server, which is why it takes the display
- * options rather than the finished text.
+ * am looking at" - needs no selection at all. The export is rendered by the server, which is why
+ * it takes the display options rather than the finished text.
  *
  * @param filteredMembers      the members currently visible, used as the initial selection
- * @param displayedInventories the inventory columns currently shown
- * @param visibleInventoryIds  the same columns as ids, for the server-rendered export
+ * @param visibleInventoryIds  the inventory columns currently shown, as ids
  * @param labelOptions         which parts of an item name to include
- * @param memberDisplayName    renders a member's name for the first column
- * @param itemsFor             the items one member holds in one inventory
- * @param formatItemLabel      renders one item exactly as the table does
  */
 export function useInventoryMemberExport(
-  filteredMembers: () => readonly StationMember[],
-  displayedInventories: Ref<Inventory[]>,
+  filteredMembers: () => readonly MemberWithName[],
   visibleInventoryIds: Ref<Set<number>>,
   labelOptions: ItemLabelOptions,
-  memberDisplayName: (m: StationMember) => string,
-  itemsFor: (memberId: number, inventoryId: number) => InventoryItem[],
-  formatItemLabel: (item: InventoryItem) => string,
 ) {
   const exportMode = ref(false)
   const selectedMemberIds = ref<Set<number>>(new Set())

@@ -14,6 +14,14 @@ import type {Page} from '@playwright/test'
  * anywhere, and may not touch a station's owner. Both are here as stories of their own, because they are
  * the only thing standing between a cluster role and a way to promote yourself.
  */
+/** One row of the cluster's member search, as far as the stories read it. */
+interface SearchedMember {
+    name: string
+    stationName: string
+    former: boolean
+    identity: {name: string | null}
+}
+
 /**
  * Which membership the signed-in page is, asked of the application.
  *
@@ -31,7 +39,8 @@ test.describe('Cluster members and fields', () => {
      * CLS-23 - The cluster searches members across all its stations.
      *
      * Two stations in one list, each entry saying where it comes from. The demo puts members under two
-     * different member stations for exactly this.
+     * different member stations for exactly this. Every station the cluster reaches is offered to narrow
+     * by, asserted as options because an option is in the page without being on it.
      */
     test('the cluster searches members across all its stations', async ({browser, request}) => {
         const manager = await clusterAccountOnlyWith(request, 'CLUSTER_MEMBER_MANAGER')
@@ -41,25 +50,28 @@ test.describe('Cluster members and fields', () => {
 
         const found = await page.request.get('/api/v1/cluster/members/manage/search?size=200', {headers})
         expect(found.ok()).toBeTruthy()
-        const {members} = await found.json()
-        const stations = new Set(members.map((m: {stationName: string}) => m.stationName))
-        expect(stations.size, 'members of more than one station are found in the one list').toBeGreaterThan(1)
+        const members: SearchedMember[] = (await found.json()).members
+        const current = members.filter(member => !member.former)
+        const stations = [...new Set(current.map(member => member.stationName))].slice(0, 2)
+        expect(stations, 'members of more than one station are found in the one list').toHaveLength(2)
+        const listed = stations.map(station => current.find(member => member.stationName === station)!)
 
         await page.goto('/cluster/members/manage')
         await expect(page.getByTestId('app-shell')).toBeVisible()
 
-        // The screen offers every station the cluster reaches as something to narrow by, which is the
-        // reach itself made visible. Asserted as options rather than as text: an option is in the page
-        // without being on it.
-        for (const stationName of [...stations].slice(0, 2)) {
-            await expect(page.getByRole('option', {name: stationName as string})).toHaveCount(1)
+        for (const station of stations) {
+            await expect(page.getByRole('option', {name: station})).toHaveCount(1)
         }
 
-        // And somebody from each of two stations is actually listed
-        const names = members
-            .filter((m: {stationName: string}) => m.stationName === [...stations][0])
-            .concat(members.filter((m: {stationName: string}) => m.stationName === [...stations][1]))
-        expect(names.length).toBeGreaterThan(1)
+        const search = page.getByPlaceholder('Suchen...')
+        for (const member of listed) {
+            const name = member.identity.name ?? member.name
+            await search.fill(name)
+            const row = page.getByTestId('member-row').filter({hasText: name}).first()
+            await expect(row, `${name} is listed`).toBeVisible({timeout: 15000})
+            await expect(row.getByTestId('member-note'), `and the row says ${name} is at ${member.stationName}`)
+                .toContainText(member.stationName)
+        }
         await page.context().close()
     })
 
@@ -119,9 +131,10 @@ test.describe('Cluster members and fields', () => {
      * CLS-24 - A member is edited from the cluster.
      *
      * One form of two origins. What the cluster asks and what the station asks are answered side by side,
-     * each marked with who asked, and both survive being read back.
+     * each marked with who asked, and both survive being read back. The answer is read off the inputs:
+     * the form sets it as a property, so an attribute selector would only see what the markup said.
      */
-    test('a member is edited from the cluster', async ({adminPage: page, browser, request}) => {
+    test('a member is edited from the cluster', async ({adminPage: page}) => {
         const cluster = await enterCluster(page)
         const headers = {...await apiHeaders(page), 'X-Cluster-Id': cluster.uid}
 
@@ -147,20 +160,15 @@ test.describe('Cluster members and fields', () => {
         expect(target, 'somebody who is not their station\'s owner').toBeTruthy()
 
         const answer = `Florian ${Date.now()}`
-        const saved = await page.request.put(`/api/v1/cluster/fields/member/${target.id}`,
-            {headers, data: {values: {[fieldId]: JSON.stringify(answer)}}})
+        const saved = await page.request.put(`/api/v1/cluster/members/manage/${target.id}/profile`,
+            {headers, data: {values: [{fieldId, value: JSON.stringify(answer), origin: 'CLUSTER'}]}})
         expect(saved.ok()).toBeTruthy()
 
-        const read = await page.request.get(`/api/v1/cluster/fields/member/${target.id}`, {headers})
-        expect(JSON.stringify(await read.json())).toContain(answer)
+        const read = await page.request.get(`/api/v1/cluster/members/manage/${target.id}/profile`, {headers})
+        expect(JSON.stringify((await read.json()).values)).toContain(answer)
 
-        // Stored is half of it. The other half is that somebody at the cluster can open that person
-        // and read what was answered, which is the screen this story is named after and which for a
-        // long time did not exist at all.
         await page.goto(`/cluster/members/${target.id}`)
         await expect(page.getByTestId('app-shell')).toBeVisible()
-        // Read off the inputs rather than matched as an attribute: the form sets the value as a
-        // property, so `input[value=...]` would look at what the markup said and not at what is there.
         await expect.poll(
             () => page.getByRole('textbox')
                 .evaluateAll((inputs, want) =>
@@ -215,7 +223,6 @@ test.describe('Cluster members and fields', () => {
                 .find((m: {userType: string}) => m.userType === 'MEMBER')
             expect(member, 'the station has an ordinary member').toBeTruthy()
 
-            // CLS-27: both questions are on the station's form, marked as the cluster's
             const fields = await station.request
                 .get(`/api/v1/station-members/${member.id}/fields`, {headers: stationHeaders})
                 .then(r => r.json())
@@ -224,7 +231,6 @@ test.describe('Cluster members and fields', () => {
             expect(clusterFields.find((f: {id: number}) => f.id === keptId).readonlyAtStation).toBeTruthy()
             expect(clusterFields.find((f: {id: number}) => f.id === openId).readonlyAtStation).toBeFalsy()
 
-            // CLS-28: the station answers the open one, and the cluster reads the answer back
             const answer = `B12 ${stamp}`
             const wrote = await station.request.put(`/api/v1/station-members/${member.id}/profile`, {
                 headers: stationHeaders,
@@ -235,8 +241,8 @@ test.describe('Cluster members and fields', () => {
             })
             expect(wrote.ok()).toBeTruthy()
 
-            const back = await page.request.get(`/api/v1/cluster/fields/member/${member.id}`, {headers})
-            const answers = JSON.stringify(await back.json())
+            const back = await page.request.get(`/api/v1/cluster/members/manage/${member.id}/profile`, {headers})
+            const answers = JSON.stringify((await back.json()).values)
             expect(answers).toContain(answer)
             expect(answers, 'the one the cluster kept was not written from the station')
                 .not.toContain('nicht erlaubt')
@@ -251,6 +257,9 @@ test.describe('Cluster members and fields', () => {
      *
      * The history a profile already had is the one the change lands in, so the people at the station who
      * watch for changes see it beside every other one.
+     *
+     * The answer is for somebody at the reading station, since a station's history holds only its own
+     * people, and the history is read past its first page, since several stories write answers at once.
      */
     test('a cluster field change lands in the profile history', async ({adminPage: page, browser, request}) => {
         const cluster = await enterCluster(page)
@@ -271,9 +280,6 @@ test.describe('Cluster members and fields', () => {
             data: {role: 'MEMBER', position: 0},
         })
 
-        // Answered for somebody at the station that will read the history. A station's history is its
-        // own people, so answering for whoever came first across all the stations reads back as nothing
-        // the moment another story takes somebody on somewhere else.
         const manager = await clusterStationManager(request)
         const {members} = await page.request
             .get('/api/v1/cluster/members/manage/search?size=50', {headers})
@@ -283,14 +289,12 @@ test.describe('Cluster members and fields', () => {
         expect(target, 'the reading station has somebody to answer for').toBeTruthy()
 
         const answer = `G26.3 ${stamp}`
-        const saved = await page.request.put(`/api/v1/cluster/fields/member/${target.id}`,
-            {headers, data: {values: {[fieldId]: JSON.stringify(answer)}}})
+        const saved = await page.request.put(`/api/v1/cluster/members/manage/${target.id}/profile`,
+            {headers, data: {values: [{fieldId, value: JSON.stringify(answer), origin: 'CLUSTER'}]}})
         expect(saved.ok()).toBeTruthy()
 
         const station = await pageAsThrowaway(browser, request, [], manager)
         const stationHeaders = await apiHeaders(station)
-        // Asked for more than one page: several stories write answers at once, and the newest twenty
-        // is not a promise that the one just written is among them
         const changes = await station.request
             .get('/api/v1/profile-changes/all?limit=200', {headers: stationHeaders})
             .then(r => r.json())
@@ -344,8 +348,8 @@ test.describe('Cluster members and fields', () => {
                 !m.stationOwner && m.userType === 'MEMBER')
             expect(target, 'the association has a member to answer for').toBeTruthy()
 
-            const saved = await page.request.put(`/api/v1/cluster/fields/member/${target.id}`,
-                {headers, data: {values: {[fieldId]: JSON.stringify('2020-01-31')}}})
+            const saved = await page.request.put(`/api/v1/cluster/members/manage/${target.id}/profile`,
+                {headers, data: {values: [{fieldId, value: JSON.stringify('2020-01-31'), origin: 'CLUSTER'}]}})
             expect(saved.ok(), await saved.text()).toBeTruthy()
 
             await page.goto(`/cluster/members/${target.id}`)

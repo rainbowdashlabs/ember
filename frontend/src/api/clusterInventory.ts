@@ -5,99 +5,42 @@
  */
 import client from './client'
 import type {LossReportRequirementName} from './inventory'
-import type {MovementFlowStep, MovementPurposeName, StepRequest} from './movements'
+import type {MovementPurposeName} from './movements'
+import type {
+    ClusterFlowResponse,
+    ClusterInventoryTag,
+    ClusterItemResponse,
+    ClusterQueueResponse,
+    ClusterStepRequest,
+    ClusterStepResponse,
+    ClusterTagRequest,
+    InventoryStatResponse,
+    LossReportSettings,
+    SendableItem,
+} from './generated/schema'
 
-/** Where a piece of the cluster's gear currently is. */
-export interface ClusterItem {
-    id: number
-    internalId: string
-    name: string
-    custody: string
-    /** The station holding it, or null when it rests in the cluster's own store. */
-    stationUid?: string | null
-    stationName?: string | null
-    /** The member wearing it, or null. */
-    holderName?: string | null
-    /** The size it is cut to, absent where the inventory it belongs to keeps no sizes. */
-    sizeId?: number | null
-    sizeLabel?: string | null
-}
-
-/** How much the association owns of one kind of thing, and where those pieces stand. */
-export interface ClusterInventoryStat {
-    inventoryId: number
-    inventoryName: string
-    total: number
-    /** Resting in the association's own store. */
-    inStore: number
-    /** At one of its stations, on the way there included. */
-    atStation: number
-    withMember: number
-    lent: number
-    lost: number
-    sizes: ClusterSizeStat[]
-}
-
-/** The same counts for one size of one kind of thing. */
-export interface ClusterSizeStat {
-    sizeId: number
-    label: string
-    total: number
-    inStore: number
-    atStation: number
-    withMember: number
-    lent: number
-    lost: number
-}
-
-export async function statistics(): Promise<ClusterInventoryStat[]> {
-    const res = await client.get<ClusterInventoryStat[]>('/cluster/inventory/statistics')
+export async function statistics(): Promise<InventoryStatResponse[]> {
+    const res = await client.get<InventoryStatResponse[]>('/cluster/inventory/statistics')
     return res.data
 }
 
-/** A movement that has stopped on a step only the cluster can answer. */
-export interface ClusterQueueEntry {
-    movementId: number
-    purpose: string
-    stationUid?: string | null
-    stationName?: string | null
-    stepLabel?: string | null
-    itemName?: string | null
-    createdAt: string
-}
-
-/**
- * A chain the association's gear walks, with the steps it is made of.
- *
- * <p>The steps travel with it because a chain is its steps. The same shape the station's screens speak,
- * so the station's flow card draws it: {@code ownedByCluster} means "somebody above me owns this", and
- * at the association nobody is.
- */
-export interface ClusterFlow {
-    id: number
-    name: string
-    purpose: MovementPurposeName
-    archived: boolean
-    steps: MovementFlowStep[]
-}
-
-export async function listItems(): Promise<ClusterItem[]> {
-    const res = await client.get<ClusterItem[]>('/cluster/inventory/items')
+export async function listItems(): Promise<ClusterItemResponse[]> {
+    const res = await client.get<ClusterItemResponse[]>('/cluster/inventory/items')
     return res.data
 }
 
-export async function listQueue(): Promise<ClusterQueueEntry[]> {
-    const res = await client.get<ClusterQueueEntry[]>('/cluster/inventory/queue')
+export async function listQueue(): Promise<ClusterQueueResponse[]> {
+    const res = await client.get<ClusterQueueResponse[]>('/cluster/inventory/queue')
     return res.data
 }
 
-export async function listFlows(): Promise<ClusterFlow[]> {
-    const res = await client.get<ClusterFlow[]>('/cluster/inventory/flows')
+export async function listFlows(): Promise<ClusterFlowResponse[]> {
+    const res = await client.get<ClusterFlowResponse[]>('/cluster/inventory/flows')
     return res.data
 }
 
-export async function createFlow(name: string, purpose: string): Promise<ClusterFlow> {
-    const res = await client.post<ClusterFlow>('/cluster/inventory/flows', {name, purpose})
+export async function createFlow(name: string, purpose: MovementPurposeName): Promise<ClusterFlowResponse> {
+    const res = await client.post<ClusterFlowResponse>('/cluster/inventory/flows', {name, purpose})
     return res.data
 }
 
@@ -110,12 +53,12 @@ export async function archiveFlow(flowId: number): Promise<void> {
     await client.delete(`/cluster/inventory/flows/${flowId}`)
 }
 
-export async function addStep(flowId: number, step: StepRequest): Promise<MovementFlowStep> {
-    const res = await client.post<MovementFlowStep>(`/cluster/inventory/flows/${flowId}/steps`, step)
+export async function addStep(flowId: number, step: ClusterStepRequest): Promise<ClusterStepResponse> {
+    const res = await client.post<ClusterStepResponse>(`/cluster/inventory/flows/${flowId}/steps`, step)
     return res.data
 }
 
-export async function updateStep(stepId: number, step: StepRequest): Promise<void> {
+export async function updateStep(stepId: number, step: ClusterStepRequest): Promise<void> {
     await client.put(`/cluster/inventory/flow-steps/${stepId}`, step)
 }
 
@@ -129,15 +72,6 @@ export async function archiveStep(stepId: number): Promise<void> {
  */
 export async function setUsesInventory(usesInventory: boolean): Promise<void> {
     await client.put('/cluster/inventory/settings', {usesInventory})
-}
-
-/** One piece resting in the cluster's store, offered on the dispatch screen. */
-export interface SendableItem {
-    id: number
-    internalId?: string | null
-    name?: string | null
-    inventoryId: number
-    inventoryName: string
 }
 
 /**
@@ -158,11 +92,6 @@ export async function dispatch(stationUid: string, itemIds: number[], reason: st
     await client.post('/cluster/inventory/dispatch', {stationUid, itemIds, reason})
 }
 
-/** What the cluster wants to read before it considers replacing something that was lost. */
-export interface LossReportSettings {
-    requires: LossReportRequirementName
-}
-
 export async function getLossReportSettings(): Promise<LossReportSettings> {
     const res = await client.get<LossReportSettings>('/cluster/inventory/loss-report')
     return res.data
@@ -172,39 +101,17 @@ export async function setLossReportSettings(requires: LossReportRequirementName)
     await client.put('/cluster/inventory/loss-report', {requires})
 }
 
-/**
- * A word an association recommends to the stations under it.
- *
- * It stands beside what a station already calls its things and never replaces it: both are compared
- * trimmed and without regard to case, so the two rows are one word already.
- */
-export interface ClusterInventoryTag {
-    id: number
-    name: string
-    color?: string | null
-    position: number
-    /** The group of stations it is meant for, or null for every station under the association. */
-    stationGroupId?: number | null
-}
-
-export interface ClusterInventoryTagRequest {
-    name: string
-    color?: string | null
-    position: number
-    stationGroupId?: number | null
-}
-
 export async function listTags(): Promise<ClusterInventoryTag[]> {
     const res = await client.get<ClusterInventoryTag[]>('/cluster/inventory-tags')
     return res.data
 }
 
-export async function createTag(body: ClusterInventoryTagRequest): Promise<ClusterInventoryTag> {
+export async function createTag(body: ClusterTagRequest): Promise<ClusterInventoryTag> {
     const res = await client.post<ClusterInventoryTag>('/cluster/inventory-tags', body)
     return res.data
 }
 
-export async function updateTag(tagId: number, body: ClusterInventoryTagRequest): Promise<ClusterInventoryTag> {
+export async function updateTag(tagId: number, body: ClusterTagRequest): Promise<ClusterInventoryTag> {
     const res = await client.put<ClusterInventoryTag>(`/cluster/inventory-tags/${tagId}`, body)
     return res.data
 }

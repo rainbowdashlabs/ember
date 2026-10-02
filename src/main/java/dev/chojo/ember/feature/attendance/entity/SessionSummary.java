@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.attendance.entity;
 
+import org.jspecify.annotations.Nullable;
+
 import java.time.Instant;
 
 /**
@@ -28,8 +30,8 @@ public record SessionSummary(
         Instant startTime,
         Instant endTime,
         Instant createdAt,
-        Integer eventId,
-        String title,
+        @Nullable Integer eventId,
+        @Nullable String title,
         int presentCount,
         int absentCount,
         int declinedCount,

@@ -11,7 +11,7 @@ import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import ReportCard from '@/views/adminview/adminproblemreportsview/ReportCard.vue'
-import type {ProblemReport} from '@/api/problemReports'
+import type {ProblemReport} from '@/api/generated/schema'
 
 const {t} = useI18n()
 
@@ -24,6 +24,7 @@ const REPORTS: ProblemReport[] = [
   {
     id: 1,
     stationId: 'demo',
+    memberId: null,
     reporterName: 'Lena Hoffmann',
     message: 'Beim Speichern eines Termins passiert nichts.',
     pageUrl: '/station/events/new',
@@ -31,19 +32,27 @@ const REPORTS: ProblemReport[] = [
     recentRequests: RECENT_REQUESTS,
     browserInfo: 'Firefox 141 auf Windows',
     screenSize: '1920 x 1080',
+    screenshotFileId: null,
     acknowledged: false,
+    acknowledgedAt: null,
+    forwardedAt: null,
     createdAt: '2026-05-04T18:23:00Z',
   },
   {
     id: 2,
     stationId: 'demo',
+    memberId: null,
     reporterName: 'Jonas Weber',
     message: 'Das Menü lässt sich auf dem Handy nicht schließen.',
     pageUrl: '/station/dashboard/overview',
     userRoles: 'TEAM',
+    recentRequests: null,
     browserInfo: 'Safari auf iPhone',
     screenSize: '390 x 844',
+    screenshotFileId: null,
     acknowledged: true,
+    acknowledgedAt: '2026-05-02T10:00:00Z',
+    forwardedAt: null,
     createdAt: '2026-05-02T09:10:00Z',
   },
 ]

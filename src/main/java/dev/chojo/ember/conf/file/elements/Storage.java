@@ -84,17 +84,17 @@ public class Storage {
     private boolean imageVariantsEnabled = true;
 
     /**
-     * Comma-separated list of widths (in pixels) to pre-generate at upload time. Each width
-     * produces a resized copy in the original format plus a WebP copy when
-     * {@link #imageVariantsWebp()} is on.
+     * Comma-separated list of widths (in pixels) the media library pre-generates at upload time.
+     * Each width below the picture's own produces one WebP copy, and only while
+     * {@link #imageVariantsWebp()} is on; the original stays in the format it was uploaded in.
      */
     @Overwrite(env = @Env)
     private String imageVariantsWidths = "128,256,512,1024,2048";
 
     /**
-     * Whether to emit a WebP copy alongside each width. WebP is supported by every modern
-     * browser and shaves another ~30% over the resized original-format variant. Disable only
-     * when there is a specific reason to suppress WebP delivery.
+     * Whether the media library writes its width copies, all of which are WebP, and serves them to
+     * browsers that say they take WebP. Off, no copies are made and the original is served for
+     * every request. Disable only when there is a specific reason to suppress WebP delivery.
      */
     @Overwrite(env = @Env)
     private boolean imageVariantsWebp = true;
@@ -107,10 +107,11 @@ public class Storage {
     private StorageBackendSettings backend = new StorageBackendSettings();
 
     /**
-     * AES-256 key used to encrypt station-supplied remote-backend credentials at rest. Read
-     * from {@code STORAGE_CREDENTIAL_ENCRYPTION_KEY}; required once any station opts into
-     * self-service remote storage. Auto-generated and persisted on first production boot
-     * when left blank.
+     * AES-256 key (base64, 32 bytes) used to encrypt secrets at rest: station-supplied
+     * remote-backend credentials, mailbox passwords and the stations' federation signing keys.
+     * When left blank, Ember generates a key on its first start and keeps it in
+     * {@code data/secrets/encryption.key} rather than in this file or the database; a key set
+     * here always takes precedence over that file.
      */
     @Overwrite(env = @Env)
     private String credentialEncryptionKey = "";

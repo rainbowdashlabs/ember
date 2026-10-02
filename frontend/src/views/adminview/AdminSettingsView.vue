@@ -110,8 +110,8 @@ async function saveInstanceTheme() {
 
       <template v-if="!loading">
         <GeneralPanel
-            v-model:forcePrideFlag="forcePrideFlag"
-            v-model:defaultMailLocale="defaultMailLocale"
+            v-model:force-pride-flag="forcePrideFlag"
+            v-model:default-mail-locale="defaultMailLocale"
             :registration-enabled="registrationEnabled"
             :available-mail-locales="availableMailLocales"
             @save-pride="saveInstanceTheme"
@@ -119,9 +119,9 @@ async function saveInstanceTheme() {
             @toggle-registration="toggleRegistration"
         />
         <ThemePanel
-            v-model:defaultFeel="instanceDefaultFeel"
-            v-model:defaultTheme="instanceDefaultTheme"
-            v-model:lockFeel="instanceLockFeel"
+            v-model:default-feel="instanceDefaultFeel"
+            v-model:default-theme="instanceDefaultTheme"
+            v-model:lock-feel="instanceLockFeel"
             :save="saveInstanceTheme"
         />
         <LoggingPanel/>

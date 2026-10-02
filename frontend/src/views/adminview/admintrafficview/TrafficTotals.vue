@@ -8,7 +8,7 @@ import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import MutedText from '@/components/typography/MutedText.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import type {HourlyTrafficRow} from '@/api/traffic'
+import type {HourlyTrafficRow} from '@/api/generated/schema'
 
 const props = defineProps<{
   rows: HourlyTrafficRow[]

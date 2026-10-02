@@ -3,10 +3,9 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {Comment} from '@/api/comments'
-import type {MemberCompletion} from '@/api/stationMembers'
-import type {MemberIdentity} from '@/api/types'
+import type {CommentResponse, MemberCompletion} from '@/api/generated/schema'
 import type {PitchBoard} from './pitchTypes'
+import {pitchIdentity} from './pitchMembers'
 
 /**
  * The board a demonstration shows. It is fed to the application's own board components, so every
@@ -25,19 +24,18 @@ function inDays(days: number): string {
     return date.toISOString().slice(0, 10)
 }
 
-function identity(name: string, uid: string): MemberIdentity {
-    return {stationUid: 'wache', memberUid: uid, name}
-}
-
-const ANNA = identity('Anna Müller', 'm-anna')
-const BEN = identity('Ben Krüger', 'm-ben')
-const CLARA = identity('Clara Weiß', 'm-clara')
+const ANNA = pitchIdentity('Anna Müller', 'm-anna')
+const BEN = pitchIdentity('Ben Krüger', 'm-ben')
+const CLARA = pitchIdentity('Clara Weiß', 'm-clara')
 
 const MEMBERS: MemberCompletion[] = [ANNA, BEN, CLARA].map((member, index) => ({
     id: index + 1,
     name: member.name ?? '',
-    stationUid: 'wache',
-    memberUid: member.memberUid ?? '',
+    stationUid: member.stationUid,
+    memberUid: member.memberUid,
+    stationName: null,
+    nameColor: null,
+    displayTag: null,
 }))
 
 const MATERIAL = {id: 1, boardId: 1, name: 'Material', color: '#3694FF'}
@@ -93,20 +91,20 @@ export const CAMP_BOARD: PitchBoard = {
 }
 
 /** The discussion under the ticket, drawn by the application's own comment thread. */
-export const TICKET_COMMENTS: Comment[] = [
+export const TICKET_COMMENTS: CommentResponse[] = [
     {
-        id: 1, parentId: null, author: BEN, authorName: 'Ben Krüger',
+        id: 1, author: BEN, authorName: 'Ben Krüger',
         content: 'Zwei Heringe fehlen, der Rest ist heil. Mängelliste hängt dran.',
-        createdAt: daysAgo(1),
+        deleted: false, createdAt: daysAgo(1),
     },
     {
         id: 2, parentId: 1, author: CLARA, authorName: 'Clara Weiß',
         content: '@[Ben Krüger] Danke - Nachschub steht schon in der Beschaffung.',
-        createdAt: daysAgo(1),
+        deleted: false, createdAt: daysAgo(1),
     },
     {
-        id: 3, parentId: null, author: ANNA, authorName: 'Anna Müller',
+        id: 3, author: ANNA, authorName: 'Anna Müller',
         content: 'Das große Zelt bitte vor der Fahrt noch einmal aufbauen.',
-        createdAt: daysAgo(3),
+        deleted: false, createdAt: daysAgo(3),
     },
 ]

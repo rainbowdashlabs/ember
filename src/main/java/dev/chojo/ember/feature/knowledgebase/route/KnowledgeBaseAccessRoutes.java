@@ -6,7 +6,7 @@
 package dev.chojo.ember.feature.knowledgebase.route;
 
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
@@ -14,22 +14,29 @@ import dev.chojo.ember.feature.knowledgebase.entity.KbAccessGrant;
 import dev.chojo.ember.feature.knowledgebase.entity.KbAccessLevel;
 import dev.chojo.ember.feature.knowledgebase.service.KbAccessService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseFederationService;
+import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseFederationService.EntryAudience;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
+import io.javalin.openapi.HttpMethod;
+import io.javalin.openapi.OpenApi;
+import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiRequestBody;
+import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
-import static dev.chojo.ember.feature.knowledgebase.route.KbRouteAccess.requireLevel;
-import static dev.chojo.ember.feature.knowledgebase.route.KbRouteAccess.requireOwnedFile;
-import static dev.chojo.ember.feature.knowledgebase.route.KbRouteAccess.requireOwnedFolder;
+import static dev.chojo.ember.feature.knowledgebase.service.KbGuards.requireLevel;
+import static dev.chojo.ember.feature.knowledgebase.service.KbGuards.requireOwnedFile;
+import static dev.chojo.ember.feature.knowledgebase.service.KbGuards.requireOwnedFolder;
 
 /**
  * Who may see a knowledge-base folder or file: the member-facing access restrictions and the
@@ -59,14 +66,14 @@ public class KnowledgeBaseAccessRoutes implements Routes {
         return restrictions.stream().map(extractor).filter(Objects::nonNull).toList();
     }
 
-    private static RestrictionResponse toRestrictionResponse(List<KbAccessGrant> restrictions) {
-        return new RestrictionResponse(
+    private static KbRestrictionResponse toRestrictionResponse(List<KbAccessGrant> restrictions) {
+        return new KbRestrictionResponse(
                 nonNullValues(restrictions, KbAccessGrant::userType),
                 nonNullValues(restrictions, KbAccessGrant::groupId),
                 nonNullValues(restrictions, KbAccessGrant::tagId),
                 nonNullValues(restrictions, KbAccessGrant::memberId),
                 restrictions.stream()
-                        .map(g -> new GrantRequest(g.userType(), g.groupId(), g.tagId(), g.memberId(), g.level()))
+                        .map(g -> new KbGrant(g.userType(), g.groupId(), g.tagId(), g.memberId(), g.level()))
                         .toList());
     }
 
@@ -74,7 +81,7 @@ public class KnowledgeBaseAccessRoutes implements Routes {
      * Writes the audience of a folder or file, taking the levelled grants when the editor sent them
      * and the plain audience lists otherwise.
      */
-    private void applyRestrictions(Integer folderId, Integer fileId, RestrictionRequest req) {
+    private void applyRestrictions(@Nullable Integer folderId, @Nullable Integer fileId, KbRestrictionRequest req) {
         if (req.grants() != null) {
             accessService.setGrants(
                     folderId,
@@ -88,7 +95,7 @@ public class KnowledgeBaseAccessRoutes implements Routes {
         accessService.setRestrictions(folderId, fileId, toSelection(req));
     }
 
-    private static RestrictionSelection toSelection(RestrictionRequest req) {
+    private static RestrictionSelection toSelection(KbRestrictionRequest req) {
         return new RestrictionSelection(
                 req.userTypes() == null
                         ? List.of()
@@ -145,13 +152,22 @@ public class KnowledgeBaseAccessRoutes implements Routes {
      * <p>Guarded by the knowledge federation right rather than the right to run the station's federation
      * settings: choosing who an article goes to is a thing done to an article, from the article.
      */
+    @OpenApi(
+            path = "/api/v1/kb/audiences",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EntryAudience[].class)))
     private void getAudiences(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         ctx.json(federationService.findAudiences(session.stationId()));
     }
 
+    @OpenApi(
+            path = "/api/v1/kb/audiences",
+            methods = HttpMethod.PUT,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = AudienceRequest.class)),
+            responses = @OpenApiResponse(status = "204"))
     private void setAudience(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(AudienceRequest.class);
         federationService.setAudience(
                 session.stationId(),
@@ -166,34 +182,57 @@ public class KnowledgeBaseAccessRoutes implements Routes {
     public record AudienceRequest(
             Integer fileId, Integer folderId, boolean shared, boolean everyStation, List<Integer> partnerIds) {}
 
+    @OpenApi(
+            path = "/api/v1/kb/folders/{id}/restrictions",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = KbRestrictionResponse.class)))
     private void getFolderRestrictions(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedFolder(ctx, service, id);
         ctx.json(toRestrictionResponse(accessService.findRestrictions(id, null)));
     }
 
+    @OpenApi(
+            path = "/api/v1/kb/folders/{id}/restrictions",
+            methods = HttpMethod.PUT,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = KbRestrictionRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = KbRestrictionResponse.class)))
     private void setFolderRestrictions(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedFolder(ctx, service, id);
         requireLevel(ctx, accessService, id, null, KbAccessLevel.MANAGE);
-        applyRestrictions(id, null, ctx.bodyAsClass(RestrictionRequest.class));
+        applyRestrictions(id, null, ctx.bodyAsClass(KbRestrictionRequest.class));
         ctx.json(toRestrictionResponse(accessService.findRestrictions(id, null)));
     }
 
+    @OpenApi(
+            path = "/api/v1/kb/files/{id}/restrictions",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = KbRestrictionResponse.class)))
     private void getFileRestrictions(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedFile(ctx, service, id);
         ctx.json(toRestrictionResponse(accessService.findRestrictions(null, id)));
     }
 
+    @OpenApi(
+            path = "/api/v1/kb/files/{id}/restrictions",
+            methods = HttpMethod.PUT,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = KbRestrictionRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = KbRestrictionResponse.class)))
     private void setFileRestrictions(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedFile(ctx, service, id);
         requireLevel(ctx, accessService, null, id, KbAccessLevel.MANAGE);
-        applyRestrictions(null, id, ctx.bodyAsClass(RestrictionRequest.class));
+        applyRestrictions(null, id, ctx.bodyAsClass(KbRestrictionRequest.class));
         ctx.json(toRestrictionResponse(accessService.findRestrictions(null, id)));
     }
 
+    @OpenApi(
+            path = "/api/v1/kb/files/{id}/public-visibility",
+            methods = HttpMethod.GET,
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = PublicVisibilityResponse.class)))
     private void getFilePublicVisibility(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedFile(ctx, service, id);
@@ -201,6 +240,12 @@ public class KnowledgeBaseAccessRoutes implements Routes {
                 accessService.findPublicVisibility(null, id).orElse(null)));
     }
 
+    @OpenApi(
+            path = "/api/v1/kb/files/{id}/public-visibility",
+            methods = HttpMethod.PUT,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = PublicVisibilityRequest.class)),
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = PublicVisibilityResponse.class)))
     private void setFilePublicVisibility(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedFile(ctx, service, id);
@@ -214,6 +259,11 @@ public class KnowledgeBaseAccessRoutes implements Routes {
         ctx.json(new PublicVisibilityResponse(req.visible()));
     }
 
+    @OpenApi(
+            path = "/api/v1/kb/folders/{id}/public-visibility",
+            methods = HttpMethod.GET,
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = PublicVisibilityResponse.class)))
     private void getFolderPublicVisibility(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedFolder(ctx, service, id);
@@ -221,6 +271,12 @@ public class KnowledgeBaseAccessRoutes implements Routes {
                 accessService.findPublicVisibility(id, null).orElse(null)));
     }
 
+    @OpenApi(
+            path = "/api/v1/kb/folders/{id}/public-visibility",
+            methods = HttpMethod.PUT,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = PublicVisibilityRequest.class)),
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = PublicVisibilityResponse.class)))
     private void setFolderPublicVisibility(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedFolder(ctx, service, id);
@@ -238,7 +294,7 @@ public class KnowledgeBaseAccessRoutes implements Routes {
      * The audience of a folder or file. {@code grants} carries the same audience with a level per
      * entry and wins when present; the flat lists remain for callers that only set an audience.
      */
-    public record RestrictionRequest(
+    public record KbRestrictionRequest(
             List<String> userTypes,
             List<Integer> groupIds,
             List<Integer> tagIds,
@@ -248,14 +304,25 @@ public class KnowledgeBaseAccessRoutes implements Routes {
     public record GrantRequest(
             StationUserType userType, Integer groupId, Integer tagId, Integer memberId, KbAccessLevel level) {}
 
-    public record RestrictionResponse(
+    /**
+     * One audience of a folder or file and what it may do. Exactly one of the audience fields is
+     * set; a missing level leaves the station permission in charge.
+     */
+    public record KbGrant(
+            @Nullable StationUserType userType,
+            @Nullable Integer groupId,
+            @Nullable Integer tagId,
+            @Nullable Integer memberId,
+            @Nullable KbAccessLevel level) {}
+
+    public record KbRestrictionResponse(
             List<StationUserType> userTypes,
             List<Integer> groupIds,
             List<Integer> tagIds,
             List<Integer> memberIds,
-            List<GrantRequest> grants) {}
+            List<KbGrant> grants) {}
 
     public record PublicVisibilityRequest(Boolean visible) {}
 
-    public record PublicVisibilityResponse(Boolean visible) {}
+    public record PublicVisibilityResponse(@Nullable Boolean visible) {}
 }

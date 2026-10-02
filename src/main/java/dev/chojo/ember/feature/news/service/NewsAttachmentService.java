@@ -5,12 +5,12 @@
  */
 package dev.chojo.ember.feature.news.service;
 
+import dev.chojo.ember.api.refusal.NewsRefusal;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import dev.chojo.ember.feature.news.entity.NewsAttachment;
 import dev.chojo.ember.feature.news.repository.NewsAttachmentRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository;
-import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -67,8 +68,8 @@ public class NewsAttachmentService {
      * attachment is a reference into that station's library and nothing else.
      */
     public NewsAttachment attach(int newsId, int stationId, int fileId, String label) {
-        var file = media.findFile(fileId).orElseThrow(() -> new BadRequestResponse("Unknown file"));
-        if (file.stationId() != stationId) throw new BadRequestResponse("File belongs to another station");
+        var file = media.findFile(fileId).orElseThrow(NewsRefusal.NEWS_ATTACHMENT_FILE_NOT_HERE::raise);
+        if (!Objects.equals(file.stationId(), stationId)) throw NewsRefusal.NEWS_ATTACHMENT_FILE_ELSEWHERE.raise();
         var attachment = repository.attach(newsId, fileId, label);
         log.info("File {} attached to news {} in station {}", fileId, newsId, stationId);
         return attachment;

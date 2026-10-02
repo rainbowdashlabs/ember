@@ -17,6 +17,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -135,7 +136,7 @@ public class QuizAttemptService {
         var answers = testRepository.findAnswers(attemptId);
         double total = answers.stream()
                 .filter(QuizTestAnswer::graded)
-                .mapToDouble(a -> a.points() != null ? a.points() : 0)
+                .mapToDouble(a -> Objects.requireNonNullElse(a.points(), 0.0))
                 .sum();
 
         testRepository.updateAttemptMaxPoints(

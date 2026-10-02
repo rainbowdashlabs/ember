@@ -15,12 +15,12 @@ import org.slf4j.LoggerFactory;
  * <p>Lives at {@code auth.webauthn}. It used to live at {@code auth.twoFactor.webauthn} when the
  * only WebAuthn credentials were second factors; a passkey is not a two-factor detail, so the
  * settings moved up. {@link #resolvedFrom(Auth)} still reads the old location for one release.
+ *
+ * <p>There is deliberately no logger field: the config loader walks every field recursively to apply
+ * overrides, and a logger would lead it into library internals.
  */
 @SuppressWarnings({"FieldCanBeLocal", "FieldMayBeFinal", "CanBeFinal"})
 public class WebAuthnSettings {
-    // Deliberately no logger field: the config loader walks every field of a config element
-    // recursively to apply overrides, and a logger would lead it into library internals.
-
     @Overwrite(env = @Env("AUTH_WEBAUTHN_RPID"))
     private String rpId = "";
 
@@ -82,5 +82,21 @@ public class WebAuthnSettings {
 
     public int timeoutSeconds() {
         return timeoutSeconds;
+    }
+
+    public void rpId(String rpId) {
+        this.rpId = rpId;
+    }
+
+    public void rpName(String rpName) {
+        this.rpName = rpName;
+    }
+
+    public void attestation(String attestation) {
+        this.attestation = attestation;
+    }
+
+    public void timeoutSeconds(int timeoutSeconds) {
+        this.timeoutSeconds = timeoutSeconds;
     }
 }

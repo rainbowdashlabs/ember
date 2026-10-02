@@ -10,7 +10,7 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import MetadataField from './MetadataField.vue'
-import type {StationPage} from '@/api/pageManage'
+import type {StationPage} from '@/api/generated/schema'
 
 const title = defineModel<string>('title', {required: true})
 const slug = defineModel<string>('slug', {required: true})

@@ -5,60 +5,47 @@
  */
 package dev.chojo.ember.feature.beacon.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.auth.InstancePermission;
-import dev.chojo.ember.feature.beacon.repository.BeaconReadRepository;
-import dev.chojo.ember.feature.beacon.service.BeaconMetricsService;
-import dev.chojo.ember.feature.beacon.service.BeaconReportService;
-import dev.chojo.ember.feature.beacon.service.BeaconSettings;
-import dev.chojo.ember.feature.system.entity.ProblemReport;
-import dev.chojo.ember.feature.system.repository.ProblemReportRepository;
-import dev.chojo.ember.feature.system.service.ProblemLogAppender;
-import dev.chojo.ember.feature.system.service.ProblemReportScreenshotService;
-import dev.chojo.ember.feature.system.service.UpdateCheckService;
+import dev.chojo.ember.api.refusal.BeaconRefusal;
+import dev.chojo.ember.feature.beacon.entity.BeaconFault;
+import dev.chojo.ember.feature.beacon.entity.BeaconMetricsRow;
+import dev.chojo.ember.feature.beacon.entity.BeaconPayloads.MetricsBatch;
+import dev.chojo.ember.feature.beacon.entity.BeaconPayloads.ProblemPayload;
+import dev.chojo.ember.feature.beacon.entity.BeaconPayloads.ReportPayload;
+import dev.chojo.ember.feature.beacon.entity.BeaconReport;
+import dev.chojo.ember.feature.beacon.service.BeaconAdminService;
+import dev.chojo.ember.feature.beacon.service.BeaconAdminService.BeaconSettingsRequest;
+import dev.chojo.ember.feature.beacon.service.BeaconAdminService.BeaconStatus;
+import dev.chojo.ember.feature.beacon.service.BeaconAdminService.SendReportRequest;
+import dev.chojo.ember.feature.beacon.service.BeaconAdminService.SendResult;
 import io.javalin.http.Context;
+import io.javalin.http.HttpStatus;
+import io.javalin.openapi.HttpMethod;
+import io.javalin.openapi.OpenApi;
+import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiParam;
+import io.javalin.openapi.OpenApiRequestBody;
+import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
-import java.time.Instant;
 import java.util.List;
 
 /**
- * What an operator does with their own beacon: look at what would be sent, and send it.
- *
- * <p>The preview is not a nicety. An exception message quotes what failed, and what failed is
- * sometimes a mail address or a row somebody can be recognised by. Asking an operator to agree to
- * forwarding without showing them the bytes is asking them to agree to something nobody has read.
+ * What an operator does with their own beacon: look at what would be sent, and send it, and go
+ * through what other instances sent this one.
  */
 @Singleton
 public class BeaconAdminRoutes implements Routes {
 
-    private final BeaconSettings config;
-    private final BeaconReportService reports;
-    private final BeaconMetricsService metrics;
-    private final UpdateCheckService updates;
-    private final BeaconReadRepository collected;
-    private final ProblemReportRepository problemReports;
-    private final ProblemReportScreenshotService pictures;
+    private final BeaconAdminService beacon;
 
     @Inject
-    public BeaconAdminRoutes(
-            BeaconSettings config,
-            BeaconReportService reports,
-            BeaconMetricsService metrics,
-            UpdateCheckService updates,
-            BeaconReadRepository collected,
-            ProblemReportRepository problemReports,
-            ProblemReportScreenshotService pictures) {
-        this.config = config;
-        this.reports = reports;
-        this.metrics = metrics;
-        this.updates = updates;
-        this.collected = collected;
-        this.problemReports = problemReports;
-        this.pictures = pictures;
+    public BeaconAdminRoutes(BeaconAdminService beacon) {
+        this.beacon = beacon;
     }
 
     @Override
@@ -87,267 +74,192 @@ public class BeaconAdminRoutes implements Routes {
         routes.get(base + "/collected/figures", this::collectedMetrics, InstancePermission.ADMINISTRATOR);
     }
 
-    /** What a beacon has gathered is only worth asking for when this instance is one. */
-    private void requireBeacon() {
-        if (!config.receiving()) throw Refusal.BEACON_NOT_RECEIVING.raise();
+    private static boolean includeAcknowledged(Context ctx) {
+        return Boolean.parseBoolean(ctx.queryParam("includeAcknowledged"));
     }
 
+    @OpenApi(
+            path = "/api/v1/admin/beacon/collected/faults",
+            methods = HttpMethod.GET,
+            summary = "The faults this beacon gathered, most widely met first",
+            tags = {"Beacon"},
+            queryParams = @OpenApiParam(name = "includeAcknowledged", type = Boolean.class),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BeaconFault[].class)))
     private void faults(Context ctx) {
-        requireBeacon();
-        ctx.json(collected.faults(Boolean.parseBoolean(ctx.queryParam("includeAcknowledged"))));
+        ctx.json(beacon.faults(includeAcknowledged(ctx)));
     }
 
     /** Marking a fault as seen, or naming the version that put it right. */
+    @OpenApi(
+            path = "/api/v1/admin/beacon/collected/faults/{id}",
+            methods = HttpMethod.PUT,
+            summary = "Mark a gathered fault as seen or name the version that fixed it",
+            tags = {"Beacon"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ResolveRequest.class)),
+            responses = @OpenApiResponse(status = "204"))
     private void resolveFault(Context ctx) {
-        requireBeacon();
         var request = ctx.bodyAsClass(ResolveRequest.class);
-        if (!collected.resolveFault(pathId(ctx), request.acknowledged(), request.resolvedIn())) {
-            throw Refusal.BEACON_FAULT_NOT_HERE.raise();
-        }
-        ctx.status(io.javalin.http.HttpStatus.NO_CONTENT);
+        beacon.resolveFault(pathId(ctx), request.acknowledged(), request.resolvedIn());
+        ctx.status(HttpStatus.NO_CONTENT);
     }
 
+    @OpenApi(
+            path = "/api/v1/admin/beacon/collected/reports",
+            methods = HttpMethod.GET,
+            summary = "The problem reports forwarded to this beacon, newest first",
+            tags = {"Beacon"},
+            queryParams = @OpenApiParam(name = "includeAcknowledged", type = Boolean.class),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BeaconReport[].class)))
     private void collectedReports(Context ctx) {
-        requireBeacon();
-        ctx.json(collected.reports(Boolean.parseBoolean(ctx.queryParam("includeAcknowledged"))));
+        ctx.json(beacon.collectedReports(includeAcknowledged(ctx)));
     }
 
+    @OpenApi(
+            path = "/api/v1/admin/beacon/collected/reports/{id}/acknowledge",
+            methods = HttpMethod.POST,
+            summary = "Mark a forwarded report as seen",
+            tags = {"Beacon"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            responses = @OpenApiResponse(status = "204"))
     private void acknowledgeReport(Context ctx) {
-        requireBeacon();
-        if (!collected.acknowledgeReport(pathId(ctx))) throw Refusal.BEACON_REPORT_NOT_ACKNOWLEDGED.raise();
-        ctx.status(io.javalin.http.HttpStatus.NO_CONTENT);
+        beacon.acknowledgeReport(pathId(ctx));
+        ctx.status(HttpStatus.NO_CONTENT);
     }
 
-    /**
-     * The picture that came with a report this beacon was sent.
-     *
-     * <p>Served from the report rather than from the file library: a picture forwarded here is of a
-     * page of somebody else's installation, and it has no business appearing in a list of files
-     * anybody browses.
-     */
+    @OpenApi(
+            path = "/api/v1/admin/beacon/collected/reports/{id}/screenshot",
+            methods = HttpMethod.GET,
+            summary = "The picture a forwarded report came with",
+            tags = {"Beacon"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(type = "image/*")))
     private void collectedReportScreenshot(Context ctx) {
-        requireBeacon();
-        var report = collected.reports(true).stream()
-                .filter(row -> row.id() == pathId(ctx))
-                .findFirst()
-                .orElseThrow(Refusal.BEACON_REPORT_NOT_HERE_FOR_PICTURE::raise);
-        if (report.screenshotFileId() == null) throw Refusal.BEACON_REPORT_HAS_NO_PICTURE.raise();
-        var picture =
-                pictures.read(report.screenshotFileId()).orElseThrow(Refusal.BEACON_REPORT_PICTURE_NOT_HERE::raise);
+        var picture = beacon.collectedPicture(pathId(ctx));
         ctx.contentType(picture.contentType()).result(picture.data());
     }
 
+    @OpenApi(
+            path = "/api/v1/admin/beacon/collected/figures",
+            methods = HttpMethod.GET,
+            summary = "The bucketed figures this beacon collected over the last days",
+            tags = {"Beacon"},
+            queryParams = @OpenApiParam(name = "days", type = Integer.class),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BeaconMetricsRow[].class)))
     private void collectedMetrics(Context ctx) {
-        requireBeacon();
-        String raw = ctx.queryParam("days");
-        int days = raw == null ? 30 : Math.clamp(Integer.parseInt(raw), 1, 365);
-        ctx.json(collected.metrics(days));
+        ctx.json(beacon.collectedMetrics(
+                ctx.queryParamAsClass("days", Integer.class).getOrDefault(30)));
     }
 
-    private int pathId(Context ctx) {
+    private static int pathId(Context ctx) {
         try {
             return Integer.parseInt(ctx.pathParam("id"));
         } catch (NumberFormatException e) {
-            throw Refusal.BEACON_ID_NOT_A_NUMBER.raise();
+            throw BeaconRefusal.BEACON_ID_NOT_A_NUMBER.raise();
+        }
+    }
+
+    private static long problemId(Context ctx) {
+        try {
+            return Long.parseLong(ctx.pathParam("id"));
+        } catch (NumberFormatException e) {
+            throw BeaconRefusal.BEACON_PROBLEM_ID_NOT_A_NUMBER.raise();
         }
     }
 
     /** Whether a fault has been seen, and which version put it right. */
-    public record ResolveRequest(boolean acknowledged, String resolvedIn) {}
+    public record ResolveRequest(
+            boolean acknowledged, @Nullable String resolvedIn) {}
 
-    /**
-     * What this instance is set up to do, so the screens can say so rather than guess.
-     *
-     * @param enabled       whether anything is sent at all
-     * @param url           the beacon being reported to
-     * @param receiving     whether this instance is itself a beacon
-     * @param contactName   a name a beacon may answer on, empty where none was given
-     */
-    public record BeaconStatus(
-            boolean enabled,
-            String url,
-            boolean forwardProblems,
-            boolean forwardReports,
-            boolean reviewReportPictures,
-            boolean metricsEnabled,
-            boolean receiving,
-            String contactName,
-            String contactMail) {}
-
+    @OpenApi(
+            path = "/api/v1/admin/beacon",
+            methods = HttpMethod.GET,
+            summary = "What this instance sends to a beacon, and whether it is one",
+            tags = {"Beacon"},
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BeaconStatus.class)))
     private void status(Context ctx) {
-        ctx.json(new BeaconStatus(
-                config.enabled(),
-                config.url(),
-                config.forwardProblems(),
-                config.forwardReports(),
-                config.reviewReportPictures(),
-                config.metricsEnabled(),
-                config.receiving(),
-                config.contactName(),
-                config.contactMail()));
+        ctx.json(beacon.status());
     }
 
-    /**
-     * What an operator chose, written down.
-     *
-     * <p>Stored rather than configured, so a change takes effect on the next entry rather than on the
-     * next restart. Everything that reads these asks at the moment it matters.
-     */
+    @OpenApi(
+            path = "/api/v1/admin/beacon",
+            methods = HttpMethod.PUT,
+            summary = "Update the beacon switches and the contact",
+            tags = {"Beacon"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = BeaconSettingsRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BeaconStatus.class)))
     private void updateSettings(Context ctx) {
-        var request = ctx.bodyAsClass(SettingsRequest.class);
-        config.update(
-                request.enabled(),
-                request.url(),
-                request.forwardProblems(),
-                request.forwardReports(),
-                request.reviewReportPictures(),
-                request.metricsEnabled(),
-                request.receiving(),
-                request.contactName(),
-                request.contactMail());
-        status(ctx);
+        ctx.json(beacon.update(ctx.bodyAsClass(BeaconSettingsRequest.class)));
     }
 
-    /**
-     * The switches and the contact, as the screen sends them back.
-     *
-     * @param reviewReportPictures whether a report carrying a picture waits for somebody here before
-     *     it is passed on. On unless an operator says otherwise
-     */
-    public record SettingsRequest(
-            boolean enabled,
-            String url,
-            boolean forwardProblems,
-            boolean forwardReports,
-            boolean reviewReportPictures,
-            boolean metricsEnabled,
-            boolean receiving,
-            String contactName,
-            String contactMail) {}
-
-    private ProblemLogAppender.Snapshot entry(Context ctx) {
-        long id;
-        try {
-            id = Long.parseLong(ctx.pathParam("id"));
-        } catch (NumberFormatException e) {
-            throw Refusal.BEACON_PROBLEM_ID_NOT_A_NUMBER.raise();
-        }
-        var appender = ProblemLogAppender.instance();
-        if (appender == null) throw Refusal.PROBLEM_LOG_NOT_RUNNING.raise();
-        return appender.getProblems(true).stream()
-                .filter(problem -> problem.id() == id)
-                .map(ProblemLogAppender.ProblemEntry::snapshot)
-                .findFirst()
-                .orElseThrow(Refusal.BEACON_PROBLEM_NOT_HERE::raise);
-    }
-
-    /** The exact payload one problem would travel as, shown before anything is sent. */
+    @OpenApi(
+            path = "/api/v1/admin/beacon/problems/{id}/preview",
+            methods = HttpMethod.GET,
+            summary = "What one problem would travel as",
+            tags = {"Beacon"},
+            pathParams = @OpenApiParam(name = "id", type = Long.class, required = true),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ProblemPayload.class)))
     private void previewProblem(Context ctx) {
-        ctx.json(reports.payloadFor(entry(ctx), updates.currentVersion()));
+        ctx.json(beacon.previewProblem(problemId(ctx)));
     }
 
+    @OpenApi(
+            path = "/api/v1/admin/beacon/problems/{id}/send",
+            methods = HttpMethod.POST,
+            summary = "Send one problem to the beacon",
+            tags = {"Beacon"},
+            pathParams = @OpenApiParam(name = "id", type = Long.class, required = true),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = SendResult.class)))
     private void sendProblem(Context ctx) {
-        requireEnabled();
-        ctx.json(new SendResult(reports.send(entry(ctx), updates.currentVersion()) ? 1 : 0));
+        ctx.json(beacon.sendProblem(problemId(ctx)));
     }
 
-    /** What the list's own action sends: the ticked entries, in one go. */
+    @OpenApi(
+            path = "/api/v1/admin/beacon/problems/send",
+            methods = HttpMethod.POST,
+            summary = "Send the chosen problems to the beacon",
+            tags = {"Beacon"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SendRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = SendResult.class)))
     private void sendProblems(Context ctx) {
-        requireEnabled();
-        var request = ctx.bodyAsClass(SendRequest.class);
-        if (request.ids() == null || request.ids().isEmpty()) {
-            throw Refusal.BEACON_NOTHING_CHOSEN_TO_SEND.raise();
-        }
-        var appender = ProblemLogAppender.instance();
-        if (appender == null) throw Refusal.PROBLEM_LOG_NOT_RUNNING_ON_SEND.raise();
-        var chosen = appender.getProblems(true).stream()
-                .filter(problem -> request.ids().contains(problem.id()))
-                .map(ProblemLogAppender.ProblemEntry::snapshot)
-                .toList();
-        ctx.json(new SendResult(reports.sendAll(chosen, updates.currentVersion())));
+        ctx.json(beacon.sendProblems(ctx.bodyAsClass(SendRequest.class).ids()));
     }
 
-    /**
-     * What one report would be sent as.
-     *
-     * <p>A report is a person talking, so the bytes matter more here than anywhere else: the message
-     * is theirs, and the only honest way to ask an operator to pass it on is to show what goes.
-     */
+    @OpenApi(
+            path = "/api/v1/admin/beacon/reports/{id}/preview",
+            methods = HttpMethod.GET,
+            summary = "What one problem report would travel as",
+            tags = {"Beacon"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ReportPayload.class)))
     private void previewReport(Context ctx) {
-        ctx.json(reports.reportPayloadFor(report(ctx), updates.currentVersion()));
+        ctx.json(beacon.previewReport(pathId(ctx)));
     }
 
-    /**
-     * Passes one report on now, whatever the automatic switch says.
-     *
-     * <p>The switch governs what leaves on its own; a button is an operator deciding about this one
-     * report in front of them. That is also the only way a report written before the switch was
-     * turned on can ever reach a beacon.
-     */
+    @OpenApi(
+            path = "/api/v1/admin/beacon/reports/{id}/send",
+            methods = HttpMethod.POST,
+            summary = "Pass one problem report on to the beacon",
+            tags = {"Beacon"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SendReportRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = SendResult.class)))
     private void sendReport(Context ctx) {
-        requireEnabled();
-        var report = report(ctx);
-        var decision =
-                ctx.body().isBlank() ? new SendReportRequest(null, false) : ctx.bodyAsClass(SendReportRequest.class);
-
-        Integer pictureId = report.screenshotFileId();
-        boolean temporary = false;
-        if (decision.dropScreenshot()) {
-            pictureId = null;
-        } else if (decision.screenshot() != null && !decision.screenshot().isBlank()) {
-            var covered = pictures.store(decision.screenshot(), null);
-            if (covered.isPresent()) {
-                pictureId = covered.get();
-                temporary = true;
-            }
-        }
-
-        byte[] bytes = null;
-        String type = null;
-        if (pictureId != null) {
-            var picture = pictures.read(pictureId);
-            if (picture.isPresent()) {
-                bytes = picture.get().data();
-                type = picture.get().contentType();
-            }
-        }
-        boolean queued = reports.sendReportNow(report, updates.currentVersion(), bytes, type);
-        if (queued) problemReports.markForwarded(report.id());
-        if (temporary) pictures.forget(pictureId);
-        ctx.json(new SendResult(queued ? 1 : 0));
+        int id = pathId(ctx);
+        var decision = ctx.body().isBlank() ? SendReportRequest.AS_IT_STANDS : ctx.bodyAsClass(SendReportRequest.class);
+        ctx.json(beacon.sendReport(id, decision));
     }
 
-    /**
-     * What an operator decided about the picture of the report they are passing on.
-     *
-     * <p>Absent altogether where they simply pressed send, which is the case this had before pictures
-     * existed and still the common one.
-     *
-     * @param screenshot     a further covered copy to send in place of the one the reporter covered,
-     *                       or null to send theirs as it stands
-     * @param dropScreenshot whether the report goes without any picture, which is final: a picture
-     *                       left out of a report is never sent after it
-     */
-    public record SendReportRequest(String screenshot, boolean dropScreenshot) {}
-
-    private ProblemReport report(Context ctx) {
-        return problemReports.findById(pathId(ctx)).orElseThrow(Refusal.BEACON_REPORT_NOT_HERE::raise);
-    }
-
-    /** The day's numbers as they would go, so an operator can see what "how much" means. */
+    @OpenApi(
+            path = "/api/v1/admin/beacon/figures/preview",
+            methods = HttpMethod.GET,
+            summary = "The day's figures as they would be sent",
+            tags = {"Beacon"},
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MetricsBatch.class)))
     private void previewMetrics(Context ctx) {
-        ctx.json(metrics.batch(updates.currentVersion(), Instant.now()));
-    }
-
-    private void requireEnabled() {
-        if (!config.enabled()) {
-            throw Refusal.BEACON_NOT_SET_UP.raise();
-        }
+        ctx.json(beacon.previewMetrics());
     }
 
     /** The problems an operator ticked. */
     public record SendRequest(List<Long> ids) {}
-
-    /** How many were handed to the sender. */
-    public record SendResult(int queued) {}
 }

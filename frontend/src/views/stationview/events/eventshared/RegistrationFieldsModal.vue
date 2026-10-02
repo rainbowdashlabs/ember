@@ -16,12 +16,13 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import EventFieldValueInput from './EventFieldValueInput.vue'
 import {useAnswerMembers} from './useAnswerMembers'
-import {EventFieldTypes, type EventRegistrationField, type RegistrationFieldValue} from '@/api/events'
+import {FieldTypes} from '@/api/fieldTypes'
+import type {EventRegistrationFieldValue, EventRegistrationField} from '@/api/generated/schema'
 
 const props = defineProps<{
   fields: EventRegistrationField[]
   /** The answers already on file, where an existing registration is being corrected. */
-  values?: RegistrationFieldValue[]
+  values?: EventRegistrationFieldValue[]
   title?: string
   /** What the confirming button says, for a dialog that changes an answer rather than gives one. */
   confirmLabel?: string
@@ -34,14 +35,14 @@ const props = defineProps<{
 const show = defineModel<boolean>({required: true})
 
 const emit = defineEmits<{
-  confirm: [values: RegistrationFieldValue[]]
+  confirm: [values: EventRegistrationFieldValue[]]
 }>()
 
 const {t} = useI18n()
 
 const answers = ref<Record<number, string>>({})
 
-const {allMembers, loadMembers} = useAnswerMembers(computed(() => props.fields))
+const {allMembers, groupMembers, tagMembers, loadMembers} = useAnswerMembers(computed(() => props.fields))
 
 const missing = computed(() =>
     props.fields.filter(f => f.config?.required && !(answers.value[f.id] ?? '').trim()))
@@ -93,12 +94,14 @@ watch(show, (open) => {
         <EventFieldValueInput
             :model-value="answerOf(field.id)"
             :field-type="field.fieldType"
-            @update:model-value="v => { answers[field.id] = v }"
-            :config="field.config as Record<string, unknown>"
+            :config="field.config"
             :all-members="allMembers"
+            :group-members="groupMembers"
+            :tag-members="tagMembers"
+            @update:model-value="v => { answers[field.id] = v }"
         />
         <p
-            v-if="field.fieldType === EventFieldTypes.NUMBER && (field.config?.min != null || field.config?.max != null)"
+            v-if="field.fieldType === FieldTypes.NUMBER && (field.config?.min != null || field.config?.max != null)"
             class="text-xs text-(--text-muted) mt-1"
         >
           {{ t('events.registrationFields.range', {min: field.config?.min ?? '–', max: field.config?.max ?? '–'}) }}

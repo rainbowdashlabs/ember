@@ -29,9 +29,12 @@ onMounted(() => {
 const onClusterPanel = computed(() => route.path.startsWith('/cluster'))
 const visible = computed(() => loaded.value && hasClusters.value && !onClusterPanel.value)
 
+/**
+ * Opens the cluster panel. Where no valid cluster is chosen yet the first one is taken, so somebody
+ * who belongs to exactly one is never asked which they meant.
+ */
 function open() {
   const stored = currentClusterId.value
-  // Somebody who belongs to exactly one cluster never gets asked which one they meant
   if (!stored || !clusterList.value.some(c => c.uid === stored)) {
     const [only] = clusterList.value
     if (only) setActiveCluster(only.uid)

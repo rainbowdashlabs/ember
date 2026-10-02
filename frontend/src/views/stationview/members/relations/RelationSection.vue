@@ -19,8 +19,8 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import { useI18n } from 'vue-i18n'
-import type { ProfileField } from '@/api/profileFields'
-import type { StationMember } from '@/api/types'
+import type { ProfileQuestion } from '@/api/profileFields'
+import type { MemberWithName } from '@/api/generated/schema'
 
 /**
  * The wording one section carries. Both halves of the relation read the same way and only the
@@ -46,15 +46,15 @@ export interface RelationLabels {
 
 const props = withDefaults(defineProps<{
   labels: RelationLabels
-  people: StationMember[]
-  available: StationMember[]
-  fields: ProfileField[]
+  people: MemberWithName[]
+  available: MemberWithName[]
+  fields: ProfileQuestion[]
   readonly?: boolean
   /** Whether somebody who is not a member yet can be invited straight into this relation. */
   allowCreate?: boolean
   rowTestid?: string
-  displayName: (m: StationMember) => string
-  fieldsFor: (id: number) => ProfileField[]
+  displayName: (m: MemberWithName) => string
+  fieldsFor: (id: number) => ProfileQuestion[]
   fieldValue: (id: number, fieldId: number) => unknown
 }>(), {
   readonly: false,
@@ -121,7 +121,7 @@ function doCreate() {
       </ButtonRow>
     </div>
 
-    <MutedText tag="div" size="sm" class="py-2" v-if="people.length === 0">
+    <MutedText v-if="people.length === 0" tag="div" size="sm" class="py-2">
       {{ labels.empty }}
     </MutedText>
 
@@ -130,7 +130,7 @@ function doCreate() {
         <div class="flex items-center justify-between">
           <div>
             <span class="font-semibold">{{ displayName(person) }}</span>
-            <MutedText class="ml-2" v-if="person.email">{{ person.email }}</MutedText>
+            <MutedText v-if="person.email" class="ml-2">{{ person.email }}</MutedText>
           </div>
           <div v-if="!readonly" class="flex items-center gap-2">
             <EditButton @click="emit('edit', person.id)" />

@@ -7,57 +7,42 @@
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import TabBar from '@/components/navigation/TabBar.vue'
-import CommentThread from '@/components/comment/CommentThread.vue'
+import CommentSection from '@/components/comment/CommentSection.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
-import type { BoardComment, BoardTicketTransition, BoardTicketHistoryEntry, BoardLane, BoardLabel } from '@/api/boards'
-import type { Comment } from '@/api/comments'
-import type { MemberCompletion } from '@/api/stationMembers'
-import { contrastTextColor } from '@/theme/contrast'
+import type { CommentSource } from '@/api/comments'
+import type { BoardLabel, BoardLane, BoardTicketHistoryResponse, BoardTicketTransitionResponse, CommentResponse } from '@/api/generated/schema'
+import { contrastTextColor } from '@/util/contrastColor'
 import { formatDateTime } from '@/util/format'
 
+/**
+ * What happened on a ticket, in three tabs: its comments, its changes, and both together.
+ *
+ * <p>The comments tab is the shared comment section, kept mounted while another tab shows, so the
+ * count on its tab and the comments among the changes stay as current as the thread itself.
+ */
 const props = defineProps<{
-    comments: BoardComment[]
-    transitions: BoardTicketTransition[]
-    history: BoardTicketHistoryEntry[]
+    commentSource: CommentSource
+    transitions: BoardTicketTransitionResponse[]
+    history: BoardTicketHistoryResponse[]
     lanes: BoardLane[]
     labels: BoardLabel[]
-    members: MemberCompletion[]
     readonly?: boolean
-    federated?: boolean
-}>()
-
-const emit = defineEmits<{
-    createComment: [parentId: number | null, content: string]
-    updateComment: [commentId: number, content: string]
-    deleteComment: [commentId: number]
 }>()
 
 const { t, te } = useI18n()
 const activeTab = ref('comments')
+const comments = ref<CommentResponse[]>([])
 
 function historyActionLabel(action: string): string {
     const key = `boards.historyActions.${action}`
     return te(key) ? t(key) : action
 }
 
-const commentsAsGeneric = computed<Comment[]>(() =>
-    props.comments.map(c => ({
-        id: c.id,
-        parentId: c.parentId,
-        author: c.author,
-        authorName: c.author?.name ?? '',
-        content: c.content,
-        deleted: c.deleted,
-        createdAt: c.createdAt,
-        updatedAt: c.updatedAt,
-    })),
-)
-
-type ActivityItem = { type: 'comment'; data: BoardComment; ts: string } | { type: 'transition'; data: BoardTicketTransition; ts: string } | { type: 'history'; data: BoardTicketHistoryEntry; ts: string }
+type ActivityItem = { type: 'comment'; data: CommentResponse; ts: string } | { type: 'transition'; data: BoardTicketTransitionResponse; ts: string } | { type: 'history'; data: BoardTicketHistoryResponse; ts: string }
 
 const allActivity = computed<ActivityItem[]>(() => {
     const items: ActivityItem[] = [
-        ...props.comments.filter(c => !c.deleted).map(c => ({ type: 'comment' as const, data: c, ts: c.createdAt })),
+        ...comments.value.filter(c => !c.deleted).map(c => ({ type: 'comment' as const, data: c, ts: c.createdAt })),
         ...props.transitions.map(t => ({ type: 'transition' as const, data: t, ts: t.movedAt })),
         ...props.history.map(h => ({ type: 'history' as const, data: h, ts: h.createdAt })),
     ]
@@ -76,7 +61,7 @@ const priorityIcons: Record<string, { icon: string[]; color: string }> = { HIGHE
 function findLabel(name: string) { return props.labels.find(l => l.name === name) }
 
 const tabs = computed(() => [
-    { key: 'comments', label: `${t('boards.comments')} (${props.comments.filter(c => !c.deleted).length})` },
+    { key: 'comments', label: `${t('boards.comments')} (${comments.value.filter(c => !c.deleted).length})` },
     { key: 'transitions', label: `${t('boards.transitions')} (${props.transitions.length + props.history.length})` },
     { key: 'all', label: t('boards.activityAll') },
 ])
@@ -96,44 +81,40 @@ function laneName(id: number | null): string {
     <div>
         <TabBar v-model="activeTab" :tabs="tabs" class="mb-3" />
 
-        <div v-if="activeTab === 'comments'">
-            <CommentThread
-                :comments="commentsAsGeneric"
-                :members="members"
-                :federated="federated"
-                :readonly="readonly"
-                @create="(parentId, content) => emit('createComment', parentId, content)"
-                @update="(id, content) => emit('updateComment', id, content)"
-                @delete="(id) => emit('deleteComment', id)"
-            />
-        </div>
+        <CommentSection
+            v-show="activeTab === 'comments'"
+            :source="commentSource"
+            :readonly="readonly"
+            untitled
+            @loaded="comments = $event"
+        />
 
         <div v-if="activeTab === 'transitions'" class="space-y-2">
             <template v-for="item in changesActivity" :key="activityKey(item)">
                 <div v-if="item.type === 'transition'" class="flex items-center gap-2 text-sm text-(--text-muted) flex-wrap">
-                    <MemberName :identity="(item.data as BoardTicketTransition).actor" size="sm" />
+                    <MemberName :identity="item.data.actor" size="sm" />
                     <span>{{ t('boards.movedFrom') }}</span>
-                    <BaseBadge bg-class="" class="font-medium" :style="{ backgroundColor: lanes.find(l => l.id === (item.data as BoardTicketTransition).fromLaneId)?.color ?? 'var(--primary)', color: contrastTextColor(lanes.find(l => l.id === (item.data as BoardTicketTransition).fromLaneId)?.color ?? '#fd4f00') }">{{ laneName((item.data as BoardTicketTransition).fromLaneId) }}</BaseBadge>
+                    <BaseBadge bg-class="" class="font-medium" :style="{ backgroundColor: lanes.find(l => l.id === item.data.fromLaneId)?.color ?? 'var(--primary)', color: contrastTextColor(lanes.find(l => l.id === item.data.fromLaneId)?.color ?? '#fd4f00') }">{{ laneName(item.data.fromLaneId) }}</BaseBadge>
                     <span>{{ t('boards.movedTo') }}</span>
-                    <BaseBadge bg-class="" class="font-medium" :style="{ backgroundColor: lanes.find(l => l.id === (item.data as BoardTicketTransition).toLaneId)?.color ?? 'var(--primary)', color: contrastTextColor(lanes.find(l => l.id === (item.data as BoardTicketTransition).toLaneId)?.color ?? '#fd4f00') }">{{ laneName((item.data as BoardTicketTransition).toLaneId) }}</BaseBadge>
+                    <BaseBadge bg-class="" class="font-medium" :style="{ backgroundColor: lanes.find(l => l.id === item.data.toLaneId)?.color ?? 'var(--primary)', color: contrastTextColor(lanes.find(l => l.id === item.data.toLaneId)?.color ?? '#fd4f00') }">{{ laneName(item.data.toLaneId) }}</BaseBadge>
                     <span class="ml-auto text-xs">{{ formatDateTime(item.ts) }}</span>
                 </div>
                 <div v-else-if="item.type === 'history'" class="flex items-center gap-2 text-sm text-(--text-muted) flex-wrap">
-                    <MemberName :identity="(item.data as BoardTicketHistoryEntry).actor" size="sm" />
-                    <span class="font-medium text-(--text)">{{ historyActionLabel((item.data as BoardTicketHistoryEntry).action) }}</span>
-                    <template v-if="(item.data as BoardTicketHistoryEntry).action === 'PRIORITY_CHANGED' && (item.data as BoardTicketHistoryEntry).detail">
-                        <template v-for="(part, i) in ((item.data as BoardTicketHistoryEntry).detail ?? '').split(' → ')" :key="i">
+                    <MemberName :identity="item.data.actor" size="sm" />
+                    <span class="font-medium text-(--text)">{{ historyActionLabel(item.data.action) }}</span>
+                    <template v-if="item.data.action === 'PRIORITY_CHANGED' && item.data.detail">
+                        <template v-for="(part, i) in (item.data.detail ?? '').split(' → ')" :key="i">
                             <span v-if="i > 0" class="text-(--text-muted)">→</span>
                             <font-awesome-icon v-if="priorityIcons[part]" :icon="priorityIcons[part].icon" :class="priorityIcons[part].color" />
                         </template>
                     </template>
-                    <template v-else-if="((item.data as BoardTicketHistoryEntry).action === 'LABEL_ADDED' || (item.data as BoardTicketHistoryEntry).action === 'LABEL_REMOVED') && (item.data as BoardTicketHistoryEntry).detail">
-                        <BaseBadge bg-class="" :style="{ backgroundColor: findLabel((item.data as BoardTicketHistoryEntry).detail!)?.color ?? '#6b7280', color: contrastTextColor(findLabel((item.data as BoardTicketHistoryEntry).detail!)?.color ?? '#6b7280') }">{{ (item.data as BoardTicketHistoryEntry).detail }}</BaseBadge>
+                    <template v-else-if="(item.data.action === 'LABEL_ADDED' || item.data.action === 'LABEL_REMOVED') && item.data.detail">
+                        <BaseBadge bg-class="" :style="{ backgroundColor: findLabel(item.data.detail!)?.color ?? '#6b7280', color: contrastTextColor(findLabel(item.data.detail!)?.color ?? '#6b7280') }">{{ item.data.detail }}</BaseBadge>
                     </template>
-                    <template v-else-if="(item.data as BoardTicketHistoryEntry).action === 'DUE_DATE_CHANGED' && (item.data as BoardTicketHistoryEntry).detail">
-                        <span class="text-(--text)">{{ (item.data as BoardTicketHistoryEntry).detail }}</span>
+                    <template v-else-if="item.data.action === 'DUE_DATE_CHANGED' && item.data.detail">
+                        <span class="text-(--text)">{{ item.data.detail }}</span>
                     </template>
-                    <span v-else-if="(item.data as BoardTicketHistoryEntry).detail" class="text-(--text)">{{ (item.data as BoardTicketHistoryEntry).detail }}</span>
+                    <span v-else-if="item.data.detail" class="text-(--text)">{{ item.data.detail }}</span>
                     <span class="ml-auto text-xs">{{ formatDateTime(item.ts) }}</span>
                 </div>
             </template>
@@ -145,33 +126,33 @@ function laneName(id: number | null): string {
                 <div v-if="item.type === 'comment'" class="flex gap-2">
                     <div class="flex-1">
                         <div class="flex items-center gap-2 text-xs text-(--text-muted)">
-                            <MemberName :identity="(item.data as BoardComment).author" size="sm" class="font-medium" />
+                            <MemberName :identity="item.data.author" size="sm" class="font-medium" />
                             <span>{{ formatDateTime(item.ts) }}</span>
                         </div>
-                        <p class="text-sm mt-0.5 whitespace-pre-wrap">{{ (item.data as BoardComment).content }}</p>
+                        <p class="text-sm mt-0.5 whitespace-pre-wrap">{{ item.data.content }}</p>
                     </div>
                 </div>
                 <div v-else-if="item.type === 'transition'" class="flex items-center gap-2 text-sm text-(--text-muted) flex-wrap">
-                    <MemberName :identity="(item.data as BoardTicketTransition).actor" size="sm" />
+                    <MemberName :identity="item.data.actor" size="sm" />
                     <span>{{ t('boards.movedFrom') }}</span>
-                    <BaseBadge bg-class="" class="font-medium" :style="{ backgroundColor: lanes.find(l => l.id === (item.data as BoardTicketTransition).fromLaneId)?.color ?? 'var(--primary)', color: contrastTextColor(lanes.find(l => l.id === (item.data as BoardTicketTransition).fromLaneId)?.color ?? '#fd4f00') }">{{ laneName((item.data as BoardTicketTransition).fromLaneId) }}</BaseBadge>
+                    <BaseBadge bg-class="" class="font-medium" :style="{ backgroundColor: lanes.find(l => l.id === item.data.fromLaneId)?.color ?? 'var(--primary)', color: contrastTextColor(lanes.find(l => l.id === item.data.fromLaneId)?.color ?? '#fd4f00') }">{{ laneName(item.data.fromLaneId) }}</BaseBadge>
                     <span>{{ t('boards.movedTo') }}</span>
-                    <BaseBadge bg-class="" class="font-medium" :style="{ backgroundColor: lanes.find(l => l.id === (item.data as BoardTicketTransition).toLaneId)?.color ?? 'var(--primary)', color: contrastTextColor(lanes.find(l => l.id === (item.data as BoardTicketTransition).toLaneId)?.color ?? '#fd4f00') }">{{ laneName((item.data as BoardTicketTransition).toLaneId) }}</BaseBadge>
+                    <BaseBadge bg-class="" class="font-medium" :style="{ backgroundColor: lanes.find(l => l.id === item.data.toLaneId)?.color ?? 'var(--primary)', color: contrastTextColor(lanes.find(l => l.id === item.data.toLaneId)?.color ?? '#fd4f00') }">{{ laneName(item.data.toLaneId) }}</BaseBadge>
                     <span class="ml-auto text-xs">{{ formatDateTime(item.ts) }}</span>
                 </div>
                 <div v-else-if="item.type === 'history'" class="flex items-center gap-2 text-sm text-(--text-muted) flex-wrap">
-                    <MemberName :identity="(item.data as BoardTicketHistoryEntry).actor" size="sm" />
-                    <span class="font-medium text-(--text)">{{ historyActionLabel((item.data as BoardTicketHistoryEntry).action) }}</span>
-                    <template v-if="(item.data as BoardTicketHistoryEntry).action === 'PRIORITY_CHANGED' && (item.data as BoardTicketHistoryEntry).detail">
-                        <template v-for="(part, i) in ((item.data as BoardTicketHistoryEntry).detail ?? '').split(' → ')" :key="i">
+                    <MemberName :identity="item.data.actor" size="sm" />
+                    <span class="font-medium text-(--text)">{{ historyActionLabel(item.data.action) }}</span>
+                    <template v-if="item.data.action === 'PRIORITY_CHANGED' && item.data.detail">
+                        <template v-for="(part, i) in (item.data.detail ?? '').split(' → ')" :key="i">
                             <span v-if="i > 0" class="text-(--text-muted)">→</span>
                             <font-awesome-icon v-if="priorityIcons[part]" :icon="priorityIcons[part].icon" :class="priorityIcons[part].color" />
                         </template>
                     </template>
-                    <template v-else-if="((item.data as BoardTicketHistoryEntry).action === 'LABEL_ADDED' || (item.data as BoardTicketHistoryEntry).action === 'LABEL_REMOVED') && (item.data as BoardTicketHistoryEntry).detail">
-                        <BaseBadge bg-class="" :style="{ backgroundColor: findLabel((item.data as BoardTicketHistoryEntry).detail!)?.color ?? '#6b7280', color: contrastTextColor(findLabel((item.data as BoardTicketHistoryEntry).detail!)?.color ?? '#6b7280') }">{{ (item.data as BoardTicketHistoryEntry).detail }}</BaseBadge>
+                    <template v-else-if="(item.data.action === 'LABEL_ADDED' || item.data.action === 'LABEL_REMOVED') && item.data.detail">
+                        <BaseBadge bg-class="" :style="{ backgroundColor: findLabel(item.data.detail!)?.color ?? '#6b7280', color: contrastTextColor(findLabel(item.data.detail!)?.color ?? '#6b7280') }">{{ item.data.detail }}</BaseBadge>
                     </template>
-                    <span v-else-if="(item.data as BoardTicketHistoryEntry).detail" class="text-(--text)">{{ (item.data as BoardTicketHistoryEntry).detail }}</span>
+                    <span v-else-if="item.data.detail" class="text-(--text)">{{ item.data.detail }}</span>
                     <span class="ml-auto text-xs">{{ formatDateTime(item.ts) }}</span>
                 </div>
             </div>

@@ -9,8 +9,8 @@ import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.members.entity.ProfileField;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
-import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
@@ -90,17 +90,11 @@ class ProfileFieldRepositoryTest extends RepositoryTestBase {
     @Order(0)
     void aQuestionAskedOfTwoAudiencesIsStillOneField() {
         var birthDate = profileFieldRepo.create(
-                station.id(),
-                "Geburtstag",
-                ProfileFieldType.BIRTH_DATE,
-                ProfileFieldConfig.parse("{}"),
-                false,
-                false,
-                null);
+                station.id(), "Geburtstag", FieldType.BIRTH_DATE, ProfileFieldConfig.parse("{}"), false, false, null);
         profileFieldRepo.assignToRole(birthDate.id(), ProfileFieldScope.TEAM, 0, null, null, null);
         profileFieldRepo.assignToRole(birthDate.id(), ProfileFieldScope.GUARDIAN, 0, null, null, null);
 
-        var found = profileFieldRepo.findAllByStationAndType(station.id(), ProfileFieldType.BIRTH_DATE);
+        var found = profileFieldRepo.findAllByStationAndType(station.id(), FieldType.BIRTH_DATE);
         assertEquals(1, found.size(), "one question, however many audiences are asked it");
         assertEquals(2, profileFieldRepo.findAssignments(birthDate.id()).size());
 
@@ -185,7 +179,7 @@ class ProfileFieldRepositoryTest extends RepositoryTestBase {
     @Order(0)
     void anAssignmentMayOverrideWhetherAnAnswerIsExpected() {
         var field = profileFieldRepo.create(
-                station.id(), "Allergien", ProfileFieldType.TEXT, ProfileFieldConfig.parse("{}"), false, false, null);
+                station.id(), "Allergien", FieldType.TEXT, ProfileFieldConfig.parse("{}"), false, false, null);
         profileFieldRepo.assignToRole(field.id(), ProfileFieldScope.MEMBER, 0, null, null, null);
         profileFieldRepo.assignToRole(field.id(), ProfileFieldScope.GUARDIAN, 0, null, null, true);
 
@@ -206,7 +200,7 @@ class ProfileFieldRepositoryTest extends RepositoryTestBase {
     @Order(1)
     void create() {
         ProfileField field = profileFieldRepo.create(
-                station.id(), "Phone", ProfileFieldType.TEXT, ProfileFieldConfig.parse("{}"), false, false, null);
+                station.id(), "Phone", FieldType.TEXT, ProfileFieldConfig.parse("{}"), false, false, null);
         profileFieldRepo.assignToRole(field.id(), ProfileFieldScope.MEMBER, 1, null, null, null);
         assertNotNull(field);
         assertEquals("Phone", field.name());
@@ -243,7 +237,7 @@ class ProfileFieldRepositoryTest extends RepositoryTestBase {
     @Order(5)
     void update() {
         assertTrue(profileFieldRepo.update(
-                fieldId, "Email", ProfileFieldType.TEXT, ProfileFieldConfig.parse("{}"), true, false, null, false));
+                fieldId, "Email", FieldType.TEXT, ProfileFieldConfig.parse("{}"), true, false, null, false));
         ProfileField updated = profileFieldRepo.findById(fieldId).orElseThrow();
         assertEquals("Email", updated.name());
         assertTrue(updated.required());
@@ -251,12 +245,10 @@ class ProfileFieldRepositoryTest extends RepositoryTestBase {
 
     private static ProfileField askOf(int stationId, String name, ProfileFieldScope role, int position) {
         var field = profileFieldRepo.create(
-                stationId, name, ProfileFieldType.TEXT, ProfileFieldConfig.parse("{}"), false, false, null);
+                stationId, name, FieldType.TEXT, ProfileFieldConfig.parse("{}"), false, false, null);
         profileFieldRepo.assignToRole(field.id(), role, position, null, null, null);
         return field;
     }
-
-    // -- Values --
 
     @Test
     @Order(10)

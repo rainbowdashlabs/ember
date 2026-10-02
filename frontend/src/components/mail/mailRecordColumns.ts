@@ -3,7 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {MailDeliveryStatus, MailQueueStatus, type MailRecord} from '@/api/mailProviders'
+import {MailDeliveryStatus, MailQueueStatus} from '@/api/mailProviders'
+import type {MailRecord} from '@/api/generated/schema'
 import {ColumnTypes, enumOptions, type TableColumn} from '@/components/table/tableColumn'
 
 /** Delivery states that mean the mail did not arrive, which is what a reader is scanning for. */

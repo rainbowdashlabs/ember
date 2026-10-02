@@ -9,7 +9,8 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import RestrictionPicker from '@/components/input/RestrictionPicker.vue'
 import {toRestrictionSelection} from '@/components/input/restriction'
-import type {MemberGroup, StationMember, UserTag} from '@/api/types'
+import type {MemberGroup, UserTag} from '@/api/generated/schema'
+import type {MemberLike} from '@/components/input/select/memberOption'
 
 const selectedUserTypes = defineModel<string[]>('selectedUserTypes', {required: true})
 const selectedGroupIds = defineModel<number[]>('selectedGroupIds', {required: true})
@@ -24,7 +25,7 @@ const selectedMemberIds = defineModel<number[]>('selectedMemberIds', {required: 
 const props = defineProps<{
   groups: MemberGroup[]
   tags: UserTag[]
-  members: StationMember[]
+  members: MemberLike[]
 }>()
 
 const restriction = toRestrictionSelection(selectedUserTypes, selectedGroupIds, selectedTagIds, selectedMemberIds)
@@ -37,12 +38,12 @@ const {t} = useI18n()
     <SubHeader>{{ t('news.restrictToGroups') }}</SubHeader>
     <p class="text-xs text-(--text-muted)">{{ t('news.restrictHint') }}</p>
     <RestrictionPicker
+        v-model="restriction"
         :groups="props.groups"
         :tags="props.tags"
         :members="props.members"
         :show-members="true"
         :show-mode="false"
-        v-model="restriction"
     />
   </NeutralContainer>
 </template>

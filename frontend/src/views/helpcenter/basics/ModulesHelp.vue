@@ -50,7 +50,6 @@ const modules = [
 
     <HelpSection :title="t('helpCenter.basics.modules.toggle')">
       <p>{{ t('helpCenter.basics.modules.toggleText') }}</p>
-      <!-- Dummy toggle example -->
       <NeutralContainer class="p-4 mt-3 space-y-3">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-2">

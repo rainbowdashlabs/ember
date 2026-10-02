@@ -5,8 +5,15 @@
  */
 package dev.chojo.ember.feature.events.entity;
 
-import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import org.jspecify.annotations.Nullable;
 
+/**
+ * A question of an appointment and its answer, as screens and partner stations read it.
+ *
+ * <p>Only what crosses the wire to a partner station speaks this shape; the server and its own screens
+ * work with {@link AppointmentField}. The components stay because a partner station compares them
+ * before it shares an appointment.
+ */
 public record EventField(
         int id,
         int eventId,
@@ -16,20 +23,36 @@ public record EventField(
         String value,
         int position,
         boolean overview,
-        Integer attendanceFieldId,
+        @Nullable Integer attendanceFieldId,
         boolean isPublic) {
 
-    public static RowMapping<EventField> map() {
-        return row -> new EventField(
-                row.getInt("id"),
-                row.getInt("event_id"),
-                row.getString("name"),
-                row.getEnum("field_type", EventFieldType.class),
-                EventFieldConfig.parse(row.getString("config")),
-                row.getString("value"),
-                row.getInt("position"),
-                row.getBoolean("overview"),
-                row.getObject("attendance_field_id", Integer.class),
-                row.getBoolean("public"));
+    /** The wire shape of a question of an appointment. */
+    public static EventField of(AppointmentField field) {
+        return new EventField(
+                field.id(),
+                field.eventId(),
+                field.name(),
+                EventFieldType.of(field.fieldType()),
+                EventFieldConfig.of(field.config()),
+                field.value(),
+                field.position(),
+                field.overview(),
+                field.attendanceFieldId(),
+                field.isPublic());
+    }
+
+    /** This question under the shared type name, as a partner's appointment is shown on this station. */
+    public AppointmentField appointmentField() {
+        return new AppointmentField(
+                id,
+                eventId,
+                name,
+                fieldType.fieldType(),
+                config.settings(),
+                value,
+                position,
+                overview,
+                attendanceFieldId,
+                isPublic);
     }
 }

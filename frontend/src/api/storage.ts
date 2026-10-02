@@ -44,14 +44,9 @@ const NECESSITY: Record<string, StorageNecessityName> = {
     consent_version: StorageNecessity.REQUIRED,
     privacy_version: StorageNecessity.REQUIRED,
     tos_version: StorageNecessity.REQUIRED,
-    session_token: StorageNecessity.REQUIRED,
-    session_expires_at: StorageNecessity.REQUIRED,
     ember_last_activity: StorageNecessity.REQUIRED,
     station_id: StorageNecessity.REQUIRED,
     cluster_id: StorageNecessity.REQUIRED,
-    ai_provider: StorageNecessity.FUNCTIONAL,
-    ai_model: StorageNecessity.FUNCTIONAL,
-    ai_api_key: StorageNecessity.FUNCTIONAL,
     instance_theme: StorageNecessity.FUNCTIONAL,
     instance_feel: StorageNecessity.FUNCTIONAL,
     theme_name: StorageNecessity.COMFORT,
@@ -70,6 +65,20 @@ const NECESSITY: Record<string, StorageNecessityName> = {
     table_columns: StorageNecessity.COMFORT,
     page_drafts: StorageNecessity.FUNCTIONAL,
     form_drafts: StorageNecessity.FUNCTIONAL,
+}
+
+/**
+ * The cookies the server sets, disclosed beside the stored values.
+ *
+ * The page writes none of them and can read only `ember_csrf`, so nothing here is enforced at
+ * runtime: the map is the frontend's half of the cookie disclosure, which `lint-browser-storage`
+ * holds against the cookie entries of {@code browser_storage.json} the same way it holds
+ * {@link NECESSITY} against the stored ones.
+ */
+export const COOKIE_NECESSITY: Record<string, StorageNecessityName> = {
+    ember_session: StorageNecessity.REQUIRED,
+    ember_csrf: StorageNecessity.REQUIRED,
+    ember_2fa_trust: StorageNecessity.REQUIRED,
 }
 
 export interface StoredLegalVersions {
@@ -184,7 +193,6 @@ export function removeItem(key: string): void {
 
 export function clearStoredData(): void {
     if (!isClient) return
-    localStorage.removeItem('session_token')
     localStorage.removeItem('station_id')
     localStorage.removeItem('cluster_id')
     localStorage.removeItem(CONSENT_VERSION_KEY)

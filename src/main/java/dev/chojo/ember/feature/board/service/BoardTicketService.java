@@ -6,16 +6,14 @@
 package dev.chojo.ember.feature.board.service;
 
 import dev.chojo.ember.api.MemberIdentity;
+import dev.chojo.ember.api.refusal.BoardRefusal;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.BoardTicketChanged;
-import dev.chojo.ember.event.events.CommentDeleted;
-import dev.chojo.ember.feature.board.entity.Board;
+import dev.chojo.ember.feature.board.entity.BoardActivityEntry;
 import dev.chojo.ember.feature.board.entity.BoardChecklistItem;
-import dev.chojo.ember.feature.board.entity.BoardComment;
 import dev.chojo.ember.feature.board.entity.BoardFieldConfig;
 import dev.chojo.ember.feature.board.entity.BoardFieldValue;
 import dev.chojo.ember.feature.board.entity.BoardTicket;
-import dev.chojo.ember.feature.board.entity.BoardTicketAddress;
 import dev.chojo.ember.feature.board.entity.BoardTicketAttachment;
 import dev.chojo.ember.feature.board.entity.BoardTicketFieldValue;
 import dev.chojo.ember.feature.board.entity.BoardTicketHistory;
@@ -28,14 +26,12 @@ import dev.chojo.ember.feature.board.entity.LinkType;
 import dev.chojo.ember.feature.board.entity.TicketPriority;
 import dev.chojo.ember.feature.board.repository.BoardRepository;
 import dev.chojo.ember.feature.board.repository.BoardTicketRepository;
-import dev.chojo.ember.feature.comment.entity.CommentEntityType;
-import dev.chojo.ember.feature.comment.service.CommentMentions;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.members.service.StationMemberService;
-import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,7 +55,6 @@ public class BoardTicketService {
     private final MemberIdentityFactory memberIdentityFactory;
     private final MemberNameResolver memberNameResolver;
     private final BoardAttachmentService attachmentService;
-    private final CommentMentions mentions;
 
     @Inject
     public BoardTicketService(
@@ -70,8 +65,7 @@ public class BoardTicketService {
             StationMemberService stationMemberService,
             MemberIdentityFactory memberIdentityFactory,
             MemberNameResolver memberNameResolver,
-            BoardAttachmentService attachmentService,
-            CommentMentions mentions) {
+            BoardAttachmentService attachmentService) {
         this.ticketRepository = ticketRepository;
         this.boardRepository = boardRepository;
         this.boardService = boardService;
@@ -80,14 +74,11 @@ public class BoardTicketService {
         this.memberIdentityFactory = memberIdentityFactory;
         this.memberNameResolver = memberNameResolver;
         this.attachmentService = attachmentService;
-        this.mentions = mentions;
     }
 
     public List<BoardTicket> findByBoard(int boardId) {
         return ticketRepository.findByBoard(boardId);
     }
-
-    // -- Ticket CRUD --
 
     public List<BoardTicket> findByBoardAndLane(int boardId, int laneId) {
         return ticketRepository.findByBoardAndLane(boardId, laneId);
@@ -130,15 +121,15 @@ public class BoardTicketService {
      * @param boardId  the board the ticket belongs to
      * @param assignee whom the ticket is being handed to, or {@code null} to take the name off
      */
-    private void requireAssignable(int boardId, MemberIdentity assignee) {
+    private void requireAssignable(int boardId, @Nullable MemberIdentity assignee) {
         if (assignee == null) return;
         var board = boardRepository.findById(boardId).orElse(null);
         if (board == null) return;
         int memberId = stationMemberService
                 .resolveId(board.stationId(), assignee.memberUid())
-                .orElseThrow(() -> new BadRequestResponse("The assignee is not a member of the board's station"));
+                .orElseThrow(BoardRefusal.BOARD_TICKET_ASSIGNEE_NOT_A_MEMBER::raise);
         if (!boardService.findMembersWhoMayEdit(boardId, board.stationId()).contains(memberId)) {
-            throw new BadRequestResponse("The assignee has no write access to this board");
+            throw BoardRefusal.BOARD_TICKET_ASSIGNEE_MAY_NOT_EDIT.raise();
         }
     }
 
@@ -146,11 +137,11 @@ public class BoardTicketService {
             int boardId,
             int laneId,
             String title,
-            String description,
-            MemberIdentity assignee,
+            @Nullable String description,
+            @Nullable MemberIdentity assignee,
             TicketPriority priority,
-            LocalDate dueDate,
-            MemberIdentity creator) {
+            @Nullable LocalDate dueDate,
+            @Nullable MemberIdentity creator) {
         requireAssignable(boardId, assignee);
         int ticketNumber = boardRepository.nextTicketNumber(boardId);
         int position = ticketRepository.findByBoardAndLane(boardId, laneId).size();
@@ -163,11 +154,11 @@ public class BoardTicketService {
     public boolean updateTicket(
             int id,
             String title,
-            String description,
-            MemberIdentity assignee,
+            @Nullable String description,
+            @Nullable MemberIdentity assignee,
             TicketPriority priority,
-            LocalDate dueDate,
-            MemberIdentity actor) {
+            @Nullable LocalDate dueDate,
+            @Nullable MemberIdentity actor) {
         var oldTicket = ticketRepository.findById(id).orElse(null);
         if (oldTicket != null) requireAssignable(oldTicket.boardId(), assignee);
         boolean updated = ticketRepository.updateTicket(id, title, description, assignee, priority, dueDate);
@@ -197,7 +188,7 @@ public class BoardTicketService {
         return updated;
     }
 
-    public boolean assignTicket(int ticketId, MemberIdentity assignee, int actorMemberId) {
+    public boolean assignTicket(int ticketId, @Nullable MemberIdentity assignee, int actorMemberId) {
         var oldTicket = ticketRepository.findById(ticketId).orElse(null);
         if (oldTicket != null) requireAssignable(oldTicket.boardId(), assignee);
         MemberIdentity oldAssignee = oldTicket != null ? oldTicket.assignee() : null;
@@ -209,16 +200,13 @@ public class BoardTicketService {
             MemberIdentity actorIdentity =
                     memberIdentityFactory.local(board != null ? board.stationId() : 0, actorMemberId);
 
-            // Log history
             String oldName = memberNameResolver.resolve(oldAssignee);
             String newName = memberNameResolver.resolve(assignee);
             String detail = (oldName != null ? oldName : "-") + " → " + (newName != null ? newName : "-");
             ticketRepository.logHistory(ticketId, BoardTicketHistoryAction.ASSIGNEE_CHANGED, detail, actorIdentity);
 
-            // Notify watchers
             notifyWatchers(ticketId, oldTicket.boardId(), "Zuweisung geändert", actorMemberId);
 
-            // Notify unassigned member
             if (oldAssignee != null) {
                 var oldMemberId =
                         stationMemberService.resolveId(board != null ? board.stationId() : 0, oldAssignee.memberUid());
@@ -235,7 +223,6 @@ public class BoardTicketService {
                         List.of(id))));
             }
 
-            // Notify newly assigned member
             if (assignee != null) {
                 var newMemberId =
                         stationMemberService.resolveId(board != null ? board.stationId() : 0, assignee.memberUid());
@@ -272,7 +259,8 @@ public class BoardTicketService {
         return deleted;
     }
 
-    public boolean moveTicket(int ticketId, int fromLaneId, int toLaneId, int position, MemberIdentity actor) {
+    public boolean moveTicket(
+            int ticketId, int fromLaneId, int toLaneId, int position, @Nullable MemberIdentity actor) {
         boolean moved = ticketRepository.moveTicket(ticketId, toLaneId, position);
         if (moved) {
             ticketRepository.logTransition(ticketId, fromLaneId, toLaneId, actor);
@@ -287,7 +275,6 @@ public class BoardTicketService {
                 notifyWatchers(
                         ticketId, ticket.boardId(), "Verschoben nach " + (toLane != null ? toLane.name() : "?"), null);
             }
-            // Auto-assign from lane_assignee fields
             if (ticket != null) {
                 var board = boardRepository.findById(ticket.boardId()).orElse(null);
                 var fields = boardRepository.findFields(ticket.boardId());
@@ -296,7 +283,7 @@ public class BoardTicketService {
                 for (var fv : fieldValues) fvMap.put(fv.fieldId(), fv.value());
                 for (var field : fields) {
                     if (field.config() instanceof BoardFieldConfig.LaneAssignee lac && lac.laneId() == toLaneId) {
-                        if (fvMap.get(field.id()) instanceof BoardFieldValue.LaneAssignee(int memberId)
+                        if (fvMap.get(field.id()) instanceof BoardFieldValue.LaneAssigneeValue(int memberId)
                                 && board != null) {
                             ticketRepository.assignTicket(
                                     ticketId, memberIdentityFactory.local(board.stationId(), memberId));
@@ -320,9 +307,7 @@ public class BoardTicketService {
         return ticketRepository.findLinks(ticketId);
     }
 
-    // -- Links --
-
-    public void linkTickets(int ticketId, int linkedTicketId, LinkType linkType, MemberIdentity actor) {
+    public void linkTickets(int ticketId, int linkedTicketId, LinkType linkType, @Nullable MemberIdentity actor) {
         if (ticketId == linkedTicketId) {
             log.warn("Refusing to link ticket {} to itself", ticketId);
             return;
@@ -337,7 +322,10 @@ public class BoardTicketService {
     }
 
     private void logLinkHistory(
-            BoardTicket ticket, BoardTicket linkedTicket, BoardTicketHistoryAction action, MemberIdentity actor) {
+            BoardTicket ticket,
+            BoardTicket linkedTicket,
+            BoardTicketHistoryAction action,
+            @Nullable MemberIdentity actor) {
         var board = boardRepository.findById(ticket.boardId()).orElse(null);
         var linkedBoard = boardRepository.findById(linkedTicket.boardId()).orElse(null);
         String key = (board != null ? board.shortKey() : "?") + "-" + linkedTicket.ticketNumber();
@@ -346,7 +334,7 @@ public class BoardTicketService {
         ticketRepository.logHistory(linkedTicket.id(), action, reverseKey, actor);
     }
 
-    public boolean unlinkTickets(int ticketId, int linkedTicketId, MemberIdentity actor) {
+    public boolean unlinkTickets(int ticketId, int linkedTicketId, @Nullable MemberIdentity actor) {
         var ticket = ticketRepository.findById(ticketId).orElse(null);
         var linkedTicket = ticketRepository.findById(linkedTicketId).orElse(null);
         boolean deleted = ticketRepository.deleteLink(ticketId, linkedTicketId);
@@ -363,13 +351,9 @@ public class BoardTicketService {
         return ticketRepository.findTransitions(ticketId);
     }
 
-    // -- Transitions --
-
     public List<BoardChecklistItem> findChecklistItems(int ticketId) {
         return ticketRepository.findChecklistItems(ticketId);
     }
-
-    // -- Checklist --
 
     public BoardChecklistItem addChecklistItem(int ticketId, String title, int actorMemberId) {
         int position = ticketRepository.findChecklistItems(ticketId).size();
@@ -414,101 +398,6 @@ public class BoardTicketService {
         log.debug("Checklist of ticket {} reordered to {} item(s)", ticketId, orderedIds.size());
     }
 
-    public List<BoardComment> findComments(int ticketId) {
-        return ticketRepository.findComments(ticketId);
-    }
-
-    // -- Comments --
-
-    public BoardComment createComment(int ticketId, Integer parentId, MemberIdentity author, String content) {
-        var comment = ticketRepository.createComment(ticketId, parentId, author, content);
-        ticketRepository.findById(ticketId).ifPresent(ticket -> {
-            notifyWatchers(ticketId, ticket.boardId(), "Neuer Kommentar", null);
-            mentions.announce(mentionOrigin(ticket, author, comment.id(), content), content);
-        });
-        log.info("Created comment {} on ticket {}", comment.id(), ticketId);
-        return comment;
-    }
-
-    /**
-     * Updates a comment on a ticket and announces the mentions the edit added. Whoever the comment
-     * already mentioned is not told again.
-     *
-     * @param ticketId the ticket the comment hangs under
-     * @param id       the comment
-     * @param content  the new text
-     * @return {@code true} if the comment was updated
-     */
-    public boolean updateComment(int ticketId, int id, String content) {
-        var previous = findComments(ticketId).stream()
-                .filter(comment -> comment.id() == id)
-                .findFirst();
-        if (!ticketRepository.updateComment(id, content)) {
-            log.warn("Update for comment {} affected zero rows", id);
-            return false;
-        }
-        log.info("Updated comment {}", id);
-        previous.ifPresent(comment -> ticketRepository
-                .findById(ticketId)
-                .ifPresent(ticket -> mentions.announceAdded(
-                        mentionOrigin(ticket, comment.author(), id, content), comment.content(), content)));
-        return true;
-    }
-
-    /**
-     * Where a comment on a ticket was written, for the notifications its mentions raise. The ticket's
-     * key stands where an author's name would, and a comment from another station still mentions,
-     * with nobody excluded as its author.
-     */
-    private CommentMentions.Origin mentionOrigin(
-            BoardTicket ticket, MemberIdentity author, int commentId, String content) {
-        var board = boardRepository.findById(ticket.boardId()).orElse(null);
-        var ticketKey = board != null ? board.shortKey() + "-" + ticket.ticketNumber() : "?";
-        int stationId = board != null ? board.stationId() : 0;
-        var address = board != null ? new BoardTicketAddress(board.shortKey(), ticket.ticketNumber()) : null;
-        Integer authorMemberId = author != null
-                ? stationMemberService.resolveId(stationId, author.memberUid()).orElse(null)
-                : null;
-        String preview = content.length() > 100 ? content.substring(0, 100) + "…" : content;
-        return new CommentMentions.Origin(
-                stationId,
-                authorMemberId,
-                ticketKey,
-                CommentEntityType.BOARD_TICKET,
-                ticket.id(),
-                ticketKey,
-                address,
-                commentId,
-                preview);
-    }
-
-    /**
-     * Deletes a comment on a ticket and announces the removal, so that whatever was written about
-     * it can be withdrawn.
-     *
-     * @param ticketId the ticket the comment hangs under, which names the owning station
-     * @param id       the comment to remove
-     * @return {@code true} when a comment was removed
-     */
-    public boolean deleteComment(int ticketId, int id) {
-        boolean deleted = ticketRepository.deleteComment(id);
-        if (deleted) {
-            eventBus.publish(new CommentDeleted(stationOf(ticketId), CommentEntityType.BOARD_TICKET, id));
-            log.info("Deleted comment {}", id);
-        } else {
-            log.warn("Delete for comment {} affected zero rows", id);
-        }
-        return deleted;
-    }
-
-    private int stationOf(int ticketId) {
-        return ticketRepository
-                .findById(ticketId)
-                .flatMap(ticket -> boardRepository.findById(ticket.boardId()))
-                .map(Board::stationId)
-                .orElse(0);
-    }
-
     public List<BoardWeblink> findWeblinks(int ticketId) {
         return ticketRepository.findWeblinks(ticketId);
     }
@@ -519,8 +408,6 @@ public class BoardTicketService {
         log.info("Added weblink {} on ticket {}", weblink.id(), ticketId);
         return weblink;
     }
-
-    // -- Weblinks --
 
     public boolean deleteWeblink(int id) {
         boolean deleted = ticketRepository.deleteWeblink(id);
@@ -539,8 +426,6 @@ public class BoardTicketService {
     public Optional<BoardTicketAttachment> findAttachmentById(int id) {
         return ticketRepository.findAttachmentById(id);
     }
-
-    // -- Attachments --
 
     public BoardTicketAttachment uploadAttachment(
             int stationId,
@@ -592,8 +477,6 @@ public class BoardTicketService {
         addWatcher(ticketId, stationMemberService.resolveIdentity(memberId));
     }
 
-    // -- Watchers --
-
     public void addWatcher(int ticketId, MemberIdentity identity) {
         ticketRepository.addWatcher(ticketId, identity);
         log.debug("Ticket {} is now watched by {}", ticketId, identity);
@@ -622,8 +505,6 @@ public class BoardTicketService {
         log.info("Field {} of ticket {} was filled in", fieldId, ticketId);
     }
 
-    // -- Field values --
-
     public boolean deleteFieldValue(int ticketId, int fieldId) {
         boolean deleted = ticketRepository.deleteFieldValue(ticketId, fieldId);
         if (deleted) log.info("Field {} of ticket {} was cleared", fieldId, ticketId);
@@ -641,8 +522,6 @@ public class BoardTicketService {
         return link;
     }
 
-    // -- KB Links --
-
     public void removeKbLink(int id) {
         ticketRepository.removeKbLink(id);
         log.info("Removed knowledge link {} from its ticket", id);
@@ -656,13 +535,11 @@ public class BoardTicketService {
         return ticketRepository.findHistory(ticketId);
     }
 
-    // -- History --
-
-    public List<BoardTicketRepository.ActivityEntry> findActivity(int ticketId) {
+    public List<BoardActivityEntry> findActivity(int ticketId) {
         return ticketRepository.findActivity(ticketId);
     }
 
-    private void notifyWatchers(int ticketId, int boardId, String changeDescription, Integer actorMemberId) {
+    private void notifyWatchers(int ticketId, int boardId, String changeDescription, @Nullable Integer actorMemberId) {
         var watchers = findWatchers(ticketId);
         if (watchers.isEmpty()) return;
         var board = boardRepository.findById(boardId).orElse(null);

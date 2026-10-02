@@ -45,8 +45,9 @@ public final class MailImportSchedule {
      */
     public static boolean due(MailMailbox mailbox, int floor, Instant now) {
         if (!mailbox.enabled() || mailbox.suspended()) return false;
-        if (mailbox.lastCheckAt() == null) return true;
-        return !now.isBefore(mailbox.lastCheckAt().plus(waitFor(mailbox, floor)));
+        Instant lastCheckAt = mailbox.lastCheckAt();
+        if (lastCheckAt == null) return true;
+        return !now.isBefore(lastCheckAt.plus(waitFor(mailbox, floor)));
     }
 
     /**

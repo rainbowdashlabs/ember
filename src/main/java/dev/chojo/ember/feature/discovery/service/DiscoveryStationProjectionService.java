@@ -65,10 +65,12 @@ public class DiscoveryStationProjectionService {
         return cards;
     }
 
+    /**
+     * One station's card. Its cluster is carried so a reader can group the cards; a station outside
+     * any cluster sends none, which means the same as a peer too old to know about clusters.
+     */
     private DiscoveryStationCard toCard(Station station, String baseUrl) {
         int memberCount = countMembers(station.id());
-        // Carried so a reader can group the cards. A station outside any cluster sends nothing, which is
-        // also what a peer too old to know about clusters sends, and the two mean the same thing.
         Optional<Cluster> cluster = clusterRepository.findByStation(station.id());
         return new DiscoveryStationCard(
                 station.uid().toString(),
@@ -78,7 +80,7 @@ public class DiscoveryStationProjectionService {
                 station.country(),
                 null,
                 station.city(),
-                station.publicSlug() != null ? baseUrl + "/s/" + station.publicSlug() : baseUrl,
+                baseUrl + "/public/station/" + (station.publicSlug() != null ? station.publicSlug() : station.uid()),
                 List.of(),
                 DiscoveryStationCard.bucketMemberCount(memberCount),
                 Instant.now(),
@@ -86,7 +88,8 @@ public class DiscoveryStationProjectionService {
                 station.latitude(),
                 station.longitude(),
                 cluster.map(c -> c.uid().toString()).orElse(null),
-                cluster.map(Cluster::name).orElse(null));
+                cluster.map(Cluster::name).orElse(null),
+                station.publicSlug());
     }
 
     private int countMembers(int stationId) {

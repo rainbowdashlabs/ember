@@ -6,7 +6,7 @@
 import {mount} from '@vue/test-utils'
 import {defineComponent, ref} from 'vue'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
-import type {PublicForm} from '@/api/publicForms'
+import type {PublicForm} from '@/api/generated/schema'
 import {readFormDraft, saveFormDraft} from '@/util/formDrafts'
 import {usePublicFormSubmission} from './usePublicFormSubmission'
 
@@ -28,7 +28,7 @@ vi.mock('@/api', () => ({
 }))
 
 const DRAFT_KEY = 'st/pf'
-const next = {kind: 'NEXT' as const, page: null}
+const next = {kind: 'NEXT' as const}
 
 /** Two pages: a name on the first, a ranking that starts full on the second. */
 function twoPageForm(): PublicForm {
@@ -38,16 +38,19 @@ function twoPageForm(): PublicForm {
         description: '',
         purpose: 'POLL',
         state: 'OPEN',
+        closedSince: null,
+        completion: null,
         shuffleQuestions: false,
         pages: [
             {key: 'p0', title: '', description: '', after: next},
             {key: 'p1', title: '', description: '', after: next},
         ],
         questions: [
-            {id: 1, questionType: 'TEXT', title: 'Name', description: '', required: false, shuffle: false, pageKey: 'p0', config: {longAnswer: false}},
+            {id: 1, questionType: 'TEXT', title: 'Name', description: '', required: false, shuffle: false, pageKey: 'p0', config: {questionType: 'TEXT', longAnswer: false}, branch: null},
             {
                 id: 2, questionType: 'RANKING', title: 'Essen', description: '', required: false, shuffle: false, pageKey: 'p1',
-                config: {options: [{key: 'a', label: 'Grillen'}, {key: 'b', label: 'Kuchen'}]},
+                config: {questionType: 'RANKING', options: [{key: 'a', label: 'Grillen'}, {key: 'b', label: 'Kuchen'}]},
+                branch: null,
             },
         ],
     }
@@ -83,20 +86,20 @@ describe('usePublicFormSubmission', () => {
     afterEach(() => vi.useRealTimers())
 
     it('continues on the page the kept answers stopped on', async () => {
-        saveFormDraft(DRAFT_KEY, {answers: {1: {text: 'Kim'}}, path: ['p0', 'p1']})
+        saveFormDraft(DRAFT_KEY, {answers: {1: {type: 'TEXT', text: 'Kim'}}, path: ['p0', 'p1']})
         const form = open()
 
         await form.load()
         await vi.advanceTimersByTimeAsync(2000)
 
         expect(form.walk.current.value).toBe('p1')
-        expect(form.answers.value[1]).toEqual({text: 'Kim'})
+        expect(form.answers.value[1]).toEqual({type: 'TEXT', text: 'Kim'})
         expect(form.resumedFrom.value).not.toBeNull()
         expect(readFormDraft(DRAFT_KEY)?.path).toEqual(['p0', 'p1'])
     })
 
     it('continues on that page too where the form came with the page', async () => {
-        saveFormDraft(DRAFT_KEY, {answers: {1: {text: 'Kim'}}, path: ['p0', 'p1']})
+        saveFormDraft(DRAFT_KEY, {answers: {1: {type: 'TEXT', text: 'Kim'}}, path: ['p0', 'p1']})
 
         const form = open(twoPageForm())
         await vi.advanceTimersByTimeAsync(2000)
@@ -122,7 +125,7 @@ describe('usePublicFormSubmission', () => {
         await vi.advanceTimersByTimeAsync(999)
         expect(readFormDraft(DRAFT_KEY)).toBeNull()
         await vi.advanceTimersByTimeAsync(1)
-        expect(readFormDraft(DRAFT_KEY)?.answers[1]).toEqual({text: 'Kim'})
+        expect(readFormDraft(DRAFT_KEY)?.answers[1]).toEqual({type: 'TEXT', text: 'Kim'})
 
         form.updateText(twoPageForm().questions[0]!, '')
         await vi.advanceTimersByTimeAsync(2000)
@@ -142,4 +145,41 @@ describe('usePublicFormSubmission', () => {
         expect(form.submitted.value).toBe(true)
         expect(readFormDraft(DRAFT_KEY)).toBeNull()
     })
+
+    it('says a second answer was already given in its own words', async () => {
+        submitPublicResponse.mockRejectedValue(refused(409, 'F-012', 'You have already answered this form'))
+
+        const failure = await sendRefused()
+
+        expect(failure?.message).toBe('publicForm.alreadyAnswered')
+        expect(failure?.reportable).toBe(false)
+    })
+
+    it('leaves changed legal documents to the server, which asks for agreeing again', async () => {
+        const said = 'The legal documents have changed since the form was loaded, so nothing was saved'
+        submitPublicResponse.mockRejectedValue(refused(409, 'LG-005', said))
+
+        const failure = await sendRefused()
+
+        expect(failure?.message).toBe(said)
+        expect(failure?.code).toBe('LG-005')
+    })
 })
+
+/** A refusal the way the client hands it on: the status and the body the server answered with. */
+function refused(status: number, code: string, message: string) {
+    return {response: {status, data: {code, message}}}
+}
+
+/** Fills in the first page, agrees and sends, then reads what the page says about the refusal. */
+async function sendRefused() {
+    const form = open()
+    await form.load()
+    form.updateText(twoPageForm().questions[0]!, 'Kim')
+    form.consentAccepted.value = true
+
+    form.submit()
+    await vi.advanceTimersByTimeAsync(2000)
+
+    return form.submitFailure.value
+}

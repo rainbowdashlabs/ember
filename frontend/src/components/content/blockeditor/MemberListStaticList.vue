@@ -7,7 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import TextInput from '@/components/input/text/TextInput.vue'
 import MutedIconButton from '@/components/button/MutedIconButton.vue'
-import type {ResolvedMember} from '@/api/pageManage'
+import type {ResolvedMember} from '@/api/generated/schema'
 
 defineProps<{
     members: ResolvedMember[]

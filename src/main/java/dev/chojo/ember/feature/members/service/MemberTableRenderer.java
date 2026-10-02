@@ -10,7 +10,7 @@ import dev.chojo.ember.feature.members.entity.MemberTable;
 import dev.chojo.ember.feature.members.entity.MemberTableColumnKind;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationFormat;
-import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.station.service.StationLogoService;
 import dev.chojo.ember.util.CsvWriter;
 import dev.chojo.ember.util.TypstCompiler;
 import jakarta.inject.Inject;
@@ -18,10 +18,10 @@ import jakarta.inject.Singleton;
 
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.IntStream;
 
 /**
  * Hands a drawn table over as a file, as a sheet to carry and as a table to work with.
@@ -34,12 +34,12 @@ import java.util.Map;
 public class MemberTableRenderer {
     private static final DateTimeFormatter STAMP = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
 
-    private final StationRepository stationRepository;
+    private final StationLogoService logoService;
     private final Api apiConfig;
 
     @Inject
-    public MemberTableRenderer(StationRepository stationRepository, Api apiConfig) {
-        this.stationRepository = stationRepository;
+    public MemberTableRenderer(StationLogoService logoService, Api apiConfig) {
+        this.logoService = logoService;
         this.apiConfig = apiConfig;
     }
 
@@ -52,20 +52,7 @@ public class MemberTableRenderer {
      * @return the whole file
      */
     public String toCsv(MemberTable table, Station station, CsvWriter.Separator separator) {
-        var language = StationFormat.languageOf(station);
-        var headers = table.columns().stream()
-                .map(MemberTable.MemberTableHeader::label)
-                .toList();
-        var rows = table.rows().stream()
-                .map(row -> {
-                    var cells = new ArrayList<String>(row.values().size());
-                    for (int i = 0; i < row.values().size(); i++) {
-                        cells.add(worded(table.columns().get(i), row.values().get(i), language));
-                    }
-                    return List.copyOf(cells);
-                })
-                .toList();
-        return CsvWriter.write(headers, rows, separator);
+        return CsvWriter.write(headerLabels(table), wordedRows(table, StationFormat.languageOf(station)), separator);
     }
 
     /**
@@ -81,15 +68,9 @@ public class MemberTableRenderer {
      */
     public byte[] toPdf(MemberTable table, Station station, String title, String subtitle, String generatedBy)
             throws Exception {
-        var language = StationFormat.languageOf(station);
-        var rows = new ArrayList<Map<String, Object>>();
-        for (var row : table.rows()) {
-            var worded = new ArrayList<String>(row.values().size());
-            for (int i = 0; i < row.values().size(); i++) {
-                worded.add(worded(table.columns().get(i), row.values().get(i), language));
-            }
-            rows.add(Map.of("values", worded));
-        }
+        var rows = wordedRows(table, StationFormat.languageOf(station)).stream()
+                .map(values -> Map.of("values", values))
+                .toList();
 
         var data = new LinkedHashMap<String, Object>();
         data.put("stationName", station.name() == null ? "" : station.name());
@@ -100,18 +81,23 @@ public class MemberTableRenderer {
         data.put("hasLogo", false);
         data.put("title", title);
         data.put("subtitle", subtitle == null ? "" : subtitle);
-        data.put(
-                "columns",
-                table.columns().stream()
-                        .map(MemberTable.MemberTableHeader::label)
-                        .toList());
+        data.put("columns", headerLabels(table));
         data.put("rows", rows);
 
-        var logo = stationRepository.findLogo(station.id()).orElse(null);
+        var logo = logoService.original(station.id()).orElse(null);
         return TypstCompiler.compileTemplate(
                 data,
                 StationFormat.languageOf(station) + "/member-table.typ",
                 logo == null ? null : new TypstCompiler.StationLogo(logo.data(), logo.contentType()));
+    }
+
+    private List<List<String>> wordedRows(MemberTable table, String language) {
+        return table.rows().stream()
+                .map(row -> IntStream.range(0, row.values().size())
+                        .mapToObj(
+                                i -> worded(table.columns().get(i), row.values().get(i), language))
+                        .toList())
+                .toList();
     }
 
     /**
@@ -122,9 +108,12 @@ public class MemberTableRenderer {
      * screen behind it, so the words are put in here and only here.
      */
     private String worded(MemberTable.MemberTableHeader column, String value, String language) {
-        if (value == null || value.isBlank() || column.kind() != MemberTableColumnKind.BUILTIN) return value;
+        String key = column.key();
+        if (value == null || value.isBlank() || column.kind() != MemberTableColumnKind.BUILTIN || key == null) {
+            return value;
+        }
         boolean english = "en".equals(language);
-        return switch (column.key()) {
+        return switch (key) {
             case "registrationStatus" ->
                 switch (value) {
                     case "ACCEPTED" -> english ? "Confirmed" : "Bestätigt";
@@ -145,24 +134,6 @@ public class MemberTableRenderer {
                 };
             default -> value;
         };
-    }
-
-    /**
-     * One cell, safe to hand to a spreadsheet.
-     *
-     * <p>A cell is quoted whenever it holds a separator, a quote or a line break, and a leading
-     * equals, plus or minus is pushed behind a quote: a spreadsheet reads those as the start of a
-     * formula, and a name is not a formula however it begins.
-     */
-    private String cell(String value) {
-        if (value == null || value.isEmpty()) return "";
-        var safe = value.startsWith("=") || value.startsWith("+") || value.startsWith("-") || value.startsWith("@")
-                ? "'" + value
-                : value;
-        if (safe.contains(";") || safe.contains("\"") || safe.contains("\n") || safe.contains("\r")) {
-            return '"' + safe.replace("\"", "\"\"") + '"';
-        }
-        return safe;
     }
 
     /** The columns as a screen names them, which is what a picker shows beside each one. */

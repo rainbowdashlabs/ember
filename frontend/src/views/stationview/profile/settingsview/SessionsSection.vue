@@ -9,7 +9,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
-import type {ActiveSession} from '@/api/session'
+import type {ActiveSession} from '@/api/generated/schema'
 import {formatDateTime} from '@/util/format'
 
 defineProps<{
@@ -23,7 +23,7 @@ const emit = defineEmits<{
 
 const {t} = useI18n()
 
-function parseOS(ua?: string): string {
+function parseOS(ua: string | null): string {
   if (!ua) return 'unknown'
   if (ua.includes('Windows')) return 'windows'
   if (ua.includes('Mac OS') || ua.includes('Macintosh')) return 'mac'
@@ -33,7 +33,7 @@ function parseOS(ua?: string): string {
   return 'unknown'
 }
 
-function parseBrowser(ua?: string): string {
+function parseBrowser(ua: string | null): string {
   if (!ua) return 'unknown'
   if (ua.includes('Firefox')) return 'firefox'
   if (ua.includes('Edg/') || ua.includes('Edge')) return 'edge'
@@ -43,7 +43,7 @@ function parseBrowser(ua?: string): string {
   return 'unknown'
 }
 
-function osLabel(ua?: string): string {
+function osLabel(ua: string | null): string {
   const os = parseOS(ua)
   const labels: Record<string, string> = {
     windows: 'Windows', mac: 'macOS', android: 'Android',
@@ -52,7 +52,7 @@ function osLabel(ua?: string): string {
   return labels[os] ?? os
 }
 
-function browserLabel(ua?: string): string {
+function browserLabel(ua: string | null): string {
   const browser = parseBrowser(ua)
   const labels: Record<string, string> = {
     firefox: 'Firefox', chrome: 'Chrome', safari: 'Safari',
@@ -61,7 +61,7 @@ function browserLabel(ua?: string): string {
   return labels[browser] ?? browser
 }
 
-function osIcon(ua?: string): string[] {
+function osIcon(ua: string | null): string[] {
   const os = parseOS(ua)
   const icons: Record<string, [string, string]> = {
     windows: ['fab', 'windows'],
@@ -74,7 +74,7 @@ function osIcon(ua?: string): string[] {
   return icons[os] ?? ['fas', 'desktop']
 }
 
-function browserIcon(ua?: string): string[] {
+function browserIcon(ua: string | null): string[] {
   const browser = parseBrowser(ua)
   const icons: Record<string, [string, string]> = {
     chrome: ['fab', 'chrome'],

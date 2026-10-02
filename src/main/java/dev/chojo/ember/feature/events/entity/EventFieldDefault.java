@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.events.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Represents a default value configuration for an event field, allowing fields to be auto-populated
@@ -16,7 +17,8 @@ import de.chojo.sadu.mapper.rowmapper.RowMapping;
  * @param source  the source type (e.g. "VALUE", "EVENT_NAME", "EVENT_DESCRIPTION", "EVENT_START_TIME", "EVENT_END_TIME")
  * @param value   the static value when source is "VALUE", otherwise unused
  */
-public record EventFieldDefault(int eventId, int fieldId, String source, String value) {
+public record EventFieldDefault(
+        int eventId, int fieldId, String source, @Nullable String value) {
     /**
      * Creates a row mapping for database result set conversion.
      */

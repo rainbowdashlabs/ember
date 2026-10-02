@@ -6,7 +6,6 @@
 package dev.chojo.ember.feature.quiz.service;
 
 import com.anthropic.client.AnthropicClient;
-import com.anthropic.client.okhttp.AnthropicOkHttpClient;
 import com.anthropic.models.messages.ContentBlock;
 import com.anthropic.models.messages.MessageCreateParams;
 import com.google.genai.Client;
@@ -14,8 +13,8 @@ import com.google.genai.types.Content;
 import com.google.genai.types.GenerateContentConfig;
 import com.google.genai.types.Part;
 import com.openai.client.OpenAIClient;
-import com.openai.client.okhttp.OpenAIOkHttpClient;
 import com.openai.models.chat.completions.ChatCompletionCreateParams;
+import dev.chojo.ember.feature.quiz.entity.AiVendor;
 import dev.chojo.ember.feature.quiz.entity.QuestionConfig;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestionType;
 import dev.chojo.ember.feature.quiz.entity.StationAiProvider;
@@ -23,6 +22,7 @@ import dev.chojo.ember.feature.quiz.repository.AiProviderRepository;
 import dev.chojo.ember.util.Json;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,8 +32,16 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * Generates quiz questions and wrong answers through the AI vendor a station configured.
+ *
+ * <p>Every vendor client is built for one call and closed when the call ends, whether it
+ * succeeded or not: each owns a connection pool and dispatcher threads that would otherwise
+ * outlive the request.
+ */
 @Singleton
 public class AiService {
     private static final Logger log = LoggerFactory.getLogger(AiService.class);
@@ -41,13 +49,16 @@ public class AiService {
     private static final Path PROMPTS_DIR = Path.of("templates", "ai-prompts");
 
     private final AiProviderRepository providerRepository;
+    private final AiClientFactory clients;
+    private final AiCredentialService credentials;
 
     @Inject
-    public AiService(AiProviderRepository providerRepository) {
+    public AiService(
+            AiProviderRepository providerRepository, AiClientFactory clients, AiCredentialService credentials) {
         this.providerRepository = providerRepository;
+        this.clients = clients;
+        this.credentials = credentials;
     }
-
-    // -- Provider Management --
 
     private static boolean isChatModel(String id) {
         if (id.contains("embedding")
@@ -77,8 +88,8 @@ public class AiService {
         return providerRepository.findByStation(stationId);
     }
 
-    public void saveProvider(int stationId, String provider, String apiKey, String model) {
-        providerRepository.upsert(stationId, provider, apiKey, model);
+    public void saveProvider(int stationId, String provider, String apiKey, @Nullable String model) {
+        credentials.saveStationKey(stationId, provider, apiKey, model);
         log.info("Saved AI provider {} (model {}) for station {}", provider, model, stationId);
     }
 
@@ -96,28 +107,33 @@ public class AiService {
         log.info("Updated AI prompt for station {}", stationId);
     }
 
-    // -- Prompt Loading --
-
     public String getDefaultPrompt() {
         return loadPromptFile("default_user_prompt", "de");
     }
 
-    // -- Key/Model Resolution --
-
+    /**
+     * Opens a conversation that produces one question per turn.
+     *
+     * <p>The first user message carries the station's instructions and every existing title, so
+     * the model has the whole context from the start and each later turn only asks for one more.
+     *
+     * @throws IllegalArgumentException when the provider is unknown or no API key is available
+     */
     public ChatSession createQuestionSession(
             int stationId,
+            int accountId,
             String provider,
-            String transientKey,
-            String model,
+            @Nullable String model,
             QuizQuestionType quizQuestionType,
-            String userPrompt,
-            String locale,
-            String categoryName,
-            String categoryDescription,
+            @Nullable String userPrompt,
+            @Nullable String locale,
+            @Nullable String categoryName,
+            @Nullable String categoryDescription,
             List<String> existingTitles) {
-        String apiKey = resolveApiKey(stationId, provider, transientKey);
+        AiVendor vendor = requireVendor(provider);
+        String apiKey = storedKey(stationId, accountId, provider);
         if (apiKey == null || apiKey.isBlank()) throw new IllegalArgumentException("No API key available");
-        String resolvedModel = resolveModel(stationId, provider, model);
+        String resolvedModel = resolveModel(stationId, vendor, model);
         String effectiveLocale = locale != null ? locale : "de";
 
         String systemPrompt =
@@ -125,9 +141,8 @@ public class AiService {
         systemPrompt +=
                 "\n\nWICHTIG: Erstelle KEINE Fragen die identisch oder ähnlich zu bereits genannten Fragen sind.";
 
-        var session = new ChatSession(provider, apiKey, resolvedModel, systemPrompt);
+        var session = new ChatSession(vendor, apiKey, resolvedModel, systemPrompt);
 
-        // First user message: context with all existing titles + user instructions
         var context = new StringBuilder();
         String effectiveUserPrompt = (userPrompt != null && !userPrompt.isBlank()) ? userPrompt : getPrompt(stationId);
         context.append(effectiveUserPrompt);
@@ -149,13 +164,16 @@ public class AiService {
         return session;
     }
 
+    /**
+     * Runs one turn of the conversation and, when it produced a usable question, queues the request
+     * for the next one. The model already holds the whole context, so that request is short.
+     */
     public List<GeneratedQuestion> generateNextQuestion(ChatSession session, QuizQuestionType quizQuestionType) {
         try {
             String text = chatWithSession(session);
             session.addAssistantMessage(text);
             var parsed = parseAndValidate(text, quizQuestionType);
             if (!parsed.isEmpty()) {
-                // Next turn: just ask for another one - AI has full context
                 session.addUserMessage("Erstelle eine weitere einzigartige Frage. Wiederhole keine der bisherigen.");
             }
             return parsed;
@@ -165,25 +183,29 @@ public class AiService {
         }
     }
 
-    // -- Chat Completion (unified) --
-
+    /**
+     * Generates wrong answers for a question.
+     *
+     * @throws IllegalArgumentException when the provider is unknown or no API key is available
+     */
     public List<String> generate(
             int stationId,
+            int accountId,
             String provider,
-            String transientKey,
-            String model,
+            @Nullable String model,
             String question,
             String correctAnswer,
             int count) {
-        String apiKey = resolveApiKey(stationId, provider, transientKey);
+        AiVendor vendor = requireVendor(provider);
+        String apiKey = storedKey(stationId, accountId, provider);
         if (apiKey == null || apiKey.isBlank()) throw new IllegalArgumentException("No API key available");
-        String resolvedModel = resolveModel(stationId, provider, model);
+        String resolvedModel = resolveModel(stationId, vendor, model);
         String systemPrompt = loadPromptFile("wrong_answers", "de").replace("{count}", String.valueOf(count));
         String userPrompt = getPrompt(stationId);
         String fullUserMessage = userPrompt + "\n\nFrage: " + question + "\nRichtige Antwort: " + correctAnswer;
 
         try {
-            String text = chat(provider, apiKey, resolvedModel, systemPrompt, fullUserMessage);
+            String text = chat(vendor, apiKey, resolvedModel, systemPrompt, fullUserMessage);
             return text.lines()
                     .map(String::trim)
                     .filter(l -> !l.isEmpty())
@@ -197,15 +219,24 @@ public class AiService {
         }
     }
 
-    public List<ModelInfo> fetchModels(int stationId, String provider, String transientKey) {
-        String apiKey = resolveApiKey(stationId, provider, transientKey);
+    /**
+     * Lists the chat models the key can use, or nothing for a provider this service does not know.
+     *
+     * <p>A key typed into the settings but not saved yet is tried as it is, so somebody can pick a
+     * model before deciding to keep the key; without one the stored key is used.
+     *
+     * @throws IllegalArgumentException when no API key is available
+     */
+    public List<ModelInfo> fetchModels(int stationId, int accountId, String provider, @Nullable String typedKey) {
+        String apiKey = typedKey != null && !typedKey.isBlank() ? typedKey : storedKey(stationId, accountId, provider);
         if (apiKey == null || apiKey.isBlank()) throw new IllegalArgumentException("No API key available");
+        var vendor = AiVendor.fromKey(provider);
+        if (vendor.isEmpty()) return List.of();
         try {
-            return switch (provider) {
-                case "openai" -> fetchOpenAiModels(apiKey);
-                case "gemini" -> fetchGeminiModels(apiKey);
-                case "claude" -> fetchClaudeModels(apiKey);
-                default -> List.of();
+            return switch (vendor.get()) {
+                case OPENAI -> fetchOpenAiModels(apiKey);
+                case GEMINI -> fetchGeminiModels(apiKey);
+                case CLAUDE -> fetchClaudeModels(apiKey);
             };
         } catch (Exception e) {
             log.error("Failed to fetch models for provider {}", provider, e);
@@ -232,63 +263,67 @@ public class AiService {
         });
     }
 
-    private String resolveApiKey(int stationId, String provider, String transientKey) {
-        if (transientKey != null && !transientKey.isBlank()) return transientKey;
-        return providerRepository
-                .findByProvider(stationId, provider)
-                .map(StationAiProvider::apiKey)
+    /** The key a call is made with: the caller's own, then the station's. */
+    private @Nullable String storedKey(int stationId, int accountId, String provider) {
+        return credentials
+                .keyFor(accountId, provider)
+                .or(() -> credentials.stationKey(stationId, provider))
                 .orElse(null);
     }
 
-    private String resolveModel(int stationId, String provider, String requestModel) {
-        if (requestModel != null && !requestModel.isBlank()) return requestModel;
-        return providerRepository
-                .findByProvider(stationId, provider)
-                .map(StationAiProvider::model)
-                .filter(m -> !m.isBlank())
-                .orElseGet(() -> switch (provider) {
-                    case "openai" -> "gpt-4o-mini";
-                    case "gemini" -> "gemini-2.0-flash";
-                    case "claude" -> "claude-sonnet-4-20250514";
-                    default -> "gpt-4o-mini";
-                });
+    private static AiVendor requireVendor(String provider) {
+        return AiVendor.fromKey(provider)
+                .orElseThrow(() -> new IllegalArgumentException("Unknown provider: " + provider));
     }
 
-    private String chat(String provider, String apiKey, String model, String systemPrompt, String userMessage) {
-        return switch (provider) {
-            case "openai" -> chatOpenAi(apiKey, model, systemPrompt, userMessage);
-            case "gemini" -> chatGemini(apiKey, model, systemPrompt, userMessage);
-            case "claude" -> chatClaude(apiKey, model, systemPrompt, userMessage);
-            default -> throw new IllegalArgumentException("Unknown provider: " + provider);
+    private String resolveModel(int stationId, AiVendor vendor, @Nullable String requestModel) {
+        if (requestModel != null && !requestModel.isBlank()) return requestModel;
+        return providerRepository
+                .findByProvider(stationId, vendor.key())
+                .map(StationAiProvider::model)
+                .filter(m -> !m.isBlank())
+                .orElse(vendor.defaultModel());
+    }
+
+    private String chat(AiVendor vendor, String apiKey, String model, String systemPrompt, String userMessage) {
+        return switch (vendor) {
+            case OPENAI -> chatOpenAi(apiKey, model, systemPrompt, userMessage);
+            case GEMINI -> chatGemini(apiKey, model, systemPrompt, userMessage);
+            case CLAUDE -> chatClaude(apiKey, model, systemPrompt, userMessage);
         };
     }
 
     private String chatWithSession(ChatSession session) {
-        return switch (session.provider()) {
-            case "openai" -> chatOpenAiSession(session);
-            case "gemini" -> chatGeminiSession(session);
-            case "claude" -> chatClaudeSession(session);
-            default -> throw new IllegalArgumentException("Unknown provider: " + session.provider());
+        return switch (session.vendor()) {
+            case OPENAI -> chatOpenAiSession(session);
+            case GEMINI -> chatGeminiSession(session);
+            case CLAUDE -> chatClaudeSession(session);
         };
     }
 
     private String chatOpenAiSession(ChatSession session) {
-        OpenAIClient client =
-                OpenAIOkHttpClient.builder().apiKey(session.apiKey()).build();
-        var builder = ChatCompletionCreateParams.builder()
-                .model(session.model())
-                .addSystemMessage(session.systemPrompt())
-                .temperature(0.8);
-        for (var msg : session.messages()) {
-            if ("user".equals(msg.role())) builder.addUserMessage(msg.content());
-            else if ("assistant".equals(msg.role())) builder.addAssistantMessage(msg.content());
+        OpenAIClient client = clients.openAi(session.apiKey());
+        try {
+            var builder = ChatCompletionCreateParams.builder()
+                    .model(session.model())
+                    .addSystemMessage(session.systemPrompt())
+                    .temperature(0.8);
+            for (var msg : session.messages()) {
+                if ("user".equals(msg.role())) builder.addUserMessage(msg.content());
+                else if ("assistant".equals(msg.role())) builder.addAssistantMessage(msg.content());
+            }
+            var completion = client.chat().completions().create(builder.build());
+            return completion.choices().getFirst().message().content().orElse("");
+        } finally {
+            client.close();
         }
-        var completion = client.chat().completions().create(builder.build());
-        return completion.choices().getFirst().message().content().orElse("");
     }
 
+    /**
+     * The Gemini SDK has no multi-turn conversation of its own here, so the turns so far are
+     * written into one message.
+     */
     private String chatGeminiSession(ChatSession session) {
-        // Gemini doesn't have native multi-turn via this SDK - concatenate context
         var fullMessage = new StringBuilder();
         for (var msg : session.messages()) {
             fullMessage
@@ -299,31 +334,36 @@ public class AiService {
         return chatGemini(session.apiKey(), session.model(), session.systemPrompt(), fullMessage.toString());
     }
 
-    // -- Wrong Answer Generation --
-
     private String chatClaudeSession(ChatSession session) {
-        AnthropicClient client =
-                AnthropicOkHttpClient.builder().apiKey(session.apiKey()).build();
-        var builder = MessageCreateParams.builder()
-                .model(session.model())
-                .maxTokens(2048L)
-                .system(session.systemPrompt());
-        for (var msg : session.messages()) {
-            if ("user".equals(msg.role())) builder.addUserMessage(msg.content());
-            else if ("assistant".equals(msg.role())) builder.addAssistantMessage(msg.content());
+        AnthropicClient client = clients.anthropic(session.apiKey());
+        try {
+            var builder = MessageCreateParams.builder()
+                    .model(session.model())
+                    .maxTokens(2048L)
+                    .system(session.systemPrompt());
+            for (var msg : session.messages()) {
+                if ("user".equals(msg.role())) builder.addUserMessage(msg.content());
+                else if ("assistant".equals(msg.role())) builder.addAssistantMessage(msg.content());
+            }
+            return firstText(client.messages().create(builder.build()).content());
+        } finally {
+            client.close();
         }
-        var message = client.messages().create(builder.build());
-        return message.content().stream()
+    }
+
+    private static String firstText(List<ContentBlock> content) {
+        return content.stream()
                 .filter(ContentBlock::isText)
                 .map(b -> b.asText().text())
                 .findFirst()
                 .orElse("");
     }
 
-    // -- Question Generation --
-
+    /**
+     * Reads the model's answer as a JSON array of questions, dropping a surrounding markdown fence
+     * first, and keeps the questions whose config maps onto the typed config of the question type.
+     */
     private List<GeneratedQuestion> parseAndValidate(String text, QuizQuestionType quizQuestionType) throws Exception {
-        // Strip markdown fences
         text = text.trim();
         if (text.startsWith("```")) {
             int start = text.indexOf('\n') + 1;
@@ -343,7 +383,6 @@ public class AiService {
             var configNode = item.get("config");
             String configJson = Json.MAPPER.writeValueAsString(configNode);
 
-            // Validate by mapping to the typed POJO
             if (validateConfig(configJson, quizQuestionType)) {
                 results.add(new GeneratedQuestion(title, configJson));
             } else {
@@ -357,12 +396,13 @@ public class AiService {
         try {
             return switch (quizQuestionType) {
                 case MULTIPLE_CHOICE -> {
-                    var cfg = Json.MAPPER.readValue(configJson, QuestionConfig.MultipleChoice.class);
-                    yield cfg.options() != null
-                            && cfg.options().size() >= 2
-                            && cfg.options().stream().anyMatch(QuestionConfig.MultipleChoice.Option::correct)
-                            && cfg.options().stream()
-                                    .allMatch(o -> o.text() != null && !o.text().isBlank());
+                    var options = Json.MAPPER
+                            .readValue(configJson, QuestionConfig.MultipleChoice.class)
+                            .options();
+                    yield options != null
+                            && options.size() >= 2
+                            && options.stream().anyMatch(QuestionConfig.MultipleChoice.ChoiceOption::correct)
+                            && options.stream().allMatch(o -> filled(o.text()));
                 }
                 case TRUE_FALSE -> {
                     Json.MAPPER.readValue(configJson, QuestionConfig.TrueFalse.class);
@@ -374,26 +414,22 @@ public class AiService {
                 }
                 case FILL_IN_THE_BLANK -> {
                     var cfg = Json.MAPPER.readValue(configJson, QuestionConfig.FillInTheBlank.class);
-                    yield cfg.text() != null
-                            && !cfg.text().isBlank()
-                            && cfg.answers() != null
-                            && !cfg.answers().isEmpty();
+                    var answers = cfg.answers();
+                    yield filled(cfg.text()) && answers != null && !answers.isEmpty();
                 }
                 case CONNECT -> {
-                    var cfg = Json.MAPPER.readValue(configJson, QuestionConfig.Connect.class);
-                    yield cfg.pairs() != null
-                            && cfg.pairs().size() >= 2
-                            && cfg.pairs().stream()
-                                    .allMatch(p -> p.left() != null
-                                            && !p.left().isBlank()
-                                            && p.right() != null
-                                            && !p.right().isBlank());
+                    var pairs = Json.MAPPER
+                            .readValue(configJson, QuestionConfig.Connect.class)
+                            .pairs();
+                    yield pairs != null
+                            && pairs.size() >= 2
+                            && pairs.stream().allMatch(p -> filled(p.left()) && filled(p.right()));
                 }
                 case ORDERING -> {
-                    var cfg = Json.MAPPER.readValue(configJson, QuestionConfig.Ordering.class);
-                    yield cfg.items() != null
-                            && cfg.items().size() >= 2
-                            && cfg.items().stream().allMatch(i -> i != null && !i.isBlank());
+                    var items = Json.MAPPER
+                            .readValue(configJson, QuestionConfig.Ordering.class)
+                            .items();
+                    yield items != null && items.size() >= 2 && items.stream().allMatch(AiService::filled);
                 }
                 case IMAGE_TEXT -> true;
                 case ENUMERATION -> {
@@ -409,49 +445,54 @@ public class AiService {
         }
     }
 
-    private String chatOpenAi(String apiKey, String model, String systemPrompt, String userMessage) {
-        OpenAIClient client = OpenAIOkHttpClient.builder().apiKey(apiKey).build();
-        var params = ChatCompletionCreateParams.builder()
-                .model(model)
-                .addSystemMessage(systemPrompt)
-                .addUserMessage(userMessage)
-                .temperature(0.8)
-                .build();
-        var completion = client.chat().completions().create(params);
-        return completion.choices().getFirst().message().content().orElse("");
+    private static boolean filled(@Nullable String text) {
+        return text != null && !text.isBlank();
     }
 
-    // -- Model Listing --
+    private String chatOpenAi(String apiKey, String model, String systemPrompt, String userMessage) {
+        OpenAIClient client = clients.openAi(apiKey);
+        try {
+            var params = ChatCompletionCreateParams.builder()
+                    .model(model)
+                    .addSystemMessage(systemPrompt)
+                    .addUserMessage(userMessage)
+                    .temperature(0.8)
+                    .build();
+            var completion = client.chat().completions().create(params);
+            return completion.choices().getFirst().message().content().orElse("");
+        } finally {
+            client.close();
+        }
+    }
 
     private List<ModelInfo> fetchOpenAiModels(String apiKey) {
-        OpenAIClient client = OpenAIOkHttpClient.builder().apiKey(apiKey).build();
-        var page = client.models().list();
-        var result = new ArrayList<ModelInfo>();
-        for (var m : page.data()) {
-            if (isChatModel(m.id())) {
-                result.add(new ModelInfo(m.id(), m.id()));
+        OpenAIClient client = clients.openAi(apiKey);
+        try {
+            var result = new ArrayList<ModelInfo>();
+            for (var m : client.models().list().data()) {
+                if (isChatModel(m.id())) {
+                    result.add(new ModelInfo(m.id(), m.id()));
+                }
             }
+            result.sort(Comparator.comparing(ModelInfo::name));
+            return result;
+        } finally {
+            client.close();
         }
-        result.sort(Comparator.comparing(ModelInfo::name));
-        return result;
     }
 
     private String chatGemini(String apiKey, String model, String systemPrompt, String userMessage) {
-        try (Client client = Client.builder().apiKey(apiKey).build()) {
+        try (Client client = clients.gemini(apiKey)) {
             var config = GenerateContentConfig.builder()
                     .systemInstruction(Content.fromParts(Part.fromText(systemPrompt)))
                     .build();
             var response = client.models.generateContent(model, userMessage, config);
-            return response.text();
+            return Objects.requireNonNullElse(response.text(), "");
         }
     }
 
-    // ============================================================
-    //  OpenAI SDK
-    // ============================================================
-
     private List<ModelInfo> fetchGeminiModels(String apiKey) {
-        try (Client client = Client.builder().apiKey(apiKey).build()) {
+        try (Client client = clients.gemini(apiKey)) {
             var response = client.models.list(null);
             var result = new ArrayList<ModelInfo>();
             for (var m : response) {
@@ -467,52 +508,45 @@ public class AiService {
     }
 
     private String chatClaude(String apiKey, String model, String systemPrompt, String userMessage) {
-        AnthropicClient client = AnthropicOkHttpClient.builder().apiKey(apiKey).build();
-        var params = MessageCreateParams.builder()
-                .model(model)
-                .maxTokens(2048L)
-                .system(systemPrompt)
-                .addUserMessage(userMessage)
-                .build();
-        var message = client.messages().create(params);
-        return message.content().stream()
-                .filter(ContentBlock::isText)
-                .map(b -> b.asText().text())
-                .findFirst()
-                .orElse("");
+        AnthropicClient client = clients.anthropic(apiKey);
+        try {
+            var params = MessageCreateParams.builder()
+                    .model(model)
+                    .maxTokens(2048L)
+                    .system(systemPrompt)
+                    .addUserMessage(userMessage)
+                    .build();
+            return firstText(client.messages().create(params).content());
+        } finally {
+            client.close();
+        }
     }
 
-    // ============================================================
-    //  Gemini SDK (Google GenAI)
-    // ============================================================
-
     private List<ModelInfo> fetchClaudeModels(String apiKey) {
-        AnthropicClient client = AnthropicOkHttpClient.builder().apiKey(apiKey).build();
-        var page = client.models().list();
-        var result = new ArrayList<ModelInfo>();
-        for (var m : page.data()) {
-            m.displayName();
-            result.add(new ModelInfo(m.id(), m.displayName()));
+        AnthropicClient client = clients.anthropic(apiKey);
+        try {
+            var result = new ArrayList<ModelInfo>();
+            for (var m : client.models().list().data()) {
+                result.add(new ModelInfo(m.id(), m.displayName()));
+            }
+            result.sort(Comparator.comparing(ModelInfo::name));
+            return result;
+        } finally {
+            client.close();
         }
-        result.sort(Comparator.comparing(ModelInfo::name));
-        return result;
     }
 
     public record ChatMessage(String role, String content) {}
 
-    // ============================================================
-    //  Claude SDK (Anthropic)
-    // ============================================================
-
     public static class ChatSession {
-        private final String provider;
+        private final AiVendor vendor;
         private final String apiKey;
         private final String model;
         private final String systemPrompt;
         private final List<ChatMessage> messages = new ArrayList<>();
 
-        ChatSession(String provider, String apiKey, String model, String systemPrompt) {
-            this.provider = provider;
+        ChatSession(AiVendor vendor, String apiKey, String model, String systemPrompt) {
+            this.vendor = vendor;
             this.apiKey = apiKey;
             this.model = model;
             this.systemPrompt = systemPrompt;
@@ -522,8 +556,8 @@ public class AiService {
             return messages;
         }
 
-        public String provider() {
-            return provider;
+        public AiVendor vendor() {
+            return vendor;
         }
 
         public String apiKey() {
@@ -548,10 +582,6 @@ public class AiService {
     }
 
     public record GeneratedQuestion(String title, String config) {}
-
-    // ============================================================
-    //  Utilities
-    // ============================================================
 
     public record ModelInfo(String id, String name) {}
 }

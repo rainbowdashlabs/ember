@@ -13,16 +13,19 @@ import CommentSection from '@/components/comment/CommentSection.vue'
 import NoteEditor from '@/components/comment/NoteEditor.vue'
 import EventGeneralInfoPanel from './EventGeneralInfoPanel.vue'
 import EventAttachmentsPanel from './EventAttachmentsPanel.vue'
-import {isRecurringEvent, type AbsentMember, type EventField, type StationEvent} from '@/api/events'
-import {StationPermission, type StationMember} from '@/api/types'
+import {isRecurringEvent} from '@/api/events'
+import {eventCommentSource} from '@/api/comments'
+import type {AbsentMemberResponse, AppointmentField, StationEvent} from '@/api/generated/schema'
+import {StationPermission} from '@/api/types'
+import type {MemberLike} from '@/components/input/select/memberOption'
 
 const props = defineProps<{
   event: StationEvent
   eventId: number
-  fields: EventField[]
-  allMembers: StationMember[]
+  fields: AppointmentField[]
+  allMembers: MemberLike[]
   currentMemberId: number
-  absentMembers: AbsentMember[]
+  absentMembers: AbsentMemberResponse[]
   focusedDate: string | null
   /** The occurrence on screen, which is the one a question answered per date is answered for. */
   effectiveDate: string | null
@@ -35,10 +38,12 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'field-updated', field: EventField): void
+  (e: 'field-updated', field: AppointmentField): void
 }>()
 
 const {t} = useI18n()
+
+const commentSource = computed(() => eventCommentSource(props.eventId, props.focusedDate))
 
 /**
  * Whoever writes the event, which is more than whoever runs it.
@@ -80,7 +85,7 @@ const canEditEvent = computed(() => props.canManageEvents || props.hasPermission
     </NeutralContainer>
 
     <NeutralContainer>
-      <CommentSection :event-id="eventId" :event-date="focusedDate"/>
+      <CommentSection :source="commentSource"/>
     </NeutralContainer>
   </div>
 </template>

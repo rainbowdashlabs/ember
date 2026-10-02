@@ -47,4 +47,20 @@ public enum StationUserType {
     public StationPermission[] defaultPermissions() {
         return defaultPermissions;
     }
+
+    /**
+     * Whether being of this type alone gives a permission, directly or through a wider permission
+     * the type carries.
+     *
+     * @param permission the permission asked for
+     * @return {@code true} where one of the default permissions is or includes it
+     */
+    public boolean grantsByDefault(StationPermission permission) {
+        for (StationPermission held : defaultPermissions) {
+            if (held == permission || held.includes(permission)) {
+                return true;
+            }
+        }
+        return false;
+    }
 }

@@ -11,23 +11,23 @@ import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
-import {StationUserTypeLabels, type StationUserTypeName} from '@/api/types'
-import type {SystemNewsEntry} from '@/api/adminNews'
+import {StationUserTypeLabels} from '@/api/types'
+import type {StationUserType, SystemNewsResponse} from '@/api/generated/schema'
 import {formatDateTime} from '@/util/format'
 
 defineProps<{
-  entries: SystemNewsEntry[]
+  entries: SystemNewsResponse[]
 }>()
 
 const emit = defineEmits<{
-  (e: 'edit', entry: SystemNewsEntry): void
-  (e: 'retract', entry: SystemNewsEntry): void
+  edit: [entry: SystemNewsResponse]
+  retract: [entry: SystemNewsResponse]
 }>()
 
 const {t} = useI18n()
 
 function label(userType: string): string {
-  return StationUserTypeLabels[userType as StationUserTypeName] ?? userType
+  return StationUserTypeLabels[userType as StationUserType] ?? userType
 }
 </script>
 
@@ -44,8 +44,6 @@ function label(userType: string): string {
             {{ entry.publishedAt ? formatDateTime(entry.publishedAt) : formatDateTime(entry.createdAt) }}
             &middot; {{ t('adminNews.commentCount', {count: entry.commentCount}) }}
           </p>
-          <!-- No user types at all means the entry is for everyone, which is worth saying rather
-               than leaving as an empty space the reader has to interpret. -->
           <p class="text-xs text-(--text-muted)">
             <template v-if="entry.userTypes.length === 0">{{ t('adminNews.forEveryone') }}</template>
             <template v-else>

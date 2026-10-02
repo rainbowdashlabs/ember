@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.page.service;
 
+import dev.chojo.ember.api.refusal.PageRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
@@ -13,21 +15,17 @@ import dev.chojo.ember.feature.content.entity.CellConfig;
 import dev.chojo.ember.feature.content.entity.CellContentType;
 import dev.chojo.ember.feature.content.service.CellDescriptions;
 import dev.chojo.ember.feature.content.service.ContentBlockService;
-import dev.chojo.ember.feature.media.service.ImageVariantService;
+import dev.chojo.ember.feature.media.service.ImageVariants;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import dev.chojo.ember.feature.media.service.MediaReferenceRegistry;
 import dev.chojo.ember.feature.media.service.MediaStorageService;
-import dev.chojo.ember.feature.media.service.MediaVariantService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.page.entity.PageVisibility;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
-import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
 import dev.chojo.ember.feature.storage.service.StorageQuotaService;
 import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import dev.chojo.ember.util.ShareTokens;
-import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
@@ -57,7 +55,7 @@ class PageServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        var backend = new LocalStorageBackend();
+        var backend = localStorage();
         var resolver = new StorageBackendResolver(backend);
         var storageService = new StorageService(resolver, backend);
         var storageConfig = new Storage();
@@ -66,7 +64,7 @@ class PageServiceTest extends RepositoryTestBase {
                 mediaFileRepo,
                 mediaMetaRepo,
                 storage,
-                new MediaVariantService(storage, storageConfig),
+                new ImageVariants(storageService),
                 new MediaReferenceRegistry(contentContainerRepo),
                 new StorageQuotaService(storageUsageRepo, storageConfig, new DomainEventBus(Set.of())));
         blocks = contentBlocks();
@@ -76,8 +74,7 @@ class PageServiceTest extends RepositoryTestBase {
                 media,
                 new CellDescriptions(media, (stationId, pageUid) -> Optional.empty()),
                 stationMemberRepo,
-                new AvatarService(new ImageVariantService(storageService)),
-                new ShareTokens(),
+                new AvatarService(new ImageVariants(storageService)),
                 stationRepo);
         station = stationRepo.create("PageServiceStation");
         account = accountRepo.create("page-svc@test.com", "Page", "Author");
@@ -102,7 +99,6 @@ class PageServiceTest extends RepositoryTestBase {
     @Test
     @Order(2)
     void slugGeneration() {
-        // Test slug generation via create
         var page = service.create(station.id(), "Test Slug!", null, member.id());
         assertEquals("test-slug", page.slug());
         service.deletePage(page.id());
@@ -209,21 +205,25 @@ class PageServiceTest extends RepositoryTestBase {
         assertEquals("welcome-page", slug.orElseThrow());
     }
 
+    /**
+     * A missing page throws a raw {@link IllegalArgumentException}, which the route handler masks to a
+     * generic 400; an unpublished page throws a {@link BadRequestResponse} so its message reaches the user.
+     */
     @Test
     @Order(12)
     void landingPageValidation() {
-        // Page does not exist (raw IllegalArgumentException - masked to generic 400 by the route handler)
         assertThrows(IllegalArgumentException.class, () -> service.setLandingPage(station.id(), 99999));
 
-        // Page not published - user-facing BadRequestResponse so the message is preserved
         service.setVisibility(pageId, PageVisibility.DRAFT);
-        assertThrows(BadRequestResponse.class, () -> service.setLandingPage(station.id(), pageId));
+        var draft = assertThrows(RefusalResponse.class, () -> service.setLandingPage(station.id(), pageId));
+        assertEquals(PageRefusal.LANDING_PAGE_NOT_PUBLIC, draft.refusal());
 
         service.setVisibility(pageId, PageVisibility.UNLISTED);
-        assertThrows(
-                BadRequestResponse.class,
+        var unlisted = assertThrows(
+                RefusalResponse.class,
                 () -> service.setLandingPage(station.id(), pageId),
                 "a page nobody can find is no landing page either");
+        assertEquals(PageRefusal.LANDING_PAGE_NOT_PUBLIC, unlisted.refusal());
         service.setVisibility(pageId, PageVisibility.PUBLIC);
     }
 
@@ -266,10 +266,10 @@ class PageServiceTest extends RepositoryTestBase {
         service.setVisibility(childPageId, PageVisibility.PUBLIC);
         var grandchild = service.create(station.id(), "Grandchild", childPageId, member.id());
 
-        // Depth 3 would be exceeded - user-facing BadRequestResponse
-        assertThrows(
-                BadRequestResponse.class,
+        var refused = assertThrows(
+                RefusalResponse.class,
                 () -> service.create(station.id(), "GreatGrandchild", grandchild.id(), member.id()));
+        assertEquals(PageRefusal.PAGE_TREE_TOO_DEEP, refused.refusal());
 
         service.deletePage(grandchild.id());
     }
@@ -290,7 +290,8 @@ class PageServiceTest extends RepositoryTestBase {
     @Test
     @Order(17)
     void aPageWithChildrenCannotBeReachedByALinkAlone() {
-        assertThrows(BadRequestResponse.class, () -> service.setVisibility(pageId, PageVisibility.UNLISTED));
+        var refused = assertThrows(RefusalResponse.class, () -> service.setVisibility(pageId, PageVisibility.UNLISTED));
+        assertEquals(PageRefusal.PAGE_WITH_CHILDREN_NOT_LINK_ONLY, refused.refusal());
     }
 
     @Test
@@ -299,10 +300,11 @@ class PageServiceTest extends RepositoryTestBase {
         var alone = service.create(station.id(), "Einladung", null, member.id());
         service.setVisibility(alone.id(), PageVisibility.UNLISTED);
 
-        assertThrows(
-                BadRequestResponse.class,
+        var refused = assertThrows(
+                RefusalResponse.class,
                 () -> service.create(station.id(), "Darunter", alone.id(), member.id()),
                 "nothing is filed under a page that is not in the tree");
+        assertEquals(PageRefusal.PAGE_UNDER_A_LINK_ONLY_PAGE, refused.refusal());
         assertTrue(service.shareToken(alone.id()).isPresent());
         assertTrue(
                 service.listListedPages(station.id()).stream().noneMatch(p -> p.id() == alone.id()),
@@ -495,7 +497,8 @@ class PageServiceTest extends RepositoryTestBase {
     void aDraftIsGivenNoLink() {
         int id = service.create(station.id(), "No Link Yet", null, member.id()).id();
         assertTrue(service.shareToken(id).isEmpty());
-        assertThrows(BadRequestResponse.class, () -> service.replaceShareToken(id, null));
+        var refused = assertThrows(RefusalResponse.class, () -> service.replaceShareToken(id, null));
+        assertEquals(PageRefusal.PAGE_LINK_NOT_FOR_A_CLOSED_PAGE, refused.refusal());
         service.deletePage(id);
     }
 

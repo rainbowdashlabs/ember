@@ -14,7 +14,7 @@ import DataTable from '@/components/table/DataTable.vue'
 import Th from '@/components/table/Th.vue'
 import Td from '@/components/table/Td.vue'
 import TRow from '@/components/table/TRow.vue'
-import type { LentOutItem } from '@/api/lending'
+import type { LentOutItem } from '@/api/generated/schema'
 import { formatDate } from '@/util/format'
 
 const routes = useInventoryRoutes()
@@ -39,7 +39,7 @@ const { t } = useI18n()
         <Th align="center">{{ t('inventory.detail.lentQuantity') }}</Th>
         <Th>{{ t('inventory.detail.lentUntil') }}</Th>
         <Th>{{ t('inventory.detail.lentStatus') }}</Th>
-        <th class="px-3 py-2"></th>
+        <th class="px-3 py-2"/>
       </template>
       <TRow v-for="lent in props.lentOutItems" :key="lent.requestItemId">
         <Td class="font-medium">{{ lent.requestingStationName }}</Td>

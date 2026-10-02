@@ -6,13 +6,13 @@
 <script lang="ts" setup>
 import SubHeader from '@/components/typography/SubHeader.vue'
 import RegistrationStatsTable from '../eventdetailview/RegistrationStatsTable.vue'
-import type {EventRegistrationEntry, MemberRegistrationStats} from '@/api/events'
+import type {RegistrationResponse, RegistrationStatsResponse} from '@/api/generated/schema'
 
 defineProps<{
   icon: string
   title: string
-  registrations: EventRegistrationEntry[]
-  stats: MemberRegistrationStats[]
+  registrations: RegistrationResponse[]
+  stats: RegistrationStatsResponse[]
   showActions?: boolean
 }>()
 

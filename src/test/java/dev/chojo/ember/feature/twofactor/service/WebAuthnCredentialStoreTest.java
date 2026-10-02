@@ -66,16 +66,13 @@ class WebAuthnCredentialStoreTest extends RepositoryTestBase {
                 store.getUsernameForUserHandle(new ByteArray(userHandle)).orElseThrow();
         assertEquals(String.valueOf(accountId), resolvedUsername);
 
-        // lookup with matching userHandle returns a RegisteredCredential
         var rc = store.lookup(new ByteArray(credentialId), new ByteArray(userHandle))
                 .orElseThrow();
         assertEquals(0L, rc.getSignatureCount());
 
-        // mismatched user handle returns empty
         assertTrue(store.lookup(new ByteArray(credentialId), new ByteArray(new byte[64]))
                 .isEmpty());
 
-        // lookupAll returns all matches by credential id (ignores user handle)
         assertEquals(1, store.lookupAll(new ByteArray(credentialId)).size());
     }
 

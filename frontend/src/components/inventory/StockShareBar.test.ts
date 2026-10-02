@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-// @vitest-environment happy-dom
+/** @vitest-environment happy-dom */
 import {describe, expect, it} from 'vitest'
 import {mount} from '@vue/test-utils'
 import {createI18n} from 'vue-i18n'
@@ -17,7 +17,7 @@ import de from '@/i18n/de-DE'
  * nothing more, and a size nobody keeps draws nothing rather than a full or an empty line.
  */
 describe('StockShareBar', () => {
-    const i18n = createI18n({legacy: false, locale: 'de-DE', messages: {'de-DE': de}})
+    const i18n = createI18n({legacy: false, locale: 'de-DE', messages: {'de-DE': de, en: {}}})
 
     function bar(props: {total: number; free: number; assigned: number}) {
         return mount(StockShareBar, {props, global: {plugins: [i18n]}})

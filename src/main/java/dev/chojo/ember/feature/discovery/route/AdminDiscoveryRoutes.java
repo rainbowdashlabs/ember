@@ -5,41 +5,34 @@
  */
 package dev.chojo.ember.feature.discovery.route;
 
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.InstancePermission;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StepUpCategory;
-import dev.chojo.ember.feature.discovery.entity.BlocklistKind;
-import dev.chojo.ember.feature.discovery.entity.CachedDiscoveryStation;
-import dev.chojo.ember.feature.discovery.entity.DiscoveryBlocklistEntry;
-import dev.chojo.ember.feature.discovery.entity.DiscoveryPeer;
-import dev.chojo.ember.feature.discovery.entity.DiscoveryStationCard;
-import dev.chojo.ember.feature.discovery.entity.PeerSource;
 import dev.chojo.ember.feature.discovery.protocol.DiscoveryInfoResponse;
-import dev.chojo.ember.feature.discovery.repository.DiscoveryBlocklistRepository;
-import dev.chojo.ember.feature.discovery.repository.DiscoveryPeerRepository;
-import dev.chojo.ember.feature.discovery.repository.DiscoveryStationCacheRepository;
-import dev.chojo.ember.feature.discovery.service.DiscoveryHttpClient;
-import dev.chojo.ember.feature.discovery.service.DiscoveryKeyService;
-import dev.chojo.ember.feature.discovery.service.DiscoveryPingService;
-import dev.chojo.ember.feature.discovery.service.DiscoveryReputationService;
+import dev.chojo.ember.feature.discovery.service.DiscoveredStationService;
+import dev.chojo.ember.feature.discovery.service.DiscoveredStationService.DiscoveredStationResponse;
+import dev.chojo.ember.feature.discovery.service.DiscoveredStationService.StationPickerResult;
+import dev.chojo.ember.feature.discovery.service.DiscoveryAdminService;
+import dev.chojo.ember.feature.discovery.service.DiscoveryAdminService.AddPeerRequest;
+import dev.chojo.ember.feature.discovery.service.DiscoveryAdminService.BlocklistRequest;
+import dev.chojo.ember.feature.discovery.service.DiscoveryAdminService.BlocklistResponse;
+import dev.chojo.ember.feature.discovery.service.DiscoveryAdminService.DiscoverNowResponse;
+import dev.chojo.ember.feature.discovery.service.DiscoveryAdminService.IdentityResponse;
+import dev.chojo.ember.feature.discovery.service.DiscoveryAdminService.PeerResponse;
 import dev.chojo.ember.feature.discovery.service.DiscoverySettingsService;
-import dev.chojo.ember.feature.discovery.service.DiscoveryStationFetcher;
-import dev.chojo.ember.feature.discovery.service.FederationPartnerSeeder;
-import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import io.javalin.http.Context;
+import io.javalin.openapi.HttpMethod;
+import io.javalin.openapi.OpenApi;
+import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiParam;
+import io.javalin.openapi.OpenApiRequestBody;
+import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
-
-import java.math.BigDecimal;
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.function.Consumer;
 
 /**
  * Admin-facing discovery routes mounted under {@code /api/v1/admin/discovery}. Required
@@ -47,72 +40,25 @@ import java.util.function.Consumer;
  *
  * <p>Authenticated user-facing discovery (browsing the cached peers' station cards) lives in
  * {@code /api/v1/discovery/stations} and is intentionally permissionless beyond a valid
- * session - discovery surfaces are public by design (the same data is available
- * anonymously).
+ * session: discovery surfaces are public by design, the same data is available anonymously.
+ * The partner station picker of the page editor is gated by {@link StationPermission#PAGE_EDIT}
+ * so it never escapes the editor, and public scrapers cannot use it to enumerate the federation.
  */
 @Singleton
 public class AdminDiscoveryRoutes implements Routes {
 
-    private final DiscoveryPeerRepository peerRepository;
-    private final DiscoveryStationCacheRepository cacheRepository;
-    private final DiscoveryBlocklistRepository blocklistRepository;
-    private final DiscoveryReputationService reputationService;
+    private final DiscoveryAdminService discovery;
+    private final DiscoveredStationService discoveredStations;
     private final DiscoverySettingsService settingsService;
-    private final DiscoveryPingService pingService;
-    private final DiscoveryStationFetcher stationFetcher;
-    private final FederationPartnerSeeder federationPartnerSeeder;
-    private final FederationRepository federationRepository;
-    private final DiscoveryHttpClient httpClient;
-    private final DiscoveryKeyService keyService;
 
     @Inject
     public AdminDiscoveryRoutes(
-            DiscoveryPeerRepository peerRepository,
-            DiscoveryStationCacheRepository cacheRepository,
-            DiscoveryBlocklistRepository blocklistRepository,
-            DiscoveryReputationService reputationService,
-            DiscoverySettingsService settingsService,
-            DiscoveryPingService pingService,
-            DiscoveryStationFetcher stationFetcher,
-            FederationPartnerSeeder federationPartnerSeeder,
-            FederationRepository federationRepository,
-            DiscoveryHttpClient httpClient,
-            DiscoveryKeyService keyService) {
-        this.peerRepository = peerRepository;
-        this.cacheRepository = cacheRepository;
-        this.blocklistRepository = blocklistRepository;
-        this.reputationService = reputationService;
+            DiscoveryAdminService discovery,
+            DiscoveredStationService discoveredStations,
+            DiscoverySettingsService settingsService) {
+        this.discovery = discovery;
+        this.discoveredStations = discoveredStations;
         this.settingsService = settingsService;
-        this.pingService = pingService;
-        this.stationFetcher = stationFetcher;
-        this.federationPartnerSeeder = federationPartnerSeeder;
-        this.federationRepository = federationRepository;
-        this.httpClient = httpClient;
-        this.keyService = keyService;
-    }
-
-    private static boolean matchesQuery(String name, String query) {
-        if (query == null || query.isBlank()) return true;
-        if (name == null) return false;
-        return name.toLowerCase().contains(query.trim().toLowerCase());
-    }
-
-    // -- Identity & settings --
-
-    private static PeerResponse toResponse(DiscoveryPeer p) {
-        return new PeerResponse(
-                p.publicKey(),
-                p.baseUrl(),
-                p.instanceId(),
-                p.firstSeenAt(),
-                p.lastSeenAt(),
-                p.lastPingedAt(),
-                p.lastReachedAt(),
-                p.reachable(),
-                p.source(),
-                p.introducedBy(),
-                p.reputation(),
-                p.blocked());
     }
 
     @Override
@@ -175,302 +121,254 @@ public class AdminDiscoveryRoutes implements Routes {
                 this::removeFromBlocklist,
                 InstancePermission.ADMINISTRATOR,
                 StepUpCategory.FEDERATION);
-
-        // Authenticated user-facing endpoint for the /station/discovery page.
         routes.get(prefix + "/discovery/stations", this::listCachedStations);
-
-        // Editor-facing picker for the PARTNER_STATIONS cell. Auth-gated by
-        // PAGE_EDIT so it never escapes the editor surface - public scrapers cannot use it to
-        // enumerate the federation network.
         routes.get(prefix + "/federation/stations/search", this::searchStationPicker, StationPermission.PAGE_EDIT);
     }
 
+    @OpenApi(
+            path = "/api/v1/admin/discovery/identity",
+            methods = HttpMethod.GET,
+            summary = "Get how this instance introduces itself to discovery peers",
+            tags = {"Discovery"},
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = IdentityResponse.class)))
     private void getIdentity(Context ctx) {
-        ctx.json(
-                new IdentityResponse(keyService.instanceId(), keyService.publicKeyBase64(), pingService.selfBaseUrl()));
+        ctx.json(discovery.identity());
     }
 
-    // -- Peer registry --
-
+    @OpenApi(
+            path = "/api/v1/admin/discovery/settings",
+            methods = HttpMethod.GET,
+            summary = "Get the discovery settings",
+            tags = {"Discovery"},
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = DiscoverySettingsResponse.class)))
     private void getSettings(Context ctx) {
-        ctx.json(new SettingsResponse(
+        ctx.json(new DiscoverySettingsResponse(
                 settingsService.isEnabled(),
                 settingsService.maxDepth(),
                 settingsService.pingIntervalMinutes(),
                 DiscoverySettingsService.MAX_DEPTH));
     }
 
+    @OpenApi(
+            path = "/api/v1/admin/discovery/settings",
+            methods = HttpMethod.PUT,
+            summary = "Change the discovery settings",
+            tags = {"Discovery"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = DiscoverySettingsRequest.class)),
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = DiscoverySettingsResponse.class)))
     private void updateSettings(Context ctx) {
-        var body = ctx.bodyAsClass(SettingsRequest.class);
+        var body = ctx.bodyAsClass(DiscoverySettingsRequest.class);
         if (body.enabled() != null) settingsService.setEnabled(body.enabled());
         if (body.maxDepth() != null) settingsService.setMaxDepth(body.maxDepth());
         if (body.pingIntervalMinutes() != null) settingsService.setPingIntervalMinutes(body.pingIntervalMinutes());
         getSettings(ctx);
     }
 
+    @OpenApi(
+            path = "/api/v1/admin/discovery/peers",
+            methods = HttpMethod.GET,
+            summary = "List the discovery peers",
+            tags = {"Discovery"},
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = PeerResponse[].class)))
     private void listPeers(Context ctx) {
-        var peers = peerRepository.findAll();
-        List<PeerResponse> responses = new ArrayList<>(peers.size());
-        for (var p : peers) responses.add(toResponse(p));
-        ctx.json(responses);
+        ctx.json(discovery.peers());
     }
 
-    /**
-     * Knocks on a peer's door and reports what happened.
-     *
-     * <p>Whatever stopped it is the whole answer here, because an operator diagnosing a peer that
-     * will not connect is the one person who needs to know which of five things went wrong. It used
-     * to answer that the peer "did not respond" for all of them alike.
-     */
+    @OpenApi(
+            path = "/api/v1/admin/discovery/peers/probe",
+            methods = HttpMethod.POST,
+            summary = "Probe an address for a discovery peer",
+            tags = {"Discovery"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ProbeRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = DiscoveryInfoResponse.class)))
     private void probePeer(Context ctx) {
-        var body = ctx.bodyAsClass(ProbeRequest.class);
-        if (body.baseUrl() == null || body.baseUrl().isBlank()) {
-            throw Refusal.PROBE_NEEDS_AN_ADDRESS.raise();
-        }
-        ctx.json(reachPeer(body.baseUrl()));
+        ctx.json(discovery.probe(ctx.bodyAsClass(ProbeRequest.class).baseUrl()));
     }
 
+    @OpenApi(
+            path = "/api/v1/admin/discovery/peers",
+            methods = HttpMethod.POST,
+            summary = "Add a discovery peer by hand",
+            tags = {"Discovery"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = AddPeerRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = PeerResponse.class)))
     private void addPeer(Context ctx) {
-        var body = ctx.bodyAsClass(AddPeerRequest.class);
-        if (body.baseUrl() == null || body.baseUrl().isBlank()) {
-            throw Refusal.PEER_NEEDS_AN_ADDRESS.raise();
-        }
-        var info = reachPeer(body.baseUrl());
-        if (info.publicKey() == null) {
-            throw Refusal.PEER_NAMED_NO_KEY.raise(
-                    "The address answered as a peer would, but named no key to recognise it by");
-        }
-        if (body.expectedPublicKey() != null
-                && !body.expectedPublicKey().isBlank()
-                && !body.expectedPublicKey().equals(info.publicKey())) {
-            throw Refusal.PEER_KEY_NOT_THE_EXPECTED_ONE.raise();
-        }
-        if (!info.discoveryEnabled()) {
-            throw Refusal.PEER_DOES_NOT_WANT_DISCOVERY.raise();
-        }
-        var peer = peerRepository.upsert(info.publicKey(), info.baseUrl(), info.instanceId(), PeerSource.MANUAL, null);
-        // Fire-and-forget ping so the peer's neighborhood starts streaming in immediately.
-        try {
-            pingService.sendPing(peer);
-        } catch (Exception ignored) {
-            // Probing failures don't roll back the insert.
-        }
-        ctx.json(toResponse(peer));
+        ctx.json(discovery.addPeer(ctx.bodyAsClass(AddPeerRequest.class)));
     }
 
-    /**
-     * Fetches a peer's discovery card, refusing with the reason it could not be had.
-     */
-    private DiscoveryInfoResponse reachPeer(String baseUrl) {
-        var probe = httpClient.probe(baseUrl, "/api/v1/public/discovery/info", DiscoveryInfoResponse.class);
-        if (!probe.reached()) throw Refusal.PEER_DID_NOT_ANSWER.raise(probe.problem());
-        return probe.value();
-    }
-
+    @OpenApi(
+            path = "/api/v1/admin/discovery/peers/{publicKey}",
+            methods = HttpMethod.DELETE,
+            summary = "Remove a discovery peer",
+            tags = {"Discovery"},
+            pathParams = @OpenApiParam(name = "publicKey", type = String.class, required = true),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ChangedResponse.class)))
     private void deletePeer(Context ctx) {
-        String key = ctx.pathParam("publicKey");
-        boolean removed = peerRepository.delete(key);
-        ctx.json(new ChangedResponse(removed));
+        ctx.json(new ChangedResponse(discovery.deletePeer(ctx.pathParam("publicKey"))));
     }
 
+    @OpenApi(
+            path = "/api/v1/admin/discovery/peers/{publicKey}/upvote",
+            methods = HttpMethod.POST,
+            summary = "Raise a discovery peer's reputation",
+            tags = {"Discovery"},
+            pathParams = @OpenApiParam(name = "publicKey", type = String.class, required = true),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = PeerResponse.class)))
     private void upvotePeer(Context ctx) {
-        mutateExistingPeer(ctx, reputationService::upvote);
+        ctx.json(discovery.upvote(ctx.pathParam("publicKey")));
     }
 
+    @OpenApi(
+            path = "/api/v1/admin/discovery/peers/{publicKey}/downvote",
+            methods = HttpMethod.POST,
+            summary = "Lower a discovery peer's reputation",
+            tags = {"Discovery"},
+            pathParams = @OpenApiParam(name = "publicKey", type = String.class, required = true),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = PeerResponse.class)))
     private void downvotePeer(Context ctx) {
-        mutateExistingPeer(ctx, reputationService::downvote);
+        ctx.json(discovery.downvote(ctx.pathParam("publicKey")));
     }
 
+    @OpenApi(
+            path = "/api/v1/admin/discovery/peers/{publicKey}/block",
+            methods = HttpMethod.POST,
+            summary = "Block a discovery peer",
+            tags = {"Discovery"},
+            pathParams = @OpenApiParam(name = "publicKey", type = String.class, required = true),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = PeerResponse.class)))
     private void blockPeer(Context ctx) {
-        mutateExistingPeer(ctx, key -> peerRepository.setBlocked(key, true));
+        ctx.json(discovery.block(ctx.pathParam("publicKey")));
     }
 
+    @OpenApi(
+            path = "/api/v1/admin/discovery/peers/{publicKey}/unblock",
+            methods = HttpMethod.POST,
+            summary = "Unblock a discovery peer",
+            tags = {"Discovery"},
+            pathParams = @OpenApiParam(name = "publicKey", type = String.class, required = true),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = PeerResponse.class)))
     private void unblockPeer(Context ctx) {
-        mutateExistingPeer(ctx, key -> peerRepository.setBlocked(key, false));
+        ctx.json(discovery.unblock(ctx.pathParam("publicKey")));
     }
 
-    /**
-     * Applies a mutation to the peer named by the {@code publicKey} path parameter, confirming the
-     * peer exists both before and after the change, then responds with the refreshed peer.
-     */
-    private void mutateExistingPeer(Context ctx, Consumer<String> mutation) {
-        String key = ctx.pathParam("publicKey");
-        peerRepository.findByPublicKey(key).orElseThrow(Refusal.PEER_NOT_HERE::raise);
-        mutation.accept(key);
-        ctx.json(
-                toResponse(peerRepository.findByPublicKey(key).orElseThrow(Refusal.PEER_NOT_HERE_AFTER_CHANGE::raise)));
-    }
-
+    @OpenApi(
+            path = "/api/v1/admin/discovery/peers/{publicKey}/ping",
+            methods = HttpMethod.POST,
+            summary = "Ping a discovery peer now",
+            tags = {"Discovery"},
+            pathParams = @OpenApiParam(name = "publicKey", type = String.class, required = true),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)))
     private void pingPeerNow(Context ctx) {
-        String key = ctx.pathParam("publicKey");
-        var peer = peerRepository.findByPublicKey(key).orElseThrow(Refusal.PEER_NOT_HERE_ON_PING::raise);
-        pingService.sendPing(peer);
+        discovery.pingNow(ctx.pathParam("publicKey"));
         ctx.json(new MessageResponse("Ping dispatched"));
     }
 
-    // -- Blocklist --
-
+    @OpenApi(
+            path = "/api/v1/admin/discovery/discover-now",
+            methods = HttpMethod.POST,
+            summary = "Ping every peer and fetch every station card now",
+            tags = {"Discovery"},
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = DiscoverNowResponse.class)))
     private void discoverNow(Context ctx) {
-        int pinged = 0;
-        for (var peer : peerRepository.findUsable()) {
-            pingService.sendPing(peer);
-            pinged++;
-        }
-        int fetched = stationFetcher.refreshAll();
-        ctx.json(new DiscoverNowResponse(pinged, fetched));
+        ctx.json(discovery.discoverNow());
     }
 
+    @OpenApi(
+            path = "/api/v1/admin/discovery/seed",
+            methods = HttpMethod.POST,
+            summary = "Add the federation partners as discovery peers",
+            tags = {"Discovery"},
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ChangedCountResponse.class)))
     private void seedFederation(Context ctx) {
-        int added = federationPartnerSeeder.seedFromFederationPartners();
-        ctx.json(new ChangedCountResponse(added));
+        ctx.json(new ChangedCountResponse(discovery.seedFromFederation()));
     }
 
+    @OpenApi(
+            path = "/api/v1/admin/discovery/blocklist",
+            methods = HttpMethod.GET,
+            summary = "List the discovery blocklist",
+            tags = {"Discovery"},
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BlocklistResponse[].class)))
     private void listBlocklist(Context ctx) {
-        List<DiscoveryBlocklistEntry> entries = blocklistRepository.findAll();
-        List<BlocklistResponse> responses = new ArrayList<>(entries.size());
-        for (var e : entries) {
-            responses.add(new BlocklistResponse(e.value(), e.kind(), e.note(), e.createdAt()));
-        }
-        ctx.json(responses);
+        ctx.json(discovery.blocklist());
     }
 
-    // -- Cached stations (authenticated) --
-
+    @OpenApi(
+            path = "/api/v1/admin/discovery/blocklist",
+            methods = HttpMethod.POST,
+            summary = "Add an entry to the discovery blocklist",
+            tags = {"Discovery"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = BlocklistRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)))
     private void addToBlocklist(Context ctx) {
-        var body = ctx.bodyAsClass(BlocklistRequest.class);
-        if (body.value() == null || body.value().isBlank() || body.kind() == null) {
-            throw Refusal.BLOCKLIST_ENTRY_INCOMPLETE.raise();
-        }
-        blocklistRepository.add(body.kind(), body.value(), body.note());
+        discovery.addToBlocklist(ctx.bodyAsClass(BlocklistRequest.class));
         ctx.json(new MessageResponse("Added to blocklist"));
     }
 
+    @OpenApi(
+            path = "/api/v1/admin/discovery/blocklist/{value}",
+            methods = HttpMethod.DELETE,
+            summary = "Remove an entry from the discovery blocklist",
+            tags = {"Discovery"},
+            pathParams = @OpenApiParam(name = "value", type = String.class, required = true),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ChangedResponse.class)))
     private void removeFromBlocklist(Context ctx) {
-        String value = ctx.pathParam("value");
-        boolean removed = blocklistRepository.remove(value);
-        ctx.json(new ChangedResponse(removed));
+        ctx.json(new ChangedResponse(discovery.removeFromBlocklist(ctx.pathParam("value"))));
     }
 
+    @OpenApi(
+            path = "/api/v1/discovery/stations",
+            methods = HttpMethod.GET,
+            summary = "List the stations the discovery peers publish",
+            tags = {"Discovery"},
+            responses =
+                    @OpenApiResponse(
+                            status = "200",
+                            content = @OpenApiContent(from = DiscoveredStationResponse[].class)))
     private void listCachedStations(Context ctx) {
-        List<CachedDiscoveryStation> cached = cacheRepository.findAll();
-        List<DiscoveredStationResponse> responses = new ArrayList<>(cached.size());
-        for (var c : cached) {
-            DiscoveryStationCard card = c.card();
-            responses.add(new DiscoveredStationResponse(
-                    card.stationUid(),
-                    card.name(),
-                    card.slogan(),
-                    card.logoUrl(),
-                    card.country(),
-                    card.region(),
-                    card.city(),
-                    card.contactUrl(),
-                    card.tags(),
-                    card.memberCount(),
-                    card.publishedAt(),
-                    card.addressLine(),
-                    card.latitude(),
-                    card.longitude(),
-                    c.instancePublicKey(),
-                    c.fetchedAt()));
-        }
-        ctx.json(responses);
+        ctx.json(discoveredStations.cachedStations());
     }
 
+    @OpenApi(
+            path = "/api/v1/federation/stations/search",
+            methods = HttpMethod.GET,
+            summary = "Search the stations a page may name as partners",
+            tags = {"Discovery"},
+            queryParams = {
+                @OpenApiParam(name = "q", type = String.class),
+                @OpenApiParam(name = "limit", type = Integer.class)
+            },
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = StationPickerResult[].class)))
     private void searchStationPicker(Context ctx) {
-        var session = UserSession.from(ctx);
-        String q = ctx.queryParam("q");
-        int requested = ctx.queryParamAsClass("limit", Integer.class).getOrDefault(20);
-        int limit = Math.clamp(requested, 1, 50);
-
-        LinkedHashMap<String, StationPickerResult> byUid = new LinkedHashMap<>();
-
-        for (var partner : federationRepository.findActivePartnerSummaries(session.stationId())) {
-            if (matchesQuery(partner.name(), q)) {
-                byUid.put(
-                        partner.uid().toString(),
-                        new StationPickerResult(partner.uid().toString(), partner.name(), null, null, null, true));
-            }
-        }
-
-        for (var c : cacheRepository.searchForPicker(q, limit)) {
-            var card = c.card();
-            byUid.putIfAbsent(
-                    card.stationUid(),
-                    new StationPickerResult(
-                            card.stationUid(), card.name(), card.city(), card.country(), card.logoUrl(), true));
-        }
-
-        List<StationPickerResult> results = new ArrayList<>(byUid.values());
-        if (results.size() > limit) {
-            results = results.subList(0, limit);
-        }
-        ctx.json(results);
+        var session = StationSession.from(ctx);
+        int limit = ctx.queryParamAsClass("limit", Integer.class).getOrDefault(20);
+        ctx.json(discoveredStations.picker(session.stationId(), ctx.queryParam("q"), limit));
     }
 
     /**
-     * Lightweight picker result row. {@code selectable} mirrors whether the cell should let
-     * the editor pick this station - the discovery cache only contains stations that already
-     * opted-in to public discovery, so this is always {@code true} today. The flag is part of
-     * the contract so the frontend stays stable when (and if) we later widen the picker to
-     * include federation partners that aren't discoverable.
+     * The discovery settings as they stand, with the deepest the neighbourhood may ever be searched.
+     *
+     * @param enabled             whether this instance takes part in discovery
+     * @param maxDepth            how many hops a ping travels
+     * @param pingIntervalMinutes how often the peers are pinged
+     * @param hardMaxDepth        the highest depth that may be set
      */
-    public record StationPickerResult(
-            String stationUid, String name, String city, String country, String logoUrl, boolean selectable) {}
+    public record DiscoverySettingsResponse(boolean enabled, int maxDepth, int pingIntervalMinutes, int hardMaxDepth) {}
 
-    // -- DTOs --
-
-    public record IdentityResponse(String instanceId, String publicKey, String baseUrl) {}
-
-    public record SettingsResponse(boolean enabled, int maxDepth, int pingIntervalMinutes, int hardMaxDepth) {}
-
-    public record SettingsRequest(Boolean enabled, Integer maxDepth, Integer pingIntervalMinutes) {}
+    /**
+     * A change to the discovery settings; a setting left out stays as it is.
+     *
+     * @param enabled             whether this instance takes part in discovery
+     * @param maxDepth            how many hops a ping travels
+     * @param pingIntervalMinutes how often the peers are pinged
+     */
+    public record DiscoverySettingsRequest(Boolean enabled, Integer maxDepth, Integer pingIntervalMinutes) {}
 
     public record ProbeRequest(String baseUrl) {}
-
-    public record AddPeerRequest(String baseUrl, String expectedPublicKey) {}
-
-    public record PeerResponse(
-            String publicKey,
-            String baseUrl,
-            String instanceId,
-            Instant firstSeenAt,
-            Instant lastSeenAt,
-            Instant lastPingedAt,
-            Instant lastReachedAt,
-            boolean reachable,
-            PeerSource source,
-            String introducedBy,
-            int reputation,
-            boolean blocked) {}
-
-    public record DiscoverNowResponse(int pingsDispatched, int stationsFetched) {}
-
-    public record BlocklistRequest(String value, BlocklistKind kind, String note) {}
-
-    public record BlocklistResponse(String value, BlocklistKind kind, String note, Instant createdAt) {}
-
-    public record DiscoveredStationResponse(
-            String stationUid,
-            String name,
-            String slogan,
-            String logoUrl,
-            String country,
-            String region,
-            String city,
-            String contactUrl,
-            List<String> tags,
-            String memberCount,
-            Instant publishedAt,
-            String addressLine,
-            BigDecimal latitude,
-            BigDecimal longitude,
-            String instancePublicKey,
-            Instant fetchedAt) {}
 
     public record ChangedResponse(boolean changed) {}
 
     public record ChangedCountResponse(int changed) {}
-
-    public record MessageResponse(String message) {}
 }

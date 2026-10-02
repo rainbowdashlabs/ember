@@ -7,7 +7,9 @@ package dev.chojo.ember.feature.documents.repository;
 
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.documents.entity.Document;
+import dev.chojo.ember.feature.documents.entity.DocumentFilter;
 import dev.chojo.ember.feature.documents.entity.DocumentTag;
+import dev.chojo.ember.feature.documents.entity.Uploader;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
@@ -49,7 +51,15 @@ class DocumentRepositoryTest extends RepositoryTestBase {
 
     private static Document write(String title, boolean hidden, boolean keep, List<Integer> members) {
         return memberDocumentRepo.create(
-                station.id(), title, title + ".pdf", "application/pdf", 12, hidden, keep, memberId, members);
+                station.id(),
+                title,
+                title + ".pdf",
+                "application/pdf",
+                12,
+                hidden,
+                keep,
+                Uploader.member(memberId),
+                members);
     }
 
     @Test
@@ -128,19 +138,21 @@ class DocumentRepositoryTest extends RepositoryTestBase {
     }
 
     private static List<Document> byStation(String search) {
-        return memberDocumentRepo.findByStation(station.id(), List.of(), search, true, false, "simple", 50, 0);
+        return memberDocumentRepo.findByStation(
+                station.id(), new DocumentFilter(List.of(), search, true, false, false), "simple", 50, 0);
     }
 
     @Test
     @Order(7)
     void theStoreIsNarrowedToOneMember() {
-        var mine =
-                memberDocumentRepo.findByStation(station.id(), List.of(memberId), null, true, false, "simple", 50, 0);
+        var filter = new DocumentFilter(List.of(memberId), null, true, false, false);
+        var mine = memberDocumentRepo.findByStation(station.id(), filter, "simple", 50, 0);
 
         assertTrue(mine.stream().allMatch(document -> memberDocumentRepo.isBoundTo(document.id(), memberId)));
+        assertEquals(mine.size(), memberDocumentRepo.countByStation(station.id(), filter, "simple"));
         assertEquals(
-                mine.size(),
-                memberDocumentRepo.countByStation(station.id(), List.of(memberId), null, true, false, "simple"));
+                mine.stream().map(Document::id).toList(),
+                memberDocumentRepo.idsByStation(station.id(), filter, "simple"));
     }
 
     /**
@@ -172,8 +184,103 @@ class DocumentRepositoryTest extends RepositoryTestBase {
         assertFalse(orphaned.contains(stationOwned.id()));
     }
 
+    /**
+     * A member deleted while a document is kept for them leaves their name on it, which keeps it their
+     * paperwork rather than the station's. What was not kept is let go of as on archiving.
+     */
     @Test
     @Order(10)
+    void deletingAMemberLeavesTheirNameOnWhatIsKept() {
+        var leaving = stationMemberRepo.create(
+                station.id(),
+                accountRepo.create("doc-leaving@test.com", "Lena", "Weg").id());
+        var kept = write("Verpflichtung", false, true, List.of(leaving.id()));
+        var shared = write("Gemeinsam", false, false, List.of(leaving.id(), memberId));
+
+        assertEquals(1, memberDocumentRepo.keepDepartedName(leaving.id()));
+        memberDocumentRepo.unbindMember(leaving.id(), false);
+        stationMemberRepo.delete(leaving.id());
+
+        assertEquals(List.of("Lena Weg"), memberDocumentRepo.departedOf(kept.id()));
+        assertTrue(memberDocumentRepo.membersOf(kept.id()).isEmpty(), "nobody is bound to it any more");
+        assertFalse(memberDocumentRepo.hasNoMembers(kept.id()), "and still it names somebody");
+        assertEquals(List.of(memberId), memberDocumentRepo.membersOf(shared.id()));
+        assertTrue(memberDocumentRepo.departedOf(shared.id()).isEmpty(), "what was not kept keeps no name");
+    }
+
+    /** Rebinding a document chooses among the members there are; a deleted member's name is not one. */
+    @Test
+    @Order(11)
+    void rebindingADocumentKeepsTheNameOfSomebodyDeleted() {
+        var kept = byStation("Verpflichtung").getFirst();
+
+        memberDocumentRepo.setMembers(kept.id(), List.of(memberId));
+
+        assertEquals(List.of(memberId), memberDocumentRepo.membersOf(kept.id()));
+        assertEquals(List.of("Lena Weg"), memberDocumentRepo.departedOf(kept.id()));
+        memberDocumentRepo.setMembers(kept.id(), List.of());
+    }
+
+    /**
+     * The documents about people who have all gone: archived or deleted. A document still about somebody
+     * who is here is not among them, so pruning the list never takes a current member's paperwork.
+     */
+    @Test
+    @Order(12)
+    void theStoreIsNarrowedToThePeopleWhoHaveLeft() {
+        var archived = stationMemberRepo.create(
+                station.id(),
+                accountRepo.create("doc-archived@test.com", "Arne", "Alt").id());
+        var ofArchived = write("Altakte", false, true, List.of(archived.id()));
+        var ofBoth = write("Mitakte", false, true, List.of(archived.id(), memberId));
+        stationMemberRepo.setFormer(archived.id(), true);
+
+        var departed = memberDocumentRepo.idsByStation(
+                station.id(), new DocumentFilter(List.of(), null, true, false, true), "simple");
+
+        assertTrue(departed.contains(ofArchived.id()), "an archived member's document");
+        assertTrue(departed.contains(byStation("Verpflichtung").getFirst().id()), "a deleted member's document");
+        assertFalse(departed.contains(ofBoth.id()), "not one that is still somebody's here");
+        assertFalse(departed.contains(byStation("Satzung").getFirst().id()), "nor the station's own paperwork");
+    }
+
+    /** The uploader is named by membership at the station, or by the account of an association manager. */
+    @Test
+    @Order(13)
+    void theUploaderIsNamedEitherWay() {
+        var byMember = write("Hochgeladen", false, false, List.of(memberId));
+        var byManager = memberDocumentRepo.create(
+                station.id(),
+                "Vom Verband",
+                "verband.pdf",
+                "application/pdf",
+                12,
+                false,
+                false,
+                Uploader.account(otherAccount.id()),
+                List.of(memberId));
+        var byNobody = memberDocumentRepo.create(
+                station.id(),
+                "Per Post",
+                "post.pdf",
+                "application/pdf",
+                12,
+                false,
+                false,
+                Uploader.nobody(),
+                List.of());
+
+        assertEquals(
+                "Doc Owner", memberDocumentRepo.uploaderNameOf(byMember.id()).orElseThrow());
+        assertEquals(
+                "Doc Other", memberDocumentRepo.uploaderNameOf(byManager.id()).orElseThrow());
+        assertNull(byManager.uploadedBy(), "a manager is not named by a membership");
+        assertEquals(otherAccount.id(), byManager.uploaderAccountId());
+        assertTrue(memberDocumentRepo.uploaderNameOf(byNobody.id()).isEmpty());
+    }
+
+    @Test
+    @Order(20)
     void aDocumentIsRemoved() {
         assertTrue(memberDocumentRepo.delete(documentId));
         assertTrue(memberDocumentRepo.findById(documentId).isEmpty());

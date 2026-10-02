@@ -5,19 +5,16 @@
  */
 package dev.chojo.ember.feature.form.entity;
 
-import io.javalin.openapi.OpenApiName;
-
 /**
  * Supported question types for form questions.
  */
-@OpenApiName("FormQuestionType")
 public enum FormQuestionType {
-    CHOICE(FormAnswerValue.Choice.class, FormQuestionConfig.Choice.class),
-    TEXT(FormAnswerValue.Text.class, FormQuestionConfig.Text.class),
-    RATING(FormAnswerValue.Rating.class, FormQuestionConfig.Rating.class),
-    DATE(FormAnswerValue.DateValue.class, FormQuestionConfig.Date.class),
-    RANKING(FormAnswerValue.Ranking.class, FormQuestionConfig.Ranking.class),
-    LIKERT(FormAnswerValue.Likert.class, FormQuestionConfig.Likert.class),
+    CHOICE(FormAnswerValue.ChoiceAnswer.class, FormQuestionConfig.Choice.class),
+    TEXT(FormAnswerValue.TextAnswer.class, FormQuestionConfig.Text.class),
+    RATING(FormAnswerValue.RatingAnswer.class, FormQuestionConfig.Rating.class),
+    DATE(FormAnswerValue.DateAnswer.class, FormQuestionConfig.Date.class),
+    RANKING(FormAnswerValue.RankingAnswer.class, FormQuestionConfig.Ranking.class),
+    LIKERT(FormAnswerValue.LikertAnswer.class, FormQuestionConfig.Likert.class),
     ;
 
     private final Class<? extends FormAnswerValue> answerClass;

@@ -6,8 +6,10 @@
 package dev.chojo.ember.feature.system.service;
 
 import dev.chojo.ember.conf.file.elements.Updates;
+import dev.chojo.ember.util.Json;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tools.jackson.databind.json.JsonMapper;
@@ -39,7 +41,7 @@ public class ChangelogService {
     private static final Logger log = LoggerFactory.getLogger(ChangelogService.class);
     private static final String DEFAULT_LOCALE = "de";
     private static final String FALLBACK_LOCALE = "en";
-    private static final JsonMapper JSON = JsonMapper.builder().build();
+    private static final JsonMapper JSON = Json.MAPPER;
 
     /** A version heading, as {@code ## v26.17.0}. The {@code v} is part of how they are written. */
     private static final Pattern VERSION_HEADING = Pattern.compile("^##\\s+v?(\\d+(?:\\.\\d+)*)\\s*$");
@@ -63,7 +65,7 @@ public class ChangelogService {
      * @param updates     the operator's settings, which name the repository the links point at
      * @param releasesJson the record of tags, as the build writes it; null where none was shipped
      */
-    ChangelogService(Updates updates, String releasesJson) {
+    ChangelogService(Updates updates, @Nullable String releasesJson) {
         for (String locale : List.of(DEFAULT_LOCALE, FALLBACK_LOCALE)) {
             byLocale.put(locale, read(locale));
         }
@@ -72,19 +74,19 @@ public class ChangelogService {
     }
 
     /**
-     * Every version the changelog names, newest first, as it is written.
+     * Every version the changelog names, newest first, as it is written. A version the translation has
+     * not reached yet is listed in English rather than left out.
      *
-     * @param locale the language to read it in; anything else falls back to English
+     * @param locale the language to read it in; anything else falls back to English, and none to
+     *               German
      */
-    public List<ChangelogEntry> all(String locale) {
+    public List<ChangelogEntry> all(@Nullable String locale) {
         var versions = sectionsFor(locale);
         var fallback = byLocale.getOrDefault(FALLBACK_LOCALE, Map.of());
         List<ChangelogEntry> out = new ArrayList<>();
         for (var entry : versions.entrySet()) {
             out.add(entryOf(entry.getKey(), entry.getValue()));
         }
-        // A version the German file has not reached yet is still worth reading, so the English text
-        // stands in for it rather than the list stopping where the translation stops.
         for (var entry : fallback.entrySet()) {
             if (!versions.containsKey(entry.getKey())) {
                 out.add(entryOf(entry.getKey(), entry.getValue()));
@@ -172,7 +174,7 @@ public class ChangelogService {
      * released without an entry of its own, and a comparison that skipped it would claim its changes
      * for its neighbour.
      */
-    private String compareUrl(String version, String tag) {
+    private @Nullable String compareUrl(String version, String tag) {
         String previous = null;
         String previousTag = null;
         for (var candidate : releases.entrySet()) {
@@ -194,7 +196,7 @@ public class ChangelogService {
      * the page then shows its entries without dates, which is what a fork's own build does until it
      * tags anything.
      */
-    private static Map<String, Release> readReleases(String json) {
+    private static Map<String, Release> readReleases(@Nullable String json) {
         Map<String, Release> found = new LinkedHashMap<>();
         if (json == null || json.isBlank()) {
             log.warn("No release dates shipped with the changelog");
@@ -216,7 +218,7 @@ public class ChangelogService {
     }
 
     /** Reads a resource that travels in the jar, or null where this build shipped none. */
-    static String readResource(String path) {
+    static @Nullable String readResource(String path) {
         try (InputStream is = ChangelogService.class.getClassLoader().getResourceAsStream(path)) {
             return is == null ? null : new String(is.readAllBytes(), StandardCharsets.UTF_8);
         } catch (IOException e) {
@@ -225,7 +227,7 @@ public class ChangelogService {
         }
     }
 
-    private Map<String, String> sectionsFor(String locale) {
+    private Map<String, String> sectionsFor(@Nullable String locale) {
         var sections = byLocale.get(locale == null ? DEFAULT_LOCALE : locale.toLowerCase());
         return sections != null ? sections : byLocale.getOrDefault(DEFAULT_LOCALE, Map.of());
     }
@@ -271,7 +273,11 @@ public class ChangelogService {
      * @param compareUrl where its changes can be read against the release before it, or null where
      *     there is no such pair of tags
      */
-    public record ChangelogEntry(String version, String body, Instant releasedAt, String compareUrl) {}
+    public record ChangelogEntry(
+            String version,
+            String body,
+            @Nullable Instant releasedAt,
+            @Nullable String compareUrl) {}
 
     /**
      * A tag as the build found it.

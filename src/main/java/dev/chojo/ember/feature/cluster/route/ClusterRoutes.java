@@ -6,15 +6,14 @@
 package dev.chojo.ember.feature.cluster.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.ClusterPermission;
-import dev.chojo.ember.api.auth.ClusterUserType;
 import dev.chojo.ember.api.auth.InstancePermission;
 import dev.chojo.ember.api.auth.StationPermission;
-import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.api.refusal.ClusterRefusal;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
+import dev.chojo.ember.feature.cluster.service.ClusterAppointmentService;
 import dev.chojo.ember.feature.cluster.service.ClusterService;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
@@ -27,6 +26,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.UUID;
 
@@ -40,12 +40,12 @@ import java.util.UUID;
 @Singleton
 public class ClusterRoutes implements Routes {
     private final ClusterService clusterService;
-    private final AccountRepository accountRepository;
+    private final ClusterAppointmentService appointments;
 
     @Inject
-    public ClusterRoutes(ClusterService clusterService, AccountRepository accountRepository) {
+    public ClusterRoutes(ClusterService clusterService, ClusterAppointmentService appointments) {
         this.clusterService = clusterService;
-        this.accountRepository = accountRepository;
+        this.appointments = appointments;
     }
 
     @Override
@@ -110,6 +110,10 @@ public class ClusterRoutes implements Routes {
         ctx.json(toResponse(requireActive(ctx)));
     }
 
+    /**
+     * Renames the cluster. An absent auto-federate setting means unchanged, so a caller that only
+     * wanted to rename does not silently rewire the mesh.
+     */
     @OpenApi(
             path = "/api/v1/cluster",
             methods = HttpMethod.PUT,
@@ -121,12 +125,13 @@ public class ClusterRoutes implements Routes {
         Cluster cluster = requireActive(ctx);
         var request = ctx.bodyAsClass(ClusterRequest.class);
         clusterService.rename(cluster.id(), request.name(), request.description());
-        // Absent means unchanged, so a caller that only wanted to rename does not silently rewire the mesh
-        if (request.autoFederate() != null && request.autoFederate() != cluster.autoFederate()) {
-            clusterService.setAutoFederate(cluster.id(), request.autoFederate());
+        Boolean autoFederate = request.autoFederate();
+        if (autoFederate != null && autoFederate != cluster.autoFederate()) {
+            clusterService.setAutoFederate(cluster.id(), autoFederate);
         }
-        ctx.json(toResponse(
-                clusterService.findById(cluster.id()).orElseThrow(Refusal.CLUSTER_NOT_HERE_AFTER_RENAME::raise)));
+        ctx.json(toResponse(clusterService
+                .findById(cluster.id())
+                .orElseThrow(ClusterRefusal.CLUSTER_NOT_HERE_AFTER_RENAME::raise)));
     }
 
     @OpenApi(
@@ -139,7 +144,7 @@ public class ClusterRoutes implements Routes {
     private void delete(Context ctx) {
         Cluster cluster = clusterService
                 .findByUid(parseUid(ctx.pathParam("clusterUid")))
-                .orElseThrow(Refusal.CLUSTER_NOT_HERE_ON_DELETE::raise);
+                .orElseThrow(ClusterRefusal.CLUSTER_NOT_HERE_ON_DELETE::raise);
         clusterService.delete(cluster.id());
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -162,15 +167,10 @@ public class ClusterRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = AppointRequest.class)),
             responses = @OpenApiResponse(status = "204"))
     private void appointAdministrator(Context ctx) {
-        Cluster cluster = clusterService
-                .findByUid(parseUid(ctx.pathParam("clusterUid")))
-                .orElseThrow(Refusal.CLUSTER_NOT_HERE_ON_APPOINTMENT::raise);
+        UUID clusterUid = parseUid(ctx.pathParam("clusterUid"));
         var request = ctx.bodyAsClass(AppointRequest.class);
-        if (request.accountUid() == null) throw Refusal.CLUSTER_APPOINTMENT_NEEDS_AN_ACCOUNT.raise();
-        var account = accountRepository
-                .findByUid(parseUid(request.accountUid()))
-                .orElseThrow(Refusal.ACCOUNT_NOT_HERE_ON_CLUSTER_APPOINTMENT::raise);
-        clusterService.addMember(cluster.id(), account.id(), ClusterUserType.CLUSTER_ADMIN);
+        if (request.accountUid() == null) throw ClusterRefusal.CLUSTER_APPOINTMENT_NEEDS_AN_ACCOUNT.raise();
+        appointments.appointAdministrator(clusterUid, parseUid(request.accountUid()));
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -181,15 +181,15 @@ public class ClusterRoutes implements Routes {
     private Cluster requireActive(Context ctx) {
         UserSession session = UserSession.from(ctx);
         Integer clusterId = session.clusterId();
-        if (clusterId == null) throw Refusal.NO_CLUSTER_CHOSEN.raise();
-        return clusterService.findById(clusterId).orElseThrow(Refusal.CLUSTER_NOT_HERE::raise);
+        if (clusterId == null) throw ClusterRefusal.NO_CLUSTER_CHOSEN.raise();
+        return clusterService.findById(clusterId).orElseThrow(ClusterRefusal.CLUSTER_NOT_HERE::raise);
     }
 
     private UUID parseUid(String raw) {
         try {
             return UUID.fromString(raw);
         } catch (IllegalArgumentException e) {
-            throw Refusal.CLUSTER_NOT_AN_IDENTITY.raise(raw);
+            throw ClusterRefusal.CLUSTER_NOT_AN_IDENTITY.raise(raw);
         }
     }
 
@@ -204,14 +204,18 @@ public class ClusterRoutes implements Routes {
                 cluster.colorsLocked(),
                 cluster.feelLocked(),
                 cluster.logoLocked(),
-                cluster.storagePoolBytes());
+                cluster.storagePoolBytes(),
+                cluster.usesInventory());
     }
 
     /**
      * @param autoFederate whether member stations should be connected to each other, or {@code null} to
      *                     leave the setting as it is
      */
-    public record ClusterRequest(String name, String description, Boolean autoFederate) {}
+    public record ClusterRequest(
+            String name,
+            @Nullable String description,
+            @Nullable Boolean autoFederate) {}
 
     /**
      * @param accountUid the account to make this cluster's first administrator
@@ -220,16 +224,19 @@ public class ClusterRoutes implements Routes {
 
     /**
      * @param homeStationId the shell the cluster owns, on the wire as its station identity
+     * @param usesInventory whether the cluster keeps its gear here, which is what lets its own steps appear in
+     *                      a movement
      */
     public record ClusterResponse(
             UUID uid,
             String name,
-            String description,
+            @Nullable String description,
             int homeStationId,
             boolean autoFederate,
             boolean themeLocked,
             boolean colorsLocked,
             boolean feelLocked,
             boolean logoLocked,
-            Long storagePoolBytes) {}
+            @Nullable Long storagePoolBytes,
+            boolean usesInventory) {}
 }

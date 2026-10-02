@@ -12,25 +12,25 @@ import { useInstantSave } from '@/composables/useInstantSave'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
-import SaveButton from '@/components/button/SaveButton.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import InstantSaveNotice from '@/components/feedback/InstantSaveNotice.vue'
 import FormShareLink from '@/components/public/FormShareLink.vue'
-import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import FormQuestionsSection from './builderview/FormQuestionsSection.vue'
+import FormEditorActions from './builderview/FormEditorActions.vue'
 import FormCompletionEditor from './builderview/FormCompletionEditor.vue'
 import FormMetadataEditor from './builderview/FormMetadataEditor.vue'
 import FormRestrictionsEditor from './builderview/FormRestrictionsEditor.vue'
-import { type RestrictionSelection, emptyRestriction } from '@/components/input/restriction'
+import { emptyRestriction } from '@/components/input/restriction'
+import type { RestrictionSelection } from '@/api/types'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import { storedQuestionId } from './builderview/types'
 import { useFormLayout } from './builderview/useFormLayout'
 import { useUnsavedLayout } from './builderview/useUnsavedLayout'
 import ContentDraftBanner from '@/components/content/ContentDraftBanner.vue'
 import { AnswerLossDeclined, type Removals, useAnswerLossConsent } from './builderview/useAnswerLossConsent'
-import {FormPurpose, FormVisibility, QUESTION_TYPES_BY_PURPOSE, type Form, type FormPurposeName, type FormQuestion, type FormVisibilityName, type PageUsingForm, type QuestionType} from '@/api/forms'
+import {FormPurpose, FormVisibility, QUESTION_TYPES_BY_PURPOSE, type FormPurposeName, type FormVisibilityName, type QuestionType} from '@/api/forms'
+import type {Form, FormQuestion, MemberGroup, MemberWithName, PageUsingForm, UserTag} from '@/api/generated/schema'
 import { optionKeysOf } from '@/util/formOptions'
-import type { MemberGroup, StationMember, UserTag } from '@/api/types'
 import { forms, memberGroups, userTags, stationMembers } from '@/api'
 import { describeFailure, FailureKind, type Failure } from '@/util/failure'
 import { instantToLocalInput } from '@/util/format'
@@ -114,7 +114,7 @@ const pageSubtitle = computed(() =>
 
 const allGroups = ref<MemberGroup[]>([])
 const allTags = ref<UserTag[]>([])
-const allMembers = ref<StationMember[]>([])
+const allMembers = ref<MemberWithName[]>([])
 const restriction = ref<RestrictionSelection>(emptyRestriction())
 
 /**
@@ -252,6 +252,7 @@ const limits = useInstantSave(
         groupIds: selection.groupIds,
         tagIds: selection.tagIds,
         memberIds: selection.memberIds,
+        mode: null,
       })
     })
 
@@ -377,6 +378,7 @@ async function save() {
         groupIds: restriction.value.groupIds,
         tagIds: restriction.value.tagIds,
         memberIds: restriction.value.memberIds,
+        mode: null,
       })
     }
     unsaved.settle()
@@ -425,20 +427,17 @@ async function save() {
 
         <FormRestrictionsEditor
           v-if="answeredByMembers"
+          v-model="restriction"
           :groups="allGroups"
           :tags="allTags"
           :members="allMembers"
-          v-model="restriction"
         />
 
         <ContentDraftBanner v-if="unsaved.offered.value" :saved-at="unsaved.offered.value.savedAt"
                             @restore="unsaved.restore()" @discard="unsaved.discard()"/>
         <FormQuestionsSection :layout="layout" :question-types="questionTypes" :shuffle-questions="shuffleQuestions"/>
 
-        <div class="flex justify-end gap-3">
-          <SecondaryButton @click="router.push({ name: returnRouteName })">{{ t('common.cancel') }}</SecondaryButton>
-          <SaveButton :action="save"/>
-        </div>
+        <FormEditorActions :save="save" @cancel="router.push({ name: returnRouteName })"/>
       </template>
     </div>
 

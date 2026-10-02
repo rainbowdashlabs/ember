@@ -7,13 +7,13 @@
 import {useI18n} from 'vue-i18n'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import CustomFieldsSection from '../CustomFieldsSection.vue'
-import type {InventoryFieldDefinition} from '@/api/inventoryFields'
+import type {InventoryFieldDefinition} from '@/api/generated/schema'
 
 defineProps<{
   defs: InventoryFieldDefinition[]
 }>()
 
-const values = defineModel<Record<string, any>>({default: () => ({})})
+const values = defineModel<Record<string, unknown>>({default: () => ({})})
 
 const {t} = useI18n()
 </script>
@@ -21,6 +21,6 @@ const {t} = useI18n()
 <template>
   <div v-if="defs.length > 0" class="space-y-2 pt-2">
     <SubHeader>{{ t('inventory.fields.title') }}</SubHeader>
-    <CustomFieldsSection :defs="defs" v-model="values"/>
+    <CustomFieldsSection v-model="values" :defs="defs"/>
   </div>
 </template>

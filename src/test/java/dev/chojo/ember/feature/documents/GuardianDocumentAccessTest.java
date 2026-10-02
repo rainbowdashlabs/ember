@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.documents;
 
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.documents.entity.Document;
+import dev.chojo.ember.feature.documents.entity.Uploader;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
@@ -69,7 +70,15 @@ class GuardianDocumentAccessTest extends RepositoryTestBase {
 
     private static Document documentFor(String title, int memberId, boolean hidden) {
         return memberDocumentRepo.create(
-                station.id(), title, title + ".pdf", "application/pdf", 12, hidden, false, memberId, List.of(memberId));
+                station.id(),
+                title,
+                title + ".pdf",
+                "application/pdf",
+                12,
+                hidden,
+                false,
+                Uploader.member(memberId),
+                List.of(memberId));
     }
 
     @Test

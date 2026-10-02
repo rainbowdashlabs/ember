@@ -5,20 +5,16 @@
  */
 package dev.chojo.ember.feature.inventory.route;
 
-import dev.chojo.ember.api.FederationSession;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.feature.federation.contract.FederationContractBinder;
 import dev.chojo.ember.feature.federation.contract.FederationEndpoint;
 import dev.chojo.ember.feature.federation.contract.FederationSurface;
+import dev.chojo.ember.feature.federation.transport.FederationEndpoints;
 import dev.chojo.ember.feature.inventory.entity.TaggedItemSummary;
-import dev.chojo.ember.feature.inventory.service.FederatedItemTagService;
-import io.javalin.http.Context;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 /**
@@ -36,22 +32,16 @@ public class RemoteInventoryTagRoutes implements Routes {
 
     public static final List<FederationEndpoint> CONTRACT = List.of(GET_TAGGED_ITEMS);
 
-    private final FederatedItemTagService service;
+    private final FederationEndpoints endpoints;
 
     @Inject
-    public RemoteInventoryTagRoutes(FederatedItemTagService service) {
-        this.service = service;
+    public RemoteInventoryTagRoutes(FederationEndpoints endpoints) {
+        this.endpoints = endpoints;
     }
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         FederationContractBinder.register(
-                routes, prefix, CONTRACT, binder -> binder.handle(GET_TAGGED_ITEMS, this::remoteTaggedItems));
-    }
-
-    private void remoteTaggedItems(Context ctx) {
-        var partner = FederationSession.requirePartner(ctx);
-        String tag = URLDecoder.decode(ctx.pathParam("tag"), StandardCharsets.UTF_8);
-        ctx.json(service.serveToPartner(partner.stationId(), partner.id(), tag));
+                routes, prefix, CONTRACT, endpoints, binder -> binder.serve(GET_TAGGED_ITEMS));
     }
 }

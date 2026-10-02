@@ -4,7 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, useId } from 'vue'
+import { useI18n } from 'vue-i18n'
 import TextInput from '@/components/input/text/TextInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
@@ -21,8 +22,11 @@ defineEmits<{
   cancel: []
 }>()
 
+const { t } = useI18n()
 const imageUrl = ref('')
 const imageAlt = ref('')
+const altId = useId()
+const urlId = useId()
 </script>
 
 <template>
@@ -33,29 +37,29 @@ const imageAlt = ref('')
     <div class="flex items-center justify-between">
       <div class="flex items-center gap-2">
         <font-awesome-icon :icon="['fas', 'image']" class="text-[var(--primary)] w-3.5 h-3.5" />
-        <span class="text-sm font-medium">Bild einfügen</span>
+        <span class="text-sm font-medium">{{ t('markdownEditor.insertImage') }}</span>
       </div>
-      <MutedIconButton :icon="['fas', 'xmark']" label="Schließen" hover="text" @click="$emit('cancel')"/>
+      <MutedIconButton :icon="['fas', 'xmark']" :label="t('common.close')" hover="text" @click="$emit('cancel')"/>
     </div>
 
     <div>
-      <label class="block text-xs text-[var(--text-muted)] mb-0.5">Alternativtext</label>
-      <TextInput v-model="imageAlt" placeholder="Bildbeschreibung" class="!text-sm" />
+      <label :for="altId" class="block text-xs text-[var(--text-muted)] mb-0.5">{{ t('markdownEditor.altText') }}</label>
+      <TextInput :id="altId" v-model="imageAlt" :placeholder="t('markdownEditor.altTextPlaceholder')" class="!text-sm" />
     </div>
 
     <div>
-      <label class="block text-xs text-[var(--text-muted)] mb-0.5">Bild-URL</label>
-      <TextInput v-model="imageUrl" placeholder="https://..." class="!text-sm" />
+      <label :for="urlId" class="block text-xs text-[var(--text-muted)] mb-0.5">{{ t('markdownEditor.imageUrl') }}</label>
+      <TextInput :id="urlId" v-model="imageUrl" placeholder="https://..." class="!text-sm" />
     </div>
 
     <ButtonRow>
-      <PrimaryButton compact v-if="imageUrl" @click="$emit('insertUrl', imageUrl, imageAlt)">
-        <font-awesome-icon :icon="['fas', 'check']" class="mr-1" /> Einfügen
+      <PrimaryButton v-if="imageUrl" compact @click="$emit('insertUrl', imageUrl, imageAlt)">
+        <font-awesome-icon :icon="['fas', 'check']" class="mr-1" /> {{ t('common.insert') }}
       </PrimaryButton>
       <SecondaryButton compact @click="$emit('browse', imageAlt)">
-        <font-awesome-icon :icon="['fas', 'folder-open']" class="mr-1" /> Medien
+        <font-awesome-icon :icon="['fas', 'folder-open']" class="mr-1" /> {{ t('markdownEditor.media') }}
       </SecondaryButton>
-      <SecondaryButton compact @click="$emit('cancel')">Abbrechen</SecondaryButton>
+      <SecondaryButton compact @click="$emit('cancel')">{{ t('common.cancel') }}</SecondaryButton>
     </ButtonRow>
   </div>
 </template>

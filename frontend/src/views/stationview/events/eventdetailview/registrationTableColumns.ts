@@ -3,7 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {MemberTableCellTypes, type MemberTable, type MemberTableColumn, type MemberTableHeader} from '@/api/memberTable'
+import {MemberTableCellTypes, type ColumnChoice} from '@/api/memberTable'
+import type {MemberTable, MemberTableHeader} from '@/api/generated/schema'
 import {columnTypeOf, type CellValue, type ColumnOption, type TableColumn} from '@/components/table/tableColumn'
 
 /** One person on the drawn table: the cells as read back by column key, without anything beside them. */
@@ -21,13 +22,13 @@ export interface DrawnRow<Extra> extends DrawnCells {
  * The one string that stands for a column, unique across the three kinds: the kind, and then either
  * the builtin's name or the question's id. The server is told the columns, never these strings.
  */
-export function keyOf(column: MemberTableHeader | MemberTableColumn): string {
+export function keyOf(column: MemberTableHeader | ColumnChoice): string {
     if (column.kind === 'BUILTIN') return `b:${column.key}`
     return column.kind === 'PROFILE_FIELD' ? `p:${column.fieldId}` : `q:${column.fieldId}`
 }
 
 /** The column a key stands for, or null where it names nothing a table can draw. */
-export function columnOf(key: string): MemberTableColumn | null {
+export function columnOf(key: string): ColumnChoice | null {
     const [kind, rest] = [key.slice(0, 1), key.slice(2)]
     if (kind === 'b') return {kind: 'BUILTIN', key: rest, fieldId: null}
     const fieldId = Number(rest)
@@ -35,9 +36,9 @@ export function columnOf(key: string): MemberTableColumn | null {
     return {kind: kind === 'p' ? 'PROFILE_FIELD' : 'REGISTRATION_FIELD', key: null, fieldId}
 }
 
-const LISTING_BUILTINS = new Set(['groups', 'tags'])
+const LISTING_BUILTINS: ReadonlySet<string> = new Set(['groups', 'tags'])
 const DAY_PATTERN = /^(\d{2})\.(\d{2})\.(\d{4})$/
-const TRUE_WORDS = new Set(['true', 'ja', 'yes'])
+const TRUE_WORDS: ReadonlySet<string> = new Set(['true', 'ja', 'yes'])
 
 /** A drawn day as ISO, whichever of the two ways it was written. */
 function isoDay(cell: string): string {

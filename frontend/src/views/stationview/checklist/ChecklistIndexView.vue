@@ -15,8 +15,13 @@ import EmptyState from '@/components/feedback/EmptyState.vue'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {checklists, memberGroups, stationMembers, userTags} from '@/api'
-import type {ChecklistCreateRequest, ChecklistSummary} from '@/api/checklists'
-import type {MemberGroup, StationMember, UserTag} from '@/api/types'
+import type {
+    ChecklistSummaryResponse as ChecklistSummary,
+    CreateRequest as ChecklistCreateRequest,
+    MemberGroup,
+    MemberWithName,
+    UserTag,
+} from '@/api/generated/schema'
 import ChecklistTile from './checklistindexview/ChecklistTile.vue'
 import ChecklistCreateModal from './ChecklistCreateModal.vue'
 
@@ -26,10 +31,10 @@ const router = useRouter()
 const items = ref<ChecklistSummary[]>([])
 const groups = ref<MemberGroup[]>([])
 const tags = ref<UserTag[]>([])
-const members = ref<StationMember[]>([])
+const members = ref<MemberWithName[]>([])
 const showCreate = ref(false)
 
-const {loading, failure, reload} = useAsyncLoader(async () => {
+const {loading, failure} = useAsyncLoader(async () => {
   const [list, g, ts, m] = await Promise.all([
     checklists.listChecklists(),
     memberGroups.listGroups(),

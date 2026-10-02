@@ -5,8 +5,7 @@
  */
 import {ref} from 'vue'
 import {news} from '@/api'
-import type {NewsAttachment} from '@/api/news'
-import type {StationFile} from '@/api/media'
+import type {NewsAttachment, StationFile} from '@/api/generated/schema'
 import {moveWithin} from '@/util/reorder'
 
 /**

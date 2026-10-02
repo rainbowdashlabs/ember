@@ -8,9 +8,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ExportFieldPicker from '@/components/export/ExportFieldPicker.vue'
 import MemberListTable from './MemberListTable.vue'
-import type { InventoryItem } from '@/api/inventory'
-import type { ProfileField } from '@/api/profileFields'
-import type { StationMember } from '@/api/types'
+import type { InventoryItem, MemberWithName, ProfileField } from '@/api/generated/schema'
 import type { DataTableApi } from '@/composables/useDataTable'
 import type { ExportFieldOption } from '@/composables/useExport'
 import type { ItemLabelParts } from './itemLabel'
@@ -18,7 +16,7 @@ import type { ItemLabelParts } from './itemLabel'
 const { t } = useI18n()
 
 const props = defineProps<{
-  table: DataTableApi<StationMember>
+  table: DataTableApi<MemberWithName>
   parts: ItemLabelParts
   exportMode: boolean
   allFields: ProfileField[]
@@ -28,10 +26,10 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'toggle-export-field', fieldId: number): void
-  (e: 'go-to-member', memberId: number): void
-  (e: 'toggle-export-selection', memberId: number): void
-  (e: 'toggle-select-all'): void
+  'toggle-export-field': [fieldId: number]
+  'go-to-member': [memberId: number]
+  'toggle-export-selection': [memberId: number]
+  'toggle-select-all': []
 }>()
 
 const fieldOptions = computed((): ExportFieldOption<number>[] =>

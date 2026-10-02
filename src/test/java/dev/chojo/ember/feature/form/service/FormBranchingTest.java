@@ -5,8 +5,9 @@
  */
 package dev.chojo.ember.feature.form.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.FormRefusal;
+import dev.chojo.ember.api.refusal.Refusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.form.entity.FormAnswer;
@@ -26,7 +27,6 @@ import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.members.service.UserTagService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import dev.chojo.ember.util.ShareTokens;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -61,8 +61,7 @@ class FormBranchingTest extends RepositoryTestBase {
                 mock(MemberGroupService.class),
                 mock(UserTagService.class),
                 restrictionService,
-                new DomainEventBus(Set.of()),
-                new ShareTokens());
+                new DomainEventBus(Set.of()));
         station = stationRepo.create("FormBranchingStation");
         account = accountRepo.create("form-branching@test.com", "Form", "Branches");
         member = stationMemberRepo.create(station.id(), account.id());
@@ -111,7 +110,11 @@ class FormBranchingTest extends RepositoryTestBase {
                 form.id(),
                 member.id(),
                 member.id(),
-                Map.of(form.coming().id(), choice("o0"), form.bringing().id(), new FormAnswerValue.Text("Kuchen")));
+                Map.of(
+                        form.coming().id(),
+                        choice("o0"),
+                        form.bringing().id(),
+                        new FormAnswerValue.TextAnswer("Kuchen")));
 
         service.submitResponse(
                 form.id(),
@@ -119,8 +122,8 @@ class FormBranchingTest extends RepositoryTestBase {
                 member.id(),
                 Map.of(
                         form.coming().id(), choice("o1"),
-                        form.bringing().id(), new FormAnswerValue.Text("Kuchen"),
-                        form.why().id(), new FormAnswerValue.Text("Urlaub")));
+                        form.bringing().id(), new FormAnswerValue.TextAnswer("Kuchen"),
+                        form.why().id(), new FormAnswerValue.TextAnswer("Urlaub")));
 
         var answers = service.findAllAnswersForForm(form.id()).stream()
                 .map(FormAnswer::questionId)
@@ -135,13 +138,13 @@ class FormBranchingTest extends RepositoryTestBase {
                 form.id(),
                 member.id(),
                 member.id(),
-                Map.of(form.coming().id(), choice("o1"), form.why().id(), new FormAnswerValue.Text("Urlaub")));
+                Map.of(form.coming().id(), choice("o1"), form.why().id(), new FormAnswerValue.TextAnswer("Urlaub")));
 
         service.submitResponse(
                 form.id(),
                 member.id(),
                 member.id(),
-                Map.of(form.coming().id(), choice("o1"), form.why().id(), new FormAnswerValue.Text(" ")));
+                Map.of(form.coming().id(), choice("o1"), form.why().id(), new FormAnswerValue.TextAnswer(" ")));
 
         assertEquals(1, service.findAllAnswersForForm(form.id()).size());
     }
@@ -158,13 +161,14 @@ class FormBranchingTest extends RepositoryTestBase {
                         member.id(),
                         Map.of(form.coming().id(), choice("o0"))));
 
-        assertEquals(Refusal.FORM_ANSWER_REFUSED, refused.refusal());
+        assertEquals(FormRefusal.FORM_ANSWER_REFUSED, refused.refusal());
         assertEquals(
-                List.of(FormAnswersRefused.Problem.of(form.bringing().id(), "yes", Refusal.QUESTION_NEEDS_AN_ANSWER)),
+                List.of(FormAnswersRefused.AnswerProblem.of(
+                        form.bringing().id(), "yes", FormRefusal.QUESTION_NEEDS_AN_ANSWER)),
                 refused.problems());
-        var renamed = refused.as(Refusal.FORM_ANSWERS_NOT_SAVED);
-        assertEquals(Refusal.FORM_ANSWERS_NOT_SAVED, renamed.refusal());
-        var body = assertInstanceOf(FormAnswersRefused.Body.class, renamed.body());
+        var renamed = refused.as(FormRefusal.FORM_ANSWERS_NOT_SAVED);
+        assertEquals(FormRefusal.FORM_ANSWERS_NOT_SAVED, renamed.refusal());
+        var body = assertInstanceOf(FormAnswersRefused.AnswersRefusedBody.class, renamed.body());
         assertEquals("F-035", body.code());
         assertEquals(refused.problems(), body.problems());
         assertEquals(List.of(), service.findAllAnswersForForm(form.id()), "nothing was stored");
@@ -177,7 +181,7 @@ class FormBranchingTest extends RepositoryTestBase {
         var response = service.submitAnonymousResponse(
                 form.id(),
                 new byte[] {1, 2, 3},
-                Map.of(form.coming().id(), choice("o0"), form.bringing().id(), new FormAnswerValue.Text("Salat")),
+                Map.of(form.coming().id(), choice("o0"), form.bringing().id(), new FormAnswerValue.TextAnswer("Salat")),
                 new ConsentProof("c", "p", "t", null, null, null, null));
 
         assertEquals(List.of("p0", "yes"), response.path());
@@ -191,17 +195,17 @@ class FormBranchingTest extends RepositoryTestBase {
 
         var multi = new FormQuestionConfig.Choice(COMING, true, false, false, null, null);
         assertRefused(
-                Refusal.QUESTION_BRANCH_NOT_ON_A_SINGLE_CHOICE,
+                FormRefusal.QUESTION_BRANCH_NOT_ON_A_SINGLE_CHOICE,
                 form,
                 pages,
                 List.of(question(null, "p0", multi, branch("o0", PageTarget.SUBMIT))));
         assertRefused(
-                Refusal.QUESTION_BRANCH_NOT_ON_A_SINGLE_CHOICE,
+                FormRefusal.QUESTION_BRANCH_NOT_ON_A_SINGLE_CHOICE,
                 form,
                 pages,
                 List.of(question(null, "p0", new FormQuestionConfig.Text(false), branch("o0", PageTarget.SUBMIT))));
         assertRefused(
-                Refusal.QUESTION_BRANCH_NOT_ON_A_SINGLE_CHOICE,
+                FormRefusal.QUESTION_BRANCH_NOT_ON_A_SINGLE_CHOICE,
                 form,
                 pages,
                 List.of(question(null, "p0", single(), branch("elsewhere", PageTarget.SUBMIT))));
@@ -213,14 +217,14 @@ class FormBranchingTest extends RepositoryTestBase {
         var pages = List.of(page("p0"), page("p1"));
 
         assertRefused(
-                Refusal.PAGE_BRANCHES_ON_TWO_QUESTIONS,
+                FormRefusal.PAGE_BRANCHES_ON_TWO_QUESTIONS,
                 form,
                 pages,
                 List.of(
                         question(null, "p0", single(), branch("o0", PageTarget.SUBMIT)),
                         question(null, "p0", single(), branch("o1", PageTarget.SUBMIT))));
         assertRefused(
-                Refusal.FORM_PAGE_TARGET_NOT_FURTHER_DOWN,
+                FormRefusal.FORM_PAGE_TARGET_NOT_FURTHER_DOWN,
                 form,
                 pages,
                 List.of(question(null, "p1", single(), branch("o0", PageTarget.page("p0")))));
@@ -315,7 +319,7 @@ class FormBranchingTest extends RepositoryTestBase {
     }
 
     private static FormAnswerValue choice(String key) {
-        return new FormAnswerValue.Choice(List.of(key), "");
+        return new FormAnswerValue.ChoiceAnswer(List.of(key), "");
     }
 
     private record BranchingForm(int id, FormQuestion coming, FormQuestion bringing, FormQuestion why) {}

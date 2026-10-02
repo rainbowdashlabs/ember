@@ -6,14 +6,14 @@
 package dev.chojo.ember.feature.form.service;
 
 import dev.chojo.ember.feature.system.repository.ApplicationSettingRepository;
+import dev.chojo.ember.util.RandomTokens;
+import dev.chojo.ember.util.Sha256;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
 import java.util.Base64;
 
 /**
@@ -46,7 +46,6 @@ public class SubmitterHashService {
     private static final int SALT_BYTES = 32;
 
     private final ApplicationSettingRepository settings;
-    private final SecureRandom random = new SecureRandom();
     private volatile byte[] cachedSalt;
 
     @Inject
@@ -62,18 +61,9 @@ public class SubmitterHashService {
      * @return the 32-byte SHA-256 hash
      */
     public byte[] hash(InetAddress clientIp, int formId) {
-        byte[] salt = salt();
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            digest.update(clientIp.getHostAddress().getBytes(StandardCharsets.UTF_8));
-            digest.update((byte) ':');
-            digest.update(Integer.toString(formId).getBytes(StandardCharsets.UTF_8));
-            digest.update((byte) ':');
-            digest.update(salt);
-            return digest.digest();
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 unavailable", e);
-        }
+        MessageDigest digest = Sha256.digest();
+        digest.update((clientIp.getHostAddress() + ':' + formId + ':').getBytes(StandardCharsets.UTF_8));
+        return digest.digest(salt());
     }
 
     private byte[] salt() {
@@ -88,8 +78,7 @@ public class SubmitterHashService {
     }
 
     private byte[] generateAndPersistSalt() {
-        byte[] fresh = new byte[SALT_BYTES];
-        random.nextBytes(fresh);
+        byte[] fresh = RandomTokens.bytes(SALT_BYTES);
         settings.set(SALT_KEY, Base64.getEncoder().encodeToString(fresh));
         return fresh;
     }

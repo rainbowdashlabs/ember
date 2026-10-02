@@ -19,7 +19,7 @@ import StationBadge from '@/components/badge/StationBadge.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import {describeFailure} from '@/util/failure'
-import type {FederatedCatalogDetail} from '@/api/quiz'
+import type {RemoteCatalogDetail} from '@/api/generated/schema'
 import {federation, quiz} from '@/api'
 import {useConfigPanel} from '@/composables/useConfigPanel'
 
@@ -31,7 +31,7 @@ const props = defineProps<{
 const {t} = useI18n()
 const router = useRouter()
 
-const {config: detail, loading, failure, reload} = useConfigPanel<FederatedCatalogDetail | null>({
+const {config: detail, loading, failure, reload} = useConfigPanel<RemoteCatalogDetail | null>({
     initial: null,
     fetch: () => quiz.getFederatedCatalog(props.stationUid, props.catalogId),
 })

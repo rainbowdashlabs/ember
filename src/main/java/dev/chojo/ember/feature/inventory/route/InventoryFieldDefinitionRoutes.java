@@ -6,18 +6,18 @@
 package dev.chojo.ember.feature.inventory.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteSupport;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.InventoryRefusal;
 import dev.chojo.ember.feature.inventory.entity.FieldConfig;
-import dev.chojo.ember.feature.inventory.entity.FieldType;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryFieldDefinition;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.service.InventoryFieldDefinitionService;
 import dev.chojo.ember.feature.inventory.service.InventoryService;
+import dev.chojo.ember.feature.question.FieldType;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -29,6 +29,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 
@@ -63,10 +64,11 @@ public class InventoryFieldDefinitionRoutes implements Routes {
                 StationPermission.INVENTORY_EDIT);
     }
 
-    private void ownedInventory(int inventoryId, UserSession session) {
-        Inventory inventory =
-                inventoryService.findById(inventoryId).orElseThrow(Refusal.INVENTORY_NOT_HERE_BEHIND_FIELD::raise);
-        RouteSupport.requireSameStation(session, inventory.stationId());
+    private void ownedInventory(int inventoryId, StationSession session) {
+        Inventory inventory = inventoryService
+                .findById(inventoryId)
+                .orElseThrow(InventoryRefusal.INVENTORY_NOT_HERE_BEHIND_FIELD::raise);
+        RouteSupport.requireSameStation(session.user(), inventory.stationId());
     }
 
     /**
@@ -75,7 +77,7 @@ public class InventoryFieldDefinitionRoutes implements Routes {
      */
     private void verifyFieldInInventory(int inventoryId, int fieldId) {
         if (fieldService.findByInventory(inventoryId).stream().noneMatch(f -> f.id() == fieldId)) {
-            throw Refusal.FIELD_NOT_IN_THIS_INVENTORY.raise();
+            throw InventoryRefusal.FIELD_NOT_IN_THIS_INVENTORY.raise();
         }
     }
 
@@ -91,7 +93,7 @@ public class InventoryFieldDefinitionRoutes implements Routes {
                             content = @OpenApiContent(from = InventoryFieldDefinition[].class)))
     private void listFields(Context ctx) {
         int inventoryId = pathInt(ctx, "inventoryId");
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ownedInventory(inventoryId, session);
         ctx.json(fieldService.findByInventory(inventoryId));
     }
@@ -115,8 +117,9 @@ public class InventoryFieldDefinitionRoutes implements Routes {
             })
     private void listItemFields(Context ctx) {
         int itemId = pathInt(ctx, "id");
-        UserSession session = UserSession.from(ctx);
-        InventoryItem item = inventoryService.findItemById(itemId).orElseThrow(Refusal.ITEM_NOT_HERE_ON_FIELDS::raise);
+        StationSession session = StationSession.from(ctx);
+        InventoryItem item =
+                inventoryService.findItemById(itemId).orElseThrow(InventoryRefusal.ITEM_NOT_HERE_ON_FIELDS::raise);
         ownedInventory(item.inventoryId(), session);
         ctx.json(fieldService.resolveForItem(item));
     }
@@ -134,7 +137,7 @@ public class InventoryFieldDefinitionRoutes implements Routes {
             })
     private void createField(Context ctx) {
         int inventoryId = pathInt(ctx, "inventoryId");
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ownedInventory(inventoryId, session);
         var body = ctx.bodyAsClass(FieldDefinitionRequest.class);
         try {
@@ -150,7 +153,7 @@ public class InventoryFieldDefinitionRoutes implements Routes {
                     body.config());
             ctx.status(HttpStatus.CREATED).json(created);
         } catch (IllegalArgumentException ignored) {
-            throw Refusal.FIELD_NOT_CREATED.raise();
+            throw InventoryRefusal.FIELD_NOT_CREATED.raise();
         }
     }
 
@@ -172,7 +175,7 @@ public class InventoryFieldDefinitionRoutes implements Routes {
     private void updateField(Context ctx) {
         int inventoryId = pathInt(ctx, "inventoryId");
         int fieldId = pathInt(ctx, "fieldId");
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ownedInventory(inventoryId, session);
         verifyFieldInInventory(inventoryId, fieldId);
         var body = ctx.bodyAsClass(FieldUpdateRequest.class);
@@ -180,10 +183,10 @@ public class InventoryFieldDefinitionRoutes implements Routes {
             fieldService
                     .update(fieldId, body.label(), body.required(), body.sortOrder(), body.config())
                     .ifPresentOrElse(ctx::json, () -> {
-                        throw Refusal.FIELD_NOT_HERE_ON_CHANGE.raise();
+                        throw InventoryRefusal.FIELD_NOT_HERE_ON_CHANGE.raise();
                     });
         } catch (IllegalArgumentException ignored) {
-            throw Refusal.FIELD_NOT_CHANGED.raise();
+            throw InventoryRefusal.FIELD_NOT_CHANGED.raise();
         }
     }
 
@@ -203,13 +206,13 @@ public class InventoryFieldDefinitionRoutes implements Routes {
     private void deleteField(Context ctx) {
         int inventoryId = pathInt(ctx, "inventoryId");
         int fieldId = pathInt(ctx, "fieldId");
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ownedInventory(inventoryId, session);
         verifyFieldInInventory(inventoryId, fieldId);
         if (fieldService.delete(fieldId)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
-            throw Refusal.FIELD_NOT_DELETED.raise();
+            throw InventoryRefusal.FIELD_NOT_DELETED.raise();
         }
     }
 
@@ -222,8 +225,8 @@ public class InventoryFieldDefinitionRoutes implements Routes {
      *               nothing else has, or {@code null}
      */
     public record FieldDefinitionRequest(
-            Integer artId,
-            Integer itemId,
+            @Nullable Integer artId,
+            @Nullable Integer itemId,
             String key,
             String label,
             FieldType fieldType,

@@ -6,11 +6,20 @@
 package dev.chojo.ember.feature.news.service;
 
 import dev.chojo.ember.api.MemberIdentity;
+import dev.chojo.ember.api.refusal.FederationRefusal;
+import dev.chojo.ember.api.refusal.NewsRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.comment.entity.Comment;
+import dev.chojo.ember.feature.comment.entity.CommentEntityType;
+import dev.chojo.ember.feature.comment.entity.CommentWriter;
+import dev.chojo.ember.feature.comment.entity.NewComment;
 import dev.chojo.ember.feature.comment.route.CommentResponse;
+import dev.chojo.ember.feature.comment.service.CommentService;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
+import dev.chojo.ember.feature.federation.FederationTestTransport;
 import dev.chojo.ember.feature.federation.contract.FederationRequest;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
@@ -25,15 +34,16 @@ import dev.chojo.ember.feature.news.entity.News;
 import dev.chojo.ember.feature.news.entity.NewsVisibilityRole;
 import dev.chojo.ember.feature.news.repository.NewsAttachmentRepository;
 import dev.chojo.ember.feature.news.repository.NewsFederationRepository;
+import dev.chojo.ember.feature.news.route.RemoteNewsRoutes;
+import dev.chojo.ember.feature.news.route.RemoteNewsRoutes.RemoteNewsDetail;
+import dev.chojo.ember.feature.news.route.RemoteNewsRoutes.RemoteNewsSummary;
 import dev.chojo.ember.feature.news.service.NewsFederationService.FederatedCommentAuthor;
 import dev.chojo.ember.feature.news.service.NewsFederationService.FederatedNewsData;
 import dev.chojo.ember.feature.news.service.NewsFederationService.FederatedNewsItem;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.ForbiddenResponse;
-import io.javalin.http.InternalServerErrorResponse;
-import io.javalin.http.NotFoundResponse;
+import dev.chojo.ember.util.TestStationKeys;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
@@ -41,7 +51,6 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
-import java.lang.reflect.Constructor;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -59,7 +68,9 @@ class NewsFederationServiceTest extends RepositoryTestBase {
     private static FederationRepository federationRepo;
     private static FederationService federationService;
     private static FederationHttpClient httpClient;
+    private static FederationTestTransport transport;
     private static NewsService newsService;
+    private static CommentService comments;
 
     private static Station stationA;
     private static Station stationB;
@@ -76,38 +87,38 @@ class NewsFederationServiceTest extends RepositoryTestBase {
         NewsFederationRepository fedRepo = new NewsFederationRepository();
         federationRepo = new FederationRepository();
         EventFederationRepository eventFederationRepo = new EventFederationRepository();
-        federationService = new FederationService(federationRepo, stationRepo, new Api());
+        federationService = new FederationService(federationRepo, stationRepo, TestStationKeys.store(), new Api());
         httpClient = mock(FederationHttpClient.class);
         var eventBus = new DomainEventBus(Set.of());
-        newsService = new NewsService(
-                newsRepo,
-                contentBlocks(),
-                noCellDescriptions(),
-                stationRepo,
-                restrictionService,
-                eventBus,
-                stationMemberRepo,
-                memberLookupService,
-                accountRepo,
-                silentCommentMentions());
+        newsService = newNewsService(eventBus);
+        comments = newCommentService(eventBus);
 
+        when(httpClient.canSign(anyInt())).thenReturn(true);
+        transport = new FederationTestTransport(httpClient, federationRepo, stationRepo);
         service = new NewsFederationService(
                 fedRepo,
                 federationService,
                 federationRepo,
-                httpClient,
                 stationRepo,
                 newsService,
+                comments,
                 new NewsAttachmentService(
                         new NewsAttachmentRepository(),
                         MediaTestSupport.library(
-                                stationRepo, contentContainerRepo, mediaFileRepo, mediaMetaRepo, storageUsageRepo),
+                                localStorage(),
+                                stationRepo,
+                                contentContainerRepo,
+                                mediaFileRepo,
+                                mediaMetaRepo,
+                                storageUsageRepo),
                         stationRepo,
                         new Api()),
                 eventFederationRepo,
                 memberNameResolver,
-                new FederationFanout(),
-                new FederationEntityResolver(federationRepo, stationRepo, httpClient));
+                new FederationFanout(new TaskScheduler()),
+                new FederationEntityResolver(federationRepo),
+                transport.transport());
+        transport.serve(service);
 
         stationA = stationRepo.create("NewsFedSvcA");
         stationB = stationRepo.create("NewsFedSvcB");
@@ -115,13 +126,11 @@ class NewsFederationServiceTest extends RepositoryTestBase {
         accountA = accountRepo.create("newsfed-svc@test.com", "Alice", "Smith");
         memberA = stationMemberRepo.create(stationA.id(), accountA.id());
 
-        // Local partnership: A <-> B
         var keyPair = federationService.generateKeyPair();
         var partner = federationService.acceptInvite(
                 stationA.id(), stationB.id(), federationService.encodePublicKey(keyPair), null, null);
         partnerIdAB = partner.id();
 
-        // Remote partnership: A <-> C (remote host)
         var keyPairC = federationService.generateKeyPair();
         var partnerC = federationService.acceptInvite(
                 stationA.id(),
@@ -131,7 +140,6 @@ class NewsFederationServiceTest extends RepositoryTestBase {
                 null);
         int partnerIdAC = partnerC.id();
 
-        // Create published news on stationA
         var authorIdentity = stationMemberRepo.resolveIdentity(memberA.id());
         news1 = newsRepo.create(stationA.id(), "News One", "# One", "<h1>One</h1>", authorIdentity);
         news2 = newsRepo.create(stationA.id(), "News Two", "# Two", "<h1>Two</h1>", authorIdentity);
@@ -147,8 +155,6 @@ class NewsFederationServiceTest extends RepositoryTestBase {
         stationRepo.delete(stationC.id());
         accountRepo.delete(accountA.id());
     }
-
-    // -- Share management delegation --
 
     @Test
     @Order(1)
@@ -195,7 +201,6 @@ class NewsFederationServiceTest extends RepositoryTestBase {
     @Test
     @Order(6)
     void findSharedNewsIds() {
-        // news1 is SPECIFIC for partnerIdAB
         var ids = service.findSharedNewsIds(partnerIdAB, stationA.id());
         assertTrue(ids.contains(news1.id()));
     }
@@ -221,13 +226,11 @@ class NewsFederationServiceTest extends RepositoryTestBase {
         assertTrue(service.findShareByNews(news1.id()).isEmpty());
     }
 
-    // -- createRemoteComment --
-
     @Test
     @Order(15)
     void createRemoteComment() {
         var comment = service.createRemoteComment(
-                stationA.id(), news1.id(), partnerIdAB, REMOTE_MEMBER_2, "Bob Jones", null, "Remote comment!");
+                news1.id(), partnerIdAB, REMOTE_MEMBER_2, "Bob Jones", null, "Remote comment!");
         assertNotNull(comment);
         assertNotNull(comment.author());
         assertEquals("Remote comment!", comment.content());
@@ -236,30 +239,23 @@ class NewsFederationServiceTest extends RepositoryTestBase {
     @Test
     @Order(16)
     void createRemoteCommentWithParent() {
-        var parentIdentity = stationMemberRepo.resolveIdentity(memberA.id());
-        var parent = newsService.createComment(stationA.id(), news1.id(), null, parentIdentity, "Alice", "Parent");
+        var parent = writeLocally(news1.id(), "Parent");
         var child = service.createRemoteComment(
-                stationA.id(), news1.id(), partnerIdAB, REMOTE_MEMBER_1, "Alice Remote", parent.id(), "Reply");
+                news1.id(), partnerIdAB, REMOTE_MEMBER_1, "Alice Remote", parent.id(), "Reply");
         assertNotNull(child);
         assertEquals("Reply", child.content());
     }
 
-    // -- Federated browsing (local) --
-
     @Test
     @Order(20)
     void browseFederatedNewsLocalPartner() {
-        // Share news1 with ALL_PARTNERS
         service.setShare(news1.id(), ShareScope.ALL_PARTNERS, NewsVisibilityRole.MEMBER, List.of());
 
-        // Mock httpClient.getList for the remote partner to return empty
-        when(httpClient.getList(anyString(), any(FederationRequest.class), any(), anyInt(), any(), any()))
+        when(httpClient.getList(anyString(), any(FederationRequest.class), any(), anyInt(), any()))
                 .thenReturn(List.of());
 
-        // Browse from stationB's perspective - stationA is a local partner
         var items = service.browseFederatedNews(stationB.id());
         assertNotNull(items);
-        // stationB sees stationA as a local partner with shared news
         assertTrue(
                 items.stream().anyMatch(i -> i.news().id() == news1.id()),
                 "Should find news1 shared via local partner");
@@ -270,7 +266,7 @@ class NewsFederationServiceTest extends RepositoryTestBase {
     void browseFederatedNewsNoShares() {
         service.removeShare(news1.id());
 
-        when(httpClient.getList(anyString(), any(FederationRequest.class), any(), anyInt(), any(), any()))
+        when(httpClient.getList(anyString(), any(FederationRequest.class), any(), anyInt(), any()))
                 .thenReturn(List.of());
 
         var items = service.browseFederatedNews(stationB.id());
@@ -283,7 +279,7 @@ class NewsFederationServiceTest extends RepositoryTestBase {
         service.setShare(news1.id(), ShareScope.ALL_PARTNERS, NewsVisibilityRole.MEMBER, List.of());
         service.setShare(news2.id(), ShareScope.ALL_PARTNERS, NewsVisibilityRole.TEAM, List.of());
 
-        when(httpClient.getList(anyString(), any(FederationRequest.class), any(), anyInt(), any(), any()))
+        when(httpClient.getList(anyString(), any(FederationRequest.class), any(), anyInt(), any()))
                 .thenReturn(List.of());
 
         var items = service.browseFederatedNews(stationB.id());
@@ -291,45 +287,25 @@ class NewsFederationServiceTest extends RepositoryTestBase {
         assertTrue(items.stream().anyMatch(i -> i.news().id() == news2.id()));
     }
 
-    // -- Federated browsing (remote via HTTP) --
-
     @Test
     @Order(25)
-    @SuppressWarnings("unchecked")
-    void browseFederatedNewsViaHttp() throws Exception {
+    void browseFederatedNewsViaHttp() {
         service.setShare(news1.id(), ShareScope.ALL_PARTNERS, NewsVisibilityRole.MEMBER, List.of());
 
-        // Construct RemoteNewsListEntry via reflection (it's a private record)
-        var entryClass =
-                Class.forName("dev.chojo.ember.feature.news.service.NewsFederationService$RemoteNewsListEntry");
-        Constructor<?> ctor = entryClass.getDeclaredConstructors()[0];
-        ctor.setAccessible(true);
-        var remoteEntry = ctor.newInstance(
+        var remoteEntry = new RemoteNewsSummary(
                 9999, "Remote Title", "<p>content</p>", "Remote Author", "2026-01-01", 5, NewsVisibilityRole.MEMBER);
 
-        when(httpClient.getList(
-                        eq("https://remote-news.example.com"),
-                        pathIs("/remote/news"),
-                        any(),
-                        eq(stationA.id()),
-                        any(),
-                        any()))
+        when(httpClient.<RemoteNewsSummary>getList(
+                        eq("https://remote-news.example.com"), pathIs("/remote/news"), any(), eq(stationA.id()), any()))
                 .thenReturn(List.of(remoteEntry));
 
         var items = service.browseFederatedNews(stationA.id());
         assertFalse(items.isEmpty());
 
-        // Verify HTTP was called
         verify(httpClient)
                 .getList(
-                        eq("https://remote-news.example.com"),
-                        pathIs("/remote/news"),
-                        any(),
-                        eq(stationA.id()),
-                        any(),
-                        any());
+                        eq("https://remote-news.example.com"), pathIs("/remote/news"), any(), eq(stationA.id()), any());
 
-        // Should contain the remote news item
         assertTrue(items.stream()
                 .anyMatch(i ->
                         i.news().id() == 9999 && "Remote Title".equals(i.news().title())));
@@ -339,19 +315,12 @@ class NewsFederationServiceTest extends RepositoryTestBase {
     @Order(26)
     void browseFederatedNewsHttpReturnsEmpty() {
         when(httpClient.getList(
-                        eq("https://remote-news.example.com"),
-                        pathIs("/remote/news"),
-                        any(),
-                        eq(stationA.id()),
-                        any(),
-                        any()))
+                        eq("https://remote-news.example.com"), pathIs("/remote/news"), any(), eq(stationA.id()), any()))
                 .thenReturn(List.of());
 
         var items = service.browseFederatedNews(stationA.id());
         assertNotNull(items);
     }
-
-    // -- getFederatedNews (local) --
 
     @Test
     @Order(30)
@@ -381,12 +350,10 @@ class NewsFederationServiceTest extends RepositoryTestBase {
                 () -> service.getFederatedNews(stationB.id(), UUID.randomUUID(), news1.id()));
     }
 
-    // -- getFederatedNews (remote via HTTP) --
-
     @Test
     @Order(35)
     void getFederatedNewsRemote() {
-        var remoteData = new FederatedNewsData(
+        var remoteData = new RemoteNewsDetail(
                 42, "Remote Single", "# md", "<p>html</p>", "Author", "2026-03-15", 3, NewsVisibilityRole.TEAM);
 
         when(httpClient.get(
@@ -394,8 +361,7 @@ class NewsFederationServiceTest extends RepositoryTestBase {
                         pathIs("/remote/news/42"),
                         any(),
                         eq(stationA.id()),
-                        any(),
-                        eq(FederatedNewsData.class)))
+                        eq(RemoteNewsDetail.class)))
                 .thenReturn(remoteData);
 
         var result = service.getFederatedNews(stationA.id(), stationC.uid(), 42);
@@ -413,33 +379,27 @@ class NewsFederationServiceTest extends RepositoryTestBase {
                         pathIs("/remote/news/99"),
                         any(),
                         eq(stationA.id()),
-                        any(),
-                        eq(FederatedNewsData.class)))
+                        eq(RemoteNewsDetail.class)))
                 .thenReturn(null);
 
-        assertThrows(IllegalStateException.class, () -> service.getFederatedNews(stationA.id(), stationC.uid(), 99));
+        assertThrows(RefusalResponse.class, () -> service.getFederatedNews(stationA.id(), stationC.uid(), 99));
     }
-
-    // -- Inactive partner --
 
     @Test
     @Order(40)
     void getFederatedNewsSuspendedPartner() {
-        // Find the reverse partner (stationA's record pointing to stationC)
         var reversePartner = federationRepo
                 .findPartnerByStationAndRemoteUid(stationA.id(), stationC.uid())
                 .orElseThrow();
 
-        // Suspend stationA's partner record for stationC
         federationRepo.updatePartnerStatus(reversePartner.id(), FederationPartner.FederationStatus.SUSPENDED);
 
-        assertThrows(BadRequestResponse.class, () -> service.getFederatedNews(stationA.id(), stationC.uid(), 42));
+        var refused =
+                assertThrows(RefusalResponse.class, () -> service.getFederatedNews(stationA.id(), stationC.uid(), 42));
+        assertEquals(FederationRefusal.FEDERATION_PARTNER_NOT_ACTIVE, refused.refusal());
 
-        // Restore
         federationRepo.updatePartnerStatus(reversePartner.id(), FederationPartner.FederationStatus.ACTIVE);
     }
-
-    // -- Record types --
 
     @Test
     @Order(50)
@@ -477,8 +437,6 @@ class NewsFederationServiceTest extends RepositoryTestBase {
         assertNull(data.contentMarkdown());
     }
 
-    // -- toNewsData covers null content/publishedAt --
-
     @Test
     @Order(55)
     void getFederatedNewsLocalWithComments() {
@@ -486,7 +444,6 @@ class NewsFederationServiceTest extends RepositoryTestBase {
 
         var result = service.getFederatedNews(stationB.id(), stationA.uid(), news1.id());
         assertNotNull(result);
-        // news1 has comments created in earlier tests
         assertTrue(result.commentCount() >= 0);
         assertNotNull(result.publishedAt());
         assertFalse(result.publishedAt().isEmpty());
@@ -497,29 +454,30 @@ class NewsFederationServiceTest extends RepositoryTestBase {
     void browseFederatedNewsChecksPartnerStationName() {
         service.setShare(news1.id(), ShareScope.ALL_PARTNERS, NewsVisibilityRole.MEMBER, List.of());
 
-        when(httpClient.getList(anyString(), any(FederationRequest.class), any(), anyInt(), any(), any()))
+        when(httpClient.getList(anyString(), any(FederationRequest.class), any(), anyInt(), any()))
                 .thenReturn(List.of());
 
         var items = service.browseFederatedNews(stationB.id());
         var localItems = items.stream().filter(i -> i.news().id() == news1.id()).toList();
         assertFalse(localItems.isEmpty());
-        // Partner station name should be stationA's name
         assertEquals("NewsFedSvcA", localItems.getFirst().partnerStationName());
     }
 
     @Test
     @Order(60)
     void listFederatedCommentsLocal() {
-        newsService.createComment(stationA.id(), news2.id(), null, localAuthor(), "Alice", "Local listing");
+        writeLocally(news2.id(), "Local listing");
         var comments = service.listFederatedComments(stationB.id(), stationA.uid(), news2.id());
         assertTrue(comments.stream().anyMatch(c -> "Local listing".equals(c.content())));
+        transport.assertParity(
+                partnerOfBForA(), RemoteNewsRoutes.LIST_COMMENTS.at(news2.id()), null, CommentResponse.class);
     }
 
     @Test
     @Order(61)
     void createFederatedCommentLocal() {
         var created = service.createFederatedComment(
-                stationB.id(), stationA.uid(), news2.id(), federatedAuthor(), null, "Federated hello");
+                stationB.id(), stationA.uid(), news2.id(), memberOfB(), null, "Federated hello");
         assertNotNull(created);
         assertEquals("Federated hello", created.content());
     }
@@ -527,50 +485,106 @@ class NewsFederationServiceTest extends RepositoryTestBase {
     @Test
     @Order(62)
     void updateFederatedCommentLocal() {
-        var comment = newsService.createComment(stationA.id(), news2.id(), null, localAuthor(), "Alice", "Before");
-        var updated =
-                service.updateFederatedComment(stationB.id(), stationA.uid(), comment.id(), federatedAuthor(), "After");
+        var comment =
+                service.createFederatedComment(stationB.id(), stationA.uid(), news2.id(), memberOfB(), null, "Before");
+        var updated = service.updateFederatedComment(stationB.id(), stationA.uid(), comment.id(), memberOfB(), "After");
         assertEquals("After", updated.content());
     }
 
     @Test
     @Order(63)
     void updateFederatedCommentLocalRejectsForeignAuthor() {
-        var comment = newsService.createComment(stationA.id(), news2.id(), null, localAuthor(), "Alice", "Mine");
-        var stranger = new FederatedCommentAuthor(
-                new MemberIdentity(stationC.uid(), REMOTE_MEMBER_2), REMOTE_MEMBER_2, "Stranger");
-        assertThrows(
-                ForbiddenResponse.class,
+        var comment = writeLocally(news2.id(), "Mine");
+        var refused = assertThrows(
+                RefusalResponse.class,
                 () -> service.updateFederatedComment(
-                        stationB.id(), stationA.uid(), comment.id(), stranger, "Hijacked"));
+                        stationB.id(), stationA.uid(), comment.id(), memberOfB(), "Hijacked"));
+        assertEquals(NewsRefusal.REMOTE_NEWS_COMMENT_NOT_YOURS_TO_EDIT, refused.refusal());
     }
 
     @Test
     @Order(64)
     void deleteFederatedCommentLocal() {
-        var comment = newsService.createComment(stationA.id(), news2.id(), null, localAuthor(), "Alice", "Disposable");
-        service.deleteFederatedComment(stationB.id(), stationA.uid(), comment.id(), federatedAuthor());
-        var remaining = newsService.findCommentById(comment.id());
+        var comment = service.createFederatedComment(
+                stationB.id(), stationA.uid(), news2.id(), memberOfB(), null, "Disposable");
+        service.deleteFederatedComment(stationB.id(), stationA.uid(), comment.id(), memberOfB());
+        var remaining = comments.findById(CommentEntityType.NEWS, comment.id());
         assertTrue(remaining.isEmpty() || remaining.get().deleted());
     }
 
     @Test
     @Order(65)
     void deleteFederatedCommentLocalRejectsForeignAuthor() {
-        var comment = newsService.createComment(stationA.id(), news2.id(), null, localAuthor(), "Alice", "Protected");
-        var stranger = new FederatedCommentAuthor(
-                new MemberIdentity(stationC.uid(), REMOTE_MEMBER_2), REMOTE_MEMBER_2, "Stranger");
+        var comment = writeLocally(news2.id(), "Protected");
+        var refused = assertThrows(
+                RefusalResponse.class,
+                () -> service.deleteFederatedComment(stationB.id(), stationA.uid(), comment.id(), memberOfB()));
+        assertEquals(NewsRefusal.REMOTE_NEWS_COMMENT_NOT_YOURS_TO_DELETE, refused.refusal());
+    }
+
+    /**
+     * A partner on this instance used to read and write comments on any article of the station it
+     * is paired with, shared or not, while a partner on another instance was refused.
+     */
+    @Test
+    @Order(67)
+    void commentsOnAnArticleNotSharedWithAPartnerHereAreRefused() {
+        service.removeShare(news1.id());
+        var listing = assertThrows(
+                RefusalResponse.class, () -> service.listFederatedComments(stationB.id(), stationA.uid(), news1.id()));
+        assertEquals(NewsRefusal.NEWS_NOT_SHARED_WITH_PARTNER, listing.refusal());
         assertThrows(
-                ForbiddenResponse.class,
-                () -> service.deleteFederatedComment(stationB.id(), stationA.uid(), comment.id(), stranger));
+                RefusalResponse.class,
+                () -> service.createFederatedComment(
+                        stationB.id(), stationA.uid(), news1.id(), memberOfB(), null, "Uninvited"));
+    }
+
+    /**
+     * An article shared with specific partners names the serving station's own partner rows. A
+     * partner on this instance used to be looked up by its own row instead and never saw such an
+     * article.
+     */
+    @Test
+    @Order(68)
+    void anArticleSharedWithSpecificPartnersReachesAPartnerHere() {
+        var rowOfAForB = federationRepo
+                .findPartnerByStationAndRemoteUid(stationA.id(), stationB.uid())
+                .orElseThrow();
+        service.setShare(news1.id(), ShareScope.SPECIFIC, NewsVisibilityRole.MEMBER, List.of(rowOfAForB.id()));
+
+        assertTrue(service.browseFederatedNews(stationB.id()).stream()
+                .anyMatch(i -> i.news().id() == news1.id()));
+        assertEquals(
+                "News One",
+                service.getFederatedNews(stationB.id(), stationA.uid(), news1.id())
+                        .title());
+        transport.assertParity(partnerOfBForA(), RemoteNewsRoutes.LIST_NEWS.at(), null, RemoteNewsSummary.class);
+        transport.assertParity(
+                partnerOfBForA(), RemoteNewsRoutes.GET_NEWS.at(news1.id()), null, RemoteNewsDetail.class);
+
+        var otherRow = federationRepo
+                .findPartnerByStationAndRemoteUid(stationA.id(), stationC.uid())
+                .orElseThrow();
+        service.setShare(news1.id(), ShareScope.SPECIFIC, NewsVisibilityRole.MEMBER, List.of(otherRow.id()));
+        assertTrue(service.browseFederatedNews(stationB.id()).stream()
+                .noneMatch(i -> i.news().id() == news1.id()));
+
+        var rowOfBForA = partnerOfBForA();
+        service.setShare(news1.id(), ShareScope.SPECIFIC, NewsVisibilityRole.MEMBER, List.of(rowOfBForA.id()));
+        assertTrue(
+                service.browseFederatedNews(stationB.id()).stream()
+                        .noneMatch(i -> i.news().id() == news1.id()),
+                "the asking station's own row is not a target the sharing station ever chose");
+        service.removeShare(news1.id());
     }
 
     @Test
     @Order(66)
     void federatedCommentsRejectUnknownPartner() {
-        assertThrows(
-                NotFoundResponse.class,
+        var refused = assertThrows(
+                RefusalResponse.class,
                 () -> service.listFederatedComments(stationB.id(), UUID.randomUUID(), news2.id()));
+        assertEquals(NewsRefusal.NEWS_COMMENT_PARTNER_NOT_HERE, refused.refusal());
     }
 
     @Test
@@ -581,7 +595,6 @@ class NewsFederationServiceTest extends RepositoryTestBase {
                         pathIs("/remote/news/77/comments"),
                         any(),
                         eq(stationA.id()),
-                        any(),
                         eq(CommentResponse.class)))
                 .thenReturn(List.of(remoteComment("Remote listed")));
 
@@ -599,7 +612,6 @@ class NewsFederationServiceTest extends RepositoryTestBase {
                         any(),
                         any(),
                         eq(stationA.id()),
-                        any(),
                         eq(CommentResponse.class)))
                 .thenReturn(remoteComment("Remote created"));
 
@@ -617,12 +629,11 @@ class NewsFederationServiceTest extends RepositoryTestBase {
                         any(),
                         any(),
                         eq(stationA.id()),
-                        any(),
                         eq(CommentResponse.class)))
                 .thenReturn(null);
 
         assertThrows(
-                InternalServerErrorResponse.class,
+                RefusalResponse.class,
                 () -> service.createFederatedComment(
                         stationA.id(), stationC.uid(), 78, federatedAuthor(), null, "Hello"));
     }
@@ -636,7 +647,6 @@ class NewsFederationServiceTest extends RepositoryTestBase {
                         any(),
                         any(),
                         eq(stationA.id()),
-                        any(),
                         eq(CommentResponse.class)))
                 .thenReturn(remoteComment("Remote updated"));
 
@@ -653,24 +663,24 @@ class NewsFederationServiceTest extends RepositoryTestBase {
                         any(),
                         any(),
                         eq(stationA.id()),
-                        any(),
                         eq(CommentResponse.class)))
                 .thenReturn(null);
 
         assertThrows(
-                InternalServerErrorResponse.class,
+                RefusalResponse.class,
                 () -> service.updateFederatedComment(stationA.id(), stationC.uid(), 56, federatedAuthor(), "New"));
     }
 
+    /** The deletion names the member it is made for, which the partner checks the comment against. */
     @Test
     @Order(75)
     void deleteFederatedCommentRemote() {
         when(httpClient.delete(
                         eq("https://remote-news.example.com"),
                         pathIs("/remote/news/comments/57"),
+                        eq(new RemoteNewsRoutes.RemoteNewsCommentDeleteRequest(REMOTE_MEMBER_1)),
                         any(),
-                        eq(stationA.id()),
-                        any()))
+                        eq(stationA.id())))
                 .thenReturn(true);
 
         assertDoesNotThrow(() -> service.deleteFederatedComment(stationA.id(), stationC.uid(), 57, federatedAuthor()));
@@ -683,12 +693,12 @@ class NewsFederationServiceTest extends RepositoryTestBase {
                         eq("https://remote-news.example.com"),
                         pathIs("/remote/news/comments/58"),
                         any(),
-                        eq(stationA.id()),
-                        any()))
+                        any(),
+                        eq(stationA.id())))
                 .thenReturn(false);
 
         assertThrows(
-                InternalServerErrorResponse.class,
+                RefusalResponse.class,
                 () -> service.deleteFederatedComment(stationA.id(), stationC.uid(), 58, federatedAuthor()));
     }
 
@@ -705,8 +715,25 @@ class NewsFederationServiceTest extends RepositoryTestBase {
         return stationMemberRepo.resolveIdentity(memberA.id());
     }
 
+    private static Comment writeLocally(int newsId, String content) {
+        var target = comments.target(CommentEntityType.NEWS, newsId).orElseThrow();
+        return comments.createOn(
+                target, CommentWriter.local(localAuthor(), "Alice"), new NewComment(null, null, content));
+    }
+
     private static FederatedCommentAuthor federatedAuthor() {
         return new FederatedCommentAuthor(localAuthor(), REMOTE_MEMBER_1, "Alice Smith");
+    }
+
+    private static FederatedCommentAuthor memberOfB() {
+        return new FederatedCommentAuthor(
+                new MemberIdentity(stationB.uid(), REMOTE_MEMBER_2), REMOTE_MEMBER_2, "Bea Partner");
+    }
+
+    private static FederationPartner partnerOfBForA() {
+        return federationRepo
+                .findPartnerByStationAndRemoteUid(stationB.id(), stationA.uid())
+                .orElseThrow();
     }
 
     private static CommentResponse remoteComment(String content) {

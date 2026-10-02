@@ -5,24 +5,27 @@
  */
 package dev.chojo.ember.feature.attendance.service;
 
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
-import dev.chojo.ember.feature.attendance.entity.AttendanceFieldType;
 import dev.chojo.ember.feature.attendance.entity.AttendanceSession;
 import dev.chojo.ember.feature.attendance.entity.AttendanceSessionField;
 import dev.chojo.ember.feature.attendance.entity.AttendanceTemplate;
 import dev.chojo.ember.feature.attendance.entity.AttendanceTemplateField;
+import dev.chojo.ember.feature.attendance.entity.SessionAudience;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
-import dev.chojo.ember.feature.attendance.repository.AttendanceRepository.TemplateGroup;
+import dev.chojo.ember.feature.media.entity.MediaContent;
 import dev.chojo.ember.feature.members.entity.NameParts;
+import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.question.QuestionText;
 import dev.chojo.ember.feature.question.QuestionValues;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
-import dev.chojo.ember.feature.station.repository.StationRepository.StationLogo;
+import dev.chojo.ember.feature.station.service.StationLogoService;
 import dev.chojo.ember.util.DocumentName;
 import dev.chojo.ember.util.DocumentPeriod;
 import dev.chojo.ember.util.DocumentWord;
@@ -30,6 +33,7 @@ import dev.chojo.ember.util.ExportedDocument;
 import dev.chojo.ember.util.TypstCompiler;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
 import java.io.IOException;
@@ -37,13 +41,14 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.function.Function;
 
 import static org.slf4j.LoggerFactory.getLogger;
 
@@ -62,6 +67,8 @@ public class AttendanceExportService {
     private final MemberGroupRepository memberGroupRepository;
     private final StationRepository stationRepository;
     private final Api apiConfig;
+    private final AttendanceAudienceService audienceService;
+    private final StationLogoService logoService;
 
     @Inject
     public AttendanceExportService(
@@ -70,7 +77,11 @@ public class AttendanceExportService {
             StationMemberRepository stationMemberRepository,
             MemberGroupRepository memberGroupRepository,
             StationRepository stationRepository,
-            Api apiConfig) {
+            Api apiConfig,
+            AttendanceAudienceService audienceService,
+            StationLogoService logoService) {
+        this.audienceService = audienceService;
+        this.logoService = logoService;
         this.attendanceRepository = attendanceRepository;
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
@@ -91,7 +102,11 @@ public class AttendanceExportService {
      * @param showInstanceUrl whether the address of this installation is printed at the foot, which is
      *                        what the station settled on where this is null
      */
-    public record SheetOptions(boolean signatureColumn, String title, int blankRows, Boolean showInstanceUrl) {
+    public record SheetOptions(
+            boolean signatureColumn,
+            @Nullable String title,
+            int blankRows,
+            @Nullable Boolean showInstanceUrl) {
         /** The sheet as the product has always printed it. */
         public static final SheetOptions PLAIN = new SheetOptions(false, null, 0, null);
 
@@ -114,7 +129,7 @@ public class AttendanceExportService {
      * more recent thing they said about what this sheet is. Where neither says anything, the day
      * carries the name on its own.
      */
-    static String sheetFileName(AttendanceSession session, String chosenTitle, ZoneId zone, String locale) {
+    static String sheetFileName(AttendanceSession session, @Nullable String chosenTitle, ZoneId zone, String locale) {
         String title = chosenTitle != null && !chosenTitle.isBlank() ? chosenTitle : session.title();
         return DocumentName.of(
                 "pdf",
@@ -129,38 +144,38 @@ public class AttendanceExportService {
 
         var entries = attendanceRepository.findEntries(sessionId);
         var sessionFields = attendanceRepository.findSessionFields(sessionId);
-        var templateFields =
-                attendanceRepository.findTemplateFields(session.get().templateId());
-        var templateGroups =
-                attendanceRepository.findTemplateGroups(session.get().templateId());
+        var templateFields = attendanceRepository.findSheetFields(sessionId);
+        var audience = audienceService.audienceOf(session.get());
 
-        // Resolve station from the template
         var template = attendanceRepository.findTemplateById(session.get().templateId());
         int stationId = template.map(AttendanceTemplate::stationId).orElse(0);
         var station = stationRepository.findById(stationId).orElse(null);
         ZoneId zone = StationFormat.timezoneOf(station);
 
-        var data = buildExportData(session.get(), entries, sessionFields, templateFields, templateGroups, zone);
+        String language = StationFormat.languageOf(station);
+        var data = buildExportData(session.get(), entries, sessionFields, templateFields, zone, language);
+        data.put(
+                "sections",
+                sections(audience, entries, stationId, language, entry -> buildEntryMap(entry, session.get(), zone)));
         data.put("stationName", station != null ? station.name() : "");
         data.put("generatedBy", generatedBy != null ? generatedBy : "");
         data.put("generatedAt", DATE_TIME_FMT.format(Instant.now().atZone(zone)));
         data.put("baseUrl", apiConfig.baseUrl());
+        Boolean showInstanceUrl = options.showInstanceUrl();
         data.put(
-                "showInstanceUrl",
-                options.showInstanceUrl() != null
-                        ? options.showInstanceUrl()
-                        : StationFormat.showsInstanceUrl(station));
+                "showInstanceUrl", showInstanceUrl != null ? showInstanceUrl : StationFormat.showsInstanceUrl(station));
         data.put("hasLogo", false);
         data.put("signatureColumn", options.signatureColumn());
         data.put("blankRows", options.blankRows());
-        if (options.title() != null) {
-            data.put("title", options.title());
+        String title = options.title();
+        if (title != null) {
+            data.put("title", title);
         }
 
         try {
-            var logo = stationRepository.findLogo(stationId);
+            var logo = logoService.original(stationId);
             String locale = StationFormat.languageOf(station);
-            String filename = sheetFileName(session.get(), options.title(), zone, locale);
+            String filename = sheetFileName(session.get(), title, zone, locale);
             return Optional.of(
                     new ExportedDocument(renderPdf(data, locale + "/attendance.typ", logo.orElse(null)), filename));
         } catch (Exception e) {
@@ -174,77 +189,21 @@ public class AttendanceExportService {
             List<AttendanceEntry> entries,
             List<AttendanceSessionField> sessionFields,
             List<AttendanceTemplateField> templateFields,
-            List<TemplateGroup> templateGroups,
-            ZoneId zone) {
+            ZoneId zone,
+            String language) {
         var data = new LinkedHashMap<String, Object>();
         data.put("title", session.title() != null ? session.title() : "Anwesenheit");
         data.put("startTime", formatDateTime(session.startTime(), zone));
         data.put("endTime", formatDateTime(session.endTime(), zone));
-        data.put(
-                "countedHours",
-                session.countedMinutes() != null ? String.format("%.1f", session.countedMinutes() / 60.0) : "");
+        Integer countedMinutes = session.countedMinutes();
+        data.put("countedHours", countedMinutes != null ? String.format("%.1f", countedMinutes / 60.0) : "");
 
-        // Build field name→value map (skip member/attendance fields)
-        var fieldMap = new LinkedHashMap<Integer, String>();
-        for (var sf : sessionFields) {
-            fieldMap.put(sf.fieldId(), sf.value());
+        var values = new LinkedHashMap<Integer, String>();
+        for (var sessionField : sessionFields) {
+            values.put(sessionField.fieldId(), sessionField.value());
         }
+        data.put("fields", fieldLines(templateFields, values, memberNames(templateFields, values), language));
 
-        var fieldList = new ArrayList<NameValue>();
-        for (var tf : templateFields) {
-            String rawValue = fieldMap.get(tf.id());
-            if (rawValue == null || rawValue.isBlank()) continue;
-            String displayValue;
-            if (isMemberField(tf.fieldType())) {
-                displayValue = resolveMemberFieldValue(rawValue);
-            } else {
-                displayValue = formatFieldValue(rawValue);
-            }
-            if (displayValue.isBlank()) continue;
-            fieldList.add(new NameValue(tf.name(), displayValue));
-        }
-        data.put("fields", fieldList);
-
-        // Build entry lookup by memberId
-        var entryByMember = new LinkedHashMap<Integer, AttendanceEntry>();
-        for (var entry : entries) {
-            entryByMember.put(entry.memberId(), entry);
-        }
-
-        // Build grouped sections
-        var sections = new ArrayList<Section>();
-        Set<Integer> assignedMemberIds = new HashSet<>();
-
-        for (var tg : templateGroups) {
-            var group = memberGroupRepository.findById(tg.groupId());
-            if (group.isEmpty()) continue;
-            var groupMembers = memberGroupRepository.findMembers(tg.groupId());
-            var sectionEntries = new ArrayList<Map<String, String>>();
-            for (var member : groupMembers) {
-                var entry = entryByMember.get(member.id());
-                if (entry == null) continue;
-                sectionEntries.add(buildEntryMap(entry, session, zone));
-                assignedMemberIds.add(member.id());
-            }
-            if (!sectionEntries.isEmpty()) {
-                sections.add(new Section(group.get().name(), sectionEntries));
-            }
-        }
-
-        // Ungrouped members
-        var ungroupedEntries = new ArrayList<Map<String, String>>();
-        for (var entry : entries) {
-            if (!assignedMemberIds.contains(entry.memberId())) {
-                ungroupedEntries.add(buildEntryMap(entry, session, zone));
-            }
-        }
-        if (!ungroupedEntries.isEmpty()) {
-            sections.add(new Section("Sonstige", ungroupedEntries));
-        }
-
-        data.put("sections", sections);
-
-        // Flat entries list for summary counts
         var allEntries = new ArrayList<StatusEntry>();
         for (var entry : entries) {
             allEntries.add(new StatusEntry(entry.status()));
@@ -252,6 +211,80 @@ public class AttendanceExportService {
         data.put("entries", allEntries);
 
         return data;
+    }
+
+    /**
+     * The sheet's lines, sectioned by whom the sheet expects.
+     *
+     * <p>A section per group comes first, in the sheet's order, as it always has, a member of two
+     * groups standing in both. Then one per user type for whoever of that type no group has taken,
+     * and last everybody else on the sheet. Only people with an entry are printed.
+     *
+     * @param audience  whom the sheet expects, its own or its template's
+     * @param entries   the sheet's entries
+     * @param stationId the station, whose members' user types decide the type sections
+     * @param language  the station's language, which names the user types
+     * @param line      how one entry is printed
+     * @return the non-empty sections in print order
+     */
+    List<Section> sections(
+            SessionAudience audience,
+            List<AttendanceEntry> entries,
+            int stationId,
+            String language,
+            Function<AttendanceEntry, Map<String, String>> line) {
+        var entryByMember = new LinkedHashMap<Integer, AttendanceEntry>();
+        for (var entry : entries) entryByMember.put(entry.memberId(), entry);
+
+        var sections = new ArrayList<Section>();
+        Set<Integer> assigned = new HashSet<>();
+        for (int groupId : audience.groupIds()) {
+            var group = memberGroupRepository.findById(groupId);
+            if (group.isEmpty()) continue;
+            var memberIds = memberGroupRepository.findMembers(groupId).stream()
+                    .map(StationMember::id)
+                    .toList();
+            addSection(sections, group.get().name(), memberIds, entryByMember, assigned, line);
+        }
+        if (!audience.userTypes().isEmpty()) {
+            var members = stationMemberRepository.findByStation(stationId);
+            for (var type : StationUserType.values()) {
+                if (!audience.userTypes().contains(type)) continue;
+                var memberIds = members.stream()
+                        .filter(member -> member.userType() == type && !assigned.contains(member.id()))
+                        .map(StationMember::id)
+                        .toList();
+                addSection(
+                        sections,
+                        DocumentWord.forUserType(type.name(), language),
+                        memberIds,
+                        entryByMember,
+                        assigned,
+                        line);
+            }
+        }
+        var rest = entryByMember.keySet().stream()
+                .filter(memberId -> !assigned.contains(memberId))
+                .toList();
+        addSection(sections, "Sonstige", rest, entryByMember, assigned, line);
+        return sections;
+    }
+
+    private static void addSection(
+            List<Section> sections,
+            String name,
+            List<Integer> memberIds,
+            Map<Integer, AttendanceEntry> entryByMember,
+            Set<Integer> assigned,
+            Function<AttendanceEntry, Map<String, String>> line) {
+        var lines = new ArrayList<Map<String, String>>();
+        for (int memberId : memberIds) {
+            var entry = entryByMember.get(memberId);
+            if (entry == null) continue;
+            assigned.add(memberId);
+            lines.add(line.apply(entry));
+        }
+        if (!lines.isEmpty()) sections.add(new Section(name, lines));
     }
 
     /**
@@ -275,33 +308,51 @@ public class AttendanceExportService {
     private String resolveMemberName(int memberId) {
         var member = stationMemberRepository.findById(memberId);
         if (member.isEmpty()) return "#" + memberId;
-        var account = accountRepository.findById(member.get().accountId());
+        Integer accountId = member.get().accountId();
+        if (accountId == null) return "#" + memberId;
+        var account = accountRepository.findById(accountId);
         if (account.isEmpty()) return "#" + memberId;
         Account acc = account.get();
         String name = NameParts.of(acc).official();
         return name.isEmpty() ? acc.email() : name;
     }
 
-    private boolean isMemberField(AttendanceFieldType fieldType) {
-        return fieldType == AttendanceFieldType.MEMBER
-                || fieldType == AttendanceFieldType.MEMBER_LIST
-                || fieldType == AttendanceFieldType.MEMBER_OF_GROUP
-                || fieldType == AttendanceFieldType.MEMBER_LIST_OF_GROUP;
-    }
-
-    private String resolveMemberFieldValue(String rawValue) {
-        var ids = QuestionValues.memberIds(rawValue);
-        if (ids.isEmpty()) return "";
-        return ids.stream().map(this::resolveMemberName).collect(Collectors.joining(", "));
-    }
-
-    private String formatFieldValue(String rawValue) {
-        if (rawValue == null) return "";
-        String val = rawValue.trim();
-        if (val.startsWith("\"") && val.endsWith("\"")) {
-            val = val.substring(1, val.length() - 1);
+    /**
+     * The sheet's own answers as they are printed above the people, in the template's order.
+     *
+     * <p>Each answer is written the way every export writes one, so a yes reads as a word in the
+     * station's language however it was stored. A field nobody filled in is left out rather than
+     * printed empty.
+     *
+     * @param fields   the template's fields
+     * @param values   the sheet's answers, by field id
+     * @param names    the names of the members the answers name, by member id
+     * @param language the station's language
+     * @return one line per answered field
+     */
+    static List<NameValue> fieldLines(
+            List<AttendanceTemplateField> fields,
+            Map<Integer, String> values,
+            Map<Integer, String> names,
+            String language) {
+        var lines = new ArrayList<NameValue>();
+        for (var field : fields) {
+            String text = QuestionText.format(field.fieldType(), values.get(field.id()), names, language);
+            if (!text.isBlank()) lines.add(new NameValue(field.name(), text));
         }
-        return val;
+        return lines;
+    }
+
+    /** The names of everybody the sheet's member fields name, written as the lines of people are. */
+    private Map<Integer, String> memberNames(List<AttendanceTemplateField> fields, Map<Integer, String> values) {
+        var names = new HashMap<Integer, String>();
+        for (var field : fields) {
+            if (!field.fieldType().namesMembers()) continue;
+            for (int memberId : QuestionValues.memberIds(QuestionValues.read(values.get(field.id())))) {
+                names.computeIfAbsent(memberId, this::resolveMemberName);
+            }
+        }
+        return names;
     }
 
     private String formatMoment(Instant instant, ZoneId zone, boolean withDay) {
@@ -314,7 +365,7 @@ public class AttendanceExportService {
         return DATE_TIME_FMT.format(instant.atZone(zone));
     }
 
-    private byte[] renderPdf(Map<String, Object> data, String templateName, StationLogo logo)
+    private byte[] renderPdf(Map<String, Object> data, String templateName, MediaContent logo)
             throws IOException, InterruptedException {
         return TypstCompiler.compileTemplate(
                 data,

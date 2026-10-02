@@ -76,7 +76,7 @@ class FormOptionKeyMigrationTest extends RepositoryTestBase {
         assertEquals(
                 Option.numbered("Ja", "Nein", "Vielleicht"), migrated.config().keyedOptions());
         assertEquals(
-                new FormAnswerValue.Choice(List.of("o2", "o0"), "Später"),
+                new FormAnswerValue.ChoiceAnswer(List.of("o2", "o0"), "Später"),
                 answer(migrated),
                 "the order is kept and a position outside the options is dropped");
     }
@@ -92,7 +92,7 @@ class FormOptionKeyMigrationTest extends RepositoryTestBase {
 
         var migrated = question(question);
         assertEquals(Option.numbered("A", "B", "C"), migrated.config().keyedOptions());
-        assertEquals(new FormAnswerValue.Ranking(List.of("o1", "o2", "o0")), answer(migrated));
+        assertEquals(new FormAnswerValue.RankingAnswer(List.of("o1", "o2", "o0")), answer(migrated));
     }
 
     @Test
@@ -108,7 +108,7 @@ class FormOptionKeyMigrationTest extends RepositoryTestBase {
         var likert = (FormQuestionConfig.Likert) migrated.config();
         assertEquals(Option.numbered("Essen", "Zelte"), likert.statements());
         assertEquals(List.of("schlecht", "", "", "", "gut"), likert.scaleLabels(), "the scale labels stay text");
-        assertEquals(new FormAnswerValue.Likert(Map.of("o0", 4, "o1", 2)), answer(migrated));
+        assertEquals(new FormAnswerValue.LikertAnswer(Map.of("o0", 4, "o1", 2)), answer(migrated));
     }
 
     @Test
@@ -124,9 +124,9 @@ class FormOptionKeyMigrationTest extends RepositoryTestBase {
 
         migrate();
 
-        assertEquals(new FormAnswerValue.Choice(List.of(), "nur Text"), answer(question(choice)));
+        assertEquals(new FormAnswerValue.ChoiceAnswer(List.of(), "nur Text"), answer(question(choice)));
         assertEquals(new FormQuestionConfig.Text(true), question(text).config());
-        assertEquals(new FormAnswerValue.Text("0"), answer(question(text)));
+        assertEquals(new FormAnswerValue.TextAnswer("0"), answer(question(text)));
     }
 
     @Test

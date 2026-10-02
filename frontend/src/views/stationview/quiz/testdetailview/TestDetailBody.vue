@@ -16,15 +16,17 @@ import TestInfoCard from './TestInfoCard.vue'
 import TestSectionsList from './TestSectionsList.vue'
 import FrozenQuestionsList from './FrozenQuestionsList.vue'
 import PickQuestionModal from './PickQuestionModal.vue'
-import type {FrozenQuestionDetail, QuizQuestion, QuizTestAttempt, QuizTestDetail} from '@/api/quiz'
-import type { MemberGroup, UserTag, StationMember } from '@/api/types'
+import type {
+    FrozenQuestionDetail, MemberGroup, QuizQuestion, QuizTestAttempt, QuizTestDetail, UserTag,
+} from '@/api/generated/schema'
+import type { MemberLike } from '@/components/input/select/memberOption'
 
 defineProps<{
   test: QuizTestDetail['test']
   detail: QuizTestDetail | null
   sections: QuizTestDetail['sections']
   attempts: QuizTestAttempt[]
-  members: StationMember[]
+  members: MemberLike[]
   frozenQuestions: FrozenQuestionDetail[]
   frozenLoading: boolean
   filteredAvailableQuestions: QuizQuestion[]
@@ -91,10 +93,10 @@ function onTagIdsUpdate(ids: number[]) {
 
   <template v-if="activeTab === 'test'">
     <TestInfoCard
-        :test="test"
-        :can-configure="canConfigure"
         v-model:edit-start-at="editStartAt"
         v-model:edit-end-at="editEndAt"
+        :test="test"
+        :can-configure="canConfigure"
         :times-dirty="timesDirty"
         :save-times="saveTimes"
         @mark-dirty="emit('mark-times-dirty')"

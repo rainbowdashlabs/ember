@@ -9,7 +9,7 @@ import SearchInput from '@/components/input/text/SearchInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import EventDateRangeFields from './EventDateRangeFields.vue'
-import type {EventCategory} from '@/api/events'
+import type {EventCategory} from '@/api/generated/schema'
 
 /**
  * What a list of appointments is narrowed to, on whichever screen holds one.

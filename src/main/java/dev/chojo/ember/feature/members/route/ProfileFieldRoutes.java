@@ -6,21 +6,22 @@
 package dev.chojo.ember.feature.members.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.feature.members.entity.FieldOrigin;
 import dev.chojo.ember.feature.members.entity.FieldValueEntry;
 import dev.chojo.ember.feature.members.entity.ProfileField;
 import dev.chojo.ember.feature.members.entity.ProfileFieldAssignment;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
-import dev.chojo.ember.feature.members.entity.ProfileFieldType;
-import dev.chojo.ember.feature.members.entity.ProfileFieldValue;
+import dev.chojo.ember.feature.members.entity.ProfileWriter;
 import dev.chojo.ember.feature.members.entity.StationMember;
-import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import dev.chojo.ember.feature.members.service.ProfileFieldService;
+import dev.chojo.ember.feature.members.service.StationMemberService;
+import dev.chojo.ember.feature.question.FieldType;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -32,10 +33,9 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 import static dev.chojo.ember.api.RouteSupport.requireOwnedOrNotFound;
@@ -48,13 +48,17 @@ import static dev.chojo.ember.api.RouteSupport.requireOwnedOrNotFound;
 public class ProfileFieldRoutes implements Routes {
 
     private final ProfileFieldService profileFieldService;
-    private final StationMemberRepository stationMemberRepository;
+    private final StationMemberService memberService;
+    private final GuardianPolicy guardianPolicy;
 
     @Inject
     public ProfileFieldRoutes(
-            ProfileFieldService profileFieldService, StationMemberRepository stationMemberRepository) {
+            ProfileFieldService profileFieldService,
+            StationMemberService memberService,
+            GuardianPolicy guardianPolicy) {
         this.profileFieldService = profileFieldService;
-        this.stationMemberRepository = stationMemberRepository;
+        this.memberService = memberService;
+        this.guardianPolicy = guardianPolicy;
     }
 
     private static boolean isBlank(String s) {
@@ -62,14 +66,11 @@ public class ProfileFieldRoutes implements Routes {
     }
 
     /**
-     * Returns the caller's station id, rejecting sessions without a resolved station.
+     * Whether a new field lacks the name it needs. A spacer may arrive without one: it is a gap, and
+     * the service numbers it instead.
      */
-    private static int requireStation(UserSession session) {
-        Integer stationId = session.stationId();
-        if (stationId == null) {
-            throw Refusal.NO_STATION_CHOSEN_FOR_PROFILE_QUESTIONS.raise();
-        }
-        return stationId;
+    private static boolean isUnnamedNonSpacer(ProfileFieldRequest request) {
+        return isBlank(request.name()) && request.fieldType() != FieldType.SPACER;
     }
 
     /**
@@ -78,7 +79,7 @@ public class ProfileFieldRoutes implements Routes {
      * station, so foreign field ids cannot be probed for existence.
      */
     private ProfileField requireOwnedField(Context ctx, int fieldId) {
-        requireStation(UserSession.from(ctx));
+        StationSession.from(ctx);
         return requireOwnedOrNotFound(ctx, fieldId, profileFieldService::findById, ProfileField::stationId);
     }
 
@@ -87,15 +88,30 @@ public class ProfileFieldRoutes implements Routes {
      * Answers with 404 when the member is absent or owned by another station.
      */
     private StationMember requireOwnedMember(Context ctx, int memberId) {
-        requireStation(UserSession.from(ctx));
-        return requireOwnedOrNotFound(ctx, memberId, stationMemberRepository::findById, StationMember::stationId);
+        StationSession.from(ctx);
+        return requireOwnedOrNotFound(ctx, memberId, memberService::findById, StationMember::stationId);
     }
 
-    // -- Field Definitions --
+    /**
+     * Refuses a member's answers to a reader who is neither that member, nor their guardian, nor
+     * allowed to read the station's members.
+     */
+    private void requireMayRead(StationSession session, int memberId) {
+        if (session.hasPermission(StationPermission.MEMBER_READ)) return;
+        if (!guardianPolicy.mayActFor(session.user(), memberId)) throw MemberRefusal.PROFILE_NOT_YOURS_TO_READ.raise();
+    }
+
+    /**
+     * Refuses a member's answers to a writer who is neither that member, nor their guardian, nor
+     * allowed to edit the station's members.
+     */
+    private void requireMayWrite(StationSession session, int memberId) {
+        if (session.hasPermission(StationPermission.MEMBER_EDIT)) return;
+        if (!guardianPolicy.mayActFor(session.user(), memberId)) throw MemberRefusal.PROFILE_NOT_YOURS_TO_WRITE.raise();
+    }
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        // Field definitions (station config)
         routes.get(prefix + "/profile-fields", this::list, StationPermission.USER);
         routes.post(prefix + "/profile-fields", this::create, StationPermission.MEMBER_FIELDS);
         routes.put(prefix + "/profile-fields/order", this::reorder, StationPermission.MEMBER_FIELDS);
@@ -104,11 +120,9 @@ public class ProfileFieldRoutes implements Routes {
         routes.put(prefix + "/profile-fields/{id}", this::update, StationPermission.MEMBER_FIELDS);
         routes.delete(prefix + "/profile-fields/{id}", this::delete, StationPermission.MEMBER_FIELDS);
 
-        // Who a field is asked of, which is what makes one definition serve several audiences.
         routes.put(prefix + "/profile-fields/{id}/assignments", this::assign, StationPermission.MEMBER_FIELDS);
         routes.delete(prefix + "/profile-fields/{id}/assignments", this::unassign, StationPermission.MEMBER_FIELDS);
 
-        // Field values per member - MEMBER or TEAM can read/write own, MEMBER_MANAGER for any
         routes.get(prefix + "/station-members/{memberId}/fields", this::getApplicableFields, StationPermission.USER);
         routes.get(prefix + "/station-members/{memberId}/profile", this::getValues, StationPermission.USER);
         routes.put(prefix + "/station-members/{memberId}/profile", this::setValues, StationPermission.USER);
@@ -121,7 +135,7 @@ public class ProfileFieldRoutes implements Routes {
             tags = {"Profile Fields"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ProfileField[].class)))
     private void list(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(profileFieldService.findByStation(session.stationId()));
     }
 
@@ -136,11 +150,10 @@ public class ProfileFieldRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void create(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(ProfileFieldRequest.class);
-        // A spacer may arrive without a name: it is a gap, and the service numbers it instead.
-        if (request.fieldType() == null || isBlank(request.name()) && request.fieldType() != ProfileFieldType.SPACER) {
-            throw Refusal.PROFILE_FIELD_DETAILS_MISSING_ON_CREATE.raise();
+        if (request.fieldType() == null || isUnnamedNonSpacer(request)) {
+            throw MemberRefusal.PROFILE_FIELD_DETAILS_MISSING_ON_CREATE.raise();
         }
         ctx.status(HttpStatus.CREATED)
                 .json(profileFieldService.create(
@@ -150,7 +163,8 @@ public class ProfileFieldRoutes implements Routes {
                         configOf(request),
                         request.required() != null && request.required(),
                         request.readonly() != null && request.readonly(),
-                        request.width()));
+                        request.width(),
+                        Boolean.TRUE.equals(request.keepOnArchive())));
     }
 
     @OpenApi(
@@ -161,7 +175,7 @@ public class ProfileFieldRoutes implements Routes {
             responses =
                     @OpenApiResponse(status = "200", content = @OpenApiContent(from = ProfileFieldAssignment[].class)))
     private void listAssignments(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(profileFieldService.findAssignmentsByStation(session.stationId()));
     }
 
@@ -181,13 +195,15 @@ public class ProfileFieldRoutes implements Routes {
         int id = pathInt(ctx, "id");
         requireOwnedField(ctx, id);
         var request = ctx.bodyAsClass(AssignmentRequest.class);
-        if ((request.role() == null) == (request.groupId() == null)) {
-            throw Refusal.PROFILE_FIELD_AUDIENCE_AMBIGUOUS_ON_ASSIGN.raise();
+        var role = request.role();
+        var groupId = request.groupId();
+        if ((role == null) == (groupId == null)) {
+            throw MemberRefusal.PROFILE_FIELD_AUDIENCE_AMBIGUOUS_ON_ASSIGN.raise();
         }
-        if (request.role() != null) {
+        if (role != null) {
             profileFieldService.assignToRole(
                     id,
-                    request.role(),
+                    role,
                     request.position(),
                     request.widthOverride(),
                     request.readonlyOverride(),
@@ -195,7 +211,7 @@ public class ProfileFieldRoutes implements Routes {
         } else {
             profileFieldService.assignToGroup(
                     id,
-                    request.groupId(),
+                    groupId,
                     request.position(),
                     request.widthOverride(),
                     request.readonlyOverride(),
@@ -220,13 +236,15 @@ public class ProfileFieldRoutes implements Routes {
         int id = pathInt(ctx, "id");
         requireOwnedField(ctx, id);
         var request = ctx.bodyAsClass(AssignmentRequest.class);
-        if ((request.role() == null) == (request.groupId() == null)) {
-            throw Refusal.PROFILE_FIELD_AUDIENCE_AMBIGUOUS_ON_UNASSIGN.raise();
+        var role = request.role();
+        var groupId = request.groupId();
+        if ((role == null) == (groupId == null)) {
+            throw MemberRefusal.PROFILE_FIELD_AUDIENCE_AMBIGUOUS_ON_UNASSIGN.raise();
         }
-        if (request.role() != null) {
-            profileFieldService.unassignRole(id, request.role());
+        if (role != null) {
+            profileFieldService.unassignRole(id, role);
         } else {
-            profileFieldService.unassignGroup(id, request.groupId());
+            profileFieldService.unassignGroup(id, groupId);
         }
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -261,7 +279,7 @@ public class ProfileFieldRoutes implements Routes {
         int id = pathInt(ctx, "id");
         var request = ctx.bodyAsClass(ProfileFieldRequest.class);
         if (isBlank(request.name()) || request.fieldType() == null) {
-            throw Refusal.PROFILE_FIELD_DETAILS_MISSING_ON_CHANGE.raise();
+            throw MemberRefusal.PROFILE_FIELD_DETAILS_MISSING_ON_CHANGE.raise();
         }
         requireOwnedField(ctx, id);
         profileFieldService
@@ -275,11 +293,33 @@ public class ProfileFieldRoutes implements Routes {
                         request.width(),
                         request.keepOnArchive() != null && request.keepOnArchive())
                 .ifPresentOrElse(ctx::json, () -> {
-                    throw Refusal.PROFILE_FIELD_NOT_HERE_ON_CHANGE.raise();
+                    throw MemberRefusal.PROFILE_FIELD_NOT_HERE_ON_CHANGE.raise();
                 });
     }
 
-    // -- Field Values --
+    /**
+     * Puts the fields in the given order, in one request rather than one per field.
+     *
+     * <p>Registered before the path that takes a field id, or "order" is read as one.
+     */
+    @OpenApi(
+            path = "/api/v1/profile-fields/order",
+            methods = HttpMethod.PUT,
+            summary = "Put one audience's profile fields in order",
+            tags = {"Profile Fields"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = FieldOrderRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "204"),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void reorder(Context ctx) {
+        var session = StationSession.from(ctx);
+        var req = ctx.bodyAsClass(FieldOrderRequest.class);
+        if (req.role() == null) throw MemberRefusal.PROFILE_FIELD_ORDER_AUDIENCE_MISSING.raise();
+        profileFieldService.reorder(
+                session.stationId(), req.role(), req.fieldIds() != null ? req.fieldIds() : List.of());
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
 
     @OpenApi(
             path = "/api/v1/profile-fields/{id}",
@@ -291,27 +331,13 @@ public class ProfileFieldRoutes implements Routes {
                 @OpenApiResponse(status = "204"),
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
-    /**
-     * Puts the fields in the given order, in one request rather than one per field.
-     *
-     * <p>Registered before the path that takes a field id, or "order" is read as one.
-     */
-    private void reorder(Context ctx) {
-        var session = UserSession.from(ctx);
-        var req = ctx.bodyAsClass(FieldOrderRequest.class);
-        if (req.role() == null) throw Refusal.PROFILE_FIELD_ORDER_AUDIENCE_MISSING.raise();
-        profileFieldService.reorder(
-                session.stationId(), req.role(), req.fieldIds() != null ? req.fieldIds() : List.of());
-        ctx.status(HttpStatus.NO_CONTENT);
-    }
-
     private void delete(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedField(ctx, id);
         if (profileFieldService.delete(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
-            throw Refusal.PROFILE_FIELD_NOT_HERE_ON_DELETE.raise();
+            throw MemberRefusal.PROFILE_FIELD_NOT_HERE_ON_DELETE.raise();
         }
     }
 
@@ -321,7 +347,10 @@ public class ProfileFieldRoutes implements Routes {
             summary = "Get applicable profile field definitions for a member based on their user type",
             tags = {"Profile Fields"},
             pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ProfileField[].class)))
+            responses =
+                    @OpenApiResponse(
+                            status = "200",
+                            content = @OpenApiContent(from = ProfileFieldService.MergedField[].class)))
     private void getApplicableFields(Context ctx) {
         int memberId = pathInt(ctx, "memberId");
         requireOwnedMember(ctx, memberId);
@@ -334,13 +363,27 @@ public class ProfileFieldRoutes implements Routes {
             summary = "Get profile field values for a member",
             tags = {"Profile Fields"},
             pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ProfileFieldValue[].class)))
+            responses =
+                    @OpenApiResponse(
+                            status = "200",
+                            content = @OpenApiContent(from = ProfileFieldService.MergedValue[].class)))
     private void getValues(Context ctx) {
         int memberId = pathInt(ctx, "memberId");
         requireOwnedMember(ctx, memberId);
+        requireMayRead(StationSession.from(ctx), memberId);
         ctx.json(profileFieldService.findValues(memberId));
     }
 
+    /**
+     * Writes a member's field values.
+     *
+     * <p>Only the member, their guardian or somebody allowed to edit members writes them; editing
+     * members also unlocks the fields that are read-only to everybody else.
+     *
+     * <p>Which answers are written is the service's to say, for the station's questions and the
+     * association's alike: only questions put to this member, and a locked one only by the member
+     * management.
+     */
     @OpenApi(
             path = "/api/v1/station-members/{memberId}/profile",
             methods = HttpMethod.PUT,
@@ -349,40 +392,25 @@ public class ProfileFieldRoutes implements Routes {
             tags = {"Profile Fields"},
             pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SetValuesRequest.class)),
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ProfileFieldValue[].class)))
+            responses =
+                    @OpenApiResponse(
+                            status = "200",
+                            content = @OpenApiContent(from = ProfileFieldService.MergedValue[].class)))
     private void setValues(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int memberId = pathInt(ctx, "memberId");
         requireOwnedMember(ctx, memberId);
+        requireMayWrite(session, memberId);
         var request = ctx.bodyAsClass(SetValuesRequest.class);
         boolean canEditReadonly = session.hasPermission(StationPermission.MEMBER_EDIT);
 
-        // Whether a field may be written is the assignment's to say and differs by audience, so it is
-        // read for the member being written rather than from the question itself. A field this member
-        // is never asked is not writable on them at all.
-        Map<Integer, Boolean> readonlyForMember = profileFieldService.findApplicableFields(memberId).stream()
-                .filter(field -> field.origin() == FieldOrigin.STATION)
-                .collect(Collectors.toMap(
-                        ProfileFieldService.MergedField::id,
-                        ProfileFieldService.MergedField::readonly,
-                        (first, ignored) -> first));
-
-        // A cluster's question is not one of this station's, so it cannot be checked against the station's
-        // own list: whether the station may answer it is the cluster's to say, and the service asks that.
         List<FieldValueEntry> entries = request.values() != null
                 ? request.values().stream()
-                        .filter(v -> {
-                            if (v.origin() == FieldOrigin.CLUSTER) return true;
-                            requireOwnedField(ctx, v.fieldId());
-                            var readonly = readonlyForMember.get(v.fieldId());
-                            if (readonly == null) return false;
-                            return canEditReadonly || !readonly;
-                        })
                         .map(v -> new FieldValueEntry(v.fieldId(), v.value(), originOf(v)))
                         .toList()
                 : List.of();
         ctx.json(profileFieldService.setValues(
-                memberId, entries, session.member().id()));
+                memberId, entries, session.member().id(), ProfileWriter.station(canEditReadonly)));
     }
 
     /** An entry that names no origin is the station's own, which is what every older caller sends. */
@@ -395,37 +423,37 @@ public class ProfileFieldRoutes implements Routes {
         return request.config() != null ? request.config() : ProfileFieldConfig.empty();
     }
 
-    // -- Request records --
-
     /**
      * @param config the field's settings as an object, the same shape the field is read back in.
      *               It used to be JSON text on the way in and an object on the way out, and the two
      *               halves of that never agreed: a setting the record did not name was dropped
      *               without a word, which is how a field of group scope lost its group.
+     * @param width  how much of a row the question takes by default, which an assignment may
+     *               override, or {@code null} for the whole row
      */
-    /** @param width how much of a row the question takes by default, which an assignment may override */
     public record ProfileFieldRequest(
             String name,
-            ProfileFieldType fieldType,
+            FieldType fieldType,
             ProfileFieldConfig config,
             Boolean required,
             Boolean readonly,
-            String width,
+            @Nullable String width,
             Boolean keepOnArchive) {}
 
     /**
      * Who a field is asked of, and how it is put to them.
      *
      * <p>Exactly one of {@code role} and {@code groupId} is given. Sending both, or neither, is the
-     * caller failing to say who is asked.
+     * caller failing to say who is asked. An override left {@code null} takes the question's own
+     * setting.
      */
     public record AssignmentRequest(
-            ProfileFieldScope role,
-            Integer groupId,
+            @Nullable ProfileFieldScope role,
+            @Nullable Integer groupId,
             int position,
-            String widthOverride,
-            Boolean readonlyOverride,
-            Boolean requiredOverride) {}
+            @Nullable String widthOverride,
+            @Nullable Boolean readonlyOverride,
+            @Nullable Boolean requiredOverride) {}
 
     /** The fields of one audience in the order they should stand. */
     public record FieldOrderRequest(ProfileFieldScope role, List<Integer> fieldIds) {}

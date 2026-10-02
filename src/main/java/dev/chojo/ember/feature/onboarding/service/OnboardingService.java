@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.onboarding.service;
 
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.StationRefusal;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
@@ -32,9 +33,9 @@ import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.service.SetupService;
 import dev.chojo.ember.feature.station.service.StationService;
 import dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository;
-import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -185,9 +186,9 @@ public class OnboardingService {
     public void mark(OnboardingLevel level, String taskId, OnboardingTaskState state, int memberId, int accountId) {
         OnboardingTask task = OnboardingTask.byKey(keyOf(taskId))
                 .filter(candidate -> candidate.level() == level)
-                .orElseThrow(() -> new BadRequestResponse("Unknown onboarding task"));
+                .orElseThrow(StationRefusal.ONBOARDING_TASK_UNKNOWN::raise);
         if (state == OnboardingTaskState.DONE && task.derived()) {
-            throw new BadRequestResponse("This task finishes itself once it is actually done");
+            throw StationRefusal.ONBOARDING_TASK_FINISHES_ITSELF.raise();
         }
         String stored =
                 switch (state) {
@@ -203,7 +204,7 @@ public class OnboardingService {
             case STATION -> {
                 int stationId = memberRepository
                         .findById(memberId)
-                        .orElseThrow(() -> new BadRequestResponse("Unknown member"))
+                        .orElseThrow(StationRefusal.ONBOARDING_MEMBER_NOT_HERE::raise)
                         .stationId();
                 if (state == OnboardingTaskState.OPEN) markRepository.clearForStation(stationId, taskId);
                 else markRepository.markForStation(stationId, taskId, stored, memberId);
@@ -216,17 +217,17 @@ public class OnboardingService {
         log.debug("Onboarding task {} at {} level set to {} by member {}", taskId, level, state, memberId);
     }
 
+    /** A dismissed task stays dismissed, whatever its data would now say. */
     private OnboardingTaskView view(
             OnboardingTask task,
-            String subject,
-            Integer subjectId,
+            @Nullable String subject,
+            @Nullable Integer subjectId,
             Map<String, OnboardingMark> marks,
             DerivedCheck derived) {
         String id = subjectId == null ? task.key() : task.key() + ":" + subjectId;
         OnboardingMark mark = marks.get(id);
         OnboardingTaskState state;
         if (mark != null && mark.dismissed()) {
-            // Thrown away for good, and so not asked about again, whatever the data would now say.
             state = OnboardingTaskState.DISMISSED;
         } else if (task.derived()) {
             state = derived.done()
@@ -331,25 +332,24 @@ public class OnboardingService {
         return task == OnboardingTask.GUARDIAN_USERNAME || task == OnboardingTask.GUARDIAN_PASSWORD;
     }
 
-    private Account account(StationMember member) {
-        if (member.accountId() == null) return null;
-        return accountRepository.findById(member.accountId()).orElse(null);
+    private @Nullable Account account(StationMember member) {
+        Integer accountId = member.accountId();
+        if (accountId == null) return null;
+        return accountRepository.findById(accountId).orElse(null);
     }
 
-    private String actorName(OnboardingMark mark, OnboardingLevel level) {
-        if (mark.actorId() == null) return null;
+    private @Nullable String actorName(OnboardingMark mark, OnboardingLevel level) {
+        Integer actorId = mark.actorId();
+        if (actorId == null) return null;
         return switch (level) {
             case STATION ->
                 memberRepository
-                        .findById(mark.actorId())
+                        .findById(actorId)
                         .map(this::account)
                         .map(Account::fullName)
                         .orElse(null);
             case INSTANCE ->
-                accountRepository
-                        .findById(mark.actorId())
-                        .map(Account::fullName)
-                        .orElse(null);
+                accountRepository.findById(actorId).map(Account::fullName).orElse(null);
             case MEMBER -> null;
         };
     }

@@ -6,7 +6,7 @@
 <script setup lang="ts">
 import InventorySection from './InventorySection.vue'
 import MissingRequirements from './inventorytab/MissingRequirements.vue'
-import type { MemberRequirements, MyInventoryItem } from '@/api/inventory'
+import type { MemberRequirements, MyInventoryItem } from '@/api/generated/schema'
 
 defineProps<{
   memberInventory: MyInventoryItem[]
@@ -17,12 +17,12 @@ defineProps<{
 }>()
 
 defineEmits<{
-  (e: 'assign-item'): void
-  (e: 'request-exchange', item: MyInventoryItem): void
-  (e: 'unassign', item: MyInventoryItem): void
-  (e: 'reassign', item: MyInventoryItem): void
-  (e: 'hand-out', itemId: number): void
-  (e: 'hand-out-new', inventoryId: number, sizeId: number | null): void
+  'assign-item': []
+  'request-exchange': [item: MyInventoryItem]
+  unassign: [item: MyInventoryItem]
+  reassign: [item: MyInventoryItem]
+  'hand-out': [itemId: number]
+  'hand-out-new': [inventoryId: number, sizeId: number | null]
 }>()
 </script>
 

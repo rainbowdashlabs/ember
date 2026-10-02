@@ -5,9 +5,9 @@
  */
 package dev.chojo.ember.feature.members.service;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AccountEmailService;
@@ -17,16 +17,15 @@ import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.passkey.service.PasskeyEnrollmentService;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.ForbiddenResponse;
-import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Stream;
 
 /**
  * The access a guardian manages for the members in their care: the address the account is reached
@@ -84,7 +83,8 @@ public class ManagedAccessService {
      * @param canSignIn    whether granting access is possible at all, which needs either an address
      *                     or a name to sign in with
      */
-    public record ManagedAccess(String email, String username, boolean loginEnabled, boolean canSignIn) {}
+    public record ManagedAccess(
+            @Nullable String email, @Nullable String username, boolean loginEnabled, boolean canSignIn) {}
 
     /**
      * Reads the access state of a managed member.
@@ -169,15 +169,15 @@ public class ManagedAccessService {
         StationMember member = requireManaged(guardianMemberId, memberId);
         var account = account(member);
         if (account.hasRealEmail()) {
-            throw Refusal.MANAGED_MEMBER_SETS_THEIR_OWN_PASSWORD.raise();
+            throw MemberRefusal.MANAGED_MEMBER_SETS_THEIR_OWN_PASSWORD.raise();
         }
         if (password == null || password.isBlank()) {
-            throw Refusal.MANAGED_PASSWORD_TOO_SHORT.raise();
+            throw MemberRefusal.MANAGED_PASSWORD_TOO_SHORT.raise();
         }
         switch (authService.setPasswordFor(account, password)) {
-            case PASSWORD_TOO_SHORT -> throw Refusal.MANAGED_PASSWORD_TOO_SHORT.raise();
-            case PASSWORD_BREACHED -> throw Refusal.MANAGED_PASSWORD_BREACHED.raise();
-            case PASSWORDLESS_MODE -> throw Refusal.MANAGED_PASSWORD_NOT_TAKEN.raise();
+            case PASSWORD_TOO_SHORT -> throw MemberRefusal.MANAGED_PASSWORD_TOO_SHORT.raise();
+            case PASSWORD_BREACHED -> throw MemberRefusal.MANAGED_PASSWORD_BREACHED.raise();
+            case PASSWORDLESS_MODE -> throw MemberRefusal.MANAGED_PASSWORD_NOT_TAKEN.raise();
             default ->
                 log.info(
                         "Guardian {} set the password of managed member {} (account {})",
@@ -194,11 +194,15 @@ public class ManagedAccessService {
      * same guardian sets that member's password today.
      */
     public PasskeyEnrollmentService.IssuedCode issuePasskeyCode(
-            int guardianMemberId, int memberId, int actorAccountId, String userAgent, String country) {
+            int guardianMemberId,
+            int memberId,
+            int actorAccountId,
+            @Nullable String userAgent,
+            @Nullable String country) {
         StationMember member = requireManaged(guardianMemberId, memberId);
         var account = account(member);
         if (account.hasRealEmail()) {
-            throw new ForbiddenResponse("This member has an address of their own; the mail path is theirs");
+            throw MemberRefusal.MANAGED_MEMBER_HAS_OWN_ADDRESS.raise();
         }
         return enrollmentService.issueCodeWithQr(
                 account.id(), actorAccountId, PasskeyEnrollmentService.QR_TTL, userAgent, country);
@@ -234,12 +238,11 @@ public class ManagedAccessService {
         var account = account(member);
         var permission = memberRepository
                 .findPermissionByName(StationPermission.LOGIN)
-                .orElseThrow(() -> new BadRequestResponse("The login permission does not exist"));
+                .orElseThrow(MemberRefusal.MANAGED_SIGN_IN_PERMISSION_MISSING::raise);
 
         if (enabled) {
             if (!canSignIn(account)) {
-                throw new BadRequestResponse(
-                        "Set an email address or a username before allowing this member to sign in");
+                throw MemberRefusal.MANAGED_SIGN_IN_NEEDS_A_NAME_OR_ADDRESS.raise();
             }
             if (!hasLogin(memberId)) {
                 memberRepository.grantPermission(memberId, permission.id());
@@ -264,10 +267,11 @@ public class ManagedAccessService {
     }
 
     private Account account(StationMember member) {
-        if (member.accountId() == null) {
-            throw new BadRequestResponse("This member has no account");
+        Integer accountId = member.accountId();
+        if (accountId == null) {
+            throw MemberRefusal.MANAGED_MEMBER_HAS_NO_ACCOUNT.raise();
         }
-        return accountRepository.findById(member.accountId()).orElseThrow(NotFoundResponse::new);
+        return accountRepository.findById(accountId).orElseThrow(MemberRefusal.MANAGED_ACCOUNT_NOT_HERE::raise);
     }
 
     /**
@@ -287,7 +291,8 @@ public class ManagedAccessService {
                         managed.userType() == StationUserType.MEMBER || managed.userType() == StationUserType.TRIAL)
                 .filter(managed -> managed.accountId() != null)
                 .filter(managed -> hasLogin(managed.id()))
-                .flatMap(managed -> accountRepository.findById(managed.accountId()).stream()
+                .flatMap(managed -> Stream.ofNullable(managed.accountId())
+                        .flatMap(accountId -> accountRepository.findById(accountId).stream())
                         .filter(ManagedAccessService::canSignIn)
                         .map(account -> new SignInCandidate(account.id(), nameOf(managed, account))))
                 .sorted(Comparator.comparing(SignInCandidate::name, String.CASE_INSENSITIVE_ORDER))
@@ -314,11 +319,12 @@ public class ManagedAccessService {
         boolean manages =
                 memberService.findManaged(guardianMemberId).stream().anyMatch(managed -> managed.id() == memberId);
         if (!manages) {
-            throw new ForbiddenResponse("You do not manage this member");
+            throw MemberRefusal.MANAGED_MEMBER_NOT_YOURS.raise();
         }
-        StationMember member = memberRepository.findById(memberId).orElseThrow(NotFoundResponse::new);
+        StationMember member =
+                memberRepository.findById(memberId).orElseThrow(MemberRefusal.MANAGED_MEMBER_NOT_HERE::raise);
         if (member.userType() != StationUserType.MEMBER && member.userType() != StationUserType.TRIAL) {
-            throw new ForbiddenResponse("Only members and trial members are managed this way");
+            throw MemberRefusal.MANAGED_MEMBER_TYPE_NOT_MANAGED.raise();
         }
         return member;
     }

@@ -6,14 +6,18 @@
 package dev.chojo.ember.feature.comment.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RouteSupport;
+import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.CommentRefusal;
 import dev.chojo.ember.feature.comment.entity.Comment;
+import dev.chojo.ember.feature.comment.entity.CommentEntityType;
+import dev.chojo.ember.feature.comment.entity.CommentFilter;
+import dev.chojo.ember.feature.comment.entity.CommentWriter;
+import dev.chojo.ember.feature.comment.entity.Moderation;
+import dev.chojo.ember.feature.comment.entity.NewComment;
 import dev.chojo.ember.feature.comment.service.CommentService;
-import dev.chojo.ember.feature.events.route.EventVisibility;
 import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
@@ -30,7 +34,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 import java.time.LocalDate;
-import java.util.List;
+import java.time.format.DateTimeParseException;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 
@@ -41,18 +45,15 @@ import static dev.chojo.ember.api.RouteSupport.pathInt;
 @Singleton
 public class EventCommentRoutes implements Routes {
     private final CommentService commentService;
-    private final EventVisibility visibility;
     private final MemberIdentityFactory memberIdentityFactory;
     private final MemberNameResolver memberNameResolver;
 
     @Inject
     public EventCommentRoutes(
             CommentService commentService,
-            EventVisibility visibility,
             MemberIdentityFactory memberIdentityFactory,
             MemberNameResolver memberNameResolver) {
         this.commentService = commentService;
-        this.visibility = visibility;
         this.memberIdentityFactory = memberIdentityFactory;
         this.memberNameResolver = memberNameResolver;
     }
@@ -63,6 +64,25 @@ public class EventCommentRoutes implements Routes {
         routes.post(prefix + "/events/{eventId}/comments", this::create, StationPermission.LOGIN);
         routes.put(prefix + "/events/comments/{commentId}", this::update, StationPermission.LOGIN);
         routes.delete(prefix + "/events/comments/{commentId}", this::delete, StationPermission.LOGIN);
+    }
+
+    /**
+     * Which comments the listing asks for. Without a date or a date scope it is every comment of the
+     * appointment, so existing callers keep their shape; {@code ?date=yyyy-MM-dd} narrows it to one
+     * occurrence, and {@code ?scope=date} without a date or with {@code date=none} to the comments
+     * on the appointment as a whole.
+     */
+    private static CommentFilter filterOf(Context ctx) {
+        String dateParam = ctx.queryParam("date");
+        if (dateParam == null && !"date".equals(ctx.queryParam("scope"))) return CommentFilter.ALL;
+        if (dateParam == null || dateParam.isBlank() || "none".equalsIgnoreCase(dateParam)) {
+            return new CommentFilter.Occurrence(null);
+        }
+        try {
+            return new CommentFilter.Occurrence(LocalDate.parse(dateParam));
+        } catch (DateTimeParseException notADate) {
+            throw CommentRefusal.COMMENT_DAY_NOT_A_DATE.raise();
+        }
     }
 
     @OpenApi(
@@ -85,27 +105,11 @@ public class EventCommentRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = CommentResponse[].class)))
     private void list(Context ctx) {
         int eventId = pathInt(ctx, "eventId");
-        visibility.requireVisibleEvent(UserSession.from(ctx), eventId);
-        String dateParam = ctx.queryParam("date");
-        String scope = ctx.queryParam("scope");
-        // Default behaviour stays "everything for the event" so existing callers don't
-        // change shape. Date-scoped reads opt in via either ?date=YYYY-MM-DD (most common
-        // for occurrence deep-links) or ?scope=date&date=none (whole-event-only).
-        List<Comment> comments;
-        if (dateParam != null || "date".equals(scope)) {
-            LocalDate eventDate = null;
-            if (dateParam != null && !dateParam.isBlank() && !"none".equalsIgnoreCase(dateParam)) {
-                try {
-                    eventDate = LocalDate.parse(dateParam);
-                } catch (Exception e) {
-                    throw Refusal.COMMENT_DAY_NOT_A_DATE.raise();
-                }
-            }
-            comments = commentService.findByEventAndDate(eventId, eventDate);
-        } else {
-            comments = commentService.findByEvent(eventId);
-        }
-        ctx.json(comments.stream().map(this::toResponse).toList());
+        commentService.requireReadable(StationSession.from(ctx), CommentEntityType.EVENT, eventId);
+        var filter = filterOf(ctx);
+        ctx.json(commentService.list(CommentEntityType.EVENT, eventId, filter).stream()
+                .map(this::toResponse)
+                .toList());
     }
 
     @OpenApi(
@@ -118,23 +122,17 @@ public class EventCommentRoutes implements Routes {
             responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = CommentResponse.class)))
     private void create(Context ctx) {
         int eventId = pathInt(ctx, "eventId");
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(CreateCommentRequest.class);
         if (request.content() == null || request.content().isBlank()) {
-            throw Refusal.COMMENT_NEEDS_TEXT.raise();
+            throw CommentRefusal.COMMENT_NEEDS_TEXT.raise();
         }
-        var author = memberIdentityFactory.local(
-                session.stationId(), session.member().id());
-        String eventName = visibility.requireVisibleEvent(session, eventId).name();
         var comment = commentService.create(
-                session.stationId(),
+                session,
+                CommentEntityType.EVENT,
                 eventId,
-                request.parentId(),
-                author,
-                NameParts.of(session.account()).called(),
-                request.content(),
-                eventName,
-                request.eventDate());
+                writer(session),
+                new NewComment(request.parentId(), request.eventDate(), request.content()));
         ctx.status(HttpStatus.CREATED).json(toResponse(comment));
     }
 
@@ -151,20 +149,20 @@ public class EventCommentRoutes implements Routes {
             })
     private void update(Context ctx) {
         int commentId = pathInt(ctx, "commentId");
-        UserSession session = UserSession.from(ctx);
-        var comment = commentService.findById(commentId).orElseThrow(Refusal.COMMENT_NOT_HERE_ON_CHANGE::raise);
-        var authorIdentity = memberIdentityFactory.local(
-                session.stationId(), session.member().id());
-        if (comment.author() == null || !comment.author().sameMember(authorIdentity)) {
-            throw Refusal.COMMENT_NOT_YOURS_TO_CHANGE.raise();
+        StationSession session = StationSession.from(ctx);
+        var comment = commentService
+                .findById(CommentEntityType.EVENT, commentId)
+                .orElseThrow(CommentRefusal.COMMENT_NOT_HERE_ON_CHANGE::raise);
+        if (!commentService.mayModify(session, actor(session), comment, Moderation.EDIT)) {
+            throw CommentRefusal.COMMENT_NOT_YOURS_TO_CHANGE.raise();
         }
         var request = ctx.bodyAsClass(UpdateCommentRequest.class);
         if (request.content() == null || request.content().isBlank()) {
-            throw Refusal.COMMENT_CHANGE_NEEDS_TEXT.raise();
+            throw CommentRefusal.COMMENT_CHANGE_NEEDS_TEXT.raise();
         }
-        commentService.update(
-                session.stationId(), commentId, NameParts.of(session.account()).called(), request.content());
-        var updated = commentService.findById(commentId).orElseThrow(Refusal.COMMENT_NOT_HERE_AFTER_CHANGE::raise);
+        var updated = commentService
+                .update(comment, writer(session), request.content())
+                .orElseThrow(CommentRefusal.COMMENT_NOT_HERE_AFTER_CHANGE::raise);
         ctx.json(toResponse(updated));
     }
 
@@ -180,23 +178,27 @@ public class EventCommentRoutes implements Routes {
             })
     private void delete(Context ctx) {
         int commentId = pathInt(ctx, "commentId");
-        UserSession session = UserSession.from(ctx);
-        var comment = commentService.findById(commentId).orElseThrow(Refusal.COMMENT_NOT_HERE_ON_DELETE::raise);
-        RouteSupport.requireSameStation(
-                session,
-                commentService.findCommentStation(commentId).orElseThrow(Refusal.COMMENT_NOT_HERE_ON_DELETE::raise));
-        var authorIdentity = memberIdentityFactory.local(
-                session.stationId(), session.member().id());
-        boolean isAuthor = comment.author() != null && comment.author().sameMember(authorIdentity);
-        boolean canModerate = session.hasPermission(StationPermission.EVENT_MANAGER);
-        if (!isAuthor && !canModerate) {
-            throw Refusal.COMMENT_NOT_YOURS_TO_DELETE.raise();
+        StationSession session = StationSession.from(ctx);
+        var comment = commentService
+                .findById(CommentEntityType.EVENT, commentId)
+                .orElseThrow(CommentRefusal.COMMENT_NOT_HERE_ON_DELETE::raise);
+        commentService.requireSameStation(session, comment);
+        if (!commentService.mayModify(session, actor(session), comment, Moderation.DELETE)) {
+            throw CommentRefusal.COMMENT_NOT_YOURS_TO_DELETE.raise();
         }
-        if (commentService.delete(commentId)) {
-            ctx.status(HttpStatus.NO_CONTENT);
-        } else {
-            throw Refusal.COMMENT_NOT_DELETED.raise();
+        if (!commentService.delete(comment)) {
+            throw CommentRefusal.COMMENT_NOT_DELETED.raise();
         }
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    private MemberIdentity actor(StationSession session) {
+        return memberIdentityFactory.local(session.stationId(), session.member().id());
+    }
+
+    private CommentWriter writer(StationSession session) {
+        return CommentWriter.local(
+                actor(session), NameParts.of(session.user().account()).called());
     }
 
     private CommentResponse toResponse(Comment comment) {

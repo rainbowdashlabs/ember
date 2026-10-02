@@ -6,11 +6,9 @@
  * only is read as a smaller release by whoever reads the other. The German file starts where it was
  * introduced and carries a tail of the English one, which is allowed; naming a version English does
  * not, reordering the shared ones, or carrying fewer entries under a shared heading is not.
- *
- * Stands down where the repository root is absent, which is the frontend image.
  */
 
-import {existsSync, readFileSync} from 'fs'
+import {readFileSync} from 'fs'
 import {join} from 'path'
 import {createReporter} from './lint-utils.mjs'
 
@@ -41,14 +39,6 @@ function releases(path) {
 }
 
 const paths = [ENGLISH, GERMAN].map(name => join(REPO_ROOT, name))
-if (!paths.every(existsSync)) {
-    // Stop here rather than fall through: the reporter only ends the run on an error, and what
-    // follows would read a file that is not there.
-    reporter.warn('', 0, 'The changelogs are not present, which is expected inside the frontend image.', CATEGORY)
-    reporter.print()
-    process.exit(0)
-}
-
 const english = releases(paths[0])
 const german = releases(paths[1])
 

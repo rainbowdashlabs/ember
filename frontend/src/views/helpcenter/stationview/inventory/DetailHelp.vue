@@ -65,10 +65,10 @@ const {t} = useI18n()
         </template>
         <TRow>
           <Td>
-            <div class="font-medium">Helm <SizeBadge>S</SizeBadge></div>
+            <div class="font-medium">{{ t('helpCenter.sample.equipment.helmet') }} <SizeBadge>S</SizeBadge></div>
             <MutedText tag="div">INV-0003</MutedText>
           </Td>
-          <Td>Erika Musterfrau</Td>
+          <Td>{{ t('helpCenter.sample.people.erikaMusterfrau') }}</Td>
           <Td><ErrorBadge>01.05.2026</ErrorBadge></Td>
         </TRow>
       </DataTable>

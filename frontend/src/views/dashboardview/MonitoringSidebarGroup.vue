@@ -30,7 +30,7 @@ function close() {
 </script>
 
 <template>
-  <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => emit('update:openGroup', v)" :icon="['fas', 'chart-line']" :label="t('sidebar.monitoring')" to="/station/monitoring/traffic" name="station-monitoring" @navigate="close">
+  <SidebarGroup :open-group="isDesktop ? undefined : openGroup" :icon="['fas', 'chart-line']" :label="t('sidebar.monitoring')" to="/station/monitoring/traffic" name="station-monitoring" @update:open-group="v => emit('update:openGroup', v)" @navigate="close">
     <SidebarLink :icon="['fas', 'tower-broadcast']" name="station-traffic" to="/station/monitoring/traffic" @navigate="close">
       {{ t('sidebar.stationTraffic') }}
     </SidebarLink>

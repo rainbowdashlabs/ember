@@ -12,19 +12,19 @@ import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import SizeBadge from '@/components/badge/SizeBadge.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
-import type { ProcurementEntry } from '@/api/procurement'
+import type { ProcurementResponse } from '@/api/generated/schema'
 import { formatDate } from '@/util/format'
 
 const { t } = useI18n()
 
 defineProps<{
-  entry: ProcurementEntry
+  entry: ProcurementResponse
   canManageProcurement: boolean
 }>()
 
 defineEmits<{
-  (e: 'fulfill', id: number): void
-  (e: 'delete', id: number): void
+  fulfill: [id: number]
+  delete: [id: number]
 }>()
 
 </script>
@@ -40,7 +40,6 @@ defineEmits<{
           <ErrorBadge v-else>{{ t('procurement.open') }}</ErrorBadge>
         </div>
         <div class="text-sm text-(--text-muted) flex items-center gap-1">
-          <!-- An association orders for its own store, so there is nobody to name and no dash to hang -->
           <template v-if="entry.memberIdentity">
             <MemberName :identity="entry.memberIdentity"/>
             <span>,</span>

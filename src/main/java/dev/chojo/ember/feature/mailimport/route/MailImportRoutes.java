@@ -5,26 +5,37 @@
  */
 package dev.chojo.ember.feature.mailimport.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.DocumentRefusal;
+import dev.chojo.ember.api.refusal.MailImportRefusal;
 import dev.chojo.ember.conf.file.elements.MailImport;
+import dev.chojo.ember.feature.documents.service.ContentSniffer;
 import dev.chojo.ember.feature.mailimport.entity.MailImportEntry;
+import dev.chojo.ember.feature.mailimport.entity.MailImportOutcome;
 import dev.chojo.ember.feature.mailimport.entity.MailMailbox;
 import dev.chojo.ember.feature.mailimport.entity.MailRule;
 import dev.chojo.ember.feature.mailimport.entity.MailRuleAction;
 import dev.chojo.ember.feature.mailimport.entity.MailSecurity;
 import dev.chojo.ember.feature.mailimport.entity.MailTitleSource;
-import dev.chojo.ember.feature.mailimport.service.ContentSniffer;
 import dev.chojo.ember.feature.mailimport.service.MailboxService;
+import dev.chojo.ember.feature.mailimport.service.MailboxService.TestResult;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.service.StationService;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
+import io.javalin.openapi.HttpMethod;
+import io.javalin.openapi.OpenApi;
+import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiParam;
+import io.javalin.openapi.OpenApiRequestBody;
+import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.List;
@@ -88,6 +99,13 @@ public class MailImportRoutes implements Routes {
      * <p>The floor and the kill switch are not the station's to set, and a page that did not know them
      * would offer an interval the server then quietly overrode, which is the worst of both.
      */
+    @OpenApi(
+            path = "/api/v1/station/mail-import/settings",
+            methods = HttpMethod.GET,
+            summary = "What the operator decided about mail import",
+            tags = {"Mail Import"},
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = InstanceSettingsResponse.class)))
     private void instanceSettings(Context ctx) {
         requireModule(stationOf(ctx));
         ctx.json(new InstanceSettingsResponse(
@@ -99,6 +117,12 @@ public class MailImportRoutes implements Routes {
                 ContentSniffer.SUPPORTED_TYPES));
     }
 
+    @OpenApi(
+            path = "/api/v1/station/mail-import/mailboxes",
+            methods = HttpMethod.GET,
+            summary = "List the station's mailboxes",
+            tags = {"Mail Import"},
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MailboxResponse[].class)))
     private void listMailboxes(Context ctx) {
         int stationId = stationOf(ctx);
         requireModule(stationId);
@@ -107,6 +131,13 @@ public class MailImportRoutes implements Routes {
                 .toList());
     }
 
+    @OpenApi(
+            path = "/api/v1/station/mail-import/mailboxes",
+            methods = HttpMethod.POST,
+            summary = "Connect a mailbox",
+            tags = {"Mail Import"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = MailboxRequest.class)),
+            responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = MailboxResponse.class)))
     private void createMailbox(Context ctx) {
         int stationId = stationOf(ctx);
         requireModule(stationId);
@@ -126,6 +157,14 @@ public class MailImportRoutes implements Routes {
         ctx.status(HttpStatus.CREATED).json(toResponse(mailbox));
     }
 
+    @OpenApi(
+            path = "/api/v1/station/mail-import/mailboxes/{id}",
+            methods = HttpMethod.PUT,
+            summary = "Update a mailbox",
+            tags = {"Mail Import"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = MailboxRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MailboxResponse.class)))
     private void updateMailbox(Context ctx) {
         var mailbox = requireOwned(ctx);
         var request = ctx.bodyValidator(MailboxRequest.class).get();
@@ -144,6 +183,14 @@ public class MailImportRoutes implements Routes {
         ctx.json(toResponse(mailboxService.require(mailbox.id())));
     }
 
+    @OpenApi(
+            path = "/api/v1/station/mail-import/mailboxes/{id}/password",
+            methods = HttpMethod.PUT,
+            summary = "Replace a mailbox's password",
+            tags = {"Mail Import"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = PasswordRequest.class)),
+            responses = @OpenApiResponse(status = "204"))
     private void updatePassword(Context ctx) {
         var mailbox = requireOwned(ctx);
         var request = ctx.bodyValidator(PasswordRequest.class).get();
@@ -151,6 +198,13 @@ public class MailImportRoutes implements Routes {
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
+    @OpenApi(
+            path = "/api/v1/station/mail-import/mailboxes/{id}",
+            methods = HttpMethod.DELETE,
+            summary = "Disconnect a mailbox",
+            tags = {"Mail Import"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            responses = @OpenApiResponse(status = "204"))
     private void deleteMailbox(Context ctx) {
         var mailbox = requireOwned(ctx);
         mailboxService.delete(mailbox.id());
@@ -164,23 +218,51 @@ public class MailImportRoutes implements Routes {
      * these up is a folder spelled the way the person says it rather than the way the provider does, and a
      * test that only said "connected" would not catch it.
      */
+    @OpenApi(
+            path = "/api/v1/station/mail-import/mailboxes/{id}/test",
+            methods = HttpMethod.POST,
+            summary = "Test a mailbox connection and list its folders",
+            tags = {"Mail Import"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = TestResult.class)))
     private void test(Context ctx) {
         var mailbox = requireOwned(ctx);
         ctx.json(mailboxService.test(mailbox));
     }
 
+    @OpenApi(
+            path = "/api/v1/station/mail-import/mailboxes/{id}/run",
+            methods = HttpMethod.POST,
+            summary = "Read a mailbox now",
+            tags = {"Mail Import"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = CycleResponse.class)))
     private void runNow(Context ctx) {
         var mailbox = requireOwned(ctx);
         var cycle = mailboxService.runNow(mailbox, Instant.now());
         ctx.json(new CycleResponse(cycle.looked(), cycle.imported(), cycle.refused()));
     }
 
+    @OpenApi(
+            path = "/api/v1/station/mail-import/mailboxes/{id}/resume",
+            methods = HttpMethod.POST,
+            summary = "Resume a suspended mailbox",
+            tags = {"Mail Import"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MailboxResponse.class)))
     private void resume(Context ctx) {
         var mailbox = requireOwned(ctx);
         mailboxService.resume(mailbox.id());
         ctx.json(toResponse(mailboxService.require(mailbox.id())));
     }
 
+    @OpenApi(
+            path = "/api/v1/station/mail-import/mailboxes/{id}/rules",
+            methods = HttpMethod.GET,
+            summary = "List the rules of a mailbox",
+            tags = {"Mail Import"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = RuleResponse[].class)))
     private void listRules(Context ctx) {
         var mailbox = requireOwned(ctx);
         ctx.json(mailboxService.rulesOf(mailbox.id()).stream()
@@ -188,6 +270,14 @@ public class MailImportRoutes implements Routes {
                 .toList());
     }
 
+    @OpenApi(
+            path = "/api/v1/station/mail-import/mailboxes/{id}/rules",
+            methods = HttpMethod.POST,
+            summary = "Add a rule to a mailbox",
+            tags = {"Mail Import"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = RuleRequest.class)),
+            responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = RuleResponse.class)))
     private void createRule(Context ctx) {
         var mailbox = requireOwned(ctx);
         requireMayFile(UserSession.from(ctx));
@@ -195,6 +285,14 @@ public class MailImportRoutes implements Routes {
         ctx.status(HttpStatus.CREATED).json(toResponse(mailboxService.createRule(mailbox, request)));
     }
 
+    @OpenApi(
+            path = "/api/v1/station/mail-import/rules/{ruleId}",
+            methods = HttpMethod.PUT,
+            summary = "Update a mailbox rule",
+            tags = {"Mail Import"},
+            pathParams = @OpenApiParam(name = "ruleId", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = RuleRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = RuleResponse.class)))
     private void updateRule(Context ctx) {
         var rule = requireOwnedRule(ctx);
         requireMayFile(UserSession.from(ctx));
@@ -203,6 +301,13 @@ public class MailImportRoutes implements Routes {
         ctx.json(toResponse(mailboxService.requireRule(rule.id())));
     }
 
+    @OpenApi(
+            path = "/api/v1/station/mail-import/rules/{ruleId}",
+            methods = HttpMethod.DELETE,
+            summary = "Delete a mailbox rule",
+            tags = {"Mail Import"},
+            pathParams = @OpenApiParam(name = "ruleId", type = Integer.class, required = true),
+            responses = @OpenApiResponse(status = "204"))
     private void deleteRule(Context ctx) {
         var rule = requireOwnedRule(ctx);
         requireMayFile(UserSession.from(ctx));
@@ -210,6 +315,16 @@ public class MailImportRoutes implements Routes {
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
+    @OpenApi(
+            path = "/api/v1/station/mail-import/log",
+            methods = HttpMethod.GET,
+            summary = "What became of each attachment the mailboxes read",
+            tags = {"Mail Import"},
+            queryParams = {
+                @OpenApiParam(name = "page", type = Integer.class),
+                @OpenApiParam(name = "size", type = Integer.class)
+            },
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = LogPageResponse.class)))
     private void log(Context ctx) {
         int stationId = stationOf(ctx);
         requireModule(stationId);
@@ -223,7 +338,7 @@ public class MailImportRoutes implements Routes {
     }
 
     private int stationOf(Context ctx) {
-        return UserSession.from(ctx).stationId();
+        return StationSession.from(ctx).stationId();
     }
 
     /**
@@ -232,13 +347,13 @@ public class MailImportRoutes implements Routes {
      */
     private void requireMayFile(UserSession session) {
         if (!session.hasPermission(StationPermission.DOCUMENT_EDIT_MEMBER)) {
-            throw Refusal.DOCUMENT_NOT_YOURS_TO_FILE.raise();
+            throw DocumentRefusal.DOCUMENT_NOT_YOURS_TO_FILE.raise();
         }
     }
 
     private void requireModule(int stationId) {
         if (stationService.findDisabledModules(stationId).contains(StationModule.DOCUMENTS)) {
-            throw Refusal.MAIL_IMPORT_SWITCHED_OFF.raise();
+            throw MailImportRefusal.MAIL_IMPORT_SWITCHED_OFF.raise();
         }
     }
 
@@ -248,7 +363,8 @@ public class MailImportRoutes implements Routes {
         requireModule(stationId);
         var mailbox =
                 mailboxService.find(ctx.pathParamAsClass("id", Integer.class).get());
-        if (mailbox.isEmpty() || mailbox.get().stationId() != stationId) throw Refusal.MAILBOX_NOT_HERE.raise();
+        if (mailbox.isEmpty() || mailbox.get().stationId() != stationId)
+            throw MailImportRefusal.MAILBOX_NOT_HERE.raise();
         return mailbox.get();
     }
 
@@ -257,9 +373,10 @@ public class MailImportRoutes implements Routes {
         requireModule(stationId);
         var rule = mailboxService.findRule(
                 ctx.pathParamAsClass("ruleId", Integer.class).get());
-        if (rule.isEmpty()) throw Refusal.MAILBOX_RULE_NOT_HERE.raise();
+        if (rule.isEmpty()) throw MailImportRefusal.MAILBOX_RULE_NOT_HERE.raise();
         var mailbox = mailboxService.find(rule.get().mailboxId());
-        if (mailbox.isEmpty() || mailbox.get().stationId() != stationId) throw Refusal.MAILBOX_RULE_NOT_HERE.raise();
+        if (mailbox.isEmpty() || mailbox.get().stationId() != stationId)
+            throw MailImportRefusal.MAILBOX_RULE_NOT_HERE.raise();
         return rule.get();
     }
 
@@ -317,7 +434,7 @@ public class MailImportRoutes implements Routes {
                 entry.sender(),
                 entry.subject(),
                 entry.attachmentName(),
-                entry.outcome().name(),
+                entry.outcome(),
                 entry.reason(),
                 entry.documentId(),
                 entry.pruned(),
@@ -351,8 +468,8 @@ public class MailImportRoutes implements Routes {
             boolean enabled,
             int intervalMinutes,
             Instant importFrom,
-            Instant lastCheckAt,
-            String lastError,
+            @Nullable Instant lastCheckAt,
+            @Nullable String lastError,
             int failureCount,
             boolean suspended) {}
 
@@ -371,7 +488,7 @@ public class MailImportRoutes implements Routes {
             int port,
             MailSecurity security,
             String username,
-            String password,
+            @Nullable String password,
             String folder,
             boolean verifyDkim,
             boolean enabled,
@@ -386,8 +503,8 @@ public class MailImportRoutes implements Routes {
             String name,
             int position,
             boolean enabled,
-            String subjectFilter,
-            String attachmentNameFilter,
+            @Nullable String subjectFilter,
+            @Nullable String attachmentNameFilter,
             List<String> acceptedTypes,
             long minSizeBytes,
             boolean includeInline,
@@ -396,7 +513,7 @@ public class MailImportRoutes implements Routes {
             boolean keepOnArchive,
             boolean readSubjectForMember,
             MailRuleAction action,
-            String moveToFolder,
+            @Nullable String moveToFolder,
             List<String> senderPatterns,
             List<String> tags) {}
 
@@ -404,8 +521,8 @@ public class MailImportRoutes implements Routes {
             String name,
             int position,
             boolean enabled,
-            String subjectFilter,
-            String attachmentNameFilter,
+            @Nullable String subjectFilter,
+            @Nullable String attachmentNameFilter,
             List<String> acceptedTypes,
             long minSizeBytes,
             boolean includeInline,
@@ -414,21 +531,21 @@ public class MailImportRoutes implements Routes {
             boolean keepOnArchive,
             boolean readSubjectForMember,
             MailRuleAction action,
-            String moveToFolder,
+            @Nullable String moveToFolder,
             List<String> senderPatterns,
             List<String> tags) {}
 
     public record LogEntryResponse(
             int id,
             int mailboxId,
-            Integer ruleId,
-            String ruleName,
-            String sender,
-            String subject,
-            String attachmentName,
-            String outcome,
-            String reason,
-            Integer documentId,
+            @Nullable Integer ruleId,
+            @Nullable String ruleName,
+            @Nullable String sender,
+            @Nullable String subject,
+            @Nullable String attachmentName,
+            MailImportOutcome outcome,
+            @Nullable String reason,
+            @Nullable Integer documentId,
             boolean pruned,
             Instant createdAt) {}
 

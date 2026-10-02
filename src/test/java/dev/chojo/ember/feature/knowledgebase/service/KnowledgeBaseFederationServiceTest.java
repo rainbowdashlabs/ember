@@ -7,16 +7,22 @@ package dev.chojo.ember.feature.knowledgebase.service;
 
 import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.FederationRefusal;
+import dev.chojo.ember.api.refusal.KnowledgeBaseRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.Federation;
 import dev.chojo.ember.conf.file.elements.Storage;
+import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.cluster.service.ClusterAutoShareService;
+import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.comment.route.CommentResponse;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.federation.FederationTestContracts;
+import dev.chojo.ember.feature.federation.FederationTestTransport;
 import dev.chojo.ember.feature.federation.entity.CapabilityType;
 import dev.chojo.ember.feature.federation.entity.Direction;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
@@ -26,12 +32,12 @@ import dev.chojo.ember.feature.federation.service.FederationEntityResolver;
 import dev.chojo.ember.feature.federation.service.FederationFanout;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationService;
+import dev.chojo.ember.feature.federation.service.OutboundHttp;
 import dev.chojo.ember.feature.federation.service.RemoteUrlValidator;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFavouriteTarget;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileSummary;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
-import dev.chojo.ember.feature.knowledgebase.repository.KbCommentRepository;
 import dev.chojo.ember.feature.knowledgebase.repository.KbFavouriteRepository;
 import dev.chojo.ember.feature.knowledgebase.route.RemoteKnowledgeBaseRoutes;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -40,11 +46,9 @@ import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.storage.service.PdfCompressor;
 import dev.chojo.ember.feature.storage.service.PresentationCompressor;
+import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.ForbiddenResponse;
-import io.javalin.http.InternalServerErrorResponse;
-import io.javalin.http.NotFoundResponse;
+import dev.chojo.ember.util.TestStationKeys;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
@@ -55,6 +59,7 @@ import org.junit.jupiter.api.TestMethodOrder;
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 
 import static dev.chojo.ember.feature.federation.FederationTestContracts.pathContains;
@@ -77,7 +82,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
     private static FederationRepository federationRepo;
     private static FederationService federationService;
     private static FederationHttpClient httpClient;
-    private static KbCommentRepository commentRepo;
+    private static FederationTestTransport transport;
     private static Station station;
     private static Station stationB;
     private static Station stationC;
@@ -89,9 +94,9 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         federationRepo = new FederationRepository();
-        federationService = new FederationService(federationRepo, stationRepo, new Api());
+        federationService = new FederationService(federationRepo, stationRepo, TestStationKeys.store(), new Api());
         httpClient = mock(FederationHttpClient.class);
-        commentRepo = new KbCommentRepository();
+        when(httpClient.canSign(anyInt())).thenReturn(true);
         var storageConfig = new Storage();
         var fileStorage = mock(KbFileStorageService.class);
         var searchService = new KbSearchService(knowledgeBaseRepo, stationRepo);
@@ -102,27 +107,29 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
                 fileStorage,
                 contentService,
                 new KbAccessService(knowledgeBaseRepo, memberGroupRepo, userTagRepo),
-                new KbPresentationService(knowledgeBaseRepo, fileStorage, contentService),
-                new KbLinkMetadataService(new RemoteUrlValidator(new Federation(), new Demo())),
+                new KbPresentationService(knowledgeBaseRepo, fileStorage, contentService, new TaskScheduler()),
+                new KbLinkMetadataService(new OutboundHttp(new RemoteUrlValidator(new Federation(), new Demo()))),
                 new PresentationCompressor(storageConfig),
                 new PdfCompressor(storageConfig),
                 new ClusterAutoShareService(new ClusterRepository(), new FederationRepository()));
         accessService = new KbAccessService(knowledgeBaseRepo, memberGroupRepo, userTagRepo);
+        transport = new FederationTestTransport(httpClient, federationRepo, stationRepo);
         service = new KnowledgeBaseFederationService(
                 kbService,
                 contentService,
                 searchService,
                 federationService,
                 federationRepo,
-                httpClient,
+                transport.transport(),
                 stationRepo,
-                commentRepo,
+                newCommentService(new DomainEventBus(Set.of())),
                 mock(EventFederationRepository.class),
                 memberNameResolver,
-                new FederationFanout(),
-                new FederationEntityResolver(federationRepo, stationRepo, httpClient),
+                new FederationFanout(new TaskScheduler()),
+                new FederationEntityResolver(federationRepo),
                 mock(KbPdfExportService.class),
                 accessService);
+        transport.serve(service);
 
         station = stationRepo.create("KbFedStation");
         stationB = stationRepo.create("KbFedStationB");
@@ -199,10 +206,11 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
                 member.id());
         var share = federationRepo.createKbShare(stationB.id(), null, folder.id(), ShareScope.ALL_PARTNERS);
 
-        // A shared folder arrives as a folder now, with its article inside rather than loose beside it
         var level = service.browseSharedKb(station.id());
         assertTrue(level.folders().stream().anyMatch(shared -> shared.id() == folder.id()));
-        assertTrue(level.files().stream().noneMatch(item -> item.file().id() == file.id()));
+        assertTrue(
+                level.files().stream().noneMatch(item -> item.file().id() == file.id()),
+                "the article sits inside the shared folder, not loose beside it");
 
         var inside = service.browseFederatedKbFolder(station.id(), stationB.uid(), folder.id(), StationUserType.MEMBER);
         assertTrue(inside.files().stream().anyMatch(item -> item.remoteId() == file.id()));
@@ -242,8 +250,9 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
         assertEquals("the shared one", served.description());
         assertEquals(stationB.name(), served.stationName());
 
-        // The subfolder is offered inside the shared one, not beside it at the top
-        assertTrue(top.folders().stream().noneMatch(candidate -> candidate.remoteId() == inner.id()));
+        assertTrue(
+                top.folders().stream().noneMatch(candidate -> candidate.remoteId() == inner.id()),
+                "the subfolder is offered inside the shared one, not beside it at the top");
         var opened = service.browseFederatedKbFolder(station.id(), stationB.uid(), outer.id(), StationUserType.MEMBER);
         assertTrue(opened.folders().stream().anyMatch(candidate -> candidate.remoteId() == inner.id()));
 
@@ -292,7 +301,10 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
         knowledgeBaseRepo.purgeFile(forOne.id());
     }
 
-    /** A folder for named stations holding an article for a different one is a contradiction, so it is refused. */
+    /**
+     * A folder for named stations holding an article for a different one is a contradiction, so it is
+     * refused. Narrowing the article to nobody stands, because it says less than the folder, not more.
+     */
     @Test
     @Order(3)
     void anArticleCannotReachPastTheFolderHoldingIt() {
@@ -313,15 +325,16 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
         var folderShare =
                 service.shareEntry(stationB.id(), null, folder.id(), ShareScope.SPECIFIC, List.of(servingSide.id()));
 
-        assertThrows(
-                BadRequestResponse.class,
+        var naming = assertThrows(
+                RefusalResponse.class,
                 () -> service.shareEntry(
                         stationB.id(), inside.id(), null, ShareScope.SPECIFIC, List.of(servingSide.id() + 9999)));
-        assertThrows(
-                BadRequestResponse.class,
+        var widening = assertThrows(
+                RefusalResponse.class,
                 () -> service.shareEntry(stationB.id(), inside.id(), null, ShareScope.ALL_PARTNERS, List.of()));
+        assertEquals(KnowledgeBaseRefusal.KB_SHARE_NAMES_STATIONS_ITS_FOLDER_DOES_NOT, naming.refusal());
+        assertEquals(KnowledgeBaseRefusal.KB_SHARE_WIDER_THAN_ITS_FOLDER, widening.refusal());
 
-        // Narrowing to nobody is allowed: it says less than the folder above, not more
         var narrowed = service.shareEntry(stationB.id(), inside.id(), null, ShareScope.SPECIFIC, List.of());
 
         federationRepo.deleteKbShare(narrowed.id(), stationB.id());
@@ -384,9 +397,10 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
         assertEquals(ShareScope.SPECIFIC, named.getFirst().scope());
         assertEquals(List.of(servingSide.id()), named.getFirst().partnerIds());
 
-        assertThrows(
-                BadRequestResponse.class,
+        var refused = assertThrows(
+                RefusalResponse.class,
                 () -> service.setAudience(stationB.id(), file.id(), 1, ShareScope.ALL_PARTNERS, List.of()));
+        assertEquals(KnowledgeBaseRefusal.KB_AUDIENCE_NEEDS_ONE_ENTRY, refused.refusal());
 
         knowledgeBaseRepo.purgeFile(file.id());
     }
@@ -459,7 +473,6 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
                         pathIs("/remote/kb/browse"),
                         any(),
                         eq(station.id()),
-                        any(),
                         eq(KnowledgeBaseFederationService.RemoteKbBrowse.class)))
                 .thenReturn(new KnowledgeBaseFederationService.RemoteKbBrowse(
                         List.of(),
@@ -479,7 +492,6 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
                         pathIs("/remote/kb/browse"),
                         any(),
                         eq(station.id()),
-                        any(),
                         eq(KnowledgeBaseFederationService.RemoteKbBrowse.class)))
                 .thenReturn(new KnowledgeBaseFederationService.RemoteKbBrowse(
                         List.of(),
@@ -503,7 +515,6 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
                         pathContains("/remote/kb/search"),
                         any(),
                         eq(station.id()),
-                        any(),
                         eq(KnowledgeBaseFederationService.RemoteKbSearchResultItem.class)))
                 .thenReturn(List.of(new KnowledgeBaseFederationService.RemoteKbSearchResultItem(
                         88, "SearchResult", "found desc", "matched snippet")));
@@ -516,7 +527,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
     @Test
     @Order(20)
     void getFederatedKbFileLocal() {
-        var file = createFile(stationB.id(), "FedDetail");
+        var file = sharedFile("FedDetail");
         var result = service.getFederatedKbFile(station.id(), stationB.uid(), file.id());
         assertEquals(file.id(), result.id());
         knowledgeBaseRepo.purgeFile(file.id());
@@ -526,15 +537,31 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
     @Order(21)
     void getFederatedKbFileRejectsForeignFile() {
         var file = createFile(station.id(), "OwnFile");
+        assertThrows(RefusalResponse.class, () -> service.getFederatedKbFile(station.id(), stationB.uid(), file.id()));
+        knowledgeBaseRepo.purgeFile(file.id());
+    }
+
+    /**
+     * A partner on this instance used to open, read and copy any file of the station it is paired
+     * with, shared or not, while a partner on another instance was refused.
+     */
+    @Test
+    @Order(21)
+    void anUnsharedFileOfAPartnerHereIsRefused() {
+        var file = createFile(stationB.id(), "Private");
+        knowledgeBaseRepo.storeTextContent(file.id(), "# Intern");
+        assertThrows(RefusalResponse.class, () -> service.getFederatedKbFile(station.id(), stationB.uid(), file.id()));
         assertThrows(
-                BadRequestResponse.class, () -> service.getFederatedKbFile(station.id(), stationB.uid(), file.id()));
+                RefusalResponse.class,
+                () -> service.getFederatedKbFileContent(station.id(), stationB.uid(), file.id()));
+        assertThrows(RefusalResponse.class, () -> service.copyKbFile(file.id(), station.id(), member.id()));
         knowledgeBaseRepo.purgeFile(file.id());
     }
 
     @Test
     @Order(22)
     void getFederatedKbFileContentLocal() {
-        var file = createFile(stationB.id(), "FedContent");
+        var file = sharedFile("FedContent");
         knowledgeBaseRepo.storeTextContent(file.id(), "# Content");
         assertTrue(service.getFederatedKbFileContent(station.id(), stationB.uid(), file.id())
                 .contains("Content"));
@@ -557,7 +584,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
                 Instant.parse("2026-01-01T00:00:00Z"),
                 Instant.parse("2026-01-01T00:00:00Z"),
                 null);
-        when(httpClient.get(eq(REMOTE_HOST), pathIs("/remote/kb/files/77"), any(), eq(station.id()), any(), any()))
+        when(httpClient.get(eq(REMOTE_HOST), pathIs("/remote/kb/files/77"), any(), eq(station.id()), any()))
                 .thenReturn(remoteFile);
 
         var resolved = service.getFederatedKbFile(station.id(), stationC.uid(), 77);
@@ -573,7 +600,6 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
                         pathIs("/remote/kb/files/55/content"),
                         any(),
                         eq(station.id()),
-                        any(),
                         eq(RemoteKnowledgeBaseRoutes.FileContentResponse.class)))
                 .thenReturn(new RemoteKnowledgeBaseRoutes.FileContentResponse(55, "# Remote Content"));
 
@@ -588,17 +614,18 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
                         pathIs("/remote/kb/files/56/content"),
                         any(),
                         eq(station.id()),
-                        any(),
                         eq(RemoteKnowledgeBaseRoutes.FileContentResponse.class)))
                 .thenReturn(null);
 
-        assertEquals("", service.getFederatedKbFileContent(station.id(), stationC.uid(), 56));
+        var refused = assertThrows(
+                RefusalResponse.class, () -> service.getFederatedKbFileContent(station.id(), stationC.uid(), 56));
+        assertEquals(FederationRefusal.FEDERATION_PARTNER_DID_NOT_ANSWER, refused.refusal());
     }
 
     @Test
     @Order(26)
     void copyKbFileFromLocalPartner() {
-        var file = createFile(stationB.id(), "CopySource");
+        var file = sharedFile("CopySource");
         knowledgeBaseRepo.storeTextContent(file.id(), "# Copy Me");
 
         var copied = service.copyKbFile(file.id(), station.id(), member.id());
@@ -615,7 +642,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
     @Test
     @Order(27)
     void copyKbFileKeepsFavouriteMarking() {
-        var file = createFile(stationB.id(), "FavouriteSource");
+        var file = sharedFile("FavouriteSource");
         knowledgeBaseRepo.storeTextContent(file.id(), "# Fav");
         var favouriteRepo = new KbFavouriteRepository();
         var favourites = new KbFavouriteService(favouriteRepo, kbService, accessService, service, stationRepo);
@@ -651,7 +678,6 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
                         pathContains("/content"),
                         any(),
                         eq(station.id()),
-                        any(),
                         eq(RemoteKnowledgeBaseRoutes.FileContentResponse.class)))
                 .thenReturn(new RemoteKnowledgeBaseRoutes.FileContentResponse(file.id(), "# From remote"));
 
@@ -759,7 +785,8 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
     @Order(43)
     void fileForPartnerRejectsForeignStation() {
         var file = createFile(stationB.id(), "ForeignFile");
-        assertThrows(NotFoundResponse.class, () -> service.fileForPartner(requestingPartner, file.id()));
+        var refused = assertThrows(RefusalResponse.class, () -> service.fileForPartner(requestingPartner, file.id()));
+        assertEquals(KnowledgeBaseRefusal.REMOTE_KB_FILE_NOT_SHARED, refused.refusal());
         knowledgeBaseRepo.purgeFile(file.id());
     }
 
@@ -773,7 +800,8 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
     void fileForPartnerRefusesAFileThatIsNotShared() {
         var file = createFile(station.id(), "UnsharedFile");
 
-        assertThrows(NotFoundResponse.class, () -> service.fileForPartner(requestingPartner, file.id()));
+        var refused = assertThrows(RefusalResponse.class, () -> service.fileForPartner(requestingPartner, file.id()));
+        assertEquals(KnowledgeBaseRefusal.REMOTE_KB_FILE_NOT_SHARED, refused.refusal());
 
         var share = federationRepo.createKbShare(station.id(), file.id(), null, ShareScope.ALL_PARTNERS);
         assertEquals(
@@ -816,7 +844,8 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
     @Test
     @Order(44)
     void fileForPartnerAnswersNotFoundForUnknownFile() {
-        assertThrows(NotFoundResponse.class, () -> service.fileForPartner(requestingPartner, 999999));
+        var refused = assertThrows(RefusalResponse.class, () -> service.fileForPartner(requestingPartner, 999999));
+        assertEquals(KnowledgeBaseRefusal.REMOTE_KB_FILE_NOT_SHARED, refused.refusal());
     }
 
     @Test
@@ -845,14 +874,19 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
     void listCommentsMapsAuthors() {
         var file = createFile(station.id(), "CommentedFile");
         var comment = commentRepo.create(
-                file.id(), null, new MemberIdentity(stationB.uid(), UUID.randomUUID()), "Partner sagt hallo");
+                CommentEntityType.KB,
+                file.id(),
+                null,
+                null,
+                new MemberIdentity(stationB.uid(), UUID.randomUUID()),
+                "Partner sagt hallo");
 
         var responses = service.listComments(file.id());
         assertEquals(1, responses.size());
         assertEquals(comment.id(), responses.getFirst().id());
         assertEquals("Partner sagt hallo", responses.getFirst().content());
 
-        commentRepo.delete(comment.id());
+        commentRepo.delete(CommentEntityType.KB, comment.id());
         knowledgeBaseRepo.purgeFile(file.id());
     }
 
@@ -869,7 +903,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
         assertEquals(remoteMemberUid, comment.author().memberUid());
         assertEquals(stationB.uid(), comment.author().stationUid());
 
-        commentRepo.delete(comment.id());
+        commentRepo.delete(CommentEntityType.KB, comment.id());
         knowledgeBaseRepo.purgeFile(file.id());
     }
 
@@ -884,7 +918,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
         var updated = service.updateRemoteComment(requestingPartner, comment.id(), remoteMemberUid, "Zweite");
         assertEquals("Zweite", updated.content());
 
-        commentRepo.delete(comment.id());
+        commentRepo.delete(CommentEntityType.KB, comment.id());
         knowledgeBaseRepo.purgeFile(file.id());
     }
 
@@ -896,11 +930,12 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
                 file.id(), requestingPartner.id(), UUID.randomUUID(), "Alice", null, "Meins");
         var stranger = UUID.randomUUID();
 
-        assertThrows(
-                ForbiddenResponse.class,
+        var refused = assertThrows(
+                RefusalResponse.class,
                 () -> service.updateRemoteComment(requestingPartner, comment.id(), stranger, "Fremd"));
+        assertEquals(KnowledgeBaseRefusal.REMOTE_KB_COMMENT_NOT_YOURS_TO_EDIT, refused.refusal());
 
-        commentRepo.delete(comment.id());
+        commentRepo.delete(CommentEntityType.KB, comment.id());
         knowledgeBaseRepo.purgeFile(file.id());
     }
 
@@ -908,33 +943,73 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
     @Order(64)
     void requireRemoteCommentAuthorAnswersNotFound() {
         var stranger = UUID.randomUUID();
-        assertThrows(
-                NotFoundResponse.class,
-                () -> service.requireRemoteCommentAuthor(requestingPartner, 999999, stranger, "delete"));
+        var refused = assertThrows(
+                RefusalResponse.class,
+                () -> service.requireRemoteCommentAuthor(
+                        requestingPartner,
+                        999999,
+                        stranger,
+                        KnowledgeBaseRefusal.REMOTE_KB_COMMENT_NOT_YOURS_TO_DELETE));
+        assertEquals(KnowledgeBaseRefusal.REMOTE_KB_COMMENT_NOT_HERE, refused.refusal());
     }
 
     @Test
     @Order(80)
     void createAndListFederatedCommentsLocally() {
-        var file = createFile(stationB.id(), "FederatedComments");
+        var file = sharedFile("FederatedComments");
         var memberUid = UUID.randomUUID();
 
         var created = service.createFederatedComment(
                 station.id(), stationB.uid(), file.id(), memberUid, "Bob", null, "Frage");
         assertEquals("Frage", created.content());
+        assertEquals(
+                station.uid(),
+                commentRepo
+                        .findById(CommentEntityType.KB, created.id())
+                        .orElseThrow()
+                        .author()
+                        .stationUid());
 
         var listed = service.listFederatedComments(station.id(), stationB.uid(), file.id());
         assertEquals(1, listed.size());
         assertEquals(created.id(), listed.getFirst().id());
+        var asking = federationRepo
+                .findPartnerByStationAndRemoteUid(station.id(), stationB.uid())
+                .orElseThrow();
+        transport.assertParity(
+                asking, RemoteKnowledgeBaseRoutes.LIST_COMMENTS.at(file.id()), null, CommentResponse.class);
+        transport.assertParity(
+                asking,
+                RemoteKnowledgeBaseRoutes.GET_FILE.at(file.id()),
+                null,
+                RemoteKnowledgeBaseRoutes.RemoteKbFile.class);
 
-        commentRepo.delete(created.id());
+        commentRepo.delete(CommentEntityType.KB, created.id());
+        knowledgeBaseRepo.purgeFile(file.id());
+    }
+
+    /**
+     * A partner on this instance used to read and write comments on any file of the station it is
+     * paired with, shared or not, while a partner on another instance was refused.
+     */
+    @Test
+    @Order(80)
+    void commentsOnAFileNotSharedWithAPartnerHereAreRefused() {
+        var file = createFile(stationB.id(), "NotShared");
+        assertThrows(
+                RefusalResponse.class, () -> service.listFederatedComments(station.id(), stationB.uid(), file.id()));
+        assertThrows(
+                RefusalResponse.class,
+                () -> service.createFederatedComment(
+                        station.id(), stationB.uid(), file.id(), UUID.randomUUID(), "Bob", null, "Nein"));
+        assertTrue(commentRepo.findByTarget(CommentEntityType.KB, file.id()).isEmpty());
         knowledgeBaseRepo.purgeFile(file.id());
     }
 
     @Test
     @Order(81)
     void updateFederatedCommentLocally() {
-        var file = createFile(stationB.id(), "FederatedEditable");
+        var file = sharedFile("FederatedEditable");
         var memberUid = UUID.randomUUID();
         var created = service.createFederatedComment(
                 station.id(), stationB.uid(), file.id(), memberUid, "Bob", null, "Erste");
@@ -942,36 +1017,37 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
         var updated = service.updateFederatedComment(station.id(), stationB.uid(), created.id(), memberUid, "Zweite");
         assertEquals("Zweite", updated.content());
 
-        commentRepo.delete(created.id());
+        commentRepo.delete(CommentEntityType.KB, created.id());
         knowledgeBaseRepo.purgeFile(file.id());
     }
 
     @Test
     @Order(82)
     void updateFederatedCommentRejectsForeignAuthorLocally() {
-        var file = createFile(stationB.id(), "FederatedProtected");
+        var file = sharedFile("FederatedProtected");
         var created = service.createFederatedComment(
                 station.id(), stationB.uid(), file.id(), UUID.randomUUID(), "Bob", null, "Meins");
         var stranger = UUID.randomUUID();
 
-        assertThrows(
-                ForbiddenResponse.class,
+        var refused = assertThrows(
+                RefusalResponse.class,
                 () -> service.updateFederatedComment(station.id(), stationB.uid(), created.id(), stranger, "Fremd"));
+        assertEquals(KnowledgeBaseRefusal.REMOTE_KB_COMMENT_NOT_YOURS_TO_EDIT, refused.refusal());
 
-        commentRepo.delete(created.id());
+        commentRepo.delete(CommentEntityType.KB, created.id());
         knowledgeBaseRepo.purgeFile(file.id());
     }
 
     @Test
     @Order(83)
     void deleteFederatedCommentLocally() {
-        var file = createFile(stationB.id(), "FederatedDeletable");
+        var file = sharedFile("FederatedDeletable");
         var memberUid = UUID.randomUUID();
         var created = service.createFederatedComment(
                 station.id(), stationB.uid(), file.id(), memberUid, "Bob", null, "Weg damit");
 
-        assertTrue(service.deleteFederatedComment(station.id(), stationB.uid(), created.id(), memberUid));
-        assertTrue(commentRepo.findById(created.id()).isEmpty());
+        service.deleteFederatedComment(station.id(), stationB.uid(), created.id(), memberUid);
+        assertTrue(commentRepo.findById(CommentEntityType.KB, created.id()).isEmpty());
 
         knowledgeBaseRepo.purgeFile(file.id());
     }
@@ -980,14 +1056,15 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
     @Order(84)
     void federatedCommentsRejectUnknownPartner() {
         var unknown = UUID.randomUUID();
-        assertThrows(NotFoundResponse.class, () -> service.listFederatedComments(station.id(), unknown, 1));
+        var refused =
+                assertThrows(RefusalResponse.class, () -> service.listFederatedComments(station.id(), unknown, 1));
+        assertEquals(KnowledgeBaseRefusal.KB_COMMENT_PARTNER_NOT_HERE, refused.refusal());
     }
 
     @Test
     @Order(90)
     void listFederatedCommentsViaHttp() {
-        when(httpClient.getList(
-                        eq(REMOTE_HOST), pathIs("/remote/kb/files/7/comments"), any(), eq(station.id()), any(), any()))
+        when(httpClient.getList(eq(REMOTE_HOST), pathIs("/remote/kb/files/7/comments"), any(), eq(station.id()), any()))
                 .thenReturn(List.of());
 
         assertTrue(
@@ -1001,13 +1078,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
         var remoteResponse =
                 new CommentResponse(42, null, 7, null, null, null, "Bob", "Hallo", false, Instant.now(), null, null);
         when(httpClient.post(
-                        eq(REMOTE_HOST),
-                        pathIs("/remote/kb/files/6/comments"),
-                        any(),
-                        any(),
-                        eq(station.id()),
-                        any(),
-                        any()))
+                        eq(REMOTE_HOST), pathIs("/remote/kb/files/6/comments"), any(), any(), eq(station.id()), any()))
                 .thenReturn(remoteResponse);
 
         var created = service.createFederatedComment(station.id(), stationC.uid(), 6, memberUid, "Bob", null, "Hallo");
@@ -1021,8 +1092,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
         var memberUid = UUID.randomUUID();
         var remoteResponse =
                 new CommentResponse(43, null, 7, null, null, null, "Bob", "Neu", false, Instant.now(), null, null);
-        when(httpClient.put(
-                        eq(REMOTE_HOST), pathIs("/remote/kb/comments/6"), any(), any(), eq(station.id()), any(), any()))
+        when(httpClient.put(eq(REMOTE_HOST), pathIs("/remote/kb/comments/6"), any(), any(), eq(station.id()), any()))
                 .thenReturn(remoteResponse);
 
         var updated = service.updateFederatedComment(station.id(), stationC.uid(), 6, memberUid, "Neu");
@@ -1035,17 +1105,11 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
     void createFederatedCommentViaHttpFailure() {
         var memberUid = UUID.randomUUID();
         when(httpClient.post(
-                        eq(REMOTE_HOST),
-                        pathIs("/remote/kb/files/7/comments"),
-                        any(),
-                        any(),
-                        eq(station.id()),
-                        any(),
-                        any()))
+                        eq(REMOTE_HOST), pathIs("/remote/kb/files/7/comments"), any(), any(), eq(station.id()), any()))
                 .thenReturn(null);
 
         assertThrows(
-                InternalServerErrorResponse.class,
+                RefusalResponse.class,
                 () -> service.createFederatedComment(station.id(), stationC.uid(), 7, memberUid, "Bob", null, "Hallo"));
     }
 
@@ -1053,12 +1117,11 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
     @Order(96)
     void updateFederatedCommentViaHttpFailure() {
         var memberUid = UUID.randomUUID();
-        when(httpClient.put(
-                        eq(REMOTE_HOST), pathIs("/remote/kb/comments/7"), any(), any(), eq(station.id()), any(), any()))
+        when(httpClient.put(eq(REMOTE_HOST), pathIs("/remote/kb/comments/7"), any(), any(), eq(station.id()), any()))
                 .thenReturn(null);
 
         assertThrows(
-                InternalServerErrorResponse.class,
+                RefusalResponse.class,
                 () -> service.updateFederatedComment(station.id(), stationC.uid(), 7, memberUid, "Neu"));
     }
 
@@ -1075,23 +1138,30 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
                         pathIs("/remote/kb/comments/8"),
                         argThat(body -> body != null && body.toString().contains(memberUid.toString())),
                         any(),
-                        eq(station.id()),
-                        any()))
+                        eq(station.id())))
                 .thenReturn(true);
 
-        assertTrue(service.deleteFederatedComment(station.id(), stationC.uid(), 8, memberUid));
+        assertDoesNotThrow(() -> service.deleteFederatedComment(station.id(), stationC.uid(), 8, memberUid));
     }
 
     @Test
     @Order(94)
     void deleteFederatedCommentViaHttpFailure() {
         var memberUid = UUID.randomUUID();
-        when(httpClient.delete(eq(REMOTE_HOST), pathIs("/remote/kb/comments/9"), any(), any(), eq(station.id()), any()))
+        when(httpClient.delete(eq(REMOTE_HOST), pathIs("/remote/kb/comments/9"), any(), any(), eq(station.id())))
                 .thenReturn(false);
 
-        assertThrows(
-                InternalServerErrorResponse.class,
+        var refused = assertThrows(
+                RefusalResponse.class,
                 () -> service.deleteFederatedComment(station.id(), stationC.uid(), 9, memberUid));
+        assertEquals(KnowledgeBaseRefusal.PARTNER_KB_COMMENT_NOT_DELETED, refused.refusal());
+    }
+
+    /** A file of station B shared with every partner. */
+    private static KbFile sharedFile(String name) {
+        var file = createFile(stationB.id(), name);
+        federationRepo.createKbShare(stationB.id(), file.id(), null, ShareScope.ALL_PARTNERS);
+        return file;
     }
 
     @Test

@@ -5,7 +5,9 @@
  */
 package dev.chojo.ember.feature.station.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 
@@ -20,7 +22,8 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * @param email             the applicant's email address
  * @param stationName       the desired station name
  * @param introduction      an optional introduction text from the applicant
- * @param verificationToken the email verification token, {@code null} once verified
+ * @param verificationToken the email verification token, {@code null} once verified. Never written to
+ *                          an answer: it reaches the applicant only through the mail it confirms.
  * @param status            the application status (unverified, pending, accepted, denied)
  * @param denyReason        the reason for denial, or {@code null} if not denied
  * @param createdAt         the timestamp when the application was created
@@ -33,11 +36,11 @@ public record StationApplication(
         String email,
         String stationName,
         String introduction,
-        String verificationToken,
+        @JsonIgnore @Nullable String verificationToken,
         ApplicationStatus status,
-        String denyReason,
+        @Nullable String denyReason,
         Instant createdAt,
-        Instant resolvedAt) {
+        @Nullable Instant resolvedAt) {
     /**
      * Creates a row mapping for database result set conversion.
      *

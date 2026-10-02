@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.mailimport.service;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.List;
 import java.util.Locale;
 
@@ -32,10 +34,11 @@ public final class SenderPatterns {
      * empty filter is "everything", and here that would be an open door left open by saying nothing.
      *
      * @param patterns the rule's patterns, in any order
-     * @param sender   the address the mail came from, already reduced to the bare address
+     * @param sender   the address the mail came from, already reduced to the bare address, or null
+     *                 where the mail names none, which nothing accepts
      * @return whether the mail may be taken
      */
-    public static boolean accepts(List<String> patterns, String sender) {
+    public static boolean accepts(List<String> patterns, @Nullable String sender) {
         if (patterns == null || patterns.isEmpty()) return false;
         if (sender == null || sender.isBlank()) return false;
         String address = sender.trim().toLowerCase(Locale.ROOT);
@@ -78,7 +81,7 @@ public final class SenderPatterns {
         return domain.indexOf('.') > 0;
     }
 
-    private static String domainOf(String address) {
+    private static @Nullable String domainOf(String address) {
         int at = address.lastIndexOf(AT);
         if (at < 0 || at == address.length() - 1) return null;
         return address.substring(at + 1);

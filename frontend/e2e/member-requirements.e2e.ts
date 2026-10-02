@@ -3,22 +3,9 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {test, expect} from './fixtures/auth'
+import {test, expect, apiHeaders} from './fixtures/auth'
 import type {Page} from '@playwright/test'
 import {unique} from './fixtures/unique'
-
-/**
- * What a request needs to act as the manager the story is signed in as.
- *
- * The session lives in local storage, not in a cookie, so a bare request from the page's context
- * carries no authorisation at all and every call comes back refused.
- */
-async function managerHeaders(page: Page): Promise<Record<string, string>> {
-    return page.evaluate(() => ({
-        Authorization: `Bearer ${window.localStorage.getItem('session_token') ?? ''}`,
-        'X-Station-Id': window.localStorage.getItem('station_id') ?? '',
-    }))
-}
 
 /** A member the station keeps gear for, with the type a requirement can be written against. */
 async function someoneHoldingGear(page: Page, headers: Record<string, string>) {
@@ -62,19 +49,20 @@ test.describe('Member equipment requirements', () => {
      *
      * The tab used to list only what had been handed over, so a gap was invisible until somebody
      * started a stock-taking. The story opens a member who is short and hands the missing piece over
-     * from there, which is the whole point of showing it.
+     * from there, which is the whole point of showing it. Where the store keeps sizes, the button stays
+     * disabled until one is chosen.
      */
     test('a missing piece is handed over from the member page', async ({managerPage: page}) => {
         await page.goto('/station/members/list')
         await expect(page.getByTestId('app-shell')).toBeVisible()
 
-        const headers = await managerHeaders(page)
+        const headers = await apiHeaders(page)
         const member = await someoneHoldingGear(page, headers)
         const {inventoryId, requirementId} = await shortageOfItsOwn(page, headers, member.userType)
 
         try {
             await page.goto(`/station/members/detail/${member.memberId}`)
-            await page.getByRole('button', {name: 'Inventar'}).click()
+            await page.getByRole('tab', {name: 'Inventar'}).click()
 
             const card = page.getByTestId('missing-requirement').first()
             await expect(card).toBeVisible()
@@ -82,10 +70,8 @@ test.describe('Member equipment requirements', () => {
             const before = page.getByTestId('inventory-item-card')
             const held = await before.count()
 
-            // Where the store keeps sizes the piece cannot be written down without one, and the button
-            // stays disabled until it is chosen.
-            const size = card.locator('select').filter({has: page.locator('option:text-is("Größe wählen")')})
-            if (await size.count() > 0) await size.selectOption({index: 1})
+            const requiredSize = card.locator('select').filter({has: page.locator('option:text-is("Größe wählen")')})
+            if (await requiredSize.count() > 0) await requiredSize.selectOption({index: 1})
 
             await card.getByRole('button', {name: 'Neu anlegen und zuweisen'}).click()
 

@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.twofactor.entity.TwoFactorPolicy;
 import dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -80,9 +81,9 @@ public class TwoFactorPolicyService {
     }
 
     public TwoFactorPolicy setInstancePolicy(
-            StationUserType userType, boolean required, short graceDays, Integer createdBy) {
+            @Nullable StationUserType userType, boolean required, short graceDays, @Nullable Integer createdBy) {
         var policy = repository.upsertPolicy(
-                TwoFactorPolicy.Scope.INSTANCE, null, userType, required, clampGrace(graceDays), createdBy);
+                TwoFactorPolicy.PolicyScope.INSTANCE, null, userType, required, clampGrace(graceDays), createdBy);
         log.info(
                 "2FA instance policy set: userType={}, required={}, graceDays={}, by actor {}",
                 userType,
@@ -93,9 +94,13 @@ public class TwoFactorPolicyService {
     }
 
     public TwoFactorPolicy setStationPolicy(
-            int stationId, StationUserType userType, boolean required, short graceDays, Integer createdBy) {
+            int stationId,
+            @Nullable StationUserType userType,
+            boolean required,
+            short graceDays,
+            @Nullable Integer createdBy) {
         var policy = repository.upsertPolicy(
-                TwoFactorPolicy.Scope.STATION, stationId, userType, required, clampGrace(graceDays), createdBy);
+                TwoFactorPolicy.PolicyScope.STATION, stationId, userType, required, clampGrace(graceDays), createdBy);
         log.info(
                 "2FA station policy set for station {}: userType={}, required={}, graceDays={}, by actor {}",
                 stationId,
@@ -120,6 +125,9 @@ public class TwoFactorPolicyService {
      * Returns the per-member 2FA-status rows shown in the station-admin Security panel.
      * Enrolment is checked through {@link TwoFactorRepository#isEnrolled(int)}; mandate is
      * derived from elevated role / permission membership plus matching policy rows.
+     *
+     * <p>Enrolled means what the mandate asks for, not what the login screen does: a passkey-only
+     * account counts as compliant while its password path stays unchanged.
      */
     public List<MemberStatus> listStationMemberStatus(int stationId) {
         List<StationMember> members = memberRepository.findByStation(stationId);
@@ -127,8 +135,9 @@ public class TwoFactorPolicyService {
         List<TwoFactorPolicy> stationPolicies = repository.findStationPolicies(stationId);
         Map<Integer, Account> accountById = new HashMap<>();
         for (var m : members) {
-            if (m.accountId() == null) continue;
-            accountRepository.findById(m.accountId()).ifPresent(a -> accountById.put(a.id(), a));
+            Integer accountId = m.accountId();
+            if (accountId == null) continue;
+            accountRepository.findById(accountId).ifPresent(a -> accountById.put(a.id(), a));
         }
 
         return members.stream()
@@ -136,8 +145,6 @@ public class TwoFactorPolicyService {
                 .map(m -> {
                     Account account = accountById.get(m.accountId());
                     if (account == null) return null;
-                    // What the mandate asks for, not what the login screen does: a passkey-only
-                    // account counts as compliant here while its password path stays unchanged.
                     boolean enrolled = repository.satisfiesTwoFactorMandate(account.id());
                     boolean mandated = isMandated(account, m, stationId, instancePolicies, stationPolicies);
                     return new MemberStatus(
@@ -189,7 +196,6 @@ public class TwoFactorPolicyService {
                 return true;
             }
         }
-        // Default permissions for the user type
         if (member.userType() != null) {
             for (StationPermission p : member.userType().defaultPermissions()) {
                 if (p == StationPermission.STATION_ADMINISTRATOR || p == StationPermission.STATION_MANAGER) {
@@ -205,7 +211,7 @@ public class TwoFactorPolicyService {
             int accountId,
             String firstName,
             String lastName,
-            String email,
+            @Nullable String email,
             StationUserType userType,
             boolean enrolled,
             boolean mandated) {}

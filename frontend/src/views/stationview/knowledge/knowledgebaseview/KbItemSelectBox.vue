@@ -12,6 +12,9 @@ import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
  * <p>It sits inside the entry, and the entry is a link, so the press has to be taken away from the
  * browser rather than merely stopped from travelling upward: stopping it would leave the link
  * followed and the entry opened instead of marked.
+ *
+ * <p>The box is the control. The wrapper only takes its press, which Space on the focused box fires
+ * as well, so the wrapper itself is presentation.
  */
 defineProps<{
     selected?: boolean
@@ -23,7 +26,7 @@ const emit = defineEmits<{
 </script>
 
 <template>
-    <div data-testid="kb-item-select" @click.prevent="emit('pick', $event)">
+    <div data-testid="kb-item-select" role="presentation" @click.prevent="emit('pick', $event)">
         <CheckboxInput :model-value="selected" class="pointer-events-none"/>
     </div>
 </template>

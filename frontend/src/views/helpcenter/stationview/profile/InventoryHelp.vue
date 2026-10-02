@@ -23,7 +23,9 @@ import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import InventoryItemCard from '@/views/stationview/inventory/InventoryItemCard.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import SizeBadge from '@/components/badge/SizeBadge.vue'
-import type {MyInventoryItem} from '@/api/inventory'
+import {ItemCustody, ItemOwner} from '@/api/inventory'
+import {MovementState, StepActor} from '@/api/movements'
+import type {MyInventoryItem} from '@/api/generated/schema'
 
 const {t} = useI18n()
 
@@ -34,20 +36,35 @@ const perspectives: HelpPerspective[] = [
 const activeView = ref('')
 const showExchangeModal = ref(false)
 
-const dummyHelm: MyInventoryItem = {
-  id: 1, inventoryId: 1, inventoryName: 'Helme', inventoryHomogeneous: true, name: 'Helm #12',
-  sizeName: 'M', sizeId: 2, internalId: 'HLM-2024-012', lostAt: null,
+/** The fields a member's own piece carries when nothing about it is out of the ordinary. */
+function dummyPiece(piece: Partial<MyInventoryItem> & Pick<MyInventoryItem, 'id' | 'inventoryId' | 'inventoryName' | 'name'>): MyInventoryItem {
+  return {
+    internalId: null, inventoryHomogeneous: true, sizeId: null, sizeName: null, lostAt: null,
+    custody: ItemCustody.WITH_MEMBER, movement: null, ownerKind: ItemOwner.STATION,
+    ownerClusterId: null, lostNote: null, lostNoteBy: null, icon: null, color: null, ...piece,
+  }
 }
-/** A piece with something running on it says the step it stands on, in the chain's own words. */
-const dummyJackeOnItsWay: MyInventoryItem = {
-  id: 2, inventoryId: 2, inventoryName: 'Jacken', inventoryHomogeneous: true, name: 'Einsatzjacke #7',
-  sizeName: 'L', sizeId: 3, internalId: 'JCK-2023-007', lostAt: null,
-  movementId: 1, movementStep: 'Tausch angefordert',
-}
-const dummyStiefel: MyInventoryItem = {
-  id: 3, inventoryId: 3, inventoryName: 'Stiefel', inventoryHomogeneous: true, name: 'Stiefel #3',
-  sizeName: '42', sizeId: 4, lostAt: '2026-03-01T00:00:00Z',
-}
+
+const dummyHelm = dummyPiece({
+  id: 1, inventoryId: 1, inventoryName: 'Helme', name: 'Helm #12',
+  sizeName: 'M', sizeId: 2, internalId: 'HLM-2024-012',
+})
+/**
+ * A piece with something running on it says the last step that happened, in the chain's own words,
+ * and whose turn it is now.
+ */
+const dummyJackeOnItsWay = dummyPiece({
+  id: 2, inventoryId: 2, inventoryName: 'Jacken', name: 'Einsatzjacke #7',
+  sizeName: 'L', sizeId: 3, internalId: 'JCK-2023-007',
+  movement: {
+    id: 1, state: MovementState.OPEN, reachedStepLabel: 'Tausch angefordert',
+    currentStepActor: StepActor.STATION, ownerKind: ItemOwner.STATION, ownerName: null,
+  },
+})
+const dummyStiefel = dummyPiece({
+  id: 3, inventoryId: 3, inventoryName: 'Stiefel', name: 'Stiefel #3',
+  sizeName: '42', sizeId: 4, lostAt: '2026-03-01T00:00:00Z', custody: ItemCustody.LOST,
+})
 </script>
 
 <template>
@@ -58,24 +75,21 @@ const dummyStiefel: MyInventoryItem = {
 
     <HelpRoleToggle v-model="activeView" :perspectives="perspectives"/>
 
-    <!-- Dummy: Member selector for managers -->
     <template v-if="activeView === 'memberManager'">
       <div class="flex items-center justify-between flex-wrap gap-2">
         <SectionHeader>{{ t('profile.inventory') }}</SectionHeader>
         <SelectInput model-value="self" class="w-48 text-sm">
           <option value="self">{{ t('profile.myInventorySelf') }}</option>
-          <option value="1">Lena Mustermann</option>
-          <option value="2">Tim Mustermann</option>
+          <option value="1">{{ t('helpCenter.sample.people.lenaMustermann') }}</option>
+          <option value="2">{{ t('helpCenter.sample.people.timMustermann') }}</option>
         </SelectInput>
       </div>
     </template>
 
-    <!-- Dummy: Inventory groups using real InventoryItemCard -->
     <div class="space-y-6">
-      <!-- Group: Helme -->
       <div>
         <div class="flex items-center justify-between mb-2">
-          <SubHeader>Helme</SubHeader>
+          <SubHeader>{{ t('helpCenter.sample.equipment.helmets') }}</SubHeader>
           <span class="text-sm text-(--text-muted)">1 / 1</span>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
@@ -83,10 +97,9 @@ const dummyStiefel: MyInventoryItem = {
         </div>
       </div>
 
-      <!-- Group: Jacken (with exchange) -->
       <div>
         <div class="flex items-center justify-between mb-2">
-          <SubHeader>Jacken</SubHeader>
+          <SubHeader>{{ t('helpCenter.sample.equipment.jackets') }}</SubHeader>
           <span class="text-sm text-(--text-muted)">1 / 1</span>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
@@ -94,13 +107,12 @@ const dummyStiefel: MyInventoryItem = {
         </div>
       </div>
 
-      <!-- Group: Stiefel (with lost item) -->
       <div>
         <div class="flex items-center justify-between mb-2">
-          <SubHeader>Stiefel</SubHeader>
+          <SubHeader>{{ t('helpCenter.sample.equipment.boots') }}</SubHeader>
           <span class="text-sm text-(--text-muted)">
             1 / 1
-            <span class="text-error">(1 fehlt)</span>
+            <span class="text-error">{{ t('helpCenter.sample.equipment.oneMissing') }}</span>
           </span>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
@@ -127,12 +139,11 @@ const dummyStiefel: MyInventoryItem = {
       <p>{{ t('helpCenter.inventoryMy.lostReplacementText') }}</p>
     </HelpSection>
 
-    <!-- Exchange request modal using real Modal -->
     <Modal v-model="showExchangeModal">
       <div class="space-y-3">
         <SectionHeader>{{ t('profile.requestExchange') }}</SectionHeader>
         <p class="text-sm">
-          Helme - Helm #12 <SizeBadge>M</SizeBadge>
+          {{ t('helpCenter.sample.equipment.helmetNumber12') }} <SizeBadge>M</SizeBadge>
         </p>
         <div class="space-y-1">
           <FieldLabel>{{ t('movements.newSize') }}</FieldLabel>

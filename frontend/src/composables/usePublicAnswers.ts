@@ -4,9 +4,9 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {ref} from 'vue'
-import type {PublicFormQuestion} from '@/api/publicForms'
-import type {ChoiceAnswer} from '@/api/forms'
-import {emptyAnswer, type AnswerValue} from '@/util/formAnswers'
+import {QuestionTypes} from '@/api/forms'
+import type {FormAnswerValue, PublicFormQuestion} from '@/api/generated/schema'
+import {emptyAnswer} from '@/util/formAnswers'
 
 /**
  * The answers to a form in the public fields' shape, and the three things those fields report: text
@@ -16,11 +16,11 @@ import {emptyAnswer, type AnswerValue} from '@/util/formAnswers'
  * <p>Shared by the public fill screens and the editor's preview, which draws the same fields.
  */
 export function usePublicAnswers() {
-    const answers = ref<Record<number, AnswerValue>>({})
+    const answers = ref<Record<number, FormAnswerValue>>({})
 
     /** Every question starts with an answer of the shape the server expects. */
     function reset(questions: readonly PublicFormQuestion[]) {
-        const defaults: Record<number, AnswerValue> = {}
+        const defaults: Record<number, FormAnswerValue> = {}
         for (const q of questions) defaults[q.id] = emptyAnswer(q.questionType, q.config)
         answers.value = defaults
     }
@@ -31,12 +31,14 @@ export function usePublicAnswers() {
      * sends, clears the choice.
      */
     function toggleChoice(q: PublicFormQuestion, optionKey: string) {
-        const answer = answers.value[q.id] as ChoiceAnswer
+        const answer = answers.value[q.id]
+        if (answer?.type !== QuestionTypes.CHOICE) return
         if (!optionKey) {
             answer.selected = []
             return
         }
-        if (!q.config.multiSelect) {
+        const multiSelect = q.config.questionType === QuestionTypes.CHOICE && !!q.config.multiSelect
+        if (!multiSelect) {
             answer.selected = [optionKey]
             answer.other = ''
             return
@@ -47,11 +49,13 @@ export function usePublicAnswers() {
     }
 
     function updateText(q: PublicFormQuestion, text: string) {
-        (answers.value[q.id] as {text: string}).text = text
+        const answer = answers.value[q.id]
+        if (answer?.type === QuestionTypes.TEXT) answer.text = text
     }
 
     function updateDate(q: PublicFormQuestion, date: string) {
-        (answers.value[q.id] as {date: string}).date = date
+        const answer = answers.value[q.id]
+        if (answer?.type === QuestionTypes.DATE) answer.date = date
     }
 
     return {answers, reset, toggleChoice, updateText, updateDate}

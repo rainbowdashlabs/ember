@@ -10,7 +10,7 @@ import {useRoute, useRouter} from 'vue-router'
 import SidebarLayout from '@/components/layout/SidebarLayout.vue'
 import StationSwitcher from '@/components/navigation/StationSwitcher.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import client from '@/api/client'
+import {getDemoStatus} from '@/api/demo'
 import Alert from '@/components/feedback/Alert.vue'
 import {StationPermission, StationModules} from '@/api/types'
 import {useSession} from '@/composables/useSession'
@@ -24,7 +24,6 @@ import ReportProblemButton from '@/components/feedback/ReportProblemButton.vue'
 import DevToolsButton from '@/components/feedback/DevToolsButton.vue'
 import {useOnboardingTour} from '@/composables/useOnboardingTour'
 import {useOnboardingTasks} from '@/composables/useOnboardingTasks'
-import {handoverPending} from '@/util/onboardingState'
 import DashboardSidebar from '@/views/dashboardview/DashboardSidebar.vue'
 import DashboardHeaderActions from '@/views/dashboardview/DashboardHeaderActions.vue'
 import {useSidebarBoards} from '@/views/dashboardview/useSidebarBoards'
@@ -32,6 +31,7 @@ import QuickSearchPalette from '@/components/quicksearch/QuickSearchPalette.vue'
 import {useQuickSearchShortcut} from '@/composables/useQuickSearchShortcut'
 import {useStationTransferStatus} from '@/composables/useStationTransferStatus'
 import {usePageHeader} from '@/composables/usePageHeader'
+import {useBreakpoint} from '@/composables/useBreakpoint'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -63,21 +63,16 @@ const {
 
 const isDemo = ref(false)
 const openGroup = ref<string | null>(null)
-const isDesktop = ref(window.matchMedia('(min-width: 1024px)').matches)
+const {isDesktop} = useBreakpoint()
 
 useQuickSearchShortcut('station')
 
-onMounted(() => {
-  const mq = window.matchMedia('(min-width: 1024px)')
-  mq.addEventListener('change', (e: MediaQueryListEvent) => { isDesktop.value = e.matches })
-})
-
-const {checkFirstLogin} = useOnboardingTour()
+const {checkFirstLogin, handoverPending, takeHandover} = useOnboardingTour()
 const {load: loadOnboarding, startNext: startNextOnboarding} = useOnboardingTasks()
 
 watch(handoverPending, async pending => {
   if (!pending) return
-  handoverPending.value = false
+  takeHandover()
   await loadOnboarding('MEMBER')
   startNextOnboarding('MEMBER')
 })
@@ -89,8 +84,7 @@ onMounted(async () => {
   resetTransferStatus()
   loadTransferStatus()
   try {
-    const res = await client.get<{ demo: boolean }>('/demo/status')
-    isDemo.value = res.data.demo
+    isDemo.value = (await getDemoStatus()).demo
   } catch {
     isDemo.value = false
   }

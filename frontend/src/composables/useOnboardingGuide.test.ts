@@ -3,14 +3,21 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-// @vitest-environment happy-dom
 import {mount} from '@vue/test-utils'
 import {defineComponent, nextTick} from 'vue'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 import {useOnboardingGuide} from './useOnboardingGuide'
-import {activeStep, activeTaskKey, clearActiveTask, guideDismissed} from '@/util/onboardingState'
+import {clearActiveTask, onboardingState, type OnboardingState} from '@/util/onboardingState'
 
-vi.mock('vue-router', () => ({useRoute: () => ({name: 'profile'})}))
+/** The tour's state, taken once the Nuxt instance of the test is up. */
+function tour(): OnboardingState {
+    return onboardingState()
+}
+
+vi.mock('vue-router', async (original) => ({
+    ...await original<typeof import('vue-router')>(),
+    useRoute: () => ({name: 'profile'}),
+}))
 
 /**
  * The navigation as the layout builds it: in the page at every width, and merely pushed off the side
@@ -50,13 +57,13 @@ function guideOn() {
 beforeEach(() => {
     document.body.innerHTML = ''
     window.innerWidth = 390
-    guideDismissed.value = false
-    activeTaskKey.value = 'member.profile'
-    activeStep.value = 0
+    tour().guideDismissed.value = false
+    tour().activeTaskKey.value = 'member.profile'
+    tour().activeStep.value = 0
 })
 
 afterEach(() => {
-    clearActiveTask()
+    clearActiveTask(tour())
     document.body.innerHTML = ''
 })
 
@@ -77,7 +84,7 @@ function profileForm(readerFieldValue: string, stationFieldValue: string) {
 
 describe('a step that is read rather than done', () => {
     beforeEach(() => {
-        activeStep.value = 1
+        tour().activeStep.value = 1
     })
 
     it('is not carried on by a field the reader cannot write in', async () => {
@@ -89,7 +96,7 @@ describe('a step that is read rather than done', () => {
         stations.dispatchEvent(new FocusEvent('focusout', {bubbles: true}))
         await nextTick()
 
-        expect(activeStep.value).toBe(1)
+        expect(tour().activeStep.value).toBe(1)
         expect(form.isConnected).toBe(true)
     })
 
@@ -101,7 +108,7 @@ describe('a step that is read rather than done', () => {
         own.dispatchEvent(new FocusEvent('focusout', {bubbles: true}))
         await nextTick()
 
-        expect(activeStep.value).toBe(2)
+        expect(tour().activeStep.value).toBe(2)
     })
 })
 

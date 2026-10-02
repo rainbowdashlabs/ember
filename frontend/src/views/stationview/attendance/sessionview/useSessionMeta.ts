@@ -6,7 +6,7 @@
 import type {Ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {attendance} from '@/api'
-import type {AttendanceSession} from '@/api/attendance'
+import type {AttendanceSession} from '@/api/generated/schema'
 import {localInputToInstant} from '@/util/format'
 import {describeFailure, type Failure} from '@/util/failure'
 

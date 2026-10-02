@@ -3,17 +3,36 @@ export default defineNuxtConfig({
 
   srcDir: 'src/',
 
-  modules: ['@nuxt/test-utils/module'],
+  modules: ['@nuxt/test-utils/module', '@nuxt/eslint', '@nuxtjs/i18n'],
+
+  eslint: {
+    config: {
+      autoInit: false,
+    },
+  },
+
+  i18n: {
+    restructureDir: 'src',
+    langDir: 'i18n',
+    vueI18n: 'i18n/config.ts',
+    strategy: 'no_prefix',
+    defaultLocale: 'de-DE',
+    detectBrowserLanguage: false,
+    locales: [
+      {code: 'de-DE', language: 'de-DE', file: 'de-DE.ts'},
+      {code: 'en', language: 'en', file: 'en.ts'},
+    ],
+  },
 
   runtimeConfig: {
     // Where the server itself reaches the backend. A server render cannot use the browser's
     // relative `/api/v1`, because on the server there is no origin to resolve it against.
     backendUrl: process.env.NUXT_BACKEND_URL || 'http://localhost:8080',
-    // How the content security policy is sent: `report` observes and reports violations without
-    // refusing anything, `enforce` refuses them, `off` sends no policy. Report-only is the default
-    // so an upgrade cannot break a page an operator has embedded something into; an instance that
-    // has run a while with a quiet console switches to `enforce`.
-    cspMode: process.env.NUXT_CSP_MODE || 'report',
+    // How the content security policy is sent: `enforce` refuses violations, `report` only
+    // observes them, `off` sends no policy. Enforced by default; `report` is the way back for an
+    // operator whose embedded content the policy turns out to refuse.
+    // The end-to-end suite runs enforced and fails a story on any refusal it sees.
+    cspMode: process.env.NUXT_CSP_MODE || 'enforce',
     public: {
       googleSiteVerification: process.env.NUXT_PUBLIC_GOOGLE_SITE_VERIFICATION || '',
     },
@@ -33,6 +52,14 @@ export default defineNuxtConfig({
     '/station': {redirect: '/station/dashboard/overview'},
     '/station/**': {ssr: false},
     '/admin/**': {ssr: false},
+    '/cluster': {ssr: false},
+    '/cluster/**': {ssr: false},
+    '/account': {ssr: false},
+    '/account/**': {ssr: false},
+    '/cross-station': {ssr: false},
+    '/reconsent': {ssr: false},
+    '/station-select': {ssr: false},
+    '/passkey-offer': {ssr: false},
     '/style': {ssr: false},
   },
 
@@ -95,6 +122,18 @@ export default defineNuxtConfig({
   },
 
   hooks: {
+    /**
+     * Keeps the pdf.js worker out of every page's resource hints. It is two megabytes that only a
+     * PDF viewer needs, and the viewer asks for it by its address once a document is open; hinted
+     * as a prefetch, every page would download it the moment the browser is idle.
+     */
+    'build:manifest'(manifest: Record<string, { file?: string; prefetch?: boolean; preload?: boolean }>) {
+      for (const resource of Object.values(manifest)) {
+        if (!resource.file?.includes('pdf.worker')) continue
+        resource.prefetch = false
+        resource.preload = false
+      }
+    },
     'vite:extendConfig'(config: { plugins?: unknown[] }) {
       import('@tailwindcss/vite').then(m => {
         config.plugins ||= []

@@ -4,22 +4,20 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {computed, onMounted, ref} from 'vue'
+import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
-import {describeFailure, type Failure} from '@/util/failure'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import Spinner from '@/components/feedback/Spinner.vue'
 import {useSession} from '@/composables/useSession'
 import {useCluster} from '@/composables/useCluster'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
-import type {Cluster} from '@/api/clusters'
-import type {ClusterMemberSummary} from '@/api/clusterMembers'
-import type {PermissionNode} from '@/api/data'
+import type {ClusterMemberResponse, ClusterResponse, PermissionNode} from '@/api/generated/schema'
 import {highestOf} from '@/api/data'
 import {clusters, clusterMembers, data} from '@/api'
 
@@ -27,10 +25,8 @@ const {t} = useI18n()
 const {sessionInfo} = useSession()
 const {currentClusterId} = useCluster()
 
-const cluster = ref<Cluster | null>(null)
-const administrators = ref<ClusterMemberSummary[]>([])
-const loading = ref(true)
-const failure = ref<Failure | null>(null)
+const cluster = ref<ClusterResponse | null>(null)
+const administrators = ref<ClusterMemberResponse[]>([])
 
 const hierarchy = ref<PermissionNode[]>([])
 
@@ -53,21 +49,12 @@ const roleLabel = computed(() => {
   return type ? t(`clusterOverview.role.${type}`) : t('clusterOverview.role.unknown')
 })
 
-onMounted(async () => {
-  if (!currentClusterId.value) {
-    loading.value = false
-    return
-  }
-  try {
-    cluster.value = await clusters.getActive()
-    administrators.value = await clusterMembers.listAdministrators().catch(() => [])
-    hierarchy.value = await data.getClusterPermissionHierarchy().catch(() => [])
-  } catch (e) {
-    failure.value = {...describeFailure(e, t), message: t('clusterOverview.loadFailed')}
-  } finally {
-    loading.value = false
-  }
-})
+const {loading, failure} = useAsyncLoader(async () => {
+  if (!currentClusterId.value) return
+  cluster.value = await clusters.getActive()
+  administrators.value = await clusterMembers.listAdministrators().catch(() => [])
+  hierarchy.value = await data.getClusterPermissionHierarchy().catch(() => [])
+}, {errorMessageKey: 'clusterOverview.loadFailed'})
 </script>
 
 <template>

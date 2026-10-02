@@ -11,7 +11,6 @@
     "managed-login-granted": "You can now sign in to {stationName}",
     "managed-login-revoked": "You can no longer sign in to {stationName}",
     "reset-password": "Reset your password",
-    "email-change": "Confirm your new email address",
     "station-delete": "Confirm station deletion",
     "application-verify": "Confirm your application for {stationName}",
     "application-accepted": "Your application for {stationName} has been accepted",

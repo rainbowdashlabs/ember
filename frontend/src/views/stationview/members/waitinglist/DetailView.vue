@@ -13,14 +13,18 @@ import Alert from '@/components/feedback/Alert.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import DetailHeader from './detailview/DetailHeader.vue'
 import LoadedSections from './detailview/LoadedSections.vue'
-import DetailModals from './detailview/DetailModals.vue'
+import CreateInviteModal from './detailview/CreateInviteModal.vue'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
+import TransitionConfirmModal from './detailview/TransitionConfirmModal.vue'
+import InviteEntryModal from './detailview/InviteEntryModal.vue'
 import type {
+  MemberGroup,
   WaitingList,
   WaitingListEntryWithScore,
   WaitingListField,
   WaitingListInvite,
-} from '@/api/waitingList'
-import {StationPermission, type MemberGroup} from '@/api/types'
+} from '@/api/generated/schema'
+import {StationPermission} from '@/api/types'
 import { waitingList, memberGroups } from '@/api'
 import { useSidebarCounts } from '@/composables/useSidebarCounts'
 import { useSession } from '@/composables/useSession'
@@ -32,6 +36,7 @@ import { describeFailure, type Failure } from '@/util/failure'
 import { useListInvites } from './detailview/useListInvites'
 import { useEntryTransitions } from './detailview/useEntryTransitions'
 import { useEntryInvitation } from './detailview/useEntryInvitation'
+import { entryFullName } from './detailview/entryFullName'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -231,19 +236,42 @@ function showFailure(reported: Failure) {
         :permissions="permissions"
         :actions="sectionActions"
       />
-
-      <DetailModals
-        :invite="invite"
-        :transitions="transitions"
-        :invitation="invitation"
-        v-model:show-delete="showDeleteModal"
-        :list-name="list?.name"
-        :deleting-list="deletingList"
-        v-model:show-delete-entry="showDeleteEntryModal"
-        :delete-entry-target="deleteEntryTarget"
-        @confirm-delete-list="confirmDeleteList"
-        @confirm-delete-entry="confirmDeleteEntry"
-      />
     </div>
+
+    <CreateInviteModal
+      v-model="invite.showModal.value"
+      v-model:max-uses="invite.maxUses.value"
+      v-model:expires-at="invite.expiresAt.value"
+      :creating="invite.creating.value"
+      @submit="invite.create"
+    />
+    <ConfirmDeleteModal
+      v-model="showDeleteModal"
+      :title="t('waitingList.deleteListTitle')"
+      :message="t('waitingList.deleteListConfirm', { name: list?.name })"
+      :confirm-label="t('waitingList.deleteList')"
+      :busy="deletingList"
+      @confirm="confirmDeleteList"
+    />
+    <TransitionConfirmModal
+      :pending="transitions.pending.value"
+      :running="transitions.running.value"
+      @cancel="transitions.pending.value = null"
+      @confirm="transitions.confirm"
+    />
+    <InviteEntryModal
+      v-model:occurrence="invitation.occurrence.value"
+      v-model:arrival-time="invitation.arrivalTime.value"
+      :target="invitation.target.value"
+      :running="invitation.running.value"
+      @cancel="invitation.cancel"
+      @confirm="invitation.confirm"
+    />
+    <ConfirmDeleteModal
+      v-model="showDeleteEntryModal"
+      :title="t('waitingList.deleteEntryTitle')"
+      :message="t('waitingList.deleteEntryConfirm', { name: deleteEntryTarget ? entryFullName(deleteEntryTarget) : '' })"
+      @confirm="confirmDeleteEntry"
+    />
   </ViewContent>
 </template>

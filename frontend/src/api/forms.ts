@@ -7,15 +7,50 @@ import client from './client'
 import {documentFrom, type DocumentFile} from '@/util/documentFile'
 import type {ExportFormat, ExportSeparator} from '@/util/exportFormat'
 import {createCrudResource} from './crud'
-import type {MemberIdentity} from './types'
+import type {
+    ClearedFormResponses,
+    components,
+    EligibleMembers,
+    Form,
+    FormAnalytics,
+    FormAnswerValue,
+    FormAnswerValueByType,
+    FormDraft,
+    FormDraftRequest,
+    FormDraftResponse,
+    FormDuplicateRequest,
+    FormLayout,
+    FormLayoutRequest,
+    FormListEntry,
+    FormPage,
+    FormQuestion,
+    FormRequest,
+    FormResponse,
+    FormResponseEntry,
+    FormRestrictions,
+    FormResultQuery,
+    FormSearchResult,
+    FormShareLinkResponse,
+    FormSubmitRequest,
+    FormVisibilityRequest,
+    FormVisibilityResponse,
+    QuestionAnswerCount,
+    ReplaceFormShareLinkRequest,
+    FormResponseDetail,
+    ResultFieldCondition,
+    ResultFilter,
+    ResultGrouping,
+} from './generated/schema'
+
+export type FormStatusName = components['schemas']['FormStatus']
 
 export const FormStatus = {
     DRAFT: 'DRAFT',
     OPEN: 'OPEN',
     CLOSED: 'CLOSED',
-} as const
+} as const satisfies Record<FormStatusName, FormStatusName>
 
-export type FormStatusName = (typeof FormStatus)[keyof typeof FormStatus]
+export type QuestionType = components['schemas']['FormQuestionType']
 
 export const QuestionTypes = {
     CHOICE: 'CHOICE',
@@ -24,17 +59,17 @@ export const QuestionTypes = {
     DATE: 'DATE',
     RANKING: 'RANKING',
     LIKERT: 'LIKERT',
-} as const
+} as const satisfies Record<QuestionType, QuestionType>
 
-export type QuestionType = (typeof QuestionTypes)[keyof typeof QuestionTypes]
+export type FormPurposeName = components['schemas']['FormPurpose']
 
 export const FormPurpose = {
     INTERNAL: 'INTERNAL',
     CONTACT: 'CONTACT',
     POLL: 'POLL',
-} as const
+} as const satisfies Record<FormPurposeName, FormPurposeName>
 
-export type FormPurposeName = (typeof FormPurpose)[keyof typeof FormPurpose]
+export type FormVisibilityName = components['schemas']['FormVisibility']
 
 /**
  * How far a form meant for people outside the station reaches. Public means its own address answers,
@@ -44,9 +79,7 @@ export type FormPurposeName = (typeof FormPurpose)[keyof typeof FormPurpose]
 export const FormVisibility = {
     PUBLIC: 'PUBLIC',
     UNLISTED: 'UNLISTED',
-} as const
-
-export type FormVisibilityName = (typeof FormVisibility)[keyof typeof FormVisibility]
+} as const satisfies Record<FormVisibilityName, FormVisibilityName>
 
 /**
  * Whitelist of question types allowed per form purpose. Mirrors
@@ -73,268 +106,32 @@ export const QUESTION_TYPES_BY_PURPOSE: Record<FormPurposeName, QuestionType[]> 
     ],
 }
 
-export type MultiLimitType = 'NONE' | 'EXACTLY' | 'AT_MOST' | 'AT_LEAST'
+export type MultiLimitType = components['schemas']['MultiLimitType']
 
-export type RatingIcon = 'STAR' | 'NUMBER' | 'HEART' | 'THUMB_UP'
+export type RatingIcon = components['schemas']['RatingIcon']
 
-/**
- * One option of a choice or ranking question, or one statement of a Likert grid. Answers name it by
- * its `key`, which is made when the option is added and never changes; the `label` may change at any
- * time.
- */
-export interface FormOption {
-    key: string
-    label: string
-}
+/** The answer a question of the given kind takes. */
+export type AnswerOf<T extends QuestionType> = FormAnswerValueByType[T]
 
 /**
- * A choice answer: the keys of the options picked, and the free "other" text. Answers are typed as
- * aliases rather than interfaces so an answer held as a plain record can be read as one.
+ * Whether an answer is one to a question of the given kind, which is what lets a screen drawing one
+ * kind of question read the answer as that kind.
+ *
+ * @param answer the answer, possibly none at all
+ * @param type   the kind of question
  */
-export type ChoiceAnswer = {
-    selected: string[]
-    other: string
+export function isAnswerOf<T extends QuestionType>(answer: FormAnswerValue | undefined, type: T): answer is AnswerOf<T> {
+    return answer?.type === type
 }
 
-/** A ranking answer: the option keys from first place to last. */
-export type RankingAnswer = {
-    order: string[]
-}
-
-/** A Likert answer: one rating per statement key. */
-export type LikertAnswer = {
-    ratings: Record<string, number>
-}
-
-export interface Form {
-    id: number
-    stationId: string
-    title: string
-    description: string
-    status: FormStatusName
-    shuffleQuestions: boolean
-    allowEdit: boolean
-    forced?: boolean
-    startAt?: string | null
-    endAt?: string | null
-    closedAt?: string | null
-    createdBy: number
-    createdAt: string
-    updatedAt: string
-    lastActivityAt: string
-    restrictionMode?: string
-    restricted?: boolean
-    purpose: FormPurposeName
-    visibility: FormVisibilityName
-    publicUid: string
-    responseCount: number
-    /** What the reader is told once the form is sent, or nothing for the general thanks. */
-    completionMessage?: string | null
-    /** Where the reader may go on to after sending. */
-    completionLink?: string | null
-    /** What that link says, or nothing for the address itself. */
-    completionLinkLabel?: string | null
-}
-
-export interface FormListEntry {
-    id: number
-    stationId: string
-    title: string
-    description: string
-    status: string
-    startAt?: string | null
-    endAt?: string | null
-    responseCount: number
-    hasResponded: boolean
-    restricted?: boolean
-}
+export type PageTargetKindName = components['schemas']['TargetKind']
 
 /** Where a reader goes from a page: the page below, a chosen page further down, or the end of the form. */
 export const PageTargetKind = {
     NEXT: 'NEXT',
     PAGE: 'PAGE',
     SUBMIT: 'SUBMIT',
-} as const
-
-export type PageTargetKindName = (typeof PageTargetKind)[keyof typeof PageTargetKind]
-
-/** One of the three places a page leads to; `page` names the page for {@link PageTargetKind.PAGE}. */
-export interface PageTarget {
-    kind: PageTargetKindName
-    page?: string | null
-}
-
-/** One page of a form. Every form has at least one, and every question stands on one of them. */
-export interface FormPage {
-    id: number
-    formId: number
-    key: string
-    position: number
-    title: string
-    description: string
-    after: PageTarget
-}
-
-/** One page as the editor saves it, kept by its key the way a question is kept by its id. */
-export interface FormPageRequest {
-    key: string
-    title: string
-    description: string
-    after: PageTarget
-}
-
-export interface FormQuestion {
-    id: number
-    formId: number
-    position: number
-    /** The key of the page the question stands on. */
-    pageKey: string
-    formQuestionType: QuestionType
-    title: string
-    description: string
-    required: boolean
-    shuffle: boolean
-    config: Record<string, unknown>
-    /**
-     * Where the question's page leads per option key picked, for the one single-answer choice question
-     * of a page that decides it; null for every other question. An option without an entry follows the
-     * page's own target.
-     */
-    branch?: Record<string, PageTarget> | null
-}
-
-export interface FormResponse {
-    id: number
-    formId: number
-    /** {@code null} for anonymous CONTACT / POLL submissions. */
-    memberId: number | null
-    /** {@code null} for anonymous CONTACT / POLL submissions. */
-    submittedBy: number | null
-    submittedByName?: string | null
-    submittedAt: string
-    updatedAt: string
-    memberIdentity?: MemberIdentity | null
-    /** Set when a manager has acknowledged a CONTACT submission. */
-    acknowledgedAt?: string | null
-    /** Set together with {@code acknowledgedAt} - kept around for backwards compat with code that asks for the id. */
-    acknowledgedBy?: number | null
-    /** Enriched identity of the acknowledger so the UI can render it via {@code MemberName}. */
-    acknowledgedByIdentity?: MemberIdentity | null
-    /** The keys of the pages the response went through; empty where it saw every page. */
-    path?: string[]
-}
-
-export interface FormAnswer {
-    id: number
-    responseId: number
-    questionId: number
-    value: string
-}
-
-export interface FormRequest {
-    title: string
-    description?: string
-    shuffleQuestions?: boolean
-    allowEdit?: boolean
-    startAt?: string | null
-    endAt?: string | null
-    purpose?: FormPurposeName
-    completionMessage?: string | null
-    completionLink?: string | null
-    completionLinkLabel?: string | null
-}
-
-/**
- * One question as the editor saves it. A question sent with its `id` is changed in place and keeps
- * its answers; one sent without is added.
- */
-export interface FormQuestionRequest {
-    id?: number
-    /** The key of the page the question stands on. */
-    pageKey: string
-    questionType: string
-    title: string
-    description?: string
-    required?: boolean
-    shuffle?: boolean
-    config?: unknown
-    /** Where the question's page leads per option key picked, for the question that decides it. */
-    branch?: Record<string, PageTarget> | null
-}
-
-export interface FormRestrictions {
-    userTypes: string[]
-    groupIds: number[]
-    tagIds: number[]
-    memberIds?: number[]
-    mode?: string
-}
-
-export interface FormSubmitRequest {
-    answers: Record<number, Record<string, unknown>>
-}
-
-export interface FormResponseDetail {
-    response: FormResponse | null
-    answers: FormAnswer[]
-}
-
-/**
- * The results of a form, counted on the server.
- *
- * `questions` describes each question once; `groups` holds the counted answers per group of
- * respondents. An ungrouped view is a single group holding every response. `groupsOverlap` says a
- * respondent can count in more than one group, so the groups can add up to more than the total.
- */
-export interface FormAnalytics {
-    formId: number
-    /** The responses the filter lets through; every response without a filter. */
-    totalResponses: number
-    /** The ids of those responses, so the individual answers can follow the filter. */
-    responseIds: number[]
-    questions: FormQuestionInfo[]
-    groups: FormResultGroup[]
-    groupsOverlap: boolean
-    missingResponses: MemberIdentity[]
-}
-
-/** A question as the results view knows it: what it asks and how it is set up. */
-export interface FormQuestionInfo {
-    questionId: number
-    questionType: string
-    title: string
-    config: Record<string, unknown>
-}
-
-/** One group of respondents and what they answered, one tally per question in question order. */
-export interface FormResultGroup {
-    key: string
-    /** What the group is called; empty for the group of every response. */
-    label: string
-    responseCount: number
-    tallies: FormQuestionTally[]
-}
-
-/**
- * The counted answers to one question. Only the fields of the question's kind are present: counts
- * per option key and "other" answers for a choice, counts from one star up for a rating, a score per
- * option key for a ranking, an average per statement key for a Likert grid (null where nobody rated
- * it), and the answers themselves for text and date questions.
- */
-export interface FormQuestionTally {
-    questionId: number
-    answerCount: number
-    /** How many of the counted responses went through the question's page at all. */
-    reachedCount?: number | null
-    optionCounts?: Record<string, number>
-    otherCount?: number
-    ratingCounts?: number[]
-    rankingScores?: Record<string, number>
-    statementAverages?: Record<string, number | null>
-    values?: string[]
-}
-
-// -- Form CRUD --
+} as const satisfies Record<PageTargetKindName, PageTargetKindName>
 
 const forms = createCrudResource<Form, FormRequest>('/forms')
 
@@ -345,13 +142,6 @@ export async function listForms(purpose?: FormPurposeName): Promise<Form[]> {
 export async function listAvailableForms(): Promise<FormListEntry[]> {
     const res = await client.get<FormListEntry[]>('/forms/available')
     return res.data
-}
-
-export interface FormSearchResult {
-    publicUid: string
-    title: string
-    purpose: FormPurposeName
-    status: string
 }
 
 /**
@@ -394,7 +184,8 @@ export async function publishForm(id: number): Promise<Form> {
  * @param title what the copy is called
  */
 export async function duplicateForm(id: number, title: string): Promise<Form> {
-    const res = await client.post<Form>(`/forms/${id}/duplicate`, {title})
+    const request: FormDuplicateRequest = {title}
+    const res = await client.post<Form>(`/forms/${id}/duplicate`, request)
     return res.data
 }
 
@@ -410,11 +201,9 @@ export async function closeForm(id: number): Promise<Form> {
  * @returns how many answers were thrown away
  */
 export async function clearFormResponses(id: number): Promise<number> {
-    const res = await client.delete<{cleared: number}>(`/forms/${id}/responses`)
+    const res = await client.delete<ClearedFormResponses>(`/forms/${id}/responses`)
     return res.data.cleared
 }
-
-// -- Questions --
 
 export async function getQuestions(formId: number): Promise<FormQuestion[]> {
     const res = await client.get<FormQuestion[]>(`/forms/${formId}/questions`)
@@ -425,18 +214,6 @@ export async function getQuestions(formId: number): Promise<FormQuestion[]> {
 export async function getPages(formId: number): Promise<FormPage[]> {
     const res = await client.get<FormPage[]>(`/forms/${formId}/pages`)
     return res.data
-}
-
-/** The pages and questions of a form, each list in its order, as the editor saves them. */
-export interface FormLayoutRequest {
-    pages: FormPageRequest[]
-    questions: FormQuestionRequest[]
-}
-
-/** The pages and questions of a form as stored. */
-export interface FormLayout {
-    pages: FormPage[]
-    questions: FormQuestion[]
 }
 
 /**
@@ -451,16 +228,6 @@ export async function saveLayout(formId: number, layout: FormLayoutRequest): Pro
 }
 
 /**
- * How many answers one question of a form holds, and per option key how many of them pick, rank or
- * rate that option.
- */
-export interface QuestionAnswerCount {
-    questionId: number
-    answers: number
-    optionAnswers: Record<string, number>
-}
-
-/**
  * How many answers each question of a form holds and how many name each option, which is what
  * removing a question or an option would throw away.
  */
@@ -468,8 +235,6 @@ export async function getQuestionAnswerCounts(formId: number): Promise<QuestionA
     const res = await client.get<QuestionAnswerCount[]>(`/forms/${formId}/questions/answer-counts`)
     return res.data
 }
-
-// -- Restrictions --
 
 export async function getRestrictions(formId: number): Promise<FormRestrictions> {
     const res = await client.get<FormRestrictions>(`/forms/${formId}/restrictions`)
@@ -479,13 +244,6 @@ export async function getRestrictions(formId: number): Promise<FormRestrictions>
 export async function setRestrictions(formId: number, data: FormRestrictions): Promise<FormRestrictions> {
     const res = await client.put<FormRestrictions>(`/forms/${formId}/restrictions`, data)
     return res.data
-}
-
-// -- Responding --
-
-export interface EligibleMembers {
-    selfEligible: boolean
-    eligibleManagedMemberIds: number[]
 }
 
 export async function getEligibleMembers(formId: number): Promise<EligibleMembers> {
@@ -506,33 +264,18 @@ export async function getMemberResponse(formId: number, memberId: number): Promi
     return res.data
 }
 
-/**
- * A form a member started and has not sent yet, kept so it can be continued on any device. It is never
- * counted as an answer.
- */
-export interface FormDraft {
-    answers: Record<number, Record<string, unknown>>
-    /** The pages visited so far, the page to continue on last. */
-    path: string[]
-    updatedAt: string
-}
-
 function draftPath(formId: number, memberId: number | null): string {
     return memberId ? `/forms/${formId}/draft/${memberId}` : `/forms/${formId}/draft`
 }
 
 /** The draft kept for the reader, or for the member in their care, where there is one. */
 export async function getDraft(formId: number, memberId: number | null): Promise<FormDraft | null> {
-    const res = await client.get<{draft: FormDraft | null}>(draftPath(formId, memberId))
+    const res = await client.get<FormDraftResponse>(draftPath(formId, memberId))
     return res.data.draft
 }
 
 /** Keeps what was filled in so far. */
-export async function saveDraft(
-    formId: number,
-    memberId: number | null,
-    draft: {answers: Record<number, Record<string, unknown>>, path: string[]},
-): Promise<void> {
+export async function saveDraft(formId: number, memberId: number | null, draft: FormDraftRequest): Promise<void> {
     await client.put(draftPath(formId, memberId), draft)
 }
 
@@ -561,8 +304,6 @@ export async function updateForMember(formId: number, memberId: number, data: Fo
     return res.data
 }
 
-// -- Analytics --
-
 /**
  * The forms analytics endpoints live under three parallel surfaces:
  * - {@code /forms/...} - managers viewing any INTERNAL form (gated by POLL_VIEW_RESULTS).
@@ -581,12 +322,15 @@ export const FormAnalyticsBase = {
 } as const
 export type FormAnalyticsBaseName = (typeof FormAnalyticsBase)[keyof typeof FormAnalyticsBase]
 
+export type ResultMatchName = components['schemas']['Match']
+
 /** Whether a member has to be in one of several groups or tags, or in all of them. */
 export const ResultMatch = {
     ANY: 'ANY',
     ALL: 'ALL',
-} as const
-export type ResultMatchName = (typeof ResultMatch)[keyof typeof ResultMatch]
+} as const satisfies Record<ResultMatchName, ResultMatchName>
+
+export type ResultDimensionName = components['schemas']['Dimension']
 
 /** What the results of a form can be grouped by. */
 export const ResultDimension = {
@@ -595,50 +339,19 @@ export const ResultDimension = {
     TAG: 'TAG',
     FIELD: 'FIELD',
     AGE: 'AGE',
-} as const
-export type ResultDimensionName = (typeof ResultDimension)[keyof typeof ResultDimension]
+} as const satisfies Record<ResultDimensionName, ResultDimensionName>
+
+/** A condition on one profile field as the results view holds it, every part there and empty where unset. */
+export type ResultFieldConditionState = Required<ResultFieldCondition>
 
 /**
- * A condition on one profile field: the answers that count for a choice or yes/no field, or a
- * range for a number field.
+ * Which respondents count, as the results view holds it: every condition there, empty where it lets
+ * everybody through. The server takes any part of it left out.
  */
-export interface ResultFieldCondition {
-    fieldId: number
-    values?: string[]
-    from?: number | null
-    to?: number | null
-}
+export type ResultFilterState = Required<Omit<ResultFilter, 'fields'>> & {fields: ResultFieldConditionState[]}
 
-/**
- * Which respondents count. Conditions on different attributes must all hold; within groups and tags
- * the match decides between any of them and all of them.
- */
-export interface ResultFilter {
-    userTypes: string[]
-    groupIds: number[]
-    groupMatch: ResultMatchName
-    tagIds: number[]
-    tagMatch: ResultMatchName
-    fields: ResultFieldCondition[]
-    ageFrom: number | null
-    ageTo: number | null
-}
-
-/**
- * How to split respondents into groups. `only` limits the grouping to chosen group keys, to compare a
- * few; `bounds` are where the brackets start when grouping by age or a number field.
- */
-export interface ResultGrouping {
-    by: ResultDimensionName
-    fieldId?: number | null
-    only: string[]
-    bounds: number[]
-}
-
-export interface FormResultQuery {
-    filter: ResultFilter | null
-    groupBy: ResultGrouping | null
-}
+/** How respondents are split into groups, as the results view holds it. */
+export type ResultGroupingState = Required<ResultGrouping>
 
 /** The results of an internal form, filtered and grouped by who answered. */
 export async function queryAnalytics(formId: number, query: FormResultQuery): Promise<FormAnalytics> {
@@ -657,8 +370,8 @@ export async function getAnalytics(
 export async function listResponses(
     formId: number,
     base: FormAnalyticsBaseName = FormAnalyticsBase.FORMS,
-): Promise<FormResponse[]> {
-    const res = await client.get<FormResponse[]>(`${base}/${formId}/responses`)
+): Promise<FormResponseEntry[]> {
+    const res = await client.get<FormResponseEntry[]>(`${base}/${formId}/responses`)
     return res.data
 }
 
@@ -702,34 +415,23 @@ export async function exportResponses(
  * carries one. Only a form meant to be answered from outside has one.
  */
 export async function getFormShareLink(formId: number): Promise<string | null> {
-    const res = await client.get<{token: string | null}>(`/forms/${formId}/share-link`)
+    const res = await client.get<FormShareLinkResponse>(`/forms/${formId}/share-link`)
     return res.data.token
 }
 
 /** Replaces the link, ending every copy of the one the form carried. */
-export async function replaceFormShareLink(formId: number, currentToken: string | null): Promise<string> {
-    const res = await client.post<{token: string}>(`/forms/${formId}/share-link`, {currentToken})
+export async function replaceFormShareLink(formId: number, currentToken: string | null): Promise<string | null> {
+    const request: ReplaceFormShareLinkRequest = {currentToken}
+    const res = await client.post<FormShareLinkResponse>(`/forms/${formId}/share-link`, request)
     return res.data.token
 }
 
 /** Sets whether a public form answers at its own address or only at the link it was sent with. */
-/** One page that puts this form on itself, and how far that page reaches. */
-export interface PageUsingForm {
-    id: number
-    title: string
-    visibility: string
-}
-
-export interface FormVisibilityResponse {
-    form: Form
-    /** The pages holding the form, where closing it to its link has just stopped it working on them. */
-    stillHeldBy: PageUsingForm[]
-}
-
 export async function setFormVisibility(
     formId: number,
     visibility: FormVisibilityName,
 ): Promise<FormVisibilityResponse> {
-    const res = await client.put<FormVisibilityResponse>(`/forms/${formId}/visibility`, {visibility})
+    const request: FormVisibilityRequest = {visibility}
+    const res = await client.put<FormVisibilityResponse>(`/forms/${formId}/visibility`, request)
     return res.data
 }

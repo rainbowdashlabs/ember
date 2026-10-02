@@ -13,7 +13,7 @@ import { useManagedMembers } from '../relations/useManagedMembers'
 import { useMemberProfileFields } from '../detailview/useMemberProfileFields'
 import { memberDisplayName } from '../listview/useMemberData'
 import { canHaveGuardians, looksAfterMembers } from '../relations/relationSides'
-import type { StationMember } from '@/api/types'
+import type { MemberWithName } from '@/api/generated/schema'
 import { profileFields, stationMembers } from '@/api'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import type { Failure } from '@/util/failure'
@@ -21,11 +21,11 @@ import type { Failure } from '@/util/failure'
 const props = defineProps<{
   memberId: number
   userType: string
-  allMembers: StationMember[]
+  allMembers: MemberWithName[]
 }>()
 
 const memberId = toRef(props, 'memberId')
-const allMembers = ref<StationMember[]>([...props.allMembers])
+const allMembers = ref<MemberWithName[]>([...props.allMembers])
 
 /** One channel for everything this tab can fail at, the first load included. */
 const failure = ref<Failure | null>(null)
@@ -56,7 +56,7 @@ const { loading, failure: loadFailure } = useAsyncLoader(async () => {
     profileFields.getMemberFields(memberId.value),
     stationMembers.getManagers(memberId.value),
     stationMembers.getManaged(memberId.value),
-    profileFields.getMergedValues(memberId.value),
+    profileFields.getValues(memberId.value),
     loadAudiences(),
   ])
   fields.value = allFields

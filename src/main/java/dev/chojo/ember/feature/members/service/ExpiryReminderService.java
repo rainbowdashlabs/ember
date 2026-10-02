@@ -7,35 +7,39 @@ package dev.chojo.ember.feature.members.service;
 
 import dev.chojo.ember.api.auth.ClusterPermission;
 import dev.chojo.ember.api.auth.StationPermission;
-import dev.chojo.ember.feature.cluster.repository.ClusterProfileFieldRepository;
-import dev.chojo.ember.feature.cluster.service.ClusterService;
 import dev.chojo.ember.feature.members.entity.ExpirySettings;
 import dev.chojo.ember.feature.members.entity.ExpiryState;
 import dev.chojo.ember.feature.members.entity.FieldOrigin;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
-import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.ProfileFieldValue;
 import dev.chojo.ember.feature.members.entity.SentExpiryReminder;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.ExpiryReminderRepository;
-import dev.chojo.ember.feature.members.repository.ProfileFieldRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.notifications.entity.ClusterAudience;
+import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.ExpiryReminderKind;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationLinks;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.notifications.entity.StationAudience;
+import dev.chojo.ember.feature.notifications.service.Notifier;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.service.StationReadOnlyGuard;
+import dev.chojo.ember.lifecycle.Schedule;
+import dev.chojo.ember.lifecycle.ScheduledTask;
+import dev.chojo.ember.lifecycle.TaskSource;
 import dev.chojo.ember.util.sql.Transactions;
 import jakarta.inject.Inject;
-import jakarta.inject.Provider;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -68,14 +72,13 @@ import java.util.stream.Stream;
  * the station's member management, for an association's field the association's own.
  */
 @Singleton
-public class ExpiryReminderService {
+public class ExpiryReminderService implements TaskSource {
     private static final Logger log = LoggerFactory.getLogger(ExpiryReminderService.class);
 
     /** How many members management's reminder names before it only counts them. */
     private static final int NAMED_MEMBERS = 3;
 
-    private final ProfileFieldRepository profileFieldRepository;
-    private final ClusterProfileFieldRepository clusterFieldRepository;
+    private final ProfileFieldCore profileFields;
     private final ExpiryReminderRepository reminderRepository;
     private final ProfileFieldService profileFieldService;
     private final StationMemberRepository stationMemberRepository;
@@ -83,13 +86,11 @@ public class ExpiryReminderService {
     private final StationReadOnlyGuard readOnlyGuard;
     private final MemberPermissionResolver permissionResolver;
     private final MemberNameResolver memberNameResolver;
-    private final NotificationService notificationService;
-    private final Provider<ClusterService> clusterService;
+    private final Notifier notifier;
 
     @Inject
     public ExpiryReminderService(
-            ProfileFieldRepository profileFieldRepository,
-            ClusterProfileFieldRepository clusterFieldRepository,
+            ProfileFieldCore profileFields,
             ExpiryReminderRepository reminderRepository,
             ProfileFieldService profileFieldService,
             StationMemberRepository stationMemberRepository,
@@ -97,10 +98,8 @@ public class ExpiryReminderService {
             StationReadOnlyGuard readOnlyGuard,
             MemberPermissionResolver permissionResolver,
             MemberNameResolver memberNameResolver,
-            NotificationService notificationService,
-            Provider<ClusterService> clusterService) {
-        this.profileFieldRepository = profileFieldRepository;
-        this.clusterFieldRepository = clusterFieldRepository;
+            Notifier notifier) {
+        this.profileFields = profileFields;
         this.reminderRepository = reminderRepository;
         this.profileFieldService = profileFieldService;
         this.stationMemberRepository = stationMemberRepository;
@@ -108,8 +107,7 @@ public class ExpiryReminderService {
         this.readOnlyGuard = readOnlyGuard;
         this.permissionResolver = permissionResolver;
         this.memberNameResolver = memberNameResolver;
-        this.notificationService = notificationService;
-        this.clusterService = clusterService;
+        this.notifier = notifier;
     }
 
     /**
@@ -158,13 +156,11 @@ public class ExpiryReminderService {
     }
 
     private List<ExpiryField> expiryFields() {
-        var ofStations = profileFieldRepository.findAllByType(ProfileFieldType.EXPIRY_DATE).stream()
-                .map(field -> new ExpiryField(
-                        FieldOrigin.STATION, field.id(), field.name(), field.config(), field.stationId()));
-        var ofClusters = clusterFieldRepository.findAllByType(ProfileFieldType.EXPIRY_DATE).stream()
-                .map(field -> new ExpiryField(
-                        FieldOrigin.CLUSTER, field.id(), field.name(), field.config(), field.clusterId()));
-        return Stream.concat(ofStations, ofClusters).toList();
+        return Stream.of(FieldOrigin.values())
+                .flatMap(origin -> profileFields.owner(origin).ofType(FieldType.EXPIRY_DATE).stream())
+                .map(field ->
+                        new ExpiryField(field.origin(), field.id(), field.name(), field.config(), field.ownerId()))
+                .toList();
     }
 
     /**
@@ -239,9 +235,7 @@ public class ExpiryReminderService {
     }
 
     private List<ProfileFieldValue> valuesOf(ExpiryField field) {
-        return field.origin() == FieldOrigin.CLUSTER
-                ? clusterFieldRepository.findValuesOfField(field.id())
-                : profileFieldRepository.findValuesOfField(field.id());
+        return profileFields.owner(field.origin()).answersTo(field.id());
     }
 
     /** The clock of one station, or UTC where it has named none. */
@@ -274,22 +268,22 @@ public class ExpiryReminderService {
                 null,
                 null);
         if (hasLogin(member)) {
-            notificationService.notifyMembers(
-                    List.of(member.id()),
+            notifier.notify(
+                    StationAudience.member(member.id()),
                     NotificationType.EXPIRY_REMINDER,
-                    NotificationData.of(params, NotificationLinks.ownProfile()));
+                    NotificationData.of(params, NotificationLinks.ownProfile()),
+                    Delivery.EVERY_TIME);
         }
         var guardians = stationMemberRepository.findManagers(member.id()).stream()
-                .filter(guardian -> !guardian.former())
                 .filter(this::hasLogin)
                 .map(StationMember::id)
                 .toList();
-        if (!guardians.isEmpty()) {
-            notificationService.notifyMembers(
-                    guardians,
-                    NotificationType.EXPIRY_REMINDER,
-                    NotificationData.of(params, NotificationLinks.managedProfile(member.id())));
-        }
+        if (guardians.isEmpty()) return;
+        notifier.notify(
+                StationAudience.members(guardians),
+                NotificationType.EXPIRY_REMINDER,
+                NotificationData.of(params, NotificationLinks.managedProfile(member.id())),
+                Delivery.EVERY_TIME);
     }
 
     /**
@@ -311,10 +305,11 @@ public class ExpiryReminderService {
         var params = new NotificationParams.ExpiryReminder(
                 ExpiryReminderKind.MEMBERS_DUE, field.name(), null, null, null, members, due.size());
         if (field.origin() == FieldOrigin.CLUSTER) {
-            notificationService.notifyClusterMembers(
-                    clusterService.get().findMemberIdsWith(field.ownerId(), ClusterPermission.CLUSTER_MEMBER_MANAGER),
+            notifier.notify(
+                    ClusterAudience.holders(field.ownerId(), ClusterPermission.CLUSTER_MEMBER_MANAGER),
                     NotificationType.EXPIRY_REMINDER,
-                    NotificationData.of(params, NotificationLinks.clusterMembers()));
+                    NotificationData.of(params, NotificationLinks.clusterMembers()),
+                    Delivery.EVERY_TIME);
             return;
         }
         var recipients =
@@ -325,10 +320,11 @@ public class ExpiryReminderService {
                         .map(StationMember::id)
                         .toList();
         if (recipients.isEmpty()) return;
-        notificationService.notifyMembers(
-                recipients,
+        notifier.notify(
+                StationAudience.members(recipients),
                 NotificationType.EXPIRY_REMINDER,
-                NotificationData.of(params, NotificationLinks.runningOut(field.id())));
+                NotificationData.of(params, NotificationLinks.runningOut(field.id())),
+                Delivery.EVERY_TIME);
     }
 
     /** Whether somebody can sign in and read a notification at all. */
@@ -336,12 +332,20 @@ public class ExpiryReminderService {
         return member.accountId() != null && permissionResolver.resolve(member).contains(StationPermission.LOGIN);
     }
 
-    private static LocalDate dayOf(String stored) {
+    private static @Nullable LocalDate dayOf(String stored) {
         if (stored == null || stored.isBlank()) return null;
         try {
             return LocalDate.parse(stored.length() > 10 ? stored.substring(0, 10) : stored);
         } catch (DateTimeParseException e) {
             return null;
         }
+    }
+
+    @Override
+    public List<ScheduledTask> scheduledTasks() {
+        return List.of(new ScheduledTask(
+                "expiry-reminder-check",
+                Schedule.fixedDelay(Duration.ofMinutes(5), Duration.ofMinutes(30)),
+                () -> sweep(Instant.now())));
     }
 }

@@ -15,9 +15,15 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import {inventory, inventoryContainers, stationMembers} from '@/api'
 import {ItemOwner} from '@/api/inventory'
-import type {InventoryItem, InventoryItemHistory, InventorySize} from '@/api/inventory'
-import type {ItemCheckHistoryEntry, ItemLocationResponse} from '@/api/inventoryContainers'
-import {StationPermission, type StationMember} from '@/api/types'
+import type {
+  HistoryResponse,
+  InventoryItem,
+  InventorySize,
+  ItemCheckHistoryEntry,
+  ItemLocationResponse,
+  MemberWithName,
+} from '@/api/generated/schema'
+import {StationPermission} from '@/api/types'
 import {useSession} from '@/composables/useSession'
 import {useActsForOwner} from '@/composables/useActsForOwner'
 import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
@@ -36,10 +42,14 @@ const canEdit = computed(() => hasPermission(StationPermission.INVENTORY_EDIT))
 
 const itemId = computed(() => Number(route.params.id))
 const item = ref<InventoryItem | null>(null)
-const historyEntries = ref<InventoryItemHistory[]>([])
+const historyEntries = ref<HistoryResponse[]>([])
 const checkHistory = ref<ItemCheckHistoryEntry[]>([])
 const sizes = ref<InventorySize[]>([])
-const members = ref<StationMember[]>([])
+/**
+ * The people the assign modal offers. An association has none to read, so a refused list stays
+ * empty rather than blanking a page that is mostly about the piece itself.
+ */
+const members = ref<MemberWithName[]>([])
 const location = ref<ItemLocationResponse | null>(null)
 const {message: success, flash} = useFlashMessage(3000)
 
@@ -96,9 +106,6 @@ const {loading, failure} = useAsyncLoader(async () => {
   item.value = i
   historyEntries.value = h
   checkHistory.value = ch
-  // The member list fills the assign modal, and an association has neither: its own station has nobody
-  // to hand gear to and it may not read anybody else's roster. Asking and being refused is fine; letting
-  // the refusal blank a page that is mostly about the piece itself is not.
   const [s, m, loc] = await Promise.all([
     inventory.listSizes(i.inventoryId),
     stationMembers.listMembers().catch(() => []),

@@ -6,7 +6,7 @@
 <script lang="ts" setup>
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import FieldValueDisplay from '@/components/display/FieldValueDisplay.vue'
+import QuestionValueDisplay from '@/components/display/QuestionValueDisplay.vue'
 import type {LaidOutField} from './ProfileFieldsLayout.vue'
 import {isSection, isSpacer, spanClass} from './fieldLayout'
 
@@ -31,11 +31,11 @@ defineProps<{
       <div v-if="isSection(field)" data-testid="field-section" :class="spanClass(field)" class="pt-2 first:pt-0">
         <SubHeader class="text-sm">{{ field.name }}</SubHeader>
       </div>
-      <div v-else-if="isSpacer(field)" :class="spanClass(field)" aria-hidden="true"></div>
+      <div v-else-if="isSpacer(field)" :class="spanClass(field)" aria-hidden="true"/>
       <div v-else data-testid="field-entry" :data-field="field.name" :class="spanClass(field)" class="text-sm">
         <MutedText>{{ field.name }}:</MutedText>
         <span class="ml-1 font-medium">
-          <FieldValueDisplay :value="getValue(field)" :field-type="field.fieldType" :config="field.config"/>
+          <QuestionValueDisplay :value="getValue(field)" :field-type="field.fieldType" :config="field.config"/>
         </span>
       </div>
     </template>

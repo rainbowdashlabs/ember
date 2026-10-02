@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
+import dev.chojo.ember.api.refusal.InventoryRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.ProcurementCreated;
 import dev.chojo.ember.event.events.ProcurementFulfilled;
@@ -19,9 +21,9 @@ import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.inventory.repository.ProcurementRepository;
 import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
-import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -64,16 +66,26 @@ public class ProcurementService {
     }
 
     /**
-     * Records something that has been ordered.
+     * Records something that has been ordered. Nobody is notified about an order that is for nobody.
      *
      * @param memberId who it is for, or {@code null} for an order a cluster places for its own store
      */
-    public Procurement create(int stationId, int inventoryId, Integer memberId, Integer sizeId, String notes) {
-        inventoryService.requireHomogeneous(inventoryId, "ordering more");
+    public Procurement create(
+            int stationId,
+            int inventoryId,
+            @Nullable Integer memberId,
+            @Nullable Integer sizeId,
+            @Nullable String notes) {
+        String inventoryName = inventoryRepository
+                .findById(inventoryId)
+                .filter(inventory -> inventory.stationId() == stationId)
+                .map(Inventory::name)
+                .orElseThrow(InventoryRefusal.INVENTORY_NOT_HERE_ON_PROCUREMENT::raise);
+        inventoryService.requireHomogeneous(
+                inventoryId,
+                InventoryRefusal.INVENTORY_NOT_HERE_FOR_ORDER,
+                InventoryRefusal.INVENTORY_ORDER_ON_A_COLLECTION);
         var procurement = procurementRepository.create(stationId, inventoryId, memberId, sizeId, notes);
-        String inventoryName =
-                inventoryRepository.findById(inventoryId).map(Inventory::name).orElse("?");
-        // Nobody is told about an order that was for nobody
         if (memberId != null) {
             eventBus.publish(new ProcurementCreated(stationId, memberId, inventoryId, inventoryName));
         }
@@ -99,6 +111,10 @@ public class ProcurementService {
         return procurementRepository.findOpen(stationId);
     }
 
+    /**
+     * Marks an order as arrived. What arrives belongs to whoever ordered it: at a cluster's own store that
+     * is the cluster, and the piece rests there rather than landing on a person.
+     */
     public boolean fulfill(int id) {
         var procurement = procurementRepository.findById(id);
         if (procurement.isEmpty()) {
@@ -109,8 +125,6 @@ public class ProcurementService {
 
         var inv = inventoryService.findById(proc.inventoryId());
         if (inv.isPresent()) {
-            // What arrives belongs to whoever ordered it. At a cluster's own store that is the cluster,
-            // and it rests there until the cluster sends it somewhere rather than landing on a person.
             var owner = clusterRepository.findByHomeStation(proc.stationId());
             var item = owner.isPresent()
                     ? inventoryService.createItem(
@@ -135,7 +149,6 @@ public class ProcurementService {
                     .findById(proc.inventoryId())
                     .map(Inventory::name)
                     .orElse("?");
-            // Nobody is told about an order that was for nobody
             if (proc.memberId() != null) {
                 eventBus.publish(
                         new ProcurementFulfilled(proc.stationId(), proc.memberId(), proc.inventoryId(), inventoryName));
@@ -179,7 +192,11 @@ public class ProcurementService {
                     reasonFor(proc),
                     new ItemMovementService.Actor(memberId, true),
                     item.id());
-        } catch (BadRequestResponse noChain) {
+        } catch (RefusalResponse noChain) {
+            if (noChain.refusal() != InventoryRefusal.MOVEMENT_FLOW_NOT_BOUND
+                    && noChain.refusal() != InventoryRefusal.MOVEMENT_FLOW_HAS_NO_STEPS) {
+                throw noChain;
+            }
             log.info(
                     "Procurement {} handed over directly: no chain serves an issue here ({})",
                     proc.id(),
@@ -199,7 +216,7 @@ public class ProcurementService {
     private String memberName(int memberId) {
         return stationMemberRepository
                 .findById(memberId)
-                .flatMap(member -> accountRepository.findById(member.accountId()))
+                .flatMap(member -> Optional.ofNullable(member.accountId()).flatMap(accountRepository::findById))
                 .map(account -> NameParts.of(account).called())
                 .orElse("");
     }

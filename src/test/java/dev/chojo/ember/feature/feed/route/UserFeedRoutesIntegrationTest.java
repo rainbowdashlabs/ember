@@ -5,18 +5,20 @@
  */
 package dev.chojo.ember.feature.feed.route;
 
+import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.auth.StationUserType;
-import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.cluster.entity.StationKind;
 import dev.chojo.ember.feature.events.service.EventCategoryService;
 import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventRegistrationService;
+import dev.chojo.ember.feature.events.service.OccurrenceCalendar;
 import dev.chojo.ember.feature.feed.FeedRateLimiter;
 import dev.chojo.ember.feature.feed.entity.FeedToken;
 import dev.chojo.ember.feature.feed.render.IcalEventRenderer;
 import dev.chojo.ember.feature.feed.render.NotificationFeedRenderer;
 import dev.chojo.ember.feature.feed.service.FeedMetricsService;
 import dev.chojo.ember.feature.feed.service.FeedTokenService;
+import dev.chojo.ember.feature.feed.service.PersonalFeedService;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.lostandfound.service.LostAndFoundImageService;
 import dev.chojo.ember.feature.lostandfound.service.LostAndFoundService;
@@ -24,91 +26,91 @@ import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
+import dev.chojo.ember.feature.notifications.entity.Recipient;
 import dev.chojo.ember.feature.notifications.repository.NotificationRepository;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.notifications.service.NotificationInbox;
+import dev.chojo.ember.feature.notifications.service.NotificationPreferences;
+import dev.chojo.ember.feature.notifications.service.NotificationText;
 import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.ThemeFeel;
 import dev.chojo.ember.feature.station.repository.StationRepository;
-import io.javalin.http.Context;
-import io.javalin.http.HttpStatus;
+import io.javalin.testtools.HttpClient;
+import io.javalin.testtools.Response;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.lang.reflect.Method;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static dev.chojo.ember.api.RouteHarness.header;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
- * Wiring-level integration tests for {@link UserFeedRoutes}. These exercise the route
- * handlers via a heavily-mocked Javalin {@link Context} so we can verify the cross-cutting
- * concerns (conditional GET, rate limiting, privacy headers, metrics) actually fire in the
- * intended order - independent of any single helper's unit test.
+ * Wiring-level integration tests for {@link UserFeedRoutes}. These ask the feed over HTTP, through
+ * the same application production serves, so the cross-cutting concerns (conditional GET, rate
+ * limiting, privacy headers) are checked as a feed reader meets them - independent of any single
+ * helper's unit test.
  */
 class UserFeedRoutesIntegrationTest {
 
     private static final String TOKEN_VALUE = "test-token";
+    private static final String RSS = RouteHarness.PREFIX + "/public/feed/" + TOKEN_VALUE + "/notifications.rss";
     private static final int MEMBER_ID = 7;
     private static final int STATION_ID = 1;
 
-    private NotificationService notificationService;
+    private NotificationText notificationText;
+    private NotificationInbox notificationInbox;
+    private NotificationPreferences notificationPreferences;
     private ControllableClock clock;
-    private UserFeedRoutes routes;
+    private RouteHarness harness;
 
     @BeforeEach
     void setup() {
         FeedTokenService tokenService = mock(FeedTokenService.class);
-        EventCrudService crudService = mock(EventCrudService.class);
-        EventCategoryService categoryService = mock(EventCategoryService.class);
-        EventRegistrationService registrationService = mock(EventRegistrationService.class);
-        notificationService = mock(NotificationService.class);
+        notificationText = mock(NotificationText.class);
+        notificationInbox = mock(NotificationInbox.class);
+        notificationPreferences = mock(NotificationPreferences.class);
         StationMemberRepository memberRepository = mock(StationMemberRepository.class);
         StationRepository stationRepository = mock(StationRepository.class);
         EmailService emailService = mock(EmailService.class);
-        AccountRepository accountRepository = mock(AccountRepository.class);
-        IcalEventRenderer icalRenderer = mock(IcalEventRenderer.class);
-        LostAndFoundService lostAndFoundService = mock(LostAndFoundService.class);
-        LostAndFoundImageService imageService = mock(LostAndFoundImageService.class);
-        NotificationFeedRenderer notificationRenderer = mock(NotificationFeedRenderer.class);
         clock = new ControllableClock(Instant.parse("2026-06-12T10:00:00Z"));
-        FeedRateLimiter rateLimiter = new FeedRateLimiter(clock);
-        FeedMetricsService metricsService = mock(FeedMetricsService.class);
         MemberNameResolver memberNameResolver = mock(MemberNameResolver.class);
         when(memberNameResolver.called(MEMBER_ID)).thenReturn("Max Mustermann");
 
-        routes = new UserFeedRoutes(
+        var feeds = new PersonalFeedService(
                 tokenService,
-                crudService,
-                categoryService,
-                registrationService,
-                notificationService,
+                mock(EventCrudService.class),
+                mock(EventCategoryService.class),
+                mock(EventRegistrationService.class),
+                notificationText,
+                notificationInbox,
+                notificationPreferences,
                 memberRepository,
                 stationRepository,
                 emailService,
-                accountRepository,
-                icalRenderer,
-                lostAndFoundService,
-                imageService,
-                notificationRenderer,
-                rateLimiter,
-                metricsService,
-                memberNameResolver);
+                mock(IcalEventRenderer.class),
+                mock(LostAndFoundService.class),
+                mock(LostAndFoundImageService.class),
+                mock(NotificationFeedRenderer.class),
+                memberNameResolver,
+                mock(OccurrenceCalendar.class));
+        harness = RouteHarness.serving(
+                new UserFeedRoutes(feeds, new FeedRateLimiter(clock), mock(FeedMetricsService.class)));
 
-        // Minimal fixture: real token, member, station for the rss/atom handlers to resolve.
         FeedToken token = new FeedToken(MEMBER_ID, TOKEN_VALUE, Instant.EPOCH, null, null);
         StationMember member = new StationMember(
                 MEMBER_ID,
@@ -133,7 +135,6 @@ class UserFeedRoutesIntegrationTest {
                 ThemeFeel.ROUNDED,
                 false,
                 PublicKbMode.OFF,
-                null,
                 DiscoveryVisibility.NONE,
                 null,
                 false,
@@ -158,114 +159,82 @@ class UserFeedRoutesIntegrationTest {
         when(tokenService.findByToken(TOKEN_VALUE)).thenReturn(Optional.of(token));
         when(memberRepository.findById(MEMBER_ID)).thenReturn(Optional.of(member));
         when(stationRepository.findById(STATION_ID)).thenReturn(Optional.of(station));
-        when(notificationService.resolveLocale(any())).thenReturn("de");
-        when(notificationService.resolveLocalized(any(), any(), any(), any())).thenReturn("text");
+        when(notificationText.resolveLocale(any())).thenReturn("de");
+        when(notificationText.resolveLocalized(any(), any(), any(), any())).thenReturn("text");
         when(emailService.getBaseUrl()).thenReturn("https://ember.example.com");
-        when(notificationService.getNotificationSettings(MEMBER_ID)).thenReturn(Map.of());
-        when(notificationService.findAll(MEMBER_ID)).thenReturn(List.of());
-        when(notificationService.findMaxStamp(MEMBER_ID))
-                .thenReturn(new NotificationRepository.Stamp(0, Instant.EPOCH));
-    }
-
-    // -- conditional GET --
-
-    @Test
-    void rssEmitsEtagOnFirstCallAndReturns304OnSecondWithMatch() throws Exception {
-        var first = new RecordingContext();
-        first.pathParams.put("token", TOKEN_VALUE);
-        invokeRss(first.ctx);
-
-        // First call must populate the ETag for the next caller to echo back.
-        String etag = first.headers.get("ETag");
-        assertNotNull(etag, "First response should emit an ETag");
-        assertNull(first.status.get(), "First response should fall through to 200");
-
-        // Second call (different rate-limit window so we don't trip the limiter).
-        clock.advanceSeconds(120);
-        var second = new RecordingContext();
-        second.pathParams.put("token", TOKEN_VALUE);
-        second.requestHeaders.put("If-None-Match", etag);
-        invokeRss(second.ctx);
-
-        assertEquals(Integer.valueOf(304), second.status.get(), "Matching If-None-Match should yield 304");
-        assertEquals(etag, second.headers.get("ETag"));
+        when(notificationPreferences.settingsOf(MEMBER_ID)).thenReturn(Map.of());
+        when(notificationInbox.recent(Recipient.stationMember(MEMBER_ID))).thenReturn(List.of());
+        when(notificationInbox.latestStamp(MEMBER_ID)).thenReturn(new NotificationRepository.Stamp(0, Instant.EPOCH));
     }
 
     @Test
-    void rssChangingFingerprintInvalidatesEtag() throws Exception {
-        var first = new RecordingContext();
-        first.pathParams.put("token", TOKEN_VALUE);
-        invokeRss(first.ctx);
-        String firstEtag = first.headers.get("ETag");
+    void rssEmitsEtagOnFirstCallAndReturns304OnSecondWithMatch() {
+        harness.run((server, client) -> {
+            var first = client.get(RSS);
+            String etag = header(first, "ETag");
+            assertEquals(200, first.code());
+            assertNotNull(etag, "First response should emit an ETag");
 
-        // Bump the notification stamp - the next render must produce a fresh ETag.
-        when(notificationService.findMaxStamp(MEMBER_ID))
-                .thenReturn(new NotificationRepository.Stamp(99, Instant.parse("2026-06-12T11:00:00Z")));
+            clock.advanceSeconds(120);
+            var second = revalidate(client, etag);
 
-        clock.advanceSeconds(120);
-        var second = new RecordingContext();
-        second.pathParams.put("token", TOKEN_VALUE);
-        second.requestHeaders.put("If-None-Match", firstEtag);
-        invokeRss(second.ctx);
-
-        // Stale ETag → server falls through to a full render and emits the new fingerprint.
-        assertNull(second.status.get(), "Stale If-None-Match should not short-circuit");
-        assertNotEquals(firstEtag, second.headers.get("ETag"));
+            assertEquals(304, second.code(), "Matching If-None-Match should yield 304");
+            assertEquals(etag, header(second, "ETag"));
+        });
     }
-
-    // -- rate limit --
 
     @Test
-    void rateLimitRejectsTheCallThatExceedsTheBurstCapacity() throws Exception {
-        // Drain the burst - every call within it must be admitted.
-        for (int i = 0; i < FeedRateLimiter.BURST_CAPACITY; i++) {
-            var ctx = new RecordingContext();
-            ctx.pathParams.put("token", TOKEN_VALUE);
-            invokeRss(ctx.ctx);
-            assertNull(ctx.status.get(), "Admission " + (i + 1) + " should pass");
-            clock.advanceSeconds(1);
-        }
-        // The next call has no token left and not enough time for a refill → 429.
-        var rateLimited = new RecordingContext();
-        rateLimited.pathParams.put("token", TOKEN_VALUE);
-        invokeRss(rateLimited.ctx);
-        assertEquals(Integer.valueOf(429), rateLimited.status.get());
-        assertNotNull(rateLimited.headers.get("Retry-After"));
-        assertTrue(Integer.parseInt(rateLimited.headers.get("Retry-After")) > 0);
-    }
+    void rssChangingFingerprintInvalidatesEtag() {
+        harness.run((server, client) -> {
+            String firstEtag = header(client.get(RSS), "ETag");
+            when(notificationInbox.latestStamp(MEMBER_ID))
+                    .thenReturn(new NotificationRepository.Stamp(99, Instant.parse("2026-06-12T11:00:00Z")));
+            when(notificationText.resolveLocalized(any(), any(), any(), any())).thenReturn("changed");
 
-    // -- privacy headers always present --
+            clock.advanceSeconds(120);
+            var second = revalidate(client, firstEtag);
+
+            assertEquals(200, second.code(), "Stale If-None-Match should not short-circuit");
+            assertNotEquals(firstEtag, header(second, "ETag"));
+        });
+    }
 
     @Test
-    void privacyHeadersAreEmittedOnEveryResponsePath() throws Exception {
-        // 200 path
-        var ok = new RecordingContext();
-        ok.pathParams.put("token", TOKEN_VALUE);
-        invokeRss(ok.ctx);
-        assertEquals("no-referrer", ok.headers.get("Referrer-Policy"));
-        assertEquals("noindex", ok.headers.get("X-Robots-Tag"));
+    void rateLimitRejectsTheCallThatExceedsTheBurstCapacity() {
+        harness.run((server, client) -> {
+            for (int i = 0; i < FeedRateLimiter.BURST_CAPACITY; i++) {
+                assertEquals(200, client.get(RSS).code(), "Admission " + (i + 1) + " should pass");
+                clock.advanceSeconds(1);
+            }
 
-        // 429 path - drain the rest of the burst, then trip the limit.
-        for (int i = 1; i < FeedRateLimiter.BURST_CAPACITY; i++) {
-            var burn = new RecordingContext();
-            burn.pathParams.put("token", TOKEN_VALUE);
-            invokeRss(burn.ctx);
-            clock.advanceSeconds(1);
-        }
-        var rateLimited = new RecordingContext();
-        rateLimited.pathParams.put("token", TOKEN_VALUE);
-        invokeRss(rateLimited.ctx);
-        assertEquals(Integer.valueOf(429), rateLimited.status.get());
-        assertEquals("no-referrer", rateLimited.headers.get("Referrer-Policy"));
-        assertEquals("noindex", rateLimited.headers.get("X-Robots-Tag"));
+            var rateLimited = client.get(RSS);
+
+            assertEquals(429, rateLimited.code());
+            assertTrue(Integer.parseInt(header(rateLimited, "Retry-After")) > 0);
+        });
     }
 
-    // -- helpers --
+    @Test
+    void privacyHeadersAreEmittedOnEveryResponsePath() {
+        harness.run((server, client) -> {
+            var ok = client.get(RSS);
+            assertEquals("no-referrer", header(ok, "Referrer-Policy"));
+            assertEquals("noindex", header(ok, "X-Robots-Tag"));
 
-    private void invokeRss(Context ctx) throws Exception {
-        Method m = UserFeedRoutes.class.getDeclaredMethod("rssFeed", Context.class);
-        m.setAccessible(true);
-        m.invoke(routes, ctx);
+            for (int i = 1; i < FeedRateLimiter.BURST_CAPACITY; i++) {
+                client.get(RSS);
+                clock.advanceSeconds(1);
+            }
+            var rateLimited = client.get(RSS);
+
+            assertEquals(429, rateLimited.code());
+            assertEquals("no-referrer", header(rateLimited, "Referrer-Policy"));
+            assertEquals("noindex", header(rateLimited, "X-Robots-Tag"));
+        });
+    }
+
+    private static Response revalidate(HttpClient client, String etag) {
+        return client.get(RSS, request -> request.header("If-None-Match", etag));
     }
 
     /**
@@ -296,50 +265,6 @@ class UserFeedRoutesIntegrationTest {
 
         void advanceSeconds(long s) {
             now.updateAndGet(i -> i.plusSeconds(s));
-        }
-    }
-
-    /**
-     * Hand-rolled stub for {@link Context} that records the bits we assert on - status,
-     * response headers, request headers, query params. Built around a Mockito {@code mock}
-     * so we don't have to implement the entire {@code Context} interface.
-     */
-    private static final class RecordingContext {
-
-        final Map<String, String> pathParams = new HashMap<>();
-        final Map<String, String> queryParams = new HashMap<>();
-        final Map<String, String> requestHeaders = new HashMap<>();
-        final Map<String, String> headers = new HashMap<>();
-        final AtomicReference<Integer> status = new AtomicReference<>();
-        final Context ctx;
-
-        RecordingContext() {
-            this.ctx = buildCtx();
-        }
-
-        private Context buildCtx() {
-            var c = mock(Context.class);
-            when(c.pathParam(any())).thenAnswer(inv -> pathParams.getOrDefault(inv.getArgument(0), ""));
-            when(c.queryParam(any())).thenAnswer(inv -> queryParams.get(inv.getArgument(0)));
-            // Single-arg header(name) reads the request; two-arg header(name, value) writes
-            // the response.
-            when(c.header(any(String.class))).thenAnswer(inv -> requestHeaders.get(inv.getArgument(0)));
-            when(c.header(any(String.class), any(String.class))).thenAnswer(inv -> {
-                headers.put(inv.getArgument(0), inv.getArgument(1));
-                return c;
-            });
-            when(c.status(anyInt())).thenAnswer(inv -> {
-                status.set(inv.getArgument(0));
-                return c;
-            });
-            when(c.contentType(any(String.class))).thenReturn(c);
-            when(c.result(any(String.class))).thenReturn(c);
-            // status() (no args) returns the current HttpStatus - used by metrics recording.
-            when(c.status()).thenAnswer(inv -> {
-                Integer s = status.get();
-                return s == null ? HttpStatus.OK : HttpStatus.forStatus(s);
-            });
-            return c;
         }
     }
 }

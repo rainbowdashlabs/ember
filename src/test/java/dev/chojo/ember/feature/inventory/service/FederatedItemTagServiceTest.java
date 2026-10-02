@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.inventory.service;
 
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.federation.FederationTestTransport;
 import dev.chojo.ember.feature.federation.entity.CapabilityType;
 import dev.chojo.ember.feature.federation.entity.Direction;
 import dev.chojo.ember.feature.federation.entity.ShareGrant;
@@ -17,8 +18,11 @@ import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.TaggedItemSummary;
+import dev.chojo.ember.feature.inventory.route.RemoteInventoryTagRoutes;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import dev.chojo.ember.util.TestStationKeys;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -43,6 +47,7 @@ class FederatedItemTagServiceTest extends RepositoryTestBase {
     private static FederationRepository federationRepo;
     private static FederationService federationService;
     private static FederationHttpClient httpClient;
+    private static FederationTestTransport transport;
 
     private static Account account;
     private static Station asking;
@@ -52,16 +57,16 @@ class FederatedItemTagServiceTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         federationRepo = new FederationRepository();
-        federationService = new FederationService(federationRepo, stationRepo, new Api());
+        federationService = new FederationService(federationRepo, stationRepo, TestStationKeys.store(), new Api());
         httpClient = mock(FederationHttpClient.class);
+        transport = new FederationTestTransport(httpClient, federationRepo, stationRepo);
         service = new FederatedItemTagService(
                 inventoryTagRepo,
                 inventoryTagService,
                 federationService,
-                federationRepo,
-                new FederationFanout(),
-                httpClient,
-                stationRepo);
+                new FederationFanout(new TaskScheduler()),
+                transport.transport());
+        transport.serve(service);
 
         account = accountRepo.create("fedtag@test.example", "Fed", "Tagger");
         asking = stationRepo.create("FedTagAsking");
@@ -124,6 +129,11 @@ class FederatedItemTagServiceTest extends RepositoryTestBase {
         assertEquals(
                 List.of("Eigenes Funkgerät", "Nachbar-Antenne"),
                 found.stream().map(TaggedItemSummary::name).sorted().toList());
+        transport.assertParity(
+                federationService.findPartners(asking.id()).getFirst(),
+                RemoteInventoryTagRoutes.GET_TAGGED_ITEMS.at("Funk"),
+                null,
+                TaggedItemSummary.class);
 
         inventoryShareService.removeItemShare(neighbour.id(), theirItem.id());
         inventoryTagRepo.delete(theirTag.id(), neighbour.id());
@@ -145,7 +155,7 @@ class FederatedItemTagServiceTest extends RepositoryTestBase {
         federationRepo.activatePartner(partner.id(), federationService.encodePublicKey(keyPair));
         federationRepo.upsertCapability(partner.id(), CapabilityType.INVENTORY_LEND, Direction.IMPORT, true);
         storeCurrentContractOnRemotePartners(federationService, federationRepo, asking.id());
-        stationRepo.updateFederationPrivateKey(asking.id(), "a-private-key");
+        when(httpClient.canSign(asking.id())).thenReturn(true);
 
         var served = new TaggedItemSummary(
                 7, "FS-001", "Ferne Antenne", 0, "Fernlager", null, remoteUid, "FernStation", "Funk", true);
@@ -154,7 +164,6 @@ class FederatedItemTagServiceTest extends RepositoryTestBase {
                         pathIs("/remote/inventory/tagged/Funk"),
                         any(UUID.class),
                         anyInt(),
-                        anyString(),
                         eq(TaggedItemSummary.class)))
                 .thenReturn(List.of(served));
 
@@ -163,7 +172,7 @@ class FederatedItemTagServiceTest extends RepositoryTestBase {
                 List.of("Eigenes Funkgerät", "Ferne Antenne"),
                 found.stream().map(TaggedItemSummary::name).sorted().toList());
 
-        stationRepo.updateFederationPrivateKey(asking.id(), null);
+        when(httpClient.canSign(asking.id())).thenReturn(false);
         assertEquals(1, service.findAcrossPartners(asking.id(), "Funk").size());
 
         unpair();

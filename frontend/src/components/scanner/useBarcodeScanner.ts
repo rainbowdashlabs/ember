@@ -3,7 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {readonly, ref} from 'vue'
+import {readonly} from 'vue'
+import {browserRef} from '@/util/browserState'
 import {reportCaughtError} from '@/util/devErrorReporter'
 
 export type BarcodeFormat =
@@ -43,8 +44,8 @@ interface BarcodeDetectorInstance {
  * rest of the session without touching localStorage - a desktop with a webcam plugged in
  * between reloads still re-detects on the next page load.
  */
-const noCameraAvailable = ref(false)
-const tierCache = ref<ScannerTier | null>(null)
+const noCameraAvailable = browserRef(false)
+const tierCache = browserRef<ScannerTier | null>(null)
 
 /**
  * Strips Code 39 sentinel asterisks, trims whitespace and upper-cases using the invariant
@@ -58,19 +59,23 @@ export function normaliseScannedPayload(raw: string): string {
     return v.trim().toLocaleUpperCase('en-US')
 }
 
+/** Whether the browser's own detector reads any of the formats. A detector that cannot say counts as no. */
+async function nativeReadsAny(ctor: BarcodeDetectorCtor, formats: BarcodeFormat[]): Promise<boolean> {
+    try {
+        const supported = await ctor.getSupportedFormats()
+        const required = new Set<string>(formats)
+        return supported.some(f => required.has(f as BarcodeFormat))
+    } catch {
+        return false
+    }
+}
+
 async function probeTier(formats: BarcodeFormat[]): Promise<ScannerTier> {
     if (tierCache.value) return tierCache.value
     const ctor = (globalThis as { BarcodeDetector?: BarcodeDetectorCtor }).BarcodeDetector
-    if (ctor) {
-        try {
-            const supported = await ctor.getSupportedFormats()
-            const required = new Set<string>(formats)
-            const intersection = supported.filter(f => required.has(f as BarcodeFormat))
-            if (intersection.length > 0) {
-                tierCache.value = 'native'
-                return 'native'
-            }
-        } catch { /* fall through */ }
+    if (ctor && await nativeReadsAny(ctor, formats)) {
+        tierCache.value = 'native'
+        return 'native'
     }
     if (typeof navigator !== 'undefined' && typeof navigator.mediaDevices?.getUserMedia === 'function') {
         tierCache.value = 'zxing'
@@ -183,7 +188,7 @@ export function useBarcodeScanner() {
             throw new Error(insecure ? 'barcode-scanner-insecure-context' : 'barcode-scanner-unsupported')
         }
 
-        const stream = await openCameraStream(options)
+        const stream = await openCameraStream()
         await attachStreamToVideo(stream, options)
 
         const session = makeSession(stream, options)
@@ -199,7 +204,7 @@ export function useBarcodeScanner() {
         return {stop: session.stop}
     }
 
-    async function openCameraStream(options: StartScanOptions): Promise<MediaStream> {
+    async function openCameraStream(): Promise<MediaStream> {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({
                 video: {

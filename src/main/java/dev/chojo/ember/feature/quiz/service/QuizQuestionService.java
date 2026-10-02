@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.quiz.repository.QuizCatalogRepository;
 import dev.chojo.ember.util.Json;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -81,10 +82,10 @@ public class QuizQuestionService {
 
     public boolean updateQuestion(
             int id,
-            Integer categoryId,
+            @Nullable Integer categoryId,
             String title,
             String description,
-            String imageUrl,
+            @Nullable String imageUrl,
             double points,
             boolean autoPoints,
             String config,

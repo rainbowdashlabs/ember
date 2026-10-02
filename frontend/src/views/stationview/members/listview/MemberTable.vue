@@ -8,14 +8,13 @@ import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import type {RouteLocationRaw} from 'vue-router'
 import EmptyState from '@/components/feedback/EmptyState.vue'
-import FieldValueDisplay from '@/components/display/FieldValueDisplay.vue'
+import QuestionValueDisplay from '@/components/display/QuestionValueDisplay.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import RecordTable from '@/components/table/RecordTable.vue'
 import RowLink from '@/components/navigation/RowLink.vue'
 import type {CellValue} from '@/components/table/tableColumn'
-import type {ProfileField} from '@/api/profileFields'
-import type {StationMember} from '@/api/types'
-import {memberDisplayName} from './useMemberData'
+import type {MemberWithName, ProfileField} from '@/api/generated/schema'
+import {memberDisplayName, type RosterMember} from './useMemberData'
 import {roleOf} from './memberColumns'
 import MemberExpansion from './MemberExpansion.vue'
 import MemberNameCell from './MemberNameCell.vue'
@@ -33,7 +32,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  resendSetup: [member: StationMember]
+  resendSetup: [member: RosterMember]
 }>()
 
 const {t} = useI18n()
@@ -59,16 +58,16 @@ function overviewFieldsOf(memberId: number): ProfileField[] {
   return c.overviewFields.value.filter(field => c.isAskedOf(field.id, role))
 }
 
-function managerName(manager: StationMember): string {
+function managerName(manager: MemberWithName): string {
   const known = c.members.value.find(member => member.id === manager.id)
   return known ? memberDisplayName(known) : `#${manager.id}`
 }
 
-function answersOf(member: StationMember): ReadonlyMap<number, CellValue> | undefined {
+function answersOf(member: RosterMember): ReadonlyMap<number, CellValue> | undefined {
   return c.answerCells.value.get(member.id)
 }
 
-function rowClass(member: StationMember): string {
+function rowClass(member: RosterMember): string {
   if (exportMode.value) return exporting.selectedIds.value.has(member.id) ? 'bg-primary/5' : ''
   return c.expandedId.value === member.id ? 'bg-bg-light-accent/30 dark:bg-bg-dark-accent/30' : ''
 }
@@ -77,12 +76,12 @@ function rowClass(member: StationMember): string {
  * Where a person's name leads: their own page, unless the list is choosing whom to export or this
  * reader may not reach that person at all.
  */
-function namePageOf(member: StationMember): RouteLocationRaw | null {
+function namePageOf(member: RosterMember): RouteLocationRaw | null {
   if (exportMode.value || extras.blockedReason(member.id)) return null
   return c.detailRouteOf(member)
 }
 
-function onRowClick(member: StationMember) {
+function onRowClick(member: RosterMember) {
   if (exportMode.value) exporting.toggleRow(member.id)
   else c.toggleExpand(member)
 }
@@ -113,7 +112,7 @@ function onRowClick(member: StationMember) {
       <MemberTypeBadge :user-type="row.userType"/>
     </template>
     <template v-for="field in shownFields" :key="field.id" #[`cell-${field.id}`]="{row}">
-      <FieldValueDisplay v-if="answersOf(row)?.has(field.id)" :config="field.config" :field-type="field.fieldType" :value="answersOf(row)?.get(field.id)"/>
+      <QuestionValueDisplay v-if="answersOf(row)?.has(field.id)" :config="field.config" :field-type="field.fieldType" :value="answersOf(row)?.get(field.id)"/>
     </template>
     <template #after-row="{row, span}">
       <MemberExpansion

@@ -27,9 +27,18 @@ const members = defineModel<string[]>('members', {required: true})
  */
 const unbound = defineModel<boolean>('unbound', {required: true})
 
+/**
+ * Whether only the documents about people who have all left are shown: archived members, and members
+ * deleted while a document was kept for them. That is what is looked through when the paperwork of
+ * people long gone is cleared out.
+ */
+const departed = defineModel<boolean>('departed', {required: true})
+
 defineProps<{
   memberOptions: MemberOption[]
   canUpload?: boolean
+  /** Whether the reader may read the documents of members, without which nobody who left is listed. */
+  readsMembers?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -66,6 +75,14 @@ const {t} = useI18n()
       <div class="flex items-center gap-3">
         <SelectionToggleButton :selected="unbound" data-testid="documents-unbound" @toggle="unbound = !unbound">
           {{ t('documents.onlyUnbound') }}
+        </SelectionToggleButton>
+        <SelectionToggleButton
+            v-if="readsMembers"
+            :selected="departed"
+            data-testid="documents-departed"
+            @toggle="departed = !departed"
+        >
+          {{ t('documents.onlyDeparted') }}
         </SelectionToggleButton>
         <PrimaryButton v-if="canUpload" :icon="['fas', 'upload']" @click="emit('upload')">
           {{ t('documents.upload') }}

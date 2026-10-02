@@ -6,7 +6,7 @@
 <script lang="ts" setup>
 import AppIcon from '@/components/display/AppIcon.vue'
 import {computed} from 'vue'
-import {themeRevision} from '@/util/themeState'
+import {useThemePaint} from '@/composables/useThemePaint'
 import {outlineFor, type GlyphSurface} from '@/util/glyphOutline'
 import type {Glyph} from '@/util/glyph'
 
@@ -29,6 +29,8 @@ const props = defineProps<{
   size?: 'sm' | 'md' | 'lg'
 }>()
 
+const {revision: themeRevision} = useThemePaint()
+
 const sizeClass = computed(() => {
   switch (props.size ?? 'md') {
     case 'sm':
@@ -40,8 +42,11 @@ const sizeClass = computed(() => {
   }
 })
 
+/**
+ * The outline that keeps the glyph's colour readable on its surface. It reads the theme revision so
+ * it is worked out again after a repaint, which moves every surface underneath it.
+ */
 const outline = computed(() => {
-  // Read so the answer is taken again after a repaint, which moves every surface underneath it.
   void themeRevision.value
   return outlineFor(props.glyph.color, props.surface ?? 'page')
 })

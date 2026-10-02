@@ -39,7 +39,6 @@ const {t} = useI18n()
     <HelpSection :title="t('helpCenter.basics.federation.howRecognize')">
       <p>{{ t('helpCenter.basics.federation.howRecognizeText') }}</p>
 
-      <!-- Dummy: Content with station badge -->
       <NeutralContainer class="mt-3">
         <div class="space-y-3">
           <div class="flex items-center gap-2">
@@ -72,7 +71,6 @@ const {t} = useI18n()
     <HelpSection :title="t('helpCenter.basics.federation.copyTitle')">
       <p>{{ t('helpCenter.basics.federation.copyText') }}</p>
 
-      <!-- Dummy: Copy button example -->
       <NeutralContainer class="mt-3">
         <div class="flex items-center gap-2">
           <font-awesome-icon :icon="['fas', 'book']" class="text-xl text-primary" />

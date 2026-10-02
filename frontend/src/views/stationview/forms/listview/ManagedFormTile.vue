@@ -14,7 +14,8 @@ import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import MutedIcon from '@/components/display/MutedIcon.vue'
-import {FormPurpose, FormStatus, FormVisibility, type Form} from '@/api/forms'
+import {FormPurpose, FormStatus, FormVisibility} from '@/api/forms'
+import type {Form} from '@/api/generated/schema'
 import {PublicFormState} from '@/api/publicForms'
 import {closedSinceOf, formStateOf} from '@/util/formState'
 import {formatDate, formatDateTime} from '@/util/format'
@@ -30,14 +31,14 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'publish', form: Form): void
-  (e: 'close', form: Form): void
-  (e: 'edit', form: Form): void
-  (e: 'analytics', form: Form): void
-  (e: 'share', form: Form): void
-  (e: 'clear', form: Form): void
-  (e: 'duplicate', form: Form): void
-  (e: 'delete', form: Form): void
+  publish: [form: Form]
+  close: [form: Form]
+  edit: [form: Form]
+  analytics: [form: Form]
+  share: [form: Form]
+  clear: [form: Form]
+  duplicate: [form: Form]
+  delete: [form: Form]
 }>()
 
 const {t} = useI18n()

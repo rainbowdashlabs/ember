@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
+import dev.chojo.ember.api.refusal.InventoryRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.inventory.entity.AckKind;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
@@ -21,8 +23,6 @@ import dev.chojo.ember.feature.inventory.entity.StepSubject;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.ForbiddenResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -158,19 +158,20 @@ class ItemMovementServiceTest extends RepositoryTestBase {
                 itemMovementService.stepsOf(movement).size(),
                 "the owner's two steps are in the chain, walked by the station where the owner is not here");
 
-        // Step 2 takes it back to the station, which does not own it
         movement = itemMovementService.acknowledge(movement.id(), movement.currentStepId(), team, "", null);
         assertEquals(ItemCustody.AT_STATION, custodyOf(old));
 
-        // Step 3 puts it in the post, where it is in neither store's free stock
         movement = itemMovementService.acknowledge(movement.id(), movement.currentStepId(), team, "", null);
         assertEquals(ItemCustody.IN_TRANSIT, custodyOf(old));
         assertEquals(
                 movement.id(), inventoryRepo.findItemById(old).orElseThrow().custodyMovementId());
-        assertFalse(inventoryRepo.findUnassignedItems(mixedInventoryId).stream().anyMatch(i -> i.id() == old));
+        assertFalse(
+                inventoryRepo.findUnassignedItems(mixedInventoryId).stream().anyMatch(i -> i.id() == old),
+                "in the post it is in neither store's free stock");
 
-        // It still belongs to the station's list, because the station is one end of the movement
-        assertTrue(inventoryRepo.findItemsByStation(station.id()).stream().anyMatch(i -> i.id() == old));
+        assertTrue(
+                inventoryRepo.findItemsByStation(station.id()).stream().anyMatch(i -> i.id() == old),
+                "the station is one end of the movement, so it keeps the piece on its list");
 
         movement = walkToEnd(movement, replacement);
         assertEquals(MovementState.DONE, movement.state());
@@ -285,10 +286,12 @@ class ItemMovementServiceTest extends RepositoryTestBase {
         assertEquals(ItemCustody.WITH_OWNER, custodyOf(gear));
     }
 
+    /**
+     * The owning body is named, but nobody from its side can press anything, so the station is still
+     * standing in and the record has to say so.
+     */
     @Test
     void namingABodyAboveTheStationDoesNotMakeItsStepsItsOwnAnswer() {
-        // The owning body is named, but nobody from its side can press anything, so the station is
-        // still standing in and the record has to say so
         var flow = movementFlowService.createFlow(station.id(), "Benanntes Trägerbein", MovementPurpose.ISSUE);
         movementFlowService.addStep(
                 flow.id(),
@@ -302,7 +305,6 @@ class ItemMovementServiceTest extends RepositoryTestBase {
         movementFlowService.bind(
                 station.id(), null, ItemOwner.CLUSTER, MovementPurpose.ISSUE, MovementParty.STORE, flow.id());
 
-        // A real cluster, because the item's owning cluster is a foreign key now
         var home = stationRepo.create("Träger " + CODES.incrementAndGet());
         int clusterId = clusterRepo.create("Kreisverband", null, home.id()).id();
         int itemId = inventoryRepo
@@ -338,7 +340,8 @@ class ItemMovementServiceTest extends RepositoryTestBase {
 
     /**
      * An issue that already names what is being sent is what a cluster starting one looks like, and the
-     * station is told what is coming by name rather than by a step it has to go and read.
+     * station is told what is coming by name rather than by a step it has to go and read. Somebody
+     * answering for the cluster starts it, because the station cannot say that gear has been sent.
      */
     @Test
     void anIssueOfClusterGearNamesWhatIsOnItsWay() {
@@ -363,8 +366,6 @@ class ItemMovementServiceTest extends RepositoryTestBase {
                         clusterId)
                 .id();
 
-        // Started by somebody answering for the cluster, because the first step is the cluster's: gear
-        // it has not sent yet is not something the station can say has been sent
         var cluster = new ItemMovementService.Actor(team.memberId(), true, true);
         ItemMovement movement = itemMovementService.create(
                 station.id(),
@@ -432,7 +433,7 @@ class ItemMovementServiceTest extends RepositoryTestBase {
 
         int ownerStep = movement.currentStepId();
         assertThrows(
-                ForbiddenResponse.class,
+                RefusalResponse.class,
                 () -> itemMovementService.acknowledge(movement.id(), ownerStep, team, "", null),
                 "the station cannot say the cluster has taken it");
 
@@ -446,10 +447,12 @@ class ItemMovementServiceTest extends RepositoryTestBase {
                 "the owner answered for itself");
     }
 
+    /**
+     * Nobody carries owner rights today. The day the body above the station has people who can press
+     * its own steps, they arrive as this actor and the same chain reads as confirmed.
+     */
     @Test
     void anOwnerAnsweringForItselfIsRecordedAsConfirming() {
-        // Nobody carries owner rights today. The day the body above the station has people who can
-        // press its own steps, they arrive here as this actor and the same chain reads as confirmed
         var owner = new ItemMovementService.Actor(member.id(), true, true);
         int old = itemWithMember(ItemOwner.CLUSTER);
 
@@ -468,7 +471,6 @@ class ItemMovementServiceTest extends RepositoryTestBase {
     void aDeclinedMovementPutsTheItemBackWithTheMember() {
         int old = itemWithMember(ItemOwner.CLUSTER);
         ItemMovement movement = announceExchange(old);
-        // Take it back and put it in the post, so it is well away from the member
         movement = itemMovementService.acknowledge(movement.id(), movement.currentStepId(), team, "", null);
         movement = itemMovementService.acknowledge(movement.id(), movement.currentStepId(), team, "", null);
         assertEquals(ItemCustody.IN_TRANSIT, custodyOf(old));
@@ -484,10 +486,11 @@ class ItemMovementServiceTest extends RepositoryTestBase {
     /**
      * A member's inventory says what they hold, and stops saying it the moment they hand it over.
      *
-     * <p>Before the handover the row stays and carries the step, because the jacket is still on them
+     * <p>Before the handover the row stays and names the movement, because the jacket is still on them
      * and the exchange is merely asked for. After it, neither piece is theirs: the old one is in the
      * post and the replacement is not theirs until it is handed to them. What runs in between is read
-     * as a movement, not as a possession.
+     * as a movement, not as a possession. The replacement names the movement too while the chain waits
+     * for the member to say they have it.
      */
     @Test
     void aMemberSeesTheirGearUntilTheyHandItOver() {
@@ -497,10 +500,8 @@ class ItemMovementServiceTest extends RepositoryTestBase {
 
         var asked = entryFor(old).orElseThrow(() -> new AssertionError("it is still on the member"));
         assertEquals(movement.id(), asked.movementId(), "and it says an exchange is running");
-        assertNotNull(asked.movementStep());
         assertEquals(ItemCustody.WITH_MEMBER, asked.item().custody());
 
-        // Taken back, then put in the post: the member holds nothing at all any more
         movement = itemMovementService.acknowledge(movement.id(), movement.currentStepId(), team, "", null);
         assertTrue(entryFor(old).isEmpty(), "handed in means off the member's list");
 
@@ -514,8 +515,33 @@ class ItemMovementServiceTest extends RepositoryTestBase {
         movement = itemMovementService.acknowledge(movement.id(), movement.currentStepId(), team, "", replacement);
         assertTrue(entryFor(replacement).isEmpty(), "the replacement is not theirs before it is handed over");
 
+        while (entryFor(replacement).isEmpty()) {
+            movement = itemMovementService.acknowledge(movement.id(), movement.currentStepId(), team, "", null);
+        }
+        assertEquals(
+                movement.id(),
+                entryFor(replacement).orElseThrow().movementId(),
+                "once handed over it is, still on the movement while the member has not confirmed it");
+
         walkToEnd(movement, replacement);
-        assertTrue(entryFor(replacement).isPresent(), "once handed over it is");
+        assertNull(entryFor(replacement).orElseThrow().movementId(), "and on nothing once the chain is over");
+    }
+
+    @Test
+    void standingNamesTheStepThatHappenedAndWhoseTurnItIs() {
+        int old = itemWithMember(ItemOwner.STATION);
+        ItemMovement movement = announceExchange(old);
+        var steps = itemMovementService.stepsOf(movement);
+
+        var standing = itemMovementService.standingOf(movement.id()).orElseThrow();
+
+        assertEquals(movement.id(), standing.id());
+        assertEquals(MovementState.OPEN, standing.state());
+        assertEquals(steps.getFirst().label(), standing.reachedStepLabel());
+        assertEquals(steps.get(1).actor(), standing.currentStepActor());
+        assertEquals(ItemOwner.STATION, standing.ownerKind());
+        assertNull(standing.ownerName());
+        assertTrue(itemMovementService.standingOf(-1).isEmpty());
     }
 
     /**
@@ -562,7 +588,7 @@ class ItemMovementServiceTest extends RepositoryTestBase {
         ItemMovement movement = announceExchange(old);
         itemMovementService.acknowledge(movement.id(), movement.currentStepId(), team, "", null);
 
-        assertThrows(ForbiddenResponse.class, () -> itemMovementService.cancel(movement.id(), kid, "Doch nicht"));
+        assertThrows(RefusalResponse.class, () -> itemMovementService.cancel(movement.id(), kid, "Doch nicht"));
     }
 
     /**
@@ -618,7 +644,6 @@ class ItemMovementServiceTest extends RepositoryTestBase {
     void aStepNobodyAnswersCanBeForcedAndSaysSoAfterwards() {
         int old = itemWithMember(ItemOwner.STATION);
         ItemMovement movement = announceExchange(old);
-        // Roll back to the member's step by starting a fresh one nobody has answered
         int other = itemWithMember(ItemOwner.STATION);
         ItemMovement fresh = itemMovementService.create(
                 station.id(),
@@ -633,11 +658,10 @@ class ItemMovementServiceTest extends RepositoryTestBase {
                 team,
                 null);
 
-        // The station's own steps are refused: it can simply acknowledge those
         var refused = assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> itemMovementService.force(fresh.id(), fresh.currentStepId(), team, "Keine Antwort", null));
-        assertTrue(refused.getMessage().contains("station's own"));
+        assertEquals(InventoryRefusal.MOVEMENT_STATION_STEP_NOT_FORCED, refused.refusal());
 
         itemMovementService.decline(fresh.id(), team, "Aufgeräumt");
         itemMovementService.decline(movement.id(), team, "Aufgeräumt");
@@ -648,7 +672,7 @@ class ItemMovementServiceTest extends RepositoryTestBase {
         int old = itemWithMember(ItemOwner.STATION);
         ItemMovement movement = announceExchange(old);
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> itemMovementService.force(movement.id(), movement.currentStepId(), team, "  ", null));
         itemMovementService.decline(movement.id(), team, "Aufgeräumt");
     }
@@ -658,9 +682,8 @@ class ItemMovementServiceTest extends RepositoryTestBase {
         int old = itemWithMember(ItemOwner.STATION);
         ItemMovement movement = announceExchange(old);
 
-        // The movement now stands on a station step, and a plain member may not take it
         assertThrows(
-                ForbiddenResponse.class,
+                RefusalResponse.class,
                 () -> itemMovementService.acknowledge(movement.id(), movement.currentStepId(), kid, "", null));
 
         itemMovementService.decline(movement.id(), team, "Aufgeräumt");
@@ -672,8 +695,8 @@ class ItemMovementServiceTest extends RepositoryTestBase {
         ItemMovement movement = walkToEnd(announceExchange(old), item(ItemOwner.STATION));
         assertEquals(MovementState.DONE, movement.state());
 
-        assertThrows(BadRequestResponse.class, () -> itemMovementService.acknowledge(movement.id(), 1, team, "", null));
-        assertThrows(BadRequestResponse.class, () -> itemMovementService.decline(movement.id(), team, "zu spät"));
+        assertThrows(RefusalResponse.class, () -> itemMovementService.acknowledge(movement.id(), 1, team, "", null));
+        assertThrows(RefusalResponse.class, () -> itemMovementService.decline(movement.id(), team, "zu spät"));
     }
 
     @Test
@@ -683,8 +706,7 @@ class ItemMovementServiceTest extends RepositoryTestBase {
         var steps = itemMovementService.stepsOf(movement);
         int last = steps.getLast().id();
 
-        assertThrows(
-                BadRequestResponse.class, () -> itemMovementService.acknowledge(movement.id(), last, team, "", null));
+        assertThrows(RefusalResponse.class, () -> itemMovementService.acknowledge(movement.id(), last, team, "", null));
 
         itemMovementService.decline(movement.id(), team, "Aufgeräumt");
     }
@@ -698,15 +720,14 @@ class ItemMovementServiceTest extends RepositoryTestBase {
 
         int standing = takenBack.currentStepId();
         assertThrows(
-                BadRequestResponse.class,
-                () -> itemMovementService.acknowledge(takenBack.id(), standing, team, "", null));
+                RefusalResponse.class, () -> itemMovementService.acknowledge(takenBack.id(), standing, team, "", null));
 
         itemMovementService.decline(takenBack.id(), team, "Aufgeräumt");
     }
 
+    /** Runs on a station of its own, because the other tests bind flows of their own to the shared one. */
     @Test
     void aFlowKeepsItsPresetsAndTheBindingsThatPointAtThem() {
-        // Its own station, because the tests above bind flows of their own to the shared one
         var pristine = stationRepo.create("MovementPresetStation");
         var flows = movementFlowService.findFlows(pristine.id());
         assertEquals(11, flows.size(), "one chain per combination of purpose, owner and other end");
@@ -843,7 +864,7 @@ class ItemMovementServiceTest extends RepositoryTestBase {
         assertEquals(StepActor.MEMBER, waiting.actor());
         var acting = anotherStationsHand;
         assertThrows(
-                ForbiddenResponse.class,
+                RefusalResponse.class,
                 () -> itemMovementService.acknowledge(movementId, waitingId, acting, "", null),
                 "the station cannot say for somebody else that they have it");
 
@@ -990,7 +1011,7 @@ class ItemMovementServiceTest extends RepositoryTestBase {
                 shelf);
 
         var second = assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> itemMovementService.create(
                         station.id(),
                         MovementPurpose.ISSUE,
@@ -1003,10 +1024,10 @@ class ItemMovementServiceTest extends RepositoryTestBase {
                         "Doppelt versprochen",
                         team,
                         shelf));
-        assertTrue(second.getMessage().contains(String.valueOf(planned.id())), "it names the movement holding it");
+        assertEquals(InventoryRefusal.MOVEMENT_PIECE_ALREADY_PROMISED, second.refusal());
 
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> itemCustodyService.assignToMember(shelf, member.id(), "Move Ment"),
                 "and the counter cannot hand it to somebody else either");
     }
@@ -1041,18 +1062,18 @@ class ItemMovementServiceTest extends RepositoryTestBase {
         var movement = announceExchange(itemWithMember(ItemOwner.STATION));
 
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> itemMovementService.rechain(movement.id(), 99, member.id()),
                 "that flow has no hundredth step");
 
         var closed = itemMovementService.cancel(movement.id(), team, "Doch nicht");
         assertEquals(MovementState.CANCELLED, closed.state());
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> itemMovementService.planRechain(movement.id()),
                 "a movement that has finished is not walking anything any more");
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> itemMovementService.rechain(movement.id(), 0, member.id()),
                 "and so there is nothing to move it onto");
     }
@@ -1088,7 +1109,7 @@ class ItemMovementServiceTest extends RepositoryTestBase {
         var correction = new ItemMovementService.Correction(ItemCustody.AT_STATION, null, false, null);
 
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> itemMovementService.correct(movement.id(), correction, team, " "),
                 "a tidied record without a reason is a record nobody can read afterwards");
     }
@@ -1147,7 +1168,7 @@ class ItemMovementServiceTest extends RepositoryTestBase {
         int gone = itemWithMember(ItemOwner.STATION);
         inventoryRepo.deleteItem(gone);
 
-        assertThrows(BadRequestResponse.class, () -> announceExchange(gone), "there is nothing to swap");
+        assertThrows(RefusalResponse.class, () -> announceExchange(gone), "there is nothing to swap");
     }
 
     /** A piece promised to one movement cannot be promised to a second one. */
@@ -1168,7 +1189,7 @@ class ItemMovementServiceTest extends RepositoryTestBase {
                 promised);
 
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> itemMovementService.create(
                         station.id(),
                         MovementPurpose.ISSUE,

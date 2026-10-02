@@ -32,12 +32,10 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.attendanceReport.filterRounding') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Filter controls using real components -->
     <HelpSection :title="t('helpCenter.attendanceReport.filterExampleTitle')">
       <ReportFilterPanel />
     </HelpSection>
 
-    <!-- Saved presets -->
     <HelpSection :title="t('helpCenter.attendanceReport.presetsTitle')">
       <p>{{ t('helpCenter.attendanceReport.presetsText') }}</p>
     </HelpSection>
@@ -51,10 +49,9 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.attendanceReport.previewSave') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Report preview table -->
     <HelpSection :title="t('helpCenter.attendanceReport.tableTitle')">
       <NeutralContainer class="space-y-3">
-        <SubHeader>{{ t('attendanceReport.summary') }} – Mitglied</SubHeader>
+        <SubHeader>{{ t('attendanceReport.summary') }} – {{ t('helpCenter.sample.groups.member') }}</SubHeader>
         <DataTable plain>
           <template #head>
             <th class="text-left py-2 px-3">{{ t('attendanceReport.name') }}</th>
@@ -63,13 +60,13 @@ const {t} = useI18n()
             <th class="text-right py-2 px-3">{{ t('attendanceReport.hours') }}</th>
           </template>
           <TRow>
-            <Td>Max Mustermann</Td>
+            <Td>{{ t('helpCenter.sample.people.maxMustermann') }}</Td>
             <Td align="center">8</Td>
             <Td align="center">7</Td>
             <Td align="right" class="font-mono">14.0</Td>
           </TRow>
           <TRow>
-            <Td>Erika Muster</Td>
+            <Td>{{ t('helpCenter.sample.people.erikaMuster') }}</Td>
             <Td align="center">8</Td>
             <Td align="center">6</Td>
             <Td align="right" class="font-mono">12.5</Td>

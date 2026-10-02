@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.procedure.service;
 
+import dev.chojo.ember.api.refusal.ProcedureRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.ProcedureAssigned;
 import dev.chojo.ember.event.events.ProcedureItemChecked;
@@ -18,6 +20,7 @@ import dev.chojo.ember.feature.procedure.entity.ProcedureTemplateItem;
 import dev.chojo.ember.feature.procedure.repository.ProcedureRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,8 +46,6 @@ public class ProcedureService {
         this.eventBus = eventBus;
     }
 
-    // ── Templates ──
-
     public List<ProcedureTemplate> findTemplatesByStation(int stationId, boolean includeArchived) {
         return repository.findTemplatesByStation(stationId, includeArchived);
     }
@@ -53,13 +54,13 @@ public class ProcedureService {
         return repository.findTemplateById(id);
     }
 
-    public ProcedureTemplate createTemplate(int stationId, String name, String description, int createdBy) {
+    public ProcedureTemplate createTemplate(int stationId, String name, @Nullable String description, int createdBy) {
         var template = repository.createTemplate(stationId, name, description, createdBy);
         log.info("Created procedure template {} on station {} by member {}", template.id(), stationId, createdBy);
         return template;
     }
 
-    public Optional<ProcedureTemplate> updateTemplate(int id, String name, String description) {
+    public Optional<ProcedureTemplate> updateTemplate(int id, String name, @Nullable String description) {
         if (repository.updateTemplate(id, name, description)) {
             log.info("Updated procedure template {}", id);
             return repository.findTemplateById(id);
@@ -83,14 +84,19 @@ public class ProcedureService {
     }
 
     public ProcedureTemplateItem createTemplateItem(
-            int templateId, String title, String description, boolean isPublic, boolean userAssigned, int position) {
+            int templateId,
+            String title,
+            @Nullable String description,
+            boolean isPublic,
+            boolean userAssigned,
+            int position) {
         var item = repository.createTemplateItem(templateId, title, description, isPublic, userAssigned, position);
         log.info("Created procedure template item {} on template {}", item.id(), templateId);
         return item;
     }
 
     public boolean updateTemplateItem(
-            int id, String title, String description, boolean isPublic, boolean userAssigned, int position) {
+            int id, String title, @Nullable String description, boolean isPublic, boolean userAssigned, int position) {
         boolean updated = repository.updateTemplateItem(id, title, description, isPublic, userAssigned, position);
         if (updated) {
             log.info("Updated procedure template item {}", id);
@@ -110,23 +116,46 @@ public class ProcedureService {
         return deleted;
     }
 
+    /**
+     * One step of one template.
+     *
+     * @param templateId the template the step has to belong to
+     * @param itemId     the step
+     * @return the step, or empty when the template holds no step by that id
+     */
+    public Optional<ProcedureTemplateItem> findTemplateItemIn(int templateId, int itemId) {
+        return repository.findTemplateItems(templateId).stream()
+                .filter(item -> item.id() == itemId)
+                .findFirst();
+    }
+
     public List<int[]> findTemplateItemDependencies(int templateId) {
         return repository.findTemplateItemDependencies(templateId);
     }
 
+    /**
+     * Replaces the dependencies between the steps of one template.
+     *
+     * @param templateId   the template
+     * @param dependencies pairs of step ids: the step first, the step it waits for second
+     * @throws RefusalResponse {@link ProcedureRefusal#PROCEDURE_TEMPLATE_STEP_NOT_IN_TEMPLATE} when a pair names a step
+     *                         of another template
+     */
     public void setTemplateItemDependencies(int templateId, List<int[]> dependencies) {
+        var held = repository.findTemplateItems(templateId).stream()
+                .map(ProcedureTemplateItem::id)
+                .collect(Collectors.toSet());
+        if (!namesOnly(held, dependencies)) throw ProcedureRefusal.PROCEDURE_TEMPLATE_STEP_NOT_IN_TEMPLATE.raise();
         repository.setTemplateItemDependencies(templateId, dependencies);
         log.info("Procedure template {} now carries {} item dependency(s)", templateId, dependencies.size());
     }
 
-    // ── Procedures ──
-
-    public List<Procedure> findProceduresByStation(int stationId, ProcedureStatus status) {
+    public List<Procedure> findProceduresByStation(int stationId, @Nullable ProcedureStatus status) {
         return repository.findProceduresByStation(stationId, status);
     }
 
     public List<Procedure> findProceduresByAssignee(
-            int stationId, int memberId, ProcedureStatus status, boolean publicOnly) {
+            int stationId, int memberId, @Nullable ProcedureStatus status, boolean publicOnly) {
         return repository.findProceduresByAssignee(stationId, memberId, status, publicOnly);
     }
 
@@ -156,24 +185,22 @@ public class ProcedureService {
      */
     public Procedure createProcedure(
             int stationId,
-            Integer templateId,
+            @Nullable Integer templateId,
             String name,
-            String description,
+            @Nullable String description,
             boolean isPublic,
             int assignedBy,
-            Instant dueAt,
+            @Nullable Instant dueAt,
             List<Integer> assigneeIds,
-            Integer eventId,
-            LocalDate eventDate) {
+            @Nullable Integer eventId,
+            @Nullable LocalDate eventDate) {
         var procedure = repository.createProcedure(
                 stationId, templateId, name, description, isPublic, assignedBy, dueAt, eventId, eventDate);
 
-        // Snapshot template items if created from template
         if (templateId != null) {
             snapshotTemplate(procedure.id(), templateId);
         }
 
-        // Add assignees
         for (int memberId : assigneeIds) {
             repository.addAssignee(procedure.id(), memberId);
         }
@@ -191,7 +218,8 @@ public class ProcedureService {
         return procedure;
     }
 
-    public boolean updateProcedure(int id, String name, String description, boolean isPublic, Instant dueAt) {
+    public boolean updateProcedure(
+            int id, String name, @Nullable String description, boolean isPublic, @Nullable Instant dueAt) {
         boolean updated = repository.updateProcedure(id, name, description, isPublic, dueAt);
         if (updated) {
             log.info("Updated procedure {}", id);
@@ -251,8 +279,6 @@ public class ProcedureService {
         return repository.findAssigneeIds(procedureId);
     }
 
-    // ── Assignees ──
-
     public void addAssignees(int procedureId, List<Integer> memberIds, int assignedByMemberId) {
         var procedure = repository.findProcedureById(procedureId);
         if (procedure.isEmpty()) {
@@ -283,25 +309,35 @@ public class ProcedureService {
         return removed;
     }
 
-    public Optional<ProcedureItem> findItemById(int itemId) {
-        return repository.findItemById(itemId);
+    /**
+     * One step of one procedure.
+     *
+     * @param procedureId the procedure the step has to belong to
+     * @param itemId      the step
+     * @return the step, or empty when the procedure holds no step by that id
+     */
+    public Optional<ProcedureItem> findItemIn(int procedureId, int itemId) {
+        return repository.findItemById(itemId).filter(item -> item.procedureId() == procedureId);
     }
-
-    // ── Items ──
 
     public List<ProcedureItem> findItems(int procedureId) {
         return repository.findItems(procedureId);
     }
 
     public ProcedureItem createItem(
-            int procedureId, String title, String description, boolean isPublic, boolean userAssigned, int position) {
+            int procedureId,
+            String title,
+            @Nullable String description,
+            boolean isPublic,
+            boolean userAssigned,
+            int position) {
         var item = repository.createItem(procedureId, title, description, isPublic, userAssigned, position);
         log.info("Created procedure item {} on procedure {}", item.id(), procedureId);
         return item;
     }
 
     public boolean updateItem(
-            int id, String title, String description, boolean isPublic, boolean userAssigned, int position) {
+            int id, String title, @Nullable String description, boolean isPublic, boolean userAssigned, int position) {
         boolean updated = repository.updateItem(id, title, description, isPublic, userAssigned, position);
         if (updated) {
             log.info("Updated procedure item {}", id);
@@ -328,7 +364,6 @@ public class ProcedureService {
             return false;
         }
 
-        // Validate dependencies are met
         var deps = repository.findItemDependencies(item.get().procedureId());
         var allItems = repository.findItems(item.get().procedureId());
         var checkedIds = allItems.stream()
@@ -388,16 +423,30 @@ public class ProcedureService {
         return repository.findItemDependencies(procedureId);
     }
 
+    /**
+     * Replaces the dependencies between the steps of one procedure.
+     *
+     * @param procedureId  the procedure
+     * @param dependencies pairs of step ids: the step first, the step it waits for second
+     * @throws RefusalResponse {@link ProcedureRefusal#PROCEDURE_STEP_NOT_IN_PROCEDURE} when a pair names a step of
+     *                         another procedure
+     */
     public void setItemDependencies(int procedureId, List<int[]> dependencies) {
+        var held = repository.findItems(procedureId).stream()
+                .map(ProcedureItem::id)
+                .collect(Collectors.toSet());
+        if (!namesOnly(held, dependencies)) throw ProcedureRefusal.PROCEDURE_STEP_NOT_IN_PROCEDURE.raise();
         repository.setItemDependencies(procedureId, dependencies);
         log.info("Procedure {} now carries {} item dependency(s)", procedureId, dependencies.size());
+    }
+
+    private static boolean namesOnly(Set<Integer> held, List<int[]> dependencies) {
+        return dependencies.stream().allMatch(pair -> held.contains(pair[0]) && held.contains(pair[1]));
     }
 
     public int countOpenByAssigneeWithAvailableItems(int stationId, int memberId) {
         return repository.countOpenByAssigneeWithAvailableItems(stationId, memberId);
     }
-
-    // ── Sidebar Counts ──
 
     public int countOpenByStation(int stationId) {
         return repository.countOpenByStation(stationId);
@@ -407,17 +456,15 @@ public class ProcedureService {
         var templateItems = repository.findTemplateItems(templateId);
         var templateDeps = repository.findTemplateItemDependencies(templateId);
 
-        // Map old template item IDs to new procedure item IDs
-        Map<Integer, Integer> idMapping = new HashMap<>();
+        Map<Integer, Integer> procedureItemIdByTemplateItemId = new HashMap<>();
         for (ProcedureTemplateItem item : templateItems) {
             ProcedureItem created = repository.snapshotTemplateItem(procedureId, item);
-            idMapping.put(item.id(), created.id());
+            procedureItemIdByTemplateItemId.put(item.id(), created.id());
         }
 
-        // Recreate dependencies with new IDs
         for (int[] dep : templateDeps) {
-            Integer newItemId = idMapping.get(dep[0]);
-            Integer newDependsOnId = idMapping.get(dep[1]);
+            Integer newItemId = procedureItemIdByTemplateItemId.get(dep[0]);
+            Integer newDependsOnId = procedureItemIdByTemplateItemId.get(dep[1]);
             if (newItemId != null && newDependsOnId != null) {
                 repository.addItemDependency(newItemId, newDependsOnId);
             }

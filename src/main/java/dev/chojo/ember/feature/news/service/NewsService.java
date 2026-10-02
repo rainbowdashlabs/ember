@@ -6,16 +6,13 @@
 package dev.chojo.ember.feature.news.service;
 
 import dev.chojo.ember.api.MemberIdentity;
+import dev.chojo.ember.api.StationSession;
+import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.NewsRefusal;
 import dev.chojo.ember.event.DomainEventBus;
-import dev.chojo.ember.event.events.CommentCreated;
-import dev.chojo.ember.event.events.CommentDeleted;
 import dev.chojo.ember.event.events.NewsCreated;
 import dev.chojo.ember.event.events.NewsDeleted;
-import dev.chojo.ember.feature.account.entity.Account;
-import dev.chojo.ember.feature.account.repository.AccountRepository;
-import dev.chojo.ember.feature.comment.entity.CommentEntityType;
-import dev.chojo.ember.feature.comment.service.CommentMentions;
 import dev.chojo.ember.feature.content.entity.BlockAudience;
 import dev.chojo.ember.feature.content.entity.CellConfig;
 import dev.chojo.ember.feature.content.entity.CellContentType;
@@ -25,10 +22,11 @@ import dev.chojo.ember.feature.content.service.CellDescriptions;
 import dev.chojo.ember.feature.content.service.ContentBlockService;
 import dev.chojo.ember.feature.content.service.ContentProjection;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
+import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberLookupService;
+import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.news.entity.News;
-import dev.chojo.ember.feature.news.entity.NewsComment;
 import dev.chojo.ember.feature.news.entity.NewsViewer;
 import dev.chojo.ember.feature.news.repository.NewsRepository;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
@@ -37,10 +35,11 @@ import dev.chojo.ember.feature.restriction.RestrictionSet;
 import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.feature.restriction.service.RestrictionService;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.util.HtmlSanitizer.Policy;
 import dev.chojo.ember.util.Markdown;
-import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,13 +48,12 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Service layer for managing news articles and comments.
- * Handles creation with group restrictions, updates, deletions, and comment operations.
+ * Service layer for managing news articles.
+ * Handles creation with group restrictions, updates and deletions.
  */
 @Singleton
 public class NewsService {
     private static final Logger log = LoggerFactory.getLogger(NewsService.class);
-    private static final int COMMENT_PREVIEW_LENGTH = 100;
 
     private final NewsRepository newsRepository;
     private final ContentBlockService blocks;
@@ -72,8 +70,7 @@ public class NewsService {
     private final DomainEventBus eventBus;
     private final StationMemberRepository stationMemberRepository;
     private final MemberLookupService memberLookupService;
-    private final AccountRepository accountRepository;
-    private final CommentMentions mentions;
+    private final MemberNameResolver memberNameResolver;
 
     @Inject
     public NewsService(
@@ -85,8 +82,7 @@ public class NewsService {
             DomainEventBus eventBus,
             StationMemberRepository stationMemberRepository,
             MemberLookupService memberLookupService,
-            AccountRepository accountRepository,
-            CommentMentions mentions) {
+            MemberNameResolver memberNameResolver) {
         this.newsRepository = newsRepository;
         this.blocks = blocks;
         this.descriptions = descriptions;
@@ -95,50 +91,17 @@ public class NewsService {
         this.eventBus = eventBus;
         this.stationMemberRepository = stationMemberRepository;
         this.memberLookupService = memberLookupService;
-        this.accountRepository = accountRepository;
-        this.mentions = mentions;
+        this.memberNameResolver = memberNameResolver;
     }
 
     /**
-     * Derives a plain-text preview from a Markdown article body. Strips the most common
-     * formatting (headings, emphasis, lists, code fences, links → label) but preserves
-     * paragraph structure (single newlines kept, runs of 3+ newlines collapsed to a single
-     * paragraph break) so the feed renderer can re-flow it as multi-line HTML. Markdown
-     * tables are converted to {@code "col · col · col"} lines so they read as structured
-     * key/value pairs instead of dumping raw {@code |} characters. The renderer applies its
-     * own length cap on top - we just hand it readable plain text. Returns {@code null}
-     * when the input is blank.
+     * Derives a plain-text preview from a Markdown article body, keeping the paragraph and line
+     * structure so the feed renderer can re-flow it as multi-line HTML. The renderer applies its
+     * own length cap on top. Returns {@code null} when nothing readable is left.
      */
-    static String previewOf(String markdown) {
-        if (markdown == null || markdown.isBlank()) return null;
-        String stripped = markdown
-                // Fenced code blocks add nothing useful in plain text - drop them entirely.
-                .replaceAll("(?s)```.*?```", "")
-                // `[label](url)` → keep the label.
-                .replaceAll("\\[([^\\]]+)]\\([^)]+\\)", "$1")
-                // Markdown table separator rows (|---|---|---|, with optional spaces / colons
-                // for alignment) carry no content; strip the whole line.
-                .replaceAll("(?m)^\\s*\\|?[\\s:|-]+\\|?\\s*$\\n?", "")
-                // Trim leading / trailing pipes from each table data row.
-                .replaceAll("(?m)^\\s*\\|", "")
-                .replaceAll("(?m)\\|\\s*$", "")
-                // Cell separator: convert " | " into a middle-dot so columns stay visually
-                // grouped without dumping bare pipes into the body.
-                .replace(" | ", " · ")
-                // Heading markers and blockquote arrows at line start.
-                .replaceAll("(?m)^\\s*#{1,6}\\s+", "")
-                .replaceAll("(?m)^\\s*>\\s+", "")
-                // Inline emphasis / inline-code markers.
-                .replaceAll("[*_`]+", "")
-                // Bullet / numbered list markers at line start - keep a bullet glyph so the
-                // structure survives the strip.
-                .replaceAll("(?m)^\\s*[-+]\\s+", "• ")
-                .replaceAll("(?m)^\\s*\\d+\\.\\s+", "")
-                // Collapse runs of 3+ newlines into a single paragraph break, but keep
-                // single newlines so the source's line structure flows into the body.
-                .replaceAll("\\n{3,}", "\n\n")
-                .trim();
-        return stripped.isBlank() ? null : stripped;
+    static @Nullable String previewOf(String markdown) {
+        String preview = Markdown.toPlainText(markdown);
+        return preview.isEmpty() ? null : preview;
     }
 
     /**
@@ -160,7 +123,8 @@ public class NewsService {
             List<Integer> groupIds,
             List<Integer> tagIds,
             List<Integer> memberIds) {
-        var news = newsRepository.create(stationId, title, contentMarkdown, Markdown.toHtml(contentMarkdown), author);
+        var news = newsRepository.create(
+                stationId, title, contentMarkdown, Markdown.toHtml(contentMarkdown, Policy.RICH), author);
         setRestrictions(news.id(), new RestrictionSelection(userTypes, groupIds, tagIds, memberIds, null));
         String authorName = resolveAuthorName(stationId, author);
         eventBus.publish(new NewsCreated(stationId, news.id(), title, authorName, previewOf(contentMarkdown)));
@@ -188,7 +152,8 @@ public class NewsService {
      */
     public News createSystem(
             String title, String contentMarkdown, List<StationUserType> userTypes, boolean publish, boolean notify) {
-        var news = newsRepository.createSystem(title, contentMarkdown, Markdown.toHtml(contentMarkdown), publish);
+        var news = newsRepository.createSystem(
+                title, contentMarkdown, Markdown.toHtml(contentMarkdown, Policy.RICH), publish);
         setRestrictions(news.id(), new RestrictionSelection(userTypes, List.of(), List.of(), List.of(), null));
         if (publish && notify) {
             notifySystemEntry(news, title, contentMarkdown);
@@ -224,22 +189,36 @@ public class NewsService {
      *
      * @param newsId   the news article ID
      * @param memberId the member reading it
+     * @param manager  whether that member manages news, taken from their resolved permissions
      * @return {@code true} if the entry is visible to that member
      */
-    public boolean isVisibleForMember(int newsId, int memberId) {
-        return newsRepository.isVisibleForMember(newsId, memberId);
+    public boolean isVisibleForMember(int newsId, int memberId, boolean manager) {
+        return newsRepository.isVisibleForMember(newsId, memberId, manager);
     }
 
     /**
-     * The comments on an entry that were written from one station. A station reads its own part of
-     * the conversation under a system entry; the instance reads all of it.
+     * The entry behind an id, if the member may read it, and a refusal otherwise.
      *
-     * @param newsId     the news article ID
-     * @param stationUid the station whose comments to return
-     * @return the comments written from that station
+     * <p>Two things have to hold, and one question asks both. It has to be theirs to read at all:
+     * an entry belongs to one station, or to none at all when the instance published it to
+     * everyone, and a member of another station is no more entitled to it than a stranger. And it
+     * has to be addressed to them: an entry restricted to a user type is restricted however it is
+     * asked for, not only when it comes back from a listing. That is the same question the listings
+     * ask of every row they return, so it is asked in the same place rather than restated here.
+     *
+     * <p>Both refusals are a 404 rather than a 403, because saying "not for you" about an entry
+     * still tells the asker it exists.
+     *
+     * @param session the reader
+     * @param newsId  the entry
+     * @return the entry
      */
-    public List<NewsComment> findCommentsForStation(int newsId, UUID stationUid) {
-        return newsRepository.findCommentsByNewsForStation(newsId, stationUid);
+    public News requireReadable(StationSession session, int newsId) {
+        var news = findById(newsId).orElseThrow(NewsRefusal.NEWS_NOT_HERE_OR_NOT_YOURS::raise);
+        if (!isVisibleForMember(newsId, session.member().id(), session.hasPermission(StationPermission.NEWS_MANAGER))) {
+            throw NewsRefusal.NEWS_NOT_HERE_OR_NOT_YOURS.raise();
+        }
+        return news;
     }
 
     /**
@@ -269,12 +248,13 @@ public class NewsService {
      *
      * @param stationId the station ID
      * @param memberId  the member ID
+     * @param manager   whether that member manages news, taken from their resolved permissions
      * @param offset    pagination offset
      * @param limit     maximum number of results
      * @return list of visible news articles
      */
-    public List<News> findVisibleForMember(int stationId, int memberId, int offset, int limit) {
-        return newsRepository.findVisibleForMember(stationId, memberId, offset, limit);
+    public List<News> findVisibleForMember(int stationId, int memberId, boolean manager, int offset, int limit) {
+        return newsRepository.findVisibleForMember(stationId, memberId, manager, offset, limit);
     }
 
     /**
@@ -299,7 +279,7 @@ public class NewsService {
             List<Integer> groupIds,
             List<Integer> tagIds,
             List<Integer> memberIds) {
-        if (newsRepository.update(id, title, contentMarkdown, Markdown.toHtml(contentMarkdown))) {
+        if (newsRepository.update(id, title, contentMarkdown, Markdown.toHtml(contentMarkdown, Policy.RICH))) {
             setRestrictions(id, new RestrictionSelection(userTypes, groupIds, tagIds, memberIds, null));
             log.info("Updated news {}", id);
             return newsRepository.findById(id);
@@ -326,7 +306,8 @@ public class NewsService {
      * The station's news every reader of the audience may read, newest first, with an optional
      * case-insensitive search on the title. Backs the search of the news block picker.
      */
-    public List<News> findOpenEntries(int stationId, BlockAudience audience, String search, int offset, int limit) {
+    public List<News> findOpenEntries(
+            int stationId, BlockAudience audience, @Nullable String search, int offset, int limit) {
         return newsRepository.findOpenEntries(stationId, audience, search, offset, limit);
     }
 
@@ -348,24 +329,18 @@ public class NewsService {
         return newsRepository.hasPublicBlogEntries(stationId);
     }
 
-    // --- Blocks ---
-
     /**
      * Turns a plain entry into one built from blocks, putting what the author already wrote into a
      * single markdown block. Nothing is parsed and nothing is lost.
      *
-     * <p>The switch is one way. An author who wants the plain editor back copies the text into a
-     * new entry, which keeps the stored text of a rich entry derived: there is no path where
-     * somebody edits the projection and expects the blocks to follow.
+     * <p>The switch is one way, which keeps the stored text of a rich entry derived. A system entry's
+     * blocks belong to no station, since the entry is read in every one.
      */
     public Optional<News> switchToRich(int id) {
         var news = newsRepository.findById(id).orElse(null);
         if (news == null) return Optional.empty();
         if (news.contentMode() == ContentMode.RICH) return Optional.of(news);
 
-        // A system entry belongs to no station, and neither do its blocks: it is read in every
-        // station, so a container hanging off one of them would be the wrong owner and, since no
-        // station carries the id a system entry reads as, no owner at all.
         var container = blocks.create(news.systemEntry() ? null : news.stationId());
         String existing = news.contentMarkdown() == null ? "" : news.contentMarkdown();
         if (!existing.isBlank()) {
@@ -389,8 +364,9 @@ public class NewsService {
      * The blocks of a rich entry, in reading order.
      */
     public List<ContentRow> loadBlocks(News news) {
-        if (news.containerId() == null) return List.of();
-        return blocks.loadRows(news.containerId());
+        Integer containerId = news.containerId();
+        if (containerId == null) return List.of();
+        return blocks.loadRows(containerId);
     }
 
     /**
@@ -407,30 +383,34 @@ public class NewsService {
      * Saves the blocks of a rich entry and rewrites the stored text from them.
      *
      * <p>The projection runs on every save, including a save that only reorders blocks: a stale
-     * projection means a stale search summary, a stale notification preview and a stale feed.
+     * projection means a stale search summary, a stale notification preview and a stale feed. A
+     * system entry's pictures are addressed through the instance library rather than a station, since
+     * the stations that read it hold no copy of the file.
      */
     public Optional<News> saveBlocks(int id, List<ContentBlockService.RowData> rows) {
         var news = newsRepository.findById(id).orElse(null);
         if (news == null) return Optional.empty();
-        if (news.contentMode() != ContentMode.RICH || news.containerId() == null) {
-            throw new BadRequestResponse("This entry is not built from blocks");
+        Integer containerId = news.containerId();
+        if (news.contentMode() != ContentMode.RICH || containerId == null) {
+            throw NewsRefusal.NEWS_ENTRY_NOT_BUILT_FROM_BLOCKS.raise();
         }
 
-        blocks.save(news.containerId(), rows, ContentBlockService.Scope.ARTICLE);
+        blocks.save(containerId, rows, ContentBlockService.Scope.ARTICLE);
 
-        // The pictures of a system entry come out of the instance library, which is addressed by
-        // the literal scope rather than through a station: the entry is read in stations that hold
-        // no copy of the file.
         String mediaScope = news.systemEntry()
                 ? MediaLibraryService.INSTANCE_SCOPE
                 : String.valueOf(stationRepository.resolveUid(news.stationId()));
         String markdown = ContentProjection.toMarkdown(
                 describedBlocks(news), hash -> "/api/v1/public/media/" + mediaScope + "/" + hash);
-        newsRepository.update(id, news.title(), markdown, Markdown.toHtml(markdown));
+        newsRepository.update(id, news.title(), markdown, Markdown.toHtml(markdown, Policy.RICH));
         log.info("News {} blocks saved and projected ({} rows)", id, rows.size());
         return newsRepository.findById(id);
     }
 
+    /**
+     * Deletes an entry and its blocks, which the database does not remove along with it: the entry
+     * points at its container, not the other way round.
+     */
     public boolean delete(int id) {
         var news = newsRepository.findById(id).orElse(null);
         if (news == null) {
@@ -438,7 +418,6 @@ public class NewsService {
             return false;
         }
         if (newsRepository.delete(id)) {
-            // The container is the owned side, so nothing cleans it up for us.
             blocks.delete(news.containerId());
             eventBus.publish(new NewsDeleted(news.stationId(), id, news.title()));
             log.info("Deleted news {} on station {}", id, news.stationId());
@@ -476,8 +455,15 @@ public class NewsService {
      * has not yet been observed viewing it.
      */
     public ViewerSummary findViewerSummary(int newsId, int stationId) {
+        var managerIds =
+                stationMemberRepository
+                        .findMembersWithPermission(stationId, RestrictionType.NEWS.managerPermission())
+                        .stream()
+                        .map(StationMember::id)
+                        .toList();
         return new ViewerSummary(
-                newsRepository.findSeenViewers(newsId), newsRepository.findUnseenViewers(newsId, stationId));
+                newsRepository.findSeenViewers(newsId),
+                newsRepository.findUnseenViewers(newsId, stationId, managerIds));
     }
 
     /**
@@ -496,187 +482,11 @@ public class NewsService {
         restrictionService.setRestrictions(RestrictionType.NEWS, newsId, selection);
     }
 
-    /**
-     * Counts the total number of comments on a news article.
-     *
-     * @param newsId the news article ID
-     * @return comment count
-     */
-    public int countComments(int newsId) {
-        return newsRepository.countComments(newsId);
-    }
-
-    /**
-     * Creates a comment on a news article.
-     *
-     * @param newsId     the news article ID
-     * @param parentId   parent comment ID for replies, or {@code null} for top-level comments
-     * @param author     identity of the comment author, or {@code null} for federated/system comments
-     * @param authorName display name of the comment author
-     * @param content    comment text
-     * @return the newly created comment
-     */
-    public NewsComment createComment(
-            int stationId, int newsId, Integer parentId, MemberIdentity author, String authorName, String content) {
-        var comment = newsRepository.createComment(newsId, parentId, author, content);
-        log.info("Created news comment {} on news {} (station {})", comment.id(), newsId, stationId);
-        var news = newsRepository.findById(newsId).orElse(null);
-        if (news != null) {
-            String preview = commentPreview(content);
-            Integer parentAuthorMemberId = null;
-            if (parentId != null) {
-                var parentComment = newsRepository.findCommentById(parentId).orElse(null);
-                if (parentComment != null && parentComment.author() != null) {
-                    parentAuthorMemberId = memberLookupService
-                            .resolveId(stationId, parentComment.author().memberUid())
-                            .orElse(null);
-                }
-            }
-            Integer authorMemberId = author != null
-                    ? memberLookupService
-                            .resolveId(stationId, author.memberUid())
-                            .orElse(null)
-                    : null;
-            eventBus.publish(new CommentCreated(
-                    stationId,
-                    CommentEntityType.NEWS,
-                    newsId,
-                    news.title(),
-                    null,
-                    comment.id(),
-                    parentId,
-                    parentAuthorMemberId,
-                    authorMemberId,
-                    authorName,
-                    preview));
-
-            if (authorMemberId != null) {
-                mentions.announce(
-                        mentionOrigin(stationId, authorMemberId, authorName, news, comment.id(), content), content);
-            }
-        }
-        return comment;
-    }
-
-    private static String commentPreview(String content) {
-        return content.length() > COMMENT_PREVIEW_LENGTH
-                ? content.substring(0, COMMENT_PREVIEW_LENGTH) + "..."
-                : content;
-    }
-
-    private static CommentMentions.Origin mentionOrigin(
-            int stationId, int authorMemberId, String authorName, News news, int commentId, String content) {
-        return new CommentMentions.Origin(
-                stationId,
-                authorMemberId,
-                authorName,
-                CommentEntityType.NEWS,
-                news.id(),
-                news.title(),
-                null,
-                commentId,
-                commentPreview(content));
-    }
-
-    // -- Comments --
-
-    /**
-     * Retrieves all comments for a news article.
-     *
-     * @param newsId the news article ID
-     * @return list of comments
-     */
-    public List<NewsComment> findComments(int newsId) {
-        return newsRepository.findCommentsByNews(newsId);
-    }
-
-    /**
-     * Finds a comment by its ID.
-     *
-     * @param id the comment ID
-     * @return the comment, or empty if not found
-     */
-    public Optional<NewsComment> findCommentById(int id) {
-        return newsRepository.findCommentById(id);
-    }
-
-    /**
-     * Updates a comment a member of the given station wrote there, and announces the mentions the
-     * edit added. Whoever the comment already mentioned is not told again.
-     *
-     * @param stationId  the station the comment was written in
-     * @param id         the comment ID
-     * @param authorName the display name of the author
-     * @param content    new comment text
-     * @return {@code true} if the comment was updated
-     */
-    public boolean updateOwnComment(int stationId, int id, String authorName, String content) {
-        var previous = newsRepository.findCommentById(id);
-        if (!updateComment(id, content)) return false;
-        previous.ifPresent(comment -> announceAddedMentions(stationId, comment, authorName, content));
-        return true;
-    }
-
-    private void announceAddedMentions(int stationId, NewsComment previous, String authorName, String content) {
-        if (previous.author() == null) return;
-        var authorMemberId =
-                memberLookupService.resolveId(stationId, previous.author().memberUid());
-        var news = newsRepository.findById(previous.newsId());
-        if (authorMemberId.isEmpty() || news.isEmpty()) return;
-        mentions.announceAdded(
-                mentionOrigin(stationId, authorMemberId.get(), authorName, news.get(), previous.id(), content),
-                previous.content(),
-                content);
-    }
-
-    /**
-     * Updates the content of a comment without announcing its mentions, which is what a comment
-     * written from another station gets: its mentions raised nothing when it was written either.
-     *
-     * @param id      the comment ID
-     * @param content new comment text
-     * @return {@code true} if the comment was updated
-     */
-    public boolean updateComment(int id, String content) {
-        boolean updated = newsRepository.updateComment(id, content);
-        if (updated) {
-            log.info("Updated news comment {}", id);
-        } else {
-            log.warn("Update for news comment {} affected zero rows", id);
-        }
-        return updated;
-    }
-
-    /**
-     * Deletes a comment by its ID.
-     *
-     * @param id the comment ID
-     * @return {@code true} if the comment was deleted
-     */
-    public boolean deleteComment(int stationId, int id) {
-        var comment = newsRepository.findCommentById(id).orElse(null);
-        if (comment == null) {
-            log.warn("Delete for news comment {} skipped: not found", id);
-            return false;
-        }
-        if (newsRepository.deleteComment(id)) {
-            eventBus.publish(new CommentDeleted(stationId, CommentEntityType.NEWS, id));
-            log.info("Deleted news comment {} on station {}", id, stationId);
-            return true;
-        }
-        log.warn("Delete for news comment {} affected zero rows", id);
-        return false;
-    }
-
     private String resolveAuthorName(int stationId, MemberIdentity author) {
         if (author == null) return "";
         return memberLookupService
                 .resolveId(stationId, author.memberUid())
-                .flatMap(memberId -> stationMemberRepository
-                        .findById(memberId)
-                        .filter(m -> m.accountId() != null)
-                        .flatMap(m -> accountRepository.findById(m.accountId()))
-                        .map(Account::fullName))
+                .map(memberNameResolver::called)
                 .orElse("");
     }
 

@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
+import dev.chojo.ember.api.refusal.InventoryRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.ClusterItemIssued;
 import dev.chojo.ember.event.events.MovementAdvanced;
@@ -23,21 +25,22 @@ import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.inventory.entity.MovementFlow;
 import dev.chojo.ember.feature.inventory.entity.MovementFlowStep;
 import dev.chojo.ember.feature.inventory.entity.MovementPurpose;
+import dev.chojo.ember.feature.inventory.entity.MovementStanding;
 import dev.chojo.ember.feature.inventory.entity.MovementState;
 import dev.chojo.ember.feature.inventory.entity.StepActor;
 import dev.chojo.ember.feature.inventory.entity.StepSubject;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.inventory.repository.ItemMovementItemRepository;
 import dev.chojo.ember.feature.inventory.repository.ItemMovementRepository;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.ForbiddenResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.stream.IntStream;
@@ -143,7 +146,7 @@ public class ItemMovementService {
          *
          * @return the member id, or {@code null} when the actor belongs to no station
          */
-        public Integer memberIdOrNull() {
+        public @Nullable Integer memberIdOrNull() {
             return memberId > 0 ? memberId : null;
         }
     }
@@ -171,15 +174,15 @@ public class ItemMovementService {
     public ItemMovement create(
             int stationId,
             MovementPurpose purpose,
-            Integer memberId,
-            String memberName,
-            Integer outgoingItemId,
-            Integer inventoryId,
-            Integer oldSizeId,
-            Integer newSizeId,
+            @Nullable Integer memberId,
+            @Nullable String memberName,
+            @Nullable Integer outgoingItemId,
+            @Nullable Integer inventoryId,
+            @Nullable Integer oldSizeId,
+            @Nullable Integer newSizeId,
             String reason,
             Actor actor,
-            Integer pickedItemId) {
+            @Nullable Integer pickedItemId) {
         return create(
                 stationId,
                 purpose,
@@ -204,15 +207,15 @@ public class ItemMovementService {
     public ItemMovement create(
             int stationId,
             MovementPurpose purpose,
-            Integer memberId,
-            String memberName,
-            Integer outgoingItemId,
-            Integer inventoryId,
-            Integer oldSizeId,
-            Integer newSizeId,
+            @Nullable Integer memberId,
+            @Nullable String memberName,
+            @Nullable Integer outgoingItemId,
+            @Nullable Integer inventoryId,
+            @Nullable Integer oldSizeId,
+            @Nullable Integer newSizeId,
             String reason,
             Actor actor,
-            Integer pickedItemId,
+            @Nullable Integer pickedItemId,
             boolean lostReport) {
         return create(
                 stationId,
@@ -277,8 +280,9 @@ public class ItemMovementService {
      * Starts a movement carrying more than the one piece it names.
      *
      * <p>The rest of the load is recorded before the first step is walked, because that step moves the whole
-     * consignment: recorded afterwards, the pieces would still be sitting in the store while the movement
-     * said it had sent them.
+     * consignment. A piece picked before the step that names it is written on the movement at once as a
+     * promise, so nothing else can promise it. An actor speaking for a body above the station is recorded
+     * without a member, since none of the station's people did it.
      *
      * @param carriedIncoming the further arriving pieces this movement carries
      * @see #create(int, MovementPurpose, Integer, String, Integer, Integer, Integer, Integer, String, Actor, Integer)
@@ -286,15 +290,15 @@ public class ItemMovementService {
     public ItemMovement create(
             int stationId,
             MovementPurpose purpose,
-            Integer memberId,
-            String memberName,
-            Integer outgoingItemId,
-            Integer inventoryId,
-            Integer oldSizeId,
-            Integer newSizeId,
+            @Nullable Integer memberId,
+            @Nullable String memberName,
+            @Nullable Integer outgoingItemId,
+            @Nullable Integer inventoryId,
+            @Nullable Integer oldSizeId,
+            @Nullable Integer newSizeId,
             String reason,
             Actor actor,
-            Integer pickedItemId,
+            @Nullable Integer pickedItemId,
             boolean lostReport,
             List<Integer> carriedIncoming) {
         requireThePiecesExist(outgoingItemId, pickedItemId);
@@ -305,11 +309,9 @@ public class ItemMovementService {
         Integer ownerClusterId = target.ownerClusterId();
         int flowId = target.flowId();
         List<MovementFlowStep> steps = walkable(flowService.findActiveSteps(flowId), lostReport);
-        if (steps.isEmpty()) throw new BadRequestResponse("That flow has no steps to walk");
+        if (steps.isEmpty()) throw InventoryRefusal.MOVEMENT_FLOW_HAS_NO_STEPS.raise();
 
         MovementFlowStep first = steps.getFirst();
-        // A piece picked before the step that names it is promised rather than handed over: it is written
-        // on the movement at once, so nothing else can promise it, and the naming step later confirms it.
         Integer promised = namesIncomingItem(first) ? null : pickedItemId;
         ItemMovement movement = movementRepository.create(
                 stationId,
@@ -323,9 +325,6 @@ public class ItemMovementService {
                 oldSizeId,
                 newSizeId,
                 reason,
-                // Somebody acting for a body above the station belongs to no station, so there is no member
-                // to name. The record still says what was started and when; what it cannot say is which of
-                // the station's people did it, because none of them did.
                 actor.memberIdOrNull(),
                 lostReport);
         carry(movement.id(), StepSubject.INCOMING, carriedIncoming);
@@ -365,7 +364,10 @@ public class ItemMovementService {
      *                      back on whichever step the corrected world has not reached yet
      */
     public record Correction(
-            ItemCustody outgoing, ItemCustody incoming, boolean detachArrival, MovementState closeAs) {}
+            @Nullable ItemCustody outgoing,
+            @Nullable ItemCustody incoming,
+            boolean detachArrival,
+            @Nullable MovementState closeAs) {}
 
     /**
      * Puts a movement where somebody says it should have been, without pretending anybody walked it there.
@@ -384,15 +386,16 @@ public class ItemMovementService {
      * @param actor      who is correcting it
      * @param reason     why, which is mandatory and goes into the log
      * @return the corrected movement
-     * @throws BadRequestResponse when the reason is missing or the movement's flow is gone
+     * @throws RefusalResponse when the reason is missing or the movement's flow is gone
      */
     public ItemMovement correct(int movementId, Correction correction, Actor actor, String reason) {
         if (reason == null || reason.isBlank()) {
-            throw new BadRequestResponse("Correcting a movement needs a reason saying why");
+            throw InventoryRefusal.MOVEMENT_CORRECTION_NEEDS_A_REASON.raise();
         }
-        ItemMovement movement =
-                movementRepository.findById(movementId).orElseThrow(() -> new BadRequestResponse("No such movement"));
-        if (movement.flowId() == null) throw new BadRequestResponse("The flow this movement walked is gone");
+        ItemMovement movement = movementRepository
+                .findById(movementId)
+                .orElseThrow(InventoryRefusal.MOVEMENT_NOT_HERE_TO_CORRECT::raise);
+        if (movement.flowId() == null) throw InventoryRefusal.MOVEMENT_FLOW_GONE_BEFORE_CORRECTION.raise();
 
         if (correction.detachArrival()) movementRepository.setIncomingItem(movementId, null);
         applyCorrectedCustody(movement, StepSubject.OUTGOING, correction.outgoing());
@@ -401,8 +404,9 @@ public class ItemMovementService {
         }
 
         ItemMovement moved = movementRepository.findById(movementId).orElseThrow();
-        if (correction.closeAs() != null) {
-            movementRepository.close(movementId, correction.closeAs(), reason);
+        MovementState closeAs = correction.closeAs();
+        if (closeAs != null) {
+            movementRepository.close(movementId, closeAs, reason);
         } else {
             movementRepository.reopen(movementId);
             MovementFlowStep standing = stepTheWorldHasNotReached(moved);
@@ -425,10 +429,11 @@ public class ItemMovementService {
                 actor.memberId(),
                 corrected.state(),
                 reason);
-        return corrected;
+        confirmReceiptsThatDoNotWait(movementId);
+        return movementRepository.findById(movementId).orElseThrow();
     }
 
-    private void applyCorrectedCustody(ItemMovement movement, StepSubject subject, ItemCustody custody) {
+    private void applyCorrectedCustody(ItemMovement movement, StepSubject subject, @Nullable ItemCustody custody) {
         if (custody == null) return;
         Integer itemId = movement.itemFor(subject);
         if (itemId == null) return;
@@ -438,8 +443,11 @@ public class ItemMovementService {
     /**
      * The first step of the chain that the corrected world has not made true, which is where the movement
      * now stands. Empty when every step is satisfied, and the chain is therefore over.
+     *
+     * <p>A promised piece still sits where it always sat, which may be where a later step would put it, so
+     * its steps never count as satisfied before it is named.
      */
-    private MovementFlowStep stepTheWorldHasNotReached(ItemMovement movement) {
+    private @Nullable MovementFlowStep stepTheWorldHasNotReached(ItemMovement movement) {
         List<MovementFlowStep> steps = stepsOf(movement);
         if (steps.isEmpty()) return null;
         int satisfied = -1;
@@ -447,9 +455,6 @@ public class ItemMovementService {
             MovementFlowStep step = steps.get(index);
             Integer itemId = movement.itemFor(step.subject());
             if (itemId == null) continue;
-            // A promised piece sits where it has always sat, which happens to be where some later step
-            // would put it. Reading that as the step being satisfied would carry the movement past steps
-            // nobody walked.
             if (step.subject() == StepSubject.INCOMING && promisedButNotYetNamed(movement, step)) continue;
             ItemCustody now = inventoryRepository
                     .findItemById(itemId)
@@ -469,7 +474,7 @@ public class ItemMovementService {
      * two exchanges raised for the same jacket, and both of them then drifted.
      *
      * @param outgoingItemId the piece that would be setting out, or {@code null} when nothing does
-     * @throws BadRequestResponse naming the movement that already has it
+     * @throws RefusalResponse when another movement already has it
      */
     /**
      * Refuses a piece that another open movement is already about, on either of its ends.
@@ -492,32 +497,30 @@ public class ItemMovementService {
      * @param outgoingItemId the piece leaving, or {@code null}
      * @param incomingItemId the piece arriving, or {@code null}
      */
-    private void requireThePiecesExist(Integer outgoingItemId, Integer incomingItemId) {
+    private void requireThePiecesExist(@Nullable Integer outgoingItemId, @Nullable Integer incomingItemId) {
         requireItIsStillThere(outgoingItemId);
         requireItIsStillThere(incomingItemId);
     }
 
-    private void requireItIsStillThere(Integer itemId) {
+    private void requireItIsStillThere(@Nullable Integer itemId) {
         if (itemId == null) return;
         if (inventoryRepository.findItemById(itemId).isEmpty()) {
-            throw new BadRequestResponse("That piece is no longer recorded, so nothing can be started on it");
+            throw InventoryRefusal.MOVEMENT_PIECE_NOT_HERE.raise();
         }
     }
 
-    private void requireItIsNotAlreadyOnItsWay(Integer outgoingItemId, Integer incomingItemId) {
+    private void requireItIsNotAlreadyOnItsWay(@Nullable Integer outgoingItemId, @Nullable Integer incomingItemId) {
         requireFree(outgoingItemId);
         requireFree(incomingItemId);
     }
 
-    private void requireFree(Integer itemId) {
+    private void requireFree(@Nullable Integer itemId) {
         if (itemId == null) return;
         movementRepository.findOpenByOutgoingItem(itemId).ifPresent(open -> {
-            throw new BadRequestResponse(
-                    "This piece is already on movement %d, so finish or call that one off first".formatted(open.id()));
+            throw InventoryRefusal.MOVEMENT_PIECE_ALREADY_ON_A_MOVEMENT.raise();
         });
         movementRepository.findOpenByIncomingItem(itemId).ifPresent(open -> {
-            throw new BadRequestResponse(
-                    "This piece is promised to movement %d, so finish or call that one off first".formatted(open.id()));
+            throw InventoryRefusal.MOVEMENT_PIECE_ALREADY_PROMISED.raise();
         });
     }
 
@@ -530,13 +533,11 @@ public class ItemMovementService {
      * @param purpose     what the movement is for
      * @param inventoryId the inventory it is about, or {@code null}
      */
-    private void requireSomethingToSwapFor(MovementPurpose purpose, Integer inventoryId) {
+    private void requireSomethingToSwapFor(MovementPurpose purpose, @Nullable Integer inventoryId) {
         if (purpose != MovementPurpose.EXCHANGE || inventoryId == null) return;
         inventoryRepository.findById(inventoryId).ifPresent(inventory -> {
             if (!inventory.homogeneous()) {
-                throw new BadRequestResponse(
-                        "%s holds a drawer of different things, so there is nothing to swap a piece for"
-                                .formatted(inventory.name()));
+                throw InventoryRefusal.MOVEMENT_NOTHING_TO_SWAP_FOR.raise(inventory.name());
             }
         });
     }
@@ -556,7 +557,7 @@ public class ItemMovementService {
     private void announceIssue(
             MovementPurpose purpose,
             ItemOwner ownerKind,
-            Integer ownerClusterId,
+            @Nullable Integer ownerClusterId,
             int stationId,
             ItemMovement movement) {
         if (purpose != MovementPurpose.ISSUE || ownerKind != ItemOwner.CLUSTER || ownerClusterId == null) return;
@@ -622,6 +623,28 @@ public class ItemMovementService {
     }
 
     /**
+     * Where a movement stands, worded the way its own row in the queue words it, for a screen that
+     * shows it on the piece of gear it runs on.
+     *
+     * @param movementId the movement
+     * @return where it stands, or empty when it is gone
+     */
+    public Optional<MovementStanding> standingOf(int movementId) {
+        return movementRepository.findById(movementId).map(this::standingOf);
+    }
+
+    private MovementStanding standingOf(ItemMovement movement) {
+        List<MovementFlowStep> steps = stepsOf(movement);
+        MovementFlowStep current = steps.stream()
+                .filter(step -> Objects.equals(step.id(), movement.currentStepId()))
+                .findFirst()
+                .orElse(null);
+        var target = targeting.belongsOn(movement);
+        String ownerName = targeting.owningCluster(target).map(Cluster::name).orElse(null);
+        return MovementStanding.of(movement, steps, current, target.ownerKind(), ownerName);
+    }
+
+    /**
      * Acknowledges the step a movement is standing on and advances it.
      *
      * @param movementId   the movement
@@ -631,7 +654,8 @@ public class ItemMovementService {
      * @param pickedItemId the arriving item, when this is the step that names it
      * @return the movement after the step, standing on the next one or closed
      */
-    public ItemMovement acknowledge(int movementId, int stepId, Actor actor, String note, Integer pickedItemId) {
+    public ItemMovement acknowledge(
+            int movementId, int stepId, Actor actor, @Nullable String note, @Nullable Integer pickedItemId) {
         return applyStep(movementId, stepId, actor, note, pickedItemId, false);
     }
 
@@ -640,78 +664,54 @@ public class ItemMovementService {
      * mandatory and the log says the step was forced for good, because an unresponsive counterparty
      * must not be able to freeze an item in the post forever.
      *
-     * @throws BadRequestResponse when the note is missing, or when the step is the station's own and
-     *                            can simply be acknowledged
+     * @throws RefusalResponse when the note is missing, or when the step is the station's own and
+     *                         can simply be acknowledged
      */
-    public ItemMovement force(int movementId, int stepId, Actor actor, String note, Integer pickedItemId) {
+    public ItemMovement force(
+            int movementId, int stepId, Actor actor, @Nullable String note, @Nullable Integer pickedItemId) {
         if (note == null || note.isBlank()) {
-            throw new BadRequestResponse("Forcing a step needs a note saying why");
+            throw InventoryRefusal.MOVEMENT_FORCE_NEEDS_A_NOTE.raise();
         }
         return applyStep(movementId, stepId, actor, note, pickedItemId, true);
     }
 
+    /**
+     * Walks the step a movement stands on and moves its pieces.
+     *
+     * <p>A step reporting a loss leaves the missing piece where it is. The naming step confirms a promised
+     * piece, though another may be named instead; before it, the promised piece stays with whoever holds it.
+     * Everything the movement carries on this leg goes where the named piece goes, since a batch arrives
+     * whole or not at all.
+     */
     private ItemMovement applyStep(
-            int movementId, int stepId, Actor actor, String note, Integer pickedItemId, boolean forced) {
+            int movementId,
+            int stepId,
+            Actor actor,
+            @Nullable String note,
+            @Nullable Integer pickedItemId,
+            boolean forced) {
         ItemMovement movement = requireOpen(movementId);
         if (movement.currentStepId() == null || movement.currentStepId() != stepId) {
-            throw new BadRequestResponse("That is not the step this movement is standing on");
+            throw InventoryRefusal.MOVEMENT_NOT_ON_THAT_STEP.raise();
         }
         MovementFlowStep step = flowService.findAllSteps(movement.flowId()).stream()
                 .filter(s -> s.id() == stepId)
                 .findFirst()
-                .orElseThrow(() -> new BadRequestResponse("That step is gone"));
+                .orElseThrow(InventoryRefusal.MOVEMENT_STEP_GONE::raise);
 
         AckKind ackKind = forced ? AckKind.FORCED : requireTurn(movement, step, actor);
         if (forced && step.actor() == StepActor.STATION) {
-            throw new BadRequestResponse("This step is the station's own: acknowledge it rather than forcing it");
+            throw InventoryRefusal.MOVEMENT_STATION_STEP_NOT_FORCED.raise();
         }
 
-        Integer subjectItemId = movement.itemFor(step.subject());
-        // A missing item is not somewhere else because a step was walked. It is missing, and the step that
-        // reports it says so about the request rather than about where the thing is.
-        if (movement.lostReport() && step.subject() == StepSubject.OUTGOING) subjectItemId = null;
-        if (step.picksItem()) {
-            // A promised piece was named when the movement was started, so this step confirms it rather than
-            // choosing. Naming another one here is allowed: the promise was a plan, not a commitment.
-            Integer named = pickedItemId != null ? pickedItemId : movement.incomingItemId();
-            if (named == null) throw new BadRequestResponse("This step names the arriving item, so name it");
-            movementRepository.setIncomingItem(movementId, named);
-            subjectItemId = named;
-        } else if (step.subject() == StepSubject.INCOMING && promisedButNotYetNamed(movement, step)) {
-            // The piece is known and is not moving yet. Its custody belongs to whoever holds it until the
-            // step that actually sends it, so this step is acknowledged and nothing is touched.
-            subjectItemId = null;
-        }
-
-        if (subjectItemId != null) {
-            custodyService.applyStepCustody(
-                    subjectItemId, step.custodyAfter(), movement.memberId(), movementId, movement.stationId());
-            // Everything else the movement carries on this leg goes where the named piece goes. A batch
-            // arrives once or not at all, so a step that moved one of twenty jackets moved all twenty.
-            for (int carriedId : carried(movementId, step.subject())) {
-                custodyService.applyStepCustody(
-                        carriedId, step.custodyAfter(), movement.memberId(), movementId, movement.stationId());
-            }
-        }
-
-        movementRepository.createLog(movementId, step.id(), step.label(), ackKind, actor.memberIdOrNull(), note);
-
-        MovementFlowStep next = nextStepAfter(movement, step.position());
-        if (next == null) {
-            ItemMovement finished = movementRepository.findById(movementId).orElseThrow();
-            settleInTransit(finished);
-            dropGearGoneForGood(finished);
-            movementRepository.close(movementId, MovementState.DONE, null);
-            log.info("Movement {} reached the end of its flow", movementId);
-        } else {
-            movementRepository.moveToStep(movementId, next.id());
-        }
+        walk(movement, step, ackKind, actor.memberIdOrNull(), note, pickedItemId);
         log.info(
                 "Step '{}' of movement {} acknowledged by member {} as {}",
                 step.label(),
                 movementId,
                 actor.memberId(),
                 ackKind);
+        confirmReceiptsThatDoNotWait(movementId);
         ItemMovement walked = movementRepository.findById(movementId).orElseThrow();
         eventBus.publish(new MovementAdvanced(
                 walked.stationId(),
@@ -727,10 +727,113 @@ public class ItemMovementService {
     }
 
     /**
+     * Moves the pieces a step is about, writes it into the log and puts the movement on the step after it,
+     * or closes it where there is none.
+     *
+     * @param movement     the movement as it stood before the step
+     * @param step         the step being walked, which is the one it stands on
+     * @param ackKind      how the step came to be acknowledged
+     * @param changedBy    the member the log names, or {@code null}
+     * @param note         what was written alongside
+     * @param pickedItemId the arriving item, when this is the step that names it
+     */
+    private void walk(
+            ItemMovement movement,
+            MovementFlowStep step,
+            AckKind ackKind,
+            @Nullable Integer changedBy,
+            @Nullable String note,
+            @Nullable Integer pickedItemId) {
+        int movementId = movement.id();
+        Integer subjectItemId = movement.itemFor(step.subject());
+        if (movement.lostReport() && step.subject() == StepSubject.OUTGOING) subjectItemId = null;
+        if (step.picksItem()) {
+            Integer named = pickedItemId != null ? pickedItemId : movement.incomingItemId();
+            if (named == null) throw InventoryRefusal.MOVEMENT_STEP_NEEDS_THE_ARRIVING_PIECE.raise();
+            movementRepository.setIncomingItem(movementId, named);
+            subjectItemId = named;
+        } else if (step.subject() == StepSubject.INCOMING && promisedButNotYetNamed(movement, step)) {
+            subjectItemId = null;
+        }
+
+        if (subjectItemId != null) {
+            custodyService.applyStepCustody(
+                    subjectItemId, step.custodyAfter(), movement.memberId(), movementId, movement.stationId());
+            for (int carriedId : carried(movementId, step.subject())) {
+                custodyService.applyStepCustody(
+                        carriedId, step.custodyAfter(), movement.memberId(), movementId, movement.stationId());
+            }
+        }
+
+        movementRepository.createLog(movementId, step.id(), step.label(), ackKind, changedBy, note);
+
+        MovementFlowStep next = nextStepAfter(movement, step.position());
+        if (next == null) {
+            ItemMovement finished = movementRepository.findById(movementId).orElseThrow();
+            settleInTransit(finished);
+            dropGearGoneForGood(finished);
+            movementRepository.close(movementId, MovementState.DONE, null);
+            log.info("Movement {} reached the end of its flow", movementId);
+        } else {
+            movementRepository.moveToStep(movementId, next.id());
+        }
+    }
+
+    /**
+     * Confirms the member's receipt for them wherever the movement now stands on one its chain does not wait
+     * for, and keeps going while the step after it is another.
+     *
+     * <p>Called wherever a movement arrives on a step: after a step is walked, after a correction and after it
+     * is moved onto another chain or a chain written again. The confirmation is written in the member's name
+     * and marked as automatic. Nothing is announced for it, so the member is never asked to confirm a step that
+     * has already confirmed itself; whoever is told about the step before it is told where the movement stands
+     * now.
+     *
+     * @param movementId the movement
+     */
+    private void confirmReceiptsThatDoNotWait(int movementId) {
+        ItemMovement movement = movementRepository.findById(movementId).orElseThrow();
+        MovementFlowStep step = currentStep(movement);
+        while (movement.state() == MovementState.OPEN && step != null && confirmsItself(movement, step)) {
+            walk(movement, step, AckKind.AUTO_CONFIRMED, movement.memberId(), null, null);
+            log.info(
+                    "Step '{}' of movement {} confirmed for member {} automatically",
+                    step.label(),
+                    movementId,
+                    movement.memberId());
+            movement = movementRepository.findById(movementId).orElseThrow();
+            step = currentStep(movement);
+        }
+    }
+
+    /**
+     * Whether a step is the member confirming a piece they received, on a chain that does not wait for that.
+     *
+     * <p>A receipt is the member's own step that leaves the piece with them. The step a chain opens with is
+     * never one, even where it reads the same: it is the member asking for something, which a movement is only
+     * ever put back on and never reaches. One that names the arriving piece still waits while nobody has named
+     * it, because confirming it would have to invent which piece arrived.
+     *
+     * @param movement the movement
+     * @param step     the step it stands on
+     * @return whether the step is confirmed for the member as soon as it is reached
+     */
+    private boolean confirmsItself(ItemMovement movement, MovementFlowStep step) {
+        if (movement.memberId() == null || movement.flowId() == null) return false;
+        if (step.actor() != StepActor.MEMBER || step.custodyAfter() != ItemCustody.WITH_MEMBER) return false;
+        if (opensTheChain(step)) return false;
+        if (step.picksItem() && movement.incomingItemId() == null) return false;
+        return flowService
+                .findFlow(movement.flowId())
+                .map(MovementFlow::skipMemberReceipt)
+                .orElse(false);
+    }
+
+    /**
      * Refuses the step whose turn it is. The movement closes and the outgoing item goes back to
      * whoever had it before, which an owner with no replacement in stock needs.
      */
-    public ItemMovement decline(int movementId, Actor actor, String reason) {
+    public ItemMovement decline(int movementId, Actor actor, @Nullable String reason) {
         ItemMovement movement = requireOpen(movementId);
         MovementFlowStep step = currentStep(movement);
         if (step != null) requireTurn(movement, step, actor);
@@ -760,11 +863,11 @@ public class ItemMovementService {
      * @param reason     what to record, for whoever reads it later
      * @return the closed movement
      */
-    public ItemMovement cancel(int movementId, Actor actor, String reason) {
+    public ItemMovement cancel(int movementId, Actor actor, @Nullable String reason) {
         ItemMovement movement = requireOpen(movementId);
         MovementFlowStep step = currentStep(movement);
         if (step != null && !mayAct(movement, step, actor) && !stillHoldsIt(movement, actor)) {
-            throw new ForbiddenResponse("This movement is not on your side any more");
+            throw InventoryRefusal.MOVEMENT_NOT_YOURS_TO_CANCEL.raise();
         }
         String itemName = itemName(movement.outgoingItemId());
         boolean away = hasLeftTheStation(movement.outgoingItemId());
@@ -852,7 +955,7 @@ public class ItemMovementService {
         return inventoryRepository
                 .findItemById(itemId)
                 .filter(item -> item.custody() == ItemCustody.WITH_MEMBER)
-                .filter(item -> item.assignedTo() != null && item.assignedTo() == actor.memberId())
+                .filter(item -> Objects.equals(item.assignedTo(), actor.memberId()))
                 .isPresent();
     }
 
@@ -895,7 +998,7 @@ public class ItemMovementService {
         return deleted;
     }
 
-    private ItemMovement close(ItemMovement movement, MovementState state, String reason) {
+    private ItemMovement close(ItemMovement movement, MovementState state, @Nullable String reason) {
         return close(movement, state, reason, true);
     }
 
@@ -904,7 +1007,7 @@ public class ItemMovementService {
      *                  has already left the station. A refusal comes from the far end and settles the
      *                  whole journey, so it does. Calling off does not: it ends the plan, not the post.
      */
-    private ItemMovement close(ItemMovement movement, MovementState state, String reason, boolean fetchBack) {
+    private ItemMovement close(ItemMovement movement, MovementState state, @Nullable String reason, boolean fetchBack) {
         if (fetchBack || !hasLeftTheStation(movement.outgoingItemId())) {
             restoreOutgoingItem(movement);
         } else {
@@ -1000,19 +1103,19 @@ public class ItemMovementService {
         return step != null ? step.actor() : null;
     }
 
-    private String inventoryName(Integer inventoryId) {
+    private String inventoryName(@Nullable Integer inventoryId) {
         if (inventoryId == null) return "";
         return inventoryRepository.findById(inventoryId).map(Inventory::name).orElse("");
     }
 
     private ItemMovement requireOpen(int movementId) {
         ItemMovement movement =
-                movementRepository.findById(movementId).orElseThrow(() -> new BadRequestResponse("No such movement"));
+                movementRepository.findById(movementId).orElseThrow(InventoryRefusal.MOVEMENT_NOT_HERE_TO_WALK::raise);
         if (movement.state().closed()) {
-            throw new BadRequestResponse("This movement is already %s".formatted(movement.state()));
+            throw InventoryRefusal.MOVEMENT_ALREADY_CLOSED.raise();
         }
         if (movement.flowId() == null) {
-            throw new BadRequestResponse("The flow this movement walked is gone");
+            throw InventoryRefusal.MOVEMENT_FLOW_GONE.raise();
         }
         return movement;
     }
@@ -1069,7 +1172,7 @@ public class ItemMovementService {
      */
     private AckKind requireTurn(ItemMovement movement, MovementFlowStep step, Actor actor) {
         if (!mayAct(movement, step, actor)) {
-            throw new ForbiddenResponse("This step belongs to the %s".formatted(step.actor()));
+            throw InventoryRefusal.MOVEMENT_STEP_NOT_YOUR_TURN.raise();
         }
         return step.actor() == StepActor.OWNER && !actor.ownerRights() ? AckKind.ASSERTED : AckKind.CONFIRMED;
     }
@@ -1229,7 +1332,7 @@ public class ItemMovementService {
      *
      * @param movementId the movement
      * @return the chain it belongs on and where it would stand
-     * @throws BadRequestResponse when the movement is not open, or no chain is bound for what it is
+     * @throws RefusalResponse when the movement is not open, or no chain is bound for what it is
      */
     public RechainPlan planRechain(int movementId) {
         ItemMovement movement = openMovement(movementId);
@@ -1271,14 +1374,14 @@ public class ItemMovementService {
      * @param stepIndex     the step of the new chain it lands on, or {@code null} to take the one
      *                      that means what its own meant, which has to be the only one that does
      * @param actorMemberId who asked, which the entry its log gets names
-     * @throws BadRequestResponse when the movement is not open, when no chain is bound for what it
-     *                            is, or when no step is named and none means the same
+     * @throws RefusalResponse when the movement is not open, when no chain is bound for what it
+     *                         is, or when no step is named and none means the same
      */
-    public void rechain(int movementId, Integer stepIndex, Integer actorMemberId) {
+    public void rechain(int movementId, @Nullable Integer stepIndex, @Nullable Integer actorMemberId) {
         ItemMovement movement = openMovement(movementId);
         int belongsOn = chainItBelongsOn(movement);
         var steps = flowService.findActiveSteps(belongsOn);
-        if (steps.isEmpty()) throw new BadRequestResponse("That chain has no steps to stand on");
+        if (steps.isEmpty()) throw InventoryRefusal.MOVEMENT_RECHAIN_FLOW_HAS_NO_STEPS.raise();
 
         MovementFlowStep standing = movement.currentStepId() == null
                 ? null
@@ -1287,14 +1390,12 @@ public class ItemMovementService {
         if (landing == null) {
             OptionalInt certain = sameMeaning(standing, steps);
             if (certain.isEmpty()) {
-                throw new BadRequestResponse(
-                        "The chain it belongs on does not say on its own where it would stand, so it has to be told");
+                throw InventoryRefusal.MOVEMENT_RECHAIN_LANDING_NOT_CLEAR.raise();
             }
             landing = certain.getAsInt();
         }
         if (landing < 0 || landing >= steps.size()) {
-            throw new BadRequestResponse(
-                    "That chain has %d steps, so there is no step %d to stand on".formatted(steps.size(), landing));
+            throw InventoryRefusal.MOVEMENT_RECHAIN_LANDING_OUT_OF_RANGE.raise();
         }
 
         MovementFlowStep lands = steps.get(landing);
@@ -1316,14 +1417,31 @@ public class ItemMovementService {
                 belongsOn,
                 lands.id(),
                 lands.label());
+        confirmReceiptsThatDoNotWait(movement.id());
+    }
+
+    /**
+     * Writes a chain again from its preset, then confirms the receipts the chain does not wait for on the
+     * movements it carried across.
+     *
+     * @param flowId        the chain to write again
+     * @param actorMemberId who asked for it
+     * @param chosen        where the movements the preset does not answer for are to land
+     * @see MovementFlowService#restoreToPreset(int, Integer, List)
+     */
+    public void restoreChain(int flowId, Integer actorMemberId, List<MovementFlowService.ChosenLanding> chosen) {
+        flowService.restoreToPreset(flowId, actorMemberId, chosen);
+        for (var open : movementRepository.findOpenOnFlow(flowId)) {
+            confirmReceiptsThatDoNotWait(open.id());
+        }
     }
 
     private ItemMovement openMovement(int movementId) {
-        ItemMovement movement =
-                movementRepository.findById(movementId).orElseThrow(() -> new BadRequestResponse("No such movement"));
+        ItemMovement movement = movementRepository
+                .findById(movementId)
+                .orElseThrow(InventoryRefusal.MOVEMENT_NOT_HERE_TO_RECHAIN::raise);
         if (movement.state() != MovementState.OPEN) {
-            throw new BadRequestResponse(
-                    "That movement has finished, so the chain under it no longer decides anything");
+            throw InventoryRefusal.MOVEMENT_FINISHED_BEFORE_RECHAIN.raise();
         }
         return movement;
     }
@@ -1393,13 +1511,13 @@ public class ItemMovementService {
      */
     public record RechainPlan(
             int movementId,
-            Integer currentFlowId,
-            String currentFlowName,
-            String standingOn,
+            @Nullable Integer currentFlowId,
+            @Nullable String currentFlowName,
+            @Nullable String standingOn,
             int targetFlowId,
-            String targetFlowName,
+            @Nullable String targetFlowName,
             boolean alreadyRight,
             List<RechainStep> steps,
-            Integer suggestedIndex,
+            @Nullable Integer suggestedIndex,
             boolean certain) {}
 }

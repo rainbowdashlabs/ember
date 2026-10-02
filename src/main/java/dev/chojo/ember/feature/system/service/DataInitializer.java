@@ -6,8 +6,10 @@
 package dev.chojo.ember.feature.system.service;
 
 import dev.chojo.ember.conf.file.elements.Api;
+import dev.chojo.ember.util.FilePaths;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -136,7 +138,6 @@ public class DataInitializer {
         for (String templateFile : TEMPLATE_FILES) {
             if (!templateFile.startsWith(directory)) continue;
             String name = fileName(templateFile);
-            // A section Ember ships switched off is not part of the document until someone enables it.
             if (name.startsWith("_")) continue;
             String content = readTemplate(templateFile);
             sections.add(new TemplateSection(name, content == null ? "" : content, false));
@@ -159,7 +160,7 @@ public class DataInitializer {
         return DataInitializer.class.getResourceAsStream("/templates/data/" + templateFile);
     }
 
-    private static String readTemplate(String templateFile) {
+    private static @Nullable String readTemplate(String templateFile) {
         try (InputStream in = openTemplate(templateFile)) {
             if (in == null) return null;
             return new String(in.readAllBytes(), StandardCharsets.UTF_8);
@@ -206,7 +207,6 @@ public class DataInitializer {
             log.info("Initialized legal document templates in {}", targetDir);
         }
 
-        // Ensure runtime directories exist
         ensureDirectory(dataDir.resolve("images"));
         ensureDirectory(dataDir.resolve("kb-files"));
 
@@ -267,7 +267,7 @@ public class DataInitializer {
                 log.warn("Template not found: {}", templateFile);
                 return false;
             }
-            Files.createDirectories(target.getParent());
+            FilePaths.createParentDirectories(target);
             Files.copy(in, target);
             return true;
         } catch (IOException e) {

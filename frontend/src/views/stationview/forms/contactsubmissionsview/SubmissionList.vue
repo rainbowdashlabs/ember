@@ -5,13 +5,13 @@
  */
 <script setup lang="ts">
 import SubmissionCard from './SubmissionCard.vue'
-import type {FormAnswer, FormResponse} from '@/api/forms'
+import type {FormAnswer, FormResponseEntry} from '@/api/generated/schema'
 
 /**
  * Vertically stacked list of contact-form submission cards.
  */
 defineProps<{
-    submissions: FormResponse[]
+    submissions: FormResponseEntry[]
     answersByResponse: Map<number, FormAnswer[]>
     ackInFlight: Set<number>
     questionTitle: (answer: FormAnswer) => string
@@ -20,7 +20,7 @@ defineProps<{
 }>()
 
 const emit = defineEmits<{
-    (e: 'acknowledge', submission: FormResponse): void
+    (e: 'acknowledge', submission: FormResponseEntry): void
 }>()
 </script>
 
@@ -35,7 +35,7 @@ const emit = defineEmits<{
             :question-title="questionTitle"
             :format-answer="formatAnswer"
             :format-timestamp="formatTimestamp"
-            @acknowledge="(s: FormResponse) => emit('acknowledge', s)"
+            @acknowledge="(s: FormResponseEntry) => emit('acknowledge', s)"
         />
     </div>
 </template>

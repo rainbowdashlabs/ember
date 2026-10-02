@@ -80,7 +80,6 @@ class NoteServiceTest extends RepositoryTestBase {
         var note = service.updateNote(NoteEntityType.EVENT, 1, station.id(), "Updated content", member.id());
         assertEquals("Updated content", note.content());
 
-        // Should have created a version with diff
         var versions = service.findVersions(noteId);
         assertEquals(1, versions.size());
         assertFalse(versions.getFirst().diffPatch().isEmpty());
@@ -90,7 +89,6 @@ class NoteServiceTest extends RepositoryTestBase {
     @Order(5)
     void updateWithSameContentNoVersion() {
         service.updateNote(NoteEntityType.EVENT, 1, station.id(), "Updated content", member.id());
-        // No new version since content didn't change
         var versions = service.findVersions(noteId);
         assertEquals(1, versions.size());
     }

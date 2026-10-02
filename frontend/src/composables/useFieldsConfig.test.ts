@@ -3,27 +3,30 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-// @vitest-environment happy-dom
+/** @vitest-environment happy-dom */
 import {mount} from '@vue/test-utils'
 import {defineComponent} from 'vue'
 import {describe, expect, it} from 'vitest'
-import {FieldTypes, type ProfileField, type ProfileFieldRequest} from '@/api/profileFields'
-import type {ProfileFieldAssignment} from '@/util/profileFields'
-import {fieldTemplates} from '@/views/stationview/manage/membersconfig/fieldTemplates'
+import type {EditableField, EditableFieldRequest, ProfileFieldScopeName} from '@/api/profileFields'
+import {FieldTypes, OfferedFieldTypes, type FieldTypeName} from '@/api/fieldTypes'
+import type {ProfileFieldAssignment} from '@/api/generated/schema'
 import {STATION_ROLES, useFieldsConfig, type FieldsPort} from './useFieldsConfig'
 
-function field(id: number, name: string, fieldType: string = FieldTypes.BIRTH_DATE): ProfileField {
-  return {id, stationId: '1', name, fieldType, config: {}, required: false, width: null}
+function field(id: number, name: string, fieldType: FieldTypeName = FieldTypes.BIRTH_DATE): EditableField {
+  return {id, name, fieldType, config: {}, required: false, readonly: false, keepOnArchive: false, width: null}
 }
 
-function askedOf(id: number, fieldId: number, role: string, position = 0): ProfileFieldAssignment {
-  return {id, fieldId, targetKind: 'ROLE', role: role as never, position}
+function askedOf(id: number, fieldId: number, role: ProfileFieldScopeName, position = 0): ProfileFieldAssignment {
+  return {
+    id, fieldId, targetKind: 'ROLE', role, groupId: null, position,
+    widthOverride: null, readonlyOverride: null, requiredOverride: null,
+  }
 }
 
 function portOf(
-    fields: ProfileField[],
+    fields: EditableField[],
     assignments: ProfileFieldAssignment[],
-    created: ProfileFieldRequest[] = [],
+    created: EditableFieldRequest[] = [],
 ): FieldsPort {
   return {
     list: async () => fields,
@@ -38,16 +41,16 @@ function portOf(
     unassign: async () => undefined,
     reorder: async () => undefined,
     roles: STATION_ROLES,
-    types: Object.values(FieldTypes),
+    types: OfferedFieldTypes.PROFILE,
     stationReadonly: false,
   }
 }
 
 /** The composable reaches for the locale, so it is used from inside a component as the app does. */
 function configFor(
-    fields: ProfileField[],
+    fields: EditableField[],
     assignments: ProfileFieldAssignment[] = [],
-    created: ProfileFieldRequest[] = [],
+    created: EditableFieldRequest[] = [],
 ) {
   let api: ReturnType<typeof useFieldsConfig> | null = null
   mount(defineComponent({
@@ -121,9 +124,11 @@ describe('useFieldsConfig', () => {
    * server reads strictly and would refuse.
    */
   it('sends a template\'s required and readonly on the field itself', async () => {
-    const created: ProfileFieldRequest[] = []
+    const created: EditableFieldRequest[] = []
     const config = configFor([], [], created)
-    const birthDate = fieldTemplates.find(template => template.name === 'Geburtsdatum')!
+    const birthDate = {
+      fields: [{name: 'Geburtsdatum', fieldType: FieldTypes.BIRTH_DATE, config: {}, required: true, readonly: true}],
+    }
 
     await config.applyTemplate(birthDate, 'MEMBER')
 

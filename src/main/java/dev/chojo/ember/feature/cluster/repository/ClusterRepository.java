@@ -19,7 +19,9 @@ import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.entity.ThemeFeel;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
+import java.util.Collection;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
@@ -50,8 +52,6 @@ public class ClusterRepository {
             .expireAfterAccess(5, TimeUnit.MINUTES)
             .maximumSize(1_000)
             .build();
-
-    // -- Clusters --
 
     public Optional<Cluster> findById(int id) {
         return SqlSupport.findById("cluster", CLUSTER_COLUMNS, id, Cluster.map());
@@ -124,7 +124,7 @@ public class ClusterRepository {
                 SELECT %s FROM cluster ORDER BY name;""", CLUSTER_COLUMNS).single(call()).map(Cluster.map()).all();
     }
 
-    public Cluster create(String name, String description, int homeStationId) {
+    public Cluster create(String name, @Nullable String description, int homeStationId) {
         return SqlSupport.insertReturning(
                 """
                 INSERT INTO cluster(name, description, home_station_id)
@@ -135,7 +135,7 @@ public class ClusterRepository {
                 CLUSTER_COLUMNS);
     }
 
-    public boolean rename(int id, String name, String description) {
+    public boolean rename(int id, String name, @Nullable String description) {
         return query("UPDATE cluster SET name = :name, description = :description WHERE id = :id;")
                 .single(call().bind("name", name)
                         .bind("description", description)
@@ -157,8 +157,6 @@ public class ClusterRepository {
                 .update()
                 .changed();
     }
-
-    // -- Member groups --
 
     private static final String GROUP_COLUMNS = "id, cluster_id, name";
 
@@ -232,21 +230,28 @@ public class ClusterRepository {
 
     /** What a group carries, expanded nowhere: the raw grants, as the screen shows them. */
     public Set<ClusterPermission> findGroupPermissions(int groupId) {
-        Set<ClusterPermission> held = EnumSet.noneOf(ClusterPermission.class);
-        for (String name : query("""
+        return knownConstants(
+                ClusterPermission.class,
+                query("""
                 SELECT p.name FROM cluster_member_group_permission gp
                 JOIN cluster_permission p ON p.id = gp.permission_id
                 WHERE gp.group_id = :group_id;""")
-                .single(call().bind("group_id", groupId))
-                .map(row -> row.getString("name"))
-                .all()) {
-            try {
-                held.add(ClusterPermission.valueOf(name));
-            } catch (IllegalArgumentException ignored) {
-                // A permission the code no longer knows is not worth failing over
-            }
+                        .single(call().bind("group_id", groupId))
+                        .map(row -> row.getString("name"))
+                        .all());
+    }
+
+    /**
+     * The constants of {@code type} among the stored names. A permission or module dropped from the
+     * code leaves its rows behind, and a row from a newer version names one this code never knew;
+     * neither is worth failing a request over, so unknown names are skipped.
+     */
+    private static <E extends Enum<E>> Set<E> knownConstants(Class<E> type, Collection<String> names) {
+        Set<E> known = EnumSet.noneOf(type);
+        for (E constant : type.getEnumConstants()) {
+            if (names.contains(constant.name())) known.add(constant);
         }
-        return held;
+        return known;
     }
 
     public void grantToGroup(int groupId, int permissionId) {
@@ -269,21 +274,15 @@ public class ClusterRepository {
 
     /** The grants made to one member by name, as opposed to what their type or groups carry. */
     public Set<ClusterPermission> findDirectPermissions(int memberId) {
-        Set<ClusterPermission> held = EnumSet.noneOf(ClusterPermission.class);
-        for (String name : query("""
+        return knownConstants(
+                ClusterPermission.class,
+                query("""
                 SELECT p.name FROM cluster_member_permission mp
                 JOIN cluster_permission p ON p.id = mp.permission_id
                 WHERE mp.member_id = :member_id;""")
-                .single(call().bind("member_id", memberId))
-                .map(row -> row.getString("name"))
-                .all()) {
-            try {
-                held.add(ClusterPermission.valueOf(name));
-            } catch (IllegalArgumentException ignored) {
-                // as above
-            }
-        }
-        return held;
+                        .single(call().bind("member_id", memberId))
+                        .map(row -> row.getString("name"))
+                        .all());
     }
 
     /** Changes what a member's user type is, which changes what they hold by default. */
@@ -299,6 +298,32 @@ public class ClusterRepository {
     }
 
     /**
+     * Whether a cluster member wants the association's gathered notifications by mail.
+     *
+     * @param memberId the cluster member
+     * @return their choice, {@code false} for a member that does not exist
+     */
+    public boolean isEmailEnabled(int memberId) {
+        return query("SELECT email_enabled FROM cluster_member WHERE id = :id;")
+                .single(call().bind("id", memberId))
+                .map(row -> row.getBoolean("email_enabled"))
+                .first()
+                .orElse(false);
+    }
+
+    /**
+     * Switches a cluster member's mail on or off.
+     *
+     * @param memberId the cluster member
+     * @param enabled  whether they want mail
+     */
+    public void setEmailEnabled(int memberId, boolean enabled) {
+        query("UPDATE cluster_member SET email_enabled = :enabled WHERE id = :id;")
+                .single(call().bind("enabled", enabled).bind("id", memberId))
+                .update();
+    }
+
+    /**
      * The modules this cluster switches off, for one group of its stations or for all of them.
      *
      * @param clusterId      the cluster
@@ -306,24 +331,16 @@ public class ClusterRepository {
      *                       reach every station
      * @return the denied modules, skipping any name the code no longer knows
      */
-    public Set<StationModule> findDeniedModules(int clusterId, Integer stationGroupId) {
-        Set<StationModule> denied = EnumSet.noneOf(StationModule.class);
-        for (String name : query("""
+    public Set<StationModule> findDeniedModules(int clusterId, @Nullable Integer stationGroupId) {
+        return knownConstants(
+                StationModule.class,
+                query("""
                 SELECT module FROM cluster_denied_module
                 WHERE cluster_id = :cluster_id
                   AND station_group_id IS NOT DISTINCT FROM :station_group_id;""")
-                .single(call().bind("cluster_id", clusterId).bind("station_group_id", stationGroupId))
-                .map(row -> row.getString("module"))
-                .all()) {
-            // A module dropped from the code leaves its rows behind, and a denial of something that no
-            // longer exists is not worth failing over
-            try {
-                denied.add(StationModule.valueOf(name));
-            } catch (IllegalArgumentException ignored) {
-                // deliberately skipped
-            }
-        }
-        return denied;
+                        .single(call().bind("cluster_id", clusterId).bind("station_group_id", stationGroupId))
+                        .map(row -> row.getString("module"))
+                        .all());
     }
 
     /**
@@ -337,7 +354,7 @@ public class ClusterRepository {
      * @param stationGroupId the group being written, or {@code null} for every station
      * @param modules        what it now denies there
      */
-    public void setDeniedModules(int clusterId, Integer stationGroupId, Set<StationModule> modules) {
+    public void setDeniedModules(int clusterId, @Nullable Integer stationGroupId, Set<StationModule> modules) {
         query("""
                 DELETE FROM cluster_denied_module
                 WHERE cluster_id = :cluster_id
@@ -366,8 +383,9 @@ public class ClusterRepository {
      * @return the denied modules, empty when it answers to no cluster
      */
     public Set<StationModule> findDeniedModulesForStation(int stationId) {
-        Set<StationModule> denied = EnumSet.noneOf(StationModule.class);
-        for (String name : query("""
+        return knownConstants(
+                StationModule.class,
+                query("""
                 SELECT DISTINCT cdm.module
                 FROM cluster_denied_module cdm
                 JOIN station s ON s.cluster_id = cdm.cluster_id
@@ -377,16 +395,9 @@ public class ClusterRepository {
                                   FROM cluster_station_group_membership m
                                   WHERE m.group_id = cdm.station_group_id
                                     AND m.station_id = s.id));""")
-                .single(call().bind("station_id", stationId))
-                .map(row -> row.getString("module"))
-                .all()) {
-            try {
-                denied.add(StationModule.valueOf(name));
-            } catch (IllegalArgumentException ignored) {
-                // A module dropped from the code leaves its rows behind, and it is not worth failing over
-            }
-        }
-        return denied;
+                        .single(call().bind("station_id", stationId))
+                        .map(row -> row.getString("module"))
+                        .all());
     }
 
     /**
@@ -438,9 +449,9 @@ public class ClusterRepository {
      */
     public boolean setLookAndFeel(
             int clusterId,
-            String defaultTheme,
-            String customThemeColors,
-            ThemeFeel defaultFeel,
+            @Nullable String defaultTheme,
+            @Nullable String customThemeColors,
+            @Nullable ThemeFeel defaultFeel,
             boolean themeLocked,
             boolean colorsLocked,
             boolean feelLocked,
@@ -534,8 +545,6 @@ public class ClusterRepository {
         return SqlSupport.deleteById("cluster", id);
     }
 
-    // -- Stations --
-
     /**
      * Puts a station under a cluster, or lets it go when the cluster is {@code null}.
      */
@@ -548,8 +557,6 @@ public class ClusterRepository {
                 .map(row -> row.getInt("id"))
                 .all();
     }
-
-    // -- Members --
 
     public Optional<ClusterMember> findMember(int clusterId, int accountId) {
         return query("""
@@ -599,8 +606,6 @@ public class ClusterRepository {
         return SqlSupport.deleteById("cluster_member", memberId);
     }
 
-    // -- Permissions --
-
     /**
      * Everything a member holds before expansion: what their user type grants at this cluster, what they have
      * been granted directly, and what the groups they are in carry.
@@ -612,7 +617,9 @@ public class ClusterRepository {
      * @return the permissions held, unexpanded
      */
     public Set<ClusterPermission> findMemberPermissions(int memberId) {
-        List<String> names = query("""
+        return knownConstants(
+                ClusterPermission.class,
+                query("""
                 SELECT p.name FROM cluster_permission p
                 WHERE p.id IN (
                     SELECT mp.permission_id FROM cluster_member_permission mp WHERE mp.member_id = :member_id
@@ -625,21 +632,9 @@ public class ClusterRepository {
                     JOIN cluster_member m ON m.cluster_id = tp.cluster_id AND m.user_type = tp.user_type
                     WHERE m.id = :member_id
                 );""")
-                .single(call().bind("member_id", memberId))
-                .map(row -> row.getString("name"))
-                .all();
-
-        Set<ClusterPermission> permissions = EnumSet.noneOf(ClusterPermission.class);
-        for (String name : names) {
-            // A permission the database knows and the code does not is a row from a newer version: skip it
-            // rather than refusing the whole request
-            try {
-                permissions.add(ClusterPermission.valueOf(name));
-            } catch (IllegalArgumentException ignored) {
-                // deliberately ignored
-            }
-        }
-        return permissions;
+                        .single(call().bind("member_id", memberId))
+                        .map(row -> row.getString("name"))
+                        .all());
     }
 
     public Optional<Integer> findPermissionId(ClusterPermission permission) {

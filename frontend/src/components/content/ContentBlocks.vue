@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import type {PageRow} from '@/api/pageManage'
+import type {ContentRow as RowData} from '@/api/generated/schema'
 import ContentRow from './ContentRow.vue'
 import type {ContentRenderContext} from '@/util/contentContext'
 
@@ -13,7 +13,7 @@ import type {ContentRenderContext} from '@/util/contentContext'
  * a public page is built from.
  */
 defineProps<{
-    rows: PageRow[]
+    rows: RowData[]
     context: ContentRenderContext
 }>()
 </script>

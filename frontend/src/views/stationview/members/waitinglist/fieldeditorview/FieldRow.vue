@@ -9,19 +9,19 @@ import IconButton from '@/components/button/IconButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import type { WaitingListField } from '@/api/waitingList'
+import type { WaitingListField } from '@/api/generated/schema'
+import { FieldTypes, fieldTypeLabel } from '@/api/fieldTypes'
 
-const props = defineProps<{
+defineProps<{
   field: WaitingListField
   index: number
   total: number
-  fieldTypeLabel: (type: string) => string
 }>()
 
 defineEmits<{
-  (e: 'move', index: number, direction: -1 | 1): void
-  (e: 'edit', field: WaitingListField): void
-  (e: 'delete', field: WaitingListField): void
+  move: [index: number, direction: -1 | 1]
+  edit: [field: WaitingListField]
+  delete: [field: WaitingListField]
 }>()
 
 const { t } = useI18n()
@@ -47,10 +47,10 @@ const { t } = useI18n()
     <div class="flex-1 min-w-0">
       <div class="flex items-center gap-2 flex-wrap">
         <span class="font-medium">{{ field.name }}</span>
-        <SecondaryBadge>{{ fieldTypeLabel(field.fieldType) }}</SecondaryBadge>
+        <SecondaryBadge>{{ fieldTypeLabel(t, field.fieldType) }}</SecondaryBadge>
         <PrimaryBadge v-if="field.required">{{ t('waitingList.required') }}</PrimaryBadge>
       </div>
-      <MutedText tag="div" class="mt-1" v-if="field.fieldType === 'ENUM'">
+      <MutedText v-if="field.fieldType === FieldTypes.CHOICE" tag="div" class="mt-1">
         {{ t('waitingList.options') }}: {{ field.config?.options?.join(', ') || '-' }}
       </MutedText>
     </div>

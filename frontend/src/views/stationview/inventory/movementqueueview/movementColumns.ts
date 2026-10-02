@@ -6,7 +6,8 @@
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {ColumnTypes, type ColumnOption, type TableColumn} from '@/components/table/tableColumn'
-import {MovementState, type Movement} from '@/api/movements'
+import {MovementState} from '@/api/movements'
+import type {MovementResponse} from '@/api/generated/schema'
 import {
     hasMoved,
     lastMovedAt,
@@ -38,7 +39,7 @@ const STEP = 'step:'
  * while it runs, and the step it has reached by that step's own name. Any of them can be filtered
  * for, so "running", "waiting for us" and "handed out" are three ways into the same column.
  */
-function standingOf(movement: Movement): string[] {
+function standingOf(movement: MovementResponse): string[] {
     const standing: string[] = [movement.state]
     if (movement.state === MovementState.OPEN && movement.currentStepActor) standing.push(TURN + movement.currentStepActor)
     if (movement.reachedStepLabel) standing.push(STEP + movement.reachedStepLabel)
@@ -58,15 +59,15 @@ function standingOf(movement: Movement): string[] {
  *
  * @param movements the movements shown, which name the steps the step column can be filtered by
  */
-export function useMovementColumns(movements: () => readonly Movement[]) {
-    const {t} = useI18n()
+export function useMovementColumns(movements: () => readonly MovementResponse[]) {
+    const {t, locale} = useI18n()
 
     const purposes = computed(() => purposeOptions(t))
 
     const stepNames = computed(() => [...new Set(movements()
         .map(movement => movement.reachedStepLabel)
         .filter((label): label is string => !!label))]
-        .toSorted((a, b) => a.localeCompare(b, 'de')))
+        .toSorted((a, b) => a.localeCompare(b, locale.value)))
 
     const standingOptions = computed<ColumnOption[]>(() => [
         ...stateOptions(t),
@@ -74,7 +75,7 @@ export function useMovementColumns(movements: () => readonly Movement[]) {
         ...stepNames.value.map(name => ({value: STEP + name, label: name})),
     ])
 
-    return computed<TableColumn<Movement>[]>(() => [
+    return computed<TableColumn<MovementResponse>[]>(() => [
         {
             key: MovementColumn.SUBJECT, label: t('movements.queue.columns.what'), type: ColumnTypes.TEXT,
             value: movement => movement.inventoryName, display: subjectNameOf, sortValue: subjectNameOf, pinned: true,

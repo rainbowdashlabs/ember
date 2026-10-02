@@ -7,12 +7,13 @@ package dev.chojo.ember.feature.account.route;
 
 import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.api.StepUpChallenge;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.auth.SessionCookies;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.auth.TokenHasher;
 import dev.chojo.ember.feature.account.entity.AccountSession;
-import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AuthService;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
@@ -24,6 +25,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.List;
@@ -37,14 +39,14 @@ import static dev.chojo.ember.api.RouteSupport.pathInt;
 @Singleton
 public class AccountSessionRoutes implements Routes {
     private final AuthService authService;
-    private final AccountRepository accountRepository;
     private final TokenHasher tokenHasher;
+    private final SessionCookies sessionCookies;
 
     @Inject
-    public AccountSessionRoutes(AuthService authService, AccountRepository accountRepository, TokenHasher tokenHasher) {
+    public AccountSessionRoutes(AuthService authService, TokenHasher tokenHasher, SessionCookies sessionCookies) {
         this.authService = authService;
-        this.accountRepository = accountRepository;
         this.tokenHasher = tokenHasher;
+        this.sessionCookies = sessionCookies;
     }
 
     @Override
@@ -67,9 +69,7 @@ public class AccountSessionRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ActiveSession[].class)))
     private void getActiveSessions(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        String authHeader = ctx.header("Authorization");
-        String currentToken = authHeader != null && authHeader.startsWith("Bearer ") ? authHeader.substring(7) : "";
-        String currentHash = currentToken.isEmpty() ? "" : tokenHasher.hash(currentToken);
+        String currentHash = SessionCookies.token(ctx).map(tokenHasher::hash).orElse("");
         List<AccountSession> sessions = authService.findSessionsByAccount(session.accountId());
         List<ActiveSession> result = sessions.stream()
                 .map(s -> new ActiveSession(
@@ -94,7 +94,7 @@ public class AccountSessionRoutes implements Routes {
     private void invalidateSession(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        accountRepository.deleteSessionById(id, session.accountId());
+        authService.invalidateSession(id, session.accountId());
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -104,10 +104,14 @@ public class AccountSessionRoutes implements Routes {
             summary = "Invalidate all sessions for the current account",
             description = "Deletes all sessions including the current one. The user will need to log in again.",
             tags = {"Session"},
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)))
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)),
+                @OpenApiResponse(status = "401", content = @OpenApiContent(from = StepUpChallenge.class))
+            })
     private void invalidateAll(Context ctx) {
         UserSession session = UserSession.from(ctx);
         authService.invalidateAllSessions(session.accountId());
+        sessionCookies.clear(ctx);
         ctx.json(new MessageResponse("All sessions invalidated"));
     }
 
@@ -124,10 +128,10 @@ public class AccountSessionRoutes implements Routes {
      */
     public record ActiveSession(
             int id,
-            String userAgent,
+            @Nullable String userAgent,
             Instant createdAt,
             Instant lastUsedAt,
             Instant expiresAt,
             boolean isCurrent,
-            String location) {}
+            @Nullable String location) {}
 }

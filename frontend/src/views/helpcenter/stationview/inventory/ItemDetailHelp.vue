@@ -11,7 +11,6 @@ import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
-import FieldLabel from '@/components/typography/FieldLabel.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
@@ -39,7 +38,6 @@ const {t} = useI18n()
 
     <MetadataSection/>
 
-    <!-- Dummy: Action buttons -->
     <HelpSection :title="t('helpCenter.itemDetail.actionsTitle')">
       <p>{{ t('helpCenter.itemDetail.actionsText') }}</p>
 
@@ -62,7 +60,6 @@ const {t} = useI18n()
       </NeutralContainer>
     </HelpSection>
 
-    <!-- Dummy: Assign modal -->
     <HelpSection :title="t('helpCenter.itemDetail.assignModalTitle')">
       <p>{{ t('helpCenter.itemDetail.assignModalText') }}</p>
 
@@ -70,8 +67,8 @@ const {t} = useI18n()
         <SectionHeader>{{ t('itemDetail.assignTitle') }}</SectionHeader>
         <SelectInput :model-value="''">
           <option value="">{{ t('itemDetail.selectMember') }}</option>
-          <option>Max Mustermann</option>
-          <option>Erika Musterfrau</option>
+          <option>{{ t('helpCenter.sample.people.maxMustermann') }}</option>
+          <option>{{ t('helpCenter.sample.people.erikaMusterfrau') }}</option>
         </SelectInput>
         <ButtonRow pair align="end">
           <SecondaryButton>{{ t('common.cancel') }}</SecondaryButton>
@@ -80,7 +77,6 @@ const {t} = useI18n()
       </NeutralContainer>
     </HelpSection>
 
-    <!-- Dummy: Assignment history table -->
     <HelpSection :title="t('helpCenter.itemDetail.historyTitle')">
       <p>{{ t('helpCenter.itemDetail.historyText') }}</p>
 
@@ -93,17 +89,17 @@ const {t} = useI18n()
             <Th>{{ t('itemDetail.returned') }}</Th>
           </template>
           <TRow>
-            <Td class="font-medium">Max Mustermann</Td>
+            <Td class="font-medium">{{ t('helpCenter.sample.people.maxMustermann') }}</Td>
             <Td muted>15.03.2026</Td>
             <Td muted>{{ t('itemDetail.current') }}</Td>
           </TRow>
           <TRow>
-            <Td class="font-medium">Jan Schmidt</Td>
+            <Td class="font-medium">{{ t('helpCenter.sample.people.janSchmidt') }}</Td>
             <Td muted>10.01.2026</Td>
             <Td muted>14.03.2026</Td>
           </TRow>
           <TRow>
-            <Td class="font-medium">Erika Musterfrau</Td>
+            <Td class="font-medium">{{ t('helpCenter.sample.people.erikaMusterfrau') }}</Td>
             <Td muted>01.09.2025</Td>
             <Td muted>09.01.2026</Td>
           </TRow>
@@ -116,7 +112,6 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.itemDetail.lossReportNoteText') }}</p>
     </HelpSection>
 
-    <!-- Notes -->
     <HelpSection :title="t('helpCenter.itemDetail.notesTitle')">
       <p>{{ t('helpCenter.itemDetail.notesText') }}</p>
     </HelpSection>

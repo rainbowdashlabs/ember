@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.events.repository;
 import dev.chojo.ember.feature.events.entity.EventCategory;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.Optional;
@@ -60,18 +61,41 @@ public class EventCategoryRepository {
      * @param color     optional display color (#RRGGBB), or null
      * @return the created category
      */
-    public EventCategory create(int stationId, String name, int position, String color) {
+    public EventCategory create(int stationId, String name, int position, @Nullable String color) {
+        return create(stationId, name, position, null, false, color);
+    }
+
+    /**
+     * Creates a new event category with every setting the edit form carries.
+     *
+     * @param stationId      the station ID
+     * @param name           the category name
+     * @param position       the display order position
+     * @param maxShownEvents how many upcoming events of the category the overview shows, or null for all
+     * @param isPublic       whether the category's events show on the public calendar
+     * @param color          optional display color (#RRGGBB), or null
+     * @return the created category
+     */
+    public EventCategory create(
+            int stationId,
+            String name,
+            int position,
+            @Nullable Integer maxShownEvents,
+            boolean isPublic,
+            @Nullable String color) {
         return SqlSupport.insertReturning(
                 """
                 INSERT
                 INTO
-                    event_category(station_id, name, position, color)
+                    event_category(station_id, name, position, max_shown_events, public, color)
                 VALUES
-                    (:station_id, :name, :position, :color)
+                    (:station_id, :name, :position, :max_shown_events, :public, :color)
                 RETURNING %s;""",
                 call().bind("station_id", stationId)
                         .bind("name", name)
                         .bind("position", position)
+                        .bind("max_shown_events", maxShownEvents)
+                        .bind("public", isPublic)
                         .bind("color", color),
                 EventCategory.map(),
                 COLUMNS);
@@ -86,7 +110,13 @@ public class EventCategoryRepository {
      * @param color    the optional new display color (#RRGGBB), or null to clear
      * @return true if a row was updated
      */
-    public boolean update(int id, String name, int position, Integer maxShownEvents, boolean isPublic, String color) {
+    public boolean update(
+            int id,
+            String name,
+            int position,
+            @Nullable Integer maxShownEvents,
+            boolean isPublic,
+            @Nullable String color) {
         return query("""
                 UPDATE event_category
                 SET name = :name,

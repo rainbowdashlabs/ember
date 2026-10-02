@@ -10,7 +10,7 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
-import type {MapsTilesConfig} from '@/api/maps'
+import type {MapsTilesConfig} from '@/api/generated/schema'
 
 const {t} = useI18n()
 
@@ -34,7 +34,7 @@ const showApiKey = ref(false)
         <option value="MAPBOX">Mapbox</option>
         <option value="MAPTILER">MapTiler</option>
         <option value="THUNDERFOREST">Thunderforest</option>
-        <option value="CUSTOM">{{ t('adminMaps.urlTemplate') }} (Custom)</option>
+        <option value="CUSTOM">{{ t('adminMaps.urlTemplate') }}</option>
       </SelectInput>
     </div>
 

@@ -77,22 +77,18 @@ class UserTagRepositoryTest extends RepositoryTestBase {
         assertFalse(userTagRepo.update(99999, "Nope", null, false, 0));
     }
 
-    // -- Tag entries --
-
     @Test
     @Order(10)
     void addMember() {
         userTagRepo.addMember(tagId, member.id());
-        // Verify through findTagsForMember (findMembers has a pre-existing column mismatch)
-        var tags = userTagRepo.findTagsForMember(member.id());
-        assertEquals(1, tags.size());
-        assertEquals(tagId, tags.getFirst().id());
+        var members = userTagRepo.findMembers(tagId);
+        assertEquals(1, members.size());
+        assertEquals(member.id(), members.getFirst().id());
     }
 
     @Test
     @Order(11)
     void addMemberIdempotent() {
-        // ON CONFLICT DO NOTHING - should not throw
         userTagRepo.addMember(tagId, member.id());
         assertEquals(1, userTagRepo.findTagsForMember(member.id()).size());
     }

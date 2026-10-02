@@ -16,7 +16,7 @@ import {publicContentContext} from '@/util/contentContext'
 import {apiUrl} from '@/util/apiUrl'
 import {socialMeta, stationLogoImage, useAbsoluteUrl} from '@/util/socialMeta'
 import {publicPageImageUrl} from '@/api/publicPages'
-import type {SharedPage} from '@/api/sharedLinks'
+import type {SharedPage} from '@/api/generated/schema'
 
 /**
  * A page somebody was sent the link to.

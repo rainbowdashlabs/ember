@@ -17,6 +17,7 @@ import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.service.AccountInviteService;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.account.service.AvatarService;
+import dev.chojo.ember.feature.attendance.service.AttendanceTemplateGuards;
 import dev.chojo.ember.feature.board.service.BoardAttachmentService;
 import dev.chojo.ember.feature.board.service.BoardService;
 import dev.chojo.ember.feature.board.service.BoardTicketService;
@@ -26,7 +27,6 @@ import dev.chojo.ember.feature.checklist.service.ChecklistService;
 import dev.chojo.ember.feature.cluster.service.ClusterApplicationService;
 import dev.chojo.ember.feature.cluster.service.ClusterAutoShareService;
 import dev.chojo.ember.feature.cluster.service.ClusterContentService;
-import dev.chojo.ember.feature.comment.service.CommentService;
 import dev.chojo.ember.feature.content.service.CellDescriptions;
 import dev.chojo.ember.feature.equipment.repository.EquipmentAvailabilityRepository;
 import dev.chojo.ember.feature.equipment.repository.EquipmentNeedRepository;
@@ -36,7 +36,6 @@ import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventTemplateRepository;
 import dev.chojo.ember.feature.events.service.EventAttachmentService;
-import dev.chojo.ember.feature.events.service.EventBreakService;
 import dev.chojo.ember.feature.events.service.EventFederationService;
 import dev.chojo.ember.feature.events.service.EventFieldService;
 import dev.chojo.ember.feature.events.service.EventRegistrationFieldService;
@@ -49,10 +48,11 @@ import dev.chojo.ember.feature.federation.service.FederationEntityResolver;
 import dev.chojo.ember.feature.federation.service.FederationFanout;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationService;
-import dev.chojo.ember.feature.federation.service.FederationSigningService;
 import dev.chojo.ember.feature.federation.service.InventoryShareService;
 import dev.chojo.ember.feature.federation.service.LendingService;
+import dev.chojo.ember.feature.federation.service.OutboundHttp;
 import dev.chojo.ember.feature.federation.service.RemoteUrlValidator;
+import dev.chojo.ember.feature.federation.transport.FederationTransport;
 import dev.chojo.ember.feature.feed.service.FeedTokenService;
 import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.entity.FormPurpose;
@@ -61,10 +61,8 @@ import dev.chojo.ember.feature.inventory.service.InventoryContainerService;
 import dev.chojo.ember.feature.inventory.service.InventoryFieldDefinitionService;
 import dev.chojo.ember.feature.inventory.service.InventoryService;
 import dev.chojo.ember.feature.inventory.service.ProcurementService;
-import dev.chojo.ember.feature.knowledgebase.repository.KbCommentRepository;
 import dev.chojo.ember.feature.knowledgebase.service.KbAccessService;
 import dev.chojo.ember.feature.knowledgebase.service.KbAuthorNameService;
-import dev.chojo.ember.feature.knowledgebase.service.KbCommentService;
 import dev.chojo.ember.feature.knowledgebase.service.KbContentService;
 import dev.chojo.ember.feature.knowledgebase.service.KbFileStorageService;
 import dev.chojo.ember.feature.knowledgebase.service.KbLinkMetadataService;
@@ -78,12 +76,11 @@ import dev.chojo.ember.feature.knowledgebase.service.TextCompressionPolicy;
 import dev.chojo.ember.feature.lostandfound.service.LostAndFoundImageService;
 import dev.chojo.ember.feature.lostandfound.service.LostAndFoundService;
 import dev.chojo.ember.feature.media.MediaTestSupport;
-import dev.chojo.ember.feature.media.service.ImageVariantService;
+import dev.chojo.ember.feature.media.service.ImageVariants;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import dev.chojo.ember.feature.media.service.MediaReferenceRegistry;
 import dev.chojo.ember.feature.media.service.MediaStorageService;
-import dev.chojo.ember.feature.media.service.MediaVariantService;
-import dev.chojo.ember.feature.members.service.MemberGroupService;
+import dev.chojo.ember.feature.members.repository.MemberGroupSetRepository;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService;
 import dev.chojo.ember.feature.members.service.UserTagService;
@@ -91,8 +88,8 @@ import dev.chojo.ember.feature.news.repository.NewsAttachmentRepository;
 import dev.chojo.ember.feature.news.repository.NewsFederationRepository;
 import dev.chojo.ember.feature.news.service.NewsAttachmentService;
 import dev.chojo.ember.feature.news.service.NewsFederationService;
-import dev.chojo.ember.feature.news.service.NewsService;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.notifications.entity.Recipient;
+import dev.chojo.ember.feature.notifications.service.Notifier;
 import dev.chojo.ember.feature.page.entity.PageVisibility;
 import dev.chojo.ember.feature.page.service.PageService;
 import dev.chojo.ember.feature.procedure.service.ProcedureService;
@@ -108,15 +105,15 @@ import dev.chojo.ember.feature.quiz.service.QuizTestService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.service.StationService;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
-import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
 import dev.chojo.ember.feature.storage.service.PdfCompressor;
 import dev.chojo.ember.feature.storage.service.PresentationCompressor;
 import dev.chojo.ember.feature.storage.service.StorageQuotaService;
 import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository;
 import dev.chojo.ember.feature.twofactor.service.TotpService;
+import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import dev.chojo.ember.util.ShareTokens;
+import dev.chojo.ember.util.TestStationKeys;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
@@ -158,6 +155,11 @@ class DemoServiceTest extends RepositoryTestBase {
 
     private static DemoService demoService;
 
+    /**
+     * Wires the demo service by hand. The two-factor seeder's TOTP service is told it runs on a demo
+     * instance, which is what lets it work without a configured encryption key and the same reason the
+     * seeder only ever runs on one.
+     */
     @BeforeAll
     static void setup() {
         var demoClock = new DemoClock(Clock.fixed(JUST_AFTER_MIDNIGHT, ZoneOffset.UTC));
@@ -167,39 +169,27 @@ class DemoServiceTest extends RepositoryTestBase {
         var apiConfig = new Api();
         var databaseConfig = new Database();
 
-        // -- Repositories not in RepositoryTestBase --
         var federationRepo = new FederationRepository();
         var eventFederationRepo = new EventFederationRepository();
         var eventTemplateRepo = new EventTemplateRepository();
-        var kbCommentRepo = new KbCommentRepository();
         var newsFederationRepo = new NewsFederationRepository();
         var lendingRepo = new LendingRepository();
 
-        // -- Services --
-        var federationService = new FederationService(federationRepo, stationRepo, apiConfig);
-        var signingService = new FederationSigningService();
+        var federationService = new FederationService(federationRepo, stationRepo, TestStationKeys.store(), apiConfig);
         var contractRefreshRef = new AtomicReference<FederationContractRefreshService>();
         var federationHttpClient = new FederationHttpClient(
-                signingService,
+                TestStationKeys.signer(),
                 stationRepo,
-                new RemoteUrlValidator(new Federation(), new Demo()),
+                new OutboundHttp(new RemoteUrlValidator(new Federation(), new Demo())),
                 contractRefreshRef::get);
-        contractRefreshRef.set(new FederationContractRefreshService(federationRepo, stationRepo, federationHttpClient));
-        var federationFanout = new FederationFanout();
-        var federationEntityResolver = new FederationEntityResolver(federationRepo, stationRepo, federationHttpClient);
+        contractRefreshRef.set(
+                new FederationContractRefreshService(federationRepo, federationHttpClient, new TaskScheduler()));
+        var federationFanout = new FederationFanout(new TaskScheduler());
+        var federationEntityResolver = new FederationEntityResolver(federationRepo);
+        var federationTransport = mock(FederationTransport.class);
 
         var eventServices = newEventServices(noOpBus);
-        var newsService = new NewsService(
-                newsRepo,
-                contentBlocks(),
-                noCellDescriptions(),
-                stationRepo,
-                restrictionService,
-                noOpBus,
-                stationMemberRepo,
-                memberLookupService,
-                accountRepo,
-                silentCommentMentions());
+        var newsService = newNewsService(noOpBus);
         var inventoryService = new InventoryService(
                 inventoryRepo,
                 artRepo,
@@ -217,14 +207,14 @@ class DemoServiceTest extends RepositoryTestBase {
                 stationMemberRepo,
                 accountRepo,
                 noOpBus);
-        var eventTemplateService = new EventTemplateService(eventTemplateRepo, attendanceRepo);
+        var eventTemplateService = new EventTemplateService(
+                eventTemplateRepo, attendanceRepo, memberEligibility, new AttendanceTemplateGuards(attendanceRepo));
         var feedTokenService = new FeedTokenService(feedTokenRepo);
 
         var memberSvc = newStationMemberService(accountRepo, mock(AuthService.class));
-        var commentService =
-                new CommentService(eventCommentRepo, noOpBus, memberSvc, stationRepo, silentCommentMentions());
+        var commentService = newCommentService(noOpBus);
         var kbStorageConfig = new Storage();
-        var kbBackend = new LocalStorageBackend();
+        var kbBackend = localStorage();
         var kbResolver = new StorageBackendResolver(kbBackend);
         var kbStorageSvc = new StorageService(kbResolver, kbBackend);
         var kbCompression = new TextCompressionPolicy(kbStorageConfig);
@@ -232,15 +222,13 @@ class DemoServiceTest extends RepositoryTestBase {
         var kbSearchService = new KbSearchService(knowledgeBaseRepo, stationRepo);
         var kbContentService = new KbContentService(
                 knowledgeBaseRepo, contentBlocks(), noCellDescriptions(), stationRepo, kbFileStorage, kbSearchService);
-        var kbCommentService = new KbCommentService(
-                knowledgeBaseRepo, kbCommentRepo, memberIdentityFactory, memberSvc, noOpBus, silentCommentMentions());
         var kbService = new KnowledgeBaseService(
                 knowledgeBaseRepo,
                 kbFileStorage,
                 kbContentService,
                 new KbAccessService(knowledgeBaseRepo, memberGroupRepo, userTagRepo),
-                new KbPresentationService(knowledgeBaseRepo, kbFileStorage, kbContentService),
-                new KbLinkMetadataService(new RemoteUrlValidator(new Federation(), new Demo())),
+                new KbPresentationService(knowledgeBaseRepo, kbFileStorage, kbContentService, new TaskScheduler()),
+                new KbLinkMetadataService(new OutboundHttp(new RemoteUrlValidator(new Federation(), new Demo()))),
                 new PresentationCompressor(kbStorageConfig),
                 new PdfCompressor(kbStorageConfig),
                 new ClusterAutoShareService(clusterRepo, new FederationRepository()));
@@ -258,9 +246,9 @@ class DemoServiceTest extends RepositoryTestBase {
                 kbSearchService,
                 federationService,
                 federationRepo,
-                federationHttpClient,
+                federationTransport,
                 stationRepo,
-                kbCommentRepo,
+                commentService,
                 eventFederationRepo,
                 memberNameResolver,
                 federationFanout,
@@ -278,12 +266,12 @@ class DemoServiceTest extends RepositoryTestBase {
                 testProtocolRepo,
                 federationService,
                 federationRepo,
-                federationHttpClient,
                 stationRepo,
                 federationFanout,
-                federationEntityResolver);
+                federationEntityResolver,
+                federationTransport);
         var imageVariantStorage = new StorageService(new StorageBackendResolver(kbBackend), kbBackend);
-        var imageVariantWriter = new ImageVariantService(imageVariantStorage);
+        var imageVariantWriter = new ImageVariants(imageVariantStorage);
         var avatarService = new AvatarService(imageVariantWriter);
         var quizImageService = new QuizQuestionImageService(imageVariantWriter, stationRepo);
         var authService = mock(AuthService.class);
@@ -293,11 +281,10 @@ class DemoServiceTest extends RepositoryTestBase {
                 accountRepo,
                 federationService,
                 new StationMemberInviteService(
-                        stationMemberRepo, memberGroupRepo, new AccountInviteService(accountRepo, authService)),
+                        stationMemberRepo, newGroupMemberships(), new AccountInviteService(accountRepo, authService)),
                 clusterRepo);
 
-        var groupService =
-                new MemberGroupService(memberGroupRepo, stationMemberRepo, userTagRepo, new DomainEventBus(Set.of()));
+        var groupService = newMemberGroupService();
         var tagService = new UserTagService(userTagRepo, memberGroupRepo);
         var memberNameResolver = new MemberNameResolver(
                 newStationMemberService(accountRepo, mock(AuthService.class)),
@@ -310,12 +297,11 @@ class DemoServiceTest extends RepositoryTestBase {
         var eventFederationService = new EventFederationService(
                 eventFederationRepo,
                 federationService,
-                federationHttpClient,
+                federationTransport,
                 federationRepo,
                 stationRepo,
                 eventServices.crud(),
                 commentService,
-                eventCommentRepo,
                 memberNameResolver,
                 federationFanout,
                 federationEntityResolver,
@@ -323,35 +309,41 @@ class DemoServiceTest extends RepositoryTestBase {
                 new EventFieldService(
                         eventFieldRepo,
                         stationMemberRepo,
-                        memberGroupRepo,
-                        mock(UserTagService.class),
+                        memberEligibility,
                         eventRepo,
                         attendanceRepo,
                         eventFieldRegistrationService),
-                eventDateResolver,
+                occurrenceCalendar,
                 mock(MediaLibraryService.class),
                 new Api());
         var newsFederationService = new NewsFederationService(
                 newsFederationRepo,
                 federationService,
                 federationRepo,
-                federationHttpClient,
                 stationRepo,
                 newsService,
+                commentService,
                 new NewsAttachmentService(
                         new NewsAttachmentRepository(),
                         MediaTestSupport.library(
-                                stationRepo, contentContainerRepo, mediaFileRepo, mediaMetaRepo, storageUsageRepo),
+                                localStorage(),
+                                stationRepo,
+                                contentContainerRepo,
+                                mediaFileRepo,
+                                mediaMetaRepo,
+                                storageUsageRepo),
                         stationRepo,
                         new Api()),
                 eventFederationRepo,
                 memberNameResolver,
                 federationFanout,
-                federationEntityResolver);
+                federationEntityResolver,
+                federationTransport);
         var lendingService = new LendingService(
                 lendingRepo,
-                federationHttpClient,
+                federationTransport,
                 federationService,
+                federationFanout,
                 stationRepo,
                 inventoryRepo,
                 clusterRepo,
@@ -364,17 +356,12 @@ class DemoServiceTest extends RepositoryTestBase {
                         new EquipmentAvailabilityRepository(),
                         new EquipmentNeedRepository(),
                         eventRepo,
-                        new EventBreakService(eventBreakRepo)),
+                        occurrenceCalendar),
                 noOpBus);
         var federatedBoardService = new FederatedBoardService(federatedBoardRepo);
 
-        // Services consumed by DemoService for the post-seed notification showcase (read-only
-        // lookups for one entity of each type). We mock NotificationService since the demo's
-        // read paths don't depend on its behavior and constructing a real one would drag in
-        // EmailService + Mailing config that aren't relevant here.
-        var notificationServiceMock = mock(NotificationService.class);
-        var lostAndFoundService = new LostAndFoundService(
-                lostAndFoundRepo, notificationServiceMock, mock(LostAndFoundImageService.class));
+        var lostAndFoundService =
+                new LostAndFoundService(lostAndFoundRepo, mock(Notifier.class), mock(LostAndFoundImageService.class));
         var boardService = new BoardService(boardRepo, memberSvc, groupService, tagService);
         var boardAttachmentSvc = new BoardAttachmentService(kbStorageSvc, stationRepo, kbBackend);
         var boardTicketService = new BoardTicketService(
@@ -385,16 +372,15 @@ class DemoServiceTest extends RepositoryTestBase {
                 memberSvc,
                 memberIdentityFactory,
                 memberNameResolver,
-                boardAttachmentSvc,
-                silentCommentMentions());
+                boardAttachmentSvc);
         var procedureService = new ProcedureService(procedureRepo, noOpBus);
 
-        // -- Seeders --
         var memberSeeder = new DemoMemberSeeder(
                 accountRepo,
                 stationMemberRepo,
                 memberLookupService,
                 memberGroupRepo,
+                new MemberGroupSetRepository(),
                 profileFieldRepo,
                 profileFieldChangeRepo,
                 userTagRepo,
@@ -407,7 +393,7 @@ class DemoServiceTest extends RepositoryTestBase {
                 eventServices.crud(),
                 eventTemplateService,
                 eventServices.restriction(),
-                new EventRegistrationFieldService(new EventRegistrationFieldRepository()),
+                new EventRegistrationFieldService(new EventRegistrationFieldRepository(), memberEligibility),
                 demoClock);
         var attendanceSeeder = new DemoAttendanceSeeder(attendanceRepo, stationMemberRepo, demoClock);
         var containerSvc =
@@ -431,6 +417,7 @@ class DemoServiceTest extends RepositoryTestBase {
                 clusterMemberService,
                 clusterInventoryService,
                 clusterProfileFieldService,
+                profileFieldCore,
                 clusterStationGroupService,
                 new ClusterContentService(clusterRepo, stationRepo, stationMemberRepo, kbService, kbTrashService),
                 new ClusterApplicationService(
@@ -445,10 +432,10 @@ class DemoServiceTest extends RepositoryTestBase {
                 newsService,
                 eventServices.crud(),
                 eventRegistrationRepo,
-                notificationRepo);
+                newNotifier());
         var formSeeder = new DemoFormSeeder(formRepo, restrictionService);
         var notificationSeeder = new DemoNotificationSeeder(
-                notificationRepo,
+                newNotifier(),
                 inventoryRepo,
                 boardService,
                 boardTicketService,
@@ -460,12 +447,11 @@ class DemoServiceTest extends RepositoryTestBase {
         var quizSeeder = new DemoQuizSeeder(quizCatalogRepo, quizTestRepo, quizService, quizImageService);
         var kbSeeder = new DemoKnowledgeBaseSeeder(kbService, kbContentService, knowledgeBaseRepo);
         var protocolSeeder = new DemoProtocolSeeder(testProtocolRepo, demoClock);
-        var avatarSeeder = new DemoAvatarSeeder(avatarService, accountRepo);
+        var avatarSeeder = new DemoAvatarSeeder(avatarService, accountRepo, storageRoot.resolve("demo-avatars"));
         var federationSeeder = new DemoFederationSeeder(
                 stationRepo,
                 federationService,
                 kbService,
-                kbCommentService,
                 kbFederationService,
                 quizService,
                 protocolService,
@@ -492,11 +478,17 @@ class DemoServiceTest extends RepositoryTestBase {
                 artRepo,
                 demoClock);
         var boardSeeder = new DemoBoardSeeder(
-                boardRepo, boardTicketRepo, federatedBoardService, federationService, memberIdentityFactory, demoClock);
+                boardRepo,
+                boardTicketRepo,
+                commentService,
+                federatedBoardService,
+                federationService,
+                memberIdentityFactory,
+                demoClock);
         var procedureSeeder = new DemoProcedureSeeder(procedureRepo);
         var selfCheckSeeder = new DemoSelfCheckSeeder(selfCheckRepo, inventoryRepo, itemCustodyService, demoClock);
         var demoStorageConfig = new Storage();
-        var demoBackend = new LocalStorageBackend();
+        var demoBackend = localStorage();
         var demoResolver = new StorageBackendResolver(demoBackend);
         var demoStorageSvc = new StorageService(demoResolver, demoBackend);
         var demoStorage = new MediaStorageService(demoStorageSvc, stationRepo, demoBackend);
@@ -504,7 +496,7 @@ class DemoServiceTest extends RepositoryTestBase {
                 mediaFileRepo,
                 mediaMetaRepo,
                 demoStorage,
-                new MediaVariantService(demoStorage, demoStorageConfig),
+                new ImageVariants(demoStorageSvc),
                 new MediaReferenceRegistry(contentContainerRepo),
                 new StorageQuotaService(storageUsageRepo, demoStorageConfig, noOpBus));
         var pageSeeder = new DemoPageSeeder(
@@ -515,13 +507,12 @@ class DemoServiceTest extends RepositoryTestBase {
                         new CellDescriptions(demoMediaLibrary, (stationId, pageUid) -> Optional.empty()),
                         stationMemberRepo,
                         avatarService,
-                        new ShareTokens(),
                         stationRepo),
                 pageRepo,
                 demoMediaLibrary,
                 formRepo,
                 quizCatalogRepo);
-        var newsSeeder = new DemoNewsSeeder(newsService, stationMemberRepo);
+        var newsSeeder = new DemoNewsSeeder(newsService, commentService, stationMemberRepo);
         var lostAndFoundSeederLocal = new DemoLostAndFoundSeeder(lostAndFoundService, demoClock);
         var checklistService = new ChecklistService(
                 new ChecklistRepository(), stationMemberRepo, memberGroupRepo, userTagRepo, eventRegistrationRepo);
@@ -539,8 +530,6 @@ class DemoServiceTest extends RepositoryTestBase {
         var settingsSeeder = new DemoSettingsSeeder(feedTokenService, stationRepo, applicationSettingRepo);
         var setupSeeder = new DemoSetupSeeder(stationRepo);
         var freshStationSeeder = new DemoFreshStationSeeder(stationRepo, accountRepo, stationMemberRepo);
-        // A demo instance is what lets the TOTP service run without a configured encryption key,
-        // which is the same reason the seeder only ever runs on one.
         var demoInstance = mock(Demo.class);
         when(demoInstance.dev()).thenReturn(true);
         var twoFactorSeeder = new DemoTwoFactorSeeder(
@@ -561,7 +550,6 @@ class DemoServiceTest extends RepositoryTestBase {
                 stationMemberRepo,
                 demoClock);
 
-        // -- DemoService --
         demoService = new DemoService(
                 demoConfig,
                 databaseConfig,
@@ -600,7 +588,8 @@ class DemoServiceTest extends RepositoryTestBase {
                         videoSeeder),
                 stationRepo,
                 clusterRepo,
-                new StorageBackendResolver(new LocalStorageBackend()));
+                new StorageBackendResolver(localStorage()),
+                new TaskScheduler());
     }
 
     @Test
@@ -719,23 +708,18 @@ class DemoServiceTest extends RepositoryTestBase {
         assertNull(musterstadt.clusterId(), "Musterstadt answers to nobody");
         assertNotNull(nordstadt.clusterId(), "Nordstadt answers to the association");
 
-        // The same people at both, at addresses of their own
         assertTrue(accountRepo.findByEmail("max@mustermann.local").isPresent(), "Max at the first station");
         assertTrue(accountRepo.findByEmail("max@mustermann.nord.local").isPresent(), "Max at the second");
 
-        // And the same amount of everything, because the second one is the first one again
         assertEquals(
                 stationMemberRepo.findByStation(musterstadt.id()).size(),
                 stationMemberRepo.findByStation(nordstadt.id()).size(),
                 "Both stations should carry the same members");
-        // Not equal here, and deliberately: the association keeps a store of its own at the station it
-        // governs, which is the association's doing rather than a difference in how the two were built
         assertTrue(
                 inventoryRepo.findByStation(nordstadt.id()).size()
                         >= inventoryRepo.findByStation(musterstadt.id()).size(),
                 "The twin should carry what the first carries, and the association's store on top");
 
-        // Both borrow from the same partner, so what federation does can be seen at either
         var federations = new FederationRepository();
         assertFalse(federations.findPartners(musterstadt.id()).isEmpty(), "Musterstadt has its partner");
         assertFalse(federations.findPartners(nordstadt.id()).isEmpty(), "Nordstadt has the same partner");
@@ -780,6 +764,10 @@ class DemoServiceTest extends RepositoryTestBase {
      * The cluster seeder skips a lot of itself when the pieces it builds on are missing, which is right at
      * run time and useless in a test: a silent skip and a working seeder look identical from outside. These
      * assertions name the things that only exist if it ran the whole way through.
+     *
+     * <p>The federation partner and the mirror stay outside the cluster. Its storage room is checked in
+     * all four places a station gets its numbers from, since a storage screen with none of them shows
+     * nothing.
      */
     @Test
     void verifyClusterSeeded() {
@@ -789,8 +777,6 @@ class DemoServiceTest extends RepositoryTestBase {
                 .orElseThrow(() -> new AssertionError("The demo cluster should exist"));
 
         assertTrue(cluster.usesInventory(), "The demo cluster should keep gear of its own");
-        // The station the demo is about, the neighbouring one, and the one the cluster made itself. The
-        // federation partner and the mirror are the two that stay outside.
         assertEquals(3, clusterRepo.findStationIds(cluster.id()).size(), "Three stations should be in the cluster");
         assertFalse(
                 clusterApplicationRepo.findByCluster(cluster.id()).isEmpty(),
@@ -800,8 +786,6 @@ class DemoServiceTest extends RepositoryTestBase {
                 clusterProfileFieldRepo.findByCluster(cluster.id()).size(),
                 "The cluster should ask two questions of its members");
 
-        // The room the cluster hands out, in all four places a station can get its numbers from: the pool,
-        // the defaults, the two tiers, and the grants. A storage screen with none of them shows nothing.
         var room = clusterStorageQuotaService.findOverview(cluster.id());
         assertEquals(100L * 1024 * 1024 * 1024, room.poolBytes(), "The instance should have granted a pool");
         assertNotNull(room.defaults().quotaBytes(), "The cluster should say what a station it granted nothing gets");
@@ -838,7 +822,7 @@ class DemoServiceTest extends RepositoryTestBase {
                 .orElseThrow(() -> new AssertionError("The cluster should have an administrator"));
         assertEquals(
                 3,
-                notificationRepo.findAllForClusterMember(admin.id()).size(),
+                notificationRepo.findRecent(Recipient.clusterMember(admin.id())).size(),
                 "The administrator should have been told about the cluster's own business");
     }
 }

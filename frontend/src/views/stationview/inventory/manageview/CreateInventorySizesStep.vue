@@ -4,7 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {onBeforeUnmount, onMounted, ref} from 'vue'
+import {onClickOutside, onKeyStroke} from '@vueuse/core'
+import {ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import TextInput from '@/components/input/text/TextInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
@@ -37,24 +38,12 @@ const quickPickRef = ref<HTMLElement | null>(null)
  * the button and the list are outside that row, so reaching the list at all meant chasing it. It
  * stays open now until it is used, cancelled, or left alone.
  */
-function onClickOutside(event: MouseEvent) {
-  if (quickPickRef.value && !quickPickRef.value.contains(event.target as Node)) {
-    showQuickPick.value = false
-  }
-}
-
-function onEscape(event: KeyboardEvent) {
-  if (event.key === 'Escape') showQuickPick.value = false
-}
-
-onMounted(() => {
-  document.addEventListener('click', onClickOutside)
-  document.addEventListener('keydown', onEscape)
+onClickOutside(quickPickRef, () => {
+  showQuickPick.value = false
 })
 
-onBeforeUnmount(() => {
-  document.removeEventListener('click', onClickOutside)
-  document.removeEventListener('keydown', onEscape)
+onKeyStroke('Escape', () => {
+  showQuickPick.value = false
 })
 
 /**

@@ -9,7 +9,7 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import KbItemGrid from '@/views/stationview/knowledge/knowledgebaseview/KbItemGrid.vue'
 import KbItemList from '@/views/stationview/knowledge/knowledgebaseview/KbItemList.vue'
-import type {KbFolder} from '@/api/knowledgeBase'
+import type {KbFolder} from '@/api/generated/schema'
 import type {KbItem} from '@/views/stationview/knowledge/knowledgebaseview/useKbItems'
 
 defineProps<{

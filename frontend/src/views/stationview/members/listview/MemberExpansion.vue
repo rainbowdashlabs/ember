@@ -5,21 +5,21 @@
  */
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
-import FieldValueDisplay from '@/components/display/FieldValueDisplay.vue'
+import QuestionValueDisplay from '@/components/display/QuestionValueDisplay.vue'
 import MutedIcon from '@/components/display/MutedIcon.vue'
-import type {ProfileField} from '@/api/profileFields'
-import type {StationMember} from '@/api/types'
+import type {MemberWithName, ProfileField} from '@/api/generated/schema'
+import type {RosterMember} from './useMemberData'
 
 const {t} = useI18n()
 
 defineProps<{
-  member: StationMember
+  member: RosterMember
   colSpan: number
   overviewFields: ProfileField[]
-  managers: StationMember[]
+  managers: MemberWithName[]
   getFieldValueFor: (memberId: number, fieldId: number) => unknown
   getOverviewFieldsFor: (memberId: number) => ProfileField[]
-  managerName: (mgr: StationMember) => string
+  managerName: (mgr: MemberWithName) => string
 }>()
 </script>
 
@@ -30,7 +30,7 @@ defineProps<{
         <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           <div v-for="field in overviewFields" :key="field.id" class="text-sm">
             <span class="text-(--text-muted)">{{ field.name }}:</span>
-            <span class="ml-1 font-medium"><FieldValueDisplay :value="getFieldValueFor(member.id, field.id)" :field-type="field.fieldType" :config="field.config"/></span>
+            <span class="ml-1 font-medium"><QuestionValueDisplay :value="getFieldValueFor(member.id, field.id)" :field-type="field.fieldType" :config="field.config"/></span>
           </div>
         </div>
         <div v-if="managers.length > 0">
@@ -46,7 +46,7 @@ defineProps<{
               <div class="grid gap-x-4 gap-y-1 sm:grid-cols-2 lg:grid-cols-3 pl-5">
                 <div v-for="field in getOverviewFieldsFor(mgr.id)" :key="field.id" class="text-xs">
                   <span class="text-(--text-muted)">{{ field.name }}:</span>
-                  <span class="ml-1"><FieldValueDisplay :value="getFieldValueFor(mgr.id, field.id)" :field-type="field.fieldType" :config="field.config"/></span>
+                  <span class="ml-1"><QuestionValueDisplay :value="getFieldValueFor(mgr.id, field.id)" :field-type="field.fieldType" :config="field.config"/></span>
                 </div>
               </div>
             </div>

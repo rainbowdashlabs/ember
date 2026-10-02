@@ -22,17 +22,20 @@ import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {describeFailure, type Failure} from '@/util/failure'
 import {useSession} from '@/composables/useSession'
 import {showToast} from '@/util/toast'
-import {StationPermission, type MemberGroup, type StationMember, type UserTag} from '@/api/types'
+import {StationPermission} from '@/api/types'
 import {checklists, memberGroups, stationMembers, userTags} from '@/api'
 import type {
-  ChecklistAddMembersResult,
-  ChecklistCellDto,
-  ChecklistDetail,
-  ChecklistRefreshResult,
-  ChecklistRestrictionDto,
-  ChecklistSourceRequest,
-} from '@/api/checklists'
+  AddMembersResponse as ChecklistAddMembersResult,
+  CellResponse as ChecklistCell,
+  ChecklistDetailResponse as ChecklistDetail,
+  MemberGroup,
+  MemberWithName,
+  RefreshResponse as ChecklistRefreshResult,
+  UpdateRequest as ChecklistUpdateRequest,
+  UserTag,
+} from '@/api/generated/schema'
 import {formatDate} from '@/util/format'
+import {compareText} from '@/util/locale'
 import EditButton from '@/components/button/EditButton.vue'
 import ChecklistMatrix from './checklistdetailview/ChecklistMatrix.vue'
 import ChecklistFilterBar from './checklistdetailview/ChecklistFilterBar.vue'
@@ -54,7 +57,7 @@ const readOnly = computed(() => !canManage.value)
 const detail = ref<ChecklistDetail | null>(null)
 const groups = ref<MemberGroup[]>([])
 const tags = ref<UserTag[]>([])
-const members = ref<StationMember[]>([])
+const members = ref<MemberWithName[]>([])
 
 const memberSearch = ref('')
 const columnFilters = ref<Record<number, 'any' | 'checked' | 'unchecked'>>({})
@@ -67,13 +70,14 @@ const showMembership = ref(false)
 
 const checklistId = computed(() => Number(route.params.id))
 
-const {loading, failure: loadFailure, reload} = useAsyncLoader(async () => {
+const {loading, failure: loadFailure, reload} = useAsyncLoader(async (isCurrent) => {
   const [d, g, ts, m] = await Promise.all([
     checklists.getChecklist(checklistId.value),
     memberGroups.listGroups(),
     userTags.listTags(),
     stationMembers.listMembers(false),
   ])
+  if (!isCurrent()) return
   detail.value = d
   groups.value = g
   tags.value = ts
@@ -84,7 +88,7 @@ watch(checklistId, () => reload())
 
 const sortedEntries = computed(() =>
     [...(detail.value?.entries ?? [])].sort((a, b) =>
-        a.memberName.localeCompare(b.memberName, 'de', {sensitivity: 'base'}),
+        compareText(a.memberName, b.memberName),
     ),
 )
 const aliveEntries = computed(() => sortedEntries.value.filter(e => !e.deletedAt))
@@ -151,7 +155,7 @@ const followsLabel = computed(() => {
 const aliveMemberIds = computed(() => new Set(aliveEntries.value.map(e => e.memberId)))
 const removedEntries = computed(() => sortedEntries.value.filter(e => e.deletedAt != null))
 
-function applyCell(cell: ChecklistCellDto) {
+function applyCell(cell: ChecklistCell) {
   if (!detail.value) return
   const idx = detail.value.cells.findIndex(c => c.entryId === cell.entryId && c.columnId === cell.columnId)
   if (idx >= 0) detail.value.cells.splice(idx, 1, cell)
@@ -258,7 +262,7 @@ function onSaveMeta(payload: {name: string; description: string; orderedColumnId
  * the next refresh brings in, and rows already here stay where they are either way.
  */
 const {running: savingMembership, failure: membershipFailure, run: runSaveMembership} = useAsyncAction(
-    async (payload: {restriction?: ChecklistRestrictionDto; source?: ChecklistSourceRequest}) => {
+    async (payload: Pick<ChecklistUpdateRequest, 'restriction' | 'source'>) => {
       if (!detail.value) return
       await checklists.updateChecklist(detail.value.id, payload)
       showMembership.value = false
@@ -267,7 +271,7 @@ const {running: savingMembership, failure: membershipFailure, run: runSaveMember
     },
 )
 
-function onSaveMembership(payload: {restriction?: ChecklistRestrictionDto; source?: ChecklistSourceRequest}) {
+function onSaveMembership(payload: Pick<ChecklistUpdateRequest, 'restriction' | 'source'>) {
   return runSaveMembership(payload)
 }
 
@@ -366,10 +370,10 @@ const pageSubtitle = computed(() => detail.value?.description || t('pages.checkl
         <EmptyState v-if="visibleEntries.length === 0">{{ t('checklist.rowFilteredOut') }}</EmptyState>
         <ChecklistMatrix
             v-else
+            v-model:column-filters="columnFilters"
             :detail="detail"
             :visible-entries="visibleEntries"
             :read-only="readOnly"
-            v-model:column-filters="columnFilters"
             @cell-change="applyCell"
             @delete-entry="onDeleteEntry"
             @bulk-set="onBulkSet"

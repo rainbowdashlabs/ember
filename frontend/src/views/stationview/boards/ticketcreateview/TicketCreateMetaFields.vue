@@ -12,8 +12,8 @@ import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
 import DateInput from '@/components/input/datetime/DateInput.vue'
 import LabelSelectInput from '@/components/input/select/LabelSelectInput.vue'
 import { fromCompletion } from '@/components/input/select/memberOption'
-import {TicketPriority, type BoardLabel, type BoardLane, type TicketPriorityName} from '@/api/boards'
-import type { MemberCompletion } from '@/api/stationMembers'
+import {TicketPriority, type TicketPriorityName} from '@/api/boards'
+import type {BoardLabel, BoardLane, MemberCompletion} from '@/api/generated/schema'
 
 const props = defineProps<{
     laneId: string
@@ -28,12 +28,12 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-    (e: 'update:laneId', value: string): void
-    (e: 'update:priority', value: TicketPriorityName): void
-    (e: 'update:assignee', value: string): void
-    (e: 'update:dueDate', value: string): void
-    (e: 'toggleLabel', id: number): void
-    (e: 'createLabel', name: string): void
+    'update:laneId': [value: string]
+    'update:priority': [value: TicketPriorityName]
+    'update:assignee': [value: string]
+    'update:dueDate': [value: string]
+    toggleLabel: [id: number]
+    createLabel: [name: string]
 }>()
 
 const { t } = useI18n()

@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-// @vitest-environment happy-dom
+/** @vitest-environment happy-dom */
 import {describe, expect, it} from 'vitest'
 import {mount} from '@vue/test-utils'
 import FormulaInput from './FormulaInput.vue'
@@ -20,7 +20,7 @@ function mountInput(value = '') {
             'onUpdate:modelValue': (next: string) => wrapper.setProps({modelValue: next}),
             fields: [
                 {name: 'Alter', type: 'NUMBER'},
-                {name: 'Erfahrung', type: 'ENUM'},
+                {name: 'Erfahrung', type: 'CHOICE'},
             ],
         },
     })

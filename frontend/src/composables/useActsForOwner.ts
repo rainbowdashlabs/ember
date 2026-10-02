@@ -5,7 +5,7 @@
  */
 import {computed, type ComputedRef} from 'vue'
 import {useCluster} from '@/composables/useCluster'
-import {getActingStation} from '@/util/actingStationState'
+import {actingStationState} from '@/util/actingStationState'
 
 /**
  * Whether this screen is acting for the association that owns what it shows.
@@ -21,9 +21,10 @@ import {getActingStation} from '@/util/actingStationState'
  */
 export function useActsForOwner(): ComputedRef<boolean> {
     const {activeCluster} = useCluster()
+    const acting = actingStationState()
 
     return computed(() => {
         const cluster = activeCluster.value
-        return cluster != null && cluster.homeStationId === getActingStation()
+        return cluster != null && cluster.homeStationId === acting.current()
     })
 }

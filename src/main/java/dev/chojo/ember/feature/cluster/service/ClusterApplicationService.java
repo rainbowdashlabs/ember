@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.cluster.service;
 
+import dev.chojo.ember.api.refusal.ClusterRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.ClusterApplicationResolved;
 import dev.chojo.ember.event.events.ClusterApplicationSubmitted;
@@ -17,11 +19,9 @@ import dev.chojo.ember.feature.cluster.repository.ClusterApplicationRepository;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.ForbiddenResponse;
-import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -66,24 +66,24 @@ public class ClusterApplicationService {
      * @param stationId     the station asking
      * @param actorMemberId the station member doing the asking, who must be the station's owner
      * @return the pending application
-     * @throws ForbiddenResponse  when somebody other than the owner asks
-     * @throws BadRequestResponse when the station already belongs to a cluster or is a cluster's own shell
+     * @throws RefusalResponse when somebody other than the owner asks, or the station already belongs to a cluster
+     *                         or is a cluster's own shell
      */
     public ClusterApplication apply(int clusterId, int stationId, int actorMemberId) {
         Station station = requireStation(stationId);
         Cluster cluster = requireCluster(clusterId);
 
-        if (station.ownerMemberId() == null || station.ownerMemberId() != actorMemberId) {
-            throw new ForbiddenResponse("Only the station's owner can ask to join a cluster");
+        if (!station.isOwnedBy(actorMemberId)) {
+            throw ClusterRefusal.CLUSTER_APPLICATION_NOT_BY_STATION_OWNER.raise();
         }
         if (station.stationKind() == StationKind.CLUSTER_HOME) {
-            throw new BadRequestResponse("A cluster's own station cannot join another cluster");
+            throw ClusterRefusal.CLUSTER_APPLICATION_FROM_CLUSTER_HOME.raise();
         }
         if (station.clusterId() != null) {
-            throw new BadRequestResponse("This station already belongs to a cluster");
+            throw ClusterRefusal.CLUSTER_APPLICATION_STATION_ALREADY_JOINED.raise();
         }
         applicationRepository.findPendingForStation(stationId).ifPresent(pending -> {
-            throw new BadRequestResponse("This station already has a request waiting");
+            throw ClusterRefusal.CLUSTER_APPLICATION_ALREADY_WAITING.raise();
         });
 
         ClusterApplication application = applicationRepository.open(clusterId, stationId, actorMemberId);
@@ -97,15 +97,14 @@ public class ClusterApplicationService {
      *
      * @param applicationId the application
      * @param actorMemberId the station member withdrawing, who must be the station's owner
-     * @throws ForbiddenResponse  when somebody other than the owner withdraws
-     * @throws BadRequestResponse when it was already decided
+     * @throws RefusalResponse when somebody other than the owner withdraws, or it was already decided
      */
     public void withdraw(int applicationId, int actorMemberId) {
         ClusterApplication application = requireApplication(applicationId);
         Station station = requireStation(application.stationId());
 
-        if (station.ownerMemberId() == null || station.ownerMemberId() != actorMemberId) {
-            throw new ForbiddenResponse("Only the station's owner can withdraw its request");
+        if (!station.isOwnedBy(actorMemberId)) {
+            throw ClusterRefusal.CLUSTER_APPLICATION_WITHDRAWN_NOT_BY_STATION_OWNER.raise();
         }
         requireOpen(application);
 
@@ -121,16 +120,16 @@ public class ClusterApplicationService {
      * @param clusterId        the cluster acting, checked against the application so one cluster cannot
      *                         answer another's post
      * @param resolvingMemberId the cluster member deciding
-     * @throws BadRequestResponse when it was already decided, or the station joined a cluster meanwhile
+     * @throws RefusalResponse when it was already decided, or the station joined a cluster meanwhile
      */
-    public void approve(int applicationId, int clusterId, Integer resolvingMemberId) {
+    public void approve(int applicationId, int clusterId, @Nullable Integer resolvingMemberId) {
         ClusterApplication application = requireApplication(applicationId);
         requireSameCluster(application, clusterId);
         requireOpen(application);
 
         Station station = requireStation(application.stationId());
         if (station.clusterId() != null) {
-            throw new BadRequestResponse("This station has joined a cluster in the meantime");
+            throw ClusterRefusal.CLUSTER_APPLICATION_STATION_JOINED_MEANWHILE.raise();
         }
 
         applicationRepository.resolve(applicationId, ClusterApplicationStatus.APPROVED, null, resolvingMemberId);
@@ -145,9 +144,9 @@ public class ClusterApplicationService {
      * @param clusterId         the cluster acting
      * @param reason            why, in the cluster's own words
      * @param resolvingMemberId the cluster member deciding
-     * @throws BadRequestResponse when it was already decided
+     * @throws RefusalResponse when it was already decided
      */
-    public void deny(int applicationId, int clusterId, String reason, Integer resolvingMemberId) {
+    public void deny(int applicationId, int clusterId, @Nullable String reason, @Nullable Integer resolvingMemberId) {
         ClusterApplication application = requireApplication(applicationId);
         requireSameCluster(application, clusterId);
         requireOpen(application);
@@ -176,25 +175,25 @@ public class ClusterApplicationService {
 
     private static void requireOpen(ClusterApplication application) {
         if (!application.status().open()) {
-            throw new BadRequestResponse("This request has already been decided");
+            throw ClusterRefusal.CLUSTER_APPLICATION_ALREADY_DECIDED.raise();
         }
     }
 
     private static void requireSameCluster(ClusterApplication application, int clusterId) {
         if (application.clusterId() != clusterId) {
-            throw new NotFoundResponse("No such application");
+            throw ClusterRefusal.CLUSTER_APPLICATION_NOT_HERE.raise();
         }
     }
 
     private ClusterApplication requireApplication(int id) {
-        return applicationRepository.findById(id).orElseThrow(() -> new NotFoundResponse("No such application"));
+        return applicationRepository.findById(id).orElseThrow(ClusterRefusal.CLUSTER_APPLICATION_NOT_HERE::raise);
     }
 
     private Station requireStation(int id) {
-        return stationRepository.findById(id).orElseThrow(() -> new NotFoundResponse("No such station"));
+        return stationRepository.findById(id).orElseThrow(ClusterRefusal.CLUSTER_APPLICATION_STATION_NOT_HERE::raise);
     }
 
     private Cluster requireCluster(int id) {
-        return clusterRepository.findById(id).orElseThrow(() -> new NotFoundResponse("No such cluster"));
+        return clusterRepository.findById(id).orElseThrow(ClusterRefusal.CLUSTER_APPLICATION_CLUSTER_NOT_HERE::raise);
     }
 }

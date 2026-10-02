@@ -21,6 +21,12 @@ interface MemberRow {
  * the seeded accounts still carry the addresses they were seeded with, and the parts they are cast
  * in cannot move afterwards. Anything resolved later reads a station some story has since edited.
  *
+ * <p>The passkey parts are ordinary members in the order their ids were handed out, which no story
+ * can move. The shared roles, the guardians and their charges stay out: a story that ends one of
+ * these sessions on purpose must not end one somebody else holds, and a guardian story re-addressing
+ * a charge ends that charge's sessions. The loner is of the second seeded station, told apart by its
+ * suffix, so signing them out reaches nobody the rest of the run acts as.
+ *
  * @param request    an unauthenticated context, for the demo listings
  * @param managers   a context signed in as the station's manager, for the membership ids
  * @param asGuardian opens a context as the named guardian, which is the only way to read whom they
@@ -81,19 +87,11 @@ export async function settleCast(
         throw new Error(`The station seeds ${guardianPool.length} guardians; ${guardianNames.length} parts need one`)
     }
 
-    // The people the cast guardians look after are spoken for too. A guardian story hands a charge
-    // a new address, which ends that charge's sessions and leaves the address the cast was written
-    // under finding nobody: a charge that was also a passkey part failed its story on a login the
-    // seed had answered a moment earlier. Excluding the guardians themselves was not enough.
     const charges = new Set<number>()
     for (const guardian of guardianPool.slice(0, guardianNames.length)) {
         for (const id of await chargesOf(guardian)) charges.add(id)
     }
 
-    // Ordinary members, in the order their ids were handed out: an order the stories cannot move,
-    // unlike the address they used to be sorted by. The shared member and the guardians stand out,
-    // because a story that ends one of these sessions on purpose must not end a session anybody
-    // else is holding.
     const spokenFor = new Set([manager.email, member.email, admin.email, ...guardianPool.map(g => g.email)]);
     const slotPool = accounts
         .filter(candidate =>
@@ -111,8 +109,7 @@ export async function settleCast(
         throw new Error(`The station seeds ${slotPool.length} spare members; the passkey stories need ${PASSKEY_PARTS}`)
     }
 
-    // Nothing beyond the ordinary, for the stories that prove a refusal. The list is the union of
-    // what those stories ask to be missing, so one person answers for all of them.
+    /** The union of the rights the refusal stories ask to be missing, so one person answers for all. */
     const NOTHING_BEYOND_THE_ORDINARY = [
         'STATION_ADMINISTRATOR', 'STATION_MANAGER', 'INVENTORY_EDIT',
         'INVENTORY_CREATE_EXTERNAL', 'INVENTORY_MANAGER', 'MEMBER_MANAGER', 'MEMBER_NOTES',
@@ -132,8 +129,6 @@ export async function settleCast(
         !!candidate.email && candidate.permissions.includes('STATION_ADMINISTRATOR'))
     if (!administrator) throw new Error('No seeded account administers a station')
 
-    // Of the second seeded station, so that signing out cannot reach anybody the rest of the run is
-    // acting as. The suffix is what tells the two seeds' people apart.
     const loner = accounts.find(candidate =>
         candidate.userType === 'MEMBER' && !!candidate.email && candidate.email.endsWith('.nord.local'))
     if (!loner) throw new Error('The second seeded station carries no ordinary member to sign out')

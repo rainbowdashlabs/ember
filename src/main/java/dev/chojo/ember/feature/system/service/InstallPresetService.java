@@ -8,11 +8,11 @@ package dev.chojo.ember.feature.system.service;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import dev.chojo.ember.util.LeakyBucket;
+import dev.chojo.ember.util.RandomTokens;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.security.SecureRandom;
 import java.time.Clock;
 import java.time.Duration;
 import java.util.LinkedHashMap;
@@ -35,9 +35,6 @@ public class InstallPresetService {
 
     /** Long enough that guessing is pointless, short enough to type from a phone screen. */
     private static final int CODE_LENGTH = 6;
-
-    /** No vowels, no look-alikes: a code that is read out loud should survive the journey. */
-    private static final String ALPHABET = "23456789BCDFGHJKLMNPQRSTVWXZ";
 
     private static final Duration TTL = Duration.ofHours(2);
     private static final long MAX_ENTRIES = 5_000L;
@@ -84,8 +81,6 @@ public class InstallPresetService {
     public static final int LOOKUP_CAPACITY = 20;
 
     private static final Duration LOOKUP_REFILL = Duration.ofMinutes(3);
-
-    private final SecureRandom random = new SecureRandom();
 
     private final LeakyBucket lookups =
             new LeakyBucket(LOOKUP_CAPACITY, LOOKUP_REFILL, Duration.ofHours(1), Clock.systemUTC());
@@ -139,11 +134,7 @@ public class InstallPresetService {
     }
 
     private String generateCode() {
-        var code = new StringBuilder(CODE_LENGTH);
-        for (int i = 0; i < CODE_LENGTH; i++) {
-            code.append(ALPHABET.charAt(random.nextInt(ALPHABET.length())));
-        }
-        return code.toString();
+        return RandomTokens.readableCode(CODE_LENGTH);
     }
 
     private static String normalize(String code) {

@@ -9,6 +9,7 @@ import dev.chojo.ember.feature.traffic.entity.AuthBucket;
 import dev.chojo.ember.feature.traffic.entity.TrafficBucket;
 import dev.chojo.ember.util.sql.WhereBuilder;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.List;
@@ -46,7 +47,8 @@ public class StationTrafficRepository {
      * {@link #findGlobal} for instance-global rows). {@code auth == null} returns all three
      * buckets.
      */
-    public List<TrafficBucket> findHourly(Instant from, Instant to, Integer stationId, AuthBucket auth) {
+    public List<TrafficBucket> findHourly(
+            Instant from, Instant to, @Nullable Integer stationId, @Nullable AuthBucket auth) {
         var where = WhereBuilder.create()
                 .add("AND station_id = :station_id", "station_id", stationId)
                 .add("AND auth = :auth", "auth", auth);

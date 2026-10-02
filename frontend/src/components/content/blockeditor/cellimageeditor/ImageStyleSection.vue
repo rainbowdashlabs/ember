@@ -4,10 +4,12 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import {useId} from 'vue'
 import {useI18n} from 'vue-i18n'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import LabeledNumberInput from './LabeledNumberInput.vue'
-import type {ImageConfig} from '@/api/pageManage'
+import ColorPickerInput from '@/components/input/ColorPickerInput.vue'
+import type {ImageConfig} from '@/api/generated/schema'
 
 defineProps<{
     config: ImageConfig
@@ -18,6 +20,7 @@ defineEmits<{
 }>()
 
 const {t} = useI18n()
+const borderColorId = useId()
 </script>
 
 <template>
@@ -39,12 +42,12 @@ const {t} = useI18n()
                 @update:model-value="$emit('update', {borderWidthPx: $event})"
             />
             <div>
-                <FieldLabel hint class="mb-1">{{ t('stationPages.editor.borderColor') }}</FieldLabel>
-                <input
-                    type="color"
-                    :value="config.borderColor ?? '#000000'"
+                <FieldLabel :for="borderColorId" hint class="mb-1">{{ t('stationPages.editor.borderColor') }}</FieldLabel>
+                <ColorPickerInput
+                    :id="borderColorId"
+                    :model-value="config.borderColor ?? '#000000'"
                     class="h-10 w-full rounded-theme border border-(--border) bg-(--bg) cursor-pointer"
-                    @input="$emit('update', {borderColor: ($event.target as HTMLInputElement).value})"
+                    @update:model-value="value => $emit('update', {borderColor: value})"
                 />
             </div>
         </div>

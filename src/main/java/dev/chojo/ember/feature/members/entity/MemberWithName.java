@@ -10,6 +10,7 @@ import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -30,12 +31,12 @@ public record MemberWithName(
         String name,
         String firstName,
         String lastName,
-        String nickname,
-        String email,
-        String username,
+        @Nullable String nickname,
+        @Nullable String email,
+        @Nullable String username,
         StationUserType userType,
         boolean profileComplete,
-        Instant formerAt,
+        @Nullable Instant formerAt,
         LocalDate joinDate,
         MemberIdentity identity) {
 
@@ -63,7 +64,8 @@ public record MemberWithName(
             MemberNameResolver nameResolver,
             boolean profileComplete) {
         var identity = identityFactory.local(m.stationId(), m.id());
-        if (m.accountId() == null) {
+        Integer accountId = m.accountId();
+        if (accountId == null) {
             return new MemberWithName(
                     m.id(),
                     m.stationId(),
@@ -80,7 +82,7 @@ public record MemberWithName(
                     m.joinDate(),
                     identity);
         }
-        var account = accountRepository.findById(m.accountId()).orElse(null);
+        var account = accountRepository.findById(accountId).orElse(null);
         String resolved = nameResolver.identified(m.id());
         String name = resolved != null ? resolved : "";
         String email = account != null ? account.email() : "";
@@ -88,7 +90,7 @@ public record MemberWithName(
         return new MemberWithName(
                 m.id(),
                 m.stationId(),
-                m.accountId(),
+                accountId,
                 name,
                 account != null ? account.firstName() : "",
                 account != null ? account.lastName() : "",

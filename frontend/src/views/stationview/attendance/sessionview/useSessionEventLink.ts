@@ -5,7 +5,7 @@
  */
 import {computed, type Ref} from 'vue'
 import {useRouter} from 'vue-router'
-import type {AttendanceSession} from '@/api/attendance'
+import type {AttendanceSession} from '@/api/generated/schema'
 import {useEventRoutes} from '@/composables/useEventRoutes'
 import {useSession} from '@/composables/useSession'
 import {stationDayOf} from '@/util/format'

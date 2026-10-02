@@ -9,7 +9,7 @@ import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import EmptyHint from '@/components/typography/EmptyHint.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
-import type {FeaturedEventConfig} from '@/api/pageManage'
+import type {FeaturedEventConfig} from '@/api/generated/schema'
 import {useEventRoutes} from '@/composables/useEventRoutes'
 import {useBlockAudience} from '@/composables/useBlockAudience'
 import {formatDateTimeLong} from '@/util/format'
@@ -89,7 +89,7 @@ const href = computed(() => {
         </div>
         <p v-if="description" class="text-sm whitespace-pre-line">{{ description }}</p>
         <a :href="href" class="inline-block px-3 py-1.5 rounded-theme bg-primary !text-primary-text text-sm font-medium hover:bg-primary-accent">
-            {{ t('stationPages.cells.eventMore') }}
+            {{ t('stationPages.cellHints.learnMore') }}
         </a>
     </div>
     <EmptyHint v-else-if="looked">{{ t('stationPages.cells.eventUnavailable') }}</EmptyHint>

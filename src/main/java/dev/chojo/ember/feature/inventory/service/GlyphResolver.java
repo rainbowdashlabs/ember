@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.inventory.repository.InventoryArtRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Optional;
 
@@ -53,7 +54,8 @@ public class GlyphResolver {
      */
     public Glyph forItem(InventoryItem item) {
         if (item == null) return new Glyph(STOCK_FALLBACK, null);
-        Optional<InventoryArt> art = item.artId() == null ? Optional.empty() : artRepository.findById(item.artId());
+        Integer artId = item.artId();
+        Optional<InventoryArt> art = artId == null ? Optional.empty() : artRepository.findById(artId);
         Optional<Inventory> inventory = inventoryRepository.findById(item.inventoryId());
         return resolve(
                 art.map(InventoryArt::icon).orElse(null),
@@ -69,7 +71,7 @@ public class GlyphResolver {
      * @param itemId the piece, or {@code null} for a row about no piece yet
      * @return the shape and the colour, the shape always answered
      */
-    public Glyph forItemId(Integer itemId) {
+    public Glyph forItemId(@Nullable Integer itemId) {
         if (itemId == null) return new Glyph(STOCK_FALLBACK, null);
         return inventoryRepository.findItemById(itemId).map(this::forItem).orElse(new Glyph(STOCK_FALLBACK, null));
     }
@@ -81,7 +83,7 @@ public class GlyphResolver {
      * @param inventoryId the inventory, or {@code null} for a row about no inventory
      * @return the shape and the colour, the shape always answered
      */
-    public Glyph forInventoryId(Integer inventoryId) {
+    public Glyph forInventoryId(@Nullable Integer inventoryId) {
         if (inventoryId == null) return new Glyph(STOCK_FALLBACK, null);
         return inventoryRepository
                 .findById(inventoryId)
@@ -90,14 +92,18 @@ public class GlyphResolver {
     }
 
     private Glyph resolve(
-            String artIcon, String artColor, String inventoryIcon, String inventoryColor, boolean homogeneous) {
+            @Nullable String artIcon,
+            @Nullable String artColor,
+            @Nullable String inventoryIcon,
+            @Nullable String inventoryColor,
+            boolean homogeneous) {
         String icon = firstNamed(artIcon, inventoryIcon);
         return new Glyph(
                 icon != null ? icon : (homogeneous ? STOCK_FALLBACK : COLLECTION_FALLBACK),
                 firstNamed(artColor, inventoryColor));
     }
 
-    private String firstNamed(String first, String second) {
+    private @Nullable String firstNamed(@Nullable String first, @Nullable String second) {
         if (first != null && !first.isBlank()) return first.trim();
         if (second != null && !second.isBlank()) return second.trim();
         return null;

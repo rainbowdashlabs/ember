@@ -9,9 +9,22 @@ import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import HelpList from '@/components/helpcenter/HelpList.vue'
-import DummyKanbanBoard from '@/views/helpcenter/stationview/boards/boardviewhelp/DummyKanbanBoard.vue'
+import SearchInput from '@/components/input/text/SearchInput.vue'
+import KanbanBoard from '@/components/kanban/KanbanBoard.vue'
+import BoardHeaderBar from '@/views/stationview/boards/boardview/BoardHeaderBar.vue'
+import BoardFilterBar from '@/views/stationview/boards/boardview/BoardFilterBar.vue'
+import {
+    demoBoard,
+    demoLabels,
+    demoLabelsForTicket,
+    demoLanes,
+    demoMembers,
+    demoTickets,
+} from '@/views/helpcenter/stationview/boards/boardviewhelp/fixtures'
 
 const {t} = useI18n()
+
+const noAssigneeFilter = new Set<string>()
 </script>
 
 <template>
@@ -28,6 +41,7 @@ const {t} = useI18n()
         <HelpSection :title="t('helpCenter.boardView.dragTitle')">
             <p>{{ t('helpCenter.boardView.dragText') }}</p>
             <p>{{ t('helpCenter.boardView.dragText2') }}</p>
+            <p>{{ t('helpCenter.boardView.dragText3') }}</p>
         </HelpSection>
 
         <HelpSection :title="t('helpCenter.boardView.ticketTitle')">
@@ -91,11 +105,11 @@ const {t} = useI18n()
         <HelpSection :title="t('helpCenter.boardView.labelsTitle')">
             <p>{{ t('helpCenter.boardView.labelsText') }}</p>
             <div class="flex flex-wrap gap-1.5">
-                <BaseBadge bg-class="bg-blue-500" class="text-white">Planung</BaseBadge>
-                <BaseBadge bg-class="bg-green-600" class="text-white">Wartung</BaseBadge>
-                <BaseBadge bg-class="bg-orange-500" class="text-white">Dringend</BaseBadge>
-                <BaseBadge bg-class="bg-purple-500" class="text-white">Ausbildung</BaseBadge>
-                <BaseBadge bg-class="bg-rose-500" class="text-white">Einsatz</BaseBadge>
+                <BaseBadge bg-class="bg-blue-500" class="text-white">{{ t('helpCenter.sample.boards.planning') }}</BaseBadge>
+                <BaseBadge bg-class="bg-green-600" class="text-white">{{ t('helpCenter.sample.boards.maintenance') }}</BaseBadge>
+                <BaseBadge bg-class="bg-orange-500" class="text-white">{{ t('helpCenter.sample.boards.urgent') }}</BaseBadge>
+                <BaseBadge bg-class="bg-purple-500" class="text-white">{{ t('helpCenter.sample.boards.training') }}</BaseBadge>
+                <BaseBadge bg-class="bg-rose-500" class="text-white">{{ t('helpCenter.sample.boards.operation') }}</BaseBadge>
             </div>
         </HelpSection>
 
@@ -143,7 +157,25 @@ const {t} = useI18n()
         </HelpSection>
 
         <HelpSection :title="t('helpCenter.boardView.exampleTitle')">
-            <DummyKanbanBoard />
+            <BoardHeaderBar :short-key="demoBoard.shortKey" show-settings>
+                <SearchInput :model-value="''" :placeholder="t('boards.searchTickets')" class="w-96" />
+            </BoardHeaderBar>
+            <BoardFilterBar
+                :assignee-filter="noAssigneeFilter"
+                :label-filter="[]"
+                has-backlog
+                :assignees="demoMembers"
+                :labels="demoLabels"
+            />
+            <KanbanBoard
+                :board="demoBoard"
+                :lanes="demoLanes"
+                :tickets="demoTickets"
+                :members="demoMembers"
+                :labels-for-ticket="demoLabelsForTicket"
+                read-only
+                archive-linked
+            />
         </HelpSection>
 
         <HelpTip>{{ t('helpCenter.boardView.tip') }}</HelpTip>

@@ -78,9 +78,10 @@ public final class ExpiryReminderSchedule {
         }
         var after = new ArrayList<LocalDate>();
         owe(after, expiresOn.plusDays(1), today, recorded);
-        if (settings.repeatEveryDays() != null) {
+        Integer repeatEveryDays = settings.repeatEveryDays();
+        if (repeatEveryDays != null) {
             lastAfter(expiresOn, sent, zone)
-                    .ifPresent(last -> owe(after, last.plusDays(settings.repeatEveryDays()), today, recorded));
+                    .ifPresent(last -> owe(after, last.plusDays(repeatEveryDays), today, recorded));
         }
         var owed = Stream.concat(before.stream(), after.stream())
                 .distinct()

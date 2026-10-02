@@ -66,6 +66,11 @@ public class DemoFormSeeder implements DemoPerStationSeeder {
         log.info("Demo: Created forms");
     }
 
+    /**
+     * Seeds an open survey with answers, a closed feedback form covering every question type, four
+     * forms restricted by role, by both roles, by tag and by group, and an open showcase with one
+     * question per type.
+     */
     public void seedForms(
             int stationId,
             StationMember admin,
@@ -76,7 +81,6 @@ public class DemoFormSeeder implements DemoPerStationSeeder {
             int anfaengerGroupId,
             int wettkampfTagId,
             Random rng) {
-        // Form 1: Satisfaction survey (OPEN, with responses)
         var survey = formRepository.create(
                 stationId,
                 "Zufriedenheitsumfrage",
@@ -123,7 +127,6 @@ public class DemoFormSeeder implements DemoPerStationSeeder {
                 false,
                 new FormQuestionConfig.Text(true));
 
-        // Add some responses
         var surveyQuestions = formRepository.findQuestions(survey.id());
         var respondents = new ArrayList<StationMember>();
         respondents.addAll(anfaenger.subList(0, Math.min(5, anfaenger.size())));
@@ -133,19 +136,19 @@ public class DemoFormSeeder implements DemoPerStationSeeder {
             var member = respondents.get(i);
             var response = formRepository.createResponse(survey.id(), member.id(), member.id());
             int rating = 3 + rng.nextInt(3);
-            formRepository.upsertAnswer(response.id(), surveyQuestions.get(0).id(), new FormAnswerValue.Rating(rating));
+            formRepository.upsertAnswer(
+                    response.id(), surveyQuestions.get(0).id(), new FormAnswerValue.RatingAnswer(rating));
             int[] selected = rng.nextInt(2) == 0 ? new int[] {0, 2} : new int[] {1, 3};
             formRepository.upsertAnswer(
                     response.id(),
                     surveyQuestions.get(1).id(),
-                    new FormAnswerValue.Choice(List.of(key(selected[0]), key(selected[1])), ""));
+                    new FormAnswerValue.ChoiceAnswer(List.of(key(selected[0]), key(selected[1])), ""));
             formRepository.upsertAnswer(
                     response.id(),
                     surveyQuestions.get(2).id(),
-                    new FormAnswerValue.Text(suggestions[i % suggestions.length]));
+                    new FormAnswerValue.TextAnswer(suggestions[i % suggestions.length]));
         }
 
-        // Add remaining types to survey: DATE, RANKING, LIKERT
         formRepository.createQuestion(
                 survey.id(),
                 3,
@@ -175,29 +178,26 @@ public class DemoFormSeeder implements DemoPerStationSeeder {
                 new FormQuestionConfig.Likert(
                         Option.numbered("Ausrüstung", "Betreuung", "Abwechslung"), 1, 5, List.of()));
 
-        // Re-fetch questions after adding more
         surveyQuestions = formRepository.findQuestions(survey.id());
-        // Add responses for the new question types
         for (StationMember member : respondents) {
             var existingResponse =
                     formRepository.findResponse(survey.id(), member.id()).orElseThrow();
             formRepository.upsertAnswer(
                     existingResponse.id(),
                     surveyQuestions.get(3).id(),
-                    new FormAnswerValue.DateValue("202" + (2 + rng.nextInt(4)) + "-0" + (1 + rng.nextInt(9)) + "-15"));
+                    new FormAnswerValue.DateAnswer("202" + (2 + rng.nextInt(4)) + "-0" + (1 + rng.nextInt(9)) + "-15"));
             int[] rankOrder = {rng.nextInt(4), (1 + rng.nextInt(3)) % 4, (2 + rng.nextInt(2)) % 4, 3 - rng.nextInt(2)};
             formRepository.upsertAnswer(
                     existingResponse.id(),
                     surveyQuestions.get(4).id(),
-                    new FormAnswerValue.Ranking(fullRanking(rankOrder)));
+                    new FormAnswerValue.RankingAnswer(fullRanking(rankOrder)));
             formRepository.upsertAnswer(
                     existingResponse.id(),
                     surveyQuestions.get(5).id(),
-                    new FormAnswerValue.Likert(
+                    new FormAnswerValue.LikertAnswer(
                             Map.of("o0", 3 + rng.nextInt(3), "o1", 3 + rng.nextInt(3), "o2", 2 + rng.nextInt(4))));
         }
 
-        // Form 2: CLOSED comprehensive form with ALL types + responses
         var feedback = formRepository.create(
                 stationId,
                 "Feedback Übungsabend",
@@ -283,22 +283,24 @@ public class DemoFormSeeder implements DemoPerStationSeeder {
             formRepository.upsertAnswer(
                     response.id(),
                     feedbackQuestions.get(0).id(),
-                    new FormAnswerValue.Choice(List.of(key(choiceIdx)), ""));
+                    new FormAnswerValue.ChoiceAnswer(List.of(key(choiceIdx)), ""));
             formRepository.upsertAnswer(
                     response.id(),
                     feedbackQuestions.get(1).id(),
-                    new FormAnswerValue.Text(feedbackTexts[i % feedbackTexts.length]));
+                    new FormAnswerValue.TextAnswer(feedbackTexts[i % feedbackTexts.length]));
             formRepository.upsertAnswer(
-                    response.id(), feedbackQuestions.get(2).id(), new FormAnswerValue.Rating(5 + rng.nextInt(6)));
+                    response.id(), feedbackQuestions.get(2).id(), new FormAnswerValue.RatingAnswer(5 + rng.nextInt(6)));
             formRepository.upsertAnswer(
-                    response.id(), feedbackQuestions.get(3).id(), new FormAnswerValue.DateValue("2026-05-10"));
+                    response.id(), feedbackQuestions.get(3).id(), new FormAnswerValue.DateAnswer("2026-05-10"));
             int[] order = {rng.nextInt(4), (1 + rng.nextInt(3)) % 4, 2, 3};
             formRepository.upsertAnswer(
-                    response.id(), feedbackQuestions.get(4).id(), new FormAnswerValue.Ranking(fullRanking(order)));
+                    response.id(),
+                    feedbackQuestions.get(4).id(),
+                    new FormAnswerValue.RankingAnswer(fullRanking(order)));
             formRepository.upsertAnswer(
                     response.id(),
                     feedbackQuestions.get(5).id(),
-                    new FormAnswerValue.Likert(Map.of(
+                    new FormAnswerValue.LikertAnswer(Map.of(
                             "o0",
                             3 + rng.nextInt(3),
                             "o1",
@@ -310,7 +312,6 @@ public class DemoFormSeeder implements DemoPerStationSeeder {
         }
         formRepository.updateStatus(feedback.id(), Form.FormStatus.CLOSED);
 
-        // Form 3: Member-only form (restricted to MEMBER role)
         var memberOnly = formRepository.create(
                 stationId,
                 "Persönliche Einschätzung",
@@ -361,7 +362,6 @@ public class DemoFormSeeder implements DemoPerStationSeeder {
                 memberOnly.id(),
                 new RestrictionSelection(List.of(memberUserType), List.of(), List.of(), List.of(), null));
 
-        // Form 4: For MEMBER + GUARDIAN (both can fill for themselves)
         var bothRoles = formRepository.create(
                 stationId,
                 "Terminplanung Herbstfest",
@@ -404,7 +404,6 @@ public class DemoFormSeeder implements DemoPerStationSeeder {
                 new RestrictionSelection(
                         List.of(memberUserType, guardianUserType), List.of(), List.of(), List.of(), null));
 
-        // Form 5: Restricted to Wettkampfgruppe tag only
         var wettkampfForm = formRepository.create(
                 stationId,
                 "Wettkampf-Vorbereitung",
@@ -446,7 +445,6 @@ public class DemoFormSeeder implements DemoPerStationSeeder {
                 wettkampfForm.id(),
                 new RestrictionSelection(List.of(), List.of(), List.of(wettkampfTagId), List.of(), null));
 
-        // Form 6: Restricted to Anfänger group only
         var anfaengerForm = formRepository.create(
                 stationId,
                 "Anfänger-Feedback",
@@ -487,7 +485,6 @@ public class DemoFormSeeder implements DemoPerStationSeeder {
                 anfaengerForm.id(),
                 new RestrictionSelection(List.of(), List.of(anfaengerGroupId), List.of(), List.of(), null));
 
-        // Form 7: Showcase - one question per type, open, unrestricted
         var showcase = formRepository.create(
                 stationId,
                 "Showcase: Alle Fragetypen",
@@ -501,7 +498,6 @@ public class DemoFormSeeder implements DemoPerStationSeeder {
                 FormPurpose.INTERNAL);
         formRepository.updateStatus(showcase.id(), Form.FormStatus.OPEN);
 
-        // 1. CHOICE - single select
         formRepository.createQuestion(
                 showcase.id(),
                 0,
@@ -518,7 +514,6 @@ public class DemoFormSeeder implements DemoPerStationSeeder {
                         FormQuestionConfig.MultiLimitType.NONE,
                         null));
 
-        // 2. CHOICE - multi select with dropdown and "other"
         formRepository.createQuestion(
                 showcase.id(),
                 1,
@@ -535,7 +530,6 @@ public class DemoFormSeeder implements DemoPerStationSeeder {
                         FormQuestionConfig.MultiLimitType.AT_MOST,
                         3));
 
-        // 3. TEXT - short answer
         formRepository.createQuestion(
                 showcase.id(),
                 2,
@@ -546,7 +540,6 @@ public class DemoFormSeeder implements DemoPerStationSeeder {
                 false,
                 new FormQuestionConfig.Text(false));
 
-        // 4. TEXT - long answer
         formRepository.createQuestion(
                 showcase.id(),
                 3,
@@ -557,7 +550,6 @@ public class DemoFormSeeder implements DemoPerStationSeeder {
                 false,
                 new FormQuestionConfig.Text(true));
 
-        // 5. RATING - 5 stars
         formRepository.createQuestion(
                 showcase.id(),
                 4,
@@ -568,7 +560,6 @@ public class DemoFormSeeder implements DemoPerStationSeeder {
                 false,
                 new FormQuestionConfig.Rating(5, FormQuestionConfig.Rating.RatingIcon.STAR));
 
-        // 6. RATING - 10 hearts
         formRepository.createQuestion(
                 showcase.id(),
                 5,
@@ -579,7 +570,6 @@ public class DemoFormSeeder implements DemoPerStationSeeder {
                 false,
                 new FormQuestionConfig.Rating(10, FormQuestionConfig.Rating.RatingIcon.HEART));
 
-        // 7. DATE
         formRepository.createQuestion(
                 showcase.id(),
                 6,
@@ -590,7 +580,6 @@ public class DemoFormSeeder implements DemoPerStationSeeder {
                 false,
                 new FormQuestionConfig.Date());
 
-        // 8. RANKING
         formRepository.createQuestion(
                 showcase.id(),
                 7,
@@ -601,7 +590,6 @@ public class DemoFormSeeder implements DemoPerStationSeeder {
                 true,
                 new FormQuestionConfig.Ranking(Option.numbered("Frühling", "Sommer", "Herbst", "Winter")));
 
-        // 9. LIKERT
         formRepository.createQuestion(
                 showcase.id(),
                 8,

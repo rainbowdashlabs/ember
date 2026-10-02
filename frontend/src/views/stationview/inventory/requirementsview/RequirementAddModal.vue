@@ -10,9 +10,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import type { Inventory } from '@/api/inventory'
-import type { MemberGroup } from '@/api/types'
-import type { StationGroup } from '@/api/clusterStationGroups'
+import type { Inventory, MemberGroup, StationGroupResponse } from '@/api/generated/schema'
 import RequirementAddForm from './RequirementAddForm.vue'
 
 const show = defineModel<boolean>('show', { default: false })
@@ -27,7 +25,7 @@ defineProps<{
   inventories: Inventory[]
   allGroups: MemberGroup[]
   /** The association's ways of filing its stations, empty at a station. */
-  stationGroups?: StationGroup[]
+  stationGroups?: StationGroupResponse[]
   saving: boolean
 }>()
 

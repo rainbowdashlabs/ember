@@ -14,8 +14,8 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import ProcurementFields from './ProcurementFields.vue'
-import type { Inventory, InventorySize } from '@/api/inventory'
-import type { StationMember } from '@/api/types'
+import type { Inventory, InventorySize } from '@/api/generated/schema'
+import type { MemberLike } from '@/components/input/select/memberOption'
 import { inventory, procurement } from '@/api'
 import { useAsyncAction } from '@/composables/useAsyncAction'
 import { useInventoryRoutes } from '@/composables/useInventoryRoutes'
@@ -36,7 +36,7 @@ const modelValue = defineModel<boolean>({required: true})
 
 defineProps<{
   inventories: Inventory[]
-  members: StationMember[]
+  members: MemberLike[]
 }>()
 
 const emit = defineEmits<{

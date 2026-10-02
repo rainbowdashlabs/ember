@@ -4,24 +4,26 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {configOf, spanForWidth} from '@/components/profilefields/fieldLayout'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import QuestionValueInput from '@/components/input/QuestionValueInput.vue'
+import FieldAnswerInput from '@/components/input/FieldAnswerInput.vue'
+import QuestionValueDisplay from '@/components/display/QuestionValueDisplay.vue'
 import {fromMember, type MemberOption} from '@/components/input/select/memberOption'
-import type {AttendanceTemplateField} from '@/api/attendance'
-import type {StationMember} from '@/api/types'
-import {QuestionKinds, memberIdsOf, questionKindOf, type QuestionKindName} from '@/util/questions'
+import {FieldTypes, isDateType, namesMembers} from '@/api/fieldTypes'
+import type {AttendanceTemplateField, MemberWithName} from '@/api/generated/schema'
+import {memberIdsOf} from '@/util/questions'
 
 const {t} = useI18n()
 
 const props = defineProps<{
   templateFields: AttendanceTemplateField[]
   fieldValues: Map<number, string>
-  groupMembers: Map<number, StationMember[]>
-  allMembers: StationMember[]
+  groupMembers: Map<number, MemberWithName[]>
+  allMembers: MemberWithName[]
   readonly?: boolean
 }>()
 
@@ -30,30 +32,19 @@ const emit = defineEmits<{
   fieldMemberIds: [fieldId: number, ids: string[]]
 }>()
 
-function parseFieldConfig(config?: Record<string, unknown>): { options?: string[]; groupId?: number; autoAttend?: boolean } {
-  return (config ?? {}) as { options?: string[]; groupId?: number; autoAttend?: boolean }
-}
+/** Everybody the sheet could name, by id, so a field read back names people rather than numbers. */
+const memberNames = computed(() => new Map(props.allMembers.map(member => [member.id, member.name])))
 
-/** What kind of answer a field takes, which is what decides the box it is answered in. */
-function kindOf(field: AttendanceTemplateField): QuestionKindName {
-  return questionKindOf(field.fieldType) ?? QuestionKinds.TEXT
-}
-
-function isMemberField(fieldType: string): boolean {
-  const kind = questionKindOf(fieldType)
-  return kind === QuestionKinds.MEMBER || kind === QuestionKinds.MEMBER_LIST
-}
-
-function isImmediateField(fieldType: string): boolean {
-  return ['BOOLEAN', 'DATE', 'ENUM', 'MEMBER', 'MEMBER_LIST', 'MEMBER_OF_GROUP', 'MEMBER_LIST_OF_GROUP'].includes(fieldType)
+/**
+ * Whether an answer is saved the moment it is given. A choice made by a click is complete then,
+ * where a typed one is saved once the typing stops.
+ */
+function isImmediate(fieldType: string): boolean {
+  return fieldType === FieldTypes.BOOLEAN || fieldType === FieldTypes.CHOICE || isDateType(fieldType)
 }
 
 function getFieldValue(fieldId: number): string {
   return props.fieldValues.get(fieldId) ?? ''
-}
-
-function getFieldMemberIds(fieldId: number): string[] {
-  return memberIdsOf(getFieldValue(fieldId))
 }
 
 /**
@@ -64,22 +55,17 @@ function getFieldMemberIds(fieldId: number): string[] {
  * back out of the answer.
  */
 function writeField(field: AttendanceTemplateField, value: string) {
-  if (isMemberField(field.fieldType ?? '')) {
+  if (namesMembers(field.fieldType)) {
     emit('fieldMemberIds', field.id, memberIdsOf(value))
     return
   }
-  emit('fieldUpdate', field.id, value, isImmediateField(field.fieldType ?? ''))
+  emit('fieldUpdate', field.id, value, isImmediate(field.fieldType))
 }
 
+/** Whom a member field may name: the members of its group where it has one, everybody otherwise. */
 function getMemberOptions(field: AttendanceTemplateField): MemberOption[] {
-  const config = parseFieldConfig(field.config)
-  const groupId = config.groupId
-  let members: StationMember[]
-  if (groupId && props.groupMembers.has(groupId)) {
-    members = props.groupMembers.get(groupId)!
-  } else {
-    members = props.allMembers
-  }
+  const groupId = field.config.groupId
+  const members = groupId != null ? props.groupMembers.get(groupId) ?? props.allMembers : props.allMembers
   return members.map(fromMember)
 }
 </script>
@@ -90,23 +76,18 @@ function getMemberOptions(field: AttendanceTemplateField): MemberOption[] {
     <div class="grid grid-cols-6 gap-3">
       <div v-for="field in templateFields" :key="field.id" :class="['space-y-1', spanForWidth(configOf(field.config).width)]">
         <FieldLabel>{{ field.name }}</FieldLabel>
-        <template v-if="!readonly">
-          <QuestionValueInput
-              :kind="kindOf(field)"
-              :members="getMemberOptions(field)"
-              :model-value="getFieldValue(field.id)"
-              :options="(parseFieldConfig(field.config).options as string[]) ?? []"
-              :placeholder="isMemberField(field.fieldType ?? '') ? t('attendanceSession.addMember') : undefined"
-              @update:model-value="writeField(field, $event)"
-          />
-        </template>
-        <!-- Read-only display -->
-        <template v-else>
-          <span v-if="isMemberField(field.fieldType ?? '')" class="text-sm">
-            {{ getFieldMemberIds(field.id).map(id => getMemberOptions(field).find(o => o.value === id)?.name ?? id).join(', ') || '-' }}
-          </span>
-          <span v-else class="text-sm">{{ getFieldValue(field.id) || '-' }}</span>
-        </template>
+        <FieldAnswerInput
+            v-if="!readonly"
+            :field-type="field.fieldType"
+            :members="getMemberOptions(field)"
+            :model-value="getFieldValue(field.id)"
+            :options="field.config.options ?? []"
+            :placeholder="namesMembers(field.fieldType) ? t('attendanceSession.addMember') : undefined"
+            @update:model-value="writeField(field, $event)"
+        />
+        <span v-else class="text-sm">
+          <QuestionValueDisplay :field-type="field.fieldType" :member-names="memberNames" :value="getFieldValue(field.id)"/>
+        </span>
       </div>
     </div>
   </NeutralContainer>

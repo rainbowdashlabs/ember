@@ -8,9 +8,9 @@ import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
-import type {DiscoveredStation} from '@/api/discovery'
+import type {DiscoveredStationResponse} from '@/api/generated/schema'
 
-interface EnrichedStation extends DiscoveredStation {
+interface EnrichedStation extends DiscoveredStationResponse {
   distance: number | null
 }
 

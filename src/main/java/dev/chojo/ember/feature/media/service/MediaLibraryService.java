@@ -5,22 +5,30 @@
  */
 package dev.chojo.ember.feature.media.service;
 
+import dev.chojo.ember.api.refusal.MediaLibraryRefusal;
+import dev.chojo.ember.api.refusal.RefusalDetail;
+import dev.chojo.ember.feature.media.entity.MediaContent;
 import dev.chojo.ember.feature.media.entity.StationFile;
 import dev.chojo.ember.feature.media.entity.StationFileFolder;
 import dev.chojo.ember.feature.media.entity.StationFileTag;
+import dev.chojo.ember.feature.media.image.AcceptedFormats;
+import dev.chojo.ember.feature.media.image.ImageProfile;
+import dev.chojo.ember.feature.media.image.MediaTypes;
 import dev.chojo.ember.feature.media.repository.MediaFileRepository;
 import dev.chojo.ember.feature.media.repository.MediaMetaRepository;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.service.StorageQuotaService;
-import io.javalin.http.BadRequestResponse;
+import dev.chojo.ember.util.PixelBudget;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
@@ -56,7 +64,7 @@ public class MediaLibraryService {
     private final MediaFileRepository fileRepository;
     private final MediaMetaRepository metaRepository;
     private final MediaStorageService storage;
-    private final MediaVariantService variantService;
+    private final ImageVariants images;
     private final MediaReferenceRegistry references;
     private final StorageQuotaService quotaService;
 
@@ -65,23 +73,25 @@ public class MediaLibraryService {
             MediaFileRepository fileRepository,
             MediaMetaRepository metaRepository,
             MediaStorageService storage,
-            MediaVariantService variantService,
+            ImageVariants images,
             MediaReferenceRegistry references,
             StorageQuotaService quotaService) {
         this.fileRepository = fileRepository;
         this.metaRepository = metaRepository;
         this.storage = storage;
-        this.variantService = variantService;
+        this.images = images;
         this.references = references;
         this.quotaService = quotaService;
     }
 
-    // --- Upload and delivery ---
-
     /**
      * Stores a file for the station, or returns the one it already holds when the bytes are
      * identical. Either way {@code memberId} is recorded as an uploader, so a dedup hit still
-     * puts the file into that member's own list.
+     * puts the file into that member's own list. A dedup hit stores the bytes again, in case a crashed
+     * migration left the row without them.
+     *
+     * <p>An image declaring more pixels than {@link PixelBudget#MAX_PIXELS} is refused before
+     * anything is stored, since making its variants would have to unpack every one of them.
      *
      * @param stationId the station whose library takes it, or {@code null} for the instance's own.
      *                  An instance file counts against no station's quota, because there is no
@@ -89,11 +99,20 @@ public class MediaLibraryService {
      * @param pageId    the page the upload came from, or {@code null} for a station-wide upload
      * @param memberId  the member uploading, or {@code null} when no member is in play (imports,
      *                  seeding, and anything the instance uploads)
+     * @param declaredType the type the upload declared, or {@code null} where it declared none, which
+     *                  is stored as {@link MediaTypes#UNTYPED}
      */
     public StationFile upload(
-            Integer stationId, Integer pageId, Integer memberId, String fileName, String mimeType, byte[] data)
+            @Nullable Integer stationId,
+            @Nullable Integer pageId,
+            @Nullable Integer memberId,
+            String fileName,
+            @Nullable String declaredType,
+            byte[] data)
             throws IOException {
-        boolean isImage = mimeType != null && mimeType.startsWith("image/");
+        String mimeType = Objects.requireNonNullElse(declaredType, MediaTypes.UNTYPED);
+        boolean isImage = mimeType.startsWith("image/");
+        if (isImage) PixelBudget.requireWithin(data);
         if (stationId != null) {
             if (isImage) {
                 quotaService.checkImageSize(stationId, data.length);
@@ -105,8 +124,6 @@ public class MediaLibraryService {
 
         var existing = fileRepository.findByStationAndHash(stationId, contentHash);
         if (existing.isPresent()) {
-            // Defensive: a crashed migration could have left the row without its bytes. store()
-            // is idempotent for identical bytes.
             storage.store(stationId, contentHash, data, mimeType);
             recordUploader(existing.get().id(), memberId);
             return existing.get();
@@ -117,9 +134,8 @@ public class MediaLibraryService {
         }
         var file = fileRepository.create(pageId, stationId, contentHash, fileName, mimeType, data.length);
         storage.store(stationId, contentHash, data, mimeType);
-        if (MediaVariantService.canHavePicture(mimeType)) {
-            variantService.generateVariants(stationId, contentHash, data, mimeType);
-        }
+        var at = storage.locate(stationId, contentHash);
+        images.addSizes(at.scope(), at.category(), at.key(), data, mimeType);
         if (stationId != null) {
             quotaService.trackDelta(stationId, StorageCategory.MEDIA_FILES, data.length, 1);
         }
@@ -132,9 +148,20 @@ public class MediaLibraryService {
      * The best-fit variant of a file for the given requested width and {@code Accept} header.
      * Non-image files always return the original.
      */
-    public Optional<MediaStorageService.FileData> readVariant(
-            Integer stationId, String contentHash, Integer requestedWidth, String acceptHeader) {
-        return variantService.readBest(stationId, contentHash, requestedWidth, acceptHeader);
+    public Optional<MediaContent> readVariant(
+            @Nullable Integer stationId,
+            String contentHash,
+            @Nullable Integer requestedWidth,
+            @Nullable String acceptHeader) {
+        if (contentHash == null || contentHash.isBlank()) return Optional.empty();
+        var at = storage.locate(stationId, contentHash);
+        return images.read(
+                ImageProfile.LIBRARY,
+                at.scope(),
+                at.category(),
+                at.key(),
+                requestedWidth == null ? 0 : requestedWidth,
+                AcceptedFormats.fromAcceptHeader(acceptHeader));
     }
 
     /**
@@ -143,33 +170,41 @@ public class MediaLibraryService {
      * <p>An image is its own picture and a document with pages is its first one. Anything else has
      * none, and answers so rather than handing back the file under that name.
      */
-    public Optional<MediaStorageService.FileData> readPicture(
-            Integer stationId, String contentHash, String mimeType, Integer requestedWidth) {
-        return variantService.readPicture(stationId, contentHash, mimeType, requestedWidth);
+    public Optional<MediaContent> readPicture(
+            @Nullable Integer stationId, String contentHash, String mimeType, @Nullable Integer requestedWidth) {
+        if (contentHash == null || contentHash.isBlank()) return Optional.empty();
+        var at = storage.locate(stationId, contentHash);
+        return images.picture(
+                at.scope(), at.category(), at.key(), mimeType, requestedWidth == null ? 0 : requestedWidth);
     }
 
     /** The same, for a caller holding only the hash, which is how the delivery routes address a file. */
-    public Optional<MediaStorageService.FileData> readPicture(
-            Integer stationId, String contentHash, Integer requestedWidth) {
+    public Optional<MediaContent> readPicture(
+            @Nullable Integer stationId, String contentHash, @Nullable Integer requestedWidth) {
         if (contentHash == null || contentHash.isBlank()) return Optional.empty();
         return fileRepository
                 .findByStationAndHash(stationId, contentHash)
-                .flatMap(file -> variantService.readPicture(stationId, contentHash, file.mimeType(), requestedWidth));
+                .flatMap(file -> readPicture(stationId, contentHash, file.mimeType(), requestedWidth));
     }
 
     /**
      * Reads a file by station and content hash, which is how the delivery routes address it.
      */
-    public Optional<MediaStorageService.FileData> read(Integer stationId, String contentHash) {
+    public Optional<MediaContent> read(@Nullable Integer stationId, String contentHash) {
         if (contentHash == null || contentHash.isBlank()) return Optional.empty();
         if (fileRepository.findByStationAndHash(stationId, contentHash).isEmpty()) return Optional.empty();
-        return storage.read(stationId, contentHash);
+        return original(stationId, contentHash);
     }
 
-    public Optional<MediaStorageService.FileData> readById(int fileId) {
+    public Optional<MediaContent> readById(int fileId) {
         var file = fileRepository.findById(fileId).orElse(null);
         if (file == null || file.contentHash() == null) return Optional.empty();
-        return storage.read(file.stationId(), file.contentHash());
+        return original(file.stationId(), file.contentHash());
+    }
+
+    private Optional<MediaContent> original(@Nullable Integer stationId, String contentHash) {
+        var at = storage.locate(stationId, contentHash);
+        return images.read(ImageProfile.LIBRARY, at.scope(), at.category(), at.key(), 0);
     }
 
     public Optional<StationFile> findFile(int fileId) {
@@ -183,11 +218,9 @@ public class MediaLibraryService {
      * @param contentHash the hash the file is addressed by
      * @return the file, or empty where that library holds none by this hash
      */
-    public Optional<StationFile> findByHash(Integer stationId, String contentHash) {
+    public Optional<StationFile> findByHash(@Nullable Integer stationId, String contentHash) {
         return fileRepository.findByStationAndHash(stationId, contentHash);
     }
-
-    // --- Browsing ---
 
     /**
      * The whole library, for a member who holds one of the content permissions.
@@ -195,7 +228,7 @@ public class MediaLibraryService {
      * @param stationId the station whose library to list, or null for the instance's own
      * @param keptBackToo whether the files events keep back from the room belong in the answer
      */
-    public List<FileListing> listLibrary(Integer stationId, boolean keptBackToo) {
+    public List<FileListing> listLibrary(@Nullable Integer stationId, boolean keptBackToo) {
         return decorate(stationId, withoutKeptBack(stationId, fileRepository.findByStation(stationId), keptBackToo));
     }
 
@@ -217,22 +250,23 @@ public class MediaLibraryService {
      * <p>Asked at the library door as well as at the event, because a file the event leaves out of
      * its list must not be reachable by knowing the hash of its bytes.
      */
-    public boolean keptBack(Integer stationId, String contentHash) {
+    public boolean keptBack(@Nullable Integer stationId, String contentHash) {
         return references.keptBack(stationId, contentHash);
     }
 
-    private List<StationFile> withoutKeptBack(Integer stationId, List<StationFile> files, boolean keptBackToo) {
+    private List<StationFile> withoutKeptBack(
+            @Nullable Integer stationId, List<StationFile> files, boolean keptBackToo) {
         if (keptBackToo || stationId == null) return files;
         Set<Integer> keptBack = references.keptBackFiles(stationId);
         if (keptBack.isEmpty()) return files;
         return files.stream().filter(file -> !keptBack.contains(file.id())).toList();
     }
 
-    private List<FileListing> decorate(Integer stationId, List<StationFile> files) {
-        // Which files nothing points at is worked out by reading a station's content. The instance
-        // has none of that to read, so its files are listed without the claim rather than with a
-        // guess: saying "unused" about a file nobody has looked for would be worse than saying
-        // nothing.
+    /**
+     * The files with their tags, first uploader and whether anything uses them. Use is read from a
+     * station's content, so the instance's files never claim to be unused.
+     */
+    private List<FileListing> decorate(@Nullable Integer stationId, List<StationFile> files) {
         Set<Integer> unused = stationId == null ? Set.of() : findUnusedFileIds(stationId);
         var ids = files.stream().map(StationFile::id).toList();
         var tagAssignments = metaRepository.findTagAssignments(ids);
@@ -245,8 +279,6 @@ public class MediaLibraryService {
                         uploaders.get(f.id())))
                 .toList();
     }
-
-    // --- Deletion ---
 
     /**
      * Removes the file, its bytes and every uploader row. This is the manager's delete.
@@ -261,16 +293,16 @@ public class MediaLibraryService {
         if (file == null) return false;
         int handedOut = references.handedOutBy(fileId);
         if (handedOut > 0) {
-            throw new BadRequestResponse("This file is attached to " + handedOut
-                    + " news entry/entries or event(s). Detach it there first.");
+            throw MediaLibraryRefusal.MEDIA_FILE_STILL_ATTACHED.raise(RefusalDetail.count(handedOut));
         }
         boolean deleted = fileRepository.delete(fileId);
         if (deleted) {
             if (file.contentHash() != null) {
                 storage.delete(file.stationId(), file.contentHash());
             }
-            if (file.stationId() != null) {
-                quotaService.onFileDeleted(file.stationId(), StorageCategory.MEDIA_FILES, file.fileSize());
+            Integer stationId = file.stationId();
+            if (stationId != null) {
+                quotaService.onFileDeleted(stationId, StorageCategory.MEDIA_FILES, file.fileSize());
             }
             log.info("Media file {} deleted from station {}", fileId, file.stationId());
         }
@@ -281,7 +313,8 @@ public class MediaLibraryService {
      * The "I uploaded the wrong picture" escape for a member without a content permission: their
      * uploader row goes, and the file goes with it only when the set empties and nothing
      * references it. Deleting bytes cannot be a per-owner act, so it must not let one member take
-     * away an image another has already put into a ticket.
+     * away an image another has already put into a ticket. An instance file has no uploader, so it
+     * never comes this way.
      *
      * @return whether the member had uploaded the file at all
      */
@@ -290,9 +323,8 @@ public class MediaLibraryService {
         if (file == null) return false;
         if (!fileRepository.removeUploader(fileId, memberId)) return false;
         if (fileRepository.hasAnyUploader(fileId)) return true;
-        // An instance file has no station whose content could point at it, and no member uploaded
-        // it either, so this path is never walked for one.
-        if (file.stationId() != null && isReferenced(file, references.collect(file.stationId()))) return true;
+        Integer stationId = file.stationId();
+        if (stationId != null && isReferenced(file, references.collect(stationId))) return true;
         deleteFile(fileId);
         return true;
     }
@@ -300,8 +332,6 @@ public class MediaLibraryService {
     public boolean mayRelease(int fileId, int memberId) {
         return fileRepository.hasUploader(fileId, memberId);
     }
-
-    // --- Pruning ---
 
     /**
      * The files nothing points at any more. A file somebody claims as their upload is never in
@@ -344,9 +374,7 @@ public class MediaLibraryService {
                 || referenced.contains(String.valueOf(file.id()));
     }
 
-    // --- Metadata ---
-
-    public boolean updateFileMeta(int stationId, int fileId, String altText, String description) {
+    public boolean updateFileMeta(int stationId, int fileId, @Nullable String altText, @Nullable String description) {
         var existing = fileRepository.findById(fileId).orElse(null);
         if (existing == null || !Integer.valueOf(stationId).equals(existing.stationId())) {
             log.warn("Metadata update for media file {} skipped: not a file of station {}", fileId, stationId);
@@ -358,7 +386,7 @@ public class MediaLibraryService {
         return updated;
     }
 
-    public boolean moveFileToFolder(int stationId, int fileId, Integer folderId) {
+    public boolean moveFileToFolder(int stationId, int fileId, @Nullable Integer folderId) {
         var file = fileRepository.findById(fileId).orElse(null);
         if (file == null || !Integer.valueOf(stationId).equals(file.stationId())) return false;
         boolean moved = metaRepository.moveFileToFolder(fileId, folderId);
@@ -368,9 +396,7 @@ public class MediaLibraryService {
         return moved;
     }
 
-    // --- Folders ---
-
-    public StationFileFolder createFolder(int stationId, Integer parentId, String name, int sortOrder) {
+    public StationFileFolder createFolder(int stationId, @Nullable Integer parentId, String name, int sortOrder) {
         var folder = metaRepository.createFolder(stationId, parentId, name, sortOrder);
         log.info("Media folder {} created in station {}", folder.id(), stationId);
         return folder;
@@ -380,7 +406,7 @@ public class MediaLibraryService {
         return metaRepository.findFoldersByStation(stationId);
     }
 
-    public boolean updateFolder(int stationId, int folderId, Integer parentId, String name, int sortOrder) {
+    public boolean updateFolder(int stationId, int folderId, @Nullable Integer parentId, String name, int sortOrder) {
         var folder = metaRepository.findFolder(folderId).orElse(null);
         if (folder == null || folder.stationId() != stationId) return false;
         boolean updated = metaRepository.updateFolder(folderId, parentId, name, sortOrder);
@@ -400,9 +426,7 @@ public class MediaLibraryService {
         return deleted;
     }
 
-    // --- Tags ---
-
-    public StationFileTag createTag(int stationId, String name, String color) {
+    public StationFileTag createTag(int stationId, String name, @Nullable String color) {
         var tag = metaRepository.createTag(stationId, name, color);
         log.info("Media tag {} created in station {}", tag.id(), stationId);
         return tag;
@@ -412,7 +436,7 @@ public class MediaLibraryService {
         return metaRepository.findTagsByStation(stationId);
     }
 
-    public boolean updateTag(int stationId, int tagId, String name, String color) {
+    public boolean updateTag(int stationId, int tagId, String name, @Nullable String color) {
         var tag = metaRepository.findTag(tagId).orElse(null);
         if (tag == null || tag.stationId() != stationId) return false;
         boolean updated = metaRepository.updateTag(tagId, name, color);
@@ -435,7 +459,12 @@ public class MediaLibraryService {
     public boolean assignTag(int stationId, int fileId, int tagId) {
         var file = fileRepository.findById(fileId).orElse(null);
         var tag = metaRepository.findTag(tagId).orElse(null);
-        if (file == null || file.stationId() != stationId || tag == null || tag.stationId() != stationId) return false;
+        if (file == null
+                || !Objects.equals(file.stationId(), stationId)
+                || tag == null
+                || tag.stationId() != stationId) {
+            return false;
+        }
         metaRepository.assignTag(fileId, tagId);
         log.info("Media file {} was tagged {}", fileId, tagId);
         return true;
@@ -443,13 +472,13 @@ public class MediaLibraryService {
 
     public boolean unassignTag(int stationId, int fileId, int tagId) {
         var file = fileRepository.findById(fileId).orElse(null);
-        if (file == null || file.stationId() != stationId) return false;
+        if (file == null || !Objects.equals(file.stationId(), stationId)) return false;
         boolean unassigned = metaRepository.unassignTag(fileId, tagId);
         if (unassigned) log.info("Media file {} lost the tag {}", fileId, tagId);
         return unassigned;
     }
 
-    private void recordUploader(int fileId, Integer memberId) {
+    private void recordUploader(int fileId, @Nullable Integer memberId) {
         if (memberId == null) return;
         fileRepository.addUploader(fileId, memberId);
     }
@@ -461,5 +490,9 @@ public class MediaLibraryService {
      * @param uploadedBy the member who first brought the file in, or {@code null} for a file that
      *                   predates uploader tracking
      */
-    public record FileListing(StationFile file, boolean inUse, Set<Integer> tagIds, Integer uploadedBy) {}
+    public record FileListing(
+            StationFile file,
+            boolean inUse,
+            Set<Integer> tagIds,
+            @Nullable Integer uploadedBy) {}
 }

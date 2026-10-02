@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.beacon.entity;
 
+import org.jspecify.annotations.Nullable;
+
 import java.time.Instant;
 import java.util.List;
 
@@ -57,13 +59,13 @@ public final class BeaconPayloads {
     public record ProblemPayload(
             Envelope envelope,
             String version,
-            String contactName,
-            String contactMail,
+            @Nullable String contactName,
+            @Nullable String contactMail,
             String fingerprint,
             String level,
             String logger,
-            String exceptionClass,
-            String message,
+            @Nullable String exceptionClass,
+            @Nullable String message,
             String frames,
             int occurrences,
             Instant firstOccurrence,
@@ -91,16 +93,16 @@ public final class BeaconPayloads {
     public record ReportPayload(
             Envelope envelope,
             String version,
-            String contactName,
-            String contactMail,
+            @Nullable String contactName,
+            @Nullable String contactMail,
             String message,
-            String page,
-            String browser,
-            String screenSize,
-            String roles,
-            String recentRequests,
+            @Nullable String page,
+            @Nullable String browser,
+            @Nullable String screenSize,
+            @Nullable String roles,
+            @Nullable String recentRequests,
             Instant reportedAt,
-            Integer imageId) {}
+            @Nullable Integer imageId) {}
 
     /**
      * The picture belonging to a report, delivered on its own and just before it.
@@ -125,7 +127,12 @@ public final class BeaconPayloads {
      * matched against publicly discoverable stations and stops being anonymous within weeks.
      */
     public record MetricsSubject(
-            String metricsUid, String subject, String members, String accounts, String stations, String inventory) {}
+            String metricsUid,
+            String subject,
+            String members,
+            @Nullable String accounts,
+            @Nullable String stations,
+            String inventory) {}
 
     /**
      * One instance's whole day in one request: its own numbers and every station's.

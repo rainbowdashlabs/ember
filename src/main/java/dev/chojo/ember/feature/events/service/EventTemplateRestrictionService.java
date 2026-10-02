@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.events.service;
 
+import dev.chojo.ember.feature.events.entity.EventTemplate;
 import dev.chojo.ember.feature.events.repository.EventTemplateRepository;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
@@ -50,10 +51,10 @@ public class EventTemplateRestrictionService {
      * @return the audience, empty where the template names nobody in particular
      */
     public RestrictionSet findRestrictions(int templateId) {
-        var template = templateRepository.findById(templateId).orElse(null);
-        RestrictionMode mode = template != null && template.restrictionMode() != null
-                ? template.restrictionMode()
-                : RestrictionMode.AND;
+        RestrictionMode mode = templateRepository
+                .findById(templateId)
+                .map(EventTemplate::restrictionMode)
+                .orElse(RestrictionMode.AND);
         return restrictionService.findRestrictionSet(RestrictionType.EVENT_TEMPLATE, templateId, mode);
     }
 

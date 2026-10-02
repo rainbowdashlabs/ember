@@ -23,8 +23,7 @@ import Modal from '@/components/feedback/Modal.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import {clusterInventory, clusterStationGroups} from '@/api'
-import type {ClusterInventoryTag} from '@/api/clusterInventory'
-import type {StationGroup} from '@/api/clusterStationGroups'
+import type {ClusterInventoryTag, StationGroupResponse} from '@/api/generated/schema'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useConfirmDelete} from '@/composables/useConfirmDelete'
 import {describeFailure, type Failure} from '@/util/failure'
@@ -39,7 +38,7 @@ import {describeFailure, type Failure} from '@/util/failure'
 const {t} = useI18n()
 
 const tags = ref<ClusterInventoryTag[]>([])
-const groups = ref<StationGroup[]>([])
+const groups = ref<StationGroupResponse[]>([])
 const saveFailure = ref<Failure | null>(null)
 
 const showModal = ref(false)

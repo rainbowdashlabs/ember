@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {computed, onMounted, reactive, ref} from 'vue'
+import {computed, reactive, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import SetupLayout from '@/views/stationview/setup/SetupLayout.vue'
@@ -15,11 +15,13 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import PermissionPicker from '@/components/input/PermissionPicker.vue'
 import {stationMembers} from '@/api'
-import {StationUserType, type PermissionGrant} from '@/api/types'
+import {StationUserType} from '@/api/types'
+import type {Permission} from '@/api/generated/schema'
 import {useSetupStatus} from '@/composables/useSetupStatus'
 import {useAsyncAction} from '@/composables/useAsyncAction'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {goToNextStep} from '@/views/stationview/setup/steps'
-import {describeFailure, type Failure} from '@/util/failure'
+import {describeFailure} from '@/util/failure'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -46,11 +48,9 @@ const USER_TYPES = [
     {value: StationUserType.MANAGER, label: 'Leitung', desc: 'Leitungsmitglieder mit Verwaltungsrechten.'},
 ] as const
 
-const allRoles = ref<PermissionGrant[]>([])
+const allRoles = ref<Permission[]>([])
 const permissionCache = reactive<Record<string, Set<number>>>({})
 const selectedType = ref<string>(StationUserType.MEMBER)
-const loading = ref(true)
-const failure = ref<Failure | null>(null)
 
 const selectedIds = computed<Set<number>>({
     get: () => permissionCache[selectedType.value] ?? new Set<number>(),
@@ -63,21 +63,15 @@ const lockedNames = computed<Map<string, string>>(
     () => new Map((USER_TYPE_BUILTIN_DEFAULTS[selectedType.value] ?? []).map((n) => [n, t('permissions.lockedByUserType')])),
 )
 
-onMounted(async () => {
-    try {
-        allRoles.value = await stationMembers.listAllPermissions()
-        await Promise.all(
-            USER_TYPES.map(async (ut) => {
-                const grants = await stationMembers.getUserTypePermissions(ut.value)
-                permissionCache[ut.value] = new Set(grants.map((g) => g.id))
-            }),
-        )
-    } catch (e) {
-        failure.value = {...describeFailure(e, t), message: t('userTypePermissions.loadFailed')}
-    } finally {
-        loading.value = false
-    }
-})
+const {loading, failure} = useAsyncLoader(async () => {
+    allRoles.value = await stationMembers.listAllPermissions()
+    await Promise.all(
+        USER_TYPES.map(async (ut) => {
+            const grants = await stationMembers.getUserTypePermissions(ut.value)
+            permissionCache[ut.value] = new Set(grants.map((g) => g.id))
+        }),
+    )
+}, {errorMessageKey: 'userTypePermissions.loadFailed'})
 
 function selectType(userType: string) {
     selectedType.value = userType

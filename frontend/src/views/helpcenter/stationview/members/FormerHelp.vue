@@ -32,7 +32,6 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.membersFormer.reactivateText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Former members table with formerAt column -->
     <HelpSection :title="t('helpCenter.membersFormer.exampleTitle')">
       <SectionHeader>{{ t('formerMembers.title') }}</SectionHeader>
 
@@ -41,10 +40,10 @@ const {t} = useI18n()
           <Th>{{ t('membersList.colName') }}</Th>
           <Th>{{ t('membersList.colEmail') }}</Th>
           <Th>{{ t('formerMembers.colFormerAt') }}</Th>
-          <th class="px-3 py-2"></th>
+          <th class="px-3 py-2"/>
         </template>
         <TRow>
-          <Td class="font-medium text-(--text-muted)">Jan Müller</Td>
+          <Td class="font-medium text-(--text-muted)">{{ t('helpCenter.sample.people.janMueller') }}</Td>
           <Td muted>jan@example.com</Td>
           <Td muted>15.04.2026</Td>
           <Td align="right">
@@ -54,7 +53,7 @@ const {t} = useI18n()
           </Td>
         </TRow>
         <TRow>
-          <Td class="font-medium text-(--text-muted)">Sara Klein</Td>
+          <Td class="font-medium text-(--text-muted)">{{ t('helpCenter.sample.people.saraKlein') }}</Td>
           <Td muted>sara@example.com</Td>
           <Td muted>02.03.2026</Td>
           <Td align="right">

@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:66cdac1bd8068223f955ece77f24deff5f5575aed54529ab09f241612d3a1ca9",
-  "generatedAt": "2026-09-28T14:11:43Z",
+  "schemaHash": "sha256:e372336dfb1eec41c81bf7dedc514a6d3230e6bc6745ad9b12dad247a1d94b62",
+  "generatedAt": "2026-10-02T13:47:40Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -611,6 +611,83 @@
       },
       "description": "WebAuthn/FIDO2 credential storage. Multiple rows per account for multiple security keys."
     },
+    "account_ai_credential": {
+      "feature": "quiz",
+      "scope": "USER",
+      "tableHash": "sha256:d0ae9791d20597971995ae13bfe26f7f7aae287c878cbb62bdf0d6948c6296b0",
+      "columns": [
+        {
+          "name": "account_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The account the key belongs to. Deleted with the account."
+        },
+        {
+          "name": "provider",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "Which AI provider the key is for (openai, gemini, claude)."
+        },
+        {
+          "name": "model",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "The model to ask by default. NULL for the provider default."
+        },
+        {
+          "name": "api_key",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The key, encrypted with the instance credential key (enc:v1: prefix). Never sent back to a browser and never exported."
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When the key or its settings were last saved."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "account_id",
+          "refTable": "account",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "IGNORED",
+        "reason": "A personal key belongs to the account, not to a station, and is encrypted with this instance's key"
+      },
+      "gdprExport": {
+        "status": "TRACKED",
+        "identityColumns": [
+          {
+            "type": "ACCOUNT_ID",
+            "column": "account_id"
+          }
+        ],
+        "ignoredColumns": [
+          "api_key"
+        ]
+      },
+      "gdprDeletion": {
+        "status": "TRACKED",
+        "strategies": [
+          {
+            "column": "account_id",
+            "strategy": "CASCADE",
+            "reason": "FK ON DELETE CASCADE on account delete"
+          }
+        ]
+      },
+      "description": "The AI provider key a person keeps for generating quiz content, one per account. It follows them to every browser and every station they work at."
+    },
     "account_credential": {
       "feature": "account",
       "scope": "USER",
@@ -700,73 +777,6 @@
         ]
       },
       "description": "Password credentials for local authentication. One per account."
-    },
-    "account_external_auth": {
-      "feature": "account",
-      "scope": "USER",
-      "tableHash": "sha256:2973fb5007103401a794ac35b7299361a95a3fe00d6ff5f60f1ff614f695ad25",
-      "columns": [
-        {
-          "name": "id",
-          "type": "int4",
-          "nullable": false,
-          "verified": true,
-          "description": "Auto-generated primary key."
-        },
-        {
-          "name": "account_id",
-          "type": "int4",
-          "nullable": false,
-          "verified": true,
-          "description": "References the account this external auth belongs to."
-        },
-        {
-          "name": "provider",
-          "type": "text",
-          "nullable": false,
-          "verified": true,
-          "description": "Identity provider name (e.g. google, github)."
-        },
-        {
-          "name": "external_id",
-          "type": "text",
-          "nullable": false,
-          "verified": true,
-          "description": "Unique user ID from the external provider."
-        }
-      ],
-      "foreignKeys": [
-        {
-          "column": "account_id",
-          "refTable": "account",
-          "refColumn": "id",
-          "onDelete": "CASCADE"
-        }
-      ],
-      "stationTransfer": {
-        "status": "IGNORED",
-        "reason": "Account-scoped data, not part of a station export"
-      },
-      "gdprExport": {
-        "status": "TRACKED",
-        "identityColumns": [
-          {
-            "type": "ACCOUNT_ID",
-            "column": "account_id"
-          }
-        ]
-      },
-      "gdprDeletion": {
-        "status": "TRACKED",
-        "strategies": [
-          {
-            "column": "account_id",
-            "strategy": "CASCADE",
-            "reason": "FK ON DELETE CASCADE on account delete"
-          }
-        ]
-      },
-      "description": "OAuth/external identity provider links for an account."
     },
     "account_session": {
       "feature": "account",
@@ -1338,7 +1348,7 @@
     "attendance_session": {
       "feature": "attendance",
       "scope": "STATION",
-      "tableHash": "sha256:f3c092396b3e7cc96cabd5f080fb4c56c143eb3aa6fd0dd55a7cfa8ff3efe3b8",
+      "tableHash": "sha256:bfee4e19953625933759fe1297b7b88a234138e065e907d9872d342b7c5189c3",
       "columns": [
         {
           "name": "id",
@@ -1352,7 +1362,7 @@
           "type": "int4",
           "nullable": false,
           "verified": true,
-          "description": "References the attendance template."
+          "description": "The attendance template the sheet was made from. A template that has sheets cannot be deleted, only archived, so no sheet is ever taken with its template."
         },
         {
           "name": "start_time",
@@ -1422,7 +1432,7 @@
           "column": "template_id",
           "refTable": "attendance_template",
           "refColumn": "id",
-          "onDelete": "CASCADE"
+          "onDelete": "RESTRICT"
         }
       ],
       "stationTransfer": {
@@ -1438,10 +1448,71 @@
       },
       "description": "An actual attendance session instance (created from a template for a specific date/time)."
     },
+    "attendance_session_audience": {
+      "feature": "attendance",
+      "scope": "STATION",
+      "tableHash": "sha256:d65b6680b9d1fbc50137802bea2e14e408c7a2daa1aa74229e5168ad8b8366f8",
+      "columns": [
+        {
+          "name": "session_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "References the attendance session. Deleted with the session."
+        },
+        {
+          "name": "user_type",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "StationUserType name whose members the sheet expects. Exactly one of user_type and group_id is set."
+        },
+        {
+          "name": "group_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "Group whose members the sheet expects. Exactly one of user_type and group_id is set."
+        },
+        {
+          "name": "position",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Order the groups were chosen in, which is the order the sheet is written in."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "group_id",
+          "refTable": "member_group",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "session_id",
+          "refTable": "attendance_session",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED"
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Attendance template/session config, not per-member"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Attendance template/session config, not per-member"
+      },
+      "description": "Whom one sheet was told to expect when it was started, instead of the user types and groups of its template. A sheet without rows follows its template."
+    },
     "attendance_session_field": {
       "feature": "attendance",
       "scope": "STATION",
-      "tableHash": "sha256:6b8138cd94cc5f5d5d5cb81175577b17f761f21b33d11906c98ee520219db8b2",
+      "tableHash": "sha256:f90a291d39c464ae56a917949eaca8f87c1abbe718fb8637ee4885583fc1fc28",
       "columns": [
         {
           "name": "session_id",
@@ -1455,7 +1526,7 @@
           "type": "int4",
           "nullable": false,
           "verified": true,
-          "description": "References the attendance template field."
+          "description": "The template field this answer is given to. A field that has answers cannot be deleted, only archived, so no answer is ever taken with its field."
         },
         {
           "name": "value",
@@ -1470,7 +1541,7 @@
           "column": "field_id",
           "refTable": "attendance_template_field",
           "refColumn": "id",
-          "onDelete": "CASCADE"
+          "onDelete": "RESTRICT"
         },
         {
           "column": "session_id",
@@ -1495,7 +1566,7 @@
     "attendance_template": {
       "feature": "attendance",
       "scope": "STATION",
-      "tableHash": "sha256:6c35399eb2b973693c735b696b4c66ad485cbe27d14a7cc98df51ec81cf21bf4",
+      "tableHash": "sha256:1914694b52e8c9eed571f08bea2233d705f7c98b8b00cf570a4aadf173806491",
       "columns": [
         {
           "name": "id",
@@ -1516,7 +1587,14 @@
           "type": "text",
           "nullable": false,
           "verified": true,
-          "description": "Template name, unique within the station."
+          "description": "Template name, unique among the station's templates in use. A deleted template gives its name up for a new one."
+        },
+        {
+          "name": "archived_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When the template was deleted, NULL while it is in use. Deleting only archives it: it keeps its fields, groups and user types, because the sheets made from it still read them, and it is offered for nothing new."
         }
       ],
       "foreignKeys": [
@@ -1546,7 +1624,7 @@
     "attendance_template_field": {
       "feature": "attendance",
       "scope": "STATION",
-      "tableHash": "sha256:4a4d66e1fd7b78e0c8d2f0ce3d4cca060d8b993fe5aa0c1c965e5e43976ae400",
+      "tableHash": "sha256:994f942518f28cfcb33dca5797a51abf0caa5ec2150bec3c30aa4c7779562ce1",
       "columns": [
         {
           "name": "id",
@@ -1567,14 +1645,14 @@
           "type": "text",
           "nullable": false,
           "verified": true,
-          "description": "Field name/label."
+          "description": "Field name, unique among the template's fields in use. A deleted field gives its name up for a new one."
         },
         {
           "name": "field_type",
           "type": "text",
           "nullable": false,
           "verified": true,
-          "description": "Data type: member, member_list, string, time, date, member_of_group, member_list_of_group."
+          "description": "What kind of answer it takes, by its shared type name, such as TEXT, CHOICE, TIME or MEMBER_OF_GROUP."
         },
         {
           "name": "config",
@@ -1589,6 +1667,13 @@
           "nullable": false,
           "verified": true,
           "description": "Display order position."
+        },
+        {
+          "name": "archived_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When the field was deleted, NULL while it is in use. Deleting only archives it: the sheets that answered it keep the answer and still show it under the field's name and type, and no new sheet, appointment or appointment template is offered it."
         }
       ],
       "foreignKeys": [
@@ -1668,6 +1753,47 @@
         "reason": "Attendance template/session config, not per-member"
       },
       "description": "Groups whose members are expected to attend sessions using this template."
+    },
+    "attendance_template_user_type": {
+      "feature": "attendance",
+      "scope": "STATION",
+      "tableHash": "sha256:a595b09c363beb8c22f7ea369d1840e5a74131c2f0e0e8902750cd6ed17c51c5",
+      "columns": [
+        {
+          "name": "template_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "References the attendance template. Deleted with the template."
+        },
+        {
+          "name": "user_type",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "StationUserType name whose members the template expects."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "template_id",
+          "refTable": "attendance_template",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED"
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Attendance template/session config, not per-member"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Attendance template/session config, not per-member"
+      },
+      "description": "User types whose members are expected on sheets made from this template, in addition to the members of its groups. No row enters nobody by type."
     },
     "beacon_instance": {
       "feature": "beacon",
@@ -1804,45 +1930,6 @@
         "reason": "Deliberately carries no key to the instance that sent it, so nothing here identifies anybody."
       },
       "description": "One subject's bucketed counts for one day. Carries no key to the instance that sent it, by design."
-    },
-    "beacon_nonce": {
-      "feature": "beacon",
-      "scope": "INSTANCE",
-      "tableHash": "sha256:c6204e73690cb2a238801468415a6aac38b6a59fe01d12bc808979639d0df3ea",
-      "columns": [
-        {
-          "name": "instance_id",
-          "type": "text",
-          "nullable": false,
-          "verified": true
-        },
-        {
-          "name": "nonce",
-          "type": "text",
-          "nullable": false,
-          "verified": true
-        },
-        {
-          "name": "issued_at",
-          "type": "timestamp",
-          "nullable": false,
-          "verified": true
-        }
-      ],
-      "foreignKeys": [],
-      "stationTransfer": {
-        "status": "IGNORED",
-        "reason": "Belongs to this beacon, not to any station here."
-      },
-      "gdprExport": {
-        "status": "IGNORED",
-        "reason": "Replay protection only, no personal data."
-      },
-      "gdprDeletion": {
-        "status": "IGNORED",
-        "reason": "Replay protection only, no personal data."
-      },
-      "description": "One row per accepted delivery, so the same signed payload cannot be replayed."
     },
     "beacon_problem": {
       "feature": "beacon",
@@ -2803,113 +2890,6 @@
         "reason": "Board structure data, not per-member"
       },
       "description": "Checklist items within a ticket."
-    },
-    "board_ticket_comment": {
-      "feature": "boards",
-      "scope": "STATION",
-      "tableHash": "sha256:7b7e3da7a2059deaa334771dc24f7d2de25a81a82b00f37519bc7d4bffff2b29",
-      "columns": [
-        {
-          "name": "id",
-          "type": "int4",
-          "nullable": false,
-          "verified": true,
-          "description": "Auto-generated primary key."
-        },
-        {
-          "name": "ticket_id",
-          "type": "int4",
-          "nullable": false,
-          "verified": true,
-          "description": "References the ticket."
-        },
-        {
-          "name": "parent_id",
-          "type": "int4",
-          "nullable": true,
-          "verified": true,
-          "description": "Parent comment for threading. NULL for top-level comments."
-        },
-        {
-          "name": "author_station_uid",
-          "type": "uuid",
-          "nullable": true,
-          "verified": true,
-          "description": "Station UUID of the comment author."
-        },
-        {
-          "name": "author_member_uid",
-          "type": "uuid",
-          "nullable": true,
-          "verified": true,
-          "description": "Member UUID of the comment author."
-        },
-        {
-          "name": "content",
-          "type": "text",
-          "nullable": false,
-          "verified": true,
-          "description": "Comment text."
-        },
-        {
-          "name": "deleted",
-          "type": "bool",
-          "nullable": false,
-          "verified": true,
-          "description": "Soft-delete flag."
-        },
-        {
-          "name": "created_at",
-          "type": "timestamptz",
-          "nullable": false,
-          "verified": true,
-          "description": "When the comment was created."
-        },
-        {
-          "name": "updated_at",
-          "type": "timestamptz",
-          "nullable": true,
-          "verified": true,
-          "description": "When the comment was last edited."
-        }
-      ],
-      "foreignKeys": [
-        {
-          "column": "parent_id",
-          "refTable": "board_ticket_comment",
-          "refColumn": "id",
-          "onDelete": "CASCADE"
-        },
-        {
-          "column": "ticket_id",
-          "refTable": "board_ticket",
-          "refColumn": "id",
-          "onDelete": "CASCADE"
-        }
-      ],
-      "stationTransfer": {
-        "status": "TRACKED"
-      },
-      "gdprExport": {
-        "status": "TRACKED",
-        "identityColumns": [
-          {
-            "type": "MEMBER_UID",
-            "column": "author_member_uid"
-          }
-        ]
-      },
-      "gdprDeletion": {
-        "status": "TRACKED",
-        "strategies": [
-          {
-            "column": "author_member_uid",
-            "strategy": "ANONYMIZE",
-            "reason": "Comment preserved, authorship anonymised"
-          }
-        ]
-      },
-      "description": "Comments on board tickets (threaded via parent_id)."
     },
     "board_ticket_field_value": {
       "feature": "boards",
@@ -4444,7 +4424,7 @@
     "cluster_member": {
       "feature": "cluster",
       "scope": "CLUSTER",
-      "tableHash": "sha256:7643d8ad712a16609dd8805cf80eccc2887230d26377c49813a5b49d97961c7b",
+      "tableHash": "sha256:5107fac9d3fff11b22ce586a7b1a4ea46693eae8e72632443066438e0e7b2c31",
       "columns": [
         {
           "name": "id",
@@ -4473,6 +4453,13 @@
           "nullable": false,
           "verified": true,
           "description": "Their user type, which carries a set of permissions by default."
+        },
+        {
+          "name": "email_enabled",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Whether this person wants the association's gathered notifications by mail. Off until they switch it on, the same as a station membership's mail setting."
         }
       ],
       "foreignKeys": [
@@ -5501,6 +5488,172 @@
       },
       "description": "Permissions a cluster grants to everybody of a given user type."
     },
+    "comment": {
+      "feature": "comment",
+      "scope": "STATION",
+      "tableHash": "sha256:05f5561877dbebb265b6b102f99027508b86489fe726c39398df51f390ff9f41",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Auto-generated primary key."
+        },
+        {
+          "name": "station_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The station owning what the comment was written on, copied from it. NULL only under a news entry the instance published to every station."
+        },
+        {
+          "name": "event_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The appointment the comment was written on, NULL for every other target."
+        },
+        {
+          "name": "event_date",
+          "type": "date",
+          "nullable": true,
+          "verified": true,
+          "description": "For a comment on one occurrence of a recurring appointment, the date of that occurrence. NULL for one-time appointments, for comments on the whole appointment and for every other target."
+        },
+        {
+          "name": "news_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The news entry the comment was written on, NULL for every other target."
+        },
+        {
+          "name": "kb_file_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The knowledge base file the comment was written on, NULL for every other target."
+        },
+        {
+          "name": "board_ticket_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The board ticket the comment was written on, NULL for every other target."
+        },
+        {
+          "name": "parent_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The comment this one answers, always on the same target. NULL for top-level comments and for answers whose parent is gone."
+        },
+        {
+          "name": "author_station_uid",
+          "type": "uuid",
+          "nullable": true,
+          "verified": true,
+          "description": "Station UUID of the comment author, which can be a partner station."
+        },
+        {
+          "name": "author_member_uid",
+          "type": "uuid",
+          "nullable": true,
+          "verified": true,
+          "description": "Member UUID of the comment author within that station."
+        },
+        {
+          "name": "content",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "Comment text. Empty once a comment with answers is deleted."
+        },
+        {
+          "name": "deleted",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Soft-delete flag for a comment that still has answers. Content is hidden but threading is preserved."
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When the comment was created."
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When the comment was last edited. NULL when never edited."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "board_ticket_id",
+          "refTable": "board_ticket",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "event_id",
+          "refTable": "station_event",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "kb_file_id",
+          "refTable": "kb_file",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "news_id",
+          "refTable": "news",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "parent_id",
+          "refTable": "comment",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
+        {
+          "column": "station_id",
+          "refTable": "station",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED"
+      },
+      "gdprExport": {
+        "status": "TRACKED",
+        "identityColumns": [
+          {
+            "type": "MEMBER_UID",
+            "column": "author_member_uid"
+          }
+        ]
+      },
+      "gdprDeletion": {
+        "status": "TRACKED",
+        "strategies": [
+          {
+            "column": "author_member_uid",
+            "strategy": "ANONYMIZE",
+            "reason": "Content preserved, authorship anonymised"
+          }
+        ]
+      },
+      "description": "Threaded comments on appointments, news entries, knowledge base files and board tickets. Exactly one target column is set, and that column says what the comment was written on."
+    },
     "content_container": {
       "feature": "content",
       "scope": "STATION",
@@ -5902,7 +6055,7 @@
           "type": "text",
           "nullable": false,
           "verified": true,
-          "description": "OUT for pings we sent, IN for pings we received (used for nonce reuse detection)."
+          "description": "OUT for pings this instance sent. Rows for received pings (IN) are no longer written."
         },
         {
           "name": "peer_key",
@@ -5935,7 +6088,8 @@
       "gdprDeletion": {
         "status": "IGNORED",
         "reason": "Ephemeral discovery protocol state, not personal data"
-      }
+      },
+      "description": "Pings this instance sent and awaits a callback for, so the callback can be matched to its ping. Inbound ping nonces live in signed_request_nonce."
     },
     "discovery_station_cache": {
       "feature": "discovery",
@@ -6027,7 +6181,7 @@
     "email_queue": {
       "feature": "mail",
       "scope": "INSTANCE",
-      "tableHash": "sha256:b6bb127b153e521c1c60b5d89a9e323cd4188fff77fcf326ed09e2d128b55407",
+      "tableHash": "sha256:d793ff57260df3195c3d474878dad012428f8100b5219cfb850ec232fac39da2",
       "columns": [
         {
           "name": "id",
@@ -6126,6 +6280,20 @@
           "nullable": true,
           "verified": true,
           "description": "When the mail was handed to a provider, which is what the per-provider daily count reads."
+        },
+        {
+          "name": "next_attempt_at",
+          "type": "timestamp",
+          "nullable": false,
+          "verified": true,
+          "description": "Earliest time the worker may take this mail again. Pushed back after every transient failure, doubling each time."
+        },
+        {
+          "name": "claimed_at",
+          "type": "timestamp",
+          "nullable": true,
+          "verified": true,
+          "description": "When the worker last took this mail in hand for sending. A mail in sending for long past this was left behind by a worker that died."
         }
       ],
       "foreignKeys": [
@@ -6598,103 +6766,85 @@
       },
       "description": "Categories for station events (e.g. Training, Meeting)."
     },
-    "event_comment": {
+    "event_date_cancellation": {
       "feature": "events",
       "scope": "STATION",
-      "tableHash": "sha256:5e9e6b9ae89a049f5005dcdeecdebcbea967cec0cd02207e4231d1fc260b53b3",
+      "tableHash": "sha256:528d33aa9c66bef470e2e03876fa679f9a854b4e09113d1df022175d60563ff2",
       "columns": [
-        {
-          "name": "id",
-          "type": "int4",
-          "nullable": false,
-          "verified": true,
-          "description": "Auto-generated primary key."
-        },
         {
           "name": "event_id",
           "type": "int4",
           "nullable": false,
           "verified": true,
-          "description": "References the station event."
-        },
-        {
-          "name": "parent_id",
-          "type": "int4",
-          "nullable": true,
-          "verified": true,
-          "description": "Parent comment for threading. NULL for top-level comments."
-        },
-        {
-          "name": "content",
-          "type": "text",
-          "nullable": false,
-          "verified": true,
-          "description": "Comment text."
-        },
-        {
-          "name": "deleted",
-          "type": "bool",
-          "nullable": false,
-          "verified": true,
-          "description": "Soft-delete flag. Content is hidden but threading is preserved."
-        },
-        {
-          "name": "created_at",
-          "type": "timestamptz",
-          "nullable": false,
-          "verified": true,
-          "description": "When the comment was created."
-        },
-        {
-          "name": "updated_at",
-          "type": "timestamptz",
-          "nullable": true,
-          "verified": true,
-          "description": "When the comment was last edited."
-        },
-        {
-          "name": "author_station_uid",
-          "type": "uuid",
-          "nullable": true,
-          "verified": true
-        },
-        {
-          "name": "author_member_uid",
-          "type": "uuid",
-          "nullable": true,
-          "verified": true
+          "description": "The appointment the date belongs to."
         },
         {
           "name": "event_date",
           "type": "date",
+          "nullable": false,
+          "verified": true,
+          "description": "The date that was called off, on the station's calendar."
+        },
+        {
+          "name": "cause",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "Who called it off: MANUAL for a manager, THRESHOLD for the check that too few had registered."
+        },
+        {
+          "name": "reason",
+          "type": "text",
           "nullable": true,
           "verified": true,
-          "description": "For comments on a specific occurrence of a recurring event. NULL for one-time events or for whole-event-level comments."
+          "description": "The reason the manager gave. Empty for THRESHOLD, whose reason is worded in the reader's language from the cause."
+        },
+        {
+          "name": "cancelled_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When the date was called off, the last time if it was called off more than once."
+        },
+        {
+          "name": "cancelled_by",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The manager who called it off. Empty for THRESHOLD and once that member is gone."
+        },
+        {
+          "name": "restored_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When a manager brought the date back. Empty while the date stays cancelled."
         }
       ],
       "foreignKeys": [
+        {
+          "column": "cancelled_by",
+          "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
         {
           "column": "event_id",
           "refTable": "station_event",
           "refColumn": "id",
           "onDelete": "CASCADE"
-        },
-        {
-          "column": "parent_id",
-          "refTable": "event_comment",
-          "refColumn": "id",
-          "onDelete": "SET NULL"
         }
       ],
       "stationTransfer": {
-        "status": "TRACKED"
+        "status": "TRACKED",
+        "rationale": "Which dates of the station's appointments are off belongs to the appointments and moves with them."
       },
       "gdprExport": {
         "status": "TRACKED",
         "identityColumns": [
           {
-            "type": "MEMBER_UID",
-            "column": "author_member_uid"
+            "type": "MEMBER_ID",
+            "column": "cancelled_by"
           }
         ]
       },
@@ -6702,13 +6852,13 @@
         "status": "TRACKED",
         "strategies": [
           {
-            "column": "author_member_uid",
-            "strategy": "ANONYMIZE",
-            "reason": "Content preserved, authorship anonymised"
+            "column": "cancelled_by",
+            "strategy": "NULL",
+            "reason": "FK ON DELETE SET NULL: the cancelled date stays, the manager who cancelled it is cleared"
           }
         ]
       },
-      "description": "Comments on station events (threaded via parent_id)."
+      "description": "One date of an appointment that was called off, a one-time appointment included. The date is cancelled while restored_at is empty. A restored row stays, so the minimum-registration check never cancels a date a manager deliberately brought back."
     },
     "event_deadline_reminder_sent": {
       "feature": "events",
@@ -7237,7 +7387,7 @@
           "type": "text",
           "nullable": false,
           "verified": true,
-          "description": "Data type of the field (e.g. string, number, date)."
+          "description": "What kind of answer it takes, by its shared type name, such as TEXT, NUMBER, LOCATION or MEMBER_LIST_OF_GROUP."
         },
         {
           "name": "config",
@@ -7258,7 +7408,7 @@
           "type": "int4",
           "nullable": true,
           "verified": true,
-          "description": "References an attendance template field to auto-populate from."
+          "description": "The attendance template field this question's answer fills in on the sheet. Cleared when that field is deleted, which archives it."
         },
         {
           "name": "public",
@@ -7360,7 +7510,7 @@
           "type": "int4",
           "nullable": false,
           "verified": true,
-          "description": "References the attendance template field."
+          "description": "The attendance template field the appointment fills in on a new sheet. Removed when the field is deleted, which archives it."
         },
         {
           "name": "source",
@@ -7617,7 +7767,7 @@
           "type": "text",
           "nullable": false,
           "verified": true,
-          "description": "Data type of the answer, from the shared event field type set (STRING, NUMBER, ENUM, MEMBER, ...)."
+          "description": "What kind of answer it takes, by its shared type name, such as TEXT, NUMBER, CHOICE or MEMBER."
         },
         {
           "name": "config",
@@ -8115,7 +8265,7 @@
           "type": "int4",
           "nullable": true,
           "verified": true,
-          "description": "References an attendance template field to auto-populate from."
+          "description": "The attendance template field this question's answer fills in on the sheet. Cleared when that field is deleted, which archives it."
         },
         {
           "name": "default_value",
@@ -9639,7 +9789,7 @@
     "federation_lending_request": {
       "feature": "federation",
       "scope": "STATION",
-      "tableHash": "sha256:36aecc9a73ac4eba94258863cffb141fa0357abb37afcd8e6a0d9172bdc3e26d",
+      "tableHash": "sha256:f2606d891b36b7232ba7e810332447e87e11d8eee60d7aa8de362c18587db6b0",
       "columns": [
         {
           "name": "id",
@@ -9722,6 +9872,13 @@
           "nullable": false,
           "verified": true,
           "description": "What the request is for, in words, as the owning station reads it. A copy of the appointment's name taken when the request was sent, so nothing else about the appointment ever travels and a later rename does not rewrite what was asked for. Empty where the request names no occasion."
+        },
+        {
+          "name": "uid",
+          "type": "uuid",
+          "nullable": false,
+          "verified": true,
+          "description": "The identity the request carries between the two stations. A request to a station on another instance is kept on both instances under the same uid; between stations of one instance it is the one row both of them share."
         }
       ],
       "foreignKeys": [
@@ -9766,7 +9923,7 @@
     "federation_lending_request_item": {
       "feature": "federation",
       "scope": "STATION",
-      "tableHash": "sha256:68fb6131ad053928e65472f1748f631bcdb3c6728178af2fce006e97c45f4597",
+      "tableHash": "sha256:61ea65ea40bec79713a69427e141d0ada29fdabd97b3a1a61935f6f543f2504f",
       "columns": [
         {
           "name": "id",
@@ -9816,6 +9973,13 @@
           "nullable": true,
           "verified": true,
           "description": "The line of an appointment's needs this request was sent to fill, at the requesting station, or null where the request answers no need. What comes back on it counts towards that need like the station's own gear does."
+        },
+        {
+          "name": "label",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "What the line asks for, in words, as the lending station named it. Kept on the borrowing station's copy of a request to a station on another instance, whose inventories are not here to name it. Empty where the line names gear of this instance."
         }
       ],
       "foreignKeys": [
@@ -13782,7 +13946,7 @@
           "type": "text",
           "nullable": false,
           "verified": true,
-          "description": "CONFIRMED when the party that owns the step said so itself, ASSERTED when the station said so for an owner that does not use Ember, FORCED when the flow owner overrode a party that could have answered and did not."
+          "description": "CONFIRMED when the party that owns the step said so itself, ASSERTED when the station said so for an owner that does not use Ember, FORCED when the flow owner overrode a party that could have answered and did not, CORRECTED when somebody put the movement where it should have been, AUTO_CONFIRMED when the chain confirmed a member's receipt for them as soon as it was reached."
         },
         {
           "name": "changed_by",
@@ -13949,104 +14113,6 @@
         "reason": "KB structure data, not per-member"
       },
       "description": "Who may reach a knowledge-base folder or file, and what they may do with it. A row names an audience; its level, when set, also decides whether that audience may only read, may write, or may manage."
-    },
-    "kb_comment": {
-      "feature": "knowledgebase",
-      "scope": "STATION",
-      "tableHash": "sha256:1121d7011700ce015ea1952b18c0a2f439559ac210a8e4e2e3625d48b1a7fe74",
-      "columns": [
-        {
-          "name": "id",
-          "type": "int4",
-          "nullable": false,
-          "verified": true
-        },
-        {
-          "name": "file_id",
-          "type": "int4",
-          "nullable": false,
-          "verified": true
-        },
-        {
-          "name": "parent_id",
-          "type": "int4",
-          "nullable": true,
-          "verified": true
-        },
-        {
-          "name": "author_station_uid",
-          "type": "uuid",
-          "nullable": true,
-          "verified": true
-        },
-        {
-          "name": "author_member_uid",
-          "type": "uuid",
-          "nullable": true,
-          "verified": true
-        },
-        {
-          "name": "content",
-          "type": "text",
-          "nullable": false,
-          "verified": true
-        },
-        {
-          "name": "deleted",
-          "type": "bool",
-          "nullable": false,
-          "verified": true
-        },
-        {
-          "name": "created_at",
-          "type": "timestamptz",
-          "nullable": false,
-          "verified": true
-        },
-        {
-          "name": "updated_at",
-          "type": "timestamptz",
-          "nullable": true,
-          "verified": true
-        }
-      ],
-      "foreignKeys": [
-        {
-          "column": "file_id",
-          "refTable": "kb_file",
-          "refColumn": "id",
-          "onDelete": "CASCADE"
-        },
-        {
-          "column": "parent_id",
-          "refTable": "kb_comment",
-          "refColumn": "id",
-          "onDelete": "SET NULL"
-        }
-      ],
-      "stationTransfer": {
-        "status": "TRACKED"
-      },
-      "gdprExport": {
-        "status": "TRACKED",
-        "identityColumns": [
-          {
-            "type": "MEMBER_UID",
-            "column": "author_member_uid"
-          }
-        ]
-      },
-      "gdprDeletion": {
-        "status": "TRACKED",
-        "strategies": [
-          {
-            "column": "author_member_uid",
-            "strategy": "ANONYMIZE",
-            "reason": "Content preserved, authorship anonymised"
-          }
-        ]
-      },
-      "description": "Threaded comments on knowledge base files."
     },
     "kb_favourite": {
       "feature": "knowledgebase",
@@ -15782,6 +15848,48 @@
       },
       "description": "Tags every document this rule files is given. Names rather than references, resolved against the station's tags as the document is written."
     },
+    "mail_webhook_receipt": {
+      "feature": "mail",
+      "scope": "INSTANCE",
+      "tableHash": "sha256:0e99f0870fc919a90b6b09718adf7965a0e3f333ab1334b6596920f98370f0d9",
+      "columns": [
+        {
+          "name": "provider",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The provider that sent the report."
+        },
+        {
+          "name": "webhook_id",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The id the provider gives the report, the same on every repeat of it."
+        },
+        {
+          "name": "received_at",
+          "type": "timestamp",
+          "nullable": false,
+          "verified": true,
+          "description": "When the report first arrived. Receipts older than the provider keeps retrying are removed."
+        }
+      ],
+      "foreignKeys": [],
+      "stationTransfer": {
+        "status": "IGNORED",
+        "reason": "Provider report ids kept for a week to spot repeats, belonging to no station"
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Holds a provider's report id, never a person or an address"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Holds a provider's report id, never a person or an address; receipts lapse on their own"
+      },
+      "description": "Which delivery reports a mail provider has already handed over, so a report it sends again is answered without being taken twice."
+    },
     "managed_login_notice": {
       "feature": "members",
       "scope": "STATION",
@@ -15931,7 +16039,7 @@
     "member_document": {
       "feature": "members",
       "scope": "STATION",
-      "tableHash": "sha256:21fdcae3fc8f19085eab1294c274052b2f13ced859f063dd85237da9b673233d",
+      "tableHash": "sha256:b0cbdfed64bbb10e64bf6bff3869b96dd676eb3db5a3587636af12877aa9d03a",
       "columns": [
         {
           "name": "id",
@@ -16003,6 +16111,13 @@
           "type": "timestamp",
           "nullable": false,
           "verified": true
+        },
+        {
+          "name": "uploader_account_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The account that filed the document from the association, which holds no membership at the document's station. Empty for a document filed at the station, which names its uploader as a member instead."
         }
       ],
       "foreignKeys": [
@@ -16017,10 +16132,19 @@
           "refTable": "station_member",
           "refColumn": "id",
           "onDelete": "SET NULL"
+        },
+        {
+          "column": "uploader_account_id",
+          "refTable": "account",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
         }
       ],
       "stationTransfer": {
-        "status": "TRACKED"
+        "status": "TRACKED",
+        "ignoredColumns": [
+          "uploader_account_id"
+        ]
       },
       "gdprExport": {
         "status": "TRACKED",
@@ -16028,6 +16152,10 @@
           {
             "type": "MEMBER_ID",
             "column": "uploaded_by"
+          },
+          {
+            "type": "ACCOUNT_ID",
+            "column": "uploader_account_id"
           }
         ]
       },
@@ -16038,6 +16166,11 @@
             "column": "uploaded_by",
             "strategy": "NULL",
             "reason": "FK ON DELETE SET NULL keeps the document for its remaining members"
+          },
+          {
+            "column": "uploader_account_id",
+            "strategy": "NULL",
+            "reason": "FK ON DELETE SET NULL keeps the document and drops which association manager filed it"
           }
         ]
       },
@@ -16115,7 +16248,7 @@
     "member_document_member": {
       "feature": "members",
       "scope": "STATION",
-      "tableHash": "sha256:24625b5ca0710028da2eeb605554e69865d56a6e7cafaa3bdb0e15caca0d2b2f",
+      "tableHash": "sha256:329c81b819ff14788853fa507da0400551798a20d596677043f0fe12e838085f",
       "columns": [
         {
           "name": "document_id",
@@ -16126,8 +16259,16 @@
         {
           "name": "member_id",
           "type": "int4",
-          "nullable": false,
-          "verified": true
+          "nullable": true,
+          "verified": true,
+          "description": "The member the document is about. Empty once that member was deleted and only their name is left."
+        },
+        {
+          "name": "departed_name",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "The name of a member who was deleted while the document was kept for the record, written when the link to them went. It keeps the document a member's paperwork rather than the station's own."
         }
       ],
       "foreignKeys": [
@@ -16166,7 +16307,7 @@
           }
         ]
       },
-      "description": "Which members a document is bound to. A document with no member left is deleted with the last one."
+      "description": "Which members a document is bound to, or the name of one who was deleted while the document was kept for the record. A document with nobody left on it is deleted with the last one."
     },
     "member_document_search": {
       "feature": "members",
@@ -16312,7 +16453,7 @@
     "member_group": {
       "feature": "members",
       "scope": "STATION",
-      "tableHash": "sha256:dfce3f3e29f748bc23168b72a0ce30eb8953d291085aa0d568bc867cb70e7c5f",
+      "tableHash": "sha256:3ec2fb985bd6b7dfe9a774750c19e2460fc37209b9ddeb5de60a817c29a47ed8",
       "columns": [
         {
           "name": "id",
@@ -16348,9 +16489,22 @@
           "nullable": false,
           "verified": true,
           "description": "Sort order / priority. Higher position = higher priority for color resolution."
+        },
+        {
+          "name": "group_set_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The set this group belongs to, which allows a member in only one of its groups. Empty for a group in no set."
         }
       ],
       "foreignKeys": [
+        {
+          "column": "group_set_id",
+          "refTable": "member_group_set",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
         {
           "column": "station_id",
           "refTable": "station",
@@ -16377,7 +16531,7 @@
     "member_group_entry": {
       "feature": "members",
       "scope": "STATION",
-      "tableHash": "sha256:bd1050bbba466654801460a54a487327f90744b78792f079cc93453523b7e40e",
+      "tableHash": "sha256:0a57b1fe9bb27ea7081346d4739cbd3c327c177b1c7588d5d508d7c13418583b",
       "columns": [
         {
           "name": "group_id",
@@ -16392,6 +16546,13 @@
           "nullable": false,
           "verified": true,
           "description": "References the station member."
+        },
+        {
+          "name": "group_set_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "A copy of the set of the group, kept right by triggers on this table and on member_group. It exists so one unique index can allow a member in only one group of a set."
         }
       ],
       "foreignKeys": [
@@ -16409,7 +16570,10 @@
         }
       ],
       "stationTransfer": {
-        "status": "TRACKED"
+        "status": "TRACKED",
+        "ignoredColumns": [
+          "group_set_id"
+        ]
       },
       "gdprExport": {
         "status": "TRACKED",
@@ -16476,6 +16640,98 @@
         "status": "IGNORED",
         "reason": "Group/tag structure, not per-member entry"
       }
+    },
+    "member_group_set": {
+      "feature": "members",
+      "scope": "STATION",
+      "tableHash": "sha256:6c35399eb2b973693c735b696b4c66ad485cbe27d14a7cc98df51ec81cf21bf4",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Auto-generated primary key."
+        },
+        {
+          "name": "station_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The station the set belongs to."
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The name of the set, unique within the station."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "station_id",
+          "refTable": "station",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED",
+        "ignoredColumns": [
+          "station_id"
+        ]
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Group/tag structure, not per-member entry"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Group/tag structure, not per-member entry"
+      },
+      "description": "A set of groups a member can be in only one of, such as the levels of a training. Deleting a set keeps its groups and their members."
+    },
+    "member_group_user_type": {
+      "feature": "members",
+      "scope": "STATION",
+      "tableHash": "sha256:b4a3144697f526863b0b69ea73cb1e5cd1c43be0e5868ba2d23615dcbca71466",
+      "columns": [
+        {
+          "name": "group_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The bound group. Deleted with the group."
+        },
+        {
+          "name": "user_type",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "A user type allowed in the group (TRIAL, MEMBER, GUARDIAN, TEAM, MANAGER)."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "group_id",
+          "refTable": "member_group",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED"
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Group/tag structure, not per-member entry"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Group/tag structure, not per-member entry"
+      },
+      "description": "The user types a group is bound to: only members of these types can be in it. A group with no rows here takes every type."
     },
     "member_manager": {
       "feature": "members",
@@ -16598,7 +16854,7 @@
     "movement_flow": {
       "feature": "inventory",
       "scope": "STATION",
-      "tableHash": "sha256:fb0b2ca94cc962576805f70dfc08f3172bbb98e7db5368c242beedd71781183f",
+      "tableHash": "sha256:017e8634cc7582d1e978408d651b56379fd822bab6c56f891bf7550530248d4b",
       "columns": [
         {
           "name": "id",
@@ -16641,6 +16897,13 @@
           "nullable": false,
           "verified": true,
           "description": "Whether the flow is retired. Retired flows are not offered to new movements and still render in the history of the ones that walked them."
+        },
+        {
+          "name": "skip_member_receipt",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Whether a step in which the member confirms receiving a piece is confirmed for them as soon as a movement reaches it, instead of waiting for them."
         }
       ],
       "foreignKeys": [
@@ -17117,114 +17380,6 @@
       },
       "description": "A file a news entry hands over, pointing at the station media library rather than holding bytes of its own."
     },
-    "news_comment": {
-      "feature": "news",
-      "scope": "STATION",
-      "tableHash": "sha256:371171d8f7d18924f52d2463097df1617a5caea6eaee440908dc4324dab48b0d",
-      "columns": [
-        {
-          "name": "id",
-          "type": "int4",
-          "nullable": false,
-          "verified": true,
-          "description": "Auto-generated primary key."
-        },
-        {
-          "name": "news_id",
-          "type": "int4",
-          "nullable": false,
-          "verified": true,
-          "description": "References the news article."
-        },
-        {
-          "name": "parent_id",
-          "type": "int4",
-          "nullable": true,
-          "verified": true,
-          "description": "Parent comment for threading. NULL for top-level comments."
-        },
-        {
-          "name": "content",
-          "type": "text",
-          "nullable": false,
-          "verified": true,
-          "description": "Comment text."
-        },
-        {
-          "name": "created_at",
-          "type": "timestamp",
-          "nullable": false,
-          "verified": true,
-          "description": "When the comment was created."
-        },
-        {
-          "name": "updated_at",
-          "type": "timestamptz",
-          "nullable": true,
-          "verified": true,
-          "description": "When the comment was last edited."
-        },
-        {
-          "name": "deleted",
-          "type": "bool",
-          "nullable": false,
-          "verified": true,
-          "description": "Soft-delete flag. Content is hidden but threading is preserved."
-        },
-        {
-          "name": "author_station_uid",
-          "type": "uuid",
-          "nullable": true,
-          "verified": true
-        },
-        {
-          "name": "author_member_uid",
-          "type": "uuid",
-          "nullable": true,
-          "verified": true
-        }
-      ],
-      "foreignKeys": [
-        {
-          "column": "news_id",
-          "refTable": "news",
-          "refColumn": "id",
-          "onDelete": "CASCADE"
-        },
-        {
-          "column": "parent_id",
-          "refTable": "news_comment",
-          "refColumn": "id",
-          "onDelete": "SET NULL"
-        }
-      ],
-      "stationTransfer": {
-        "status": "TRACKED",
-        "ignoredColumns": [
-          "updated_at"
-        ]
-      },
-      "gdprExport": {
-        "status": "TRACKED",
-        "identityColumns": [
-          {
-            "type": "MEMBER_UID",
-            "column": "author_member_uid"
-          }
-        ]
-      },
-      "gdprDeletion": {
-        "status": "TRACKED",
-        "strategies": [
-          {
-            "column": "author_member_uid",
-            "strategy": "ANONYMIZE",
-            "reason": "Content preserved, authorship anonymised"
-          }
-        ]
-      },
-      "description": "Comments on news articles (threaded via parent_id)."
-    },
     "news_federation_share": {
       "feature": "federation",
       "scope": "STATION",
@@ -17468,7 +17623,7 @@
     "notification": {
       "feature": "notifications",
       "scope": "STATION",
-      "tableHash": "sha256:21a2cb9786c917884cc15b7795b14389cb7a740741ab4339916d83d9e1c63c0e",
+      "tableHash": "sha256:6e76efb3eccab3d9a9bd1cae45fa3126677f7cc7c198dbf35fbeef3c3834eedb",
       "columns": [
         {
           "name": "id",
@@ -17525,6 +17680,13 @@
           "nullable": true,
           "verified": true,
           "description": "The cluster member this is for, or null when it is addressed to a station member instead."
+        },
+        {
+          "name": "dedup_key",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "Set on a notification meant to arrive once while unread: a hash of its type and data. Two unread notifications of one recipient never share a key, so the same news is not told twice. NULL where every sending counts."
         }
       ],
       "foreignKeys": [
@@ -18652,7 +18814,7 @@
           "type": "text",
           "nullable": false,
           "verified": true,
-          "description": "Data type: text, number, date, enum, boolean, composite."
+          "description": "What kind of answer it takes, by its shared type name: TEXT, NUMBER, DATE, BOOLEAN, CHOICE, AGE, BIRTH_DATE, EXPIRY_DATE, SECTION or SPACER."
         },
         {
           "name": "config",
@@ -18813,7 +18975,7 @@
     "profile_field_change": {
       "feature": "members",
       "scope": "STATION",
-      "tableHash": "sha256:cabfdefe294c8cc64f12c508993d032e2095ef4edc20a08a3f25138e224360a2",
+      "tableHash": "sha256:8c99103795cf1da368f0ba97deb917971256c32e891d5c717181e23f161d072c",
       "columns": [
         {
           "name": "id",
@@ -18853,9 +19015,9 @@
         {
           "name": "changed_by",
           "type": "int4",
-          "nullable": false,
+          "nullable": true,
           "verified": true,
-          "description": "Member who made the change."
+          "description": "The member who made the change, or null when they have no membership at the station of the member whose answer changed, as an association manager often has not."
         },
         {
           "name": "changed_at",
@@ -18877,6 +19039,13 @@
           "nullable": true,
           "verified": true,
           "description": "The cluster field that changed, or null when the station's own field changed instead."
+        },
+        {
+          "name": "changed_by_account_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The account that made the change when it has no membership at that station, so the history can still name them; null whenever the member column names the author."
         }
       ],
       "foreignKeys": [
@@ -18885,6 +19054,12 @@
           "refTable": "station_member",
           "refColumn": "id",
           "onDelete": "CASCADE"
+        },
+        {
+          "column": "changed_by_account_id",
+          "refTable": "account",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
         },
         {
           "column": "cluster_field_id",
@@ -18925,6 +19100,11 @@
             "column": "member_id",
             "strategy": "CASCADE",
             "reason": "FK ON DELETE CASCADE on member/account delete"
+          },
+          {
+            "column": "changed_by_account_id",
+            "strategy": "ANONYMIZE",
+            "reason": "FK ON DELETE SET NULL keeps the change and drops which association manager made it"
           }
         ]
       },
@@ -20431,10 +20611,52 @@
       },
       "description": "User-saved table filter presets (e.g. member list filters)."
     },
+    "signed_request_nonce": {
+      "feature": "discovery",
+      "scope": "INSTANCE",
+      "tableHash": "sha256:47df2c1b7856610805c8b417f6d93dd033fc6cfa6206ea9003cd3d10631ac720",
+      "columns": [
+        {
+          "name": "scope",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "Whose nonces these are: discovery for inbound pings, beacon:<instance id> for deliveries to this beacon. The same nonce may appear once per scope."
+        },
+        {
+          "name": "nonce",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The nonce the signed request carried."
+        },
+        {
+          "name": "expires_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When the request would no longer be accepted anyway, after which the nonce is forgotten."
+        }
+      ],
+      "foreignKeys": [],
+      "stationTransfer": {
+        "status": "IGNORED",
+        "reason": "Ephemeral protocol state of this instance, not station-scoped"
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Replay protection only, no personal data."
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Replay protection only, no personal data."
+      },
+      "description": "Nonces of signed requests from other instances already taken, so a captured request cannot be sent again. Shared by discovery pings and beacon deliveries; swept once expired."
+    },
     "station": {
       "feature": "station",
       "scope": "STATION",
-      "tableHash": "sha256:b382c0912f74fdc4b5b6350f793ab740095cc6f97f5e83a817352d482ec9b9ca",
+      "tableHash": "sha256:945454e2e3cd7fe73ef6d7d0a2a535ad984ec493b2a6a6da429065acf4ca1474",
       "columns": [
         {
           "name": "id",
@@ -20532,7 +20754,7 @@
           "type": "text",
           "nullable": true,
           "verified": true,
-          "description": "Private key for signing federation HTTP requests. Shared across all partners of this station."
+          "description": "Private key the station signs federation requests with, shared across all of its partners. Stored encrypted with the instance key from the configuration or the data directory, marked by the enc:v1: prefix; a value without it predates encryption and is encrypted once at startup. Never exported as a column: a station transfer carries it sealed with the transfer token."
         },
         {
           "name": "discovery_visibility",
@@ -20777,6 +20999,13 @@
           "nullable": true,
           "verified": true,
           "description": "When this station was last written to, which is what a send time is measured against. NULL where it never has been, so its first gathered notifications go out at the next time it asked for rather than at once."
+        },
+        {
+          "name": "discovery_reviewed_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When a manager last saved how the station is listed in discovery, NULL while nobody has. Once set, the station has decided knowingly and the discovery step of its setup counts as done."
         }
       ],
       "foreignKeys": [
@@ -20823,9 +21052,10 @@
           "storage_preset_id",
           "read_only_for_transfer",
           "setup_completed_at",
-          "metrics_uid"
+          "metrics_uid",
+          "federation_private_key"
         ],
-        "rationale": "Single-row table; exported as an object via outputShape=SINGLE"
+        "rationale": "Single-row table; exported as an object via outputShape=SINGLE. The federation key is encrypted with the source instance's key, so it travels sealed with the transfer token beside the station page instead of as a column."
       },
       "gdprExport": {
         "status": "IGNORED",
@@ -20868,7 +21098,7 @@
           "type": "text",
           "nullable": false,
           "verified": true,
-          "description": "API key for the provider."
+          "description": "The station key for the provider, encrypted with the instance credential key (enc:v1: prefix). A key stored in plaintext before encryption existed is encrypted at start-up. Never sent to a browser."
         },
         {
           "name": "model",
@@ -20891,7 +21121,7 @@
         "ignoredColumns": [
           "station_id"
         ],
-        "rationale": "Per-station AI provider configuration; transfers with the station so AI features keep working."
+        "rationale": "Per-station AI provider configuration; transfers with the station. The copied key is encrypted with the source instance's credential key, so a token transfer also carries every key that opens, sealed with the transfer token, on the station page, and stores it under the target's key before this table is copied. A key the source cannot open arrives as missing and the station enters it again."
       },
       "gdprExport": {
         "status": "IGNORED",
@@ -21051,7 +21281,7 @@
     "station_event": {
       "feature": "events",
       "scope": "STATION",
-      "tableHash": "sha256:c2516a8ae6f955dad346a470fbf8900fb07a05aa2c31dddce0355c0b9e1c4d5f",
+      "tableHash": "sha256:a17b1bcdcff41d9f2a4694f72b2971f72f6e46c21aa9877a32e3e30088e364f4",
       "columns": [
         {
           "name": "id",
@@ -21177,21 +21407,21 @@
           "type": "bool",
           "nullable": false,
           "verified": true,
-          "description": "Whether the event has been cancelled."
+          "description": "Whether the whole series has been cancelled. A single date, and a one-time appointment, is cancelled in event_date_cancellation instead."
         },
         {
           "name": "cancelled_at",
           "type": "timestamptz",
           "nullable": true,
           "verified": true,
-          "description": "When the event was cancelled."
+          "description": "When the whole series was cancelled."
         },
         {
           "name": "cancel_reason",
           "type": "text",
           "nullable": true,
           "verified": true,
-          "description": "Optional reason for cancellation."
+          "description": "The reason given for cancelling the whole series."
         },
         {
           "name": "min_registrations",
@@ -21199,20 +21429,6 @@
           "nullable": true,
           "verified": true,
           "description": "Minimum number of ACCEPTED registrations required. Null means no minimum."
-        },
-        {
-          "name": "threshold_date",
-          "type": "timestamptz",
-          "nullable": true,
-          "verified": true,
-          "description": "Date by which min_registrations must be met, or the event auto-cancels."
-        },
-        {
-          "name": "threshold_notified",
-          "type": "bool",
-          "nullable": false,
-          "verified": true,
-          "description": "Whether a warning notification was sent about threshold not being met."
         },
         {
           "name": "registration_close_days",
@@ -21255,6 +21471,13 @@
           "nullable": false,
           "verified": true,
           "description": "AND or OR, how the parts of event_view_restriction combine. Separate from restriction_mode, which governs event_restriction."
+        },
+        {
+          "name": "threshold_days",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "How many days before each date min_registrations must be reached, or that date is cancelled automatically. Empty where no date is ever cancelled for too few registrations."
         }
       ],
       "foreignKeys": [
@@ -21282,7 +21505,6 @@
         "ignoredColumns": [
           "station_id",
           "deadline_notified",
-          "threshold_notified",
           "registration_close_days"
         ]
       },
@@ -21695,7 +21917,7 @@
     "station_mail_provider": {
       "feature": "mail",
       "scope": "STATION",
-      "tableHash": "sha256:729e176316845f8092d3efe23e90f0804da498c94964f649fc2684d41e8a05d3",
+      "tableHash": "sha256:ce240ada9d21c3aa16be360caf854367dd0c6b7520f8715d024a49af65234e8a",
       "columns": [
         {
           "name": "id",
@@ -21738,13 +21960,6 @@
           "nullable": false,
           "verified": true,
           "description": "Server port for a plain SMTP provider."
-        },
-        {
-          "name": "smtp_ssl",
-          "type": "bool",
-          "nullable": false,
-          "verified": true,
-          "description": "Whether the connection uses direct SSL rather than STARTTLS."
         },
         {
           "name": "smtp_user",
@@ -21815,6 +22030,13 @@
           "nullable": false,
           "verified": true,
           "description": "The provider website shown to members of the station."
+        },
+        {
+          "name": "smtp_encryption",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "How the connection to the relay is secured: IMPLICIT_TLS from the first byte, STARTTLS required before login, or NONE for an unencrypted relay chosen on purpose."
         }
       ],
       "foreignKeys": [
@@ -22608,7 +22830,7 @@
     "storage_backend_audit": {
       "feature": "storage",
       "scope": "INSTANCE",
-      "tableHash": "sha256:62108f3572c0d1dd577bb97b36c99ee9b42d5b7ef6884c56b994320650b6885c",
+      "tableHash": "sha256:1e468db73ba3f8fe093bf4630099447d75b4d0130336cba5032ba354e4e829be",
       "columns": [
         {
           "name": "id",
@@ -22678,6 +22900,13 @@
           "type": "text",
           "nullable": true,
           "verified": true
+        },
+        {
+          "name": "cluster_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The association whose history the row belongs to: a change to its own storage or its decision about it, or a move it made for one of its stations, which then names the station as well. Set to null when the association is deleted, so the row stays as proof of what was done."
         }
       ],
       "foreignKeys": [
@@ -22690,6 +22919,12 @@
         {
           "column": "actor_member_id",
           "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
+        {
+          "column": "cluster_id",
+          "refTable": "cluster",
           "refColumn": "id",
           "onDelete": "SET NULL"
         },

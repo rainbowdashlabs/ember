@@ -12,7 +12,7 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import {knowledgeBase} from '@/api'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import type {KbFileSummary} from '@/api/knowledgeBase'
+import type {KbFileSummary} from '@/api/generated/schema'
 import KbTagsEditor from './KbTagsEditor.vue'
 import {useKbEntryEditor} from './useKbEntryEditor'
 
@@ -51,7 +51,7 @@ async function handleSave() {
 <template>
     <Modal v-model="show">
         <SubHeader class="mb-3">{{ t('kb.editFile') }}</SubHeader>
-        <form @submit.prevent="handleSave" class="flex flex-col gap-3">
+        <form class="flex flex-col gap-3" @submit.prevent="handleSave">
             <TextInput v-model="editName" :placeholder="t('kb.fileName')" required/>
             <TextAreaInput v-model="editDescription" :placeholder="t('kb.description')"/>
             <KbTagsEditor v-model="tags"/>

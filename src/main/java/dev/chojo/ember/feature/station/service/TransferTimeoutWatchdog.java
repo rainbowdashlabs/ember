@@ -6,13 +6,16 @@
 package dev.chojo.ember.feature.station.service;
 
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.lifecycle.Schedule;
+import dev.chojo.ember.lifecycle.ScheduledTask;
+import dev.chojo.ember.lifecycle.TaskSource;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.time.Duration;
+import java.util.List;
 
 /**
  * Watches in-flight cross-instance transfers and invalidates tokens whose destination has
@@ -29,10 +32,10 @@ import java.util.concurrent.TimeUnit;
  * injector creation before {@code QueryConfiguration.setDefault()} has run.
  */
 @Singleton
-public class TransferTimeoutWatchdog {
+public class TransferTimeoutWatchdog implements TaskSource {
     private static final Logger log = LoggerFactory.getLogger(TransferTimeoutWatchdog.class);
     private static final int IDLE_TIMEOUT_MINUTES = 5;
-    private static final int SCAN_INTERVAL_SECONDS = 60;
+    private static final Duration SCAN_INTERVAL = Duration.ofSeconds(60);
 
     private final StationExportService exportService;
 
@@ -49,19 +52,12 @@ public class TransferTimeoutWatchdog {
         } catch (Exception e) {
             log.warn("Startup orphan-account sweep failed: {}", e.getMessage());
         }
-        var scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
-            var t = new Thread(r, "transfer-timeout-watchdog");
-            t.setDaemon(true);
-            return t;
-        });
-        scheduler.scheduleWithFixedDelay(
-                this::sweepStaleTransfers, SCAN_INTERVAL_SECONDS, SCAN_INTERVAL_SECONDS, TimeUnit.SECONDS);
     }
 
     /**
-     * Body of the scheduled sweep - extracted so tests can drive it directly without waiting for
-     * the executor's 60-second cadence. Logs and continues on any failure; the safety net is the
-     * 24-hour token expiry on the source side.
+     * Body of the scheduled sweep, reachable by tests so they need not wait for the 60-second
+     * cadence. Logs and continues on any failure; the safety net is the 24-hour token expiry on the
+     * source side.
      */
     void sweepStaleTransfers() {
         try {
@@ -72,5 +68,13 @@ public class TransferTimeoutWatchdog {
         } catch (Exception e) {
             log.warn("Transfer timeout sweep failed: {}", e.getMessage());
         }
+    }
+
+    @Override
+    public List<ScheduledTask> scheduledTasks() {
+        return List.of(new ScheduledTask(
+                "transfer-timeout-watchdog",
+                Schedule.fixedDelay(SCAN_INTERVAL, SCAN_INTERVAL),
+                this::sweepStaleTransfers));
     }
 }

@@ -33,7 +33,23 @@ class StationRepositoryTest extends RepositoryTestBase {
         assertNotNull(station);
         assertTrue(station.id() > 0);
         assertEquals("Test Station", station.name());
+        assertEquals(DiscoveryVisibility.NONE, station.discoveryVisibility(), "a bare row is unlisted");
         stationId = station.id();
+    }
+
+    @Test
+    void aStationCreatedWithAVisibilityStartsWithIt() {
+        var listed = stationRepo.create("Gelistete Wache", DiscoveryVisibility.PUBLIC);
+        var fixed = stationRepo.create("Feste Wache", UUID.randomUUID(), DiscoveryVisibility.INSTANCE);
+        var unlisted = stationRepo.create("Unsichtbare Wache", UUID.randomUUID());
+
+        assertEquals(DiscoveryVisibility.PUBLIC, listed.discoveryVisibility());
+        assertEquals(DiscoveryVisibility.INSTANCE, fixed.discoveryVisibility());
+        assertEquals(DiscoveryVisibility.NONE, unlisted.discoveryVisibility());
+
+        stationRepo.delete(listed.id());
+        stationRepo.delete(fixed.id());
+        stationRepo.delete(unlisted.id());
     }
 
     @Test
@@ -62,8 +78,6 @@ class StationRepositoryTest extends RepositoryTestBase {
     void updateNonExistent() {
         assertFalse(stationRepo.update(99999, "Nope"));
     }
-
-    // -- Logo --
 
     @Test
     @Order(10)
@@ -96,8 +110,6 @@ class StationRepositoryTest extends RepositoryTestBase {
         assertTrue(stationRepo.deleteLogo(stationId));
         assertTrue(stationRepo.findLogo(stationId).isEmpty());
     }
-
-    // -- UUID --
 
     @Test
     @Order(14)
@@ -134,8 +146,6 @@ class StationRepositoryTest extends RepositoryTestBase {
         assertTrue(stationRepo.findById(stationId).orElseThrow().nicknamesEnabled());
     }
 
-    // -- Discovery settings --
-
     @Test
     @Order(20)
     void updateDiscoverySettings() {
@@ -165,16 +175,12 @@ class StationRepositoryTest extends RepositoryTestBase {
         stationRepo.delete(other.id());
     }
 
-    // -- Public calendar --
-
     @Test
     @Order(23)
     void updatePublicCalendarEnabled() {
         assertTrue(stationRepo.updatePublicCalendarEnabled(stationId, true));
         assertTrue(stationRepo.updatePublicCalendarEnabled(stationId, false));
     }
-
-    // -- Public KB mode --
 
     @Test
     @Order(24)
@@ -183,16 +189,12 @@ class StationRepositoryTest extends RepositoryTestBase {
         assertTrue(stationRepo.updatePublicKbMode(stationId, PublicKbMode.OFF));
     }
 
-    // -- Theme settings --
-
     @Test
     @Order(25)
     void updateThemeSettings() {
         assertDoesNotThrow(
                 () -> stationRepo.updateThemeSettings(stationId, "ember", true, "{}", ThemeFeel.ROUNDED, false));
     }
-
-    // -- Modules --
 
     @Test
     @Order(26)
@@ -202,16 +204,6 @@ class StationRepositoryTest extends RepositoryTestBase {
         stationRepo.setDisabledModules(stationId, Set.of());
         assertTrue(stationRepo.findDisabledModules(stationId).isEmpty());
     }
-
-    // -- Federation key --
-
-    @Test
-    @Order(27)
-    void updateFederationPrivateKey() {
-        assertTrue(stationRepo.updateFederationPrivateKey(stationId, "mock-private-key"));
-    }
-
-    // -- Timezone / Locale --
 
     @Test
     @Order(28)
@@ -225,24 +217,18 @@ class StationRepositoryTest extends RepositoryTestBase {
         assertTrue(stationRepo.updateLocale(stationId, "de-DE"));
     }
 
-    // -- Owner --
-
     @Test
     @Order(30)
     void setOwner() {
-        // Need an account+member for this station
         var account = accountRepo.create("owner-test@test.com", "Owner", "Test");
         var member = stationMemberRepo.create(stationId, account.id());
         assertTrue(stationRepo.setOwner(stationId, member.id()));
         var station = stationRepo.findById(stationId).orElseThrow();
         assertEquals(member.id(), station.ownerMemberId());
-        // Clear owner
         assertTrue(stationRepo.setOwner(stationId, null));
         assertNull(stationRepo.findById(stationId).orElseThrow().ownerMemberId());
         accountRepo.delete(account.id());
     }
-
-    // -- UID update --
 
     @Test
     @Order(31)

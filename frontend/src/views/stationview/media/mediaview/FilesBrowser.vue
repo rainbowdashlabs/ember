@@ -6,7 +6,7 @@
 <script lang="ts" setup>
 import MediaSidebar from './MediaSidebar.vue'
 import ContentArea from './ContentArea.vue'
-import type {StationFile, StationFileFolder, StationFileListing, StationFileTag} from '@/api/media'
+import type {FileListing, StationFile, StationFileFolder, StationFileTag} from '@/api/generated/schema'
 import type {FolderTreeNode} from './useMediaFolderTree'
 
 const search = defineModel<string>('search', {required: true})
@@ -25,8 +25,8 @@ const props = defineProps<{
   selectedIds: number[]
   breadcrumbs: StationFileFolder[]
   visibleFolders: StationFileFolder[]
-  filtered: StationFileListing[]
-  pagedFiles: StationFileListing[]
+  filtered: FileListing[]
+  pagedFiles: FileListing[]
   stationUid: string
   currentPage: number
   totalPages: number
@@ -35,27 +35,27 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'update:active-folder', id: number | null): void
-  (e: 'update:active-tag-filter', id: number | null): void
-  (e: 'new-folder'): void
-  (e: 'edit-folder', f: StationFileFolder): void
-  (e: 'remove-folder', f: StationFileFolder): void
-  (e: 'new-tag'): void
-  (e: 'edit-tag', t: StationFileTag): void
-  (e: 'remove-tag', t: StationFileTag): void
-  (e: 'toggle-multi-select'): void
-  (e: 'upload', files: File[]): void
-  (e: 'prune'): void
-  (e: 'bulk-move'): void
-  (e: 'bulk-delete'): void
-  (e: 'clear-selection'): void
-  (e: 'preview-file', f: StationFile): void
-  (e: 'edit-file', f: StationFile): void
-  (e: 'delete-file', f: StationFile): void
-  (e: 'toggle-select', id: number, value: boolean, shift: boolean, index: number): void
-  (e: 'toggle-tag', fileId: number, tagId: number, currentlyAssigned: boolean): void
-  (e: 'update:current-page', v: number): void
-  (e: 'update:page-size', v: number): void
+  'update:active-folder': [id: number | null]
+  'update:active-tag-filter': [id: number | null]
+  'new-folder': []
+  'edit-folder': [f: StationFileFolder]
+  'remove-folder': [f: StationFileFolder]
+  'new-tag': []
+  'edit-tag': [t: StationFileTag]
+  'remove-tag': [t: StationFileTag]
+  'toggle-multi-select': []
+  upload: [files: File[]]
+  prune: []
+  'bulk-move': []
+  'bulk-delete': []
+  'clear-selection': []
+  'preview-file': [f: StationFile]
+  'edit-file': [f: StationFile]
+  'delete-file': [f: StationFile]
+  'toggle-select': [id: number, value: boolean, shift: boolean, index: number]
+  'toggle-tag': [fileId: number, tagId: number, currentlyAssigned: boolean]
+  'update:current-page': [v: number]
+  'update:page-size': [v: number]
 }>()
 </script>
 

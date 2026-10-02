@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.members.entity;
 
 import dev.chojo.ember.feature.question.QuestionConfigs;
 import dev.chojo.ember.feature.question.QuestionSettings;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -48,21 +49,21 @@ import java.util.List;
  * @param remindManagement whether the member management is reminded
  */
 public record ProfileFieldConfig(
-        String description,
+        @Nullable String description,
         boolean notifyOnChange,
         boolean overview,
-        List<String> options,
-        Object defaultValue,
+        @Nullable List<String> options,
+        @Nullable Object defaultValue,
         boolean computed,
-        String sourceField,
-        Integer sourceFieldId,
-        String ageMode,
-        Boolean showAge,
-        Integer warnFromDays,
-        List<Integer> reminderDays,
-        Integer repeatEveryDays,
-        Boolean remindMember,
-        Boolean remindManagement) {
+        @Nullable String sourceField,
+        @Nullable Integer sourceFieldId,
+        @Nullable String ageMode,
+        @Nullable Boolean showAge,
+        @Nullable Integer warnFromDays,
+        @Nullable List<Integer> reminderDays,
+        @Nullable Integer repeatEveryDays,
+        @Nullable Boolean remindMember,
+        @Nullable Boolean remindManagement) {
     private static final ProfileFieldConfig EMPTY = new ProfileFieldConfig(
             null, false, false, null, null, false, null, null, null, null, null, null, null, null, null);
 

@@ -7,6 +7,7 @@
 import {computed} from 'vue'
 import type {Accent} from './pitchTypes'
 import {accentBorder, accentSoftBg, accentText} from './pitchAccents'
+import PillBadge from '@/components/badge/PillBadge.vue'
 
 const props = withDefaults(defineProps<{
   accent?: Accent
@@ -17,8 +18,7 @@ const classes = computed(() =>
 </script>
 
 <template>
-  <span :class="classes"
-        class="inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold tracking-wide">
+  <PillBadge :class="classes" class="border px-3 py-1 text-xs font-semibold tracking-wide">
     <slot/>
-  </span>
+  </PillBadge>
 </template>

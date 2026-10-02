@@ -12,7 +12,7 @@ import DownloadButton from '@/components/button/DownloadButton.vue'
 import {formatSize} from '@/util/format'
 import {downloadAuthed} from '@/util/downloadAuthed'
 import {events} from '@/api'
-import type {FederatedEventAttachment} from '@/api/events'
+import type {RemoteAttachment} from '@/api/generated/schema'
 
 /**
  * What a partner station's event hands over.
@@ -27,7 +27,7 @@ const props = defineProps<{
 
 const {t} = useI18n()
 
-const attachments = ref<FederatedEventAttachment[]>([])
+const attachments = ref<RemoteAttachment[]>([])
 
 async function load() {
   try {
@@ -37,7 +37,7 @@ async function load() {
   }
 }
 
-function download(attachment: FederatedEventAttachment) {
+function download(attachment: RemoteAttachment) {
   return downloadAuthed(
       events.federatedEventAttachmentUrl(props.stationUid, props.eventId, attachment.id),
       attachment.fileName,

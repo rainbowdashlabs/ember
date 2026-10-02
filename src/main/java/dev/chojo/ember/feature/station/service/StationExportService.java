@@ -6,25 +6,27 @@
 package dev.chojo.ember.feature.station.service;
 
 import de.chojo.sadu.queries.converter.StandardValueConverter;
+import dev.chojo.ember.api.refusal.StationRefusal;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.cluster.entity.StationKind;
+import dev.chojo.ember.feature.federation.service.StationKeyTransfer;
+import dev.chojo.ember.feature.quiz.service.StationAiKeyTransfer;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.tracking.DataTracking;
 import dev.chojo.ember.tracking.DataTrackingLoader;
 import dev.chojo.ember.tracking.engine.GenericTableExporter;
 import dev.chojo.ember.tracking.engine.TableOrder;
-import io.javalin.http.BadRequestResponse;
+import dev.chojo.ember.util.Json;
+import dev.chojo.ember.util.RandomTokens;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.security.SecureRandom;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Base64;
@@ -54,19 +56,26 @@ import static de.chojo.sadu.queries.api.query.Query.query;
 public class StationExportService {
 
     private static final Logger log = LoggerFactory.getLogger(StationExportService.class);
-    private static final SecureRandom RANDOM = new SecureRandom();
-    private static final ObjectMapper TOKEN_MAPPER = JsonMapper.builder().build();
+    private static final ObjectMapper TOKEN_MAPPER = Json.MAPPER;
 
     private final GenericTableExporter engine;
     private final List<String> tableOrder;
     private final String appVersion;
     private final String schemaHash;
     private final StationRepository stationRepository;
+    private final StationKeyTransfer keyTransfer;
+    private final StationAiKeyTransfer aiKeyTransfer;
     private final Api apiConfig;
 
     @Inject
-    public StationExportService(StationRepository stationRepository, Api apiConfig) {
+    public StationExportService(
+            StationRepository stationRepository,
+            StationKeyTransfer keyTransfer,
+            StationAiKeyTransfer aiKeyTransfer,
+            Api apiConfig) {
         this.stationRepository = stationRepository;
+        this.keyTransfer = keyTransfer;
+        this.aiKeyTransfer = aiKeyTransfer;
         this.apiConfig = apiConfig;
         DataTracking tracking;
         try {
@@ -96,11 +105,10 @@ public class StationExportService {
     private void requireTransferable(int stationId) {
         stationRepository.findById(stationId).ifPresent(station -> {
             if (station.stationKind() == StationKind.CLUSTER_HOME) {
-                throw new BadRequestResponse("A cluster's home station cannot be transferred");
+                throw StationRefusal.STATION_TRANSFER_OF_CLUSTER_HOME.raise();
             }
             if (station.clusterId() != null) {
-                throw new BadRequestResponse(
-                        "A station that belongs to a cluster cannot be transferred. Leave the cluster first.");
+                throw StationRefusal.STATION_TRANSFER_OF_CLUSTER_MEMBER.raise();
             }
         });
     }
@@ -117,8 +125,6 @@ public class StationExportService {
         return appVersion;
     }
 
-    // -- Transfer tokens --
-
     /**
      * Mints a single-use transfer token tied to the given station. The operator-visible token
      * is a base64url-encoded JSON object {@code {"host":"…","token":"…"}}; the database stores
@@ -133,9 +139,7 @@ public class StationExportService {
      */
     public String createTransferToken(int stationId) {
         requireTransferable(stationId);
-        byte[] bytes = new byte[32];
-        RANDOM.nextBytes(bytes);
-        String randomPart = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+        String randomPart = RandomTokens.urlSafe(32);
         Instant expiresAt = Instant.now().plus(24, ChronoUnit.HOURS);
 
         query("INSERT INTO transfer_token(station_id, token, expires_at) VALUES(:station_id, :token, :expires_at);")
@@ -355,24 +359,6 @@ public class StationExportService {
                 .first();
     }
 
-    public Optional<Integer> validateAndConsumeToken(String token) {
-        var result = query(
-                        "SELECT station_id FROM transfer_token WHERE token = :token AND used = FALSE AND expires_at > now();")
-                .single(call().bind("token", token))
-                .map(row -> row.getInt("station_id"))
-                .first();
-
-        if (result.isPresent()) {
-            query("UPDATE transfer_token SET used = TRUE WHERE token = :token;")
-                    .single(call().bind("token", token))
-                    .update();
-        }
-
-        return result;
-    }
-
-    // -- Export --
-
     /**
      * Exports a single table's data for chunked transfer with pagination. The output map
      * carries {@code table}, {@code appVersion}, {@code offset}, {@code limit} envelope
@@ -386,6 +372,33 @@ public class StationExportService {
         data.put("limit", limit);
         Object payload = engine.exportShaped(tableName, stationId, offset, limit);
         if (payload != null) data.put(tableName, payload);
+        return data;
+    }
+
+    /**
+     * Exports a table page for a destination pulling with a transfer token.
+     *
+     * <p>The same page as {@link #exportTable(int, String, int, int)}, except that the station page
+     * also carries the station's federation key and its AI provider keys, sealed with the token, so
+     * the destination can go on signing as the station its partners know and keeps working keys.
+     * The federation key column itself is never exported.
+     *
+     * @param token     the transfer token the destination pulls with
+     * @param stationId the station being transferred
+     * @param tableName the tracked table
+     * @param offset    the row offset
+     * @param limit     the page size
+     * @return the page
+     */
+    public Map<String, Object> exportTableForTransfer(
+            String token, int stationId, String tableName, int offset, int limit) {
+        var data = exportTable(stationId, tableName, offset, limit);
+        if ("station".equals(tableName)) {
+            keyTransfer.seal(stationId, token).ifPresent(sealedKey -> data.put(StationKeyTransfer.FIELD, sealedKey));
+            aiKeyTransfer
+                    .seal(stationId, token)
+                    .ifPresent(sealedKeys -> data.put(StationAiKeyTransfer.FIELD, sealedKeys));
+        }
         return data;
     }
 

@@ -5,8 +5,10 @@
  */
 package dev.chojo.ember.feature.content.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.EventRefusal;
+import dev.chojo.ember.api.refusal.NewsRefusal;
+import dev.chojo.ember.api.refusal.Refusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.content.BlockReferenceTestBase;
 import dev.chojo.ember.feature.content.entity.CellConfig;
 import dev.chojo.ember.feature.content.entity.CellContentType;
@@ -140,9 +142,13 @@ class BlockReferenceSaveTest extends BlockReferenceTestBase {
     @Test
     void aPageNamesOnlyWhatIsPublic() {
         assertDoesNotThrow(() -> saved(Scope.PAGE, featured(uidOf(publicEvent))));
-        refused(Refusal.NEWS_BLOCK_ENTRY_NOT_PUBLIC, Scope.PAGE, teaser(internalNews.publicUid()), "internal entry");
         refused(
-                Refusal.EVENT_BLOCK_APPOINTMENT_NOT_PUBLIC,
+                NewsRefusal.NEWS_BLOCK_ENTRY_NOT_PUBLIC,
+                Scope.PAGE,
+                teaser(internalNews.publicUid()),
+                "internal entry");
+        refused(
+                EventRefusal.EVENT_BLOCK_APPOINTMENT_NOT_PUBLIC,
                 Scope.PAGE,
                 featured(uidOf(internalEvent)),
                 "internal appointment");
@@ -151,29 +157,33 @@ class BlockReferenceSaveTest extends BlockReferenceTestBase {
     @Test
     void noNewsBlockNamesWhatNotEveryReaderMayRead() {
         newsNobodyMayName().forEach((why, news) -> {
-            refused(Refusal.NEWS_BLOCK_ENTRY_NOT_FOR_EVERY_MEMBER, Scope.ARTICLE, teaser(news.publicUid()), why);
-            refused(Refusal.NEWS_BLOCK_ENTRY_NOT_PUBLIC, Scope.PAGE, teaser(news.publicUid()), why);
+            refused(NewsRefusal.NEWS_BLOCK_ENTRY_NOT_FOR_EVERY_MEMBER, Scope.ARTICLE, teaser(news.publicUid()), why);
+            refused(NewsRefusal.NEWS_BLOCK_ENTRY_NOT_PUBLIC, Scope.PAGE, teaser(news.publicUid()), why);
         });
-        refused(Refusal.NEWS_BLOCK_ENTRY_NOT_FOR_EVERY_MEMBER, Scope.ARTICLE, teaser(UUID.randomUUID()), "unknown");
+        refused(NewsRefusal.NEWS_BLOCK_ENTRY_NOT_FOR_EVERY_MEMBER, Scope.ARTICLE, teaser(UUID.randomUUID()), "unknown");
     }
 
     @Test
     void noEventBlockNamesWhatNotEveryReaderMaySee() {
         eventsNobodyMayName().forEach((why, event) -> {
-            refused(Refusal.EVENT_BLOCK_APPOINTMENT_NOT_FOR_EVERY_MEMBER, Scope.ARTICLE, featured(uidOf(event)), why);
-            refused(Refusal.EVENT_BLOCK_APPOINTMENT_NOT_PUBLIC, Scope.PAGE, featured(uidOf(event)), why);
+            refused(
+                    EventRefusal.EVENT_BLOCK_APPOINTMENT_NOT_FOR_EVERY_MEMBER,
+                    Scope.ARTICLE,
+                    featured(uidOf(event)),
+                    why);
+            refused(EventRefusal.EVENT_BLOCK_APPOINTMENT_NOT_PUBLIC, Scope.PAGE, featured(uidOf(event)), why);
         });
     }
 
     @Test
     void aBlockOneLevelDownIsCheckedTheSame() {
         refused(
-                Refusal.EVENT_BLOCK_APPOINTMENT_NOT_PUBLIC,
+                EventRefusal.EVENT_BLOCK_APPOINTMENT_NOT_PUBLIC,
                 Scope.PAGE,
                 nested("FEATURED_EVENT", "{\"eventUid\":\"%s\"}".formatted(uidOf(internalEvent))),
                 "nested internal appointment on a page");
         refused(
-                Refusal.NEWS_BLOCK_ENTRY_NOT_FOR_EVERY_MEMBER,
+                NewsRefusal.NEWS_BLOCK_ENTRY_NOT_FOR_EVERY_MEMBER,
                 Scope.ARTICLE,
                 nested("NEWS_TEASER", "{\"newsUid\":\"%s\"}".formatted(groupNews.publicUid())),
                 "nested restricted entry in an article");
@@ -195,7 +205,7 @@ class BlockReferenceSaveTest extends BlockReferenceTestBase {
         try {
             Executable save = () -> blocks.save(container.id(), List.of(teaser(publicNews.publicUid())), Scope.ARTICLE);
             assertEquals(
-                    Refusal.NEWS_BLOCK_ENTRY_NOT_FOR_EVERY_MEMBER,
+                    NewsRefusal.NEWS_BLOCK_ENTRY_NOT_FOR_EVERY_MEMBER,
                     assertThrows(RefusalResponse.class, save).refusal());
         } finally {
             blocks.delete(container.id());

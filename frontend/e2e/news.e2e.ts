@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {test, expect, apiHeaders, pageAsThrowaway, stationPeers, type Page} from './fixtures/auth'
+import {test, expect, apiHeaders, pageAsThrowaway, type Page} from './fixtures/auth'
 import {unique} from './fixtures/unique'
 import {cast} from './fixtures/cast'
 
@@ -59,7 +59,7 @@ test.describe('News', () => {
     /**
      * The article and the public blog are two sides of one act: a station writes something and the
      * world can read it. The story crosses from the station into the public pages, where nobody is
-     * logged in at all.
+     * logged in at all. The blog control is a switch beside its label, not the label itself.
      */
     test('an article marked for the blog appears publicly', async ({managerPage: page}) => {
         const article = unique('Blogbeitrag')
@@ -80,7 +80,6 @@ test.describe('News', () => {
 
         const editUrl = `${page.url()}/edit`
         await page.goto(editUrl)
-        // The control is a switch beside the label, not the label itself.
         await page.getByRole('switch').first().click()
         await page.getByRole('button', {name: /Speichern/}).last().click()
 
@@ -122,7 +121,8 @@ test.describe('News', () => {
      * An entry can hand a file over, which it could not before: authors used to paste a link to a
      * file living somewhere else. The story attaches one out of the station library and reads the
      * entry back as a member would, where the attachment is offered under the text rather than
-     * buried inside it.
+     * buried inside it. The attachment is written after the entry, and the editor returns to the list
+     * only once both are through, so the entry is read after that.
      */
     test('a file attached to an article is offered under it', async ({managerPage: page}) => {
         const article = unique('Protokoll')
@@ -134,14 +134,12 @@ test.describe('News', () => {
         await expect(page.getByText(SEEDED_FILE).first()).toBeVisible()
         await page.getByRole('button', {name: /Speichern/}).last().click()
 
-        // The attachment is written after the entry itself, and the editor leaves for the list only
-        // once both are through. Reading the entry before that races the attachment being stored.
         await page.waitForURL(/\/station\/news$/)
 
         await page.goto(detailUrl)
         const download = page.getByRole('link', {name: new RegExp(SEEDED_FILE)})
         await expect(download).toBeVisible()
-        await expect(download).toHaveAttribute('href', /\/api\/v1\/public\/media\//)
+        await expect(download).toHaveAttribute('href', /\/api\/v1\/public\/media[/]/)
     })
 
     /**
@@ -194,10 +192,10 @@ test.describe('News', () => {
         await page.waitForURL(/\/station\/news\/\d+/)
         await expect(page.getByText(written).first()).toBeVisible()
 
-        // The entry is a block one now, so it no longer offers to become one.
         await page.goto(`${page.url()}/edit`)
         await expect(page.getByText(written).first()).toBeVisible()
-        await expect(page.getByRole('button', {name: 'Mit dem Seiten-Editor schreiben'})).toHaveCount(0)
+        await expect(page.getByRole('button', {name: 'Mit dem Seiten-Editor schreiben'}), 'a block entry no longer offers the switch')
+            .toHaveCount(0)
     })
 
     /**
@@ -222,17 +220,65 @@ test.describe('News', () => {
             await page.waitForURL(/\/station\/news$/)
             await expect(page.getByText(article).first()).toBeVisible()
 
-            // It was created as a block entry, so it does not offer to become one.
             await page.getByText(article).first().click()
             await page.waitForURL(/\/station\/news\/\d+/)
             await page.goto(`${page.url()}/edit`)
-            await expect(page.getByRole('button', {name: 'Mit dem Seiten-Editor schreiben'})).toHaveCount(0)
+            await expect(page.getByRole('button', {name: 'Mit dem Seiten-Editor schreiben'}), 'created as a block entry')
+                .toHaveCount(0)
         })
 
     test('a member reads the news of their station', async ({memberPage: page}) => {
         await page.goto('/station/news')
 
         await expect(page.getByTestId('app-shell')).toBeVisible()
+    })
+
+    /**
+     * Whoever manages the news may take down what somebody else wrote under an entry, which is what
+     * keeps a discussion in order, but never put words in their mouth. The button used to be offered
+     * to appointment managers only, so a news manager allowed to remove a comment was never shown
+     * the way to do it.
+     */
+    test('a news manager removes a comment somebody else wrote and cannot change it',
+        async ({managerPage, memberPage}) => {
+            const newsId = await articleByApi(managerPage, unique('Kommentiert'))
+            const words = unique('Mitgliederkommentar')
+            const written = await memberPage.request.post(`/api/v1/news/${newsId}/comments`, {
+                headers: await apiHeaders(memberPage),
+                data: {parentId: null, content: words},
+            })
+            expect(written.ok(), `the member wrote a comment (${await written.text()})`).toBeTruthy()
+            const commentId = (await written.json()).id
+
+            await managerPage.goto(`/station/news/${newsId}`)
+            const comment = managerPage.locator(`#comment-${commentId}`)
+            await expect(comment).toContainText(words)
+            await expect(comment.getByRole('button', {name: 'Bearbeiten', exact: true})).toHaveCount(0)
+
+            await comment.getByRole('button', {name: 'Löschen', exact: true}).click()
+            await expect(managerPage.getByText(words)).toHaveCount(0)
+        })
+
+    /** A comment its author changed says so, the same as under an appointment or a wiki article. */
+    test('a changed comment is marked as edited', async ({managerPage}) => {
+        const headers = await apiHeaders(managerPage)
+        const newsId = await articleByApi(managerPage, unique('Geändert'))
+        const written = await managerPage.request.post(`/api/v1/news/${newsId}/comments`, {
+            headers,
+            data: {parentId: null, content: 'Erster Gedanke'},
+        })
+        expect(written.ok(), `the organiser wrote a comment (${await written.text()})`).toBeTruthy()
+        const commentId = (await written.json()).id
+        const changed = await managerPage.request.put(`/api/v1/news/comments/${commentId}`, {
+            headers,
+            data: {content: 'Zweiter Gedanke'},
+        })
+        expect(changed.ok(), `the organiser changed the comment (${await changed.text()})`).toBeTruthy()
+
+        await managerPage.goto(`/station/news/${newsId}`)
+        const comment = managerPage.locator(`#comment-${commentId}`)
+        await expect(comment).toContainText('Zweiter Gedanke')
+        await expect(comment).toContainText('bearbeitet')
     })
 
     /**
@@ -272,6 +318,16 @@ test.describe('News', () => {
             }
         })
 })
+
+/** An entry every member may read, written straight to the server, and its number. */
+async function articleByApi(page: Page, title: string): Promise<number> {
+    const created = await page.request.post('/api/v1/news', {
+        headers: await apiHeaders(page),
+        data: {title, contentMarkdown: 'Zum Kommentieren.', userTypes: [], groupIds: [], tagIds: [], memberIds: []},
+    })
+    expect(created.ok(), `the organiser wrote an article (${await created.text()})`).toBeTruthy()
+    return (await created.json()).id
+}
 
 /** The number a news detail address ends in. */
 function idOf(detailUrl: string): string {

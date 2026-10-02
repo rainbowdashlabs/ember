@@ -6,7 +6,21 @@
 import {describe, expect, it} from 'vitest'
 import {mount} from '@vue/test-utils'
 import FieldsStep from './FieldsStep.vue'
-import {FieldTypes, type ProfileField} from '@/api/profileFields'
+import {FieldTypes, type FieldTypeName} from '@/api/fieldTypes'
+import type {ProfileField, ProfileFieldConfig} from '@/api/generated/schema'
+
+const NO_SETTINGS: ProfileFieldConfig = {
+    ageMode: null, computed: false, defaultValue: null, description: null, notifyOnChange: false, options: null,
+    overview: false, reminderDays: null, remindManagement: null, remindMember: null, repeatEveryDays: null,
+    showAge: null, sourceField: null, sourceFieldId: null, warnFromDays: null,
+}
+
+function question(id: number, name: string, fieldType: FieldTypeName, required = false): ProfileField {
+    return {
+        id, stationId: 'station', name, fieldType, config: NO_SETTINGS,
+        required, readonly: false, keepOnArchive: false, width: null,
+    }
+}
 
 /**
  * The questions a new member is asked.
@@ -17,8 +31,8 @@ import {FieldTypes, type ProfileField} from '@/api/profileFields'
  * these is that this step keeps going through it.
  */
 describe('FieldsStep', () => {
-    const heading: ProfileField = {id: 1, name: 'Kontakt', fieldType: FieldTypes.SECTION}
-    const phone: ProfileField = {id: 2, name: 'Telefon', fieldType: FieldTypes.TEXT}
+    const heading = question(1, 'Kontakt', FieldTypes.SECTION)
+    const phone = question(2, 'Telefon', FieldTypes.TEXT)
 
     function step(fields: ProfileField[]) {
         return mount(FieldsStep, {
@@ -38,7 +52,7 @@ describe('FieldsStep', () => {
     })
 
     it('keeps the order the station arranged its questions in', () => {
-        const second: ProfileField = {id: 3, name: 'Mobil', fieldType: FieldTypes.TEXT, required: true}
+        const second = question(3, 'Mobil', FieldTypes.TEXT, true)
         const view = step([phone, second])
 
         const labels = view.findAll('label').map(label => label.text())

@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {useI18n} from 'vue-i18n'
 import TermsOfServiceView from '~/views/TermsOfServiceView.vue'
 
 definePageMeta({
@@ -11,8 +12,10 @@ definePageMeta({
   name: 'terms',
 })
 
+const {t} = useI18n()
+
 useHead({
-  title: 'Nutzungsbedingungen',
+  title: t('pageHead.terms'),
 })
 </script>
 

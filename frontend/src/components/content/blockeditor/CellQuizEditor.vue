@@ -11,6 +11,7 @@ import MarkdownFieldInput from '@/components/input/text/MarkdownFieldInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import * as publicQuiz from '@/api/publicQuiz'
+import type {PublicQuizCatalog} from '@/api/generated/schema'
 import {useConfigPatch} from '@/composables/useConfigPatch'
 import type {CellEditorEmits, CellEditorStationProps} from './cellTypes'
 
@@ -26,7 +27,7 @@ const TS = (k: string) => t(`stationPages.editor.${k}`)
 
 const patch = useConfigPatch(() => props.config, emit)
 
-const catalogs = ref<publicQuiz.PublicQuizCatalog[]>([])
+const catalogs = ref<PublicQuizCatalog[]>([])
 const catalogsLoaded = ref(false)
 async function loadCatalogs() {
     if (catalogsLoaded.value || !props.stationUid) return

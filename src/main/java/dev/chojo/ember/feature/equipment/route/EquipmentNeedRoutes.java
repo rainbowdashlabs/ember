@@ -6,11 +6,12 @@
 package dev.chojo.ember.feature.equipment.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteSupport;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.EquipmentRefusal;
+import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.feature.equipment.entity.EquipmentHandover;
 import dev.chojo.ember.feature.equipment.entity.EquipmentNeed;
 import dev.chojo.ember.feature.equipment.entity.NeedCoverage;
@@ -30,11 +31,13 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Objects;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 
@@ -101,20 +104,21 @@ public class EquipmentNeedRoutes implements Routes {
     }
 
     private StationEvent ownEvent(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         StationEvent event = eventService
                 .findById(pathInt(ctx, "eventId"))
-                .orElseThrow(Refusal.EQUIPMENT_APPOINTMENT_NOT_HERE::raise);
-        RouteSupport.requireSameStation(session, event.stationId());
-        if (!visibility.canSee(session, event)) throw Refusal.EVENT_NOT_YOURS_TO_SEE.raise();
+                .orElseThrow(EquipmentRefusal.EQUIPMENT_APPOINTMENT_NOT_HERE::raise);
+        RouteSupport.requireSameStation(session.user(), event.stationId());
+        if (!visibility.canSee(session, event)) throw EventRefusal.EVENT_NOT_YOURS_TO_SEE.raise();
         return event;
     }
 
     private EquipmentNeed ownNeed(Context ctx) {
         StationEvent event = ownEvent(ctx);
-        EquipmentNeed need =
-                needService.findById(pathInt(ctx, "needId")).orElseThrow(Refusal.EQUIPMENT_NEED_NOT_HERE::raise);
-        if (need.eventId() != event.id()) throw Refusal.EQUIPMENT_NEED_NOT_HERE.raise();
+        EquipmentNeed need = needService
+                .findById(pathInt(ctx, "needId"))
+                .orElseThrow(EquipmentRefusal.EQUIPMENT_NEED_NOT_HERE::raise);
+        if (need.eventId() != event.id()) throw EquipmentRefusal.EQUIPMENT_NEED_NOT_HERE.raise();
         return need;
     }
 
@@ -145,7 +149,7 @@ public class EquipmentNeedRoutes implements Routes {
             ctx.json(needService.coverage(event.id(), requiredDate(ctx)));
         } catch (IllegalArgumentException e) {
             log.warn("Coverage for appointment {} was refused", event.id(), e);
-            throw Refusal.EQUIPMENT_COVERAGE_NOT_WORKED_OUT.raise();
+            throw EquipmentRefusal.EQUIPMENT_COVERAGE_NOT_WORKED_OUT.raise();
         }
     }
 
@@ -183,12 +187,12 @@ public class EquipmentNeedRoutes implements Routes {
                             event.stationId(),
                             body.eventDate(),
                             target,
-                            body.quantity() == null ? 1 : body.quantity(),
-                            body.leadMinutes() == null ? EquipmentNeed.DEFAULT_LEAD_MINUTES : body.leadMinutes(),
-                            body.trailMinutes() == null ? EquipmentNeed.DEFAULT_LEAD_MINUTES : body.trailMinutes()));
+                            Objects.requireNonNullElse(body.quantity(), 1),
+                            Objects.requireNonNullElse(body.leadMinutes(), EquipmentNeed.DEFAULT_LEAD_MINUTES),
+                            Objects.requireNonNullElse(body.trailMinutes(), EquipmentNeed.DEFAULT_LEAD_MINUTES)));
         } catch (IllegalArgumentException e) {
             log.warn("A line for appointment {} was refused", event.id(), e);
-            throw Refusal.EQUIPMENT_NEED_NOT_SAVED.raise();
+            throw EquipmentRefusal.EQUIPMENT_NEED_NOT_SAVED.raise();
         }
     }
 
@@ -217,7 +221,7 @@ public class EquipmentNeedRoutes implements Routes {
                     body.trailMinutes() == null ? need.trailMinutes() : body.trailMinutes());
         } catch (IllegalArgumentException e) {
             log.warn("A change to line {} was refused", need.id(), e);
-            throw Refusal.EQUIPMENT_NEED_NOT_CHANGED.raise();
+            throw EquipmentRefusal.EQUIPMENT_NEED_NOT_CHANGED.raise();
         }
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -268,11 +272,11 @@ public class EquipmentNeedRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void handOver(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         EquipmentNeed need = ownNeed(ctx);
         var body = ctx.bodyAsClass(HandoverRequest.class);
         if (body.itemIds() == null || body.itemIds().isEmpty()) {
-            throw Refusal.EQUIPMENT_HANDOVER_NAMES_NOTHING.raise();
+            throw EquipmentRefusal.EQUIPMENT_HANDOVER_NAMES_NOTHING.raise();
         }
         try {
             ctx.status(HttpStatus.CREATED)
@@ -285,7 +289,7 @@ public class EquipmentNeedRoutes implements Routes {
                             .toList());
         } catch (IllegalArgumentException e) {
             log.warn("A handover against line {} was refused", need.id(), e);
-            throw Refusal.EQUIPMENT_HANDOVER_NOT_SAVED.raise();
+            throw EquipmentRefusal.EQUIPMENT_HANDOVER_NOT_SAVED.raise();
         }
     }
 
@@ -302,18 +306,18 @@ public class EquipmentNeedRoutes implements Routes {
     private void handBack(Context ctx) {
         StationEvent event = ownEvent(ctx);
         if (!needService.handBack(pathInt(ctx, "handoverId"), event.id())) {
-            throw Refusal.EQUIPMENT_HANDOVER_NOT_HERE_TO_UNDO.raise();
+            throw EquipmentRefusal.EQUIPMENT_HANDOVER_NOT_HERE_TO_UNDO.raise();
         }
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
     private static LocalDate requiredDate(Context ctx) {
         String raw = ctx.queryParam("date");
-        if (raw == null || raw.isBlank()) throw Refusal.EQUIPMENT_DATE_MISSING.raise();
+        if (raw == null || raw.isBlank()) throw EquipmentRefusal.EQUIPMENT_DATE_MISSING.raise();
         try {
             return LocalDate.parse(raw);
         } catch (RuntimeException e) {
-            throw Refusal.EQUIPMENT_DATE_NOT_A_DATE.raise(raw);
+            throw EquipmentRefusal.EQUIPMENT_DATE_NOT_A_DATE.raise(raw);
         }
     }
 
@@ -321,13 +325,13 @@ public class EquipmentNeedRoutes implements Routes {
      * @param eventDate the one date the line speaks for, or {@code null} for the whole series
      */
     public record NeedRequest(
-            Integer itemId,
-            Integer artId,
-            Integer inventoryId,
-            Integer quantity,
-            Integer leadMinutes,
-            Integer trailMinutes,
-            LocalDate eventDate) {}
+            @Nullable Integer itemId,
+            @Nullable Integer artId,
+            @Nullable Integer inventoryId,
+            @Nullable Integer quantity,
+            @Nullable Integer leadMinutes,
+            @Nullable Integer trailMinutes,
+            @Nullable LocalDate eventDate) {}
 
     public record NeedUpdate(Integer quantity, Integer leadMinutes, Integer trailMinutes) {}
 

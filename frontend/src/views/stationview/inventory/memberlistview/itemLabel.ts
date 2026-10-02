@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type { InventoryItem } from '@/api/inventory'
+import type { InventoryItem } from '@/api/generated/schema'
 
 /** Which parts of a piece the list names it by, and the words for its sizes. */
 export interface ItemLabelParts {

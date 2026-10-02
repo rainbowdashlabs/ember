@@ -17,14 +17,15 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import Popover from '@/components/feedback/Popover.vue'
+import SidePanel from '@/components/feedback/SidePanel.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import AsyncSection from '@/components/feedback/AsyncSection.vue'
 
 const modalOpen = ref(false)
+const sidePanelOpen = ref(false)
 </script>
 
 <template>
-  <!-- Progress Bars -->
   <section class="space-y-4">
     <SectionHeader>Progress Bar</SectionHeader>
     <div class="space-y-3">
@@ -36,7 +37,6 @@ const modalOpen = ref(false)
     </div>
   </section>
 
-  <!-- Alerts -->
   <section class="space-y-4">
     <SectionHeader>Alerts</SectionHeader>
     <div class="space-y-3">
@@ -46,7 +46,6 @@ const modalOpen = ref(false)
     </div>
   </section>
 
-  <!-- Spinner -->
   <section class="space-y-4">
     <SectionHeader>Spinner</SectionHeader>
     <div class="flex flex-wrap items-center gap-4 sm:gap-6">
@@ -65,7 +64,6 @@ const modalOpen = ref(false)
     </div>
   </section>
 
-  <!-- Empty State -->
   <section class="space-y-4">
     <SectionHeader>Empty State</SectionHeader>
     <EmptyState>No items found.</EmptyState>
@@ -73,7 +71,6 @@ const modalOpen = ref(false)
     <EmptyState message="No items (message prop)."/>
   </section>
 
-  <!-- Async Section -->
   <section class="space-y-4">
     <SectionHeader>Async Section</SectionHeader>
     <AsyncSection :loading="true"/>
@@ -84,7 +81,6 @@ const modalOpen = ref(false)
     </AsyncSection>
   </section>
 
-  <!-- Modal -->
   <section class="space-y-4">
     <SectionHeader>Modal</SectionHeader>
     <PrimaryButton @click="modalOpen = true">Open Modal</PrimaryButton>
@@ -92,6 +88,17 @@ const modalOpen = ref(false)
       <SubHeader>Modal Title</SubHeader>
       <MutedText tag="p" size="sm" class="mt-2">This is an example modal dialog with some content.</MutedText>
     </Modal>
+  </section>
+
+  <section class="space-y-4">
+    <SectionHeader>Side Panel</SectionHeader>
+    <PrimaryButton @click="sidePanelOpen = true">Open Side Panel</PrimaryButton>
+    <SidePanel v-model="sidePanelOpen">
+      <div class="space-y-2 p-4">
+        <SubHeader>Side Panel Title</SubHeader>
+        <MutedText tag="p" size="sm">A dialog along the right edge, for a record with more to it.</MutedText>
+      </div>
+    </SidePanel>
   </section>
 
   <section class="space-y-4">

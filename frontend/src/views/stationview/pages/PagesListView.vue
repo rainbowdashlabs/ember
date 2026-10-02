@@ -21,10 +21,9 @@ import {
     getPageShareLink,
     replacePageShareLink,
     setLandingPage,
-    type PageShareLink,
     type PageVisibilityName,
-    type StationPage,
 } from '@/api/pageManage'
+import type {PageShareLinkResponse, StationPage} from '@/api/generated/schema'
 import {StationPermission} from '@/api/types'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
@@ -145,7 +144,7 @@ const visibilityFailure = ref<Failure | null>(null)
 
 const sharePage = ref<StationPage | null>(null)
 const shareOpen = ref(false)
-const shareLink = ref<PageShareLink | null>(null)
+const shareLink = ref<PageShareLinkResponse | null>(null)
 const shareFailure = ref<Failure | null>(null)
 const shareBusy = ref(false)
 

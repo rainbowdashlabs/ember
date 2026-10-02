@@ -6,13 +6,14 @@
 package dev.chojo.ember.feature.members.route;
 
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.mail.entity.MailChainEntry;
-import dev.chojo.ember.feature.mail.repository.StationMailProviderRepository;
+import dev.chojo.ember.feature.mail.service.StationMailSettingsService;
 import dev.chojo.ember.feature.members.service.UserSettingsService;
 import dev.chojo.ember.feature.notifications.entity.NotificationSetting;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
+import dev.chojo.ember.feature.notifications.service.NotificationPreferences;
 import io.javalin.http.Context;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
@@ -34,13 +35,17 @@ import java.util.Map;
 @Singleton
 public class UserSettingsRoutes implements Routes {
     private final UserSettingsService settingsService;
-    private final StationMailProviderRepository mailProviderRepository;
+    private final NotificationPreferences preferences;
+    private final StationMailSettingsService mailSettings;
 
     @Inject
     public UserSettingsRoutes(
-            UserSettingsService settingsService, StationMailProviderRepository mailProviderRepository) {
+            UserSettingsService settingsService,
+            NotificationPreferences preferences,
+            StationMailSettingsService mailSettings) {
         this.settingsService = settingsService;
-        this.mailProviderRepository = mailProviderRepository;
+        this.preferences = preferences;
+        this.mailSettings = mailSettings;
     }
 
     @Override
@@ -56,10 +61,10 @@ public class UserSettingsRoutes implements Routes {
             tags = {"User Settings"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = SettingsResponse.class)))
     private void getSettings(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int memberId = session.member().id();
         var userSettings = settingsService.getSettings(memberId);
-        var notifSettings = settingsService.getNotificationSettings(memberId);
+        var notifSettings = preferences.settingsOf(memberId);
         ctx.json(toResponse(
                 userSettings.emailEnabled(),
                 userSettings.theme(),
@@ -77,7 +82,7 @@ public class UserSettingsRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SettingsRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = SettingsResponse.class)))
     private void updateSettings(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int memberId = session.member().id();
         var request = ctx.bodyAsClass(SettingsRequest.class);
 
@@ -93,7 +98,6 @@ public class UserSettingsRoutes implements Routes {
                     request.feel() != null ? request.feel() : current.feel());
         }
 
-        // Build notification settings map from request
         var notifMap = new EnumMap<NotificationType, NotificationSetting>(NotificationType.class);
         if (request.notifications() != null) {
             for (var entry : request.notifications().entrySet()) {
@@ -103,9 +107,9 @@ public class UserSettingsRoutes implements Routes {
                         type, new NotificationSetting(memberId, type, toggle.app(), toggle.email(), toggle.feed()));
             }
         }
-        settingsService.updateNotificationSettings(memberId, notifMap);
+        preferences.updateSettings(memberId, notifMap);
 
-        var notifSettings = settingsService.getNotificationSettings(memberId);
+        var notifSettings = preferences.settingsOf(memberId);
         var finalSettings = settingsService.findOrCreate(memberId);
         ctx.json(toResponse(
                 finalSettings.emailEnabled(),
@@ -123,12 +127,11 @@ public class UserSettingsRoutes implements Routes {
             String feel,
             Map<NotificationType, NotificationSetting> notifSettings,
             int stationId) {
-        var first = mailProviderRepository.findByStation(stationId).stream().findFirst();
+        var first = mailSettings.firstEntry(stationId);
         String mailProviderName = first.map(MailChainEntry::providerName).orElse("");
         String mailProviderUrl = first.map(MailChainEntry::providerUrl).orElse("");
         boolean mailConfigured = first.isPresent();
 
-        // Build response map with defaults for missing types
         var responseMap = new LinkedHashMap<NotificationType, NotificationToggle>();
         for (var type : NotificationType.values()) {
             var setting = notifSettings.get(type);

@@ -5,16 +5,17 @@
  */
 package dev.chojo.ember.feature.system.service;
 
+import dev.chojo.ember.api.refusal.RefusalResponse;
+import dev.chojo.ember.api.refusal.SystemRefusal;
 import dev.chojo.ember.feature.system.service.DataTrackingAdminService.TableUpdate;
 import dev.chojo.ember.tracking.ColumnEntry;
 import dev.chojo.ember.tracking.DataTracking;
 import dev.chojo.ember.tracking.DataTrackingLoader;
 import dev.chojo.ember.tracking.GdprDeletionContext;
 import dev.chojo.ember.tracking.GdprExportContext;
-import dev.chojo.ember.tracking.Status;
 import dev.chojo.ember.tracking.TableEntry;
+import dev.chojo.ember.tracking.TrackingStatus;
 import dev.chojo.ember.tracking.TransferContext;
-import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -54,22 +55,23 @@ class DataTrackingAdminServiceTest {
         assertNotNull(loaded.tables().get("station_member"));
     }
 
+    /**
+     * The fixture's station has two verified columns and is tracked for transfer, ignored for both GDPR
+     * dimensions; its station member has one of two columns verified and is unverified for transfer,
+     * tracked for export and ignored for deletion.
+     */
     @Test
     void summarizeCountsAcrossEveryDimension() throws IOException {
         var summary = service.summarize();
         assertEquals(2, summary.totalTables());
-        // station has 2 columns, both verified; station_member has 2 columns, only one verified.
         assertEquals(4, summary.totalColumns());
         assertEquals(3, summary.verifiedColumns());
-        // station=TRACKED, station_member=UNVERIFIED for transfer
         assertEquals(1, summary.stationTransfer().tracked());
         assertEquals(0, summary.stationTransfer().ignored());
         assertEquals(1, summary.stationTransfer().unverified());
-        // station=IGNORED, station_member=TRACKED for gdprExport
         assertEquals(1, summary.gdprExport().tracked());
         assertEquals(1, summary.gdprExport().ignored());
         assertEquals(0, summary.gdprExport().unverified());
-        // both IGNORED for gdprDeletion
         assertEquals(0, summary.gdprDeletion().tracked());
         assertEquals(2, summary.gdprDeletion().ignored());
         assertEquals(0, summary.gdprDeletion().unverified());
@@ -80,26 +82,26 @@ class DataTrackingAdminServiceTest {
         var update = new TableUpdate(
                 null,
                 null,
-                new TransferContext(Status.TRACKED, null, List.of("station_id"), "promoted from UNVERIFIED"),
+                new TransferContext(TrackingStatus.TRACKED, null, List.of("station_id"), "promoted from UNVERIFIED"),
                 null,
                 null);
         var result = service.updateTable("station_member", update);
-        assertEquals(Status.TRACKED, result.stationTransfer().status());
+        assertEquals(TrackingStatus.TRACKED, result.stationTransfer().status());
         assertEquals(List.of("station_id"), result.stationTransfer().ignoredColumns());
         assertEquals("promoted from UNVERIFIED", result.stationTransfer().rationale());
 
-        // Re-load from disk and verify the change was persisted.
         var reloaded = service.load();
         assertEquals(
-                Status.TRACKED,
+                TrackingStatus.TRACKED,
                 reloaded.tables().get("station_member").stationTransfer().status());
     }
 
+    /** The display name is already verified and stays so; the former flag is flipped to verified. */
     @Test
     void updateTableHonoursColumnVerifiedOverrides() throws IOException {
         var overrides = new LinkedHashMap<String, Boolean>();
-        overrides.put("display_name", true); // was true → stays true
-        overrides.put("former", true); // was false → flipped to true
+        overrides.put("display_name", true);
+        overrides.put("former", true);
         var update = new TableUpdate(null, overrides, null, null, null);
         var result = service.updateTable("station_member", update);
         assertTrue(result.columns().stream().allMatch(ColumnEntry::verified));
@@ -108,8 +110,9 @@ class DataTrackingAdminServiceTest {
     @Test
     void updateTableRejectsUnknownTable() {
         var ex = assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> service.updateTable("does_not_exist", new TableUpdate(null, null, null, null, null)));
+        assertEquals(SystemRefusal.TRACKED_TABLE_NOT_HERE_TO_UPDATE, ex.refusal());
         assertTrue(ex.getMessage().contains("does_not_exist"));
     }
 
@@ -117,14 +120,14 @@ class DataTrackingAdminServiceTest {
     void verifyAllColumnsFlipsEveryColumn() throws IOException {
         var result = service.verifyAllColumns("station_member");
         assertTrue(result.columns().stream().allMatch(ColumnEntry::verified));
-        // Persisted to disk too
         var reloaded = service.load();
         assertTrue(reloaded.tables().get("station_member").columns().stream().allMatch(ColumnEntry::verified));
     }
 
     @Test
     void verifyAllColumnsRejectsUnknownTable() {
-        assertThrows(BadRequestResponse.class, () -> service.verifyAllColumns("does_not_exist"));
+        var ex = assertThrows(RefusalResponse.class, () -> service.verifyAllColumns("does_not_exist"));
+        assertEquals(SystemRefusal.TRACKED_TABLE_NOT_HERE_TO_VERIFY, ex.refusal());
     }
 
     @Test

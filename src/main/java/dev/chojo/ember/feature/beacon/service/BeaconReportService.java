@@ -9,8 +9,12 @@ import dev.chojo.ember.feature.beacon.entity.BeaconPayloads;
 import dev.chojo.ember.feature.discovery.service.DiscoveryHttpClient;
 import dev.chojo.ember.feature.system.entity.ProblemReport;
 import dev.chojo.ember.feature.system.service.ProblemLogAppender;
+import dev.chojo.ember.lifecycle.SerialLane;
+import dev.chojo.ember.lifecycle.TaskScheduler;
+import dev.chojo.ember.util.Json;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tools.jackson.databind.json.JsonMapper;
@@ -21,9 +25,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -44,7 +45,7 @@ public class BeaconReportService {
     public static final String OWN_LOGGER = BeaconReportService.class.getName();
 
     /** Reads what a beacon answers a picture with, which is the number the report then names. */
-    private static final JsonMapper JSON = JsonMapper.builder().build();
+    private static final JsonMapper JSON = Json.MAPPER;
 
     private static final Logger log = LoggerFactory.getLogger(BeaconReportService.class);
     private static final int QUEUE_CAPACITY = 200;
@@ -65,32 +66,28 @@ public class BeaconReportService {
     private final BeaconSettings config;
     private final DiscoveryHttpClient httpClient;
     private final SelfDelivery self;
-    private final BlockingQueue<Runnable> queue = new ArrayBlockingQueue<>(QUEUE_CAPACITY);
+    private final SerialLane lane;
 
     @Inject
-    public BeaconReportService(BeaconSettings config, DiscoveryHttpClient httpClient, SelfDelivery self) {
+    public BeaconReportService(
+            BeaconSettings config, DiscoveryHttpClient httpClient, SelfDelivery self, TaskScheduler scheduler) {
         this.config = config;
         this.httpClient = httpClient;
         this.self = self;
-        startWorker();
+        this.lane = scheduler.lane("beacon-sender", QUEUE_CAPACITY);
     }
 
-    private void startWorker() {
-        var worker = Executors.newSingleThreadExecutor(runnable -> {
-            var thread = new Thread(runnable, "beacon-sender");
-            thread.setDaemon(true);
-            return thread;
-        });
-        worker.submit(() -> {
-            while (!Thread.currentThread().isInterrupted()) {
-                try {
-                    queue.take().run();
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                } catch (Exception e) {
-                    log.warn("A beacon send failed", e);
-                    sleepBackoff();
-                }
+    /**
+     * Puts one send on the lane. A send that fails holds the lane for the backoff, so a beacon that is
+     * down is not asked again at once for everything queued behind it.
+     */
+    private boolean enqueue(Runnable send) {
+        return lane.submit(() -> {
+            try {
+                send.run();
+            } catch (RuntimeException e) {
+                log.warn("A beacon send failed", e);
+                sleepBackoff();
             }
         });
     }
@@ -135,7 +132,7 @@ public class BeaconReportService {
      * @param version this instance's version
      * @return the payload, ready to be shown or sent
      */
-    public BeaconPayloads.ProblemPayload payloadFor(ProblemLogAppender.Snapshot entry, String version) {
+    public BeaconPayloads.ProblemPayload payloadFor(ProblemLogAppender.ProblemSnapshot entry, String version) {
         return new BeaconPayloads.ProblemPayload(
                 envelope(),
                 version,
@@ -166,10 +163,11 @@ public class BeaconReportService {
      * fault. Everything else is left as it was written: an address inside the product, an
      * identifier, a status code, all of which are what makes a fault findable again.
      */
-    private static String wordsOf(ProblemLogAppender.Snapshot entry) {
+    private static String wordsOf(ProblemLogAppender.ProblemSnapshot entry) {
         var words = new LinkedHashSet<String>();
-        if (entry.exceptionMessage() != null && !entry.exceptionMessage().isBlank()) {
-            words.add(entry.exceptionMessage().strip());
+        String exceptionMessage = entry.exceptionMessage();
+        if (exceptionMessage != null && !exceptionMessage.isBlank()) {
+            words.add(exceptionMessage.strip());
         }
         for (String message : entry.distinctMessages()) {
             if (message != null && !message.isBlank()) words.add(message.strip());
@@ -181,15 +179,15 @@ public class BeaconReportService {
     }
 
     /**
-     * Queues one problem for its beacon. Returns at once; the sending happens on the worker.
+     * Queues one problem for its beacon. Returns at once; the sending happens on the lane.
      *
      * @param entry   the problem being forwarded
      * @param version this instance's version
      * @return whether it was queued, false when the queue is full or reporting is off
      */
-    public boolean send(ProblemLogAppender.Snapshot entry, String version) {
+    public boolean send(ProblemLogAppender.ProblemSnapshot entry, String version) {
         if (!config.enabled()) return false;
-        return queue.offer(() -> deliver("/api/v1/beacon/problems", payloadFor(entry, version)));
+        return enqueue(() -> deliver("/api/v1/beacon/problems", payloadFor(entry, version)));
     }
 
     /**
@@ -199,7 +197,7 @@ public class BeaconReportService {
      * @param version this instance's version
      * @return how many were queued
      */
-    public int sendAll(List<ProblemLogAppender.Snapshot> entries, String version) {
+    public int sendAll(List<ProblemLogAppender.ProblemSnapshot> entries, String version) {
         int queued = 0;
         for (var entry : entries) {
             if (send(entry, version)) queued++;
@@ -265,13 +263,14 @@ public class BeaconReportService {
      * @param contentType what those bytes are
      * @return whether the work was queued, false when the queue is full
      */
-    public boolean sendReportNow(ProblemReport report, String version, byte[] picture, String contentType) {
+    public boolean sendReportNow(
+            ProblemReport report, String version, byte @Nullable [] picture, @Nullable String contentType) {
         if (picture == null || picture.length == 0) {
-            return queue.offer(() -> deliver("/api/v1/beacon/reports", reportPayloadFor(report, version, null)));
+            return enqueue(() -> deliver("/api/v1/beacon/reports", reportPayloadFor(report, version, null)));
         }
         var image = new BeaconPayloads.ReportImagePayload(
                 envelope(), contentType, Base64.getEncoder().encodeToString(picture));
-        return queue.offer(() -> {
+        return enqueue(() -> {
             var numbered = deliverPicture(image);
             if (numbered.isEmpty()) {
                 log.warn("The picture of a report was not taken, so the report was not sent either");
@@ -363,7 +362,8 @@ public class BeaconReportService {
      *
      * @param imageId what the beacon numbered the picture, or null where the report carries none
      */
-    public BeaconPayloads.ReportPayload reportPayloadFor(ProblemReport report, String version, Integer imageId) {
+    public BeaconPayloads.ReportPayload reportPayloadFor(
+            ProblemReport report, String version, @Nullable Integer imageId) {
         return new BeaconPayloads.ReportPayload(
                 envelope(),
                 version,
@@ -386,7 +386,7 @@ public class BeaconReportService {
      * searched for and sometimes who they looked at, and none of that says which call went wrong,
      * so the same rule applies to each of them as to the page the report was written on.
      */
-    private static String requestsWithoutQueries(String recentRequests) {
+    private static @Nullable String requestsWithoutQueries(@Nullable String recentRequests) {
         if (recentRequests == null || recentRequests.isBlank()) return null;
         String stripped = REQUEST_URL
                 .matcher(recentRequests)
@@ -401,7 +401,7 @@ public class BeaconReportService {
      * a beacon needs to know which page went wrong. The screen already sends the path alone; this is
      * the guarantee rather than the hope, because what leaves the instance is decided here.
      */
-    private static String withoutQuery(String page) {
+    private static @Nullable String withoutQuery(@Nullable String page) {
         if (page == null) return null;
         int query = page.indexOf('?');
         return query < 0 ? page : page.substring(0, query);
@@ -419,7 +419,7 @@ public class BeaconReportService {
                 config.url());
     }
 
-    private static String blankToNull(String value) {
+    private static @Nullable String blankToNull(@Nullable String value) {
         return value == null || value.isBlank() ? null : value;
     }
 }

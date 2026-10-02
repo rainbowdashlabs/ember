@@ -12,7 +12,7 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
-import type {StationApplication} from '@/api/stationApplications'
+import type {StationApplication} from '@/api/generated/schema'
 
 const open = defineModel<boolean>({required: true})
 const reason = defineModel<string>('reason', {required: true})

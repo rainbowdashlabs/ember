@@ -5,6 +5,9 @@
  */
 package dev.chojo.ember.feature.cluster.service;
 
+import dev.chojo.ember.api.refusal.ClusterRefusal;
+import dev.chojo.ember.api.refusal.RefusalDetail;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.ClusterQuotaChanged;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
@@ -19,10 +22,9 @@ import dev.chojo.ember.feature.storage.entity.StorageUsage;
 import dev.chojo.ember.feature.storage.repository.ClusterStorageQuotaRepository;
 import dev.chojo.ember.feature.storage.repository.StorageUsageRepository;
 import dev.chojo.ember.feature.storage.service.StorageQuotaService;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -70,8 +72,6 @@ public class ClusterStorageQuotaService {
         this.eventBus = eventBus;
     }
 
-    // -- The pool --
-
     /**
      * The pool the instance grants the cluster.
      *
@@ -83,8 +83,6 @@ public class ClusterStorageQuotaService {
         clusterRepository.setStoragePool(clusterId, poolBytes);
         log.info("Cluster {} was granted a pool of {}", clusterId, poolBytes);
     }
-
-    // -- Defaults --
 
     /**
      * What the cluster gives a station it has granted nothing of its own.
@@ -119,8 +117,6 @@ public class ClusterStorageQuotaService {
         log.info("Cluster {} set the room it gives its stations by default", defaults.clusterId());
     }
 
-    // -- Tiers --
-
     public List<ClusterStorageQuotaPreset> findPresets(int clusterId) {
         requireCluster(clusterId);
         return quotaRepository.findPresets(clusterId);
@@ -129,7 +125,7 @@ public class ClusterStorageQuotaService {
     /**
      * Adds a tier the cluster can hand to its stations.
      *
-     * @throws BadRequestResponse when the name is blank or already taken in this cluster
+     * @throws RefusalResponse when the name is blank or already taken in this cluster
      */
     public ClusterStorageQuotaPreset createPreset(
             int clusterId,
@@ -195,13 +191,14 @@ public class ClusterStorageQuotaService {
      * @param clusterId   the cluster
      * @param presetId    the tier
      * @param stationUids the stations to put on it
-     * @throws BadRequestResponse when a station is not this cluster's, or the cluster would be promising more
+     * @throws RefusalResponse when a station is not this cluster's, or the cluster would be promising more
      *                            than it has
      */
     public void applyPreset(int clusterId, int presetId, List<UUID> stationUids) {
         Cluster cluster = requireCluster(clusterId);
         var preset = requirePreset(clusterId, presetId);
-        if (stationUids == null || stationUids.isEmpty()) throw new BadRequestResponse("No station named");
+        if (stationUids == null || stationUids.isEmpty())
+            throw ClusterRefusal.CLUSTER_QUOTA_TIER_NAMES_NO_STATION.raise();
 
         List<Integer> stationIds = stationUids.stream()
                 .map(uid -> requireStationOf(cluster, uid).id())
@@ -214,11 +211,10 @@ public class ClusterStorageQuotaService {
                     .filter(Objects::nonNull)
                     .mapToLong(Long::longValue)
                     .sum();
+            long pool = cluster.storagePoolBytes();
             long promised = others + preset.total() * stationIds.size();
-            if (promised > cluster.storagePoolBytes()) {
-                throw new BadRequestResponse(
-                        "That is more than the cluster has left. Its pool is %d bytes and %d would be handed out."
-                                .formatted(cluster.storagePoolBytes(), promised));
+            if (promised > pool) {
+                throw ClusterRefusal.CLUSTER_QUOTA_TIER_MORE_THAN_POOL.raise(RefusalDetail.room(pool - others, pool));
             }
         }
 
@@ -229,8 +225,6 @@ public class ClusterStorageQuotaService {
         log.info("Cluster {} put {} station(s) on the tier '{}'", clusterId, stationIds.size(), preset.name());
     }
 
-    // -- Grants --
-
     /**
      * Hands one station its share of the pool, in as many of the seven dimensions as the cluster cares about.
      *
@@ -240,7 +234,7 @@ public class ClusterStorageQuotaService {
      * @param clusterId  the cluster
      * @param stationUid the station receiving the room, which may be the cluster's own store
      * @param grant      the seven dimensions, any of them {@code null} to fall back to the cluster's defaults
-     * @throws BadRequestResponse when that station is not this cluster's, or the pool will not stretch
+     * @throws RefusalResponse when that station is not this cluster's, or the pool will not stretch
      */
     public void setGrant(int clusterId, UUID stationUid, Dimensions grant) {
         Cluster cluster = requireCluster(clusterId);
@@ -317,8 +311,6 @@ public class ClusterStorageQuotaService {
         log.info("Cluster {} gave station {} a quota of {}", cluster.id(), station.id(), quotaBytes);
     }
 
-    // -- What it all adds up to --
-
     /**
      * The whole picture: the pool, what has been promised out of it, and every station with what it was
      * granted, what that resolves to and what it is actually using.
@@ -342,11 +334,11 @@ public class ClusterStorageQuotaService {
             List<StorageUsage> usage = usageRepository.findByStation(row.stationId());
             long used = usageRepository.totalEnforcedBytes(row.stationId());
             String presetName = presets.stream()
-                    .filter(preset -> row.presetId() != null && preset.id() == row.presetId())
+                    .filter(preset -> Objects.equals(row.presetId(), preset.id()))
                     .map(ClusterStorageQuotaPreset::name)
                     .findFirst()
                     .orElse(null);
-            if (row.quotaBytes() != null) handedOut += row.quotaBytes();
+            handedOut += Objects.requireNonNullElse(row.quotaBytes(), 0L);
             stations.add(new StationRoom(
                     row.uid(),
                     row.name(),
@@ -363,15 +355,14 @@ public class ClusterStorageQuotaService {
                 cluster.storagePoolBytes(), handedOut, quotaRepository.findDefaults(clusterId), presets, stations);
     }
 
-    // -- Guards --
-
     private Cluster requireCluster(int clusterId) {
-        return clusterRepository.findById(clusterId).orElseThrow(() -> new NotFoundResponse("No such cluster"));
+        return clusterRepository.findById(clusterId).orElseThrow(ClusterRefusal.CLUSTER_QUOTA_CLUSTER_GONE::raise);
     }
 
     private ClusterStorageQuotaPreset requirePreset(int clusterId, int presetId) {
-        var preset = quotaRepository.findPreset(presetId).orElseThrow(() -> new NotFoundResponse("No such tier"));
-        if (preset.clusterId() != clusterId) throw new NotFoundResponse("No such tier");
+        var preset =
+                quotaRepository.findPreset(presetId).orElseThrow(ClusterRefusal.CLUSTER_QUOTA_TIER_NOT_HERE::raise);
+        if (preset.clusterId() != clusterId) throw ClusterRefusal.CLUSTER_QUOTA_TIER_NOT_HERE.raise();
         return preset;
     }
 
@@ -382,39 +373,39 @@ public class ClusterStorageQuotaService {
      * the same pool as everybody else's.
      */
     private Station requireStationOf(Cluster cluster, UUID stationUid) {
-        Station station =
-                stationRepository.findByUid(stationUid).orElseThrow(() -> new NotFoundResponse("No such station"));
+        Station station = stationRepository
+                .findByUid(stationUid)
+                .orElseThrow(ClusterRefusal.CLUSTER_QUOTA_STATION_NOT_KNOWN::raise);
         return requireStation(cluster, station.id());
     }
 
     private Station requireStation(Cluster cluster, int stationId) {
         Station station =
-                stationRepository.findById(stationId).orElseThrow(() -> new NotFoundResponse("No such station"));
+                stationRepository.findById(stationId).orElseThrow(ClusterRefusal.CLUSTER_QUOTA_STATION_GONE::raise);
         boolean ownStore = station.id() == cluster.homeStationId();
         if (!ownStore && (station.clusterId() == null || station.clusterId() != cluster.id())) {
-            throw new BadRequestResponse("That station does not belong to this cluster");
+            throw ClusterRefusal.CLUSTER_QUOTA_STATION_NOT_IN_CLUSTER.raise();
         }
         return station;
     }
 
     /**
-     * Refuses a promise the cluster cannot keep.
+     * Refuses a promise the cluster cannot keep, naming what is still free of the pool and how big it is.
      *
      * @param stationId the station about to be granted, weighed out of the sum so its old promise is replaced
      *                  rather than added to
      */
-    private void requirePoolStretches(Cluster cluster, int stationId, Long totalBytes) {
-        if (cluster.storagePoolBytes() == null || totalBytes == null) return;
+    private void requirePoolStretches(Cluster cluster, int stationId, @Nullable Long totalBytes) {
+        Long pool = cluster.storagePoolBytes();
+        if (pool == null || totalBytes == null) return;
         long othersTotal = quotaRepository.sumGrantedTotals(cluster.id(), stationId);
-        if (othersTotal + totalBytes > cluster.storagePoolBytes()) {
-            throw new BadRequestResponse(
-                    "That is more than the cluster has left. Its pool is %d bytes and %d are already handed out."
-                            .formatted(cluster.storagePoolBytes(), othersTotal));
+        if (othersTotal + totalBytes > pool) {
+            throw ClusterRefusal.CLUSTER_QUOTA_GRANT_MORE_THAN_POOL.raise(RefusalDetail.room(pool - othersTotal, pool));
         }
     }
 
     private static String requireName(String name) {
-        if (name == null || name.isBlank()) throw new BadRequestResponse("A tier needs a name");
+        if (name == null || name.isBlank()) throw ClusterRefusal.CLUSTER_QUOTA_TIER_NEEDS_A_NAME.raise();
         return name.trim();
     }
 
@@ -422,13 +413,13 @@ public class ClusterStorageQuotaService {
         boolean taken = quotaRepository.findPresets(clusterId).stream()
                 .anyMatch(
                         preset -> preset.id() != exceptPresetId && preset.name().equalsIgnoreCase(name));
-        if (taken) throw new BadRequestResponse("This cluster already has a tier called '%s'".formatted(name));
+        if (taken) throw ClusterRefusal.CLUSTER_QUOTA_TIER_NAME_TAKEN.raise(name);
     }
 
     /** Room is a size, and a size below zero is a typing mistake rather than a rule anybody meant. */
     private static void requirePositive(Long... values) {
         for (Long value : values) {
-            if (value != null && value < 0) throw new BadRequestResponse("Room cannot be less than nothing");
+            if (value != null && value < 0) throw ClusterRefusal.CLUSTER_QUOTA_ROOM_BELOW_NOTHING.raise();
         }
     }
 
@@ -449,13 +440,13 @@ public class ClusterStorageQuotaService {
      * <p>A {@code null} means the cluster is not deciding that one, and whatever stands behind it applies.
      */
     public record Dimensions(
-            Long totalBytes,
-            Long kbBytes,
-            Long boardBytes,
-            Long imagesBytes,
-            Long pagesBytes,
-            Long perFileBytes,
-            Long perImageBytes) {
+            @Nullable Long totalBytes,
+            @Nullable Long kbBytes,
+            @Nullable Long boardBytes,
+            @Nullable Long imagesBytes,
+            @Nullable Long pagesBytes,
+            @Nullable Long perFileBytes,
+            @Nullable Long perImageBytes) {
         public static Dimensions none() {
             return new Dimensions(null, null, null, null, null, null, null);
         }
@@ -479,8 +470,8 @@ public class ClusterStorageQuotaService {
             StationQuotas resolved,
             long usedBytes,
             List<StorageUsage> usage,
-            Integer presetId,
-            String presetName) {}
+            @Nullable Integer presetId,
+            @Nullable String presetName) {}
 
     /**
      * @param poolBytes the whole the cluster may hand out, or {@code null} when the instance set no cap

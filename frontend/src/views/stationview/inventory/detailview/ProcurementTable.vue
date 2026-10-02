@@ -13,10 +13,10 @@ import DataTable from '@/components/table/DataTable.vue'
 import Th from '@/components/table/Th.vue'
 import Td from '@/components/table/Td.vue'
 import TRow from '@/components/table/TRow.vue'
-import type { ProcurementEntry } from '@/api/procurement'
+import type { ProcurementResponse } from '@/api/generated/schema'
 
 const props = withDefaults(defineProps<{
-  entries: ProcurementEntry[]
+  entries: ProcurementResponse[]
   readonly?: boolean
   canCreate?: boolean
 }>(), {
@@ -48,7 +48,7 @@ const { t } = useI18n()
         <Th>{{ t('inventory.detail.owner') }}</Th>
         <Th>{{ t('inventory.detail.size') }}</Th>
         <Th>{{ t('inventory.detail.notes') }}</Th>
-        <th v-if="!props.readonly" class="px-3 py-2"></th>
+        <th v-if="!props.readonly" class="px-3 py-2"/>
       </template>
       <TRow v-for="p in props.entries" :key="p.id">
         <Td><MemberName :identity="p.memberIdentity ?? null"/></Td>

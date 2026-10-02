@@ -9,7 +9,7 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.board.entity.AccessData;
 import dev.chojo.ember.feature.board.entity.Board;
-import dev.chojo.ember.feature.board.entity.BoardField;
+import dev.chojo.ember.feature.board.entity.BoardFieldDefinition;
 import dev.chojo.ember.feature.board.entity.BoardLabel;
 import dev.chojo.ember.feature.board.entity.BoardLane;
 import dev.chojo.ember.feature.board.entity.LaneData;
@@ -53,8 +53,6 @@ public class BoardService {
         this.groupService = groupService;
         this.tagService = tagService;
     }
-
-    // -- Board CRUD --
 
     public List<Board> findByStation(int stationId) {
         return repository.findByStation(stationId);
@@ -120,8 +118,6 @@ public class BoardService {
         return deleted;
     }
 
-    // -- Lanes --
-
     public List<BoardLane> findLanes(int boardId) {
         return repository.findLanes(boardId);
     }
@@ -135,26 +131,23 @@ public class BoardService {
                 .filter(id -> id != null && id > 0)
                 .collect(Collectors.toSet());
 
-        // Find the first lane in the new set to use as a fallback for orphaned tickets
         Integer fallbackLaneId = null;
 
-        // Update existing lanes and create new ones
         for (int i = 0; i < lanes.size(); i++) {
             var l = lanes.get(i);
-            if (l.id() != null && l.id() > 0) {
-                // Update existing lane
-                repository.updateLane(l.id(), l.name(), l.color(), i);
-                if (fallbackLaneId == null) fallbackLaneId = l.id();
+            Integer laneId = l.id();
+            if (laneId != null && laneId > 0) {
+                repository.updateLane(laneId, l.name(), l.color(), i);
+                if (fallbackLaneId == null) fallbackLaneId = laneId;
             } else {
-                // Create new lane
                 var created = repository.createLane(boardId, l.name(), l.color(), i);
                 if (fallbackLaneId == null) fallbackLaneId = created.id();
             }
         }
 
-        // Delete lanes that are no longer in the list, moving their tickets first
+        Integer backlogLaneId = board.backlogLaneId();
         for (var existing : existingLanes) {
-            if (board.backlogLaneId() != null && existing.id() == board.backlogLaneId()) continue;
+            if (backlogLaneId != null && existing.id() == backlogLaneId) continue;
             if (!incomingIds.contains(existing.id())) {
                 if (fallbackLaneId != null) {
                     repository.moveTicketsFromLane(existing.id(), fallbackLaneId);
@@ -175,13 +168,11 @@ public class BoardService {
         log.info("Disabled backlog on board {}", boardId);
     }
 
-    // -- Fields --
-
-    public List<BoardField> findFields(int boardId) {
+    public List<BoardFieldDefinition> findFields(int boardId) {
         return repository.findFields(boardId);
     }
 
-    public void replaceFields(int boardId, List<BoardField> fields) {
+    public void replaceFields(int boardId, List<BoardFieldDefinition> fields) {
         repository.deleteAllFields(boardId);
         for (int i = 0; i < fields.size(); i++) {
             var f = fields.get(i);
@@ -189,8 +180,6 @@ public class BoardService {
         }
         log.info("Replaced fields on board {} with {} fields", boardId, fields.size());
     }
-
-    // -- Labels --
 
     public List<BoardLabel> findLabels(int boardId) {
         return repository.findLabels(boardId);
@@ -244,8 +233,6 @@ public class BoardService {
     public List<TicketLabelMapping> findAllTicketLabels(int boardId) {
         return repository.findAllTicketLabels(boardId);
     }
-
-    // -- Access control --
 
     public boolean canView(int boardId, int memberId) {
         return canView(boardId, memberId, false);

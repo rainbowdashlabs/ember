@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.members.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import org.jspecify.annotations.Nullable;
 
 /**
  * A user-defined tag that can be assigned to station members.
@@ -18,7 +19,8 @@ import de.chojo.sadu.mapper.rowmapper.RowMapping;
  * @param visible   whether this tag shows as a badge behind member names
  * @param position  sort priority. Higher = higher priority for badge display.
  */
-public record UserTag(int id, int stationId, String name, String color, boolean visible, int position) {
+public record UserTag(
+        int id, int stationId, String name, @Nullable String color, boolean visible, int position) {
     public static RowMapping<UserTag> map() {
         return row -> new UserTag(
                 row.getInt("id"),

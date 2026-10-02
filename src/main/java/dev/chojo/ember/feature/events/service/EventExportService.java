@@ -6,15 +6,19 @@
 package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.conf.file.elements.Api;
-import dev.chojo.ember.feature.events.entity.EventBreak;
+import dev.chojo.ember.feature.events.entity.AppointmentField;
+import dev.chojo.ember.feature.events.entity.StationCalendar;
 import dev.chojo.ember.feature.events.entity.StationEvent;
-import dev.chojo.ember.feature.events.repository.EventBreakRepository;
 import dev.chojo.ember.feature.events.repository.EventCategoryRepository;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
+import dev.chojo.ember.feature.media.entity.MediaContent;
+import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.question.QuestionText;
+import dev.chojo.ember.feature.question.QuestionValues;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
-import dev.chojo.ember.feature.station.repository.StationRepository.StationLogo;
+import dev.chojo.ember.feature.station.service.StationLogoService;
 import dev.chojo.ember.util.DocumentName;
 import dev.chojo.ember.util.DocumentPeriod;
 import dev.chojo.ember.util.DocumentWord;
@@ -34,6 +38,7 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 import static org.slf4j.LoggerFactory.getLogger;
@@ -53,25 +58,31 @@ public class EventExportService {
 
     private final EventRepository eventRepository;
     private final EventCategoryRepository categoryRepository;
-    private final EventBreakRepository breakRepository;
+    private final OccurrenceCalendar occurrenceCalendar;
     private final EventFieldRepository eventFieldRepository;
     private final StationRepository stationRepository;
+    private final StationMemberRepository memberRepository;
     private final Api apiConfig;
+    private final StationLogoService logoService;
 
     @Inject
     public EventExportService(
             EventRepository eventRepository,
             EventCategoryRepository categoryRepository,
-            EventBreakRepository breakRepository,
+            OccurrenceCalendar occurrenceCalendar,
             EventFieldRepository eventFieldRepository,
             StationRepository stationRepository,
-            Api apiConfig) {
+            StationMemberRepository memberRepository,
+            Api apiConfig,
+            StationLogoService logoService) {
         this.eventRepository = eventRepository;
         this.categoryRepository = categoryRepository;
-        this.breakRepository = breakRepository;
+        this.occurrenceCalendar = occurrenceCalendar;
         this.eventFieldRepository = eventFieldRepository;
         this.stationRepository = stationRepository;
+        this.memberRepository = memberRepository;
         this.apiConfig = apiConfig;
+        this.logoService = logoService;
     }
 
     public Optional<ExportedDocument> exportPdf(
@@ -86,13 +97,11 @@ public class EventExportService {
 
         var allEvents = eventRepository.findByStation(stationId);
         var eventCategories = categoryRepository.findByStation(stationId);
-        var breaks = breakRepository.findByStation(stationId);
+        var calendar = occurrenceCalendar.forStation(stationId);
 
-        // Build column headers in order
         var columnHeaders = columns.stream().map(ExportColumn::label).toList();
 
-        // Expand recurring events into individual occurrences
-        var expandedEvents = expandEvents(allEvents, from, to, breaks, zone);
+        var expandedEvents = expandEvents(allEvents, from, to, calendar);
 
         String language = StationFormat.languageOf(station);
         var catGroups = new ArrayList<CategoryGroup>();
@@ -100,8 +109,8 @@ public class EventExportService {
         for (var cat : eventCategories) {
             if (!categoryIds.isEmpty() && !categoryIds.contains(cat.id())) continue;
             var catEvents = expandedEvents.stream()
-                    .filter(e -> cat.id()
-                            == (e.event().categoryId() != null ? e.event().categoryId() : -1))
+                    .filter(e ->
+                            cat.id() == Objects.requireNonNullElse(e.event().categoryId(), -1))
                     .toList();
             if (catEvents.isEmpty()) continue;
             catGroups.add(new CategoryGroup(cat.name(), buildEventRows(catEvents, columns, zone, language)));
@@ -128,7 +137,7 @@ public class EventExportService {
         data.put("categories", catGroups);
 
         try {
-            var logo = stationRepository.findLogo(stationId);
+            var logo = logoService.original(stationId);
             String locale = StationFormat.languageOf(station);
             String filename = DocumentName.of("pdf", DocumentWord.EVENTS.in(locale), spanLabel(from, to, zone, locale));
             return Optional.of(
@@ -139,74 +148,15 @@ public class EventExportService {
         }
     }
 
-    private List<ExpandedEvent> expandEvents(
-            List<StationEvent> events, LocalDate from, LocalDate to, List<EventBreak> breaks, ZoneId zone) {
+    /** Every date inside the period that one of these appointments takes place on, earliest first. */
+    private static List<ExpandedEvent> expandEvents(
+            List<StationEvent> events, LocalDate from, LocalDate to, StationCalendar calendar) {
         var result = new ArrayList<ExpandedEvent>();
         for (var event : events) {
-            if (event.isRecurring()) {
-                expandRecurring(event, from, to, breaks, result, zone);
-            } else {
-                if (event.startTime() == null) continue;
-                LocalDate eventDate = event.startTime().atZone(zone).toLocalDate();
-                if (!eventDate.isBefore(from) && !eventDate.isAfter(to)) {
-                    result.add(new ExpandedEvent(event, eventDate));
-                }
-            }
+            for (var date : calendar.between(event, from, to)) result.add(new ExpandedEvent(event, date));
         }
         result.sort(Comparator.comparing(ExpandedEvent::date));
         return result;
-    }
-
-    /**
-     * Whether a day is the one a yearly appointment repeats on.
-     *
-     * <p>Which day of the year that is has to be read on the station's own clock, the same clock the
-     * rest of this export reads. Read anywhere else, an appointment near midnight belongs to the day
-     * either side of the one it is actually on, and the yearly line is then listed on the wrong date.
-     *
-     * @param startTime when the appointment starts, or null where it has no start
-     * @param zone      the station's clock
-     * @param day       the day being considered
-     * @return true where the day is the appointment's own day of the year
-     */
-    static boolean fallsOnYearlyAnchor(Instant startTime, ZoneId zone, LocalDate day) {
-        if (startTime == null) return false;
-        LocalDate anchor = startTime.atZone(zone).toLocalDate();
-        return day.getMonthValue() == anchor.getMonthValue() && day.getDayOfMonth() == anchor.getDayOfMonth();
-    }
-
-    private void expandRecurring(
-            StationEvent event,
-            LocalDate from,
-            LocalDate to,
-            List<EventBreak> breaks,
-            List<ExpandedEvent> result,
-            ZoneId zone) {
-        if (event.dayOfWeek() == null && event.eventType() != StationEvent.EventType.YEARLY) return;
-        for (LocalDate d = from; !d.isAfter(to); d = d.plusDays(1)) {
-            LocalDate date = d;
-            boolean inBreak =
-                    breaks.stream().anyMatch(b -> !date.isBefore(b.startDate()) && !date.isAfter(b.endDate()));
-            if (inBreak) continue;
-
-            boolean matches =
-                    switch (event.eventType()) {
-                        case RECURRING -> d.getDayOfWeek().getValue() == event.dayOfWeek();
-                        case MONTHLY_FIRST ->
-                            d.getDayOfWeek().getValue() == event.dayOfWeek() && d.getDayOfMonth() <= 7;
-                        case QUARTERLY ->
-                            d.getDayOfWeek().getValue() == event.dayOfWeek()
-                                    && d.getDayOfMonth() <= 7
-                                    && (d.getMonthValue() - 1) % 3 == 0;
-                        // Which day of the year an appointment falls on is read in the station's
-                        // own timezone, the same way every other date in this export is. Read in
-                        // UTC, an appointment late in the evening lands on the day before and
-                        // the yearly one is then listed on the wrong date.
-                        case YEARLY -> fallsOnYearlyAnchor(event.startTime(), zone, d);
-                        default -> false;
-                    };
-            if (matches && !event.isAfterLastDate(d)) result.add(new ExpandedEvent(event, d));
-        }
     }
 
     private List<EventRow> buildEventRows(
@@ -218,11 +168,7 @@ public class EventExportService {
             Map<String, String> fieldMap = Map.of();
             if (needsFields) {
                 var fields = eventFieldRepository.findByEventOn(event.id(), expanded.date());
-                var map = new LinkedHashMap<String, String>();
-                for (var f : fields) {
-                    map.put(f.name(), f.value());
-                }
-                fieldMap = map;
+                fieldMap = fieldCells(fields, memberNames(fields), language);
             }
             var values = new ArrayList<String>();
             for (var col : columns) {
@@ -235,6 +181,34 @@ public class EventExportService {
             rows.add(new EventRow(values));
         }
         return rows;
+    }
+
+    /**
+     * An appointment's fields as the sheet prints them, by field name.
+     *
+     * <p>Each value is written the way every export writes one: members by name, a yes as a word in
+     * the station's language, a date as a day.
+     *
+     * @param fields   the appointment's fields on the day printed
+     * @param names    the names of the members the fields name, by member id
+     * @param language the station's language
+     * @return the printed value of each field, by its name
+     */
+    static Map<String, String> fieldCells(List<AppointmentField> fields, Map<Integer, String> names, String language) {
+        var cells = new LinkedHashMap<String, String>();
+        for (var field : fields) {
+            cells.put(field.name(), QuestionText.format(field.fieldType(), field.value(), names, language));
+        }
+        return cells;
+    }
+
+    private Map<Integer, String> memberNames(List<AppointmentField> fields) {
+        var ids = fields.stream()
+                .filter(field -> field.fieldType().namesMembers())
+                .flatMap(field -> QuestionValues.memberIds(QuestionValues.read(field.value())).stream())
+                .distinct()
+                .toList();
+        return ids.isEmpty() ? Map.of() : memberRepository.findDisplayNames(ids);
     }
 
     /**
@@ -257,7 +231,10 @@ public class EventExportService {
                     case YEARLY -> english ? "Yearly" : "Jährlich";
                     case ONE_TIME -> english ? "Once" : "Einmalig";
                 };
-            case "day" -> event.dayOfWeek() != null ? dayName(event.dayOfWeek(), english) : "";
+            case "day" -> {
+                Integer dayOfWeek = event.dayOfWeek();
+                yield dayOfWeek != null ? dayName(dayOfWeek, english) : "";
+            }
             case "date" -> DATE_FMT.format(date);
             case "time" -> {
                 String start = event.startTime() != null
@@ -268,7 +245,7 @@ public class EventExportService {
                         : "";
                 yield start.isEmpty() ? "" : start + " – " + end;
             }
-            case "description" -> event.description() != null ? event.description() : "";
+            case "description" -> Objects.requireNonNullElse(event.description(), "");
             default -> "";
         };
     }
@@ -303,7 +280,7 @@ public class EventExportService {
         return !from.isAfter(to) && (to.equals(exclusiveEnd) || to.equals(exclusiveEnd.minusDays(1)));
     }
 
-    private byte[] renderPdf(Map<String, Object> data, String templateName, StationLogo logo)
+    private byte[] renderPdf(Map<String, Object> data, String templateName, MediaContent logo)
             throws IOException, InterruptedException {
         return TypstCompiler.compileTemplate(
                 data,

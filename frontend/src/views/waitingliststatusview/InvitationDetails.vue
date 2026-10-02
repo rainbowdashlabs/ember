@@ -8,7 +8,7 @@ import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import StatusFieldRow from './StatusFieldRow.vue'
-import type {WaitingListPublicInvitation} from '@/api/waitingList'
+import type {WaitingListPublicInvitation} from '@/api/generated/schema'
 
 /**
  * The appointment somebody was invited to, said exactly as the mail said it.

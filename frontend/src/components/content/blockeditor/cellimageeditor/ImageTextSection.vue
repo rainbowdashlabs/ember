@@ -7,7 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import TextInput from '@/components/input/text/TextInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import type {ImageConfig} from '@/api/pageManage'
+import type {ImageConfig} from '@/api/generated/schema'
 
 defineProps<{
     config: ImageConfig

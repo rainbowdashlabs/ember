@@ -13,7 +13,7 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import {describeFailure} from '@/util/failure'
 import Spinner from '@/components/feedback/Spinner.vue'
 import StationForm from './adminstationeditview/StationForm.vue'
-import type {ManagerDetail} from '@/api/stations'
+import type {ManagerDetail} from '@/api/generated/schema'
 import {stations} from '@/api'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 
@@ -44,8 +44,8 @@ const pageTitle = computed(() => (isEdit.value && name.value.trim()
 const {loading, failure} = useAsyncLoader(async () => {
   if (!stationId.value) return
   const detail = await stations.getStation(stationId.value)
-  name.value = detail.name ?? ''
-  manager.value = detail.manager ?? null
+  name.value = detail.name
+  manager.value = detail.manager
   managerEmail.value = ''
   editingManager.value = false
 })
@@ -56,7 +56,7 @@ async function save() {
     const emailToSend = managerEmail.value.trim() || undefined
     if (isEdit.value) {
       const detail = await stations.updateStation(stationId.value!, {name: name.value, managerEmail: emailToSend})
-      manager.value = detail.manager ?? null
+      manager.value = detail.manager
       editingManager.value = false
       managerEmail.value = ''
     } else {

@@ -5,21 +5,23 @@
  */
 package dev.chojo.ember.feature.events.route;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.EventRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
-import dev.chojo.ember.feature.members.service.StationMemberService;
-import io.javalin.http.NotFoundResponse;
+import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -40,7 +42,7 @@ class EventVisibilityTest {
 
     private EventCrudService crudService;
     private EventRestrictionService restrictionService;
-    private StationMemberService stationMemberService;
+    private GuardianPolicy guardianPolicy;
     private EventVisibility visibility;
     private StationEvent event;
 
@@ -48,20 +50,22 @@ class EventVisibilityTest {
     void setup() {
         crudService = mock(EventCrudService.class);
         restrictionService = mock(EventRestrictionService.class);
-        stationMemberService = mock(StationMemberService.class);
-        visibility = new EventVisibility(crudService, restrictionService, stationMemberService);
+        guardianPolicy = mock(GuardianPolicy.class);
+        visibility = new EventVisibility(crudService, restrictionService, guardianPolicy);
         event = mock(StationEvent.class);
         when(event.id()).thenReturn(EVENT_ID);
         when(event.stationId()).thenReturn(STATION_ID);
         when(crudService.findById(EVENT_ID)).thenReturn(Optional.of(event));
     }
 
-    private UserSession sessionWith(Set<StationPermission> permissions, int stationId) {
-        var session = mock(UserSession.class);
-        when(session.stationId()).thenReturn(stationId);
-        when(session.permissions()).thenReturn(permissions);
-        when(stationMemberService.findSpokenForIds(session)).thenReturn(List.of(MEMBER_ID, WARD_ID));
-        return session;
+    private StationSession sessionWith(Set<StationPermission> permissions, int stationId) {
+        var user = mock(UserSession.class);
+        when(user.stationId()).thenReturn(stationId);
+        when(user.permissions()).thenReturn(permissions);
+        when(user.hasPermission(any(StationPermission.class)))
+                .thenAnswer(call -> permissions.contains(call.<StationPermission>getArgument(0)));
+        when(guardianPolicy.household(user)).thenReturn(List.of(MEMBER_ID, WARD_ID));
+        return new StationSession(user, stationId, UUID.randomUUID(), mock(StationMember.class));
     }
 
     @Test
@@ -79,7 +83,7 @@ class EventVisibilityTest {
         when(restrictionService.canViewAny(anyInt(), any(), any())).thenReturn(false);
 
         var refusal = assertThrows(RefusalResponse.class, () -> visibility.requireVisibleEvent(session, EVENT_ID));
-        assertEquals(Refusal.EVENT_NOT_YOURS_TO_SEE, refusal.refusal());
+        assertEquals(EventRefusal.EVENT_NOT_YOURS_TO_SEE, refusal.refusal());
     }
 
     @Test
@@ -102,7 +106,8 @@ class EventVisibilityTest {
     void aMissingEventIsNotFound() {
         var session = sessionWith(Set.of(StationPermission.USER), STATION_ID);
 
-        assertThrows(NotFoundResponse.class, () -> visibility.requireVisibleEvent(session, EVENT_ID + 1));
+        var refusal = assertThrows(RefusalResponse.class, () -> visibility.requireVisibleEvent(session, EVENT_ID + 1));
+        assertEquals(EventRefusal.EVENT_NOT_HERE, refusal.refusal());
     }
 
     private record Row(int eventId) {}

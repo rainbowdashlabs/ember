@@ -5,8 +5,11 @@
  */
 package dev.chojo.ember.feature.legal.service;
 
+import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AvatarService;
+import dev.chojo.ember.feature.documents.service.DocumentService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberLookupService;
 import dev.chojo.ember.tracking.DataTracking;
@@ -40,6 +43,7 @@ public class GdprDeletionService {
     private final StationMemberRepository stationMemberRepository;
     private final MemberLookupService memberLookupService;
     private final AvatarService avatarService;
+    private final DocumentService documentService;
     private final GenericGdprDeleter engine;
 
     @Inject
@@ -47,11 +51,13 @@ public class GdprDeletionService {
             AccountRepository accountRepository,
             StationMemberRepository stationMemberRepository,
             MemberLookupService memberLookupService,
-            AvatarService avatarService) {
+            AvatarService avatarService,
+            DocumentService documentService) {
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.memberLookupService = memberLookupService;
         this.avatarService = avatarService;
+        this.documentService = documentService;
         DataTracking t;
         try {
             t = DataTrackingLoader.loadFromClasspath();
@@ -60,6 +66,21 @@ public class GdprDeletionService {
             t = DataTrackingLoader.empty();
         }
         this.engine = new GenericGdprDeleter(t);
+    }
+
+    /**
+     * Deletes the account of the person asking. Refused while the account still administers a
+     * station, because the station would be left without an owner.
+     *
+     * @param accountId the account asking to be deleted
+     */
+    public void deleteOwnAccount(int accountId) {
+        for (var member : stationMemberRepository.findAllByAccountId(accountId)) {
+            boolean administers = stationMemberRepository.findPermissions(member.id()).stream()
+                    .anyMatch(role -> role.permission() == StationPermission.STATION_ADMINISTRATOR);
+            if (administers) throw MemberRefusal.ACCOUNT_STILL_ADMINISTERS_STATION.raise();
+        }
+        deleteAccount(accountId);
     }
 
     /**
@@ -80,9 +101,16 @@ public class GdprDeletionService {
     /**
      * Anonymises a station member by running the engine for both the integer-id identity
      * ({@code MEMBER_ID}) and the UUID identity ({@code MEMBER_UID}). The avatar file is removed
-     * from disk as a non-DB side effect.
+     * from disk as a non-DB side effect, and the account goes too when this was its only membership.
+     *
+     * <p>The member's documents are released first, by the rule {@link DocumentService#memberLeaves} holds
+     * for a deleted member: what was not kept goes, and what was kept for the record keeps their name.
+     * Without it every document naming only this member was left naming nobody, which makes it the
+     * station's own paperwork. The name outlasts the erasure on purpose, since the record it is kept for
+     * has to say whom it is about.
      */
     public void anonymizeMember(int memberId) {
+        documentService.memberLeaves(memberId, DocumentService.Leaving.DELETED);
         var member = stationMemberRepository.findById(memberId).orElse(null);
         Integer accountId = member != null ? member.accountId() : null;
         UUID memberUid = memberLookupService.resolveUid(memberId);
@@ -95,7 +123,6 @@ public class GdprDeletionService {
             uidReport.log(log);
         }
 
-        // The account is cleaned up at the end if the deleted member was the only membership.
         if (accountId != null) {
             var remaining = stationMemberRepository.findAllByAccountId(accountId);
             if (remaining.isEmpty()) {
@@ -105,6 +132,10 @@ public class GdprDeletionService {
         }
     }
 
+    /**
+     * Runs the engine for the account and removes its avatar. The engine deletes the account row itself;
+     * the explicit delete afterwards is a safeguard against a missing strategy entry leaving it behind.
+     */
     private void deleteAccountData(int accountId) {
         UUID accountUid = accountRepository.resolveUid(accountId);
         var report = engine.deleteByIdentity(IdentityType.ACCOUNT_ID, accountId);
@@ -112,9 +143,6 @@ public class GdprDeletionService {
         if (accountUid != null) {
             avatarService.delete(accountUid);
         }
-        // account.id has DELETE_EXPLICIT on the strategy list and the engine handles it in phase 2.
-        // The repository delete is now redundant in the happy path, but kept as a final safeguard so
-        // a missing strategy entry doesn't leave a dangling account row.
         if (accountRepository.findById(accountId).isPresent()) {
             accountRepository.delete(accountId);
         }

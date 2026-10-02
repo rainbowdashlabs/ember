@@ -6,152 +6,24 @@
 <script setup lang="ts">
 import {computed, onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
-import {useRouter, type RouteLocationRaw} from 'vue-router'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import {useRouter} from 'vue-router'
 import InfoContainer from '@/components/container/InfoContainer.vue'
-import RowLink from '@/components/navigation/RowLink.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import LinkButton from '@/components/button/LinkButton.vue'
-import IconButton from '@/components/button/IconButton.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
-import EmptyState from '@/components/feedback/EmptyState.vue'
-import {notifications} from '@/api'
-import {getFeedStatus, type FeedStatusResponse} from '@/api/feedToken'
+import NotificationInbox from '@/components/notifications/NotificationInbox.vue'
+import {stationInbox} from '@/api/notifications'
+import {getFeedStatus} from '@/api/feedToken'
 import {useSidebarCounts} from '@/composables/useSidebarCounts'
-import type {NotificationEntry} from '@/api/notifications'
-import {formatDate, formatDateTime} from '@/util/format'
-import {expiryReminderKey} from '@/util/expiry'
+import type {FeedStatusResponse} from '@/api/generated/schema'
 
+/**
+ * The station member's inbox on the dashboard, with a hint to set up the personal feed where the
+ * reader has none running.
+ */
 const {t} = useI18n()
 const router = useRouter()
 const {refresh: refreshSidebarCounts} = useSidebarCounts()
 
-const notifs = ref<NotificationEntry[]>([])
-const loading = ref(true)
 const feedStatus = ref<FeedStatusResponse | null>(null)
-
-const typeIcons: Record<string, string> = {
-  NEW_NEWS: 'newspaper',
-  NEWS_COMMENT: 'comment',
-  COMMENT_MENTION: 'at',
-  EVENT_REGISTRATION_STATUS: 'calendar-days',
-  EXCHANGE_STATUS_CHANGE: 'rotate',
-  EXCHANGE_NEW_REQUEST: 'rotate',
-  MOVEMENT_DECLINED: 'ban',
-  NEW_EVENT: 'calendar-plus',
-  NEW_EVENTS_BATCH: 'calendar-plus',
-  MEMBER_ADDED_TO_GROUP: 'layer-group',
-  PROFILE_FIELD_CHANGED: 'user',
-  PROCUREMENT_REQUESTED: 'box-open',
-  PROCUREMENT_FULFILLED: 'box-open',
-  LOST_AND_FOUND_NEW: 'box-open',
-  LOST_AND_FOUND_CLAIMED: 'box-open',
-  LENDING_NEW_REQUEST: 'handshake',
-  LENDING_STATUS_CHANGE: 'handshake',
-  LENDING_NEW_MESSAGE: 'envelope',
-  BOARD_TICKET_UPDATE: 'list-check',
-  WAITLIST_NEW_ENTRY: 'list-ol',
-  WAITLIST_PUBLIC_REGISTRATION: 'list-ol',
-  WAITLIST_INVITATION_ANSWERED: 'envelope-open-text',
-  STORAGE_WARNING: 'triangle-exclamation',
-  CLUSTER_APPLICATION_SUBMITTED: 'sitemap',
-  CLUSTER_APPLICATION_APPROVED: 'sitemap',
-  CLUSTER_APPLICATION_DENIED: 'sitemap',
-  CLUSTER_APPLICATION_WITHDRAWN: 'sitemap',
-  CLUSTER_STATION_RELEASED: 'sitemap',
-  CLUSTER_MODULE_DENIED: 'sitemap',
-  CLUSTER_QUOTA_CHANGED: 'hard-drive',
-  CLUSTER_ITEM_ISSUED: 'truck',
-  CLUSTER_ITEM_LOST: 'triangle-exclamation',
-  CLUSTER_MEMBER_ROLE_CHANGED: 'user-shield',
-  CLUSTER_FIELD_VALUE_CHANGED: 'id-card',
-  EXPIRY_REMINDER: 'hourglass-half',
-  REGISTRATION_DEADLINE_EXPIRED: 'clock',
-  EVENT_CANCELLED: 'calendar-xmark',
-  EVENT_REMINDER: 'bell',
-  PROCEDURE_ASSIGNED: 'clipboard-list',
-  PROCEDURE_RESOLVED: 'clipboard-check',
-  PROCEDURE_REOPENED: 'rotate',
-  PROCEDURE_ITEM_CHECKED: 'square-check',
-  SELF_CHECK_ASSIGNED: 'shirt',
-  SELF_CHECK_SUBMITTED: 'inbox',
-  SELF_CHECK_ROW_REFUSED: 'rotate-left',
-}
-
-/** A day as the database writes one, which is not how anybody here reads one. */
-const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/
-
-/**
- * The days in a notification's parameters, written the way the rest of the product writes them.
- *
- * <p>A date reaches the screen as the plain day it is stored as, and four kinds of notification
- * carry one: an appointment coming up, a batch of new appointments, an answer still wanted, a check
- * to hand back. Every one of them read "2026-09-19" in the middle of a German sentence. Done here
- * rather than at each of the four, because the next notification to carry a date would otherwise
- * read that way too until somebody noticed.
- */
-function withReadableDates(params: Record<string, string>): Record<string, string> {
-  return Object.fromEntries(
-      Object.entries(params).map(([key, value]) =>
-          [key, typeof value === 'string' && ISO_DATE.test(value) ? formatDate(value) : value]),
-  )
-}
-
-/**
- * The sentence for one notification.
- *
- * <p>Most of it is the message the type carries, with the enums in its parameters routed through
- * their locale namespace so they read in German. A movement called off is the exception with two
- * sentences rather than one: whether the piece came home cannot be said in a word, and it is the
- * half the reader cannot guess.
- */
-function renderMessage(n: NotificationEntry): string {
-  const params = withReadableDates(n.params)
-  // Status fields arrive as raw enum names from the backend (PENDING, DONE, …);
-  // route each one through its locale namespace so the message reads in German.
-  if (n.type === 'EVENT_REGISTRATION_STATUS' && params.status) {
-    params.status = t(`dashboard.registrationStatus.${params.status}`)
-  }
-  // A movement's step carries the words its own flow gives it, so there is nothing to look up.
-  // The party it is waiting on is an enum and does need one.
-  if (n.type === 'EXCHANGE_STATUS_CHANGE' && params.nextActor) {
-    params.nextActor = t(`movements.actor.${params.nextActor}`)
-  }
-  if (n.type === 'LENDING_STATUS_CHANGE' && params.status) {
-    params.status = t(`dashboard.lendingStatus.${params.status}`)
-  }
-  if (n.type === 'MOVEMENT_CANCELLED') {
-    const key = params.itemStayedAway === 'true' ? 'movementCancelledAway' : 'movementCancelled'
-    return t(`notification.${key}`, params)
-  }
-  if (n.type === 'EXPIRY_REMINDER') return t(expiryReminderKey(params), params)
-  return t(n.localeKey, params)
-}
-
-/** What the notification is about, or nothing where it is about nothing that can be opened. */
-function notificationPage(n: NotificationEntry): RouteLocationRaw | null {
-  return n.link ? {name: n.link.route, params: n.link.routeParams, query: n.link.query} : null
-}
-
-/**
- * Marks one notification read and takes it off the list.
- *
- * <p>Opening the row marks it read, and so does the acknowledge button inside it, so one press of
- * that button reaches both. The list is what says whether anything is left to mark, so it is
- * emptied before the server is told rather than after, and the second call finds nothing to do.
- */
-async function ack(id: number) {
-  if (!notifs.value.some(entry => entry.id === id)) return
-  notifs.value = notifs.value.filter(entry => entry.id !== id)
-  await notifications.acknowledge(id)
-  refreshSidebarCounts()
-}
-
-async function ackAll() {
-  await notifications.acknowledgeAll()
-  notifs.value = []
-  refreshSidebarCounts()
-}
 
 const showFeedCta = computed(() => {
   if (!feedStatus.value) return false
@@ -164,44 +36,15 @@ const feedCtaMessage = computed(() => {
   return t('dashboard.feedInactiveHint')
 })
 
-async function loadData() {
-  loading.value = true
-  try {
-    const [n, fs] = await Promise.all([
-      notifications.listUnacknowledged(),
-      getFeedStatus().catch(() => null),
-    ])
-    notifs.value = n
-    feedStatus.value = fs
-  } catch { /* ignore */ }
-  loading.value = false
-}
-
-onMounted(loadData)
+onMounted(async () => {
+  feedStatus.value = await getFeedStatus().catch(() => null)
+})
 </script>
 
 <template>
-  <NeutralContainer class="flex flex-col max-h-[66vh]">
-    <div class="flex items-center justify-between mb-4 shrink-0">
-      <SectionHeader>
-        <font-awesome-icon :icon="['fas', 'bell']" class="mr-2"/>
-        {{ t('dashboard.notifications') }}
-        <span v-if="notifs.length > 0"> ({{ notifs.length }})</span>
-      </SectionHeader>
-      <div class="flex items-center gap-1">
-        <SecondaryButton :icon="['fas', 'check-double']" v-if="notifs.length > 0" class="text-sm" @click="ackAll">
-          {{ t('dashboard.acknowledgeAll') }}
-        </SecondaryButton>
-        <IconButton
-            :icon="['fas', 'gear']"
-            :label="t('dashboard.notificationSettings')"
-            class="text-(--text-muted) hover:text-primary"
-            @click="router.push({ name: 'profile-notifications' })"
-        />
-      </div>
-    </div>
-
-    <div class="overflow-y-auto flex-1 space-y-2">
+  <NotificationInbox :api="stationInbox" :settings="{ name: 'profile-notifications' }"
+                     @changed="refreshSidebarCounts">
+    <template #before-list>
       <InfoContainer v-if="showFeedCta" class="flex items-center justify-between gap-3 py-2 px-3">
         <div class="flex items-center gap-2">
           <font-awesome-icon :icon="['fas', 'rss']" class="text-info shrink-0"/>
@@ -211,35 +54,6 @@ onMounted(loadData)
           {{ t('dashboard.feedSetup') }}
         </SecondaryButton>
       </InfoContainer>
-
-      <EmptyState compact v-if="!loading && notifs.length === 0">
-        <font-awesome-icon :icon="['fas', 'check-double']" class="text-2xl text-success mb-2"/>
-        <p>{{ t('dashboard.noNotifications') }}</p>
-      </EmptyState>
-
-      <template v-if="notifs.length > 0">
-        <RowLink v-for="n in notifs" :key="n.id" :to="notificationPage(n)">
-          <NeutralContainer data-testid="notification-entry"
-                            class="flex items-start justify-between gap-3 py-2 px-3"
-                            :class="{ 'cursor-pointer hover:bg-(--bg-accent)': n.link }" @click="ack(n.id)">
-            <div class="flex items-start gap-3">
-              <font-awesome-icon :icon="['fas', typeIcons[n.type] ?? 'bell']"
-                                 class="text-primary mt-0.5 h-4 w-4 shrink-0"/>
-              <div>
-                <span class="text-xs font-semibold text-(--text-muted)">{{ t(`notification.typeLabel.${n.type}`) }}</span>
-                <p class="text-sm">{{ renderMessage(n) }}</p>
-                <!-- No body / preview snippet on the website: the dashboard panel stays
-                     scannable and the full rich body lives in the feed only. -->
-                <p class="text-xs text-(--text-muted)">{{ formatDateTime(n.createdAt) }}</p>
-              </div>
-            </div>
-            <LinkButton class="shrink-0 mt-1" @click="ack(n.id)">
-              <font-awesome-icon :icon="['fas', 'check']" class="mr-0.5"/>
-              {{ t('dashboard.acknowledge') }}
-            </LinkButton>
-          </NeutralContainer>
-        </RowLink>
-      </template>
-    </div>
-  </NeutralContainer>
+    </template>
+  </NotificationInbox>
 </template>

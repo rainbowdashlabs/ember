@@ -5,9 +5,10 @@
  */
 package dev.chojo.ember.api;
 
+import dev.chojo.ember.api.refusal.FederationRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import io.javalin.http.Context;
-import io.javalin.http.ForbiddenResponse;
 
 import java.util.UUID;
 
@@ -27,9 +28,14 @@ public record FederationSession(FederationPartner partner, UUID partnerStationUi
      *
      * @param ctx the Javalin context
      * @return the federation session stored as a context attribute
+     * @throws RefusalResponse when the request carried no valid signature
      */
     public static FederationSession from(Context ctx) {
-        return ctx.attribute(ATTR_FEDERATION_SESSION);
+        FederationSession session = ctx.attribute(ATTR_FEDERATION_SESSION);
+        if (session == null) {
+            throw FederationRefusal.FEDERATION_REQUEST_NOT_SIGNED.raise();
+        }
+        return session;
     }
 
     /**
@@ -37,11 +43,7 @@ public record FederationSession(FederationPartner partner, UUID partnerStationUi
      * the request carried none.
      */
     public static FederationPartner requirePartner(Context ctx) {
-        var session = from(ctx);
-        if (session == null) {
-            throw new ForbiddenResponse("Missing or invalid federation signature");
-        }
-        return session.partner();
+        return from(ctx).partner();
     }
 
     public int partnerId() {

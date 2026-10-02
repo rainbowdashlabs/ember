@@ -11,9 +11,11 @@ import {use} from 'echarts/core'
 import {CanvasRenderer} from 'echarts/renderers'
 import {LineChart} from 'echarts/charts'
 import {DataZoomComponent, GridComponent, LegendComponent, TooltipComponent} from 'echarts/components'
-import {AuthBucket, type AuthBucketName, type HourlyTrafficRow} from '@/api/traffic'
+import {AuthBucket, type AuthBucketName} from '@/api/traffic'
+import type {HourlyTrafficRow} from '@/api/generated/schema'
 import {bottomLegend, cartesianGrid, ZOOM_SLIDER_BOTTOM} from '@/util/chartLayout'
-import {darkThemeActive as isDark} from '@/util/themeState'
+import {useThemePaint} from '@/composables/useThemePaint'
+import {formatHourLabel} from '@/util/format'
 
 use([CanvasRenderer, LineChart, GridComponent, TooltipComponent, LegendComponent, DataZoomComponent])
 
@@ -36,6 +38,7 @@ const props = defineProps<{
 }>()
 
 const {t, n} = useI18n()
+const {dark: isDark} = useThemePaint()
 
 const textColor = computed(() => (isDark.value ? '#ccc' : '#333'))
 
@@ -57,17 +60,6 @@ const hours = computed(() => {
 })
 
 const hourLabels = computed(() => hours.value.map(h => formatHourLabel(h)))
-
-function formatHourLabel(iso: string): string {
-  const d = new Date(iso)
-  if (isNaN(d.getTime())) return iso
-  return d.toLocaleString(undefined, {
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-}
 
 function bucketSum(hour: string, auth: AuthBucketName, field: 'ingressBytes' | 'egressBytes' | 'requests'): number {
   return props.rows

@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.feature.restriction.service.RestrictionService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -79,7 +80,7 @@ public class QuizTestAccessService {
         log.info("Updated restriction mode for quiz test {} to {}", testId, mode);
     }
 
-    public void grantMemberAccess(int testId, int memberId, Instant closesAt) {
+    public void grantMemberAccess(int testId, int memberId, @Nullable Instant closesAt) {
         testRepository.grantMemberAccess(testId, memberId, closesAt);
         log.info("Granted access to quiz test {} for member {}", testId, memberId);
     }

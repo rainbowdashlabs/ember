@@ -7,6 +7,7 @@ package dev.chojo.ember.event.events;
 
 import dev.chojo.ember.event.DomainEvent;
 import dev.chojo.ember.feature.inventory.entity.StepActor;
+import org.jspecify.annotations.Nullable;
 
 /**
  * A step of a movement has been acknowledged and the chain has moved on.
@@ -24,11 +25,11 @@ import dev.chojo.ember.feature.inventory.entity.StepActor;
 public record MovementAdvanced(
         int stationId,
         int movementId,
-        Integer memberId,
+        @Nullable Integer memberId,
         Integer inventoryId,
         String inventoryName,
         String stepLabel,
         int actorMemberId,
-        StepActor nextActor,
-        Integer ownerClusterId)
+        @Nullable StepActor nextActor,
+        @Nullable Integer ownerClusterId)
         implements DomainEvent {}

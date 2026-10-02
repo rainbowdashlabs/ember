@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.conf.file.elements;
 
+import dev.chojo.ember.feature.mail.entity.SmtpEncryption;
 import dev.chojo.ember.feature.station.entity.MailProviderType;
 import dev.chojo.ocular.override.Env;
 import dev.chojo.ocular.override.Overwrite;
@@ -132,13 +133,12 @@ public class Mailing {
      *
      * <p>An instance written before the providers became one list has none of its own; its first
      * provider still stands in the fields on this element, with the rest behind {@code fallbacks}.
-     * Both are folded into the same list here, so nothing has to be saved before it sends.
+     * Both are folded into the same list here, so nothing has to be saved before it sends. A bare
+     * configuration still names SMTP, so only a sender address says the old fields were ever filled
+     * in; without one, an untouched instance would try to send through an empty host.
      */
     public List<MailProviderEntry> providers() {
         if (providers != null && !providers.isEmpty()) return providers;
-        // A bare configuration still names SMTP, so the sender address is what says whether anybody
-        // ever filled the old fields in. Without this an untouched instance claims a provider and
-        // tries to send through an empty host.
         if (provider == null || provider == MailProviderType.NONE || senderAddress == null || senderAddress.isBlank()) {
             return Collections.emptyList();
         }
@@ -147,7 +147,7 @@ public class Mailing {
                 provider,
                 smtp.host(),
                 smtp.port(),
-                smtp.ssl(),
+                SmtpEncryption.fromLegacySsl(smtp.ssl()),
                 user,
                 password,
                 apiKey,
@@ -199,6 +199,66 @@ public class Mailing {
 
     public int notificationDigestIntervalMinutes() {
         return notificationDigestIntervalMinutes;
+    }
+
+    public void notificationDigestIntervalMinutes(int notificationDigestIntervalMinutes) {
+        this.notificationDigestIntervalMinutes = notificationDigestIntervalMinutes;
+    }
+
+    /**
+     * Where mail goes, exactly as written here: the provider list and the fields the first
+     * provider lived in before the providers became one list.
+     */
+    public Senders senders() {
+        return new Senders(provider, smtp.host(), user, password, apiKey, senderAddress, providers, fallbacks);
+    }
+
+    /**
+     * Replaces where mail goes, all of it at once.
+     */
+    public void senders(Senders senders) {
+        provider = senders.provider();
+        smtp.host(senders.host());
+        user = senders.user();
+        password = senders.password();
+        apiKey = senders.apiKey();
+        senderAddress = senders.senderAddress();
+        providers = senders.providers();
+        fallbacks = senders.fallbacks();
+    }
+
+    /**
+     * Where mail goes, as one value, so a change to it is made and taken back in one piece.
+     *
+     * @param provider      the first provider in the shape written before the list
+     * @param host          its host
+     * @param user          its user
+     * @param password      its password
+     * @param apiKey        its API key
+     * @param senderAddress its sender address, which also says whether it was ever filled in
+     * @param providers     the provider list
+     * @param fallbacks     the providers after the first in the shape written before the list
+     */
+    public record Senders(
+            MailProviderType provider,
+            String host,
+            String user,
+            String password,
+            String apiKey,
+            String senderAddress,
+            List<MailProviderEntry> providers,
+            List<MailProviderEntry> fallbacks) {
+
+        /** Nowhere: the instance sends no mail. */
+        public static final Senders NONE = new Senders(MailProviderType.NONE, "", "", "", "", "", List.of(), List.of());
+
+        /**
+         * These senders with the given provider list, which from then on says everything: the
+         * providers written before the list are dropped with it.
+         */
+        public Senders withProviders(List<MailProviderEntry> list) {
+            return new Senders(provider, host, user, password, apiKey, senderAddress, List.copyOf(list), List.of());
+        }
     }
 
     /**

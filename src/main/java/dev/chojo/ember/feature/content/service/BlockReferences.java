@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.content.service;
 
 import dev.chojo.ember.feature.content.entity.BlockAudience;
 import dev.chojo.ember.feature.content.entity.CellConfig;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Checks, on the way in, that a block naming something of another feature names only what every
@@ -29,5 +30,5 @@ public interface BlockReferences {
      * @param audience  who reads the content the block sits in
      * @param config    the block's settings
      */
-    void requireReachable(Integer stationId, BlockAudience audience, CellConfig config);
+    void requireReachable(@Nullable Integer stationId, BlockAudience audience, CellConfig config);
 }

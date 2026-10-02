@@ -10,7 +10,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import StationBadge from '@/components/badge/StationBadge.vue'
 import EditButton from '@/components/button/EditButton.vue'
-import type {ShareDetail} from '@/api/lending'
+import type {ShareDetail} from '@/api/generated/schema'
 
 const props = defineProps<{
   detail: ShareDetail

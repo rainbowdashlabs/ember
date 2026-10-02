@@ -6,26 +6,24 @@
 package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.feature.events.entity.EventRegistration;
+import dev.chojo.ember.feature.events.entity.RegistrationFieldDraft;
 import dev.chojo.ember.feature.events.entity.StationEvent;
-import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository.FieldEntry;
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
-import dev.chojo.ember.feature.members.entity.StationMember;
-import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
+import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationLinks;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.notifications.entity.StationAudience;
+import dev.chojo.ember.feature.notifications.service.Notifier;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -43,24 +41,21 @@ public class RegistrationAnswerReminder {
     private final EventRegistrationFieldService fieldService;
     private final EventRegistrationRepository registrationRepository;
     private final EventRepository eventRepository;
-    private final StationMemberRepository stationMemberRepository;
     private final MemberNameResolver memberNameResolver;
-    private final NotificationService notificationService;
+    private final Notifier notifier;
 
     @Inject
     public RegistrationAnswerReminder(
             EventRegistrationFieldService fieldService,
             EventRegistrationRepository registrationRepository,
             EventRepository eventRepository,
-            StationMemberRepository stationMemberRepository,
             MemberNameResolver memberNameResolver,
-            NotificationService notificationService) {
+            Notifier notifier) {
         this.fieldService = fieldService;
         this.registrationRepository = registrationRepository;
         this.eventRepository = eventRepository;
-        this.stationMemberRepository = stationMemberRepository;
         this.memberNameResolver = memberNameResolver;
-        this.notificationService = notificationService;
+        this.notifier = notifier;
     }
 
     /**
@@ -74,7 +69,7 @@ public class RegistrationAnswerReminder {
      * @param eventId the appointment whose questions are being replaced
      * @param fields  the questions it asks from now on
      */
-    public void replaceQuestions(int eventId, List<FieldEntry> fields) {
+    public void replaceQuestions(int eventId, List<RegistrationFieldDraft> fields) {
         var owedBefore = owing(eventId).stream().map(EventRegistration::id).collect(Collectors.toSet());
         fieldService.replaceFields(eventId, fields);
         var newlyOwing = owing(eventId).stream()
@@ -118,13 +113,8 @@ public class RegistrationAnswerReminder {
      * about.
      */
     private void tell(StationEvent event, EventRegistration registration) {
-        Set<Integer> audience = new HashSet<>();
-        audience.add(registration.memberId());
-        for (StationMember manager : stationMemberRepository.findManagers(registration.memberId())) {
-            audience.add(manager.id());
-        }
-        notificationService.notifyMembersIfAbsent(
-                audience,
+        notifier.notify(
+                StationAudience.household(List.of(registration.memberId())),
                 NotificationType.REGISTRATION_ANSWER_MISSING,
                 NotificationData.of(
                         new NotificationParams.RegistrationAnswerMissing(
@@ -132,6 +122,6 @@ public class RegistrationAnswerReminder {
                                 registration.eventDate(),
                                 memberNameResolver.called(registration.memberId())),
                         NotificationLinks.eventDate(event.id(), registration.eventDate())),
-                -1);
+                Delivery.ONCE_WHILE_UNREAD);
     }
 }

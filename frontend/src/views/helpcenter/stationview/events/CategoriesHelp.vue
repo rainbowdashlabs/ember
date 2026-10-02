@@ -34,7 +34,6 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.categories.howToText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Category list -->
     <HelpSection :title="t('categoryManage.title')">
       <div class="flex items-center justify-between mb-4">
         <SectionHeader>{{ t('categoryManage.title') }}</SectionHeader>
@@ -83,7 +82,6 @@ const {t} = useI18n()
       </div>
     </HelpSection>
 
-    <!-- Dummy: Edit modal snapshot -->
     <HelpSection :title="t('helpCenter.categories.maxShownTitle')">
       <p>{{ t('helpCenter.categories.maxShownText') }}</p>
       <NeutralContainer class="space-y-4 mt-3">

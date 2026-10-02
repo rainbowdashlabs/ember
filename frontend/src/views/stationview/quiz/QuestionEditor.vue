@@ -16,7 +16,8 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import FieldHint from '@/components/typography/FieldHint.vue'
 import ImageUploadField from './ImageUploadField.vue'
-import {QuizQuestionTypes, type QuizCategory, type QuizQuestionTypeName} from '@/api/quiz'
+import {isQuizQuestionType, QuizQuestionTypes, type QuizQuestionTypeName} from '@/api/quiz'
+import type {QuizCategory} from '@/api/generated/schema'
 import McConfigEditor from './McConfigEditor.vue'
 import TfConfigEditor from './TfConfigEditor.vue'
 import FillBlankConfigEditor from './FillBlankConfigEditor.vue'
@@ -36,7 +37,7 @@ const points = defineModel<number>('points', {required: true})
 const autoPoints = defineModel<boolean>('autoPoints', {required: true})
 const config = defineModel<Record<string, unknown>>('config', {required: true})
 
-const props = defineProps<{
+defineProps<{
   imagePreview: string | null
   authImageSrc?: string | null
   hasImage: boolean
@@ -112,8 +113,7 @@ watch(calculatedPoints, (val) => {
 })
 
 function onTypeChange(val: string | number | null | undefined) {
-  if (!val) return
-  questionType.value = String(val) as QuizQuestionTypeName
+  if (isQuizQuestionType(val)) questionType.value = val
 }
 </script>
 
@@ -148,10 +148,8 @@ function onTypeChange(val: string | number | null | undefined) {
       </div>
     </div>
 
-    <!-- Image upload (only for IMAGE_TEXT) -->
     <ImageUploadField v-if="questionType === QuizQuestionTypes.IMAGE_TEXT" :image-preview="imagePreview" :auth-src="authImageSrc" @select-image="(e: Event) => emit('selectImage', e)" @remove-image="emit('removeImage')" />
 
-    <!-- Type-specific config editors -->
     <McConfigEditor v-if="questionType === QuizQuestionTypes.MULTIPLE_CHOICE" v-model:config="config" :question-title="title" />
     <FillBlankConfigEditor v-if="questionType === QuizQuestionTypes.FILL_IN_THE_BLANK" v-model:config="config" />
     <FreeAnswerConfigEditor v-if="questionType === QuizQuestionTypes.FREE_ANSWER || questionType === QuizQuestionTypes.ENUMERATION" v-model:config="config" />
@@ -160,7 +158,6 @@ function onTypeChange(val: string | number | null | undefined) {
     <TfConfigEditor v-if="questionType === QuizQuestionTypes.TRUE_FALSE" v-model:config="config" />
     <OrderingConfigEditor v-if="questionType === QuizQuestionTypes.ORDERING" v-model:config="config" />
 
-    <!-- Save / Cancel -->
     <ButtonRow pair align="end" class="pt-3 border-t border-bg-light-accent dark:border-bg-dark-accent">
       <SecondaryButton @click="emit('cancel')">{{ t('common.cancel') }}</SecondaryButton>
       <PrimaryButton :disabled="!title.trim()" @click="emit('save')">{{ t('common.save') }}</PrimaryButton>

@@ -9,7 +9,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SizeBadge from '@/components/badge/SizeBadge.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import type { InventoryItem, InventorySize } from '@/api/inventory'
+import type { InventoryItem, InventorySize } from '@/api/generated/schema'
 
 const props = defineProps<{
   items: InventoryItem[]

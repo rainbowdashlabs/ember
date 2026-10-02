@@ -40,14 +40,13 @@ class FormerMemberServiceTest extends RepositoryTestBase {
                 memberGroupRepo,
                 userTagRepo,
                 attendanceRepo,
-                profileFieldRepo,
+                profileFieldCore,
                 mock(DocumentService.class),
                 selfCheckService);
         station = stationRepo.create("FormerStation");
         account = accountRepo.create("former@test.com", "Former", "Member");
         member = stationMemberRepo.create(station.id(), account.id());
 
-        // Assign MEMBER + LOGIN roles
         stationMemberRepo
                 .findPermissionByName(StationPermission.USER)
                 .ifPresent(r -> stationMemberRepo.grantPermission(member.id(), r.id()));
@@ -153,7 +152,6 @@ class FormerMemberServiceTest extends RepositoryTestBase {
     @Test
     @Order(30)
     void canMarkFormerRejectsWithInventoryAssigned() {
-        // Create a new member and assign an inventory item to them
         var acc = accountRepo.create("former-inv@test.com", "Inv", "Member");
         var mem = stationMemberRepo.create(station.id(), acc.id());
         stationMemberRepo
@@ -168,7 +166,6 @@ class FormerMemberServiceTest extends RepositoryTestBase {
         assertNotNull(result);
         assertTrue(result.contains("inventory"));
 
-        // Cleanup
         inventoryRepo.delete(inv.id());
         stationMemberRepo.delete(mem.id());
         accountRepo.delete(acc.id());
@@ -193,8 +190,6 @@ class FormerMemberServiceTest extends RepositoryTestBase {
     @Test
     @Order(32)
     void markFormerThrowsWhenCannotMarkFormer() {
-        // member is now not former (was reactivated in order 20), so they are valid.
-        // Force a failure by using a non-existent member ID
         assertThrows(IllegalStateException.class, () -> service.markFormer(999999));
     }
 }

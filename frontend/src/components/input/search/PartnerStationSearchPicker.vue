@@ -6,7 +6,8 @@
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
 import EntitySearchPicker from './EntitySearchPicker.vue'
-import {searchFederationStations, type StationPickerResult} from '@/api/federation'
+import {searchFederationStations} from '@/api/federation'
+import type {StationPickerResult} from '@/api/generated/schema'
 
 const model = defineModel<string | null>()
 

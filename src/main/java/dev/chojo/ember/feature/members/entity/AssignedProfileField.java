@@ -6,6 +6,8 @@
 package dev.chojo.ember.feature.members.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import dev.chojo.ember.feature.question.FieldType;
+import org.jspecify.annotations.Nullable;
 
 /**
  * A question together with how it is put to one audience.
@@ -36,7 +38,7 @@ public record AssignedProfileField(ProfileField field, ProfileFieldAssignment as
     }
 
     /** How much of a row this audience gives it, which the assignment may decide against the definition. */
-    public String width() {
+    public @Nullable String width() {
         return assignment.width(field.width());
     }
 
@@ -52,7 +54,7 @@ public record AssignedProfileField(ProfileField field, ProfileFieldAssignment as
                         row.getInt("id"),
                         row.getInt("station_id"),
                         row.getString("name"),
-                        row.getEnum("field_type", ProfileFieldType.class),
+                        FieldType.valueOf(row.getString("field_type")),
                         ProfileFieldConfig.parse(row.getString("config")),
                         row.getBoolean("required"),
                         row.getBoolean("readonly"),

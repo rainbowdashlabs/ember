@@ -6,11 +6,15 @@
 package dev.chojo.ember.feature.members.repository;
 
 import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
+import dev.chojo.ember.feature.members.entity.FieldOrigin;
+import dev.chojo.ember.feature.members.entity.MemberChangeSummary;
+import dev.chojo.ember.feature.members.entity.ProfileAuthor;
 import dev.chojo.ember.feature.members.entity.ProfileFieldChange;
 import dev.chojo.ember.feature.members.entity.ProfileFieldChangeAcknowledgement;
 import dev.chojo.ember.util.sql.MemberNameSql;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.List;
@@ -28,36 +32,72 @@ public class ProfileFieldChangeRepository {
     private static final String ENRICHED_CHANGE_COLUMNS = """
             c.id, c.field_id, c.cluster_field_id, c.member_id, c.old_value, c.new_value,
             c.changed_by, c.changed_at, c.requires_acknowledgement,
-            %s AS changed_by_name,
+            coalesce(%s, '') AS changed_by_name,
             coalesce(pf.name, cpf.name) AS field_name,
             coalesce(pf.field_type, cpf.field_type) AS field_type""".formatted(MemberNameSql.ofAccount("a"));
+    /**
+     * Who made a change, as {@code a}: their account through their membership, or the account kept beside
+     * the change where they had no membership at the member's station.
+     */
+    private static final String AUTHOR_JOIN = """
+            LEFT JOIN station_member sm ON sm.id = c.changed_by
+            LEFT JOIN account a ON a.id = coalesce(sm.account_id, c.changed_by_account_id)""";
+
     private static final String ENRICHED_ACKNOWLEDGEMENT_COLUMNS = """
             ack.id, ack.change_id, ack.acknowledged_by, ack.acknowledged_at, ack.comment,
             %s AS acknowledged_by_name""".formatted(MemberNameSql.ofAccount("a"));
 
     /**
-     * Find a recent change for the same field+member+changedBy within the merge window.
+     * The newest change to one answer by one author since the cutoff, which a further change by the same
+     * author merges into.
+     *
+     * @param origin   who asked the question, which says which column names it
+     * @param fieldId  the question
+     * @param memberId whose answer it is
+     * @param author   who changed it
+     * @param cutoff   how far back a change still counts as the same one
+     * @return the change's id, or empty where there is none that recent
      */
-    public Optional<ProfileFieldChange> findRecentChange(int fieldId, int memberId, int changedBy, Instant cutoff) {
+    public Optional<Integer> findRecentChange(
+            FieldOrigin origin, int fieldId, int memberId, ProfileAuthor author, Instant cutoff) {
         return query("""
-                SELECT %s
-                FROM profile_field_change c
-                JOIN station_member sm ON sm.id = c.changed_by
-                JOIN account a ON a.id = sm.account_id
-                LEFT JOIN profile_field pf ON pf.id = c.field_id
-                LEFT JOIN cluster_profile_field cpf ON cpf.id = c.cluster_field_id
-                WHERE c.field_id = :field_id
-                  AND c.member_id = :member_id
-                  AND c.changed_by = :changed_by
-                  AND c.changed_at >= :cutoff
-                ORDER BY c.changed_at DESC
-                LIMIT 1;""", ENRICHED_CHANGE_COLUMNS)
+                SELECT id
+                FROM profile_field_change
+                WHERE %s = :field_id
+                  AND member_id = :member_id
+                  AND changed_by IS NOT DISTINCT FROM :changed_by
+                  AND changed_by_account_id IS NOT DISTINCT FROM :changed_by_account_id
+                  AND changed_at >= :cutoff
+                ORDER BY changed_at DESC
+                LIMIT 1;""", targetColumn(origin))
                 .single(call().bind("field_id", fieldId)
                         .bind("member_id", memberId)
-                        .bind("changed_by", changedBy)
+                        .bind("changed_by", author.memberId())
+                        .bind("changed_by_account_id", accountColumnOf(author))
                         .bind("cutoff", cutoff, INSTANT_TIMESTAMP))
-                .map(ProfileFieldChange.map())
+                .map(row -> row.getInt("id"))
                 .first();
+    }
+
+    /**
+     * The column naming the question a change belongs to.
+     *
+     * @param origin who asked the question
+     * @return {@code field_id} for a station's own, {@code cluster_field_id} for an association's
+     */
+    private static String targetColumn(FieldOrigin origin) {
+        return switch (origin) {
+            case STATION -> "field_id";
+            case CLUSTER -> "cluster_field_id";
+        };
+    }
+
+    /**
+     * The account recorded beside a change, which is only kept where the author has no membership at the
+     * member's station. The membership names them otherwise, and keeping both would let them disagree.
+     */
+    private static @Nullable Integer accountColumnOf(ProfileAuthor author) {
+        return author.memberId() == null ? author.accountId() : null;
     }
 
     /**
@@ -73,45 +113,58 @@ public class ProfileFieldChangeRepository {
     }
 
     /**
-     * Create a new change record.
-     */
-    /**
-     * Records a change to a field the cluster asked for rather than the station.
+     * Records a change to one answer, whoever asked the question.
      *
-     * <p>The same history, because a member's profile reads as one story: what changed, when and by whom,
-     * whoever asked the question. Which of the two columns is filled says whose field it was.
+     * <p>One history for both owners, because a member's profile reads as one story: what changed, when and
+     * by whom, whoever asked the question. Which of the two columns is filled says whose question it was.
      *
-     * @param clusterFieldId          the cluster's field
+     * @param origin                  who asked the question
+     * @param fieldId                 the question
      * @param memberId                the member whose answer changed
      * @param oldValue                what it was
      * @param newValue                what it now is
-     * @param changedBy               the station member who made the change
+     * @param author                  who changed it
      * @param requiresAcknowledgement whether somebody at the station has to confirm they saw it
+     * @return the change
      */
-    public void createForClusterField(
-            int clusterFieldId,
+    public ProfileFieldChange create(
+            FieldOrigin origin,
+            int fieldId,
             int memberId,
             String oldValue,
             String newValue,
-            int changedBy,
+            ProfileAuthor author,
             boolean requiresAcknowledgement) {
-        query("""
-                INSERT
-                INTO
-                    profile_field_change(cluster_field_id, member_id, old_value, new_value, changed_by,
-                                         requires_acknowledgement)
-                VALUES
-                    (:field_id, :member_id, :old_value::JSONB, :new_value::JSONB, :changed_by,
-                     :requires_acknowledgement);""")
-                .single(call().bind("field_id", clusterFieldId)
+        return SqlSupport.insertReturning(
+                """
+                INSERT INTO profile_field_change(%s, member_id, old_value, new_value, changed_by,
+                                                 changed_by_account_id, requires_acknowledgement)
+                VALUES (:field_id, :member_id, :old_value::JSONB, :new_value::JSONB, :changed_by,
+                        :changed_by_account_id, :requires_acknowledgement)
+                RETURNING id, field_id, cluster_field_id, member_id, old_value, new_value, changed_by, changed_at,
+                          requires_acknowledgement, '' AS changed_by_name, '' AS field_name,
+                          NULL AS field_type;""".formatted(targetColumn(origin)),
+                call().bind("field_id", fieldId)
                         .bind("member_id", memberId)
                         .bind("old_value", oldValue)
                         .bind("new_value", newValue)
-                        .bind("changed_by", changedBy)
-                        .bind("requires_acknowledgement", requiresAcknowledgement))
-                .insert();
+                        .bind("changed_by", author.memberId())
+                        .bind("changed_by_account_id", accountColumnOf(author))
+                        .bind("requires_acknowledgement", requiresAcknowledgement),
+                ProfileFieldChange.map());
     }
 
+    /**
+     * Records a change a member of the station made to one of its own questions.
+     *
+     * @param fieldId                 the station's question
+     * @param memberId                the member whose answer changed
+     * @param oldValue                what it was
+     * @param newValue                what it now is
+     * @param changedBy               the member who changed it
+     * @param requiresAcknowledgement whether somebody at the station has to confirm they saw it
+     * @return the change
+     */
     public ProfileFieldChange create(
             int fieldId,
             int memberId,
@@ -119,20 +172,14 @@ public class ProfileFieldChangeRepository {
             String newValue,
             int changedBy,
             boolean requiresAcknowledgement) {
-        return SqlSupport.insertReturning(
-                """
-                INSERT INTO profile_field_change(field_id, member_id, old_value, new_value, changed_by, requires_acknowledgement)
-                VALUES (:field_id, :member_id, :old_value::JSONB, :new_value::JSONB, :changed_by, :requires_acknowledgement)
-                RETURNING id, field_id, cluster_field_id, member_id, old_value, new_value, changed_by, changed_at,
-                          requires_acknowledgement, '' AS changed_by_name, '' AS field_name,
-                          NULL AS field_type;""",
-                call().bind("field_id", fieldId)
-                        .bind("member_id", memberId)
-                        .bind("old_value", oldValue)
-                        .bind("new_value", newValue)
-                        .bind("changed_by", changedBy)
-                        .bind("requires_acknowledgement", requiresAcknowledgement),
-                ProfileFieldChange.map());
+        return create(
+                FieldOrigin.STATION,
+                fieldId,
+                memberId,
+                oldValue,
+                newValue,
+                new ProfileAuthor(changedBy, null),
+                requiresAcknowledgement);
     }
 
     /**
@@ -142,12 +189,11 @@ public class ProfileFieldChangeRepository {
         return query("""
                 SELECT %s
                 FROM profile_field_change c
-                JOIN station_member sm ON sm.id = c.changed_by
-                JOIN account a ON a.id = sm.account_id
+                %s
                 LEFT JOIN profile_field pf ON pf.id = c.field_id
                 LEFT JOIN cluster_profile_field cpf ON cpf.id = c.cluster_field_id
                 WHERE c.member_id = :member_id
-                ORDER BY c.changed_at DESC;""", ENRICHED_CHANGE_COLUMNS)
+                ORDER BY c.changed_at DESC;""", ENRICHED_CHANGE_COLUMNS, AUTHOR_JOIN)
                 .single(call().bind("member_id", memberId))
                 .map(ProfileFieldChange.map())
                 .all();
@@ -189,7 +235,7 @@ public class ProfileFieldChangeRepository {
     /**
      * Acknowledge a change with optional comment.
      */
-    public ProfileFieldChangeAcknowledgement acknowledge(int changeId, int acknowledgedBy, String comment) {
+    public ProfileFieldChangeAcknowledgement acknowledge(int changeId, int acknowledgedBy, @Nullable String comment) {
         return SqlSupport.insertReturning(
                 """
                 INSERT INTO profile_field_change_acknowledgement(change_id, acknowledged_by, comment)
@@ -265,14 +311,13 @@ public class ProfileFieldChangeRepository {
         return query("""
                 SELECT %s
                 FROM profile_field_change c
-                JOIN station_member sm ON sm.id = c.member_id
-                JOIN station_member sm2 ON sm2.id = c.changed_by
-                JOIN account a ON a.id = sm2.account_id
+                JOIN station_member whose ON whose.id = c.member_id
+                %s
                 LEFT JOIN profile_field pf ON pf.id = c.field_id
                 LEFT JOIN cluster_profile_field cpf ON cpf.id = c.cluster_field_id
-                WHERE sm.station_id = :station_id
+                WHERE whose.station_id = :station_id
                 ORDER BY c.changed_at DESC
-                LIMIT :limit OFFSET :offset;""", ENRICHED_CHANGE_COLUMNS)
+                LIMIT :limit OFFSET :offset;""", ENRICHED_CHANGE_COLUMNS, AUTHOR_JOIN)
                 .single(call().bind("station_id", stationId)
                         .bind("limit", limit)
                         .bind("offset", offset))
@@ -300,14 +345,12 @@ public class ProfileFieldChangeRepository {
         return query("""
                 SELECT %s
                 FROM profile_field_change c
-                JOIN station_member sm ON sm.id = c.member_id
-                JOIN station_member sm2 ON sm2.id = c.changed_by
-                JOIN account a ON a.id = sm2.account_id
+                %s
                 LEFT JOIN profile_field pf ON pf.id = c.field_id
                 LEFT JOIN cluster_profile_field cpf ON cpf.id = c.cluster_field_id
                 WHERE c.member_id = ANY(:member_ids)
                 ORDER BY c.changed_at DESC
-                LIMIT :limit OFFSET :offset;""", ENRICHED_CHANGE_COLUMNS)
+                LIMIT :limit OFFSET :offset;""", ENRICHED_CHANGE_COLUMNS, AUTHOR_JOIN)
                 .single(call().bind("member_ids", memberIds, PostgreSqlTypes.INTEGER)
                         .bind("limit", limit)
                         .bind("offset", offset))
@@ -362,14 +405,4 @@ public class ProfileFieldChangeRepository {
                       WHERE ack.change_id = c.id AND ack.acknowledged_by = :acknowledged_by
                   );""", call().bind("station_id", stationId).bind("acknowledged_by", acknowledgedBy));
     }
-
-    /**
-     * Summary of unacknowledged changes for a single member.
-     *
-     * @param memberId     the member identifier
-     * @param memberName   the member's display name
-     * @param pendingCount the number of unacknowledged changes
-     * @param latestChange the timestamp of the most recent change
-     */
-    public record MemberChangeSummary(int memberId, String memberName, int pendingCount, Instant latestChange) {}
 }

@@ -5,8 +5,11 @@
  */
 package dev.chojo.ember.feature.members.service;
 
+import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.MemberRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.entity.TokenType;
 import dev.chojo.ember.feature.account.service.AccountInviteService;
@@ -45,7 +48,7 @@ class StationMemberInviteServiceTest extends RepositoryTestBase {
     void freshFixture() {
         authService = mock(AuthService.class);
         service = new StationMemberInviteService(
-                stationMemberRepo, memberGroupRepo, new AccountInviteService(accountRepo, authService));
+                stationMemberRepo, newGroupMemberships(), new AccountInviteService(accountRepo, authService));
         station = stationRepo.create("Invite Station " + System.nanoTime());
     }
 
@@ -59,7 +62,12 @@ class StationMemberInviteServiceTest extends RepositoryTestBase {
     }
 
     private StationMemberInviteService.BatchResult createBatch(int stationId, List<InviteRequest> requests) {
-        return service.createBatch(stationId, requests, SetupMail.SEND_NOW);
+        return service.createBatch(stationId, requests, SetupMail.SEND_NOW, inviter(stationId));
+    }
+
+    private UserSession inviter(int stationId) {
+        var account = accountRepo.create(uniqueEmail("inviter"), "In", "Viter");
+        return signedIn(stationMemberRepo.create(stationId, account.id()), StationPermission.MEMBER_EDIT);
     }
 
     /**
@@ -166,6 +174,31 @@ class StationMemberInviteServiceTest extends RepositoryTestBase {
         verify(authService).sendPasswordSetup(account.id());
     }
 
+    /**
+     * Inviting somebody into a group is granting them what it grants, so a batch naming a group that
+     * grants more than the inviting person holds is refused before anybody is invited.
+     */
+    @Test
+    void batch_refuses_a_group_granting_more_than_the_inviter_holds() {
+        int groupId = memberGroupRepo.create(station.id(), "Verwaltung").id();
+        memberGroupRepo.addGroupPermission(
+                groupId,
+                stationMemberRepo
+                        .findPermissionByName(StationPermission.STATION_ADMINISTRATOR)
+                        .orElseThrow()
+                        .id());
+        String email = uniqueEmail("climber");
+
+        var refused = assertThrows(
+                RefusalResponse.class,
+                () -> createBatch(
+                        station.id(),
+                        List.of(new InviteRequest(email, "Cli", "Mber", StationUserType.MEMBER, groupId, List.of()))));
+
+        assertEquals(MemberRefusal.GROUP_GRANTS_MORE_THAN_YOURS_ON_INVITE, refused.refusal());
+        assertTrue(accountRepo.findByEmail(email).isEmpty());
+    }
+
     @Test
     void provision_attaches_existing_account_without_touching_it() {
         String email = uniqueEmail("bob");
@@ -254,7 +287,8 @@ class StationMemberInviteServiceTest extends RepositoryTestBase {
                         StationUserType.MEMBER,
                         null,
                         List.of(new GuardianRequest(guardianEmail, "Parent", "Later")))),
-                SetupMail.LATER);
+                SetupMail.LATER,
+                inviter(station.id()));
 
         assertEquals(2, result.provisioned().size());
         verify(authService, never()).sendPasswordSetup(anyInt());

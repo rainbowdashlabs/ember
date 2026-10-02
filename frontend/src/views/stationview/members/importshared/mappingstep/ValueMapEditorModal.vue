@@ -8,6 +8,7 @@ import { useI18n } from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
+import Modal from '@/components/feedback/Modal.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
@@ -37,8 +38,8 @@ defineEmits<{
 </script>
 
 <template>
-  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40" @click.self="$emit('close')">
-    <div class="bg-bg-light dark:bg-bg-dark rounded-lg p-6 w-full max-w-md space-y-4 shadow-lg">
+  <Modal :model-value="true" size="sm" @update:model-value="$emit('close')">
+    <div class="space-y-4">
       <SubHeader>{{ t('memberImport.valueMapTitle') }}</SubHeader>
       <p class="text-xs text-(--text-muted)">{{ t('memberImport.valueMapHint') }}</p>
       <div class="space-y-2">
@@ -57,5 +58,5 @@ defineEmits<{
         <PrimaryButton @click="$emit('save')">{{ t('common.save') }}</PrimaryButton>
       </ButtonRow>
     </div>
-  </div>
+  </Modal>
 </template>

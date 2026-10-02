@@ -8,15 +8,16 @@ import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import {QuizAttemptStatus, type QuizTestAttempt} from '@/api/quiz'
-import type {StationMember} from '@/api/types'
+import {QuizAttemptStatus} from '@/api/quiz'
+import type {QuizTestAttempt} from '@/api/generated/schema'
+import type {MemberLike} from '@/components/input/select/memberOption'
 import {useBreakpoint} from '@/composables/useBreakpoint'
 import AttemptListGroup from './testattemptlist/AttemptListGroup.vue'
 
 const props = defineProps<{
   testId: number
   attempts: QuizTestAttempt[]
-  members: StationMember[]
+  members: MemberLike[]
 }>()
 
 const {t} = useI18n()
@@ -34,7 +35,7 @@ const gradedAttempts = computed(() =>
   <div class="space-y-6">
     <SubHeader>{{ t('quiz.attempt.title') }} ({{ attempts.length }})</SubHeader>
 
-    <EmptyState compact v-if="attempts.length === 0">{{ t('quiz.attempt.noAttempts') }}</EmptyState>
+    <EmptyState v-if="attempts.length === 0" compact>{{ t('quiz.attempt.noAttempts') }}</EmptyState>
 
     <AttemptListGroup
       v-if="ungradedAttempts.length > 0"

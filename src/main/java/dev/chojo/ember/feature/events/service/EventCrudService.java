@@ -5,18 +5,25 @@
  */
 package dev.chojo.ember.feature.events.service;
 
+import dev.chojo.ember.api.refusal.EventRefusal;
+import dev.chojo.ember.api.refusal.Refusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
-import dev.chojo.ember.event.events.EventCancelled;
 import dev.chojo.ember.event.events.EventChanged;
 import dev.chojo.ember.event.events.EventCreated;
 import dev.chojo.ember.event.events.EventDeleted;
+import dev.chojo.ember.feature.attendance.service.AttendanceTemplateGuards;
 import dev.chojo.ember.feature.content.entity.BlockAudience;
 import dev.chojo.ember.feature.equipment.service.EquipmentReleaseService;
+import dev.chojo.ember.feature.events.entity.PickerEvent;
+import dev.chojo.ember.feature.events.entity.PickerMode;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventRepository;
-import io.javalin.http.BadRequestResponse;
+import dev.chojo.ember.feature.restriction.RestrictionType;
+import dev.chojo.ember.feature.restriction.service.RestrictionService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,8 +39,8 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Owns the lifecycle of station events: lookups, creation, updates, deletion and cancellation,
- * including the domain events that accompany them.
+ * Owns the lifecycle of station events: lookups, creation, updates and deletion, including the
+ * domain events that accompany them. Calling off lives in {@link EventCancellationService}.
  */
 @Singleton
 public class EventCrudService {
@@ -42,13 +49,21 @@ public class EventCrudService {
     private final EventRepository eventRepository;
     private final DomainEventBus eventBus;
     private final EquipmentReleaseService equipmentRelease;
+    private final RestrictionService restrictionService;
+    private final AttendanceTemplateGuards attendanceTemplateGuards;
 
     @Inject
     public EventCrudService(
-            EventRepository eventRepository, DomainEventBus eventBus, EquipmentReleaseService equipmentRelease) {
+            EventRepository eventRepository,
+            DomainEventBus eventBus,
+            EquipmentReleaseService equipmentRelease,
+            RestrictionService restrictionService,
+            AttendanceTemplateGuards attendanceTemplateGuards) {
         this.eventRepository = eventRepository;
         this.eventBus = eventBus;
         this.equipmentRelease = equipmentRelease;
+        this.restrictionService = restrictionService;
+        this.attendanceTemplateGuards = attendanceTemplateGuards;
     }
 
     /**
@@ -67,8 +82,8 @@ public class EventCrudService {
      * page the public ones, in a news or wiki article every event kept to nobody in particular. Who
      * is picking does not widen it, so a block never names what part of its readers cannot see.
      */
-    public List<EventRepository.PickerEvent> searchEventPicker(
-            int stationId, BlockAudience audience, String search, EventRepository.PickerMode mode, int limit) {
+    public List<PickerEvent> searchEventPicker(
+            int stationId, BlockAudience audience, @Nullable String search, PickerMode mode, int limit) {
         return eventRepository.searchForPicker(stationId, audience, search, mode, limit);
     }
 
@@ -96,40 +111,62 @@ public class EventCrudService {
     }
 
     /**
-     * Retrieves events for a station that the given member is allowed to see.
+     * Retrieves events for a station that the given member is allowed to see, all of them where
+     * the member manages events.
      *
      * @param stationId the station ID
-     * @param memberId  the requesting member ID
+     * @param memberId  the member ID
      * @return the filtered list of station events
      */
     public List<StationEvent> findByStationForMember(int stationId, int memberId) {
-        return eventRepository.findByStationForMember(stationId, memberId);
+        return eventRepository.findByStationForMember(stationId, memberId, managesEvents(memberId));
     }
 
     /**
-     * Applies the optional category and registration filters for a single member perspective.
+     * Applies the optional category and registration filters for a single member perspective. A
+     * member who manages events sees them all, as does a {@code null} member.
      */
     public List<StationEvent> findFiltered(
-            int stationId, Integer memberId, Integer categoryId, Boolean requiresRegistration) {
-        return eventRepository.findFiltered(stationId, memberId, categoryId, requiresRegistration);
+            int stationId,
+            @Nullable Integer memberId,
+            @Nullable Integer categoryId,
+            @Nullable Boolean requiresRegistration) {
+        return eventRepository.findFiltered(stationId, restrictedTo(memberId), categoryId, requiresRegistration);
     }
 
     /**
      * Unions the filtered events visible to any of the given members, keeping the first occurrence
-     * of every event. A null member list falls back to the unrestricted station view.
+     * of every event. A null member list falls back to the unrestricted station view, and so does
+     * any listed member who manages events.
      */
     public List<StationEvent> findFilteredForMembers(
-            int stationId, List<Integer> memberIds, Integer categoryId, Boolean requiresRegistration) {
+            int stationId,
+            @Nullable List<Integer> memberIds,
+            @Nullable Integer categoryId,
+            @Nullable Boolean requiresRegistration) {
         if (memberIds == null) {
             return eventRepository.findFiltered(stationId, null, categoryId, requiresRegistration);
         }
         var eventMap = new LinkedHashMap<Integer, StationEvent>();
         for (int mid : memberIds) {
-            for (var ev : eventRepository.findFiltered(stationId, mid, categoryId, requiresRegistration)) {
+            for (var ev :
+                    eventRepository.findFiltered(stationId, restrictedTo(mid), categoryId, requiresRegistration)) {
                 eventMap.putIfAbsent(ev.id(), ev);
             }
         }
         return new ArrayList<>(eventMap.values());
+    }
+
+    /**
+     * The member whose view restrictions narrow a listing, or {@code null} where nothing narrows
+     * it: no member was named, or the member manages events and sees all of them.
+     */
+    private @Nullable Integer restrictedTo(@Nullable Integer memberId) {
+        return memberId == null || managesEvents(memberId) ? null : memberId;
+    }
+
+    private boolean managesEvents(int memberId) {
+        return restrictionService.manages(RestrictionType.EVENT_VIEW, memberId);
     }
 
     /**
@@ -162,20 +199,20 @@ public class EventCrudService {
     public StationEvent create(
             int stationId,
             String name,
-            String description,
+            @Nullable String description,
             StationEvent.EventType eventType,
-            Integer dayOfWeek,
+            @Nullable Integer dayOfWeek,
             Instant startTime,
             Instant endTime,
-            Integer templateId,
+            @Nullable Integer templateId,
             boolean requiresRegistration,
-            Instant registrationDeadline,
+            @Nullable Instant registrationDeadline,
             boolean requiresConfirmation,
-            Integer categoryId,
-            Integer registrationLimit,
-            Integer minRegistrations,
-            Instant thresholdDate,
-            Integer registrationCloseDays) {
+            @Nullable Integer categoryId,
+            @Nullable Integer registrationLimit,
+            @Nullable Integer minRegistrations,
+            @Nullable Integer thresholdDays,
+            @Nullable Integer registrationCloseDays) {
         var event = createWithoutEvent(
                 stationId,
                 name,
@@ -191,7 +228,7 @@ public class EventCrudService {
                 categoryId,
                 registrationLimit,
                 minRegistrations,
-                thresholdDate,
+                thresholdDays,
                 registrationCloseDays);
         eventBus.publish(new EventCreated(stationId, event));
         return event;
@@ -217,21 +254,22 @@ public class EventCrudService {
     public StationEvent createWithoutEvent(
             int stationId,
             String name,
-            String description,
+            @Nullable String description,
             StationEvent.EventType eventType,
-            Integer dayOfWeek,
+            @Nullable Integer dayOfWeek,
             Instant startTime,
             Instant endTime,
-            Integer templateId,
+            @Nullable Integer templateId,
             boolean requiresRegistration,
-            Instant registrationDeadline,
+            @Nullable Instant registrationDeadline,
             boolean requiresConfirmation,
-            Integer categoryId,
-            Integer registrationLimit,
-            Integer minRegistrations,
-            Instant thresholdDate,
-            Integer registrationCloseDays) {
-        requireUsableSpan(startTime, endTime);
+            @Nullable Integer categoryId,
+            @Nullable Integer registrationLimit,
+            @Nullable Integer minRegistrations,
+            @Nullable Integer thresholdDays,
+            @Nullable Integer registrationCloseDays) {
+        requireUsableSpan(startTime, endTime, EventRefusal.EVENT_ENDS_BEFORE_IT_STARTS_ON_CREATE);
+        attendanceTemplateGuards.requireOpenForNewWork(templateId);
         var event = eventRepository.create(
                 stationId,
                 name,
@@ -247,7 +285,7 @@ public class EventCrudService {
                 categoryId,
                 registrationLimit,
                 minRegistrations,
-                thresholdDate,
+                thresholdDays,
                 registrationCloseDays);
         log.info("Created event {} for station {} ({}, type={})", event.id(), stationId, name, eventType);
         return event;
@@ -273,22 +311,23 @@ public class EventCrudService {
     public Optional<StationEvent> update(
             int id,
             String name,
-            String description,
+            @Nullable String description,
             StationEvent.EventType eventType,
-            Integer dayOfWeek,
+            @Nullable Integer dayOfWeek,
             Instant startTime,
             Instant endTime,
-            Integer templateId,
+            @Nullable Integer templateId,
             boolean requiresRegistration,
-            Instant registrationDeadline,
+            @Nullable Instant registrationDeadline,
             boolean requiresConfirmation,
-            Integer categoryId,
-            Boolean isPublic,
-            Integer registrationLimit,
-            Integer minRegistrations,
-            Instant thresholdDate,
-            Integer registrationCloseDays) {
-        requireUsableSpan(startTime, endTime);
+            @Nullable Integer categoryId,
+            @Nullable Boolean isPublic,
+            @Nullable Integer registrationLimit,
+            @Nullable Integer minRegistrations,
+            @Nullable Integer thresholdDays,
+            @Nullable Integer registrationCloseDays) {
+        requireUsableSpan(startTime, endTime, EventRefusal.EVENT_ENDS_BEFORE_IT_STARTS_ON_CHANGE);
+        attendanceTemplateGuards.requireOpenForNewWork(templateId);
         var before = eventRepository.findById(id).orElse(null);
         if (eventRepository.update(
                 id,
@@ -306,7 +345,7 @@ public class EventCrudService {
                 isPublic,
                 registrationLimit,
                 minRegistrations,
-                thresholdDate,
+                thresholdDays,
                 registrationCloseDays)) {
             log.info("Updated event {}", id);
             var after = eventRepository.findById(id);
@@ -328,12 +367,13 @@ public class EventCrudService {
      *
      * @param startTime when it begins, null where none was given
      * @param endTime   when it ends, read the same way
-     * @throws BadRequestResponse where the end lies before the start
+     * @param refusal   what the caller refuses a backwards span with
+     * @throws RefusalResponse where the end lies before the start
      */
-    private void requireUsableSpan(Instant startTime, Instant endTime) {
+    private void requireUsableSpan(Instant startTime, Instant endTime, Refusal refusal) {
         if (startTime == null || endTime == null) return;
         if (endTime.isBefore(startTime)) {
-            throw new BadRequestResponse("An appointment cannot end before it starts");
+            throw refusal.raise();
         }
     }
 
@@ -349,25 +389,25 @@ public class EventCrudService {
      * @param count how many times it takes place in total, or null
      * @return the event as it now stands, or empty when there is no such event
      */
-    public Optional<StationEvent> setRepeatEnd(int id, LocalDate until, Integer count) {
+    public Optional<StationEvent> setRepeatEnd(int id, @Nullable LocalDate until, @Nullable Integer count) {
         var event = eventRepository.findById(id).orElse(null);
         if (event == null) {
             log.warn("Cannot set the repeat end: event {} not found", id);
             return Optional.empty();
         }
         if (until != null && count != null) {
-            throw new BadRequestResponse("A series ends on a day or after a number of times, not both");
+            throw EventRefusal.EVENT_SERIES_END_GIVEN_TWICE.raise();
         }
         if ((until != null || count != null) && !event.isRecurring()) {
-            throw new BadRequestResponse("Only a repeating appointment has an end to its repetition");
+            throw EventRefusal.EVENT_SERIES_END_ON_ONE_OFF.raise();
         }
         if (count != null && count < 1) {
-            throw new BadRequestResponse("A series that repeats takes place at least once");
+            throw EventRefusal.EVENT_SERIES_COUNT_BELOW_ONE.raise();
         }
         if (until != null
                 && event.startTime() != null
                 && until.isBefore(event.startTime().atZone(ZoneOffset.UTC).toLocalDate())) {
-            throw new BadRequestResponse("A series cannot end before it starts");
+            throw EventRefusal.EVENT_SERIES_ENDS_BEFORE_IT_STARTS.raise();
         }
 
         eventRepository.updateRepeatEnd(id, until, count);
@@ -397,36 +437,6 @@ public class EventCrudService {
         }
         log.warn("Failed to delete event {}", id);
         return false;
-    }
-
-    /**
-     * Cancels an event, notifying all registered members.
-     *
-     * @param stationId the station ID (for ownership check)
-     * @param eventId   the event ID
-     * @param reason    optional cancellation reason
-     * @return true if the event was cancelled
-     */
-    public boolean cancelEvent(int stationId, int eventId, String reason) {
-        var event = eventRepository.findById(eventId).orElse(null);
-        if (event == null || event.stationId() != stationId) {
-            log.warn("Cannot cancel event: event {} not found for station {}", eventId, stationId);
-            return false;
-        }
-        if (event.cancelled()) {
-            log.warn("Cannot cancel event: event {} already cancelled", eventId);
-            return false;
-        }
-
-        boolean cancelled = eventRepository.cancelEvent(eventId, reason);
-        if (cancelled) {
-            equipmentRelease.withdrawRequests(eventId, stationId);
-            log.info("Cancelled event {} for station {}", eventId, stationId);
-            eventBus.publish(new EventCancelled(stationId, eventId, event.name(), reason));
-        } else {
-            log.warn("Failed to cancel event {}", eventId);
-        }
-        return cancelled;
     }
 
     /**

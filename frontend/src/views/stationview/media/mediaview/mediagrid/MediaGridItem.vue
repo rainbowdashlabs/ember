@@ -5,14 +5,21 @@
  */
 <script lang="ts" setup>
 import BaseButton from '@/components/button/BaseButton.vue'
+import PillBadge from '@/components/badge/PillBadge.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
-import {mediaPictureUrl, type StationFile, type StationFileListing, type StationFileTag} from '@/api/media'
+import {mediaPictureUrl} from '@/api/media'
+import type {FileListing, StationFile, StationFileTag} from '@/api/generated/schema'
 import FileThumbnail from '@/components/documents/FileThumbnail.vue'
 import MediaGridItemMenu from './MediaGridItemMenu.vue'
 import {formatSize} from '@/util/format'
 
+/**
+ * One file of the media grid. The card opens the file wherever it is pressed, which is a pointer's
+ * convenience; the file name is the control a keyboard and a screen reader reach, and its press
+ * travels up to the card. The box of the tick works the same way: the tick is the control.
+ */
 const props = defineProps<{
-    entry: StationFileListing
+    entry: FileListing
     index: number
     tags: StationFileTag[]
     stationUid: string
@@ -30,7 +37,7 @@ const emit = defineEmits<{
     'toggle-menu': [fileId: number]
 }>()
 
-function tagsOf(e: StationFileListing): StationFileTag[] {
+function tagsOf(e: FileListing): StationFileTag[] {
     return props.tags.filter(t => e.tagIds.includes(t.id))
 }
 
@@ -44,9 +51,11 @@ function onCheckboxClick(e: MouseEvent) {
     <div data-testid="media-file"
          class="relative flex flex-col rounded-theme border overflow-hidden cursor-pointer hover:border-primary transition-colors"
          :class="entry.inUse ? 'border-(--border)' : 'border-error/50 bg-error/5'"
+         role="presentation"
          @click="emit('preview-file', entry.file)">
         <div v-if="multiSelect"
              class="absolute top-1 left-1 z-10 flex items-center bg-(--bg)/90 backdrop-blur-sm rounded p-1 cursor-pointer select-none"
+             role="presentation"
              @click.stop.prevent="onCheckboxClick($event)">
             <CheckboxInput :model-value="selected" class="pointer-events-none"/>
         </div>
@@ -57,14 +66,21 @@ function onCheckboxClick(e: MouseEvent) {
             size="aspect-square w-full"
         />
         <div class="p-2 text-xs space-y-1 min-w-0 flex-1">
-            <p class="truncate font-medium" :title="entry.file.fileName">{{ entry.file.fileName }}</p>
+            <p
+                class="truncate font-medium"
+                :title="entry.file.fileName"
+                role="button"
+                tabindex="0"
+                @keydown.enter.prevent="emit('preview-file', entry.file)"
+                @keydown.space.prevent="emit('preview-file', entry.file)"
+            >{{ entry.file.fileName }}</p>
             <p class="text-(--text-muted)">{{ formatSize(entry.file.fileSize) }}</p>
             <div v-if="tagsOf(entry).length" class="flex flex-wrap gap-1">
-                <span v-for="tag in tagsOf(entry)" :key="tag.id"
-                      class="rounded-full px-1.5 py-0.5 text-[10px] text-white"
-                      :style="{background: tag.color ?? '#888'}">
+                <PillBadge v-for="tag in tagsOf(entry)" :key="tag.id"
+                           class="px-1.5 py-0.5 text-[10px] text-white"
+                           :style="{background: tag.color ?? '#888'}">
                     {{ tag.name }}
-                </span>
+                </PillBadge>
             </div>
             <div class="flex flex-wrap gap-1 pt-1" @click.stop>
                 <BaseButton v-for="tag in tags" :key="tag.id" compact

@@ -138,8 +138,12 @@ test.describe('A list of gear shows what is there', () => {
                 .toContain(spare.id)
         })
 
-    /** ITM-45 - A piece they are still holding stays listed and says what is running on it. */
-    test('a held piece with an exchange running stays in the list and names the step',
+    /**
+     * ITM-45 - A piece they are still holding stays listed and says what is running on it, in the
+     * words the movement list uses: the step that happened and whose turn it is, never the step
+     * being waited on.
+     */
+    test('a held piece with an exchange running stays in the list and says where it stands',
         async ({managerPage: page}) => {
             const headers = await apiHeaders(page)
             const {inventoryId, item} = await ownGear(page, headers, 'HELD')
@@ -147,14 +151,31 @@ test.describe('A list of gear shows what is there', () => {
             await page.request.put(`/api/v1/inventory-items/${item.id}/assign`,
                 {headers, data: {memberId: member.id, memberName: null}})
 
-            await askForExchange(page, headers, item, inventoryId, member.id)
+            const opened = await askForExchange(page, headers, item, inventoryId, member.id)
+            const movement = (await detail(page, headers, opened.movement.id)).movement
 
             const listed = await page.request
                 .get(`/api/v1/station-members/${member.id}/inventory-items`, {headers})
                 .then(r => r.json())
             const row = listed.find((entry: {id: number}) => entry.id === item.id)
             expect(row, 'it is still theirs').toBeTruthy()
-            expect(row.movementStep, 'and the row says which step is waiting').toBeTruthy()
+            expect(row.movement, 'and the row stands where the movement stands').toEqual({
+                id: movement.id,
+                state: movement.state,
+                reachedStepLabel: movement.reachedStepLabel,
+                currentStepActor: movement.currentStepActor,
+                ownerKind: movement.ownerKind,
+                ownerName: movement.ownerName,
+            })
+
+            await page.goto(`/station/members/detail/${member.id}`)
+            await page.getByRole('tab', {name: 'Inventar'}).click()
+            const card = page.getByTestId('inventory-item-card').filter({hasText: item.internalId})
+            await expect(card.getByTestId('movement-step'), 'the card names the step that happened')
+                .toHaveText(movement.reachedStepLabel)
+            await expect(card.getByTestId('movement-turn'), 'and whose turn it is').toHaveText('Wartet auf: Wache')
+            await expect(card, 'not the step it waits on, with the piece still on the member')
+                .not.toContainText(movement.currentStepLabel)
         })
 
     /** ITM-47 - What is in the post is in no stock of the station, while the row stays on the books. */

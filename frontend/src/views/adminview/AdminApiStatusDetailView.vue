@@ -22,14 +22,16 @@ import {CanvasRenderer} from 'echarts/renderers'
 import {BarChart, LineChart} from 'echarts/charts'
 import {GridComponent, TooltipComponent} from 'echarts/components'
 import * as apiStatus from '@/api/apiStatus'
-import type {EndpointDetail} from '@/api/apiStatus'
+import type {EndpointDetail} from '@/api/generated/schema'
 import {useConfigPanel} from '@/composables/useConfigPanel'
-import {darkThemeActive as isDark} from '@/util/themeState'
-import {formatMs, methodColor} from './adminapistatusview/apiStatusFormat'
+import {useThemePaint} from '@/composables/useThemePaint'
+import {formatMs} from './adminapistatusview/apiStatusFormat'
+import {formatDayClockSeconds} from '@/util/format'
 
 use([CanvasRenderer, BarChart, LineChart, GridComponent, TooltipComponent])
 
-const {t} = useI18n()
+const {t, locale} = useI18n()
+const {dark: isDark} = useThemePaint()
 const route = useRoute()
 const router = useRouter()
 
@@ -60,9 +62,6 @@ function statusColor(code: number): string {
     return 'text-error'
 }
 
-function formatTimestamp(ts: string): string {
-    return new Date(ts).toLocaleString('de-DE', {day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit'})
-}
 
 const statusChartOption = computed(() => {
     if (!detail.value) return {}
@@ -93,7 +92,7 @@ const responseTimeChartOption = computed(() => {
     return {
         tooltip: {trigger: 'axis'},
         grid: {left: 60, right: 20, bottom: 30},
-        xAxis: {type: 'category', data: requests.map(r => formatTimestamp(r.timestamp)), show: false},
+        xAxis: {type: 'category', data: requests.map(r => formatDayClockSeconds(r.timestamp)), show: false},
         yAxis: {type: 'value', name: 'ms', nameTextStyle: {color: textColor.value}, axisLabel: {color: textColor.value}},
         series: [{
             type: 'line',
@@ -120,7 +119,7 @@ const responseTimeChartOption = computed(() => {
         <template v-if="!loading && detail">
             <div class="grid grid-cols-2 gap-3 mb-6">
                 <NeutralContainer class="text-center">
-                    <p class="text-2xl font-bold">{{ detail.requestCount.toLocaleString('de-DE') }}</p>
+                    <p class="text-2xl font-bold">{{ detail.requestCount.toLocaleString(locale) }}</p>
                     <p class="text-xs text-(--text-muted)">{{ t('apiStatus.totalRequests') }}</p>
                 </NeutralContainer>
                 <NeutralContainer class="text-center">
@@ -151,7 +150,7 @@ const responseTimeChartOption = computed(() => {
                         </THead>
                         <tbody>
                             <TRow v-for="(req, idx) in detail.recentRequests" :key="idx">
-                                <Td class="font-mono text-xs">{{ formatTimestamp(req.timestamp) }}</Td>
+                                <Td class="font-mono text-xs">{{ formatDayClockSeconds(req.timestamp) }}</Td>
                                 <Td align="right" :class="statusColor(req.statusCode)" class="font-semibold tabular-nums">{{ req.statusCode }}</Td>
                                 <Td align="right" class="tabular-nums">{{ formatMs(req.durationMs) }}</Td>
                             </TRow>

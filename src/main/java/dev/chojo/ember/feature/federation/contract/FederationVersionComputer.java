@@ -5,24 +5,20 @@
  */
 package dev.chojo.ember.feature.federation.contract;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import dev.chojo.ember.feature.federation.entity.FederationContract;
+import dev.chojo.ember.util.Json;
+import dev.chojo.ember.util.Sha256;
+import tools.jackson.core.type.TypeReference;
 
 import java.lang.reflect.GenericArrayType;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.lang.reflect.TypeVariable;
 import java.lang.reflect.WildcardType;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Set;
@@ -80,7 +76,7 @@ public final class FederationVersionComputer {
             lines.add("revision:" + CORE_REVISION);
         }
         lines.sort(String::compareTo);
-        return sha256(String.join("\n", lines)).substring(0, HASH_LENGTH);
+        return Sha256.hexPrefix(String.join("\n", lines), HASH_LENGTH);
     }
 
     /**
@@ -143,15 +139,6 @@ public final class FederationVersionComputer {
         return "opaque:" + name;
     }
 
-    private static String sha256(String input) {
-        try {
-            var digest = MessageDigest.getInstance("SHA-256");
-            return HexFormat.of().formatHex(digest.digest(input.getBytes(StandardCharsets.UTF_8)));
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException("SHA-256 not available", e);
-        }
-    }
-
     /**
      * Entry point for the Gradle generateFederationVersion task.
      * <p>
@@ -165,7 +152,7 @@ public final class FederationVersionComputer {
      * hashes from the current development cycle are pruned.
      */
     static void main(String[] args) throws Exception {
-        var mapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
+        var mapper = Json.PRETTY;
         var contract = computeContract();
         var appVersion = args[2];
 

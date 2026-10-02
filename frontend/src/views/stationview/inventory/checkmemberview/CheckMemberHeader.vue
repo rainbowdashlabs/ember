@@ -10,7 +10,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
-import type { MemberCheckState } from '@/api/inventoryCheck'
+import type { MemberCheckState } from '@/api/generated/schema'
 
 defineProps<{
   state: MemberCheckState
@@ -34,7 +34,7 @@ const { t } = useI18n()
       <p class="text-sm text-(--text-muted)">{{ t('inventory.check.title') }}</p>
     </div>
     <ButtonRow align="end">
-      <PrimaryButton :icon="['fas', 'list-check']" v-if="uncheckedCount > 0 && !checkMode" class="text-sm" @click="$emit('startCheckMode')">
+      <PrimaryButton v-if="uncheckedCount > 0 && !checkMode" :icon="['fas', 'list-check']" class="text-sm" @click="$emit('startCheckMode')">
         {{ t('inventory.check.rapidCheck') }}
       </PrimaryButton>
       <SecondaryButton v-if="state.assigned.length > 0 && !checkMode" class="text-sm" @click="$emit('markAllConfirmed')">

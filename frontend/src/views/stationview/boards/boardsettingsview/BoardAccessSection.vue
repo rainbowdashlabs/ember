@@ -8,12 +8,12 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import RestrictionsField from '@/components/input/RestrictionsField.vue'
 import { toRestrictionSelection } from '@/components/input/restriction'
-import type { PermissionGrant, MemberGroup, UserTag } from '@/api/types'
+import type { MemberGroup, Permission, UserTag } from '@/api/generated/schema'
 
 defineProps<{
     title: string
     description: string
-    roles: PermissionGrant[]
+    roles: Permission[]
     groups: MemberGroup[]
     tags: UserTag[]
 }>()
@@ -30,9 +30,9 @@ const restriction = toRestrictionSelection(selectedUserTypes, selectedGroupIds, 
         <SubHeader class="text-sm mb-3">{{ title }}</SubHeader>
         <p class="text-xs text-[var(--text-muted)] mb-3">{{ description }}</p>
         <RestrictionsField
+            v-model="restriction"
             :groups="groups"
             :tags="tags"
-            v-model="restriction"
         />
     </NeutralContainer>
 </template>

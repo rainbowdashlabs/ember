@@ -5,13 +5,17 @@
  */
 package dev.chojo.ember.api;
 
+import dev.chojo.ember.api.refusal.GeneralRefusal;
+import dev.chojo.ember.api.refusal.Refusal;
+import dev.chojo.ember.api.refusal.StorageRefusal;
+import dev.chojo.ember.feature.storage.backend.StorageUnavailableException;
+import dev.chojo.ember.util.RandomTokens;
+import org.jspecify.annotations.Nullable;
 import tools.jackson.core.JacksonException;
 
 import java.sql.SQLException;
-import java.util.HexFormat;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.regex.Pattern;
 
 /**
@@ -55,9 +59,7 @@ public final class Failures {
      * @return eight hex characters, short enough to be read out over a telephone
      */
     public static String reference() {
-        var bytes = new byte[4];
-        ThreadLocalRandom.current().nextBytes(bytes);
-        return HexFormat.of().formatHex(bytes);
+        return RandomTokens.hex(4);
     }
 
     /**
@@ -69,19 +71,23 @@ public final class Failures {
      * of those gets the status that says so and a sentence saying that nothing was saved.
      * Everything else is a fault, named as one rather than dressed up as something specific.
      *
+     * <p>A storage server that could not be reached comes before all of that: it is not Ember's
+     * fault either, and the reader is told the storage is unreachable and to try again.
+     *
      * @param err what was thrown
      * @return the refusal to answer with
      */
     public static Refusal describe(Throwable err) {
+        if (storageUnreachable(err)) return StorageRefusal.STORAGE_UNREACHABLE;
         String state = sqlStateOf(err);
-        if (state == null) return Refusal.UNEXPECTED_FAULT;
-        if (DUPLICATE_STATES.contains(state)) return Refusal.ALREADY_EXISTS;
-        if (REFERENCE_STATES.contains(state)) return Refusal.STILL_LINKED;
-        if (VALUE_STATES.contains(state)) return Refusal.DOES_NOT_FIT;
-        if (COLLISION_STATES.contains(state)) return Refusal.CHANGE_COLLIDED;
-        if (TIMEOUT_STATES.contains(state)) return Refusal.TOOK_TOO_LONG;
-        if (state.startsWith("08") || state.startsWith("53")) return Refusal.STORE_UNREACHABLE;
-        return Refusal.UNEXPECTED_FAULT_FROM_UNKNOWN_STATE;
+        if (state == null) return GeneralRefusal.UNEXPECTED_FAULT;
+        if (DUPLICATE_STATES.contains(state)) return GeneralRefusal.ALREADY_EXISTS;
+        if (REFERENCE_STATES.contains(state)) return GeneralRefusal.STILL_LINKED;
+        if (VALUE_STATES.contains(state)) return GeneralRefusal.DOES_NOT_FIT;
+        if (COLLISION_STATES.contains(state)) return GeneralRefusal.CHANGE_COLLIDED;
+        if (TIMEOUT_STATES.contains(state)) return GeneralRefusal.TOOK_TOO_LONG;
+        if (state.startsWith("08") || state.startsWith("53")) return GeneralRefusal.STORE_UNREACHABLE;
+        return GeneralRefusal.UNEXPECTED_FAULT_FROM_UNKNOWN_STATE;
     }
 
     /**
@@ -96,7 +102,7 @@ public final class Failures {
      * @param message the message an exception carried, possibly {@code null}
      * @return the message when it reads as prose, and empty when it reads as machinery
      */
-    public static Optional<String> readable(String message) {
+    public static Optional<String> readable(@Nullable String message) {
         if (message == null) return Optional.empty();
         String trimmed = message.trim();
         if (trimmed.isEmpty() || trimmed.length() > MAX_READABLE_LENGTH) return Optional.empty();
@@ -137,7 +143,20 @@ public final class Failures {
         return written.isEmpty() ? Optional.empty() : Optional.of(written.toString());
     }
 
-    private static String sqlStateOf(Throwable err) {
+    /**
+     * Whether the failure is a storage backend that could not be reached, however deep in the cause
+     * chain: a lost connection that could not be had again, or a server that did not answer in time.
+     */
+    private static boolean storageUnreachable(Throwable err) {
+        Throwable current = err;
+        for (int depth = 0; current != null && depth < MAX_CAUSE_DEPTH; depth++) {
+            if (current instanceof StorageUnavailableException) return true;
+            current = current.getCause() == current ? null : current.getCause();
+        }
+        return false;
+    }
+
+    private static @Nullable String sqlStateOf(Throwable err) {
         Throwable current = err;
         for (int depth = 0; current != null && depth < MAX_CAUSE_DEPTH; depth++) {
             if (current instanceof SQLException refused && refused.getSQLState() != null) {

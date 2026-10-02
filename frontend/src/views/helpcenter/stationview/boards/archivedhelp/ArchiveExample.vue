@@ -10,7 +10,7 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import BaseBadge from '@/components/badge/BaseBadge.vue'
 import ArchiveTableRow from './ArchiveTableRow.vue'
-import {contrastTextColor} from '@/theme/contrast'
+import {contrastTextColor} from '@/util/contrastColor'
 
 const {t} = useI18n()
 
@@ -43,7 +43,7 @@ const dummyLabels = [
                 <tr class="text-left text-xs text-(--text-muted) uppercase border-b border-(--border)">
                     <th class="py-2 pr-3">ID</th>
                     <th class="py-2 pr-3 w-full">{{ t('boards.ticketTitle') }}</th>
-                    <th class="py-2 pr-3">Labels</th>
+                    <th class="py-2 pr-3">{{ t('helpCenter.sample.boards.labels') }}</th>
                     <th class="py-2 pr-3">{{ t('boards.priority') }}</th>
                     <th class="py-2 pr-3">{{ t('boards.assignee') }}</th>
                     <th class="py-2">{{ t('boards.dueDate') }}</th>

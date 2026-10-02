@@ -28,7 +28,6 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.import.importText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Import section -->
     <NeutralContainer class="space-y-4">
       <SectionHeader>{{ t('stationManage.importTitle') }}</SectionHeader>
       <p class="text-sm text-(--text-muted)">{{ t('stationManage.importHint') }}</p>
@@ -43,7 +42,6 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.import.transferText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Transfer section -->
     <NeutralContainer class="space-y-4">
       <SectionHeader>{{ t('stationManage.transferTitle') }}</SectionHeader>
       <p class="text-sm text-(--text-muted)">{{ t('stationManage.transferHint') }}</p>

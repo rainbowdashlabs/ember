@@ -18,7 +18,7 @@ import DragList from '@/components/input/DragList.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import type {InventorySize} from '@/api/inventory'
+import type {InventorySize} from '@/api/generated/schema'
 import {inventory} from '@/api'
 import {moveWithin} from '@/util/reorder'
 import {describeFailure, type Failure} from '@/util/failure'
@@ -125,7 +125,7 @@ async function onSizeReorder(fromIndex: number, toIndex: number) {
             class="flex items-center justify-between px-3 py-2 border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50">
           <div>
             <span class="text-sm font-medium">{{ size.label }}</span>
-            <MutedText class="ml-2" v-if="size.note">{{ size.note }}</MutedText>
+            <MutedText v-if="size.note" class="ml-2">{{ size.note }}</MutedText>
           </div>
           <div class="flex items-center gap-1">
             <EditButton @click="openEditSize(size)"/>

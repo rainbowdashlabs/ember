@@ -7,68 +7,48 @@ package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.RegistrationDeadlineExpired;
-import dev.chojo.ember.feature.events.entity.EventBreak;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
-import dev.chojo.ember.feature.events.entity.StationEvent;
-import dev.chojo.ember.feature.events.repository.EventBreakRepository;
+import dev.chojo.ember.feature.events.entity.StationCalendar;
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
-import dev.chojo.ember.feature.station.entity.StationFormat;
-import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.service.StationReadOnlyGuard;
+import dev.chojo.ember.lifecycle.Schedule;
+import dev.chojo.ember.lifecycle.ScheduledTask;
+import dev.chojo.ember.lifecycle.TaskSource;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.time.LocalDate;
-import java.time.ZoneId;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 @Singleton
-public class RegistrationDeadlineChecker {
+public class RegistrationDeadlineChecker implements TaskSource {
     private static final Logger log = LoggerFactory.getLogger(RegistrationDeadlineChecker.class);
 
     private final EventRepository eventRepository;
-    private final EventBreakRepository breakRepository;
     private final EventRegistrationRepository registrationRepository;
     private final EventRegistrationService registrationService;
     private final DomainEventBus eventBus;
-    private final StationRepository stationRepository;
+    private final OccurrenceCalendar occurrenceCalendar;
     private final StationReadOnlyGuard readOnlyGuard;
-
-    /** The clock a station keeps, which is the one its appointments are read on. */
-    private ZoneId zoneOf(int stationId) {
-        return StationFormat.timezoneOf(stationRepository.findById(stationId).orElse(null));
-    }
 
     @Inject
     public RegistrationDeadlineChecker(
             EventRepository eventRepository,
-            EventBreakRepository breakRepository,
             EventRegistrationRepository registrationRepository,
             EventRegistrationService registrationService,
             DomainEventBus eventBus,
-            StationRepository stationRepository,
+            OccurrenceCalendar occurrenceCalendar,
             StationReadOnlyGuard readOnlyGuard) {
         this.eventRepository = eventRepository;
-        this.breakRepository = breakRepository;
         this.registrationRepository = registrationRepository;
         this.registrationService = registrationService;
         this.eventBus = eventBus;
-        this.stationRepository = stationRepository;
+        this.occurrenceCalendar = occurrenceCalendar;
         this.readOnlyGuard = readOnlyGuard;
-
-        ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
-            var t = new Thread(r, "registration-deadline-checker");
-            t.setDaemon(true);
-            return t;
-        });
-        scheduler.scheduleWithFixedDelay(this::check, 5, 5, TimeUnit.MINUTES);
     }
 
     private void check() {
@@ -101,21 +81,26 @@ public class RegistrationDeadlineChecker {
      * <p>Each station is asked about on its own clock. Read on the server's, a station two hours ahead
      * spends the last two hours of its evening being told about yesterday, and the appointment whose
      * list closes at midnight closes it on the wrong day.
+     *
+     * <p>A next date that was called off closes nothing: its places are kept as they stand, so they
+     * are still there if the date is brought back.
      */
     private void checkRecurringEvents() {
         var events = eventRepository.findRecurringEventsWithCloseDays();
-        var breaks = new HashMap<Integer, List<EventBreak>>();
-        var zones = new HashMap<Integer, ZoneId>();
+        var calendars = new HashMap<Integer, StationCalendar>();
 
         for (var event : events) {
             if (!readOnlyGuard.isWritable(event.stationId())) continue;
-            var zone = zones.computeIfAbsent(event.stationId(), this::zoneOf);
-            var today = LocalDate.now(zone);
-            var stationBreaks = breaks.computeIfAbsent(event.stationId(), breakRepository::findByStation);
-            var nextDate = findNextOccurrence(event, today, stationBreaks, zone);
-            if (nextDate == null) continue;
+            var calendar = calendars.computeIfAbsent(event.stationId(), occurrenceCalendar::forStation);
+            var today = calendar.today();
+            var next = calendar.next(event, today);
+            if (next.isEmpty()) continue;
+            var nextDate = next.get();
+            if (calendar.isCancelled(event, nextDate)) continue;
 
-            var deadlineDate = nextDate.minusDays(event.registrationCloseDays());
+            Integer closeDays = event.registrationCloseDays();
+            if (closeDays == null) continue;
+            var deadlineDate = nextDate.minusDays(closeDays);
             if (today.isBefore(deadlineDate)) continue;
 
             var pending = registrationRepository.findPendingByEventAndDate(event.id(), nextDate);
@@ -135,14 +120,11 @@ public class RegistrationDeadlineChecker {
         }
     }
 
-    private LocalDate findNextOccurrence(StationEvent event, LocalDate today, List<EventBreak> breaks, ZoneId zone) {
-        if (event.dayOfWeek() == null) return null;
-        for (int d = 0; d <= 28; d++) {
-            var date = today.plusDays(d);
-            if (EventBreak.coversAny(breaks, date)) continue;
-
-            if (event.occursOn(date, zone)) return date;
-        }
-        return null;
+    @Override
+    public List<ScheduledTask> scheduledTasks() {
+        return List.of(new ScheduledTask(
+                "registration-deadline-check",
+                Schedule.fixedDelay(Duration.ofMinutes(5), Duration.ofMinutes(5)),
+                this::check));
     }
 }

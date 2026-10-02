@@ -15,11 +15,18 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import UnknownScanForm from '@/views/stationview/inventory/unknownscanmodal/UnknownScanForm.vue'
 import {buildItemMetadata} from '@/views/stationview/inventory/detailview/itemMetadata'
-import {InventoryTypes, ItemOwner, type Inventory, type InventoryItem, type InventorySize, type ItemMetadata, type ItemOwnerName} from '@/api/inventory'
+import {InventoryTypes, ItemOwner, type ItemOwnerName} from '@/api/inventory'
 import {inventory, inventoryFields} from '@/api'
-import type {InventoryFieldDefinition} from '@/api/inventoryFields'
+import type {
+  Inventory,
+  InventoryFieldDefinition,
+  InventoryItem,
+  InventoryItemMetadata,
+  InventorySize,
+} from '@/api/generated/schema'
 import {useAsyncAction} from '@/composables/useAsyncAction'
-import {describeFailure, type Failure} from '@/util/failure'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {describeFailure} from '@/util/failure'
 
 const props = defineProps<{
   scannedCode: string
@@ -35,11 +42,8 @@ const {t} = useI18n()
 
 const open = ref(true)
 const inventories = ref<Inventory[]>([])
-const loading = ref(true)
 /** What the form itself objects to, which is the reader's to put right and never a fault in Ember. */
 const validation = ref('')
-
-const loadFailure = ref<Failure | null>(null)
 
 const targetInventoryId = ref<number | 'new'>('new')
 const newInventoryName = ref('')
@@ -79,21 +83,13 @@ const showOwnerPicker = computed(() => {
 const sortedFieldDefs = computed(() =>
     [...fieldDefs.value].sort((a, b) => a.sortOrder - b.sortOrder || a.key.localeCompare(b.key)))
 
-async function load() {
-  loading.value = true
-  loadFailure.value = null
-  try {
-    inventories.value = await inventory.listInventories()
-    const first = inventories.value[0]
-    if (first) {
-      targetInventoryId.value = first.id
-    }
-  } catch (e) {
-    loadFailure.value = describeFailure(e, t)
-  } finally {
-    loading.value = false
+const {loading, failure: loadFailure, reload: load} = useAsyncLoader(async () => {
+  inventories.value = await inventory.listInventories()
+  const first = inventories.value[0]
+  if (first) {
+    targetInventoryId.value = first.id
   }
-}
+}, {autoLoad: false})
 
 watch(selectedInventory, async (inv) => {
   pickedSizeLabel.value = ''
@@ -104,17 +100,19 @@ watch(selectedInventory, async (inv) => {
   itemName.value = inv.name ?? ''
   if (inv.inventoryType === InventoryTypes.EXTERNAL) ownerKind.value = ItemOwner.CLUSTER
   else if (inv.inventoryType === InventoryTypes.INTERNAL) ownerKind.value = ItemOwner.STATION
-  try {
-    const [sizes, defs] = await Promise.all([
-      inv.hasSizes ? inventory.listSizes(inv.id) : Promise.resolve([] as InventorySize[]),
-      inventoryFields.listFields(inv.id).catch(() => [] as InventoryFieldDefinition[]),
-    ])
+  await loadSizesAndFields(inv)
+})
+
+/** Reads the sizes and fields of the chosen inventory. A failed read stays quiet; submitting surfaces it. */
+async function loadSizesAndFields(inv: Inventory) {
+  await Promise.all([
+    inv.hasSizes ? inventory.listSizes(inv.id) : Promise.resolve([] as InventorySize[]),
+    inventoryFields.listFields(inv.id).catch(() => [] as InventoryFieldDefinition[]),
+  ]).then(([sizes, defs]) => {
     availableSizes.value = sizes
     fieldDefs.value = defs
-  } catch {
-    /* swallow - surfaced on submit */
-  }
-})
+  }).catch(() => {})
+}
 
 watch(newInventoryName, (name) => {
   if (isCreatingInventory.value) itemName.value = name
@@ -145,7 +143,7 @@ function removeNewSizeRow(index: number) {
   if (newInventorySizes.value.length === 0) newInventorySizes.value.push('')
 }
 
-function buildMetadata(): ItemMetadata | undefined {
+function buildMetadata(): InventoryItemMetadata | undefined {
   if (fieldDefs.value.length === 0) return undefined
   const built = buildItemMetadata(fieldDefs.value, fieldValues.value)
   return Object.keys(built.fields).length === 0 ? undefined : built
@@ -255,11 +253,11 @@ function onClose() {
   emit('close')
 }
 
-load()
+void load()
 </script>
 
 <template>
-  <Modal v-model="open" size="md" @update:modelValue="(v) => { if (!v) onClose() }">
+  <Modal v-model="open" size="md" @update:model-value="(v) => { if (!v) onClose() }">
     <SubHeader class="mb-2">{{ t('inventory.unknownScan.title') }}</SubHeader>
     <p class="text-sm text-(--text-muted) mb-3">
       {{ context === 'member' ? t('inventory.unknownScan.introMember') : t('inventory.unknownScan.introContainer') }}
@@ -277,23 +275,23 @@ load()
     </div>
     <UnknownScanForm
         v-else
-        v-model:targetInventoryId="targetInventoryId"
-        v-model:newInventoryName="newInventoryName"
-        v-model:newInventoryType="newInventoryType"
-        v-model:newInventoryHasSizes="newInventoryHasSizes"
-        v-model:newInventorySizes="newInventorySizes"
-        v-model:itemName="itemName"
-        v-model:pickedSizeLabel="pickedSizeLabel"
-        v-model:ownerKind="ownerKind"
-        v-model:fieldValues="fieldValues"
-        :sortedInventories="sortedInventories"
-        :isCreatingInventory="isCreatingInventory"
-        :effectiveHasSizes="effectiveHasSizes"
-        :sizeOptionLabels="sizeOptionLabels"
-        :showOwnerPicker="showOwnerPicker"
-        :fieldDefs="fieldDefs"
-        @addNewSize="addNewSizeRow"
-        @removeNewSize="removeNewSizeRow"
+        v-model:target-inventory-id="targetInventoryId"
+        v-model:new-inventory-name="newInventoryName"
+        v-model:new-inventory-type="newInventoryType"
+        v-model:new-inventory-has-sizes="newInventoryHasSizes"
+        v-model:new-inventory-sizes="newInventorySizes"
+        v-model:item-name="itemName"
+        v-model:picked-size-label="pickedSizeLabel"
+        v-model:owner-kind="ownerKind"
+        v-model:field-values="fieldValues"
+        :sorted-inventories="sortedInventories"
+        :is-creating-inventory="isCreatingInventory"
+        :effective-has-sizes="effectiveHasSizes"
+        :size-option-labels="sizeOptionLabels"
+        :show-owner-picker="showOwnerPicker"
+        :field-defs="fieldDefs"
+        @add-new-size="addNewSizeRow"
+        @remove-new-size="removeNewSizeRow"
     />
 
     <ButtonRow pair align="end" class="mt-4">

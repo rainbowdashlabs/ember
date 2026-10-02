@@ -29,10 +29,9 @@ public record ProfileFieldValue(int memberId, int fieldId, String value) {
      * sheet printed straight from them would show every name in quotes. An explicit JSON null reads
      * as no answer.
      *
-     * @return the unwrapped answer, empty for a JSON null, or {@code null} where nothing is stored
+     * @return the unwrapped answer, empty for a JSON null
      */
     public String plainValue() {
-        if (value == null) return null;
         var trimmed = value.strip();
         if (trimmed.length() >= 2 && trimmed.startsWith("\"") && trimmed.endsWith("\"")) {
             return trimmed.substring(1, trimmed.length() - 1).replace("\\\"", "\"");

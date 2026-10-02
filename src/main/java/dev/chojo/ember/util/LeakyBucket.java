@@ -12,28 +12,12 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Reusable per-key leaky-bucket (a.k.a. token bucket) rate limiter.
+ * An in-memory per-key token bucket: {@code capacity} requests at once, refilled continuously, so the
+ * burst a page makes on opening passes while the sustained rate stays bounded.
  *
- * <p>Each key has its own bucket with a fixed {@code capacity}; tokens accrue continuously
- * at {@code refill rate} until the bucket is full. Every {@link #tryAcquire(String)}
- * consumes one token; when no token is available the caller is told how long to wait
- * before the next one arrives.
- *
- * <p>Bursting is the realistic shape of most user-facing traffic: a UI opens, fires several
- * back-to-back requests, then idles. A pure "N per minute" cap would reject the natural
- * burst even though the long-run rate is fine. Leaky bucket gives callers {@code capacity}
- * requests immediately available and {@code refillRate} replenished per unit time, so the
- * sustained rate is bounded but real-world bursts pass cleanly.
- *
- * <p>State is held in-memory in a {@link ConcurrentHashMap}; a restart resets every bucket.
- * Buckets idle past {@code pruneAfter} are dropped opportunistically so the map cannot
- * grow without bound when keys are short-lived (e.g. one-shot session tokens).
- *
- * <p>Thread-safe: the per-key compute happens under a {@code ConcurrentHashMap.compute()}
- * lock so concurrent callers on the same key cannot both pass through when only one slot
- * remains.
- *
- * @see dev.chojo.ember.feature.feed.FeedRateLimiter for a typical use site.
+ * <p>A restart resets every bucket. Idle buckets are pruned now and then, so short-lived keys cannot grow
+ * the map without bound. Each key is updated under {@link ConcurrentHashMap#compute}, so two callers never
+ * share the last token.
  */
 public final class LeakyBucket {
 
@@ -44,6 +28,8 @@ public final class LeakyBucket {
     private final ConcurrentHashMap<String, Bucket> buckets = new ConcurrentHashMap<>();
 
     /**
+     * Creates a bucket per key.
+     *
      * @param capacity        maximum tokens the bucket holds (also the burst size)
      * @param refillPerMinute sustained refill rate in tokens per minute
      * @param pruneAfter      buckets idle longer than this are dropped from the map
@@ -52,22 +38,15 @@ public final class LeakyBucket {
         this(capacity, refillPerMinute, pruneAfter, Clock.systemUTC());
     }
 
-    /**
-     * Visible-for-testing constructor that lets tests drive time deterministically.
-     */
+    /** As {@link #LeakyBucket(int, int, Duration)}, reading time from the clock. */
     public LeakyBucket(int capacity, int refillPerMinute, Duration pruneAfter, Clock clock) {
         this(capacity, refillIntervalFromPerMinute(refillPerMinute), pruneAfter, clock);
     }
 
     /**
-     * Constructor for rates that don't divide evenly into per-minute tokens - e.g. five
-     * tokens per hour. The refill interval is the wall-clock gap between two single-token
-     * top-ups; an interval of 12 minutes yields five tokens per hour.
+     * For rates that are not whole tokens per minute: an interval of 12 minutes gives five tokens an hour.
      *
-     * @param capacity       maximum tokens the bucket holds (also the burst size)
-     * @param refillInterval wall-clock gap between two single-token refills
-     * @param pruneAfter     buckets idle longer than this are dropped from the map
-     * @param clock          clock used for refill / prune timing (visible for tests)
+     * @param refillInterval the time between two single-token refills
      */
     public LeakyBucket(int capacity, Duration refillInterval, Duration pruneAfter, Clock clock) {
         if (capacity < 1) throw new IllegalArgumentException("capacity must be >= 1");
@@ -86,14 +65,12 @@ public final class LeakyBucket {
     }
 
     /**
-     * Attempts to consume one token from the bucket for {@code key}.
+     * Takes one token from the key's bucket; about one call in a thousand also prunes idle buckets.
      *
-     * @return empty when the request is allowed, or the seconds until the next token refills
-     * when the caller should be rate-limited
+     * @return empty when allowed, otherwise the whole seconds until the next token, rounded up and at least one
      */
     public Optional<Long> tryAcquire(String key) {
         Instant now = clock.instant();
-        // Opportunistic GC: every call has a tiny chance of evicting stale buckets.
         if (Math.random() < 0.001) prune(now);
 
         var admitted = new boolean[1];
@@ -105,7 +82,6 @@ public final class LeakyBucket {
                 bucket.tokens -= 1.0;
                 admitted[0] = true;
             } else {
-                // Round up so we never lie to clients about an immediate retry.
                 double missing = 1.0 - bucket.tokens;
                 long millis = (long) Math.ceil(missing * refillInterval.toMillis());
                 retryAfterSeconds[0] = Math.max(1L, (millis + 999) / 1000);
@@ -120,11 +96,7 @@ public final class LeakyBucket {
         buckets.entrySet().removeIf(e -> e.getValue().lastRefill.isBefore(threshold));
     }
 
-    /**
-     * Per-key bucket state. {@code tokens} is a fractional count because refill is
-     * continuous, not in whole-unit ticks - keeping it floating point gives a steady
-     * refill curve without losing tiny remainders between calls.
-     */
+    /** One key's state; fractional tokens keep the continuous refill from losing remainders. */
     private static final class Bucket {
         double tokens;
         Instant lastRefill;

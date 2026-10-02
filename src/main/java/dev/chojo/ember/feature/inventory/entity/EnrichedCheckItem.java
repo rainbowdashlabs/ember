@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.inventory.entity;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * A check item enriched with resolved names for display.
  *
@@ -19,10 +21,10 @@ package dev.chojo.ember.feature.inventory.entity;
  */
 public record EnrichedCheckItem(
         int id,
-        Integer itemId,
-        String itemName,
-        String internalId,
+        @Nullable Integer itemId,
+        @Nullable String itemName,
+        @Nullable String internalId,
         String inventoryName,
-        String sizeName,
+        @Nullable String sizeName,
         CheckResult result,
         String note) {}

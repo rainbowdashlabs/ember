@@ -10,8 +10,8 @@ import FormLabel from '@/components/input/FormLabel.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
-import type {ManagedStation} from '@/api/clusterMembers'
-import {StationUserTypeLabels, type StationUserTypeName} from '@/api/types'
+import type {ManagedStationResponse, StationUserType} from '@/api/generated/schema'
+import {StationUserTypeLabels} from '@/api/types'
 
 /** What is asked about somebody being taken on, in the order it is asked: the station first. */
 const stationUid = defineModel<string>('stationUid', {required: true})
@@ -19,10 +19,10 @@ const firstName = defineModel<string>('firstName', {required: true})
 const lastName = defineModel<string>('lastName', {required: true})
 const email = defineModel<string>('email', {required: true})
 const canLogin = defineModel<boolean>('canLogin', {required: true})
-const userType = defineModel<StationUserTypeName>('userType', {required: true})
+const userType = defineModel<StationUserType>('userType', {required: true})
 
 const props = defineProps<{
-  stations: ManagedStation[]
+  stations: ManagedStationResponse[]
 }>()
 
 const {t} = useI18n()

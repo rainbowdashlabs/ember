@@ -5,7 +5,8 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
-import dev.chojo.ember.feature.inventory.entity.FieldType;
+import dev.chojo.ember.api.refusal.InventoryRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.inventory.entity.Glyph;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryArt;
@@ -15,10 +16,9 @@ import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.ItemFieldValues;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.inventory.entity.SwitchBlockerKind;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.NotFoundResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -84,8 +84,8 @@ class InventoryArtServiceTest extends RepositoryTestBase {
     @Test
     void kindsExistOnlyInADrawerOfDifferentThings() {
         Inventory uniform = oneThing();
-        var refused = assertThrows(BadRequestResponse.class, () -> artService.create(uniform.id(), "blau", "", 0));
-        assertTrue(refused.getMessage().contains("collection"));
+        var refused = assertThrows(RefusalResponse.class, () -> artService.create(uniform.id(), "blau", "", 0));
+        assertEquals(InventoryRefusal.ART_INVENTORY_UNIFORM, refused.refusal());
 
         Inventory drawer = drawer();
         InventoryArt art = artService.create(drawer.id(), "Funkgerät blau", "", 0);
@@ -99,8 +99,7 @@ class InventoryArtServiceTest extends RepositoryTestBase {
         InventoryItem loose = piece(drawer.id(), "Laminiergerät", null);
         assertNull(loose.artId());
         assertNull(inventoryRepo.findItemById(loose.id()).orElseThrow().artId());
-        // A count over kinds leaves it out rather than inventing a group for it.
-        assertTrue(artService.stock(drawer.id()).isEmpty());
+        assertTrue(artService.stock(drawer.id()).isEmpty(), "a count over kinds invents no group for it");
         assertEquals(1, artService.nameCounts(drawer.id()).size());
         assertEquals(1, artService.nameCounts(drawer.id()).getFirst().unassigned());
         assertTrue(fieldDefinitionService.resolveForItem(loose).isEmpty());
@@ -110,14 +109,13 @@ class InventoryArtServiceTest extends RepositoryTestBase {
     void oneWordHoweverItWasTyped() {
         Inventory drawer = drawer();
         artService.create(drawer.id(), "blau", "", 0);
-        assertThrows(BadRequestResponse.class, () -> artService.create(drawer.id(), "Blau", "", 0));
-        assertThrows(BadRequestResponse.class, () -> artService.create(drawer.id(), "  blau  ", "", 0));
+        assertThrows(RefusalResponse.class, () -> artService.create(drawer.id(), "Blau", "", 0));
+        assertThrows(RefusalResponse.class, () -> artService.create(drawer.id(), "  blau  ", "", 0));
 
-        // And the same word in another station's drawer is the same kind, which is what lets a
-        // partner's stock be counted alongside this one's.
         Inventory otherDrawer = drawer();
         InventoryArt elsewhere = artService.create(otherDrawer.id(), " BLAU ", "", 0);
-        assertEquals("blau", elsewhere.mergeKey());
+        assertEquals(
+                "blau", elsewhere.mergeKey(), "the same word elsewhere is the same kind, so partner stock counts too");
         assertTrue(artService.sameAcrossStations(elsewhere.id()).size() >= 2);
     }
 
@@ -170,12 +168,11 @@ class InventoryArtServiceTest extends RepositoryTestBase {
         Inventory otherDrawer = drawer();
         InventoryArt elsewhere = artService.create(otherDrawer.id(), "Beamer", "", 0);
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> service.createItem(
                         drawer.id(), null, "Beamer", null, elsewhere.id(), null, ItemOwner.STATION, null));
         InventoryItem here = piece(drawer.id(), "Beamer", null);
-        assertThrows(
-                BadRequestResponse.class, () -> artService.assign(drawer.id(), elsewhere.id(), List.of(here.id())));
+        assertThrows(RefusalResponse.class, () -> artService.assign(drawer.id(), elsewhere.id(), List.of(here.id())));
     }
 
     @Test
@@ -207,7 +204,7 @@ class InventoryArtServiceTest extends RepositoryTestBase {
         InventoryItem radio = piece(drawer.id(), "Funkgerät blau", blau.id());
 
         Map<String, ItemFieldValues.FieldValue> values = new LinkedHashMap<>();
-        values.put("call_sign", new ItemFieldValues.TextValue("Florian 1"));
+        values.put("call_sign", new ItemFieldValues.ItemTextValue("Florian 1"));
         service.updateItem(
                 radio.id(),
                 null,
@@ -219,15 +216,12 @@ class InventoryArtServiceTest extends RepositoryTestBase {
         assertEquals(
                 "Florian 1", textValue(inventoryRepo.findItemById(radio.id()).orElseThrow(), "call_sign"));
 
-        // The kind goes, and the form comes back with nothing in it because it showed nothing.
         service.updateItem(radio.id(), null, "Funkgerät blau", null, null, InventoryItemMetadata.empty(), null);
         InventoryItem stripped = inventoryRepo.findItemById(radio.id()).orElseThrow();
         assertNull(stripped.artId());
         assertTrue(fieldDefinitionService.resolveForItem(stripped).isEmpty());
         assertEquals("Florian 1", textValue(stripped, "call_sign"));
 
-        // And it reads again the day the kind comes back, which the tidying screen does without
-        // touching what the piece recorded.
         artService.assign(drawer.id(), blau.id(), List.of(radio.id()));
         InventoryItem restored = inventoryRepo.findItemById(radio.id()).orElseThrow();
         assertEquals(1, fieldDefinitionService.resolveForItem(restored).size());
@@ -270,14 +264,13 @@ class InventoryArtServiceTest extends RepositoryTestBase {
     @Test
     void aKindNeedsANameAndCannotTakeAnother() {
         Inventory drawer = drawer();
-        assertThrows(BadRequestResponse.class, () -> artService.create(drawer.id(), "  ", "", 0));
-        assertThrows(BadRequestResponse.class, () -> artService.create(drawer.id(), null, "", 0));
+        assertThrows(RefusalResponse.class, () -> artService.create(drawer.id(), "  ", "", 0));
+        assertThrows(RefusalResponse.class, () -> artService.create(drawer.id(), null, "", 0));
 
         InventoryArt blau = artService.create(drawer.id(), "blau", "", 0);
         InventoryArt gruen = artService.create(drawer.id(), "grün", "", 1);
-        assertThrows(BadRequestResponse.class, () -> artService.update(gruen.id(), " BLAU ", "", 1));
-        assertThrows(BadRequestResponse.class, () -> artService.update(gruen.id(), "", "", 1));
-        // Keeping its own name is not taking another one.
+        assertThrows(RefusalResponse.class, () -> artService.update(gruen.id(), " BLAU ", "", 1));
+        assertThrows(RefusalResponse.class, () -> artService.update(gruen.id(), "", "", 1));
         assertTrue(artService.update(blau.id(), "blau", "eine Notiz", 5).isPresent());
         assertEquals("eine Notiz", artService.findById(blau.id()).orElseThrow().note());
     }
@@ -306,19 +299,19 @@ class InventoryArtServiceTest extends RepositoryTestBase {
     void aColourNothingCouldPaintIsRefused() {
         Inventory drawer = drawer();
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> artService.create(drawer.id(), "Funkgerät rot", "", 0, Glyph.of(null, "rot")));
         InventoryArt blau = artService.create(drawer.id(), "Funkgerät blau", "", 0);
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> artService.update(blau.id(), "Funkgerät blau", "", 0, Glyph.of(null, "#12")));
     }
 
     @Test
     void whatIsNotThereChangesNothing() {
         assertTrue(artService.findById(987654).isEmpty());
-        assertThrows(NotFoundResponse.class, () -> artService.update(987654, "blau", "", 0));
-        assertThrows(NotFoundResponse.class, () -> artService.sameAcrossStations(987654));
+        assertThrows(RefusalResponse.class, () -> artService.update(987654, "blau", "", 0));
+        assertThrows(RefusalResponse.class, () -> artService.sameAcrossStations(987654));
         assertFalse(artService.delete(987654));
 
         Inventory drawer = drawer();
@@ -343,12 +336,12 @@ class InventoryArtServiceTest extends RepositoryTestBase {
         Inventory otherDrawer = drawer();
         InventoryArt blau = artService.create(drawer.id(), "Funkgerät blau", "", 0);
         InventoryItem elsewhere = piece(otherDrawer.id(), "Funkgerät blau", null);
-        assertThrows(BadRequestResponse.class, () -> artService.merge(drawer.id(), blau.id(), List.of(elsewhere.id())));
-        assertThrows(NotFoundResponse.class, () -> artService.assign(drawer.id(), null, List.of(987654)));
+        assertThrows(RefusalResponse.class, () -> artService.merge(drawer.id(), blau.id(), List.of(elsewhere.id())));
+        assertThrows(RefusalResponse.class, () -> artService.assign(drawer.id(), null, List.of(987654)));
     }
 
     private static String textValue(InventoryItem item, String key) {
         ItemFieldValues.FieldValue value = item.metadata().fields().values().get(key);
-        return value instanceof ItemFieldValues.TextValue text ? text.value() : null;
+        return value instanceof ItemFieldValues.ItemTextValue text ? text.value() : null;
     }
 }

@@ -10,6 +10,7 @@ import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.feature.content.entity.ContentMode;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -42,16 +43,19 @@ public record News(
         String title,
         String contentMarkdown,
         String contentHtml,
-        MemberIdentity author,
+        @Nullable MemberIdentity author,
         Instant publishedAt,
         Instant createdAt,
         RestrictionMode restrictionMode,
         boolean restricted,
         boolean publicBlog,
         ContentMode contentMode,
-        Integer containerId) {
+        @Nullable Integer containerId) {
     /**
      * Creates a row mapping for database result set conversion.
+     *
+     * <p>A system entry's missing station reads as 0, which no station carries, so it can never be
+     * mistaken for one station's own.
      */
     public static RowMapping<News> map() {
         return row -> {
@@ -64,8 +68,6 @@ public record News(
             return new News(
                     row.getInt("id"),
                     row.get("public_uid", StandardValueConverter.UUID_STRING),
-                    // NULL reads as 0, which is NO_STATION: no station carries that id, so a system
-                    // entry can never be mistaken for one station's own.
                     row.getInt("station_id"),
                     row.getString("title"),
                     row.getString("content_markdown"),

@@ -6,18 +6,25 @@
 package dev.chojo.ember.feature.system.service;
 
 import dev.chojo.ember.conf.file.elements.Metrics;
+import dev.chojo.ember.lifecycle.Schedule;
+import dev.chojo.ember.lifecycle.ScheduledTask;
+import dev.chojo.ember.lifecycle.ShutdownFlush;
+import dev.chojo.ember.lifecycle.TaskScheduler;
+import dev.chojo.ember.lifecycle.TaskSource;
+import io.javalin.http.Context;
+import io.javalin.router.Endpoint;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
@@ -27,40 +34,83 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * Captures API request timings and status codes asynchronously.
  * Batches inserts to avoid slowing down request handling.
  * Retention is governed by {@link Metrics#requestStatsRetentionDays()}.
+ *
+ * <p>A request is recorded under the route template it matched, never under the path somebody
+ * asked for: a path can carry a token that is the whole of a credential (a feed, a shared board, a
+ * transfer), and the template holds only its placeholder. A request that matched no route is
+ * recorded under {@link #UNMATCHED} for the same reason.
+ *
+ * <p>The buffer is bounded. When the database cannot take the entries, new ones are dropped rather
+ * than held, so an outage neither grows the heap nor slows the requests that keep arriving; the
+ * next flush logs how many were lost.
  */
 @Singleton
-public class ApiRequestLogger {
+public class ApiRequestLogger implements ShutdownFlush, TaskSource {
+    /** What a request that matched no route is recorded under. */
+    public static final String UNMATCHED = "(unmatched)";
+
     private static final Logger log = LoggerFactory.getLogger(ApiRequestLogger.class);
     private static final int BATCH_SIZE = 100;
-    private static final long FLUSH_INTERVAL_MS = 5000;
-    private static final long PRUNE_INTERVAL_HOURS = 6;
+    private static final int CAPACITY = 10_000;
+    private static final Duration FLUSH_INTERVAL = Duration.ofSeconds(5);
+    private static final Duration PRUNE_INTERVAL = Duration.ofHours(6);
 
-    private final ConcurrentLinkedQueue<RequestEntry> buffer = new ConcurrentLinkedQueue<>();
-    private final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor(r -> {
-        var t = new Thread(r, "api-request-logger");
-        t.setDaemon(true);
-        return t;
-    });
+    private final LinkedBlockingQueue<RequestEntry> buffer;
+    private final AtomicLong dropped = new AtomicLong();
+    private final AtomicBoolean flushQueued = new AtomicBoolean();
     private final Metrics metrics;
+    private final TaskScheduler scheduler;
 
     @Inject
-    public ApiRequestLogger(Metrics metrics) {
-        this.metrics = metrics;
+    public ApiRequestLogger(Metrics metrics, TaskScheduler scheduler) {
+        this(metrics, scheduler, CAPACITY);
     }
 
-    public void start() {
-        executor.scheduleAtFixedRate(this::flush, FLUSH_INTERVAL_MS, FLUSH_INTERVAL_MS, TimeUnit.MILLISECONDS);
-        executor.scheduleAtFixedRate(this::prune, 1, PRUNE_INTERVAL_HOURS, TimeUnit.HOURS);
+    ApiRequestLogger(Metrics metrics, TaskScheduler scheduler, int capacity) {
+        this.metrics = metrics;
+        this.scheduler = scheduler;
+        this.buffer = new LinkedBlockingQueue<>(capacity);
     }
 
     /**
-     * Records a request. Called from the API after-handler. Non-blocking.
+     * The route template the request matched, or {@link #UNMATCHED} when it matched none.
+     *
+     * @param ctx the request, read in an after-handler
+     * @return what the request is recorded under
      */
-    public void record(String method, String path, int statusCode, long durationMs) {
-        buffer.add(new RequestEntry(method, normalizePath(path), statusCode, (int) durationMs));
-        if (buffer.size() >= BATCH_SIZE) {
-            executor.execute(this::flush);
+    public static String routeTemplate(Context ctx) {
+        Endpoint matched = ctx.endpoints().lastHttpEndpoint();
+        return matched == null ? UNMATCHED : matched.path;
+    }
+
+    /**
+     * Records a request. Called from the API after-handler. Never blocks: when the buffer is full
+     * the entry is dropped and counted.
+     *
+     * @param method     the HTTP method
+     * @param template   the route template, as {@link #routeTemplate(Context)} reads it
+     * @param statusCode the status the request was answered with
+     * @param durationMs how long answering took
+     */
+    public void record(String method, String template, int statusCode, long durationMs) {
+        var entry = new RequestEntry(method, template == null ? UNMATCHED : template, statusCode, (int) durationMs);
+        if (!buffer.offer(entry)) {
+            dropped.incrementAndGet();
+            return;
         }
+        if (buffer.size() >= BATCH_SIZE && flushQueued.compareAndSet(false, true)) {
+            scheduler.background("api-request-log-flush", this::flush);
+        }
+    }
+
+    /** The entries waiting for the next flush, oldest first. */
+    List<RequestEntry> pending() {
+        return List.copyOf(buffer);
+    }
+
+    /** How many entries were dropped since the last flush because the buffer was full. */
+    long droppedSinceFlush() {
+        return dropped.get();
     }
 
     public List<EndpointStats> getSlowestEndpoints(int limit) {
@@ -149,8 +199,6 @@ public class ApiRequestLogger {
                 .all();
     }
 
-    // -- Query methods for admin API --
-
     public List<StatusBreakdown> getStatusBreakdown() {
         return query("""
                 SELECT
@@ -194,12 +242,12 @@ public class ApiRequestLogger {
      * Everything the detail page of one endpoint shows: how much traffic it saw, how it answered, and the
      * last requests to it.
      *
-     * <p>The path is matched exactly as it was recorded, so the caller asks for the reduced form with its
+     * <p>The path is matched exactly as it was recorded, so the caller asks for the route template with its
      * placeholders rather than for a path somebody actually requested. That is what the list links to, and
      * therefore the only form anybody arrives here holding.
      *
      * @param method the HTTP method
-     * @param path   the endpoint, as {@link #normalizePath(String)} leaves it
+     * @param path   the endpoint, as {@link #routeTemplate(Context)} reads it
      * @return what is known about it, with empty lists where nothing was recorded
      */
     public EndpointDetail getEndpointDetail(String method, String path) {
@@ -252,13 +300,37 @@ public class ApiRequestLogger {
         return new EndpointDetail(method, path, totals.avgDurationMs(), totals.requestCount(), statusCodes, recent);
     }
 
-    private void flush() {
-        var batch = new ArrayList<RequestEntry>();
-        RequestEntry entry;
-        while ((entry = buffer.poll()) != null && batch.size() < BATCH_SIZE * 2) {
-            batch.add(entry);
+    @Override
+    public String name() {
+        return "API request log";
+    }
+
+    /**
+     * Writes everything buffered, batch by batch, until the buffer is empty or a batch cannot be
+     * written.
+     */
+    @Override
+    public void flushAll() {
+        boolean written = true;
+        while (written && !buffer.isEmpty()) {
+            written = flush();
         }
-        if (batch.isEmpty()) return;
+    }
+
+    /**
+     * Writes one batch of up to twice the batch size.
+     *
+     * @return whether the batch was written; {@code false} when it could not be
+     */
+    boolean flush() {
+        flushQueued.set(false);
+        long lost = dropped.getAndSet(0);
+        if (lost > 0) {
+            log.warn("Dropped {} API request log entries because the buffer was full", lost);
+        }
+        var batch = new ArrayList<RequestEntry>();
+        buffer.drainTo(batch, BATCH_SIZE * 2);
+        if (batch.isEmpty()) return true;
 
         try {
             query("""
@@ -271,16 +343,20 @@ public class ApiRequestLogger {
                                     .bind("duration_ms", e.durationMs))
                             .toList())
                     .insert();
+            return true;
         } catch (Exception e) {
             log.warn("Failed to flush API request log batch ({} entries)", batch.size(), e);
+            return false;
         }
     }
 
-    private void prune() {
+    /**
+     * Deletes entries older than {@link Metrics#requestStatsRetentionDays()}. The days are bound
+     * through {@code make_interval}, because a bound value is not expanded inside an
+     * {@code INTERVAL} literal.
+     */
+    void prune() {
         try {
-            // Retention is configurable via metrics.requestStatsRetentionDays; we compute the
-            // cutoff in Java rather than passing days to SQL because SADU bind() doesn't expand
-            // values into INTERVAL literals.
             int days = Math.max(1, metrics.requestStatsRetentionDays());
             query("DELETE FROM api_request_log WHERE created_at < now() - make_interval(days := :days);")
                     .single(call().bind("days", days))
@@ -288,95 +364,6 @@ public class ApiRequestLogger {
         } catch (Exception e) {
             log.warn("Failed to prune old API request log entries", e);
         }
-    }
-
-    /**
-     * Replaces the segments of a path that are an identifier with {@code {id}}, so that every request to
-     * one endpoint is counted as that endpoint rather than as one endpoint per identifier.
-     *
-     * <p>A segment counts where the whole of it is an identifier: all digits, or a uuid. The whole of it
-     * matters. Matching digits anywhere rewrote the inside of any segment that merely began with one, which
-     * is not rare: a feed token beginning with a digit became {@code {id}hgEV4EC3...} and a uuid became
-     * {@code {id}-0000-4000-a000-000000000003}. Neither is a path anybody could ask for, so the detail page
-     * of either was permanently empty.
-     *
-     * @param path the path as it was requested
-     * @return the path with its identifier segments replaced
-     */
-    static String normalizePath(String path) {
-        if (path == null || path.isEmpty()) return path;
-        var out = new StringBuilder(path.length());
-        int from = 0;
-        while (from <= path.length()) {
-            int slash = path.indexOf('/', from);
-            int end = slash < 0 ? path.length() : slash;
-            if (isIdentifier(path, from, end)) {
-                out.append("{id}");
-            } else {
-                out.append(path, from, end);
-            }
-            if (slash < 0) break;
-            out.append('/');
-            from = slash + 1;
-        }
-        return out.toString();
-    }
-
-    /**
-     * Whether this segment names one particular thing rather than a part of the route.
-     *
-     * <p>A number and a uuid both do, and both have to collapse or the page lists one endpoint per row of
-     * the database. A slug does not: it names a station and the requests to one station's page are worth
-     * seeing as their own line.
-     */
-    private static boolean isIdentifier(String path, int from, int end) {
-        return allDigits(path, from, end) || isUuid(path, from, end) || isSecret(path, from, end);
-    }
-
-    /**
-     * Whether this segment is a token somebody was handed rather than a name somebody chose.
-     *
-     * <p>A feed address carries one, and it is the whole of the credential: left as it was requested, the
-     * statistics grow a row per subscriber and write down the token that opens the feed. It is not a uuid
-     * and not a number, so neither of the other two rules reaches it.
-     *
-     * <p>Told apart from a slug by what random bytes look like rather than by length alone. A station's
-     * name can be longer than a token ("freiwillige-feuerwehr-musterstadt-nord" is), but it is words, so
-     * it carries neither a capital nor a digit. Thirty-two characters of base64url holding both is not a
-     * name anybody typed.
-     */
-    private static boolean isSecret(String path, int from, int end) {
-        if (end - from < 32) return false;
-        boolean capital = false;
-        boolean digit = false;
-        for (int i = from; i < end; i++) {
-            char c = path.charAt(i);
-            if (Character.isUpperCase(c)) capital = true;
-            else if (Character.isDigit(c)) digit = true;
-            else if (!Character.isLowerCase(c) && c != '-' && c != '_') return false;
-        }
-        return capital && digit;
-    }
-
-    /** Whether everything between these two points is a digit, and there is at least one of them. */
-    private static boolean allDigits(String path, int from, int end) {
-        if (end <= from) return false;
-        for (int i = from; i < end; i++) {
-            if (!Character.isDigit(path.charAt(i))) return false;
-        }
-        return true;
-    }
-
-    /** The 8-4-4-4-12 shape, checked by hand so no expression has to be compiled on every request. */
-    private static boolean isUuid(String path, int from, int end) {
-        if (end - from != 36) return false;
-        for (int i = 0; i < 36; i++) {
-            char c = path.charAt(from + i);
-            boolean dash = i == 8 || i == 13 || i == 18 || i == 23;
-            if (dash != (c == '-')) return false;
-            if (!dash && Character.digit(c, 16) < 0) return false;
-        }
-        return true;
     }
 
     public record EndpointStats(
@@ -416,5 +403,14 @@ public class ApiRequestLogger {
 
     public record HourlyStats(String hour, long requestCount, double avgDurationMs, long errorCount) {}
 
-    private record RequestEntry(String method, String path, int statusCode, int durationMs) {}
+    record RequestEntry(String method, String path, int statusCode, int durationMs) {}
+
+    @Override
+    public List<ScheduledTask> scheduledTasks() {
+        return List.of(
+                new ScheduledTask(
+                        "api-request-log-flush", Schedule.fixedRate(FLUSH_INTERVAL, FLUSH_INTERVAL), this::flush),
+                new ScheduledTask(
+                        "api-request-log-prune", Schedule.fixedRate(Duration.ofHours(1), PRUNE_INTERVAL), this::prune));
+    }
 }

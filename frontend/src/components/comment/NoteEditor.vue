@@ -4,11 +4,12 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {onMounted, ref} from 'vue'
+import {ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import type {NoteVersion} from '@/api/comments'
 import {comments as notesApi} from '@/api'
-import {describeFailure, FailureKind, type Failure} from '@/util/failure'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {describeFailure, FailureKind} from '@/util/failure'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
@@ -30,8 +31,6 @@ const {t} = useI18n()
 const content = ref('')
 const originalContent = ref('')
 const versions = ref<NoteVersion[]>([])
-const loading = ref(true)
-const failure = ref<Failure | null>(null)
 const showHistory = ref(false)
 
 const hasChanges = ref(false)
@@ -47,20 +46,15 @@ function checkChanges() {
  * says so. A note that exists but could not be fetched left an empty box in front of somebody who
  * then typed into it and saved, writing over what was already there without ever seeing it.
  */
-async function loadNote() {
-  loading.value = true
-  failure.value = null
+const {loading, failure} = useAsyncLoader(async () => {
   try {
     const note = await notesApi.getNote(props.entityType, props.entityId)
     content.value = note?.content ?? ''
     originalContent.value = content.value
   } catch (e) {
-    const described = describeFailure(e, t)
-    if (described.kind !== FailureKind.GONE) {
-      failure.value = {...described, message: t('notes.loadFailed')}
-    }
-  } finally { loading.value = false }
-}
+    if (describeFailure(e, t).kind !== FailureKind.GONE) throw e
+  }
+}, {errorMessageKey: 'notes.loadFailed'})
 
 async function save() {
   failure.value = null
@@ -87,8 +81,6 @@ function toggleHistory() {
   showHistory.value = !showHistory.value
   if (showHistory.value) loadVersions()
 }
-
-onMounted(loadNote)
 </script>
 
 <template>
@@ -113,7 +105,6 @@ onMounted(loadNote)
       <SaveButton :disabled="!hasChanges" compact :action="save"/>
     </template>
 
-    <!-- Version history -->
     <template v-if="showHistory && versions.length > 0">
       <NeutralContainer class="space-y-2 max-h-60 overflow-y-auto">
         <SubHeader class="text-xs">{{ t('notes.versionHistory') }}</SubHeader>

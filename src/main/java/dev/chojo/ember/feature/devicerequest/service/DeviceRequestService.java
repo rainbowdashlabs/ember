@@ -23,17 +23,17 @@ import dev.chojo.ember.feature.twofactor.entity.TwoFactorEvent;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorFactor;
 import dev.chojo.ember.feature.twofactor.service.TwoFactorAuditService;
 import dev.chojo.ember.feature.twofactor.service.TwoFactorService;
+import dev.chojo.ember.feature.twofactor.service.WebAuthnCeremonies.CeremonyStart;
+import dev.chojo.ember.util.RandomTokens;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Base64;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -60,11 +60,6 @@ import java.util.Set;
 @Singleton
 public class DeviceRequestService {
     private static final Logger log = LoggerFactory.getLogger(DeviceRequestService.class);
-    private static final SecureRandom RANDOM = new SecureRandom();
-
-    /** No 0/O, 1/I/L or U (confusable with V), so the code survives being read from a screen. */
-    private static final char[] CODE_ALPHABET = "23456789ABCDEFGHJKMNPQRSTVWXYZ".toCharArray();
-
     private static final int CODE_LENGTH = 8;
 
     /** Ten minutes, because somebody has to walk to another machine. */
@@ -121,16 +116,12 @@ public class DeviceRequestService {
     }
 
     private static String newCode() {
-        var code = new StringBuilder(CODE_LENGTH);
-        for (int i = 0; i < CODE_LENGTH; i++) {
-            code.append(CODE_ALPHABET[RANDOM.nextInt(CODE_ALPHABET.length)]);
-        }
-        return code.toString();
+        return RandomTokens.readableCode(CODE_LENGTH);
     }
 
     /** Two digits, so it is read off a screen and said out loud without being written down. */
     private static int newMatchNumber() {
-        return MATCH_LOWEST + RANDOM.nextInt(MATCH_HIGHEST - MATCH_LOWEST + 1);
+        return MATCH_LOWEST + RandomTokens.number(MATCH_HIGHEST - MATCH_LOWEST + 1);
     }
 
     /**
@@ -149,14 +140,12 @@ public class DeviceRequestService {
             boolean tooClose = choices.stream().anyMatch(taken -> Math.abs(taken - candidate) < MATCH_MIN_DISTANCE);
             if (!tooClose) choices.add(candidate);
         }
-        Collections.shuffle(choices, RANDOM);
+        RandomTokens.shuffle(choices);
         return List.copyOf(choices);
     }
 
     private static String newSecret() {
-        byte[] bytes = new byte[32];
-        RANDOM.nextBytes(bytes);
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+        return RandomTokens.urlSafe(32);
     }
 
     /** Strips the display grouping and the easy mistakes before hashing a typed code. */
@@ -178,7 +167,7 @@ public class DeviceRequestService {
      * else would answer whether an address exists here.
      */
     public CreatedRequest createRequest(
-            DeviceRequestPurpose purpose, String identifier, String userAgent, String country) {
+            DeviceRequestPurpose purpose, String identifier, @Nullable String userAgent, @Nullable String country) {
         String code = newCode();
         String pollSecret = newSecret();
         int matchNumber = newMatchNumber();
@@ -290,7 +279,7 @@ public class DeviceRequestService {
      * Opens the creation ceremony the enrolment token is good for. The token is not spent yet:
      * a browser that fails the ceremony may try again until the finish claims it.
      */
-    public Optional<PasskeyService.CeremonyStart> beginEnrollment(String enrollToken) {
+    public Optional<CeremonyStart> beginEnrollment(String enrollToken) {
         Optional<DeviceRequest> requestOpt =
                 repository.findByClaimToken(tokenHasher.hash(enrollToken), DeviceRequestPurpose.ENROL_PASSKEY);
         if (requestOpt.isEmpty()) return Optional.empty();
@@ -312,7 +301,8 @@ public class DeviceRequestService {
      * exactly one thing exactly once; a ceremony that fails after the claim burns it, and the
      * way forward is a fresh request rather than a second try on a spent token.
      */
-    public boolean finishEnrollment(String enrollToken, String challengeToken, String credentialJson, String country) {
+    public boolean finishEnrollment(
+            String enrollToken, String challengeToken, String credentialJson, @Nullable String country) {
         Optional<DeviceRequest> claimed =
                 repository.claimByToken(tokenHasher.hash(enrollToken), DeviceRequestPurpose.ENROL_PASSKEY);
         if (claimed.isEmpty()) return false;
@@ -353,7 +343,7 @@ public class DeviceRequestService {
      * what outlives it. It is written against the account that was signed in, because that is whose
      * access is in question, and names the approver so the two can be told apart afterwards.
      */
-    public Optional<LoginResult> claimSignIn(String claimToken, String userAgent, String location) {
+    public Optional<LoginResult> claimSignIn(String claimToken, @Nullable String userAgent, @Nullable String location) {
         Optional<DeviceRequest> claimed =
                 repository.claimByToken(tokenHasher.hash(claimToken), DeviceRequestPurpose.SIGN_IN);
         if (claimed.isEmpty()) return Optional.empty();
@@ -395,7 +385,11 @@ public class DeviceRequestService {
      * can judge.
      */
     public CreatedRequest createStepUpRequest(
-            int accountId, int sessionId, StepUpCategory category, String userAgent, String country) {
+            int accountId,
+            int sessionId,
+            StepUpCategory category,
+            @Nullable String userAgent,
+            @Nullable String country) {
         String code = newCode();
         String pollSecret = newSecret();
         int matchNumber = newMatchNumber();
@@ -524,5 +518,8 @@ public class DeviceRequestService {
      * @param purpose what that token buys, so the asking device knows which ceremony follows.
      *         {@code null} where there is nothing yet to buy
      */
-    public record PollResult(PollStatus status, String claimToken, DeviceRequestPurpose purpose) {}
+    public record PollResult(
+            PollStatus status,
+            @Nullable String claimToken,
+            @Nullable DeviceRequestPurpose purpose) {}
 }

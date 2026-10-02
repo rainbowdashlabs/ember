@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -216,7 +217,7 @@ public class FederatedBoardAccessService {
         return member.userType() == requiredUserType;
     }
 
-    private ShareInfo getEffectiveShareInfo(int partnerId, int boardId) {
+    private @Nullable ShareInfo getEffectiveShareInfo(int partnerId, int boardId) {
         var mode = getEffectiveShareMode(partnerId, boardId);
         if (mode.isEmpty()) return null;
         var requiredUserType = getSharedRequiredUserType(partnerId, boardId);

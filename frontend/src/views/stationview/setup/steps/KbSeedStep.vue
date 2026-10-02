@@ -32,7 +32,6 @@ const nameError = ref('')
 const {running: saving, error: saveError, run: runSave} = useAsyncAction(async () => {
     if (createdFileId.value == null) {
         const file = await knowledgeBase.createMarkdownFile({
-            folderId: null,
             name: pageName.value.trim(),
             description: pageDescription.value,
             content: pageContent.value,

@@ -6,10 +6,15 @@
 package dev.chojo.ember.feature.board.service;
 
 import dev.chojo.ember.feature.board.entity.BoardField;
+import dev.chojo.ember.feature.board.entity.BoardFieldDefinition;
 import dev.chojo.ember.feature.board.entity.BoardLabel;
 import dev.chojo.ember.feature.board.entity.BoardLane;
 import dev.chojo.ember.feature.board.entity.TicketLabelMapping;
 import dev.chojo.ember.feature.board.route.RemoteBoardRoutes;
+import dev.chojo.ember.feature.board.route.RemoteBoardRoutes.RemoteCreateLabelRequest;
+import dev.chojo.ember.feature.federation.transport.FederationEndpoints;
+import dev.chojo.ember.feature.federation.transport.FederationServer;
+import dev.chojo.ember.feature.federation.transport.FederationTransport;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -18,24 +23,53 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 
 /**
- * Proxies the board level structure of a federated board - its lanes, labels and fields - to the
- * owning station, either through the local database or over HTTP.
+ * The board level structure of a federated board - its lanes, labels and fields: asks the owning
+ * station for it, and answers partners asking for the structure of this station's shared boards.
  */
 @Singleton
-public class FederatedBoardStructureProxy {
+public class FederatedBoardStructureProxy implements FederationServer {
     private static final String DEFAULT_LABEL_COLOR = "#6b7280";
     private static final Logger log = LoggerFactory.getLogger(FederatedBoardStructureProxy.class);
 
     private final BoardService boardService;
-    private final FederatedBoardRemoteGateway gateway;
     private final FederatedBoardLocator locator;
+    private final FederationTransport transport;
+    private final FederatedBoardGuards guards;
 
     @Inject
     public FederatedBoardStructureProxy(
-            BoardService boardService, FederatedBoardRemoteGateway gateway, FederatedBoardLocator locator) {
+            BoardService boardService,
+            FederatedBoardLocator locator,
+            FederationTransport transport,
+            FederatedBoardGuards guards) {
         this.boardService = boardService;
-        this.gateway = gateway;
         this.locator = locator;
+        this.transport = transport;
+        this.guards = guards;
+    }
+
+    @Override
+    public void serveOn(FederationEndpoints endpoints) {
+        endpoints.<RemoteCreateLabelRequest, BoardLabel>serve(
+                RemoteBoardRoutes.CREATE_LABEL,
+                (partner, params, body) -> boardService.createLabel(
+                        guards.writableBoardId(partner, params),
+                        body.name(),
+                        body.color() != null ? body.color() : DEFAULT_LABEL_COLOR));
+        endpoints.serve(
+                RemoteBoardRoutes.GET_LANES,
+                (partner, params, body) -> boardService.findLanes(guards.viewableBoardId(partner, params)));
+        endpoints.serve(
+                RemoteBoardRoutes.GET_LABELS,
+                (partner, params, body) -> boardService.findLabels(guards.viewableBoardId(partner, params)));
+        endpoints.serve(
+                RemoteBoardRoutes.GET_ALL_TICKET_LABELS,
+                (partner, params, body) -> boardService.findAllTicketLabels(guards.viewableBoardId(partner, params)));
+        endpoints.serve(
+                RemoteBoardRoutes.GET_FIELDS,
+                (partner, params, body) -> boardService.findFields(guards.viewableBoardId(partner, params)).stream()
+                        .map(BoardField::of)
+                        .toList());
     }
 
     /**
@@ -46,11 +80,8 @@ public class FederatedBoardStructureProxy {
      * @return the lanes
      */
     public List<BoardLane> proxyGetLanes(int partnerId, String boardKey) {
-        var partner = locator.requirePartner(partnerId);
-        if (partner.isRemote()) {
-            return gateway.getList(partner, RemoteBoardRoutes.GET_LANES.at(boardKey), BoardLane.class);
-        }
-        return boardService.findLanes(locator.resolveBoardId(boardKey, partner));
+        return transport.getList(
+                locator.requirePartner(partnerId), RemoteBoardRoutes.GET_LANES.at(boardKey), BoardLane.class);
     }
 
     /**
@@ -61,11 +92,8 @@ public class FederatedBoardStructureProxy {
      * @return the labels
      */
     public List<BoardLabel> proxyGetLabels(int partnerId, String boardKey) {
-        var partner = locator.requirePartner(partnerId);
-        if (partner.isRemote()) {
-            return gateway.getList(partner, RemoteBoardRoutes.GET_LABELS.at(boardKey), BoardLabel.class);
-        }
-        return boardService.findLabels(locator.resolveBoardId(boardKey, partner));
+        return transport.getList(
+                locator.requirePartner(partnerId), RemoteBoardRoutes.GET_LABELS.at(boardKey), BoardLabel.class);
     }
 
     /**
@@ -76,27 +104,26 @@ public class FederatedBoardStructureProxy {
      * @return the ticket to label mappings
      */
     public List<TicketLabelMapping> proxyGetAllTicketLabels(int partnerId, String boardKey) {
-        var partner = locator.requirePartner(partnerId);
-        if (partner.isRemote()) {
-            return gateway.getList(
-                    partner, RemoteBoardRoutes.GET_ALL_TICKET_LABELS.at(boardKey), TicketLabelMapping.class);
-        }
-        return boardService.findAllTicketLabels(locator.resolveBoardId(boardKey, partner));
+        return transport.getList(
+                locator.requirePartner(partnerId),
+                RemoteBoardRoutes.GET_ALL_TICKET_LABELS.at(boardKey),
+                TicketLabelMapping.class);
     }
 
     /**
-     * Returns the custom fields of a federated board.
+     * Returns the custom fields of a federated board, under the shared type names the board screens
+     * read.
      *
      * @param partnerId the partner record id
      * @param boardKey  the board short key
      * @return the fields
      */
-    public List<BoardField> proxyGetFields(int partnerId, String boardKey) {
-        var partner = locator.requirePartner(partnerId);
-        if (partner.isRemote()) {
-            return gateway.getList(partner, RemoteBoardRoutes.GET_FIELDS.at(boardKey), BoardField.class);
-        }
-        return boardService.findFields(locator.resolveBoardId(boardKey, partner));
+    public List<BoardFieldDefinition> proxyGetFields(int partnerId, String boardKey) {
+        return transport
+                .getList(locator.requirePartner(partnerId), RemoteBoardRoutes.GET_FIELDS.at(boardKey), BoardField.class)
+                .stream()
+                .map(BoardField::definition)
+                .toList();
     }
 
     /**
@@ -109,18 +136,11 @@ public class FederatedBoardStructureProxy {
      * @return the created label
      */
     public BoardLabel proxyCreateLabel(int partnerId, String boardKey, String name, String color) {
-        var partner = locator.requirePartner(partnerId);
         log.info("Federated label creation on partner {} board {}", partnerId, boardKey);
-        String effectiveColor = color != null ? color : DEFAULT_LABEL_COLOR;
-        if (partner.isRemote()) {
-            return gateway.post(
-                    partner,
-                    RemoteBoardRoutes.GET_LABELS.at(boardKey),
-                    new CreateLabelBody(name, effectiveColor),
-                    BoardLabel.class);
-        }
-        return boardService.createLabel(locator.resolveBoardId(boardKey, partner), name, effectiveColor);
+        return transport.send(
+                locator.requirePartner(partnerId),
+                RemoteBoardRoutes.CREATE_LABEL.at(boardKey),
+                new RemoteCreateLabelRequest(name, color != null ? color : DEFAULT_LABEL_COLOR),
+                BoardLabel.class);
     }
-
-    record CreateLabelBody(String name, String color) {}
 }

@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.insights.service;
 
+import dev.chojo.ember.MovableClock;
 import dev.chojo.ember.conf.file.elements.Metrics;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.insights.entity.PageHitBucket;
@@ -18,10 +19,9 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -56,6 +56,10 @@ class PageHitRecorderTest extends RepositoryTestBase {
         return new PageHitRecorder(pageHitRepo, metrics);
     }
 
+    private static MovableClock clockAt(Instant hour) {
+        return new MovableClock(hour.plus(10, ChronoUnit.MINUTES));
+    }
+
     @Test
     void recordAccumulatesInMemoryWithoutFlush() {
         var rec = newRecorder();
@@ -73,10 +77,12 @@ class PageHitRecorderTest extends RepositoryTestBase {
     void blankInputsFallBackToDefaults() {
         var rec = newRecorder();
         rec.record(page.id(), null, null, false);
+        rec.record(page.id(), "DEU", "", false);
         var snap = rec.snapshot();
         assertEquals(1, snap.size());
         assertEquals("XX", snap.getFirst().country());
         assertEquals("direct", snap.getFirst().refererDomain());
+        assertEquals(2, snap.getFirst().hits());
     }
 
     @Test
@@ -86,18 +92,27 @@ class PageHitRecorderTest extends RepositoryTestBase {
         var rec = new PageHitRecorder(pageHitRepo, disabled);
         rec.record(page.id(), "DE", "direct", false);
         assertEquals(0, rec.bufferedBucketCount());
-        rec.start();
-        assertEquals(0, rec.bufferedBucketCount());
     }
 
     @Test
-    void startSchedulesFlushAndPruneWhenEnabled() {
-        var enabled = Mockito.mock(Metrics.class);
-        Mockito.when(enabled.webStatsEnabled()).thenReturn(true);
-        Mockito.when(enabled.webStatsRetentionDays()).thenReturn(7);
-        Mockito.when(enabled.webStatsFlushIntervalSeconds()).thenReturn(3600);
-        var rec = new PageHitRecorder(pageHitRepo, enabled);
-        assertDoesNotThrow(rec::start);
+    void tasksRunOnlyWhileEnabled() {
+        var disabled = Mockito.mock(Metrics.class);
+        Mockito.when(disabled.webStatsFlushIntervalSeconds()).thenReturn(0);
+        var repository = Mockito.mock(PageHitRepository.class);
+        var rec = new PageHitRecorder(repository, disabled);
+
+        var flush = rec.scheduledTasks().get(0);
+        var prune = rec.scheduledTasks().get(1);
+        flush.work().run();
+        prune.work().run();
+
+        assertEquals(Duration.ofSeconds(1), flush.schedule().period(), "the interval is at least a second");
+        Mockito.verifyNoInteractions(repository);
+
+        Mockito.when(disabled.webStatsEnabled()).thenReturn(true);
+        prune.work().run();
+        flush.work().run();
+        Mockito.verify(repository).pruneBefore(Mockito.any());
     }
 
     @Test
@@ -109,10 +124,12 @@ class PageHitRecorderTest extends RepositoryTestBase {
     }
 
     @Test
-    void flushPersistsAgedBucketsAndCollapsesLongTail() throws Exception {
-        var rec = newRecorder();
+    void flushPersistsAgedBucketsAndCollapsesLongTail() {
         Instant pastHour = Instant.now().truncatedTo(ChronoUnit.HOURS).minus(5, ChronoUnit.HOURS);
-        seedAgedBucket(rec, pastHour, page.id(), "DE", "obscure.example.tld", false, 1);
+        var clock = clockAt(pastHour);
+        var rec = new PageHitRecorder(pageHitRepo, metrics, clock);
+        rec.record(page.id(), "DE", "obscure.example.tld", false);
+        clock.advance(Duration.ofHours(1));
 
         rec.flush();
 
@@ -120,35 +137,61 @@ class PageHitRecorderTest extends RepositoryTestBase {
         assertEquals(1, rows.size());
         assertEquals(
                 "other", rows.getFirst().refererDomain(), "Domain with no historical hits should collapse to 'other'");
+        assertEquals(0, rec.bufferedBucketCount(), "a written past hour leaves memory");
 
         Instant pastHour2 = pastHour.plus(1, ChronoUnit.HOURS);
         for (int i = 0; i < 6; i++) {
             pageHitRepo.upsert(new PageHitBucket(pastHour2, page.id(), "DE", "popular.example.tld", false, 1));
         }
-        seedAgedBucket(rec, pastHour2.plus(2, ChronoUnit.HOURS), page.id(), "DE", "popular.example.tld", false, 1);
-        rec.flush();
-        var preserved = pageHitRepo.findForPage(
-                page.id(), pastHour2.plus(2, ChronoUnit.HOURS), pastHour2.plus(2, ChronoUnit.HOURS));
+        Instant laterHour = pastHour2.plus(2, ChronoUnit.HOURS);
+        var laterClock = clockAt(laterHour);
+        var later = new PageHitRecorder(pageHitRepo, metrics, laterClock);
+        later.record(page.id(), "DE", "popular.example.tld", false);
+        laterClock.advance(Duration.ofHours(1));
+        later.flush();
+        var preserved = pageHitRepo.findForPage(page.id(), laterHour, laterHour);
         assertTrue(preserved.stream().anyMatch(r -> r.refererDomain().equals("popular.example.tld")));
     }
 
     @Test
-    void flushSwallowsRepositoryExceptions() throws Exception {
+    void flushAllWritesTheCurrentHourAndAddsOnTheNextFlush() {
+        Instant hour = Instant.now().truncatedTo(ChronoUnit.HOURS).minus(30, ChronoUnit.HOURS);
+        var rec = new PageHitRecorder(pageHitRepo, metrics, clockAt(hour));
+        rec.record(page.id(), "FR", "direct", false);
+        rec.record(page.id(), "FR", "direct", false);
+
+        rec.flushAll();
+        rec.record(page.id(), "FR", "direct", false);
+        rec.flushAll();
+        rec.flushAll();
+
+        var rows = pageHitRepo.findForPage(page.id(), hour, hour).stream()
+                .filter(row -> row.country().equals("FR"))
+                .toList();
+        assertEquals(1, rows.size());
+        assertEquals(3, rows.getFirst().hits(), "the second flush adds its delta rather than overwriting");
+        assertEquals("page hits", rec.name());
+    }
+
+    @Test
+    void flushSwallowsRepositoryExceptions() {
         var failing = Mockito.mock(PageHitRepository.class);
         Mockito.doThrow(new RuntimeException("simulated outage")).when(failing).upsert(Mockito.any());
         Mockito.when(failing.recentRefererCount(Mockito.anyInt(), Mockito.anyString(), Mockito.any()))
-                .thenReturn(10L);
-        var rec = new PageHitRecorder(failing, metrics);
-        seedAgedBucket(rec, Instant.parse("2026-06-17T05:00:00Z"), page.id(), "DE", "direct", false, 3);
+                .thenThrow(new RuntimeException("simulated outage"));
+        var clock = clockAt(Instant.parse("2026-06-17T05:00:00Z"));
+        var rec = new PageHitRecorder(failing, metrics, clock);
+        rec.record(page.id(), "DE", "some.example.tld", false);
+        clock.advance(Duration.ofHours(1));
         assertDoesNotThrow(rec::flush);
         assertEquals(1, rec.bufferedBucketCount());
     }
 
     @Test
-    void pruneDelegatesToRepositoryWithRetentionCutoff() throws Exception {
+    void pruneDelegatesToRepositoryWithRetentionCutoff() {
         Instant ancient = Instant.now().minus(400, ChronoUnit.DAYS).truncatedTo(ChronoUnit.HOURS);
         pageHitRepo.upsert(new PageHitBucket(ancient, page.id(), "DE", "direct", false, 1));
-        invokePrune(newRecorder());
+        newRecorder().prune();
         var rows = pageHitRepo.findForPage(page.id(), ancient, ancient);
         assertTrue(rows.isEmpty(), "400-day-old row should have been pruned with default 365-day retention");
     }
@@ -158,30 +201,6 @@ class PageHitRecorderTest extends RepositoryTestBase {
         var failing = Mockito.mock(PageHitRepository.class);
         Mockito.when(failing.pruneBefore(Mockito.any())).thenThrow(new RuntimeException("simulated outage"));
         var rec = new PageHitRecorder(failing, metrics);
-        assertDoesNotThrow(() -> invokePrune(rec));
-    }
-
-    private static void seedAgedBucket(
-            PageHitRecorder rec, Instant hour, int pageId, String country, String referer, boolean isBot, long hits)
-            throws Exception {
-        var bucketsField = PageHitRecorder.class.getDeclaredField("buckets");
-        bucketsField.setAccessible(true);
-        @SuppressWarnings("unchecked")
-        var map = (ConcurrentHashMap<Object, Object>) bucketsField.get(rec);
-
-        var keyClass = Class.forName("dev.chojo.ember.feature.insights.service.PageHitRecorder$BucketKey");
-        var keyCtor =
-                keyClass.getDeclaredConstructor(Instant.class, int.class, String.class, String.class, boolean.class);
-        keyCtor.setAccessible(true);
-        Object key = keyCtor.newInstance(hour, pageId, country, referer, isBot);
-
-        var atomic = new AtomicLong(hits);
-        map.put(key, atomic);
-    }
-
-    private static void invokePrune(PageHitRecorder rec) throws Exception {
-        var m = PageHitRecorder.class.getDeclaredMethod("prune");
-        m.setAccessible(true);
-        m.invoke(rec);
+        assertDoesNotThrow(rec::prune);
     }
 }

@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.twofactor.entity.ChallengePurpose;
 import dev.chojo.ember.feature.twofactor.entity.WebAuthnChallenge;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.Optional;
@@ -41,7 +42,11 @@ public class WebAuthnChallengeRepository {
      *         sign-in
      */
     public void create(
-            String token, ChallengePurpose purpose, Integer accountId, String optionsJson, Instant expiresAt) {
+            String token,
+            ChallengePurpose purpose,
+            @Nullable Integer accountId,
+            String optionsJson,
+            Instant expiresAt) {
         query("""
                 INSERT INTO webauthn_challenge (token_hash, purpose, account_id, options_json, expires_at)
                 VALUES (:token_hash, :purpose, :account_id, :options_json, :expires_at);""")

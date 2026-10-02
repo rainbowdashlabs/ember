@@ -5,21 +5,23 @@
  */
 package dev.chojo.ember.feature.cluster.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.ClusterRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.members.entity.FieldOrigin;
+import dev.chojo.ember.feature.members.entity.FieldValueEntry;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
-import dev.chojo.ember.feature.members.entity.ProfileFieldType;
+import dev.chojo.ember.feature.members.entity.ProfileFieldValue;
+import dev.chojo.ember.feature.members.entity.ProfileWriter;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.NotFoundResponse;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -48,39 +50,22 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
         return stationMemberRepo.create(station.id(), account.id()).id();
     }
 
-    /** Twenty questions moved by one drag is one write, not twenty. */
+    /**
+     * Twenty questions moved by one drag is one write, not twenty. The order is read from the assignment,
+     * since the question list is by name. An empty order is not an error and writes nothing.
+     */
     @Test
     void anOrderIsWrittenInOneGo() {
         int clusterId = freshCluster();
         var first = clusterProfileFieldService.create(
-                clusterId,
-                "Erste",
-                ProfileFieldType.TEXT,
-                ProfileFieldConfig.empty(),
-                false,
-                false,
-                null,
-                true,
-                false,
-                null);
+                clusterId, "Erste", FieldType.TEXT, ProfileFieldConfig.empty(), false, false, null, true, false, null);
         var second = clusterProfileFieldService.create(
-                clusterId,
-                "Zweite",
-                ProfileFieldType.TEXT,
-                ProfileFieldConfig.empty(),
-                false,
-                false,
-                null,
-                true,
-                false,
-                null);
+                clusterId, "Zweite", FieldType.TEXT, ProfileFieldConfig.empty(), false, false, null, true, false, null);
         clusterProfileFieldService.assignToRole(clusterId, first.id(), ProfileFieldScope.MEMBER, 0, null, null, null);
         clusterProfileFieldService.assignToRole(clusterId, second.id(), ProfileFieldScope.MEMBER, 1, null, null, null);
 
         clusterProfileFieldService.reorder(clusterId, ProfileFieldScope.MEMBER, List.of(second.id(), first.id()));
 
-        // The order is the audience's, so it is read from the assignment rather than from the
-        // question: the list of questions itself is by name and says nothing about any one form.
         assertEquals(
                 1,
                 clusterProfileFieldService
@@ -95,7 +80,6 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
                         .getFirst()
                         .position());
 
-        // Nothing to move is not an error, and writes nothing
         clusterProfileFieldService.reorder(clusterId, ProfileFieldScope.MEMBER, List.of());
         assertEquals(
                 1,
@@ -115,7 +99,7 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
         var field = clusterProfileFieldService.create(
                 clusterId,
                 "Funkrufname",
-                ProfileFieldType.TEXT,
+                FieldType.TEXT,
                 ProfileFieldConfig.empty(),
                 false,
                 false,
@@ -153,7 +137,7 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
         var licence = clusterProfileFieldService.create(
                 clusterId,
                 "Führerscheinklasse",
-                ProfileFieldType.TEXT,
+                FieldType.TEXT,
                 ProfileFieldConfig.empty(),
                 false,
                 false,
@@ -168,10 +152,12 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
         assertEquals("Führerscheinklasse", reaching.getFirst().field().name());
         assertTrue(reaching.getFirst().field().stationReadonly());
 
-        // And they appear in the station's own profile beside its own fields, marked as somebody else's
         var merged = profileFieldService.findMergedFields(station.id(), ProfileFieldScope.MEMBER);
-        assertTrue(merged.stream()
-                .anyMatch(f -> f.origin() == FieldOrigin.CLUSTER && f.name().equals("Führerscheinklasse")));
+        assertTrue(
+                merged.stream()
+                        .anyMatch(f ->
+                                f.origin() == FieldOrigin.CLUSTER && f.name().equals("Führerscheinklasse")),
+                "they appear in the station's own profile, marked as the cluster's");
 
         clusterService.releaseStation(clusterId, station.id());
         stationRepo.delete(station.id());
@@ -188,9 +174,6 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
         stationRepo.delete(station.id());
     }
 
-    // A cluster asking a group-scoped question used to be refused at runtime. A group is no longer a
-    // kind of member, so there is no such value to pass and nothing left to refuse.
-
     /**
      * A question pointed at a group reaches the stations filed under it and nobody else, which is the whole
      * of the feature: an association's stations do different work.
@@ -206,7 +189,7 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
         var fit = clusterProfileFieldService.create(
                 clusterId,
                 "Atemschutztauglich",
-                ProfileFieldType.BOOLEAN,
+                FieldType.BOOLEAN,
                 ProfileFieldConfig.empty(),
                 false,
                 false,
@@ -263,7 +246,7 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
         clusterProfileFieldService.create(
                 clusterId,
                 "Funkrufname",
-                ProfileFieldType.TEXT,
+                FieldType.TEXT,
                 ProfileFieldConfig.empty(),
                 false,
                 false,
@@ -273,11 +256,11 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
                 null);
 
         var refused = assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> clusterProfileFieldService.create(
                         clusterId,
                         "Funkrufname",
-                        ProfileFieldType.TEXT,
+                        FieldType.TEXT,
                         ProfileFieldConfig.empty(),
                         false,
                         false,
@@ -285,12 +268,12 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
                         true,
                         false,
                         reaching.id()));
-        assertTrue(refused.getMessage().contains("already reaches"));
+        assertEquals(ClusterRefusal.CLUSTER_PROFILE_FIELD_NAME_REACHES_TWICE, refused.refusal());
 
         clusterProfileFieldService.create(
                 clusterId,
                 "Funkrufname",
-                ProfileFieldType.TEXT,
+                FieldType.TEXT,
                 ProfileFieldConfig.empty(),
                 false,
                 false,
@@ -309,11 +292,11 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
         int clusterId = freshCluster();
 
         var refused = assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> clusterProfileFieldService.create(
                         clusterId,
                         "Geburtstag",
-                        ProfileFieldType.BIRTH_DATE,
+                        FieldType.BIRTH_DATE,
                         ProfileFieldConfig.empty(),
                         false,
                         false,
@@ -321,7 +304,7 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
                         true,
                         false,
                         null));
-        assertTrue(refused.getMessage().contains("collide"));
+        assertEquals(ClusterRefusal.CLUSTER_PROFILE_FIELD_TYPE_NOT_OFFERED, refused.refusal());
     }
 
     /** An association asks for an expiry date as a station does, and keeps its settings. */
@@ -332,7 +315,7 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
         var field = clusterProfileFieldService.create(
                 clusterId,
                 "Erste Hilfe gültig bis",
-                ProfileFieldType.EXPIRY_DATE,
+                FieldType.EXPIRY_DATE,
                 ProfileFieldConfig.parse("{\"warnFromDays\":90,\"reminderDays\":[90,30]}"),
                 false,
                 false,
@@ -360,7 +343,7 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
                 () -> clusterProfileFieldService.create(
                         clusterId,
                         "Erste Hilfe gültig bis",
-                        ProfileFieldType.EXPIRY_DATE,
+                        FieldType.EXPIRY_DATE,
                         ProfileFieldConfig.parse("{\"warnFromDays\":-1}"),
                         false,
                         false,
@@ -368,7 +351,7 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
                         true,
                         false,
                         null));
-        assertEquals(Refusal.CLUSTER_EXPIRY_SETTINGS_OUT_OF_RANGE, refused.refusal());
+        assertEquals(ClusterRefusal.CLUSTER_EXPIRY_SETTINGS_OUT_OF_RANGE, refused.refusal());
     }
 
     @Test
@@ -376,11 +359,11 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
         int clusterId = freshCluster();
 
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> clusterProfileFieldService.create(
                         clusterId,
                         "  ",
-                        ProfileFieldType.TEXT,
+                        FieldType.TEXT,
                         ProfileFieldConfig.empty(),
                         false,
                         false,
@@ -398,7 +381,7 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
         var field = clusterProfileFieldService.create(
                 clusterId,
                 "Atemschutz",
-                ProfileFieldType.BOOLEAN,
+                FieldType.BOOLEAN,
                 ProfileFieldConfig.empty(),
                 false,
                 false,
@@ -407,14 +390,27 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
                 false,
                 null);
 
-        clusterProfileFieldService.setValues(clusterId, memberId, Map.of(field.id(), "true"), memberId);
+        answer(clusterId, memberId, field.id(), "true");
 
-        assertEquals(
-                "true",
-                clusterProfileFieldService.findValues(clusterId, memberId).get(field.id()));
+        assertEquals("true", answersOf(memberId).get(field.id()));
 
         clusterService.releaseStation(clusterId, station.id());
         stationRepo.delete(station.id());
+    }
+
+    /** Writes one answer the way the association's member screen does. */
+    private static void answer(int clusterId, int memberId, int fieldId, String value) {
+        clusterProfileFieldService.assignToRole(clusterId, fieldId, ProfileFieldScope.MEMBER, 0, null, null, null);
+        profileFieldService.setValues(
+                memberId,
+                List.of(new FieldValueEntry(fieldId, value, FieldOrigin.CLUSTER)),
+                memberId,
+                ProfileWriter.association());
+    }
+
+    private static Map<Integer, String> answersOf(int memberId) {
+        return clusterProfileFieldRepo.findValues(memberId).stream()
+                .collect(Collectors.toMap(ProfileFieldValue::fieldId, ProfileFieldValue::value));
     }
 
     /**
@@ -431,7 +427,7 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
         var field = clusterProfileFieldService.create(
                 clusterId,
                 "Atemschutztauglich",
-                ProfileFieldType.BOOLEAN,
+                FieldType.BOOLEAN,
                 ProfileFieldConfig.empty(),
                 false,
                 false,
@@ -439,23 +435,18 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
                 true,
                 false,
                 group.id());
-        clusterProfileFieldService.setValues(clusterId, memberId, Map.of(field.id(), "true"), memberId);
+        answer(clusterId, memberId, field.id(), "true");
 
         clusterStationGroupService.setStations(clusterId, group.id(), List.of());
 
-        assertTrue(
-                clusterProfileFieldService.findValues(clusterId, memberId).isEmpty(),
-                "an answer nobody is asked for any more is shown nowhere");
+        assertTrue(answersOf(memberId).isEmpty(), "an answer nobody is asked for any more is shown nowhere");
         assertThrows(
-                BadRequestResponse.class,
-                () -> clusterProfileFieldService.setValues(clusterId, memberId, Map.of(field.id(), "false"), memberId),
+                RefusalResponse.class,
+                () -> answer(clusterId, memberId, field.id(), "false"),
                 "and nobody may write one either");
 
         clusterStationGroupService.setStations(clusterId, group.id(), List.of(station.uid()));
-        assertEquals(
-                "true",
-                clusterProfileFieldService.findValues(clusterId, memberId).get(field.id()),
-                "and it is there again when the station is");
+        assertEquals("true", answersOf(memberId).get(field.id()), "and it is there again when the station is");
 
         clusterProfileFieldService.delete(clusterId, field.id());
         clusterService.releaseStation(clusterId, station.id());
@@ -471,7 +462,7 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
         var field = clusterProfileFieldService.create(
                 clusterId,
                 "Atemschutz",
-                ProfileFieldType.BOOLEAN,
+                FieldType.BOOLEAN,
                 ProfileFieldConfig.empty(),
                 false,
                 false,
@@ -479,7 +470,7 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
                 true,
                 false,
                 null);
-        clusterProfileFieldService.setValues(clusterId, memberId, Map.of(field.id(), "true"), memberId);
+        answer(clusterId, memberId, field.id(), "true");
 
         clusterService.releaseStation(clusterId, station.id());
 
@@ -492,25 +483,12 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
     }
 
     @Test
-    void oneClusterCannotAskAboutAnothersPeople() {
-        int clusterId = freshCluster();
-        int otherClusterId = freshCluster();
-        var elsewhere = stationOf(otherClusterId);
-        int memberId = memberAt(elsewhere);
-
-        assertThrows(NotFoundResponse.class, () -> clusterProfileFieldService.findValues(clusterId, memberId));
-
-        clusterService.releaseStation(otherClusterId, elsewhere.id());
-        stationRepo.delete(elsewhere.id());
-    }
-
-    @Test
     void aQuestionCanBeChangedAndRemoved() {
         int clusterId = freshCluster();
         var field = clusterProfileFieldService.create(
                 clusterId,
                 "Vorläufig",
-                ProfileFieldType.TEXT,
+                FieldType.TEXT,
                 ProfileFieldConfig.empty(),
                 false,
                 false,
@@ -524,7 +502,7 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
                 clusterId,
                 field.id(),
                 "Endgültig",
-                ProfileFieldType.TEXT,
+                FieldType.TEXT,
                 ProfileFieldConfig.empty(),
                 true,
                 false,
@@ -554,7 +532,7 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
         var field = clusterProfileFieldService.create(
                 otherClusterId,
                 "Fremd",
-                ProfileFieldType.TEXT,
+                FieldType.TEXT,
                 ProfileFieldConfig.empty(),
                 false,
                 false,
@@ -563,7 +541,9 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
                 false,
                 null);
 
-        assertThrows(NotFoundResponse.class, () -> clusterProfileFieldService.delete(clusterId, field.id()));
+        var refused =
+                assertThrows(RefusalResponse.class, () -> clusterProfileFieldService.delete(clusterId, field.id()));
+        assertEquals(ClusterRefusal.CLUSTER_PROFILE_FIELD_NOT_HERE, refused.refusal());
     }
 
     @Test
@@ -574,7 +554,7 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
         var field = clusterProfileFieldService.create(
                 clusterId,
                 "Einzeln",
-                ProfileFieldType.TEXT,
+                FieldType.TEXT,
                 ProfileFieldConfig.empty(),
                 false,
                 false,
@@ -582,7 +562,7 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
                 true,
                 false,
                 null);
-        clusterProfileFieldService.setValues(clusterId, memberId, Map.of(field.id(), "\"da\""), memberId);
+        answer(clusterId, memberId, field.id(), "\"da\"");
 
         assertTrue(clusterProfileFieldRepo.deleteValue(memberId, field.id()));
         assertFalse(clusterProfileFieldRepo.deleteValue(memberId, field.id()), "clearing twice changes nothing");
@@ -598,7 +578,7 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
         var field = clusterProfileFieldService.create(
                 clusterId,
                 "Nachschlagen",
-                ProfileFieldType.TEXT,
+                FieldType.TEXT,
                 ProfileFieldConfig.empty(),
                 false,
                 false,
@@ -621,7 +601,7 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
         var field = clusterProfileFieldService.create(
                 clusterId,
                 "Unverändert",
-                ProfileFieldType.TEXT,
+                FieldType.TEXT,
                 ProfileFieldConfig.empty(),
                 false,
                 false,
@@ -629,10 +609,10 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
                 true,
                 false,
                 null);
-        clusterProfileFieldService.setValues(clusterId, memberId, Map.of(field.id(), "\"gleich\""), memberId);
+        answer(clusterId, memberId, field.id(), "\"gleich\"");
         int after = profileFieldChangeRepo.findByMember(memberId).size();
 
-        clusterProfileFieldService.setValues(clusterId, memberId, Map.of(field.id(), "\"gleich\""), memberId);
+        answer(clusterId, memberId, field.id(), "\"gleich\"");
 
         assertEquals(after, profileFieldChangeRepo.findByMember(memberId).size());
 

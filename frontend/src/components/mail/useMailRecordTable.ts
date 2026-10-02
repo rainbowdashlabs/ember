@@ -5,7 +5,7 @@
  */
 import {computed, type MaybeRefOrGetter} from 'vue'
 import {useI18n} from 'vue-i18n'
-import type {MailRecord} from '@/api/mailProviders'
+import type {MailRecord} from '@/api/generated/schema'
 import {useDataTable} from '@/composables/useDataTable'
 import {mailRecordColumns} from './mailRecordColumns'
 

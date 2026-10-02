@@ -62,22 +62,18 @@ class FederationRepositoryTest extends RepositoryTestBase {
         stationB = stationRepo.create("FedRepoTestStationB");
         stationC = stationRepo.create("FedRepoTestStationC");
 
-        // Create account and member for createdBy references
         account = accountRepo.create("fedrepo@test.com", "Fed", "Tester");
         StationMember member = stationMemberRepo.create(stationA.id(), account.id());
 
-        // Create KB file for sharing tests
         var folder = kbRepo.createFolder(stationA.id(), null, "FedFolder", "Test folder", member.id());
         var file = kbRepo.createFile(
                 stationA.id(), folder.id(), "FedFile", "Test file", KbFileType.MARKDOWN, null, 0, null, member.id());
         kbFileId = file.id();
 
-        // Create quiz catalog for sharing tests
         var catalog =
                 quizCatalogRepo.create(stationA.id(), "FedCatalog", "Test catalog", false, CatalogMetadata.none());
         quizCatalogId = catalog.id();
 
-        // Create protocol for sharing tests
         var protocol = protocolRepo.createProtocol(stationA.id(), "FedProtocol", "Test protocol", 70);
         protocolId = protocol.id();
     }
@@ -89,8 +85,6 @@ class FederationRepositoryTest extends RepositoryTestBase {
         stationRepo.delete(stationC.id());
         accountRepo.delete(account.id());
     }
-
-    // -- Partner CRUD --
 
     @Test
     @Order(1)
@@ -158,7 +152,6 @@ class FederationRepositoryTest extends RepositoryTestBase {
         var suspended = federationRepo.findPartnerById(partnerId).orElseThrow();
         assertEquals(FederationPartner.FederationStatus.SUSPENDED, suspended.status());
 
-        // Restore to ACTIVE for subsequent tests
         assertTrue(federationRepo.updatePartnerStatus(partnerId, FederationPartner.FederationStatus.ACTIVE));
     }
 
@@ -169,8 +162,6 @@ class FederationRepositoryTest extends RepositoryTestBase {
         assertTrue(found.isPresent());
         assertEquals(partnerId, found.get().id());
     }
-
-    // -- Capabilities --
 
     @Test
     @Order(10)
@@ -202,8 +193,6 @@ class FederationRepositoryTest extends RepositoryTestBase {
                         && c.enabled()));
     }
 
-    // -- KB Shares --
-
     @Test
     @Order(20)
     void createAndFindKbShare() {
@@ -227,8 +216,6 @@ class FederationRepositoryTest extends RepositoryTestBase {
         assertTrue(shares.stream().noneMatch(s -> s.id() == kbShareId));
     }
 
-    // -- Quiz Shares --
-
     @Test
     @Order(30)
     void createAndFindQuizShare() {
@@ -251,8 +238,6 @@ class FederationRepositoryTest extends RepositoryTestBase {
         assertTrue(shares.stream().noneMatch(s -> s.id() == quizShareId));
     }
 
-    // -- Protocol Shares --
-
     @Test
     @Order(40)
     void createAndFindProtocolShare() {
@@ -274,8 +259,6 @@ class FederationRepositoryTest extends RepositoryTestBase {
         var shares = federationRepo.findProtocolShares(stationA.id());
         assertTrue(shares.stream().noneMatch(s -> s.id() == protocolShareId));
     }
-
-    // -- Metadata Cache --
 
     @Test
     @Order(50)
@@ -308,8 +291,6 @@ class FederationRepositoryTest extends RepositoryTestBase {
         assertTrue(cached.isEmpty());
     }
 
-    // -- Change Log --
-
     @Test
     @Order(60)
     void logAndFindChanges() {
@@ -337,16 +318,12 @@ class FederationRepositoryTest extends RepositoryTestBase {
         assertTrue(changes.isEmpty());
     }
 
-    // -- Webhook URL --
-
     @Test
     @Order(70)
     void setAndGetWebhookUrl() {
         federationRepo.setWebhookUrl(partnerId, "https://example.com/webhook");
         assertEquals("https://example.com/webhook", federationRepo.getWebhookUrl(partnerId));
     }
-
-    // -- Remote Host --
 
     @Test
     @Order(71)
@@ -356,7 +333,6 @@ class FederationRepositoryTest extends RepositoryTestBase {
         assertNotNull(remote);
         assertEquals("https://remote.example.com", remote.remoteHost());
         assertTrue(remote.isRemote());
-        // Cleanup
         federationRepo.deletePartner(remote.id());
     }
 
@@ -422,7 +398,6 @@ class FederationRepositoryTest extends RepositoryTestBase {
         assertEquals("https://new-host.example.com", updated.remoteHost());
         assertTrue(updated.isRemote());
 
-        // Reset to null
         assertTrue(federationRepo.updateRemoteHost(partnerId, null));
         var reset = federationRepo.findPartnerById(partnerId).orElseThrow();
         assertNull(reset.remoteHost());
@@ -432,7 +407,6 @@ class FederationRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(73)
     void updateRemoteHostForPartnerStation() {
-        // Create a partner from stationC to stationB, alongside the existing stationA->stationB partner
         var extra =
                 federationRepo.createPartner(stationC.id(), stationB.uid(), "EMBER-EXTRA-CODE", "pubKeyExtra", null);
 
@@ -444,17 +418,13 @@ class FederationRepositoryTest extends RepositoryTestBase {
         var extraUpdated = federationRepo.findPartnerById(extra.id()).orElseThrow();
         assertEquals("https://moved.example.com", extraUpdated.remoteHost());
 
-        // Reset
         federationRepo.updateRemoteHostForPartnerStation(stationB.uid(), null);
         federationRepo.deletePartner(extra.id());
     }
 
-    // -- Count Pending Requests --
-
     @Test
     @Order(80)
     void countPendingRequestsNone() {
-        // stationA has no pending requests directed at it (partner is stationA -> stationB, status ACTIVE)
         int count = federationRepo.countPendingRequests(stationA.uid());
         assertEquals(0, count);
     }
@@ -462,21 +432,16 @@ class FederationRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(81)
     void countPendingRequestsWithPending() {
-        // Create a pending partner from stationC to stationA (so stationA's uid is the partner_station_id)
         var pending =
                 federationRepo.createPartner(stationC.id(), stationA.uid(), "EMBER-PEND-CODE", "pubKeyPending", null);
         int count = federationRepo.countPendingRequests(stationA.uid());
         assertEquals(1, count);
-        // Cleanup
         federationRepo.deletePartner(pending.id());
     }
-
-    // -- Delete Partner --
 
     @Test
     @Order(50)
     void findAllActiveRemotePartnersEmpty() {
-        // No remote partners (all local), so should return empty
         var remote = federationRepo.findAllActiveRemotePartners();
         assertTrue(remote.isEmpty());
     }

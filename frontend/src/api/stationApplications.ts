@@ -4,8 +4,11 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
+import type {ApplicationRequest, components, StationApplication} from './generated/schema'
 
-/** Where an application stands. Mirrors the backend enum, which sends these names verbatim. */
+export type ApplicationStatusName = components['schemas']['ApplicationStatus']
+
+/** Where an application stands. */
 export const ApplicationStatus = {
     /** Submitted, but the applicant has not followed the confirmation link yet. */
     UNVERIFIED: 'UNVERIFIED',
@@ -13,34 +16,13 @@ export const ApplicationStatus = {
     PENDING: 'PENDING',
     ACCEPTED: 'ACCEPTED',
     DENIED: 'DENIED',
-} as const
-
-export type ApplicationStatusName = (typeof ApplicationStatus)[keyof typeof ApplicationStatus]
-
-export interface StationApplication {
-    id: number
-    firstName: string
-    lastName: string
-    email: string
-    stationName: string
-    introduction: string
-    status: ApplicationStatusName
-    denyReason?: string | null
-    createdAt: string
-    resolvedAt?: string | null
-}
+} as const satisfies Record<ApplicationStatusName, ApplicationStatusName>
 
 export async function verify(token: string): Promise<void> {
     await client.post('/station-applications/verify', {token})
 }
 
-export async function submit(data: {
-    firstName: string;
-    lastName: string;
-    email: string;
-    stationName: string;
-    introduction: string
-}): Promise<StationApplication> {
+export async function submit(data: Required<ApplicationRequest>): Promise<StationApplication> {
     const res = await client.post<StationApplication>('/station-applications', data)
     return res.data
 }

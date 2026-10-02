@@ -1,0 +1,42 @@
+import {i18nRules} from './i18n/index.mjs'
+import buttonRow from './rules/button-row.mjs'
+import contextTitle from './rules/context-title.mjs'
+import maxFunctionLines from './rules/max-function-lines.mjs'
+import noDeadButtonSize from './rules/no-dead-button-size.mjs'
+import noModuleState from './rules/no-module-state.mjs'
+import noStackedInlineText from './rules/no-stacked-inline-text.mjs'
+import repeatedClassPattern from './rules/repeated-class-pattern.mjs'
+import routeViewContent from './rules/route-view-content.mjs'
+import rowsOpenPagesAsLinks from './rules/rows-open-pages-as-links.mjs'
+import sectionDensity from './rules/section-density.mjs'
+import socialMeta from './rules/social-meta.mjs'
+import styledElements from './rules/styled-elements.mjs'
+import templateBlockSize from './rules/template-block-size.mjs'
+import viewContentTitle from './rules/view-content-title.mjs'
+
+/**
+ * The rules this project holds its frontend to that no published plugin knows about.
+ *
+ * <p>Each one guards a convention written down in the frontend's guide, reads the code through
+ * the parsers ESLint already uses, and is registered here under the `ember` prefix.
+ */
+export default {
+    meta: {name: 'ember'},
+    rules: {
+        ...i18nRules,
+        'button-row': buttonRow,
+        'context-title': contextTitle,
+        'max-function-lines': maxFunctionLines,
+        'no-dead-button-size': noDeadButtonSize,
+        'no-module-state': noModuleState,
+        'no-stacked-inline-text': noStackedInlineText,
+        'repeated-class-pattern': repeatedClassPattern,
+        'route-view-content': routeViewContent,
+        'rows-open-pages-as-links': rowsOpenPagesAsLinks,
+        'section-density': sectionDensity,
+        'social-meta': socialMeta,
+        'styled-elements': styledElements,
+        'template-block-size': templateBlockSize,
+        'view-content-title': viewContentTitle,
+    },
+}

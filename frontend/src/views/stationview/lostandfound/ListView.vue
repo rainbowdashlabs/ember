@@ -11,8 +11,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import {lostAndFound, managedMembers as managedMembersApi} from '@/api'
-import type {LostAndFoundItem} from '@/api/lostAndFound'
-import type {ManagedMember} from '@/api/managedMembers'
+import type {LostAndFoundItemResponse, ManagedMember} from '@/api/generated/schema'
 import {useSession} from '@/composables/useSession'
 import {useSidebarCounts} from '@/composables/useSidebarCounts'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
@@ -34,7 +33,7 @@ const canCreate = () => hasPermission(StationPermission.LOST_AND_FOUND_CREATE)
 const canManage = () => hasPermission(StationPermission.LOST_AND_FOUND_MANAGE)
 const myMemberId = () => sessionInfo.value?.member?.id
 
-const items = ref<LostAndFoundItem[]>([])
+const items = ref<LostAndFoundItemResponse[]>([])
 const managed = ref<ManagedMember[]>([])
 const managedIds = computed(() => managed.value.map(m => m.id))
 const {srcFor, load: loadImage, revokeAll} = useAuthImages<number>()
@@ -195,7 +194,7 @@ const createFailure = computed(() => shown(rawCreateFailure.value))
   >
     <div class="space-y-6">
       <div class="flex items-center justify-between">
-        <PrimaryButton :icon="['fas', 'plus']" v-if="canCreate()" @click="openCreate">
+        <PrimaryButton v-if="canCreate()" :icon="['fas', 'plus']" @click="openCreate">
           {{ t('lostAndFound.create') }}
         </PrimaryButton>
       </div>
@@ -217,7 +216,7 @@ const createFailure = computed(() => shown(rawCreateFailure.value))
         </div>
       </AsyncSection>
 
-      <input ref="imageInputRef" type="file" accept="image/*" class="hidden" @change="imagePicked"/>
+      <input ref="imageInputRef" type="file" accept="image/*" class="hidden" aria-hidden="true" @change="imagePicked"/>
 
       <LostItemClaimModal v-model="showClaim" :managed="managed" :loading="claiming"
                           @confirm="confirmClaim"/>

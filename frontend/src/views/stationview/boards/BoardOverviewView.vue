@@ -6,12 +6,11 @@
 <script lang="ts" setup>
 import { useI18n } from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import RowLink from '@/components/navigation/RowLink.vue'
-import SubHeader from '@/components/typography/SubHeader.vue'
+import BoardCard from './BoardCard.vue'
 import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import { boards } from '@/api'
-import type { Board } from '@/api/boards'
+import type { Board } from '@/api/generated/schema'
 import { useConfigPanel } from '@/composables/useConfigPanel'
 
 const { t } = useI18n()
@@ -39,16 +38,7 @@ function boardPage(board: Board): string {
         >
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <RowLink v-for="board in boardList" :key="board.id" :to="boardPage(board)">
-                    <NeutralContainer class="h-full cursor-pointer hover:border-[var(--accent)] transition-colors">
-                        <div class="flex items-center gap-2 mb-1">
-                            <span class="text-xs font-mono text-[var(--text-muted)] bg-[var(--bg-muted)] px-1.5 py-0.5 rounded">{{ board.shortKey }}</span>
-                            <SubHeader>{{ board.name }}</SubHeader>
-                        </div>
-                        <p v-if="board.description" class="text-sm text-[var(--text-muted)] line-clamp-2">{{ board.description }}</p>
-                        <div class="mt-3 text-xs text-[var(--text-muted)]">
-                            {{ board.ticketCounter }} {{ board.ticketCounter === 1 ? 'Ticket' : 'Tickets' }}
-                        </div>
-                    </NeutralContainer>
+                    <BoardCard :board="board" />
                 </RowLink>
             </div>
         </AsyncSection>

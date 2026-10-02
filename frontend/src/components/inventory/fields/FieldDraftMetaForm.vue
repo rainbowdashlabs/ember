@@ -8,15 +8,14 @@ import {watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import TextInput from '@/components/input/text/TextInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
+import FieldTypePicker from '@/components/input/FieldTypePicker.vue'
+import LabelledField from '@/components/input/LabelledField.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
-import {FieldType, type FieldTypeName} from '@/api/inventoryFields'
+import {OfferedFieldTypes, type FieldTypeName} from '@/api/fieldTypes'
 import type {DraftField} from './types'
 import {harmonizeKey} from './harmonize'
 
-const props = defineProps<{
-    draft: DraftField
-}>()
+const draft = defineModel<DraftField>('draft', {required: true})
 
 const emit = defineEmits<{
     (e: 'type-changed', value: FieldTypeName): void
@@ -24,40 +23,39 @@ const emit = defineEmits<{
 
 const {t} = useI18n()
 
-watch(() => props.draft.label, (label, previous) => {
-    if (props.draft.id) return
-    if (props.draft.key === '' || props.draft.key === harmonizeKey(previous ?? '')) {
-        props.draft.key = harmonizeKey(label)
+watch(() => draft.value.label, (label, previous) => {
+    if (draft.value.id) return
+    if (draft.value.key === '' || draft.value.key === harmonizeKey(previous ?? '')) {
+        draft.value.key = harmonizeKey(label)
     }
 })
-
-function onTypeChanged(value: string | number | null | undefined) {
-    emit('type-changed', String(value ?? '') as FieldTypeName)
-}
 </script>
 
 <template>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
         <label class="flex flex-col gap-1 text-sm">
             <span>{{ t('inventory.fields.label') }}</span>
-            <TextInput v-model="props.draft.label" data-testid="field-label" :placeholder="t('inventory.fields.labelPlaceholder')" />
+            <TextInput v-model="draft.label" data-testid="field-label" :placeholder="t('inventory.fields.labelPlaceholder')" />
         </label>
         <label class="flex flex-col gap-1 text-sm">
             <span>{{ t('inventory.fields.key') }}</span>
-            <TextInput v-model="props.draft.key" :disabled="!!props.draft.id" :placeholder="t('inventory.fields.keyPlaceholder')" />
+            <TextInput v-model="draft.key" :disabled="!!draft.id" :placeholder="t('inventory.fields.keyPlaceholder')" />
         </label>
-        <label class="flex flex-col gap-1 text-sm">
-            <span>{{ t('inventory.fields.type') }}</span>
-            <SelectInput :model-value="props.draft.fieldType" :disabled="!!props.draft.id" data-testid="field-type" @update:model-value="onTypeChanged">
-                <option v-for="v in Object.values(FieldType)" :key="v" :value="v">{{ t(`inventory.fields.types.${v}`) }}</option>
-            </SelectInput>
-        </label>
+        <LabelledField :label="t('inventory.fields.type')">
+            <FieldTypePicker
+                :disabled="!!draft.id"
+                :model-value="draft.fieldType"
+                :types="OfferedFieldTypes.INVENTORY"
+                data-testid="field-type"
+                @update:model-value="value => emit('type-changed', value)"
+            />
+        </LabelledField>
         <label class="flex flex-col gap-1 text-sm">
             <span>{{ t('inventory.fields.sortOrder') }}</span>
-            <NumberInput v-model="props.draft.sortOrder" />
+            <NumberInput v-model="draft.sortOrder" />
         </label>
         <label class="flex items-center gap-2 text-sm md:col-span-2">
-            <ToggleInput v-model="props.draft.required" />
+            <ToggleInput v-model="draft.required" />
             <span>{{ t('inventory.fields.required') }}</span>
         </label>
     </div>

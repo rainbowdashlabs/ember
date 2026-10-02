@@ -3,90 +3,31 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import client, {cancelTokenRefresh, scheduleTokenRefresh} from './client'
-import {isStorageDenied, removeItem, setItem} from './storage'
-import type {MessageResponse} from './types'
+import client from './client'
+import {isStorageDenied, removeItem} from './storage'
+import type {
+    ChangePasswordRequest,
+    components,
+    EmailChangeResponse,
+    EmailRequest,
+    LoginRequest,
+    LoginResponse,
+    MessageResponse,
+    RegisterRequest,
+    RegisterResponse,
+    SetAddressRequest,
+    SetPasswordRequest,
+    TokenRequest,
+    TokenStatus,
+} from './generated/schema'
 
-export interface LoginRequest {
-    /** An email address or the name the account signs in with. */
-    identifier?: string
-    password?: string
-    /**
-     * Whether the person signing in vouches for this machine. Ticked, the session lasts as long as
-     * the instance allows; left alone it lasts the short duration meant for a borrowed or shared
-     * one. Says nothing about the second factor, which is a separate trust.
-     */
-    trustedDevice?: boolean
-}
+export type EmailChangeStatusName = components['schemas']['EmailChangeStatus']
 
-export interface LoginResponse {
-    token?: string
-    expiresAt?: string
-    passwordChangeRequired: boolean
-    passwordChangeToken?: string
-    passwordChangeTokenExpiresAt?: string
-    /**
-     * Whether the account administers the instance and carries no address that can be written to.
-     * There is no session until it has one, and the token below is what the step is spent with.
-     */
-    addressRequired: boolean
-    addressToken?: string
-    addressTokenExpiresAt?: string
-    twoFactorRequired: boolean
-    preAuthToken?: string
-    preAuthTokenExpiresAt?: string
-}
-
-export interface RegisterRequest {
-    email?: string
-    firstName?: string
-    lastName?: string
-    password?: string
-    registrationCode?: string
-}
-
-export interface RegisterResponse {
-    id: number
-    email?: string
-    firstName?: string
-    lastName?: string
-    emailVerified: boolean
-}
-
-export interface TokenRequest {
-    token?: string
-}
-
-export interface EmailRequest {
-    email?: string
-}
-
+/** Where an email change stands once one of its two addresses has confirmed. */
 export const EmailChangeStatus = {
     COMMITTED: 'COMMITTED',
     WAITING: 'WAITING',
-} as const
-
-export type EmailChangeStatusName = (typeof EmailChangeStatus)[keyof typeof EmailChangeStatus]
-
-export interface EmailChangeResponse {
-    status: EmailChangeStatusName
-    message: string
-}
-
-export interface SetPasswordRequest {
-    token?: string
-    password?: string
-}
-
-export interface SetAddressRequest {
-    token?: string
-    email?: string
-}
-
-export interface SessionResponse {
-    token?: string
-    expiresAt?: string
-}
+} as const satisfies Record<EmailChangeStatusName, EmailChangeStatusName>
 
 export class StorageDeniedError extends Error {
     constructor() {
@@ -110,18 +51,19 @@ export async function confirmEmailChange(data: TokenRequest): Promise<EmailChang
     return res.data
 }
 
+/**
+ * Whether a sign-in answer is a finished session rather than a step still owed. The session itself
+ * arrived as a cookie the page cannot read; the answer only says that it did.
+ */
+export function startedSession(res: LoginResponse): boolean {
+    return !!res.expiresAt && !res.passwordChangeRequired && !res.addressRequired && !res.twoFactorRequired
+}
+
 export async function login(data: LoginRequest): Promise<LoginResponse> {
     if (isStorageDenied()) {
         throw new StorageDeniedError()
     }
     const res = await client.post<LoginResponse>('/auth/login', data)
-    if (res.data.token) {
-        setItem('session_token', res.data.token)
-        if (res.data.expiresAt) {
-            setItem('session_expires_at', res.data.expiresAt)
-            scheduleTokenRefresh(res.data.expiresAt)
-        }
-    }
     return res.data
 }
 
@@ -130,31 +72,14 @@ export async function demoLogin(email: string): Promise<LoginResponse> {
         throw new StorageDeniedError()
     }
     const res = await client.post<LoginResponse>('/demo/login', {email})
-    if (res.data.token) {
-        setItem('session_token', res.data.token)
-        if (res.data.expiresAt) {
-            setItem('session_expires_at', res.data.expiresAt)
-            scheduleTokenRefresh(res.data.expiresAt)
-        }
-    }
     return res.data
 }
 
-export async function logout(data: TokenRequest): Promise<MessageResponse> {
-    cancelTokenRefresh()
-    const res = await client.post<MessageResponse>('/auth/logout', data)
-    removeItem('session_token')
-    removeItem('session_expires_at')
+/** Ends the session the cookie names; the server clears the cookie with its answer. */
+export async function logout(): Promise<MessageResponse> {
+    const res = await client.post<MessageResponse>('/auth/logout')
     removeItem('station_id')
     removeItem('cluster_id')
-    return res.data
-}
-
-export async function refresh(data: TokenRequest): Promise<SessionResponse> {
-    const res = await client.post<SessionResponse>('/auth/refresh', data)
-    if (res.data.token) {
-        setItem('session_token', res.data.token)
-    }
     return res.data
 }
 
@@ -163,18 +88,12 @@ export async function forgotPassword(data: EmailRequest): Promise<MessageRespons
     return res.data
 }
 
-/** Whether a password link may still be used, and which of the two kinds it is. */
-export interface PasswordLinkStatus {
-    standing: 'VALID' | 'EXPIRED' | 'UNKNOWN'
-    purpose: 'SETUP' | 'RESET' | 'OTHER'
-}
-
 /**
  * Asks what a link is worth before offering the form. Spends nothing, so a reader who reloads gets
  * the same answer.
  */
-export async function passwordLinkStatus(token: string): Promise<PasswordLinkStatus> {
-    const res = await client.post<PasswordLinkStatus>('/auth/password-link', {token})
+export async function passwordLinkStatus(token: string): Promise<TokenStatus> {
+    const res = await client.post<TokenStatus>('/auth/password-link', {token} satisfies TokenRequest)
     return res.data
 }
 
@@ -188,13 +107,6 @@ export async function passwordLinkStatus(token: string): Promise<PasswordLinkSta
  */
 export async function setPassword(data: SetPasswordRequest): Promise<LoginResponse> {
     const res = await client.post<LoginResponse>('/auth/set-password', data)
-    if (res.data.token) {
-        setItem('session_token', res.data.token)
-        if (res.data.expiresAt) {
-            setItem('session_expires_at', res.data.expiresAt)
-            scheduleTokenRefresh(res.data.expiresAt)
-        }
-    }
     return res.data
 }
 
@@ -206,17 +118,10 @@ export async function setPassword(data: SetPasswordRequest): Promise<LoginRespon
  */
 export async function setAddress(data: SetAddressRequest): Promise<LoginResponse> {
     const res = await client.post<LoginResponse>('/auth/set-address', data)
-    if (res.data.token) {
-        setItem('session_token', res.data.token)
-        if (res.data.expiresAt) {
-            setItem('session_expires_at', res.data.expiresAt)
-            scheduleTokenRefresh(res.data.expiresAt)
-        }
-    }
     return res.data
 }
 
-export async function changePassword(data: { currentPassword: string; newPassword: string }): Promise<MessageResponse> {
+export async function changePassword(data: ChangePasswordRequest): Promise<MessageResponse> {
     const res = await client.post<MessageResponse>('/auth/change-password', data)
     return res.data
 }

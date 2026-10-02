@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.twofactor.entity.TwoFactorKind;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorPolicy;
 import dev.chojo.ember.feature.twofactor.entity.WebAuthnCredential;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.List;
@@ -51,8 +52,6 @@ public class TwoFactorRepository {
     private static final String ACCOUNT_2FA_AUDIT_COLUMNS =
             "id, account_id, actor_id, event, factor_kind, user_agent, country, created_at";
 
-    // -- Factor CRUD --
-
     public TwoFactorFactor createFactor(int accountId, TwoFactorKind kind, String label) {
         return insertReturning(
                 """
@@ -62,15 +61,6 @@ public class TwoFactorRepository {
                 call().bind("account_id", accountId).bind("kind", kind.name()).bind("label", label),
                 TwoFactorFactor.map(),
                 ACCOUNT_2FA_FACTOR_COLUMNS);
-    }
-
-    public List<TwoFactorFactor> findActiveFactors(int accountId) {
-        return query(
-                        "SELECT %s FROM account_2fa_factor WHERE account_id = :account_id AND disabled_at IS NULL;",
-                        ACCOUNT_2FA_FACTOR_COLUMNS)
-                .single(call().bind("account_id", accountId))
-                .map(TwoFactorFactor.map())
-                .all();
     }
 
     public Optional<TwoFactorFactor> findActiveFactor(int accountId, TwoFactorKind kind) {
@@ -178,8 +168,6 @@ public class TwoFactorRepository {
                 .all();
     }
 
-    // -- TOTP --
-
     public void createTotp(
             int factorId, byte[] secretEncrypted, short kid, short digits, short periodSeconds, String algorithm) {
         query("""
@@ -212,8 +200,6 @@ public class TwoFactorRepository {
                 SET last_used_step = :step
                 WHERE factor_id = :factor_id AND last_used_step < :step;""").single(call().bind("factor_id", factorId).bind("step", step)).update();
     }
-
-    // -- WebAuthn --
 
     /**
      * @param signIn whether this credential may start a sign-in on its own
@@ -281,13 +267,6 @@ public class TwoFactorRepository {
                         "SELECT %s FROM account_2fa_webauthn WHERE credential_id = :credential_id;",
                         ACCOUNT_2FA_WEBAUTHN_COLUMNS)
                 .single(call().bind("credential_id", credentialId))
-                .map(WebAuthnCredential.map())
-                .first();
-    }
-
-    public Optional<WebAuthnCredential> findWebAuthnByFactor(int factorId) {
-        return query("SELECT %s FROM account_2fa_webauthn WHERE factor_id = :factor_id;", ACCOUNT_2FA_WEBAUTHN_COLUMNS)
-                .single(call().bind("factor_id", factorId))
                 .map(WebAuthnCredential.map())
                 .first();
     }
@@ -369,8 +348,6 @@ public class TwoFactorRepository {
                 .changed();
     }
 
-    // -- Backup codes --
-
     public void createBackupCode(int factorId, String codeHash) {
         query("INSERT INTO account_2fa_backup_code (factor_id, code_hash) VALUES (:factor_id, :hash);")
                 .single(call().bind("factor_id", factorId).bind("hash", codeHash))
@@ -400,12 +377,6 @@ public class TwoFactorRepository {
                 .changed();
     }
 
-    public void deleteBackupCodes(int factorId) {
-        query("DELETE FROM account_2fa_backup_code WHERE factor_id = :factor_id;")
-                .single(call().bind("factor_id", factorId))
-                .delete();
-    }
-
     public void markAllBackupCodesUsed(int accountId) {
         query("""
                 UPDATE account_2fa_backup_code SET used_at = now()
@@ -413,8 +384,6 @@ public class TwoFactorRepository {
                     SELECT id FROM account_2fa_factor WHERE account_id = :account_id AND kind = cast('BACKUP_CODES' AS TWO_FACTOR_KIND)
                 );""").single(call().bind("account_id", accountId)).update();
     }
-
-    // -- Trusted devices --
 
     public TrustedDevice createTrustedDevice(int accountId, String tokenHash, String userAgent, Instant trustedUntil) {
         return insertReturning(
@@ -470,8 +439,6 @@ public class TwoFactorRepository {
                 .update();
     }
 
-    // -- Policy --
-
     public List<TwoFactorPolicy> findInstancePolicies() {
         return query(
                         "SELECT %s FROM two_factor_policy WHERE scope = 'INSTANCE' ORDER BY user_type NULLS FIRST;",
@@ -497,7 +464,7 @@ public class TwoFactorRepository {
      * "all user types in this scope".
      */
     public Optional<TwoFactorPolicy> findPolicy(
-            TwoFactorPolicy.Scope scope, Integer stationId, StationUserType userType) {
+            TwoFactorPolicy.PolicyScope scope, Integer stationId, StationUserType userType) {
         return query("""
                 SELECT %s FROM two_factor_policy
                 WHERE scope = CAST(:scope AS TEXT)
@@ -514,12 +481,12 @@ public class TwoFactorRepository {
      * Inserts or updates a policy row keyed by (scope, station, user-type). Returns the live row.
      */
     public TwoFactorPolicy upsertPolicy(
-            TwoFactorPolicy.Scope scope,
-            Integer stationId,
-            StationUserType userType,
+            TwoFactorPolicy.PolicyScope scope,
+            @Nullable Integer stationId,
+            @Nullable StationUserType userType,
             boolean required,
             short graceDays,
-            Integer createdBy) {
+            @Nullable Integer createdBy) {
         return insertReturning(
                 """
                 INSERT INTO two_factor_policy (scope, station_id, user_type, required, grace_days, created_by)
@@ -544,14 +511,12 @@ public class TwoFactorRepository {
         return deleteById("two_factor_policy", id);
     }
 
-    // -- Session 2FA timestamp --
-
     /**
      * Stamps the session as freshly proved, recording what it was proved with. The kind matters as
      * much as the time: a route that must rest on somebody proving themselves at the keyboard has to
      * be able to tell that apart from a session another device vouched for.
      */
-    public boolean setTwoFactorVerified(int sessionId, StepUpProof proof, StepUpCategory category) {
+    public boolean setTwoFactorVerified(int sessionId, StepUpProof proof, @Nullable StepUpCategory category) {
         return query("""
                 UPDATE account_session
                 SET two_factor_verified_at = now(), two_factor_proof = :proof, two_factor_category = :category
@@ -578,15 +543,13 @@ public class TwoFactorRepository {
                 .changed();
     }
 
-    // -- Audit --
-
     public void audit(
             int accountId,
-            Integer actorId,
+            @Nullable Integer actorId,
             TwoFactorEvent event,
-            TwoFactorKind factorKind,
-            String userAgent,
-            String country) {
+            @Nullable TwoFactorKind factorKind,
+            @Nullable String userAgent,
+            @Nullable String country) {
         query("""
                 INSERT INTO account_2fa_audit (account_id, actor_id, event, factor_kind, user_agent, country)
                 VALUES (:account_id, :actor_id, CAST(:event AS two_factor_event),

@@ -3,6 +3,9 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
+import {activeLocale} from '@/util/locale'
+import {translator} from '@/util/translatorState'
+
 function pad2(n: number): string {
     return String(n).padStart(2, '0')
 }
@@ -24,7 +27,8 @@ function asDate(value: string): Date {
 }
 
 /**
- * Writes a moment or a calendar date out in German, on a named clock where one is named.
+ * Writes a moment or a calendar date out in the interface language, on a named clock where one is
+ * named.
  *
  * <p>A page rendered on the server and then again in the browser is written by two machines, and
  * neither of them is where the reader is. Naming the clock is what lets the two agree, and on a
@@ -45,11 +49,12 @@ function written(
 ): string {
     const date = asDate(value)
     if (Number.isNaN(date.getTime())) return ''
-    if (!timezone || CALENDAR_DATE.test(value)) return date.toLocaleString('de-DE', options)
+    const locale = activeLocale()
+    if (!timezone || CALENDAR_DATE.test(value)) return date.toLocaleString(locale, options)
     try {
-        return date.toLocaleString('de-DE', {...options, timeZone: timezone})
+        return date.toLocaleString(locale, {...options, timeZone: timezone})
     } catch {
-        return date.toLocaleString('de-DE', options)
+        return date.toLocaleString(locale, options)
     }
 }
 
@@ -128,14 +133,15 @@ export function formatDayMonth(value?: string | null, timezone?: string | null):
     return written(value, timezone, {day: '2-digit', month: '2-digit'})
 }
 
-const WEEKDAYS = ['', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag']
-
 /**
  * The name of a weekday given as a number the way the calendar counts them, 1 for Monday through
- * 7 for Sunday. Anything outside that has no name.
+ * 7 for Sunday, in the interface language. Anything outside that has no name.
+ *
+ * <p>The name is read off the 3rd to the 9th of January 2000, which ran from a Monday to a Sunday.
  */
 export function weekdayName(dayOfWeek: number): string {
-    return WEEKDAYS[dayOfWeek] ?? ''
+    if (!Number.isInteger(dayOfWeek) || dayOfWeek < 1 || dayOfWeek > 7) return ''
+    return new Date(2000, 0, 2 + dayOfWeek).toLocaleDateString(activeLocale(), {weekday: 'long'})
 }
 
 /**
@@ -164,6 +170,30 @@ export function formatDateTime(value?: string | null, timezone?: string | null):
 }
 
 /**
+ * Formats a moment as `dd.MM., HH:mm:ss` in the reader's own time zone, for a list that tells
+ * requests a second apart. Returns an empty string when the input is missing.
+ */
+export function formatDayClockSeconds(value?: string | null): string {
+    if (!value) return ''
+    return written(value, null, {day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit'})
+}
+
+/**
+ * Labels an hour on a chart's axis with its day, month and clock, in the reader's own locale and
+ * time zone. A value that is no moment is left as it came.
+ */
+export function formatHourLabel(iso: string): string {
+    const date = new Date(iso)
+    if (Number.isNaN(date.getTime())) return iso
+    return date.toLocaleString(undefined, {month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit'})
+}
+
+/** The name of a month given as a number, 1 for January through 12 for December, in the interface language. */
+export function monthName(month: number): string {
+    return new Date(2000, month - 1).toLocaleDateString(activeLocale(), {month: 'long'})
+}
+
+/**
  * Formats a moment as a long German date and a short clock - `12. Oktober 2026 um 20:00` - for the
  * blocks that give an appointment room enough to read as a sentence. Returns an empty string when
  * the input is missing.
@@ -176,20 +206,21 @@ export function formatDateTimeLong(value?: string | null, timezone?: string | nu
 }
 
 /**
- * Formats an ISO timestamp as a German relative time - "gerade eben", "vor 5 Min.",
- * "vor 3 Std.", "vor 2 Tagen" - falling back to the absolute date after 30 days.
+ * Formats an ISO timestamp as a relative time in the interface language - "gerade eben",
+ * "vor 5 Min.", "vor 3 Std.", "vor 2 Tagen" - falling back to the absolute date after 30 days.
  * Returns an empty string when the input is missing.
  */
 export function formatRelative(iso?: string | null): string {
     if (!iso) return ''
+    const {t} = translator
     const diffMs = Date.now() - new Date(iso).getTime()
     const diffMin = Math.floor(diffMs / 60000)
-    if (diffMin < 1) return 'gerade eben'
-    if (diffMin < 60) return `vor ${diffMin} Min.`
+    if (diffMin < 1) return t('relativeTime.justNow')
+    if (diffMin < 60) return t('relativeTime.minutesAgo', {n: diffMin})
     const diffH = Math.floor(diffMin / 60)
-    if (diffH < 24) return `vor ${diffH} Std.`
+    if (diffH < 24) return t('relativeTime.hoursAgo', {n: diffH})
     const diffD = Math.floor(diffH / 24)
-    if (diffD <= 30) return `vor ${diffD} Tag${diffD > 1 ? 'en' : ''}`
+    if (diffD <= 30) return t(diffD > 1 ? 'relativeTime.daysAgo' : 'relativeTime.dayAgo', {n: diffD})
     return formatDate(iso)
 }
 

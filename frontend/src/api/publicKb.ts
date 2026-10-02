@@ -4,33 +4,22 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import axios from 'axios'
-import type {KbFile, KbFolder, KbTag, MarkdownHtmlResponse} from './knowledgeBase'
+import type {
+    KbFile,
+    KbTag,
+    MarkdownHtmlResponse,
+    PublicBrowseResponse,
+    PublicKbInfo,
+    SearchResultItem,
+} from '@/api/generated/schema'
 
 const publicClient = axios.create({
     baseURL: '/api/v1/public/kb',
     headers: {'Content-Type': 'application/json'},
 })
 
-export interface PublicStationInfo {
-    stationName: string
-    stationUid: string
-    /** The clock every date in a public article is written on. */
-    stationTimezone: string
-}
-
-export interface PublicBrowseResponse {
-    currentFolder: KbFolder | null
-    folders: KbFolder[]
-    files: KbFile[]
-}
-
-export interface PublicSearchResult {
-    file: KbFile
-    snippet: string
-}
-
-export async function getStationInfo(stationUid: string): Promise<PublicStationInfo> {
-    const res = await publicClient.get<PublicStationInfo>(`/${stationUid}/info`)
+export async function getStationInfo(stationUid: string): Promise<PublicKbInfo> {
+    const res = await publicClient.get<PublicKbInfo>(`/${stationUid}/info`)
     return res.data
 }
 
@@ -62,8 +51,8 @@ export function pdfExportUrl(stationUid: string, fileId: number): string {
     return `/api/v1/public/kb/${stationUid}/files/${fileId}/pdf`
 }
 
-export async function search(stationUid: string, query: string): Promise<PublicSearchResult[]> {
-    const res = await publicClient.get<PublicSearchResult[]>(`/${stationUid}/search`, {params: {q: query}})
+export async function search(stationUid: string, query: string): Promise<SearchResultItem[]> {
+    const res = await publicClient.get<SearchResultItem[]>(`/${stationUid}/search`, {params: {q: query}})
     return res.data
 }
 

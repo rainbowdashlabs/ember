@@ -81,8 +81,6 @@ class RegistrationCodeRepositoryTest extends RepositoryTestBase {
         assertEquals(1, registrationCodeRepo.findById(codeId).orElseThrow().uses());
     }
 
-    // -- Code-Group assignments --
-
     @Test
     @Order(10)
     void addAndFindGroups() {

@@ -9,14 +9,16 @@ import dev.chojo.ember.api.auth.ClusterPermission;
 import dev.chojo.ember.api.auth.ClusterUserType;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.ClusterRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.cluster.entity.StationKind;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
+import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.Test;
 
 import java.util.Set;
@@ -51,7 +53,6 @@ class ClusterServiceTest extends RepositoryTestBase {
         assertNull(home.clusterId(), "the home station is owned by the cluster, not a member of it");
         assertNotNull(cluster.uid());
 
-        // Only the four things a cluster owns are left switched on
         var disabled = stationRepo.findDisabledModules(home.id());
         assertFalse(disabled.contains(StationModule.INVENTORY));
         assertFalse(disabled.contains(StationModule.KNOWLEDGE_BASE));
@@ -63,7 +64,8 @@ class ClusterServiceTest extends RepositoryTestBase {
 
     @Test
     void aClusterNeedsAName() {
-        assertThrows(BadRequestResponse.class, () -> clusterService.create("  ", null));
+        var refused = assertThrows(RefusalResponse.class, () -> clusterService.create("  ", null));
+        assertEquals(ClusterRefusal.CLUSTER_NEEDS_A_NAME_ON_CREATE, refused.refusal());
     }
 
     @Test
@@ -103,9 +105,8 @@ class ClusterServiceTest extends RepositoryTestBase {
                 clusterService.findByStation(station.id()).orElseThrow().id());
         assertTrue(clusterService.findStationIds(clusterId).contains(station.id()));
 
-        // Released, it answers to nobody again
         stationRepo.setCluster(station.id(), null);
-        assertTrue(clusterService.findByStation(station.id()).isEmpty());
+        assertTrue(clusterService.findByStation(station.id()).isEmpty(), "released, it answers to nobody again");
         stationRepo.delete(station.id());
     }
 
@@ -116,6 +117,11 @@ class ClusterServiceTest extends RepositoryTestBase {
         var station = clusterService.createStation(clusterId, "Löschzug Neu");
 
         assertEquals(clusterId, stationRepo.findById(station.id()).orElseThrow().clusterId());
+        assertEquals(DiscoveryVisibility.PUBLIC, station.discoveryVisibility(), "a new member station is listed");
+        var home = stationRepo
+                .findById(clusterService.findById(clusterId).orElseThrow().homeStationId())
+                .orElseThrow();
+        assertEquals(DiscoveryVisibility.NONE, home.discoveryVisibility(), "the cluster's own shell is not");
         assertTrue(clusterService.findStations(clusterId).stream().anyMatch(s -> s.id() == station.id()));
 
         clusterService.releaseStation(clusterId, station.id());
@@ -127,7 +133,9 @@ class ClusterServiceTest extends RepositoryTestBase {
         var first = clusterService.create("Kreisverband Eins", null);
         int otherClusterId = freshCluster();
 
-        assertThrows(BadRequestResponse.class, () -> clusterService.joinStation(otherClusterId, first.homeStationId()));
+        var refused = assertThrows(
+                RefusalResponse.class, () -> clusterService.joinStation(otherClusterId, first.homeStationId()));
+        assertEquals(ClusterRefusal.CLUSTER_HOME_STATION_CANNOT_JOIN, refused.refusal());
     }
 
     @Test
@@ -136,7 +144,9 @@ class ClusterServiceTest extends RepositoryTestBase {
         int otherClusterId = freshCluster();
         var station = clusterService.createStation(clusterId, "Umkämpfte Wache");
 
-        assertThrows(BadRequestResponse.class, () -> clusterService.joinStation(otherClusterId, station.id()));
+        var refused =
+                assertThrows(RefusalResponse.class, () -> clusterService.joinStation(otherClusterId, station.id()));
+        assertEquals(ClusterRefusal.CLUSTER_STATION_ALREADY_IN_ANOTHER, refused.refusal());
 
         clusterService.releaseStation(clusterId, station.id());
         stationRepo.delete(station.id());
@@ -147,7 +157,8 @@ class ClusterServiceTest extends RepositoryTestBase {
         int clusterId = freshCluster();
         var station = stationRepo.create("Freie Wache");
 
-        assertThrows(BadRequestResponse.class, () -> clusterService.releaseStation(clusterId, station.id()));
+        var refused = assertThrows(RefusalResponse.class, () -> clusterService.releaseStation(clusterId, station.id()));
+        assertEquals(ClusterRefusal.CLUSTER_RELEASE_STATION_NOT_IN_IT, refused.refusal());
         stationRepo.delete(station.id());
     }
 
@@ -184,13 +195,15 @@ class ClusterServiceTest extends RepositoryTestBase {
         clusterService.removeMember(admin.id());
     }
 
+    /**
+     * Membership alone opens the cluster's own pages and nothing else, the way belonging to a station opens
+     * that station's. Everything past that is granted.
+     */
     @Test
     void aPlainMemberHoldsNothingUntilSomethingIsGranted() {
         int clusterId = freshCluster();
         var member = clusterService.addMember(clusterId, freshAccount().id(), ClusterUserType.CLUSTER_USER);
 
-        // Being a member is itself worth something: it opens the cluster's own pages and nothing else,
-        // the way belonging to a station opens that station's. Everything past that is granted.
         assertEquals(
                 Set.of(ClusterPermission.LOGIN, ClusterPermission.USER),
                 clusterService.resolvePermissions(member),
@@ -272,9 +285,10 @@ class ClusterServiceTest extends RepositoryTestBase {
         int accountId = freshAccount().id();
         var member = clusterService.addMember(clusterId, accountId, ClusterUserType.CLUSTER_USER);
 
-        assertThrows(
-                BadRequestResponse.class,
+        var refused = assertThrows(
+                RefusalResponse.class,
                 () -> clusterService.addMember(clusterId, accountId, ClusterUserType.CLUSTER_USER));
+        assertEquals(ClusterRefusal.CLUSTER_ACCOUNT_ALREADY_A_MEMBER, refused.refusal());
 
         clusterService.removeMember(member.id());
     }
@@ -307,8 +321,8 @@ class ClusterServiceTest extends RepositoryTestBase {
         var station = stationRepo.create("Wache im Verband");
         stationRepo.setCluster(station.id(), cluster.id());
 
-        var refused = assertThrows(BadRequestResponse.class, () -> clusterService.delete(cluster.id()));
-        assertTrue(refused.getMessage().contains("Release them first"));
+        var refused = assertThrows(RefusalResponse.class, () -> clusterService.delete(cluster.id()));
+        assertEquals(ClusterRefusal.CLUSTER_STILL_HAS_STATIONS, refused.refusal());
         assertTrue(clusterService.findById(cluster.id()).isPresent());
 
         stationRepo.setCluster(station.id(), null);
@@ -318,8 +332,14 @@ class ClusterServiceTest extends RepositoryTestBase {
 
     @Test
     void aClusterThatIsNotThereCannotBeRenamedOrDeleted() {
-        assertThrows(BadRequestResponse.class, () -> clusterService.rename(999_999, "Egal", null));
-        assertThrows(BadRequestResponse.class, () -> clusterService.delete(999_999));
+        assertEquals(
+                ClusterRefusal.CLUSTER_GONE_BEFORE_RENAME,
+                assertThrows(RefusalResponse.class, () -> clusterService.rename(999_999, "Egal", null))
+                        .refusal());
+        assertEquals(
+                ClusterRefusal.CLUSTER_GONE_BEFORE_DELETE,
+                assertThrows(RefusalResponse.class, () -> clusterService.delete(999_999))
+                        .refusal());
     }
 
     @Test

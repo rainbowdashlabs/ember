@@ -7,7 +7,6 @@ package dev.chojo.ember.feature.form.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import dev.chojo.ember.util.Json;
-import io.javalin.openapi.OpenApiName;
 import tools.jackson.core.type.TypeReference;
 
 import java.time.Instant;
@@ -27,7 +26,6 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * @param path      the keys of the pages visited so far, the page to continue on last
  * @param updatedAt when the draft was last saved
  */
-@OpenApiName("FormDraft")
 public record FormDraft(Map<Integer, FormAnswerValue> answers, List<String> path, Instant updatedAt) {
     private static final TypeReference<Map<Integer, FormAnswerValue>> ANSWERS = new TypeReference<>() {};
     private static final TypeReference<List<String>> PATH = new TypeReference<>() {};

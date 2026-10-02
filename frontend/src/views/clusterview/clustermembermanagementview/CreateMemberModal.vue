@@ -15,8 +15,8 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import NewMemberFields from './NewMemberFields.vue'
 import {clusterMembers} from '@/api'
-import type {ManagedStation} from '@/api/clusterMembers'
-import {StationUserType, type StationUserTypeName} from '@/api/types'
+import type {ManagedStationResponse, StationUserType as StationUserTypeName} from '@/api/generated/schema'
+import {StationUserType} from '@/api/types'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 
 /**
@@ -29,7 +29,7 @@ import {useAsyncAction} from '@/composables/useAsyncAction'
 const open = defineModel<boolean>({required: true})
 
 const props = defineProps<{
-  stations: ManagedStation[]
+  stations: ManagedStationResponse[]
 }>()
 
 const emit = defineEmits<{
@@ -61,7 +61,7 @@ watch(open, isOpen => {
   userType.value = StationUserType.MEMBER
 })
 
-const {running, error, failure, run: save} = useAsyncAction(async () => {
+const {running, failure, run: save} = useAsyncAction(async () => {
   await clusterMembers.createManagedMember(stationUid.value, {
     firstName: firstName.value.trim(),
     lastName: lastName.value.trim(),

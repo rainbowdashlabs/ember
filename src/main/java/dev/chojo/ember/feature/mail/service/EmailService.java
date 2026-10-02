@@ -9,6 +9,7 @@ import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.Mailing;
 import dev.chojo.ember.feature.mail.entity.MailChainEntry;
+import dev.chojo.ember.feature.mail.entity.SmtpEncryption;
 import dev.chojo.ember.feature.mail.entity.WaitlistInvitationDetails;
 import dev.chojo.ember.feature.mail.repository.EmailQueueRepository;
 import dev.chojo.ember.feature.mail.repository.MailProviderBlockRepository;
@@ -16,20 +17,22 @@ import dev.chojo.ember.feature.mail.service.mail.MailProvider;
 import dev.chojo.ember.feature.mail.service.mail.SmtpMailProvider;
 import dev.chojo.ember.feature.station.entity.MailProviderType;
 import dev.chojo.ember.feature.storage.service.StationReadOnlyGuard;
+import dev.chojo.ember.lifecycle.Schedule;
+import dev.chojo.ember.lifecycle.ScheduledTask;
+import dev.chojo.ember.lifecycle.TaskSource;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Central email service handling both global system emails and per-station notification emails.
@@ -38,7 +41,7 @@ import java.util.concurrent.TimeUnit;
  * daily send limits at both the global and per-station level.
  */
 @Singleton
-public class EmailService {
+public class EmailService implements TaskSource {
     private static final Logger log = LoggerFactory.getLogger(EmailService.class);
 
     /**
@@ -71,6 +74,7 @@ public class EmailService {
     private final StationReadOnlyGuard readOnlyGuard;
     private final MailChainService chainService;
     private final MailProviderBlockRepository blockRepository;
+    private final MailRetryService retryService;
 
     @Inject
     public EmailService(
@@ -81,9 +85,11 @@ public class EmailService {
             MailTemplateRenderer templateRenderer,
             StationReadOnlyGuard readOnlyGuard,
             MailChainService chainService,
-            MailProviderBlockRepository blockRepository) {
+            MailProviderBlockRepository blockRepository,
+            MailRetryService retryService) {
         this.chainService = chainService;
         this.blockRepository = blockRepository;
+        this.retryService = retryService;
         this.mailing = mailing;
         this.api = api;
         this.demoConfig = demoConfig;
@@ -103,13 +109,6 @@ public class EmailService {
                     first.senderAddress(),
                     first.dailySendLimit());
         }
-        ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
-            var t = new Thread(r, "email-worker");
-            t.setDaemon(true);
-            return t;
-        });
-        scheduler.scheduleWithFixedDelay(this::processQueue, 10, 10, TimeUnit.SECONDS);
-        scheduler.scheduleAtFixedRate(this::runCleanup, 1, 24, TimeUnit.HOURS);
     }
 
     private void runCleanup() {
@@ -121,8 +120,6 @@ public class EmailService {
         }
     }
 
-    // -- Provider resolution --
-
     /**
      * Resolves the station-specific mail provider based on the station's mail configuration.
      * Does not fall back to the global provider; returns empty if no station config exists.
@@ -130,20 +127,21 @@ public class EmailService {
      * @param stationId the station ID to resolve a provider for
      * @return the configured mail provider, or empty if not configured
      */
-    public Optional<MailProvider> resolveStationProvider(Integer stationId) {
+    public Optional<MailProvider> resolveStationProvider(@Nullable Integer stationId) {
         if (stationId == null) return Optional.empty();
         return chainService.firstForStation(stationId).map(EmailService::buildProvider);
     }
 
     /**
-     * Builds a {@link MailProvider} from one entry of a list, without persisting anything.
+     * Builds a {@link MailProvider} from one entry of a list, without persisting anything. Returns
+     * {@code null} when the entry's provider is {@link MailProviderType#NONE}.
      */
-    private static MailProvider buildProvider(MailChainEntry entry) {
+    private static @Nullable MailProvider buildProvider(MailChainEntry entry) {
         return buildProvider(
                 entry.provider(),
                 entry.smtpHost(),
                 entry.smtpPort(),
-                entry.smtpSsl(),
+                entry.smtpEncryption(),
                 entry.smtpUser(),
                 entry.smtpPassword(),
                 entry.apiKey(),
@@ -153,53 +151,55 @@ public class EmailService {
 
     /**
      * Builds a {@link MailProvider} from raw config values without persisting anything. Returns
-     * {@code null} when the provider is {@link MailProviderType#NONE}.
+     * {@code null} when the provider is {@link MailProviderType#NONE}. The relays with a fixed
+     * address all require STARTTLS; only a plain server and Sweego, whose address is configured, take
+     * the encryption from the configuration. Sweego gives every account its own relay host and port.
+     * Brevo carries the correlation header through to its delivery events, which ties an event back
+     * to its mail.
      */
-    private static MailProvider buildProvider(
+    private static @Nullable MailProvider buildProvider(
             MailProviderType provider,
             String smtpHost,
             int smtpPort,
-            boolean smtpSsl,
+            SmtpEncryption smtpEncryption,
             String user,
             String password,
             String apiKey,
             String senderAddress,
             String senderName) {
         return switch (provider) {
-            case SMTP -> new SmtpMailProvider(smtpHost, smtpPort, smtpSsl, user, password, senderAddress, senderName);
+            case SMTP ->
+                new SmtpMailProvider(smtpHost, smtpPort, smtpEncryption, user, password, senderAddress, senderName);
             case RAPIDMAIL ->
-                new SmtpMailProvider("smtp.rapidmail.de", 587, false, user, apiKey, senderAddress, senderName);
+                new SmtpMailProvider(
+                        "smtp.rapidmail.de", 587, SmtpEncryption.STARTTLS, user, apiKey, senderAddress, senderName);
             case TWILIO ->
                 new SmtpMailProvider(
                         "smtp.sendgrid.net",
                         587,
-                        false,
+                        SmtpEncryption.STARTTLS,
                         "apikey",
                         apiKey,
                         senderAddress,
                         senderName,
                         SENDGRID_CORRELATION_HEADER,
                         SENDGRID_CORRELATION_FORMAT);
-            // Sweego gives every account its own relay host and port, so both come from the
-            // configuration rather than from a constant that would be right for nobody.
             case SWEEGO ->
                 new SmtpMailProvider(
                         smtpHost,
                         smtpPort,
-                        smtpSsl,
+                        smtpEncryption,
                         user,
                         apiKey,
                         senderAddress,
                         senderName,
                         SWEEGO_CORRELATION_HEADER,
                         null);
-            // Brevo carries this header through to its delivery events, which is what lets one
-            // of those events be traced back to the mail it belongs to.
             case BREVO ->
                 new SmtpMailProvider(
                         "smtp-relay.brevo.com",
                         587,
-                        false,
+                        SmtpEncryption.STARTTLS,
                         user,
                         apiKey,
                         senderAddress,
@@ -215,18 +215,18 @@ public class EmailService {
      *
      * @return {@code null} on success, or the underlying error message on failure
      */
-    public String testMailConnection(
+    public @Nullable String testMailConnection(
             MailProviderType provider,
             String smtpHost,
             int smtpPort,
-            boolean smtpSsl,
+            SmtpEncryption smtpEncryption,
             String user,
             String password,
             String apiKey,
             String senderAddress,
             String senderName) {
-        MailProvider mailProvider =
-                buildProvider(provider, smtpHost, smtpPort, smtpSsl, user, password, apiKey, senderAddress, senderName);
+        MailProvider mailProvider = buildProvider(
+                provider, smtpHost, smtpPort, smtpEncryption, user, password, apiKey, senderAddress, senderName);
         if (mailProvider == null) return "No mail provider configured";
         var result = mailProvider.testConnection();
         if (result.success()) return null;
@@ -257,7 +257,7 @@ public class EmailService {
      * @param stationId the station ID, may be {@code null}
      * @return {@code null} on success, or the underlying error message on failure
      */
-    public String testStationMailConnection(Integer stationId) {
+    public @Nullable String testStationMailConnection(@Nullable Integer stationId) {
         return testStationMailConnection(stationId, 0);
     }
 
@@ -272,7 +272,7 @@ public class EmailService {
      * @param position  which provider of its list
      * @return {@code null} on success, or the underlying error message on failure
      */
-    public String testStationMailConnection(Integer stationId, int position) {
+    public @Nullable String testStationMailConnection(@Nullable Integer stationId, int position) {
         if (stationId == null) return "No mail provider configured";
         var chain = chainService.forStation(stationId);
         var entry = chainService.at(chain, position);
@@ -285,12 +285,12 @@ public class EmailService {
      *
      * @return {@code null} on success, or the underlying error message on failure
      */
-    public String testMailConnection(MailChainEntry config) {
+    public @Nullable String testMailConnection(MailChainEntry config) {
         return testMailConnection(
                 config.provider(),
                 config.smtpHost(),
                 config.smtpPort(),
-                config.smtpSsl(),
+                config.smtpEncryption(),
                 config.smtpUser(),
                 config.smtpPassword(),
                 config.apiKey(),
@@ -374,8 +374,6 @@ public class EmailService {
         return false;
     }
 
-    // -- Station email (queued, with per-station limits checked on send) --
-
     /**
      * Sends an email verification link to a user.
      *
@@ -422,7 +420,8 @@ public class EmailService {
      * @param to        where the mail goes, which need not be the address of whoever asked
      * @return {@code null} when the provider accepted it, or the reason it did not
      */
-    public String sendTestMailThrough(Integer stationId, int position, String to, String name, String locale) {
+    public @Nullable String sendTestMailThrough(
+            @Nullable Integer stationId, int position, String to, String name, String locale) {
         var chain = stationId == null ? chainService.forInstance() : chainService.forStation(stationId);
         var entry = chainService.at(chain, position);
         if (entry.isEmpty()) return "No mail provider configured";
@@ -435,7 +434,7 @@ public class EmailService {
         return result == MailProvider.SendResult.SENT ? null : "The provider refused the message";
     }
 
-    public void sendTestEmail(String to, String name, String locale, Integer stationId) {
+    public void sendTestEmail(String to, String name, String locale, @Nullable Integer stationId) {
         var vars = baseVars(name, stationId);
         String subjectLine = subject("test-mail", locale, null);
         String body = loadTemplate("test-mail.html", locale, vars);
@@ -527,7 +526,8 @@ public class EmailService {
                 loadTemplate("passkey-code-issued.html", locale, vars));
     }
 
-    public void sendTwoFactorResetNotice(String email, String name, String actorLabel, Instant resetAt, String locale) {
+    public void sendTwoFactorResetNotice(
+            String email, String name, @Nullable String actorLabel, Instant resetAt, String locale) {
         var vars = baseVars(name, null);
         vars.put("loginUrl", api.baseUrl() + "/login");
         String defaultActor = templateRenderer.body("twoFactorReset.defaultActor", locale);
@@ -615,22 +615,12 @@ public class EmailService {
                 loadTemplate("managed-login-revoked.html", locale, vars));
     }
 
-    // -- Public send methods (system, via global provider queue) --
-
     public void sendPasswordResetEmail(String email, String name, String token, String locale) {
         String url = api.baseUrl() + "/reset-password?token=" + token;
         var vars = baseVars(name, null);
         vars.put("url", url);
         enqueueGlobal(
                 email, subject("reset-password", locale, null), loadTemplate("reset-password.html", locale, vars));
-    }
-
-    public void sendEmailChangeConfirmation(String newEmail, String name, String token, String locale) {
-        String url = api.baseUrl() + "/confirm-email-change?token=" + token;
-        var vars = baseVars(name, null);
-        vars.put("url", url);
-        vars.put("newEmail", newEmail);
-        enqueueGlobal(newEmail, subject("email-change", locale, null), loadTemplate("email-change.html", locale, vars));
     }
 
     public void sendStationDeletionConfirmation(String email, String name, String token, String locale) {
@@ -642,7 +632,7 @@ public class EmailService {
     }
 
     public void sendApplicationVerifyEmail(
-            String email, String name, String stationName, String token, String locale, Integer stationId) {
+            String email, String name, String stationName, String token, String locale, @Nullable Integer stationId) {
         String url = api.baseUrl() + "/apply/verify?token=" + token;
         var vars = baseVars(name, stationId);
         vars.put("stationName", stationName);
@@ -654,7 +644,7 @@ public class EmailService {
     }
 
     public void sendApplicationAcceptedEmail(
-            String email, String name, String stationName, String token, String locale, Integer stationId) {
+            String email, String name, String stationName, String token, String locale, @Nullable Integer stationId) {
         String url = api.baseUrl() + "/set-password?token=" + token;
         var vars = baseVars(name, stationId);
         vars.put("stationName", stationName);
@@ -669,7 +659,7 @@ public class EmailService {
     }
 
     public void sendApplicationDeniedEmail(
-            String email, String name, String stationName, String reason, String locale, Integer stationId) {
+            String email, String name, String stationName, String reason, String locale, @Nullable Integer stationId) {
         var vars = baseVars(name, stationId);
         vars.put("stationName", stationName);
         vars.put("reason", reason != null ? reason : "");
@@ -680,7 +670,7 @@ public class EmailService {
     }
 
     public void sendApplicationReceivedEmail(
-            String email, String name, String stationName, String locale, Integer stationId) {
+            String email, String name, String stationName, String locale, @Nullable Integer stationId) {
         var vars = baseVars(name, stationId);
         vars.put("stationName", stationName);
         enqueueGlobal(
@@ -695,7 +685,12 @@ public class EmailService {
      * because it is mandatory transactional mail, not aggregate notification traffic.
      */
     public void sendWaitlistRegistrationEmail(
-            String email, String name, String accessToken, String stationName, String locale, Integer stationId) {
+            String email,
+            String name,
+            String accessToken,
+            String stationName,
+            String locale,
+            @Nullable Integer stationId) {
         String url = api.baseUrl() + "/waiting-list/status?token=" + accessToken;
         var vars = baseVars(name, stationId);
         vars.put("url", url);
@@ -723,7 +718,7 @@ public class EmailService {
             String accessToken,
             String stationName,
             String locale,
-            Integer stationId,
+            @Nullable Integer stationId,
             WaitlistInvitationDetails details) {
         var vars = baseVars(name, stationId);
         vars.put("url", api.baseUrl() + "/waiting-list/status?token=" + accessToken);
@@ -747,7 +742,12 @@ public class EmailService {
      * through the instance-wide mail relay because it is mandatory transactional mail.
      */
     public void sendWaitlistConfirmReminderEmail(
-            String email, String name, String accessToken, String stationName, String locale, Integer stationId) {
+            String email,
+            String name,
+            String accessToken,
+            String stationName,
+            String locale,
+            @Nullable Integer stationId) {
         String url = api.baseUrl() + "/waiting-list/status?token=" + accessToken;
         var vars = baseVars(name, stationId);
         vars.put("url", url);
@@ -766,7 +766,12 @@ public class EmailService {
      * Routed through the instance-wide mail relay because it is mandatory transactional mail.
      */
     public void sendWaitlistRemovalWarningEmail(
-            String email, String name, String accessToken, String stationName, String locale, Integer stationId) {
+            String email,
+            String name,
+            String accessToken,
+            String stationName,
+            String locale,
+            @Nullable Integer stationId) {
         String url = api.baseUrl() + "/waiting-list/status?token=" + accessToken;
         var vars = baseVars(name, stationId);
         vars.put("url", url);
@@ -785,7 +790,7 @@ public class EmailService {
      * Routed through the instance-wide mail relay because it is mandatory transactional mail.
      */
     public void sendWaitlistVerifyEmail(
-            String email, String name, String stationName, String token, String locale, Integer stationId) {
+            String email, String name, String stationName, String token, String locale, @Nullable Integer stationId) {
         String url = api.baseUrl() + "/public/waitlist/verify/" + token;
         var vars = baseVars(name, stationId);
         vars.put("url", url);
@@ -799,57 +804,11 @@ public class EmailService {
                 loadTemplate("waitlist-verify.html", locale, vars));
     }
 
-    /**
-     * Build and queue a station notification email.
-     */
-    public void sendStationNotification(
-            int stationId,
-            String recipientEmail,
-            String recipientName,
-            String stationName,
-            String logoUrl,
-            String locale,
-            String category,
-            String message) {
-        var vars = new HashMap<String, String>();
-        vars.put("name", recipientName);
-        vars.put("baseUrl", api.baseUrl());
-        vars.put("stationName", stationName);
-        vars.put("category", category);
-        vars.put("message", message);
-        vars.put("actionUrl", api.baseUrl() + "/station/dashboard/overview");
-        vars.put(
-                "logoHtml",
-                logoUrl != null && !logoUrl.isBlank()
-                        ? "<img src=\"" + logoUrl + "\" alt=\"\" style=\"height:40px;border-radius:4px\">"
-                        : "");
-
-        String subject = stationName + ": " + category;
-        String body = loadTemplate("station-notification.html", locale, vars);
-        queueStationEmail(stationId, recipientEmail, subject, body);
-    }
-
-    public int queueSize() {
-        return queueRepository.pendingCount();
-    }
-
-    // -- Station notification email builder --
-
-    public int sentTodayCount() {
-        return queueRepository.getDailyCount(LocalDate.now());
-    }
-
-    // -- Status --
-
-    public int remainingToday() {
-        return Math.max(0, mailing.dailySendLimit() - sentTodayCount());
-    }
-
     public String loadTemplate(String name, String locale, Map<String, String> variables) {
         return templateRenderer.render(name, locale, variables);
     }
 
-    private String subject(String key, String locale, Map<String, String> placeholders) {
+    private String subject(String key, String locale, @Nullable Map<String, String> placeholders) {
         return templateRenderer.subject(key, locale, placeholders);
     }
 
@@ -860,16 +819,14 @@ public class EmailService {
      * fields are empty on an instance that has saved its list, so asking them said no provider was
      * configured while three were, and the queue then never fetched an instance mail at all.
      */
-    private MailProvider currentGlobalProvider() {
+    private @Nullable MailProvider currentGlobalProvider() {
         return chainService.forInstance().stream()
                 .findFirst()
                 .map(EmailService::buildProvider)
                 .orElse(null);
     }
 
-    // -- Queue --
-
-    private String resolveProviderSenderName(Integer stationId) {
+    private String resolveProviderSenderName(@Nullable Integer stationId) {
         var provider = resolveStationProvider(stationId);
         if (provider.isPresent() && provider.get() instanceof SmtpMailProvider smtp) {
             return smtp.senderName();
@@ -900,8 +857,6 @@ public class EmailService {
         log.debug("Email queued to={} subject={}", to, subject);
     }
 
-    // -- Template & helpers --
-
     /**
      * The provider whose turn it is for this mail, built from the chain it belongs to.
      *
@@ -913,7 +868,7 @@ public class EmailService {
                         entry.provider(),
                         entry.smtpHost(),
                         entry.smtpPort(),
-                        entry.smtpSsl(),
+                        entry.smtpEncryption(),
                         entry.smtpUser(),
                         entry.smtpPassword(),
                         entry.apiKey(),
@@ -963,7 +918,7 @@ public class EmailService {
      * <p>What the overview needs to say that a message is not merely waiting but stuck: every
      * provider either refused by the receiving domain or out of allowance.
      */
-    public boolean canReach(Integer stationId, String recipient) {
+    public boolean canReach(@Nullable Integer stationId, String recipient) {
         var chain = stationId == null ? chainService.forInstance() : chainService.forStation(stationId);
         if (chain.isEmpty()) return false;
         var blocked = blockRepository.blockedFor(stationId, recipient);
@@ -974,42 +929,6 @@ public class EmailService {
             if (entry.hasRoomToday(queueRepository.getProviderDailyCount(today, stationId, position))) return true;
         }
         return false;
-    }
-
-    /**
-     * Counts a used-up attempt and, when the provider in turn has had all of its, hands the mail to
-     * the next one.
-     *
-     * <p>This is what makes a relay that has stopped working survivable: the mail does not sit in
-     * the queue being refused by the same route forever, it moves on to another.
-     */
-    private void countAttemptAndMaybeAdvance(EmailQueueRepository.QueuedEmail email) {
-        var chain = email.stationId() == null ? chainService.forInstance() : chainService.forStation(email.stationId());
-        int allowed = chainService
-                .at(chain, email.providerPosition())
-                .map(MailChainEntry::attempts)
-                .orElse(1);
-        queueRepository.countAttempt(email.id());
-        if (email.attempts() + 1 < allowed) {
-            log.warn(
-                    "Email {} to {} failed on provider {}; {} attempt(s) left before the next one",
-                    email.id(),
-                    email.recipient(),
-                    email.providerPosition(),
-                    allowed - email.attempts() - 1);
-            return;
-        }
-        if (email.providerPosition() + 1 >= chain.size()) {
-            log.warn("Email {} to {} has exhausted every provider", email.id(), email.recipient());
-            return;
-        }
-        queueRepository.advanceProvider(email.id());
-        log.warn(
-                "Email {} to {} moves from provider {} to {}",
-                email.id(),
-                email.recipient(),
-                email.providerPosition(),
-                email.providerPosition() + 1);
     }
 
     private void processQueue() {
@@ -1025,28 +944,26 @@ public class EmailService {
             int requeued = 0;
             for (var email : batch) {
                 MailProvider provider;
-                if (email.stationId() != null) {
-                    if (!readOnlyGuard.isWritable(email.stationId())) {
-                        log.debug("Email {} requeued: station {} is read-only", email.id(), email.stationId());
+                Integer stationId = email.stationId();
+                if (stationId != null) {
+                    if (!readOnlyGuard.isWritable(stationId)) {
+                        log.debug("Email {} requeued: station {} is read-only", email.id(), stationId);
                         queueRepository.requeue(email.id());
                         requeued++;
                         continue;
                     }
-                    if (!canStationSend(email.stationId())) {
+                    if (!canStationSend(stationId)) {
                         log.warn(
                                 "Email {} failed: station {} has reached its daily or monthly send limit",
                                 email.id(),
-                                email.stationId());
+                                stationId);
                         queueRepository.markFailed(email.id());
                         failed++;
                         continue;
                     }
-                    var inTurn = providerInTurn(chainService.forStation(email.stationId()), email);
+                    var inTurn = providerInTurn(chainService.forStation(stationId), email);
                     if (inTurn.isEmpty()) {
-                        log.warn(
-                                "Email {} failed: station {} has no provider left to try",
-                                email.id(),
-                                email.stationId());
+                        log.warn("Email {} failed: station {} has no provider left to try", email.id(), stationId);
                         queueRepository.markFailed(email.id());
                         failed++;
                         continue;
@@ -1066,6 +983,7 @@ public class EmailService {
                     provider = current;
                 }
 
+                queueRepository.renewClaim(email.id());
                 var result =
                         provider.send(email.recipient(), email.subject(), email.body(), String.valueOf(email.id()));
                 switch (result) {
@@ -1075,9 +993,11 @@ public class EmailService {
                         sent++;
                     }
                     case TRANSIENT_FAILURE -> {
-                        countAttemptAndMaybeAdvance(email);
-                        queueRepository.requeue(email.id());
-                        requeued++;
+                        if (retryService.afterTransientFailure(email) == MailRetryPolicy.Step.GIVE_UP) {
+                            failed++;
+                        } else {
+                            requeued++;
+                        }
                     }
                     case PERMANENT_FAILURE -> {
                         log.warn(
@@ -1103,7 +1023,7 @@ public class EmailService {
         }
     }
 
-    private Map<String, String> baseVars(String name, Integer stationId) {
+    private Map<String, String> baseVars(String name, @Nullable Integer stationId) {
         var vars = new HashMap<String, String>();
         vars.put("name", name);
         vars.put("baseUrl", api.baseUrl());
@@ -1118,5 +1038,18 @@ public class EmailService {
     private static Map<String, String> waitlistPlaceholders(String stationName) {
         String suffix = stationName != null && !stationName.isEmpty() ? " - " + stationName : "";
         return Map.of("stationName", stationName != null ? stationName : "", "stationSuffix", suffix);
+    }
+
+    @Override
+    public List<ScheduledTask> scheduledTasks() {
+        return List.of(
+                new ScheduledTask(
+                        "email-queue",
+                        Schedule.fixedDelay(Duration.ofSeconds(10), Duration.ofSeconds(10)),
+                        this::processQueue),
+                new ScheduledTask(
+                        "email-queue-cleanup",
+                        Schedule.fixedRate(Duration.ofHours(1), Duration.ofHours(24)),
+                        this::runCleanup));
     }
 }

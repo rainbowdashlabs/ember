@@ -5,58 +5,22 @@
  */
 import client from './client'
 import {createCrudResource} from './crud'
-
-/**
- * A word a station puts on its things.
- *
- * Unlike an inventory it says nothing about where a thing is kept, and unlike a kind it says
- * nothing about what the thing is. It spans inventories, which is what lets the radios, the
- * charging station and the antenna belong together without being alike.
- */
-export interface InventoryTag {
-    id: number
-    name: string
-    color?: string | null
-    position: number
-}
-
-/** A word with the number of things wearing it, which is what a list of words is read for. */
-export interface CountedInventoryTag extends InventoryTag {
-    itemCount: number
-}
-
-export interface TagRequest {
-    name: string
-    color?: string | null
-    position: number
-}
-
-/** A word an association recommends, and whether the station already uses it. */
-export interface RecommendedTag {
-    name: string
-    color?: string | null
-    adopted: boolean
-}
-
-/** One thing found by a word, wherever it is kept and whoever keeps it. */
-export interface TaggedItem {
-    itemId: number
-    internalId?: string | null
-    name: string
-    inventoryName: string
-    stationUid: string
-    stationName: string
-    tagName: string
-    available: boolean
-}
+import type {
+    InventoryTag,
+    InventoryTagRequest,
+    ItemTagsResponse,
+    RecommendedTag,
+    TaggedItemSummary,
+    TagResponse,
+} from './generated/schema'
 
 const tags = createCrudResource<
-    CountedInventoryTag,
-    TagRequest,
-    TagRequest,
-    CountedInventoryTag,
-    CountedInventoryTag,
-    CountedInventoryTag,
+    TagResponse,
+    InventoryTagRequest,
+    InventoryTagRequest,
+    TagResponse,
+    TagResponse,
+    TagResponse,
     number
 >('/inventory-tags')
 
@@ -71,15 +35,9 @@ export async function recommendedTags(): Promise<RecommendedTag[]> {
     return res.data
 }
 
-/** The words every thing in one inventory wears, keyed by the thing. */
-export interface ItemTags {
-    itemId: number
-    tags: InventoryTag[]
-}
-
 /** The words every thing in one inventory wears, in one request rather than one per row. */
-export async function inventoryItemTags(inventoryId: number): Promise<ItemTags[]> {
-    const res = await client.get<ItemTags[]>(`/inventories/${inventoryId}/item-tags`)
+export async function inventoryItemTags(inventoryId: number): Promise<ItemTagsResponse[]> {
+    const res = await client.get<ItemTagsResponse[]>(`/inventories/${inventoryId}/item-tags`)
     return res.data
 }
 
@@ -102,13 +60,13 @@ export async function setItemTags(itemId: number, names: string[]): Promise<Inve
 }
 
 /** The things wearing a word in this station's own stock. */
-export async function itemsByTag(tag: string): Promise<TaggedItem[]> {
-    const res = await client.get<TaggedItem[]>('/inventory-tags/items', {params: {tag}})
+export async function itemsByTag(tag: string): Promise<TaggedItemSummary[]> {
+    const res = await client.get<TaggedItemSummary[]>('/inventory-tags/items', {params: {tag}})
     return res.data
 }
 
 /** The things wearing a word here and at every partner that lends to this station. */
-export async function federatedItemsByTag(tag: string): Promise<TaggedItem[]> {
-    const res = await client.get<TaggedItem[]>('/federated/inventory-tags/items', {params: {tag}})
+export async function federatedItemsByTag(tag: string): Promise<TaggedItemSummary[]> {
+    const res = await client.get<TaggedItemSummary[]>('/federated/inventory-tags/items', {params: {tag}})
     return res.data
 }

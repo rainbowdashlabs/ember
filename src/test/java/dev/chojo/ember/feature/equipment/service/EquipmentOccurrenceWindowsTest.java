@@ -48,7 +48,6 @@ class EquipmentOccurrenceWindowsTest {
                 null,
                 null,
                 null,
-                false,
                 null,
                 null,
                 null);

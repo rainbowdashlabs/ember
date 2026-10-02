@@ -8,10 +8,10 @@ package dev.chojo.ember.feature.waitinglist.repository;
 import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.legal.entity.ConsentProof;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListAnswer;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryStatus;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldConfig;
-import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldType;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListInvitation;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.BeforeEach;
@@ -85,7 +85,7 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
     void createAndFindFields() {
         var list = waitingListRepo.create(stationId, "List", "", null, 180, null, null, 5, false, true, null, null);
         var field = waitingListRepo.createField(
-                list.id(), "Name", WaitingListFieldType.TEXT, WaitingListFieldConfig.parse("{}"), 0, true, true);
+                list.id(), "Name", FieldType.TEXT, WaitingListFieldConfig.parse("{}"), 0, true, true);
         assertNotNull(field);
         assertEquals("Name", field.name());
         assertTrue(field.required());
@@ -98,9 +98,9 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
     void updateField() {
         var list = waitingListRepo.create(stationId, "List", "", null, 180, null, null, 5, false, true, null, null);
         var field = waitingListRepo.createField(
-                list.id(), "Name", WaitingListFieldType.TEXT, WaitingListFieldConfig.parse("{}"), 0, false, true);
+                list.id(), "Name", FieldType.TEXT, WaitingListFieldConfig.parse("{}"), 0, false, true);
         var updated = waitingListRepo.updateField(
-                field.id(), "Full Name", WaitingListFieldType.TEXT, WaitingListFieldConfig.parse("{}"), 1, true, true);
+                field.id(), "Full Name", FieldType.TEXT, WaitingListFieldConfig.parse("{}"), 1, true, true);
         assertTrue(updated.isPresent());
         assertEquals("Full Name", updated.get().name());
         assertTrue(updated.get().required());
@@ -168,7 +168,7 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
     void upsertAndFindEntryValues() {
         var list = waitingListRepo.create(stationId, "List", "", null, 180, null, null, 5, false, true, null, null);
         var field = waitingListRepo.createField(
-                list.id(), "Age", WaitingListFieldType.NUMBER, WaitingListFieldConfig.parse("{}"), 0, true, true);
+                list.id(), "Age", FieldType.NUMBER, WaitingListFieldConfig.parse("{}"), 0, true, true);
         var entry = waitingListRepo.createEntry(
                 list.id(), "Max", "", "", "test@test.com", UUID.randomUUID().toString(), "", null);
 
@@ -177,7 +177,6 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
         assertEquals(1, values.size());
         assertEquals(IntNode.valueOf(8), values.getFirst().value());
 
-        // Upsert overwrites
         waitingListRepo.upsertEntryValue(entry.id(), field.id(), IntNode.valueOf(9));
         values = waitingListRepo.findEntryValues(entry.id());
         assertEquals(1, values.size());
@@ -200,7 +199,7 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
     void cascadeDeleteListRemovesEntries() {
         var list = waitingListRepo.create(stationId, "List", "", null, 180, null, null, 5, false, true, null, null);
         var field = waitingListRepo.createField(
-                list.id(), "Age", WaitingListFieldType.NUMBER, WaitingListFieldConfig.parse("{}"), 0, false, true);
+                list.id(), "Age", FieldType.NUMBER, WaitingListFieldConfig.parse("{}"), 0, false, true);
         var entry = waitingListRepo.createEntry(
                 list.id(), "Max", "", "", "test@test.com", UUID.randomUUID().toString(), "", null);
         waitingListRepo.upsertEntryValue(entry.id(), field.id(), IntNode.valueOf(8));
@@ -233,7 +232,7 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
         var list = waitingListRepo.create(
                 stationId, "DelField List", "", null, 180, null, null, 5, false, true, null, null);
         var field = waitingListRepo.createField(
-                list.id(), "ToDelete", WaitingListFieldType.TEXT, WaitingListFieldConfig.parse("{}"), 0, false, true);
+                list.id(), "ToDelete", FieldType.TEXT, WaitingListFieldConfig.parse("{}"), 0, false, true);
         waitingListRepo.deleteField(field.id());
         assertTrue(waitingListRepo.findFieldsByList(list.id()).isEmpty());
     }
@@ -293,7 +292,6 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
                 waitingListRepo.create(stationId, "Link List", "", null, 180, null, null, 5, false, true, null, null);
         var entry = waitingListRepo.createEntry(
                 list.id(), "Max", "", "", "test@test.com", UUID.randomUUID().toString(), "", null);
-        // Create a station member to link
         var account = accountRepo.create("wl-link@test.com", "WL", "Link");
         var member = stationMemberRepo.create(stationId, account.id());
         waitingListRepo.linkMember(entry.id(), member.id());
@@ -416,7 +414,7 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
                 waitingListRepo.findEntryById(entry.id()).orElseThrow().attendanceCount(),
                 "a mark taken back counts for no date");
 
-        attendanceRepo.deleteTemplate(template.id());
+        attendanceRepo.archiveTemplate(template.id());
         stationMemberRepo.delete(member.id());
         accountRepo.delete(account.id());
     }
@@ -455,7 +453,6 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
 
     @Test
     void findAll() {
-        // Should return at least the lists we've created
         var all = waitingListRepo.findAll();
         assertFalse(all.isEmpty());
     }
@@ -517,25 +514,19 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
     void turningADateFieldIntoTheBirthDateKeepsTheAnswers() {
         var list = waitingListRepo.create(stationId, "List", "", null, 180, null, null, 5, false, true, null, null);
         var field = waitingListRepo.createField(
-                list.id(), "Geburtstag", WaitingListFieldType.DATE, WaitingListFieldConfig.parse("{}"), 0, true, true);
+                list.id(), "Geburtstag", FieldType.DATE, WaitingListFieldConfig.parse("{}"), 0, true, true);
         var entry = waitingListRepo.createEntry(
                 list.id(), "Max", "", "", "test@test.com", UUID.randomUUID().toString(), "", null);
         waitingListRepo.upsertEntryValue(entry.id(), field.id(), StringNode.valueOf("2015-03-04"));
 
         waitingListRepo.updateField(
-                field.id(),
-                "Geburtstag",
-                WaitingListFieldType.BIRTH_DATE,
-                WaitingListFieldConfig.parse("{}"),
-                0,
-                true,
-                true);
+                field.id(), "Geburtstag", FieldType.BIRTH_DATE, WaitingListFieldConfig.parse("{}"), 0, true, true);
 
         var values = waitingListRepo.findEntryValues(entry.id());
         assertEquals(1, values.size(), "the answer is still there");
         assertEquals(StringNode.valueOf("2015-03-04"), values.getFirst().value(), "and unchanged");
         assertEquals(
-                WaitingListFieldType.BIRTH_DATE,
+                FieldType.BIRTH_DATE,
                 waitingListRepo.findFieldById(field.id()).orElseThrow().fieldType());
     }
 

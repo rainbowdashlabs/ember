@@ -44,6 +44,6 @@ function onFileChange(event: Event) {
     </SecondaryButton>
     <span v-if="fileName" class="text-sm text-(--text) truncate">{{ fileName }}</span>
     <span v-else class="text-sm text-(--text-muted)">{{ t('common.noFileSelected') }}</span>
-    <input ref="fileInput" type="file" :accept="accept" class="hidden" @change="onFileChange"/>
+    <input ref="fileInput" type="file" :accept="accept" class="hidden" aria-hidden="true" @change="onFileChange"/>
   </div>
 </template>

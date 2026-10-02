@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import { computed, ref, watch } from 'vue'
+import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import Modal from '@/components/feedback/Modal.vue'
@@ -15,8 +15,8 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import BoardCreateTicketFields from './BoardCreateTicketFields.vue'
 import { boards } from '@/api'
-import {TicketPriority, type BoardLane, type TicketPriorityName} from '@/api/boards'
-import type { MemberCompletion } from '@/api/stationMembers'
+import {TicketPriority, type TicketPriorityName} from '@/api/boards'
+import type {BoardLane, MemberCompletion} from '@/api/generated/schema'
 import { useAsyncAction } from '@/composables/useAsyncAction'
 
 const open = defineModel<boolean>({ required: true })

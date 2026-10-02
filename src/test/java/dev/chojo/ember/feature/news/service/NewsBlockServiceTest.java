@@ -6,6 +6,8 @@
 package dev.chojo.ember.feature.news.service;
 
 import dev.chojo.ember.api.MemberIdentity;
+import dev.chojo.ember.api.refusal.NewsRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.content.entity.CellConfig;
@@ -18,7 +20,6 @@ import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -43,17 +44,7 @@ class NewsBlockServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        service = new NewsService(
-                newsRepo,
-                contentBlocks(),
-                noCellDescriptions(),
-                stationRepo,
-                restrictionService,
-                new DomainEventBus(Set.of()),
-                stationMemberRepo,
-                memberLookupService,
-                accountRepo,
-                silentCommentMentions());
+        service = newNewsService(new DomainEventBus(Set.of()));
         station = stationRepo.create("NewsBlockStation");
         account = accountRepo.create("news-blocks@test.com", "News", "Blocks");
         member = stationMemberRepo.create(station.id(), account.id());
@@ -204,7 +195,7 @@ class NewsBlockServiceTest extends RepositoryTestBase {
         try {
             service.switchToRich(id);
             var withheld = List.of(row(CellContentType.BLOG_SIGNUP, "", new CellConfig.BlogSignupConfig("A", "B")));
-            assertThrows(BadRequestResponse.class, () -> service.saveBlocks(id, withheld));
+            assertThrows(RefusalResponse.class, () -> service.saveBlocks(id, withheld));
         } finally {
             service.delete(id);
         }
@@ -215,7 +206,8 @@ class NewsBlockServiceTest extends RepositoryTestBase {
         int id = createEntry("Nur Text");
         try {
             var rows = List.of(row(CellContentType.MARKDOWN, "x", CellConfig.EMPTY));
-            assertThrows(BadRequestResponse.class, () -> service.saveBlocks(id, rows));
+            var refused = assertThrows(RefusalResponse.class, () -> service.saveBlocks(id, rows));
+            assertEquals(NewsRefusal.NEWS_ENTRY_NOT_BUILT_FROM_BLOCKS, refused.refusal());
             assertTrue(service.loadBlocks(newsRepo.findById(id).orElseThrow()).isEmpty());
             assertTrue(service.saveBlocks(99999, rows).isEmpty());
         } finally {
@@ -330,8 +322,7 @@ class NewsBlockServiceTest extends RepositoryTestBase {
                 new DomainEventBus(Set.of()),
                 stationMemberRepo,
                 memberLookupService,
-                accountRepo,
-                silentCommentMentions());
+                memberNameResolver);
     }
 
     private static StationFile picture(String alt, String description) {

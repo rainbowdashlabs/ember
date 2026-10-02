@@ -19,8 +19,8 @@ test.describe('Install page', () => {
 
         await page.getByRole('button', {name: 'Code erzeugen'}).click()
 
-        // Six characters from an alphabet that leaves out anything easy to misread.
-        await expect(page.getByText(/^[23456789BCDFGHJKLMNPQRSTVWXZ]{6}$/)).toBeVisible()
+        await expect(page.getByText(/^[23456789BCDFGHJKLMNPQRSTVWXZ]{6}$/), 'six characters, none easy to misread')
+            .toBeVisible()
         await expect(page.getByText(/curl .*install\.sh \| bash -s/)).toBeVisible()
     })
 

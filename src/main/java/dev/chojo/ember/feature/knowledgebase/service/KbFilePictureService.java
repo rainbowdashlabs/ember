@@ -5,13 +5,17 @@
  */
 package dev.chojo.ember.feature.knowledgebase.service;
 
-import dev.chojo.ember.feature.media.service.ImageVariantService;
+import dev.chojo.ember.feature.media.entity.MediaContent;
+import dev.chojo.ember.feature.media.image.ImageFormat;
+import dev.chojo.ember.feature.media.image.ImageProfile;
+import dev.chojo.ember.feature.media.service.ImageVariants;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.entity.StorageScope;
 import dev.chojo.ember.util.FilePicture;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,15 +49,16 @@ public class KbFilePictureService {
     private static final byte[] PDF_SIGNATURE = "%PDF-".getBytes(StandardCharsets.US_ASCII);
     private static final Set<String> UNTYPED = Set.of("application/octet-stream", "binary/octet-stream");
 
-    private final ImageVariantService variants;
+    private static final ImageProfile PROFILE = ImageProfile.CONTENT;
+
+    private final ImageVariants images;
     private final KbFileStorageService files;
     private final StationRepository stationRepository;
     private final Set<String> unmakeable = ConcurrentHashMap.newKeySet();
 
     @Inject
-    public KbFilePictureService(
-            ImageVariantService variants, KbFileStorageService files, StationRepository stationRepository) {
-        this.variants = variants;
+    public KbFilePictureService(ImageVariants images, KbFileStorageService files, StationRepository stationRepository) {
+        this.images = images;
         this.files = files;
         this.stationRepository = stationRepository;
     }
@@ -63,7 +68,7 @@ public class KbFilePictureService {
      * kind that has none loses any picture it had before, which is what a PDF replaced by a
      * spreadsheet should do.
      */
-    public void make(int stationId, int fileId, String mimeType, byte[] data) {
+    public void make(int stationId, int fileId, @Nullable String mimeType, byte[] data) {
         unmakeable.remove(memo(stationId, fileId));
         String type = pictureType(mimeType, data);
         if (!FilePicture.exists(type)) {
@@ -76,7 +81,7 @@ public class KbFilePictureService {
                 unmakeable.add(memo(stationId, fileId));
                 return;
             }
-            variants.store(scope(stationId), CATEGORY, key(fileId), picture.get(), type);
+            images.store(PROFILE, scope(stationId), CATEGORY, key(fileId), picture.get(), 0);
         } catch (Exception e) {
             unmakeable.add(memo(stationId, fileId));
             log.warn("No picture could be made of wiki file {} in station {}", fileId, stationId, e);
@@ -89,12 +94,12 @@ public class KbFilePictureService {
      *
      * @param size the longest side wanted, answered by the nearest size kept at or above it
      */
-    public Optional<ImageVariantService.ImageData> read(int stationId, int fileId, String mimeType, int size) {
-        var existing = variants.read(scope(stationId), CATEGORY, key(fileId), size);
+    public Optional<MediaContent> read(int stationId, int fileId, @Nullable String mimeType, int size) {
+        var existing = images.read(PROFILE, scope(stationId), CATEGORY, key(fileId), size);
         if (existing.isPresent() || !mayHavePicture(mimeType)) return existing;
         if (unmakeable.contains(memo(stationId, fileId))) return Optional.empty();
         files.read(stationId, fileId).ifPresent(file -> make(stationId, fileId, mimeType, file.data()));
-        return variants.read(scope(stationId), CATEGORY, key(fileId), size);
+        return images.read(PROFILE, scope(stationId), CATEGORY, key(fileId), size);
     }
 
     /**
@@ -106,19 +111,19 @@ public class KbFilePictureService {
      * a type that says nothing must not be taken for proof that there is none. A declared type that
      * says something else, a spreadsheet's, is believed.
      */
-    static String pictureType(String storedType, byte[] data) {
+    static @Nullable String pictureType(@Nullable String storedType, byte[] data) {
         if (!isUntyped(storedType)) return storedType;
-        var image = ImageVariantService.sniffImageMime(data);
-        if (image.isPresent()) return image.get();
+        var image = ImageFormat.sniff(data);
+        if (image.isPresent()) return image.get().mimeType();
         return startsWith(data, PDF_SIGNATURE) ? PDF_TYPE : storedType;
     }
 
     /** Whether a file of this stored type may turn out to have a picture once its bytes are read. */
-    private static boolean mayHavePicture(String storedType) {
+    private static boolean mayHavePicture(@Nullable String storedType) {
         return FilePicture.exists(storedType) || isUntyped(storedType);
     }
 
-    private static boolean isUntyped(String storedType) {
+    private static boolean isUntyped(@Nullable String storedType) {
         return storedType == null || storedType.isBlank() || UNTYPED.contains(storedType.toLowerCase(Locale.ROOT));
     }
 
@@ -129,7 +134,7 @@ public class KbFilePictureService {
 
     /** Removes every size of a file's picture. */
     public void delete(int stationId, int fileId) {
-        variants.delete(scope(stationId), CATEGORY, key(fileId));
+        images.delete(scope(stationId), CATEGORY, key(fileId));
     }
 
     /**
@@ -145,6 +150,6 @@ public class KbFilePictureService {
     }
 
     private StorageScope.Station scope(int stationId) {
-        return new StorageScope.Station(stationId, stationRepository.resolveUid(stationId));
+        return new StorageScope.Station(stationId, stationRepository.requireUid(stationId));
     }
 }

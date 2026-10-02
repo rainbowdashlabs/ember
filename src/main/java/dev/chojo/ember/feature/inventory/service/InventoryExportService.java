@@ -10,12 +10,13 @@ import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
+import dev.chojo.ember.feature.media.entity.MediaContent;
 import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.repository.ProfileFieldRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
-import dev.chojo.ember.feature.station.repository.StationRepository.StationLogo;
+import dev.chojo.ember.feature.station.service.StationLogoService;
 import dev.chojo.ember.util.CsvWriter;
 import dev.chojo.ember.util.DocumentName;
 import dev.chojo.ember.util.DocumentPeriod;
@@ -24,6 +25,7 @@ import dev.chojo.ember.util.ExportedDocument;
 import dev.chojo.ember.util.TypstCompiler;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
 import java.io.IOException;
@@ -53,6 +55,7 @@ public class InventoryExportService {
     private final StationRepository stationRepository;
     private final ProfileFieldRepository profileFieldRepository;
     private final Api apiConfig;
+    private final StationLogoService logoService;
 
     @Inject
     public InventoryExportService(
@@ -61,13 +64,15 @@ public class InventoryExportService {
             AccountRepository accountRepository,
             StationRepository stationRepository,
             ProfileFieldRepository profileFieldRepository,
-            Api apiConfig) {
+            Api apiConfig,
+            StationLogoService logoService) {
         this.inventoryRepository = inventoryRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.accountRepository = accountRepository;
         this.stationRepository = stationRepository;
         this.profileFieldRepository = profileFieldRepository;
         this.apiConfig = apiConfig;
+        this.logoService = logoService;
     }
 
     /**
@@ -98,11 +103,10 @@ public class InventoryExportService {
             boolean showName,
             boolean showInternalId,
             boolean showSize,
-            CsvWriter.Separator separator) {
+            CsvWriter.@Nullable Separator separator) {
         var station = stationRepository.findById(stationId).orElse(null);
         if (station == null) return Optional.empty();
 
-        // Load inventories
         var allInventories = inventoryRepository.findByStation(stationId);
         var selectedInventories = inventoryIds.isEmpty()
                 ? allInventories
@@ -111,16 +115,13 @@ public class InventoryExportService {
                         .toList();
         if (selectedInventories.isEmpty()) return Optional.empty();
 
-        // Load all items for selected inventories
         var itemsByInventory = new LinkedHashMap<Integer, List<InventoryItem>>();
         for (var inv : selectedInventories) {
             itemsByInventory.put(inv.id(), inventoryRepository.findItems(inv.id()));
         }
 
-        // Build inventory column names
         var inventoryColumns = selectedInventories.stream().map(Inventory::name).toList();
 
-        // Build size maps for each inventory
         var inventorySizes = new LinkedHashMap<Integer, Map<Integer, String>>();
         for (var inv : selectedInventories) {
             var sizes = inventoryRepository.findSizes(inv.id());
@@ -131,53 +132,37 @@ public class InventoryExportService {
 
         String locale = StationFormat.languageOf(station);
 
-        // Resolve extra profile field names
-        var extraFieldNames = new ArrayList<String>();
-        for (int fieldId : extraFieldIds) {
-            profileFieldRepository.findById(fieldId).ifPresent(f -> extraFieldNames.add(f.name()));
-        }
+        var profileColumns = ProfileColumns.of(profileFieldRepository, extraFieldIds, locale);
+        var extraFieldNames = profileColumns.names();
 
-        // Build rows for each member
         var rows = new ArrayList<Map<String, Object>>();
         for (int memberId : memberIds) {
             var member = stationMemberRepository.findById(memberId).orElse(null);
-            var account = member != null
-                    ? accountRepository.findById(member.accountId()).orElse(null)
-                    : null;
+            Integer accountId = member != null ? member.accountId() : null;
+            var account =
+                    accountId != null ? accountRepository.findById(accountId).orElse(null) : null;
             String firstName = account != null ? account.firstName() : "";
             String lastName = account != null ? account.lastName() : "";
             String name = account != null ? NameParts.of(account).official() : null;
             if (name == null || name.isEmpty()) name = "#" + memberId;
 
-            // Extra field values
-            var extraFieldValues = new ArrayList<String>();
-            if (!extraFieldIds.isEmpty()) {
-                var values = profileFieldRepository.findValues(memberId);
-                for (int fieldId : extraFieldIds) {
-                    String val = values.stream()
-                            .filter(v -> v.fieldId() == fieldId)
-                            .map(v -> formatFieldValue(v.value()))
-                            .findFirst()
-                            .orElse("");
-                    extraFieldValues.add(val);
-                }
-            }
+            var extraFieldValues = extraFieldNames.isEmpty()
+                    ? List.<String>of()
+                    : profileColumns.cellsOf(profileFieldRepository.findValues(memberId));
 
-            // Build items per inventory column (each item: {label, lost})
             var itemColumns = new ArrayList<List<ItemEntry>>();
             for (var inv : selectedInventories) {
                 var items = itemsByInventory.getOrDefault(inv.id(), List.of());
                 var memberItems = items.stream()
-                        .filter(item -> item.assignedTo() != null && item.assignedTo() == memberId)
+                        .filter(item -> Integer.valueOf(memberId).equals(item.assignedTo()))
                         .toList();
                 var itemEntries = new ArrayList<ItemEntry>();
                 for (var item : memberItems) {
                     var parts = new ArrayList<String>();
                     if (showName && item.name() != null) parts.add(item.name());
-                    if (showInternalId
-                            && item.internalId() != null
-                            && !item.internalId().isEmpty()) {
-                        parts.add("(" + item.internalId() + ")");
+                    String internalId = item.internalId();
+                    if (showInternalId && internalId != null && !internalId.isEmpty()) {
+                        parts.add("(" + internalId + ")");
                     }
                     if (showSize && item.sizeId() != null) {
                         var sizeMap = inventorySizes.get(inv.id());
@@ -199,12 +184,9 @@ public class InventoryExportService {
             rows.add(row);
         }
 
-        // Sort by name
         rows.sort(Comparator.comparing(r -> (String) r.get("name")));
 
-        // Build data map
-        var zone =
-                StationFormat.timezoneOf(stationRepository.findById(stationId).orElse(null));
+        var zone = StationFormat.timezoneOf(station);
         var data = new LinkedHashMap<String, Object>();
         data.put("stationName", station.name());
         data.put("generatedBy", generatedBy);
@@ -226,7 +208,7 @@ public class InventoryExportService {
                     asSpreadsheet(inventoryColumns, extraFieldNames, rows, locale, separator), filename));
         }
 
-        StationLogo logo = stationRepository.findLogo(stationId).orElse(null);
+        MediaContent logo = logoService.original(stationId).orElse(null);
         try {
             return Optional.of(
                     new ExportedDocument(renderPdf(data, locale + "/inventory-members.typ", logo), filename));
@@ -272,16 +254,7 @@ public class InventoryExportService {
         return CsvWriter.write(headers, lines, separator);
     }
 
-    private String formatFieldValue(String rawValue) {
-        if (rawValue == null) return "";
-        String val = rawValue.trim();
-        if (val.startsWith("\"") && val.endsWith("\"")) {
-            val = val.substring(1, val.length() - 1);
-        }
-        return val;
-    }
-
-    private byte[] renderPdf(Map<String, Object> data, String templateName, StationLogo logo)
+    private byte[] renderPdf(Map<String, Object> data, String templateName, MediaContent logo)
             throws IOException, InterruptedException {
         return TypstCompiler.compileTemplate(
                 data,

@@ -7,12 +7,13 @@ package dev.chojo.ember.api.auth;
 
 import dev.chojo.ember.api.StepUpRequiredException;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.refusal.RefusalResponse;
+import dev.chojo.ember.api.refusal.TwoFactorRefusal;
 import dev.chojo.ember.conf.file.elements.Auth;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.twofactor.entity.StepUpProof;
 import dev.chojo.ember.feature.twofactor.service.TwoFactorService;
-import io.javalin.http.ForbiddenResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -93,7 +94,9 @@ class StepUpGuardTest {
     void aVouchedForSessionMayNeverVouchInTurn() {
         var session = vouchedSessionProvedWith(StepUpProof.PASSWORD, Instant.now());
 
-        assertThrows(ForbiddenResponse.class, () -> guard.spendLocalProof(session, StepUpCategory.ACCOUNT_SECURITY));
+        var refused = assertThrows(
+                RefusalResponse.class, () -> guard.spendLocalProof(session, StepUpCategory.ACCOUNT_SECURITY));
+        assertEquals(TwoFactorRefusal.VOUCHED_SESSION_CANNOT_VOUCH, refused.refusal());
         verify(twoFactorService, never()).spendSessionProof(anyInt(), any());
     }
 
@@ -114,7 +117,7 @@ class StepUpGuardTest {
         assertDoesNotThrow(
                 () -> demoGuard.spendLocalProof(sessionProvedWith(null, null), StepUpCategory.ACCOUNT_SECURITY));
         assertThrows(
-                ForbiddenResponse.class,
+                RefusalResponse.class,
                 () -> demoGuard.spendLocalProof(
                         vouchedSessionProvedWith(StepUpProof.PASSWORD, Instant.now()),
                         StepUpCategory.ACCOUNT_SECURITY));

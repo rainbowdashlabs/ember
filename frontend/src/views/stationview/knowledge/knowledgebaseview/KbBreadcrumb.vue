@@ -6,7 +6,9 @@
 <script setup lang="ts">
 import {useI18n} from 'vue-i18n'
 import IconButton from '@/components/button/IconButton.vue'
-import type {KbFolder, SharedFolderEntry} from '@/api/knowledgeBase'
+import KbCrumb from './KbCrumb.vue'
+import type {SharedFolderEntry} from '@/api/knowledgeBase'
+import type {KbFolder} from '@/api/generated/schema'
 
 const {t} = useI18n()
 
@@ -51,6 +53,11 @@ function goUp() {
     }
     emit('navigate', props.currentFolder?.parentId ?? null)
 }
+
+/** Steps back to one of the shared folders on the way in. */
+function openShared(step: SharedFolderEntry) {
+    if (step.sourceStationUid) emit('navigateShared', step.sourceStationUid, step.id)
+}
 </script>
 
 <template>
@@ -63,13 +70,9 @@ function goUp() {
                 class="mr-1"
                 @click="goUp"
             />
-            <span
-                class="hover:text-[var(--primary)] transition-colors cursor-pointer"
-                :class="{'font-semibold text-[var(--primary)]': !currentFolder && !isFavouritesView}"
-                @click="emit('navigate', null)"
-            >
+            <KbCrumb :current="!currentFolder && !isFavouritesView" @open="emit('navigate', null)">
                 {{ t('kb.root') }}
-            </span>
+            </KbCrumb>
             <template v-if="isFavouritesView">
                 <font-awesome-icon :icon="['fas', 'chevron-right']" class="text-xs text-[var(--text-muted)]"/>
                 <span class="font-semibold text-[var(--primary)]">
@@ -79,27 +82,20 @@ function goUp() {
             </template>
             <template v-for="(step, index) in sharedTrail" :key="`shared-${step.id}`">
                 <font-awesome-icon :icon="['fas', 'chevron-right']" class="text-xs text-[var(--text-muted)]"/>
-                <span
-                    class="hover:text-[var(--primary)] transition-colors"
-                    :class="index === sharedTrail.length - 1
-                        ? 'font-semibold text-[var(--primary)]'
-                        : 'cursor-pointer'"
-                    @click="step.sourceStationUid && index !== sharedTrail.length - 1
-                        && emit('navigateShared', step.sourceStationUid, step.id)"
+                <KbCrumb
+                    :current="index === sharedTrail.length - 1"
+                    :inert="index === sharedTrail.length - 1"
+                    @open="openShared(step)"
                 >
                     {{ step.name }}
-                </span>
+                </KbCrumb>
             </template>
 
             <template v-for="crumb in breadcrumbs" :key="crumb.id">
                 <font-awesome-icon :icon="['fas', 'chevron-right']" class="text-xs text-[var(--text-muted)]"/>
-                <span
-                    class="hover:text-[var(--primary)] transition-colors cursor-pointer"
-                    :class="{'font-semibold text-[var(--primary)]': crumb.id === currentFolder?.id}"
-                    @click="emit('navigate', crumb.id)"
-                >
+                <KbCrumb :current="crumb.id === currentFolder?.id" @open="emit('navigate', crumb.id)">
                     {{ crumb.name }}
-                </span>
+                </KbCrumb>
             </template>
         </nav>
         <div class="flex items-center gap-1">

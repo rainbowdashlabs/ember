@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.news.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 
@@ -30,7 +31,7 @@ public record NewsAttachment(
         int id,
         int newsId,
         int fileId,
-        String label,
+        @Nullable String label,
         int sortOrder,
         Instant createdAt,
         String fileName,

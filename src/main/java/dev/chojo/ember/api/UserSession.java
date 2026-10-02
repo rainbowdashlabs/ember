@@ -12,11 +12,16 @@ import dev.chojo.ember.api.auth.InstanceUserType;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.auth.StepUpCategory;
+import dev.chojo.ember.api.refusal.GeneralRefusal;
+import dev.chojo.ember.api.refusal.Refusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.cluster.entity.ClusterMember;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.twofactor.entity.StepUpProof;
+import dev.chojo.ember.owner.Owner;
 import io.javalin.http.Context;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.Optional;
@@ -42,18 +47,18 @@ import java.util.UUID;
 public record UserSession(
         Account account,
         int sessionId,
-        Integer stationId,
-        UUID stationUid,
-        StationMember member,
+        @Nullable Integer stationId,
+        @Nullable UUID stationUid,
+        @Nullable StationMember member,
         Set<StationPermission> permissions,
         Set<InstancePermission> instancePermissions,
-        Instant twoFactorVerifiedAt,
-        StepUpProof twoFactorProof,
-        StepUpCategory twoFactorCategory,
+        @Nullable Instant twoFactorVerifiedAt,
+        @Nullable StepUpProof twoFactorProof,
+        @Nullable StepUpCategory twoFactorCategory,
         boolean vouchedFor,
-        Integer clusterId,
-        UUID clusterUid,
-        ClusterMember clusterMember,
+        @Nullable Integer clusterId,
+        @Nullable UUID clusterUid,
+        @Nullable ClusterMember clusterMember,
         Set<ClusterPermission> clusterPermissions) {
 
     /**
@@ -63,12 +68,12 @@ public record UserSession(
     public UserSession(
             Account account,
             int sessionId,
-            Integer stationId,
-            UUID stationUid,
-            StationMember member,
+            @Nullable Integer stationId,
+            @Nullable UUID stationUid,
+            @Nullable StationMember member,
             Set<StationPermission> permissions,
             Set<InstancePermission> instancePermissions,
-            Instant twoFactorVerifiedAt) {
+            @Nullable Instant twoFactorVerifiedAt) {
         this(
                 account,
                 sessionId,
@@ -87,13 +92,13 @@ public record UserSession(
     public UserSession(
             Account account,
             int sessionId,
-            Integer stationId,
-            UUID stationUid,
-            StationMember member,
+            @Nullable Integer stationId,
+            @Nullable UUID stationUid,
+            @Nullable StationMember member,
             Set<StationPermission> permissions,
             Set<InstancePermission> instancePermissions,
-            Instant twoFactorVerifiedAt,
-            StepUpProof twoFactorProof) {
+            @Nullable Instant twoFactorVerifiedAt,
+            @Nullable StepUpProof twoFactorProof) {
         this(
                 account,
                 sessionId,
@@ -120,14 +125,14 @@ public record UserSession(
     public UserSession(
             Account account,
             int sessionId,
-            Integer stationId,
-            UUID stationUid,
-            StationMember member,
+            @Nullable Integer stationId,
+            @Nullable UUID stationUid,
+            @Nullable StationMember member,
             Set<StationPermission> permissions,
             Set<InstancePermission> instancePermissions,
-            Instant twoFactorVerifiedAt,
-            StepUpProof twoFactorProof,
-            StepUpCategory twoFactorCategory,
+            @Nullable Instant twoFactorVerifiedAt,
+            @Nullable StepUpProof twoFactorProof,
+            @Nullable StepUpCategory twoFactorCategory,
             boolean vouchedFor) {
         this(
                 account,
@@ -147,8 +152,58 @@ public record UserSession(
                 Set.of());
     }
 
+    /**
+     * The session the request was admitted with.
+     *
+     * @param ctx the Javalin context
+     * @return the session stored as a context attribute
+     * @throws RefusalResponse {@link GeneralRefusal#NOT_SIGNED_IN} when the request carries no session
+     */
     public static UserSession from(Context ctx) {
-        return ctx.attribute(ApiServer.ATTR_SESSION);
+        UserSession session = ctx.attribute(ApiServer.ATTR_SESSION);
+        if (session == null) {
+            throw GeneralRefusal.NOT_SIGNED_IN.raise();
+        }
+        return session;
+    }
+
+    /**
+     * The station the request named, for a route that needs a station but no membership there, such
+     * as one an instance administrator works in.
+     *
+     * @return the station id
+     * @throws RefusalResponse {@link GeneralRefusal#NO_STATION_CHOSEN} when the request names no station
+     */
+    public int requireStationId() {
+        Integer id = stationId;
+        if (id == null) throw GeneralRefusal.NO_STATION_CHOSEN.raise();
+        return id;
+    }
+
+    /**
+     * The association this request acts for, as the owner a shared core is told about.
+     *
+     * <p>Every association route names its own refusal for a request that chose no association, so
+     * the route hands it in.
+     *
+     * @param noneChosen the route's refusal for a request naming no association
+     * @return the association named by the session, never one named by the request body
+     * @throws RefusalResponse {@code noneChosen} when the request names no association
+     */
+    public Owner.Association association(Refusal noneChosen) {
+        Integer id = clusterId;
+        if (id == null) throw noneChosen.raise();
+        return new Owner.Association(id);
+    }
+
+    /**
+     * The instance, as the owner a shared core is told about, for a route the instance administration
+     * reaches. The permission check is the route's registration, as for every other route.
+     *
+     * @return the instance
+     */
+    public Owner.Instance instance() {
+        return new Owner.Instance();
     }
 
     public int accountId() {
@@ -157,10 +212,6 @@ public record UserSession(
 
     public Optional<StationMember> memberOpt() {
         return Optional.ofNullable(member);
-    }
-
-    public Optional<Integer> stationIdOpt() {
-        return Optional.ofNullable(stationId);
     }
 
     public boolean hasPermission(StationPermission p) {
@@ -189,11 +240,11 @@ public record UserSession(
         return Optional.ofNullable(clusterId);
     }
 
-    public ClusterUserType clusterUserType() {
+    public @Nullable ClusterUserType clusterUserType() {
         return clusterMember != null ? clusterMember.userType() : null;
     }
 
-    public StationUserType userType() {
+    public @Nullable StationUserType userType() {
         return member != null ? member.userType() : null;
     }
 

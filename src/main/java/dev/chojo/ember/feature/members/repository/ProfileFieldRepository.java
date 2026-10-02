@@ -11,8 +11,8 @@ import dev.chojo.ember.feature.members.entity.ProfileField;
 import dev.chojo.ember.feature.members.entity.ProfileFieldAssignment;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
-import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.ProfileFieldValue;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -94,14 +94,15 @@ public class ProfileFieldRepository {
     /**
      * The fields asked of anyone in one of these groups.
      *
+     * <p>Where several groups reach one field, the assignment with the lowest position wins, which is
+     * where the field sits on the member's form.
+     *
      * @param stationId the station asking
      * @param groupIds  the groups the member is in
      * @return the definitions assigned to any of them, each once however many groups reach it
      */
     public List<AssignedProfileField> findByStationAndGroups(int stationId, List<Integer> groupIds) {
         if (groupIds.isEmpty()) return List.of();
-        // A member in two groups that are both asked the same question is asked it once. DISTINCT ON
-        // keeps the assignment with the lowest position, which is where the field sits on their form.
         return query("""
                 SELECT DISTINCT ON (f.id) %s
                 FROM profile_field f
@@ -293,7 +294,7 @@ public class ProfileFieldRepository {
      * @param fieldType the type to look for
      * @return the fields, oldest first
      */
-    public List<ProfileField> findAllByStationAndType(int stationId, ProfileFieldType fieldType) {
+    public List<ProfileField> findAllByStationAndType(int stationId, FieldType fieldType) {
         return query("""
                 SELECT %s
                 FROM profile_field
@@ -311,7 +312,7 @@ public class ProfileFieldRepository {
      * @param fieldType the type to look for
      * @return the fields, grouped by station and oldest first within one
      */
-    public List<ProfileField> findAllByType(ProfileFieldType fieldType) {
+    public List<ProfileField> findAllByType(FieldType fieldType) {
         return query("""
                 SELECT %s
                 FROM profile_field
@@ -323,20 +324,37 @@ public class ProfileFieldRepository {
     }
 
     /**
+     * Creates a new profile field definition for a station, whose answers go when a member leaves.
+     */
+    public ProfileField create(
+            int stationId,
+            String name,
+            FieldType fieldType,
+            ProfileFieldConfig config,
+            boolean required,
+            boolean readonly,
+            @Nullable String width) {
+        return create(stationId, name, fieldType, config, required, readonly, width, false);
+    }
+
+    /**
      * Creates a new profile field definition for a station.
      */
     public ProfileField create(
             int stationId,
             String name,
-            ProfileFieldType fieldType,
+            FieldType fieldType,
             ProfileFieldConfig config,
             boolean required,
             boolean readonly,
-            @Nullable String width) {
+            @Nullable String width,
+            boolean keepOnArchive) {
         return SqlSupport.insertReturning(
                 """
-                INSERT INTO profile_field(station_id, name, field_type, config, required, readonly, width)
-                VALUES (:station_id, :name, :field_type, :config::JSONB, :required, :readonly, :width)
+                INSERT INTO profile_field(station_id, name, field_type, config, required, readonly, width,
+                                          keep_on_archive)
+                VALUES (:station_id, :name, :field_type, :config::JSONB, :required, :readonly, :width,
+                        :keep_on_archive)
                 RETURNING %s;""",
                 call().bind("station_id", stationId)
                         .bind("name", name)
@@ -344,7 +362,8 @@ public class ProfileFieldRepository {
                         .bind("config", config.toJson())
                         .bind("required", required)
                         .bind("readonly", readonly)
-                        .bind("width", width),
+                        .bind("width", width)
+                        .bind("keep_on_archive", keepOnArchive),
                 ProfileField.map(),
                 PROFILE_FIELD_COLUMNS);
     }
@@ -355,7 +374,7 @@ public class ProfileFieldRepository {
     public boolean update(
             int id,
             String name,
-            ProfileFieldType fieldType,
+            FieldType fieldType,
             ProfileFieldConfig config,
             boolean required,
             boolean readonly,
@@ -399,6 +418,24 @@ public class ProfileFieldRepository {
                 .single(call().bind("member_id", memberId))
                 .map(ProfileFieldValue.map())
                 .all();
+    }
+
+    /**
+     * Whether a member has answered everything their profile asks of them, judged as
+     * {@link ProfileCompletenessSql} says.
+     *
+     * @param memberId the member whose profile is being judged
+     * @return whether nothing required of them is left blank, true for a member that does not exist
+     */
+    public boolean isProfileComplete(int memberId) {
+        return query("""
+                SELECT NOT %s AS complete
+                FROM station_member sm
+                WHERE sm.id = :member_id;""", ProfileCompletenessSql.incomplete("sm"))
+                .single(call().bind("member_id", memberId))
+                .map(row -> row.getBoolean("complete"))
+                .first()
+                .orElse(true);
     }
 
     /**

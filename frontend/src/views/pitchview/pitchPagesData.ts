@@ -3,9 +3,11 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {PageVisibility} from '@/api/pageManage'
-import type {CellConfig, CellContentTypeName, PageCell, PageRow, StationPage} from '@/api/pageManage'
+import {PageVisibility, type CellContentTypeName} from '@/api/pageManage'
+import type {CellConfigByType, ContentCell, ContentRow, StationPage} from '@/api/generated/schema'
 import type {PitchPages} from './pitchTypes'
+
+const PITCH_STATION_UID = '00000000-0000-4000-8000-000000000001'
 
 /**
  * The public page a demonstration shows. Rows and cells are handed to the renderer the website
@@ -20,9 +22,10 @@ function daysFromNow(days: number): string {
 function page(id: number, title: string, slug: string, published: boolean,
               parentId: number | null = null): StationPage {
     return {
-        id, stationId: 1, parentId, title, slug, sortOrder: id,
+        id, publicUid: `00000000-0000-4000-8000-00000000010${id}`, stationId: PITCH_STATION_UID, parentId,
+        title, slug, sortOrder: id,
         visibility: published ? PageVisibility.PUBLIC : PageVisibility.DRAFT,
-        metaDescription: null, ogImageId: null, ogImageHash: null,
+        metaDescription: null, ogImageId: null, ogImageHash: null, containerId: id,
         createdBy: 1, createdAt: '', updatedAt: '', rows: [],
     }
 }
@@ -35,19 +38,28 @@ export const PAGE_TREE = [
     {page: page(5, 'Fahrzeuge', 'fahrzeuge', false), depth: 0},
 ]
 
-let cellId = 0
-
-function cell(contentType: CellContentTypeName, content: string,
-              config: CellConfig, widthPercent = 100): PageCell {
-    cellId += 1
-    return {id: cellId, rowId: 0, sortOrder: cellId, widthPercent, contentType, content, config}
+function cell<K extends CellContentTypeName>(contentType: K, content: string,
+                                             config: CellConfigByType[K], widthPercent = 100): ContentCell {
+    return {id: 0, rowId: 0, sortOrder: 0, widthPercent, contentType, content, config}
 }
 
-function row(id: number, cells: PageCell[]): PageRow {
-    return {id, pageId: 1, sortOrder: id, cells: cells.map(entry => ({...entry, rowId: id}))}
+function row(id: number, cells: ContentCell[]): ContentRow {
+    return {id, containerId: 1, sortOrder: id, cells: cells.map(entry => ({...entry, rowId: id}))}
 }
 
-const ROWS: PageRow[] = [
+/** Numbers the cells of the whole page in reading order, which is what the renderer sorts them by. */
+function numbered(rows: ContentRow[]): ContentRow[] {
+    let next = 0
+    return rows.map(entry => ({
+        ...entry,
+        cells: entry.cells.map(content => {
+            next += 1
+            return {...content, id: next, sortOrder: next}
+        }),
+    }))
+}
+
+const ROWS: ContentRow[] = numbered([
     row(1, [
         cell('HERO_BANNER', '', {
             headline: 'Feuerwehr Musterstadt',
@@ -82,6 +94,6 @@ const ROWS: PageRow[] = [
             targetDate: daysFromNow(24), label: 'Tag der offenen Tür', sublabel: 'Wir freuen uns auf euch',
         }, 45),
     ]),
-]
+])
 
 export const PAGES: PitchPages = {tree: PAGE_TREE, rows: ROWS, landingPageId: 1}

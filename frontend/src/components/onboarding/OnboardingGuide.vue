@@ -16,7 +16,6 @@ import {useOnboardingGuide} from '@/composables/useOnboardingGuide'
 import {useOnboardingTasks} from '@/composables/useOnboardingTasks'
 import {emberGuide} from '@/composables/useEmberLogo'
 import {OnboardingTaskState} from '@/api/onboarding'
-import {activeLevel, activeTaskId, activeTaskKey, activeStep, guideDismissed} from '@/util/onboardingState'
 
 /**
  * Ember standing next to whatever the reader should do next.
@@ -31,10 +30,11 @@ const {t} = useI18n()
 const router = useRouter()
 const {box, step, steps, pointing, revealing, blocked, behindMenu, gaze, targetLow, finished, reducedMotion, onStepRoute, advance, dismiss} =
     useOnboardingGuide()
-const {stop, skip, load, status, confirm} = useOnboardingTasks()
+const {stop, skip, load, status, confirm, activeLevel, activeTaskId, activeTaskKey, activeStep, guideDismissed} =
+    useOnboardingTasks()
 
 /**
- * The task whose steps have just run out: what it was called, where its list is, and whether it
+ * A task whose steps have just run out: what it was called, where its list is, and whether it
  * actually counts as done.
  *
  * Those last two are not the same question. Reaching the end of the steps means the reader was
@@ -42,7 +42,14 @@ const {stop, skip, load, status, confirm} = useOnboardingTasks()
  * who closed the questions of an event instead of sending them walked every step and answered
  * nothing, and Ember congratulating them on it would be a lie they find out about on the next page.
  */
-const completed = ref<{title: string, route: string, done: boolean} | null>(null)
+interface CompletedTask {
+  title: string
+  route: string
+  done: boolean
+}
+
+/** The task whose steps have just run out, while its closing message shows. */
+const completed = ref<CompletedTask | null>(null)
 
 const walking = computed(() => activeTaskId.value !== null && !guideDismissed.value && step.value !== null)
 const visible = computed(() => walking.value || completed.value !== null)
@@ -54,11 +61,6 @@ const LISTS: Record<string, string> = {
   INSTANCE: 'admin-overview',
 }
 
-/**
- * The walk ends where the steps end. Ember says so rather than vanishing mid-page, and the list is
- * read again, because whether the task counts as done is the server's answer and not the last
- * click's.
- */
 /**
  * Who the task being walked is about, by name.
  *
@@ -72,7 +74,15 @@ const subjectName = computed(() => {
   return task?.subject ?? t('onboarding.child')
 })
 
-watch(finished, async ended => {
+/**
+ * The walk ends where the steps end. Ember says so rather than vanishing mid-page, and the list is
+ * read again, because whether the task counts as done is the server's answer and not the last click's.
+ *
+ * <p>A task Ember cannot read for itself is settled by the walk, because walking it is the whole of
+ * what it asks; a derived task stays derived. A task that is no longer listed counts as done, since
+ * it cannot be asked about.
+ */
+async function closeWalk(ended: boolean) {
   if (!ended) return
   const level = activeLevel.value
   const taskId = activeTaskId.value
@@ -85,10 +95,6 @@ watch(finished, async ended => {
       level && taskId ? (status.value[level]?.tasks ?? []).find(entry => entry.id === taskId) : undefined
   let task = find()
 
-  // A task Ember cannot read for itself is settled by the walk, because walking it is the whole of
-  // what it asks. Leaving it open here told a reader who had just done exactly as they were told to
-  // go and check whether their entry had saved, when the step before had said there was nothing to
-  // enter. What is derived stays derived: there the data really is the answer.
   if (level && task && task.confirmable && task.state !== OnboardingTaskState.DONE) {
     await confirm(level, task.id)
     await load(level)
@@ -98,10 +104,11 @@ watch(finished, async ended => {
   completed.value = {
     title,
     route: (level && LISTS[level]) || 'dashboard-overview',
-    // A task that is no longer listed cannot be asked about, and saying nothing is friendlier there.
     done: task === undefined || task.state === OnboardingTaskState.DONE,
   }
-})
+}
+
+watch(finished, closeWalk)
 
 function goToList() {
   const route = completed.value?.route
@@ -180,7 +187,7 @@ function close() {
 
 <template>
   <Teleport to="body">
-    <div v-if="visible" class="pointer-events-none fixed inset-0 z-50">
+    <div v-if="visible" class="pointer-events-none fixed inset-0 z-50" role="presentation" @keydown.esc="close">
       <div
           v-if="spotlight"
           aria-hidden="true"
@@ -196,8 +203,7 @@ function close() {
           :style="ring"
       />
 
-      <div role="status" aria-live="polite" tabindex="-1" @keydown.esc="close"
-           :class="targetLow ? 'top-4' : 'bottom-4'"
+      <div role="status" aria-live="polite" tabindex="-1" :class="targetLow ? 'top-4' : 'bottom-4'"
            class="pointer-events-auto absolute left-1/2 w-[min(28rem,calc(100vw-2rem))] -translate-x-1/2
                   rounded-theme border border-(--border) bg-(--bg) p-4 shadow-xl">
         <div class="flex items-start gap-3">

@@ -6,16 +6,20 @@
 package dev.chojo.ember.feature.feed.render;
 
 import dev.chojo.ember.feature.cluster.entity.StationKind;
+import dev.chojo.ember.feature.events.entity.AppointmentField;
+import dev.chojo.ember.feature.events.entity.CancellationCause;
+import dev.chojo.ember.feature.events.entity.DateCancellations;
+import dev.chojo.ember.feature.events.entity.EventBreak;
 import dev.chojo.ember.feature.events.entity.EventCategory;
-import dev.chojo.ember.feature.events.entity.EventField;
-import dev.chojo.ember.feature.events.entity.EventFieldConfig;
-import dev.chojo.ember.feature.events.entity.EventFieldType;
+import dev.chojo.ember.feature.events.entity.EventDateCancellation;
+import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
+import dev.chojo.ember.feature.events.entity.StationCalendar;
 import dev.chojo.ember.feature.events.entity.StationEvent;
-import dev.chojo.ember.feature.events.service.EventDateResolver;
 import dev.chojo.ember.feature.events.service.EventFieldService;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.notifications.service.NotificationText;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -27,6 +31,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,21 +45,24 @@ import static org.mockito.Mockito.when;
 
 class IcalEventRendererTest {
 
+    private static final ZoneId BERLIN = ZoneId.of("Europe/Berlin");
+
     private EventFieldService eventFieldService;
     private IcalEventRenderer renderer;
     private Station station;
 
+    /**
+     * Fields render their stored text, and translations echo their key with the placeholder values
+     * appended, so a test can assert on the key and on what was substituted into it.
+     */
     @BeforeEach
     void setup() {
         eventFieldService = mock(EventFieldService.class);
-        // Stand-in for the real resolution: everything but a member field renders its stored text.
         when(eventFieldService.displayValue(any())).thenAnswer(inv -> {
-            EventField field = inv.getArgument(0);
+            AppointmentField field = inv.getArgument(0);
             return field == null || field.value() == null ? "" : field.value().trim();
         });
-        NotificationService notificationService = mock(NotificationService.class);
-        // Mirror NotificationService: echo the key, but interpolate {name} placeholders from the
-        // params map when present so cancelledWithReason etc. surface their substitution values.
+        NotificationText notificationService = mock(NotificationText.class);
         when(notificationService.resolveLocalized(any(), eq("ical"), any(), any()))
                 .thenAnswer(inv -> {
                     String key = inv.getArgument(2);
@@ -69,7 +78,7 @@ class IcalEventRendererTest {
                     }
                     return sb.toString();
                 });
-        renderer = new IcalEventRenderer(eventFieldService, mock(EventDateResolver.class), notificationService);
+        renderer = new IcalEventRenderer(eventFieldService, notificationService);
         station = new Station(
                 1,
                 null,
@@ -83,7 +92,6 @@ class IcalEventRendererTest {
                 ThemeFeel.ROUNDED,
                 false,
                 PublicKbMode.OFF,
-                null,
                 DiscoveryVisibility.NONE,
                 null,
                 false,
@@ -105,8 +113,6 @@ class IcalEventRendererTest {
                 false,
                 false);
     }
-
-    // -- visibility --
 
     @Test
     void hidesNonGuardianWhoDeclined() {
@@ -215,35 +221,32 @@ class IcalEventRendererTest {
         assertTrue(renderer.isVisibleForFeed(closed, ctx(Map.of(), accepted)), "a place taken keeps it");
     }
 
-    // -- rendering --
-
     @Test
     void rendersLocationPropertyFromFirstLocationField() {
         var event = simpleEvent(10);
-        var loc = new EventField(
+        var loc = new AppointmentField(
                 1,
                 10,
                 "Ort",
-                EventFieldType.LOCATION,
-                EventFieldConfig.parse("{}"),
+                FieldType.LOCATION,
+                EventQuestionSettings.parse("{}"),
                 "Marktplatz 1",
                 0,
                 true,
                 null,
                 true);
-        var other = new EventField(
-                2, 10, "Thema", EventFieldType.STRING, EventFieldConfig.parse("{}"), "Übung", 1, false, null, false);
+        var other = new AppointmentField(
+                2, 10, "Thema", FieldType.TEXT, EventQuestionSettings.parse("{}"), "Übung", 1, false, null, false);
         when(eventFieldService.findByEvent(eq(10), any())).thenReturn(List.of(loc, other));
         var ctx = ctx(Map.of(), Map.of());
 
-        var ve = renderer.render(event, ctx);
+        var ve = renderer.render(event, ctx).getFirst();
         var location = ve.getProperty("LOCATION").map(Location.class::cast).orElseThrow();
         assertEquals("Marktplatz 1", location.getValue());
         var url = ve.getProperty("URL").map(Url.class::cast).orElseThrow();
         assertTrue(url.getValue().contains("/station/events/10?station="));
-        // Description omits the LOCATION field (it lives on its own property) but keeps the other.
         String description = ve.getProperty("DESCRIPTION").orElseThrow().getValue();
-        assertFalse(description.contains("Ort: Marktplatz 1"));
+        assertFalse(description.contains("Ort: Marktplatz 1"), "the location has a property of its own");
         assertTrue(description.contains("Thema: Übung"));
         assertTrue(description.contains("/station/events/10"));
     }
@@ -254,7 +257,7 @@ class IcalEventRendererTest {
         when(eventFieldService.findByEvent(eq(11), any())).thenReturn(List.of());
         var ctx = ctx(Map.of(), Map.of());
 
-        var ve = renderer.render(event, ctx);
+        var ve = renderer.render(event, ctx).getFirst();
         assertTrue(ve.getProperty("SUMMARY").orElseThrow().getValue().startsWith("summary.cancelledPrefix"));
         assertTrue(ve.getProperty("STATUS").isPresent());
         assertEquals(ImmutableStatus.VEVENT_CANCELLED, ve.getProperty("STATUS").orElseThrow());
@@ -266,15 +269,9 @@ class IcalEventRendererTest {
         var event = simpleEvent(12);
         when(eventFieldService.findByEvent(eq(12), any())).thenReturn(List.of());
         var ctx = new IcalEventRenderer.Context(
-                station,
-                "en",
-                "https://ember.example.com",
-                false, // verbose=false
-                Map.of(),
-                Map.of(),
-                Map.of());
+                station, "en", "https://ember.example.com", false, Map.of(), Map.of(), Map.of(), calendar(List.of()));
 
-        var ve = renderer.render(event, ctx);
+        var ve = renderer.render(event, ctx).getFirst();
         String description = ve.getProperty("DESCRIPTION").orElseThrow().getValue();
         assertTrue(description.contains("/station/events/12"));
         assertFalse(description.contains("label.eventType"));
@@ -291,17 +288,134 @@ class IcalEventRendererTest {
                         new IcalEventRenderer.ManagedRegistration("Bob", RegistrationStatus.DECLINED)));
         var ctx = ctx(Map.of(13, RegistrationStatus.ACCEPTED), managed);
 
-        var ve = renderer.render(event, ctx);
+        var ve = renderer.render(event, ctx).getFirst();
         String description = ve.getProperty("DESCRIPTION").orElseThrow().getValue();
         assertTrue(description.contains("Alice"));
         assertTrue(description.contains("Bob"));
         assertTrue(description.contains("label.accepted"));
-        // Only one of the two managed members is ACCEPTED (Alice); owner accepts are not counted
-        // in this aggregate.
-        assertTrue(description.contains("1 / "));
+        assertTrue(description.contains("1 / "), "only the managed members count, and only Alice accepted");
     }
 
-    // -- helpers --
+    /**
+     * A series starts on its first date rather than on the day it was configured, and every date a
+     * break takes out reaches the calendar as an exception, so a subscribed calendar shows the dates
+     * the application shows.
+     */
+    @Test
+    void aSeriesStartsOnItsFirstDateAndNamesItsBreaksAsExceptions() {
+        Instant mondayEvening = Instant.parse("2026-08-31T16:00:00Z");
+        var weekly = series(20, StationEvent.EventType.RECURRING, 3, mondayEvening, null);
+        var holiday = new EventBreak(1, 1, "Ferien", LocalDate.parse("2026-09-09"), LocalDate.parse("2026-09-15"));
+
+        var ve = renderer.render(weekly, ctxWithBreaks(List.of(holiday))).getFirst();
+
+        assertEquals("20260902T160000Z", ve.getProperty("DTSTART").orElseThrow().getValue());
+        assertEquals(
+                "FREQ=WEEKLY;BYDAY=WE", ve.getProperty("RRULE").orElseThrow().getValue());
+        assertEquals("20260909T160000Z", ve.getProperty("EXDATE").orElseThrow().getValue());
+    }
+
+    /** A quarterly series counts its quarters from its own first date, as the calendar reading it does. */
+    @Test
+    void aQuarterlySeriesCountsFromItsFirstDate() {
+        var quarterly = series(21, StationEvent.EventType.QUARTERLY, 1, Instant.parse("2026-02-02T17:00:00Z"), null);
+
+        var ve = renderer.render(quarterly, ctx(Map.of(), Map.of())).getFirst();
+
+        assertEquals("20260202T170000Z", ve.getProperty("DTSTART").orElseThrow().getValue());
+        assertEquals(
+                "FREQ=MONTHLY;INTERVAL=3;BYDAY=1MO",
+                ve.getProperty("RRULE").orElseThrow().getValue());
+        assertTrue(ve.getProperty("EXDATE").isEmpty(), "no break, no exception");
+    }
+
+    /** A yearly series names no weekday and still repeats. */
+    @Test
+    void aYearlySeriesWithoutAWeekdayRepeats() {
+        var yearly = series(22, StationEvent.EventType.YEARLY, null, Instant.parse("2026-05-01T08:00:00Z"), null);
+
+        var ve = renderer.render(yearly, ctx(Map.of(), Map.of())).getFirst();
+
+        assertEquals("FREQ=YEARLY", ve.getProperty("RRULE").orElseThrow().getValue());
+    }
+
+    /** A series whose end comes before its first date takes place on no day, and has no entry. */
+    @Test
+    void aSeriesThatNeverTakesPlaceHasNoEntry() {
+        var never = series(
+                23,
+                StationEvent.EventType.RECURRING,
+                3,
+                Instant.parse("2026-09-02T16:00:00Z"),
+                LocalDate.parse("2026-09-01"));
+
+        assertTrue(renderer.render(never, ctx(Map.of(), Map.of())).isEmpty());
+    }
+
+    /**
+     * A date of a series called off on its own reaches the calendar as an override of that date,
+     * marked cancelled and saying why, and the series itself stays as it was.
+     */
+    @Test
+    void aCancelledDateOfASeriesIsAnOverrideMarkedCancelled() {
+        var weekly = series(24, StationEvent.EventType.RECURRING, 3, Instant.parse("2026-09-02T16:00:00Z"), null);
+        var stormy = new EventDateCancellation(
+                24, LocalDate.parse("2026-09-16"), CancellationCause.MANUAL, "Sturm", Instant.now(), null, null);
+        var tooFew = new EventDateCancellation(
+                24, LocalDate.parse("2026-09-23"), CancellationCause.THRESHOLD, null, Instant.now(), null, null);
+
+        var entries = renderer.render(weekly, ctxWithCancellations(List.of(stormy, tooFew)));
+
+        assertEquals(3, entries.size());
+        var series = entries.getFirst();
+        assertTrue(series.getProperty("STATUS").isEmpty(), "the series goes on");
+        assertEquals("event-24@ember", series.getProperty("UID").orElseThrow().getValue());
+        var override = entries.get(1);
+        assertEquals("event-24@ember", override.getProperty("UID").orElseThrow().getValue());
+        assertEquals(
+                "20260916T160000Z",
+                override.getProperty("RECURRENCE-ID").orElseThrow().getValue());
+        assertEquals(
+                ImmutableStatus.VEVENT_CANCELLED, override.getProperty("STATUS").orElseThrow());
+        assertTrue(override.getProperty("SUMMARY").orElseThrow().getValue().startsWith("summary.cancelledPrefix"));
+        assertTrue(override.getProperty("DESCRIPTION").orElseThrow().getValue().contains("Sturm"));
+        assertEquals(
+                "cancelledTooFewRegistrations",
+                entries.get(2).getProperty("DESCRIPTION").orElseThrow().getValue());
+    }
+
+    /** A one-time appointment whose date was called off is one entry, marked cancelled as a whole. */
+    @Test
+    void aOneOffCancelledByItsDateIsMarkedCancelled() {
+        var event = simpleEvent(25);
+        when(eventFieldService.findByEvent(eq(25), any())).thenReturn(List.of());
+        var gone = new EventDateCancellation(
+                25, LocalDate.parse("2027-09-15"), CancellationCause.MANUAL, null, Instant.now(), null, null);
+
+        var entries = renderer.render(event, ctxWithCancellations(List.of(gone)));
+
+        assertEquals(1, entries.size());
+        assertEquals(
+                ImmutableStatus.VEVENT_CANCELLED,
+                entries.getFirst().getProperty("STATUS").orElseThrow());
+        assertTrue(entries.getFirst()
+                .getProperty("DESCRIPTION")
+                .orElseThrow()
+                .getValue()
+                .contains("cancelled"));
+    }
+
+    private IcalEventRenderer.Context ctxWithCancellations(List<EventDateCancellation> cancellations) {
+        return new IcalEventRenderer.Context(
+                station,
+                "de",
+                "https://ember.example.com",
+                true,
+                Map.of(),
+                Map.of(),
+                Map.of(),
+                new StationCalendar(BERLIN, List.of(), DateCancellations.of(cancellations)));
+    }
 
     private IcalEventRenderer.Context ctx(
             Map<Integer, RegistrationStatus> ownerStatus,
@@ -313,7 +427,48 @@ class IcalEventRendererTest {
                 true,
                 new HashMap<>(Map.of(1, new EventCategory(1, 1, "Cat", 1, null, false, null))),
                 new HashMap<>(ownerStatus),
-                new HashMap<>(managed));
+                new HashMap<>(managed),
+                calendar(List.of()));
+    }
+
+    private IcalEventRenderer.Context ctxWithBreaks(List<EventBreak> breaks) {
+        return new IcalEventRenderer.Context(
+                station, "de", "https://ember.example.com", true, Map.of(), Map.of(), Map.of(), calendar(breaks));
+    }
+
+    private static StationCalendar calendar(List<EventBreak> breaks) {
+        return new StationCalendar(BERLIN, breaks);
+    }
+
+    private StationEvent series(
+            int id, StationEvent.EventType type, Integer dayOfWeek, Instant start, LocalDate repeatUntil) {
+        return new StationEvent(
+                id,
+                1,
+                "Dienst",
+                null,
+                type,
+                dayOfWeek,
+                start,
+                start.plusSeconds(7200),
+                null,
+                false,
+                null,
+                false,
+                null,
+                RestrictionMode.AND,
+                RestrictionMode.AND,
+                false,
+                null,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null,
+                repeatUntil,
+                null);
     }
 
     private StationEvent simpleEvent(int id) {
@@ -341,7 +496,6 @@ class IcalEventRendererTest {
                 null,
                 null,
                 null,
-                false,
                 null,
                 null,
                 null);
@@ -372,7 +526,6 @@ class IcalEventRendererTest {
                 null,
                 null,
                 null,
-                false,
                 null,
                 null,
                 null);
@@ -403,7 +556,6 @@ class IcalEventRendererTest {
                 reason,
                 null,
                 null,
-                false,
                 null,
                 null,
                 null);

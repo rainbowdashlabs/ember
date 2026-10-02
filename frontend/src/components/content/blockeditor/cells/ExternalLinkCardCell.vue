@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import type {ExternalLinkCardConfig} from '@/api/pageManage'
+import type {ExternalLinkCardConfig} from '@/api/generated/schema'
 
 defineProps<{
     config: ExternalLinkCardConfig

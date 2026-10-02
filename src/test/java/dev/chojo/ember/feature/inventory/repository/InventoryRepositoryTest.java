@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.inventory.entity.InventoryItemHistory;
 import dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata;
 import dev.chojo.ember.feature.inventory.entity.InventoryRequirement;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
+import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -85,11 +86,8 @@ class InventoryRepositoryTest extends RepositoryTestBase {
         assertTrue(updated.homogeneous());
         assertEquals("shirt", updated.icon());
         assertEquals("#b45309", updated.color());
-        // restore
         inventoryRepo.update(inventoryId, "Helmets", InventoryType.EXTERNAL, true, true, Glyph.NONE);
     }
-
-    // -- Sizes --
 
     @Test
     @Order(10)
@@ -116,8 +114,6 @@ class InventoryRepositoryTest extends RepositoryTestBase {
         assertTrue(inventoryRepo.deleteSize(secondId));
         assertEquals(1, inventoryRepo.findSizes(inventoryId).size());
     }
-
-    // -- Items --
 
     @Test
     @Order(19)
@@ -196,18 +192,14 @@ class InventoryRepositoryTest extends RepositoryTestBase {
         assertFalse(inventoryRepo.findItemsByMember(member.id()).isEmpty());
         assertEquals(1, inventoryRepo.countItemsByMember(member.id()));
 
-        // Unassign
         assertTrue(itemCustodyService.takeBack(itemId).isPresent());
         assertNull(inventoryRepo.findItemById(itemId).orElseThrow().assignedTo());
         assertEquals(0, inventoryRepo.countItemsByMember(member.id()));
     }
 
-    // -- History --
-
     @Test
     @Order(30)
     void createHistory() {
-        // Re-create item for history tests
         InventoryItem item = inventoryRepo.createItem(inventoryId, "H-003", "History Helmet", sizeId, null);
         itemId = item.id();
 
@@ -247,8 +239,6 @@ class InventoryRepositoryTest extends RepositoryTestBase {
     void cleanupHistoryItem() {
         assertTrue(inventoryRepo.deleteItem(itemId));
     }
-
-    // -- Requirements --
 
     private static int requirementId;
 
@@ -293,17 +283,13 @@ class InventoryRepositoryTest extends RepositoryTestBase {
         assertNotNull(req);
         assertEquals(group.id(), req.groupId());
         assertEquals(3, req.quantity());
-        // cleanup
         inventoryRepo.deleteRequirement(req.id());
         memberGroupRepo.delete(group.id());
     }
 
-    // -- findItemsByStation / findSizesByStation / findUnassignedItems --
-
     @Test
     @Order(45)
     void findItemsByStation() {
-        // Create a fresh item for this test
         InventoryItem item = inventoryRepo.createItem(inventoryId, "STAT-001", "Station Item", sizeId, null);
         var items = inventoryRepo.findItemsByStation(station.id());
         assertFalse(items.isEmpty());
@@ -328,8 +314,6 @@ class InventoryRepositoryTest extends RepositoryTestBase {
         inventoryRepo.deleteItem(item.id());
     }
 
-    // -- markLost / markFound --
-
     @Test
     @Order(48)
     void markLostAndFound() {
@@ -342,8 +326,6 @@ class InventoryRepositoryTest extends RepositoryTestBase {
 
         inventoryRepo.deleteItem(item.id());
     }
-
-    // -- createItem with an owner --
 
     @Test
     @Order(49)
@@ -376,8 +358,6 @@ class InventoryRepositoryTest extends RepositoryTestBase {
         inventoryRepo.deleteItem(item.id());
     }
 
-    // -- createHistoryWithDates --
-
     @Test
     @Order(35)
     void createHistoryWithDates() {
@@ -391,8 +371,6 @@ class InventoryRepositoryTest extends RepositoryTestBase {
         assertNotNull(history.getFirst().returned());
         inventoryRepo.deleteItem(item.id());
     }
-
-    // -- updateRequirementPosition --
 
     @Test
     @Order(43)
@@ -435,12 +413,32 @@ class InventoryRepositoryTest extends RepositoryTestBase {
         stationRepo.delete(home.id());
     }
 
-    // -- Cleanup --
+    /**
+     * A piece written down in the association's own inventory and lent to a station is held by that
+     * station and by nobody else, the same way the station's lists count it.
+     */
+    @Test
+    @Order(45)
+    void isHeldBy() {
+        var home = stationRepo.create("Träger Gewahrsam");
+        var elsewhere = stationRepo.create("Fremde Wache");
+        var cluster = clusterRepo.create("Kreisverband Gewahrsam", null, home.id());
+        var pool = inventoryRepo.create(home.id(), "Jacken Gewahrsam", InventoryType.EXTERNAL, false);
+        var lent = inventoryRepo.createItem(pool.id(), "JG-1", "Jacke", null, null, ItemOwner.CLUSTER, cluster.id());
+        itemCustodyService.applyStepCustody(lent.id(), ItemCustody.AT_STATION, null, null, station.id());
+
+        assertTrue(inventoryRepo.isHeldBy(lent.id(), station.id()), "the station holding it");
+        assertFalse(inventoryRepo.isHeldBy(lent.id(), elsewhere.id()), "a station that has never seen it");
+
+        inventoryRepo.delete(pool.id());
+        clusterRepo.delete(cluster.id());
+        stationRepo.delete(elsewhere.id());
+        stationRepo.delete(home.id());
+    }
 
     @Test
     @Order(50)
     void deleteItemFinal() {
-        // item was already deleted in Order(34)
         assertFalse(inventoryRepo.deleteItem(itemId));
     }
 

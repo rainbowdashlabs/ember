@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import type {APIRequestContext, Browser, Page} from '@playwright/test'
-import {test, expect, apiHeaders, demoAccounts, pageAsThrowaway, stationPeers} from './fixtures/auth'
+import {test, expect, apiHeaders, demoAccounts, pageAsThrowaway} from './fixtures/auth'
 import {cast, spokenForMemberIds} from './fixtures/cast'
 
 /**
@@ -38,7 +38,8 @@ interface Asked {
  * Asks the first member of the station who is free to be asked.
  *
  * <p>Being passed over is the endpoint's own answer to a member who already holds an unfinished
- * task, so an empty answer is read as "try somebody else" rather than as a failure.
+ * task, so an empty answer is read as "try somebody else" rather than as a failure. Whoever another
+ * story was cast as is left out, since a task answered for them writes what that story is reading.
  */
 async function askSomebody(browser: Browser, request: APIRequestContext, manager: Page): Promise<Asked> {
     const checker = (await cast()).manager
@@ -47,8 +48,6 @@ async function askSomebody(browser: Browser, request: APIRequestContext, manager
         && account.stationId === checker.stationId
         && account.userType === 'MEMBER')
     const headers = await apiHeaders(manager)
-    // Whoever another story was cast as is left out of this. Handing them a task and answering it
-    // writes their gear and their answers, which is what the story acting as them is reading.
     const spokenFor = await spokenForMemberIds()
     for (const account of candidates) {
         const page = await pageAsThrowaway(browser, request, [], account)

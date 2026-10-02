@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.equipment.service;
 
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -64,7 +65,7 @@ public final class EquipmentOccurrenceWindows {
      * @param event the appointment
      * @return the day, or {@code null} where it has no start
      */
-    public static LocalDate singleDateOf(StationEvent event) {
+    public static @Nullable LocalDate singleDateOf(StationEvent event) {
         if (event.startTime() == null) return null;
         return event.startTime().atZone(ZoneOffset.UTC).toLocalDate();
     }

@@ -54,8 +54,7 @@ class FeedFingerprintTest {
         var fp = FeedFingerprint.compute(Instant.EPOCH, "x");
         assertTrue(fp.etag().startsWith("\""));
         assertTrue(fp.etag().endsWith("\""));
-        // 16 hex chars inside the quotes (8 bytes truncated SHA-256)
-        assertEquals(18, fp.etag().length());
+        assertEquals(18, fp.etag().length(), "16 hex characters of a truncated SHA-256 inside the quotes");
     }
 
     @Test
@@ -76,7 +75,6 @@ class FeedFingerprintTest {
         var ctx = mock(Context.class);
         var lastModified = Instant.parse("2026-06-12T10:00:00Z");
         var fp = FeedFingerprint.compute(lastModified, "x");
-        // Client says "I saw it after the fingerprint last changed" → 304.
         when(ctx.header("If-None-Match")).thenReturn(null);
         when(ctx.header("If-Modified-Since")).thenReturn("Fri, 12 Jun 2026 11:00:00 GMT");
 

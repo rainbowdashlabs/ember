@@ -5,8 +5,10 @@
  */
 package dev.chojo.ember.feature.station.service;
 
-import dev.chojo.ember.feature.media.service.ImageVariantService;
-import dev.chojo.ember.feature.media.service.ImageVariantService.ImageData;
+import dev.chojo.ember.feature.media.entity.MediaContent;
+import dev.chojo.ember.feature.media.image.ImageFormat;
+import dev.chojo.ember.feature.media.image.ImageProfile;
+import dev.chojo.ember.feature.media.service.ImageVariants;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.entity.StorageScope;
@@ -34,35 +36,37 @@ public class StationLogoService {
     private static final Logger log = LoggerFactory.getLogger(StationLogoService.class);
     private static final int MAX_LOGO_SIZE = 2 * 1024 * 1024;
     private static final String KEY = "logo";
+    private static final ImageProfile PROFILE = ImageProfile.ICON_SET;
+    private static final StorageCategory CATEGORY = StorageCategory.IMAGE_STATION_LOGO;
 
-    private final ImageVariantService variants;
+    private final ImageVariants images;
     private final StationRepository stationRepository;
 
     @Inject
-    public StationLogoService(ImageVariantService variants, StationRepository stationRepository) {
-        this.variants = variants;
+    public StationLogoService(ImageVariants images, StationRepository stationRepository) {
+        this.images = images;
         this.stationRepository = stationRepository;
     }
 
     /**
      * Persists a new raster logo as the full variant set in the storage backend and drops any
-     * legacy database blob. Rejects non-raster images (the variant pipeline re-encodes to raster,
+     * legacy database blob. Rejects non-raster images (the variant pipeline works on pixels,
      * which is why SVG is no longer accepted).
      */
     public void store(int stationId, byte[] data, String declaredMime) throws IOException {
-        variants.store(scope(stationId), StorageCategory.IMAGE_STATION_LOGO, KEY, data, declaredMime, MAX_LOGO_SIZE);
+        images.store(PROFILE, scope(stationId), CATEGORY, KEY, data, MAX_LOGO_SIZE);
         stationRepository.deleteLogo(stationId);
-        log.info("Station logo stored station={}", stationId);
+        log.info("Station logo stored station={} mime={}", stationId, declaredMime);
     }
 
     /**
      * Reads the best-fit logo variant for the requested size, migrating a legacy database blob on
      * first access. Returns empty when the station has no logo.
      */
-    public Optional<ImageData> read(int stationId, int size) {
+    public Optional<MediaContent> read(int stationId, int size) {
         var scope = scope(stationId);
-        if (variants.exists(scope, StorageCategory.IMAGE_STATION_LOGO, KEY)) {
-            return variants.read(scope, StorageCategory.IMAGE_STATION_LOGO, KEY, size);
+        if (images.exists(PROFILE, scope, CATEGORY, KEY)) {
+            return images.read(PROFILE, scope, CATEGORY, KEY, size);
         }
         return migrateOrServeLegacy(stationId, size);
     }
@@ -70,7 +74,7 @@ public class StationLogoService {
     /**
      * Reads the full-resolution logo, for consumers that embed it (PDF exports, e-mail).
      */
-    public Optional<ImageData> original(int stationId) {
+    public Optional<MediaContent> original(int stationId) {
         return read(stationId, 0);
     }
 
@@ -78,7 +82,7 @@ public class StationLogoService {
      * Whether the station has a logo, in the backend or as a not-yet-migrated database blob.
      */
     public boolean exists(int stationId) {
-        return variants.exists(scope(stationId), StorageCategory.IMAGE_STATION_LOGO, KEY)
+        return images.exists(PROFILE, scope(stationId), CATEGORY, KEY)
                 || stationRepository.findLogo(stationId).isPresent();
     }
 
@@ -86,29 +90,29 @@ public class StationLogoService {
      * Removes the logo from both the backend and any legacy database blob.
      */
     public void delete(int stationId) {
-        variants.delete(scope(stationId), StorageCategory.IMAGE_STATION_LOGO, KEY);
+        images.delete(scope(stationId), CATEGORY, KEY);
         stationRepository.deleteLogo(stationId);
         log.info("Station {} dropped its logo", stationId);
     }
 
-    private Optional<ImageData> migrateOrServeLegacy(int stationId, int size) {
+    private Optional<MediaContent> migrateOrServeLegacy(int stationId, int size) {
         var legacy = stationRepository.findLogo(stationId);
         if (legacy.isEmpty()) {
             return Optional.empty();
         }
         var blob = legacy.get();
-        if (ImageVariantService.sniffImageMime(blob.data()).isPresent()) {
+        if (ImageFormat.sniff(blob.data()).isPresent()) {
             try {
                 var scope = scope(stationId);
-                variants.store(scope, StorageCategory.IMAGE_STATION_LOGO, KEY, blob.data(), blob.contentType(), 0);
+                images.store(PROFILE, scope, CATEGORY, KEY, blob.data(), 0);
                 stationRepository.deleteLogo(stationId);
                 log.info("Migrated legacy station logo to storage backend station={}", stationId);
-                return variants.read(scope, StorageCategory.IMAGE_STATION_LOGO, KEY, size);
+                return images.read(PROFILE, scope, CATEGORY, KEY, size);
             } catch (IOException e) {
                 log.warn("Failed to migrate legacy station logo station={}", stationId, e);
             }
         }
-        return Optional.of(new ImageData(blob.data(), blob.contentType()));
+        return Optional.of(new MediaContent(blob.data(), blob.contentType()));
     }
 
     private StorageScope.Station scope(int stationId) {

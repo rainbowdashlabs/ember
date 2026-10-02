@@ -9,10 +9,11 @@ import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
-import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import dev.chojo.ember.util.TestStationKeys;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Tag;
@@ -38,7 +39,8 @@ class StationExportServiceTest extends RepositoryTestBase {
     @Test
     @Order(1)
     void setup() {
-        exportService = new StationExportService(stationRepo, new Api());
+        exportService = new StationExportService(
+                stationRepo, TestStationKeys.transfer(), TestStationKeys.aiKeyTransfer(), new Api());
 
         var station = stationRepo.create("Export Test Station");
         stationId = station.id();
@@ -50,7 +52,7 @@ class StationExportServiceTest extends RepositoryTestBase {
         memberGroupRepo.addMember(group.id(), member.id());
 
         var telefon = profileFieldRepo.create(
-                stationId, "Telefon", ProfileFieldType.TEXT, ProfileFieldConfig.parse("{}"), false, false, null);
+                stationId, "Telefon", FieldType.TEXT, ProfileFieldConfig.parse("{}"), false, false, null);
         profileFieldRepo.assignToRole(telefon.id(), ProfileFieldScope.MEMBER, 0, null, null, null);
     }
 
@@ -75,8 +77,9 @@ class StationExportServiceTest extends RepositoryTestBase {
 
         var members = (List<Map<String, Object>>) data.get("station_member");
         assertFalse(members.isEmpty());
-        // account_id is in ignoredColumns - the importer matches via account_email lookup instead.
-        assertNull(members.getFirst().get("account_id"));
+        assertNull(
+                members.getFirst().get("account_id"),
+                "the account id is an ignored column; the importer matches by account email instead");
         assertEquals("export-test@example.com", members.getFirst().get("account_email"));
     }
 
@@ -106,12 +109,10 @@ class StationExportServiceTest extends RepositoryTestBase {
     @Order(6)
     @SuppressWarnings("unchecked")
     void paginationWorks() {
-        // Export with limit 1 should return exactly 1 member
         var page1 = exportService.exportTable(stationId, "station_member", 0, 1);
         var members1 = (List<Map<String, Object>>) page1.get("station_member");
         assertEquals(1, members1.size());
 
-        // Page 2 with offset 1 should be empty (only 1 member)
         var page2 = exportService.exportTable(stationId, "station_member", 1, 1);
         var members2 = (List<Map<String, Object>>) page2.get("station_member");
         assertTrue(members2.isEmpty());
@@ -148,12 +149,12 @@ class StationExportServiceTest extends RepositoryTestBase {
         assertNotNull(encoded);
         String rawToken = StationExportService.parseToken(encoded).orElseThrow().token();
 
-        var result = exportService.validateAndConsumeToken(rawToken);
+        var result = exportService.validateToken(rawToken);
         assertTrue(result.isPresent());
         assertEquals(stationId, result.get());
 
-        var secondUse = exportService.validateAndConsumeToken(rawToken);
-        assertTrue(secondUse.isEmpty());
+        exportService.markTransferComplete(stationId);
+        assertTrue(exportService.validateToken(rawToken).isEmpty());
     }
 
     @Test
@@ -168,15 +169,15 @@ class StationExportServiceTest extends RepositoryTestBase {
         var second = exportService.validateToken(rawToken);
         assertTrue(second.isPresent());
 
-        exportService.validateAndConsumeToken(rawToken);
-        var afterConsume = exportService.validateToken(rawToken);
-        assertTrue(afterConsume.isEmpty());
+        exportService.abortTransfer(stationId);
+        var afterAbort = exportService.validateToken(rawToken);
+        assertTrue(afterAbort.isEmpty());
     }
 
     @Test
     @Order(9)
     void invalidTokenFails() {
-        var result = exportService.validateAndConsumeToken("invalid-token-123");
+        var result = exportService.validateToken("invalid-token-123");
         assertTrue(result.isEmpty());
     }
 }

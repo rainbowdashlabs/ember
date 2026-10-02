@@ -53,8 +53,8 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.quizCatalogCreateImport.rejectedText') }}</p>
       <NeutralContainer class="space-y-1" data-testid="quiz-import-rejected">
         <SectionHeader>{{ t('quiz.catalogs.importRejected') }}</SectionHeader>
-        <MutedText tag="p" class="font-mono text-xs">questions[4]: Die Antworten passen nicht zu einer Frage vom Typ ORDERING</MutedText>
-        <MutedText tag="p" class="font-mono text-xs">questions[9]: SORTIEREN ist kein Fragetyp, den Ember kennt</MutedText>
+        <MutedText tag="p" class="font-mono text-xs">questions[4]: {{ t('helpCenter.sample.quiz.importTypeMismatch') }}</MutedText>
+        <MutedText tag="p" class="font-mono text-xs">questions[9]: {{ t('helpCenter.sample.quiz.importUnknownType') }}</MutedText>
       </NeutralContainer>
     </HelpSection>
 

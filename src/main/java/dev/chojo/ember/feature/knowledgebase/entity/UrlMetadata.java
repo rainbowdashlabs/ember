@@ -5,4 +5,6 @@
  */
 package dev.chojo.ember.feature.knowledgebase.entity;
 
-public record UrlMetadata(String title, String description) {}
+import org.jspecify.annotations.Nullable;
+
+public record UrlMetadata(@Nullable String title, @Nullable String description) {}

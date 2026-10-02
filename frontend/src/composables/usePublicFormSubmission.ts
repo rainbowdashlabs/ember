@@ -6,15 +6,19 @@
 import { computed, onMounted, ref, watch, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { publicForms } from '@/api'
-import { PublicFormState, type PublicForm, type PublicFormQuestion } from '@/api/publicForms'
-import { typedAnswers } from '@/util/formAnswers'
+import { PublicFormState } from '@/api/publicForms'
+import type { PublicForm, PublicFormQuestion } from '@/api/generated/schema'
 import { usePublicAnswers } from '@/composables/usePublicAnswers'
 import { presentQuestions } from '@/util/formShuffle'
 import { useAsyncAction } from '@/composables/useAsyncAction'
+import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { useFormWalk } from '@/composables/useFormWalk'
 import { useAnswerBaseline } from '@/composables/useAnswerBaseline'
 import { clearFormDraft, readFormDraft, saveFormDraft } from '@/util/formDrafts'
-import { describeFailure, FailureKind, type Failure } from '@/util/failure'
+import { FailureKind, type Failure } from '@/util/failure'
+
+/** The refusal of a second answer to a form that takes one per reader. */
+const FORM_ALREADY_ANSWERED = 'F-012'
 
 /**
  * Filling in and submitting a public form, shared by the standalone submission page and the form
@@ -47,8 +51,6 @@ export function usePublicFormSubmission(
 
   const form = ref<PublicForm | null>(null)
   const {answers, reset: initAnswerDefaults, toggleChoice, updateText, updateDate} = usePublicAnswers()
-  const loading = ref(false)
-  const loadFailure = ref<Failure | null>(null)
   const submitted = ref(false)
   const validationError = ref('')
 
@@ -59,7 +61,7 @@ export function usePublicFormSubmission(
 
   const pages = computed(() => form.value?.pages ?? [])
   const questions = computed(() => form.value?.questions ?? [])
-  const walk = useFormWalk(pages, questions, answers, question => question.questionType)
+  const walk = useFormWalk(pages, questions, answers)
   const baseline = useAnswerBaseline(answers, walk.path)
 
   /** The answers every question starts with, which alone are nothing worth keeping. */
@@ -120,9 +122,9 @@ export function usePublicFormSubmission(
     }
     const kept = readFormDraft(draftKey.value)
     if (!kept) return
-    const known = new Set(form.value.questions.map(question => question.id))
-    for (const [id, answer] of Object.entries(kept.answers)) {
-      if (known.has(Number(id))) answers.value[Number(id)] = answer
+    for (const question of form.value.questions) {
+      const answer = kept.answers[question.id]
+      if (answer?.type === question.questionType) answers.value[question.id] = answer
     }
     if (kept.path.length > 0) walk.showAt(kept.path, {})
     resumedFrom.value = new Date(kept.savedAt).toISOString()
@@ -186,28 +188,31 @@ export function usePublicFormSubmission(
   })
   onMounted(shuffleSeeded)
 
+  const {loading, failure: loadFailure, reload: fetchForm} = useAsyncLoader(async (isCurrent) => {
+    submitted.value = false
+    let data: PublicForm
+    try {
+      data = shareToken.value
+        ? await publicForms.getSharedForm(shareToken.value)
+        : await publicForms.getPublicForm(stationUid.value as string, publicUid.value as string)
+    } catch (e) {
+      if (isCurrent()) form.value = null
+      throw e
+    }
+    if (!isCurrent()) return
+    form.value = presented(data)
+    startBlank(form.value.questions)
+    resumeDraft()
+  }, {autoLoad: false})
+
   async function load() {
     if (preloaded.value !== null) return
     if (!shareToken.value && (!stationUid.value || !publicUid.value)) {
       form.value = null
       return
     }
-    loading.value = true
-    loadFailure.value = null
-    submitted.value = false
-    try {
-      const data = shareToken.value
-        ? await publicForms.getSharedForm(shareToken.value)
-        : await publicForms.getPublicForm(stationUid.value as string, publicUid.value as string)
-      form.value = presented(data)
-      startBlank(form.value.questions)
-      resumeDraft()
-    } catch (e) {
-      form.value = null
-      loadFailure.value = describeLoadFailure(e)
-    } finally {
-      loading.value = false
-    }
+    await fetchForm()
+    if (loadFailure.value) loadFailure.value = describeLoadFailure(loadFailure.value)
   }
 
   /**
@@ -218,8 +223,7 @@ export function usePublicFormSubmission(
    * has a form that is still there and a link that still works, and telling them otherwise costs them
    * the answer. Only the server actually saying it is gone produces that sentence now.
    */
-  function describeLoadFailure(e: unknown): Failure {
-    const described = describeFailure(e, t)
+  function describeLoadFailure(described: Failure): Failure {
     if (described.kind !== FailureKind.GONE) return described
     return {
       ...described,
@@ -235,9 +239,8 @@ export function usePublicFormSubmission(
   const {running: submitting, failure: sendFailure, run: runSubmit} = useAsyncAction(async () => {
     if (!form.value) return
     stopKeeping()
-    const answerMap = typedAnswers(form.value.questions, answers.value, question => question.questionType)
     const payload = {
-      answers: answerMap,
+      answers: answers.value,
       consentVersion: consentVersion.value,
       privacyVersion: privacyVersion.value,
       tosVersion: tosVersion.value,
@@ -271,7 +274,7 @@ export function usePublicFormSubmission(
   const submitFailure = computed<Failure | null>(() => {
     const described = sendFailure.value
     if (!described) return null
-    const known = knownRefusal(described.status)
+    const known = knownRefusal(described)
     if (!known) return described
     return {
       ...described,
@@ -281,10 +284,17 @@ export function usePublicFormSubmission(
     }
   })
 
-  function knownRefusal(status: number | undefined): string | null {
-    if (status === 409) return 'alreadyAnswered'
-    if (status === 429) return 'rateLimited'
-    if (status === 410) return 'closedWhileOpen'
+  /**
+   * Which of the three refusals this page words itself, if any.
+   *
+   * <p>An answer already given is told by its code rather than by its status alone, because legal
+   * documents that changed while the form stood open answer with the same status, and that reader has
+   * answered nothing yet: they have to reload and agree again, which the server's own sentence says.
+   */
+  function knownRefusal(failure: Failure): string | null {
+    if (failure.status === 409 && failure.code === FORM_ALREADY_ANSWERED) return 'alreadyAnswered'
+    if (failure.status === 429) return 'rateLimited'
+    if (failure.status === 410) return 'closedWhileOpen'
     return null
   }
 

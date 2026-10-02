@@ -19,8 +19,8 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import ScanButton from '@/components/scanner/ScanButton.vue'
 import {normaliseScannedPayload} from '@/components/scanner/useBarcodeScanner'
-import type { InventoryItem, RequiredInventoryItem } from '@/api/inventory'
-import type { CheckResult } from '@/api/inventoryCheck'
+import MovementStandingBadges from '@/components/inventory/MovementStandingBadges.vue'
+import type { CheckResult, InventoryItem, MovementStanding, RequiredInventoryItem } from '@/api/generated/schema'
 import type { CheckEntry } from '@/composables/useMemberCheck'
 
 const props = defineProps<{
@@ -29,9 +29,9 @@ const props = defineProps<{
   itemLabel: (item: InventoryItem, req: RequiredInventoryItem) => string
   sizeLabel: (req: RequiredInventoryItem, sizeId?: number | null) => string
   /** What has been written down about each piece so far, so the walk shows the same note the list does. */
-  itemNotes: Map<number, string>
-  /** The step a piece is standing on when something is already running on it, null otherwise. */
-  movementStep: (itemId: number) => string | null
+  itemNotes: ReadonlyMap<number, string>
+  /** Where the movement already running on a piece stands, null when nothing runs on it. */
+  movementOf: (itemId: number) => MovementStanding | null
 }>()
 
 const emit = defineEmits<{
@@ -125,12 +125,12 @@ const currentEntry = computed((): CheckEntry | null => {
  * What is already running on the piece in hand.
  *
  * <p>A piece can only be on one movement at a time, so a swap asked for beside a running one is
- * refused. The walk says what is happening to the piece instead of offering a button that the
- * station would only turn down.
+ * refused. The walk says where that movement stands, in the words of the movement list, instead of
+ * offering a button that the station would only turn down.
  */
-const runningStep = computed(() => {
+const running = computed(() => {
   const entry = currentEntry.value
-  return entry?.type === 'item' ? props.movementStep(entry.item.id) : null
+  return entry?.type === 'item' ? props.movementOf(entry.item.id) : null
 })
 
 function handleScan(value: string) {
@@ -231,7 +231,6 @@ defineExpose({ currentEntry })
 </script>
 
 <template>
-  <!-- Rapid check: assigned item -->
   <NeutralContainer v-if="currentEntry?.type === 'item'" class="space-y-4">
     <div class="text-center space-y-2">
       <p class="text-xs text-(--text-muted)">{{ t('inventory.check.rapidProgress', { current: uncheckedEntries.length }) }}</p>
@@ -265,12 +264,13 @@ defineExpose({ currentEntry })
         {{ t('inventory.check.lost') }}
       </ErrorButton>
     </ButtonRow>
-    <p v-if="runningStep !== null" class="text-center text-sm text-(--text-muted)" data-testid="rapid-on-the-move">
-      {{ t('inventory.check.onTheMove') }}<span v-if="runningStep"> ({{ runningStep }})</span>
-    </p>
+    <div v-if="running" class="space-y-1 text-center text-sm text-(--text-muted)" data-testid="rapid-on-the-move">
+      <p>{{ t('inventory.check.onTheMove') }}</p>
+      <MovementStandingBadges :movement="running"/>
+    </div>
     <ButtonRow align="center">
       <InfoButton
-          v-if="runningStep === null"
+          v-if="!running"
           :icon="['fas', 'right-left']"
           data-testid="rapid-exchange"
           @click="emit('exchange', currentEntry)"
@@ -296,7 +296,6 @@ defineExpose({ currentEntry })
     </ButtonRow>
   </NeutralContainer>
 
-  <!-- Rapid check: empty slot -->
   <NeutralContainer v-else-if="currentEntry?.type === 'slot'" class="space-y-4">
     <div class="text-center space-y-2">
       <p class="text-xs text-(--text-muted)">{{ t('inventory.check.rapidProgress', { current: uncheckedEntries.length }) }}</p>
@@ -310,7 +309,6 @@ defineExpose({ currentEntry })
       </p>
     </div>
 
-    <!-- Assign from existing unassigned -->
     <div v-if="availableForInventory(currentEntry.req.inventoryId).length > 0" class="flex flex-col sm:flex-row gap-2 max-w-md mx-auto">
       <SelectInput v-model="rapidAssignSelection" class="flex-1">
         <option value="" disabled>{{ t('inventory.check.selectItem') }}</option>
@@ -323,7 +321,6 @@ defineExpose({ currentEntry })
       </PrimaryButton>
     </div>
 
-    <!-- Create new item -->
     <div class="flex flex-col sm:flex-row gap-2 max-w-md mx-auto">
       <SelectInput v-if="currentEntry.req.hasSizes && currentEntry.req.sizes.length > 0" v-model="rapidCreateSizeId" class="flex-1">
         <option value="" disabled>{{ t('inventory.check.selectSize') }}</option>
@@ -358,7 +355,6 @@ defineExpose({ currentEntry })
     </ButtonRow>
   </NeutralContainer>
 
-  <!-- Rapid check: done -->
   <NeutralContainer v-else class="text-center py-4 space-y-2">
     <p class="text-lg font-medium">{{ t('inventory.check.rapidDone') }}</p>
     <SecondaryButton @click="emit('done')">{{ t('inventory.check.backToList') }}</SecondaryButton>

@@ -5,9 +5,10 @@
  */
 package dev.chojo.ember.feature.station.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.RefusalResponse;
+import dev.chojo.ember.api.refusal.StationRefusal;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.service.AccountInviteService;
 import dev.chojo.ember.feature.account.service.AuthService;
@@ -45,7 +46,7 @@ class StationServiceTest extends RepositoryTestBase {
                 mock(FederationService.class),
                 new StationMemberInviteService(
                         stationMemberRepo,
-                        memberGroupRepo,
+                        newGroupMemberships(),
                         new AccountInviteService(accountRepo, mock(AuthService.class))),
                 clusterRepo);
     }
@@ -56,6 +57,10 @@ class StationServiceTest extends RepositoryTestBase {
         var station = service.create("TestStation");
         assertNotNull(station);
         assertEquals("TestStation", station.name());
+        assertEquals(
+                DiscoveryVisibility.PUBLIC,
+                station.discoveryVisibility(),
+                "a newly founded station is listed publicly until it decides otherwise");
         stationId = station.id();
     }
 
@@ -249,22 +254,20 @@ class StationServiceTest extends RepositoryTestBase {
         stationMemberRepo.grantPermission(newOwner.id(), managerRole.id());
         stationRepo.setOwner(stationId, owner.id());
 
-        // Current owner transfers to new owner
         assertTrue(service.transferOwnership(stationId, owner.id(), newOwner.id()));
         assertTrue(service.isOwner(stationId, newOwner.id()));
         assertFalse(service.isOwner(stationId, owner.id()));
 
-        // Cleanup
         stationMemberRepo.delete(owner.id());
         stationMemberRepo.delete(newOwner.id());
         accountRepo.delete(ownerAcc.id());
         accountRepo.delete(newOwnerAcc.id());
     }
 
+    /** Runs after the previous test has cleared the station's owner. */
     @Test
     @Order(40)
     void transferOwnershipNotOwner() {
-        // stationId has no owner set (cleanup from previous test)
         assertFalse(service.transferOwnership(stationId, 99999, 1));
     }
 
@@ -281,7 +284,6 @@ class StationServiceTest extends RepositoryTestBase {
         stationMemberRepo.grantPermission(owner.id(), managerRole.id());
         stationRepo.setOwner(stationId, owner.id());
 
-        // Target doesn't have manager role
         assertFalse(service.transferOwnership(stationId, owner.id(), nonMgr.id()));
 
         stationMemberRepo.delete(owner.id());
@@ -306,7 +308,6 @@ class StationServiceTest extends RepositoryTestBase {
     @Test
     @Order(44)
     void managerInfoWithManagerWithCredential() {
-        // Create account with credential for full accountReady check
         Account account = accountRepo.create("svc-mgr-cred@test.com", "MgrCred", "User", true);
         accountRepo.createCredential(account.id(), "$2a$10$hash");
         var member = stationMemberRepo.create(stationId, account.id());
@@ -317,9 +318,9 @@ class StationServiceTest extends RepositoryTestBase {
 
         var info = service.findManagerInfo(stationId);
         assertTrue(info.isPresent());
-        // accountReady = hasPassword && !forcePasswordChange && emailVerified
-        // createCredential defaults forcePasswordChange to false, email is verified
-        assertTrue(info.get().accountReady());
+        assertTrue(
+                info.get().accountReady(),
+                "a password without a forced change and a verified email make the account ready");
 
         stationMemberRepo.delete(member.id());
         accountRepo.delete(account.id());
@@ -328,11 +329,28 @@ class StationServiceTest extends RepositoryTestBase {
     @Test
     @Order(45)
     void createWithManagerNewAccount() {
-        // createWithManager uses a mocked AuthService, so just verify no exception
-        // and the station is created
-        var station = stationRepo.create("CreateWithMgr");
-        assertNotNull(station);
+        String email = "svc-new-mgr@test.com";
+        assertTrue(accountRepo.findByEmail(email).isEmpty());
+
+        var station = service.createWithManager("CreateWithMgr", email);
+
+        assertEquals("CreateWithMgr", station.name());
+        var account = accountRepo.findByEmail(email).orElseThrow();
+        var manager = stationMemberRepo
+                .findByStationAndAccount(station.id(), account.id())
+                .orElseThrow();
+        assertEquals(StationUserType.MANAGER, manager.userType());
+        var managerRole = stationMemberRepo
+                .findPermissionByName(StationPermission.STATION_ADMINISTRATOR)
+                .orElseThrow();
+        assertTrue(stationMemberRepo.findPermissions(manager.id()).stream().anyMatch(p -> p.id() == managerRole.id()));
+        assertEquals(
+                manager.id(),
+                stationRepo.findById(station.id()).orElseThrow().ownerMemberId(),
+                "the manager owns the new station");
+
         stationRepo.delete(station.id());
+        accountRepo.delete(account.id());
     }
 
     @Test
@@ -460,7 +478,7 @@ class StationServiceTest extends RepositoryTestBase {
         var slug = stationRepo.findById(other.id()).orElseThrow().publicSlug();
 
         var refused = assertThrows(RefusalResponse.class, () -> service.updatePublicSlug(stationId, slug));
-        assertEquals(Refusal.STATION_SLUG_TAKEN, refused.refusal());
+        assertEquals(StationRefusal.STATION_SLUG_TAKEN, refused.refusal());
         assertEquals(HttpStatus.CONFLICT.getCode(), refused.getStatus());
 
         stationRepo.delete(other.id());
@@ -493,9 +511,8 @@ class StationServiceTest extends RepositoryTestBase {
                 member.id(), "aurora", false, "{\"light\":{\"primary\":\"#fff\"}}", ThemeFeel.CORNERS, false);
 
         var after = stationRepo.findById(member.id()).orElseThrow();
-        // Compared without the spacing the database writes back, which is not what the cluster locked
-        assertEquals(
-                "{\"light\":{}}", after.customThemeColors().replace(" ", ""), "the locked colours are the cluster's");
+        var colorsWithoutDatabaseSpacing = after.customThemeColors().replace(" ", "");
+        assertEquals("{\"light\":{}}", colorsWithoutDatabaseSpacing, "the locked colours are the cluster's");
         assertEquals("aurora", after.defaultTheme(), "what it did not lock is still the station's");
         assertEquals(ThemeFeel.CORNERS, after.defaultFeel());
 

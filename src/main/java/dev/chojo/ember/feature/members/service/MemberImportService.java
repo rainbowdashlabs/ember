@@ -13,23 +13,23 @@ import dev.chojo.ember.feature.account.service.SetupMail;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.entity.ProfileField;
-import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.ProfileFieldRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.question.FieldType;
+import dev.chojo.ember.feature.question.QuestionCheck;
+import dev.chojo.ember.feature.question.QuestionKind;
+import dev.chojo.ember.feature.question.QuestionValues;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.node.BooleanNode;
-import tools.jackson.databind.node.DecimalNode;
-import tools.jackson.databind.node.StringNode;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -52,6 +52,7 @@ public class MemberImportService {
     private final AccountRepository accountRepository;
     private final StationMemberRepository stationMemberRepository;
     private final MemberGroupRepository memberGroupRepository;
+    private final GroupMembershipService groupMemberships;
     private final ProfileFieldRepository profileFieldRepository;
     private final AccountInviteService accountInviteService;
 
@@ -60,16 +61,16 @@ public class MemberImportService {
             AccountRepository accountRepository,
             StationMemberRepository stationMemberRepository,
             MemberGroupRepository memberGroupRepository,
+            GroupMembershipService groupMemberships,
             ProfileFieldRepository profileFieldRepository,
             AccountInviteService accountInviteService) {
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.memberGroupRepository = memberGroupRepository;
+        this.groupMemberships = groupMemberships;
         this.profileFieldRepository = profileFieldRepository;
         this.accountInviteService = accountInviteService;
     }
-
-    // -- API records --
 
     /**
      * Parses a CSV string into headers and rows using the specified separator.
@@ -93,8 +94,9 @@ public class MemberImportService {
     }
 
     /**
-     * The fields of a station that hold an answer, which are the only ones a column can be mapped
-     * onto. A heading between fields is not something a spreadsheet has a column for.
+     * The fields of a station that take an answer, which are the only ones a column can be mapped
+     * onto. A heading between fields is not something a spreadsheet has a column for, and an age is
+     * counted from a date rather than read from a cell.
      */
     private List<ProfileField> valueFields(int stationId) {
         return profileFieldRepository.findByStation(stationId).stream()
@@ -127,6 +129,7 @@ public class MemberImportService {
                 warnings.add("Zeile " + (i + 2) + ": Kein Name, übersprungen");
                 continue;
             }
+            warnAboutRefusedCells(mapped, profileFields, i + 2, warnings);
             members.add(mapped.at(i, struckOut.contains(i)));
         }
 
@@ -146,6 +149,9 @@ public class MemberImportService {
     /**
      * Imports members from CSV data, creating accounts, assigning roles and groups,
      * setting profile fields, and linking guardian/manager contacts.
+     *
+     * <p>A new contact's phone number lands in the station's one mobile number field, the same one its
+     * members answer, since a field is defined once for every audience.
      *
      * @param stationId the target station
      * @param csv       the CSV content
@@ -209,22 +215,11 @@ public class MemberImportService {
             stationMemberRepository.grantPermission(member.id(), memberRole.id());
             membersCreated++;
 
-            // Group
-            if (!mapped.group().isBlank()) {
-                var group = findOrCreateGroup(groups, stationId, mapped.group());
-                memberGroupRepository.addMember(group.id(), member.id());
+            if (assignGroup(groups, stationId, member.id(), mapped.group(), i + 2, warnings)) {
                 groupsAssigned++;
             }
 
-            for (var entry : mapped.profileFields().entrySet()) {
-                var field = profileFields.stream()
-                        .filter(f -> String.valueOf(f.id()).equals(entry.getKey()))
-                        .findFirst();
-                if (field.isPresent() && !entry.getValue().isBlank()) {
-                    storeAnswer(member.id(), field.get(), entry.getValue());
-                    profileFieldsSet++;
-                }
-            }
+            profileFieldsSet += storeAnswers(member.id(), mapped, profileFields, i + 2, warnings);
 
             for (var contact : mapped.contacts()) {
                 if (contact.name().isBlank()) continue;
@@ -281,12 +276,11 @@ public class MemberImportService {
 
                         if (!contact.phone().isBlank()) {
                             int mgrId = manager.id();
-                            // A question is written once now, so the guardians' mobile number is the
-                            // station's mobile number: there is no second copy to tell it apart from.
+                            int line = i + 2;
                             profileFields.stream()
                                     .filter(f -> f.name().equals("Mobilnummer"))
                                     .findFirst()
-                                    .ifPresent(f -> storeAnswer(mgrId, f, contact.phone()));
+                                    .ifPresent(f -> storeAnswer(mgrId, f, contact.phone(), line, warnings));
                         }
                     }
                     managerCache.put(mgrKey, manager);
@@ -368,22 +362,11 @@ public class MemberImportService {
             stationMemberRepository.grantPermission(member.id(), loginRole.id());
             membersCreated++;
 
-            // Group
-            if (!mapped.group().isBlank()) {
-                var group = findOrCreateGroup(groups, stationId, mapped.group());
-                memberGroupRepository.addMember(group.id(), member.id());
+            if (assignGroup(groups, stationId, member.id(), mapped.group(), i + 2, warnings)) {
                 groupsAssigned++;
             }
 
-            for (var entry : mapped.profileFields().entrySet()) {
-                var field = profileFields.stream()
-                        .filter(f -> String.valueOf(f.id()).equals(entry.getKey()))
-                        .findFirst();
-                if (field.isPresent() && !entry.getValue().isBlank()) {
-                    storeAnswer(member.id(), field.get(), entry.getValue());
-                    profileFieldsSet++;
-                }
-            }
+            profileFieldsSet += storeAnswers(member.id(), mapped, profileFields, i + 2, warnings);
         }
 
         log.info(
@@ -399,13 +382,11 @@ public class MemberImportService {
 
     private MemberPreview applyMappings(
             Map<String, String> row, List<ColumnMapping> mappings, List<ProfileField> fields) {
-        // Group mappings by target, sorted by mergeOrder for merging
         var byTarget = new LinkedHashMap<String, List<ColumnMapping>>();
         for (var m : mappings) {
             if ("skip".equals(m.target())) continue;
             byTarget.computeIfAbsent(m.target(), _ -> new ArrayList<>()).add(m);
         }
-        // Sort each group by mergeOrder
         byTarget.values().forEach(list -> list.sort(Comparator.comparingInt(ColumnMapping::mergeOrder)));
 
         String firstName = "", lastName = "", email = "", group = "";
@@ -459,11 +440,9 @@ public class MemberImportService {
     /**
      * The given name and surname of a contact, out of however many columns the file spends on them.
      *
-     * <p>A youth list usually spends one, headed "Kontakt 1" and holding a whole name. Pointed at the
-     * given name, as the wizard does by itself, it left the surname empty and the parent was written
-     * down as "Rita Sommer Sommer", the child's surname standing in for the missing one. The last word
-     * of a whole name is the surname it already carries, so it is read as one. A file that does spend
-     * two columns is left exactly as it is, and so is a name of one word.
+     * <p>A youth list usually spends one column on a whole name, which the wizard points at the given
+     * name; its last word is read as the surname, or the child's surname would stand in for it. Two
+     * columns, or a name of one word, are left as they are.
      *
      * @param first what was pointed at the given name
      * @param last  what was pointed at the surname, often nothing
@@ -478,6 +457,10 @@ public class MemberImportService {
         };
     }
 
+    /**
+     * Joins the columns mapped onto one target, each split and value-mapped as its mapping says. A
+     * negative split index counts from the end.
+     */
     private String buildMergedValue(Map<String, String> row, List<ColumnMapping> mappingsForTarget) {
         var parts = new ArrayList<String>();
         String separator = " ";
@@ -485,11 +468,10 @@ public class MemberImportService {
             String raw = row.getOrDefault(m.csvColumn(), "").trim();
             if (raw.isEmpty()) continue;
 
-            // Apply split if configured
             if (m.splitChar() != null && !m.splitChar().isEmpty()) {
                 String[] splitParts = raw.split(Pattern.quote(m.splitChar()), -1);
                 int idx = m.splitIndex();
-                if (idx < 0) idx = splitParts.length + idx; // negative index from end
+                if (idx < 0) idx = splitParts.length + idx;
                 if (idx >= 0 && idx < splitParts.length) {
                     raw = splitParts[idx].trim();
                 } else {
@@ -498,7 +480,6 @@ public class MemberImportService {
                 if (raw.isEmpty()) continue;
             }
 
-            // Apply value mapping if present
             if (m.valueMap() != null && !m.valueMap().isEmpty()) {
                 String mapped = m.valueMap().get(raw);
                 if (mapped == null) {
@@ -528,13 +509,11 @@ public class MemberImportService {
         return result;
     }
 
-    // -- Parse CSV headers --
-
+    /** One row keyed by its headers, a repeated header numbered so it does not overwrite the first. */
     private Map<String, String> mapRow(List<String> headers, List<String> cols) {
         var map = new LinkedHashMap<String, String>();
         for (int i = 0; i < headers.size() && i < cols.size(); i++) {
             String header = headers.get(i);
-            // Handle duplicate headers by appending index
             if (map.containsKey(header)) {
                 int suffix = 2;
                 while (map.containsKey(header + " (" + suffix + ")")) suffix++;
@@ -544,8 +523,6 @@ public class MemberImportService {
         }
         return map;
     }
-
-    // -- Preview with mapping --
 
     /**
      * Whether this row is about somebody the station already has, and what to call them if so.
@@ -578,6 +555,49 @@ public class MemberImportService {
     }
 
     /**
+     * The cells of a row that answer one of the station's questions, each with its question, leaving
+     * out empty cells and columns pointed at a question the station no longer has.
+     */
+    private static Map<ProfileField, String> answeredCells(MemberPreview mapped, List<ProfileField> fields) {
+        var cells = new LinkedHashMap<ProfileField, String>();
+        for (var entry : mapped.profileFields().entrySet()) {
+            if (entry.getValue().isBlank()) continue;
+            fields.stream()
+                    .filter(field -> String.valueOf(field.id()).equals(entry.getKey()))
+                    .findFirst()
+                    .ifPresent(field -> cells.put(field, entry.getValue()));
+        }
+        return cells;
+    }
+
+    /**
+     * Writes the answers of one row into a person's profile.
+     *
+     * @return how many answers were stored
+     */
+    private int storeAnswers(
+            int memberId, MemberPreview mapped, List<ProfileField> fields, int line, List<String> warnings) {
+        int stored = 0;
+        for (var cell : answeredCells(mapped, fields).entrySet()) {
+            if (storeAnswer(memberId, cell.getKey(), cell.getValue(), line, warnings)) stored++;
+        }
+        return stored;
+    }
+
+    /**
+     * Warns about every cell of a row its question will not take, so the preview says it before the
+     * import leaves it out.
+     */
+    private static void warnAboutRefusedCells(
+            MemberPreview mapped, List<ProfileField> fields, int line, List<String> warnings) {
+        for (var cell : answeredCells(mapped, fields).entrySet()) {
+            if (acceptedAnswer(cell.getKey(), cell.getValue()).isEmpty()) {
+                warnings.add(refusedCell(line, cell.getKey(), cell.getValue()));
+            }
+        }
+    }
+
+    /**
      * Writes one cell of the file into the answer a person gives to one of the station's questions.
      *
      * <p>The one way the import stores an answer, and it exists to be the only one. An answer is held
@@ -585,69 +605,103 @@ public class MemberImportService {
      * number with a leading zero, which JSON does not have, and the database refuses the entire
      * reading over the one cell. That went unnoticed twice because two places wrote answers.
      *
+     * <p>The cell is measured against the question as an answer typed on the profile would be, and
+     * kept in the same shape.
+     *
      * @param memberId the person the answer belongs to, who may be the member or a guardian of theirs
      * @param field    the question being answered
      * @param cell     the cell as it stands in the file
+     * @param line     the cell's line in the file, for the warning
+     * @param warnings where a cell the question does not take is reported
+     * @return whether an answer was stored
      */
-    private void storeAnswer(int memberId, ProfileField field, String cell) {
-        profileFieldRepository.setValue(memberId, field.id(), asAnswer(cell.trim(), field.fieldType()));
+    private boolean storeAnswer(int memberId, ProfileField field, String cell, int line, List<String> warnings) {
+        var answer = acceptedAnswer(field, cell);
+        if (answer.isEmpty()) {
+            warnings.add(refusedCell(line, field, cell));
+            return false;
+        }
+        JsonNode kept = QuestionValues.write(field.fieldType(), answer.get());
+        if (kept == null) return false;
+        profileFieldRepository.setValue(memberId, field.id(), kept);
+        return true;
     }
 
     /**
-     * Turns a cell into the answer a profile holds.
+     * The answer a cell gives, where the question takes it.
      *
-     * <p>What a cell means follows the kind of question it answers. Anything the question does not
-     * ask a particular shape of becomes text, which is what a spreadsheet cell is to begin with.
+     * <p>A cell the question does not take is left out rather than kept as text under a question that
+     * cannot read it: a shirt size the station does not offer or a day that is not a day would sit
+     * on the profile looking answered, and the row's warning is the one place it gets noticed.
+     *
+     * @param field the question the cell answers
+     * @param cell  the cell as it stands in the file
+     * @return the answer as plain text, or nothing where the question refuses it
+     */
+    private static Optional<String> acceptedAnswer(ProfileField field, String cell) {
+        String answer = asAnswer(cell.trim(), field.fieldType());
+        boolean refused = field.question()
+                .flatMap(question -> QuestionCheck.answerIfGiven(question, answer))
+                .isPresent();
+        return refused ? Optional.empty() : Optional.of(answer);
+    }
+
+    /** What a row's warning says about a cell its question does not take. */
+    private static String refusedCell(int line, ProfileField field, String cell) {
+        return "Zeile " + line + ": \"" + cell.trim() + "\" passt nicht zum Feld " + field.name()
+                + ", nicht übernommen";
+    }
+
+    /**
+     * Turns a cell into the answer a question of its kind reads.
+     *
+     * <p>A spreadsheet writes a day the German way and yes and no in words; both are turned into
+     * what the question takes. Everything else already is the answer, and what still does not read
+     * as one is refused by the check rather than guessed at here.
      *
      * @param value     the cell, already trimmed
      * @param fieldType the kind of question it answers
-     * @return the answer
+     * @return the answer as plain text
      */
-    private JsonNode asAnswer(String value, ProfileFieldType fieldType) {
-        return switch (fieldType) {
-            case DATE, BIRTH_DATE, EXPIRY_DATE -> StringNode.valueOf(asIsoDate(value));
-            case NUMBER, AGE -> asNumber(value);
-            case BOOLEAN -> asBoolean(value);
-            default -> StringNode.valueOf(value);
-        };
+    private static String asAnswer(String value, FieldType fieldType) {
+        var kind = fieldType.kind().orElse(null);
+        if (kind == QuestionKind.DATE) return asIsoDate(value);
+        if (kind == QuestionKind.BOOLEAN) return asBoolean(value);
+        return value;
     }
 
-    /**
-     * A German date as an ISO one, or the cell unchanged where it is neither.
-     *
-     * <p>Unchanged rather than refused: the answer is kept as it was written and can be corrected on
-     * the member, which is better than losing the row over a date somebody typed by hand.
-     */
-    private String asIsoDate(String value) {
+    /** A German date as an ISO one, or the cell unchanged where it is not one. */
+    private static String asIsoDate(String value) {
         try {
             return LocalDate.parse(value, DE_DATE).toString();
-        } catch (Exception notGerman) {
-            try {
-                LocalDate.parse(value);
-                return value;
-            } catch (Exception notIso) {
-                log.debug("A date cell matched neither the German nor the ISO format and was kept as written", notIso);
-                return value;
-            }
-        }
-    }
-
-    /** A number where the cell is one, and otherwise the cell as text, so nothing is thrown away. */
-    private JsonNode asNumber(String value) {
-        try {
-            return DecimalNode.valueOf(new BigDecimal(value.replace(',', '.')));
-        } catch (NumberFormatException notANumber) {
-            log.debug("A number cell did not read as a number and was kept as text", notANumber);
-            return StringNode.valueOf(value);
+        } catch (DateTimeParseException notGerman) {
+            return value;
         }
     }
 
     /** The words a spreadsheet says yes and no with, in both languages a station is likely to use. */
-    private JsonNode asBoolean(String value) {
+    private static String asBoolean(String value) {
         String said = value.toLowerCase();
-        if (Set.of("ja", "yes", "true", "wahr", "x", "1").contains(said)) return BooleanNode.TRUE;
-        if (Set.of("nein", "no", "false", "falsch", "0", "").contains(said)) return BooleanNode.FALSE;
-        return StringNode.valueOf(value);
+        if (Set.of("ja", "yes", "true", "wahr", "x", "1").contains(said)) return "true";
+        if (Set.of("nein", "no", "false", "falsch", "0").contains(said)) return "false";
+        return value;
+    }
+
+    /**
+     * Puts an imported member into the group their row names, creating the group where the station
+     * has none by that name. A group that does not take them, because of its binding or its set, is
+     * left out with a warning on the row rather than failing the import.
+     *
+     * @return {@code true} where the member is in the group afterwards
+     */
+    private boolean assignGroup(
+            List<MemberGroup> groups, int stationId, int memberId, String groupName, int line, List<String> warnings) {
+        if (groupName.isBlank()) return false;
+        var group = findOrCreateGroup(groups, stationId, groupName);
+        if (groupMemberships.joinAutomatically(group.id(), memberId)) return true;
+        warnings.add("Zeile " + line + ": Die Gruppe " + group.name()
+                + " nimmt dieses Mitglied nicht auf, nicht zugeordnet");
+        return false;
     }
 
     private MemberGroup findOrCreateGroup(List<MemberGroup> groups, int stationId, String name) {
@@ -658,12 +712,6 @@ public class MemberImportService {
         groups.add(created);
         return created;
     }
-
-    // -- Team Import --
-
-    // -- Mapping logic --
-
-    // -- Helpers --
 
     /**
      * Maps a CSV column to a target field with optional value transformation, merging, and splitting.

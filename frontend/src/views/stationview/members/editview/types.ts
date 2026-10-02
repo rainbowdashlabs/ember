@@ -3,22 +3,27 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {MergedProfileField} from '@/util/profileFields'
-import type {ProfileField} from '@/api/profileFields'
-import type {MyInventoryItem} from '@/api/inventory'
-import type {MemberGroup, PermissionGrant, StationMember, UserTag} from '@/api/types'
+import type {
+    MemberGroup,
+    MemberGroupSet,
+    MemberWithName,
+    MyInventoryItem,
+    Permission,
+    UserTag,
+} from '@/api/generated/schema'
+import type {ProfileAnswers} from '@/composables/useProfileAnswers'
 
 /**
  * Everything the member edit tabs render, loaded once by the view and handed
  * down as a single bundle so the tab dispatcher stays free of pass-through props.
  */
 export interface MemberEditData {
-    fields: MergedProfileField[]
-    values: Map<string, string>
-    allRoles: PermissionGrant[]
+    answers: ProfileAnswers
+    allRoles: Permission[]
     allGroups: MemberGroup[]
+    allSets: MemberGroupSet[]
     allTags: UserTag[]
-    allMembers: StationMember[]
+    allMembers: MemberWithName[]
     userType: string
     roleIds: Set<number>
     groupIds: Set<number>

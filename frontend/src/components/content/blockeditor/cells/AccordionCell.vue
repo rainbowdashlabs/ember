@@ -5,7 +5,7 @@
  */
 <script lang="ts" setup>
 import {computed, ref} from 'vue'
-import type {AccordionConfig} from '@/api/pageManage'
+import type {AccordionConfig} from '@/api/generated/schema'
 import {renderPageMarkdown} from '@/util/markdown'
 
 const props = defineProps<{

@@ -11,8 +11,9 @@ import MemberEntry from './MemberEntry.vue'
 import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
 import {fromMember, userTypesOf} from '@/components/input/select/memberOption'
 import {useMemberPick} from '@/composables/useMemberPick'
-import type {AttendanceEntry, AttendanceStatus, MemberNotes} from '@/api/attendance'
-import type {MemberGroup, StationMember} from '@/api/types'
+import type {AttendanceStatus} from '@/api/attendance'
+import type {AttendanceEntry, MemberNotes, MemberWithName} from '@/api/generated/schema'
+import type {MemberSection} from './memberSections'
 
 const {t} = useI18n()
 
@@ -20,8 +21,8 @@ const selectedMemberId = defineModel<string>('selectedMemberId', {required: true
 
 const props = defineProps<{
   entries: AttendanceEntry[]
-  allMembers: StationMember[]
-  memberSections: { group: MemberGroup | null; members: StationMember[] }[]
+  allMembers: MemberWithName[]
+  memberSections: MemberSection[]
   readonly?: boolean
   sessionStart?: string
   sessionEnd?: string
@@ -72,9 +73,8 @@ function getEntry(memberId: number): AttendanceEntry | undefined {
 </script>
 
 <template>
-  <!-- Members by group -->
-  <div v-for="section in memberSections" :key="section.group?.id ?? 'ungrouped'" class="space-y-2">
-    <SubHeader>{{ section.group?.name ?? t('attendanceSession.otherMembers') }}</SubHeader>
+  <div v-for="section in memberSections" :key="section.key" class="space-y-2">
+    <SubHeader>{{ section.title ?? t('attendanceSession.otherMembers') }}</SubHeader>
     <div class="space-y-1">
       <MemberEntry
           v-for="member in section.members"
@@ -101,7 +101,6 @@ function getEntry(memberId: number): AttendanceEntry | undefined {
     </div>
   </div>
 
-  <!-- Add member -->
   <MemberSelectInput
       v-if="!readonly && membersNotInSession.length > 0"
       v-model="picked"

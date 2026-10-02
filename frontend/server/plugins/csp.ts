@@ -21,11 +21,17 @@ import {defineNitroPlugin, useRuntimeConfig} from '#imports'
  * knowing: the policy defends against injected script, not against injected style.
  *
  * Images, frames and media accept any HTTPS source, because an operator points the map at their own
- * tile server and an author embeds a video from wherever their group hosts it.
+ * tile server and an author embeds a video from wherever their group hosts it. Requests a script
+ * makes go only to this site and the few services named in `connect-src`, among them the school
+ * holiday service the calendar imports from; everything else, the AI providers included, goes
+ * through the backend.
+ *
+ * The policy is enforced unless the operator sets `NUXT_CSP_MODE=report`, which is the way back for
+ * an installation whose embedded content it turns out to refuse.
  */
 
-/** How the policy is sent. Report-only observes and reports; enforce refuses. */
-const MODES = ['report', 'enforce', 'off'] as const
+/** How the policy is sent. Enforce refuses; report-only only observes. */
+const MODES = ['enforce', 'report', 'off'] as const
 type CspMode = (typeof MODES)[number]
 
 const DIRECTIVES = (nonce: string): string[] => [
@@ -34,7 +40,7 @@ const DIRECTIVES = (nonce: string): string[] => [
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https:",
     "font-src 'self' data:",
-    "connect-src 'self' https://api.github.com",
+    "connect-src 'self' https://api.github.com https://deutsche-schulferien-api.vercel.app",
     "frame-src 'self' blob: https:",
     "media-src 'self' blob: https:",
     "worker-src 'self' blob:",
@@ -45,7 +51,7 @@ const DIRECTIVES = (nonce: string): string[] => [
 ]
 
 function resolveMode(configured: unknown): CspMode {
-    return MODES.includes(configured as CspMode) ? (configured as CspMode) : 'report'
+    return MODES.includes(configured as CspMode) ? (configured as CspMode) : 'enforce'
 }
 
 /**

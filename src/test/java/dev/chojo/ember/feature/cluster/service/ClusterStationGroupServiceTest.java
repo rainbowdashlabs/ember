@@ -6,12 +6,12 @@
 package dev.chojo.ember.feature.cluster.service;
 
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.ClusterRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
-import dev.chojo.ember.feature.members.entity.ProfileFieldType;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.NotFoundResponse;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -76,17 +76,28 @@ class ClusterStationGroupServiceTest extends RepositoryTestBase {
         var foreign = clusterService.createStation(otherId, "Wache Fremd " + NAMES.incrementAndGet());
         var group = clusterStationGroupService.create(clusterId, "Nordkreis " + NAMES.incrementAndGet());
 
-        assertThrows(
-                BadRequestResponse.class,
-                () -> clusterStationGroupService.setStations(clusterId, group.id(), List.of(foreign.uid())),
+        assertEquals(
+                ClusterRefusal.CLUSTER_STATION_GROUP_STATION_NOT_IN_CLUSTER,
+                assertThrows(
+                                RefusalResponse.class,
+                                () -> clusterStationGroupService.setStations(
+                                        clusterId, group.id(), List.of(foreign.uid())))
+                        .refusal(),
                 "one association cannot file another's stations");
-        assertThrows(
-                BadRequestResponse.class,
-                () -> clusterStationGroupService.setStations(clusterId, group.id(), List.of(home.uid())),
+        assertEquals(
+                ClusterRefusal.CLUSTER_STATION_GROUP_TAKES_NO_HOME_STATION,
+                assertThrows(
+                                RefusalResponse.class,
+                                () -> clusterStationGroupService.setStations(
+                                        clusterId, group.id(), List.of(home.uid())))
+                        .refusal(),
                 "and its own store is not one of its stations");
-        assertThrows(
-                NotFoundResponse.class,
-                () -> clusterStationGroupService.rename(otherId, group.id(), "Fremd"),
+        assertEquals(
+                ClusterRefusal.CLUSTER_STATION_GROUP_NOT_HERE,
+                assertThrows(
+                                RefusalResponse.class,
+                                () -> clusterStationGroupService.rename(otherId, group.id(), "Fremd"))
+                        .refusal(),
                 "nor rename a group that is not its own");
 
         clusterService.releaseStation(otherId, foreign.id());
@@ -101,8 +112,8 @@ class ClusterStationGroupServiceTest extends RepositoryTestBase {
         clusterStationGroupService.create(clusterId, "Nordkreis");
 
         var refused =
-                assertThrows(BadRequestResponse.class, () -> clusterStationGroupService.create(clusterId, "nordkreis"));
-        assertTrue(refused.getMessage().contains("already files"));
+                assertThrows(RefusalResponse.class, () -> clusterStationGroupService.create(clusterId, "nordkreis"));
+        assertEquals(ClusterRefusal.CLUSTER_STATION_GROUP_NAME_TAKEN, refused.refusal());
 
         clusterService.delete(clusterId);
     }
@@ -118,7 +129,7 @@ class ClusterStationGroupServiceTest extends RepositoryTestBase {
         var field = clusterProfileFieldService.create(
                 clusterId,
                 "Atemschutztauglich",
-                ProfileFieldType.BOOLEAN,
+                FieldType.BOOLEAN,
                 ProfileFieldConfig.empty(),
                 false,
                 false,
@@ -128,8 +139,8 @@ class ClusterStationGroupServiceTest extends RepositoryTestBase {
                 group.id());
 
         var refused =
-                assertThrows(BadRequestResponse.class, () -> clusterStationGroupService.delete(clusterId, group.id()));
-        assertTrue(refused.getMessage().contains("1 question"));
+                assertThrows(RefusalResponse.class, () -> clusterStationGroupService.delete(clusterId, group.id()));
+        assertEquals(ClusterRefusal.CLUSTER_STATION_GROUP_STILL_ASKED_QUESTIONS, refused.refusal());
 
         clusterProfileFieldService.delete(clusterId, field.id());
         clusterStationGroupService.delete(clusterId, group.id());
@@ -149,8 +160,8 @@ class ClusterStationGroupServiceTest extends RepositoryTestBase {
         var tag = clusterInventoryTagService.create(clusterId, "Funk " + NAMES.incrementAndGet(), null, group.id());
 
         var refusedForTag =
-                assertThrows(BadRequestResponse.class, () -> clusterStationGroupService.delete(clusterId, group.id()));
-        assertTrue(refusedForTag.getMessage().contains("1 tag"));
+                assertThrows(RefusalResponse.class, () -> clusterStationGroupService.delete(clusterId, group.id()));
+        assertEquals(ClusterRefusal.CLUSTER_STATION_GROUP_STILL_RECOMMENDED_TAGS, refusedForTag.refusal());
 
         clusterInventoryTagService.delete(clusterId, tag.id());
 
@@ -159,8 +170,8 @@ class ClusterStationGroupServiceTest extends RepositoryTestBase {
         var requirement = inventoryRepo.createRequirement(inventory.id(), StationUserType.MEMBER, 0, group.id(), 2);
 
         var refusedForRequirement =
-                assertThrows(BadRequestResponse.class, () -> clusterStationGroupService.delete(clusterId, group.id()));
-        assertTrue(refusedForRequirement.getMessage().contains("1 stock requirement"));
+                assertThrows(RefusalResponse.class, () -> clusterStationGroupService.delete(clusterId, group.id()));
+        assertEquals(ClusterRefusal.CLUSTER_STATION_GROUP_STILL_COUNTS_REQUIREMENTS, refusedForRequirement.refusal());
 
         inventoryRepo.deleteRequirement(requirement.id());
         clusterStationGroupService.delete(clusterId, group.id());

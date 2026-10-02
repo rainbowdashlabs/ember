@@ -11,17 +11,15 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
-import type { Inventory, InventoryRequirement } from '@/api/inventory'
-import type { MemberGroup } from '@/api/types'
-import { inventory, memberGroups } from '@/api'
+import type { Inventory, MemberGroup, RequirementResponse, StationGroupResponse } from '@/api/generated/schema'
+import { userTypesOf } from '@/util/stationUserTypes'
+import { inventory, memberGroups, clusterStationGroups  } from '@/api'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { useAsyncAction } from '@/composables/useAsyncAction'
 import { useInventoryRoutes } from '@/composables/useInventoryRoutes'
 import RequirementGroupCard from './requirementsview/RequirementGroupCard.vue'
 import RequirementAddModal from './requirementsview/RequirementAddModal.vue'
 import { userTypeFriendlyNames, type RequirementGroup } from './requirementsview/types'
-import { clusterStationGroups } from '@/api'
-import type { StationGroup } from '@/api/clusterStationGroups'
 import { moveWithin } from '@/util/reorder'
 import { describeFailure } from '@/util/failure'
 
@@ -39,10 +37,10 @@ const props = defineProps<{
   stationScoped?: boolean
 }>()
 
-const stationGroups = ref<StationGroup[]>([])
+const stationGroups = ref<StationGroupResponse[]>([])
 
 const inventories = ref<Inventory[]>([])
-const requirements = ref<InventoryRequirement[]>([])
+const requirements = ref<RequirementResponse[]>([])
 const allGroups = ref<MemberGroup[]>([])
 
 const showAddModal = ref(false)
@@ -76,8 +74,8 @@ function inventoryName(invId: number): string {
 const requirableInventories = computed(() => inventories.value.filter(i => i.homogeneous))
 
 const grouped = computed((): RequirementGroup[] => {
-  const userTypeMap = new Map<string, InventoryRequirement[]>()
-  const groupMap = new Map<number, InventoryRequirement[]>()
+  const userTypeMap = new Map<string, RequirementResponse[]>()
+  const groupMap = new Map<number, RequirementResponse[]>()
 
   for (const req of requirements.value) {
     if (req.userType) {
@@ -138,7 +136,7 @@ const {running: saving, failure: addFailure, run: submitAdd} = useAsyncAction(as
   failure.value = null
   await inventory.createRequirement({
     inventoryId: Number(addInventoryId.value),
-    userType: addTargetType.value === 'userType' ? addUserType.value : undefined,
+    userType: addTargetType.value === 'userType' ? userTypesOf([addUserType.value])[0] : undefined,
     groupId: addTargetType.value === 'group' ? Number(addGroupId.value) : undefined,
     stationGroupId: addStationGroupId.value ? Number(addStationGroupId.value) : undefined,
     quantity: addQuantity.value,
@@ -159,7 +157,7 @@ async function refreshAfterWrite() {
   }
 }
 
-async function updateQuantity(req: InventoryRequirement, newQuantity: number) {
+async function updateQuantity(req: RequirementResponse, newQuantity: number) {
   if (newQuantity < 1) return
   failure.value = null
   try {
@@ -171,7 +169,7 @@ async function updateQuantity(req: InventoryRequirement, newQuantity: number) {
   await refreshAfterWrite()
 }
 
-async function removeRequirement(req: InventoryRequirement) {
+async function removeRequirement(req: RequirementResponse) {
   failure.value = null
   try {
     await inventory.deleteRequirement(req.id)

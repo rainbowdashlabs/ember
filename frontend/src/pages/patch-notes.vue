@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {useI18n} from 'vue-i18n'
 import PatchNotesView from '~/views/PatchNotesView.vue'
 
 definePageMeta({
@@ -11,8 +12,10 @@ definePageMeta({
   name: 'patch-notes',
 })
 
+const {t} = useI18n()
+
 useHead({
-  title: 'Änderungsprotokoll',
+  title: t('pageHead.patchNotes'),
 })
 </script>
 

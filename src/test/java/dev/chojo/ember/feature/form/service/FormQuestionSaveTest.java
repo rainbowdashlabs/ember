@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.form.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.FormRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.form.entity.FormAnswer;
@@ -23,7 +23,6 @@ import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.members.service.UserTagService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import dev.chojo.ember.util.ShareTokens;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -56,8 +55,7 @@ class FormQuestionSaveTest extends RepositoryTestBase {
                 mock(MemberGroupService.class),
                 mock(UserTagService.class),
                 restrictionService,
-                new DomainEventBus(Set.of()),
-                new ShareTokens());
+                new DomainEventBus(Set.of()));
         station = stationRepo.create("FormQuestionSaveStation");
         account = accountRepo.create("form-question-save@test.com", "Form", "Save");
         member = stationMemberRepo.create(station.id(), account.id());
@@ -129,7 +127,7 @@ class FormQuestionSaveTest extends RepositoryTestBase {
                 RefusalResponse.class,
                 () -> service.saveQuestions(form.id(), List.of(kept(form.first(), "First"), kept(other.first(), "x"))));
 
-        assertEquals(Refusal.QUESTION_NOT_ON_THIS_FORM, refused.refusal());
+        assertEquals(FormRefusal.QUESTION_NOT_ON_THIS_FORM, refused.refusal());
         assertEquals(List.of(form.first().id(), form.second().id()), ids(service.findQuestions(form.id())));
         assertEquals(List.of(other.first().id(), other.second().id()), ids(service.findQuestions(other.id())));
     }
@@ -152,7 +150,7 @@ class FormQuestionSaveTest extends RepositoryTestBase {
                 RefusalResponse.class,
                 () -> service.saveQuestions(form.id(), List.of(retyped, kept(form.second(), "Second"))));
 
-        assertEquals(Refusal.QUESTION_TYPE_NOT_CHANGEABLE, refused.refusal());
+        assertEquals(FormRefusal.QUESTION_TYPE_NOT_CHANGEABLE, refused.refusal());
         assertEquals(
                 FormQuestionType.TEXT,
                 service.findQuestions(form.id()).getFirst().formQuestionType());
@@ -187,8 +185,8 @@ class FormQuestionSaveTest extends RepositoryTestBase {
                 member.id(),
                 member.id(),
                 Map.of(
-                        first.id(), new FormAnswerValue.Text("first answer"),
-                        second.id(), new FormAnswerValue.Text("second answer")));
+                        first.id(), new FormAnswerValue.TextAnswer("first answer"),
+                        second.id(), new FormAnswerValue.TextAnswer("second answer")));
         return new AnsweredForm(form.id(), first, second);
     }
 

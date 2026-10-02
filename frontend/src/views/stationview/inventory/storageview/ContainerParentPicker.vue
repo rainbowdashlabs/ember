@@ -8,7 +8,7 @@ import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ContainerParentPickerNode from '@/views/stationview/inventory/storageview/ContainerParentPickerNode.vue'
 import TreeNodeButton from '@/components/button/TreeNodeButton.vue'
-import type {InventoryContainer, InventoryContainerKind} from '@/api/inventoryContainers'
+import type {InventoryContainer, InventoryContainerKind} from '@/api/generated/schema'
 
 const props = defineProps<{
   containers: InventoryContainer[]

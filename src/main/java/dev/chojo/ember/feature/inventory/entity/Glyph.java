@@ -5,7 +5,9 @@
  */
 package dev.chojo.ember.feature.inventory.entity;
 
-import io.javalin.http.BadRequestResponse;
+import dev.chojo.ember.api.refusal.InventoryRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Locale;
 import java.util.regex.Pattern;
@@ -24,7 +26,7 @@ import java.util.regex.Pattern;
  * @param icon  the FontAwesome name, or {@code null} when nobody chose one
  * @param color the colour as {@code #rrggbb} in lower case, or {@code null} for the muted neutral
  */
-public record Glyph(String icon, String color) {
+public record Glyph(@Nullable String icon, @Nullable String color) {
     /**
      * Nothing chosen, which is what every row looks like before anybody picks a picture.
      */
@@ -42,7 +44,7 @@ public record Glyph(String icon, String color) {
      * @param color the colour, or {@code null}
      * @return the pair, with empty halves as {@code null}
      */
-    public static Glyph of(String icon, String color) {
+    public static Glyph of(@Nullable String icon, @Nullable String color) {
         return new Glyph(trimmedOrNull(icon), lowered(trimmedOrNull(color)));
     }
 
@@ -58,11 +60,11 @@ public record Glyph(String icon, String color) {
     /**
      * Refuses a colour nothing could paint, which is the one half of a glyph worth checking.
      *
-     * @throws BadRequestResponse when a colour is present and is not {@code #rrggbb}
+     * @throws RefusalResponse when a colour is present and is not {@code #rrggbb}
      */
     public void requirePaintable() {
         if (!validColor()) {
-            throw new BadRequestResponse("A colour is written as #rrggbb, and '%s' is not".formatted(color));
+            throw InventoryRefusal.GLYPH_COLOUR_NOT_READABLE.raise(color);
         }
     }
 
@@ -74,7 +76,7 @@ public record Glyph(String icon, String color) {
      * colours to everything that compares them and one colour to everybody looking at them.
      *
      * @return the normalised pair
-     * @throws BadRequestResponse when a colour is present and is not {@code #rrggbb}
+     * @throws RefusalResponse when a colour is present and is not {@code #rrggbb}
      */
     public Glyph paintable() {
         Glyph normalised = of(icon, color);
@@ -82,13 +84,13 @@ public record Glyph(String icon, String color) {
         return normalised;
     }
 
-    private static String trimmedOrNull(String value) {
+    private static @Nullable String trimmedOrNull(@Nullable String value) {
         if (value == null) return null;
         String trimmed = value.trim();
         return trimmed.isEmpty() ? null : trimmed;
     }
 
-    private static String lowered(String value) {
+    private static @Nullable String lowered(@Nullable String value) {
         return value == null ? null : value.toLowerCase(Locale.ROOT);
     }
 }

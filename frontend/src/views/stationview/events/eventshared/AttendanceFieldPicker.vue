@@ -9,7 +9,7 @@ import {useI18n} from 'vue-i18n'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import type {AttendanceTemplateField} from '@/api/attendance'
+import type {AttendanceTemplateField} from '@/api/generated/schema'
 
 /**
  * Taking the questions of the chosen attendance sheet into the appointment.

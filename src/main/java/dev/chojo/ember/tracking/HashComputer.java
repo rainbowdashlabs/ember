@@ -5,11 +5,9 @@
  */
 package dev.chojo.ember.tracking;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
+import dev.chojo.ember.util.Sha256;
+
 import java.util.Comparator;
-import java.util.HexFormat;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -64,12 +62,6 @@ public final class HashComputer {
     }
 
     private static String sha256(String prefix, String input) {
-        try {
-            var digest = MessageDigest.getInstance("SHA-256");
-            byte[] hash = digest.digest(input.getBytes(StandardCharsets.UTF_8));
-            return prefix + HexFormat.of().formatHex(hash);
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException("SHA-256 not available", e);
-        }
+        return prefix + Sha256.hex(input);
     }
 }

@@ -12,7 +12,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import ShareLinkPanel from '@/components/public/ShareLinkPanel.vue'
-import type {PageShareLink} from '@/api/pageManage'
+import type {PageShareLinkResponse} from '@/api/generated/schema'
 import type {Failure} from '@/util/failure'
 
 /**
@@ -24,14 +24,14 @@ import type {Failure} from '@/util/failure'
  */
 defineProps<{
   /** The page's link, or nothing while it is being fetched. */
-  link: PageShareLink | null
+  link: PageShareLinkResponse | null
   busy: boolean
   failure: Failure | null
 }>()
 
 const emit = defineEmits<{
-  (e: 'replace'): void
-  (e: 'create'): void
+  replace: []
+  create: []
 }>()
 
 const {t} = useI18n()

@@ -10,7 +10,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
-import type {InventoryContainer} from '@/api/inventoryContainers'
+import type {InventoryContainer} from '@/api/generated/schema'
 
 defineProps<{
   container: InventoryContainer

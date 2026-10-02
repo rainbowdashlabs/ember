@@ -20,12 +20,11 @@ import {useKbFileFavourite} from '@/views/stationview/knowledge/kbfileview/useKb
 import KbFileDescription from '@/views/stationview/knowledge/kbfileview/KbFileDescription.vue'
 import KbTagsSection from '@/views/stationview/knowledge/kbfileview/KbTagsSection.vue'
 import KbRelatedFilesSection from '@/views/stationview/knowledge/kbfileview/KbRelatedFilesSection.vue'
-import KbCommentSection from '@/components/comment/KbCommentSection.vue'
+import CommentSection from '@/components/comment/CommentSection.vue'
 import PresentationViewer from '@/views/stationview/knowledge/kbfileview/PresentationViewer.vue'
 import KbFileContent from '@/views/stationview/knowledge/kbfileview/KbFileContent.vue'
 import {ContentMode, type ContentModeName} from '@/api/news'
 import type {RowEditData} from '@/components/content/blockeditor/EditorRow.vue'
-import type {PageRow, SaveRowRequest, SaveCellRequest} from '@/api/pageManage'
 import KbEditFileModal from '@/views/stationview/knowledge/knowledgebaseview/KbEditFileModal.vue'
 import KbShareModal from '@/views/stationview/knowledge/knowledgebaseview/KbShareModal.vue'
 import KbMoveModal from '@/views/stationview/knowledge/knowledgebaseview/KbMoveModal.vue'
@@ -37,9 +36,8 @@ import {
     KbFileType,
     levelCovers,
     type KbAccessLevelName,
-    type KbFile,
-    type MarkdownHtmlResponse,
 } from '@/api/knowledgeBase'
+import type {BlockCellRequest, BlockRowRequest, ContentRow, KbFile, MarkdownHtmlResponse} from '@/api/generated/schema'
 import {useKbFileMetadata} from '@/views/stationview/knowledge/kbfileview/useKbFileMetadata'
 import {useKbMoveTarget} from '@/views/stationview/knowledge/knowledgebaseview/useKbMoveTarget'
 import {STATION_KB_ROUTES, type KbRoutes} from '@/views/stationview/knowledge/knowledgebaseview/useKbNavigation'
@@ -75,7 +73,7 @@ const editing = ref(false)
 const editContent = ref('')
 const contentMode = ref<ContentModeName>(ContentMode.SIMPLE)
 const blockRows = ref<RowEditData[]>([])
-const readerRows = ref<PageRow[]>([])
+const readerRows = ref<ContentRow[]>([])
 const textContent = ref('')
 const {
     fileTags, allStationTags, relatedFiles, backlinks, applyReferences,
@@ -90,6 +88,10 @@ const showShareModal = ref(false)
 const {downloadOriginal, downloadPdf} = useKbFileDownloads(file, computed(() => props.stationUid))
 
 const isFederated = computed(() => props.stationUid != null)
+
+const commentSource = computed(() => (props.stationUid
+    ? knowledgeBase.partnerKbCommentSource(props.stationUid, props.fileId)
+    : knowledgeBase.kbCommentSource(props.fileId)))
 
 /**
  * The file's own name at the head of the page, because "Datei" says nothing about which one is
@@ -256,7 +258,7 @@ function onContentInput() {
 /**
  * The saved shape of a block tree turned into the shape the editor works on.
  */
-function toEditRows(saved: PageRow[]): RowEditData[] {
+function toEditRows(saved: ContentRow[]): RowEditData[] {
     return [...saved]
         .sort((a, b) => a.sortOrder - b.sortOrder)
         .map(r => ({
@@ -288,9 +290,9 @@ async function saveContent() {
     if (!file.value) return
     try {
         if (contentMode.value === ContentMode.RICH) {
-            const rows: SaveRowRequest[] = blockRows.value.map((r, ri) => ({
+            const rows: BlockRowRequest[] = blockRows.value.map((r, ri) => ({
                 sortOrder: ri,
-                cells: r.cells.map((c, ci): SaveCellRequest => ({
+                cells: r.cells.map((c, ci): BlockCellRequest => ({
                     sortOrder: ci,
                     widthPercent: c.widthPercent,
                     contentType: c.contentType,
@@ -400,13 +402,11 @@ watch(() => [props.fileId, props.stationUid], () => {
                 {{ readOnlyReason }}
             </p>
 
-            <!-- Last edit info -->
             <p v-if="file.updatedAt" class="text-xs text-[var(--text-muted)] mb-3">
                 {{ t('kb.lastEditedAt') }}: {{ formatDateTime(file.updatedAt) }}
                 <span v-if="lastEditedByName">, {{ lastEditedByName }}</span>
             </p>
 
-            <!-- Tags (hide for federated files) -->
             <KbTagsSection
                 v-if="!isFederated"
                 :tags="fileTags"
@@ -416,7 +416,6 @@ watch(() => [props.fileId, props.stationUid], () => {
                 @remove-tag="removeTag"
             />
 
-            <!-- Related files (hide for federated files) -->
             <KbRelatedFilesSection
                 v-if="!isFederated"
                 :related-files="relatedFiles"
@@ -427,7 +426,6 @@ watch(() => [props.fileId, props.stationUid], () => {
                 @remove-related="removeRelatedFile"
             />
 
-            <!-- Save bar -->
             <div v-if="editing" class="flex items-center gap-2 mb-3">
                 <SaveButton :disabled="!hasUnsavedChanges" :action="saveContent"/>
                 <span v-if="hasUnsavedChanges" class="text-sm text-[var(--text-muted)]">
@@ -440,6 +438,8 @@ watch(() => [props.fileId, props.stationUid], () => {
             </Alert>
             <KbFileContent
                 v-else
+                v-model:edit-content="editContent"
+                v-model:block-rows="blockRows"
                 :file="file"
                 :editing="editing"
                 :content-url="contentUrl"
@@ -450,21 +450,13 @@ watch(() => [props.fileId, props.stationUid], () => {
                 :content-mode="contentMode"
                 :station-uid="blockStationUid"
                 :reader-rows="readerRows"
-                v-model:edit-content="editContent"
-                v-model:block-rows="blockRows"
                 @content-input="onContentInput"
                 @enable-blocks="enableBlocks"
                 @reupload="handleReuploadFile"
             />
 
-            <!-- Comments -->
-            <KbCommentSection
-                :file-id="file.id"
-                :station-uid="stationUid"
-                class="mt-6"
-            />
+            <CommentSection :source="commentSource" class="mt-6"/>
         </template>
-        <!-- Presentation Viewer Overlay -->
         <PresentationViewer
             v-if="showPresentation && file"
             :content-url="contentUrl"
@@ -472,7 +464,6 @@ watch(() => [props.fileId, props.stationUid], () => {
             @close="showPresentation = false"
         />
 
-        <!-- Edit metadata modal (name / description / visibility / restrictions / tags) -->
         <KbShareModal
             v-model:show="showShareModal"
             :entry="file"

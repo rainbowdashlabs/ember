@@ -32,20 +32,20 @@ defineProps<{
 }>()
 
 const emit = defineEmits<{
-    (e: 'update:title', value: string): void
-    (e: 'update:description', value: string): void
-    (e: 'update:newChecklistTitle', value: string): void
-    (e: 'addChecklist'): void
-    (e: 'removeChecklist', key: number): void
-    (e: 'toggleChecklist', key: number): void
-    (e: 'update:newWeblinkUrl', value: string): void
-    (e: 'update:newWeblinkTitle', value: string): void
-    (e: 'addWeblink'): void
-    (e: 'removeWeblink', key: number): void
-    (e: 'update:newLinkTicketId', value: string): void
-    (e: 'update:newLinkType', value: LinkTypeName): void
-    (e: 'addLink'): void
-    (e: 'removeLink', key: number): void
+    'update:title': [value: string]
+    'update:description': [value: string]
+    'update:newChecklistTitle': [value: string]
+    addChecklist: []
+    removeChecklist: [key: number]
+    toggleChecklist: [key: number]
+    'update:newWeblinkUrl': [value: string]
+    'update:newWeblinkTitle': [value: string]
+    addWeblink: []
+    removeWeblink: [key: number]
+    'update:newLinkTicketId': [value: string]
+    'update:newLinkType': [value: LinkTypeName]
+    addLink: []
+    removeLink: [key: number]
 }>()
 
 const { t } = useI18n()

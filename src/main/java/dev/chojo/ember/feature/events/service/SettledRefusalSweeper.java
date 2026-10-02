@@ -5,13 +5,16 @@
  */
 package dev.chojo.ember.feature.events.service;
 
+import dev.chojo.ember.lifecycle.Schedule;
+import dev.chojo.ember.lifecycle.ScheduledTask;
+import dev.chojo.ember.lifecycle.TaskSource;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.time.Duration;
+import java.util.List;
 
 /**
  * Lets go of the answers behind refusals that can no longer be taken back.
@@ -25,21 +28,15 @@ import java.util.concurrent.TimeUnit;
  * to want them back would be keeping them for no reason anybody could name.
  */
 @Singleton
-public class SettledRefusalSweeper {
+public class SettledRefusalSweeper implements TaskSource {
     private static final Logger log = LoggerFactory.getLogger(SettledRefusalSweeper.class);
-    private static final int SCAN_INTERVAL_MINUTES = 5;
+    private static final Duration SCAN_INTERVAL = Duration.ofMinutes(5);
 
     private final EventRegistrationService registrationService;
 
     @Inject
     public SettledRefusalSweeper(EventRegistrationService registrationService) {
         this.registrationService = registrationService;
-        var scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
-            var thread = new Thread(r, "settled-refusal-sweeper");
-            thread.setDaemon(true);
-            return thread;
-        });
-        scheduler.scheduleWithFixedDelay(this::sweep, 1, SCAN_INTERVAL_MINUTES, TimeUnit.MINUTES);
     }
 
     /** Body of the sweep, reachable by tests so they need not wait for the cadence. */
@@ -49,5 +46,11 @@ public class SettledRefusalSweeper {
         } catch (Exception e) {
             log.warn("Could not clear the answers of settled refusals", e);
         }
+    }
+
+    @Override
+    public List<ScheduledTask> scheduledTasks() {
+        return List.of(new ScheduledTask(
+                "settled-refusal-sweep", Schedule.fixedDelay(Duration.ofMinutes(1), SCAN_INTERVAL), this::sweep));
     }
 }

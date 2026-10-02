@@ -5,12 +5,12 @@
  */
 package dev.chojo.ember.feature.cluster.service;
 
+import dev.chojo.ember.api.refusal.ClusterRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.entity.ThemeFeel;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.NotFoundResponse;
 import org.junit.jupiter.api.Test;
 
 import java.util.EnumSet;
@@ -108,9 +108,10 @@ class ClusterGovernanceServiceTest extends RepositoryTestBase {
                 clusterGovernanceService.findDeniedModules(clusterId, null).isEmpty(),
                 "and nothing was denied of everybody");
 
-        // Taking the station out of the group gives it back, without anybody touching the denial
         clusterStationGroupService.setStations(clusterId, group.id(), List.of());
-        assertFalse(clusterRepo.isModuleDeniedForStation(inside.id(), StationModule.QUIZ));
+        assertFalse(
+                clusterRepo.isModuleDeniedForStation(inside.id(), StationModule.QUIZ),
+                "leaving the group gives the module back without touching the denial");
 
         clusterStationGroupService.setStations(clusterId, group.id(), List.of(inside.uid()));
         clusterGovernanceService.setDeniedModules(clusterId, group.id(), EnumSet.noneOf(StationModule.class));
@@ -139,9 +140,11 @@ class ClusterGovernanceServiceTest extends RepositoryTestBase {
                 clusterRepo.findDeniedModulesForStation(inside.id()),
                 "the station is told both, from wherever they were written");
 
-        // And saving one tab leaves the other exactly as it was
         clusterGovernanceService.setDeniedModules(clusterId, null, EnumSet.noneOf(StationModule.class));
-        assertEquals(Set.of(StationModule.QUIZ), clusterGovernanceService.findDeniedModules(clusterId, group.id()));
+        assertEquals(
+                Set.of(StationModule.QUIZ),
+                clusterGovernanceService.findDeniedModules(clusterId, group.id()),
+                "saving one tab leaves the other as it was");
 
         clusterGovernanceService.setDeniedModules(clusterId, group.id(), EnumSet.noneOf(StationModule.class));
         clusterStationGroupService.delete(clusterId, group.id());
@@ -160,8 +163,8 @@ class ClusterGovernanceServiceTest extends RepositoryTestBase {
         clusterGovernanceService.setDeniedModules(clusterId, group.id(), Set.of(StationModule.QUIZ));
 
         var refused =
-                assertThrows(BadRequestResponse.class, () -> clusterStationGroupService.delete(clusterId, group.id()));
-        assertTrue(refused.getMessage().contains("1 module"));
+                assertThrows(RefusalResponse.class, () -> clusterStationGroupService.delete(clusterId, group.id()));
+        assertEquals(ClusterRefusal.CLUSTER_STATION_GROUP_STILL_HAS_MODULES_OFF, refused.refusal());
 
         clusterGovernanceService.setDeniedModules(clusterId, group.id(), EnumSet.noneOf(StationModule.class));
         clusterStationGroupService.delete(clusterId, group.id());
@@ -175,10 +178,11 @@ class ClusterGovernanceServiceTest extends RepositoryTestBase {
         int otherId = freshCluster();
         var group = clusterStationGroupService.create(otherId, "Fremd " + NAMES.incrementAndGet());
 
-        assertThrows(
-                BadRequestResponse.class,
+        var denied = assertThrows(
+                RefusalResponse.class,
                 () -> clusterGovernanceService.setDeniedModules(clusterId, group.id(), Set.of(StationModule.QUIZ)));
-        assertThrows(BadRequestResponse.class, () -> clusterGovernanceService.findDeniedModules(clusterId, group.id()));
+        assertEquals(ClusterRefusal.CLUSTER_GOVERNANCE_STATION_GROUP_NOT_OWN, denied.refusal());
+        assertThrows(RefusalResponse.class, () -> clusterGovernanceService.findDeniedModules(clusterId, group.id()));
 
         clusterStationGroupService.delete(otherId, group.id());
     }
@@ -259,8 +263,9 @@ class ClusterGovernanceServiceTest extends RepositoryTestBase {
 
     @Test
     void aClusterThatIsNotThereGovernsNothing() {
-        assertThrows(
-                NotFoundResponse.class,
+        var refused = assertThrows(
+                RefusalResponse.class,
                 () -> clusterGovernanceService.setDeniedModules(999_999, null, Set.of(StationModule.QUIZ)));
+        assertEquals(ClusterRefusal.CLUSTER_GOVERNANCE_CLUSTER_NOT_HERE, refused.refusal());
     }
 }

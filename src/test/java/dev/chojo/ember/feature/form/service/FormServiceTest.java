@@ -6,6 +6,8 @@
 package dev.chojo.ember.feature.form.service;
 
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.FormRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.DomainEventHandler;
 import dev.chojo.ember.event.events.FormPublished;
@@ -26,8 +28,6 @@ import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import dev.chojo.ember.util.ShareTokens;
-import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
@@ -66,8 +66,7 @@ class FormServiceTest extends RepositoryTestBase {
         var groupService = mock(MemberGroupService.class);
         var tagService = mock(UserTagService.class);
 
-        service = new FormService(
-                formRepo, memberService, groupService, tagService, restrictionService, eventBus, new ShareTokens());
+        service = new FormService(formRepo, memberService, groupService, tagService, restrictionService, eventBus);
         station = stationRepo.create("FormSvcStation");
         account = accountRepo.create("form-svc@test.com", "Form", "Svc");
         member = stationMemberRepo.create(station.id(), account.id());
@@ -78,8 +77,6 @@ class FormServiceTest extends RepositoryTestBase {
         stationRepo.delete(station.id());
         accountRepo.delete(account.id());
     }
-
-    // -- Forms --
 
     @Test
     @Order(1)
@@ -118,7 +115,7 @@ class FormServiceTest extends RepositoryTestBase {
     @Test
     @Order(4)
     void findByStationForMember() {
-        var forms = service.findByStationForMember(station.id(), member.id());
+        var forms = service.findByStationForMember(station.id(), member.id(), false);
         assertNotNull(forms);
     }
 
@@ -136,7 +133,6 @@ class FormServiceTest extends RepositoryTestBase {
     @Order(6)
     void isAcceptingResponsesDraft() {
         var form = service.findById(formId).orElseThrow();
-        // Still in DRAFT
         assertFalse(service.isAcceptingResponses(form));
     }
 
@@ -158,16 +154,12 @@ class FormServiceTest extends RepositoryTestBase {
     @Test
     @Order(9)
     void isAcceptingResponsesOutsideWindow() {
-        // Set end time in the past
         Instant past = Instant.parse("2020-01-01T00:00:00Z");
         service.update(formId, "Updated Survey", "", false, true, false, null, past);
         var form = service.findById(formId).orElseThrow();
         assertFalse(service.isAcceptingResponses(form));
-        // Reset
         service.update(formId, "Updated Survey", "", false, true, false, null, null);
     }
-
-    // -- Questions --
 
     @Test
     @Order(10)
@@ -223,16 +215,13 @@ class FormServiceTest extends RepositoryTestBase {
         assertEquals(2, qs.size());
     }
 
-    // -- Responses --
-
     @Test
     @Order(20)
     void submitResponse() {
-        // get question IDs after replace
         var qs = service.findQuestions(formId);
         int qId = qs.getFirst().id();
         var response = service.submitResponse(
-                formId, member.id(), member.id(), Map.of(qId, new FormAnswerValue.Text("John Doe")));
+                formId, member.id(), member.id(), Map.of(qId, new FormAnswerValue.TextAnswer("John Doe")));
         assertNotNull(response);
         assertEquals(formId, response.formId());
     }
@@ -278,8 +267,6 @@ class FormServiceTest extends RepositoryTestBase {
         assertFalse(answers.isEmpty());
     }
 
-    // -- Restrictions --
-
     @Test
     @Order(30)
     void findRestrictionsEmpty() {
@@ -295,7 +282,6 @@ class FormServiceTest extends RepositoryTestBase {
                 new RestrictionSelection(List.of(StationUserType.MEMBER), List.of(), List.of(), List.of(), null));
         var rs = service.findRestrictions(formId);
         assertTrue(rs.hasRestrictions());
-        // Clear
         service.setRestrictions(formId, RestrictionSelection.empty());
         assertFalse(service.findRestrictions(formId).hasRestrictions());
     }
@@ -317,22 +303,18 @@ class FormServiceTest extends RepositoryTestBase {
     @Test
     @Order(34)
     void canMemberAccessNoRestrictions() {
-        // No restrictions = everyone can access
         assertTrue(service.canMemberAccess(formId, member.id()));
     }
 
     @Test
     @Order(34)
     void canMemberAccessWithRestrictions() {
-        // Create a form with restrictions to exercise lines 72-80
         var form = service.create(
                 station.id(), "Restricted Form", "", false, true, false, null, null, member.id(), FormPurpose.INTERNAL);
 
-        // Set restrictions to specific member
         service.setRestrictions(
                 form.id(), new RestrictionSelection(List.of(), List.of(), List.of(), List.of(member.id()), null));
 
-        // Need to set up mocks for memberService, groupService, tagService
         var memberService = mock(StationMemberService.class);
         var groupService = mock(MemberGroupService.class);
         var tagService = mock(UserTagService.class);
@@ -342,13 +324,11 @@ class FormServiceTest extends RepositoryTestBase {
         when(tagService.findTagsForMember(member.id())).thenReturn(List.of());
 
         var eventBus = new DomainEventBus(Set.of());
-        var restrictedService = new FormService(
-                formRepo, memberService, groupService, tagService, restrictionService, eventBus, new ShareTokens());
+        var restrictedService =
+                new FormService(formRepo, memberService, groupService, tagService, restrictionService, eventBus);
 
-        // Member is in the restriction list - should have access
         assertTrue(restrictedService.canMemberAccess(form.id(), member.id()));
 
-        // A different member ID not in the list - should NOT have access
         when(memberService.findById(99999))
                 .thenReturn(Optional.of(new StationMember(
                         99999,
@@ -364,11 +344,8 @@ class FormServiceTest extends RepositoryTestBase {
         when(tagService.findTagsForMember(99999)).thenReturn(List.of());
         assertFalse(restrictedService.canMemberAccess(form.id(), 99999));
 
-        // Clean up
         service.delete(form.id());
     }
-
-    // -- Close --
 
     @Test
     @Order(40)
@@ -381,7 +358,6 @@ class FormServiceTest extends RepositoryTestBase {
     @Test
     @Order(35)
     void isAcceptingResponsesFutureStartAt() {
-        // Form is OPEN but startAt is in the future - should not accept responses
         var form = service.create(
                 station.id(), "Future Form", "", false, true, false, null, null, member.id(), FormPurpose.INTERNAL);
         service.publish(form.id());
@@ -413,7 +389,6 @@ class FormServiceTest extends RepositoryTestBase {
     @Test
     @Order(38)
     void publishNonExistentForm() {
-        // publish returns false for non-existent form (repo returns false)
         assertFalse(service.publish(999999));
     }
 
@@ -599,10 +574,11 @@ class FormServiceTest extends RepositoryTestBase {
 
         var internal = service.create(
                 station.id(), "Intern", "", false, false, false, null, null, member.id(), FormPurpose.INTERNAL);
-        assertThrows(
-                BadRequestResponse.class,
+        var refused = assertThrows(
+                RefusalResponse.class,
                 () -> service.setVisibility(internal.id(), FormVisibility.UNLISTED),
                 "a form for the station's own members is not reached from outside at all");
+        assertEquals(FormRefusal.FORM_INTERNAL_HAS_NO_REACH, refused.refusal());
 
         service.delete(poll.id());
         service.delete(internal.id());
@@ -625,7 +601,7 @@ class FormServiceTest extends RepositoryTestBase {
 
         assertTrue(service.shareLink(internal.id()).isEmpty(), "an internal form is reached from inside the station");
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> service.replaceShareLink(internal.id(), null),
                 "and one cannot be given a link either, which is the half that would have let it out");
         assertTrue(service.shareLink(999999).isEmpty());
@@ -659,8 +635,7 @@ class FormServiceTest extends RepositoryTestBase {
                     public void handle(FormPublished event) {
                         announced.add(event.formTitle());
                     }
-                })),
-                new ShareTokens());
+                })));
 
         var poll = listening.create(
                 station.id(),
@@ -693,8 +668,6 @@ class FormServiceTest extends RepositoryTestBase {
         listening.delete(poll.id());
         listening.delete(internal.id());
     }
-
-    // -- Delete --
 
     /**
      * A form keeps the one link it was given, whichever way its reach is turned afterwards.
@@ -741,8 +714,14 @@ class FormServiceTest extends RepositoryTestBase {
                 station.id(), "Members Only", "", false, true, false, null, null, member.id(), FormPurpose.INTERNAL);
 
         assertTrue(service.shareLink(form.id()).isEmpty());
-        assertThrows(BadRequestResponse.class, () -> service.replaceShareLink(form.id(), null));
-        assertThrows(BadRequestResponse.class, () -> service.setVisibility(form.id(), FormVisibility.UNLISTED));
+        assertEquals(
+                FormRefusal.FORM_INTERNAL_HAS_NO_LINK,
+                assertThrows(RefusalResponse.class, () -> service.replaceShareLink(form.id(), null))
+                        .refusal());
+        assertEquals(
+                FormRefusal.FORM_INTERNAL_HAS_NO_REACH,
+                assertThrows(RefusalResponse.class, () -> service.setVisibility(form.id(), FormVisibility.UNLISTED))
+                        .refusal());
 
         service.delete(form.id());
     }
@@ -757,12 +736,13 @@ class FormServiceTest extends RepositoryTestBase {
         var form = service.create(
                 station.id(), "Open To All", "", false, true, false, null, null, member.id(), FormPurpose.CONTACT);
 
-        assertThrows(
-                BadRequestResponse.class,
+        var refused = assertThrows(
+                RefusalResponse.class,
                 () -> service.setRestrictions(
                         form.id(),
                         new RestrictionSelection(
                                 List.of(StationUserType.MEMBER), List.of(), List.of(), List.of(), null)));
+        assertEquals(FormRefusal.FORM_FROM_OUTSIDE_HAS_NO_RESTRICTIONS, refused.refusal());
         assertFalse(service.findRestrictions(form.id()).hasRestrictions());
 
         service.delete(form.id());

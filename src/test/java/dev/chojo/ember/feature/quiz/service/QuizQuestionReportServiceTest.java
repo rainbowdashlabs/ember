@@ -5,9 +5,10 @@
  */
 package dev.chojo.ember.feature.quiz.service;
 
+import dev.chojo.ember.api.refusal.QuizRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestionReport;
 import dev.chojo.ember.feature.quiz.repository.QuizQuestionReportRepository;
-import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -61,8 +62,11 @@ class QuizQuestionReportServiceTest {
     /** A note without a reason gives whoever reads it nothing to act on, so it is refused. */
     @Test
     void refusesANoteThatSaysNothing() {
-        assertThrows(BadRequestResponse.class, () -> service.report(42, 7, "   "));
-        assertThrows(BadRequestResponse.class, () -> service.report(42, 7, null));
+        assertEquals(
+                QuizRefusal.QUIZ_QUESTION_NOTE_EMPTY,
+                assertThrows(RefusalResponse.class, () -> service.report(42, 7, "   "))
+                        .refusal());
+        assertThrows(RefusalResponse.class, () -> service.report(42, 7, null));
         verify(repository, never()).create(anyInt(), any(), anyString());
     }
 

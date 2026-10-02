@@ -7,31 +7,31 @@ package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
-import dev.chojo.ember.feature.attendance.entity.AttendanceFieldType;
 import dev.chojo.ember.feature.content.entity.BlockAudience;
 import dev.chojo.ember.feature.events.entity.EventFieldDefault;
-import dev.chojo.ember.feature.events.entity.EventFieldType;
-import dev.chojo.ember.feature.events.entity.EventRegistrationFieldConfig;
+import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.EventRegistrationOpening;
+import dev.chojo.ember.feature.events.entity.PickerMode;
+import dev.chojo.ember.feature.events.entity.RegistrationFieldDraft;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.entity.UpcomingEventOccurrence;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
-import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.events.service.EventOccurrenceService.EventKind;
 import dev.chojo.ember.feature.events.service.EventOccurrenceService.EventPageQuery;
 import dev.chojo.ember.feature.events.service.EventOccurrenceService.EventState;
 import dev.chojo.ember.feature.events.service.EventOccurrenceService.OccurrenceQuery;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
@@ -134,10 +134,12 @@ class EventServicesTest extends RepositoryTestBase {
     @Test
     @Order(1)
     void createCategory() {
-        var cat = categoryService.create(station.id(), "Training", 0, "#ff6421");
+        var cat = categoryService.create(station.id(), "Training", 0, 3, true, "#ff6421");
         assertNotNull(cat);
         assertEquals("Training", cat.name());
         assertEquals("#ff6421", cat.color());
+        assertEquals(3, cat.maxShownEvents());
+        assertTrue(cat.isPublic());
         categoryId = cat.id();
     }
 
@@ -186,7 +188,7 @@ class EventServicesTest extends RepositoryTestBase {
         var start = Instant.now().plus(1, ChronoUnit.DAYS);
 
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> crudService.create(
                         station.id(),
                         "Rückwärts",
@@ -206,7 +208,7 @@ class EventServicesTest extends RepositoryTestBase {
                         null));
 
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> crudService.update(
                         eventId,
                         "Rückwärts",
@@ -274,7 +276,6 @@ class EventServicesTest extends RepositoryTestBase {
     @Test
     @Order(20)
     void registerAndListRegistrations() {
-        // Make event require registration first
         var start = Instant.now().plus(2, ChronoUnit.DAYS);
         var end = start.plus(2, ChronoUnit.HOURS);
         crudService.update(
@@ -316,11 +317,10 @@ class EventServicesTest extends RepositoryTestBase {
     @Order(22)
     void aQuestionAddedAfterSigningUpLeavesTheRegistrationShortOfAnAnswer() {
         var fieldRepo = new EventRegistrationFieldRepository();
-        var required = new EventRegistrationFieldConfig(true, null, null, null, null, null, null, null, false);
+        var required =
+                new EventQuestionSettings(null, null, null, null, null, false, false, true, null, null, null, false);
         fieldRepo.replaceFields(
-                eventId,
-                List.of(new EventRegistrationFieldRepository.FieldEntry(
-                        "Allergies", EventFieldType.STRING, required, false)));
+                eventId, List.of(new RegistrationFieldDraft("Allergies", FieldType.TEXT, required, false)));
 
         var owing = registrationService.findShortOfAnswer(List.of(member.id()));
         assertEquals(1, owing.size());
@@ -394,8 +394,6 @@ class EventServicesTest extends RepositoryTestBase {
         assertFalse(crudService.delete(999999));
     }
 
-    // -- Category extras --
-
     @Test
     @Order(50)
     void findCategoryById() {
@@ -423,7 +421,7 @@ class EventServicesTest extends RepositoryTestBase {
     @Test
     @Order(53)
     void reorderCategories() {
-        var cat2 = categoryService.create(station.id(), "Category 2", 1, null);
+        var cat2 = categoryService.create(station.id(), "Category 2", 1, null, false, null);
         categoryService.reorder(station.id(), List.of(cat2.id(), categoryId));
         assertEquals(0, categoryService.findById(cat2.id()).orElseThrow().position());
         assertEquals(1, categoryService.findById(categoryId).orElseThrow().position());
@@ -433,12 +431,10 @@ class EventServicesTest extends RepositoryTestBase {
     @Test
     @Order(54)
     void deleteCategory() {
-        var cat = categoryService.create(station.id(), "Temp Cat", 99, null);
+        var cat = categoryService.create(station.id(), "Temp Cat", 99, null, false, null);
         assertTrue(categoryService.delete(cat.id()));
         assertTrue(categoryService.findById(cat.id()).isEmpty());
     }
-
-    // -- Registration extras --
 
     @Test
     @Order(60)
@@ -591,9 +587,32 @@ class EventServicesTest extends RepositoryTestBase {
     @Test
     @Order(64)
     void findPendingRegistrationsByStation() {
+        var start = Instant.now().plus(14, ChronoUnit.DAYS);
+        var event = crudService.create(
+                station.id(),
+                "Pending Event",
+                "desc",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                start,
+                start.plus(2, ChronoUnit.HOURS),
+                null,
+                true,
+                null,
+                false,
+                categoryId,
+                null,
+                null,
+                null,
+                null);
+        var open = registrationService.register(event.id(), member.id(), LocalDate.of(2026, 11, 8), false, null);
+        var declined = registrationService.decline(event.id(), member.id(), LocalDate.of(2026, 11, 9), null);
+
         var pending = registrationService.findPendingByStation(station.id());
-        // There should be at least the registrations created in order 20 and 63 that are still PENDING
-        assertNotNull(pending);
+
+        assertTrue(pending.stream().anyMatch(r -> r.id() == open.id()), "the open registration is found");
+        assertFalse(pending.stream().anyMatch(r -> r.id() == declined.id()), "a declined one is not");
+        assertTrue(pending.stream().allMatch(r -> r.status() == RegistrationStatus.PENDING));
     }
 
     @Test
@@ -602,8 +621,6 @@ class EventServicesTest extends RepositoryTestBase {
         var counts = registrationService.findCountsByStation(station.id());
         assertNotNull(counts);
     }
-
-    // -- Restrictions --
 
     @Test
     @Order(70)
@@ -658,7 +675,6 @@ class EventServicesTest extends RepositoryTestBase {
                 null,
                 null);
 
-        // Should not throw
         eventRestrictionService.updateRestrictionMode(event.id(), RestrictionMode.OR);
         eventRestrictionService.updateRestrictionMode(event.id(), RestrictionMode.AND);
     }
@@ -892,12 +908,9 @@ class EventServicesTest extends RepositoryTestBase {
                 null,
                 null);
 
-        // No restrictions set - member should be eligible
         assertTrue(
                 eventRestrictionService.canRegister(event.id(), member.id(), EnumSet.noneOf(StationPermission.class)));
     }
-
-    // -- Field defaults --
 
     @Test
     @Order(80)
@@ -922,11 +935,9 @@ class EventServicesTest extends RepositoryTestBase {
                 null,
                 null);
 
-        // No defaults set - should be empty
         var found = fieldDefaultService.findByEvent(event.id());
         assertTrue(found.isEmpty());
 
-        // Set empty defaults - should remain empty
         fieldDefaultService.setForEvent(event.id(), List.of());
         assertTrue(fieldDefaultService.findByEvent(event.id()).isEmpty());
     }
@@ -942,7 +953,7 @@ class EventServicesTest extends RepositoryTestBase {
         attendanceRepo.createTemplateField(
                 sheet.id(),
                 "Wetter",
-                AttendanceFieldType.ENUM,
+                FieldType.CHOICE,
                 AttendanceFieldConfig.parse("{\"options\":[\"trocken\",\"nass\"]}"),
                 0);
         int fieldId = attendanceRepo.findTemplateFields(sheet.id()).getFirst().id();
@@ -967,7 +978,7 @@ class EventServicesTest extends RepositoryTestBase {
                 null);
 
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> fieldDefaultService.setForEvent(
                         event.id(), List.of(new EventFieldDefault(event.id(), fieldId, "VALUE", "Schnee"))));
 
@@ -976,7 +987,7 @@ class EventServicesTest extends RepositoryTestBase {
         assertEquals(
                 "nass", fieldDefaultService.findByEvent(event.id()).getFirst().value());
 
-        attendanceRepo.deleteTemplate(sheet.id());
+        attendanceRepo.archiveTemplate(sheet.id());
     }
 
     @Test
@@ -1002,7 +1013,6 @@ class EventServicesTest extends RepositoryTestBase {
                 null,
                 null);
 
-        // No defaults set - resolve returns empty map
         var resolved = fieldDefaultService.resolve(event.id());
         assertTrue(resolved.isEmpty());
     }
@@ -1013,8 +1023,6 @@ class EventServicesTest extends RepositoryTestBase {
         var resolved = fieldDefaultService.resolve(999999);
         assertTrue(resolved.isEmpty());
     }
-
-    // -- findByStationForMember --
 
     @Test
     @Order(90)
@@ -1086,8 +1094,6 @@ class EventServicesTest extends RepositoryTestBase {
         assertNotNull(stats);
     }
 
-    // -- findFiltered --
-
     @Test
     @Order(110)
     void findFilteredNoFilters() {
@@ -1145,12 +1151,9 @@ class EventServicesTest extends RepositoryTestBase {
         assertNotNull(results);
     }
 
-    // -- findUpcomingOccurrences --
-
     @Test
     @Order(120)
     void findUpcomingOccurrencesOneTime() {
-        // Create a ONE_TIME event in the future
         var futureDate = stationToday().plusDays(5);
         var start = futureDate.atStartOfDay(stationZone()).toInstant();
         var end = start.plus(2, ChronoUnit.HOURS);
@@ -1177,11 +1180,13 @@ class EventServicesTest extends RepositoryTestBase {
         assertTrue(occurrences.stream().anyMatch(o -> o.event().id() == event.id()));
     }
 
+    /**
+     * Recurs on today's weekday, so the first occurrence falls today, before any break an earlier test
+     * created.
+     */
     @Test
     @Order(121)
     void findUpcomingOccurrencesRecurring() {
-        // Match today's day-of-week so the first occurrence lands on d=0, before any
-        // break created by earlier tests (e.g. the Summer break 2026-07-01 to 2026-08-31).
         var start = Instant.now().plus(1, ChronoUnit.DAYS);
         var end = start.plus(2, ChronoUnit.HOURS);
         int dow = stationToday().getDayOfWeek().getValue();
@@ -1255,13 +1260,15 @@ class EventServicesTest extends RepositoryTestBase {
         }
     }
 
+    /**
+     * Compared by content rather than by size: the list has no fixed end in time, so a page past the first is
+     * full again.
+     */
     @Test
     @Order(123)
     void findUpcomingOccurrencesWithOffset() {
         var all = occurrenceService.findUpcomingOccurrences(station.id(), null, page(100, 0));
         if (all.size() > 1) {
-            // Compared by what comes back rather than by how much of it. The list no longer runs out
-            // after a fixed stretch of time, so a page asked for past the first is simply full again.
             var offsetResults = occurrenceService.findUpcomingOccurrences(station.id(), null, page(all.size() - 1, 1));
             assertEquals(all.subList(1, all.size()), offsetResults);
         }
@@ -1278,7 +1285,6 @@ class EventServicesTest extends RepositoryTestBase {
     @Test
     @Order(125)
     void findUpcomingOccurrencesMonthlyFirst() {
-        // MONTHLY_FIRST: matches when dayOfWeek matches and dayOfMonth <= 7
         var start = Instant.now().plus(1, ChronoUnit.DAYS);
         var end = start.plus(2, ChronoUnit.HOURS);
         int dow = stationToday().plusDays(1).getDayOfWeek().getValue();
@@ -1302,7 +1308,6 @@ class EventServicesTest extends RepositoryTestBase {
                 null);
 
         var occurrences = occurrenceService.findUpcomingOccurrences(station.id(), null, page(100, 0));
-        // The event should appear at least once in the next 28 days if there's a matching date
         assertNotNull(occurrences);
     }
 
@@ -1338,7 +1343,6 @@ class EventServicesTest extends RepositoryTestBase {
     @Test
     @Order(127)
     void findUpcomingOccurrencesYearly() {
-        // YEARLY event with start time set so month/day match a date in the next 28 days
         var futureDate = stationToday().plusDays(10);
         var start = futureDate.atStartOfDay(stationZone()).toInstant();
         var end = start.plus(2, ChronoUnit.HOURS);
@@ -1366,20 +1370,20 @@ class EventServicesTest extends RepositoryTestBase {
         assertNotNull(occurrences);
     }
 
+    /**
+     * The breaks are removed whatever happens: one left behind covers today, and every later test asking what
+     * is on today would fail for this test's reason.
+     */
     @Test
     @Order(128)
     void findUpcomingOccurrencesDuringBreak() {
-        // Create a break covering the next 28 days
         var breakStart = stationToday();
         var breakEnd = breakStart.plusDays(28);
         var brk = breakService.create(station.id(), "Test Break", breakStart, breakEnd);
 
-        // Create a new station to avoid interference
         var breakStation = stationRepo.create("BreakStation");
         var breakBreak = breakService.create(breakStation.id(), "Full Break", breakStart, breakEnd);
 
-        // Undone whatever happens: a break left behind covers today, and every later story that
-        // asks what is on today then finds nothing and fails for a reason of this story's making.
         try {
             var start = Instant.now().plus(1, ChronoUnit.DAYS);
             var end = start.plus(2, ChronoUnit.HOURS);
@@ -1695,9 +1699,8 @@ class EventServicesTest extends RepositoryTestBase {
                     oneTimeAt(nextStation.id(), "Steht an", today.plusDays(4).atTime(9, 0));
             var gone = oneTimeAt(nextStation.id(), "Vorbei", today.minusDays(4).atTime(9, 0));
 
-            assertEquals(
-                    today.plusDays(4), occurrenceService.findNextDate(coming).orElse(null));
-            assertTrue(occurrenceService.findNextDate(gone).isEmpty());
+            assertEquals(today.plusDays(4), occurrenceCalendar.next(coming).orElse(null));
+            assertTrue(occurrenceCalendar.next(gone).isEmpty());
         } finally {
             stationRepo.delete(nextStation.id());
         }
@@ -1805,7 +1808,6 @@ class EventServicesTest extends RepositoryTestBase {
     @Test
     @Order(129)
     void findUpcomingOccurrencesOneTimePastNotIncluded() {
-        // ONE_TIME event in the past should NOT appear
         var pastDate = stationToday().minusDays(5);
         var start = pastDate.atStartOfDay(stationZone()).toInstant();
         var end = start.plus(2, ChronoUnit.HOURS);
@@ -1920,8 +1922,6 @@ class EventServicesTest extends RepositoryTestBase {
         assertFalse(registrationService.refuse(999999));
     }
 
-    // -- decline with existing ACCEPTED registration --
-
     /**
      * Saying no to a place that was already confirmed takes it back rather than declining it: only
      * somebody who was never accepted has an invitation left to decline.
@@ -1980,20 +1980,17 @@ class EventServicesTest extends RepositoryTestBase {
                 null,
                 null);
 
-        // Decline without prior registration
         var result = registrationService.decline(event.id(), member.id(), LocalDate.of(2027, 7, 1), null);
         assertNotNull(result);
         assertEquals(RegistrationStatus.DECLINED, result.status());
     }
-
-    // -- resolveFieldDefaults with EVENT_START_TIME and EVENT_END_TIME --
 
     @Test
     @Order(140)
     void resolveFieldDefaultsWithEventStartTime() {
         var template = attendanceRepo.createTemplate(station.id(), "StartTimeTemplate");
         attendanceRepo.createTemplateField(
-                template.id(), "StartField", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 0);
+                template.id(), "StartField", FieldType.TEXT, AttendanceFieldConfig.parse("{}"), 0);
         var fields = attendanceRepo.findTemplateFields(template.id());
         int fieldId = fields.getFirst().id();
 
@@ -2030,7 +2027,7 @@ class EventServicesTest extends RepositoryTestBase {
     void resolveFieldDefaultsWithEventEndTime() {
         var template = attendanceRepo.createTemplate(station.id(), "EndTimeTemplate");
         attendanceRepo.createTemplateField(
-                template.id(), "EndField", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 0);
+                template.id(), "EndField", FieldType.TEXT, AttendanceFieldConfig.parse("{}"), 0);
         var fields = attendanceRepo.findTemplateFields(template.id());
         int fieldId = fields.getFirst().id();
 
@@ -2062,14 +2059,16 @@ class EventServicesTest extends RepositoryTestBase {
         assertTrue(resolved.get(fieldId).startsWith("\""));
     }
 
+    /**
+     * An event cannot be stored without a start time, so a missing event stands in for one, and resolves to
+     * nothing.
+     */
     @Test
     @Order(142)
     void resolveFieldDefaultsWithNullStartTime() {
-        // DB requires non-null start_time, so we test resolveFieldDefaults for a missing event instead.
-        // resolveFieldDefaults returns empty map for non-existent events.
         var template = attendanceRepo.createTemplate(station.id(), "NullStartTemplate");
         attendanceRepo.createTemplateField(
-                template.id(), "NullStartField", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 0);
+                template.id(), "NullStartField", FieldType.TEXT, AttendanceFieldConfig.parse("{}"), 0);
         var fields = attendanceRepo.findTemplateFields(template.id());
         int fieldId = fields.getFirst().id();
 
@@ -2097,7 +2096,6 @@ class EventServicesTest extends RepositoryTestBase {
                 event.id(), List.of(new EventFieldDefault(event.id(), fieldId, "EVENT_START_TIME", null)));
 
         var resolved = fieldDefaultService.resolve(event.id());
-        // start time is set, so field should be resolved with quoted timestamp
         assertTrue(resolved.containsKey(fieldId));
         assertTrue(resolved.get(fieldId).startsWith("\""));
     }
@@ -2107,7 +2105,7 @@ class EventServicesTest extends RepositoryTestBase {
     void resolveFieldDefaultsWithNullEndTime() {
         var template = attendanceRepo.createTemplate(station.id(), "NullEndTemplate");
         attendanceRepo.createTemplateField(
-                template.id(), "NullEndField", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 0);
+                template.id(), "NullEndField", FieldType.TEXT, AttendanceFieldConfig.parse("{}"), 0);
         var fields = attendanceRepo.findTemplateFields(template.id());
         int fieldId = fields.getFirst().id();
 
@@ -2135,12 +2133,9 @@ class EventServicesTest extends RepositoryTestBase {
                 event.id(), List.of(new EventFieldDefault(event.id(), fieldId, "EVENT_END_TIME", null)));
 
         var resolved = fieldDefaultService.resolve(event.id());
-        // end time is set, so field should be resolved with quoted timestamp
         assertTrue(resolved.containsKey(fieldId));
         assertTrue(resolved.get(fieldId).startsWith("\""));
     }
-
-    // -- findRegistrationStats with categoryId --
 
     @Test
     @Order(150)
@@ -2148,8 +2143,6 @@ class EventServicesTest extends RepositoryTestBase {
         var stats = registrationService.findStatsByEvent(0, categoryId, 6);
         assertNotNull(stats);
     }
-
-    // -- register with createdBy --
 
     @Test
     @Order(151)
@@ -2178,8 +2171,6 @@ class EventServicesTest extends RepositoryTestBase {
         assertNotNull(reg);
         assertEquals(member.id(), reg.createdBy());
     }
-
-    // -- findTodayEvents edge cases --
 
     @Test
     @Order(160)
@@ -2213,7 +2204,6 @@ class EventServicesTest extends RepositoryTestBase {
     @Test
     @Order(161)
     void findTodayEventsOneTimeNonMatchingDate() {
-        // ONE_TIME event with start time on a different day should NOT match today
         var tomorrow = stationToday().plusDays(1);
         var start = tomorrow.atStartOfDay(stationZone()).toInstant();
         var end = start.plus(2, ChronoUnit.HOURS);
@@ -2237,16 +2227,14 @@ class EventServicesTest extends RepositoryTestBase {
                 null);
 
         var today = occurrenceService.findTodayEvents(station.id());
-        // ONE_TIME with start time tomorrow should NOT match today
         assertTrue(today.stream().noneMatch(e -> e.id() == event.id()));
     }
 
     @Test
     @Order(162)
     void findTodayEventsRecurringWithNonMatchingDayOfWeek() {
-        // RECURRING event with a different day of week should NOT match today
         int todayDow = stationToday().getDayOfWeek().getValue();
-        int otherDow = (todayDow % 7) + 1; // pick a different day
+        int otherDow = (todayDow % 7) + 1;
         var start = Instant.now();
         var end = start.plus(2, ChronoUnit.HOURS);
 
@@ -2269,7 +2257,6 @@ class EventServicesTest extends RepositoryTestBase {
                 null);
 
         var today = occurrenceService.findTodayEvents(station.id());
-        // RECURRING with a different dayOfWeek should NOT match today
         assertTrue(today.stream().noneMatch(e -> e.id() == event.id()));
     }
 
@@ -2300,7 +2287,6 @@ class EventServicesTest extends RepositoryTestBase {
                 null);
 
         var todayEvents = occurrenceService.findTodayEvents(station.id());
-        // MONTHLY_FIRST only matches if dayOfMonth <= 7
         if (today.getDayOfMonth() <= 7) {
             assertTrue(todayEvents.stream().anyMatch(e -> e.id() == event.id()));
         } else {
@@ -2335,7 +2321,7 @@ class EventServicesTest extends RepositoryTestBase {
                 null);
 
         var todayEvents = occurrenceService.findTodayEvents(station.id());
-        boolean shouldMatch = today.getDayOfMonth() <= 7 && (today.getMonthValue() - 1) % 3 == 0;
+        boolean shouldMatch = today.getDayOfMonth() <= 7;
         if (shouldMatch) {
             assertTrue(todayEvents.stream().anyMatch(e -> e.id() == event.id()));
         } else {
@@ -2369,7 +2355,6 @@ class EventServicesTest extends RepositoryTestBase {
                 null);
 
         var todayEvents = occurrenceService.findTodayEvents(station.id());
-        // YEARLY needs startTime month and day to match
         assertTrue(todayEvents.stream().anyMatch(e -> e.id() == event.id()));
     }
 
@@ -2427,7 +2412,6 @@ class EventServicesTest extends RepositoryTestBase {
                 null,
                 null);
 
-        // All null lists - should default to empty
         eventRestrictionService.setRestrictions(event.id(), new RestrictionSelection(null, null, null, null, null));
         var restrictions = eventRestrictionService.findRestrictions(event.id());
         assertNotNull(restrictions);
@@ -2436,7 +2420,6 @@ class EventServicesTest extends RepositoryTestBase {
     @Test
     @Order(97)
     void findTodayEvents() {
-        // This relies on the current date, but should at least not throw
         var today = occurrenceService.findTodayEvents(station.id());
         assertNotNull(today);
     }
@@ -2444,12 +2427,11 @@ class EventServicesTest extends RepositoryTestBase {
     @Test
     @Order(98)
     void resolveFieldDefaultsWithAttendanceField() {
-        // Create an attendance template with two fields
         var template = attendanceRepo.createTemplate(station.id(), "EventDefaultTemplate");
         attendanceRepo.createTemplateField(
-                template.id(), "FieldA", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 0);
+                template.id(), "FieldA", FieldType.TEXT, AttendanceFieldConfig.parse("{}"), 0);
         attendanceRepo.createTemplateField(
-                template.id(), "FieldB", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 1);
+                template.id(), "FieldB", FieldType.TEXT, AttendanceFieldConfig.parse("{}"), 1);
         var fields = attendanceRepo.findTemplateFields(template.id());
         assertFalse(fields.isEmpty());
         int fieldAId = fields.get(0).id();
@@ -2475,7 +2457,6 @@ class EventServicesTest extends RepositoryTestBase {
                 null,
                 null);
 
-        // Use separate field IDs - no duplicates
         fieldDefaultService.setForEvent(
                 event.id(),
                 List.of(
@@ -2491,10 +2472,9 @@ class EventServicesTest extends RepositoryTestBase {
     @Test
     @Order(99)
     void resolveFieldDefaultsWithUnknownSource() {
-        // Using an unknown source type - should be skipped (returns null, not added to result)
         var template = attendanceRepo.createTemplate(station.id(), "EventDefaultTemplate2");
         attendanceRepo.createTemplateField(
-                template.id(), "TestField2", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 0);
+                template.id(), "TestField2", FieldType.TEXT, AttendanceFieldConfig.parse("{}"), 0);
         var fields = attendanceRepo.findTemplateFields(template.id());
         int attendanceFieldId = fields.getFirst().id();
 
@@ -2522,7 +2502,6 @@ class EventServicesTest extends RepositoryTestBase {
                 event.id(), List.of(new EventFieldDefault(event.id(), attendanceFieldId, "UNKNOWN_SOURCE", null)));
 
         var resolved = fieldDefaultService.resolve(event.id());
-        // UNKNOWN_SOURCE returns null, so field should NOT be in result
         assertFalse(resolved.containsKey(attendanceFieldId));
     }
 
@@ -2531,7 +2510,7 @@ class EventServicesTest extends RepositoryTestBase {
     void resolveFieldDefaultsWithEventDescriptionSource() {
         var template = attendanceRepo.createTemplate(station.id(), "EventDefaultTemplate3");
         attendanceRepo.createTemplateField(
-                template.id(), "TestField3", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 0);
+                template.id(), "TestField3", FieldType.TEXT, AttendanceFieldConfig.parse("{}"), 0);
         var fields = attendanceRepo.findTemplateFields(template.id());
         int attendanceFieldId = fields.getFirst().id();
 
@@ -2572,7 +2551,6 @@ class EventServicesTest extends RepositoryTestBase {
     @Test
     @Order(102)
     void findTodayEventsWithOneTimeMatchingToday() {
-        // Create a ONE_TIME event with start time = today UTC
         var todayStart = stationToday().atStartOfDay(stationZone()).toInstant();
         var todayEnd = todayStart.plus(2, ChronoUnit.HOURS);
 
@@ -2597,8 +2575,6 @@ class EventServicesTest extends RepositoryTestBase {
         var today = occurrenceService.findTodayEvents(station.id());
         assertTrue(today.stream().anyMatch(e -> e.id() == event.id()));
     }
-
-    // -- Not-found / negative branches --
 
     @Test
     @Order(200)
@@ -2637,39 +2613,6 @@ class EventServicesTest extends RepositoryTestBase {
     }
 
     @Test
-    @Order(203)
-    void cancelEventNotFound() {
-        assertFalse(crudService.cancelEvent(station.id(), 999999, "ghost"));
-    }
-
-    @Test
-    @Order(204)
-    void cancelEventAlreadyCancelled() {
-        var start = Instant.now().plus(30, ChronoUnit.DAYS);
-        var end = start.plus(2, ChronoUnit.HOURS);
-        var event = crudService.create(
-                station.id(),
-                "Cancellable",
-                "desc",
-                StationEvent.EventType.ONE_TIME,
-                null,
-                start,
-                end,
-                null,
-                false,
-                null,
-                false,
-                categoryId,
-                null,
-                null,
-                null,
-                null);
-        assertTrue(crudService.cancelEvent(station.id(), event.id(), "first"));
-        // Second cancel hits the "already cancelled" log.warn branch.
-        assertFalse(crudService.cancelEvent(station.id(), event.id(), "second"));
-    }
-
-    @Test
     @Order(205)
     void deleteBreakNotFound() {
         assertFalse(breakService.delete(999999));
@@ -2684,7 +2627,6 @@ class EventServicesTest extends RepositoryTestBase {
     @Test
     @Order(207)
     void findUpcomingOccurrencesWithSearch() {
-        // Create a recognisable event so the search filter has something to match.
         int dow = stationToday().getDayOfWeek().getValue();
         var start = Instant.now().plus(1, ChronoUnit.DAYS);
         var end = start.plus(2, ChronoUnit.HOURS);
@@ -2820,16 +2762,14 @@ class EventServicesTest extends RepositoryTestBase {
         markPublic(visible.id(), true);
         markPublic(hidden.id(), false);
 
-        var results = crudService.searchEventPicker(
-                station.id(), BlockAudience.PUBLIC, "pickerv", EventRepository.PickerMode.FUTURE, 10);
+        var results =
+                crudService.searchEventPicker(station.id(), BlockAudience.PUBLIC, "pickerv", PickerMode.FUTURE, 10);
         assertTrue(results.stream().anyMatch(e -> "PickerVisible".equals(e.name())));
 
-        var all = crudService.searchEventPicker(
-                station.id(), BlockAudience.PUBLIC, "picker", EventRepository.PickerMode.ALL, 10);
+        var all = crudService.searchEventPicker(station.id(), BlockAudience.PUBLIC, "picker", PickerMode.ALL, 10);
         assertTrue(all.stream().noneMatch(e -> "PickerHidden".equals(e.name())));
 
-        var past = crudService.searchEventPicker(
-                station.id(), BlockAudience.PUBLIC, "pickerv", EventRepository.PickerMode.PAST, 10);
+        var past = crudService.searchEventPicker(station.id(), BlockAudience.PUBLIC, "pickerv", PickerMode.PAST, 10);
         assertTrue(past.stream().noneMatch(e -> "PickerVisible".equals(e.name())));
     }
 
@@ -2844,8 +2784,8 @@ class EventServicesTest extends RepositoryTestBase {
         markPublic(hidden.id(), false);
         eventRestrictionService.setViewRestrictions(hidden.id(), onlyType(StationUserType.GUARDIAN));
 
-        var results = crudService.searchEventPicker(
-                station.id(), BlockAudience.MEMBERS, "scope", EventRepository.PickerMode.FUTURE, 10);
+        var results =
+                crudService.searchEventPicker(station.id(), BlockAudience.MEMBERS, "scope", PickerMode.FUTURE, 10);
 
         assertTrue(results.stream().anyMatch(e -> "ScopeInternal".equals(e.name())));
         assertTrue(results.stream().noneMatch(e -> "ScopeHidden".equals(e.name())));
@@ -2898,8 +2838,11 @@ class EventServicesTest extends RepositoryTestBase {
 
         var counted = crudService.setRepeatEnd(event.id(), null, 3).orElseThrow();
         assertEquals(3, counted.repeatCount());
-        assertEquals(LocalDate.parse("2026-09-16"), counted.lastDate().orElseThrow());
-        assertFalse(counted.occursOn(LocalDate.parse("2026-09-23")));
+        var calendar = occurrenceCalendar.forStation(station.id());
+        assertEquals(
+                LocalDate.parse("2026-09-16"),
+                calendar.ruleOf(counted).orElseThrow().last());
+        assertFalse(calendar.occursOn(counted, LocalDate.parse("2026-09-23")));
 
         var dated = crudService
                 .setRepeatEnd(event.id(), LocalDate.parse("2026-10-07"), null)
@@ -2908,7 +2851,7 @@ class EventServicesTest extends RepositoryTestBase {
         assertNull(dated.repeatCount(), "the two ways of saying it never stand together");
 
         var open = crudService.setRepeatEnd(event.id(), null, null).orElseThrow();
-        assertTrue(open.lastDate().isEmpty(), "an end can be taken off again");
+        assertNull(calendar.ruleOf(open).orElseThrow().last(), "an end can be taken off again");
     }
 
     @Test
@@ -2935,16 +2878,16 @@ class EventServicesTest extends RepositoryTestBase {
         var once = createPickerEvent("Einmalig mit Ende", start, start.plus(2, ChronoUnit.HOURS));
 
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> crudService.setRepeatEnd(recurring.id(), LocalDate.parse("2026-10-07"), 3),
                 "a day and a number of times are two ways of saying the same thing");
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> crudService.setRepeatEnd(recurring.id(), LocalDate.parse("2026-08-01"), null),
                 "a series cannot end before it starts");
-        assertThrows(BadRequestResponse.class, () -> crudService.setRepeatEnd(recurring.id(), null, 0));
+        assertThrows(RefusalResponse.class, () -> crudService.setRepeatEnd(recurring.id(), null, 0));
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> crudService.setRepeatEnd(once.id(), null, 3),
                 "a one-off appointment has nothing to repeat");
     }

@@ -11,7 +11,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import DragList from '@/components/input/DragList.vue'
 import ProcedureItemCard from '@/views/stationview/procedure/procedurecreateview/ProcedureItemCard.vue'
-import type {EditableItem} from '@/views/stationview/procedure/procedurecreateview/types'
+import type {EditableItem} from '@/composables/useProcedureForm'
 
 const {t} = useI18n()
 
@@ -23,6 +23,7 @@ const emit = defineEmits<{
   add: []
   reorder: [fromIndex: number, toIndex: number]
   remove: [index: number]
+  update: [index: number, item: EditableItem]
 }>()
 </script>
 
@@ -44,7 +45,8 @@ const emit = defineEmits<{
         @reorder="(from, to) => emit('reorder', from, to)"
     >
       <template #default="{item, index}">
-        <ProcedureItemCard :item="item" :all-items="items" @remove="emit('remove', index)"/>
+        <ProcedureItemCard :item="item" :all-items="items" @update:item="changed => emit('update', index, changed)"
+                           @remove="emit('remove', index)"/>
       </template>
     </DragList>
   </NeutralContainer>

@@ -11,8 +11,8 @@ import dev.chojo.ember.repository.RepositoryTestBase;
 import dev.chojo.ember.tracking.DataTracking;
 import dev.chojo.ember.tracking.DataTrackingLoader;
 import dev.chojo.ember.tracking.Lookup;
-import dev.chojo.ember.tracking.Status;
 import dev.chojo.ember.tracking.TableEntry;
+import dev.chojo.ember.tracking.TrackingStatus;
 import dev.chojo.ember.tracking.TransferContext;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -61,9 +61,7 @@ class GenericTableExporterTest extends RepositoryTestBase {
         var first = rows.getFirst();
         assertTrue(first.containsKey("id"));
         assertTrue(first.containsKey("name"));
-        // After transfer-metadata backfill, station_id is in ignoredColumns: the import side
-        // already knows the target station, so the source id is intentionally omitted.
-        assertFalse(first.containsKey("station_id"));
+        assertFalse(first.containsKey("station_id"), "the importing side already knows its own station");
     }
 
     @Test
@@ -83,7 +81,6 @@ class GenericTableExporterTest extends RepositoryTestBase {
 
     @Test
     void honoursIgnoredColumnsFromTransferContext() {
-        // Build a synthetic tracking that ignores 'station_id' on member_group.
         var original = tracking.tables().get("member_group");
         var tweaked = new TableEntry(
                 original.feature(),
@@ -95,7 +92,7 @@ class GenericTableExporterTest extends RepositoryTestBase {
                 original.outputShape(),
                 original.flatField(),
                 original.customScope(),
-                new TransferContext(Status.TRACKED, null, List.of("station_id"), null),
+                new TransferContext(TrackingStatus.TRACKED, null, List.of("station_id"), null),
                 original.gdprExport(),
                 original.gdprDeletion());
         var customTables = new LinkedHashMap<>(tracking.tables());
@@ -112,7 +109,6 @@ class GenericTableExporterTest extends RepositoryTestBase {
 
     @Test
     void honoursLookupFromFkMetadata() {
-        // user_tag has a station_id FK; flatten station.name as 'station_name' via lookup.
         var original = tracking.tables().get("user_tag");
         var tweaked = new TableEntry(
                 original.feature(),
@@ -142,9 +138,8 @@ class GenericTableExporterTest extends RepositoryTestBase {
 
     @Test
     void refusesIgnoredTableForTransfer() {
-        // 'account_external_auth' remains IGNORED for stationTransfer
         var ex = assertThrows(
-                IllegalStateException.class, () -> exporter.export("account_external_auth", station.id(), 0, 100));
+                IllegalStateException.class, () -> exporter.export("account_session", station.id(), 0, 100));
         assertTrue(ex.getMessage().contains("not TRACKED"));
     }
 }

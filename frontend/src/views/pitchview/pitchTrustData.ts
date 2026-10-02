@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {ActiveSession} from '@/api/session'
+import type {ActiveSession} from '@/api/generated/schema'
 import type {PitchTrust} from './pitchTypes'
 
 /**
@@ -23,11 +23,11 @@ const SESSIONS: ActiveSession[] = [
     },
     {
         id: 2, userAgent: 'Safari · iPhone', location: 'Musterstadt',
-        createdAt: hoursAgo(72), lastUsedAt: hoursAgo(14), expiresAt: hoursAgo(-24 * 27),
+        createdAt: hoursAgo(72), lastUsedAt: hoursAgo(14), expiresAt: hoursAgo(-24 * 27), isCurrent: false,
     },
     {
         id: 3, userAgent: 'Chrome · Windows', location: 'Talbach',
-        createdAt: hoursAgo(24 * 9), lastUsedAt: hoursAgo(24 * 4), expiresAt: hoursAgo(-24 * 21),
+        createdAt: hoursAgo(24 * 9), lastUsedAt: hoursAgo(24 * 4), expiresAt: hoursAgo(-24 * 21), isCurrent: false,
     },
 ]
 

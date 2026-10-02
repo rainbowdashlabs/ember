@@ -14,16 +14,16 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import CatalogHeader from './catalogdetailview/CatalogHeader.vue'
 import CategorySection from './catalogdetailview/CategorySection.vue'
 import QuestionSection from './catalogdetailview/QuestionSection.vue'
-import type { QuizCatalogDetail, QuizQuestion, QuizQuestionReport } from '@/api/quiz'
+import type { QuizCatalogDetail, QuizQuestion, QuizQuestionReport } from '@/api/generated/schema'
 import { quiz, federation, storage } from '@/api'
 import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { describeFailure, type Failure } from '@/util/failure'
+import { StationPermission } from '@/api/types'
 
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
-import { StationPermission } from '@/api/types'
 const { hasPermission, loaded } = useSession()
 
 const catalogId = computed(() => Number(route.params.id))

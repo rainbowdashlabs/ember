@@ -6,25 +6,34 @@
 package dev.chojo.ember.feature.board.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.BoardRefusal;
+import dev.chojo.ember.api.refusal.CommentRefusal;
 import dev.chojo.ember.feature.board.entity.BoardChecklistItem;
-import dev.chojo.ember.feature.board.entity.BoardComment;
 import dev.chojo.ember.feature.board.entity.BoardFieldValue;
 import dev.chojo.ember.feature.board.entity.BoardTicketFieldValue;
 import dev.chojo.ember.feature.board.entity.BoardTicketHistoryAction;
 import dev.chojo.ember.feature.board.service.BoardService;
 import dev.chojo.ember.feature.board.service.BoardTicketService;
+import dev.chojo.ember.feature.comment.entity.Comment;
+import dev.chojo.ember.feature.comment.entity.CommentEntityType;
+import dev.chojo.ember.feature.comment.entity.CommentFilter;
+import dev.chojo.ember.feature.comment.entity.CommentWriter;
+import dev.chojo.ember.feature.comment.entity.Moderation;
+import dev.chojo.ember.feature.comment.entity.NewComment;
+import dev.chojo.ember.feature.comment.route.CommentResponse;
 import dev.chojo.ember.feature.comment.route.CommentResponseMapper;
+import dev.chojo.ember.feature.comment.service.CommentService;
+import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
+import dev.chojo.ember.feature.question.QuestionCheck;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
-import io.javalin.openapi.OpenApiName;
 import io.javalin.openapi.OpenApiParam;
 import io.javalin.openapi.OpenApiRequestBody;
 import io.javalin.openapi.OpenApiResponse;
@@ -46,6 +55,7 @@ public class BoardTicketDetailRoutes implements Routes {
 
     private final BoardTicketService ticketService;
     private final BoardService boardService;
+    private final CommentService commentService;
     private final MemberNameResolver memberNameResolver;
     private final BoardRouteGuards guards;
 
@@ -53,10 +63,12 @@ public class BoardTicketDetailRoutes implements Routes {
     public BoardTicketDetailRoutes(
             BoardTicketService ticketService,
             BoardService boardService,
+            CommentService commentService,
             MemberNameResolver memberNameResolver,
             BoardRouteGuards guards) {
         this.ticketService = ticketService;
         this.boardService = boardService;
+        this.commentService = commentService;
         this.memberNameResolver = memberNameResolver;
         this.guards = guards;
     }
@@ -94,12 +106,13 @@ public class BoardTicketDetailRoutes implements Routes {
                 @OpenApiParam(name = "boardKey", type = String.class, required = true),
                 @OpenApiParam(name = "ticketNumber", type = Integer.class, required = true)
             },
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BoardComment[].class)))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = CommentResponse[].class)))
     private void getComments(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int ticketId = guards.viewableTicketId(ctx, session);
-        ctx.json(ticketService.findComments(ticketId).stream()
-                .map(comment -> CommentResponseMapper.fromBoard(memberNameResolver, comment))
+        commentService.requireReadable(session, CommentEntityType.BOARD_TICKET, ticketId);
+        ctx.json(commentService.list(CommentEntityType.BOARD_TICKET, ticketId, CommentFilter.ALL).stream()
+                .map(this::toResponse)
                 .toList());
     }
 
@@ -112,18 +125,23 @@ public class BoardTicketDetailRoutes implements Routes {
                 @OpenApiParam(name = "boardKey", type = String.class, required = true),
                 @OpenApiParam(name = "ticketNumber", type = Integer.class, required = true)
             },
-            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = CommentRequest.class)),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = BoardTicketCommentRequest.class)),
             responses = {
-                @OpenApiResponse(status = "201", content = @OpenApiContent(from = BoardComment.class)),
+                @OpenApiResponse(status = "201", content = @OpenApiContent(from = CommentResponse.class)),
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void createComment(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int ticketId = guards.editableTicketId(ctx, session);
-        var req = ctx.bodyAsClass(CommentRequest.class);
-        if (req.content() == null || req.content().isBlank()) throw Refusal.TICKET_COMMENT_NEEDS_TEXT.raise();
-        var comment = ticketService.createComment(ticketId, req.parentId(), guards.actor(session), req.content());
-        ctx.status(HttpStatus.CREATED).json(CommentResponseMapper.fromBoard(memberNameResolver, comment));
+        var req = ctx.bodyAsClass(BoardTicketCommentRequest.class);
+        if (req.content() == null || req.content().isBlank()) throw BoardRefusal.TICKET_COMMENT_NEEDS_TEXT.raise();
+        var comment = commentService.create(
+                session,
+                CommentEntityType.BOARD_TICKET,
+                ticketId,
+                writer(session),
+                new NewComment(req.parentId(), null, req.content()));
+        ctx.status(HttpStatus.CREATED).json(toResponse(comment));
     }
 
     @OpenApi(
@@ -136,14 +154,20 @@ public class BoardTicketDetailRoutes implements Routes {
                 @OpenApiParam(name = "ticketNumber", type = Integer.class, required = true),
                 @OpenApiParam(name = "commentId", type = Integer.class, required = true)
             },
-            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = CommentRequest.class)),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = BoardTicketCommentRequest.class)),
             responses = @OpenApiResponse(status = "200"))
     private void updateComment(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        int ticketId = guards.editableTicketId(ctx, session);
-        int commentId = requireCommentOn(ctx, ticketId);
-        var req = ctx.bodyAsClass(CommentRequest.class);
-        ticketService.updateComment(ticketId, commentId, req.content());
+        StationSession session = StationSession.from(ctx);
+        var comment = requireCommentOn(ctx, guards.editableTicketId(ctx, session));
+        if (!commentService.mayModify(session, guards.actor(session), comment, Moderation.EDIT)) {
+            throw CommentRefusal.COMMENT_NOT_YOURS_TO_CHANGE.raise();
+        }
+        var req = ctx.bodyAsClass(BoardTicketCommentRequest.class);
+        String content = req.content();
+        if (content == null || content.isBlank()) throw CommentRefusal.COMMENT_CHANGE_NEEDS_TEXT.raise();
+        commentService
+                .update(comment, writer(session), content)
+                .orElseThrow(BoardRefusal.TICKET_COMMENT_NOT_HERE::raise);
         ctx.status(HttpStatus.OK);
     }
 
@@ -159,9 +183,12 @@ public class BoardTicketDetailRoutes implements Routes {
             },
             responses = @OpenApiResponse(status = "204"))
     private void deleteComment(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        int ticketId = guards.editableTicketId(ctx, session);
-        ticketService.deleteComment(ticketId, requireCommentOn(ctx, ticketId));
+        StationSession session = StationSession.from(ctx);
+        var comment = requireCommentOn(ctx, guards.editableTicketId(ctx, session));
+        if (!commentService.mayModify(session, guards.actor(session), comment, Moderation.DELETE)) {
+            throw CommentRefusal.COMMENT_NOT_YOURS_TO_DELETE.raise();
+        }
+        commentService.delete(comment);
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -176,7 +203,7 @@ public class BoardTicketDetailRoutes implements Routes {
             },
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BoardChecklistItem[].class)))
     private void getChecklist(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(ticketService.findChecklistItems(guards.viewableTicketId(ctx, session)));
     }
 
@@ -195,10 +222,10 @@ public class BoardTicketDetailRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void addChecklistItem(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int ticketId = guards.editableTicketId(ctx, session);
         var req = ctx.bodyAsClass(ChecklistItemRequest.class);
-        if (req.title() == null || req.title().isBlank()) throw Refusal.CHECKLIST_ITEM_NEEDS_A_TITLE.raise();
+        if (req.title() == null || req.title().isBlank()) throw BoardRefusal.CHECKLIST_ITEM_NEEDS_A_TITLE.raise();
         ctx.status(HttpStatus.CREATED)
                 .json(ticketService.addChecklistItem(
                         ticketId, req.title(), session.member().id()));
@@ -217,7 +244,7 @@ public class BoardTicketDetailRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ChecklistItemRequest.class)),
             responses = @OpenApiResponse(status = "200"))
     private void updateChecklistItem(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int ticketId = guards.editableTicketId(ctx, session);
         var req = ctx.bodyAsClass(ChecklistItemRequest.class);
         ticketService.updateChecklistItem(
@@ -241,7 +268,7 @@ public class BoardTicketDetailRoutes implements Routes {
             },
             responses = @OpenApiResponse(status = "204"))
     private void deleteChecklistItem(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int ticketId = guards.editableTicketId(ctx, session);
         ticketService.deleteChecklistItem(
                 pathInt(ctx, "itemId"), ticketId, session.member().id());
@@ -260,7 +287,7 @@ public class BoardTicketDetailRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ReorderChecklistRequest.class)),
             responses = @OpenApiResponse(status = "200"))
     private void reorderChecklist(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int ticketId = guards.editableTicketId(ctx, session);
         var req = ctx.bodyAsClass(ReorderChecklistRequest.class);
         ticketService.reorderChecklistItems(ticketId, req.orderedIds());
@@ -278,7 +305,7 @@ public class BoardTicketDetailRoutes implements Routes {
             },
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Integer[].class)))
     private void getWatchers(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(ticketService.findWatchers(guards.viewableTicketId(ctx, session)));
     }
 
@@ -293,7 +320,7 @@ public class BoardTicketDetailRoutes implements Routes {
             },
             responses = @OpenApiResponse(status = "201"))
     private void watchTicket(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ticketService.watchTicket(
                 guards.viewableTicketId(ctx, session), session.member().id());
         ctx.status(HttpStatus.CREATED);
@@ -310,7 +337,7 @@ public class BoardTicketDetailRoutes implements Routes {
             },
             responses = @OpenApiResponse(status = "204"))
     private void unwatchTicket(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ticketService.unwatchTicket(
                 guards.viewableTicketId(ctx, session), session.member().id());
         ctx.status(HttpStatus.NO_CONTENT);
@@ -328,7 +355,7 @@ public class BoardTicketDetailRoutes implements Routes {
             responses =
                     @OpenApiResponse(status = "200", content = @OpenApiContent(from = BoardTicketFieldValue[].class)))
     private void getFieldValues(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(ticketService.findFieldValues(guards.viewableTicketId(ctx, session)));
     }
 
@@ -342,13 +369,14 @@ public class BoardTicketDetailRoutes implements Routes {
                 @OpenApiParam(name = "ticketNumber", type = Integer.class, required = true),
                 @OpenApiParam(name = "fieldId", type = Integer.class, required = true)
             },
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = BoardFieldValue.class)),
             responses = {
                 @OpenApiResponse(status = "200"),
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void setFieldValue(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int boardId = guards.resolveBoardId(ctx, session.stationId());
         guards.requireEditAccess(boardId, session);
         int ticketId = guards.resolveTicketId(ctx, boardId);
@@ -356,9 +384,12 @@ public class BoardTicketDetailRoutes implements Routes {
         var field = boardService.findFields(boardId).stream()
                 .filter(f -> f.id() == fieldId)
                 .findFirst()
-                .orElseThrow(Refusal.TICKET_FIELD_NOT_HERE::raise);
+                .orElseThrow(BoardRefusal.TICKET_FIELD_NOT_HERE::raise);
         var value = BoardFieldValue.parse(field.fieldType(), ctx.body());
-        if (value == null) throw Refusal.TICKET_FIELD_VALUE_NOT_ACCEPTED.raise();
+        if (value == null) throw BoardRefusal.TICKET_FIELD_VALUE_NOT_ACCEPTED.raise();
+        QuestionCheck.answer(field.question(), value.answer()).ifPresent(problem -> {
+            throw BoardRefusal.TICKET_FIELD_VALUE_NOT_ACCEPTED.raise(problem.question());
+        });
         ticketService.setFieldValue(ticketId, fieldId, value);
         ticketService.logHistory(
                 ticketId, BoardTicketHistoryAction.FIELD_CHANGED, "Feld #" + fieldId, guards.actor(session));
@@ -375,10 +406,19 @@ public class BoardTicketDetailRoutes implements Routes {
                 @OpenApiParam(name = "ticketNumber", type = Integer.class, required = true),
                 @OpenApiParam(name = "fieldId", type = Integer.class, required = true)
             },
-            responses = @OpenApiResponse(status = "204"))
+            responses = {
+                @OpenApiResponse(status = "204"),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
     private void deleteFieldValue(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        ticketService.deleteFieldValue(guards.editableTicketId(ctx, session), pathInt(ctx, "fieldId"));
+        StationSession session = StationSession.from(ctx);
+        int ticketId = guards.editableTicketId(ctx, session);
+        int fieldId = pathInt(ctx, "fieldId");
+        int boardId = guards.resolveBoardId(ctx, session.stationId());
+        boolean required = boardService.findFields(boardId).stream()
+                .anyMatch(field -> field.id() == fieldId && field.config().required());
+        if (required) throw BoardRefusal.TICKET_FIELD_VALUE_REQUIRED.raise();
+        ticketService.deleteFieldValue(ticketId, fieldId);
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -387,18 +427,25 @@ public class BoardTicketDetailRoutes implements Routes {
      * the addressed ticket. Whether the caller may edit that ticket is settled by the guard that
      * resolved it.
      */
-    private int requireCommentOn(Context ctx, int ticketId) {
-        int commentId = pathInt(ctx, "commentId");
-        if (ticketService.findComments(ticketId).stream().noneMatch(c -> c.id() == commentId)) {
-            throw Refusal.TICKET_COMMENT_NOT_HERE.raise();
-        }
-        return commentId;
+    private Comment requireCommentOn(Context ctx, int ticketId) {
+        return commentService
+                .findById(CommentEntityType.BOARD_TICKET, pathInt(ctx, "commentId"))
+                .filter(comment -> comment.targetId() == ticketId)
+                .orElseThrow(BoardRefusal.TICKET_COMMENT_NOT_HERE::raise);
+    }
+
+    private CommentWriter writer(StationSession session) {
+        return CommentWriter.local(
+                guards.actor(session), NameParts.of(session.user().account()).called());
+    }
+
+    private CommentResponse toResponse(Comment comment) {
+        return CommentResponseMapper.fromBoard(memberNameResolver, comment);
     }
 
     public record ChecklistItemRequest(String title, Boolean checked) {}
 
     public record ReorderChecklistRequest(List<Integer> orderedIds) {}
 
-    @OpenApiName("BoardTicketCommentRequest")
-    public record CommentRequest(Integer parentId, String content) {}
+    public record BoardTicketCommentRequest(Integer parentId, String content) {}
 }

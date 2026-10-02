@@ -4,28 +4,23 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
+import type {
+    AccountSearchResult,
+    AuditResponse,
+    components,
+    MemberStatus,
+    MemberStatusResponse,
+    PoliciesResponse,
+    StationUserType,
+    TwoFactorAuditEntry,
+    TwoFactorPolicyEntry,
+    UpsertPolicyRequest,
+    UserTypesResponse,
+} from './generated/schema'
 
-export interface TwoFactorPolicy {
-    id: number
-    scope: 'INSTANCE' | 'STATION'
-    stationId: number | null
-    userType: string | null
-    required: boolean
-    graceDays: number
-    createdBy: number | null
-    createdAt: string
-}
+type Schemas = components['schemas']
 
-export interface MemberStatus {
-    memberId: number
-    accountId: number
-    firstName: string
-    lastName: string
-    email: string
-    userType: string
-    enrolled: boolean
-    mandated: boolean
-}
+export type TwoFactorEventName = Schemas['TwoFactorEvent']
 
 /** Everything the two-factor audit log records. */
 export const TwoFactorEvent = {
@@ -49,41 +44,31 @@ export const TwoFactorEvent = {
     SIGNED_IN_VIA_DEVICE_CODE: 'SIGNED_IN_VIA_DEVICE_CODE',
     STEPUP_VIA_DEVICE_CODE: 'STEPUP_VIA_DEVICE_CODE',
     DEVICE_REQUEST_APPROVED: 'DEVICE_REQUEST_APPROVED',
-} as const
+} as const satisfies Record<TwoFactorEventName, TwoFactorEventName>
 
-export type TwoFactorEventName = (typeof TwoFactorEvent)[keyof typeof TwoFactorEvent]
+export type TwoFactorKindName = Schemas['TwoFactorKind']
 
 /** The second factors an account can hold. */
 export const TwoFactorKind = {
     TOTP: 'TOTP',
     WEBAUTHN: 'WEBAUTHN',
     BACKUP_CODES: 'BACKUP_CODES',
-} as const
+} as const satisfies Record<TwoFactorKindName, TwoFactorKindName>
 
-export type TwoFactorKindName = (typeof TwoFactorKind)[keyof typeof TwoFactorKind]
-
-export interface AuditEntry {
-    id: number
-    accountId: number
-    actorId: number | null
-    event: TwoFactorEventName
-    factorKind: TwoFactorKindName | null
-    userAgent: string | null
-    country: string | null
-    createdAt: string
-}
-
-export async function listStationPolicies(): Promise<TwoFactorPolicy[]> {
-    const res = await client.get<{ policies: TwoFactorPolicy[] }>('/station/2fa/policies')
+export async function listStationPolicies(): Promise<TwoFactorPolicyEntry[]> {
+    const res = await client.get<PoliciesResponse>('/station/2fa/policies')
     return res.data.policies
 }
 
 export async function upsertStationPolicy(
-    userType: string,
+    userType: StationUserType,
     required: boolean,
     graceDays?: number,
-): Promise<TwoFactorPolicy> {
-    const res = await client.put<TwoFactorPolicy>('/station/2fa/policies', {userType, required, graceDays})
+): Promise<TwoFactorPolicyEntry> {
+    const res = await client.put<TwoFactorPolicyEntry>(
+        '/station/2fa/policies',
+        {userType, required, graceDays} satisfies UpsertPolicyRequest,
+    )
     return res.data
 }
 
@@ -92,26 +77,29 @@ export async function deleteStationPolicy(id: number): Promise<void> {
 }
 
 export async function listStationMemberStatus(): Promise<MemberStatus[]> {
-    const res = await client.get<{ members: MemberStatus[] }>('/station/2fa/members')
+    const res = await client.get<MemberStatusResponse>('/station/2fa/members')
     return res.data.members
 }
 
-export async function listAssignableUserTypes(): Promise<string[]> {
-    const res = await client.get<{ userTypes: string[] }>('/station/2fa/user-types')
+export async function listAssignableUserTypes(): Promise<StationUserType[]> {
+    const res = await client.get<UserTypesResponse>('/station/2fa/user-types')
     return res.data.userTypes
 }
 
-export async function listInstancePolicies(): Promise<TwoFactorPolicy[]> {
-    const res = await client.get<{ policies: TwoFactorPolicy[] }>('/admin/2fa/policies')
+export async function listInstancePolicies(): Promise<TwoFactorPolicyEntry[]> {
+    const res = await client.get<PoliciesResponse>('/admin/2fa/policies')
     return res.data.policies
 }
 
 export async function upsertInstancePolicy(
-    userType: string,
+    userType: StationUserType,
     required: boolean,
     graceDays?: number,
-): Promise<TwoFactorPolicy> {
-    const res = await client.put<TwoFactorPolicy>('/admin/2fa/policies', {userType, required, graceDays})
+): Promise<TwoFactorPolicyEntry> {
+    const res = await client.put<TwoFactorPolicyEntry>(
+        '/admin/2fa/policies',
+        {userType, required, graceDays} satisfies UpsertPolicyRequest,
+    )
     return res.data
 }
 
@@ -121,8 +109,8 @@ export async function deleteInstancePolicy(id: number): Promise<void> {
 
 export async function listAuditLog(
     params: { accountId?: number; limit?: number; offset?: number } = {},
-): Promise<AuditEntry[]> {
-    const res = await client.get<{ entries: AuditEntry[] }>('/admin/2fa/audit', {params})
+): Promise<TwoFactorAuditEntry[]> {
+    const res = await client.get<AuditResponse>('/admin/2fa/audit', {params})
     return res.data.entries
 }
 
@@ -134,13 +122,9 @@ export async function resetAccount2FAByStationAdmin(accountId: number): Promise<
     await client.post(`/station/accounts/${accountId}/2fa/reset`)
 }
 
-export interface AccountSearchResult {
-    id: number
-    uid: string
-    displayName: string
-    firstName: string | null
-    lastName: string | null
-    email: string
+/** An account's name, with its address where it has one: a member in somebody's care may have none. */
+export function accountLabel(account: AccountSearchResult): string {
+    return account.email ? `${account.displayName} (${account.email})` : account.displayName
 }
 
 export async function searchAccounts(query?: string, limit = 20): Promise<AccountSearchResult[]> {

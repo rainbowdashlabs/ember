@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.federation.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -22,7 +23,7 @@ public record LendingMessage(
         int id,
         int requestId,
         UUID senderStationUid,
-        Integer senderMemberId,
+        @Nullable Integer senderMemberId,
         String message,
         boolean isSystem,
         Instant createdAt) {

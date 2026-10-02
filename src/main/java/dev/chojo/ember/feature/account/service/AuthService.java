@@ -26,21 +26,21 @@ import dev.chojo.ember.feature.mail.service.MailConfirmationPolicy;
 import dev.chojo.ember.feature.mail.service.MailLocaleService;
 import dev.chojo.ember.feature.mail.service.MailRecipientService;
 import dev.chojo.ember.feature.members.entity.RegistrationCode;
-import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.RegistrationCodeRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.members.service.GroupMembershipService;
 import dev.chojo.ember.feature.passkey.service.PasskeyModeService;
 import dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository;
 import dev.chojo.ember.feature.twofactor.service.TrustedDeviceService;
+import dev.chojo.ember.util.RandomTokens;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.security.SecureRandom;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -53,7 +53,6 @@ import java.util.function.BiFunction;
 @Singleton
 public class AuthService {
     private static final Logger log = LoggerFactory.getLogger(AuthService.class);
-    private static final SecureRandom RANDOM = new SecureRandom();
 
     /**
      * How long the token handed out in place of a session lasts when a login has to do something
@@ -71,7 +70,7 @@ public class AuthService {
     private final MailRecipientService mailRecipientService;
     private final RegistrationCodeRepository registrationCodeRepository;
     private final StationMemberRepository stationMemberRepository;
-    private final MemberGroupRepository memberGroupRepository;
+    private final GroupMembershipService groupMemberships;
     private final PasswordHasher passwordHasher;
     private final EmailService emailService;
     private final Auth authConfig;
@@ -99,7 +98,7 @@ public class AuthService {
             MailRecipientService mailRecipientService,
             RegistrationCodeRepository registrationCodeRepository,
             StationMemberRepository stationMemberRepository,
-            MemberGroupRepository memberGroupRepository,
+            GroupMembershipService groupMemberships,
             PasswordHasher passwordHasher,
             EmailService emailService,
             Auth authConfig,
@@ -116,7 +115,7 @@ public class AuthService {
         this.mailRecipientService = mailRecipientService;
         this.registrationCodeRepository = registrationCodeRepository;
         this.stationMemberRepository = stationMemberRepository;
-        this.memberGroupRepository = memberGroupRepository;
+        this.groupMemberships = groupMemberships;
         this.passwordHasher = passwordHasher;
         this.emailService = emailService;
         this.authConfig = authConfig;
@@ -132,6 +131,9 @@ public class AuthService {
      * Registers a new account via self-registration. Optionally validates a registration code to create
      * a station membership and assign groups. Sends a verification email upon success.
      *
+     * <p>On a passwordless instance the account gets no credential row at all; the verification
+     * mail's link is where the passkey is made.
+     *
      * @param email            the email address
      * @param firstName        the first name
      * @param lastName         the last name
@@ -141,9 +143,6 @@ public class AuthService {
      */
     public RegistrationResult registerSelf(
             String email, String firstName, String lastName, String password, String registrationCode) {
-        // On a passwordless instance the account is created with no credential row at all: not
-        // one it never uses, not a random one, none. The verification mail's link is where the
-        // passkey is made.
         boolean passwordless = passkeyModeService.effectiveMode() == PasskeySettings.Mode.PASSWORDLESS;
         if (!passwordless) {
             var policy = validateNewPassword(password);
@@ -181,14 +180,12 @@ public class AuthService {
         }
 
         if (code != null) {
-            // Create station membership from code's station
             var member = stationMemberRepository.create(code.stationId(), accountId);
             int memberId = member.id();
 
-            // Assign groups from registration code
             List<Integer> groupIds = registrationCodeRepository.findGroupIds(code.id());
             for (int groupId : groupIds) {
-                memberGroupRepository.addMember(groupId, memberId);
+                groupMemberships.joinAutomatically(groupId, memberId);
             }
 
             registrationCodeRepository.incrementUses(code.id());
@@ -279,6 +276,12 @@ public class AuthService {
      * Sets a password using a token. Accepts SET_PASSWORD, RESET_PASSWORD, and FORCE_PASSWORD_CHANGE tokens.
      * Creates credentials if none exist, otherwise updates the existing password hash.
      *
+     * <p>Setting a new password reopens password sign-in for the account, which is what makes
+     * switching it off recoverable. On a passwordless instance no path may mint a password: the
+     * refusal keys on the mode, so a legacy member still rotates the password they hold, while an
+     * account that never had one is onboarded again instead. The token type that triggered the
+     * rotation is logged so operators can correlate the flow without an audit table.
+     *
      * @param token    the password setup or reset token
      * @param password the new plaintext password
      * @return {@code true} if the password was successfully set
@@ -323,15 +326,8 @@ public class AuthService {
 
         if (accountRepository.findCredential(accountToken.accountId()).isPresent()) {
             accountRepository.updateCredential(accountToken.accountId(), hash);
-            // Setting a new password reopens the login screen for it: this is the rope D5 hangs
-            // on, and it is what makes switching password sign-in off recoverable with machinery
-            // that already exists.
             accountRepository.setPasswordLoginDisabled(accountToken.accountId(), false);
         } else {
-            // On a passwordless instance no reachable path may mint a password. The refusal
-            // keys on the mode, not on the account: a legacy member still rotates what they
-            // already hold, right up until that password is retired; an account that never had
-            // one is onboarded again instead, which is a person, not a bypass.
             if (passkeyModeService.effectiveMode() == PasskeySettings.Mode.PASSWORDLESS) {
                 log.info(
                         "[set-password] refused: account {} holds no credential and the instance is passwordless",
@@ -343,10 +339,6 @@ public class AuthService {
 
         invalidateAfterPasswordRotation(accountToken.accountId(), null);
         notifyPasswordChanged(account.get());
-        // The endpoint accepts SET_PASSWORD (invite), RESET_PASSWORD (forgot),
-        // and FORCE_PASSWORD_CHANGE (post-login forced rotation) interchangeably.
-        // Logging which one triggered the rotation lets operators correlate the
-        // flow without a dedicated audit table.
         log.info("Password set via {} for account {}", type, accountToken.accountId());
         return SetPasswordOutcome.OK;
     }
@@ -370,7 +362,8 @@ public class AuthService {
      * @param location  the client's location (e.g. country code)
      * @return why the password was refused, or the session that follows from it
      */
-    public SetPasswordResult setPasswordAndSignIn(String token, String password, String userAgent, String location) {
+    public SetPasswordResult setPasswordAndSignIn(
+            String token, String password, @Nullable String userAgent, @Nullable String location) {
         Optional<AccountToken> tokenOpt = accountRepository.findToken(token);
         Integer accountId = tokenOpt.map(AccountToken::accountId).orElse(null);
 
@@ -386,7 +379,6 @@ public class AuthService {
             return new SetPasswordResult(outcome, null);
         }
 
-        // The credential was just written, so the rotation flag is clear and no device is trusted.
         var login = admitVerifiedAccount(account.get(), false, userAgent, location, null, false);
         log.info("Signed account {} in on the back of setting its password", accountId);
         return new SetPasswordResult(outcome, login);
@@ -400,7 +392,8 @@ public class AuthService {
      *                where the password was refused, and where it was accepted but the account
      *                cannot be signed in yet, which leaves the sign-in form to say why.
      */
-    public record SetPasswordResult(SetPasswordOutcome outcome, LoginResult login) {}
+    public record SetPasswordResult(
+            SetPasswordOutcome outcome, @Nullable LoginResult login) {}
 
     /**
      * Outcome of {@link #setPassword(String, String)}. Surfaces distinct rejection reasons so
@@ -506,6 +499,8 @@ public class AuthService {
      * over an invitation link. Whether they are entitled is the caller's to establish; the rotation
      * itself is held to the same standard as the account holder's own, and everybody the account is
      * written to is told, which for a member without an address of their own is their guardians.
+     * On a passwordless instance an account without a password is refused one here, which is what
+     * keeps the guardian's screen offering the QR code instead.
      *
      * @param account  the account whose password is being set, already resolved by the caller
      * @param password the new plaintext password
@@ -528,9 +523,6 @@ public class AuthService {
             accountRepository.updateCredential(account.id(), hash);
             accountRepository.setPasswordLoginDisabled(account.id(), false);
         } else {
-            // The guardian's screen hands out the QR code instead on a passwordless instance;
-            // this refusal is what keeps that claim true for the fourth of the five places a
-            // password hash can come from.
             if (passkeyModeService.effectiveMode() == PasskeySettings.Mode.PASSWORDLESS) {
                 log.info("[set-password-for] refused for account {}: the instance is passwordless", account.id());
                 return SetPasswordOutcome.PASSWORDLESS_MODE;
@@ -589,6 +581,10 @@ public class AuthService {
     /**
      * Resets a password as an administrator. Optionally sets a force-password-change flag and sends a reset email.
      *
+     * <p>Every live session and recovery token is wiped first, so whoever triggered the reset cannot
+     * continue on the previous credentials; the new reset token is created after the wipe so it is
+     * not collateral.
+     *
      * @param accountId   the account identifier
      * @param forceChange if {@code true}, the user will be required to change their password on next login
      * @return {@code true} if the account was found and the reset email was sent
@@ -606,10 +602,6 @@ public class AuthService {
             accountRepository.setForcePasswordChange(accountId, true);
         }
 
-        // Kill every live session and outstanding recovery token for the account so
-        // an attacker who triggered this reset cannot continue with the previous
-        // credentials. The freshly-issued RESET_PASSWORD token below is created
-        // *after* the wipe so it is not collateral.
         invalidateAfterPasswordRotation(accountId, null);
 
         String token = generateToken();
@@ -675,7 +667,7 @@ public class AuthService {
      * @param location  the client's location (e.g. country code)
      * @return the login result containing a session token or password change token, or a failure message
      */
-    public LoginResult login(String email, String password, String userAgent, String location) {
+    public LoginResult login(String email, String password, @Nullable String userAgent, @Nullable String location) {
         return login(email, password, userAgent, location, null);
     }
 
@@ -691,7 +683,7 @@ public class AuthService {
      * top of the route-level gate so the path stays inert if a future code change ever exposes
      * it outside the dev / demo origin.
      */
-    public LoginResult loginAsDemo(String email, String userAgent, String location) {
+    public LoginResult loginAsDemo(String email, @Nullable String userAgent, @Nullable String location) {
         if (!demo.dev() && !demo.enabled()) {
             return LoginResult.failure("Quick login is only available in dev or demo mode");
         }
@@ -712,20 +704,28 @@ public class AuthService {
      * is minted immediately.
      */
     public LoginResult login(
-            String email, String password, String userAgent, String location, String trustedDeviceCookie) {
+            String email,
+            String password,
+            @Nullable String userAgent,
+            @Nullable String location,
+            @Nullable String trustedDeviceCookie) {
         return login(email, password, userAgent, location, trustedDeviceCookie, false);
     }
 
     /**
      * The same, with the box from the login screen that says this machine may keep the session for
      * the long duration rather than the short one.
+     *
+     * <p>A password sign-in that is switched off is only reported after the password proved out:
+     * answering earlier would tell a guesser which accounts exist. The breach check runs
+     * asynchronously and fails open.
      */
     public LoginResult login(
             String identifier,
             String password,
-            String userAgent,
-            String location,
-            String trustedDeviceCookie,
+            @Nullable String userAgent,
+            @Nullable String location,
+            @Nullable String trustedDeviceCookie,
             boolean trustedDevice) {
         Optional<Account> accountOpt = findByLoginName(identifier);
         Optional<AccountCredential> credOpt = accountOpt.flatMap(a -> accountRepository.findCredential(a.id()));
@@ -740,8 +740,6 @@ public class AuthService {
 
         Account account = accountOpt.get();
 
-        // Only after the password proved out: answering earlier would tell a guesser which
-        // accounts exist and which of them switched their password off.
         if (!credOpt.get().passwordLoginEnabled()) {
             log.info("Login refused for account {} ({}): password sign-in is switched off", account.id(), identifier);
             return LoginResult.failure("Password sign-in is switched off for this account. "
@@ -753,12 +751,10 @@ public class AuthService {
             return LoginResult.failure("Email not verified");
         }
 
-        // Rehash if algorithm changed
         if (passwordHasher.needsRehash(credOpt.get().passwordHash())) {
             accountRepository.updateCredential(account.id(), passwordHasher.hash(password));
         }
 
-        // Async HIBP breach check - gated by staleness window inside the worker, fail-open.
         if (!demo.enabled() && !demo.dev()) {
             breachCheckWorker.enqueueCheck(account.id(), password);
         }
@@ -780,7 +776,8 @@ public class AuthService {
      * @param accountId the account the passkey assertion resolved to
      * @return a session, or what has to happen before there can be one
      */
-    public LoginResult admitPasskeyAccount(int accountId, String userAgent, String location, boolean trustedDevice) {
+    public LoginResult admitPasskeyAccount(
+            int accountId, @Nullable String userAgent, @Nullable String location, boolean trustedDevice) {
         Optional<Account> accountOpt = accountRepository.findById(accountId);
         if (accountOpt.isEmpty()) {
             return LoginResult.failure("Sign-in failed");
@@ -824,7 +821,7 @@ public class AuthService {
      * @param accountId whose session it becomes, which is not always who approved it
      * @return a session, or what has to happen before there can be one
      */
-    public LoginResult admitVouchedForAccount(int accountId, String userAgent, String location) {
+    public LoginResult admitVouchedForAccount(int accountId, @Nullable String userAgent, @Nullable String location) {
         Optional<Account> accountOpt = accountRepository.findById(accountId);
         if (accountOpt.isEmpty()) {
             return LoginResult.failure("Sign-in failed");
@@ -860,6 +857,11 @@ public class AuthService {
      * whoever spends that token comes through here again, so an account owing two of them is asked
      * for both, one after the other, in this order.
      *
+     * <p>A trusted-device cookie skips the second factor only once it is validated and found to
+     * belong to this very account. A session without a second factor is stamped as freshly proved
+     * here and not inside {@code createSession}, because the demo quick login reaches that method
+     * without checking anything.
+     *
      * @param account             the account the password belongs to
      * @param forcePasswordChange whether the credential is flagged for rotation
      * @param trustedDeviceCookie the remembered-device cookie, where the caller has one to offer.
@@ -871,11 +873,10 @@ public class AuthService {
     private LoginResult admitVerifiedAccount(
             Account account,
             boolean forcePasswordChange,
-            String userAgent,
-            String location,
-            String trustedDeviceCookie,
+            @Nullable String userAgent,
+            @Nullable String location,
+            @Nullable String trustedDeviceCookie,
             boolean trustedDevice) {
-        // Force password change - issue a one-time token instead of a session
         if (forcePasswordChange) {
             log.info("Account {} requires a password change - issuing password-change token", account.id());
             return forcedStep(account, TokenType.FORCE_PASSWORD_CHANGE, LoginResult::passwordChangeRequired);
@@ -886,12 +887,7 @@ public class AuthService {
             return forcedStep(account, TokenType.FORCE_ADDRESS, LoginResult::addressRequired);
         }
 
-        // Two-factor authentication - issue a pre-auth token if enrolled
         if (twoFactorEnrolled(account.id())) {
-            // Trusted-device cookie bypass: the cookie was issued after a previous successful
-            // 2FA verification, so we trust it for as long as it's not expired or revoked. The
-            // cookie scope is the account behind the token, so validate first then verify it
-            // belongs to *this* account before honouring it.
             if (trustedDeviceService != null && trustedDeviceCookie != null && !trustedDeviceCookie.isBlank()) {
                 var trusted = trustedDeviceService.validate(trustedDeviceCookie);
                 if (trusted.isPresent() && trusted.get().accountId() == account.id()) {
@@ -916,10 +912,6 @@ public class AuthService {
             return LoginResult.twoFactorRequired(token, expiresAt);
         }
 
-        // A password typed sixty seconds ago is exactly the proof step-up asks of an account
-        // with no second factor, so the sign-in stamps the session as freshly proved. Here and
-        // not inside createSession: the demo quick login reaches that method without checking
-        // anything, and stamping there would mark every quick-login session as proved.
         return createSession(account.id(), userAgent, location, Instant.now(), null, trustedDevice);
     }
 
@@ -973,7 +965,8 @@ public class AuthService {
      * @param email     the address as it was typed
      * @return what became of it, and the session where there is one
      */
-    public AddressResult setRequiredAddress(String token, String email, String userAgent, String location) {
+    public AddressResult setRequiredAddress(
+            String token, String email, @Nullable String userAgent, @Nullable String location) {
         Optional<AccountToken> tokenOpt = accountRepository.findToken(token);
         if (tokenOpt.isEmpty() || tokenOpt.get().tokenType() != TokenType.FORCE_ADDRESS) {
             return new AddressResult(AddressOutcome.TOKEN_INVALID, null);
@@ -1023,51 +1016,53 @@ public class AuthService {
     /**
      * @param login the session the address earned, or null where the address was refused
      */
-    public record AddressResult(AddressOutcome outcome, LoginResult login) {}
+    public record AddressResult(
+            AddressOutcome outcome, @Nullable LoginResult login) {}
 
     /**
-     * Refreshes a session by handing it a new token and pushing back its expiry.
+     * Hands a session a new token and pushes back its expiry, which is what a password change does to
+     * the session that asked for it.
      *
-     * <p>The session row is rotated rather than replaced. A refresh is the same sign-in continuing, so
+     * <p>The session row is rotated rather than replaced. It is the same sign-in continuing, so
      * everything the row remembers about it has to outlive the token swap: when the second factor was
      * last verified, which trusted device vouched for it, and when it began. Deleting the row and
      * writing a new one lost all three, which ended the step-up window and forgot the trusted device
-     * every half hour, in the middle of whatever the person was doing.
+     * in the middle of whatever the person was doing.
      *
      * @param token     the current session token
      * @param userAgent the client's user agent string
      * @param location  the client's location
      * @return a new login result with a fresh token, or failure if the session is invalid or expired
      */
-    public LoginResult refreshSession(String token, String userAgent, String location) {
+    public LoginResult rotateSession(String token, @Nullable String userAgent, @Nullable String location) {
+        if (token == null || token.isBlank()) {
+            return LoginResult.failure("No session");
+        }
         Optional<AccountSession> sessionOpt = accountRepository.findSession(token);
         if (sessionOpt.isEmpty()) {
-            log.debug("Session refresh failed: invalid token");
+            log.debug("Session rotation failed: invalid token");
             return LoginResult.failure("Invalid session");
         }
 
         AccountSession session = sessionOpt.get();
         if (session.isExpired()) {
             accountRepository.deleteSession(token);
-            log.info("Session refresh failed for account {}: session expired", session.accountId());
+            log.info("Session rotation failed for account {}: session expired", session.accountId());
             return LoginResult.failure("Session expired");
         }
 
-        // In dev/demo mode the token is derived from the account so sessions survive a restart. Keeping
-        // it is what makes that work, and rotating the row onto the same token still moves the expiry.
-        // Where that is switched off the token was random to begin with, so it rotates like any other.
-        boolean stableToken = (demo.dev() || demo.enabled()) && demo.stableSessionTokens();
+        boolean stableToken = stableSessionTokens();
         String newToken = stableToken ? token : generateToken();
         Instant expiresAt = stableToken
                 ? Instant.now().plus(365, ChronoUnit.DAYS)
                 : Instant.now().plus(authConfig.sessionMinutes(session.trustedDevice()), ChronoUnit.MINUTES);
 
         if (!accountRepository.rotateSessionToken(token, newToken, expiresAt)) {
-            log.debug("Session refresh failed: session vanished mid-refresh");
+            log.debug("Session rotation failed: session vanished mid-rotation");
             return LoginResult.failure("Invalid session");
         }
         accountRepository.touchSession(newToken, userAgent, location);
-        log.debug("Session refreshed for account {}", session.accountId());
+        log.debug("Session rotated for account {}", session.accountId());
         return LoginResult.success(newToken, expiresAt);
     }
 
@@ -1092,6 +1087,16 @@ public class AuthService {
      */
     public List<AccountSession> findSessionsByAccount(int accountId) {
         return accountRepository.findSessionsByAccount(accountId);
+    }
+
+    /**
+     * Ends one session of an account. A session of another account is left alone.
+     *
+     * @param sessionId the session
+     * @param accountId the account it has to belong to
+     */
+    public void invalidateSession(int sessionId, int accountId) {
+        accountRepository.deleteSessionById(sessionId, accountId);
     }
 
     /**
@@ -1162,8 +1167,6 @@ public class AuthService {
         log.info("Password changed by account {}", accountId);
         return ChangePasswordOutcome.OK;
     }
-
-    // -- Login / Session --
 
     /**
      * Asks for an address change, in as many steps as this instance and this account can afford.
@@ -1260,7 +1263,6 @@ public class AuthService {
         if (account.hasRealEmail()) {
             var partnerOpt = accountRepository.findEmailChangePartner(self.accountId(), requestId, self.id());
             if (partnerOpt.isEmpty() || partnerOpt.get().isExpired()) {
-                // First click of the pair, or the other half has already expired.
                 accountRepository.markTokenConfirmed(self.id());
                 return EmailChangeResult.WAITING;
             }
@@ -1330,6 +1332,8 @@ public class AuthService {
 
     /**
      * Confirms a station deletion using the provided token. Returns the station ID to be deleted.
+     * A token whose station is unreadable is corrupt or crafted, and is deleted and answered like any
+     * other invalid token.
      *
      * @param token the station deletion confirmation token
      * @return the station ID to delete, or empty if the token is invalid or expired
@@ -1345,9 +1349,6 @@ public class AuthService {
         try {
             stationId = Integer.parseInt(stationIdStr);
         } catch (NumberFormatException e) {
-            // Token row is corrupt or attacker-crafted; clear it so it stops
-            // generating noise on retries and surface the same "invalid /
-            // expired token" shape every other token endpoint uses.
             accountRepository.deleteToken(token);
             return Optional.empty();
         }
@@ -1365,11 +1366,13 @@ public class AuthService {
      * Without it somebody with two-factor enabled would tick it and still get the short session.
      */
     public LoginResult createVerifiedSessionForAccount(
-            int accountId, String userAgent, String location, Integer deviceTrustId, boolean trustedDevice) {
+            int accountId,
+            @Nullable String userAgent,
+            @Nullable String location,
+            @Nullable Integer deviceTrustId,
+            boolean trustedDevice) {
         return createSession(accountId, userAgent, location, Instant.now(), deviceTrustId, trustedDevice);
     }
-
-    // -- Email change --
 
     private boolean twoFactorEnrolled(int accountId) {
         return twoFactorRepository != null && twoFactorRepository.isEnrolled(accountId);
@@ -1381,13 +1384,11 @@ public class AuthService {
      * requirement and is not known to HIBP; otherwise returns the specific reason.
      * HIBP failures are fail-open inside {@link HibpClient}, so a third-party outage
      * does not block legitimate password changes.
+     *
+     * <p>Dev and demo runs skip both checks so seeded accounts can rotate to short, well-known
+     * passwords; the route still rejects an empty value before this point.
      */
     private PasswordPolicy.Result validateNewPassword(String plaintext) {
-        // Dev / demo runs skip the minimum-length + breach check so seeded test accounts can
-        // rotate to short, well-known passwords like "test". The route still rejects an empty
-        // value before reaching this method, so the bypass cannot create a credential with no
-        // password at all. Production deployments (demo.enabled() == false && demo.dev() == false)
-        // always enforce both checks.
         if (demo.dev() || demo.enabled()) return PasswordPolicy.Result.OK;
         var policy = PasswordPolicy.validate(plaintext);
         if (policy != PasswordPolicy.Result.OK) return policy;
@@ -1399,7 +1400,8 @@ public class AuthService {
      * Kills every other live session and clears every outstanding recovery /
      * verification token for the account. Used after any password rotation so an
      * attacker who already obtained credentials cannot continue with previously
-     * minted sessions or alternate recovery tokens.
+     * minted sessions or alternate recovery tokens. Trusted devices are revoked too, since a
+     * captured remembered-device cookie is a standing bypass of the second factor.
      *
      * @param accountId        the rotating account
      * @param keepSessionToken the raw bearer of the session that triggered the
@@ -1407,19 +1409,15 @@ public class AuthService {
      *                         does not log the user out of their own browser;
      *                         {@code null} to kill every session
      */
-    private void invalidateAfterPasswordRotation(int accountId, String keepSessionToken) {
+    private void invalidateAfterPasswordRotation(int accountId, @Nullable String keepSessionToken) {
         if (keepSessionToken == null || keepSessionToken.isBlank()) {
             accountRepository.deleteSessionsByAccount(accountId);
         } else {
             accountRepository.deleteSessionsExceptToken(accountId, keepSessionToken);
         }
         accountRepository.deleteAllTokens(accountId);
-        // A password reset is a security event; a captured "remember this device" cookie is a
-        // standing 2FA bypass, so revoke every trusted device alongside sessions and tokens.
         trustedDeviceService.revokeAll(accountId);
     }
-
-    // -- Station deletion --
 
     private void notifyPasswordChanged(Account account) {
         try {
@@ -1435,9 +1433,7 @@ public class AuthService {
         if (local != null) return local;
         synchronized (this) {
             if (dummyPasswordHash == null) {
-                byte[] random = new byte[32];
-                RANDOM.nextBytes(random);
-                dummyPasswordHash = passwordHasher.hash(Base64.getEncoder().encodeToString(random));
+                dummyPasswordHash = passwordHasher.hash(RandomTokens.base64(32));
             }
             return dummyPasswordHash;
         }
@@ -1451,11 +1447,23 @@ public class AuthService {
      * @param location  the client's location
      * @return a successful login result with the session token
      */
-    private LoginResult createSession(int accountId, String userAgent, String location) {
+    private LoginResult createSession(int accountId, @Nullable String userAgent, @Nullable String location) {
         return createSession(accountId, userAgent, location, null, null, false);
     }
 
-    private LoginResult createSession(int accountId, String userAgent, String location, boolean trustedDevice) {
+    /**
+     * Whether a session token is derived from the account, the email, so sessions survive a restart
+     * in dev and demo runs. Signing in twice then writes the same token twice, so the row is taken
+     * over rather than deleted and written again, which keeps two concurrent logins from racing; a
+     * rotation keeps the token and only moves the expiry. One row per account is the price, so an
+     * instance where one person signs in from several places switches this off.
+     */
+    private boolean stableSessionTokens() {
+        return (demo.dev() || demo.enabled()) && demo.stableSessionTokens();
+    }
+
+    private LoginResult createSession(
+            int accountId, @Nullable String userAgent, @Nullable String location, boolean trustedDevice) {
         return createSession(accountId, userAgent, location, null, null, trustedDevice);
     }
 
@@ -1471,21 +1479,12 @@ public class AuthService {
      */
     private LoginResult createSession(
             int accountId,
-            String userAgent,
-            String location,
-            Instant twoFactorVerifiedAt,
-            Integer deviceTrustId,
+            @Nullable String userAgent,
+            @Nullable String location,
+            @Nullable Instant twoFactorVerifiedAt,
+            @Nullable Integer deviceTrustId,
             boolean trustedDevice) {
-        if ((demo.dev() || demo.enabled()) && demo.stableSessionTokens()) {
-            // In dev/demo mode, use the email as a stable session token so sessions survive restarts.
-            // Signing the same account in twice therefore writes the same token twice, so the row is
-            // taken over rather than deleted and written again: two logins arriving together used to
-            // race, and the one that lost was answered as a server error.
-            //
-            // One row per account is the price, and it is only worth paying where one person is one
-            // browser. Anything signing in as the same person from several places at once wants a
-            // row apiece, because taking the row over takes that session's freshness with it and
-            // signs the other place out. Such an instance switches this off.
+        if (stableSessionTokens()) {
             String stableToken =
                     accountRepository.findById(accountId).map(Account::email).orElseGet(this::generateToken);
             Instant stableExpiry = Instant.now().plus(365, ChronoUnit.DAYS);
@@ -1521,7 +1520,7 @@ public class AuthService {
      * address as a stable one. Two sessions sharing a token there would mean this one replaced the
      * very session that approved it, which is the opposite of what happened.
      */
-    private LoginResult createVouchedSession(int accountId, String userAgent, String location) {
+    private LoginResult createVouchedSession(int accountId, @Nullable String userAgent, @Nullable String location) {
         String token = generateToken();
         Instant expiresAt = Instant.now().plus(authConfig.sessionMinutes(false), ChronoUnit.MINUTES);
         accountRepository.createVouchedSession(accountId, token, expiresAt, userAgent, location);
@@ -1536,9 +1535,7 @@ public class AuthService {
      * @return the generated token string
      */
     private String generateToken() {
-        byte[] bytes = new byte[authConfig.tokenBytes()];
-        RANDOM.nextBytes(bytes);
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+        return RandomTokens.urlSafe(authConfig.tokenBytes());
     }
 
     /**

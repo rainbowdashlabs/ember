@@ -5,13 +5,14 @@
  */
 package dev.chojo.ember.feature.events.service;
 
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.feature.content.entity.BlockAudience;
 import dev.chojo.ember.feature.content.entity.CellConfig;
 import dev.chojo.ember.feature.content.service.BlockReferences;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.UUID;
 
@@ -30,16 +31,18 @@ public class EventBlockReferences implements BlockReferences {
     }
 
     @Override
-    public void requireReachable(Integer stationId, BlockAudience audience, CellConfig config) {
-        if (!(config instanceof CellConfig.FeaturedEventConfig featured) || featured.eventUid() == null) return;
+    public void requireReachable(@Nullable Integer stationId, BlockAudience audience, CellConfig config) {
+        if (!(config instanceof CellConfig.FeaturedEventConfig featured)) return;
+        String eventUid = featured.eventUid();
+        if (eventUid == null) return;
         boolean reachable = stationId != null
                 && repository
-                        .findOpenByUid(stationId, audience, UUID.fromString(featured.eventUid()))
+                        .findOpenByUid(stationId, audience, UUID.fromString(eventUid))
                         .isPresent();
         if (reachable) return;
         throw (audience == BlockAudience.PUBLIC
-                        ? Refusal.EVENT_BLOCK_APPOINTMENT_NOT_PUBLIC
-                        : Refusal.EVENT_BLOCK_APPOINTMENT_NOT_FOR_EVERY_MEMBER)
+                        ? EventRefusal.EVENT_BLOCK_APPOINTMENT_NOT_PUBLIC
+                        : EventRefusal.EVENT_BLOCK_APPOINTMENT_NOT_FOR_EVERY_MEMBER)
                 .raise();
     }
 }

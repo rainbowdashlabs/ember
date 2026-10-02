@@ -14,10 +14,10 @@ import SaveButton from '@/components/button/SaveButton.vue'
 import InfoButton from '@/components/button/InfoButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
-import type {DiscoverySettings} from '@/api/discovery'
+import type {DiscoverySettingsResponse} from '@/api/generated/schema'
 
 defineProps<{
-  settings: DiscoverySettings
+  settings: DiscoverySettingsResponse
   save: () => Promise<void>
 }>()
 

@@ -35,7 +35,6 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 public class RegisterNameReadersTest {
 
     private static final Set<String> ENTITLED = Set.of(
-            "dev.chojo.ember.api.ApiServer",
             "dev.chojo.ember.feature.account.route.AuthRoutes",
             "dev.chojo.ember.feature.account.service.AccountEmailService",
             "dev.chojo.ember.feature.account.service.AuthService",
@@ -63,6 +62,7 @@ public class RegisterNameReadersTest {
             "dev.chojo.ember.feature.station.service.StationApplicationService",
             "dev.chojo.ember.feature.station.service.StationService",
             "dev.chojo.ember.feature.system.route.AdminSettingsRoutes",
+            "dev.chojo.ember.feature.system.service.DemoAccountService",
             "dev.chojo.ember.feature.system.service.DemoAvatarSeeder",
             "dev.chojo.ember.feature.system.service.DemoMemberSeeder",
             "dev.chojo.ember.feature.twofactor.route.TwoFactorAdminRoutes",

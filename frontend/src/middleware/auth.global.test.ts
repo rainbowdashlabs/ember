@@ -17,6 +17,7 @@ import middleware from './auth.global'
  */
 const state = vi.hoisted(() => ({
     store: new Map<string, string>(),
+    carriesSession: true,
     activeStation: null as string | null,
     navigations: [] as unknown[],
     admin: false,
@@ -24,6 +25,7 @@ const state = vi.hoisted(() => ({
     sessionLoads: 0,
     clusters: [] as {uid: string}[],
     clustersLoaded: false,
+    activeCluster: null as string | null,
     needsReconsent: false,
     demo: {demo: false, dev: false},
     demoLogins: [] as string[],
@@ -31,6 +33,7 @@ const state = vi.hoisted(() => ({
     sessionCleared: 0,
     remembered: [] as string[],
     forgotten: 0,
+    firstStationNeeded: false,
 }))
 
 mockNuxtImport('navigateTo', () => (target: unknown) => {
@@ -43,6 +46,11 @@ vi.mock('~/api/storage', () => ({
     removeItem: (key: string) => {
         state.store.delete(key)
     },
+}))
+
+vi.mock('~/api/sessionCookie', () => ({
+    hasSessionCookie: () => state.carriesSession,
+    forgetLegacySession: () => {},
 }))
 
 vi.mock('~/api/demo', () => ({
@@ -81,6 +89,10 @@ vi.mock('~/composables/useCluster', () => ({
             state.clustersLoaded = true
         },
         hasClusters: {value: state.clusters.length > 0},
+        clusterList: {value: state.clusters},
+        setActiveCluster: (uid: string) => {
+            state.activeCluster = uid
+        },
     }),
 }))
 
@@ -91,6 +103,10 @@ vi.mock('~/util/landingMemoryState', () => ({
     forgetLandingMemory: () => {
         state.forgotten++
     },
+}))
+
+vi.mock('~/api/stations', () => ({
+    isFirstStationNeeded: async () => state.firstStationNeeded,
 }))
 
 vi.mock('~/composables/useStations', () => ({
@@ -140,21 +156,33 @@ describe('auth route guard', () => {
      * visitor mistyping one was sent to the login screen carrying the bad address as their redirect.
      * The page that exists to explain a wrong address never got to say anything.
      */
+    it('sends a browser without a session cookie to the login, with the way back', async () => {
+        state.carriesSession = false
+
+        await run(route('/station/events/upcoming', {tab: 'list'}))
+
+        expect(state.navigations).toEqual([
+            {path: '/login', query: {redirect: '/station/events/upcoming?tab=list'}},
+        ])
+    })
+
     it('lets an address that matches no page reach the page that explains it', async () => {
-        state.store.clear()
+        state.carriesSession = false
         expect(await run(unmatched('/there-is-no-page-here'))).toBeUndefined()
     })
 
     beforeEach(() => {
         state.store.clear()
-        state.store.set('session_token', 'token')
+        state.carriesSession = true
         state.activeStation = null
         state.navigations = []
         state.admin = false
+        state.firstStationNeeded = false
         state.sessionLoaded = false
         state.sessionLoads = 0
         state.clusters = []
         state.clustersLoaded = false
+        state.activeCluster = null
         state.needsReconsent = false
         state.demo = {demo: false, dev: false}
         state.demoLogins = []
@@ -240,6 +268,28 @@ describe('auth route guard', () => {
             {path: '/cross-station', query: {redirect: '/station/dashboard/overview'}},
         ])
         expect(localStorage.getItem('ember_last_activity'), 'the stamp was not refreshed').toBe(stamp)
+    })
+
+    /**
+     * A fresh instance has no station to pick, so its administrator is led to found the first one
+     * instead of meeting an empty picker.
+     */
+    it('sends the administrator of an instance without stations to found the first one', async () => {
+        state.admin = true
+        state.firstStationNeeded = true
+
+        await run(route('/station/dashboard/overview'))
+        await run(route('/cross-station'))
+
+        expect(state.navigations).toEqual(['/admin/first-station', '/admin/first-station'])
+    })
+
+    it('keeps the picker for everybody else', async () => {
+        state.firstStationNeeded = true
+
+        await run(route('/cross-station'))
+
+        expect(state.navigations).toEqual([])
     })
 
     /**
@@ -351,6 +401,26 @@ describe('auth route guard', () => {
         await run(route('/cluster'))
 
         expect(state.navigations).toEqual([])
+    })
+
+    /** A link from an association's mail opens in that association, for a reader of several. */
+    it('takes the association from the link where the reader may act for it', async () => {
+        state.store.set('station_id', STATION)
+        state.clusters = [{uid: 'c1'}, {uid: 'c2'}]
+
+        await run(route('/cluster/applications', {cluster: 'c2'}))
+
+        expect(state.activeCluster).toBe('c2')
+        expect(state.navigations).toEqual([])
+    })
+
+    it('ignores an association in the link the reader may not act for', async () => {
+        state.store.set('station_id', STATION)
+        state.clusters = [{uid: 'c1'}]
+
+        await run(route('/cluster/applications', {cluster: 'c9'}))
+
+        expect(state.activeCluster).toBeNull()
     })
 
     describe('noting the area somebody is in', () => {

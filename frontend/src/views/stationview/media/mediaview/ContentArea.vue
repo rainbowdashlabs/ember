@@ -9,10 +9,10 @@ import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import MediaGrid from './MediaGrid.vue'
 import MediaPagination from './MediaPagination.vue'
-import Toolbar from './Toolbar.vue'
-import Breadcrumbs from './Breadcrumbs.vue'
+import MediaToolbar from './MediaToolbar.vue'
+import MediaBreadcrumbs from './MediaBreadcrumbs.vue'
 import BulkActionsBar from './BulkActionsBar.vue'
-import type {StationFile, StationFileFolder, StationFileListing, StationFileTag} from '@/api/media'
+import type {FileListing, StationFile, StationFileFolder, StationFileTag} from '@/api/generated/schema'
 
 const search = defineModel<string>('search', {required: true})
 
@@ -27,8 +27,8 @@ const props = defineProps<{
   breadcrumbs: StationFileFolder[]
   activeFolder: number | null
   visibleFolders: StationFileFolder[]
-  filtered: StationFileListing[]
-  pagedFiles: StationFileListing[]
+  filtered: FileListing[]
+  pagedFiles: FileListing[]
   tags: StationFileTag[]
   stationUid: string
   currentPage: number
@@ -38,21 +38,21 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'toggle-multi-select'): void
-  (e: 'upload', files: File[]): void
-  (e: 'prune'): void
-  (e: 'navigate', id: number | null): void
-  (e: 'bulk-move'): void
-  (e: 'bulk-delete'): void
-  (e: 'clear-selection'): void
-  (e: 'open-folder', id: number): void
-  (e: 'preview-file', file: StationFile): void
-  (e: 'edit-file', file: StationFile): void
-  (e: 'delete-file', file: StationFile): void
-  (e: 'toggle-select', id: number, value: boolean, shift: boolean, index: number): void
-  (e: 'toggle-tag', fileId: number, tagId: number, currentlyAssigned: boolean): void
-  (e: 'update:current-page', v: number): void
-  (e: 'update:page-size', v: number): void
+  'toggle-multi-select': []
+  upload: [files: File[]]
+  prune: []
+  navigate: [id: number | null]
+  'bulk-move': []
+  'bulk-delete': []
+  'clear-selection': []
+  'open-folder': [id: number]
+  'preview-file': [file: StationFile]
+  'edit-file': [file: StationFile]
+  'delete-file': [file: StationFile]
+  'toggle-select': [id: number, value: boolean, shift: boolean, index: number]
+  'toggle-tag': [fileId: number, tagId: number, currentlyAssigned: boolean]
+  'update:current-page': [v: number]
+  'update:page-size': [v: number]
 }>()
 
 const {t} = useI18n()
@@ -60,7 +60,7 @@ const {t} = useI18n()
 
 <template>
   <div class="space-y-4">
-    <Toolbar
+    <MediaToolbar
         v-model:search="search"
         :multi-select="props.multiSelect"
         :uploading="props.uploading"
@@ -71,7 +71,7 @@ const {t} = useI18n()
         @prune="emit('prune')"
     />
 
-    <Breadcrumbs
+    <MediaBreadcrumbs
         :breadcrumbs="props.breadcrumbs"
         :active-folder="props.activeFolder"
         @navigate="(id: number | null) => emit('navigate', id)"

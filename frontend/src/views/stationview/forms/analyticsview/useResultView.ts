@@ -7,16 +7,17 @@ import {computed, ref, watch, type Ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
 import {forms, memberGroups, profileFields, userTags} from '@/api'
-import {ResultDimension, type FormAnalytics, type FormResultGroup, type ResultFilter, type ResultGrouping} from '@/api/forms'
-import {FieldTypes, type ProfileField} from '@/api/profileFields'
-import {StationUserType, StationUserTypeLabels, type MemberGroup, type UserTag} from '@/api/types'
-import {darkThemeActive} from '@/util/themeState'
+import {ResultDimension, type ResultFilterState, type ResultGroupingState} from '@/api/forms'
+import type {FormAnalytics, FormResultGroup, MemberGroup, ProfileField, UserTag} from '@/api/generated/schema'
+import {FieldTypes} from '@/api/fieldTypes'
+import {StationUserType, StationUserTypeLabels} from '@/api/types'
+import {useThemePaint} from '@/composables/useThemePaint'
 import {neutralSeriesColor, seriesColor, SERIES_LIMIT} from '@/util/seriesPalette'
 import type {GroupSeries} from './groupedChart'
 import {decodeView, encodeView, NO_VALUE_GROUP, toQuery} from './resultQuery'
 
 /** The kinds of profile field results can be filtered and grouped by. */
-const GROUPABLE_FIELD_TYPES: string[] = [FieldTypes.ENUM, FieldTypes.BOOLEAN, FieldTypes.NUMBER]
+const GROUPABLE_FIELD_TYPES: string[] = [FieldTypes.CHOICE, FieldTypes.BOOLEAN, FieldTypes.NUMBER]
 
 /**
  * The filtered and grouped view of a form's results.
@@ -31,12 +32,13 @@ const GROUPABLE_FIELD_TYPES: string[] = [FieldTypes.ENUM, FieldTypes.BOOLEAN, Fi
  */
 export function useResultView(formId: Ref<number>, enabled: Ref<boolean>) {
     const {t} = useI18n()
+    const {dark: darkThemeActive} = useThemePaint()
     const route = useRoute()
     const router = useRouter()
 
     const initial = decodeView(route.query.view)
-    const filter = ref<ResultFilter>(initial.filter)
-    const grouping = ref<ResultGrouping | null>(initial.grouping)
+    const filter = ref<ResultFilterState>(initial.filter)
+    const grouping = ref<ResultGroupingState | null>(initial.grouping)
     const groups = ref<MemberGroup[]>([])
     const tags = ref<UserTag[]>([])
     const fields = ref<ProfileField[]>([])
@@ -119,9 +121,21 @@ export function useResultView(formId: Ref<number>, enabled: Ref<boolean>) {
         grouping.value = null
     }
 
+    /** Narrows the results to the answers of those the filter lets through. */
+    function filterBy(next: ResultFilterState) {
+        filter.value = next
+    }
+
+    /** Splits the results by the given grouping, or stops splitting them. */
+    function groupBy(next: ResultGroupingState | null) {
+        grouping.value = next
+    }
+
     return {
         filter,
         grouping,
+        filterBy,
+        groupBy,
         groups,
         tags,
         groupableFields,

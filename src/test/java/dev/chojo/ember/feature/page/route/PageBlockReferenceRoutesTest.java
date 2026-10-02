@@ -16,7 +16,6 @@ import dev.chojo.ember.feature.form.service.FormService;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import dev.chojo.ember.feature.page.entity.StationPage;
 import dev.chojo.ember.feature.page.service.PageService;
-import dev.chojo.ember.util.ShareTokens;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -50,16 +49,9 @@ class PageBlockReferenceRoutesTest extends BlockReferenceTestBase {
                 noCellDescriptions(),
                 stationMemberRepo,
                 mock(AvatarService.class),
-                new ShareTokens(),
                 stationRepo);
         var routes = new PageRoutes(
-                pageService,
-                media,
-                mock(FormService.class),
-                mock(FormAnalyticsAssembler.class),
-                stationMemberRepo,
-                mock(AvatarService.class),
-                new Api());
+                pageService, media, mock(FormService.class), mock(FormAnalyticsAssembler.class), new Api());
         var editor = new UserSession(
                 account, 1, station.id(), station.uid(), member, Set.of(StationPermission.PAGE_EDIT), Set.of(), null);
         server = LocalRouteServer.serving(stationRepo, clusterRepo, editor, routes);

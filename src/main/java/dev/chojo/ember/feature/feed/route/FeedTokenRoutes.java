@@ -6,7 +6,7 @@
 package dev.chojo.ember.feature.feed.route;
 
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.feed.entity.FeedToken;
 import dev.chojo.ember.feature.feed.service.FeedTokenService;
@@ -15,11 +15,11 @@ import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
-import io.javalin.openapi.OpenApiName;
 import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -48,11 +48,11 @@ public class FeedTokenRoutes implements Routes {
             summary = "Get the current user's feed token",
             tags = {"Feed Tokens"},
             responses = {
-                @OpenApiResponse(status = "200", content = @OpenApiContent(from = TokenResponse.class)),
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = FeedTokenResponse.class)),
                 @OpenApiResponse(status = "404")
             })
     private void getToken(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var token = tokenService.findByMember(session.member().id());
         token.ifPresentOrElse(t -> ctx.json(toResponse(t)), () -> ctx.status(HttpStatus.NOT_FOUND));
     }
@@ -64,7 +64,7 @@ public class FeedTokenRoutes implements Routes {
             tags = {"Feed Tokens"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FeedStatusResponse.class)))
     private void getStatus(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var token = tokenService.findByMember(session.member().id());
         if (token.isEmpty()) {
             ctx.json(new FeedStatusResponse(false, false, false));
@@ -83,9 +83,9 @@ public class FeedTokenRoutes implements Routes {
             methods = HttpMethod.POST,
             summary = "Create a feed token for the current user",
             tags = {"Feed Tokens"},
-            responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = TokenResponse.class)))
+            responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = FeedTokenResponse.class)))
     private void createToken(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var token = tokenService.getOrCreate(session.member().id());
         ctx.status(HttpStatus.CREATED).json(toResponse(token));
     }
@@ -95,9 +95,9 @@ public class FeedTokenRoutes implements Routes {
             methods = HttpMethod.POST,
             summary = "Regenerate the feed token for the current user",
             tags = {"Feed Tokens"},
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = TokenResponse.class)))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FeedTokenResponse.class)))
     private void regenerateToken(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var token = tokenService.regenerate(session.member().id());
         ctx.json(toResponse(token));
     }
@@ -109,21 +109,24 @@ public class FeedTokenRoutes implements Routes {
             tags = {"Feed Tokens"},
             responses = @OpenApiResponse(status = "204"))
     private void revokeToken(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         tokenService.revoke(session.member().id());
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
-    private TokenResponse toResponse(FeedToken t) {
-        return new TokenResponse(
+    private FeedTokenResponse toResponse(FeedToken t) {
+        return new FeedTokenResponse(
                 t.token(),
                 t.createdAt().toString(),
                 t.icalPolledAt() != null ? t.icalPolledAt().toString() : null,
                 t.notificationPolledAt() != null ? t.notificationPolledAt().toString() : null);
     }
 
-    @OpenApiName("FeedTokenResponse")
-    public record TokenResponse(String token, String createdAt, String icalPolledAt, String notificationPolledAt) {}
+    public record FeedTokenResponse(
+            String token,
+            String createdAt,
+            @Nullable String icalPolledAt,
+            @Nullable String notificationPolledAt) {}
 
     public record FeedStatusResponse(boolean hasToken, boolean icalActive, boolean notificationActive) {}
 }

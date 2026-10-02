@@ -11,7 +11,7 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import InventorySearchPicker from '@/components/input/search/InventorySearchPicker.vue'
 import ItemSearchPicker from '@/components/input/search/ItemSearchPicker.vue'
-import type {Inventory, InventoryItem, InventorySize} from '@/api/inventory'
+import type {Inventory, InventoryItem, InventorySize} from '@/api/generated/schema'
 
 /**
  * What the movement is about.

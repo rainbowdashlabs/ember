@@ -3,11 +3,12 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {apiErrorBody, type ApiAnswerProblem} from '@/util/apiError'
+import type {AnswerProblem} from '@/api/generated/schema'
+import {apiErrorBody} from '@/util/apiError'
 import type {Translate} from '@/util/failure'
 
 /** The problems a refusal of answers named, one per question, or none where it named none. */
-export function answerProblemsOf(e: unknown): ApiAnswerProblem[] {
+export function answerProblemsOf(e: unknown): AnswerProblem[] {
     return apiErrorBody(e)?.problems ?? []
 }
 
@@ -25,7 +26,7 @@ export function answerProblemsOf(e: unknown): ApiAnswerProblem[] {
  */
 export function placeProblems(
     path: readonly string[],
-    problems: readonly ApiAnswerProblem[],
+    problems: readonly AnswerProblem[],
     t: Translate,
 ): {walked: string[], marked: Record<number, string>} {
     const pagesWithProblems = new Set(problems.map(problem => problem.pageKey).filter(Boolean))

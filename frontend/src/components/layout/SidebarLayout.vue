@@ -24,6 +24,10 @@ withDefaults(defineProps<{
   stationLogoUrl?: string | null
   collapsible?: boolean
 }>(), {
+  title: undefined,
+  subtitle: undefined,
+  stationName: undefined,
+  stationLogoUrl: undefined,
   collapsible: true,
 })
 

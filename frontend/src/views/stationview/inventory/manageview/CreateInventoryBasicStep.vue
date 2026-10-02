@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {watch} from 'vue'
+import {useId, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
@@ -30,6 +30,7 @@ const emit = defineEmits<{
 }>()
 
 const {t} = useI18n()
+const hasSizesLabelId = useId()
 
 /** A collection keeps no size list, so the one control follows the other. */
 watch(homogeneous, value => {
@@ -59,10 +60,10 @@ watch(homogeneous, value => {
 
   <div v-if="homogeneous" class="flex items-center justify-between gap-4">
     <div>
-      <label class="text-sm font-medium">{{ t('inventory.manage.hasSizes') }}</label>
+      <span :id="hasSizesLabelId" class="text-sm font-medium">{{ t('inventory.manage.hasSizes') }}</span>
       <p class="text-xs text-(--text-muted)">{{ t('inventory.manage.hasSizesHint') }}</p>
     </div>
-    <ToggleInput v-model="hasSizes" data-testid="inventory-has-sizes" />
+    <ToggleInput v-model="hasSizes" :aria-labelledby="hasSizesLabelId" data-testid="inventory-has-sizes" />
   </div>
 
   <ButtonRow pair align="end">

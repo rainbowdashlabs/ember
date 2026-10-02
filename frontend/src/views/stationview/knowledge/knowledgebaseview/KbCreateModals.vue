@@ -35,35 +35,29 @@ const emit = defineEmits<{
     error: [failure: Failure]
 }>()
 
-// Create folder
 const showCreateFolderModal = ref(false)
 const newFolderName = ref('')
 const newFolderDescription = ref('')
 
-// Create markdown file
 const showCreateFileModal = ref(false)
 const newFileName = ref('')
 const newFileDescription = ref('')
 
-// Upload file
 const showUploadModal = ref(false)
 const uploadFileName = ref('')
 const uploadFileDescription = ref('')
 const uploadFileRef = ref<File | null>(null)
 
-// YouTube
 const showYoutubeModal = ref(false)
 const youtubeName = ref('')
 const youtubeDescription = ref('')
 const youtubeUrl = ref('')
 
-// Link
 const showLinkModal = ref(false)
 const linkUrl = ref('')
 const linkName = ref('')
 const linkDescription = ref('')
 
-// Import document
 const showImportModal = ref(false)
 const importFileName = ref('')
 const importFileDescription = ref('')
@@ -231,30 +225,27 @@ defineExpose({
 </script>
 
 <template>
-    <!-- Create Folder Modal -->
     <Modal v-model="showCreateFolderModal">
         <SubHeader class="mb-3">{{ t('kb.newFolder') }}</SubHeader>
-        <form @submit.prevent="handleCreateFolder" class="flex flex-col gap-3">
+        <form class="flex flex-col gap-3" @submit.prevent="handleCreateFolder">
             <TextInput v-model="newFolderName" :placeholder="t('kb.folderName')" required/>
             <TextAreaInput v-model="newFolderDescription" :placeholder="t('kb.description')"/>
             <PrimaryButton type="submit">{{ t('kb.newFolder') }}</PrimaryButton>
         </form>
     </Modal>
 
-    <!-- Create File Modal -->
     <Modal v-model="showCreateFileModal">
         <SubHeader class="mb-3">{{ t('kb.newFile') }}</SubHeader>
-        <form @submit.prevent="handleCreateFile" class="flex flex-col gap-3">
+        <form class="flex flex-col gap-3" @submit.prevent="handleCreateFile">
             <TextInput v-model="newFileName" :placeholder="t('kb.fileName')" required/>
             <TextAreaInput v-model="newFileDescription" :placeholder="t('kb.description')"/>
             <PrimaryButton type="submit">{{ t('kb.newFile') }}</PrimaryButton>
         </form>
     </Modal>
 
-    <!-- Upload File Modal -->
     <Modal v-model="showUploadModal">
         <SubHeader class="mb-3">{{ t('kb.uploadFile') }}</SubHeader>
-        <form @submit.prevent="handleUploadFile" class="flex flex-col gap-3">
+        <form class="flex flex-col gap-3" @submit.prevent="handleUploadFile">
             <FileInput @select="onFileSelect"/>
             <TextInput v-model="uploadFileName" :placeholder="t('kb.fileName')"/>
             <TextAreaInput v-model="uploadFileDescription" :placeholder="t('kb.description')"/>
@@ -262,11 +253,10 @@ defineExpose({
         </form>
     </Modal>
 
-    <!-- Import Document Modal -->
     <Modal v-model="showImportModal">
         <SubHeader class="mb-3">{{ t('kb.importDocument') }}</SubHeader>
         <p class="text-sm text-[var(--text-muted)] mb-3">{{ t('kb.importDocumentHint') }}</p>
-        <form @submit.prevent="handleImportDocument" class="flex flex-col gap-3">
+        <form class="flex flex-col gap-3" @submit.prevent="handleImportDocument">
             <FileInput accept=".docx,.odt,.rtf,.html,.htm,.epub,.tex" @select="onImportFileSelect"/>
             <TextInput v-model="importFileName" :placeholder="t('kb.fileName')" />
             <TextAreaInput v-model="importFileDescription" :placeholder="t('kb.description')" />
@@ -277,10 +267,9 @@ defineExpose({
         </form>
     </Modal>
 
-    <!-- YouTube Modal -->
     <Modal v-model="showYoutubeModal">
         <SubHeader class="mb-3">{{ t('kb.addYoutube') }}</SubHeader>
-        <form @submit.prevent="handleCreateYoutube" class="flex flex-col gap-3">
+        <form class="flex flex-col gap-3" @submit.prevent="handleCreateYoutube">
             <TextInput v-model="youtubeName" :placeholder="t('kb.fileName')" required/>
             <TextInput v-model="youtubeUrl" :placeholder="t('kb.youtubeUrl')" required/>
             <TextAreaInput v-model="youtubeDescription" :placeholder="t('kb.description')"/>
@@ -288,10 +277,9 @@ defineExpose({
         </form>
     </Modal>
 
-    <!-- Link Modal -->
     <Modal v-model="showLinkModal">
         <SubHeader class="mb-3">{{ t('kb.addLink') }}</SubHeader>
-        <form @submit.prevent="handleCreateLink" class="flex flex-col gap-3">
+        <form class="flex flex-col gap-3" @submit.prevent="handleCreateLink">
             <TextInput v-model="linkUrl" :placeholder="t('kb.linkUrl')" required/>
             <p class="text-xs text-[var(--text-muted)]">{{ t('kb.linkAutoFetch') }}</p>
             <TextInput v-model="linkName" :placeholder="t('kb.fileName')"/>

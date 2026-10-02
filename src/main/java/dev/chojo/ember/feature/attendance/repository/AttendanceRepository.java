@@ -9,22 +9,30 @@ import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
-import dev.chojo.ember.feature.attendance.entity.AttendanceFieldType;
 import dev.chojo.ember.feature.attendance.entity.AttendanceReportPreset;
 import dev.chojo.ember.feature.attendance.entity.AttendanceSession;
 import dev.chojo.ember.feature.attendance.entity.AttendanceSessionField;
 import dev.chojo.ember.feature.attendance.entity.AttendanceTemplate;
 import dev.chojo.ember.feature.attendance.entity.AttendanceTemplateField;
+import dev.chojo.ember.feature.attendance.entity.SessionAudience;
 import dev.chojo.ember.feature.attendance.entity.SessionSummary;
+import dev.chojo.ember.feature.attendance.entity.TemplateGroup;
 import dev.chojo.ember.feature.members.entity.MemberAbsence;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.util.sql.MemberNameSql;
 import dev.chojo.ember.util.sql.SqlSupport;
+import dev.chojo.ember.util.sql.Transactions;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
@@ -36,6 +44,8 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 @Singleton
 public class AttendanceRepository {
     private static final String ATTENDANCE_TEMPLATE_COLUMNS = "id, station_id, name";
+    private static final String ATTENDANCE_TEMPLATE_FIELD_COLUMNS =
+            "id, template_id, name, field_type, config, position";
     private static final String ATTENDANCE_SESSION_COLUMNS =
             "id, template_id, start_time, end_time, created_at, event_id, title, unlocked_until, locked_at, counted_minutes";
     private static final String ATTENDANCE_ENTRY_COLUMNS =
@@ -56,14 +66,40 @@ public class AttendanceRepository {
     }
 
     /**
-     * Finds all attendance templates belonging to a station.
+     * Finds a template that is still in use, leaving out one that was deleted and is only kept for
+     * the sheets made from it.
+     *
+     * @param id the template ID
+     * @return the template, empty where there is none or it was deleted
+     */
+    public Optional<AttendanceTemplate> findActiveTemplateById(int id) {
+        return query("""
+                SELECT %s FROM attendance_template WHERE id = :id AND archived_at IS NULL;""", ATTENDANCE_TEMPLATE_COLUMNS)
+                .single(call().bind("id", id))
+                .map(AttendanceTemplate.map())
+                .first();
+    }
+
+    /**
+     * Whether a template was deleted and is only kept for the sheets made from it.
+     *
+     * @param id the template ID
+     * @return true where the template is archived, false where it is in use or unknown
+     */
+    public boolean isArchived(int id) {
+        return SqlSupport.exists("""
+                SELECT 1 FROM attendance_template WHERE id = :id AND archived_at IS NOT NULL;""", call().bind("id", id));
+    }
+
+    /**
+     * Finds the attendance templates of a station that are still in use, leaving out deleted ones.
      *
      * @param stationId the station ID
-     * @return list of templates for the station
+     * @return list of templates for the station, in the order they were made
      */
     public List<AttendanceTemplate> findTemplatesByStation(int stationId) {
         return query("""
-                SELECT %s FROM attendance_template WHERE station_id = :station_id;""", ATTENDANCE_TEMPLATE_COLUMNS)
+                SELECT %s FROM attendance_template WHERE station_id = :station_id AND archived_at IS NULL ORDER BY id;""", ATTENDANCE_TEMPLATE_COLUMNS)
                 .single(call().bind("station_id", stationId))
                 .map(AttendanceTemplate.map())
                 .all();
@@ -101,27 +137,90 @@ public class AttendanceRepository {
     }
 
     /**
-     * Deletes an attendance template by its ID.
+     * Archives an attendance template, which is what deleting one does.
+     *
+     * <p>Nothing is removed: the template keeps its fields, groups and user types, and every sheet
+     * made from it keeps reading them, so its sheets show and count exactly as before. It only leaves
+     * every list a template is chosen from, and the appointments and appointment templates that
+     * pointed at it let go of it, as they did when a template was really deleted.
      *
      * @param id the template ID
-     * @return {@code true} if the template was deleted
+     * @return {@code true} if a template in use was archived
      */
-    public boolean deleteTemplate(int id) {
-        return SqlSupport.deleteById("attendance_template", id);
+    public boolean archiveTemplate(int id) {
+        return Transactions.call(() -> {
+            boolean archived = query("""
+                    UPDATE attendance_template
+                    SET archived_at = now()
+                    WHERE id = :id
+                      AND archived_at IS NULL;""").single(call().bind("id", id)).update().changed();
+            if (!archived) return false;
+            query("UPDATE station_event SET template_id = NULL WHERE template_id = :id;")
+                    .single(call().bind("id", id))
+                    .update();
+            query("UPDATE event_template SET attendance_template_id = NULL WHERE attendance_template_id = :id;")
+                    .single(call().bind("id", id))
+                    .update();
+            return true;
+        });
     }
 
     /**
-     * Finds all fields for a template, ordered by position.
+     * Finds the fields of a template that are still in use, ordered by position, leaving out the
+     * deleted ones that are only kept for the sheets that answered them.
      *
      * @param templateId the template ID
-     * @return list of template fields
+     * @return the fields a new sheet gets and the template is configured with
      */
     public List<AttendanceTemplateField> findTemplateFields(int templateId) {
-        return query(
-                        "SELECT id, template_id, name, field_type, config, position FROM attendance_template_field WHERE template_id = :template_id ORDER BY position;")
+        return query("""
+                SELECT %s
+                FROM attendance_template_field
+                WHERE template_id = :template_id
+                  AND archived_at IS NULL
+                ORDER BY position, id;""", ATTENDANCE_TEMPLATE_FIELD_COLUMNS)
                 .single(call().bind("template_id", templateId))
                 .map(AttendanceTemplateField.map())
                 .all();
+    }
+
+    /**
+     * Finds the fields a sheet shows: the fields of its template in use, and the deleted ones the
+     * sheet answered before they went, so an answer stays readable under its field's name and type.
+     *
+     * @param sessionId the sheet
+     * @return the sheet's fields ordered by position, empty where there is no such sheet
+     */
+    public List<AttendanceTemplateField> findSheetFields(int sessionId) {
+        return query("""
+                SELECT %s
+                FROM attendance_template_field f
+                WHERE f.template_id = (SELECT template_id FROM attendance_session WHERE id = :session_id)
+                  AND (f.archived_at IS NULL
+                    OR EXISTS (SELECT 1
+                               FROM attendance_session_field a
+                               WHERE a.session_id = :session_id
+                                 AND a.field_id = f.id))
+                ORDER BY f.position, f.id;""", ATTENDANCE_TEMPLATE_FIELD_COLUMNS)
+                .single(call().bind("session_id", sessionId))
+                .map(AttendanceTemplateField.map())
+                .all();
+    }
+
+    /**
+     * Whether a field of a template was deleted and is only kept for the sheets that answered it.
+     *
+     * @param templateId the template the field belongs to
+     * @param fieldId    the field
+     * @return true where the field is archived, false where it is in use or not on that template
+     */
+    public boolean isFieldArchived(int templateId, int fieldId) {
+        return SqlSupport.exists("""
+                SELECT 1
+                FROM attendance_template_field
+                WHERE id = :id
+                  AND template_id = :template_id
+                  AND archived_at IS NOT NULL;""", call().bind("id", fieldId).bind("template_id", templateId));
     }
 
     /**
@@ -134,7 +233,7 @@ public class AttendanceRepository {
      * @param position   ordering position
      */
     public void createTemplateField(
-            int templateId, String name, AttendanceFieldType fieldType, AttendanceFieldConfig config, int position) {
+            int templateId, String name, FieldType fieldType, AttendanceFieldConfig config, int position) {
         query("""
                 INSERT
                 INTO
@@ -150,17 +249,18 @@ public class AttendanceRepository {
     }
 
     /**
-     * Updates an existing template field.
+     * Updates a field of a template that is still in use.
      *
-     * @param id        the field ID
-     * @param name      new display name
-     * @param fieldType new field type
-     * @param config    new JSONB configuration
-     * @param position  new ordering position
-     * @return {@code true} if the field was updated
+     * @param templateId the template the field belongs to
+     * @param id         the field ID
+     * @param name       new display name
+     * @param fieldType  new field type
+     * @param config     new JSONB configuration
+     * @param position   new ordering position
+     * @return {@code true} if a field of that template in use was updated
      */
     public boolean updateTemplateField(
-            int id, String name, AttendanceFieldType fieldType, AttendanceFieldConfig config, int position) {
+            int templateId, int id, String name, FieldType fieldType, AttendanceFieldConfig config, int position) {
         return query("""
                 UPDATE attendance_template_field
                 SET
@@ -168,24 +268,55 @@ public class AttendanceRepository {
                     field_type = :field_type,
                     config     = :config::JSONB,
                     position   = :position
-                WHERE id = :id;""")
+                WHERE id = :id
+                  AND template_id = :template_id
+                  AND archived_at IS NULL;""")
                 .single(call().bind("name", name)
                         .bind("field_type", fieldType)
                         .bind("config", config.toJson())
                         .bind("position", position)
-                        .bind("id", id))
+                        .bind("id", id)
+                        .bind("template_id", templateId))
                 .update()
                 .changed();
     }
 
     /**
-     * Deletes a template field by its ID.
+     * Archives a field of a template, which is what deleting one does.
      *
-     * @param id the field ID
-     * @return {@code true} if the field was deleted
+     * <p>The field and every answer given to it stay, so the sheets that answered it show and export
+     * the answer as before. It leaves the template's configuration and every new sheet, and what
+     * pointed at it for new work lets go of it, as it did when a field was really deleted: an
+     * appointment's starting value for it is removed, and appointment and appointment template
+     * questions tied to it are untied.
+     *
+     * @param templateId the template the field belongs to
+     * @param id         the field ID
+     * @return {@code true} if a field of that template in use was archived
      */
-    public boolean deleteTemplateField(int id) {
-        return SqlSupport.deleteById("attendance_template_field", id);
+    public boolean archiveTemplateField(int templateId, int id) {
+        return Transactions.call(() -> {
+            boolean archived = query("""
+                    UPDATE attendance_template_field
+                    SET archived_at = now()
+                    WHERE id = :id
+                      AND template_id = :template_id
+                      AND archived_at IS NULL;""")
+                    .single(call().bind("id", id).bind("template_id", templateId))
+                    .update()
+                    .changed();
+            if (!archived) return false;
+            query("DELETE FROM event_field_default WHERE field_id = :id;")
+                    .single(call().bind("id", id))
+                    .delete();
+            query("UPDATE event_field SET attendance_field_id = NULL WHERE attendance_field_id = :id;")
+                    .single(call().bind("id", id))
+                    .update();
+            query("UPDATE event_template_field SET attendance_field_id = NULL WHERE attendance_field_id = :id;")
+                    .single(call().bind("id", id))
+                    .update();
+            return true;
+        });
     }
 
     /**
@@ -221,6 +352,102 @@ public class AttendanceRepository {
                     .insert();
         }
     }
+
+    /**
+     * The user types a template expects on its sheets besides the members of its groups.
+     *
+     * @param templateId the template ID
+     * @return the user types, in their declared order, empty where the template names none
+     */
+    public Set<StationUserType> findTemplateUserTypes(int templateId) {
+        return query("""
+                        SELECT user_type
+                        FROM attendance_template_user_type
+                        WHERE template_id = :template_id;""")
+                .single(call().bind("template_id", templateId))
+                .map(row -> row.getEnum("user_type", StationUserType.class))
+                .all()
+                .stream()
+                .collect(Collectors.toCollection(() -> EnumSet.noneOf(StationUserType.class)));
+    }
+
+    /**
+     * Replaces the user types a template expects.
+     *
+     * @param templateId the template ID
+     * @param userTypes  the user types to expect, empty to expect nobody by type
+     */
+    public void setTemplateUserTypes(int templateId, Set<StationUserType> userTypes) {
+        query("DELETE FROM attendance_template_user_type WHERE template_id = :template_id;")
+                .single(call().bind("template_id", templateId))
+                .delete();
+        for (StationUserType userType : userTypes) {
+            query("""
+                    INSERT INTO attendance_template_user_type(template_id, user_type)
+                    VALUES(:template_id, :user_type);""")
+                    .single(call().bind("template_id", templateId).bind("user_type", userType))
+                    .insert();
+        }
+    }
+
+    /**
+     * Whom a sheet was told to expect when it was started.
+     *
+     * @param sessionId the session ID
+     * @return the user types and groups, the groups in the order they were chosen; naming nobody
+     *     where the sheet was left to its template
+     */
+    public SessionAudience findSessionAudience(int sessionId) {
+        var rows = query("""
+                        SELECT user_type, group_id
+                        FROM attendance_session_audience
+                        WHERE session_id = :session_id
+                        ORDER BY position;""")
+                .single(call().bind("session_id", sessionId))
+                .map(row -> new AudienceRow(
+                        row.getString("user_type") == null ? null : row.getEnum("user_type", StationUserType.class),
+                        row.getObject("group_id", Integer.class)))
+                .all();
+        return new SessionAudience(
+                rows.stream()
+                        .map(AudienceRow::userType)
+                        .filter(Objects::nonNull)
+                        .collect(Collectors.toSet()),
+                rows.stream().map(AudienceRow::groupId).filter(Objects::nonNull).toList());
+    }
+
+    /**
+     * Records whom a sheet was told to expect, replacing what it was told before.
+     *
+     * @param sessionId the session ID
+     * @param audience  the user types and groups, the groups in the order they were chosen
+     */
+    public void setSessionAudience(int sessionId, SessionAudience audience) {
+        query("DELETE FROM attendance_session_audience WHERE session_id = :session_id;")
+                .single(call().bind("session_id", sessionId))
+                .delete();
+        for (StationUserType userType : audience.userTypes()) {
+            query("""
+                    INSERT INTO attendance_session_audience(session_id, user_type)
+                    VALUES(:session_id, :user_type);""")
+                    .single(call().bind("session_id", sessionId).bind("user_type", userType))
+                    .insert();
+        }
+        int position = 0;
+        for (int groupId : audience.groupIds()) {
+            query("""
+                    INSERT INTO attendance_session_audience(session_id, group_id, position)
+                    VALUES(:session_id, :group_id, :position)
+                    ON CONFLICT DO NOTHING;""")
+                    .single(call().bind("session_id", sessionId)
+                            .bind("group_id", groupId)
+                            .bind("position", position++))
+                    .insert();
+        }
+    }
+
+    /** One row of a sheet's audience, which names either a user type or a group. */
+    private record AudienceRow(StationUserType userType, Integer groupId) {}
 
     /**
      * Finds an attendance session by its ID.
@@ -324,7 +551,12 @@ public class AttendanceRepository {
      * @return the created session
      */
     public AttendanceSession createSession(
-            int templateId, Instant startTime, Instant endTime, Integer eventId, String title, Integer countedMinutes) {
+            int templateId,
+            Instant startTime,
+            Instant endTime,
+            @Nullable Integer eventId,
+            @Nullable String title,
+            @Nullable Integer countedMinutes) {
         return SqlSupport.insertReturning(
                 """
                 INSERT INTO attendance_session(template_id, start_time, end_time, event_id, title, counted_minutes)
@@ -350,7 +582,8 @@ public class AttendanceRepository {
      * @param countedMinutes what a whole presence counts as, null to let the times decide again
      * @return {@code true} if the session was updated
      */
-    public boolean updateSession(int id, Instant startTime, Instant endTime, String title, Integer countedMinutes) {
+    public boolean updateSession(
+            int id, Instant startTime, Instant endTime, @Nullable String title, @Nullable Integer countedMinutes) {
         return query("""
                         UPDATE attendance_session
                         SET start_time = :start_time,
@@ -738,7 +971,11 @@ public class AttendanceRepository {
      * @return the created absence
      */
     public MemberAbsence createAbsence(
-            int memberId, LocalDate absentFrom, LocalDate absentUntil, String reason, Integer createdBy) {
+            int memberId,
+            LocalDate absentFrom,
+            LocalDate absentUntil,
+            @Nullable String reason,
+            @Nullable Integer createdBy) {
         return SqlSupport.insertReturning(
                 """
                 INSERT INTO member_absence(member_id, absent_from, absent_until, reason, created_by)
@@ -861,12 +1098,4 @@ public class AttendanceRepository {
                 .single(call().bind("member_id", memberId))
                 .delete();
     }
-
-    /**
-     * Associates a member group with a template at a given position.
-     *
-     * @param groupId  the group ID
-     * @param position ordering position
-     */
-    public record TemplateGroup(int groupId, int position) {}
 }

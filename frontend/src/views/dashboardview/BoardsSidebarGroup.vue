@@ -35,7 +35,7 @@ function close() {
 </script>
 
 <template>
-  <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => emit('update:openGroup', v)" :icon="['fas', 'table-columns']" :label="t('sidebar.boards')" to="/station/boards" name="board-list" @navigate="close">
+  <SidebarGroup :open-group="isDesktop ? undefined : openGroup" :icon="['fas', 'table-columns']" :label="t('sidebar.boards')" to="/station/boards" name="board-list" @update:open-group="v => emit('update:openGroup', v)" @navigate="close">
     <SidebarLink v-for="board in visibleBoards" :key="board.id" :icon="['fas', 'table-columns']" :name="`board-${board.id}`" :to="`/station/boards/${board.shortKey}`" :active="route.path.startsWith(`/station/boards/${board.shortKey}`)" @navigate="close">
       {{ board.name }}
     </SidebarLink>

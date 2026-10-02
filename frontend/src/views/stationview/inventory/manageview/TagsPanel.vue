@@ -23,7 +23,7 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import ColorBadge from '@/components/badge/ColorBadge.vue'
 import {inventoryTags} from '@/api'
-import type {CountedInventoryTag, RecommendedTag} from '@/api/inventoryTags'
+import type {RecommendedTag, TagResponse} from '@/api/generated/schema'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useConfirmDelete} from '@/composables/useConfirmDelete'
 import {describeFailure, type Failure} from '@/util/failure'
@@ -37,12 +37,12 @@ import {describeFailure, type Failure} from '@/util/failure'
  */
 const {t} = useI18n()
 
-const tags = ref<CountedInventoryTag[]>([])
+const tags = ref<TagResponse[]>([])
 const recommendations = ref<RecommendedTag[]>([])
 const saveFailure = ref<Failure | null>(null)
 
 const showModal = ref(false)
-const editing = ref<CountedInventoryTag | null>(null)
+const editing = ref<TagResponse | null>(null)
 const name = ref('')
 const color = ref('')
 
@@ -59,7 +59,7 @@ function openAdd(preset = '') {
   showModal.value = true
 }
 
-function openEdit(tag: CountedInventoryTag) {
+function openEdit(tag: TagResponse) {
   editing.value = tag
   name.value = tag.name
   color.value = tag.color ?? ''
@@ -96,7 +96,7 @@ async function reloadAfterWrite() {
 }
 
 const {show: showDeleteModal, target: deleteTarget, requestDelete, confirm: confirmDelete} =
-    useConfirmDelete<CountedInventoryTag>({
+    useConfirmDelete<TagResponse>({
       onDelete: tag => inventoryTags.deleteTag(tag.id),
       onSuccess: reloadAfterWrite,
       failure,

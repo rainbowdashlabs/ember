@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.form.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Represents a question within a form.
@@ -34,7 +35,7 @@ public record FormQuestion(
         boolean required,
         boolean shuffle,
         FormQuestionConfig config,
-        QuestionBranch branch) {
+        @Nullable QuestionBranch branch) {
 
     /**
      * Creates a row mapping for database result set conversion.

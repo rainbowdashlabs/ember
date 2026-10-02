@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.members.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.question.Question;
 import org.jspecify.annotations.Nullable;
 
@@ -38,18 +39,21 @@ public record ProfileField(
         int id,
         int stationId,
         String name,
-        ProfileFieldType fieldType,
+        FieldType fieldType,
         ProfileFieldConfig config,
         boolean required,
         boolean readonly,
         @Nullable String width,
         boolean keepOnArchive) {
     /**
-     * This field as everything that checks a question reads it, or nothing where it is a heading and
-     * asks nobody anything.
+     * This field as everything that checks a question reads it, or nothing where it is a heading or
+     * an age and asks nobody anything.
+     *
+     * <p>A number is a whole one: the profile offers no step, and the box every screen draws for it
+     * takes whole numbers only.
      */
     public Optional<Question> question() {
-        return fieldType.kind().map(kind -> config.settings(required).asQuestion(name, kind));
+        return config.settings(required).asQuestion(name, fieldType);
     }
 
     /**
@@ -60,7 +64,7 @@ public record ProfileField(
                 row.getInt("id"),
                 row.getInt("station_id"),
                 row.getString("name"),
-                row.getEnum("field_type", ProfileFieldType.class),
+                FieldType.valueOf(row.getString("field_type")),
                 ProfileFieldConfig.parse(row.getString("config")),
                 row.getBoolean("required"),
                 row.getBoolean("readonly"),

@@ -8,7 +8,7 @@ import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import type {PageLeaderboardEntry} from '@/api/insights'
+import type {PageLeaderboardEntry} from '@/api/generated/schema'
 
 const props = defineProps<{
   rows: PageLeaderboardEntry[]
@@ -41,7 +41,7 @@ function totalFor(row: PageLeaderboardEntry): number {
         <th class="py-2 pr-3">{{ t('insights.table.page') }}</th>
         <th class="py-2 pr-3 text-right">{{ t('insights.table.hits') }}</th>
         <th class="py-2 pr-3 text-right">{{ t('insights.table.botHits') }}</th>
-        <th class="py-2 pr-3"></th>
+        <th class="py-2 pr-3"/>
       </tr>
       </thead>
       <tbody>

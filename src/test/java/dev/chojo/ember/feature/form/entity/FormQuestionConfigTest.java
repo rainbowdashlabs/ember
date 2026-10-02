@@ -48,11 +48,13 @@ class FormQuestionConfigTest {
     void aChoiceAcceptsKnownKeysAndRefusesUnknownOrRepeatedOnes() {
         var choice = new FormQuestionConfig.Choice(List.of(YES, NO), true, false, false, null, null);
 
-        assertTrue(choice.validate(new FormAnswerValue.Choice(List.of("k2", "k1"), null))
+        assertTrue(choice.validate(new FormAnswerValue.ChoiceAnswer(List.of("k2", "k1"), null))
                 .isEmpty());
         assertFalse(
-                choice.validate(new FormAnswerValue.Choice(List.of("0"), null)).isEmpty(), "a position is no key");
-        assertFalse(choice.validate(new FormAnswerValue.Choice(List.of("k1", "k1"), null))
+                choice.validate(new FormAnswerValue.ChoiceAnswer(List.of("0"), null))
+                        .isEmpty(),
+                "a position is no key");
+        assertFalse(choice.validate(new FormAnswerValue.ChoiceAnswer(List.of("k1", "k1"), null))
                 .isEmpty());
     }
 
@@ -60,22 +62,26 @@ class FormQuestionConfigTest {
     void aRankingNeedsEveryOptionExactlyOnce() {
         var ranking = new FormQuestionConfig.Ranking(List.of(YES, NO));
 
-        assertTrue(ranking.validate(new FormAnswerValue.Ranking(List.of("k2", "k1")))
+        assertTrue(ranking.validate(new FormAnswerValue.RankingAnswer(List.of("k2", "k1")))
                 .isEmpty());
-        assertFalse(ranking.validate(new FormAnswerValue.Ranking(List.of("k1", "k1")))
+        assertFalse(ranking.validate(new FormAnswerValue.RankingAnswer(List.of("k1", "k1")))
                 .isEmpty());
-        assertFalse(ranking.validate(new FormAnswerValue.Ranking(List.of("k1", "k3")))
+        assertFalse(ranking.validate(new FormAnswerValue.RankingAnswer(List.of("k1", "k3")))
                 .isEmpty());
-        assertFalse(ranking.validate(new FormAnswerValue.Ranking(List.of("k1"))).isEmpty());
+        assertFalse(ranking.validate(new FormAnswerValue.RankingAnswer(List.of("k1")))
+                .isEmpty());
     }
 
     @Test
     void aLikertRatingMustNameARealStatement() {
         var likert = new FormQuestionConfig.Likert(List.of(YES, NO), 1, 5, List.of());
 
-        assertTrue(likert.validate(new FormAnswerValue.Likert(Map.of("k1", 3))).isEmpty());
-        assertEquals(List.of("Unknown statement: 0"), likert.validate(new FormAnswerValue.Likert(Map.of("0", 3))));
-        assertFalse(likert.validate(new FormAnswerValue.Likert(Map.of("k2", 9))).isEmpty());
+        assertTrue(likert.validate(new FormAnswerValue.LikertAnswer(Map.of("k1", 3)))
+                .isEmpty());
+        assertEquals(
+                List.of("Unknown statement: 0"), likert.validate(new FormAnswerValue.LikertAnswer(Map.of("0", 3))));
+        assertFalse(likert.validate(new FormAnswerValue.LikertAnswer(Map.of("k2", 9)))
+                .isEmpty());
     }
 
     @Test
@@ -89,17 +95,17 @@ class FormQuestionConfigTest {
     @Test
     void anAnswerLosesOnlyTheRemovedOptions() {
         assertEquals(
-                Optional.of(new FormAnswerValue.Choice(List.of("k1"), null)),
-                new FormAnswerValue.Choice(List.of("k1", "k2"), null).withoutOptions(Set.of("k2")));
+                Optional.of(new FormAnswerValue.ChoiceAnswer(List.of("k1"), null)),
+                new FormAnswerValue.ChoiceAnswer(List.of("k1", "k2"), null).withoutOptions(Set.of("k2")));
         assertEquals(
                 Optional.empty(),
-                new FormAnswerValue.Choice(List.of("k2"), " ").withoutOptions(Set.of("k2")),
+                new FormAnswerValue.ChoiceAnswer(List.of("k2"), " ").withoutOptions(Set.of("k2")),
                 "nothing selected and no other text leaves nothing");
         assertEquals(
-                Optional.of(new FormAnswerValue.Ranking(List.of("k1"))),
-                new FormAnswerValue.Ranking(List.of("k2", "k1")).withoutOptions(Set.of("k2")));
-        assertEquals(Optional.empty(), new FormAnswerValue.Likert(Map.of("k2", 1)).withoutOptions(Set.of("k2")));
-        var text = new FormAnswerValue.Text("x");
+                Optional.of(new FormAnswerValue.RankingAnswer(List.of("k1"))),
+                new FormAnswerValue.RankingAnswer(List.of("k2", "k1")).withoutOptions(Set.of("k2")));
+        assertEquals(Optional.empty(), new FormAnswerValue.LikertAnswer(Map.of("k2", 1)).withoutOptions(Set.of("k2")));
+        var text = new FormAnswerValue.TextAnswer("x");
         assertEquals(Optional.of(text), text.withoutOptions(Set.of("k2")));
         assertEquals(Set.of(), text.optionKeys());
     }

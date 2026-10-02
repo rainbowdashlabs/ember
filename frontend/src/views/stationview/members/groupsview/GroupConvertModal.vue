@@ -9,14 +9,14 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import Modal from '@/components/feedback/Modal.vue'
-import type {MemberGroup} from '@/api/types'
+import type {GroupRow} from '@/util/groupRules'
 import {useModelProxy} from '@/composables/useModelProxy'
 
 const {t} = useI18n()
 
 const props = defineProps<{
   modelValue: boolean
-  target: MemberGroup | null
+  target: GroupRow | null
 }>()
 
 const emit = defineEmits<{

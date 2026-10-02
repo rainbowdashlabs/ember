@@ -5,29 +5,28 @@
  */
 package dev.chojo.ember.feature.members.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.InstancePermission;
 import dev.chojo.ember.api.auth.StationPermission;
-import dev.chojo.ember.feature.federation.service.FederationPartnerTransferFixupService;
-import dev.chojo.ember.feature.station.entity.Station;
-import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.feature.station.service.StationExportService;
 import dev.chojo.ember.feature.station.service.StationImportService;
+import dev.chojo.ember.feature.station.service.StationTransferService;
+import dev.chojo.ember.feature.station.service.StationTransferService.TransferStatusResponse;
 import dev.chojo.ember.feature.station.transfer.ImportProgress;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
-import io.javalin.openapi.OpenApiName;
 import io.javalin.openapi.OpenApiParam;
 import io.javalin.openapi.OpenApiRequestBody;
 import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,19 +45,16 @@ public class TransferRoutes implements Routes {
 
     private final StationExportService exportService;
     private final StationImportService importService;
-    private final StationRepository stationRepository;
-    private final FederationPartnerTransferFixupService federationFixup;
+    private final StationTransferService transferService;
 
     @Inject
     public TransferRoutes(
             StationExportService exportService,
             StationImportService importService,
-            StationRepository stationRepository,
-            FederationPartnerTransferFixupService federationFixup) {
+            StationTransferService transferService) {
         this.exportService = exportService;
         this.importService = importService;
-        this.stationRepository = stationRepository;
-        this.federationFixup = federationFixup;
+        this.transferService = transferService;
     }
 
     @Override
@@ -69,13 +65,11 @@ public class TransferRoutes implements Routes {
         routes.post(prefix + "/station/transfer/abort", this::abortTransfer, StationPermission.STATION_IMPORT_EXPORT);
         routes.get(prefix + "/station/transfer/status", this::transferStatus, StationPermission.LOGIN);
 
-        // Token-authenticated export (public, for remote import)
         routes.get(prefix + "/public/transfer/{token}/tables", this::tokenListTables);
         routes.get(prefix + "/public/transfer/{token}/{table}", this::tokenExportTable);
         routes.post(prefix + "/public/transfer/{token}/abort", this::tokenAbortTransfer);
         routes.post(prefix + "/public/transfer/{token}/complete", this::tokenCompleteTransfer);
 
-        // Import (async, fetches from remote)
         routes.post(prefix + "/admin/transfer/import", this::startImport, InstancePermission.ADMINISTRATOR);
         routes.get(
                 prefix + "/admin/transfer/import/{stationUid}/progress",
@@ -104,7 +98,7 @@ public class TransferRoutes implements Routes {
             tags = {"Transfer"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = TokenResponse.class)))
     private void createToken(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         log.info("create token for station {}", session.stationId());
         String token = exportService.createTransferToken(session.stationId());
         ctx.json(new TokenResponse(token, exportService.getAppVersion()));
@@ -117,7 +111,7 @@ public class TransferRoutes implements Routes {
             tags = {"Transfer"},
             responses = @OpenApiResponse(status = "204"))
     private void abortTransfer(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         log.info("abort transfer for station {}", session.stationId());
         exportService.abortTransfer(session.stationId());
         ctx.status(HttpStatus.NO_CONTENT);
@@ -131,14 +125,9 @@ public class TransferRoutes implements Routes {
             responses =
                     @OpenApiResponse(status = "200", content = @OpenApiContent(from = TransferStatusResponse.class)))
     private void transferStatus(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        int stationId = session.stationId();
-        boolean readOnly = stationRepository.isReadOnlyForTransfer(stationId);
-        String target = readOnly ? exportService.findTransferTarget(stationId).orElse(null) : null;
-        ctx.json(new TransferStatusResponse(readOnly, target));
+        StationSession session = StationSession.from(ctx);
+        ctx.json(transferService.status(session.stationId()));
     }
-
-    // -- Token-authenticated export --
 
     @OpenApi(
             path = "/api/v1/public/transfer/{token}/tables",
@@ -146,11 +135,14 @@ public class TransferRoutes implements Routes {
             summary = "List export tables using a transfer token",
             tags = {"Transfer"},
             pathParams = @OpenApiParam(name = "token", required = true),
-            responses = {@OpenApiResponse(status = "200"), @OpenApiResponse(status = "403")})
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = TablesResponse.class)),
+                @OpenApiResponse(status = "403")
+            })
     private void tokenListTables(Context ctx) {
         String token = ctx.pathParam("token");
         int stationId =
-                exportService.validateToken(token).orElseThrow(Refusal.TRANSFER_TOKEN_NOT_GOOD_ON_TABLES::raise);
+                exportService.validateToken(token).orElseThrow(MemberRefusal.TRANSFER_TOKEN_NOT_GOOD_ON_TABLES::raise);
         String importingFrom = ctx.header("X-Ember-Importing-From");
         log.info(
                 "tables manifest requested for station {} by destination {} - flipping read-only flag",
@@ -183,15 +175,16 @@ public class TransferRoutes implements Routes {
             })
     private void tokenExportTable(Context ctx) {
         String token = ctx.pathParam("token");
-        int stationId = exportService.validateToken(token).orElseThrow(Refusal.TRANSFER_TOKEN_NOT_GOOD_ON_TABLE::raise);
+        int stationId =
+                exportService.validateToken(token).orElseThrow(MemberRefusal.TRANSFER_TOKEN_NOT_GOOD_ON_TABLE::raise);
         String table = ctx.pathParam("table");
         if (!exportService.getTableOrder().contains(table)) {
-            throw Refusal.TRANSFER_PART_UNKNOWN.raise(table);
+            throw MemberRefusal.TRANSFER_PART_UNKNOWN.raise(table);
         }
         int offset = ctx.queryParamAsClass("offset", Integer.class).getOrDefault(0);
         int limit = ctx.queryParamAsClass("limit", Integer.class).getOrDefault(500);
         log.info("serving table '{}' offset={} limit={} for station {}", table, offset, limit, stationId);
-        ctx.json(exportService.exportTable(stationId, table, offset, limit));
+        ctx.json(exportService.exportTableForTransfer(token, stationId, table, offset, limit));
     }
 
     @OpenApi(
@@ -205,7 +198,8 @@ public class TransferRoutes implements Routes {
             responses = {@OpenApiResponse(status = "204"), @OpenApiResponse(status = "403")})
     private void tokenAbortTransfer(Context ctx) {
         String token = ctx.pathParam("token");
-        int stationId = exportService.validateToken(token).orElseThrow(Refusal.TRANSFER_TOKEN_NOT_GOOD_ON_ABORT::raise);
+        int stationId =
+                exportService.validateToken(token).orElseThrow(MemberRefusal.TRANSFER_TOKEN_NOT_GOOD_ON_ABORT::raise);
         log.info("destination requested abort for station {}", stationId);
         exportService.abortTransfer(stationId);
         ctx.status(HttpStatus.NO_CONTENT);
@@ -222,26 +216,12 @@ public class TransferRoutes implements Routes {
             responses = {@OpenApiResponse(status = "204"), @OpenApiResponse(status = "403")})
     private void tokenCompleteTransfer(Context ctx) {
         String token = ctx.pathParam("token");
-        int stationId =
-                exportService.validateToken(token).orElseThrow(Refusal.TRANSFER_TOKEN_NOT_GOOD_ON_COMPLETE::raise);
-        String header = ctx.header("X-Ember-Importing-From");
-        String destinationUrl = header != null && !header.isBlank()
-                ? header
-                : exportService.findTransferTarget(stationId).orElse(null);
-        log.info(
-                "destination signalled completion for station {} (destination url={})",
-                stationId,
-                destinationUrl == null ? "<unknown>" : destinationUrl);
-        exportService.markTransferComplete(stationId);
-        final String url = destinationUrl;
-        stationRepository
-                .findById(stationId)
-                .map(Station::uid)
-                .ifPresent(uid -> federationFixup.flipSourceSideRetainedPartners(uid, url));
+        int stationId = exportService
+                .validateToken(token)
+                .orElseThrow(MemberRefusal.TRANSFER_TOKEN_NOT_GOOD_ON_COMPLETE::raise);
+        transferService.complete(stationId, ctx.header("X-Ember-Importing-From"));
         ctx.status(HttpStatus.NO_CONTENT);
     }
-
-    // -- Import --
 
     @OpenApi(
             path = "/api/v1/admin/transfer/import",
@@ -250,20 +230,21 @@ public class TransferRoutes implements Routes {
             description =
                     "Provide the source instance URL and a transfer token. The backend fetches tables one by one and imports them. Poll the progress endpoint to track status.",
             tags = {"Transfer"},
-            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ImportRequest.class)),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = TransferImportRequest.class)),
             responses = {
                 @OpenApiResponse(status = "201", content = @OpenApiContent(from = ImportStartResponse.class)),
                 @OpenApiResponse(status = "400")
             })
     private void startImport(Context ctx) {
-        var req = ctx.bodyAsClass(ImportRequest.class);
+        var req = ctx.bodyAsClass(TransferImportRequest.class);
         if (req.token() == null || req.token().isBlank()) {
-            throw Refusal.TRANSFER_TOKEN_MISSING.raise();
+            throw MemberRefusal.TRANSFER_TOKEN_MISSING.raise();
         }
-        var parsed = StationExportService.parseToken(req.token()).orElseThrow(Refusal.TRANSFER_TOKEN_UNREADABLE::raise);
+        var parsed = StationExportService.parseToken(req.token())
+                .orElseThrow(MemberRefusal.TRANSFER_TOKEN_UNREADABLE::raise);
         String sourceUrl = (req.sourceUrl() != null && !req.sourceUrl().isBlank()) ? req.sourceUrl() : parsed.host();
         if (sourceUrl == null || sourceUrl.isBlank()) {
-            throw Refusal.TRANSFER_SOURCE_MISSING.raise();
+            throw MemberRefusal.TRANSFER_SOURCE_MISSING.raise();
         }
         sourceUrl = sourceUrl.replaceAll("/+$", "");
         var result = importService.startRemoteImport(sourceUrl, parsed.token());
@@ -284,7 +265,7 @@ public class TransferRoutes implements Routes {
         UUID stationUid = pathUuid(ctx, "stationUid");
         var progress = importService.getProgressByUid(stationUid);
         if (progress == null) {
-            throw Refusal.TRANSFER_IMPORT_NOT_RUNNING.raise();
+            throw MemberRefusal.TRANSFER_IMPORT_NOT_RUNNING.raise();
         }
         ctx.json(new ImportProgressResponse(
                 progress.stationId(),
@@ -307,7 +288,8 @@ public class TransferRoutes implements Routes {
             responses = {
                 @OpenApiResponse(status = "201", content = @OpenApiContent(from = ImportStartResponse.class)),
                 @OpenApiResponse(status = "400"),
-                @OpenApiResponse(status = "404")
+                @OpenApiResponse(status = "404"),
+                @OpenApiResponse(status = "409")
             })
     private void retryImport(Context ctx) {
         UUID stationUid = pathUuid(ctx, "stationUid");
@@ -315,16 +297,13 @@ public class TransferRoutes implements Routes {
         ctx.status(HttpStatus.CREATED).json(new ImportStartResponse(result.stationId(), result.stationName()));
     }
 
-    public record TransferStatusResponse(boolean readOnly, String targetInstanceUrl) {}
-
     public record VersionResponse(String version) {}
 
     public record TokenResponse(String token, String version) {}
 
     public record TablesResponse(List<String> tables, String schemaHash, String appVersion) {}
 
-    @OpenApiName("TransferImportRequest")
-    public record ImportRequest(String sourceUrl, String token) {}
+    public record TransferImportRequest(String sourceUrl, String token) {}
 
     public record ImportStartResponse(int stationId, String stationName) {}
 
@@ -334,8 +313,8 @@ public class TransferRoutes implements Routes {
             ImportProgress.Status status,
             List<String> phases,
             int completedPhases,
-            String currentPhase,
+            @Nullable String currentPhase,
             int subTotal,
             int subCompleted,
-            String error) {}
+            @Nullable String error) {}
 }

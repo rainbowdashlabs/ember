@@ -4,13 +4,14 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import { computed, ref } from 'vue'
-import { PageTargetKind, QuestionTypes, type FormLayout, type FormLayoutRequest, type PageTarget, type QuestionType } from '@/api/forms'
+import { PageTargetKind, QuestionTypes, type QuestionType } from '@/api/forms'
+import type { FormLayout, FormLayoutRequest, PageTarget } from '@/api/generated/schema'
 import { freshKey, optionKeysOf } from '@/util/formOptions'
 import { reachablePages } from '@/util/formPath'
-import { defaultConfig } from './questionDefaults'
+import { defaultConfig, questionConfigOf } from './questionDefaults'
 import { storedDraftId, storedQuestionId, type PageDraft, type QuestionDraft } from './types'
 
-const NEXT: PageTarget = { kind: PageTargetKind.NEXT, page: null }
+const NEXT: PageTarget = { kind: PageTargetKind.NEXT }
 
 /** An empty page with the given key, which leads on to the page below. */
 export function blankPage(key: string): PageDraft {
@@ -39,9 +40,8 @@ export function keepTargetsForward(pages: PageDraft[]) {
     if (!leadsForward(pages, index, page.after)) page.after = { ...NEXT }
     for (const question of page.questions) {
       if (!question.branch) continue
-      for (const [key, target] of Object.entries(question.branch)) {
-        if (!leadsForward(pages, index, target)) delete question.branch[key]
-      }
+      question.branch = Object.fromEntries(Object.entries(question.branch)
+          .filter(([, target]) => leadsForward(pages, index, target)))
     }
   })
 }
@@ -56,7 +56,7 @@ export function canDecide(question: QuestionDraft): boolean {
  * it still has, since options can be removed and a choice turned into several answers after a branch
  * was set.
  */
-function savedBranch(question: QuestionDraft): Record<string, PageTarget> | null {
+export function savedBranch(question: QuestionDraft): Record<string, PageTarget> | null {
   if (!question.branch || !canDecide(question)) return null
   const options = new Set(optionKeysOf(question.config))
   return Object.fromEntries(Object.entries(question.branch).filter(([key]) => options.has(key)))
@@ -135,7 +135,7 @@ export function useFormLayout() {
         description: q.description,
         required: q.required,
         shuffle: q.shuffle,
-        config: { ...q.config, questionType: q.questionType },
+        config: questionConfigOf(q.questionType, q.config),
         branch: savedBranch(q),
       }))),
     }
@@ -173,6 +173,16 @@ export function useFormLayout() {
       else neighbour.questions.push(...removed.questions)
     }
     keepTargetsForward(pages.value)
+  }
+
+  /** Takes the pages in the order dragging them left them in. */
+  function reorderPages(next: PageDraft[]) {
+    pages.value = next
+  }
+
+  /** Puts a page in place of the one at the given index, as an editor of that page hands it back. */
+  function replacePage(index: number, page: PageDraft) {
+    pages.value[index] = page
   }
 
   function movePage(index: number, direction: -1 | 1) {
@@ -262,7 +272,7 @@ export function useFormLayout() {
 
   return {
     pages, allQuestions, paged, reachable,
-    load, toRequest, adoptIds, addPage, removePage, movePage,
+    load, toRequest, adoptIds, addPage, removePage, movePage, reorderPages, replacePage,
     addQuestion, removeQuestion, moveQuestion, moveToPage, setDeciding, duplicateQuestion, numberOf,
   }
 }

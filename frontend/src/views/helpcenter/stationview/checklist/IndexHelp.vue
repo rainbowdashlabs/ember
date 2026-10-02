@@ -40,23 +40,23 @@ const {t} = useI18n()
     <div class="space-y-2 mb-6">
       <SecondaryContainer class="flex flex-wrap items-center justify-between gap-3">
         <div class="flex-1 min-w-0">
-          <div class="font-semibold">Sicherheitsbriefing 2026</div>
-          <div class="text-sm text-(--text-muted)">Pflichtschulung für alle Aktiven.</div>
-          <div class="text-xs text-(--text-muted) mt-1">Zuletzt aufgefrischt: 14.06.2026 18:00</div>
+          <div class="font-semibold">{{ t('helpCenter.sample.checklist.safetyBriefing') }}</div>
+          <div class="text-sm text-(--text-muted)">{{ t('helpCenter.sample.checklist.safetyBriefingText') }}</div>
+          <div class="text-xs text-(--text-muted) mt-1">{{ t('helpCenter.sample.checklist.lastRefreshed') }}</div>
         </div>
         <div class="flex flex-wrap gap-2 items-center">
-          <SecondaryBadge>24 Mitglieder</SecondaryBadge>
-          <InfoBadge>3 Spalten</InfoBadge>
+          <SecondaryBadge>{{ t('helpCenter.sample.checklist.members', {count: 24}) }}</SecondaryBadge>
+          <InfoBadge>{{ t('helpCenter.sample.checklist.columns', {count: 3}) }}</InfoBadge>
         </div>
       </SecondaryContainer>
       <SecondaryContainer class="flex flex-wrap items-center justify-between gap-3">
         <div class="flex-1 min-w-0">
-          <div class="font-semibold">Atemschutz-Übung Q3</div>
-          <div class="text-xs text-(--text-muted) mt-1">Noch nicht aufgefrischt</div>
+          <div class="font-semibold">{{ t('helpCenter.sample.checklist.breathingExercise') }}</div>
+          <div class="text-xs text-(--text-muted) mt-1">{{ t('helpCenter.sample.checklist.notRefreshed') }}</div>
         </div>
         <div class="flex flex-wrap gap-2 items-center">
-          <SecondaryBadge>11 Mitglieder</SecondaryBadge>
-          <InfoBadge>5 Spalten</InfoBadge>
+          <SecondaryBadge>{{ t('helpCenter.sample.checklist.members', {count: 11}) }}</SecondaryBadge>
+          <InfoBadge>{{ t('helpCenter.sample.checklist.columns', {count: 5}) }}</InfoBadge>
         </div>
       </SecondaryContainer>
     </div>

@@ -8,16 +8,17 @@ package dev.chojo.ember.feature.form.service;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.form.entity.FormResponse;
 import dev.chojo.ember.feature.members.entity.ProfileField;
-import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.ProfileFieldRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.repository.UserTagRepository;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.LocalDate;
 import java.time.Period;
@@ -47,8 +48,7 @@ import java.util.stream.Collectors;
 @Singleton
 public class FormRespondents {
     /** The kinds of profile field that fall into a few groups and so can be grouped and filtered by. */
-    static final Set<ProfileFieldType> GROUPABLE_FIELDS =
-            Set.of(ProfileFieldType.ENUM, ProfileFieldType.BOOLEAN, ProfileFieldType.NUMBER);
+    static final Set<FieldType> GROUPABLE_FIELDS = Set.of(FieldType.CHOICE, FieldType.BOOLEAN, FieldType.NUMBER);
 
     private final StationMemberRepository members;
     private final MemberGroupRepository groups;
@@ -85,11 +85,11 @@ public class FormRespondents {
      */
     public record Respondent(
             int id,
-            StationUserType userType,
+            @Nullable StationUserType userType,
             Set<Integer> groupIds,
             Set<Integer> tagIds,
             Map<Integer, String> fieldValues,
-            Integer age) {}
+            @Nullable Integer age) {}
 
     private record Facts(
             StationUserType userType,
@@ -189,7 +189,7 @@ public class FormRespondents {
             for (var value : profileFields.findValuesOfField(field.id())) {
                 if (!memberIds.contains(value.memberId())) continue;
                 var answer = value.plainValue();
-                if (answer == null || answer.isBlank()) continue;
+                if (answer.isBlank()) continue;
                 byMember.computeIfAbsent(value.memberId(), _ -> new HashMap<>()).put(field.id(), answer);
             }
         }
@@ -198,7 +198,7 @@ public class FormRespondents {
 
     private Map<Integer, LocalDate> birthDatesOf(List<ProfileField> stationFields, Set<Integer> memberIds) {
         var birthDateField = stationFields.stream()
-                .filter(field -> field.fieldType() == ProfileFieldType.BIRTH_DATE)
+                .filter(field -> field.fieldType() == FieldType.BIRTH_DATE)
                 .findFirst();
         if (birthDateField.isEmpty()) return Map.of();
         Map<Integer, LocalDate> born = new HashMap<>();
@@ -210,7 +210,7 @@ public class FormRespondents {
         return born;
     }
 
-    private static LocalDate dayOf(String stored) {
+    private static @Nullable LocalDate dayOf(String stored) {
         if (stored == null || stored.isBlank()) return null;
         try {
             return LocalDate.parse(stored.length() > 10 ? stored.substring(0, 10) : stored);

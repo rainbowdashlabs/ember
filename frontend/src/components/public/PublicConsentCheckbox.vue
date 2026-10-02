@@ -4,10 +4,11 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {onMounted, ref, watch} from 'vue'
+import {watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import {session} from '@/api'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 
 const {t} = useI18n()
 
@@ -16,20 +17,11 @@ const consentVersion = defineModel<string>('consentVersion', {default: ''})
 const privacyVersion = defineModel<string>('privacyVersion', {default: ''})
 const tosVersion = defineModel<string>('tosVersion', {default: ''})
 
-const loadError = ref(false)
-const loading = ref(true)
-
-onMounted(async () => {
-  try {
-    const versions = await session.getLegalVersions()
-    consentVersion.value = versions.consentVersion
-    privacyVersion.value = versions.privacyVersion
-    tosVersion.value = versions.tosVersion
-  } catch {
-    loadError.value = true
-  } finally {
-    loading.value = false
-  }
+const {loading, error: loadError} = useAsyncLoader(async () => {
+  const versions = await session.getLegalVersions()
+  consentVersion.value = versions.consentVersion
+  privacyVersion.value = versions.privacyVersion
+  tosVersion.value = versions.tosVersion
 })
 
 watch([consentVersion, privacyVersion, tosVersion], () => {
@@ -41,7 +33,7 @@ watch([consentVersion, privacyVersion, tosVersion], () => {
 
 <template>
   <label class="consent">
-    <CheckboxInput v-model="accepted" :disabled="loading || loadError"/>
+    <CheckboxInput v-model="accepted" :disabled="loading || !!loadError"/>
     <span class="consent-text">
       <i18n-t keypath="publicConsent.label" tag="span">
         <template #privacy>

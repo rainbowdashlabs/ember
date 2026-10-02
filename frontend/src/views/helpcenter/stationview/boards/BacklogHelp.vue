@@ -12,9 +12,18 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
-import DummyBacklogTable from './backloghelp/DummyBacklogTable.vue'
+import TicketTable from '@/views/stationview/boards/tickettable/TicketTable.vue'
+import {useTicketTable} from '@/views/stationview/boards/tickettable/useTicketTable'
+import {backlogFixtures} from './backloghelp/fixtures'
 
 const {t} = useI18n()
+const fixture = backlogFixtures(t)
+const table = useTicketTable({
+    id: 'help-board-backlog',
+    shortKey: fixture.shortKey,
+    tickets: fixture.tickets,
+    members: fixture.members,
+})
 </script>
 
 <template>
@@ -32,10 +41,10 @@ const {t} = useI18n()
         <HelpSection :title="t('helpCenter.backlog.exampleTitle')">
             <NeutralContainer class="space-y-4">
                 <div class="flex items-center gap-3">
-                    <IconButton :icon="['fas', 'chevron-left']" label="Back" />
-                    <SectionHeader>PLAN - {{ t('boards.backlogTitle') }}</SectionHeader>
+                    <IconButton :icon="['fas', 'chevron-left']" :label="t('common.back')" />
+                    <SectionHeader>{{ fixture.shortKey }} - {{ t('boards.backlogTitle') }}</SectionHeader>
                 </div>
-                <DummyBacklogTable />
+                <TicketTable :short-key="fixture.shortKey" :table="table" />
             </NeutralContainer>
         </HelpSection>
 

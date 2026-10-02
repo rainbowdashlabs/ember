@@ -88,6 +88,27 @@ class AiProviderRepositoryTest extends RepositoryTestBase {
     }
 
     @Test
+    @Order(8)
+    void plaintextKeysAreFoundAndReplacedOnlyWhileUnchanged() {
+        aiProviderRepo.upsert(station.id(), "gemini", "enc:v1:already-sealed", null);
+        var gemini = aiProviderRepo.findByProvider(station.id(), "gemini").orElseThrow();
+        var anthropic = aiProviderRepo.findByProvider(station.id(), "anthropic").orElseThrow();
+
+        var plaintext = aiProviderRepo.findWithoutPrefix("enc:v1:");
+        assertTrue(plaintext.stream().anyMatch(p -> p.id() == anthropic.id()));
+        assertTrue(plaintext.stream().noneMatch(p -> p.id() == gemini.id()));
+
+        assertFalse(aiProviderRepo.replaceKeyIfUnchanged(anthropic.id(), "not-what-is-stored", "enc:v1:x"));
+        assertTrue(aiProviderRepo.replaceKeyIfUnchanged(anthropic.id(), "claude-key", "enc:v1:sealed"));
+        assertEquals(
+                "enc:v1:sealed",
+                aiProviderRepo
+                        .findByProvider(station.id(), "anthropic")
+                        .orElseThrow()
+                        .apiKey());
+    }
+
+    @Test
     @Order(99)
     void delete() {
         aiProviderRepo.delete(station.id(), "openai");

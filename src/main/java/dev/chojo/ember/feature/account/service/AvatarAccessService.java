@@ -94,8 +94,9 @@ public class AvatarAccessService {
                 stationMemberRepository.findByUid(targetStation.id(), memberUid).orElse(null);
         if (targetMember == null) return Optional.empty();
         if (!canSeeMemberAvatar(session, targetStation.id())) return Optional.empty();
-        if (targetMember.accountId() == null) return Optional.empty();
-        return Optional.ofNullable(accountRepository.resolveUid(targetMember.accountId()));
+        Integer accountId = targetMember.accountId();
+        if (accountId == null) return Optional.empty();
+        return Optional.ofNullable(accountRepository.resolveUid(accountId));
     }
 
     /**
@@ -118,11 +119,12 @@ public class AvatarAccessService {
             return true;
         }
         if (governsStation(session, targetStationId)) return true;
-        if (session.stationId() == null) return false;
+        Integer stationId = session.stationId();
+        if (stationId == null) return false;
         UUID targetUid = stationRepository.resolveUid(targetStationId);
         if (targetUid == null) return false;
         return federationRepository
-                .findPartnerByStationAndRemoteUid(session.stationId(), targetUid)
+                .findPartnerByStationAndRemoteUid(stationId, targetUid)
                 .filter(p -> p.status() == FederationPartner.FederationStatus.ACTIVE)
                 .isPresent();
     }
@@ -154,12 +156,13 @@ public class AvatarAccessService {
         for (var targetMembership : targetMemberships) {
             if (callerStationIds.contains(targetMembership.stationId())) return true;
         }
-        if (session.stationId() == null) return false;
+        Integer stationId = session.stationId();
+        if (stationId == null) return false;
         for (var targetMembership : targetMemberships) {
             UUID targetUid = stationRepository.resolveUid(targetMembership.stationId());
             if (targetUid == null) continue;
             var partner = federationRepository
-                    .findPartnerByStationAndRemoteUid(session.stationId(), targetUid)
+                    .findPartnerByStationAndRemoteUid(stationId, targetUid)
                     .orElse(null);
             if (partner != null && partner.status() == FederationPartner.FederationStatus.ACTIVE) {
                 return true;
@@ -176,10 +179,9 @@ public class AvatarAccessService {
      * other's rows and see nobody, which is what the roll and the group screens showed.
      */
     private boolean sharesCluster(UserSession session, int targetAccountId) {
-        if (session.clusterId() == null) return false;
-        return clusterRepository
-                .findMember(session.clusterId(), targetAccountId)
-                .isPresent();
+        Integer clusterId = session.clusterId();
+        if (clusterId == null) return false;
+        return clusterRepository.findMember(clusterId, targetAccountId).isPresent();
     }
 
     /**
@@ -189,7 +191,8 @@ public class AvatarAccessService {
      * are theirs to see as well, whether or not they are a member of that station themselves.
      */
     private boolean governsStation(UserSession session, int targetStationId) {
-        if (session.clusterId() == null) return false;
-        return clusterRepository.findStationIds(session.clusterId()).contains(targetStationId);
+        Integer clusterId = session.clusterId();
+        if (clusterId == null) return false;
+        return clusterRepository.findStationIds(clusterId).contains(targetStationId);
     }
 }

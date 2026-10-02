@@ -9,17 +9,24 @@ import {useI18n} from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
-import type {AttendanceTemplate, AttendanceTemplateField} from '@/api/attendance'
-import type {EventCategory, EventFieldEntry, EventTemplate} from '@/api/events'
-import type {MemberGroup, StationMember, UserTag} from '@/api/types'
-import type {PartnerResponse} from '@/api/federation'
-import type {RestrictionSelection} from '@/components/input/restriction'
+import type {
+    AttendanceTemplate,
+    AttendanceTemplateField,
+    EventCategory,
+    EventFieldEntry,
+    EventTemplate,
+    MemberGroup,
+    PartnerResponse,
+    RegistrationFieldDefinition,
+    UserTag,
+} from '@/api/generated/schema'
+import type {MemberLike} from '@/components/input/select/memberOption'
+import type {RestrictionSelection} from '@/api/types'
 import EventEditHeader from './EventEditHeader.vue'
 import EventFormCard from './EventFormCard.vue'
 import FederationCard from './FederationCard.vue'
 import FieldDefaultsCard from './FieldDefaultsCard.vue'
 import RegistrationFieldsEditor from '../eventshared/RegistrationFieldsEditor.vue'
-import type {EventRegistrationFieldDefinition} from '@/api/events'
 
 interface FieldDefaultEntry {
   source: string
@@ -36,8 +43,8 @@ const props = defineProps<{
   attendanceFields: AttendanceTemplateField[]
   groups: MemberGroup[]
   tags: UserTag[]
-  allMembers: StationMember[]
-  groupMembers: Map<number, StationMember[]>
+  allMembers: MemberLike[]
+  groupMembers: Map<number, MemberLike[]>
   currentTemplateFields: AttendanceTemplateField[]
   fieldDefaults: Map<number, FieldDefaultEntry>
   partners: PartnerResponse[]
@@ -62,14 +69,13 @@ const endTime = defineModel<string>('endTime', {required: true})
 const repeatUntil = defineModel<string>('repeatUntil', {required: true})
 const repeatCount = defineModel<number | undefined>('repeatCount')
 const requiresRegistration = defineModel<boolean>('requiresRegistration', {required: true})
-const registrationFields = defineModel<EventRegistrationFieldDefinition[]>('registrationFields', {required: true})
+const registrationFields = defineModel<RegistrationFieldDefinition[]>('registrationFields', {required: true})
 const requiresConfirmation = defineModel<boolean>('requiresConfirmation', {required: true})
 const hasDeadline = defineModel<boolean>('hasDeadline', {required: true})
 const registrationDeadline = defineModel<string>('registrationDeadline', {required: true})
 const registrationLimit = defineModel<number | undefined>('registrationLimit')
 const minRegistrations = defineModel<number | undefined>('minRegistrations')
-const hasThreshold = defineModel<boolean>('hasThreshold', {required: true})
-const thresholdDate = defineModel<string>('thresholdDate', {required: true})
+const thresholdDays = defineModel<number | undefined>('thresholdDays')
 const registrationCloseDays = defineModel<number | undefined>('registrationCloseDays')
 const restriction = defineModel<RestrictionSelection>('restriction', {required: true})
 const viewRestriction = defineModel<RestrictionSelection>('viewRestriction', {required: true})
@@ -110,8 +116,7 @@ const canSubmit = computed(() => !props.saving && !!name.value && !!startTime.va
       v-model:registration-deadline="registrationDeadline"
       v-model:registration-limit="registrationLimit"
       v-model:min-registrations="minRegistrations"
-      v-model:has-threshold="hasThreshold"
-      v-model:threshold-date="thresholdDate"
+      v-model:threshold-days="thresholdDays"
       v-model:registration-close-days="registrationCloseDays"
       v-model:restriction="restriction"
       v-model:view-restriction="viewRestriction"
@@ -143,7 +148,7 @@ const canSubmit = computed(() => !props.saving && !!name.value && !!startTime.va
       @update:value="(fieldId, value) => emit('update:fieldDefaultValue', fieldId, value)"
   />
 
-  <RegistrationFieldsEditor v-if="requiresRegistration" v-model="registrationFields"/>
+  <RegistrationFieldsEditor v-if="requiresRegistration" v-model="registrationFields" :all-members="props.allMembers"/>
 
   <ButtonRow pair align="end">
     <SecondaryButton @click="emit('cancel')">{{ t('common.cancel') }}</SecondaryButton>

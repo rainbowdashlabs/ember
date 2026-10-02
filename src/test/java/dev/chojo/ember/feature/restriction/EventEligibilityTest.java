@@ -40,15 +40,11 @@ class EventEligibilityTest {
         return new Restriction(0, null, null, null, memberId);
     }
 
-    // -- No restrictions --
-
     @Test
     void noRestrictionsAllowsAll() {
         var set = new RestrictionSet(List.of(), RestrictionMode.AND);
         assertTrue(set.matches(USER_TYPE_MEMBER, List.of(), List.of(), 1));
     }
-
-    // -- User type restrictions (AND mode) --
 
     @Test
     void userTypeRestrictionMatchesWhenMemberHasUserType() {
@@ -62,8 +58,6 @@ class EventEligibilityTest {
         assertFalse(set.matches(USER_TYPE_MEMBER, List.of(), List.of(), 1));
     }
 
-    // -- Group restrictions (AND mode) --
-
     @Test
     void groupRestrictionMatchesWhenMemberInGroup() {
         var set = new RestrictionSet(List.of(groupRestriction(GROUP_A)), RestrictionMode.AND);
@@ -75,8 +69,6 @@ class EventEligibilityTest {
         var set = new RestrictionSet(List.of(groupRestriction(GROUP_A)), RestrictionMode.AND);
         assertFalse(set.matches(null, List.of(), List.of(), 1));
     }
-
-    // -- Tag restrictions (AND mode) --
 
     @Test
     void tagRestrictionMatchesWhenMemberHasTag() {
@@ -90,37 +82,28 @@ class EventEligibilityTest {
         assertFalse(set.matches(null, List.of(), List.of(), 1));
     }
 
-    // -- Combined AND logic --
-
     @Test
     void combinedAndRestrictionsRequireAllToMatch() {
         var set = new RestrictionSet(
                 List.of(userTypeRestriction(USER_TYPE_MEMBER), groupRestriction(GROUP_A), tagRestriction(TAG_X)),
                 RestrictionMode.AND);
 
-        // All match
-        assertTrue(set.matches(USER_TYPE_MEMBER, List.of(GROUP_A), List.of(TAG_X), 1));
-        // Missing tag
-        assertFalse(set.matches(USER_TYPE_MEMBER, List.of(GROUP_A), List.of(), 1));
-        // Missing group
-        assertFalse(set.matches(USER_TYPE_MEMBER, List.of(), List.of(TAG_X), 1));
-        // Missing user type
-        assertFalse(set.matches(null, List.of(GROUP_A), List.of(TAG_X), 1));
+        assertTrue(set.matches(USER_TYPE_MEMBER, List.of(GROUP_A), List.of(TAG_X), 1), "all match");
+        assertFalse(set.matches(USER_TYPE_MEMBER, List.of(GROUP_A), List.of(), 1), "missing tag");
+        assertFalse(set.matches(USER_TYPE_MEMBER, List.of(), List.of(TAG_X), 1), "missing group");
+        assertFalse(set.matches(null, List.of(GROUP_A), List.of(TAG_X), 1), "missing user type");
     }
 
     @Test
     void partialAndRestrictionsIgnoreUnsetTypes() {
-        // Only user type + tag (no group restriction)
         var set = new RestrictionSet(
                 List.of(userTypeRestriction(USER_TYPE_MEMBER), tagRestriction(TAG_X)), RestrictionMode.AND);
 
-        // Has user type + tag => eligible (group not restricted)
-        assertTrue(set.matches(USER_TYPE_MEMBER, List.of(), List.of(TAG_X), 1));
-        // Has user type but NOT tag
-        assertFalse(set.matches(USER_TYPE_MEMBER, List.of(), List.of(), 1));
+        assertTrue(
+                set.matches(USER_TYPE_MEMBER, List.of(), List.of(TAG_X), 1),
+                "user type and tag suffice when no group is restricted");
+        assertFalse(set.matches(USER_TYPE_MEMBER, List.of(), List.of(), 1), "missing tag");
     }
-
-    // -- OR mode --
 
     @Test
     void orModeAllowsAnyMatch() {
@@ -128,27 +111,22 @@ class EventEligibilityTest {
                 List.of(userTypeRestriction(USER_TYPE_TEAM), groupRestriction(GROUP_A), tagRestriction(TAG_X)),
                 RestrictionMode.OR);
 
-        // Only user type matches
-        assertTrue(set.matches(USER_TYPE_TEAM, List.of(), List.of(), 1));
-        // Only group matches
-        assertTrue(set.matches(null, List.of(GROUP_A), List.of(), 1));
-        // Only tag matches
-        assertTrue(set.matches(null, List.of(), List.of(TAG_X), 1));
-        // Nothing matches
-        assertFalse(set.matches(USER_TYPE_MEMBER, List.of(), List.of(), 1));
+        assertTrue(set.matches(USER_TYPE_TEAM, List.of(), List.of(), 1), "only user type matches");
+        assertTrue(set.matches(null, List.of(GROUP_A), List.of(), 1), "only group matches");
+        assertTrue(set.matches(null, List.of(), List.of(TAG_X), 1), "only tag matches");
+        assertFalse(set.matches(USER_TYPE_MEMBER, List.of(), List.of(), 1), "nothing matches");
     }
-
-    // -- Member restrictions (always OR) --
 
     @Test
     void memberRestrictionGrantsAccessRegardlessOfMode() {
         var set = new RestrictionSet(
                 List.of(userTypeRestriction(USER_TYPE_TEAM), memberRestriction(MEMBER_42)), RestrictionMode.AND);
 
-        // Member 42 passes even without the required user type
-        assertTrue(set.matches(null, List.of(), List.of(), MEMBER_42));
-        // Other member must satisfy user type restriction
-        assertFalse(set.matches(null, List.of(), List.of(), 99));
+        assertTrue(
+                set.matches(null, List.of(), List.of(), MEMBER_42),
+                "the named member passes even without the required user type");
+        assertFalse(
+                set.matches(null, List.of(), List.of(), 99), "another member must satisfy the user type restriction");
         assertTrue(set.matches(USER_TYPE_TEAM, List.of(), List.of(), 99));
     }
 
@@ -159,8 +137,6 @@ class EventEligibilityTest {
         assertTrue(set.matches(null, List.of(), List.of(), MEMBER_42));
         assertFalse(set.matches(null, List.of(), List.of(), 99));
     }
-
-    // -- hasRestrictions --
 
     @Test
     void hasRestrictionsReturnsFalseWhenEmpty() {

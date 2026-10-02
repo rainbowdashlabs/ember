@@ -7,7 +7,8 @@
 import {onMounted, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import EntitySearchPicker from './EntitySearchPicker.vue'
-import {searchPages, type PageSearchResult} from '@/api/pageManage'
+import {searchPages} from '@/api/pageManage'
+import type {PickerPage} from '@/api/generated/schema'
 import {listPublicPages} from '@/api/publicPages'
 
 const model = defineModel<string | null>()
@@ -21,15 +22,15 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-    pick: [item: PageSearchResult]
+    pick: [item: PickerPage]
 }>()
 
 const {t} = useI18n()
 
 const searchFn = (q: string) => searchPages(q, 5)
-const displayFn = (item: PageSearchResult) => item.title
-const subtitleFn = (item: PageSearchResult) => `/${item.slug}`
-const keyFn = (item: PageSearchResult) => item.pageUid
+const displayFn = (item: PickerPage) => item.title
+const subtitleFn = (item: PickerPage) => `/${item.slug}`
+const keyFn = (item: PickerPage) => item.pageUid
 const iconFn = (): string[] => ['fas', 'file-lines']
 
 const resolvedTitle = ref<string | null>(null)
@@ -56,6 +57,6 @@ watch(() => [props.stationUid, model.value], resolve)
         :selected-display="resolvedTitle ?? selectedDisplay"
         :placeholder="placeholder ?? t('stationPages.editor.pageSearchPlaceholder')"
         :disabled="disabled"
-        @pick="(it: PageSearchResult) => emit('pick', it)"
+        @pick="(it: PickerPage) => emit('pick', it)"
     />
 </template>

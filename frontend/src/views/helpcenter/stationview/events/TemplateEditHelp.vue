@@ -5,6 +5,7 @@
  */
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
+import type {EventCategory, EventFieldEntry} from '@/api/generated/schema'
 import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
@@ -20,11 +21,13 @@ import EventFieldList from '@/views/stationview/events/eventshared/EventFieldLis
 
 const {t} = useI18n()
 
-const CATEGORIES = [{id: 1, stationId: 'demo', name: 'Übung', position: 0}]
+const CATEGORIES: EventCategory[] = [
+  {id: 1, stationId: 'demo', name: 'Übung', position: 0, maxShownEvents: null, isPublic: false, color: null},
+]
 const ATTENDANCE_TEMPLATES = [{id: 1, stationId: 'demo', name: 'Übungsabend'}]
-const FIELDS = [
-  {name: 'Ort', fieldType: 'STRING', overview: true, isPublic: true, value: 'Gerätehaus'},
-  {name: 'Treffpunkt', fieldType: 'STRING', overview: true, isPublic: false, value: 'Fahrzeughalle'},
+const FIELDS: EventFieldEntry[] = [
+  {name: 'Ort', fieldType: 'TEXT', overview: true, isPublic: true, value: 'Gerätehaus'},
+  {name: 'Treffpunkt', fieldType: 'TEXT', overview: true, isPublic: false, value: 'Fahrzeughalle'},
 ]
 const REMINDERS = [7, 1]
 

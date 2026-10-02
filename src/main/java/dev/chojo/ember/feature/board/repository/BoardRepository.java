@@ -7,16 +7,17 @@ package dev.chojo.ember.feature.board.repository;
 
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.board.entity.Board;
-import dev.chojo.ember.feature.board.entity.BoardField;
 import dev.chojo.ember.feature.board.entity.BoardFieldConfig;
-import dev.chojo.ember.feature.board.entity.BoardFieldType;
+import dev.chojo.ember.feature.board.entity.BoardFieldDefinition;
 import dev.chojo.ember.feature.board.entity.BoardLabel;
 import dev.chojo.ember.feature.board.entity.BoardLane;
 import dev.chojo.ember.feature.board.entity.TicketLabelMapping;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.restriction.RestrictionSql;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.Optional;
@@ -35,8 +36,6 @@ public class BoardRepository {
     private static final String VIEW_ACCESS_TABLE = "board_view_access";
     private static final String EDIT_ACCESS_TABLE = "board_edit_access";
     private static final String BOARD_FK = "board_id";
-
-    // -- Board CRUD --
 
     public List<Board> findByStation(int stationId) {
         return query("SELECT %s FROM board WHERE station_id = :station_id ORDER BY created_at DESC;", BOARD_COLUMNS)
@@ -94,12 +93,11 @@ public class BoardRepository {
                 row -> row.getInt("ticket_counter"));
     }
 
-    // -- Backlog --
-
     public BoardLane enableBacklog(int boardId) {
         var existing = findById(boardId).orElseThrow();
-        if (existing.backlogLaneId() != null) {
-            return findLaneById(existing.backlogLaneId()).orElseThrow();
+        Integer backlogLaneId = existing.backlogLaneId();
+        if (backlogLaneId != null) {
+            return findLaneById(backlogLaneId).orElseThrow();
         }
         var lane = createLane(boardId, "Backlog", "#6b7280", -1);
         query("UPDATE board SET backlog_lane_id = :lane_id WHERE id = :id;")
@@ -110,18 +108,17 @@ public class BoardRepository {
 
     public void disableBacklog(int boardId) {
         var existing = findById(boardId).orElseThrow();
-        if (existing.backlogLaneId() == null) return;
+        Integer backlogLaneId = existing.backlogLaneId();
+        if (backlogLaneId == null) return;
         query("UPDATE board SET backlog_lane_id = NULL WHERE id = :id;")
                 .single(call().bind("id", boardId))
                 .update();
-        deleteLane(existing.backlogLaneId());
+        deleteLane(backlogLaneId);
     }
 
     public Optional<BoardLane> findLaneById(int laneId) {
         return SqlSupport.findById("board_lane", LANE_COLUMNS, laneId, BoardLane.map());
     }
-
-    // -- Lane CRUD --
 
     public List<BoardLane> findLanes(int boardId) {
         return query("SELECT %s FROM board_lane WHERE board_id = :board_id ORDER BY position;", LANE_COLUMNS)
@@ -130,7 +127,7 @@ public class BoardRepository {
                 .all();
     }
 
-    public BoardLane createLane(int boardId, String name, String color, int position) {
+    public BoardLane createLane(int boardId, String name, @Nullable String color, int position) {
         return SqlSupport.insertReturning(
                 """
                 INSERT INTO board_lane(board_id, name, color, position)
@@ -144,7 +141,7 @@ public class BoardRepository {
                 LANE_COLUMNS);
     }
 
-    public boolean updateLane(int id, String name, String color, int position) {
+    public boolean updateLane(int id, String name, @Nullable String color, int position) {
         return query("UPDATE board_lane SET name = :name, color = :color, position = :position WHERE id = :id;")
                 .single(call().bind("id", id)
                         .bind("name", name)
@@ -169,8 +166,6 @@ public class BoardRepository {
                 .single(call().bind("board_id", boardId))
                 .delete();
     }
-
-    // -- Label CRUD --
 
     public List<BoardLabel> findLabels(int boardId) {
         return query("SELECT %s FROM board_label WHERE board_id = :board_id ORDER BY name;", LABEL_COLUMNS)
@@ -232,16 +227,14 @@ public class BoardRepository {
                 .all();
     }
 
-    // -- Field CRUD --
-
-    public List<BoardField> findFields(int boardId) {
+    public List<BoardFieldDefinition> findFields(int boardId) {
         return query("SELECT %s FROM board_field WHERE board_id = :board_id ORDER BY position;", FIELD_COLUMNS)
                 .single(call().bind("board_id", boardId))
-                .map(BoardField.map())
+                .map(BoardFieldDefinition.map())
                 .all();
     }
 
-    public void createField(int boardId, String name, BoardFieldType fieldType, BoardFieldConfig config, int position) {
+    public void createField(int boardId, String name, FieldType fieldType, BoardFieldConfig config, int position) {
         SqlSupport.insertReturning(
                 """
                 INSERT INTO board_field(board_id, name, field_type, config, position)
@@ -252,7 +245,7 @@ public class BoardRepository {
                         .bind("field_type", fieldType)
                         .bind("config", config.toJson())
                         .bind("position", position),
-                BoardField.map(),
+                BoardFieldDefinition.map(),
                 FIELD_COLUMNS);
     }
 
@@ -261,8 +254,6 @@ public class BoardRepository {
                 .single(call().bind("board_id", boardId))
                 .delete();
     }
-
-    // -- Access restrictions --
 
     public void setViewAccess(
             int boardId, List<StationUserType> userTypes, List<Integer> groupIds, List<Integer> tagIds) {

@@ -13,21 +13,21 @@ import InfoBadge from '@/components/badge/InfoBadge.vue'
 import ProseExcerpt from '@/components/display/ProseExcerpt.vue'
 import EventHeadline from '@/views/stationview/events/eventshared/EventHeadline.vue'
 import EventRegistrationActions from '@/views/stationview/events/eventshared/EventRegistrationActions.vue'
-import type {FederatedEvent, FederatedRegistration, RegistrationStatusName} from '@/api/events'
+import type {FederatedEventItem, RemoteMemberRegistration} from '@/api/generated/schema'
 import {formatTime} from '@/util/format'
 import {renderMarkdown} from '@/util/markdown'
 import type {AnswerablePerson, GivenAnswer} from '@/util/eventAnswers'
 
 const props = defineProps<{
-  fed: FederatedEvent
+  fed: FederatedEventItem
   eligibleMembers: AnswerablePerson<string>[]
-  registrations: FederatedRegistration[]
+  registrations: RemoteMemberRegistration[]
   registering: string | null
 }>()
 
 const emit = defineEmits<{
-  register: [fed: FederatedEvent, people: AnswerablePerson<string>[]]
-  withdraw: [fed: FederatedEvent, memberUid: string]
+  register: [fed: FederatedEventItem, people: AnswerablePerson<string>[]]
+  withdraw: [fed: FederatedEventItem, memberUid: string]
 }>()
 
 const {t} = useI18n()
@@ -47,7 +47,7 @@ const answers = computed((): GivenAnswer<string, string>[] => {
     given.push({
       key: person.key,
       name: person.name,
-      status: registration.status as RegistrationStatusName,
+      status: registration.status,
       undo: person.key,
     })
   }
@@ -61,7 +61,7 @@ const answers = computed((): GivenAnswer<string, string>[] => {
  * expanded into, so the tile reads the date out of it and shows the same line every other
  * appointment in the list shows.
  */
-const occurrenceDate = computed(() => props.fed.event.startTime?.slice(0, 10) ?? '')
+const occurrenceDate = computed(() => props.fed.event.startTime.slice(0, 10))
 
 /** Where the partner's own page for this appointment lives. */
 const detailRoute = computed(() => ({

@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.mail.service.mail;
 
+import dev.chojo.ember.feature.mail.entity.SmtpEncryption;
 import jakarta.mail.AuthenticationFailedException;
 import jakarta.mail.Authenticator;
 import jakarta.mail.Message;
@@ -16,29 +17,38 @@ import jakarta.mail.Transport;
 import jakarta.mail.internet.AddressException;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.time.Duration;
 import java.util.Date;
 import java.util.Properties;
 
 /**
- * SMTP-based implementation of {@link MailProvider}. Supports both direct SSL and STARTTLS connections.
- * Used for sending emails through various providers (direct SMTP, Rapidmail, Twilio SendGrid, Sweego, Brevo).
+ * SMTP-based implementation of {@link MailProvider}. Supports implicit TLS, required STARTTLS and,
+ * when chosen on purpose, unencrypted connections. Used for sending emails through various providers
+ * (direct SMTP, Rapidmail, Twilio SendGrid, Sweego, Brevo).
  */
 public class SmtpMailProvider implements MailProvider {
     private static final Logger log = LoggerFactory.getLogger(SmtpMailProvider.class);
 
+    /** How long to wait for the relay to accept the connection. */
+    static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(30);
+
+    /** How long to wait on the relay for any one read or write once connected. */
+    static final Duration IO_TIMEOUT = Duration.ofSeconds(60);
+
     private final String host;
     private final int port;
-    private final boolean ssl;
+    private final SmtpEncryption encryption;
     private final String user;
     private final String password;
     private final String senderAddress;
     private final String senderName;
-    private final String correlationHeader;
+    private final @Nullable String correlationHeader;
     private final String correlationFormat;
 
     /**
@@ -46,15 +56,21 @@ public class SmtpMailProvider implements MailProvider {
      *
      * @param host          the SMTP server hostname
      * @param port          the SMTP server port
-     * @param ssl           true for direct SSL, false for STARTTLS
+     * @param encryption    how the connection is secured
      * @param user          the authentication username
      * @param password      the authentication password
      * @param senderAddress the sender email address (From header)
      * @param senderName    the sender display name
      */
     public SmtpMailProvider(
-            String host, int port, boolean ssl, String user, String password, String senderAddress, String senderName) {
-        this(host, port, ssl, user, password, senderAddress, senderName, null, null);
+            String host,
+            int port,
+            SmtpEncryption encryption,
+            String user,
+            String password,
+            String senderAddress,
+            String senderName) {
+        this(host, port, encryption, user, password, senderAddress, senderName, null, null);
     }
 
     /**
@@ -69,16 +85,16 @@ public class SmtpMailProvider implements MailProvider {
     public SmtpMailProvider(
             String host,
             int port,
-            boolean ssl,
+            SmtpEncryption encryption,
             String user,
             String password,
             String senderAddress,
             String senderName,
-            String correlationHeader,
-            String correlationFormat) {
+            @Nullable String correlationHeader,
+            @Nullable String correlationFormat) {
         this.host = host;
         this.port = port;
-        this.ssl = ssl;
+        this.encryption = encryption;
         this.user = user;
         this.password = password;
         this.senderAddress = senderAddress;
@@ -88,7 +104,7 @@ public class SmtpMailProvider implements MailProvider {
     }
 
     @Override
-    public SendResult send(String to, String subject, String htmlBody, String correlationId) {
+    public SendResult send(String to, String subject, String htmlBody, @Nullable String correlationId) {
         Session session = createSession();
         try {
             MimeMessage message = new MimeMessage(session);
@@ -138,17 +154,42 @@ public class SmtpMailProvider implements MailProvider {
         return senderName;
     }
 
-    private Session createSession() {
+    /**
+     * The session settings for one relay.
+     *
+     * <p>The timeouts are load bearing rather than housekeeping. Jakarta Mail waits forever by
+     * default, and one worker thread sends every queued mail in turn, so a relay that accepts the
+     * connection and then goes quiet would hold all outgoing mail for as long as the process runs.
+     *
+     * <p>STARTTLS is required, not merely offered to use: without that, anyone between us and the
+     * relay can strip the relay's offer of encryption and read the login in the clear. An
+     * unencrypted connection is only ever made when it was chosen as such.
+     *
+     * @param host       the SMTP server hostname
+     * @param port       the SMTP server port
+     * @param encryption how the connection is secured
+     */
+    static Properties sessionProperties(String host, int port, SmtpEncryption encryption) {
         Properties props = new Properties();
         props.put("mail.smtp.host", host);
         props.put("mail.smtp.port", String.valueOf(port));
         props.put("mail.smtp.auth", "true");
-        if (ssl) {
-            props.put("mail.smtp.ssl.enable", "true");
-        } else {
-            props.put("mail.smtp.starttls.enable", "true");
+        props.put("mail.smtp.connectiontimeout", String.valueOf(CONNECT_TIMEOUT.toMillis()));
+        props.put("mail.smtp.timeout", String.valueOf(IO_TIMEOUT.toMillis()));
+        props.put("mail.smtp.writetimeout", String.valueOf(IO_TIMEOUT.toMillis()));
+        switch (encryption) {
+            case IMPLICIT_TLS -> props.put("mail.smtp.ssl.enable", "true");
+            case STARTTLS -> {
+                props.put("mail.smtp.starttls.enable", "true");
+                props.put("mail.smtp.starttls.required", "true");
+            }
+            case NONE -> props.put("mail.smtp.starttls.enable", "false");
         }
-        return Session.getInstance(props, new Authenticator() {
+        return props;
+    }
+
+    private Session createSession() {
+        return Session.getInstance(sessionProperties(host, port, encryption), new Authenticator() {
             @Override
             protected PasswordAuthentication getPasswordAuthentication() {
                 return new PasswordAuthentication(user, password);

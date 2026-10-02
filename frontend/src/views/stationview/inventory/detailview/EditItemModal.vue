@@ -10,17 +10,20 @@ import Modal from '@/components/feedback/Modal.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import {normaliseScannedPayload} from '@/components/scanner/useBarcodeScanner'
-import type {InventoryItem, InventorySize} from '@/api/inventory'
 import {inventory, inventoryArts, inventoryContainers, inventoryFields, inventoryTags} from '@/api'
-import type {InventoryArt} from '@/api/inventoryArts'
-import type {InventoryTag} from '@/api/inventoryTags'
+import type {
+  InventoryArt,
+  InventoryContainer,
+  InventoryFieldDefinition,
+  InventoryItem,
+  InventorySize,
+  TagResponse,
+} from '@/api/generated/schema'
 import EditItemFields from './edititemmodal/EditItemFields.vue'
 import EditItemCustomFields from './edititemmodal/EditItemCustomFields.vue'
 import EditItemFooter from './edititemmodal/EditItemFooter.vue'
 import InventoryFieldsPanel from '@/components/inventory/InventoryFieldsPanel.vue'
 import {parseItemMetadata, buildItemMetadata} from './itemMetadata'
-import type {InventoryContainer} from '@/api/inventoryContainers'
-import type {InventoryFieldDefinition} from '@/api/inventoryFields'
 import {describeFailure, type Failure} from '@/util/failure'
 
 const props = withDefaults(
@@ -57,10 +60,10 @@ const containerId = ref<number | null>(null)
 const artId = ref<number | null>(null)
 const artDraft = ref('')
 const arts = ref<InventoryArt[]>([])
-const tags = ref<InventoryTag[]>([])
+const tags = ref<TagResponse[]>([])
 const tagNames = ref<string[]>([])
 const fieldDefs = ref<InventoryFieldDefinition[]>([])
-const fieldValues = ref<Record<string, any>>({})
+const fieldValues = ref<Record<string, unknown>>({})
 const containers = ref<InventoryContainer[]>([])
 
 const sortedContainers = computed(() => [...containers.value].sort((a, b) => a.name.localeCompare(b.name)))
@@ -108,7 +111,7 @@ async function reloadFields() {
   const typed = fieldValues.value
   await loadForItem(item)
   const parsed = parseItemMetadata(item.metadata)
-  const values: Record<string, any> = {}
+  const values: Record<string, unknown> = {}
   for (const def of fieldDefs.value) {
     values[def.key] = def.key in typed ? typed[def.key] : parsed.fields[def.key]?.value ?? null
   }
@@ -127,6 +130,10 @@ watch(() => props.item, async (item) => {
   await reloadFields()
 })
 
+/**
+ * Saves the piece. A kind typed into the picker is only written down now, so a form abandoned
+ * instead of saved leaves nothing behind.
+ */
 async function save() {
   if (!props.item) return
   failure.value = null
@@ -134,8 +141,6 @@ async function save() {
     const normalisedInternalId = internalId.value
         ? normaliseScannedPayload(internalId.value)
         : ''
-    // The kind typed into the picker is only written down now, so a form that was abandoned
-    // instead of saved leaves nothing behind.
     const resolvedArt = props.heterogeneous
         ? artDraft.value
             ? await inventoryArts.ensureArt(props.item.inventoryId, arts.value, artDraft.value)
@@ -167,23 +172,23 @@ async function save() {
       <SubHeader>{{ t('inventory.edit.editItem') }}</SubHeader>
       <FailureAlert :failure="failure"/>
       <EditItemFields
-          v-model:itemName="itemName"
-          v-model:internalId="internalId"
-          v-model:sizeId="sizeId"
-          v-model:containerId="containerId"
-          v-model:artId="artId"
-          v-model:artDraft="artDraft"
-          v-model:tagNames="tagNames"
-          :hasSizes="props.hasSizes"
+          v-model:item-name="itemName"
+          v-model:internal-id="internalId"
+          v-model:size-id="sizeId"
+          v-model:container-id="containerId"
+          v-model:art-id="artId"
+          v-model:art-draft="artDraft"
+          v-model:tag-names="tagNames"
+          :has-sizes="props.hasSizes"
           :sizes="props.sizes"
           :containers="sortedContainers"
           :arts="arts"
-          :showArt="props.heterogeneous"
+          :show-art="props.heterogeneous"
           :tags="tags"
       />
-      <EditItemCustomFields :defs="fieldDefs" v-model="fieldValues"/>
+      <EditItemCustomFields v-model="fieldValues" :defs="fieldDefs"/>
       <template v-if="props.item">
-        <hr class="border-(--bg-accent)">
+        <hr class="border-(--bg-accent)"/>
         <InventoryFieldsPanel
             :inventory-id="props.item.inventoryId"
             :item-id="props.item.id"
@@ -191,7 +196,7 @@ async function save() {
         />
       </template>
       <EditItemFooter
-          :saveDisabled="!itemName.trim() || fieldsInvalid"
+          :save-disabled="!itemName.trim() || fieldsInvalid"
           :save="save"
           @cancel="show = false"
       />

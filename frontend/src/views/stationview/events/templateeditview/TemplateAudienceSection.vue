@@ -8,8 +8,8 @@ import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import RestrictionsField from '@/components/input/RestrictionsField.vue'
-import type {RestrictionSelection} from '@/components/input/restriction'
-import type {MemberGroup, UserTag} from '@/api/types'
+import type {RestrictionSelection} from '@/api/types'
+import type {MemberGroup, UserTag} from '@/api/generated/schema'
 
 /**
  * What the appointments written from this template start with: who they are for, and who may know

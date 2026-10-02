@@ -12,17 +12,17 @@ import EmptyState from '@/components/feedback/EmptyState.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import ErrorButton from '@/components/button/ErrorButton.vue'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import type { QuizCategory } from '@/api/quiz'
+import type { QuizCategory } from '@/api/generated/schema'
 import { quiz } from '@/api'
 
-const props = defineProps<{
+defineProps<{
   categories: QuizCategory[]
 }>()
 
@@ -88,7 +88,7 @@ async function updateCategory() {
         {{ t('quiz.categories.create') }}
       </SecondaryButton>
     </div>
-    <EmptyState compact v-if="categories.length === 0">{{ t('quiz.categories.noCategories') }}</EmptyState>
+    <EmptyState v-if="categories.length === 0" compact>{{ t('quiz.categories.noCategories') }}</EmptyState>
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
       <NeutralContainer v-for="category in categories" :key="category.id" class="!p-2">
         <div class="flex items-center gap-2">
@@ -127,14 +127,10 @@ async function updateCategory() {
     </div>
   </Modal>
 
-  <Modal v-model="showDeleteCategoryModal">
-    <div class="space-y-4">
-      <SubHeader>{{ t('common.delete') }}</SubHeader>
-      <p class="text-sm">{{ t('quiz.categories.deleteConfirm') }}</p>
-      <ButtonRow pair align="end">
-        <SecondaryButton @click="showDeleteCategoryModal = false">{{ t('common.cancel') }}</SecondaryButton>
-        <ErrorButton @click="deleteCategory">{{ t('common.delete') }}</ErrorButton>
-      </ButtonRow>
-    </div>
-  </Modal>
+  <ConfirmDeleteModal
+      v-model="showDeleteCategoryModal"
+      :title="t('common.delete')"
+      :message="t('quiz.categories.deleteConfirm')"
+      @confirm="deleteCategory"
+  />
 </template>

@@ -17,7 +17,7 @@ const {t} = useI18n()
   <ErrorContainer class="space-y-3">
     <div class="flex items-center justify-between flex-wrap gap-2">
       <div>
-        <span class="font-medium text-primary">Erste-Hilfe-Kurs</span>
+        <span class="font-medium text-primary">{{ t('helpCenter.sample.events.firstAidCourse') }}</span>
         <MutedText class="ml-2">
           {{ t('eventsRegistrations.deadline') }}: 10.05.2026 12:00
         </MutedText>

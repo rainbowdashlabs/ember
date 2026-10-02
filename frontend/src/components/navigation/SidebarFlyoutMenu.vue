@@ -4,8 +4,10 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {nextTick, onBeforeUnmount, ref, watch} from 'vue'
+import {useEventListener} from '@vueuse/core'
+import {nextTick, ref, watch} from 'vue'
 import {provideSidebarFlyoutContext} from '@/composables/useSidebarFlyoutContext'
+import CountBadge from '@/components/badge/CountBadge.vue'
 
 const props = defineProps<{
   anchor: HTMLElement | null
@@ -101,26 +103,12 @@ function onKeyDown(event: KeyboardEvent) {
   }
 }
 
-watch(() => props.open, (value) => {
-  if (value) {
-    window.addEventListener('resize', onWindowChange)
-    window.addEventListener('scroll', onWindowChange, true)
-    document.addEventListener('mousedown', onDocumentMouseDown)
-    document.addEventListener('keydown', onKeyDown)
-  } else {
-    window.removeEventListener('resize', onWindowChange)
-    window.removeEventListener('scroll', onWindowChange, true)
-    document.removeEventListener('mousedown', onDocumentMouseDown)
-    document.removeEventListener('keydown', onKeyDown)
-  }
-})
-
-onBeforeUnmount(() => {
-  window.removeEventListener('resize', onWindowChange)
-  window.removeEventListener('scroll', onWindowChange, true)
-  document.removeEventListener('mousedown', onDocumentMouseDown)
-  document.removeEventListener('keydown', onKeyDown)
-})
+const openWindow = () => (props.open ? window : null)
+const openDocument = () => (props.open ? document : null)
+useEventListener(openWindow, 'resize', onWindowChange)
+useEventListener(openWindow, 'scroll', onWindowChange, {capture: true})
+useEventListener(openDocument, 'mousedown', onDocumentMouseDown)
+useEventListener(openDocument, 'keydown', onKeyDown)
 
 function onHeaderClick() {
   emit('header-click')
@@ -135,6 +123,7 @@ function onHeaderClick() {
         data-sidebar-flyout
         :style="{left: `${left}px`, top: `${top}px`}"
         class="fixed z-50 px-2"
+        role="presentation"
         @mouseenter="emit('enter')"
         @mouseleave="emit('leave')"
         @focusin="emit('enter')"
@@ -154,10 +143,7 @@ function onHeaderClick() {
         >
           <font-awesome-icon v-if="icon" :icon="icon" class="w-4 shrink-0"/>
           <span class="flex-1 truncate">{{ label }}</span>
-          <span v-if="badge && badge > 0"
-                class="inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full text-xs font-bold bg-error text-error-text">{{
-              badge
-            }}</span>
+          <CountBadge v-if="badge && badge > 0" :count="badge"/>
         </component>
         <div class="flex flex-col gap-0.5 px-1">
           <slot/>

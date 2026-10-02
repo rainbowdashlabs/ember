@@ -17,8 +17,8 @@ import RecordTable from '@/components/table/RecordTable.vue'
 import type {ColumnOption, TableColumn} from '@/components/table/tableColumn'
 import {memberTable as api} from '@/api'
 import {RegistrationStatus} from '@/api/events'
-import type {EventRegistrationEntry} from '@/api/events'
-import type {MemberTable, MemberTableColumn, MemberTableHeader} from '@/api/memberTable'
+import type {MemberTable, MemberTableHeader, RegistrationResponse} from '@/api/generated/schema'
+import type {ColumnChoice} from '@/api/memberTable'
 import {StationPermission} from '@/api/types'
 import {userTypeOptions} from '@/views/stationview/members/listview/memberColumns'
 import {emptyTableState, useDataTable} from '@/composables/useDataTable'
@@ -38,7 +38,7 @@ const props = defineProps<{
   /** The date these sign-ups belong to, because a registration belongs to one. */
   effectiveDate: string | null
   /** Every sign-up for that date, which is where a row's status and its accept button come from. */
-  entries: EventRegistrationEntry[]
+  entries: RegistrationResponse[]
 }>()
 
 /**
@@ -53,7 +53,7 @@ const emit = defineEmits<{
   accept: [registrationId: number]
 }>()
 
-type Row = DrawnRow<EventRegistrationEntry | null>
+type Row = DrawnRow<RegistrationResponse | null>
 
 /**
  * Whether this reader handles the registrations, which guards the whole table.
@@ -90,7 +90,7 @@ const exporting = ref(false)
  * columns to tick: a list of people with the names left off is not a thing anybody wants.
  */
 const columns = computed<TableColumn<Row>[]>(() => offered.value.map(header => {
-  const column = tableColumnOf<EventRegistrationEntry | null>(header, OPTIONS_BY_KEY.value[keyOf(header)])
+  const column = tableColumnOf<RegistrationResponse | null>(header, OPTIONS_BY_KEY.value[keyOf(header)])
   const fixed = column.key === NAME_KEY || column.key === STATUS_KEY
   return fixed ? {...column, pinned: true} : column
 }))
@@ -119,11 +119,11 @@ const table = useDataTable<Row>({
 const day = computed(() => props.effectiveDate ?? new Date().toISOString().slice(0, 10))
 
 /** The shown columns as the server names them, the name and the status first. */
-const drawnColumns = computed<MemberTableColumn[]>(() => [
+const drawnColumns = computed<ColumnChoice[]>(() => [
   NAME_KEY,
   STATUS_KEY,
   ...table.visibleColumns.map(column => column.key).filter(key => key !== NAME_KEY && key !== STATUS_KEY),
-].map(columnOf).filter((column): column is MemberTableColumn => column !== null))
+].map(columnOf).filter((column): column is ColumnChoice => column !== null))
 
 /** What may go on the table, asked for once, from the station holding the appointment. */
 async function loadOffered() {

@@ -7,8 +7,7 @@
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import type { InventoryItem, RequiredInventoryItem } from '@/api/inventory'
-import type { CheckResult, MemberCheckState } from '@/api/inventoryCheck'
+import type { CheckResult, InventoryItem, MemberCheckState, MovementStanding, RequiredInventoryItem } from '@/api/generated/schema'
 import CheckMemberHeader from './CheckMemberHeader.vue'
 import CheckMemberSubmitBar from './CheckMemberSubmitBar.vue'
 import RapidCheckMode from './RapidCheckMode.vue'
@@ -38,8 +37,8 @@ defineProps<{
   emptySlotCount: (req: RequiredInventoryItem) => number
   sizeLabel: (req: RequiredInventoryItem, sizeId?: number | null) => string
   itemLabel: (item: InventoryItem, req: RequiredInventoryItem) => string
-  /** The step a piece is standing on when something is already running on it, null otherwise. */
-  movementStep: (itemId: number) => string | null
+  /** Where the movement already running on a piece stands, null when nothing runs on it. */
+  movementOf: (itemId: number) => MovementStanding | null
 }>()
 
 defineEmits<{
@@ -105,7 +104,7 @@ defineExpose({ getCurrentRapidEntry })
     :item-label="itemLabel"
     :size-label="sizeLabel"
     :item-notes="itemNotes"
-    :movement-step="movementStep"
+    :movement-of="movementOf"
     @set-result="(r) => $emit('rapidSetResult', r)"
     @set-note="(id, n) => $emit('setNote', id, n)"
     @exchange="entry => $emit('rapidExchange', entry)"

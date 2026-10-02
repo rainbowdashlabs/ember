@@ -15,12 +15,13 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
 import {fromMember, userTypesOf} from '@/components/input/select/memberOption'
-import {StationUserType, type StationMember} from '@/api/types'
+import {StationUserType} from '@/api/types'
+import type {MemberWithName} from '@/api/generated/schema'
 
 const {t} = useI18n()
 
 const props = defineProps<{
-  members: StationMember[]
+  members: MemberWithName[]
   selectedIds: Set<number>
   createdManagers: Array<{ id: number; memberId: number; firstName: string; lastName: string; email: string }>
   saving: boolean

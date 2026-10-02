@@ -13,8 +13,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import IntakeMemberHeader from './IntakeMemberHeader.vue'
 import IntakeTableRow from './IntakeTableRow.vue'
 import {compareSortValues, type SortDirection} from '@/composables/useSortable'
-import type {InventorySize} from '@/api/inventory'
-import type {InventoryFieldDefinition} from '@/api/inventoryFields'
+import type {InventoryFieldDefinition, InventorySize} from '@/api/generated/schema'
 import type {IntakeLine} from './intakeLines'
 
 /**
@@ -98,7 +97,7 @@ function update(index: number, line: IntakeLine) {
             <th v-if="props.hasSizes" class="py-1 pr-3 font-medium">{{ t('inventory.intake.size') }}</th>
             <th class="py-1 pr-3 font-medium">{{ t('inventory.intake.number') }}</th>
             <th v-for="field in props.fields" :key="field.id" class="py-1 pr-3 font-medium">{{ field.label }}</th>
-            <th class="py-1"></th>
+            <th class="py-1"/>
           </tr>
         </thead>
         <tbody>

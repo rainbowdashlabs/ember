@@ -8,7 +8,9 @@ import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SearchInput from '@/components/input/text/SearchInput.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import {KbAccessLevel, levelCovers, type KbFolderTreeEntry} from '@/api/knowledgeBase'
+import BareButton from '@/components/button/BareButton.vue'
+import {KbAccessLevel, levelCovers} from '@/api/knowledgeBase'
+import type {FolderTreeEntry} from '@/api/generated/schema'
 
 /**
  * Picks a folder anywhere in the station's wiki, the tree root included.
@@ -22,7 +24,7 @@ import {KbAccessLevel, levelCovers, type KbFolderTreeEntry} from '@/api/knowledg
  * the tree lie about its own shape, and the server refuses them anyway.
  */
 const props = defineProps<{
-    folders: KbFolderTreeEntry[]
+    folders: FolderTreeEntry[]
     /** The folder being moved and everything under it, which cannot receive themselves. */
     excludeIds?: number[]
 }>()
@@ -33,12 +35,12 @@ const {t} = useI18n()
 
 const query = ref('')
 
-interface Row extends KbFolderTreeEntry {
+interface Row extends FolderTreeEntry {
     depth: number
 }
 
 const rows = computed<Row[]>(() => {
-    const byParent = new Map<number | null, KbFolderTreeEntry[]>()
+    const byParent = new Map<number | null, FolderTreeEntry[]>()
     for (const folder of props.folders) {
         const siblings = byParent.get(folder.parentId ?? null) ?? []
         siblings.push(folder)
@@ -64,7 +66,7 @@ const visibleRows = computed(() => {
     const byId = new Map(props.folders.map(folder => [folder.id, folder]))
     for (const folder of props.folders) {
         if (!folder.name.toLowerCase().includes(term)) continue
-        let current: KbFolderTreeEntry | undefined = folder
+        let current: FolderTreeEntry | undefined = folder
         while (current && !matched.has(current.id)) {
             matched.add(current.id)
             current = current.parentId != null ? byId.get(current.parentId) : undefined
@@ -89,8 +91,7 @@ function pick(row: Row) {
         <SearchInput v-if="rows.length > 8" v-model="query" :placeholder="t('kb.movePickerSearch')"/>
 
         <div class="max-h-64 overflow-y-auto rounded-theme border border-(--border)" data-testid="kb-folder-picker">
-            <button
-                type="button"
+            <BareButton
                 class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm hover:bg-(--bg-accent)"
                 :class="model === null ? 'bg-(--bg-accent) font-medium' : ''"
                 data-testid="kb-folder-picker-root"
@@ -98,12 +99,11 @@ function pick(row: Row) {
             >
                 <font-awesome-icon :icon="['fas', 'house']" class="text-xs text-(--accent)"/>
                 {{ t('kb.root') }}
-            </button>
+            </BareButton>
 
-            <button
+            <BareButton
                 v-for="row in visibleRows"
                 :key="row.id"
-                type="button"
                 class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm"
                 :class="[
                     model === row.id ? 'bg-(--bg-accent) font-medium' : '',
@@ -116,7 +116,7 @@ function pick(row: Row) {
             >
                 <font-awesome-icon :icon="['fas', 'folder']" class="text-xs text-(--accent)"/>
                 <span class="truncate">{{ row.name }}</span>
-            </button>
+            </BareButton>
 
             <MutedText v-if="visibleRows.length === 0" tag="p" size="sm" class="px-3 py-2">
                 {{ t('kb.moveNoFolders') }}

@@ -6,10 +6,15 @@
 <script lang="ts" setup>
 import {computed, onMounted, ref} from 'vue'
 import {useSession} from '@/composables/useSession'
-import type {StationPermissionName} from '@/api/types'
+import type {StationPermission} from '@/api/generated/schema'
+import BareButton from '@/components/button/BareButton.vue'
 
+/**
+ * Help content meant for holders of certain permissions. A signed-in reader sees it only when they
+ * hold one of them; a reader who is not signed in gets it behind a toggle, so all of it can be explored.
+ */
 const props = defineProps<{
-  permissions: StationPermissionName[]
+  permissions: StationPermission[]
   label: string
 }>()
 
@@ -30,15 +35,13 @@ const hasPermission = computed(() => {
 </script>
 
 <template>
-  <!-- Authenticated: show only if user has the required permission -->
   <template v-if="isAuthenticated">
     <slot v-if="hasPermission"/>
   </template>
 
-  <!-- Unauthenticated: collapsible toggle so the reader can explore all content -->
   <template v-else>
     <div class="rounded-lg border border-[var(--border)] overflow-hidden">
-      <button
+      <BareButton
           class="w-full flex items-center justify-between gap-2 px-4 py-2.5 text-sm font-medium
                  bg-[var(--bg-accent)] text-[var(--text)] hover:bg-primary/10 transition-colors"
           @click="expanded = !expanded"
@@ -51,7 +54,7 @@ const hasPermission = computed(() => {
             :icon="['fas', expanded ? 'chevron-up' : 'chevron-down']"
             class="w-3 h-3 text-[var(--text-muted)]"
         />
-      </button>
+      </BareButton>
       <div v-if="expanded" class="px-4 py-3 space-y-4">
         <slot/>
       </div>

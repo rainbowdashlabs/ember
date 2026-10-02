@@ -6,35 +6,36 @@
 package dev.chojo.ember.feature.events.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.feature.content.entity.BlockAudience;
 import dev.chojo.ember.feature.events.entity.BatchFieldEntry;
 import dev.chojo.ember.feature.events.entity.BatchRequest;
 import dev.chojo.ember.feature.events.entity.BatchRow;
 import dev.chojo.ember.feature.events.entity.DatedEvent;
-import dev.chojo.ember.feature.events.entity.EventFieldConfig;
-import dev.chojo.ember.feature.events.entity.EventFieldType;
+import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.EventRegistrationOpening;
 import dev.chojo.ember.feature.events.entity.EventSummary;
 import dev.chojo.ember.feature.events.entity.IntervalConfig;
 import dev.chojo.ember.feature.events.entity.IntervalType;
+import dev.chojo.ember.feature.events.entity.PickerEvent;
+import dev.chojo.ember.feature.events.entity.PickerMode;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.entity.UpcomingEventOccurrence;
-import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.events.service.BatchEventService;
 import dev.chojo.ember.feature.events.service.EventCrudService;
-import dev.chojo.ember.feature.events.service.EventDateResolver;
 import dev.chojo.ember.feature.events.service.EventExportService;
 import dev.chojo.ember.feature.events.service.EventFieldRegistrationService;
 import dev.chojo.ember.feature.events.service.EventOccurrenceService;
-import dev.chojo.ember.feature.events.service.EventRegistrationFieldService;
 import dev.chojo.ember.feature.events.service.EventReminderService;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
+import dev.chojo.ember.feature.events.service.EventTemplateService;
+import dev.chojo.ember.feature.events.service.OccurrenceCalendar;
 import dev.chojo.ember.feature.members.entity.NameParts;
-import dev.chojo.ember.feature.members.service.StationMemberService;
+import dev.chojo.ember.feature.members.service.GuardianPolicy;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import io.javalin.http.Context;
@@ -48,6 +49,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -57,13 +59,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
-import static dev.chojo.ember.feature.events.route.EventOwnership.requireOwnedEvent;
+import static dev.chojo.ember.feature.events.service.EventOwnership.requireOwnedEvent;
 
 /**
  * Local routes for the event entity itself: the station-wide listings, create/read/update/delete,
- * cancellation, restrictions, reminders, batch creation and the PDF export. Participation lives in
+ * restrictions, reminders, batch creation and the PDF export. Calling off lives in
+ * {@link EventCancellationRoutes}, participation in
  * {@link EventRegistrationRoutes}, the categories, breaks and fields an event is described by in
  * {@link EventStructureRoutes}.
  *
@@ -80,11 +84,11 @@ public class EventRoutes implements Routes {
     private final EventRestrictionService restrictionService;
     private final EventReminderService reminderService;
     private final BatchEventService batchEventService;
-    private final StationMemberService stationMemberService;
+    private final GuardianPolicy guardianPolicy;
     private final EventExportService eventExportService;
-    private final EventRegistrationFieldService registrationFieldService;
+    private final EventTemplateService templateService;
     private final EventFieldRegistrationService fieldRegistrationService;
-    private final EventDateResolver dateResolver;
+    private final OccurrenceCalendar occurrenceCalendar;
     private final EventVisibility visibility;
 
     @Inject
@@ -94,13 +98,13 @@ public class EventRoutes implements Routes {
             EventRestrictionService restrictionService,
             EventReminderService reminderService,
             BatchEventService batchEventService,
-            StationMemberService stationMemberService,
+            GuardianPolicy guardianPolicy,
             EventExportService eventExportService,
-            EventRegistrationFieldService registrationFieldService,
+            EventTemplateService templateService,
             EventFieldRegistrationService fieldRegistrationService,
-            EventDateResolver dateResolver,
+            OccurrenceCalendar occurrenceCalendar,
             EventVisibility visibility) {
-        this.dateResolver = dateResolver;
+        this.occurrenceCalendar = occurrenceCalendar;
         this.visibility = visibility;
         this.crudService = crudService;
         this.fieldRegistrationService = fieldRegistrationService;
@@ -108,9 +112,9 @@ public class EventRoutes implements Routes {
         this.restrictionService = restrictionService;
         this.reminderService = reminderService;
         this.batchEventService = batchEventService;
-        this.stationMemberService = stationMemberService;
+        this.guardianPolicy = guardianPolicy;
         this.eventExportService = eventExportService;
-        this.registrationFieldService = registrationFieldService;
+        this.templateService = templateService;
     }
 
     @Override
@@ -136,8 +140,6 @@ public class EventRoutes implements Routes {
         routes.post(prefix + "/events/batch", this::batchCreate, StationPermission.EVENT_EDIT);
         routes.post(prefix + "/events/batch/generate-dates", this::generateDates, StationPermission.EVENT_EDIT);
 
-        routes.post(prefix + "/events/{id}/cancel", this::cancelEvent, StationPermission.EVENT_EDIT);
-
         routes.get(prefix + "/events/{id}", this::get, StationPermission.USER);
         routes.get(prefix + "/events/{id}/next-date", this::getNextDate, StationPermission.USER);
         routes.put(prefix + "/events/{id}", this::update, StationPermission.EVENT_EDIT);
@@ -162,9 +164,9 @@ public class EventRoutes implements Routes {
                         type = Boolean.class,
                         description = "Filter by registration requirement")
             },
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = StationEvent[].class)))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventSummary[].class)))
     private void list(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var filter = parseCategoryFilter(ctx);
         List<Integer> memberIds = resolveVisibleMemberIds(session);
         var events = crudService.findFilteredForMembers(
@@ -193,8 +195,14 @@ public class EventRoutes implements Routes {
      * kept to nobody in particular, internal ones included. Nothing here reaches beyond what every
      * member sees, so the scope needs no right of its own.
      */
+    @OpenApi(
+            path = "/api/v1/events/search",
+            methods = HttpMethod.GET,
+            summary = "Search the events a content block may name",
+            tags = {"Events"},
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = PickerEvent[].class)))
     private void searchPicker(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         String q = ctx.queryParam("q");
         var mode = parsePickerMode(ctx.queryParam("mode"));
         int requested = ctx.queryParamAsClass("limit", Integer.class).getOrDefault(10);
@@ -207,12 +215,12 @@ public class EventRoutes implements Routes {
      * Reads the picker's time-window filter, falling back to upcoming events when the parameter
      * is absent or names no known mode.
      */
-    private EventRepository.PickerMode parsePickerMode(String modeParam) {
-        if (modeParam == null) return EventRepository.PickerMode.FUTURE;
+    private PickerMode parsePickerMode(@Nullable String modeParam) {
+        if (modeParam == null) return PickerMode.FUTURE;
         try {
-            return EventRepository.PickerMode.valueOf(modeParam.toUpperCase());
+            return PickerMode.valueOf(modeParam.toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException e) {
-            return EventRepository.PickerMode.FUTURE;
+            return PickerMode.FUTURE;
         }
     }
 
@@ -221,9 +229,9 @@ public class EventRoutes implements Routes {
             methods = HttpMethod.GET,
             summary = "List today's events",
             tags = {"Events"},
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = StationEvent[].class)))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventSummary[].class)))
     private void listToday(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(occurrenceService.findTodayEvents(session.stationId()).stream()
                 .map(EventSummary::of)
                 .toList());
@@ -254,7 +262,7 @@ public class EventRoutes implements Routes {
             responses =
                     @OpenApiResponse(status = "200", content = @OpenApiContent(from = UpcomingEventOccurrence[].class)))
     private void listUpcoming(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(occurrenceService.findUpcomingOccurrences(
                 session.stationId(), resolveVisibleMemberIds(session), parseOccurrenceQuery(ctx)));
     }
@@ -284,7 +292,7 @@ public class EventRoutes implements Routes {
             responses =
                     @OpenApiResponse(status = "200", content = @OpenApiContent(from = UpcomingEventOccurrence[].class)))
     private void listPast(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(occurrenceService.findPastOccurrences(
                 session.stationId(), resolveVisibleMemberIds(session), parseOccurrenceQuery(ctx)));
     }
@@ -314,7 +322,7 @@ public class EventRoutes implements Routes {
             },
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = DatedEvent[].class)))
     private void listPaged(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var query = new EventOccurrenceService.EventPageQuery(
                 parseState(ctx.queryParam("state")), parseKind(ctx.queryParam("kind")), parseOccurrenceQuery(ctx));
         ctx.json(occurrenceService.findEventsPage(session.stationId(), resolveVisibleMemberIds(session), query));
@@ -334,12 +342,12 @@ public class EventRoutes implements Routes {
     }
 
     /** An optional date bound, absent where the parameter was not sent or was sent empty. */
-    private static LocalDate parseDate(String value) {
+    private static @Nullable LocalDate parseDate(@Nullable String value) {
         if (value == null || value.isBlank()) return null;
         try {
             return LocalDate.parse(value);
         } catch (DateTimeParseException e) {
-            throw Refusal.EVENT_LIST_BOUNDS_NOT_DATES.raise();
+            throw EventRefusal.EVENT_LIST_BOUNDS_NOT_DATES.raise();
         }
     }
 
@@ -347,7 +355,7 @@ public class EventRoutes implements Routes {
      * Reads which half of the appointments a page asks for, falling back to the ones still to come
      * where the parameter is absent or names no known state.
      */
-    private static EventOccurrenceService.EventState parseState(String value) {
+    private static EventOccurrenceService.EventState parseState(@Nullable String value) {
         if (value == null) return EventOccurrenceService.EventState.CURRENT;
         try {
             return EventOccurrenceService.EventState.valueOf(value.toUpperCase(Locale.ROOT));
@@ -360,7 +368,7 @@ public class EventRoutes implements Routes {
      * Reads which kind of appointment a page asks for, answering null for both of them where the
      * parameter is absent or names no known kind.
      */
-    private static EventOccurrenceService.EventKind parseKind(String value) {
+    private static EventOccurrenceService.@Nullable EventKind parseKind(@Nullable String value) {
         if (value == null) return null;
         try {
             return EventOccurrenceService.EventKind.valueOf(value.toUpperCase(Locale.ROOT));
@@ -380,9 +388,12 @@ public class EventRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void create(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(EventRequest.class);
         validate(req);
+        Integer eventTemplateId = req.eventTemplateId();
+        var template =
+                eventTemplateId == null ? null : templateService.requireOwn(session.stationId(), eventTemplateId);
         var eventType = req.eventType();
         var event = crudService.createWithoutEvent(
                 session.stationId(),
@@ -393,18 +404,16 @@ public class EventRoutes implements Routes {
                 req.startTime(),
                 req.endTime(),
                 req.templateId(),
-                req.requiresRegistration() != null && req.requiresRegistration(),
+                Boolean.TRUE.equals(req.requiresRegistration()),
                 req.registrationDeadline(),
-                req.requiresConfirmation() != null && req.requiresConfirmation(),
+                Boolean.TRUE.equals(req.requiresConfirmation()),
                 req.categoryId(),
                 req.registrationLimit(),
                 req.minRegistrations(),
-                req.thresholdDate(),
+                req.thresholdDays(),
                 req.registrationCloseDays());
         applyAudiences(event.id(), req);
-        if (req.templateId() != null) {
-            registrationFieldService.copyTemplateFields(req.templateId(), event.id());
-        }
+        if (template != null) templateService.copyInto(template, event.id());
         var withEnd = crudService
                 .setRepeatEnd(event.id(), req.repeatUntil(), req.repeatCount())
                 .orElse(event);
@@ -424,7 +433,7 @@ public class EventRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void get(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         ctx.json(visibility.requireVisibleEvent(session, id));
     }
@@ -449,10 +458,10 @@ public class EventRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void getNextDate(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         var event = visibility.requireVisibleEvent(session, id);
-        ctx.json(new NextDate(dateResolver.nextDate(event).orElse(null)));
+        ctx.json(new NextDate(occurrenceCalendar.dateInView(event).orElse(null)));
     }
 
     @OpenApi(
@@ -467,7 +476,7 @@ public class EventRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void update(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         requireOwnedEvent(crudService, id, session);
         var req = ctx.bodyAsClass(EventRequest.class);
@@ -483,14 +492,14 @@ public class EventRoutes implements Routes {
                         req.startTime(),
                         req.endTime(),
                         req.templateId(),
-                        req.requiresRegistration() != null && req.requiresRegistration(),
+                        Boolean.TRUE.equals(req.requiresRegistration()),
                         req.registrationDeadline(),
-                        req.requiresConfirmation() != null && req.requiresConfirmation(),
+                        Boolean.TRUE.equals(req.requiresConfirmation()),
                         req.categoryId(),
                         req.isPublic(),
                         req.registrationLimit(),
                         req.minRegistrations(),
-                        req.thresholdDate(),
+                        req.thresholdDays(),
                         req.registrationCloseDays())
                 .ifPresentOrElse(
                         event -> {
@@ -502,7 +511,7 @@ public class EventRoutes implements Routes {
                             ctx.json(saved);
                         },
                         () -> {
-                            throw Refusal.EVENT_NOT_HERE_ON_CHANGE.raise();
+                            throw EventRefusal.EVENT_NOT_HERE_ON_CHANGE.raise();
                         });
     }
 
@@ -517,34 +526,18 @@ public class EventRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void delete(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         requireOwnedEvent(crudService, id, session);
         if (crudService.delete(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
-            throw Refusal.EVENT_NOT_HERE_ON_DELETE.raise();
+            throw EventRefusal.EVENT_NOT_HERE_ON_DELETE.raise();
         }
     }
 
-    private void cancelEvent(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        int id = pathInt(ctx, "id");
-        var req = ctx.bodyAsClass(CancelEventRequest.class);
-        if (!crudService.cancelEvent(session.stationId(), id, req.reason())) {
-            throw Refusal.EVENT_NOT_HERE_ON_CANCELLATION.raise();
-        }
-        ctx.status(HttpStatus.NO_CONTENT);
-    }
-
-    private List<Integer> resolveVisibleMemberIds(UserSession session) {
-        if (session.hasPermission(StationPermission.EVENT_MANAGER)) {
-            return null;
-        }
-        if (session.member() == null) {
-            return List.of(-1);
-        }
-        return stationMemberService.findSpokenForIds(session);
+    private @Nullable List<Integer> resolveVisibleMemberIds(StationSession session) {
+        return EventVisibility.memberIdsSeenBy(session, guardianPolicy);
     }
 
     /**
@@ -556,23 +549,24 @@ public class EventRoutes implements Routes {
      * case in which the caller has an opinion about it.
      */
     private void applyAudiences(int eventId, EventRequest req) {
-        var register = req.restriction() != null ? req.restriction() : RestrictionSelection.empty();
-        restrictionService.setRestrictions(eventId, register);
-        if (req.restriction() != null) {
-            restrictionService.updateRestrictionMode(eventId, register.mode());
+        RestrictionSelection restriction = req.restriction();
+        restrictionService.setRestrictions(eventId, restriction != null ? restriction : RestrictionSelection.empty());
+        if (restriction != null) {
+            restrictionService.updateRestrictionMode(eventId, restriction.mode());
         }
 
-        var view = req.viewRestriction() != null ? req.viewRestriction() : RestrictionSelection.empty();
-        restrictionService.setViewRestrictions(eventId, view);
-        if (req.viewRestriction() != null) {
-            restrictionService.updateViewRestrictionMode(eventId, view.mode());
+        RestrictionSelection viewRestriction = req.viewRestriction();
+        restrictionService.setViewRestrictions(
+                eventId, viewRestriction != null ? viewRestriction : RestrictionSelection.empty());
+        if (viewRestriction != null) {
+            restrictionService.updateViewRestrictionMode(eventId, viewRestriction.mode());
         }
     }
 
     private void validate(EventRequest req) {
-        if (req.name() == null || req.name().isBlank()) throw Refusal.EVENT_NEEDS_A_NAME.raise();
-        if (req.startTime() == null || req.endTime() == null) throw Refusal.EVENT_NEEDS_A_TIME.raise();
-        if (req.eventType() == null) throw Refusal.EVENT_NEEDS_A_KIND.raise();
+        if (req.name() == null || req.name().isBlank()) throw EventRefusal.EVENT_NEEDS_A_NAME.raise();
+        if (req.startTime() == null || req.endTime() == null) throw EventRefusal.EVENT_NEEDS_A_TIME.raise();
+        if (req.eventType() == null) throw EventRefusal.EVENT_NEEDS_A_KIND.raise();
     }
 
     /**
@@ -589,15 +583,11 @@ public class EventRoutes implements Routes {
                             status = "200",
                             content = @OpenApiContent(from = EventRegistrationOpening[].class)))
     private void listEligibleMembers(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        if (session.member() == null) {
-            ctx.json(List.of());
-            return;
-        }
+        StationSession session = StationSession.from(ctx);
         ctx.json(restrictionService.registrationOpenings(
                 crudService.findByStation(session.stationId()),
-                stationMemberService.findSpokenForIds(session),
-                session.permissions()));
+                guardianPolicy.household(session.user()),
+                session.user().permissions()));
     }
 
     @OpenApi(
@@ -608,7 +598,7 @@ public class EventRoutes implements Routes {
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventRestrictions.class)))
     private void getRestrictions(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         visibility.requireVisibleEvent(session, id);
         ctx.json(audiencesOf(id));
@@ -630,7 +620,7 @@ public class EventRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = EventRestrictions.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventRestrictions.class)))
     private void setRestrictions(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         requireOwnedEvent(crudService, id, session);
         var req = ctx.bodyAsClass(EventRestrictions.class);
@@ -657,7 +647,7 @@ public class EventRoutes implements Routes {
             tags = {"Events"},
             responses = @OpenApiResponse(status = "200"))
     private void listAllRestrictions(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var events = crudService.findByStation(session.stationId());
         var restrictionsMap = new HashMap<Integer, EventRestrictions>();
         for (var event : events) {
@@ -672,15 +662,28 @@ public class EventRoutes implements Routes {
         ctx.json(restrictionsMap);
     }
 
+    @OpenApi(
+            path = "/api/v1/events/{id}/reminders",
+            methods = HttpMethod.GET,
+            summary = "List the days before an event its reminders go out",
+            tags = {"Events"},
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Integer[].class)))
     private void getReminders(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         visibility.requireVisibleEvent(session, id);
         ctx.json(reminderService.findDays(id));
     }
 
+    @OpenApi(
+            path = "/api/v1/events/{id}/reminders",
+            methods = HttpMethod.PUT,
+            summary = "Replace the days before an event its reminders go out",
+            tags = {"Events"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SetRemindersRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Integer[].class)))
     private void setReminders(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         requireOwnedEvent(crudService, id, session);
         var req = ctx.bodyAsClass(SetRemindersRequest.class);
@@ -688,40 +691,53 @@ public class EventRoutes implements Routes {
         ctx.json(reminderService.findDays(id));
     }
 
+    @OpenApi(
+            path = "/api/v1/events/batch/generate-dates",
+            methods = HttpMethod.POST,
+            summary = "Work out the dates of a batch of events",
+            tags = {"Events"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = GenerateDatesRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BatchRow[].class)))
     private void generateDates(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(GenerateDatesRequest.class);
         var interval = new IntervalConfig(
                 req.intervalType(),
-                req.dayOfWeek() != null ? req.dayOfWeek() : 1,
+                Objects.requireNonNullElse(req.dayOfWeek(), 1),
                 LocalDate.parse(req.startDate()),
                 LocalDate.parse(req.endDate()),
                 req.startTime() != null ? LocalTime.parse(req.startTime()) : null,
                 req.endTime() != null ? LocalTime.parse(req.endTime()) : null);
-        var rows = batchEventService.generateDates(
-                session.stationId(), interval, req.ignoreBreaks() != null && req.ignoreBreaks());
+        var rows =
+                batchEventService.generateDates(session.stationId(), interval, Boolean.TRUE.equals(req.ignoreBreaks()));
         ctx.json(rows);
     }
 
+    @OpenApi(
+            path = "/api/v1/events/batch",
+            methods = HttpMethod.POST,
+            summary = "Create a batch of events",
+            tags = {"Events"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = BatchCreateRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = StationEvent[].class)))
     private void batchCreate(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(BatchCreateRequest.class);
         if (req.rows() == null || req.rows().isEmpty()) {
-            throw Refusal.BATCH_NEEDS_ROWS.raise();
+            throw EventRefusal.BATCH_NEEDS_ROWS.raise();
         }
-        List<BatchFieldEntry> inlineFields = req.inlineFields() != null
-                ? req.inlineFields().stream()
-                        .map(f -> new BatchFieldEntry(
-                                f.name(),
-                                f.fieldType() != null ? f.fieldType() : EventFieldType.STRING,
-                                f.config() != null ? f.config() : EventFieldConfig.parse("{}"),
-                                f.overview() != null && f.overview(),
-                                f.attendanceFieldId()))
+        var requestedInlineFields = req.inlineFields();
+        List<BatchFieldEntry> inlineFields = requestedInlineFields != null
+                ? requestedInlineFields.stream()
+                        .map(BatchFieldEntryDto::toEntry)
                         .toList()
                 : null;
         var batchRows = req.rows().stream()
                 .map(r -> new BatchRow(
-                        r.name(), r.startTime(), r.endTime(), r.fieldValues() != null ? r.fieldValues() : Map.of()))
+                        r.name(),
+                        r.startTime(),
+                        r.endTime(),
+                        Objects.requireNonNullElse(r.fieldValues(), Map.<String, String>of())))
                 .toList();
         var batchReq = new BatchRequest(
                 req.name(),
@@ -733,8 +749,8 @@ public class EventRoutes implements Routes {
                 req.requiresRegistration(),
                 req.requiresConfirmation(),
                 req.registrationDeadline(),
-                req.restriction() != null ? req.restriction() : RestrictionSelection.empty(),
-                req.viewRestriction() != null ? req.viewRestriction() : RestrictionSelection.empty());
+                Objects.requireNonNullElse(req.restriction(), RestrictionSelection.empty()),
+                Objects.requireNonNullElse(req.viewRestriction(), RestrictionSelection.empty()));
         var created = batchEventService.createBatch(session.stationId(), batchReq);
         ctx.json(created);
     }
@@ -747,9 +763,9 @@ public class EventRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = EventExportRequest.class)),
             responses = @OpenApiResponse(status = "200"))
     private void exportPdf(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(EventExportRequest.class);
-        String generatedBy = NameParts.of(session.account()).official();
+        String generatedBy = NameParts.of(session.user().account()).official();
         var columns = req.columns() != null
                 ? req.columns().stream()
                         .map(c -> new EventExportService.ExportColumn(
@@ -764,43 +780,53 @@ public class EventRoutes implements Routes {
                 LocalDate.parse(req.to()),
                 generatedBy);
         if (pdf.isEmpty()) {
-            throw Refusal.EVENT_LIST_NOT_DRAWN.raise();
+            throw EventRefusal.EVENT_LIST_NOT_DRAWN.raise();
         }
         ctx.contentType("application/pdf");
         ctx.header("Content-Disposition", pdf.get().contentDisposition());
         ctx.result(pdf.get().bytes());
     }
 
+    /**
+     * An appointment as the editor writes it.
+     *
+     * <p>Two templates can stand behind one appointment and they are not the same thing: the
+     * attendance sheet it is taken on, which it keeps, and the appointment template it was made from,
+     * which it only copies its registration questions from when it is created.
+     *
+     * @param templateId      the attendance sheet the appointment is taken on
+     * @param eventTemplateId the appointment template it is made from, read only when it is created;
+     *                        it has to be one of the station's own
+     */
     public record EventRequest(
             String name,
-            String description,
+            @Nullable String description,
             StationEvent.EventType eventType,
-            Integer dayOfWeek,
+            @Nullable Integer dayOfWeek,
             Instant startTime,
             Instant endTime,
-            Integer templateId,
-            Boolean requiresRegistration,
-            Instant registrationDeadline,
-            Boolean requiresConfirmation,
-            Integer categoryId,
-            RestrictionSelection restriction,
-            RestrictionSelection viewRestriction,
-            Boolean isPublic,
-            Integer registrationLimit,
-            Integer minRegistrations,
-            Instant thresholdDate,
-            Integer registrationCloseDays,
-            LocalDate repeatUntil,
-            Integer repeatCount) {}
-
-    public record CancelEventRequest(String reason) {}
+            @Nullable Integer templateId,
+            @Nullable Integer eventTemplateId,
+            @Nullable Boolean requiresRegistration,
+            @Nullable Instant registrationDeadline,
+            @Nullable Boolean requiresConfirmation,
+            @Nullable Integer categoryId,
+            @Nullable RestrictionSelection restriction,
+            @Nullable RestrictionSelection viewRestriction,
+            @Nullable Boolean isPublic,
+            @Nullable Integer registrationLimit,
+            @Nullable Integer minRegistrations,
+            @Nullable Integer thresholdDays,
+            @Nullable Integer registrationCloseDays,
+            @Nullable LocalDate repeatUntil,
+            @Nullable Integer repeatCount) {}
 
     /**
      * The next day an appointment falls on, or nothing for one that has no date at all.
      *
      * @param date the day, named the way the station's own clock names it
      */
-    public record NextDate(LocalDate date) {}
+    public record NextDate(@Nullable LocalDate date) {}
 
     /**
      * Both audiences of an event, as the editor reads and writes them in one go.
@@ -819,37 +845,54 @@ public class EventRoutes implements Routes {
 
     public record GenerateDatesRequest(
             IntervalType intervalType,
-            Integer dayOfWeek,
+            @Nullable Integer dayOfWeek,
             String startDate,
             String endDate,
-            String startTime,
-            String endTime,
-            Boolean ignoreBreaks) {}
+            @Nullable String startTime,
+            @Nullable String endTime,
+            @Nullable Boolean ignoreBreaks) {}
 
     public record BatchCreateRequest(
-            String name,
-            String description,
-            Integer templateId,
-            Integer categoryId,
-            List<BatchFieldEntryDto> inlineFields,
+            @Nullable String name,
+            @Nullable String description,
+            @Nullable Integer templateId,
+            @Nullable Integer categoryId,
+            @Nullable List<BatchFieldEntryDto> inlineFields,
             List<BatchRowEntry> rows,
-            Boolean requiresRegistration,
-            Boolean requiresConfirmation,
-            Instant registrationDeadline,
-            RestrictionSelection restriction,
-            RestrictionSelection viewRestriction) {}
+            @Nullable Boolean requiresRegistration,
+            @Nullable Boolean requiresConfirmation,
+            @Nullable Instant registrationDeadline,
+            @Nullable RestrictionSelection restriction,
+            @Nullable RestrictionSelection viewRestriction) {}
 
     public record BatchFieldEntryDto(
             String name,
-            EventFieldType fieldType,
-            EventFieldConfig config,
-            Boolean overview,
-            Integer attendanceFieldId) {}
+            @Nullable FieldType fieldType,
+            @Nullable EventQuestionSettings config,
+            @Nullable Boolean overview,
+            @Nullable Integer attendanceFieldId) {
 
-    public record BatchRowEntry(String name, Instant startTime, Instant endTime, Map<String, String> fieldValues) {}
+        /** The field as every appointment of the batch asks it; what is left out reads as a plain line. */
+        BatchFieldEntry toEntry() {
+            return new BatchFieldEntry(
+                    name,
+                    Objects.requireNonNullElse(fieldType, FieldType.TEXT),
+                    Objects.requireNonNullElse(config, EventQuestionSettings.empty())
+                            .organisers(),
+                    Boolean.TRUE.equals(overview),
+                    attendanceFieldId);
+        }
+    }
+
+    public record BatchRowEntry(
+            @Nullable String name,
+            Instant startTime,
+            Instant endTime,
+            @Nullable Map<String, String> fieldValues) {}
 
     /**
      * The optional category and registration-requirement filters shared by the event listings.
      */
-    private record CategoryFilter(Integer categoryId, Boolean requiresRegistration) {}
+    private record CategoryFilter(
+            @Nullable Integer categoryId, @Nullable Boolean requiresRegistration) {}
 }

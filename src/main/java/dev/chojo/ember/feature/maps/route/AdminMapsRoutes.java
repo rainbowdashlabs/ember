@@ -5,10 +5,10 @@
  */
 package dev.chojo.ember.feature.maps.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.auth.InstancePermission;
 import dev.chojo.ember.api.auth.StepUpCategory;
+import dev.chojo.ember.api.refusal.MapRefusal;
 import dev.chojo.ember.feature.maps.entity.GeocodingProvider;
 import dev.chojo.ember.feature.maps.entity.MapTileProvider;
 import dev.chojo.ember.feature.maps.entity.MapsGeocodingConfig;
@@ -16,9 +16,15 @@ import dev.chojo.ember.feature.maps.entity.MapsTilesConfig;
 import dev.chojo.ember.feature.maps.service.MapTileCacheService;
 import dev.chojo.ember.feature.maps.service.MapsConfigService;
 import io.javalin.http.Context;
+import io.javalin.openapi.HttpMethod;
+import io.javalin.openapi.OpenApi;
+import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiRequestBody;
+import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Admin-only routes for the maps feature: read/write the full config (API key included),
@@ -39,11 +45,11 @@ public class AdminMapsRoutes implements Routes {
 
     private static int parseIntParam(Context ctx, String name) {
         String raw = ctx.queryParam(name);
-        if (raw == null) throw Refusal.MAP_TILE_NUMBER_MISSING.raise(name);
+        if (raw == null) throw MapRefusal.MAP_TILE_NUMBER_MISSING.raise(name);
         try {
             return Integer.parseInt(raw);
         } catch (NumberFormatException e) {
-            throw Refusal.MAP_TILE_NUMBER_NOT_A_NUMBER.raise(name);
+            throw MapRefusal.MAP_TILE_NUMBER_NOT_A_NUMBER.raise(name);
         }
     }
 
@@ -60,11 +66,20 @@ public class AdminMapsRoutes implements Routes {
         routes.post(prefix + "/admin/maps/cache/purge", this::purgeCache, InstancePermission.ADMINISTRATOR);
     }
 
+    @OpenApi(
+            path = "/api/v1/admin/settings/maps",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = AdminMapsConfig.class)))
     private void getConfig(Context ctx) {
         ctx.json(new AdminMapsConfig(
                 configService.tilesConfig(), configService.geocodingConfig(), configService.tileCacheMaxMb()));
     }
 
+    @OpenApi(
+            path = "/api/v1/admin/settings/maps",
+            methods = HttpMethod.PUT,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = AdminMapsConfig.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = AdminMapsConfig.class)))
     private void updateConfig(Context ctx) {
         var body = ctx.bodyAsClass(AdminMapsConfig.class);
         if (body.tiles() != null) configService.updateTilesConfig(body.tiles());
@@ -73,6 +88,10 @@ public class AdminMapsRoutes implements Routes {
         getConfig(ctx);
     }
 
+    @OpenApi(
+            path = "/api/v1/admin/maps/test-tile",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = TestTileResult.class)))
     private void testTile(Context ctx) {
         int z = parseIntParam(ctx, "z");
         int x = parseIntParam(ctx, "x");
@@ -82,10 +101,24 @@ public class AdminMapsRoutes implements Routes {
         ctx.json(new TestTileResult(url, status));
     }
 
+    @OpenApi(
+            path = "/api/v1/admin/maps/cache/stats",
+            methods = HttpMethod.GET,
+            responses =
+                    @OpenApiResponse(
+                            status = "200",
+                            content = @OpenApiContent(from = MapTileCacheService.CacheStats.class)))
     private void cacheStats(Context ctx) {
         ctx.json(cacheService.stats());
     }
 
+    @OpenApi(
+            path = "/api/v1/admin/maps/cache/purge",
+            methods = HttpMethod.POST,
+            responses =
+                    @OpenApiResponse(
+                            status = "200",
+                            content = @OpenApiContent(from = MapTileCacheService.CacheStats.class)))
     private void purgeCache(Context ctx) {
         cacheService.purge();
         ctx.json(cacheService.stats());
@@ -113,7 +146,8 @@ public class AdminMapsRoutes implements Routes {
 
     /**
      * Response for the "test tile" button: the URL the backend would hit upstream and the
-     * status code it got back (or {@code -1} on transport error).
+     * status code it got back (or {@code -1} on transport error). The URL is {@code null} where no
+     * template is configured.
      */
-    public record TestTileResult(String url, int status) {}
+    public record TestTileResult(@Nullable String url, int status) {}
 }

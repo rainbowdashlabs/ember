@@ -7,8 +7,7 @@
 import AppIcon from '@/components/display/AppIcon.vue'
 import {computed, ref} from 'vue'
 import TreeNodeButton from '@/components/button/TreeNodeButton.vue'
-import type {InventoryContainer, InventoryContainerKind} from '@/api/inventoryContainers'
-import type {InventoryItem} from '@/api/inventory'
+import type {InventoryContainer, InventoryContainerKind, InventoryItem} from '@/api/generated/schema'
 
 const props = defineProps<{
   container: InventoryContainer
@@ -18,8 +17,8 @@ const props = defineProps<{
 }>()
 
 defineEmits<{
-  (e: 'open-container', id: number): void
-  (e: 'open-item', id: number): void
+  'open-container': [id: number]
+  'open-item': [id: number]
 }>()
 
 const childContainers = computed(() => props.childrenByParent.get(props.container.id) ?? [])

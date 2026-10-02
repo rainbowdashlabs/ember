@@ -14,14 +14,14 @@ import EmptyState from '@/components/feedback/EmptyState.vue'
 import FormerMembersTable from './formerview/FormerMembersTable.vue'
 import ReactivateModal from './formerview/ReactivateModal.vue'
 import { memberDisplayName } from './listview/useMemberData'
-import type { StationMember } from '@/api/types'
+import type { MemberWithName } from '@/api/generated/schema'
 import { stationMembers } from '@/api'
 import { useConfigPanel } from '@/composables/useConfigPanel'
 import { useConfirmAction } from '@/composables/useConfirmAction'
 
 const { t } = useI18n()
 
-const { config: members, loading, failure, reload: loadData } = useConfigPanel<StationMember[]>({
+const { config: members, loading, failure, reload: loadData } = useConfigPanel<MemberWithName[]>({
   initial: [],
   fetch: () => stationMembers.listFormerMembers(),
 })
@@ -32,8 +32,8 @@ const {
   target: reactivateTarget,
   request: openReactivate,
   confirm: confirmReactivate,
-} = useConfirmAction<StationMember>({
-  onConfirm: m => stationMembers.reactivateMember(m.id),
+} = useConfirmAction<MemberWithName>({
+  onConfirm: async m => { await stationMembers.reactivateMember(m.id) },
   onSuccess: async () => {
     success.value = t('formerMembers.reactivated')
     await loadData()

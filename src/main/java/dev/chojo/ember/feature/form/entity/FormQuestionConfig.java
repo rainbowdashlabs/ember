@@ -9,6 +9,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import dev.chojo.ember.util.Json;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.ObjectNode;
@@ -142,11 +143,11 @@ public sealed interface FormQuestionConfig {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     record Choice(
             List<Option> options,
-            Boolean multiSelect,
-            Boolean dropdown,
-            Boolean allowOther,
-            MultiLimitType multiLimitType,
-            Integer multiLimit)
+            @Nullable Boolean multiSelect,
+            @Nullable Boolean dropdown,
+            @Nullable Boolean allowOther,
+            @Nullable MultiLimitType multiLimitType,
+            @Nullable Integer multiLimit)
             implements FormQuestionConfig {
         @Override
         public List<Option> keyedOptions() {
@@ -155,7 +156,7 @@ public sealed interface FormQuestionConfig {
 
         @Override
         public List<String> validate(FormAnswerValue value) {
-            if (!(value instanceof FormAnswerValue.Choice(List<String> selected, String other))) {
+            if (!(value instanceof FormAnswerValue.ChoiceAnswer(List<String> selected, String other))) {
                 return List.of("Expected choice answer");
             }
             var errors = new ArrayList<String>();
@@ -196,16 +197,16 @@ public sealed interface FormQuestionConfig {
      * Free text question.
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record Text(Boolean longAnswer) implements FormQuestionConfig {}
+    record Text(@Nullable Boolean longAnswer) implements FormQuestionConfig {}
 
     /**
      * Rating question with scale and icon.
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record Rating(Integer scale, RatingIcon icon) implements FormQuestionConfig {
+    record Rating(@Nullable Integer scale, @Nullable RatingIcon icon) implements FormQuestionConfig {
         @Override
         public List<String> validate(FormAnswerValue value) {
-            if (!(value instanceof FormAnswerValue.Rating(int rating))) return List.of("Expected rating answer");
+            if (!(value instanceof FormAnswerValue.RatingAnswer(int rating))) return List.of("Expected rating answer");
             int max = scale != null ? scale : 5;
             if (rating < 1 || rating > max) return List.of("Rating must be between 1 and " + max);
             return List.of();
@@ -237,7 +238,7 @@ public sealed interface FormQuestionConfig {
 
         @Override
         public List<String> validate(FormAnswerValue value) {
-            if (!(value instanceof FormAnswerValue.Ranking(List<String> order))) {
+            if (!(value instanceof FormAnswerValue.RankingAnswer(List<String> order))) {
                 return List.of("Expected ranking answer");
             }
             if (options == null) return List.of();
@@ -252,7 +253,11 @@ public sealed interface FormQuestionConfig {
      * Likert scale with statements and scale range.
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record Likert(List<Option> statements, Integer scaleMin, Integer scaleMax, List<String> scaleLabels)
+    record Likert(
+            List<Option> statements,
+            @Nullable Integer scaleMin,
+            @Nullable Integer scaleMax,
+            @Nullable List<String> scaleLabels)
             implements FormQuestionConfig {
         @Override
         public List<Option> keyedOptions() {
@@ -261,7 +266,7 @@ public sealed interface FormQuestionConfig {
 
         @Override
         public List<String> validate(FormAnswerValue value) {
-            if (!(value instanceof FormAnswerValue.Likert(Map<String, Integer> ratings)))
+            if (!(value instanceof FormAnswerValue.LikertAnswer(Map<String, Integer> ratings)))
                 return List.of("Expected likert answer");
             if (ratings == null || ratings.isEmpty()) return List.of("No ratings provided");
             var errors = new ArrayList<String>();

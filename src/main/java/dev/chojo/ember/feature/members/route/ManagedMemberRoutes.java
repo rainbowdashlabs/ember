@@ -5,35 +5,20 @@
  */
 package dev.chojo.ember.feature.members.route;
 
-import dev.chojo.ember.api.AccessManager;
-import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.MessageResponse;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StepUpCategory;
-import dev.chojo.ember.feature.account.entity.Account;
-import dev.chojo.ember.feature.account.repository.AccountRepository;
-import dev.chojo.ember.feature.inventory.entity.Inventory;
-import dev.chojo.ember.feature.inventory.entity.InventorySize;
-import dev.chojo.ember.feature.inventory.service.InventoryCheckService;
-import dev.chojo.ember.feature.inventory.service.InventoryService;
-import dev.chojo.ember.feature.legal.service.GdprExportService;
-import dev.chojo.ember.feature.members.entity.FieldOrigin;
-import dev.chojo.ember.feature.members.entity.FieldValueEntry;
-import dev.chojo.ember.feature.members.entity.NameParts;
-import dev.chojo.ember.feature.members.entity.ProfileField;
-import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
-import dev.chojo.ember.feature.members.entity.ProfileFieldValue;
-import dev.chojo.ember.feature.members.entity.StationMember;
-import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.inventory.entity.MyInventoryItem;
 import dev.chojo.ember.feature.members.service.ManagedAccessService;
 import dev.chojo.ember.feature.members.service.ManagedAccessService.ManagedAccess;
-import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
-import dev.chojo.ember.feature.members.service.ProfileFieldScopes;
-import dev.chojo.ember.feature.members.service.ProfileFieldService;
-import dev.chojo.ember.feature.members.service.StationMemberService;
+import dev.chojo.ember.feature.members.service.ManagedMemberService;
+import dev.chojo.ember.feature.members.service.ManagedMemberService.ManagedMember;
+import dev.chojo.ember.feature.members.service.ManagedMemberService.MemberProfile;
+import dev.chojo.ember.feature.members.service.ManagedMemberService.MemberRequirement;
+import dev.chojo.ember.feature.members.service.ManagedMemberService.ValueEntry;
+import dev.chojo.ember.feature.members.service.ProfileFieldService.MergedValue;
 import dev.chojo.ember.util.DocumentName;
 import dev.chojo.ember.util.DocumentWord;
 import dev.chojo.ember.util.SafeContentDisposition;
@@ -41,7 +26,6 @@ import io.javalin.http.Context;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
-import io.javalin.openapi.OpenApiName;
 import io.javalin.openapi.OpenApiParam;
 import io.javalin.openapi.OpenApiRequestBody;
 import io.javalin.openapi.OpenApiResponse;
@@ -49,10 +33,7 @@ import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
-import java.time.Instant;
 import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 
@@ -62,39 +43,13 @@ import static dev.chojo.ember.api.RouteSupport.pathInt;
  */
 @Singleton
 public class ManagedMemberRoutes implements Routes {
-    private final StationMemberService memberService;
-    private final StationMemberRepository stationMemberRepository;
-    private final AccountRepository accountRepository;
-    private final ProfileFieldService profileFieldService;
-    private final InventoryService inventoryService;
-    private final InventoryCheckService checkService;
-    private final GdprExportService gdprExportService;
-    private final AccessManager accessManager;
+    private final ManagedMemberService managedMembers;
     private final ManagedAccessService accessService;
-    private final MemberIdentityFactory memberIdentityFactory;
 
     @Inject
-    public ManagedMemberRoutes(
-            StationMemberService memberService,
-            StationMemberRepository stationMemberRepository,
-            AccountRepository accountRepository,
-            ProfileFieldService profileFieldService,
-            InventoryService inventoryService,
-            InventoryCheckService checkService,
-            GdprExportService gdprExportService,
-            AccessManager accessManager,
-            ManagedAccessService accessService,
-            MemberIdentityFactory memberIdentityFactory) {
-        this.memberIdentityFactory = memberIdentityFactory;
+    public ManagedMemberRoutes(ManagedMemberService managedMembers, ManagedAccessService accessService) {
+        this.managedMembers = managedMembers;
         this.accessService = accessService;
-        this.memberService = memberService;
-        this.stationMemberRepository = stationMemberRepository;
-        this.accountRepository = accountRepository;
-        this.profileFieldService = profileFieldService;
-        this.inventoryService = inventoryService;
-        this.checkService = checkService;
-        this.gdprExportService = gdprExportService;
-        this.accessManager = accessManager;
     }
 
     @Override
@@ -111,9 +66,6 @@ public class ManagedMemberRoutes implements Routes {
                 this::setPassword,
                 StationPermission.MEMBER_GUARDIAN,
                 StepUpCategory.ACCOUNT_SECURITY);
-        // The QR code held up in the room, behind the same proof as every credential-planting
-        // action: a hijacked guardian session putting a credential on a child's account is what
-        // this is otherwise wide open to.
         routes.post(
                 prefix + "/managed-members/{memberId}/passkey-code",
                 this::issuePasskeyCode,
@@ -138,12 +90,8 @@ public class ManagedMemberRoutes implements Routes {
                 StationPermission.MEMBER_GUARDIAN);
     }
 
-    private void assertManages(UserSession session, int memberId) {
-        var managed = memberService.findManaged(session.member().id());
-        boolean manages = managed.stream().anyMatch(m -> m.id() == memberId);
-        if (!manages) {
-            throw Refusal.MEMBER_NOT_YOURS_TO_LOOK_AFTER.raise();
-        }
+    private static int guardianId(Context ctx) {
+        return StationSession.from(ctx).member().id();
     }
 
     @OpenApi(
@@ -153,18 +101,7 @@ public class ManagedMemberRoutes implements Routes {
             tags = {"Managed Members"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ManagedMember[].class)))
     private void listManaged(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        var managed = memberService.findManaged(session.member().id());
-        var result = managed.stream().map(this::toMemberWithName).toList();
-        ctx.json(result);
-    }
-
-    private Set<ProfileFieldScope> applicableScopes(int memberId) {
-        return ProfileFieldScopes.readableBy(accessManager.resolveExpandedMemberPermissions(memberId));
-    }
-
-    private List<ProfileField> applicableFields(int stationId, int memberId) {
-        return profileFieldService.findReadableBy(stationId, applicableScopes(memberId));
+        ctx.json(managedMembers.managed(guardianId(ctx)));
     }
 
     @OpenApi(
@@ -178,23 +115,7 @@ public class ManagedMemberRoutes implements Routes {
                 @OpenApiResponse(status = "404")
             })
     private void getProfile(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        int memberId = pathInt(ctx, "memberId");
-        assertManages(session, memberId);
-        var member = stationMemberRepository
-                .findById(memberId)
-                .orElseThrow(Refusal.MEMBER_NOT_HERE_ON_MANAGED_PROFILE::raise);
-        var fields = applicableFields(member.stationId(), memberId);
-        var values = profileFieldService.findValues(memberId);
-        var fieldIds = fields.stream().map(ProfileField::id).collect(Collectors.toSet());
-        // A guardian answers for the station's own questions only. A cluster's questions are asked of the
-        // member, and the two id spaces are separate, so origin decides before the id does.
-        var filteredValues = values.stream()
-                .filter(v -> v.origin() == FieldOrigin.STATION)
-                .filter(v -> fieldIds.contains(v.fieldId()))
-                .map(v -> new ProfileFieldValue(memberId, v.fieldId(), v.value()))
-                .toList();
-        ctx.json(new MemberProfile(fields, filteredValues));
+        ctx.json(managedMembers.profile(guardianId(ctx), pathInt(ctx, "memberId")));
     }
 
     @OpenApi(
@@ -203,25 +124,12 @@ public class ManagedMemberRoutes implements Routes {
             summary = "Set profile values for a managed member",
             tags = {"Managed Members"},
             pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
-            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SetValuesRequest.class)),
-            responses = @OpenApiResponse(status = "200"))
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ManagedMemberSetValuesRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MergedValue[].class)))
     private void setProfile(Context ctx) {
-        UserSession session = UserSession.from(ctx);
         int memberId = pathInt(ctx, "memberId");
-        assertManages(session, memberId);
-        var member = stationMemberRepository
-                .findById(memberId)
-                .orElseThrow(Refusal.MEMBER_NOT_HERE_ON_MANAGED_PROFILE_CHANGE::raise);
-        var allowedFieldIds = applicableFields(member.stationId(), memberId).stream()
-                .map(ProfileField::id)
-                .collect(Collectors.toSet());
-        var request = ctx.bodyAsClass(SetValuesRequest.class);
-        var entries = request.values().stream()
-                .filter(e -> allowedFieldIds.contains(e.fieldId()))
-                .map(e -> new FieldValueEntry(e.fieldId(), e.value()))
-                .toList();
-        ctx.json(profileFieldService.setValues(
-                memberId, entries, session.member().id()));
+        var request = ctx.bodyAsClass(ManagedMemberSetValuesRequest.class);
+        ctx.json(managedMembers.setProfile(guardianId(ctx), memberId, request.values()));
     }
 
     @OpenApi(
@@ -233,7 +141,7 @@ public class ManagedMemberRoutes implements Routes {
             pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ManagedAccess.class)))
     private void getAccess(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(accessService.get(session.member().id(), pathInt(ctx, "memberId")));
     }
 
@@ -248,7 +156,7 @@ public class ManagedMemberRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SetEmailRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ManagedAccess.class)))
     private void setEmail(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(SetEmailRequest.class);
         ctx.json(accessService.setEmail(session.member().id(), pathInt(ctx, "memberId"), request.email()));
     }
@@ -264,7 +172,7 @@ public class ManagedMemberRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SetUsernameRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ManagedAccess.class)))
     private void setUsername(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(SetUsernameRequest.class);
         ctx.json(accessService.setUsername(session.member().id(), pathInt(ctx, "memberId"), request.username()));
     }
@@ -281,13 +189,25 @@ public class ManagedMemberRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SetManagedPasswordRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ManagedAccess.class)))
     private void setPassword(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(SetManagedPasswordRequest.class);
         ctx.json(accessService.setPassword(session.member().id(), pathInt(ctx, "memberId"), request.password()));
     }
 
+    /**
+     * The QR code held up in the room, behind the same proof as every credential-planting action:
+     * a hijacked guardian session putting a credential on a child's account is what this is
+     * otherwise wide open to.
+     */
+    @OpenApi(
+            path = "/api/v1/managed-members/{memberId}/passkey-code",
+            methods = HttpMethod.POST,
+            summary = "Issue a passkey code for a managed member",
+            tags = {"Managed Members"},
+            pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = PasskeyCodeResponse.class)))
     private void issuePasskeyCode(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var issued = accessService.issuePasskeyCode(
                 session.member().id(),
                 pathInt(ctx, "memberId"),
@@ -297,13 +217,18 @@ public class ManagedMemberRoutes implements Routes {
         ctx.json(new PasskeyCodeResponse(issued.code(), issued.qrPng(), issued.expiresAt()));
     }
 
+    @OpenApi(
+            path = "/api/v1/managed-members/{memberId}/passkey-code",
+            methods = HttpMethod.DELETE,
+            summary = "Revoke the passkey code of a managed member",
+            tags = {"Managed Members"},
+            pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)))
     private void revokePasskeyCode(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         accessService.revokePasskeyCode(session.member().id(), pathInt(ctx, "memberId"));
         ctx.json(new MessageResponse("Code revoked"));
     }
-
-    public record PasskeyCodeResponse(String code, String qrPng, java.time.Instant expiresAt) {}
 
     @OpenApi(
             path = "/api/v1/managed-members/{memberId}/login",
@@ -316,7 +241,7 @@ public class ManagedMemberRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SetLoginRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ManagedAccess.class)))
     private void setLogin(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(SetLoginRequest.class);
         ctx.json(accessService.setLogin(session.member().id(), pathInt(ctx, "memberId"), request.enabled()));
     }
@@ -341,54 +266,15 @@ public class ManagedMemberRoutes implements Routes {
      */
     public record SetLoginRequest(boolean enabled) {}
 
-    private ManagedMember toMemberWithName(StationMember m) {
-        Account account = accountRepository.findById(m.accountId()).orElse(null);
-        String name = account != null ? NameParts.of(account).called() : "";
-        String email = account != null ? account.email() : "";
-        return new ManagedMember(m.id(), m.stationId(), m.accountId(), name, email);
-    }
-
     @OpenApi(
             path = "/api/v1/managed-members/{memberId}/inventory-items",
             methods = HttpMethod.GET,
             summary = "Get inventory items for a managed member",
             tags = {"Managed Members"},
             pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberInventoryItem[].class)))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MyInventoryItem[].class)))
     private void getMemberInventory(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        int memberId = pathInt(ctx, "memberId");
-        assertManages(session, memberId);
-        var items = inventoryService.findItemsByMember(memberId);
-        ctx.json(items.stream()
-                .map(item -> {
-                    var inventory = inventoryService.findById(item.inventoryId());
-                    String inventoryName = inventory.map(Inventory::name).orElse("");
-                    // Whether the piece can be exchanged travels with it: a guardian's screen has no
-                    // list of inventories to look the answer up in
-                    boolean homogeneous = inventory.map(Inventory::homogeneous).orElse(true);
-                    String sizeName = null;
-                    if (item.sizeId() != null) {
-                        sizeName = inventoryService.findSizes(item.inventoryId()).stream()
-                                .filter(s -> s.id() == item.sizeId())
-                                .map(InventorySize::label)
-                                .findFirst()
-                                .orElse(null);
-                    }
-                    return new MemberInventoryItem(
-                            item.id(),
-                            item.inventoryId(),
-                            item.name(),
-                            item.internalId(),
-                            inventoryName,
-                            homogeneous,
-                            item.sizeId(),
-                            sizeName,
-                            item.lostAt(),
-                            item.lostNote(),
-                            item.lostNoteBy() == null ? null : memberIdentityFactory.fromMemberId(item.lostNoteBy()));
-                })
-                .toList());
+        ctx.json(managedMembers.inventory(guardianId(ctx), pathInt(ctx, "memberId")));
     }
 
     @OpenApi(
@@ -397,18 +283,9 @@ public class ManagedMemberRoutes implements Routes {
             summary = "Get inventory requirements for a managed member",
             tags = {"Managed Members"},
             pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
-            responses = @OpenApiResponse(status = "200"))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberRequirement[].class)))
     private void getMemberRequirements(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        int memberId = pathInt(ctx, "memberId");
-        assertManages(session, memberId);
-        var member = stationMemberRepository
-                .findById(memberId)
-                .orElseThrow(Refusal.MEMBER_NOT_HERE_ON_MANAGED_EQUIPMENT::raise);
-        var required = checkService.getRequiredItems(member.stationId(), memberId);
-        ctx.json(required.stream()
-                .map(r -> new MemberRequirement(r.inventoryId(), r.inventoryName(), r.requiredQuantity()))
-                .toList());
+        ctx.json(managedMembers.requirements(guardianId(ctx), pathInt(ctx, "memberId")));
     }
 
     @OpenApi(
@@ -417,47 +294,16 @@ public class ManagedMemberRoutes implements Routes {
             summary = "Export all personal data for a managed member (GDPR/DSGVO)",
             tags = {"Managed Members"},
             pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
-            responses = @OpenApiResponse(status = "200"))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Object.class)))
     private void gdprExport(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        int memberId = pathInt(ctx, "memberId");
-        assertManages(session, memberId);
-        var data = gdprExportService.exportMemberData(memberId);
-        String name = stationMemberRepository
-                .findById(memberId)
-                .map(StationMember::displayName)
-                .orElse("");
-        String filename = DocumentName.of("json", DocumentWord.DATA_EXPORT.in("de"), DocumentName.part(name));
+        var export = managedMembers.export(guardianId(ctx), pathInt(ctx, "memberId"));
+        String filename = DocumentName.of("json", DocumentWord.DATA_EXPORT.in("de"), DocumentName.part(export.name()));
         ctx.contentType("application/json");
         ctx.header(
                 "Content-Disposition",
                 SafeContentDisposition.build(SafeContentDisposition.Disposition.ATTACHMENT, filename));
-        ctx.json(data);
+        ctx.json(export.data());
     }
 
-    public record MemberInventoryItem(
-            int id,
-            int inventoryId,
-            String name,
-            String internalId,
-            String inventoryName,
-            /** Whether the inventory holds one thing in many copies, which is what makes a piece exchangeable. */
-            boolean inventoryHomogeneous,
-            Integer sizeId,
-            String sizeName,
-            Instant lostAt,
-            /** What was written when it was reported missing, which a guardian may have written themselves. */
-            String lostNote,
-            MemberIdentity lostNoteBy) {}
-
-    public record MemberRequirement(int inventoryId, String inventoryName, int requiredQuantity) {}
-
-    public record ManagedMember(int id, int stationId, int accountId, String name, String email) {}
-
-    public record MemberProfile(List<ProfileField> fields, List<ProfileFieldValue> values) {}
-
-    @OpenApiName("ManagedMemberSetValuesRequest")
-    public record SetValuesRequest(List<ValueEntry> values) {}
-
-    public record ValueEntry(int fieldId, String value) {}
+    public record ManagedMemberSetValuesRequest(List<ValueEntry> values) {}
 }

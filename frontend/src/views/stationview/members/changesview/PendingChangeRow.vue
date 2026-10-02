@@ -11,7 +11,7 @@ import ButtonRow from '@/components/button/ButtonRow.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
-import type {ProfileFieldChange} from '@/api/profileFieldChanges'
+import type {ChangeEntry} from '@/api/profileFieldChanges'
 import ChangeValueDiff from './ChangeValueDiff.vue'
 import AcknowledgementList from './AcknowledgementList.vue'
 
@@ -20,7 +20,7 @@ const {t} = useI18n()
 const acknowledgeComment = defineModel<string>('acknowledgeComment', {required: true})
 
 defineProps<{
-  change: ProfileFieldChange
+  change: ChangeEntry
   isAcknowledgedByMe: boolean
   showComment: boolean
   acknowledging: boolean

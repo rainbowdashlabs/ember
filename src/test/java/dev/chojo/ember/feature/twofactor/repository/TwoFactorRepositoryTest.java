@@ -37,7 +37,6 @@ class TwoFactorRepositoryTest extends RepositoryTestBase {
         assertEquals(accountId, factor.accountId());
         assertEquals(TwoFactorKind.TOTP, factor.kind());
         assertTrue(twoFactorRepo.isEnrolled(accountId));
-        assertEquals(1, twoFactorRepo.findActiveFactors(accountId).size());
         assertTrue(twoFactorRepo.findActiveFactor(accountId, TwoFactorKind.TOTP).isPresent());
 
         assertTrue(twoFactorRepo.touchFactorUsed(factor.id()));
@@ -48,14 +47,12 @@ class TwoFactorRepositoryTest extends RepositoryTestBase {
         assertFalse(twoFactorRepo.disableFactor(factor.id()), "disabling a disabled factor reports no-op");
         assertFalse(twoFactorRepo.isEnrolled(accountId));
 
-        var second = twoFactorRepo.createFactor(accountId, TwoFactorKind.WEBAUTHN, "Key");
+        twoFactorRepo.createFactor(accountId, TwoFactorKind.WEBAUTHN, "Key");
         assertTrue(twoFactorRepo.disableAllFactors(accountId));
         assertFalse(twoFactorRepo.disableAllFactors(accountId));
         assertTrue(twoFactorRepo
                 .findActiveFactor(accountId, TwoFactorKind.WEBAUTHN)
                 .isEmpty());
-        // findWebAuthnByFactor for a non-WebAuthn factor returns empty
-        assertTrue(twoFactorRepo.findWebAuthnByFactor(second.id()).isEmpty());
     }
 
     @Test
@@ -70,6 +67,7 @@ class TwoFactorRepositoryTest extends RepositoryTestBase {
         assertEquals("SHA1", totp.algorithm());
     }
 
+    /** Marks a code used with an IPv4 address, since the address column takes a CIDR-shaped string. */
     @Test
     void backupCodes() {
         int accountId = newAccountId("bc");
@@ -81,17 +79,13 @@ class TwoFactorRepositoryTest extends RepositoryTestBase {
         var unused = twoFactorRepo.findUnusedBackupCodes(factor.id());
         assertEquals(2, unused.size());
 
-        // Markback by id with IPv4 (CIDR column requires a CIDR-shaped string)
         assertTrue(twoFactorRepo.markBackupCodeUsed(unused.getFirst().id(), "203.0.113.7"));
         assertFalse(
                 twoFactorRepo.markBackupCodeUsed(unused.getFirst().id(), "203.0.113.7"), "second markUsed is a no-op");
         assertEquals(1, twoFactorRepo.countUnusedBackupCodes(factor.id()));
 
-        // markAll wipes the remaining row
         twoFactorRepo.markAllBackupCodesUsed(accountId);
         assertEquals(0, twoFactorRepo.countUnusedBackupCodes(factor.id()));
-
-        twoFactorRepo.deleteBackupCodes(factor.id());
         assertEquals(0, twoFactorRepo.findUnusedBackupCodes(factor.id()).size());
     }
 
@@ -125,22 +119,30 @@ class TwoFactorRepositoryTest extends RepositoryTestBase {
         assertEquals(List.of("usb", "nfc"), stored.transports());
         assertEquals("packed", stored.attestationFormat());
 
-        assertTrue(twoFactorRepo.findWebAuthnByFactor(factor.id()).isPresent());
         assertEquals(1, twoFactorRepo.findActiveWebAuthnForAccount(accountId).size());
 
         twoFactorRepo.updateWebAuthnSignatureCounter(factor.id(), 5);
         assertEquals(
                 5L,
-                twoFactorRepo.findWebAuthnByFactor(factor.id()).orElseThrow().signatureCounter());
+                twoFactorRepo
+                        .findWebAuthnByCredentialId(credentialId)
+                        .orElseThrow()
+                        .signatureCounter());
         twoFactorRepo.updateWebAuthnSignatureCounter(factor.id(), 5);
         assertEquals(
                 5L,
-                twoFactorRepo.findWebAuthnByFactor(factor.id()).orElseThrow().signatureCounter(),
+                twoFactorRepo
+                        .findWebAuthnByCredentialId(credentialId)
+                        .orElseThrow()
+                        .signatureCounter(),
                 "counter must strictly increase");
         twoFactorRepo.updateWebAuthnSignatureCounter(factor.id(), 1);
         assertEquals(
                 5L,
-                twoFactorRepo.findWebAuthnByFactor(factor.id()).orElseThrow().signatureCounter(),
+                twoFactorRepo
+                        .findWebAuthnByCredentialId(credentialId)
+                        .orElseThrow()
+                        .signatureCounter(),
                 "lower counters must be rejected");
 
         assertArrayEquals(
@@ -174,29 +176,27 @@ class TwoFactorRepositoryTest extends RepositoryTestBase {
     @Test
     void policyUpsertAndDelete() {
         var instance = twoFactorRepo.upsertPolicy(
-                TwoFactorPolicy.Scope.INSTANCE, null, StationUserType.MEMBER, true, (short) 7, null);
-        assertEquals(TwoFactorPolicy.Scope.INSTANCE, instance.scope());
+                TwoFactorPolicy.PolicyScope.INSTANCE, null, StationUserType.MEMBER, true, (short) 7, null);
+        assertEquals(TwoFactorPolicy.PolicyScope.INSTANCE, instance.scope());
         assertTrue(instance.required());
 
-        // Upsert again - should keep the same row but flip required to false
         var updated = twoFactorRepo.upsertPolicy(
-                TwoFactorPolicy.Scope.INSTANCE, null, StationUserType.MEMBER, false, (short) 3, null);
+                TwoFactorPolicy.PolicyScope.INSTANCE, null, StationUserType.MEMBER, false, (short) 3, null);
         assertEquals(instance.id(), updated.id());
         assertFalse(updated.required());
 
         var instances = twoFactorRepo.findInstancePolicies();
         assertEquals(1, instances.size());
 
-        // Station-scoped policy
         var station = stationRepo.create("policy-station");
         var stationPolicy = twoFactorRepo.upsertPolicy(
-                TwoFactorPolicy.Scope.STATION, station.id(), StationUserType.MANAGER, true, (short) 5, null);
+                TwoFactorPolicy.PolicyScope.STATION, station.id(), StationUserType.MANAGER, true, (short) 5, null);
         assertEquals(1, twoFactorRepo.findStationPolicies(station.id()).size());
         assertTrue(twoFactorRepo
-                .findPolicy(TwoFactorPolicy.Scope.STATION, station.id(), StationUserType.MANAGER)
+                .findPolicy(TwoFactorPolicy.PolicyScope.STATION, station.id(), StationUserType.MANAGER)
                 .isPresent());
         assertTrue(twoFactorRepo
-                .findPolicy(TwoFactorPolicy.Scope.STATION, station.id(), StationUserType.MEMBER)
+                .findPolicy(TwoFactorPolicy.PolicyScope.STATION, station.id(), StationUserType.MEMBER)
                 .isEmpty());
 
         assertTrue(twoFactorRepo.deletePolicy(stationPolicy.id()));

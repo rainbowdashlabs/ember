@@ -5,11 +5,11 @@
  */
 package dev.chojo.ember.feature.members.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.feature.account.service.SetupMail;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService.BatchResult;
@@ -20,10 +20,12 @@ import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiRequestBody;
 import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -56,18 +58,19 @@ public class StationMemberInviteRoutes implements Routes {
                     + "member they belong to. Every recipient receives a password-setup email to "
                     + "claim the created account.",
             tags = {"Station Member Invites"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = CreateInvitesRequest.class)),
             responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = CreateInvitesResponse.class)))
     private void createInvites(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(CreateInvitesRequest.class);
         if (request.invites() == null || request.invites().isEmpty()) {
-            throw Refusal.INVITES_MISSING.raise();
+            throw MemberRefusal.INVITES_MISSING.raise();
         }
         var serviceRequests = request.invites().stream()
                 .map(StationMemberInviteRoutes::toServiceRequest)
                 .toList();
-        BatchResult result =
-                service.createBatch(session.stationId(), serviceRequests, SetupMail.of(request.sendSetupMail()));
+        BatchResult result = service.createBatch(
+                session.stationId(), serviceRequests, SetupMail.of(request.sendSetupMail()), session.user());
         ctx.status(HttpStatus.CREATED)
                 .json(new CreateInvitesResponse(
                         result.provisioned().stream()
@@ -83,17 +86,17 @@ public class StationMemberInviteRoutes implements Routes {
         try {
             type = entry.userType() != null ? StationUserType.valueOf(entry.userType()) : StationUserType.MEMBER;
         } catch (IllegalArgumentException ignored) {
-            throw Refusal.INVITE_USER_TYPE_UNKNOWN.raise(entry.userType());
+            throw MemberRefusal.INVITE_USER_TYPE_UNKNOWN.raise(entry.userType());
         }
         if (entry.email() == null || entry.firstName() == null || entry.lastName() == null) {
-            throw Refusal.INVITE_ENTRY_DETAILS_MISSING.raise();
+            throw MemberRefusal.INVITE_ENTRY_DETAILS_MISSING.raise();
         }
         List<GuardianRequest> guardians = entry.guardians() == null
                 ? List.of()
                 : entry.guardians().stream()
                         .map(g -> {
                             if (g.email() == null || g.firstName() == null || g.lastName() == null) {
-                                throw Refusal.INVITE_GUARDIAN_DETAILS_MISSING.raise();
+                                throw MemberRefusal.INVITE_GUARDIAN_DETAILS_MISSING.raise();
                             }
                             return new GuardianRequest(g.email(), g.firstName(), g.lastName());
                         })
@@ -129,7 +132,7 @@ public class StationMemberInviteRoutes implements Routes {
     public record ProvisionedMemberResponse(
             int memberId,
             int accountId,
-            String email,
+            @Nullable String email,
             String firstName,
             String lastName,
             StationUserType userType,
@@ -149,5 +152,6 @@ public class StationMemberInviteRoutes implements Routes {
     }
 
     /** One failed entry in the create-invites response. */
-    public record FailedInviteResponse(String email, String reason) {}
+    public record FailedInviteResponse(
+            String email, @Nullable String reason) {}
 }

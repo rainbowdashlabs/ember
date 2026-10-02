@@ -6,7 +6,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
-import type { LikertAnswer } from '@/api/forms'
+import type { LikertAnswer } from '@/api/generated/schema'
 import { optionsOf } from '@/util/formOptions'
 
 const props = defineProps<{
@@ -44,7 +44,7 @@ function setRating(statementKey: string, n: number) {
       <table class="w-full text-sm">
         <thead>
         <tr>
-          <th></th>
+          <th/>
           <th v-for="n in scaleSteps" :key="n" class="text-center px-2 py-1 text-xs text-(--text-muted)">
             {{ labelFor(n) }}
           </th>

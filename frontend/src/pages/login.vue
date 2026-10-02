@@ -4,14 +4,17 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {useI18n} from 'vue-i18n'
 import LoginView from '~/views/LoginView.vue'
 import {socialMeta} from '~/util/socialMeta'
 
+const {t} = useI18n()
+
 useHead({
-  title: 'Anmelden',
+  title: t('pageHead.login.title'),
   meta: socialMeta({
-    title: 'Anmelden',
-    description: 'Melde dich bei Ember an, der freien Plattform für die Verwaltung von Jugendfeuerwehren.',
+    title: t('pageHead.login.title'),
+    description: t('pageHead.login.description'),
   }),
 })
 </script>

@@ -11,8 +11,9 @@ import NumberInput from '@/components/input/number/NumberInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import MutedIconButton from '@/components/button/MutedIconButton.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import type {ResultFieldCondition} from '@/api/forms'
-import {FieldTypes, type ProfileField} from '@/api/profileFields'
+import type {ResultFieldConditionState} from '@/api/forms'
+import {FieldTypes} from '@/api/fieldTypes'
+import type {ProfileField} from '@/api/generated/schema'
 
 /**
  * Conditions on profile answers: the answers that count for a choice or yes/no field, a range for a
@@ -22,7 +23,7 @@ const props = defineProps<{
   fields: ProfileField[]
 }>()
 
-const conditions = defineModel<ResultFieldCondition[]>({required: true})
+const conditions = defineModel<ResultFieldConditionState[]>({required: true})
 
 const {t} = useI18n()
 
@@ -30,7 +31,7 @@ const adding = ref<string | number | null>(null)
 
 const unused = computed(() => props.fields.filter(field => !conditions.value.some(c => c.fieldId === field.id)))
 
-function fieldOf(condition: ResultFieldCondition): ProfileField | undefined {
+function fieldOf(condition: ResultFieldConditionState): ProfileField | undefined {
   return props.fields.find(field => field.id === condition.fieldId)
 }
 
@@ -50,7 +51,7 @@ function add(fieldId: string | number | null | undefined) {
   adding.value = null
 }
 
-function update(index: number, part: Partial<ResultFieldCondition>) {
+function update(index: number, part: Partial<ResultFieldConditionState>) {
   conditions.value = conditions.value.map((condition, i) => i === index ? {...condition, ...part} : condition)
 }
 

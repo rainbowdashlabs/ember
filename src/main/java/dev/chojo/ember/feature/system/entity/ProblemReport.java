@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.system.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 
@@ -21,18 +22,18 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 public record ProblemReport(
         int id,
         int stationId,
-        Integer memberId,
+        @Nullable Integer memberId,
         String reporterName,
         String message,
-        String pageUrl,
-        String userRoles,
-        String recentRequests,
-        String browserInfo,
-        String screenSize,
-        Integer screenshotFileId,
+        @Nullable String pageUrl,
+        @Nullable String userRoles,
+        @Nullable String recentRequests,
+        @Nullable String browserInfo,
+        @Nullable String screenSize,
+        @Nullable Integer screenshotFileId,
         boolean acknowledged,
-        Instant acknowledgedAt,
-        Instant forwardedAt,
+        @Nullable Instant acknowledgedAt,
+        @Nullable Instant forwardedAt,
         Instant createdAt) {
 
     /** Whether a picture came with it, which decides what a beacon is told and what a screen draws. */

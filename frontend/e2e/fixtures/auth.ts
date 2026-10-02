@@ -5,10 +5,11 @@
  */
 import {createHmac} from 'node:crypto'
 import {cast, type CastMember} from './cast'
-import {readFile} from 'node:fs/promises'
 import {MADE_BY_A_STORY} from './cluster'
 import {removeMade} from './createdMembers'
-import {test as base, type APIRequestContext, type Browser, type Page} from '@playwright/test'
+import {expect, test as base, type APIRequestContext, type Browser, type Page} from '@playwright/test'
+import {listenForCspViolations, watchNewContexts} from './csp'
+import {browserContextWith, csrfOf, demoSignIn, sessionHeaders} from './session'
 
 /**
  * A logged-in page per role, each in its own browser context.
@@ -201,13 +202,13 @@ export function demoTotpCode(now = Date.now()): string {
  * sign-in - a second worker signing in as the same person wipes the first one's freshness, and
  * the five-minute window expires mid-run anyway, so the prompt can arrive in any story at any
  * moment. Only the dev suite runs this rule at all; the public demo instance is exempt.
+ *
+ * A dialog still open after an answer is answered again, alternating with the next period's code: a
+ * code given at a period boundary arrives stale, and one another story spent counts as used.
  */
 export async function answerStepUpPrompts(page: Page): Promise<void> {
     const dialog = page.getByRole('dialog').filter({hasText: 'Sicherheitsbestätigung erforderlich'})
     await page.addLocatorHandler(dialog, async () => {
-        // A code answered right at a period boundary is stale by the time it arrives, and a code
-        // another story spent already counts as used; later rounds answer with the next period's
-        // code, which the drift window accepts.
         for (let attempt = 0; attempt < 3; attempt++) {
             const passwordField = dialog.getByPlaceholder('Dein Passwort')
             if (await passwordField.count() > 0) {
@@ -216,10 +217,8 @@ export async function answerStepUpPrompts(page: Page): Promise<void> {
                 await dialog.getByPlaceholder('000000').fill(demoTotpCode(Date.now() + (attempt % 2) * 30_000))
             }
             await dialog.getByRole('button', {name: 'Bestätigen', exact: true}).click()
-            try {
-                await dialog.waitFor({state: 'hidden', timeout: 5_000})
-                return
-            } catch { /* still open: answer it again */ }
+            const closed = await dialog.waitFor({state: 'hidden', timeout: 5_000}).then(() => true, () => false)
+            if (closed) return
         }
     }, {times: 20})
 }
@@ -228,6 +227,11 @@ export async function answerStepUpPrompts(page: Page): Promise<void> {
  * Stamps the page's session as freshly proved, for a story that asks a guarded endpoint straight
  * over the API rather than through a screen: no dialog appears there, so the proof is given
  * up front. Good for the freshness window, which outlives any single story.
+ *
+ * An account with a second factor is refused the password on purpose and proves itself with the code
+ * from the seeded knowable secret. A code counts once per period and several stories may prove the
+ * same account inside one, so the next period's code is tried too. A throttled answer stops early,
+ * since a second code would be refused the same way; the caller waits and asks again.
  */
 export async function freshStepUpProof(page: Page): Promise<void> {
     const headers = await apiHeaders(page)
@@ -236,10 +240,6 @@ export async function freshStepUpProof(page: Page): Promise<void> {
         data: {password: DEMO_PASSWORD},
     })
     if (response.ok()) return
-    // An account with a second factor is refused the password on purpose; it proves itself with
-    // the code from the seeded knowable secret instead. A code only counts once per period, and
-    // several stories can prove the same account inside one, so the refusal is answered with the
-    // next period's code, which the drift window accepts.
     if (response.status() === 403) {
         for (const ahead of [0, 30_000]) {
             const totp = await page.request.post('/api/v1/auth/2fa/stepup', {
@@ -247,8 +247,6 @@ export async function freshStepUpProof(page: Page): Promise<void> {
                 data: {factor: 'TOTP', proof: demoTotpCode(Date.now() + ahead)},
             })
             if (totp.ok()) return
-            // Throttled: the second code would only be refused the same way. The caller waits
-            // and asks again; often a sibling story's proof has covered it by then.
             if (totp.status() === 429) break
         }
         throw new Error('The TOTP step-up refused both the current and the next code')
@@ -270,13 +268,12 @@ export async function stopAnsweringStepUpPrompts(page: Page): Promise<void> {
  * Stamps a bare API context's session as freshly proved, the way {@link freshStepUpProof} does
  * for a page. Call it right before the guarded request rather than once at the start: a dev
  * session is one row per account replaced on every sign-in, so any story signing in as the same
- * person in the meantime takes the freshness with it.
+ * person in the meantime takes the freshness with it. A refused password is answered with codes the
+ * same way.
  */
 export async function proveFreshly(api: APIRequestContext): Promise<void> {
     const password = await api.post('/api/v1/auth/stepup/password', {data: {password: DEMO_PASSWORD}})
     if (password.ok()) return
-    // An account with a second factor is refused the password on purpose; it proves itself with
-    // the code from the seeded knowable secret instead, answering a stale period with the next.
     if (password.status() === 403) {
         for (const ahead of [0, 30_000]) {
             const totp = await api.post('/api/v1/auth/2fa/stepup', {
@@ -293,33 +290,28 @@ export async function proveFreshly(api: APIRequestContext): Promise<void> {
 /**
  * The headers a story needs to ask the backend something as the person whose page it holds.
  *
- * The application sends them from what it keeps in the browser; a request made straight from the
- * page carries neither, and the server answers it as if nobody had signed in. A story that reads an
- * endpoint rather than a screen - because what it is about is the endpoint refusing - asks for these
- * first.
+ * The session cookie goes along with every `page.request` on its own, since the page's context holds
+ * it. What the application adds by hand does not: the token a change has to carry, and the station
+ * it keeps in the browser. A story that reads an endpoint rather than a screen - because what it is
+ * about is the endpoint refusing - asks for these first.
+ *
+ * A page that has not been anywhere yet has no storage to read, so it is sent to the dashboard first.
  */
 export async function apiHeaders(page: Page): Promise<Record<string, string>> {
-    // What the page keeps is planted as the application starts, and a page that has not been
-    // anywhere yet has no storage to read at all - asking one refuses outright.
     if (page.url() === 'about:blank') await page.goto('/station/dashboard/overview')
 
-    const session = await page.evaluate(() => ({
-        token: window.localStorage.getItem('session_token'),
-        station: window.localStorage.getItem('station_id'),
-    }))
-    if (!session.token) throw new Error('The page holds no session to ask the backend with')
-
-    const headers: Record<string, string> = {Authorization: `Bearer ${session.token}`}
-    if (session.station) headers['X-Station-Id'] = session.station
-    return headers
+    const csrf = await csrfOf(page.context())
+    if (!csrf) throw new Error('The page holds no session to ask the backend with')
+    const station = await page.evaluate(() => window.localStorage.getItem('station_id'))
+    return sessionHeaders({csrf}, station ?? undefined)
 }
 
 /**
  * Opens a page already carrying the role's session.
  *
- * The state holds both the token and the chosen station, which is what the application itself
- * stores after a login: a session alone leaves the station area redirecting to the station picker,
- * so a fixture that plants only the token lands every story on the wrong page.
+ * The state holds both the session cookies and the chosen station, which is what a browser holds
+ * after a login: a session alone leaves the station area redirecting to the station picker, so a
+ * fixture that plants only the session lands every story on the wrong page.
  */
 export async function pageAs(browser: Browser, role: 'manager' | 'member' | 'admin'): Promise<Page> {
     const context = await browser.newContext({storageState: storageStatePath(role)})
@@ -334,6 +326,7 @@ export async function pageAs(browser: Browser, role: 'manager' | 'member' | 'adm
  * The stored sessions are shared by every story that asks for a role, so a story that ends a
  * session - logging out is the obvious one - would pull the ground from under every other story
  * running at that moment. Such a story takes an account of its own instead, and logs it in itself.
+ * Only an account with an address will do, since that is what the login goes by.
  */
 export async function pageAsThrowaway(
     browser: Browser,
@@ -343,9 +336,6 @@ export async function pageAsThrowaway(
     named?: {email: string; stationId?: string},
 ): Promise<Page> {
     const accounts = await demoAccounts(request)
-    // An address is what the login goes by, and a station holds members who never sign in: somebody
-    // imported from a list of names has no way in, and picking them would fail as a login rather
-    // than as what the story is about.
     const account = named ?? accounts.find(candidate =>
         candidate.userType === 'MEMBER'
         && !!candidate.email
@@ -353,16 +343,7 @@ export async function pageAsThrowaway(
         && !taken.includes(candidate.email))
     if (!account) throw new Error('No spare member account to log out with')
 
-    const login = await request.post('/api/v1/demo/login', {data: {email: account.email}})
-    if (!login.ok()) throw new Error(`Demo login for ${account.email} answered ${login.status()}`)
-    const {token} = await login.json()
-
-    const context = await browser.newContext()
-    await context.addInitScript(([sessionToken, stationId]) => {
-        window.localStorage.setItem('session_token', sessionToken)
-        if (stationId) window.localStorage.setItem('station_id', stationId)
-        window.localStorage.setItem('storage_consent', 'accepted')
-    }, [token, account.stationId ?? ''])
+    const context = await browserContextWith(browser, await demoSignIn(request, account.email), account.stationId)
     const page = await context.newPage()
     await answerStepUpPrompts(page)
     return page
@@ -370,7 +351,8 @@ export async function pageAsThrowaway(
 
 /**
  * A manager of some other station, for the stories about two stations meeting. Federation is only
- * itself when both sides are real: one station offering something and another seeing it.
+ * itself when both sides are real: one station offering something and another seeing it. A different
+ * station is not enough, since one person can run two; it has to be a different person as well.
  */
 export async function otherStationManager(
     request: APIRequestContext,
@@ -378,8 +360,6 @@ export async function otherStationManager(
     notEmail?: string,
 ): Promise<DemoAccount> {
     const accounts = await demoAccounts(request)
-    // A different station is not enough: one person can run two of them, and acting as the same
-    // account under a second station proves nothing about two stations meeting.
     const match = accounts.find(account => !!account.email
         && !!account.stationId
         && account.stationId !== notStationId
@@ -448,15 +428,13 @@ export async function enterCluster(page: Page): Promise<Cluster> {
  * Several stories create a cluster of their own to govern, and the administrator is appointed to every one
  * of them, so "the first cluster this account may act for" stops meaning anything the moment two stories
  * run at once. The seeded one is the only one with stations under it, which is also what makes it the one
- * worth telling a story about.
+ * worth telling a story about. It is told apart by name, because asking a cluster for its stations
+ * needs a right the narrower cluster roles do not hold.
  */
 export async function theSeededCluster(page: Page): Promise<Cluster> {
     const clusters = await clustersOf(page)
     if (!clusters.length) throw new Error('This account may act for no cluster')
 
-    // By name rather than by asking each one what it governs: reading a cluster's stations needs a right
-    // the narrower cluster roles do not hold, and telling them apart is not something a story should need
-    // a permission for.
     const seeded = clusters.find(cluster => !cluster.name.startsWith(MADE_BY_A_STORY))
     if (!seeded) throw new Error('Every cluster this account may act for was made by a story')
     return seeded
@@ -504,16 +482,7 @@ export async function clusterPage(
     request: APIRequestContext,
     account: DemoAccount,
 ): Promise<Page> {
-    const login = await request.post('/api/v1/demo/login', {data: {email: account.email}})
-    if (!login.ok()) throw new Error(`Demo login for ${account.email} answered ${login.status()}`)
-    const {token} = await login.json()
-
-    const context = await browser.newContext()
-    await context.addInitScript(([sessionToken, stationId]) => {
-        window.localStorage.setItem('session_token', sessionToken)
-        if (stationId) window.localStorage.setItem('station_id', stationId)
-        window.localStorage.setItem('storage_consent', 'accepted')
-    }, [token, account.stationId ?? ''])
+    const context = await browserContextWith(browser, await demoSignIn(request, account.email), account.stationId)
     const page = await context.newPage()
     await answerStepUpPrompts(page)
     await enterCluster(page)
@@ -575,9 +544,8 @@ async function clusterOf(
 ): Promise<{clusterUid?: string; clusterName?: string} | null> {
     const login = await request.post('/api/v1/demo/login', {data: {email: account.email}})
     if (!login.ok()) return null
-    const {token} = await login.json()
     const cluster = await request.get('/api/v1/station/cluster', {
-        headers: {Authorization: `Bearer ${token}`, 'X-Station-Id': group.stationId ?? ''},
+        headers: {'X-Station-Id': group.stationId ?? ''},
     })
     return cluster.ok() ? cluster.json() : null
 }
@@ -587,13 +555,13 @@ async function clusterOf(
  *
  * The station stories pick whichever station has both a manager and a member, and that is not
  * necessarily one inside a cluster: the demo deliberately leaves two outside. A story about what a
- * cluster does to a station has to be at one of the stations it actually governs.
+ * cluster does to a station has to be at one of the stations it actually governs, and never one a
+ * story built for itself, since those come and go.
  */
 export async function clusterStationManager(request: APIRequestContext): Promise<DemoAccount> {
     for (const group of await demoStationGroups(request)) {
         for (const account of managersOf(group)) {
             const cluster = await clusterOf(request, group, account)
-            // Not a station some other story built for itself: those come and go while this one reads
             if (cluster?.clusterUid && !String(cluster.clusterName ?? '').startsWith(MADE_BY_A_STORY)) {
                 return {...account, stationId: group.stationId}
             }
@@ -658,7 +626,12 @@ interface Fixtures {
      * <p>Nothing asks for this one: it runs for every story, because the stories that make somebody
      * are exactly the ones that would not think to clear them away. See {@code createdMembers}.
      */
-    tidyUp: void
+    tidyUp: undefined
+    /**
+     * What the content security policy refused while the story ran. Runs for every story and fails
+     * it when anything was refused, see {@code csp}.
+     */
+    cspViolations: string[]
     managerPage: Page
     memberPage: Page
     adminPage: Page
@@ -672,10 +645,26 @@ interface Fixtures {
 }
 
 export const test = base.extend<Fixtures>({
-    tidyUp: [async ({request}, use) => {
-        await use()
-        await removeMade(request)
+    tidyUp: [async ({}, use) => {
+        await use(undefined)
+        await removeMade()
     }, {auto: true}],
+
+    cspViolations: [async ({browser}, use) => {
+        const violations: string[] = []
+        const restore = watchNewContexts(browser, violations)
+        try {
+            await use(violations)
+        } finally {
+            restore()
+        }
+        expect(violations, 'the content security policy refused nothing').toEqual([])
+    }, {auto: true}],
+
+    context: async ({context, cspViolations}, use) => {
+        listenForCspViolations(context, cspViolations)
+        await use(context)
+    },
 
     managerPage: async ({browser}, use) => {
         const page = await pageAs(browser, 'manager')

@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {useI18n} from 'vue-i18n'
 import ConfirmEmailChangeView from '~/views/ConfirmEmailChangeView.vue'
 
 definePageMeta({
@@ -11,8 +12,10 @@ definePageMeta({
   name: 'confirm-email-change',
 })
 
+const {t} = useI18n()
+
 useHead({
-  title: 'E-Mail-Adresse bestätigen',
+  title: t('pageHead.confirmEmailChange'),
 })
 </script>
 

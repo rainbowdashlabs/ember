@@ -7,7 +7,7 @@
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
-import type {QuizQuestion, QuizTestAnswer} from '@/api/quiz'
+import type {QuizQuestion, QuizTestAnswer} from '@/api/generated/schema'
 
 const props = defineProps<{
   question: QuizQuestion

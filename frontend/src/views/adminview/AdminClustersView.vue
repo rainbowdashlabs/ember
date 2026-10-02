@@ -18,9 +18,8 @@ import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import {clusters} from '@/api'
-import type {AccountSearchResult} from '@/api/twoFactorAdmin'
+import type {AccountSearchResult, ClusterResponse} from '@/api/generated/schema'
 import ClusterRow from './adminclustersview/ClusterRow.vue'
-import type {Cluster} from '@/api/clusters'
 import {useConfigPanel} from '@/composables/useConfigPanel'
 import {useModalTarget} from '@/composables/useModalTarget'
 
@@ -30,14 +29,14 @@ const newName = ref('')
 const newDescription = ref('')
 const busy = ref(false)
 
-const {config: clusterList, loading, failure, runWith} = useConfigPanel<Cluster[]>({
+const {config: clusterList, loading, failure, runWith} = useConfigPanel<ClusterResponse[]>({
   initial: [],
   fetch: () => clusters.listAll(),
 })
 
-const {isOpen: showDelete, target: deleteTarget, open: openDelete} = useModalTarget<Cluster>()
+const {isOpen: showDelete, target: deleteTarget, open: openDelete} = useModalTarget<ClusterResponse>()
 
-async function appoint(cluster: Cluster, account: AccountSearchResult) {
+async function appoint(cluster: ClusterResponse, account: AccountSearchResult) {
   await runWith(async () => {
     await clusters.appointAdministrator(cluster.uid, account.uid)
     return clusters.listAll()

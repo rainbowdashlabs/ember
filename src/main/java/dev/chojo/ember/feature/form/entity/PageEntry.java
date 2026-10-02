@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.form.entity;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * One page of a form as the editor saves it.
  *
@@ -13,4 +15,5 @@ package dev.chojo.ember.feature.form.entity;
  * @param description optional description
  * @param after       where the reader goes once the page is done
  */
-public record PageEntry(String key, String title, String description, PageTarget after) {}
+public record PageEntry(
+        String key, @Nullable String title, @Nullable String description, PageTarget after) {}

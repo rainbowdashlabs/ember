@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,9 +49,9 @@ public class MemberLookupService {
     }
 
     /**
-     * Resolves an internal member ID to its UUID. Cached.
+     * Resolves an internal member ID to its UUID, or null where no such member exists. Cached.
      */
-    public UUID resolveUid(int memberId) {
+    public @Nullable UUID resolveUid(int memberId) {
         return memberUidCache.get(memberId, id -> memberRepository.selectUid(id).orElse(null));
     }
 
@@ -91,7 +92,7 @@ public class MemberLookupService {
      * address them as federated identities.
      */
     public List<MemberCompletion> findCompletions(int stationId) {
-        return memberRepository.findCompletions(stationId, stationRepository.resolveUid(stationId));
+        return memberRepository.findCompletions(stationId, stationRepository.requireUid(stationId));
     }
 
     /**

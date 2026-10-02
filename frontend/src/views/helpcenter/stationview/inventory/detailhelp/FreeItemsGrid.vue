@@ -21,7 +21,7 @@ const items = [
   <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
     <NeutralContainer v-for="item in items" :key="item.id" class="flex items-center justify-between gap-2">
       <div>
-        <div class="text-sm font-medium">Helm <SizeBadge>{{ item.size }}</SizeBadge></div>
+        <div class="text-sm font-medium">{{ t('helpCenter.sample.equipment.helmet') }} <SizeBadge>{{ item.size }}</SizeBadge></div>
         <div class="text-xs text-(--text-muted)">{{ item.id }}</div>
       </div>
       <PrimaryButton>{{ t('inventory.detail.assign') }}</PrimaryButton>

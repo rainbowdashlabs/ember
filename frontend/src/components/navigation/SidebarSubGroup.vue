@@ -10,6 +10,8 @@ import {useSidebarCollapse} from '@/composables/useSidebarCollapse'
 import {useSidebarFlyoutParent} from '@/composables/useSidebarFlyoutContext'
 import {useFlyoutHover} from '@/composables/useFlyoutHover'
 import SidebarFlyoutMenu from '@/components/navigation/SidebarFlyoutMenu.vue'
+import BareButton from '@/components/button/BareButton.vue'
+import CountBadge from '@/components/badge/CountBadge.vue'
 import {collectSidebarPaths} from '@/util/sidebarEntries'
 
 const {collapsed} = useSidebarCollapse()
@@ -96,8 +98,7 @@ function onChildNavigate() {
 
 <template>
   <div :class="hiddenWhenCollapsed ? 'lg:hidden' : ''">
-    <button
-        type="button"
+    <BareButton
         :ref="setAnchor"
         :class="isActive
         ? 'text-primary'
@@ -111,10 +112,7 @@ function onChildNavigate() {
     >
       <font-awesome-icon v-if="icon" :icon="icon" class="h-3 w-3"/>
       <span class="flex-1 text-left truncate">{{ label }}</span>
-      <span v-if="badge && badge > 0"
-            class="inline-flex items-center justify-center min-w-4 h-4 px-1 rounded-full text-[10px] font-bold bg-error text-error-text">{{
-          badge
-        }}</span>
+      <CountBadge v-if="badge && badge > 0" :count="badge" small/>
       <font-awesome-icon
           v-if="!inFlyout"
           :icon="['fas', expanded ? 'chevron-down' : 'chevron-right']"
@@ -125,7 +123,7 @@ function onChildNavigate() {
           :icon="['fas', 'chevron-right']"
           class="h-2.5 w-2.5"
       />
-    </button>
+    </BareButton>
 
     <div v-if="!inFlyout && expanded" class="ml-3 flex flex-col gap-0.5 mt-0.5">
       <slot/>
@@ -142,7 +140,7 @@ function onChildNavigate() {
         @leave="onPanelLeave"
         @close="flyoutForce(false)"
     >
-      <div @click="onChildNavigate">
+      <div role="presentation" @click="onChildNavigate">
         <slot/>
       </div>
     </SidebarFlyoutMenu>

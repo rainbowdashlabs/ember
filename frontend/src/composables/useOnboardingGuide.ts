@@ -6,7 +6,7 @@
 import {computed, onBeforeUnmount, onMounted, ref, watch} from 'vue'
 import {useRoute} from 'vue-router'
 import {flowFor, type OnboardingStep} from '@/util/onboardingFlows'
-import {activeStep, activeTaskKey, guideDismissed} from '@/util/onboardingState'
+import {onboardingState} from '@/util/onboardingState'
 
 export interface TargetBox {
     top: number
@@ -35,14 +35,14 @@ function findTarget(mark: string | undefined): HTMLElement | null {
 /**
  * Whether anything has been put into the marked control, or into any of the fields it holds. A mark
  * sits on a single field in one flow and on a whole form in another, and both have to answer this.
+ *
+ * <p>A field the reader cannot write in does not count. Some of a profile is the station's to fill,
+ * and counting it would carry the step on the moment somebody tabbed past it.
  */
 function filled(element: HTMLElement): boolean {
     const controls = element.matches('input, textarea, select')
         ? [element as HTMLInputElement]
         : Array.from(element.querySelectorAll<HTMLInputElement>('input, textarea, select'))
-    // A field the reader cannot write in does not answer for them. Some of what a profile holds is
-    // the station's to fill and readable only, and counting it would carry the step on the moment
-    // somebody tabbed past it, crediting them with an answer that was already there.
     return controls.some(control => !control.readOnly && !control.disabled && control.value.trim() !== '')
 }
 
@@ -103,6 +103,7 @@ function prefersReducedMotion(): boolean {
  * step simply waits.
  */
 export function useOnboardingGuide() {
+    const {activeStep, activeTaskKey, guideDismissed} = onboardingState()
     const route = useRoute()
     const box = ref<TargetBox | null>(null)
     const reducedMotion = ref(false)
@@ -148,6 +149,7 @@ export function useOnboardingGuide() {
     let settleTimer: ReturnType<typeof setTimeout> | null = null
     let measureQueued = false
 
+    /** Drops a wait started for one step, which would otherwise stand in the way of the next one's. */
     function stopSettling() {
         if (settleTimer !== null) clearTimeout(settleTimer)
         settleTimer = null
@@ -156,15 +158,9 @@ export function useOnboardingGuide() {
     /**
      * Whether an optional step whose target is nowhere may be passed over.
      *
-     * Absence alone does not settle it. A page that has not finished loading looks exactly like a
-     * page the element is not on, and passing over the step then walks the flow past the one thing
-     * it had to point at, with nothing left to point at afterwards: that is how the calendar task
-     * lost its ring for anybody who had no feed token yet.
-     *
-     * What settles it is the step that follows. Seeing that element proves the page is drawn and the
-     * optional one is genuinely not needed, so the walk moves on at once. When nothing follows, or
-     * when neither is there yet, a short wait stands in and the observer picks up whatever appears
-     * in the meantime.
+     * Absence alone does not settle it, since a page still loading looks exactly like a page the
+     * element is not on. Seeing the next step's element proves the page is drawn, so the walk moves
+     * on at once; otherwise a short wait stands in while the observer picks up whatever appears.
      */
     function considerSkipping() {
         const next = steps.value[activeStep.value + 1]
@@ -183,6 +179,11 @@ export function useOnboardingGuide() {
         }, SETTLE_MS)
     }
 
+    /**
+     * Places the ring over the current step's target. On a narrow window the navigation is pushed
+     * off the side rather than removed, so a target in it would be ringed past the window's edge;
+     * the ring goes to the menu opener instead, or nowhere when there is none to point at.
+     */
     function measure() {
         if (!activeTaskKey.value) {
             box.value = null
@@ -203,10 +204,6 @@ export function useOnboardingGuide() {
         }
         stopSettling()
 
-        // The navigation is in the page at every width; on a narrow one it is merely pushed off the
-        // side. So the target is found, and ringing where it says it is draws the ring past the edge
-        // of the window, which is the whole of what a reader on a phone saw: nothing. Send them to
-        // the menu first, and pick the target up again once it has come in.
         if (outOfReach(element)) {
             const opener = findTarget(MENU_MARK)
             if (opener && !outOfReach(opener)) {
@@ -222,7 +219,6 @@ export function useOnboardingGuide() {
                 }
                 return
             }
-            // Nothing to send them to, so say nothing rather than ring the edge of the window.
             behindMenu.value = false
             box.value = null
             blocked.value = false
@@ -288,12 +284,11 @@ export function useOnboardingGuide() {
      *
      * Moving between two fields of the same marked form is not leaving it, so a form is filled in
      * peace and keeps its light throughout. Leaving it empty is not leaving it either: the step
-     * waits, because nothing has been done yet.
+     * waits, because nothing has been done yet. A step to be read carries on the same way, since
+     * somebody who has just filled in what was missing has shown they read it.
      */
     function onFocusOut(event: FocusEvent) {
         const current = step.value
-        // A step to be read carries on the same way, because somebody who has just filled in what was
-        // missing has shown they read it, and asking them to confirm afterwards asks twice.
         if (!current || (current.advance !== 'fill' && current.advance !== 'read')) return
         const element = findTarget(current.target)
         if (!element || !(event.target instanceof Node) || !element.contains(event.target)) return
@@ -308,16 +303,15 @@ export function useOnboardingGuide() {
 
     /**
      * Watching the whole page for changes is only worth its cost while a task is being walked, so
-     * the observer comes and goes with the task rather than running for every visitor.
+     * the observer comes and goes with the task rather than running for every visitor. It watches
+     * classes and styles as well as children, because a drawer does not leave the page when it
+     * closes: it changes one class and slides away.
      */
     function watchPage(active: boolean) {
         observer?.disconnect()
         observer = null
         if (!active) return
         observer = new MutationObserver(() => scheduleMeasure())
-        // Attributes as well as children, because a drawer does not leave the page when it closes:
-        // it changes one class and slides away. Watching children alone left the ring sitting on the
-        // menu button after the reader had already opened the menu.
         observer.observe(document.body, {
             childList: true,
             subtree: true,
@@ -358,7 +352,6 @@ export function useOnboardingGuide() {
     watch([activeTaskKey, activeStep], () => {
         watchPage(activeTaskKey.value !== null)
         scrolledFor = -1
-        // A wait started for the step just left would otherwise stand in the way of the next one's.
         stopSettling()
         measure()
     })

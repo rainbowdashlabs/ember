@@ -13,6 +13,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.util.Base64;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -84,6 +85,22 @@ class ClusterStorageConfigRepositoryTest extends RepositoryTestBase {
     }
 
     /**
+     * Retiring the old version and writing the new one are one change: a new version that cannot be written
+     * leaves the association on the one it had, not on none.
+     */
+    @Test
+    void aVersionThatCannotBeWrittenLeavesTheCurrentOneCurrent() {
+        var cluster = clusterService.create("Kreisverband Ablage " + NAMES.incrementAndGet(), null);
+        var first = repository.insertCurrent(cluster.id(), config("erste"));
+
+        assertThrows(Exception.class, () -> repository.insertCurrent(cluster.id(), config("zwei\u0000te")));
+
+        assertEquals(
+                first.id(), repository.findCurrent(cluster.id()).orElseThrow().id());
+        clusterService.delete(cluster.id());
+    }
+
+    /**
      * Rotating a secret must not copy a terabyte, so new credentials for the same destination are written
      * onto the version everybody is already standing on.
      */
@@ -103,29 +120,30 @@ class ClusterStorageConfigRepositoryTest extends RepositoryTestBase {
     }
 
     /**
-     * The foreign key with no {@code ON DELETE} clause is what refuses this, rather than a check somebody has
-     * to remember to write.
+     * Only a retired version nobody stands on goes: the current one is where the next station is carried, and
+     * one somebody stands on holds their files.
      */
     @Test
-    void aVersionSomebodyStandsOnCannotBeDeleted() {
+    void onlyARetiredVersionNobodyStandsOnIsDeleted() {
         var cluster = clusterService.create("Kreisverband Ablage " + NAMES.incrementAndGet(), null);
         var station = clusterService.createStation(cluster.id(), "Wache Ablage " + NAMES.incrementAndGet());
         var version = repository.insertCurrent(cluster.id(), config("belegt"));
 
         placements.place(station.id(), cluster.id(), version.id());
-        assertEquals(1, placements.countOn(version.id()));
         assertEquals(1, placements.findByCluster(cluster.id()).size());
         assertEquals(
                 version.id(),
                 placements.findByStation(station.id()).orElseThrow().configId());
         assertTrue(placements.findConfigForStation(station.id()).isPresent());
 
-        assertThrows(Exception.class, () -> repository.delete(version.id()));
+        repository.retireCurrent(cluster.id());
+        assertEquals(List.of(), repository.deleteRetiredUnused(cluster.id()), "somebody stands on it");
 
         placements.remove(station.id());
-        assertEquals(0, placements.countOn(version.id()));
-        repository.delete(version.id());
+        var current = repository.insertCurrent(cluster.id(), config("leer"));
+        assertEquals(List.of(version.id()), repository.deleteRetiredUnused(cluster.id()));
         assertTrue(repository.findById(version.id()).isEmpty());
+        assertTrue(repository.findById(current.id()).isPresent(), "the current one stays with nobody on it");
 
         clusterService.releaseStation(cluster.id(), station.id());
         stationRepo.delete(station.id());

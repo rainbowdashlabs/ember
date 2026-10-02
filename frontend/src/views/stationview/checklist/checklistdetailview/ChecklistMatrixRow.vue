@@ -10,26 +10,30 @@ import IconButton from '@/components/button/IconButton.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
-import type {ChecklistCellDto, ChecklistColumnDto, ChecklistEntryDto} from '@/api/checklists'
+import type {
+    CellResponse as ChecklistCell,
+    ColumnResponse as ChecklistColumn,
+    EntryResponse as ChecklistEntry,
+} from '@/api/generated/schema'
 import ChecklistCellToggle from './ChecklistCellToggle.vue'
 
-const props = defineProps<{
+defineProps<{
   checklistId: number
-  entry: ChecklistEntryDto
-  columns: ChecklistColumnDto[]
+  entry: ChecklistEntry
+  columns: ChecklistColumn[]
   isCheckedFn: (entryId: number, columnId: number) => boolean
   noteFn: (entryId: number, columnId: number) => string | null
   readOnly?: boolean
 }>()
 
 const emit = defineEmits<{
-  (e: 'cell-changed', cell: ChecklistCellDto): void
+  (e: 'cell-changed', cell: ChecklistCell): void
   (e: 'delete'): void
 }>()
 
 const {t} = useI18n()
 
-const {show: confirmDelete, requestDelete, confirm: applyDelete} = useConfirmDelete<ChecklistEntryDto>({
+const {show: confirmDelete, requestDelete, confirm: applyDelete} = useConfirmDelete<ChecklistEntry>({
   onDelete: async () => { emit('delete') },
 })
 </script>

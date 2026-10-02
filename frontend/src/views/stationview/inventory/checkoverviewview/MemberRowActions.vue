@@ -5,20 +5,20 @@
  */
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
-import type {MemberCheckSummary} from '@/api/inventoryCheck'
+import type {EnrichedCheckSummary} from '@/api/generated/schema'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import MutedIconButton from '@/components/button/MutedIconButton.vue'
 
-const props = defineProps<{
-  member: MemberCheckSummary
+defineProps<{
+  member: EnrichedCheckSummary
   lockedByMe: boolean
   lockedByOther: boolean
 }>()
 
 const emit = defineEmits<{
-  (e: 'view-last-check', member: MemberCheckSummary): void
+  (e: 'view-last-check', member: EnrichedCheckSummary): void
   (e: 'start-check', memberId: number): void
 }>()
 

@@ -7,15 +7,16 @@ package dev.chojo.ember.feature.knowledgebase.service;
 
 import dev.chojo.ember.feature.knowledgebase.entity.ConversionStatus;
 import dev.chojo.ember.feature.knowledgebase.repository.KnowledgeBaseRepository;
+import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.util.PdfText;
 import dev.chojo.ember.util.PresentationConverter;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 
 /**
  * Turns uploaded slide decks into something a browser can show. An upload is stored as-is and
@@ -32,13 +33,18 @@ public class KbPresentationService {
     private final KnowledgeBaseRepository repository;
     private final KbFileStorageService fileStorage;
     private final KbContentService contentService;
+    private final TaskScheduler scheduler;
 
     @Inject
     public KbPresentationService(
-            KnowledgeBaseRepository repository, KbFileStorageService fileStorage, KbContentService contentService) {
+            KnowledgeBaseRepository repository,
+            KbFileStorageService fileStorage,
+            KbContentService contentService,
+            TaskScheduler scheduler) {
         this.repository = repository;
         this.fileStorage = fileStorage;
         this.contentService = contentService;
+        this.scheduler = scheduler;
     }
 
     /**
@@ -51,7 +57,7 @@ public class KbPresentationService {
      */
     public void startConversion(int stationId, int fileId, byte[] data, String filename) {
         repository.updateConversionStatus(fileId, ConversionStatus.PENDING);
-        CompletableFuture.runAsync(() -> convert(stationId, fileId, data, filename));
+        scheduler.background("kb-presentation-conversion", () -> convert(stationId, fileId, data, filename));
     }
 
     /**
@@ -94,7 +100,7 @@ public class KbPresentationService {
      * @param mimeType the MIME type of the new upload
      * @param filename the new file name, which decides the source format
      */
-    public void reuploadPresentation(int fileId, byte[] data, String mimeType, String filename) {
+    public void reuploadPresentation(int fileId, byte[] data, @Nullable String mimeType, String filename) {
         var file = repository.findFileById(fileId).orElseThrow();
         fileStorage.store(file.stationId(), fileId, data, mimeType);
         startConversion(file.stationId(), fileId, data, filename);

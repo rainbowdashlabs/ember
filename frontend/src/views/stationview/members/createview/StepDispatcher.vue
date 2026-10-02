@@ -11,8 +11,8 @@ import FieldsStep from './FieldsStep.vue'
 import GroupsStep from './GroupsStep.vue'
 import ManagerStep from './ManagerStep.vue'
 import DoneStep from './DoneStep.vue'
-import type { ProfileField } from '@/api/profileFields'
-import {StationUserType, type MemberGroup, type StationMember} from '@/api/types'
+import type { MemberGroup, MemberWithName, ProfileField } from '@/api/generated/schema'
+import {StationUserType} from '@/api/types'
 
 type Step = 'userType' | 'identity' | 'fields' | 'groups' | 'manager' | 'done'
 
@@ -28,29 +28,29 @@ const props = defineProps<{
   fieldValues: Map<number, string>
   allGroups: MemberGroup[]
   selectedGroupIds: Set<number>
-  allMembers: StationMember[]
+  allMembers: MemberWithName[]
   selectedManagerIds: Set<number>
   createdManagers: Array<{ id: number; memberId: number; firstName: string; lastName: string; email: string }>
   saving: boolean
 }>()
 
 const emit = defineEmits<{
-  (e: 'update:step', value: Step): void
-  (e: 'update:selectedUserType', value: 'TRIAL' | 'MEMBER' | 'GUARDIAN' | 'TEAM'): void
-  (e: 'update:canLogin', value: boolean): void
-  (e: 'update:sendSetupMail', value: boolean): void
-  (e: 'update:email', value: string): void
-  (e: 'update:firstName', value: string): void
-  (e: 'update:lastName', value: string): void
-  (e: 'next-from-identity'): void
-  (e: 'next-from-groups'): void
-  (e: 'set-field-value', fieldId: number, val: string): void
-  (e: 'toggle-group', id: number): void
-  (e: 'set-managers', ids: number[]): void
-  (e: 'create-manager', data: { firstName: string; lastName: string; email: string }): void
-  (e: 'create-account'): void
-  (e: 'start-over'): void
-  (e: 'to-list'): void
+  'update:step': [value: Step]
+  'update:selectedUserType': [value: 'TRIAL' | 'MEMBER' | 'GUARDIAN' | 'TEAM']
+  'update:canLogin': [value: boolean]
+  'update:sendSetupMail': [value: boolean]
+  'update:email': [value: string]
+  'update:firstName': [value: string]
+  'update:lastName': [value: string]
+  'next-from-identity': []
+  'next-from-groups': []
+  'set-field-value': [fieldId: number, val: string]
+  'toggle-group': [id: number]
+  'set-managers': [ids: number[]]
+  'create-manager': [data: { firstName: string; lastName: string; email: string }]
+  'create-account': []
+  'start-over': []
+  'to-list': []
 }>()
 
 const { t } = useI18n()

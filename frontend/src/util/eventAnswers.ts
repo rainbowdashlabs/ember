@@ -3,14 +3,13 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {
-    EventFieldTypes,
-    RegistrationStatus,
-    type EventRegistrationEntry,
-    type EventRegistrationField,
-    type RegistrationFieldValue,
-    type RegistrationStatusName,
-} from '@/api/events'
+import {RegistrationStatus, type RegistrationStatusName} from '@/api/events'
+import {FieldTypes} from '@/api/fieldTypes'
+import type {
+    EventRegistrationFieldValue,
+    EventRegistrationField,
+    RegistrationResponse,
+} from '@/api/generated/schema'
 
 /**
  * Somebody an appointment can be answered for, however the screen identifies them.
@@ -52,7 +51,7 @@ export interface GivenAnswer<K extends string | number = number, U = number> ext
 /** One person's answer to the appointment's questions, ready to be sent. */
 export interface PersonAnswer<K extends string | number = number> {
     key: K
-    fields: RegistrationFieldValue[]
+    fields: EventRegistrationFieldValue[]
 }
 
 /** Whether an answer says somebody is not coming, which is what taking it back would undo. */
@@ -67,13 +66,13 @@ export function isRefusal(status: RegistrationStatusName): boolean {
  * place. To the member it is not an answer they are holding: they hold nothing, they owe one, and
  * they may sign up again.
  */
-export function isStandingAnswer(registration: EventRegistrationEntry): boolean {
+export function isStandingAnswer(registration: Pick<RegistrationResponse, 'status'>): boolean {
     return registration.status !== RegistrationStatus.WITHDRAWN
 }
 
 /** Whether a registration holds a place or is waiting for one to be confirmed. */
-export function holdsOrAwaitsPlace(registration: EventRegistrationEntry): boolean {
-    return isStandingAnswer(registration) && !isRefusal(registration.status as RegistrationStatusName)
+export function holdsOrAwaitsPlace(registration: Pick<RegistrationResponse, 'status'>): boolean {
+    return isStandingAnswer(registration) && !isRefusal(registration.status)
 }
 
 /**
@@ -103,7 +102,7 @@ export function rowsOnDate<T>(rows: T[], date: string | null, dateOf: (row: T) =
  */
 export function membersToRegister<M extends {value: string}>(
     members: M[],
-    registrations: EventRegistrationEntry[],
+    registrations: Pick<RegistrationResponse, 'status' | 'memberId'>[],
 ): M[] {
     const placed = new Set(registrations
         .filter(holdsOrAwaitsPlace)
@@ -115,7 +114,7 @@ export function membersToRegister<M extends {value: string}>(
 interface ManagedMember {
     id: number
     name?: string
-    email?: string
+    email?: string | null
 }
 
 /**
@@ -175,7 +174,7 @@ export function notOpenLabelKey(hasManagedMembers: boolean): string {
  */
 export function localAnswers(
     people: AnswerablePerson[],
-    registrations: EventRegistrationEntry[],
+    registrations: RegistrationResponse[],
     asksQuestions = false,
 ): GivenAnswer[] {
     const answers: GivenAnswer[] = []
@@ -185,11 +184,11 @@ export function localAnswers(
         answers.push({
             key: person.key,
             name: person.name,
-            status: registration.status as RegistrationStatusName,
+            status: registration.status,
             undo: registration.id,
             createdByName: registration.createdByName,
             canUpdate: asksQuestions,
-            answersMissing: registration.answersMissing === true,
+            answersMissing: registration.answersMissing,
             heldByField: registration.fromField ? (registration.fieldName ?? '') : null,
         })
     }
@@ -217,16 +216,16 @@ export interface AnswerTotal {
  */
 export function answerTotals(
     fields: EventRegistrationField[],
-    registrations: EventRegistrationEntry[],
+    registrations: Pick<RegistrationResponse, 'status' | 'fields'>[],
 ): AnswerTotal[] {
     const counted = registrations.filter(registration => registration.status === RegistrationStatus.ACCEPTED)
     const answersOf = (fieldId: number) => counted
-        .map(registration => registration.fields?.find(value => value.fieldId === fieldId)?.value)
+        .map(registration => registration.fields.find(value => value.fieldId === fieldId)?.value)
         .filter((value): value is string => value != null && value !== '')
 
     const totals: AnswerTotal[] = []
     for (const field of fields) {
-        if (field.fieldType === EventFieldTypes.NUMBER) {
+        if (field.fieldType === FieldTypes.NUMBER) {
             const sum = answersOf(field.id)
                 .map(Number)
                 .filter(value => !Number.isNaN(value))
@@ -234,9 +233,9 @@ export function answerTotals(
             totals.push({label: field.name, text: String(sum)})
             continue
         }
-        if (field.fieldType !== EventFieldTypes.ENUM) continue
+        if (field.fieldType !== FieldTypes.CHOICE) continue
         const answers = answersOf(field.id)
-        const perOption = (field.config?.options ?? [])
+        const perOption = (field.config.options ?? [])
             .map(option => ({option, count: answers.filter(answer => answer === option).length}))
             .filter(entry => entry.count > 0)
         if (perOption.length > 0) {

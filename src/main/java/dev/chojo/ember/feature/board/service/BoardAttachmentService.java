@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.entity.StorageScope;
 import dev.chojo.ember.feature.storage.entity.Variant;
 import dev.chojo.ember.feature.storage.service.StorageService;
+import dev.chojo.ember.util.FilePaths;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -119,7 +120,7 @@ public class BoardAttachmentService {
     }
 
     private StorageScope.Station stationScope(int stationId) {
-        UUID uid = stationRepository.resolveUid(stationId);
+        UUID uid = stationRepository.requireUid(stationId);
         return new StorageScope.Station(stationId, uid);
     }
 
@@ -129,33 +130,33 @@ public class BoardAttachmentService {
         log.info("Migrating legacy board-attachment layout from {}", legacyRoot);
         try (Stream<Path> ticketDirs = Files.list(legacyRoot)) {
             for (Path ticketDir : ticketDirs.filter(Files::isDirectory).toList()) {
-                String name = ticketDir.getFileName().toString();
+                String name = FilePaths.nameOf(ticketDir);
                 int ticketId;
                 try {
                     ticketId = Integer.parseInt(name);
                 } catch (NumberFormatException ignored) {
                     continue;
                 }
-                Optional<Integer> stationId = lookupStationId(ticketId);
-                if (stationId.isEmpty()) {
+                Optional<UUID> stationUid = lookupStationId(ticketId).map(stationRepository::resolveUid);
+                if (stationUid.isEmpty()) {
                     log.warn("Could not resolve station for legacy board ticket {}; leaving in place", ticketId);
                     continue;
                 }
-                UUID uid = stationRepository.resolveUid(stationId.get());
                 Path target = localBackend
                         .root()
                         .resolve("station")
-                        .resolve(uid.toString())
+                        .resolve(stationUid.get().toString())
                         .resolve("attachments")
                         .resolve("board")
                         .resolve(name);
-                Files.createDirectories(target.getParent());
+                FilePaths.createParentDirectories(target);
                 if (Files.exists(target)) continue;
                 Files.move(ticketDir, target, StandardCopyOption.ATOMIC_MOVE);
             }
             try {
                 Files.deleteIfExists(legacyRoot);
-                Files.deleteIfExists(legacyRoot.getParent());
+                Path legacyParent = legacyRoot.getParent();
+                if (legacyParent != null) Files.deleteIfExists(legacyParent);
             } catch (IOException e) {
                 log.debug("Legacy board-attachment root {} stays behind, empty", legacyRoot, e);
             }

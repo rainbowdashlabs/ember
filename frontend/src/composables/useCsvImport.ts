@@ -5,9 +5,14 @@
  */
 import {computed, ref, shallowRef, type ComputedRef, type Ref} from 'vue'
 import {useI18n} from 'vue-i18n'
-import type {ParsedCsv} from '@/api/util'
 import {readCsvText} from '@/util/csvText'
 import {describeFailure, FailureKind, type Failure} from '@/util/failure'
+
+/** A source split into its header row and its data rows, whether here or by the server. */
+export interface ParsedCsv {
+    headers: string[]
+    rows: string[][]
+}
 
 export const CsvImportSteps = {
     UPLOAD: 'upload',

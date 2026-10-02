@@ -15,10 +15,13 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import {useAsyncAction} from '@/composables/useAsyncAction'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {checklists} from '@/api'
-import type {ChecklistCellDto, ChecklistNoteHistoryEntry} from '@/api/checklists'
+import type {
+    CellResponse as ChecklistCell,
+    NoteHistoryEntryResponse as ChecklistNoteHistoryEntry,
+} from '@/api/generated/schema'
 import {formatDateTime} from '@/util/format'
-import {describeFailure, type Failure} from '@/util/failure'
 
 const props = defineProps<{
   checklistId: number
@@ -30,7 +33,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'changed', cell: ChecklistCellDto): void
+  (e: 'changed', cell: ChecklistCell): void
 }>()
 
 const {t} = useI18n()
@@ -39,13 +42,21 @@ const localChecked = ref(props.checked)
 const showNote = ref(false)
 const noteDraft = ref(props.note ?? '')
 const history = ref<ChecklistNoteHistoryEntry[]>([])
-const loadingHistory = ref(false)
 
 /**
- * Why the note's history is missing. An empty list used to stand for both "nothing was ever written"
- * and "we could not find out", which are opposite answers to the question the panel is asked.
+ * The note's history, and why it is missing where it is. An empty list used to stand for both
+ * "nothing was ever written" and "we could not find out", which are opposite answers to the question
+ * the panel is asked.
  */
-const historyFailure = ref<Failure | null>(null)
+const {loading: loadingHistory, failure: historyFailure, reload: loadHistory} = useAsyncLoader(async (isCurrent) => {
+  try {
+    const entries = await checklists.getNoteHistory(props.checklistId, props.entryId, props.columnId)
+    if (isCurrent()) history.value = entries
+  } catch (e) {
+    if (isCurrent()) history.value = []
+    throw e
+  }
+}, {autoLoad: false, errorMessageKey: 'checklist.noteHistoryFailed'})
 
 const {running: saving, failure: cellFailure, run: runWriteCell} = useAsyncAction(
     (payload: {checked: boolean; note: string | null}) =>
@@ -92,15 +103,7 @@ async function openNote() {
   if (props.disabled) return
   noteDraft.value = props.note ?? ''
   showNote.value = true
-  loadingHistory.value = true
-  historyFailure.value = null
-  try {
-    history.value = await checklists.getNoteHistory(props.checklistId, props.entryId, props.columnId)
-  } catch (e) {
-    history.value = []
-    historyFailure.value = {...describeFailure(e, t), message: t('checklist.noteHistoryFailed')}
-  }
-  loadingHistory.value = false
+  await loadHistory()
 }
 
 async function saveNote() {

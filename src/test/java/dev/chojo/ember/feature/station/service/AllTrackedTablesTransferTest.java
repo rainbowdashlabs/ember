@@ -14,12 +14,14 @@ import dev.chojo.ember.feature.station.transfer.AccountCredentialTableImporter;
 import dev.chojo.ember.feature.station.transfer.AccountTableImporter;
 import dev.chojo.ember.feature.station.transfer.DisabledModuleTableImporter;
 import dev.chojo.ember.feature.station.transfer.StationTableImporter;
+import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import dev.chojo.ember.tracking.DataTrackingLoader;
 import dev.chojo.ember.tracking.OutputShape;
-import dev.chojo.ember.tracking.Status;
 import dev.chojo.ember.tracking.TableEntry;
+import dev.chojo.ember.tracking.TrackingStatus;
 import dev.chojo.ember.util.TestRemoteUrlValidator;
+import dev.chojo.ember.util.TestStationKeys;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -59,7 +61,8 @@ class AllTrackedTablesTransferTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        exportService = new StationExportService(stationRepo, new Api());
+        exportService = new StationExportService(
+                stationRepo, TestStationKeys.transfer(), TestStationKeys.aiKeyTransfer(), new Api());
         var stationImporter = new StationTableImporter(stationRepo);
         importService = new StationImportService(
                 stationRepo,
@@ -67,8 +70,11 @@ class AllTrackedTablesTransferTest extends RepositoryTestBase {
                 new Api(),
                 null,
                 null,
-                new FederationPartnerTransferFixupService(new FederationRepository(), null, stationRepo),
+                new FederationPartnerTransferFixupService(new FederationRepository(), null),
+                TestStationKeys.transfer(),
+                TestStationKeys.aiKeyTransfer(),
                 TestRemoteUrlValidator.permissive(),
+                TestRemoteUrlValidator.permissiveOutbound(),
                 stationImporter,
                 Set.of(
                         stationImporter,
@@ -76,7 +82,8 @@ class AllTrackedTablesTransferTest extends RepositoryTestBase {
                         new AccountCredentialTableImporter(accountRepo, passkeyModeService),
                         new DisabledModuleTableImporter(stationRepo)),
                 accountRepo,
-                org.mockito.Mockito.mock(dev.chojo.ember.feature.account.service.AuthService.class));
+                org.mockito.Mockito.mock(dev.chojo.ember.feature.account.service.AuthService.class),
+                new TaskScheduler());
     }
 
     @Test
@@ -89,11 +96,11 @@ class AllTrackedTablesTransferTest extends RepositoryTestBase {
         for (var entry : tracking.tables().entrySet()) {
             String tableName = entry.getKey();
             TableEntry table = entry.getValue();
-            if (table.stationTransfer() == null || table.stationTransfer().status() != Status.TRACKED) continue;
+            if (table.stationTransfer() == null || table.stationTransfer().status() != TrackingStatus.TRACKED) continue;
             try {
                 var page = exportService.exportTable(stationId, tableName, 0, 100);
-                // The envelope must always carry the wire key (possibly null payload for empty single-rows)
-                assertEquals(tableName, page.get("table"));
+                assertEquals(
+                        tableName, page.get("table"), "the envelope carries the wire key even for an empty single row");
             } catch (RuntimeException e) {
                 failures.add(tableName + ": " + e.getMessage());
             }
@@ -109,7 +116,6 @@ class AllTrackedTablesTransferTest extends RepositoryTestBase {
     void paginationIsConsistent() {
         var station = stationRepo.create("Pagination Probe");
         int stationId = station.id();
-        // Seed 7 member groups so we can page through with limit=3
         for (int i = 0; i < 7; i++) {
             memberGroupRepo.create(stationId, "G" + i);
         }
@@ -118,7 +124,6 @@ class AllTrackedTablesTransferTest extends RepositoryTestBase {
                 exportService.exportTable(stationId, "member_group", 0, 1000).get("member_group");
         assertEquals(7, single.size());
 
-        // Walk three pages of size 3 and combine them
         var p1 = (List<?>)
                 exportService.exportTable(stationId, "member_group", 0, 3).get("member_group");
         var p2 = (List<?>)
@@ -133,7 +138,6 @@ class AllTrackedTablesTransferTest extends RepositoryTestBase {
         assertEquals(1, p3.size());
         assertEquals(0, p4.size(), "page past the end must be empty");
 
-        // No overlap, no gaps
         var paged = new ArrayList<>();
         paged.addAll(p1);
         paged.addAll(p2);
@@ -144,11 +148,14 @@ class AllTrackedTablesTransferTest extends RepositoryTestBase {
         stationRepo.delete(stationId);
     }
 
+    /**
+     * The source station and its accounts are deleted before the import, so in the shared container
+     * database the import is the sole creator of what the target holds.
+     */
     @Test
     void roundTripAllTablesImportSucceeds() throws IOException {
         var tracking = DataTrackingLoader.loadFromClasspath();
 
-        // -- Seed source data across many domains --
         var source = stationRepo.create("Round-trip Probe");
         int sourceStationId = source.id();
         stationRepo.updateLocale(sourceStationId, "de-DE");
@@ -172,7 +179,6 @@ class AllTrackedTablesTransferTest extends RepositoryTestBase {
         eventCategoryRepo.create(sourceStationId, "Cat", 0, null);
         inventoryRepo.create(sourceStationId, "Inv", InventoryType.INTERNAL, false);
 
-        // -- Snapshot per-table source counts for every TRACKED table --
         Map<String, Integer> sourceCounts = new LinkedHashMap<>();
         for (String table : exportService.getTableOrder()) {
             sourceCounts.put(
@@ -182,7 +188,6 @@ class AllTrackedTablesTransferTest extends RepositoryTestBase {
                             .get(table)));
         }
 
-        // -- Collect bundle (every TRACKED table → its payload) --
         Map<String, Object> bundle = new LinkedHashMap<>();
         for (String table : exportService.getTableOrder()) {
             Object payload =
@@ -190,13 +195,11 @@ class AllTrackedTablesTransferTest extends RepositoryTestBase {
             if (payload != null) bundle.put(table, payload);
         }
 
-        // -- Strip source-side data so the import is the sole creator (shared testcontainer DB) --
         stationRepo.delete(sourceStationId);
         for (String email : List.of("rta@example.com", "rtb@example.com")) {
             accountRepo.findByEmail(email).ifPresent(a -> accountRepo.delete(a.id()));
         }
 
-        // -- Import + assert per-table counts match --
         var result = importService.importStation(bundle);
         int targetStationId = result.stationId();
 
@@ -204,7 +207,7 @@ class AllTrackedTablesTransferTest extends RepositoryTestBase {
         for (var e : sourceCounts.entrySet()) {
             String table = e.getKey();
             int expected = e.getValue();
-            if (expected == 0) continue; // nothing to compare on empty tables
+            if (expected == 0) continue;
             int actual = sizeOf(
                     exportService.exportTable(targetStationId, table, 0, 10_000).get(table));
             if (actual != expected) {
@@ -212,14 +215,11 @@ class AllTrackedTablesTransferTest extends RepositoryTestBase {
             }
         }
 
-        // Make sure we actually exercised the round-trip on a meaningful number of tables.
         long touchedTables = sourceCounts.values().stream().filter(v -> v > 0).count();
         assertTrue(touchedTables >= 5, "expected several seeded tables, got " + touchedTables);
 
-        // Sanity: account custom-scope round-trip preserved both seeded accounts.
         assertNotNull(accountRepo.findByEmail("rta@example.com").orElse(null));
         assertNotNull(accountRepo.findByEmail("rtb@example.com").orElse(null));
-        // The credential from the source should land on the target with force_password_change=TRUE
         var importedB = accountRepo.findByEmail("rtb@example.com").orElseThrow();
         var credB = accountRepo.findCredential(importedB.id()).orElseThrow();
         assertTrue(credB.forcePasswordChange(), "imported credential must require a password reset");
@@ -228,24 +228,21 @@ class AllTrackedTablesTransferTest extends RepositoryTestBase {
             fail("Round-trip row counts diverged for:\n" + String.join("\n", mismatches));
         }
 
-        // Spot-check: SINGLE-shape table (station) and FLAT-shape table (station_disabled_module) round-tripped
         Object stationPayload =
                 exportService.exportTable(targetStationId, "station", 0, 1).get("station");
         assertInstanceOf(Map.class, stationPayload, "station wire entry must be SINGLE-shape (Map)");
         var disabled = (List<?>) exportService
                 .exportTable(targetStationId, "station_disabled_module", 0, 10)
                 .get("station_disabled_module");
-        assertTrue(disabled.contains("LOST_AND_FOUND"));
+        assertTrue(disabled.contains("LOST_AND_FOUND"), "the flat-shape disabled modules must round-trip");
 
-        // Cleanup
         stationRepo.delete(targetStationId);
         for (String email : List.of("rta@example.com", "rtb@example.com")) {
             accountRepo.findByEmail(email).ifPresent(a -> accountRepo.delete(a.id()));
         }
 
-        // Verify we did in fact iterate every TRACKED non-SINGLE/non-FLAT table in the comparison
         long trackedRowTables = tracking.tables().values().stream()
-                .filter(t -> t.stationTransfer() != null && t.stationTransfer().status() == Status.TRACKED)
+                .filter(t -> t.stationTransfer() != null && t.stationTransfer().status() == TrackingStatus.TRACKED)
                 .filter(t -> t.effectiveShape() == OutputShape.ROWS)
                 .count();
         assertTrue(trackedRowTables > 50, "expected many TRACKED ROWS-shape tables, got " + trackedRowTables);

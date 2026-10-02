@@ -13,8 +13,8 @@ import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
 import DateInput from '@/components/input/datetime/DateInput.vue'
 import MarkdownEditor from '@/components/input/MarkdownEditor.vue'
 import { fromCompletion } from '@/components/input/select/memberOption'
-import {TicketPriority, type BoardLane, type TicketPriorityName} from '@/api/boards'
-import type { MemberCompletion } from '@/api/stationMembers'
+import {TicketPriority, type TicketPriorityName} from '@/api/boards'
+import type {BoardLane, MemberCompletion} from '@/api/generated/schema'
 
 const title = defineModel<string>('title', { required: true })
 const description = defineModel<string>('description', { required: true })

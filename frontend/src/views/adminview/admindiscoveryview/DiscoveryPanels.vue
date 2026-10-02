@@ -15,15 +15,14 @@ import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useFlashMessage} from '@/composables/useFlashMessage'
 import {useConfirmAction} from '@/composables/useConfirmAction'
 import {discovery} from '@/api'
+import type {BlocklistKind, DiscoveryPeerSource} from '@/api/discovery'
 import type {
-  BlocklistKind,
-  DiscoveryBlocklistEntry,
-  DiscoveryIdentity,
-  DiscoveryInfoProbe,
-  DiscoveryPeer,
-  DiscoveryPeerSource,
-  DiscoverySettings,
-} from '@/api/discovery'
+  BlocklistResponse,
+  DiscoveryInfoResponse,
+  DiscoverySettingsResponse,
+  IdentityResponse,
+  PeerResponse,
+} from '@/api/generated/schema'
 import {describeFailure} from '@/util/failure'
 import DiscoveryIdentityCard from './DiscoveryIdentityCard.vue'
 import DiscoverySettingsCard from './DiscoverySettingsCard.vue'
@@ -35,10 +34,10 @@ const {t} = useI18n()
 
 const {message: flash, flash: showFlash} = useFlashMessage()
 
-const identity = ref<DiscoveryIdentity | null>(null)
-const settings = ref<DiscoverySettings | null>(null)
-const peers = ref<DiscoveryPeer[]>([])
-const blocklist = ref<DiscoveryBlocklistEntry[]>([])
+const identity = ref<IdentityResponse | null>(null)
+const settings = ref<DiscoverySettingsResponse | null>(null)
+const peers = ref<PeerResponse[]>([])
+const blocklist = ref<BlocklistResponse[]>([])
 
 const draftEnabled = ref(true)
 const draftDepth = ref(2)
@@ -46,7 +45,7 @@ const draftInterval = ref(60)
 
 const probeBaseUrl = ref('')
 const probeExpectedKey = ref('')
-const probeResult = ref<DiscoveryInfoProbe | null>(null)
+const probeResult = ref<DiscoveryInfoResponse | null>(null)
 
 const blocklistValue = ref('')
 const blocklistKind = ref<BlocklistKind>('BASE_URL')
@@ -121,7 +120,7 @@ async function addPeer() {
   }
 }
 
-async function runPeerAction(p: DiscoveryPeer, action: () => Promise<unknown>) {
+async function runPeerAction(p: PeerResponse,action: () => Promise<unknown>) {
   peerActionInFlight.value = p.publicKey
   try {
     await action()
@@ -133,7 +132,7 @@ async function runPeerAction(p: DiscoveryPeer, action: () => Promise<unknown>) {
   }
 }
 
-const {show: showDeletePeer, request: requestDeletePeer, confirm: confirmDeletePeer} = useConfirmAction<DiscoveryPeer>({
+const {show: showDeletePeer, request: requestDeletePeer, confirm: confirmDeletePeer} = useConfirmAction<PeerResponse>({
   onConfirm: (p) => runPeerAction(p, () => discovery.deleteDiscoveryPeer(p.publicKey)),
   failure,
 })
@@ -173,7 +172,7 @@ async function addToBlocklist() {
   }
 }
 
-async function removeFromBlocklist(entry: DiscoveryBlocklistEntry) {
+async function removeFromBlocklist(entry: BlocklistResponse) {
   try {
     await discovery.removeFromBlocklist(entry.value)
     blocklist.value = await discovery.listDiscoveryBlocklist()
@@ -198,10 +197,10 @@ const sortedPeers = computed(() =>
 
     <DiscoverySettingsCard
         v-if="settings"
-        :settings="settings"
         v-model:model-enabled="draftEnabled"
         v-model:model-depth="draftDepth"
         v-model:model-interval="draftInterval"
+        :settings="settings"
         :save="saveSettings"
         @discover-now="discoverNow"
         @seed-federation="seedFederation"
@@ -236,10 +235,10 @@ const sortedPeers = computed(() =>
     />
 
     <BlocklistCard
-        :blocklist="blocklist"
         v-model:value="blocklistValue"
         v-model:kind="blocklistKind"
         v-model:note="blocklistNote"
+        :blocklist="blocklist"
         @add="addToBlocklist"
         @remove="removeFromBlocklist"
     />

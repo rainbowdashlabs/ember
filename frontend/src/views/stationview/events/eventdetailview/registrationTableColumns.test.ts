@@ -3,12 +3,12 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-// @vitest-environment happy-dom
+/** @vitest-environment happy-dom */
 import {describe, expect, it} from 'vitest'
 import {sortValueOf} from '@/components/table/columnFilter'
 import {compareSortValues} from '@/composables/useSortable'
 import {ColumnTypes} from '@/components/table/tableColumn'
-import type {MemberTableHeader} from '@/api/memberTable'
+import type {MemberTableHeader} from '@/api/generated/schema'
 import {readDrawnTable, tableColumnOf, type DrawnRow} from './registrationTableColumns'
 
 const YES_NO = {yes: 'Ja', no: 'Nein'}

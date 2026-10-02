@@ -13,7 +13,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import ColorDot from '@/components/display/ColorDot.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import type {UserTag} from '@/api/types'
+import type {UserTag} from '@/api/generated/schema'
 
 const {t} = useI18n()
 
@@ -24,11 +24,11 @@ defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'create'): void
-  (e: 'select', tag: UserTag): void
-  (e: 'edit', tag: UserTag): void
-  (e: 'delete', tag: UserTag): void
-  (e: 'convert', tag: UserTag): void
+  create: []
+  select: [tag: UserTag]
+  edit: [tag: UserTag]
+  delete: [tag: UserTag]
+  convert: [tag: UserTag]
 }>()
 </script>
 

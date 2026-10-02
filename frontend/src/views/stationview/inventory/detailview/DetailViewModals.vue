@@ -12,15 +12,16 @@ import HistoryModal from './HistoryModal.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import ItemModals from '../editview/ItemModals.vue'
 import { inventory, procurement } from '@/api'
-import {InventoryTypes, type InventoryDetail, type InventoryItem} from '@/api/inventory'
-import type { StationMember } from '@/api/types'
+import {InventoryTypes} from '@/api/inventory'
+import type {InventoryDetail, InventoryItem} from '@/api/generated/schema'
+import type { MemberLike } from '@/components/input/select/memberOption'
 import { useModalTarget } from '@/composables/useModalTarget'
 import {describeFailure, type Failure} from '@/util/failure'
 
 const props = defineProps<{
   detail: InventoryDetail | null
-  memberMap: Map<number, StationMember>
-  unassignedMembers: StationMember[]
+  memberMap: Map<number, MemberLike>
+  unassignedMembers: MemberLike[]
 }>()
 
 const emit = defineEmits<{

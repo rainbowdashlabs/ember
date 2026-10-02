@@ -7,6 +7,8 @@ package dev.chojo.ember.feature.inventory.service;
 
 import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.InventoryRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.inventory.entity.CheckItemRequest;
@@ -25,10 +27,11 @@ import dev.chojo.ember.feature.inventory.entity.ItemCorrection;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.inventory.entity.ItemLastCheck;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
+import dev.chojo.ember.feature.inventory.entity.MemberCheckSummary;
+import dev.chojo.ember.feature.inventory.entity.MovementStanding;
 import dev.chojo.ember.feature.inventory.entity.RequiredInventoryItem;
 import dev.chojo.ember.feature.inventory.entity.SelfCheck;
 import dev.chojo.ember.feature.inventory.repository.InventoryCheckRepository;
-import dev.chojo.ember.feature.inventory.repository.InventoryCheckRepository.MemberCheckSummary;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.inventory.repository.SelfCheckRepository;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
@@ -36,11 +39,9 @@ import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.ConflictResponse;
-import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -74,6 +75,7 @@ public class InventoryCheckService {
     private final ItemCustodyService custodyService;
     private final InventoryService inventoryService;
     private final SelfCheckRepository selfCheckRepository;
+    private final ItemMovementService movementService;
 
     @Inject
     public InventoryCheckService(
@@ -86,8 +88,10 @@ public class InventoryCheckService {
             InventoryContainerService containerService,
             ItemCustodyService custodyService,
             InventoryService inventoryService,
-            SelfCheckRepository selfCheckRepository) {
+            SelfCheckRepository selfCheckRepository,
+            ItemMovementService movementService) {
         this.selfCheckRepository = selfCheckRepository;
+        this.movementService = movementService;
         this.checkRepository = checkRepository;
         this.inventoryRepository = inventoryRepository;
         this.stationMemberRepository = stationMemberRepository;
@@ -120,7 +124,7 @@ public class InventoryCheckService {
      * @param memberId  the member to check
      * @param lockedBy  the member performing the check
      * @return the current check state including required items, assigned items, and unassigned items
-     * @throws ConflictResponse if the member is already locked by a different checker
+     * @throws RefusalResponse if the member is already locked by a different checker
      */
     public MemberCheckState startCheck(int stationId, int memberId, int lockedBy) {
         boolean begun = acquireLock(stationId, memberId, lockedBy);
@@ -169,14 +173,14 @@ public class InventoryCheckService {
         var existingLock = checkRepository.findLock(memberId);
         if (existingLock.isPresent()) {
             if (existingLock.get().lockedBy() != lockedBy) {
-                throw new ConflictResponse("Member is already being checked by another user");
+                throw InventoryRefusal.INVENTORY_CHECK_MEMBER_ALREADY_LOCKED.raise();
             }
             return false;
         }
         checkRepository.releaseLockByLocker(lockedBy);
         Optional<InventoryCheckLock> lock = checkRepository.acquireLock(stationId, memberId, lockedBy);
         if (lock.isEmpty()) {
-            throw new ConflictResponse("Member is already being checked by another user");
+            throw InventoryRefusal.INVENTORY_CHECK_MEMBER_LOCKED_MEANWHILE.raise();
         }
         log.info("Started check on member {} by member {} (station={})", memberId, lockedBy, stationId);
         return true;
@@ -196,13 +200,17 @@ public class InventoryCheckService {
      */
     public MemberGear readGear(int stationId, int memberId) {
         var member = stationMemberRepository.findById(memberId).orElseThrow();
-        var account = accountRepository.findById(member.accountId()).orElseThrow();
+        Integer accountId = member.accountId();
+        String name = accountId == null
+                ? member.displayName()
+                : NameParts.of(accountRepository.findById(accountId).orElseThrow())
+                        .called();
 
         var required = getRequiredItems(stationId, memberId);
         var assigned = inventoryRepository.findItemsByMember(memberId);
         var lastCheck = checkRepository.latestCheckForMember(memberId).orElse(null);
         MemberIdentity identity = memberIdentityFactory.local(stationId, memberId);
-        return new MemberGear(NameParts.of(account).called(), identity, required, assigned, lastCheck);
+        return new MemberGear(name, identity, required, assigned, lastCheck);
     }
 
     /**
@@ -222,8 +230,21 @@ public class InventoryCheckService {
                 gear.assigned(),
                 gear.lastCheck(),
                 unassigned,
-                inventoryRepository.findMovingItemsOfMember(memberId),
+                onTheMove(memberId),
                 overtaken);
+    }
+
+    /**
+     * Where the movement on each of the member's moving pieces stands, read from the movement itself
+     * the way its own row in the movement list words it, so the walk never names the step still being
+     * waited on as though it had happened.
+     */
+    private Map<Integer, MovementStanding> onTheMove(int memberId) {
+        Map<Integer, MovementStanding> standings = new HashMap<>();
+        inventoryRepository.findMovingItemsOfMember(memberId).forEach((itemId, movementId) -> movementService
+                .standingOf(movementId)
+                .ifPresent(standing -> standings.put(itemId, standing)));
+        return standings;
     }
 
     /**
@@ -340,19 +361,20 @@ public class InventoryCheckService {
      * @param checkedBy the member walking it
      */
     private void markMissing(CheckItemRequest result, int checkedBy) {
-        if (result.result() != CheckResult.LOST || result.itemId() == null) return;
+        Integer itemId = result.itemId();
+        if (result.result() != CheckResult.LOST || itemId == null) return;
         boolean borrowed = inventoryRepository
-                .findItemById(result.itemId())
+                .findItemById(itemId)
                 .map(InventoryItem::borrowed)
                 .orElse(false);
         if (borrowed) {
             log.info(
                     "Check found borrowed item {} missing; the loss stays on the check and goes to the owner "
                             + "on the lending request",
-                    result.itemId());
+                    itemId);
             return;
         }
-        custodyService.markLost(result.itemId(), result.note(), checkedBy);
+        custodyService.markLost(itemId, result.note(), checkedBy);
     }
 
     /**
@@ -397,9 +419,10 @@ public class InventoryCheckService {
                                         .map(Inventory::name)
                                         .orElse("")
                                 : "";
-                        if (item != null && item.sizeId() != null) {
+                        Integer sizeId = item != null ? item.sizeId() : null;
+                        if (item != null && sizeId != null) {
                             sizeName = inventoryRepository.findSizes(item.inventoryId()).stream()
-                                    .filter(s -> s.id() == item.sizeId())
+                                    .filter(s -> s.id() == sizeId)
                                     .map(InventorySize::label)
                                     .findFirst()
                                     .orElse(null);
@@ -448,11 +471,9 @@ public class InventoryCheckService {
      * Calculates the inventory items required for a member based on their roles and groups.
      * Aggregates requirement quantities per inventory and compares against currently assigned items.
      *
-     * <p>A piece handed in for an exchange counts towards what the member has. The question here is
-     * whether they are equipped, not what is in their hands this minute, and an exchange over the body
-     * above the station takes weeks: counting the assignment alone would report a gap for all of it and
-     * send whoever walks the check off to order a jacket that is already in the post. The row says how
-     * many of them are away that way, so nobody is left wondering at a number that does not add up.
+     * <p>The cluster's requirements count too, read at the station and never copied. A piece handed in
+     * for an exchange counts towards what the member has, since an exchange can take weeks and would
+     * otherwise report a gap for gear already in the post; the row says how many are away that way.
      *
      * @param stationId the station ID
      * @param memberId  the member ID
@@ -462,24 +483,20 @@ public class InventoryCheckService {
         var member = stationMemberRepository.findById(memberId).orElse(null);
         StationUserType memberUserType = member != null ? member.userType() : null;
         List<MemberGroup> memberGroups = memberGroupRepository.findGroupsForMember(memberId);
-        // The cluster's requirements count here too: one definition, read at the station, never copied
         List<InventoryRequirement> allRequirements = inventoryRepository.findRequirementsCountingAt(stationId);
 
         var memberGroupIds = memberGroups.stream().map(MemberGroup::id).toList();
 
-        // Filter requirements applicable to this member
         List<InventoryRequirement> applicable = allRequirements.stream()
                 .filter(req -> (req.userType() != null && req.userType() == memberUserType)
                         || (req.groupId() != 0 && memberGroupIds.contains(req.groupId())))
                 .toList();
 
-        // Aggregate by inventory: sum required quantities (LinkedHashMap preserves position order)
         Map<Integer, Integer> requiredByInventory = new LinkedHashMap<>();
         for (InventoryRequirement req : applicable) {
             requiredByInventory.merge(req.inventoryId(), req.quantity(), Integer::sum);
         }
 
-        // Count assigned items per inventory
         List<InventoryItem> assignedItems = inventoryRepository.findItemsByMember(memberId);
         Map<Integer, Integer> assignedByInventory = new HashMap<>();
         for (InventoryItem item : assignedItems) {
@@ -492,7 +509,6 @@ public class InventoryCheckService {
             assignedByInventory.merge(item.inventoryId(), 1, Integer::sum);
         }
 
-        // Build result
         List<RequiredInventoryItem> result = new ArrayList<>();
         for (var entry : requiredByInventory.entrySet()) {
             int inventoryId = entry.getKey();
@@ -534,14 +550,14 @@ public class InventoryCheckService {
      * @param memberId   the member being checked
      * @param correction what the member actually holds
      * @return the piece the member holds once the record agrees with them
-     * @throws NotFoundResponse   if the inventory or either piece is unknown
-     * @throws BadRequestResponse if the old piece is not the member's, the new one is not free, or a
-     *                            mixed inventory was not told who owns the new piece
+     * @throws RefusalResponse if the inventory or either piece is unknown, the old piece is not the
+     *                         member's, the new one is not free, or a mixed inventory was not told who
+     *                         owns the new piece
      */
     public InventoryItem correct(int memberId, ItemCorrection correction) {
         Inventory inventory = inventoryRepository
                 .findById(correction.inventoryId())
-                .orElseThrow(() -> new NotFoundResponse("This inventory does not exist"));
+                .orElseThrow(InventoryRefusal.INVENTORY_CHECK_CORRECTION_INVENTORY_NOT_HERE::raise);
         ItemOwner owner = ownerOfNewPiece(inventory, correction);
         InventoryItem replacement = correction.picksFromStock()
                 ? fromStock(correction.pickedItemId(), inventory.id())
@@ -554,7 +570,7 @@ public class InventoryCheckService {
                         owner,
                         null);
 
-        if (correction.replacesAPiece()) release(correction.oldItemId(), memberId);
+        correction.replacedPiece().ifPresent(oldItemId -> release(oldItemId, memberId));
         custodyService.assignToMember(replacement.id(), memberId, nameOf(memberId));
         log.info(
                 "Check corrected member {}: piece {} replaced by {}",
@@ -570,7 +586,7 @@ public class InventoryCheckService {
     private String nameOf(int memberId) {
         return stationMemberRepository
                 .findById(memberId)
-                .flatMap(member -> accountRepository.findById(member.accountId()))
+                .flatMap(member -> Optional.ofNullable(member.accountId()).flatMap(accountRepository::findById))
                 .map(Account::fullName)
                 .orElse("");
     }
@@ -578,6 +594,7 @@ public class InventoryCheckService {
     /**
      * Who owns a piece a correction makes. Only an inventory that holds both owners has to be told;
      * anywhere else the inventory itself is the answer and asking would be a question with one option.
+     * A partner's gear arrives by handover only, so a correction never writes a piece as theirs.
      */
     private static ItemOwner ownerOfNewPiece(Inventory inventory, ItemCorrection correction) {
         return switch (inventory.inventoryType()) {
@@ -585,13 +602,10 @@ public class InventoryCheckService {
             case EXTERNAL -> ItemOwner.CLUSTER;
             case MIXED -> {
                 if (correction.ownerKind() == null) {
-                    throw new BadRequestResponse("This inventory holds both owners, so the new piece needs one named");
+                    throw InventoryRefusal.INVENTORY_CHECK_CORRECTION_OWNER_MISSING.raise();
                 }
-                // Gear belonging to a partner arrives by handover and by nothing else. A correction
-                // writing a new piece is the station saying what it has, and it cannot say that
-                // about somebody else's radio.
                 if (correction.ownerKind() == ItemOwner.PARTNER_STATION) {
-                    throw new BadRequestResponse("A new piece cannot be written down as a partner station's");
+                    throw InventoryRefusal.INVENTORY_CHECK_CORRECTION_OWNED_BY_PARTNER.raise();
                 }
                 yield correction.ownerKind();
             }
@@ -605,12 +619,12 @@ public class InventoryCheckService {
     private InventoryItem fromStock(int itemId, int inventoryId) {
         InventoryItem item = inventoryRepository
                 .findItemById(itemId)
-                .orElseThrow(() -> new NotFoundResponse("This piece does not exist"));
+                .orElseThrow(InventoryRefusal.INVENTORY_CHECK_PICKED_ITEM_NOT_HERE::raise);
         if (item.inventoryId() != inventoryId) {
-            throw new BadRequestResponse("This piece sits in another inventory");
+            throw InventoryRefusal.INVENTORY_CHECK_PICKED_ITEM_IN_OTHER_INVENTORY.raise();
         }
         if (item.assignedTo() != null) {
-            throw new BadRequestResponse("This piece is already with somebody");
+            throw InventoryRefusal.INVENTORY_CHECK_PICKED_ITEM_TAKEN.raise();
         }
         return item;
     }
@@ -633,9 +647,10 @@ public class InventoryCheckService {
     private void release(int itemId, int memberId) {
         InventoryItem item = inventoryRepository
                 .findItemById(itemId)
-                .orElseThrow(() -> new NotFoundResponse("This piece does not exist"));
-        if (item.assignedTo() == null || item.assignedTo() != memberId) {
-            throw new BadRequestResponse("This piece is not on this member's record");
+                .orElseThrow(InventoryRefusal.INVENTORY_CHECK_REPLACED_ITEM_NOT_HERE::raise);
+        Integer holder = item.assignedTo();
+        if (holder == null || holder != memberId) {
+            throw InventoryRefusal.INVENTORY_CHECK_REPLACED_ITEM_NOT_THE_MEMBERS.raise();
         }
         if (item.custody() == ItemCustody.LOST) {
             inventoryRepository.markSpellCorrected(itemId, memberId);
@@ -659,8 +674,9 @@ public class InventoryCheckService {
      * @param assigned   the items currently assigned to the member
      * @param lastCheck  the member's most recent check, or {@code null} if never checked
      * @param unassigned available unassigned items per inventory, keyed by inventory ID
-     * @param onTheMove  the step each piece is standing on that already has a movement running, keyed
-     *                   by piece, so the walk leaves out a swap the station would only refuse
+     * @param onTheMove  where the movement already running on a piece stands, keyed by piece, worded as
+     *                   the movement list words it, so the walk leaves out a swap the station would only
+     *                   refuse and says why
      * @param overtookSelfChecks the tasks this walk closed, so the walker is told a member had been
      *                           asked to answer for themselves and that their answers are not applied
      */
@@ -669,9 +685,9 @@ public class InventoryCheckService {
             MemberIdentity memberIdentity,
             List<RequiredInventoryItem> required,
             List<InventoryItem> assigned,
-            InventoryCheck lastCheck,
+            @Nullable InventoryCheck lastCheck,
             Map<Integer, List<InventoryItem>> unassigned,
-            Map<Integer, String> onTheMove,
+            Map<Integer, MovementStanding> onTheMove,
             List<SelfCheck> overtookSelfChecks) {}
 
     /**

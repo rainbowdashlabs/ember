@@ -5,31 +5,24 @@
  */
 <script lang="ts" setup>
 import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
-import BoardSearchBox from './BoardSearchBox.vue'
-import type { BoardLabel } from '@/api/boards'
-import { useSession } from '@/composables/useSession'
 
-const props = defineProps<{
-    boardKey: string
+/**
+ * The row above a board: its short key, the ticket search the caller puts into the default slot, the
+ * create button and, for those who may manage boards, the way into the settings.
+ */
+defineProps<{
     shortKey: string
-    labelsForTicket: (ticketId: number) => BoardLabel[]
-    laneName: (laneId: number) => string
+    showSettings: boolean
 }>()
 
 const emit = defineEmits<{
     create: []
+    settings: []
 }>()
 
 const { t } = useI18n()
-const router = useRouter()
-const { canManageBoards } = useSession()
-
-function openSettings() {
-    router.push(`/station/boards/${props.shortKey}/settings`)
-}
 </script>
 
 <template>
@@ -38,21 +31,16 @@ function openSettings() {
             <span class="text-xs font-mono text-(--text-muted) bg-(--bg-accent) px-1.5 py-0.5 rounded">{{ shortKey }}</span>
         </div>
         <div class="flex items-center gap-2">
-            <BoardSearchBox
-                :board-key="boardKey"
-                :short-key="shortKey"
-                :labels-for-ticket="labelsForTicket"
-                :lane-name="laneName"
-            />
+            <slot />
             <PrimaryButton @click="emit('create')">
                 <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />
                 {{ t('boards.createTicket') }}
             </PrimaryButton>
             <IconButton
-                v-if="canManageBoards()"
+                v-if="showSettings"
                 :icon="['fas', 'gears']"
                 :label="t('boards.settings')"
-                @click="openSettings"
+                @click="emit('settings')"
             />
         </div>
     </div>

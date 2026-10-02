@@ -5,23 +5,17 @@
  */
 package dev.chojo.ember.feature.twofactor.service;
 
+import com.eatthepath.otp.TimeBasedOneTimePasswordGenerator;
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.WriterException;
 import com.google.zxing.client.j2se.MatrixToImageWriter;
 import com.google.zxing.qrcode.QRCodeWriter;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.TwoFactorSettings;
-import dev.samstevens.totp.code.CodeGenerator;
-import dev.samstevens.totp.code.CodeVerifier;
-import dev.samstevens.totp.code.DefaultCodeGenerator;
-import dev.samstevens.totp.code.DefaultCodeVerifier;
-import dev.samstevens.totp.code.HashingAlgorithm;
-import dev.samstevens.totp.secret.DefaultSecretGenerator;
-import dev.samstevens.totp.secret.SecretGenerator;
-import dev.samstevens.totp.time.SystemTimeProvider;
-import dev.samstevens.totp.time.TimeProvider;
+import dev.chojo.ember.util.RandomTokens;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.apache.commons.codec.binary.Base32;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,63 +23,100 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.security.InvalidKeyException;
 import java.security.MessageDigest;
-import java.security.SecureRandom;
+import java.security.NoSuchAlgorithmException;
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Base64;
+import java.util.Locale;
 import java.util.OptionalLong;
 
 import javax.crypto.Cipher;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
+/**
+ * Time-based one-time passwords (RFC 6238) for the authenticator-app factor.
+ *
+ * <p>A secret is twenty random bytes, handed to the app as unpadded Base32 in an
+ * {@code otpauth://} URI and stored encrypted with AES-GCM. Codes are HMAC-based one-time passwords
+ * over the number of whole periods since the epoch, with the digits, period and HMAC algorithm from
+ * the configuration (SHA1, six digits and thirty seconds unless an operator changed them). That is
+ * what every authenticator app computes, so every secret enrolled so far keeps working.
+ *
+ * <p>{@link #matchStep(String, String)} is the one way a code is checked, for enrolment and sign-in
+ * alike, so both accept exactly the same codes.
+ */
 @Singleton
 public class TotpService {
     private static final Logger log = LoggerFactory.getLogger(TotpService.class);
     private static final int GCM_TAG_BITS = 128;
     private static final int GCM_IV_BYTES = 12;
+    private static final int SECRET_BYTES = 20;
+    private static final Base32 BASE32 = new Base32();
 
     private final TwoFactorSettings.TotpConfig config;
     private final byte[] encryptionKey;
-    private final SecretGenerator secretGenerator;
-    private final CodeVerifier codeVerifier;
-    private final CodeGenerator codeGenerator;
-    private final TimeProvider timeProvider;
+    private final TimeBasedOneTimePasswordGenerator generator;
+    private final Clock clock;
 
     @Inject
     public TotpService(TwoFactorSettings twoFactorSettings, Demo demo) {
-        this.config = twoFactorSettings.totp();
-        String keyBase64 = twoFactorSettings.secretKey();
-        this.encryptionKey = resolveEncryptionKey(twoFactorSettings, demo, keyBase64);
+        this(twoFactorSettings, demo, Clock.systemUTC());
+    }
 
-        this.secretGenerator = new DefaultSecretGenerator();
-        var algorithm = HashingAlgorithm.valueOf(config.algorithm());
-        this.codeGenerator = new DefaultCodeGenerator(algorithm, config.digits());
-        this.timeProvider = new SystemTimeProvider();
-        var verifier = new DefaultCodeVerifier(codeGenerator, timeProvider);
-        verifier.setTimePeriod(config.periodSeconds());
-        verifier.setAllowedTimePeriodDiscrepancy(config.driftWindow());
-        this.codeVerifier = verifier;
+    TotpService(TwoFactorSettings twoFactorSettings, Demo demo, Clock clock) {
+        this.config = twoFactorSettings.totp();
+        this.encryptionKey = resolveEncryptionKey(twoFactorSettings, demo, twoFactorSettings.secretKey());
+        this.generator = generatorFor(config);
+        this.clock = clock;
+    }
+
+    private static TimeBasedOneTimePasswordGenerator generatorFor(TwoFactorSettings.TotpConfig config) {
+        try {
+            return new TimeBasedOneTimePasswordGenerator(
+                    Duration.ofSeconds(config.periodSeconds()), config.digits(), "Hmac" + config.algorithm());
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("Unsupported TOTP algorithm: " + config.algorithm(), e);
+        }
     }
 
     /**
      * Returns the TOTP time-step that the given code matches, searching the configured drift
      * window around the current step, or empty when the code is invalid. Callers can persist
      * the matched step and reject any step at or below it to make each code single-use.
+     *
+     * <p>A secret that is not Base32 or that the HMAC refuses as a key matches nothing, and is
+     * logged, because a stored secret should never be either.
+     *
+     * @param secret the Base32 secret
+     * @param code   the code the user typed
+     * @return the matched step, or empty
      */
     public OptionalLong matchStep(String secret, String code) {
-        if (code == null) return OptionalLong.empty();
-        long currentStep = timeProvider.getTime() / config.periodSeconds();
+        if (secret == null || code == null) return OptionalLong.empty();
+        byte[] keyBytes = BASE32.decode(secret);
+        if (keyBytes.length == 0) {
+            log.warn("A TOTP secret decoded to no key bytes");
+            return OptionalLong.empty();
+        }
+        var key = new SecretKeySpec(keyBytes, generator.getAlgorithm());
+        byte[] presented = code.getBytes(StandardCharsets.UTF_8);
+        long period = config.periodSeconds();
+        long currentStep = Math.floorDiv(clock.instant().getEpochSecond(), period);
         int drift = config.driftWindow();
-        for (long step = currentStep - drift; step <= currentStep + drift; step++) {
-            try {
-                String candidate = codeGenerator.generate(secret, step);
-                if (MessageDigest.isEqual(
-                        candidate.getBytes(StandardCharsets.UTF_8), code.getBytes(StandardCharsets.UTF_8))) {
+        try {
+            for (long step = currentStep - drift; step <= currentStep + drift; step++) {
+                String candidate =
+                        generator.generateOneTimePasswordString(key, Instant.ofEpochSecond(step * period), Locale.ROOT);
+                if (MessageDigest.isEqual(candidate.getBytes(StandardCharsets.UTF_8), presented)) {
                     return OptionalLong.of(step);
                 }
-            } catch (Exception ignored) {
-                // A generation failure for one step should not abort the window scan.
             }
+        } catch (InvalidKeyException e) {
+            log.error("A TOTP secret was refused as an HMAC key", e);
         }
         return OptionalLong.empty();
     }
@@ -95,7 +126,8 @@ public class TotpService {
      * with {@code auth.twoFactor.enabled = true} (which is now the default) must provide a
      * real 32-byte base64 key via {@code TWO_FACTOR_SECRET_KEY}; the app refuses to boot
      * otherwise so a missing secret never silently degrades to a zero key that every install
-     * shares. {@code demo.dev} / {@code demo.enabled} runs fall back to a fixed dev key.
+     * shares. {@code demo.dev} / {@code demo.enabled} runs fall back to a fixed dev key, and with
+     * 2FA disabled the key stays zeroed because nothing ever encrypts with it.
      */
     private static byte[] resolveEncryptionKey(TwoFactorSettings settings, Demo demo, String keyBase64) {
         if (keyBase64 == null || keyBase64.isBlank()) {
@@ -107,7 +139,6 @@ public class TotpService {
                         "auth.twoFactor.secretKey (or TWO_FACTOR_SECRET_KEY) must be set in production deployments. "
                                 + "Generate a 32-byte base64 random value and inject it via configuration.");
             }
-            // 2FA disabled - leave the key zeroed; the service will not be invoked.
             return new byte[32];
         }
         byte[] decoded = Base64.getDecoder().decode(keyBase64);
@@ -118,19 +149,18 @@ public class TotpService {
         return decoded;
     }
 
+    /**
+     * A new secret: twenty random bytes as thirty-two Base32 characters, the length authenticator
+     * apps expect.
+     */
     public String generateSecret() {
-        return secretGenerator.generate();
-    }
-
-    public boolean verifyCode(String secret, String code) {
-        return codeVerifier.isValidCode(secret, code);
+        return BASE32.encodeToString(RandomTokens.bytes(SECRET_BYTES));
     }
 
     public byte[] encryptSecret(String secretBase32) {
         try {
             var cipher = Cipher.getInstance("AES/GCM/NoPadding");
-            byte[] iv = new byte[GCM_IV_BYTES];
-            new SecureRandom().nextBytes(iv);
+            byte[] iv = RandomTokens.bytes(GCM_IV_BYTES);
             cipher.init(
                     Cipher.ENCRYPT_MODE,
                     new SecretKeySpec(encryptionKey, "AES"),

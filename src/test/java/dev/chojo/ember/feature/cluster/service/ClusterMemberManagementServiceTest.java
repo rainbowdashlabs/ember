@@ -5,27 +5,32 @@
  */
 package dev.chojo.ember.feature.cluster.service;
 
+import dev.chojo.ember.api.TestUploads;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.ClusterRefusal;
+import dev.chojo.ember.api.refusal.MemberRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.service.AccountInviteService;
 import dev.chojo.ember.feature.account.service.AuthService;
+import dev.chojo.ember.feature.documents.service.DocumentCatalogService;
 import dev.chojo.ember.feature.documents.service.DocumentService;
-import dev.chojo.ember.feature.media.service.ImageVariantService;
 import dev.chojo.ember.feature.members.entity.FieldOrigin;
 import dev.chojo.ember.feature.members.entity.FieldValueEntry;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
-import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.members.service.FormerMemberService;
+import dev.chojo.ember.feature.members.service.ProfileFieldService;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService;
+import dev.chojo.ember.feature.members.service.UserTypeChangeService;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
-import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
 import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.ForbiddenResponse;
-import io.javalin.http.NotFoundResponse;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -58,17 +63,31 @@ class ClusterMemberManagementServiceTest extends RepositoryTestBase {
                 profileFieldService,
                 new StationMemberInviteService(
                         stationMemberRepo,
-                        memberGroupRepo,
+                        newGroupMemberships(),
                         new AccountInviteService(accountRepo, mock(AuthService.class))),
+                new UserTypeChangeService(stationMemberRepo, newGroupMemberships()),
                 memberDocumentRepo,
-                documentService());
+                documentService(),
+                new DocumentCatalogService(memberDocumentRepo, documentService()),
+                new FormerMemberService(
+                        stationMemberRepo,
+                        accountRepo,
+                        inventoryRepo,
+                        itemMovementService,
+                        memberGroupRepo,
+                        userTagRepo,
+                        attendanceRepo,
+                        profileFieldCore,
+                        documentService(),
+                        selfCheckService),
+                memberNameResolver);
     }
 
     /** A document store backed by a local folder, which is all these stories need of one. */
     private static DocumentService documentService() {
-        var backend = new LocalStorageBackend();
+        var backend = localStorage();
         var storage = new StorageService(new StorageBackendResolver(backend), backend);
-        return new DocumentService(memberDocumentRepo, storage, new ImageVariantService(storage), stationRepo);
+        return newDocumentService(storage);
     }
 
     private int freshCluster() {
@@ -169,17 +188,17 @@ class ClusterMemberManagementServiceTest extends RepositoryTestBase {
         int ownAccountId = peopled.account().id();
 
         assertThrows(
-                ForbiddenResponse.class,
+                RefusalResponse.class,
                 () -> service.setUserType(clusterId, peopled.member().id(), StationUserType.MANAGER, ownAccountId));
         assertThrows(
-                ForbiddenResponse.class,
+                RefusalResponse.class,
                 () -> service.setPermissions(
                         clusterId,
                         peopled.member().id(),
                         Set.of(StationPermission.STATION_ADMINISTRATOR),
                         ownAccountId));
         assertThrows(
-                ForbiddenResponse.class,
+                RefusalResponse.class,
                 () -> service.archive(clusterId, peopled.member().id(), ownAccountId));
     }
 
@@ -191,14 +210,32 @@ class ClusterMemberManagementServiceTest extends RepositoryTestBase {
         int strangerAccountId = freshAccount().id();
 
         assertThrows(
-                ForbiddenResponse.class,
+                RefusalResponse.class,
                 () -> service.setUserType(
                         clusterId, peopled.member().id(), StationUserType.MANAGER, strangerAccountId));
         assertThrows(
-                ForbiddenResponse.class,
+                RefusalResponse.class,
                 () -> service.archive(clusterId, peopled.member().id(), strangerAccountId));
     }
 
+    /** A cluster changing somebody's type takes them out of the station's groups that do not take it. */
+    @Test
+    void aTypeChangeLeavesTheGroupsBoundToOtherTypes() {
+        int clusterId = freshCluster();
+        var peopled = stationWithMember(clusterId);
+        int memberId = peopled.member().id();
+        var children = memberGroupRepo.create(peopled.member().stationId(), "Kinder");
+        memberGroupRepo.replaceUserTypes(children.id(), List.of(StationUserType.MEMBER));
+        stationMemberRepo.setUserType(memberId, StationUserType.MEMBER);
+        memberGroupRepo.addMember(children.id(), memberId);
+
+        service.setUserType(
+                clusterId, memberId, StationUserType.TEAM, freshAccount().id());
+
+        assertTrue(memberGroupRepo.findMembers(children.id()).isEmpty());
+    }
+
+    /** The missing ceiling is deliberate: it reaches up to and including the top of the station's own ladder. */
     @Test
     void anybodyElseCanBeEditedWithNoCeiling() {
         int clusterId = freshCluster();
@@ -210,12 +247,47 @@ class ClusterMemberManagementServiceTest extends RepositoryTestBase {
                 StationUserType.MANAGER,
                 stationMemberRepo.findById(peopled.member().id()).orElseThrow().userType());
 
-        // Up to and including the top of the station's own ladder, which is deliberate
+        service.setPermissions(
+                clusterId, peopled.member().id(), Set.of(StationPermission.STATION_ADMINISTRATOR), strangerAccountId);
+        assertTrue(stationMemberRepo.findPermissions(peopled.member().id()).stream()
+                .anyMatch(permission -> permission.permission() == StationPermission.STATION_ADMINISTRATOR));
+    }
+
+    /** Archiving means the same whoever presses the button: the station's whole leaving routine runs. */
+    @Test
+    void anArchivedMemberLeavesTheWayTheStationLetsThemGo() {
+        int clusterId = freshCluster();
+        var peopled = stationWithMember(clusterId);
+        int memberId = peopled.member().id();
+        int strangerAccountId = freshAccount().id();
+        service.setPermissions(
+                clusterId, memberId, Set.of(StationPermission.USER, StationPermission.LOGIN), strangerAccountId);
+        var group = memberGroupRepo.create(peopled.station().id(), "Jugend " + NAMES.incrementAndGet());
+        memberGroupRepo.addMember(group.id(), memberId);
+
+        service.archive(clusterId, memberId, strangerAccountId);
+
+        var archived = stationMemberRepo.findById(memberId).orElseThrow();
+        assertTrue(archived.former());
+        assertNull(archived.accountId(), "the login is taken away with the account");
+        assertTrue(stationMemberRepo.findPermissions(memberId).isEmpty());
+        assertTrue(memberGroupRepo.findGroupsForMember(memberId).isEmpty());
+    }
+
+    @Test
+    void somebodyTheStationCouldNotArchiveIsNotArchivedByTheAssociationEither() {
+        int clusterId = freshCluster();
+        var peopled = stationWithMember(clusterId);
+        int strangerAccountId = freshAccount().id();
         service.setPermissions(
                 clusterId, peopled.member().id(), Set.of(StationPermission.STATION_ADMINISTRATOR), strangerAccountId);
 
-        service.archive(clusterId, peopled.member().id(), strangerAccountId);
-        assertTrue(
+        var refusal = assertThrows(
+                RefusalResponse.class,
+                () -> service.archive(clusterId, peopled.member().id(), strangerAccountId));
+
+        assertEquals(ClusterRefusal.CLUSTER_MANAGED_MEMBER_NOT_ARCHIVED, refusal.refusal());
+        assertFalse(
                 stationMemberRepo.findById(peopled.member().id()).orElseThrow().former());
     }
 
@@ -227,9 +299,23 @@ class ClusterMemberManagementServiceTest extends RepositoryTestBase {
         int strangerAccountId = freshAccount().id();
 
         assertThrows(
-                NotFoundResponse.class,
+                RefusalResponse.class,
                 () -> service.setUserType(
                         clusterId, elsewhere.member().id(), StationUserType.MANAGER, strangerAccountId));
+    }
+
+    /**
+     * A current member's profile names them from their account. The stored name is only kept once
+     * somebody leaves, so reading it named nobody still at the station.
+     */
+    @Test
+    void aProfileNamesACurrentMemberFromTheirAccount() {
+        int clusterId = freshCluster();
+        var peopled = stationWithMember(clusterId);
+
+        var profile = service.getMemberProfile(clusterId, peopled.member().id());
+
+        assertEquals(peopled.account().firstName() + " " + peopled.account().lastName(), profile.name());
     }
 
     @Test
@@ -238,18 +324,12 @@ class ClusterMemberManagementServiceTest extends RepositoryTestBase {
         var peopled = stationWithMember(clusterId);
 
         var own = profileFieldService.create(
-                peopled.station().id(),
-                "Spindnummer",
-                ProfileFieldType.TEXT,
-                ProfileFieldConfig.empty(),
-                false,
-                false,
-                null);
+                peopled.station().id(), "Spindnummer", FieldType.TEXT, ProfileFieldConfig.empty(), false, false, null);
         profileFieldService.assignToRole(own.id(), ProfileFieldScope.MEMBER, 0, null, null, null);
         var shared = clusterProfileFieldService.create(
                 clusterId,
                 "Mitgliedsnummer",
-                ProfileFieldType.TEXT,
+                FieldType.TEXT,
                 ProfileFieldConfig.empty(),
                 false,
                 false,
@@ -281,7 +361,7 @@ class ClusterMemberManagementServiceTest extends RepositoryTestBase {
         var field = clusterProfileFieldService.create(
                 clusterId,
                 "Mitgliedsnummer",
-                ProfileFieldType.TEXT,
+                FieldType.TEXT,
                 ProfileFieldConfig.empty(),
                 false,
                 false,
@@ -295,13 +375,70 @@ class ClusterMemberManagementServiceTest extends RepositoryTestBase {
                 clusterId,
                 peopled.member().id(),
                 List.of(new FieldValueEntry(field.id(), "\"4711\"", FieldOrigin.CLUSTER)),
-                strangerAccountId,
-                peopled.member().id());
+                strangerAccountId);
 
         var profile = service.getMemberProfile(clusterId, peopled.member().id());
         assertTrue(
                 profile.values().stream().anyMatch(v -> v.fieldId() == field.id() && v.origin() == FieldOrigin.CLUSTER),
                 "the answer is recorded against the cluster's own question");
+        var change = profileFieldChangeRepo.findByMember(peopled.member().id()).getFirst();
+        assertNull(change.changedBy());
+        assertTrue(change.changedByName().startsWith("Ver Waltung"), "the history names the manager by their account");
+    }
+
+    @Test
+    void anAssociationCannotAnswerAnotherStationsQuestion() {
+        int clusterId = freshCluster();
+        var peopled = stationWithMember(clusterId);
+        var elsewhere = stationWithMember(clusterId);
+        var field = profileFieldService.create(
+                elsewhere.station().id(),
+                "Spindnummer",
+                FieldType.TEXT,
+                ProfileFieldConfig.empty(),
+                false,
+                false,
+                null);
+        profileFieldService.assignToRole(field.id(), ProfileFieldScope.MEMBER, 0, null, null, null);
+        int strangerAccountId = freshAccount().id();
+
+        var refusal = assertThrows(
+                RefusalResponse.class,
+                () -> service.updateMemberProfile(
+                        clusterId,
+                        peopled.member().id(),
+                        List.of(new FieldValueEntry(field.id(), "\"12\"", FieldOrigin.STATION)),
+                        strangerAccountId));
+
+        assertEquals(MemberRefusal.PROFILE_FIELD_NOT_HERE_ON_ANSWER, refusal.refusal());
+        assertTrue(profileFieldService.findValues(peopled.member().id()).isEmpty());
+    }
+
+    @Test
+    void anAssociationAnswersOnlyWhatTheMemberIsAskedAndPassesTheirStationsLock() {
+        int clusterId = freshCluster();
+        var peopled = stationWithMember(clusterId);
+        int stationId = peopled.station().id();
+        var notAsked = profileFieldService.create(
+                stationId, "Funkrufname", FieldType.TEXT, ProfileFieldConfig.empty(), false, false, null);
+        profileFieldService.assignToRole(notAsked.id(), ProfileFieldScope.TEAM, 0, null, null, null);
+        var locked = profileFieldService.create(
+                stationId, "Dienstgrad", FieldType.TEXT, ProfileFieldConfig.empty(), false, true, null);
+        profileFieldService.assignToRole(locked.id(), ProfileFieldScope.MEMBER, 0, null, null, null);
+        int strangerAccountId = freshAccount().id();
+
+        service.updateMemberProfile(
+                clusterId,
+                peopled.member().id(),
+                List.of(
+                        new FieldValueEntry(notAsked.id(), "\"Florian 1\"", FieldOrigin.STATION),
+                        new FieldValueEntry(locked.id(), "\"Brandmeister\"", FieldOrigin.STATION)),
+                strangerAccountId);
+
+        var answered = profileFieldService.findValues(peopled.member().id()).stream()
+                .map(ProfileFieldService.MergedValue::fieldId)
+                .toList();
+        assertEquals(List.of(locked.id()), answered);
     }
 
     @Test
@@ -311,24 +448,14 @@ class ClusterMemberManagementServiceTest extends RepositoryTestBase {
         int ownAccountId = peopled.account().id();
 
         assertThrows(
-                ForbiddenResponse.class,
-                () -> service.updateMemberProfile(
-                        clusterId,
-                        peopled.member().id(),
-                        List.of(),
-                        ownAccountId,
-                        peopled.member().id()));
+                RefusalResponse.class,
+                () -> service.updateMemberProfile(clusterId, peopled.member().id(), List.of(), ownAccountId));
 
         stationRepo.setOwner(peopled.station().id(), peopled.member().id());
         int strangerAccountId = freshAccount().id();
         assertThrows(
-                ForbiddenResponse.class,
-                () -> service.updateMemberProfile(
-                        clusterId,
-                        peopled.member().id(),
-                        List.of(),
-                        strangerAccountId,
-                        peopled.member().id()));
+                RefusalResponse.class,
+                () -> service.updateMemberProfile(clusterId, peopled.member().id(), List.of(), strangerAccountId));
     }
 
     @Test
@@ -383,20 +510,102 @@ class ClusterMemberManagementServiceTest extends RepositoryTestBase {
         int clusterId = freshCluster();
         var peopled = stationWithMember(clusterId);
 
+        var manager = freshAccount();
+
         var filed = service.fileDocument(
                 clusterId,
                 peopled.member().id(),
                 "Einverständnis",
-                "einverstaendnis.txt",
-                "text/plain",
-                "Unterschrieben".getBytes(),
-                null);
+                TestUploads.of("einverstaendnis.txt", "text/plain", "Unterschrieben".getBytes()),
+                manager.id());
 
         assertEquals(
                 peopled.station().id(), filed.stationId(), "it stays with the station, which is where the person is");
         assertEquals("Unterschrieben", new String(service.readDocument(filed)), "and it can be read back from here");
         assertTrue(service.documentsOf(clusterId, peopled.member().id()).stream()
                 .anyMatch(document -> document.id() == filed.id()));
+    }
+
+    /**
+     * The manager filing from the association has no membership at the person's station, so their
+     * account is recorded and shown by name, and no membership of theirs elsewhere is written down.
+     */
+    @Test
+    void aDocumentFiledFromTheAssociationNamesTheManagerByAccount() {
+        int clusterId = freshCluster();
+        var peopled = stationWithMember(clusterId);
+        var manager = freshAccount();
+
+        var filed = service.fileDocument(
+                clusterId,
+                peopled.member().id(),
+                " ",
+                TestUploads.of("bescheid.txt", "text/plain", "Ja".getBytes()),
+                manager.id());
+
+        assertNull(filed.uploadedBy(), "no membership is named");
+        assertEquals(manager.id(), filed.uploaderAccountId());
+        assertEquals("bescheid.txt", filed.title(), "a blank title is the name of the file");
+        assertEquals(
+                "Ver " + manager.lastName(), service.view(filed).uploaderName(), "and the manager is shown by name");
+    }
+
+    /** A file passes the station's own intake from the association too: its per-file limit among them. */
+    @Test
+    void aDocumentFromTheAssociationPassesTheStationsIntake() {
+        int clusterId = freshCluster();
+        var peopled = stationWithMember(clusterId);
+
+        var missing = assertThrows(
+                RefusalResponse.class,
+                () -> service.fileDocument(
+                        clusterId,
+                        peopled.member().id(),
+                        "Leer",
+                        null,
+                        freshAccount().id()));
+        var tooLarge = assertThrows(
+                RefusalResponse.class,
+                () -> service.fileDocument(
+                        clusterId,
+                        peopled.member().id(),
+                        "Riesig",
+                        TestUploads.unreadable("riesig.pdf", Long.MAX_VALUE),
+                        freshAccount().id()));
+        var unreadable = assertThrows(
+                RefusalResponse.class,
+                () -> service.fileDocument(
+                        clusterId,
+                        peopled.member().id(),
+                        "Kaputt",
+                        TestUploads.unreadable("kaputt.pdf", 10),
+                        freshAccount().id()));
+
+        assertEquals(ClusterRefusal.CLUSTER_MEMBER_DOCUMENT_MISSING_FILE, missing.refusal());
+        assertEquals(ClusterRefusal.CLUSTER_MEMBER_DOCUMENT_TOO_LARGE, tooLarge.refusal());
+        assertEquals(ClusterRefusal.CLUSTER_MEMBER_DOCUMENT_UNREADABLE, unreadable.refusal());
+    }
+
+    /** A station that switched documents off has switched them off for the association, file included. */
+    @Test
+    void aStationKeepingNoDocumentsKeepsNoneForTheAssociationEither() {
+        int clusterId = freshCluster();
+        var peopled = stationWithMember(clusterId);
+        var filed = service.fileDocument(
+                clusterId,
+                peopled.member().id(),
+                "Vorher",
+                TestUploads.of("vorher.txt", "text/plain", "da".getBytes()),
+                freshAccount().id());
+        stationRepo.setDisabledModules(peopled.station().id(), Set.of(StationModule.DOCUMENTS));
+
+        var listed = assertThrows(
+                RefusalResponse.class,
+                () -> service.documentsOf(clusterId, peopled.member().id()));
+        var read = assertThrows(RefusalResponse.class, () -> service.readDocument(filed));
+
+        assertEquals(ClusterRefusal.CLUSTER_MANAGED_STATION_KEEPS_NO_DOCUMENTS, listed.refusal());
+        assertEquals(ClusterRefusal.CLUSTER_MANAGED_STATION_KEEPS_NO_DOCUMENTS, read.refusal());
     }
 
     @Test
@@ -406,16 +615,21 @@ class ClusterMemberManagementServiceTest extends RepositoryTestBase {
         var theirs = stationWithMember(otherClusterId);
 
         var filed = service.fileDocument(
-                otherClusterId, theirs.member().id(), "Fremd", "fremd.txt", "text/plain", "Geheim".getBytes(), null);
+                otherClusterId,
+                theirs.member().id(),
+                "Fremd",
+                TestUploads.of("fremd.txt", "text/plain", "Geheim".getBytes()),
+                freshAccount().id());
 
         assertThrows(
-                NotFoundResponse.class,
+                RefusalResponse.class,
                 () -> service.documentsOf(clusterId, theirs.member().id()),
                 "somebody at another association's station is nobody here");
-        assertThrows(
-                NotFoundResponse.class,
+        var hidden = assertThrows(
+                RefusalResponse.class,
                 () -> service.requireDocumentOfCluster(clusterId, filed.id()),
                 "and neither is what is filed about them");
+        assertEquals(ClusterRefusal.CLUSTER_MANAGED_DOCUMENT_NOT_HERE, hidden.refusal());
     }
 
     @Test
@@ -424,10 +638,11 @@ class ClusterMemberManagementServiceTest extends RepositoryTestBase {
         int otherClusterId = freshCluster();
         var theirs = clusterService.createStation(otherClusterId, "Wache Fremd " + NAMES.incrementAndGet());
 
-        assertThrows(
-                NotFoundResponse.class,
+        var refused = assertThrows(
+                RefusalResponse.class,
                 () -> service.createMember(
                         clusterId, theirs.uid(), "Neu", "Fremd", "fremd@test.com", StationUserType.MEMBER),
                 "a station answering to somebody else is not one of this association's");
+        assertEquals(ClusterRefusal.CLUSTER_MANAGED_MEMBER_STATION_NOT_HERE, refused.refusal());
     }
 }

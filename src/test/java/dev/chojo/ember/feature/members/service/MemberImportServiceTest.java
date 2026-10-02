@@ -11,8 +11,9 @@ import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.account.service.SetupMail;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
-import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.service.MemberImportService.ColumnMapping;
+import dev.chojo.ember.feature.question.FieldType;
+import dev.chojo.ember.feature.question.FieldTypes;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterEach;
@@ -21,7 +22,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -62,6 +62,7 @@ class MemberImportServiceTest extends RepositoryTestBase {
                 accountRepo,
                 stationMemberRepo,
                 memberGroupRepo,
+                newGroupMemberships(),
                 profileFieldRepo,
                 new AccountInviteService(accountRepo, authService));
         station = stationRepo.create("ImportStation");
@@ -104,6 +105,32 @@ class MemberImportServiceTest extends RepositoryTestBase {
         int accountId = stationMemberRepo.findById(onlyMember()).orElseThrow().accountId();
         assertTrue(accountRepo.findCredential(accountId).isEmpty(), "the import must not set a password nobody knows");
         verify(authService).sendPasswordSetup(accountId);
+    }
+
+    /**
+     * A group named on a row that does not take members is left out with a warning on that row, and
+     * the member is still imported: whoever wrote the list cannot fix a group a manager set up.
+     */
+    @Test
+    void aGroupThatTakesNoMembersIsLeftOutWithAWarning() {
+        var trainers = memberGroupRepo.create(station.id(), "Ausbilder");
+        memberGroupRepo.replaceUserTypes(trainers.id(), List.of(StationUserType.TEAM));
+        String csv = "Vorname;Name;Gruppe\nMia;Klein;Ausbilder\nTom;Groß;Jugend\n";
+
+        var result = importMembers(
+                station.id(),
+                csv,
+                ";",
+                List.of(map("Vorname", "firstName"), map("Name", "lastName"), map("Gruppe", "group")),
+                List.of());
+
+        assertEquals(2, result.membersCreated());
+        assertEquals(1, result.groupsAssigned());
+        assertEquals(
+                List.of("Zeile 2: Die Gruppe Ausbilder nimmt dieses Mitglied nicht auf, nicht zugeordnet"),
+                result.warnings());
+        assertTrue(memberGroupRepo.findMembers(trainers.id()).isEmpty());
+        memberGroupRepo.findByStation(station.id()).forEach(group -> memberGroupRepo.delete(group.id()));
     }
 
     /**
@@ -166,7 +193,7 @@ class MemberImportServiceTest extends RepositoryTestBase {
     }
 
     /** A question of this station, named apart from every other test's so the station can hold them all. */
-    private int field(String name, ProfileFieldType type) {
+    private int field(String name, FieldType type) {
         String unique = name + " " + NAMES.incrementAndGet();
         var created =
                 profileFieldRepo.create(station.id(), unique, type, ProfileFieldConfig.empty(), false, false, null);
@@ -205,7 +232,7 @@ class MemberImportServiceTest extends RepositoryTestBase {
      */
     @Test
     void aPhoneNumberSurvivesBeingImported() {
-        int phone = field("Mobilnummer", ProfileFieldType.TEXT);
+        int phone = field("Mobilnummer", FieldType.TEXT);
         String csv = "Vorname;Name;Telefon\nMax;Müller;01700000000\n";
 
         var result = importMembers(
@@ -222,7 +249,7 @@ class MemberImportServiceTest extends RepositoryTestBase {
     /** A surname is not JSON either, and quotes inside one must not break the document. */
     @Test
     void textWithQuotesIsStoredAsText() {
-        int nickname = field("Spitzname", ProfileFieldType.TEXT);
+        int nickname = field("Spitzname", FieldType.TEXT);
         String csv = "Vorname;Name;Spitzname\nMax;Müller;der \"Lange\"\n";
 
         importMembers(
@@ -238,9 +265,9 @@ class MemberImportServiceTest extends RepositoryTestBase {
     /** What a cell means follows the question it answers. */
     @Test
     void datesNumbersAndYesNoAreStoredAsWhatTheyAre() {
-        int birthday = field("Geburtstag", ProfileFieldType.DATE);
-        int shoes = field("Schuhgröße", ProfileFieldType.NUMBER);
-        int juleica = field("Juleica", ProfileFieldType.BOOLEAN);
+        int birthday = field("Geburtstag", FieldType.DATE);
+        int shoes = field("Schuhgröße", FieldType.NUMBER);
+        int juleica = field("Juleica", FieldType.BOOLEAN);
         String csv = "Vorname;Name;Geburtstag;Schuhe;Juleica\nMax;Müller;04.03.2011;42;Ja\n";
 
         importMembers(
@@ -264,7 +291,7 @@ class MemberImportServiceTest extends RepositoryTestBase {
     /** Spaces around a cell are how a spreadsheet looks, not part of the answer. */
     @Test
     void spacesAroundACellAreNotPartOfIt() {
-        int nickname = field("Spitzname", ProfileFieldType.TEXT);
+        int nickname = field("Spitzname", FieldType.TEXT);
         String csv = "Vorname;Name;Spitzname\n  Max  ;  Müller  ;  Maxi  \n";
 
         importMembers(
@@ -340,7 +367,7 @@ class MemberImportServiceTest extends RepositoryTestBase {
     @Test
     void theTelephoneNumberOfAParentSurvivesToo() {
         var phoneField = profileFieldRepo.create(
-                station.id(), "Mobilnummer", ProfileFieldType.TEXT, ProfileFieldConfig.empty(), false, false, null);
+                station.id(), "Mobilnummer", FieldType.TEXT, ProfileFieldConfig.empty(), false, false, null);
         profileFieldRepo.assignToRole(phoneField.id(), ProfileFieldScope.GUARDIAN, 99, null, null, null);
         int phone = phoneField.id();
         String csv = "Vorname;Name;Kontakt;Telefon;Kontakt Email\n"
@@ -414,19 +441,19 @@ class MemberImportServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * Whatever a question is for, the cell answering it reaches the database.
+     * Whatever a question is for, a cell answering it either reaches the database or is named in a
+     * warning, and never fails the import.
      *
      * <p>An answer is held as JSON and a cell is not JSON, so every kind of question has to be
      * converted before it is stored. This walks all of them with a cell that is awkward for each: a
-     * leading zero is not a JSON number, and it is neither a date nor a yes.
+     * leading zero is not a JSON number, and it is neither a date nor a yes, so those two leave it
+     * out. An age is left out of the walk: it counts itself from a date and takes no cell at all.
      */
     @Test
-    void everyKindOfQuestionTakesAnAwkwardCell() {
-        var types = Arrays.stream(ProfileFieldType.values())
-                .filter(ProfileFieldType::holdsValue)
-                .toList();
+    void everyKindOfQuestionKeepsOrNamesAnAwkwardCell() {
+        var types = FieldTypes.PROFILE.stream().filter(FieldType::holdsValue).toList();
         var mappings = new ArrayList<ColumnMapping>(List.of(map("Vorname", "firstName"), map("Name", "lastName")));
-        var fieldsByType = new LinkedHashMap<ProfileFieldType, Integer>();
+        var fieldsByType = new LinkedHashMap<FieldType, Integer>();
         var header = new StringBuilder("Vorname;Name");
         var row = new StringBuilder("Max;Müller");
         for (var type : types) {
@@ -442,7 +469,12 @@ class MemberImportServiceTest extends RepositoryTestBase {
         assertEquals(1, result.membersCreated());
         int member = onlyMember();
         for (var entry : fieldsByType.entrySet()) {
-            assertNotNull(storedValue(member, entry.getValue()), "a " + entry.getKey() + " question kept its answer");
+            boolean kept =
+                    profileFieldRepo.findValues(member).stream().anyMatch(value -> value.fieldId() == entry.getValue());
+            boolean named = result.warnings().stream()
+                    .anyMatch(
+                            warning -> warning.contains("Feld " + entry.getKey().name() + " "));
+            assertNotEquals(kept, named, "a " + entry.getKey() + " question either kept its answer or named it");
         }
     }
 

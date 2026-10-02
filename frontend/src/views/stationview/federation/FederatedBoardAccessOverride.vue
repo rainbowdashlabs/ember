@@ -14,8 +14,9 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
 import RestrictionsField from '@/components/input/RestrictionsField.vue'
 import { federatedBoards, memberGroups, userTags } from '@/api'
-import type { MemberGroup, UserTag } from '@/api/types'
-import { type RestrictionSelection, emptyRestriction } from '@/components/input/restriction'
+import type { MemberGroup, UserTag } from '@/api/generated/schema'
+import { emptyRestriction } from '@/components/input/restriction'
+import type { RestrictionSelection } from '@/api/types'
 
 const { t } = useI18n()
 
@@ -44,16 +45,16 @@ async function loadData() {
         allGroups.value = groups
         allTags.value = tags
         viewRestriction.value = {
-            userTypes: override.view.userTypes ?? [],
-            groupIds: override.view.groupIds ?? [],
-            tagIds: override.view.tagIds ?? [],
+            userTypes: override.view.userTypes,
+            groupIds: override.view.groupIds,
+            tagIds: override.view.tagIds,
             memberIds: [],
             mode: 'AND',
         }
         editRestriction.value = {
-            userTypes: override.edit.userTypes ?? [],
-            groupIds: override.edit.groupIds ?? [],
-            tagIds: override.edit.tagIds ?? [],
+            userTypes: override.edit.userTypes,
+            groupIds: override.edit.groupIds,
+            tagIds: override.edit.tagIds,
             memberIds: [],
             mode: 'AND',
         }
@@ -90,21 +91,21 @@ onMounted(loadData)
         <div class="space-y-6">
             <div>
                 <FieldLabel class="mb-2">{{ t('boards.viewOverride') }}</FieldLabel>
-                <p class="text-xs text-(--text-muted) mb-2">Leer = sichtbar für alle Mitglieder</p>
+                <p class="text-xs text-(--text-muted) mb-2">{{ t('boards.viewOverrideHint') }}</p>
                 <RestrictionsField
+                    v-model="viewRestriction"
                     :groups="allGroups"
                     :tags="allTags"
-                    v-model="viewRestriction"
                 />
             </div>
 
             <div>
                 <FieldLabel class="mb-2">{{ t('boards.editOverride') }}</FieldLabel>
-                <p class="text-xs text-(--text-muted) mb-2">Leer = alle mit Lesezugriff können bearbeiten</p>
+                <p class="text-xs text-(--text-muted) mb-2">{{ t('boards.editOverrideHint') }}</p>
                 <RestrictionsField
+                    v-model="editRestriction"
                     :groups="allGroups"
                     :tags="allTags"
-                    v-model="editRestriction"
                 />
             </div>
 

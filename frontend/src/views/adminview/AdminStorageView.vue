@@ -40,7 +40,7 @@ import {
 import {STORAGE_CATEGORY_COLORS, buildStorageCategoryLabeler, formatBytes} from '@/util/storage'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useStorageQuotas, type StorageQuotasPort} from '@/composables/useStorageQuotas'
-import {darkThemeActive as isDark} from '@/util/themeState'
+import {useThemePaint} from '@/composables/useThemePaint'
 
 use([CanvasRenderer, BarChart, PieChart, TitleComponent, TooltipComponent, GridComponent, LegendComponent])
 
@@ -53,6 +53,7 @@ interface TooltipParam {
 }
 
 const {t} = useI18n()
+const {dark: isDark} = useThemePaint()
 
 /**
  * The instance's own quotas: every station on it, the tiers it keeps, and the count of what is really there.

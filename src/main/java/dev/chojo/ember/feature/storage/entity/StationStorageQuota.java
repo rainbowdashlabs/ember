@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.storage.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Per-station quota overrides. NULL values mean "use instance default from config".
@@ -21,13 +22,13 @@ import de.chojo.sadu.mapper.rowmapper.RowMapping;
  */
 public record StationStorageQuota(
         int stationId,
-        Long quotaBytes,
-        Long quotaKbBytes,
-        Long quotaBoardBytes,
-        Long quotaImagesBytes,
-        Long quotaPagesBytes,
-        Long perFileBytes,
-        Long perImageBytes) {
+        @Nullable Long quotaBytes,
+        @Nullable Long quotaKbBytes,
+        @Nullable Long quotaBoardBytes,
+        @Nullable Long quotaImagesBytes,
+        @Nullable Long quotaPagesBytes,
+        @Nullable Long perFileBytes,
+        @Nullable Long perImageBytes) {
     public static RowMapping<StationStorageQuota> map() {
         return row -> new StationStorageQuota(
                 row.getInt("id"),

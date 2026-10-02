@@ -3,12 +3,11 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-// @vitest-environment happy-dom
 import {beforeEach, describe, expect, it, vi} from 'vitest'
 import {mount, flushPromises} from '@vue/test-utils'
 import OnboardingTaskCard from './OnboardingTaskCard.vue'
-import type {OnboardingStatus, OnboardingTaskView} from '@/api/onboarding'
-import {onboardingStatus} from '@/util/onboardingState'
+import type {OnboardingStatus, OnboardingTaskView} from '@/api/generated/schema'
+import {onboardingState} from '@/util/onboardingState'
 
 const getTasks = vi.fn()
 const markTask = vi.fn()
@@ -54,7 +53,7 @@ async function mountCard(tasks: OnboardingTaskView[]) {
  */
 describe('OnboardingTaskCard', () => {
     beforeEach(() => {
-        onboardingStatus.value = {}
+        onboardingState().onboardingStatus.value = {}
         getTasks.mockReset()
         markTask.mockReset()
     })
@@ -73,10 +72,7 @@ describe('OnboardingTaskCard', () => {
         expect(wrapper.text()).toContain('Erledigt')
     })
 
-    it('offers no tick for a task that reads its own answer', async () => {
-        // The notifications, because Ember reads the settings themselves. The profile used to stand
-        // here and no longer can: looking over what is written about you is not something any data
-        // can answer for you, so that task is ticked by walking it.
+    it('offers no tick for a task that reads its own answer, as the notifications read the settings', async () => {
         const wrapper = await mountCard([task({id: 'member.notifications', key: 'member.notifications'})])
 
         expect(wrapper.text()).not.toContain('Erledigt')

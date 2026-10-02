@@ -10,10 +10,8 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import {inventory, inventoryArts} from '@/api'
-import type {InventoryArt} from '@/api/inventoryArts'
-import type {InventoryItem, InventorySize} from '@/api/inventory'
-import type {StationMember} from '@/api/types'
-import type {ItemLocationResponse} from '@/api/inventoryContainers'
+import type {InventoryArt, InventoryItem, InventorySize, ItemLocationResponse} from '@/api/generated/schema'
+import type {MemberLike} from '@/components/input/select/memberOption'
 import ItemEditForm from './ItemEditForm.vue'
 import ItemMetadataDisplay from './ItemMetadataDisplay.vue'
 import {parseItemMetadata} from '../detailview/itemMetadata'
@@ -22,7 +20,7 @@ import {describeFailure, type Failure} from '@/util/failure'
 const props = defineProps<{
   item: InventoryItem
   sizes: InventorySize[]
-  members: StationMember[]
+  members: MemberLike[]
   location: ItemLocationResponse | null
   canEditItem: boolean
 }>()
@@ -115,10 +113,10 @@ const assignedMemberIdentity = computed(() => {
     <ItemEditForm
       v-if="editing"
       v-model:name="editName"
-      v-model:internalId="editInternalId"
-      v-model:sizeId="editSizeId"
-      v-model:artId="editArtId"
-      v-model:artDraft="editArtDraft"
+      v-model:internal-id="editInternalId"
+      v-model:size-id="editSizeId"
+      v-model:art-id="editArtId"
+      v-model:art-draft="editArtDraft"
       :sizes="props.sizes"
       :arts="arts"
       :show-art="showArt"

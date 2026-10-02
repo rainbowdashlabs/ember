@@ -9,8 +9,7 @@ import EmptyState from '@/components/feedback/EmptyState.vue'
 import ResultFilterBar from './ResultFilterBar.vue'
 import MissingResponsesPanel from './MissingResponsesPanel.vue'
 import AnalyticsTabs from './AnalyticsTabs.vue'
-import type {Form, FormAnalytics, FormResponse} from '@/api/forms'
-import type {MemberIdentity} from '@/api/types'
+import type {Form, FormAnalytics, FormResponseEntry, MemberIdentity} from '@/api/generated/schema'
 
 /**
  * The answers themselves: how they are narrowed, who is missing, and what they add up to.
@@ -27,8 +26,8 @@ defineProps<{
   view: ReturnType<typeof import('./useResultView').useResultView>
   groupable: boolean
   groupNames: string[]
-  visibleResponses: FormResponse[]
-  currentResponse: FormResponse | null
+  visibleResponses: FormResponseEntry[]
+  currentResponse: FormResponseEntry | null
   currentResponseIndex: number
   loadingResponse: boolean
   getAnswerForQuestion: (questionId: number) => string
@@ -46,13 +45,15 @@ const {t} = useI18n()
 <template>
   <ResultFilterBar
     v-if="groupable && analytics.totalResponses > 0"
-    v-model:filter="view.filter.value"
-    v-model:grouping="view.grouping.value"
+    :filter="view.filter.value"
+    :grouping="view.grouping.value"
     :groups="view.groups.value"
     :tags="view.tags.value"
     :fields="view.groupableFields.value"
     :matching="view.narrowed.value ? view.narrowed.value.totalResponses : null"
     :querying="view.querying.value"
+    @update:filter="view.filterBy"
+    @update:grouping="view.groupBy"
     @reset="view.reset"
   />
 

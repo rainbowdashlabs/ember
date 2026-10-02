@@ -115,7 +115,6 @@ class DataTrackingTest extends RepositoryTestBase {
 
     @Test
     void topLevelSchemaHashIsCurrent() {
-        // Recompute from the tracking file's current tableHashes; should match stored top-level hash
         var sorted = new TreeMap<>(tracking.tables());
         String recomputed = HashComputer.schemaHash(sorted);
         assertEquals(
@@ -179,11 +178,11 @@ class DataTrackingTest extends RepositoryTestBase {
         for (var entry : tracking.tables().entrySet()) {
             var t = entry.getValue();
             String name = entry.getKey();
-            if (t.stationTransfer() != null && t.stationTransfer().status() == Status.UNVERIFIED)
+            if (t.stationTransfer() != null && t.stationTransfer().status() == TrackingStatus.UNVERIFIED)
                 unverified.add(name + " (stationTransfer)");
-            if (t.gdprExport() != null && t.gdprExport().status() == Status.UNVERIFIED)
+            if (t.gdprExport() != null && t.gdprExport().status() == TrackingStatus.UNVERIFIED)
                 unverified.add(name + " (gdprExport)");
-            if (t.gdprDeletion() != null && t.gdprDeletion().status() == Status.UNVERIFIED)
+            if (t.gdprDeletion() != null && t.gdprDeletion().status() == TrackingStatus.UNVERIFIED)
                 unverified.add(name + " (gdprDeletion)");
         }
         if (!unverified.isEmpty()) {
@@ -273,8 +272,8 @@ class DataTrackingTest extends RepositoryTestBase {
     }
 
     private static void checkIgnoredReason(
-            List<String> out, String table, String context, Status status, String reason) {
-        if (status == Status.IGNORED && (reason == null || reason.isBlank())) {
+            List<String> out, String table, String context, TrackingStatus status, String reason) {
+        if (status == TrackingStatus.IGNORED && (reason == null || reason.isBlank())) {
             out.add(table + " (" + context + ")");
         }
     }

@@ -12,7 +12,7 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
-import type {MemberCheckSummary} from '@/api/inventoryCheck'
+import type {EnrichedCheckSummary} from '@/api/generated/schema'
 import {StationUserType} from '@/api/types'
 import {inventoryCheck} from '@/api'
 import {useSession} from '@/composables/useSession'
@@ -28,7 +28,7 @@ const {t} = useI18n()
 const router = useRouter()
 const {sessionInfo} = useSession()
 
-const {config: members, loading, failure} = useConfigPanel<MemberCheckSummary[]>({
+const {config: members, loading, failure} = useConfigPanel<EnrichedCheckSummary[]>({
   initial: [],
   fetch: () => inventoryCheck.getCheckOverview(),
 })
@@ -49,7 +49,7 @@ function startCheck(memberId: number) {
   router.push({name: routes.checkMember, params: {memberId}, query: {teamOnly: activeTab.value === 'team' ? 'true' : 'false'}})
 }
 
-function viewLastCheck(member: MemberCheckSummary) {
+function viewLastCheck(member: EnrichedCheckSummary) {
   router.push({name: routes.checkResult, params: {memberId: member.memberId}, query: {name: memberName(member)}})
 }
 </script>

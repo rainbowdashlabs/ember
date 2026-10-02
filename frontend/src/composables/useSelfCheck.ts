@@ -4,16 +4,16 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {computed, ref, type Ref} from 'vue'
-import type {InventoryItem, RequiredInventoryItem} from '@/api/inventory'
-import {
-    SelfCheckAnswer,
-    type SelfCheckAnswerBody,
-    type SelfCheckAnswerName,
-    type SelfCheckRaisedKindName,
-    type SelfCheckRaisedStateName,
-    type SelfCheckResponse,
-    type SelfCheckRow,
-} from '@/api/selfChecks'
+import {SelfCheckAnswer, type SelfCheckAnswerName} from '@/api/selfChecks'
+import type {
+    AnswerBody,
+    InventoryItem,
+    RequiredInventoryItem,
+    SelfCheckRaisedKind,
+    SelfCheckRaisedState,
+    SelfCheckResponse,
+    SelfCheckRow,
+} from '@/api/generated/schema'
 
 /**
  * One thing the member is asked about: a piece the station says they hold, or a place their role
@@ -55,8 +55,8 @@ export type ExchangeCauseName = (typeof ExchangeCause)[keyof typeof ExchangeCaus
 
 /** One thing the member set going about a piece, and how far it has actually got. */
 export interface RaisedReport {
-    kind: SelfCheckRaisedKindName
-    state: SelfCheckRaisedStateName
+    kind: SelfCheckRaisedKind
+    state: SelfCheckRaisedState
 }
 
 /**
@@ -66,7 +66,7 @@ export interface RaisedReport {
  * <p>A dropped one does not count as raised: the answer it hung on came to nothing, so the member is
  * free to say the same thing again, and the screen says why it fell away rather than barring them.
  */
-export function standingOf(reports: RaisedReport[], kind: SelfCheckRaisedKindName): SelfCheckRaisedStateName | null {
+export function standingOf(reports: RaisedReport[], kind: SelfCheckRaisedKind): SelfCheckRaisedState | null {
     const mine = reports.filter(report => report.kind === kind)
     if (mine.some(report => report.state === 'RAISED')) return 'RAISED'
     if (mine.some(report => report.state === 'WAITING')) return 'WAITING'
@@ -207,7 +207,7 @@ export function useSelfCheck(task: Ref<SelfCheckResponse | null>) {
     }
 
     /** The answer waiting on one entry, or {@code null} where the member has said nothing about it. */
-    function bodyOf(entry: SelfCheckEntry): SelfCheckAnswerBody | null {
+    function bodyOf(entry: SelfCheckEntry): AnswerBody | null {
         const draft = draftOf(entry.key)
         if (!draft.answer) return null
         const note = draft.note.trim()
@@ -231,7 +231,7 @@ export function useSelfCheck(task: Ref<SelfCheckResponse | null>) {
         }
     }
 
-    const pending = computed(() => entries.value.map(bodyOf).filter((body): body is SelfCheckAnswerBody => body != null))
+    const pending = computed(() => entries.value.map(bodyOf).filter((body): body is AnswerBody => body != null))
 
     /**
      * Which entries still ask for something.

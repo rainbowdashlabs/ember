@@ -7,11 +7,11 @@ package dev.chojo.ember.api.auth;
 
 import dev.chojo.ember.api.StepUpRequiredException;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.refusal.TwoFactorRefusal;
 import dev.chojo.ember.conf.file.elements.Auth;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.feature.twofactor.entity.StepUpProof;
 import dev.chojo.ember.feature.twofactor.service.TwoFactorService;
-import io.javalin.http.ForbiddenResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
@@ -96,11 +96,13 @@ public class StepUpGuard {
      */
     public void spendLocalProof(UserSession session, StepUpCategory category) {
         if (session.vouchedFor()) {
-            throw new ForbiddenResponse("A session another device vouched for cannot vouch for one");
+            throw TwoFactorRefusal.VOUCHED_SESSION_CANNOT_VOUCH.raise();
         }
         if (demoConfig.enabled()) return;
-        if (!isLocalAndRecent(session)
-                || !twoFactorService.spendSessionProof(session.sessionId(), session.twoFactorVerifiedAt())) {
+        Instant verifiedAt = session.twoFactorVerifiedAt();
+        if (verifiedAt == null
+                || !isLocalAndRecent(session)
+                || !twoFactorService.spendSessionProof(session.sessionId(), verifiedAt)) {
             throw new StepUpRequiredException(category, localProofs(session.accountId()));
         }
     }

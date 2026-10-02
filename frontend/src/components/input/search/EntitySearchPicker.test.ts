@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-// @vitest-environment happy-dom
+/** @vitest-environment happy-dom */
 import {describe, expect, it, vi} from 'vitest'
 import {mount} from '@vue/test-utils'
 import {createI18n} from 'vue-i18n'
@@ -21,7 +21,7 @@ const GEAR: Gear[] = [
     {id: 3, name: 'Stiefel'},
 ]
 
-const i18n = createI18n({legacy: false, locale: 'de-DE', messages: {'de-DE': {common: {empty: 'leer', delete: 'weg'}}}})
+const i18n = createI18n({legacy: false, locale: 'de-DE', messages: {'de-DE': {common: {empty: 'leer', delete: 'weg'}}, en: {}}})
 
 function picker(extra: Record<string, unknown> = {}) {
     return mount(EntitySearchPicker, {

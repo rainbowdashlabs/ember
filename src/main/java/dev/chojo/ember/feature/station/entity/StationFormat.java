@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.station.entity;
 
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,12 +31,23 @@ public final class StationFormat {
      * @param station the station, or {@code null} when it could not be loaded
      * @return the zone to format with
      */
-    public static ZoneId timezoneOf(Station station) {
-        if (station == null || station.timezone() == null) return ZoneOffset.UTC;
+    public static ZoneId timezoneOf(@Nullable Station station) {
+        return station == null ? ZoneOffset.UTC : timezoneOf(station.id(), station.timezone());
+    }
+
+    /**
+     * The same, for a statement that read only the station's id and its timezone column.
+     *
+     * @param stationId the station, named in the warning when its timezone will not parse
+     * @param timezone  what the station stored, or {@code null}
+     * @return the zone to format with
+     */
+    public static ZoneId timezoneOf(int stationId, @Nullable String timezone) {
+        if (timezone == null) return ZoneOffset.UTC;
         try {
-            return ZoneId.of(station.timezone());
+            return ZoneId.of(timezone);
         } catch (Exception e) {
-            log.warn("Station {} holds the unusable timezone '{}', UTC is used", station.id(), station.timezone(), e);
+            log.warn("Station {} holds the unusable timezone '{}', UTC is used", stationId, timezone, e);
             return ZoneOffset.UTC;
         }
     }
@@ -52,7 +64,7 @@ public final class StationFormat {
      * @param station the station, or {@code null} when it could not be loaded
      * @return the zone name to hand to a browser
      */
-    public static String timezoneNameOf(Station station) {
+    public static String timezoneNameOf(@Nullable Station station) {
         ZoneId zone = timezoneOf(station);
         return ZoneOffset.UTC.equals(zone) ? "UTC" : zone.getId();
     }
@@ -68,9 +80,10 @@ public final class StationFormat {
      * @param station the station, or {@code null} when it could not be loaded
      * @return {@code de} or {@code en}
      */
-    public static String languageOf(Station station) {
-        if (station == null || station.locale() == null) return "de";
-        return station.locale().startsWith("en") ? "en" : "de";
+    public static String languageOf(@Nullable Station station) {
+        String locale = station == null ? null : station.locale();
+        if (locale == null) return "de";
+        return locale.startsWith("en") ? "en" : "de";
     }
 
     /**
@@ -84,7 +97,7 @@ public final class StationFormat {
      *                address the way every export did before the setting existed
      * @return whether the address is printed
      */
-    public static boolean showsInstanceUrl(Station station) {
+    public static boolean showsInstanceUrl(@Nullable Station station) {
         return station == null || !station.pdfHidesInstanceUrl();
     }
 
@@ -95,12 +108,13 @@ public final class StationFormat {
      * @param station the station, or {@code null} when it could not be loaded
      * @return the locale to format with
      */
-    public static Locale localeOf(Station station) {
-        if (station == null || station.locale() == null) return Locale.GERMAN;
+    public static Locale localeOf(@Nullable Station station) {
+        String locale = station == null ? null : station.locale();
+        if (station == null || locale == null) return Locale.GERMAN;
         try {
-            return Locale.forLanguageTag(station.locale());
+            return Locale.forLanguageTag(locale);
         } catch (Exception e) {
-            log.warn("Station {} holds the unusable locale '{}', German is used", station.id(), station.locale(), e);
+            log.warn("Station {} holds the unusable locale '{}', German is used", station.id(), locale, e);
             return Locale.GERMAN;
         }
     }

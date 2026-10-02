@@ -13,7 +13,9 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MutedText from '@/components/typography/MutedText.vue'
+import SmtpEncryptionField from '@/components/mail/SmtpEncryptionField.vue'
 import {RELAY_PROVIDER_NAMES} from '@/util/mailProviders'
+import {SmtpEncryption} from '@/api/mailProviders'
 
 /**
  * A mail provider as the administration page shows it, filled in for an own mail server, so the
@@ -57,6 +59,7 @@ const numberFields = [
         <NumberInput :model-value="field.value"/>
         <MutedText v-if="field.hint" tag="div" class="mt-1">{{ t(field.hint) }}</MutedText>
       </div>
+      <SmtpEncryptionField :model-value="SmtpEncryption.STARTTLS"/>
     </div>
 
     <div class="flex justify-end">

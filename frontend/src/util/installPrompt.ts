@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {computed, readonly, ref} from 'vue'
+import {browserShallowRef} from '@/util/browserState'
 
 /**
  * The browser's own offer to install Ember, held from the moment it is made until somebody asks
@@ -19,22 +19,20 @@ export interface InstallOffer extends Event {
     userChoice: Promise<{outcome: 'accepted' | 'dismissed'}>
 }
 
-const offer = ref<InstallOffer | null>(null)
-const installed = ref(false)
+const offer = browserShallowRef<InstallOffer | null>(null)
 
 /** Whether the browser has an installation to offer right now. */
-export const canInstall = computed(() => offer.value !== null)
-
-/** Whether Ember is already installed, as far as this browser has said so. */
-export const isInstalled = readonly(installed)
+export function canInstall(): boolean {
+    return offer.value !== null
+}
 
 /** Keeps the offer the browser made, so it can be taken up later on the reader's own click. */
 export function keepInstallOffer(event: InstallOffer) {
     offer.value = event
 }
 
+/** Lets go of the offer once Ember is installed, since there is nothing left to offer. */
 export function markInstalled() {
-    installed.value = true
     offer.value = null
 }
 

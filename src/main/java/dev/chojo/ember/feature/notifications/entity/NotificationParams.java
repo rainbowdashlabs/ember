@@ -6,9 +6,11 @@
 package dev.chojo.ember.feature.notifications.entity;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import dev.chojo.ember.feature.events.entity.CancellationCause;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
 import dev.chojo.ember.feature.inventory.entity.StepActor;
+import org.jspecify.annotations.Nullable;
 
 import java.time.LocalDate;
 
@@ -27,7 +29,7 @@ public sealed interface NotificationParams {
      * one that ran out last week, names the sentence here, and it is looked up beside the type's own
      * before the plural of either is chosen.
      */
-    default String variant() {
+    default @Nullable String variant() {
         return null;
     }
 
@@ -50,19 +52,19 @@ public sealed interface NotificationParams {
     record ExpiryReminder(
             ExpiryReminderKind kind,
             String fieldName,
-            String memberName,
-            LocalDate expiresOn,
-            Integer days,
-            String members,
-            Integer count)
+            @Nullable String memberName,
+            @Nullable LocalDate expiresOn,
+            @Nullable Integer days,
+            @Nullable String members,
+            @Nullable Integer count)
             implements NotificationParams {
         @Override
-        public String variant() {
+        public @Nullable String variant() {
             return kind == null ? null : kind.name();
         }
     }
 
-    record NewNews(String title, String author, String preview) implements NotificationParams {}
+    record NewNews(String title, String author, @Nullable String preview) implements NotificationParams {}
 
     record NewsComment(String newsTitle, String author, String preview) implements NotificationParams {}
 
@@ -77,8 +79,10 @@ public sealed interface NotificationParams {
     record NewEventsBatch(int count, String eventPreview, LocalDate firstEventDate) implements NotificationParams {}
 
     record EventRegistrationStatus(
-            String memberName, String eventName, RegistrationStatus status, String eventDescription)
-            implements NotificationParams {}
+            String memberName,
+            String eventName,
+            RegistrationStatus status,
+            @Nullable String eventDescription) implements NotificationParams {}
 
     /** A movement has been raised. Every purpose, not only a swap: the words come from the chain. */
     record MovementRaised(String memberName, String inventoryName, String reason) implements NotificationParams {}
@@ -88,9 +92,12 @@ public sealed interface NotificationParams {
      * because the chain a station walks is its own to name, and the next actor says whose turn it
      * is now: this notification is only ever sent to that party, so its presence is the signal.
      */
-    record MovementMoved(String stepLabel, String inventoryName, StepActor nextActor) implements NotificationParams {}
+    record MovementMoved(
+            String stepLabel,
+            String inventoryName,
+            @Nullable StepActor nextActor) implements NotificationParams {}
 
-    record MovementDeclined(String inventoryName, String reason) implements NotificationParams {}
+    record MovementDeclined(String inventoryName, @Nullable String reason) implements NotificationParams {}
 
     /**
      * Somebody called a movement off. Where the piece ended up cannot be worked out from that fact
@@ -108,7 +115,8 @@ public sealed interface NotificationParams {
 
     record ClusterApplicationApproved(String clusterName) implements NotificationParams {}
 
-    record ClusterApplicationDenied(String clusterName, String reason) implements NotificationParams {}
+    record ClusterApplicationDenied(
+            String clusterName, @Nullable String reason) implements NotificationParams {}
 
     record ClusterApplicationWithdrawn(String stationName) implements NotificationParams {}
 
@@ -162,7 +170,37 @@ public sealed interface NotificationParams {
 
     record RegistrationDeadlineExpired(String eventName, int pendingCount) implements NotificationParams {}
 
-    record EventCancelled(String eventName, String reason) implements NotificationParams {}
+    /**
+     * An appointment somebody holds a place on was called off, one date of it or the whole series.
+     *
+     * <p>A date called off by the check for too few registrations carries no reason: the sentence
+     * for its cause says why, in the reader's own language.
+     *
+     * @param eventName the appointment
+     * @param reason    the reason a manager gave, or null
+     * @param eventDate the date called off, null where the whole series was
+     * @param cause     who called it off, null on notifications written before dates could be
+     */
+    record EventCancelled(
+            String eventName,
+            @Nullable String reason,
+            @Nullable LocalDate eventDate,
+            @Nullable CancellationCause cause) implements NotificationParams {
+        /** The sentence for one date, and the one for a date too few had registered for. */
+        @Override
+        public @Nullable String variant() {
+            if (cause == CancellationCause.THRESHOLD) return "THRESHOLD";
+            return eventDate != null ? "DATE" : null;
+        }
+    }
+
+    /**
+     * A date of an appointment that had been called off takes place again.
+     *
+     * @param eventName the appointment
+     * @param eventDate the date that takes place again
+     */
+    record EventDateRestored(String eventName, LocalDate eventDate) implements NotificationParams {}
 
     record EventReminder(String eventName, int daysBefore, LocalDate eventDate) implements NotificationParams {}
 
@@ -184,6 +222,41 @@ public sealed interface NotificationParams {
      *                   look after; a guardian needs to know which of their children it is about
      */
     record RegistrationAnswerMissing(String eventName, LocalDate eventDate, String memberName)
+            implements NotificationParams {}
+
+    /**
+     * An appointment moved off a date somebody was signed up for, so that registration was withdrawn.
+     *
+     * @param eventName  the appointment
+     * @param eventDate  the date it no longer falls on, which the registration was for
+     * @param memberName whose registration it was, which is the reader themselves or somebody they
+     *                   look after; a guardian needs to know which of their children it is about
+     * @param nextDate   the first date on or after that one the appointment now falls on, or null
+     *                   where none is left
+     */
+    record EventDateDropped(
+            String eventName,
+            LocalDate eventDate,
+            String memberName,
+            @Nullable LocalDate nextDate) implements NotificationParams {
+        /** The sentence without a next date, for a series that has none left. */
+        @Override
+        public @Nullable String variant() {
+            return nextDate == null ? "LAST" : null;
+        }
+    }
+
+    /**
+     * A one-off appointment somebody is signed up for moved to another time, and their registration
+     * moved with it.
+     *
+     * @param eventName  the appointment
+     * @param eventDate  the date it now falls on
+     * @param startTime  the time of day it now starts at, on the station's clock
+     * @param memberName whose registration it is, which is the reader themselves or somebody they
+     *                   look after
+     */
+    record EventMoved(String eventName, LocalDate eventDate, String startTime, String memberName)
             implements NotificationParams {}
 
     record ProcedureAssigned(String procedureName, String assignedByName) implements NotificationParams {}

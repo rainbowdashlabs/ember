@@ -7,23 +7,18 @@ package dev.chojo.ember.feature.members.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.MessageResponse;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.UserSession;
-import dev.chojo.ember.api.auth.InstancePermission;
-import dev.chojo.ember.api.auth.InstanceUserType;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.auth.StepUpCategory;
-import dev.chojo.ember.api.auth.StepUpGuard;
-import dev.chojo.ember.feature.account.entity.Account;
-import dev.chojo.ember.feature.account.repository.AccountRepository;
-import dev.chojo.ember.feature.account.service.AccountEmailService;
+import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.feature.account.service.AuthService;
-import dev.chojo.ember.feature.account.service.LoginNameService;
 import dev.chojo.ember.feature.account.service.SetupMail;
-import dev.chojo.ember.feature.members.repository.StationMemberRepository;
-import dev.chojo.ember.feature.members.service.MemberNameResolver;
+import dev.chojo.ember.feature.members.service.MemberAccountService;
+import dev.chojo.ember.feature.members.service.MemberAccountService.UpdateAccountRequest;
+import dev.chojo.ember.feature.members.service.MemberAccountService.UpdateAccountResponse;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService.ProvisionException;
 import dev.chojo.ember.feature.passkey.service.PasskeyEnrollmentService;
@@ -38,6 +33,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 
@@ -48,34 +44,19 @@ import static dev.chojo.ember.api.RouteSupport.pathInt;
 @Singleton
 public class MemberRoutes implements Routes {
     private final AuthService authService;
-    private final AccountRepository accountRepository;
-    private final StationMemberRepository stationMemberRepository;
+    private final MemberAccountService memberAccounts;
     private final StationMemberInviteService inviteService;
-    private final LoginNameService loginNameService;
-    private final AccountEmailService accountEmailService;
-    private final StepUpGuard stepUpGuard;
     private final PasskeyEnrollmentService enrollmentService;
-    private final MemberNameResolver nameResolver;
 
     @Inject
     public MemberRoutes(
             AuthService authService,
-            AccountRepository accountRepository,
-            StationMemberRepository stationMemberRepository,
+            MemberAccountService memberAccounts,
             StationMemberInviteService inviteService,
-            LoginNameService loginNameService,
-            AccountEmailService accountEmailService,
-            StepUpGuard stepUpGuard,
-            PasskeyEnrollmentService enrollmentService,
-            MemberNameResolver nameResolver) {
-        this.nameResolver = nameResolver;
+            PasskeyEnrollmentService enrollmentService) {
         this.authService = authService;
-        this.accountRepository = accountRepository;
-        this.stationMemberRepository = stationMemberRepository;
+        this.memberAccounts = memberAccounts;
         this.inviteService = inviteService;
-        this.loginNameService = loginNameService;
-        this.accountEmailService = accountEmailService;
-        this.stepUpGuard = stepUpGuard;
         this.enrollmentService = enrollmentService;
     }
 
@@ -83,56 +64,20 @@ public class MemberRoutes implements Routes {
         return s == null || s.isBlank();
     }
 
-    /**
-     * Asserts the given account belongs to a member of the caller's station. Answers 404
-     * when the caller has no resolved station or the account is not a member of it, so an
-     * account id from another station cannot be updated or reset through these routes.
-     */
-    private void requireStationAccount(int accountId, UserSession session) {
-        Integer stationId = session.stationId();
-        if (stationId == null
-                || stationMemberRepository
-                        .findByStationAndAccount(stationId, accountId)
-                        .isEmpty()) {
-            throw Refusal.MEMBER_NOT_HERE.raise();
-        }
-    }
-
-    /**
-     * Refuses acting on an account that administers the instance from a permission below it.
-     * Resetting an administrator's password ends every session and token they hold, and moving
-     * their address aims every later mail at whoever chose it; the two together are a takeover
-     * kit, so neither is reachable from a mere member-editing permission.
-     */
-    private void requireNotAboveActor(Account target, UserSession actor) {
-        if (target.instanceUserType() == InstanceUserType.ADMINISTRATOR
-                && actor.instanceUserType() != InstanceUserType.ADMINISTRATOR) {
-            throw Refusal.ACCOUNT_ABOVE_YOU.raise();
-        }
-    }
-
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.post(prefix + "/members/invite", this::invite, StationPermission.MEMBER_EDIT);
-        // No route-level step-up category: everybody edits their own name here, and that is not
-        // sensitive. The one branch that is (moving somebody else's address) asks by hand below.
         routes.put(prefix + "/members/{accountId}", this::updateAccount, StationPermission.LOGIN);
         routes.post(
                 prefix + "/members/reset-password",
                 this::resetPassword,
                 StationPermission.MEMBER_EDIT,
                 StepUpCategory.ACCOUNT_SECURITY);
-        // Onboard again: every passkey disabled, every session ended, a fresh setup link where
-        // mail about the account already goes. Not a new power: whoever may press this can
-        // reset a password today.
         routes.post(
                 prefix + "/members/onboard-again",
                 this::onboardAgain,
                 StationPermission.MEMBER_EDIT,
                 StepUpCategory.ACCOUNT_SECURITY);
-        // The member manager's passkey code, for an addressless member with no guardian to hand
-        // it over. Refused for anybody who has an address of their own: the mail path is right
-        // there and is the one with a second party in it.
         routes.post(
                 prefix + "/members/passkey-code",
                 this::issuePasskeyCode,
@@ -142,39 +87,56 @@ public class MemberRoutes implements Routes {
                 prefix + "/members/passkey-code/{accountId}", this::revokePasskeyCode, StationPermission.MEMBER_EDIT);
     }
 
+    /**
+     * Onboards a member again: every passkey disabled, every session ended, a fresh setup link where
+     * mail about the account already goes. Not a new power: whoever may press this can reset a
+     * password today.
+     */
+    @OpenApi(
+            path = "/api/v1/members/onboard-again",
+            methods = HttpMethod.POST,
+            summary = "Onboard a member again",
+            tags = {"Members"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = AccountActionRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = OnboardAgainResponse.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
     private void onboardAgain(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(AccountActionRequest.class);
-        if (request.accountId() == null) {
-            throw Refusal.ACCOUNT_NOT_NAMED_ON_ONBOARDING_AGAIN.raise();
+        Integer accountId = request.accountId();
+        if (accountId == null) {
+            throw MemberRefusal.ACCOUNT_NOT_NAMED_ON_ONBOARDING_AGAIN.raise();
         }
-        requireStationAccount(request.accountId(), session);
-        requireNotAboveActor(
-                accountRepository
-                        .findById(request.accountId())
-                        .orElseThrow(Refusal.ACCOUNT_NOT_HERE_ON_ONBOARDING_AGAIN::raise),
-                session);
-
+        memberAccounts.actionableAccount(accountId, session, MemberRefusal.ACCOUNT_NOT_HERE_ON_ONBOARDING_AGAIN);
         boolean mailed = enrollmentService.onboardAgain(
-                request.accountId(), session.accountId(), ctx.userAgent(), ctx.header("CF-IPCountry"));
+                accountId, session.accountId(), ctx.userAgent(), ctx.header("CF-IPCountry"));
         ctx.json(new OnboardAgainResponse(mailed));
     }
 
+    /**
+     * The member manager's passkey code, for an addressless member with no guardian to hand it
+     * over. Refused for anybody who has an address of their own: the mail path is right there and is
+     * the one with a second party in it.
+     */
+    @OpenApi(
+            path = "/api/v1/members/passkey-code",
+            methods = HttpMethod.POST,
+            summary = "Issue a passkey code for an addressless member",
+            tags = {"Members"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = AccountActionRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = PasskeyCodeResponse.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
     private void issuePasskeyCode(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(AccountActionRequest.class);
         if (request.accountId() == null) {
-            throw Refusal.ACCOUNT_NOT_NAMED_ON_PASSKEY_CODE.raise();
+            throw MemberRefusal.ACCOUNT_NOT_NAMED_ON_PASSKEY_CODE.raise();
         }
-        requireStationAccount(request.accountId(), session);
-        Account target = accountRepository
-                .findById(request.accountId())
-                .orElseThrow(Refusal.ACCOUNT_NOT_HERE_ON_PASSKEY_CODE::raise);
-        requireNotAboveActor(target, session);
-        if (target.hasRealEmail()) {
-            throw Refusal.MEMBER_HAS_OWN_ADDRESS.raise();
-        }
-
+        var target = memberAccounts.addresslessAccount(request.accountId(), session);
         var issued = enrollmentService.issueCodeWithQr(
                 target.id(),
                 session.accountId(),
@@ -184,14 +146,29 @@ public class MemberRoutes implements Routes {
         ctx.json(new PasskeyCodeResponse(issued.code(), issued.qrPng(), issued.expiresAt()));
     }
 
+    @OpenApi(
+            path = "/api/v1/members/passkey-code/{accountId}",
+            methods = HttpMethod.DELETE,
+            summary = "Revoke the passkey code of a member",
+            tags = {"Members"},
+            pathParams = @OpenApiParam(name = "accountId", type = Integer.class, required = true),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
     private void revokePasskeyCode(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int accountId = pathInt(ctx, "accountId");
-        requireStationAccount(accountId, session);
+        memberAccounts.requireStationAccount(accountId, session.stationId());
         enrollmentService.revokeCode(accountId);
         ctx.json(new MessageResponse("Code revoked"));
     }
 
+    /**
+     * Updates an account's name and address. No route-level step-up category: everybody edits their
+     * own name here, and that is not sensitive. The one branch that is (moving somebody else's
+     * address) asks by hand.
+     */
     @OpenApi(
             path = "/api/v1/members/{accountId}",
             methods = HttpMethod.PUT,
@@ -209,60 +186,8 @@ public class MemberRoutes implements Routes {
     private void updateAccount(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int accountId = pathInt(ctx, "accountId");
-        boolean actsForSomebodyElse = session.accountId() != accountId;
-        // Whoever administers the instance reaches any account, and reaches it without being at the
-        // same station. The account this exists for is another administrator: one whose address
-        // cannot be written to has no way of correcting it, because the confirmation would be sent
-        // to the address being corrected, and there is no reason the person who can help them
-        // should have to be a member of their station first.
-        boolean administersInstance = session.hasInstancePermission(InstancePermission.ADMINISTRATOR);
-        if (actsForSomebodyElse && !administersInstance) {
-            if (!session.hasPermission(StationPermission.MEMBER_EDIT)) {
-                throw Refusal.ACCOUNT_NOT_YOURS_TO_CHANGE.raise();
-            }
-            requireStationAccount(accountId, session);
-        }
         var request = ctx.bodyAsClass(UpdateAccountRequest.class);
-        var existing = accountRepository.findById(accountId).orElseThrow(Refusal.ACCOUNT_NOT_HERE_ON_CHANGE::raise);
-
-        boolean emailChanged = request.email() != null
-                && !request.email().isBlank()
-                && !request.email().equalsIgnoreCase(existing.email());
-
-        // Written with the address it already has, so that the two ways of changing one below are the
-        // only things that ever move it
-        if (!accountRepository.update(accountId, existing.email(), request.firstName(), request.lastName())) {
-            throw Refusal.MEMBER_NOT_HERE_ON_CHANGE.raise();
-        }
-        nameResolver.forgetAccount(accountId);
-
-        if (request.username() != null) {
-            accountRepository.updateUsername(accountId, loginNameService.validatedFor(existing, request.username()));
-        }
-
-        if (!emailChanged) {
-            ctx.json(new UpdateAccountResponse("Account updated", null));
-            return;
-        }
-
-        // Somebody putting their own address right confirms it from both ends, which is what stops a
-        // stolen session walking off with the account. An administrator is asked to do this precisely
-        // where that cannot work: the address to be corrected is the wrong one, and it is the address
-        // half of that confirmation would go to.
-        if (actsForSomebodyElse) {
-            // Moving somebody's address aims every later mail (reset and re-onboarding alike) at
-            // whoever chose it, so it takes a fresh proof and never reaches upwards.
-            requireNotAboveActor(existing, session);
-            stepUpGuard.require(session, StepUpCategory.ACCOUNT_SECURITY);
-            accountEmailService.setEmailFor(session.accountId(), accountId, request.email());
-            ctx.json(new UpdateAccountResponse("Account updated", AuthService.EmailChangeResult.COMMITTED));
-            return;
-        }
-        var outcome = authService.requestEmailChange(accountId, request.email());
-        if (outcome == AuthService.EmailChangeResult.DUPLICATE) {
-            throw Refusal.ACCOUNT_ADDRESS_TAKEN.raise();
-        }
-        ctx.json(new UpdateAccountResponse("Account updated", outcome));
+        ctx.json(memberAccounts.update(session, session.stationId(), accountId, request));
     }
 
     @OpenApi(
@@ -274,17 +199,17 @@ public class MemberRoutes implements Routes {
             tags = {"Members"},
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = InviteRequest.class)),
             responses = {
-                @OpenApiResponse(status = "201", content = @OpenApiContent(from = InviteResponse.class)),
+                @OpenApiResponse(status = "201", content = @OpenApiContent(from = MemberInviteResponse.class)),
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
                 @OpenApiResponse(status = "409", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void invite(Context ctx) {
         var request = ctx.bodyAsClass(InviteRequest.class);
         if (isBlank(request.firstName()) || isBlank(request.lastName())) {
-            throw Refusal.INVITE_NAME_MISSING.raise();
+            throw MemberRefusal.INVITE_NAME_MISSING.raise();
         }
 
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         try {
             var provisioned = inviteService.provision(
                     session.stationId(),
@@ -295,13 +220,13 @@ public class MemberRoutes implements Routes {
                     null,
                     SetupMail.of(request.sendSetupMail()));
             ctx.status(HttpStatus.CREATED)
-                    .json(new InviteResponse(
+                    .json(new MemberInviteResponse(
                             provisioned.accountId(),
                             provisioned.email(),
                             provisioned.firstName(),
                             provisioned.lastName()));
         } catch (ProvisionException ignored) {
-            throw Refusal.MEMBER_NOT_PROVISIONED.raise();
+            throw MemberRefusal.MEMBER_NOT_PROVISIONED.raise();
         }
     }
 
@@ -318,27 +243,20 @@ public class MemberRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void resetPassword(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(ResetPasswordRequest.class);
         if (request.accountId() == null) {
-            throw Refusal.ACCOUNT_NOT_NAMED_ON_PASSWORD_RESET.raise();
+            throw MemberRefusal.ACCOUNT_NOT_NAMED_ON_PASSWORD_RESET.raise();
         }
-        requireStationAccount(request.accountId(), session);
-        requireNotAboveActor(
-                accountRepository
-                        .findById(request.accountId())
-                        .orElseThrow(Refusal.ACCOUNT_NOT_HERE_ON_PASSWORD_RESET::raise),
-                session);
-
+        memberAccounts.actionableAccount(
+                request.accountId(), session, MemberRefusal.ACCOUNT_NOT_HERE_ON_PASSWORD_RESET);
         boolean forceChange = request.forceChange() != null && request.forceChange();
         if (authService.adminResetPassword(request.accountId(), forceChange)) {
             ctx.status(HttpStatus.OK).json(new MessageResponse("Password reset email sent"));
         } else {
-            throw Refusal.ACCOUNT_NOT_HERE_ON_PASSWORD_RESET_MAIL.raise();
+            throw MemberRefusal.ACCOUNT_NOT_HERE_ON_PASSWORD_RESET_MAIL.raise();
         }
     }
-
-    // -- Request/Response records --
 
     /**
      * @param sendSetupMail whether the setup mail leaves with the account. Absent means it does,
@@ -348,13 +266,12 @@ public class MemberRoutes implements Routes {
 
     public record ResetPasswordRequest(Integer accountId, Boolean forceChange) {}
 
-    public record InviteResponse(int id, String email, String firstName, String lastName) {}
-
     /**
-     * @param username the name this account signs in with beside its address. Absent leaves the name
-     *                 as it is; empty clears it.
+     * The account an invitation provisioned.
+     *
+     * @param email its address, or null for a member reached through their guardians
      */
-    public record UpdateAccountRequest(String email, String username, String firstName, String lastName) {}
+    public record MemberInviteResponse(int id, @Nullable String email, String firstName, String lastName) {}
 
     public record AccountActionRequest(Integer accountId) {}
 
@@ -363,15 +280,4 @@ public class MemberRoutes implements Routes {
      *         the way to the member
      */
     public record OnboardAgainResponse(boolean mailed) {}
-
-    public record PasskeyCodeResponse(String code, String qrPng, java.time.Instant expiresAt) {}
-
-    /**
-     * The answer to an account update.
-     *
-     * @param emailChange what became of an address given in the same call: {@code null} when the
-     *                    address was left alone, COMMITTED when it is already the account's, and
-     *                    WAITING when it becomes so once a link in the reader's mail is clicked
-     */
-    public record UpdateAccountResponse(String message, AuthService.EmailChangeResult emailChange) {}
 }

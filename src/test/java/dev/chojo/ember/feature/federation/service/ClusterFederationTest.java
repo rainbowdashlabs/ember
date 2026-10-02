@@ -5,13 +5,15 @@
  */
 package dev.chojo.ember.feature.federation.service;
 
+import dev.chojo.ember.api.refusal.FederationRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.federation.entity.CapabilityType;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
+import dev.chojo.ember.util.TestStationKeys;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -36,7 +38,7 @@ class ClusterFederationTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         federationRepository = new FederationRepository();
-        service = new FederationService(federationRepository, stationRepo, new Api());
+        service = new FederationService(federationRepository, stationRepo, TestStationKeys.store(), new Api());
     }
 
     private Station freshStation() {
@@ -122,12 +124,15 @@ class ClusterFederationTest extends RepositoryTestBase {
         int homePairId = pair(joining.id(), home.uid()).id();
         int meshPairId = pair(joining.id(), sibling.uid()).id();
 
-        assertThrows(BadRequestResponse.class, () -> service.endFederation(homePairId));
-        assertThrows(BadRequestResponse.class, () -> service.endFederation(meshPairId));
-        assertThrows(BadRequestResponse.class, () -> service.suspendPartner(homePairId), "content must keep arriving");
+        var endingHome = assertThrows(RefusalResponse.class, () -> service.endFederation(homePairId));
+        var endingMesh = assertThrows(RefusalResponse.class, () -> service.endFederation(meshPairId));
+        var pausingHome = assertThrows(
+                RefusalResponse.class, () -> service.suspendPartner(homePairId), "content must keep arriving");
+        assertEquals(FederationRefusal.FEDERATION_CLUSTER_PARTNER_NOT_DELETABLE, endingHome.refusal());
+        assertEquals(FederationRefusal.FEDERATION_CLUSTER_PARTNER_NOT_DELETABLE, endingMesh.refusal());
+        assertEquals(FederationRefusal.FEDERATION_CLUSTER_PARTNER_NOT_PAUSABLE, pausingHome.refusal());
 
-        // A mesh pair is a matter between the two stations, so pausing one is theirs to do
-        assertTrue(service.suspendPartner(meshPairId));
+        assertTrue(service.suspendPartner(meshPairId), "a mesh pair is the two stations' own to pause");
     }
 
     @Test

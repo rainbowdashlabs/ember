@@ -4,12 +4,15 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
-import NewsCommentSection from '@/components/comment/NewsCommentSection.vue'
+import CommentSection from '@/components/comment/CommentSection.vue'
 import LinkButton from '@/components/button/LinkButton.vue'
+import {newsCommentSource, partnerNewsCommentSource} from '@/api/news'
 
-defineProps<{
+const props = defineProps<{
   newsId: number
+  /** The partner station sharing the entry, or nothing for one of the station's own. */
   stationUid?: string
   commentCount: number
   open: boolean
@@ -18,6 +21,10 @@ defineProps<{
 const emit = defineEmits<{toggle: []}>()
 
 const {t} = useI18n()
+
+const commentSource = computed(() => (props.stationUid
+  ? partnerNewsCommentSource(props.stationUid, props.newsId)
+  : newsCommentSource(props.newsId)))
 </script>
 
 <template>
@@ -39,7 +46,7 @@ const {t} = useI18n()
       />
     </LinkButton>
     <div v-if="open" class="mt-3">
-      <NewsCommentSection :news-id="newsId" :station-uid="stationUid"/>
+      <CommentSection :source="commentSource"/>
     </div>
   </div>
 </template>

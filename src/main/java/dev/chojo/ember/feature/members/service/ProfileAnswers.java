@@ -1,0 +1,123 @@
+/*
+ *     SPDX-License-Identifier: AGPL-3.0-only
+ *
+ *     Copyright (C) RainbowDashLabs and Contributor
+ */
+package dev.chojo.ember.feature.members.service;
+
+import dev.chojo.ember.api.refusal.MemberRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
+import dev.chojo.ember.feature.members.entity.ProfileWriter;
+import dev.chojo.ember.feature.question.FieldType;
+import dev.chojo.ember.feature.question.Question;
+import dev.chojo.ember.feature.question.QuestionCheck;
+import dev.chojo.ember.feature.question.QuestionValues;
+import dev.chojo.ember.util.Json;
+import org.jspecify.annotations.Nullable;
+import tools.jackson.databind.JsonNode;
+
+import java.util.Optional;
+
+/**
+ * One answer to a profile question on its way into storage, whether the station asked it or its
+ * association did.
+ *
+ * <p>Both are the same kind of question asked by somebody else, so both measure an answer the same
+ * way and keep it in the same shape: yes or no as a boolean, a number as a number, everything else as
+ * a string, and nothing at all where nothing was said. An association's answers used to be kept as
+ * whatever arrived, unmeasured.
+ *
+ * <p>Only what a save changes is measured. The profile screens send every answer back on each save,
+ * so an answer stored before anything checked it would otherwise turn the whole save away over a
+ * field the member never touched; {@link #unchanged} is what the services ask first.
+ */
+public final class ProfileAnswers {
+    /** How the change history records an answer that is not there. */
+    public static final String NOTHING = "null";
+
+    private ProfileAnswers() {}
+
+    /**
+     * What an answer says, as plain text, from the JSON document the profile screens send.
+     *
+     * @param sent the answer as a JSON document, or null
+     * @return the answer as plain text, empty where nothing was said
+     * @throws RefusalResponse where it is not a JSON document
+     */
+    public static String said(@Nullable String sent) {
+        return QuestionValues.read(Json.document(sent, MemberRefusal.PROFILE_ANSWER_NOT_READABLE));
+    }
+
+    /**
+     * Whether an answer says what is already stored, however each of the two is written.
+     *
+     * @param stored the stored answer as its JSON text, or null where there is none
+     * @param said   the new answer as plain text
+     */
+    public static boolean unchanged(@Nullable String stored, String said) {
+        return QuestionValues.read(stored).equals(said);
+    }
+
+    /**
+     * The answer as it is kept, once it is measured against the question.
+     *
+     * <p>Whether the question had to be answered is not asked here: a profile is filled in over
+     * time, and a required question only counts towards whether a profile is complete.
+     *
+     * @param type     the question's type
+     * @param question the question, or nothing for a type that holds no value
+     * @param said     the answer as plain text
+     * @return the document to keep, or null where nothing is kept
+     * @throws RefusalResponse {@link MemberRefusal#PROFILE_ANSWER_NOT_ACCEPTED} naming what is wrong with the answer
+     */
+    public static @Nullable JsonNode kept(FieldType type, Optional<Question> question, String said) {
+        if (type.isCalculated() && !said.isEmpty()) {
+            throw MemberRefusal.PROFILE_AGE_TAKES_NO_ANSWER.raise();
+        }
+        question.flatMap(asked -> QuestionCheck.answerIfGiven(asked, said)).ifPresent(problem -> {
+            throw MemberRefusal.PROFILE_ANSWER_NOT_ACCEPTED.raise(problem.question());
+        });
+        return QuestionValues.write(type, said);
+    }
+
+    /**
+     * Whether a question put to the member takes an answer from this writer.
+     *
+     * <p>The same two locks whoever asked the question: the association's lock against the station,
+     * which only the association passes, and the question's own lock for this audience, which only the
+     * member management passes.
+     *
+     * @param field  the question as the member meets it
+     * @param writer who writes the answer
+     * @return whether the answer is written
+     */
+    public static boolean writable(ProfileFieldService.MergedField field, ProfileWriter writer) {
+        if (field.readonlyAtStation() && !writer.owningAssociation()) return false;
+        return writer.management() || !field.readonly();
+    }
+
+    /**
+     * The kept answer as the change history records it.
+     *
+     * @param kept the document kept, or null where nothing is
+     */
+    public static String recorded(@Nullable JsonNode kept) {
+        return kept == null ? NOTHING : kept.toString();
+    }
+
+    /**
+     * Whether a recorded answer amounts to nothing having been given.
+     *
+     * <p>A question nobody has answered is recorded as the absent value, and one answered with an empty
+     * box as an empty string. They are different strings and the same thing: nothing was said either
+     * time. Told apart, they made a change out of somebody opening a form and saving it, and somebody
+     * else was asked to confirm it.
+     *
+     * @param recorded the answer as the change history records it
+     */
+    public static boolean saysNothing(@Nullable String recorded) {
+        if (recorded == null) return true;
+        String trimmed = recorded.strip();
+        return trimmed.isEmpty() || trimmed.equals(NOTHING) || trimmed.equals("\"\"");
+    }
+}

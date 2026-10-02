@@ -9,15 +9,12 @@ import dev.chojo.ember.conf.file.elements.Auth;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.DeviceHandshakeSettings;
 import dev.chojo.ember.util.LeakyBucket;
+import dev.chojo.ember.util.Sha256;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
 import java.time.Duration;
-import java.util.HexFormat;
 import java.util.Optional;
 
 /**
@@ -59,7 +56,6 @@ public class AuthRateLimiter {
     private final LeakyBucket verifyIp;
     private final LeakyBucket setPasswordIp;
     private final LeakyBucket confirmEmailIp;
-    private final LeakyBucket refreshIp;
     private final LeakyBucket changePasswordIdentity;
     private final LeakyBucket twoFactorIp;
     private final LeakyBucket twoFactorIdentity;
@@ -99,7 +95,6 @@ public class AuthRateLimiter {
         this.verifyIp = new LeakyBucket(cap(unlimited, 30), 30, PRUNE_AFTER, clock);
         this.setPasswordIp = new LeakyBucket(cap(unlimited, 30), 30, PRUNE_AFTER, clock);
         this.confirmEmailIp = new LeakyBucket(cap(unlimited, 30), 30, PRUNE_AFTER, clock);
-        this.refreshIp = new LeakyBucket(cap(unlimited, 60), 60, PRUNE_AFTER, clock);
         this.changePasswordIdentity = new LeakyBucket(cap(unlimited, 10), HOUR.dividedBy(5), PRUNE_AFTER, clock);
         this.twoFactorIp = new LeakyBucket(cap(unlimited, 20), 20, PRUNE_AFTER, clock);
         this.twoFactorIdentity = new LeakyBucket(cap(unlimited, 10), FIFTEEN_MIN.dividedBy(5), PRUNE_AFTER, clock);
@@ -148,7 +143,7 @@ public class AuthRateLimiter {
 
     /** An address as a key: folded to one case first, because that is how addresses are compared. */
     private static String hashEmail(String email) {
-        return sha256(email == null ? "" : email.trim().toLowerCase());
+        return Sha256.hex(email == null ? "" : email.trim().toLowerCase());
     }
 
     /**
@@ -158,17 +153,7 @@ public class AuthRateLimiter {
      * different secrets share one bucket.
      */
     private static String hashSecret(String secret) {
-        return sha256(secret == null ? "" : secret);
-    }
-
-    private static String sha256(String value) {
-        try {
-            var digest = MessageDigest.getInstance("SHA-256");
-            byte[] bytes = digest.digest(value.getBytes(StandardCharsets.UTF_8));
-            return HexFormat.of().formatHex(bytes);
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 not available", e);
-        }
+        return Sha256.hex(secret == null ? "" : secret);
     }
 
     public Optional<Long> tryLogin(String ip, String email) {
@@ -197,10 +182,6 @@ public class AuthRateLimiter {
 
     public Optional<Long> tryConfirmEmailChange(String ip) {
         return confirmEmailIp.tryAcquire(ip);
-    }
-
-    public Optional<Long> tryRefresh(String ip) {
-        return refreshIp.tryAcquire(ip);
     }
 
     public Optional<Long> tryChangePassword(int accountId) {

@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.inventory.entity.StepActor;
 import dev.chojo.ember.util.sql.MemberNameSql;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.List;
@@ -179,14 +180,14 @@ public class ItemMovementRepository {
             MovementPurpose purpose,
             int flowId,
             Integer currentStepId,
-            Integer memberId,
-            Integer outgoingItemId,
-            Integer incomingItemId,
-            Integer inventoryId,
-            Integer oldSizeId,
-            Integer newSizeId,
+            @Nullable Integer memberId,
+            @Nullable Integer outgoingItemId,
+            @Nullable Integer incomingItemId,
+            @Nullable Integer inventoryId,
+            @Nullable Integer oldSizeId,
+            @Nullable Integer newSizeId,
             String reason,
-            Integer createdBy,
+            @Nullable Integer createdBy,
             boolean lostReport) {
         return SqlSupport.insertReturning(
                 """
@@ -250,7 +251,7 @@ public class ItemMovementRepository {
                 .changed();
     }
 
-    public boolean setIncomingItem(int id, Integer itemId) {
+    public boolean setIncomingItem(int id, @Nullable Integer itemId) {
         return query("UPDATE item_movement SET incoming_item_id = :item_id, updated_at = NOW() WHERE id = :id;")
                 .single(call().bind("item_id", itemId).bind("id", id))
                 .update()
@@ -261,7 +262,7 @@ public class ItemMovementRepository {
      * Closes a movement, whichever way it ended. The step it was standing on is cleared, because a
      * closed movement stands on nothing.
      */
-    public boolean close(int id, MovementState state, String closeReason) {
+    public boolean close(int id, MovementState state, @Nullable String closeReason) {
         return query("""
                 UPDATE item_movement
                 SET state           = :state,
@@ -301,10 +302,13 @@ public class ItemMovementRepository {
         return SqlSupport.deleteById("item_movement", id);
     }
 
-    // -- Log --
-
     public ItemMovementLog createLog(
-            int movementId, Integer stepId, String stepLabel, AckKind ackKind, Integer changedBy, String note) {
+            int movementId,
+            @Nullable Integer stepId,
+            String stepLabel,
+            AckKind ackKind,
+            @Nullable Integer changedBy,
+            @Nullable String note) {
         return SqlSupport.insertReturning(
                 """
                 INSERT INTO item_movement_log(movement_id, step_id, step_label, ack_kind, changed_by, note)

@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.discovery.service;
 
+import dev.chojo.ember.auth.signing.DatabaseReplayStore;
+import dev.chojo.ember.auth.signing.SignedRequests;
 import dev.chojo.ember.conf.Conf;
 import dev.chojo.ember.feature.discovery.entity.BlocklistKind;
 import dev.chojo.ember.feature.discovery.entity.DiscoveryPeer;
@@ -18,22 +20,20 @@ import dev.chojo.ember.feature.discovery.repository.DiscoveryBlocklistRepository
 import dev.chojo.ember.feature.discovery.repository.DiscoveryPeerRepository;
 import dev.chojo.ember.feature.discovery.repository.DiscoveryPingRepository;
 import dev.chojo.ember.feature.federation.service.RemoteUrlValidator;
+import dev.chojo.ember.lifecycle.TaskScheduler;
+import dev.chojo.ember.util.RandomTokens;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Orchestrates the instance-gossip layer: outbound pings, inbound ping handling, and
@@ -50,29 +50,26 @@ import java.util.concurrent.TimeUnit;
 @Singleton
 public class DiscoveryPingService {
     private static final Logger log = LoggerFactory.getLogger(DiscoveryPingService.class);
-    private static final SecureRandom RANDOM = new SecureRandom();
     private static final Duration CALLBACK_WINDOW = Duration.ofSeconds(60);
     private static final Duration MAX_DRIFT = Duration.ofMinutes(5);
     private static final Duration NONCE_TTL = Duration.ofMinutes(30);
+    private static final Duration CALLBACK_DELAY = Duration.ofMillis(100);
     private static final String PING_PATH = "/api/v1/discovery/ping";
     private static final String CALLBACK_PATH = "/api/v1/discovery/peers";
+    private static final String REPLAY_SCOPE = "discovery";
 
     private final DiscoveryKeyService keyService;
     private final DiscoverySigningService signingService;
     private final DiscoveryHttpClient httpClient;
     private final DiscoveryPeerRepository peerRepository;
     private final DiscoveryPingRepository pingRepository;
+    private final DatabaseReplayStore replayStore;
     private final DiscoveryBlocklistRepository blocklistRepository;
     private final DiscoveryReputationService reputationService;
     private final DiscoverySettingsService settingsService;
     private final RemoteUrlValidator urlValidator;
     private final Conf conf;
-
-    private final ScheduledExecutorService callbackExecutor = Executors.newScheduledThreadPool(2, r -> {
-        var t = new Thread(r, "discovery-callback");
-        t.setDaemon(true);
-        return t;
-    });
+    private final TaskScheduler scheduler;
 
     @Inject
     public DiscoveryPingService(
@@ -81,16 +78,20 @@ public class DiscoveryPingService {
             DiscoveryHttpClient httpClient,
             DiscoveryPeerRepository peerRepository,
             DiscoveryPingRepository pingRepository,
+            DatabaseReplayStore replayStore,
             DiscoveryBlocklistRepository blocklistRepository,
             DiscoveryReputationService reputationService,
             DiscoverySettingsService settingsService,
             RemoteUrlValidator urlValidator,
-            Conf conf) {
+            Conf conf,
+            TaskScheduler scheduler) {
+        this.scheduler = scheduler;
         this.keyService = keyService;
         this.signingService = signingService;
         this.httpClient = httpClient;
         this.peerRepository = peerRepository;
         this.pingRepository = pingRepository;
+        this.replayStore = replayStore;
         this.blocklistRepository = blocklistRepository;
         this.reputationService = reputationService;
         this.settingsService = settingsService;
@@ -105,9 +106,7 @@ public class DiscoveryPingService {
     }
 
     private static String randomNonce() {
-        byte[] bytes = new byte[32];
-        RANDOM.nextBytes(bytes);
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+        return RandomTokens.urlSafe(32);
     }
 
     /**
@@ -138,25 +137,23 @@ public class DiscoveryPingService {
 
     /**
      * Inbound ping handler. Validates signature, replay-protects the nonce, and schedules
-     * the asynchronous callback.
+     * the asynchronous callback. The callback URL is the sender's choice, so it has to be a public
+     * endpoint before anything is sent to it.
      *
      * @param rawBody         raw request body bytes (used for signature verification)
      * @param message         parsed body
      * @param signatureHeader value of {@code X-Ember-Discovery-Signature}
      */
-    public void handleInboundPing(String rawBody, DiscoveryPingMessage message, String signatureHeader) {
+    public void handleInboundPing(String rawBody, DiscoveryPingMessage message, @Nullable String signatureHeader) {
         if (!settingsService.isEnabled()) return;
         if (message == null || message.from() == null || message.nonce() == null) return;
 
-        // Drift check
         Instant now = Instant.now();
-        if (message.issuedAt() == null
-                || Duration.between(message.issuedAt(), now).abs().compareTo(MAX_DRIFT) > 0) {
+        if (!SignedRequests.withinDrift(message.issuedAt(), now, MAX_DRIFT)) {
             log.debug("Discarding ping from {} due to drift", message.from().baseUrl());
             return;
         }
 
-        // Blocklist
         if (blocklistRepository.contains(
                         BlocklistKind.PUBLIC_KEY, message.from().publicKey())
                 || blocklistRepository.contains(
@@ -164,7 +161,6 @@ public class DiscoveryPingService {
             return;
         }
 
-        // Signature
         if (signatureHeader == null
                 || !signingService.verify(
                         rawBody, signatureHeader, message.from().publicKey())) {
@@ -173,7 +169,6 @@ public class DiscoveryPingService {
             return;
         }
 
-        // Callback target must be a public endpoint (SSRF guard on the attacker-chosen URL).
         if (message.callbackUrl() == null || !urlValidator.isAllowed(message.callbackUrl())) {
             log.debug(
                     "Rejecting ping from {} - callback URL not permitted",
@@ -181,15 +176,15 @@ public class DiscoveryPingService {
             return;
         }
 
-        // Replay / loop check
-        boolean fresh = pingRepository.record(
-                message.nonce(), PingDirection.IN, message.from().publicKey(), now, now.plus(NONCE_TTL));
-        if (!fresh) {
+        if (keyService.publicKeyBase64().equals(message.from().publicKey())) {
+            log.debug("Dropping a ping that came back to its sender");
+            return;
+        }
+        if (!replayStore.firstSighting(REPLAY_SCOPE, message.nonce(), now.plus(NONCE_TTL))) {
             log.debug("Dropping replayed/looped ping nonce {}", message.nonce());
             return;
         }
 
-        // Remember the peer (or refresh observed URL)
         peerRepository.upsert(
                 message.from().publicKey(),
                 message.from().baseUrl(),
@@ -197,8 +192,7 @@ public class DiscoveryPingService {
                 PeerSource.GOSSIP,
                 null);
 
-        // Dispatch the callback asynchronously so the inbound request returns 204 immediately.
-        callbackExecutor.schedule(() -> sendCallback(message), 100, TimeUnit.MILLISECONDS);
+        scheduler.later("discovery-callback", CALLBACK_DELAY, () -> sendCallback(message));
     }
 
     /**
@@ -206,13 +200,12 @@ public class DiscoveryPingService {
      * that we actually sent a ping with that nonce and the window hasn't elapsed, and merges
      * the announced peers into the local registry.
      */
-    public boolean handleCallback(String rawBody, DiscoveryCallbackMessage message, String signatureHeader) {
+    public boolean handleCallback(String rawBody, DiscoveryCallbackMessage message, @Nullable String signatureHeader) {
         if (!settingsService.isEnabled()) return false;
         if (message == null || message.from() == null || message.inReplyTo() == null) return false;
 
         Instant now = Instant.now();
-        if (message.issuedAt() == null
-                || Duration.between(message.issuedAt(), now).abs().compareTo(MAX_DRIFT) > 0) {
+        if (!SignedRequests.withinDrift(message.issuedAt(), now, MAX_DRIFT)) {
             return false;
         }
         if (blocklistRepository.contains(
@@ -238,7 +231,6 @@ public class DiscoveryPingService {
             return false;
         }
 
-        // The peer that answered is itself a confirmed peer.
         peerRepository.upsert(
                 message.from().publicKey(),
                 message.from().baseUrl(),
@@ -261,16 +253,19 @@ public class DiscoveryPingService {
         return base.endsWith("/") ? base.substring(0, base.length() - 1) : base;
     }
 
+    /**
+     * Stores the peers a callback announced, once each and never this instance itself. A peer whose
+     * base URL is not a public endpoint is never stored, since the scheduler would later ping it; it
+     * and an undecodable key both count against the announcer's reputation.
+     */
     private void mergeAnnouncedPeers(String announcerKey, List<PeerAnnouncement> announcements) {
         if (announcements == null || announcements.isEmpty()) return;
 
-        // Dedupe on publicKey within this batch (the wire allows duplicates) before touching
-        // the DB.
         Set<String> seen = new HashSet<>();
         List<PeerAnnouncement> unique = new ArrayList<>();
         for (var ann : announcements) {
             if (ann == null || ann.publicKey() == null) continue;
-            if (ann.publicKey().equals(keyService.publicKeyBase64())) continue; // never add ourselves
+            if (ann.publicKey().equals(keyService.publicKeyBase64())) continue;
             if (seen.add(ann.publicKey())) unique.add(ann);
         }
 
@@ -279,13 +274,10 @@ public class DiscoveryPingService {
                     || blocklistRepository.contains(BlocklistKind.BASE_URL, ann.baseUrl())) {
                 continue;
             }
-            // Never persist a peer whose base URL points at a private/loopback address; the
-            // scheduler would later ping it (persistent SSRF).
             if (ann.baseUrl() == null || !urlValidator.isAllowed(ann.baseUrl())) {
                 reputationService.recordInvalidAnnouncement(announcerKey);
                 continue;
             }
-            // Validate the public key is decodable; reject (and ding announcer reputation) if not.
             try {
                 DiscoveryKeyService.decodePeerPublicKey(ann.publicKey());
             } catch (Exception e) {
@@ -306,13 +298,12 @@ public class DiscoveryPingService {
             String announcerInstanceId = keyService.instanceId();
             List<PeerAnnouncement> announcements = new ArrayList<>(peers.size());
             for (var p : peers) {
-                if (p.publicKey().equals(ping.from().publicKey())) continue; // don't announce them back
+                if (p.publicKey().equals(ping.from().publicKey())) continue;
                 announcements.add(new PeerAnnouncement(
                         p.baseUrl(), p.publicKey(), p.instanceId(), announcerInstanceId, p.lastSeenAt()));
             }
             var message = new DiscoveryCallbackMessage(selfIdentity(), ping.nonce(), Instant.now(), announcements);
             String callbackUrl = ping.callbackUrl();
-            // Extract baseUrl from callbackUrl by stripping the /api/v1/discovery/peers suffix.
             String baseUrl = stripCallbackSuffix(callbackUrl);
             boolean ok = httpClient.signedPost(baseUrl, CALLBACK_PATH, message);
             if (!ok) {

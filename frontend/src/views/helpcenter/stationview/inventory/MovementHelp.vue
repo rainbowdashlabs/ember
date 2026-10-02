@@ -12,7 +12,13 @@ import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import HelpRoleToggle from '@/components/helpcenter/HelpRoleToggle.vue'
 import type {HelpPerspective} from '@/components/helpcenter/HelpRoleToggle.vue'
 import {StationPermission} from '@/api/types'
-import MovementQueueDummy from './movementhelp/MovementQueueDummy.vue'
+import {useDataTable} from '@/composables/useDataTable'
+import type {MovementResponse} from '@/api/generated/schema'
+import MovementQueueToolbar from '@/views/stationview/inventory/movementqueueview/MovementQueueToolbar.vue'
+import MovementQueueList from '@/views/stationview/inventory/movementqueueview/MovementQueueList.vue'
+import {useMovementColumns} from '@/views/stationview/inventory/movementqueueview/movementColumns'
+import {queueOrder} from '@/views/stationview/inventory/movementqueueview/movementFilter'
+import {movements} from './movementhelp/fixtures'
 
 const {t} = useI18n()
 
@@ -23,6 +29,14 @@ const perspectives: HelpPerspective[] = [
 ]
 const activeView = ref('')
 const managerView = computed(() => activeView.value === 'manager')
+
+const table = useDataTable<MovementResponse>({
+  id: 'help-inventory-movements',
+  rows: movements,
+  columns: useMovementColumns(() => movements),
+  rowKey: movement => movement.id,
+  fallbackSort: queueOrder,
+})
 </script>
 
 <template>
@@ -59,11 +73,26 @@ const managerView = computed(() => activeView.value === 'manager')
       <p>{{ t('helpCenter.inventoryMovements.filterOrderText') }}</p>
       <p>{{ t('helpCenter.inventoryMovements.datesText') }}</p>
       <p>{{ t('helpCenter.inventoryMovements.filterExportText') }}</p>
+      <HelpRoleToggle v-model="activeView" :perspectives="perspectives"/>
+      <div class="space-y-3">
+        <MovementQueueToolbar
+            :picking="false"
+            :all-picked="false"
+            :picked-count="0"
+            :busy="false"
+            :can-export="managerView"
+            :field-options="[]"
+            :picked-fields="new Set()"
+        />
+        <MovementQueueList
+            :table="table"
+            :total="movements.length"
+            :can-correct="managerView"
+            :picking="false"
+            :picked-ids="new Set()"
+        />
+      </div>
     </HelpSection>
-
-    <HelpRoleToggle v-model="activeView" :perspectives="perspectives"/>
-
-    <MovementQueueDummy :manager-view="managerView"/>
 
     <HelpSection v-if="activeView === 'member' || activeView === ''"
                  :title="t('helpCenter.inventoryMovements.asMember')">

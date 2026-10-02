@@ -5,8 +5,7 @@
  */
 import {ref} from 'vue'
 import {beforeEach, describe, expect, it, vi} from 'vitest'
-import type {FormQuestion} from '@/api/forms'
-import type {AnswerValue} from '@/util/formAnswers'
+import type {FormAnswerValue, FormQuestion} from '@/api/generated/schema'
 import {useServerDraft} from './useServerDraft'
 
 const getDraft = vi.fn()
@@ -31,7 +30,7 @@ function heldSave() {
 }
 
 function draftFor(memberId: number | null = null) {
-    const answers = ref<Record<number, AnswerValue>>({7: {text: ''}})
+    const answers = ref<Record<number, FormAnswerValue>>({7: {type: 'TEXT', text: ''}})
     const path = ref(['p0'])
     const showAt = vi.fn((walked: string[]) => { path.value = walked })
     const draft = useServerDraft(ref(3), ref(memberId), ref([question]), answers, {path, showAt})
@@ -56,7 +55,7 @@ describe('useServerDraft', () => {
         await draft.resume()
 
         expect(getDraft).toHaveBeenCalledWith(3, 12)
-        expect(answers.value[7]).toEqual({text: 'halb'})
+        expect(answers.value[7]).toEqual({type: 'TEXT', text: 'halb'})
         expect(path.value).toEqual(['p0', 'p1'])
         expect(draft.resumedFrom.value).toBe('2026-09-28T10:00:00Z')
     })
@@ -67,17 +66,17 @@ describe('useServerDraft', () => {
 
         await draft.resume()
 
-        expect(answers.value[7]).toEqual({text: ''})
+        expect(answers.value[7]).toEqual({type: 'TEXT', text: ''})
         expect(showAt).not.toHaveBeenCalled()
         expect(draft.resumedFrom.value).toBeNull()
     })
 
     it('keeps the answers as they stood when asked to', async () => {
         const {answers, draft} = draftFor()
-        answers.value[7] = {text: 'erst'}
+        answers.value[7] = {type: 'TEXT', text: 'erst'}
 
         const kept = draft.keep()
-        answers.value[7] = {text: 'später'}
+        answers.value[7] = {type: 'TEXT', text: 'später'}
         await kept
 
         expect(saveDraft).toHaveBeenCalledWith(3, null, {answers: {7: {type: 'TEXT', text: 'erst'}}, path: ['p0']})

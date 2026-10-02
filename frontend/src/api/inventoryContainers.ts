@@ -5,126 +5,32 @@
  */
 import client from './client'
 import {createCrudResource} from './crud'
-import type {InventoryItem} from './inventory'
+import type {
+    CompleteContainerCheckRequest,
+    components,
+    ContainerContents,
+    ContainerDetail,
+    ContainerPathResponse,
+    ContainerRequest,
+    InventoryCheck,
+    InventoryContainer,
+    InventoryContainerHistory,
+    InventoryContainerKind,
+    InventoryItem,
+    ItemCheckHistoryEntry,
+    ItemLastCheck,
+    ItemLocationResponse,
+    KindRequest,
+} from './generated/schema'
 
-export interface InventoryContainerKind {
-    id: number
-    stationId: string
-    key: string
-    label: string
-    icon: string
-    /** The colour the icon is drawn in, absent for the muted neutral. */
-    color?: string | null
-    sortOrder: number
-    enabled: boolean
-}
-
-export interface KindRequest {
-    key: string
-    label: string
-    icon?: string
-    color?: string | null
-    sortOrder: number
-    enabled: boolean
-}
-
-export interface InventoryContainer {
-    id: number
-    stationId: string
-    parentId?: number | null
-    internalId?: string | null
-    name: string
-    kindId?: number | null
-    description: string
-    createdAt: string
-    createdBy?: number | null
-}
-
-export interface ContainerRequest {
-    parentId?: number | null
-    internalId?: string | null
-    name: string
-    kindId?: number | null
-    description?: string
-}
-
-export interface ContainerDetail {
-    container: InventoryContainer
-    pathSegments: string[]
-    pathIds: number[]
-    pathDisplay: string
-}
-
-export interface ContainerContents {
-    children: InventoryContainer[]
-    items: InventoryItem[]
-}
-
-export interface ContainerPathResponse {
-    segments: string[]
-    ids: number[]
-    display: string
-}
+export type ContainerEventKindName = components['schemas']['ContainerEventKind']
 
 export const ContainerEventKind = {
     CREATED: 'CREATED',
     RENAMED: 'RENAMED',
     MOVED: 'MOVED',
     DELETED: 'DELETED',
-} as const
-export type ContainerEventKindName = (typeof ContainerEventKind)[keyof typeof ContainerEventKind]
-
-/** Details of a {@link ContainerEventKind.CREATED} entry. `parentId` is absent when created as a root. */
-export interface ContainerCreatedDetails {
-    name: string
-    parentId?: number
-}
-
-/** Details of a {@link ContainerEventKind.RENAMED} entry. */
-export interface ContainerRenamedDetails {
-    from: string
-    to: string
-}
-
-/** Details of a {@link ContainerEventKind.MOVED} entry. Either end is `null` when it was or became a root. */
-export interface ContainerMovedDetails {
-    from: number | null
-    to: number | null
-}
-
-/** Details of a {@link ContainerEventKind.DELETED} entry, which repeats the id the container had. */
-export interface ContainerDeletedDetails {
-    id: number
-    name: string
-}
-
-/**
- * Payload of a history entry. The variant is selected by the entry's `eventKind` rather than by a
- * discriminator inside the payload, so narrow on `eventKind` before reading it.
- */
-export type ContainerHistoryDetails =
-    | ContainerCreatedDetails
-    | ContainerRenamedDetails
-    | ContainerMovedDetails
-    | ContainerDeletedDetails
-
-export interface InventoryContainerHistory {
-    id: number
-    containerId?: number | null
-    stationId: string
-    eventKind: ContainerEventKindName
-    eventTs: string
-    actorId?: number | null
-    details?: ContainerHistoryDetails | null
-}
-
-export interface ItemLocationResponse {
-    itemId: number
-    containerId?: number | null
-    pathSegments: string[]
-    pathIds: number[]
-    pathDisplay: string
-}
+} as const satisfies Record<ContainerEventKindName, ContainerEventKindName>
 
 const kinds = createCrudResource<InventoryContainerKind, KindRequest>('/inventory-container-kinds')
 
@@ -188,18 +94,6 @@ export async function setItemContainer(itemId: number, containerId: number | nul
     await client.put(`/inventory-items/${itemId}/container`, {containerId})
 }
 
-export interface ContainerCheckItemResult {
-    itemId: number | null
-    inventoryId: number | null
-    result: string
-    note?: string
-}
-
-export interface CompleteContainerCheckRequest {
-    deep: boolean
-    items: ContainerCheckItemResult[]
-}
-
 export async function listExpectedItemsInContainer(
     containerId: number,
     deep: boolean,
@@ -209,29 +103,6 @@ export async function listExpectedItemsInContainer(
         {params: {deep}},
     )
     return res.data
-}
-
-export interface ItemLastCheck {
-    itemId: number
-    result: string
-    checkedAt: string
-    checkerName: string
-}
-
-export interface ItemCheckHistoryEntry {
-    checkId: number
-    result: string
-    checkedAt: string
-    checkerName: string
-    /**
-     * Whoever said what was there, where that is somebody other than the person who signed the
-     * check off. Empty on a check somebody walked themselves, which is what tells a piece checked at
-     * arm's length from one somebody held.
-     */
-    reporterName: string
-    containerName: string | null
-    scope: 'CONTAINER' | 'MEMBER'
-    note: string
 }
 
 export async function listLastCheckResults(
@@ -253,7 +124,7 @@ export async function listItemCheckHistory(itemId: number): Promise<ItemCheckHis
 export async function completeContainerCheck(
     containerId: number,
     body: CompleteContainerCheckRequest,
-): Promise<unknown> {
-    const res = await client.post(`/inventory-checks/container/${containerId}/complete`, body)
+): Promise<InventoryCheck> {
+    const res = await client.post<InventoryCheck>(`/inventory-checks/container/${containerId}/complete`, body)
     return res.data
 }

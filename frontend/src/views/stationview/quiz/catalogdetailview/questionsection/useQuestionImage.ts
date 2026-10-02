@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import { ref } from 'vue'
-import type { QuizQuestion } from '@/api/quiz'
+import type { QuizQuestion } from '@/api/generated/schema'
 import { quiz } from '@/api'
 
 /**

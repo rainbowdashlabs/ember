@@ -6,17 +6,17 @@
 package dev.chojo.ember.feature.cluster.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.ClusterPermission;
 import dev.chojo.ember.api.auth.ClusterUserType;
-import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.api.refusal.ClusterRefusal;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.entity.ClusterMember;
 import dev.chojo.ember.feature.cluster.service.ClusterMemberService;
+import dev.chojo.ember.feature.cluster.service.ClusterMemberService.ClusterMemberResponse;
+import dev.chojo.ember.feature.cluster.service.ClusterMemberService.GroupChange;
 import dev.chojo.ember.feature.cluster.service.ClusterService;
-import dev.chojo.ember.feature.members.entity.NameParts;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -28,11 +28,11 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
-import java.util.UUID;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 
@@ -46,14 +46,11 @@ import static dev.chojo.ember.api.RouteSupport.pathInt;
 public class ClusterMemberRoutes implements Routes {
     private final ClusterService clusterService;
     private final ClusterMemberService memberService;
-    private final AccountRepository accountRepository;
 
     @Inject
-    public ClusterMemberRoutes(
-            ClusterService clusterService, ClusterMemberService memberService, AccountRepository accountRepository) {
+    public ClusterMemberRoutes(ClusterService clusterService, ClusterMemberService memberService) {
         this.clusterService = clusterService;
         this.memberService = memberService;
-        this.accountRepository = accountRepository;
     }
 
     @Override
@@ -163,6 +160,10 @@ public class ClusterMemberRoutes implements Routes {
                 names(detail.resolved())));
     }
 
+    /**
+     * Releases an account from the cluster. The member is read through the service first, so one
+     * cluster cannot remove another's people.
+     */
     @OpenApi(
             path = "/api/v1/cluster/members/{memberId}",
             pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
@@ -173,7 +174,6 @@ public class ClusterMemberRoutes implements Routes {
     private void remove(Context ctx) {
         Cluster cluster = requireActive(ctx);
         int memberId = pathInt(ctx, "memberId");
-        // Read it through the service first, so one cluster cannot remove another's people
         memberService.findMemberDetail(cluster.id(), memberId);
         clusterService.removeMember(memberId);
         ctx.status(HttpStatus.NO_CONTENT);
@@ -281,14 +281,15 @@ public class ClusterMemberRoutes implements Routes {
         Cluster cluster = requireActive(ctx);
         int groupId = pathInt(ctx, "groupId");
         var request = ctx.bodyAsClass(ClusterGroupUpdateRequest.class);
-
-        if (request.name() != null) memberService.renameGroup(cluster.id(), groupId, request.name());
-        if (request.permissions() != null) {
-            memberService.setGroupPermissions(cluster.id(), groupId, parsePermissions(request.permissions()));
-        }
-        if (request.memberIds() != null) {
-            memberService.setGroupMembers(cluster.id(), groupId, Set.copyOf(request.memberIds()));
-        }
+        List<String> permissions = request.permissions();
+        List<Integer> memberIds = request.memberIds();
+        memberService.updateGroup(
+                cluster.id(),
+                groupId,
+                new GroupChange(
+                        request.name(),
+                        permissions == null ? null : parsePermissions(permissions),
+                        memberIds == null ? null : Set.copyOf(memberIds)));
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -308,18 +309,14 @@ public class ClusterMemberRoutes implements Routes {
     private Cluster requireActive(Context ctx) {
         UserSession session = UserSession.from(ctx);
         Integer clusterId = session.clusterId();
-        if (clusterId == null) throw Refusal.NO_CLUSTER_CHOSEN_FOR_CLUSTER_MEMBERS.raise();
-        return clusterService.findById(clusterId).orElseThrow(Refusal.CLUSTER_NOT_HERE_FOR_CLUSTER_MEMBERS::raise);
+        if (clusterId == null) throw ClusterRefusal.NO_CLUSTER_CHOSEN_FOR_CLUSTER_MEMBERS.raise();
+        return clusterService
+                .findById(clusterId)
+                .orElseThrow(ClusterRefusal.CLUSTER_NOT_HERE_FOR_CLUSTER_MEMBERS::raise);
     }
 
     private ClusterMemberResponse toResponse(ClusterMember member) {
-        var account = accountRepository.findById(member.accountId());
-        return new ClusterMemberResponse(
-                member.id(),
-                account.map(a -> a.uid()).map(UUID::toString).orElse(null),
-                account.map(a -> NameParts.of(a).identified()).orElse(null),
-                account.map(a -> a.email()).orElse(null),
-                member.userType().name());
+        return memberService.describe(member);
     }
 
     private static List<String> names(Set<ClusterPermission> permissions) {
@@ -331,7 +328,7 @@ public class ClusterMemberRoutes implements Routes {
         try {
             return ClusterUserType.valueOf(raw);
         } catch (IllegalArgumentException e) {
-            throw Refusal.CLUSTER_USER_TYPE_UNKNOWN.raise(raw);
+            throw ClusterRefusal.CLUSTER_USER_TYPE_UNKNOWN.raise(raw);
         }
     }
 
@@ -342,7 +339,7 @@ public class ClusterMemberRoutes implements Routes {
             try {
                 permissions.add(ClusterPermission.valueOf(name));
             } catch (IllegalArgumentException e) {
-                throw Refusal.CLUSTER_PERMISSION_UNKNOWN.raise(name);
+                throw ClusterRefusal.CLUSTER_PERMISSION_UNKNOWN.raise(name);
             }
         }
         return permissions;
@@ -363,16 +360,13 @@ public class ClusterMemberRoutes implements Routes {
     public record ClusterGroupRequest(String name) {}
 
     /**
-     * Every field is optional: a caller renaming a group need not resend who is in it.
+     * Every field is optional: a caller renaming a group need not resend who is in it. The parts given
+     * are written together or not at all.
      */
-    public record ClusterGroupUpdateRequest(String name, List<String> permissions, List<Integer> memberIds) {}
-
-    /**
-     * @param accountUid the account behind this member, which is what their picture is keyed by. An
-     *                   association's person need belong to no station, so there is no member of a
-     *                   station to draw them as: the account is the only handle every one of them has.
-     */
-    public record ClusterMemberResponse(int id, String accountUid, String name, String email, String userType) {}
+    public record ClusterGroupUpdateRequest(
+            @Nullable String name,
+            @Nullable List<String> permissions,
+            @Nullable List<Integer> memberIds) {}
 
     public record ClusterGroupResponse(int id, String name) {}
 

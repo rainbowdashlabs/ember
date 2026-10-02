@@ -9,7 +9,7 @@ import EmptyState from '@/components/feedback/EmptyState.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import InventoryItemCard from '@/views/stationview/inventory/InventoryItemCard.vue'
-import type {MyInventoryItem} from '@/api/inventory'
+import type {MyInventoryItem} from '@/api/generated/schema'
 
 interface InventoryGroup {
   inventoryId: number
@@ -41,12 +41,12 @@ const {t} = useI18n()
         <span v-if="group.requiredQuantity > 0" class="text-sm text-(--text-muted)">
           {{ group.items.length }} / {{ group.requiredQuantity }}
           <span v-if="group.items.length < group.requiredQuantity" class="text-error">
-            ({{ group.requiredQuantity - group.items.length }} fehlt)
+            {{ t('memberDetail.missingCount', {count: group.requiredQuantity - group.items.length}) }}
           </span>
         </span>
       </div>
 
-      <MutedText tag="div" size="sm" class="py-2" v-if="group.items.length === 0">
+      <MutedText v-if="group.items.length === 0" tag="div" size="sm" class="py-2">
         {{ t('profile.noInventory') }}
       </MutedText>
 

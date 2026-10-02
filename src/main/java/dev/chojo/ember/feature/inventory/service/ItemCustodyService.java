@@ -5,13 +5,15 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
+import dev.chojo.ember.api.refusal.InventoryRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.inventory.repository.ItemMovementRepository;
-import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,13 +48,11 @@ public class ItemCustodyService {
      * without walking a chain, so the promise has to be read here or it is no promise at all.
      *
      * @param itemId the piece about to be handed over
-     * @throws BadRequestResponse naming the movement that promised it
+     * @throws RefusalResponse when a movement has promised it
      */
     private void requireNobodyIsWaitingForIt(int itemId) {
         movementRepository.findOpenByIncomingItem(itemId).ifPresent(open -> {
-            throw new BadRequestResponse(
-                    "This piece is promised to movement %d, so hand it over there or call that one off"
-                            .formatted(open.id()));
+            throw InventoryRefusal.CUSTODY_PIECE_PROMISED.raise();
         });
     }
 
@@ -63,7 +63,7 @@ public class ItemCustodyService {
      * @param memberId   the member receiving it
      * @param memberName the member's display name for the history
      * @return the updated item, or empty if the item was not found
-     * @throws BadRequestResponse if the item is in a custody it cannot be handed out of
+     * @throws RefusalResponse if the item is in a custody it cannot be handed out of
      */
     public Optional<InventoryItem> assignToMember(int itemId, int memberId, String memberName) {
         var found = inventoryRepository.findItemById(itemId);
@@ -73,8 +73,7 @@ public class ItemCustodyService {
         }
         var item = found.get();
         if (!item.custody().assignable()) {
-            throw new BadRequestResponse("Item %d cannot be handed out: it is %s"
-                    .formatted(itemId, item.custody().name()));
+            throw InventoryRefusal.CUSTODY_NOT_HANDED_OUT_FROM_HERE.raise();
         }
         requireNobodyIsWaitingForIt(itemId);
 
@@ -125,7 +124,7 @@ public class ItemCustodyService {
      * @param containerId the container, or {@code null} to clear the location
      * @return the updated item, or empty if the item was not found
      */
-    public Optional<InventoryItem> placeInContainer(int itemId, Integer containerId) {
+    public Optional<InventoryItem> placeInContainer(int itemId, @Nullable Integer containerId) {
         var found = inventoryRepository.findItemById(itemId);
         if (found.isEmpty()) {
             log.warn("Container placement skipped: item {} not found", itemId);
@@ -159,9 +158,9 @@ public class ItemCustodyService {
      * @param note   what whoever reported it wrote, or {@code null} when they wrote nothing
      * @param noteBy who wrote that note, which is the guardian when one acted for a member
      * @return the updated item, or empty if the item was not found
-     * @throws BadRequestResponse if the item is borrowed from a federation partner
+     * @throws RefusalResponse if the item is borrowed from a federation partner
      */
-    public Optional<InventoryItem> markLost(int itemId, String note, Integer noteBy) {
+    public Optional<InventoryItem> markLost(int itemId, @Nullable String note, @Nullable Integer noteBy) {
         var found = inventoryRepository.findItemById(itemId);
         if (found.isEmpty()) {
             log.warn("Mark-lost skipped: item {} not found", itemId);
@@ -169,10 +168,10 @@ public class ItemCustodyService {
         }
         var item = found.get();
         if (item.borrowed()) {
-            throw new BadRequestResponse(
-                    "This gear belongs to a partner station. Tell them on the lending request it came in on");
+            throw InventoryRefusal.CUSTODY_BORROWED_NOT_MARKED_LOST.raise();
         }
-        Integer holder = item.custodyStationId() != null ? item.custodyStationId() : stationOf(item);
+        Integer custodian = item.custodyStationId();
+        Integer holder = custodian != null ? custodian : stationOf(item);
         inventoryRepository.updateCustody(itemId, ItemCustody.LOST, holder, item.assignedTo(), null);
         inventoryRepository.setLostNote(itemId, note, noteBy);
         log.info("Item {} marked lost (was {})", itemId, item.custody());
@@ -199,7 +198,8 @@ public class ItemCustodyService {
         }
         var item = found.get();
         closeCurrentSpell(item);
-        Integer holder = item.custodyStationId() != null ? item.custodyStationId() : stationOf(item);
+        Integer custodian = item.custodyStationId();
+        Integer holder = custodian != null ? custodian : stationOf(item);
         inventoryRepository.updateCustody(itemId, ItemCustody.LOST, holder, null, null);
         log.info("Item {} came off member {}'s record and stays missing", itemId, item.assignedTo());
         return inventoryRepository.findItemById(itemId);
@@ -207,7 +207,7 @@ public class ItemCustodyService {
 
     /**
      * Records that a missing item has turned up again. It goes back to whoever it was still on the
-     * record of, or to its store when nobody had it.
+     * record of, or to its store when nobody had it. The loss note goes with the loss.
      *
      * @param itemId the item ID
      * @return the updated item, or empty if the item was not found
@@ -225,7 +225,6 @@ public class ItemCustodyService {
         } else {
             writeResting(item);
         }
-        // A note about a loss that did not last is a note about nothing
         inventoryRepository.setLostNote(itemId, null, null);
         log.info("Item {} marked found", itemId);
         return inventoryRepository.findItemById(itemId);
@@ -285,12 +284,16 @@ public class ItemCustodyService {
      * @param memberId      the movement's member, needed only when the step hands the item to them
      * @param movementId    the movement, needed only when the step puts the item in the post
      * @param stepStationId the station running the movement, which is where the item is once a step leaves
-     *                      it at a station
+     *                      it at a station; for a cluster's gear it differs from the inventory's station
      * @return the updated item, or empty if the item was not found
-     * @throws BadRequestResponse if the step hands an item to a member the movement does not name
+     * @throws RefusalResponse if the step hands an item to a member the movement does not name
      */
     public Optional<InventoryItem> applyStepCustody(
-            int itemId, ItemCustody custody, Integer memberId, Integer movementId, Integer stepStationId) {
+            int itemId,
+            ItemCustody custody,
+            @Nullable Integer memberId,
+            @Nullable Integer movementId,
+            @Nullable Integer stepStationId) {
         var found = inventoryRepository.findItemById(itemId);
         if (found.isEmpty()) {
             log.warn("Step custody skipped: item {} not found", itemId);
@@ -298,14 +301,11 @@ public class ItemCustodyService {
         }
         var item = found.get();
         if (custody == ItemCustody.WITH_MEMBER) {
-            if (memberId == null) throw new BadRequestResponse("This step hands the item to a member, but names none");
+            if (memberId == null) throw InventoryRefusal.CUSTODY_STEP_NAMES_NO_MEMBER.raise();
             return writeAssignment(item, memberId, "");
         }
 
         closeCurrentSpell(item);
-        // The station running the movement, not the one whose inventory the row sits in. For a station's own
-        // gear those are the same; for a cluster's they are not, and it is the movement that says where the
-        // item has actually got to.
         Integer stationId =
                 custody == ItemCustody.AT_STATION ? (stepStationId != null ? stepStationId : stationOf(item)) : null;
         Integer movement = custody == ItemCustody.IN_TRANSIT ? movementId : null;
@@ -348,7 +348,7 @@ public class ItemCustodyService {
      * @return the updated item, or empty if the item was not found
      */
     public Optional<InventoryItem> applyStepCustody(
-            int itemId, ItemCustody custody, Integer memberId, Integer movementId) {
+            int itemId, ItemCustody custody, @Nullable Integer memberId, @Nullable Integer movementId) {
         return applyStepCustody(itemId, custody, memberId, movementId, null);
     }
 
@@ -372,8 +372,9 @@ public class ItemCustodyService {
     }
 
     private void closeCurrentSpell(InventoryItem item) {
-        if (item.assignedTo() != null) {
-            inventoryRepository.returnHistory(item.id(), item.assignedTo());
+        Integer holder = item.assignedTo();
+        if (holder != null) {
+            inventoryRepository.returnHistory(item.id(), holder);
         }
     }
 

@@ -6,19 +6,17 @@
 package dev.chojo.ember.feature.twofactor.route;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.RateLimits;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.api.StepUpChallenge;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.auth.SessionCookies;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StepUpCategory;
-import dev.chojo.ember.auth.TokenHasher;
+import dev.chojo.ember.api.refusal.TwoFactorRefusal;
 import dev.chojo.ember.conf.file.elements.Demo;
-import dev.chojo.ember.conf.file.elements.Network;
-import dev.chojo.ember.feature.account.entity.AccountToken;
 import dev.chojo.ember.feature.account.entity.LoginResult;
-import dev.chojo.ember.feature.account.entity.TokenType;
-import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AuthRateLimiter;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.members.entity.NameParts;
@@ -26,21 +24,27 @@ import dev.chojo.ember.feature.twofactor.entity.StepUpProof;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorEvent;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorKind;
 import dev.chojo.ember.feature.twofactor.service.TrustedDeviceService;
-import dev.chojo.ember.feature.twofactor.service.TwoFactorAttemptTracker;
 import dev.chojo.ember.feature.twofactor.service.TwoFactorAuditService;
 import dev.chojo.ember.feature.twofactor.service.TwoFactorService;
+import dev.chojo.ember.feature.twofactor.service.TwoFactorSignInService;
+import dev.chojo.ember.feature.twofactor.service.TwoFactorSignInService.Attempt;
 import dev.chojo.ember.feature.twofactor.service.WebAuthnService;
-import dev.chojo.ember.util.ClientIp;
 import io.javalin.http.Context;
+import io.javalin.openapi.HttpMethod;
+import io.javalin.openapi.OpenApi;
+import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiRequestBody;
+import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.List;
-import java.util.Optional;
+import java.util.Objects;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 
@@ -48,44 +52,34 @@ import static dev.chojo.ember.api.RouteSupport.pathInt;
 public class TwoFactorRoutes implements Routes {
     private final TwoFactorService twoFactorService;
     private final TwoFactorAuditService auditService;
-    private final AccountRepository accountRepository;
+    private final TwoFactorSignInService signIn;
     private final AuthService authService;
-    private final TokenHasher tokenHasher;
     private final WebAuthnService webAuthnService;
     private final Demo demoConfig;
     private final TrustedDeviceService trustedDeviceService;
     private final AuthRateLimiter rateLimiter;
-    private final TwoFactorAttemptTracker attemptTracker;
-    private final Network network;
+    private final SessionCookies sessionCookies;
 
     @Inject
     public TwoFactorRoutes(
             TwoFactorService twoFactorService,
             TwoFactorAuditService auditService,
-            AccountRepository accountRepository,
+            TwoFactorSignInService signIn,
             AuthService authService,
-            TokenHasher tokenHasher,
             WebAuthnService webAuthnService,
             Demo demoConfig,
             TrustedDeviceService trustedDeviceService,
             AuthRateLimiter rateLimiter,
-            TwoFactorAttemptTracker attemptTracker,
-            Network network) {
+            SessionCookies sessionCookies) {
         this.twoFactorService = twoFactorService;
         this.auditService = auditService;
-        this.accountRepository = accountRepository;
+        this.signIn = signIn;
         this.authService = authService;
-        this.tokenHasher = tokenHasher;
         this.webAuthnService = webAuthnService;
         this.demoConfig = demoConfig;
         this.trustedDeviceService = trustedDeviceService;
         this.rateLimiter = rateLimiter;
-        this.attemptTracker = attemptTracker;
-        this.network = network;
-    }
-
-    private String clientIp(Context ctx) {
-        return ClientIp.resolve(ctx, network).getHostAddress();
+        this.sessionCookies = sessionCookies;
     }
 
     /**
@@ -99,14 +93,16 @@ public class TwoFactorRoutes implements Routes {
         return false;
     }
 
+    /**
+     * Registers the two-factor routes.
+     *
+     * <p>Enrollment, the first one included, carries the account security step-up category like
+     * everything else on the screen: it is the only guard first enrollment has. The WebAuthn sign-in
+     * routes are public and gated by the pre-auth token issued at password sign-in.
+     */
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/account/2fa/status", this::getStatus, StationPermission.LOGIN);
-        // First-time enrollment used to be guarded by a session-bound password re-entry, because
-        // step-up waved through an account with no factor. Step-up asks everybody now, so first
-        // enrollment carries the same category as everything else on this screen and the
-        // re-entry is gone: without the category, removing it would have left first enrollment
-        // guarded by nothing at all.
         routes.post(
                 prefix + "/account/2fa/totp/begin",
                 this::beginTotp,
@@ -130,7 +126,6 @@ public class TwoFactorRoutes implements Routes {
         routes.post(prefix + "/auth/2fa", this::verify2fa);
         routes.post(prefix + "/auth/2fa/stepup", this::stepUp, StationPermission.LOGIN);
 
-        // Trusted-device management
         routes.get(prefix + "/account/2fa/trusted-devices", this::listTrustedDevices, StationPermission.LOGIN);
         routes.post(
                 prefix + "/account/2fa/trusted-devices/{id}/revoke",
@@ -143,9 +138,6 @@ public class TwoFactorRoutes implements Routes {
                 StationPermission.LOGIN,
                 StepUpCategory.ACCOUNT_SECURITY);
 
-        // WebAuthn enrollment - step-up only applies when the account is already enrolled
-        // in something else (the middleware exempts unenrolled accounts so the first
-        // factor can be added without a chicken-and-egg).
         routes.post(
                 prefix + "/account/2fa/webauthn/register/begin",
                 this::beginWebAuthnRegistration,
@@ -163,15 +155,18 @@ public class TwoFactorRoutes implements Routes {
                 StepUpCategory.ACCOUNT_SECURITY);
         routes.post(prefix + "/account/2fa/factors/{id}/rename", this::renameFactor, StationPermission.LOGIN);
 
-        // WebAuthn assertion at login - public, gated by the pre-auth token issued at password login.
         routes.post(prefix + "/auth/2fa/webauthn/begin", this::beginWebAuthnLogin);
         routes.post(prefix + "/auth/2fa/webauthn/finish", this::finishWebAuthnLogin);
 
-        // WebAuthn assertion for step-up - authenticated, updates session.two_factor_verified_at.
         routes.post(prefix + "/auth/2fa/stepup/webauthn/begin", this::beginWebAuthnStepUp, StationPermission.LOGIN);
         routes.post(prefix + "/auth/2fa/stepup/webauthn/finish", this::finishWebAuthnStepUp, StationPermission.LOGIN);
     }
 
+    @OpenApi(
+            path = "/api/v1/account/2fa/status",
+            methods = HttpMethod.GET,
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = TwoFactorStatusResponse.class)))
     private void getStatus(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var factors = twoFactorService.getActiveFactors(session.accountId());
@@ -180,17 +175,24 @@ public class TwoFactorRoutes implements Routes {
         ctx.json(new TwoFactorStatusResponse(
                 enrolled,
                 factors.stream()
-                        .map(f -> new FactorInfo(f.id(), f.kind().name(), f.label(), f.createdAt(), f.lastUsedAt()))
+                        .map(f -> new FactorInfo(f.id(), f.kind(), f.label(), f.createdAt(), f.lastUsedAt()))
                         .toList(),
                 backupCodes,
                 !demoConfig.enabled(),
                 trustedDeviceService.maxDays()));
     }
 
+    @OpenApi(
+            path = "/api/v1/account/2fa/totp/begin",
+            methods = HttpMethod.POST,
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = TotpBeginResponse.class)),
+                @OpenApiResponse(status = "401", content = @OpenApiContent(from = StepUpChallenge.class))
+            })
     private void beginTotp(Context ctx) {
         UserSession session = UserSession.from(ctx);
         if (twoFactorService.isEnrolled(session.accountId())) {
-            throw Refusal.ALREADY_ENROLLED_ON_TOTP_SETUP.raise();
+            throw TwoFactorRefusal.ALREADY_ENROLLED_ON_TOTP_SETUP.raise();
         }
         var enrollment = twoFactorService.beginTotpEnrollment(
                 session.accountId(), session.account().email());
@@ -201,11 +203,19 @@ public class TwoFactorRoutes implements Routes {
                 enrollment.recoveryCodes()));
     }
 
+    @OpenApi(
+            path = "/api/v1/account/2fa/totp/confirm",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = TotpConfirmRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)),
+                @OpenApiResponse(status = "401", content = @OpenApiContent(from = StepUpChallenge.class))
+            })
     private void confirmTotp(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(TotpConfirmRequest.class);
         if (request.secret() == null || request.code() == null || request.recoveryCodes() == null) {
-            throw Refusal.TOTP_CONFIRMATION_DETAILS_MISSING.raise();
+            throw TwoFactorRefusal.TOTP_CONFIRMATION_DETAILS_MISSING.raise();
         }
         boolean confirmed = twoFactorService.confirmTotpEnrollment(
                 session.accountId(),
@@ -215,96 +225,77 @@ public class TwoFactorRoutes implements Routes {
                 ctx.userAgent(),
                 ctx.header("CF-IPCountry"));
         if (!confirmed) {
-            throw Refusal.TOTP_SETUP_CODE_WRONG.raise();
+            throw TwoFactorRefusal.TOTP_SETUP_CODE_WRONG.raise();
         }
         ctx.json(new MessageResponse("TOTP enrolled"));
     }
 
+    @OpenApi(
+            path = "/api/v1/account/2fa/totp/remove",
+            methods = HttpMethod.POST,
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)),
+                @OpenApiResponse(status = "401", content = @OpenApiContent(from = StepUpChallenge.class))
+            })
     private void removeTotp(Context ctx) {
         UserSession session = UserSession.from(ctx);
         boolean removed =
                 twoFactorService.removeTotpFactor(session.accountId(), ctx.userAgent(), ctx.header("CF-IPCountry"));
         if (!removed) {
-            throw Refusal.NO_TOTP_TO_REMOVE.raise();
+            throw TwoFactorRefusal.NO_TOTP_TO_REMOVE.raise();
         }
         ctx.json(new MessageResponse("TOTP removed"));
     }
 
+    @OpenApi(
+            path = "/api/v1/account/2fa/backup-codes/regenerate",
+            methods = HttpMethod.POST,
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = BackupCodesResponse.class)),
+                @OpenApiResponse(status = "401", content = @OpenApiContent(from = StepUpChallenge.class))
+            })
     private void regenerateBackupCodes(Context ctx) {
         UserSession session = UserSession.from(ctx);
         if (!twoFactorService.isEnrolled(session.accountId())) {
-            throw Refusal.NOT_ENROLLED_ON_BACKUP_CODES.raise();
+            throw TwoFactorRefusal.NOT_ENROLLED_ON_BACKUP_CODES.raise();
         }
         List<String> codes = twoFactorService.regenerateBackupCodes(
                 session.accountId(), ctx.userAgent(), ctx.header("CF-IPCountry"));
         ctx.json(new BackupCodesResponse(codes));
     }
 
+    @OpenApi(
+            path = "/api/v1/auth/2fa",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = Verify2faRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = LoginResultResponse.class)))
     private void verify2fa(Context ctx) {
         var request = ctx.bodyAsClass(Verify2faRequest.class);
         if (request.preAuthToken() == null || request.proof() == null) {
-            throw Refusal.TWO_FACTOR_CHECK_DETAILS_MISSING.raise();
+            throw TwoFactorRefusal.TWO_FACTOR_CHECK_DETAILS_MISSING.raise();
         }
 
-        Optional<AccountToken> tokenOpt = accountRepository.findToken(request.preAuthToken());
-        if (tokenOpt.isEmpty()) {
-            throw Refusal.SIGN_IN_NOT_WAITING_ON_A_FACTOR.raise();
-        }
-        AccountToken preAuth = tokenOpt.get();
-        if (preAuth.isExpired() || preAuth.tokenType() != TokenType.TWO_FACTOR_PENDING) {
-            accountRepository.deleteToken(request.preAuthToken());
-            throw Refusal.SIGN_IN_NOT_WAITING_ON_A_FACTOR.raise();
-        }
-
-        int accountId = preAuth.accountId();
-        RateLimits.enforce(rateLimiter.tryTwoFactor(clientIp(ctx), accountId));
-        String attemptKey = tokenHasher.hash(request.preAuthToken());
-        boolean verified;
-
-        if ("BACKUP_CODE".equals(request.factor())) {
-            var result = twoFactorService.verifyBackupCode(accountId, request.proof(), ctx.ip());
-            verified = result.valid();
-            if (verified) {
-                auditService.record(
-                        accountId,
-                        null,
-                        TwoFactorEvent.BACKUP_CODE_USED,
-                        TwoFactorKind.BACKUP_CODES,
-                        ctx.userAgent(),
-                        ctx.header("CF-IPCountry"));
-            }
-        } else {
-            verified = twoFactorService.verifyTotp(accountId, request.proof());
-            if (verified) {
-                auditService.record(
-                        accountId,
-                        null,
-                        TwoFactorEvent.LOGIN_VERIFIED,
-                        TwoFactorKind.TOTP,
-                        ctx.userAgent(),
-                        ctx.header("CF-IPCountry"));
-            }
-        }
-
-        if (!verified) {
-            if (attemptTracker.recordFailure(attemptKey) >= TwoFactorAttemptTracker.MAX_ATTEMPTS) {
-                accountRepository.deleteToken(request.preAuthToken());
-            }
-            throw Refusal.TWO_FACTOR_CODE_WRONG.raise();
-        }
-
-        attemptTracker.reset(attemptKey);
-        accountRepository.deleteToken(request.preAuthToken());
+        int accountId = signIn.waitingAccount(request.preAuthToken(), TwoFactorRefusal.SIGN_IN_NOT_WAITING_ON_A_FACTOR);
+        RateLimits.enforce(TwoFactorRefusal.TWO_FACTOR_CODE_TOO_OFTEN, rateLimiter.tryTwoFactor(ctx.ip(), accountId));
+        signIn.verify(
+                accountId,
+                request.preAuthToken(),
+                new Attempt(request.factor(), request.proof(), ctx.ip(), ctx.userAgent(), ctx.header("CF-IPCountry")));
         Integer deviceTrustId = issueTrustedDeviceIfRequested(ctx, accountId, request.rememberDeviceDays());
         LoginResult session = authService.createVerifiedSessionForAccount(
                 accountId, ctx.userAgent(), ctx.header("CF-IPCountry"), deviceTrustId, request.trustedDevice());
-        ctx.json(new LoginResultResponse(session.token(), session.expiresAt()));
+        answerSession(ctx, session);
     }
 
+    @OpenApi(
+            path = "/api/v1/account/2fa/trusted-devices",
+            methods = HttpMethod.GET,
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = TrustedDevicesResponse.class)))
     private void listTrustedDevices(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var devices = trustedDeviceService.list(session.accountId()).stream()
-                .map(d -> new TrustedDeviceDto(
+                .map(d -> new TrustedDeviceEntry(
                         d.id(),
                         d.userAgent(),
                         d.createdAt(),
@@ -315,11 +306,18 @@ public class TwoFactorRoutes implements Routes {
         ctx.json(new TrustedDevicesResponse(devices));
     }
 
+    @OpenApi(
+            path = "/api/v1/account/2fa/trusted-devices/{id}/revoke",
+            methods = HttpMethod.POST,
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)),
+                @OpenApiResponse(status = "401", content = @OpenApiContent(from = StepUpChallenge.class))
+            })
     private void revokeTrustedDevice(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
         if (!trustedDeviceService.revoke(id, session.accountId())) {
-            throw Refusal.TRUSTED_DEVICE_NOT_HERE.raise();
+            throw TwoFactorRefusal.TRUSTED_DEVICE_NOT_HERE.raise();
         }
         auditService.record(
                 session.accountId(),
@@ -331,6 +329,13 @@ public class TwoFactorRoutes implements Routes {
         ctx.json(new MessageResponse("Trusted device revoked"));
     }
 
+    @OpenApi(
+            path = "/api/v1/account/2fa/trusted-devices/revoke-all",
+            methods = HttpMethod.POST,
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)),
+                @OpenApiResponse(status = "401", content = @OpenApiContent(from = StepUpChallenge.class))
+            })
     private void revokeAllTrustedDevices(Context ctx) {
         UserSession session = UserSession.from(ctx);
         trustedDeviceService.revokeAll(session.accountId());
@@ -344,16 +349,22 @@ public class TwoFactorRoutes implements Routes {
         ctx.json(new MessageResponse("All trusted devices revoked"));
     }
 
+    @OpenApi(
+            path = "/api/v1/auth/2fa/stepup",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = StepUpRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = StepUpResponse.class)))
     private void stepUp(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(StepUpRequest.class);
         if (request.factor() == null || request.proof() == null) {
-            throw Refusal.STEP_UP_DETAILS_MISSING.raise();
+            throw TwoFactorRefusal.STEP_UP_DETAILS_MISSING.raise();
         }
         if (!twoFactorService.isEnrolled(session.accountId())) {
-            throw Refusal.NOT_ENROLLED_ON_STEP_UP.raise();
+            throw TwoFactorRefusal.NOT_ENROLLED_ON_STEP_UP.raise();
         }
-        RateLimits.enforce(rateLimiter.tryTwoFactor(clientIp(ctx), session.accountId()));
+        RateLimits.enforce(
+                TwoFactorRefusal.TWO_FACTOR_STEP_UP_TOO_OFTEN, rateLimiter.tryTwoFactor(ctx.ip(), session.accountId()));
 
         boolean verified;
         TwoFactorKind kind;
@@ -368,7 +379,7 @@ public class TwoFactorRoutes implements Routes {
         }
 
         if (!verified) {
-            throw Refusal.STEP_UP_CODE_WRONG.raise();
+            throw TwoFactorRefusal.STEP_UP_CODE_WRONG.raise();
         }
 
         twoFactorService.markSessionTwoFactorVerified(
@@ -383,6 +394,13 @@ public class TwoFactorRoutes implements Routes {
         ctx.json(new StepUpResponse(Instant.now()));
     }
 
+    @OpenApi(
+            path = "/api/v1/account/2fa/webauthn/register/begin",
+            methods = HttpMethod.POST,
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = WebAuthnBeginResponse.class)),
+                @OpenApiResponse(status = "401", content = @OpenApiContent(from = StepUpChallenge.class))
+            })
     private void beginWebAuthnRegistration(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var account = session.account();
@@ -392,11 +410,21 @@ public class TwoFactorRoutes implements Routes {
         ctx.json(new WebAuthnBeginResponse(start.challengeToken(), start.optionsJson()));
     }
 
+    @OpenApi(
+            path = "/api/v1/account/2fa/webauthn/register/finish",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = WebAuthnRegisterFinishRequest.class)),
+            responses = {
+                @OpenApiResponse(
+                        status = "200",
+                        content = @OpenApiContent(from = WebAuthnRegisterFinishResponse.class)),
+                @OpenApiResponse(status = "401", content = @OpenApiContent(from = StepUpChallenge.class))
+            })
     private void finishWebAuthnRegistration(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(WebAuthnRegisterFinishRequest.class);
         if (request.challengeToken() == null || request.credentialJson() == null) {
-            throw Refusal.SECURITY_KEY_SETUP_DETAILS_MISSING.raise();
+            throw TwoFactorRefusal.SECURITY_KEY_SETUP_DETAILS_MISSING.raise();
         }
         var factor = webAuthnService.finishRegistration(
                 session.accountId(),
@@ -406,58 +434,79 @@ public class TwoFactorRoutes implements Routes {
                 ctx.userAgent(),
                 ctx.header("CF-IPCountry"));
         if (factor.isEmpty()) {
-            throw Refusal.SECURITY_KEY_NOT_REGISTERED.raise();
+            throw TwoFactorRefusal.SECURITY_KEY_NOT_REGISTERED.raise();
         }
-        // First-factor enrollment also seeds backup codes - the client must surface these once.
         List<String> issuedCodes = twoFactorService.issueInitialBackupCodesIfMissing(
                 session.accountId(), ctx.userAgent(), ctx.header("CF-IPCountry"));
         var f = factor.get();
         ctx.json(new WebAuthnRegisterFinishResponse(
-                new FactorInfo(f.id(), f.kind().name(), f.label(), f.createdAt(), f.lastUsedAt()), issuedCodes));
+                new FactorInfo(f.id(), f.kind(), f.label(), f.createdAt(), f.lastUsedAt()), issuedCodes));
     }
 
+    @OpenApi(
+            path = "/api/v1/account/2fa/factors/{id}/remove",
+            methods = HttpMethod.POST,
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)),
+                @OpenApiResponse(status = "401", content = @OpenApiContent(from = StepUpChallenge.class))
+            })
     private void removeFactor(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int factorId = pathInt(ctx, "id");
         if (!twoFactorService.removeFactor(
                 session.accountId(), factorId, ctx.userAgent(), ctx.header("CF-IPCountry"))) {
-            throw Refusal.FACTOR_NOT_HERE_ON_REMOVAL.raise();
+            throw TwoFactorRefusal.FACTOR_NOT_HERE_ON_REMOVAL.raise();
         }
         ctx.json(new MessageResponse("Factor removed"));
     }
 
+    @OpenApi(
+            path = "/api/v1/account/2fa/factors/{id}/rename",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = RenameFactorRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)))
     private void renameFactor(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int factorId = pathInt(ctx, "id");
         var request = ctx.bodyAsClass(RenameFactorRequest.class);
         if (!twoFactorService.renameFactor(session.accountId(), factorId, request.label())) {
-            throw Refusal.FACTOR_NOT_RENAMED.raise();
+            throw TwoFactorRefusal.FACTOR_NOT_RENAMED.raise();
         }
         ctx.json(new MessageResponse("Factor renamed"));
     }
 
+    @OpenApi(
+            path = "/api/v1/auth/2fa/webauthn/begin",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = WebAuthnLoginBeginRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = WebAuthnBeginResponse.class)))
     private void beginWebAuthnLogin(Context ctx) {
         var request = ctx.bodyAsClass(WebAuthnLoginBeginRequest.class);
         if (request.preAuthToken() == null) {
-            throw Refusal.SECURITY_KEY_SIGN_IN_TOKEN_MISSING.raise();
+            throw TwoFactorRefusal.SECURITY_KEY_SIGN_IN_TOKEN_MISSING.raise();
         }
         int accountId = consumeReadOnlyPreAuth(request.preAuthToken());
         var start = webAuthnService.startAssertion(accountId);
         ctx.json(new WebAuthnBeginResponse(start.challengeToken(), start.optionsJson()));
     }
 
+    @OpenApi(
+            path = "/api/v1/auth/2fa/webauthn/finish",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = WebAuthnLoginFinishRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = LoginResultResponse.class)))
     private void finishWebAuthnLogin(Context ctx) {
         var request = ctx.bodyAsClass(WebAuthnLoginFinishRequest.class);
         if (request.preAuthToken() == null || request.challengeToken() == null || request.credentialJson() == null) {
-            throw Refusal.SECURITY_KEY_SIGN_IN_DETAILS_MISSING.raise();
+            throw TwoFactorRefusal.SECURITY_KEY_SIGN_IN_DETAILS_MISSING.raise();
         }
         int accountId = consumeReadOnlyPreAuth(request.preAuthToken());
-        RateLimits.enforce(rateLimiter.tryTwoFactor(clientIp(ctx), accountId));
+        RateLimits.enforce(
+                TwoFactorRefusal.SECURITY_KEY_SIGN_IN_TOO_OFTEN, rateLimiter.tryTwoFactor(ctx.ip(), accountId));
         if (!webAuthnService.finishAssertion(accountId, request.challengeToken(), request.credentialJson())) {
-            throw Refusal.SECURITY_KEY_SIGN_IN_REFUSED.raise();
+            throw TwoFactorRefusal.SECURITY_KEY_SIGN_IN_REFUSED.raise();
         }
-        // Pre-auth is single-use - consume only after successful verification so users can retry.
-        accountRepository.deleteToken(request.preAuthToken());
+        signIn.finish(request.preAuthToken());
         auditService.record(
                 accountId,
                 null,
@@ -468,7 +517,14 @@ public class TwoFactorRoutes implements Routes {
         Integer deviceTrustId = issueTrustedDeviceIfRequested(ctx, accountId, request.rememberDeviceDays());
         LoginResult session = authService.createVerifiedSessionForAccount(
                 accountId, ctx.userAgent(), ctx.header("CF-IPCountry"), deviceTrustId, request.trustedDevice());
-        ctx.json(new LoginResultResponse(session.token(), session.expiresAt()));
+        answerSession(ctx, session);
+    }
+
+    /** Puts the session the second factor earned into the cookie; the body only says how long it lasts. */
+    private void answerSession(Context ctx, LoginResult session) {
+        sessionCookies.issue(ctx, session);
+        ctx.json(new LoginResultResponse(
+                Objects.requireNonNull(session.expiresAt(), "a minted session carries its expiry")));
     }
 
     /**
@@ -477,7 +533,8 @@ public class TwoFactorRoutes implements Routes {
      * to the API origin, and {@code Secure} outside dev / demo mode. Returns the new row's id
      * so the caller can attach it to the freshly-minted session.
      */
-    private Integer issueTrustedDeviceIfRequested(Context ctx, int accountId, Integer rememberDeviceDays) {
+    private @Nullable Integer issueTrustedDeviceIfRequested(
+            Context ctx, int accountId, @Nullable Integer rememberDeviceDays) {
         if (rememberDeviceDays == null || rememberDeviceDays <= 0) return null;
         var issued = trustedDeviceService.issue(accountId, rememberDeviceDays, ctx.userAgent());
         long maxAge =
@@ -489,7 +546,7 @@ public class TwoFactorRoutes implements Routes {
                 .append("; Path=/; HttpOnly; SameSite=Strict; Max-Age=")
                 .append(maxAge);
         if (!demoConfig.dev() && !demoConfig.enabled()) cookie.append("; Secure");
-        ctx.header("Set-Cookie", cookie.toString());
+        ctx.res().addHeader("Set-Cookie", cookie.toString());
         auditService.record(
                 accountId,
                 null,
@@ -500,21 +557,32 @@ public class TwoFactorRoutes implements Routes {
         return issued.device().id();
     }
 
+    @OpenApi(
+            path = "/api/v1/auth/2fa/stepup/webauthn/begin",
+            methods = HttpMethod.POST,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = WebAuthnBeginResponse.class)))
     private void beginWebAuthnStepUp(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var start = webAuthnService.startAssertion(session.accountId());
         ctx.json(new WebAuthnBeginResponse(start.challengeToken(), start.optionsJson()));
     }
 
+    @OpenApi(
+            path = "/api/v1/auth/2fa/stepup/webauthn/finish",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = WebAuthnStepUpFinishRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = StepUpResponse.class)))
     private void finishWebAuthnStepUp(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(WebAuthnStepUpFinishRequest.class);
         if (request.challengeToken() == null || request.credentialJson() == null) {
-            throw Refusal.SECURITY_KEY_STEP_UP_DETAILS_MISSING.raise();
+            throw TwoFactorRefusal.SECURITY_KEY_STEP_UP_DETAILS_MISSING.raise();
         }
-        RateLimits.enforce(rateLimiter.tryTwoFactor(clientIp(ctx), session.accountId()));
+        RateLimits.enforce(
+                TwoFactorRefusal.SECURITY_KEY_STEP_UP_TOO_OFTEN,
+                rateLimiter.tryTwoFactor(ctx.ip(), session.accountId()));
         if (!webAuthnService.finishAssertion(session.accountId(), request.challengeToken(), request.credentialJson())) {
-            throw Refusal.SECURITY_KEY_STEP_UP_REFUSED.raise();
+            throw TwoFactorRefusal.SECURITY_KEY_STEP_UP_REFUSED.raise();
         }
         twoFactorService.markSessionTwoFactorVerified(session.sessionId(), StepUpProof.SECURITY_KEY);
         auditService.record(
@@ -528,24 +596,12 @@ public class TwoFactorRoutes implements Routes {
     }
 
     /**
-     * Resolves a TWO_FACTOR_PENDING token to an account id without deleting it - used between
-     * begin/finish calls of the WebAuthn login ceremony so a failed assertion can be retried
-     * with the same pre-auth token.
+     * Resolves a waiting sign-in to its account without spending it, so a failed security key
+     * assertion can be retried with the same pre-auth token.
      */
     private int consumeReadOnlyPreAuth(String preAuthToken) {
-        Optional<AccountToken> tokenOpt = accountRepository.findToken(preAuthToken);
-        if (tokenOpt.isEmpty()) {
-            throw Refusal.SIGN_IN_NOT_WAITING_ON_A_KEY.raise();
-        }
-        AccountToken preAuth = tokenOpt.get();
-        if (preAuth.isExpired() || preAuth.tokenType() != TokenType.TWO_FACTOR_PENDING) {
-            accountRepository.deleteToken(preAuthToken);
-            throw Refusal.SIGN_IN_NOT_WAITING_ON_A_KEY.raise();
-        }
-        return preAuth.accountId();
+        return signIn.waitingAccount(preAuthToken, TwoFactorRefusal.SIGN_IN_NOT_WAITING_ON_A_KEY);
     }
-
-    // -- Request / Response records --
 
     public record TwoFactorStatusResponse(
             boolean enrolled,
@@ -554,7 +610,12 @@ public class TwoFactorRoutes implements Routes {
             boolean webauthnAvailable,
             int trustedDeviceMaxDays) {}
 
-    public record FactorInfo(int id, String kind, String label, Instant createdAt, Instant lastUsedAt) {}
+    public record FactorInfo(
+            int id,
+            TwoFactorKind kind,
+            String label,
+            Instant createdAt,
+            @Nullable Instant lastUsedAt) {}
 
     public record TotpBeginResponse(String secret, String otpauthUri, String qrPng, List<String> recoveryCodes) {}
 
@@ -580,9 +641,14 @@ public class TwoFactorRoutes implements Routes {
 
     public record StepUpResponse(Instant verifiedAt) {}
 
-    public record LoginResultResponse(String token, Instant expiresAt) {}
-
-    public record MessageResponse(String message) {}
+    /**
+     * The answer to a finished second factor.
+     *
+     * <p>The session itself travels in its cookie, never in the body.
+     *
+     * @param expiresAt when the session ends
+     */
+    public record LoginResultResponse(Instant expiresAt) {}
 
     public record WebAuthnBeginResponse(String challengeToken, String optionsJson) {}
 
@@ -608,8 +674,8 @@ public class TwoFactorRoutes implements Routes {
 
     public record RenameFactorRequest(String label) {}
 
-    public record TrustedDeviceDto(
+    public record TrustedDeviceEntry(
             int id, String userAgent, Instant createdAt, Instant lastSeenAt, Instant trustedUntil, boolean current) {}
 
-    public record TrustedDevicesResponse(List<TrustedDeviceDto> devices) {}
+    public record TrustedDevicesResponse(List<TrustedDeviceEntry> devices) {}
 }

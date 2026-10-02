@@ -35,7 +35,11 @@ const renderedHtml = computed(() => renderMarkdown(content.value))
     <div
         class="flex-1 cursor-pointer rounded-theme border border-dashed border-transparent hover:border-(--border) p-2 transition-colors group"
         :title="t('stationPages.editor.editMarkdown')"
+        role="button"
+        tabindex="0"
         @click="showModal = true"
+        @keydown.enter.self.prevent="showModal = true"
+        @keydown.space.self.prevent="showModal = true"
     >
         <div v-if="content" class="markdown-content" v-html="renderedHtml"/>
         <p v-else class="text-sm text-(--text-muted) italic">{{ t('stationPages.editor.markdownEmpty') }}</p>

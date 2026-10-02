@@ -6,30 +6,28 @@
 package dev.chojo.ember.feature.members.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
-import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.feature.members.entity.MemberWithName;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.entity.UserTag;
-import dev.chojo.ember.feature.members.repository.StationMemberRepository;
-import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
-import dev.chojo.ember.feature.members.service.MemberNameResolver;
+import dev.chojo.ember.feature.members.service.MemberViewService;
+import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.members.service.UserTagService;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
-import io.javalin.openapi.OpenApiName;
 import io.javalin.openapi.OpenApiParam;
 import io.javalin.openapi.OpenApiRequestBody;
 import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -43,23 +41,14 @@ import static dev.chojo.ember.api.RouteSupport.requireOwnedOrNotFound;
 @Singleton
 public class UserTagRoutes implements Routes {
     private final UserTagService tagService;
-    private final StationMemberRepository stationMemberRepository;
-    private final AccountRepository accountRepository;
-    private final MemberNameResolver memberNameResolver;
-    private final MemberIdentityFactory memberIdentityFactory;
+    private final StationMemberService memberService;
+    private final MemberViewService memberViews;
 
     @Inject
-    public UserTagRoutes(
-            UserTagService tagService,
-            StationMemberRepository stationMemberRepository,
-            AccountRepository accountRepository,
-            MemberIdentityFactory memberIdentityFactory,
-            MemberNameResolver memberNameResolver) {
+    public UserTagRoutes(UserTagService tagService, StationMemberService memberService, MemberViewService memberViews) {
         this.tagService = tagService;
-        this.stationMemberRepository = stationMemberRepository;
-        this.accountRepository = accountRepository;
-        this.memberIdentityFactory = memberIdentityFactory;
-        this.memberNameResolver = memberNameResolver;
+        this.memberService = memberService;
+        this.memberViews = memberViews;
     }
 
     private static boolean isBlank(String s) {
@@ -71,7 +60,7 @@ public class UserTagRoutes implements Routes {
      * member of another station, so the tags a stranger carries cannot be read or probed.
      */
     private void requireOwnedMember(Context ctx, int memberId) {
-        requireOwnedOrNotFound(ctx, memberId, stationMemberRepository::findById, StationMember::stationId);
+        requireOwnedOrNotFound(ctx, memberId, memberService::findById, StationMember::stationId);
     }
 
     @Override
@@ -93,12 +82,6 @@ public class UserTagRoutes implements Routes {
         routes.post(prefix + "/tags/{id}/convert-to-group", this::convertToGroup, StationPermission.MEMBER_MANAGE_TAGS);
     }
 
-    // -- Tags --
-
-    private MemberWithName toMemberWithName(StationMember m) {
-        return MemberWithName.from(m, accountRepository, memberIdentityFactory, memberNameResolver);
-    }
-
     @OpenApi(
             path = "/api/v1/tags",
             methods = HttpMethod.GET,
@@ -106,7 +89,7 @@ public class UserTagRoutes implements Routes {
             tags = {"User Tags"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = UserTag[].class)))
     private void list(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(tagService.findByStation(session.stationId()));
     }
 
@@ -121,10 +104,10 @@ public class UserTagRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void create(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(TagRequest.class);
         if (isBlank(request.name())) {
-            throw Refusal.TAG_NAME_MISSING_ON_CREATE.raise();
+            throw MemberRefusal.TAG_NAME_MISSING_ON_CREATE.raise();
         }
         ctx.status(HttpStatus.CREATED).json(tagService.create(session.stationId(), request.name()));
     }
@@ -146,14 +129,12 @@ public class UserTagRoutes implements Routes {
         requireOwnedOrNotFound(ctx, id, tagService::findById, UserTag::stationId);
         var request = ctx.bodyAsClass(TagRequest.class);
         if (isBlank(request.name())) {
-            throw Refusal.TAG_NAME_MISSING_ON_CHANGE.raise();
+            throw MemberRefusal.TAG_NAME_MISSING_ON_CHANGE.raise();
         }
         if (!tagService.update(id, request.name(), request.color(), request.visible(), request.position())) {
-            throw Refusal.MEMBER_TAG_NOT_HERE_ON_CHANGE.raise();
+            throw MemberRefusal.MEMBER_TAG_NOT_HERE_ON_CHANGE.raise();
         }
     }
-
-    // -- Tag Members --
 
     @OpenApi(
             path = "/api/v1/tags/{id}",
@@ -171,7 +152,7 @@ public class UserTagRoutes implements Routes {
         if (tagService.delete(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
-            throw Refusal.MEMBER_TAG_NOT_HERE_ON_DELETE.raise();
+            throw MemberRefusal.MEMBER_TAG_NOT_HERE_ON_DELETE.raise();
         }
     }
 
@@ -185,7 +166,7 @@ public class UserTagRoutes implements Routes {
     private void getMembers(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedOrNotFound(ctx, id, tagService::findById, UserTag::stationId);
-        ctx.json(tagService.findMembers(id).stream().map(this::toMemberWithName).toList());
+        ctx.json(tagService.findMembers(id).stream().map(memberViews::named).toList());
     }
 
     @OpenApi(
@@ -196,20 +177,16 @@ public class UserTagRoutes implements Routes {
                     "Provide the full list of member IDs. Existing members not in the list are removed, new ones are added.",
             tags = {"User Tags"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
-            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SetMembersRequest.class)),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = TagSetMembersRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberWithName[].class)))
     private void setMembers(Context ctx) {
         int tagId = pathInt(ctx, "id");
         requireOwnedOrNotFound(ctx, tagId, tagService::findById, UserTag::stationId);
-        var request = ctx.bodyAsClass(SetMembersRequest.class);
+        var request = ctx.bodyAsClass(TagSetMembersRequest.class);
         List<Integer> memberIds = request.memberIds() != null ? request.memberIds() : List.of();
         tagService.setMembers(tagId, memberIds);
-        ctx.json(tagService.findMembers(tagId).stream()
-                .map(this::toMemberWithName)
-                .toList());
+        ctx.json(tagService.findMembers(tagId).stream().map(memberViews::named).toList());
     }
-
-    // -- Convert to Group --
 
     @OpenApi(
             path = "/api/v1/station-members/{memberId}/tags",
@@ -242,10 +219,10 @@ public class UserTagRoutes implements Routes {
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
-    // -- Request/Response records --
+    /**
+     * @param color the tag's colour, or {@code null} for none
+     */
+    public record TagRequest(String name, @Nullable String color, boolean visible, int position) {}
 
-    public record TagRequest(String name, String color, boolean visible, int position) {}
-
-    @OpenApiName("TagSetMembersRequest")
-    public record SetMembersRequest(List<Integer> memberIds) {}
+    public record TagSetMembersRequest(List<Integer> memberIds) {}
 }

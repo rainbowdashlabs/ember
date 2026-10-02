@@ -6,7 +6,14 @@
 import type {Page} from '@playwright/test'
 import {test, expect, apiHeaders} from './fixtures/auth'
 import {ownCluster, stationUnder, type OwnCluster} from './fixtures/cluster'
-import {putSomething, readBack, sftpTarget, unreachableTarget} from './fixtures/storage'
+import {
+    historyRow,
+    putSomething,
+    readBack,
+    sftpTarget,
+    typeSftpTarget,
+    unreachableTarget,
+} from './fixtures/storage'
 
 /**
  * An association keeping its files on storage of its own, and deciding whether its stations do too.
@@ -21,14 +28,6 @@ import {putSomething, readBack, sftpTarget, unreachableTarget} from './fixtures/
  * reading at that moment.
  */
 test.describe('Cluster storage backend', () => {
-    /** The association's backend screen, entered the way the switcher enters it. */
-    async function backendScreen(page: Page, own: OwnCluster) {
-        await page.goto('/cluster/storage/backend')
-        await page.evaluate(uid => window.localStorage.setItem('cluster_id', uid), own.uid)
-        await page.goto('/cluster/storage/backend')
-        await expect(page.getByTestId('app-shell')).toBeVisible()
-    }
-
     /** Saves the association's storage and says what it is for, which is two acts and not one. */
     async function pointAt(page: Page, own: OwnCluster, reach: string, locked = false) {
         const saved = await page.request.post('/api/v1/cluster/storage/backend/apply',
@@ -45,6 +44,18 @@ test.describe('Cluster storage backend', () => {
             .get('/api/v1/cluster/storage/backend/placements', {headers: own.headers})
             .then(r => r.json())
         return rows.find((row: {stationUid: string}) => row.stationUid === stationUid)
+    }
+
+    /**
+     * The association's storage screen, entered the way the switcher enters it: loaded once for an origin to
+     * plant the association on, and again to open on it.
+     */
+    async function storageBackendScreen(page: Page, own: OwnCluster) {
+        await page.goto('/cluster/storage/backend')
+        await page.evaluate(uid => window.localStorage.setItem('cluster_id', uid), own.uid)
+        await page.goto('/cluster/storage/backend')
+        await expect(page.getByTestId('app-shell')).toBeVisible()
+        await expect(page.getByTestId('storage-backend-where')).toBeVisible()
     }
 
     /** Carries one station across, as the association. */
@@ -198,7 +209,8 @@ test.describe('Cluster storage backend', () => {
      * CLS-87 and CLS-88 - A joining station arrives with its files and a released one takes them with it.
      *
      * One story rather than two, because it is one station walking in and out again, and the point in both
-     * directions is the same: the copy finishes before the membership is written.
+     * directions is the same: the copy finishes before the membership is written. The station is let go
+     * and taken back, the only way to walk a join on a station that already has files.
      */
     test('a station arrives with its files and leaves with them', async ({adminPage: page, browser, request}) => {
         const own = await ownCluster(page, browser, request, 'Beitritt')
@@ -208,7 +220,6 @@ test.describe('Cluster storage backend', () => {
         const joiningHeaders = await apiHeaders(joining.page)
         const file = await putSomething(joining.page.request, joiningHeaders, 'beitritt')
 
-        // Out and back in again, which is the only way to walk a join on a station that has files already
         const released = await page.request.delete(`/api/v1/cluster/stations/${joining.uid}`,
             {headers: own.headers})
         expect(released.ok(), `the station was let go (${await released.text()})`).toBeTruthy()
@@ -238,12 +249,12 @@ test.describe('Cluster storage backend', () => {
      * CLS-89 - A copy that cannot run refuses the act rather than half doing it.
      *
      * The promise of moving first and acting second, which would otherwise be believed rather than known.
+     * The station is built before the association points anywhere, since making one under a cluster
+     * whose storage cannot be reached is itself refused.
      */
     test('a copy that cannot run refuses the act', async ({adminPage: page, browser, request}) => {
         const own = await ownCluster(page, browser, request, 'Unerreichbar')
 
-        // The station is built before the association points anywhere: making one under a cluster whose
-        // storage cannot be reached is itself refused, which is this story's subject one step earlier
         const joining = await stationUnder(page, browser, request, own.headers, `Ohne Ziel ${Date.now()}`)
         const joiningHeaders = await apiHeaders(joining.page)
         await page.request.delete(`/api/v1/cluster/stations/${joining.uid}`, {headers: own.headers})
@@ -272,4 +283,78 @@ test.describe('Cluster storage backend', () => {
         await joining.page.context().close()
         await own.stationPage.context().close()
     })
+
+    /**
+     * The association's storage screen keeps its history, the way a station's always did.
+     *
+     * Three things happen on the screen and each is listed: a decision refused because there is no storage
+     * to decide about yet, the storage set up, and a test of it. The refusal is in the list too, since a
+     * history that keeps only what worked cannot say why somebody's change did not stick.
+     */
+    test('the association storage screen lists what was changed, tested and refused',
+        async ({adminPage: page, browser, request}) => {
+            const own = await ownCluster(page, browser, request, 'Verlauf')
+            await storageBackendScreen(page, own)
+            await expect(page.getByText('Noch keine Einträge.'), 'nothing has happened yet').toBeVisible()
+
+            await page.getByTestId('cluster-storage-reach').selectOption('EVERY_STATION')
+            await page.getByTestId('cluster-storage-policy-save').click()
+            await expect(page.getByText('Richte den Speicher des Verbunds ein, bevor du festlegst'),
+                'the decision is refused while there is nothing to decide about').toBeVisible()
+            await expect(historyRow(page, 'REJECTED', 'FAILED'), 'and the refusal is in the history').toHaveCount(1)
+
+            await typeSftpTarget(page)
+            await page.getByTestId('storage-backend-apply').click()
+            await expect(page.getByText('Speicher gespeichert.')).toBeVisible()
+            await expect(historyRow(page, 'CREATED', 'OK'), 'setting it up is in the history').toHaveCount(1)
+
+            await page.getByTestId('storage-backend-probe-saved').click()
+            await expect(page.getByText('Verbindung erfolgreich getestet.')).toBeVisible()
+            await expect(historyRow(page, 'PROBE_OK'), 'and so is the test').toHaveCount(1)
+
+            await page.reload()
+            await expect(page.getByTestId('storage-audit-row'), 'the history is the server\'s, not the screen\'s')
+                .toHaveCount(3)
+
+            await own.stationPage.context().close()
+        })
+
+    /**
+     * Moving a station's files is asked about before it happens, and saying no moves nothing.
+     *
+     * The move copies every file the station has and deletes the originals, and the button sits in a row of
+     * a table. Pressing it by accident has to cost nothing.
+     */
+    test('the association is asked before a station\'s files move, and cancelling moves nothing',
+        async ({adminPage: page, browser, request}) => {
+            const own = await ownCluster(page, browser, request, 'Rueckfrage')
+            const stationHeaders = await apiHeaders(own.stationPage)
+            const file = await putSomething(own.stationPage.request, stationHeaders, 'rueckfrage')
+            await pointAt(page, own, 'EVERY_STATION', true)
+
+            await storageBackendScreen(page, own)
+            const row = page.getByTestId('storage-placement-row').filter({hasText: own.stationName})
+            await expect(row.getByTestId('placement-out-of-place')).toBeVisible()
+
+            await row.getByTestId('placement-move').click()
+            const confirm = page.getByTestId('storage-confirm')
+            await expect(confirm, 'the move is asked about first').toBeVisible()
+            await expect(confirm).toContainText(`Die Dateien von ${own.stationName} werden dorthin kopiert`)
+            await confirm.getByRole('button', {name: 'Abbrechen'}).click()
+
+            await expect(confirm).toBeHidden()
+            await expect(row.getByTestId('placement-out-of-place'), 'cancelling left the station where it was')
+                .toBeVisible()
+            expect((await placementFor(page, own, own.stationUid)).inPlace).toBeFalsy()
+            await expect(historyRow(page, 'MIGRATION'), 'and nothing started moving').toHaveCount(0)
+
+            await row.getByTestId('placement-move').click()
+            await confirm.getByTestId('storage-confirm-go').click()
+            await expect(page.getByText(/^Verschoben\./)).toBeVisible({timeout: 30_000})
+            await expect(row.getByTestId('placement-in-place'), 'confirming carried it across').toBeVisible()
+            await expect(historyRow(page, 'MIGRATION_COMPLETED')).not.toHaveCount(0)
+            expect(await readBack(own.stationPage.request, stationHeaders, file)).toBe(file.bytes)
+
+            await own.stationPage.context().close()
+        })
 })

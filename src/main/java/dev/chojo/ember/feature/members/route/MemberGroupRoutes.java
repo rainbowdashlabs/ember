@@ -6,20 +6,25 @@
 package dev.chojo.ember.feature.members.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.auth.StepUpCategory;
-import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.MemberWithName;
 import dev.chojo.ember.feature.members.entity.Permission;
 import dev.chojo.ember.feature.members.entity.StationMember;
-import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.members.service.GroupMembershipService;
+import dev.chojo.ember.feature.members.service.GroupRuleRefused;
+import dev.chojo.ember.feature.members.service.GroupRulesService;
+import dev.chojo.ember.feature.members.service.GroupRulesService.GroupRules;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
-import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
-import dev.chojo.ember.feature.members.service.MemberNameResolver;
+import dev.chojo.ember.feature.members.service.MemberViewService;
+import dev.chojo.ember.feature.members.service.StationMemberService;
+import dev.chojo.ember.feature.members.service.UserTypeChangeService;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -31,8 +36,10 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
+import java.util.Set;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 import static dev.chojo.ember.api.RouteSupport.requireOwnedOrNotFound;
@@ -44,35 +51,34 @@ import static dev.chojo.ember.api.RouteSupport.requireOwnedOrNotFound;
 @Singleton
 public class MemberGroupRoutes implements Routes {
     private final MemberGroupService groupService;
-    private final StationMemberRepository stationMemberRepository;
-    private final AccountRepository accountRepository;
-    private final MemberNameResolver memberNameResolver;
-    private final MemberIdentityFactory memberIdentityFactory;
+    private final GroupMembershipService groupMemberships;
+    private final StationMemberService memberService;
+    private final MemberViewService memberViews;
+    private final UserTypeChangeService userTypeChanges;
+    private final GroupRulesService groupRules;
 
     @Inject
     public MemberGroupRoutes(
             MemberGroupService groupService,
-            StationMemberRepository stationMemberRepository,
-            AccountRepository accountRepository,
-            MemberIdentityFactory memberIdentityFactory,
-            MemberNameResolver memberNameResolver) {
+            GroupMembershipService groupMemberships,
+            StationMemberService memberService,
+            MemberViewService memberViews,
+            UserTypeChangeService userTypeChanges,
+            GroupRulesService groupRules) {
         this.groupService = groupService;
-        this.stationMemberRepository = stationMemberRepository;
-        this.accountRepository = accountRepository;
-        this.memberIdentityFactory = memberIdentityFactory;
-        this.memberNameResolver = memberNameResolver;
-    }
-
-    private static boolean isBlank(String s) {
-        return s == null || s.isBlank();
+        this.groupMemberships = groupMemberships;
+        this.memberService = memberService;
+        this.memberViews = memberViews;
+        this.userTypeChanges = userTypeChanges;
+        this.groupRules = groupRules;
     }
 
     /**
      * Asserts the member named in the path belongs to the caller's station. Answers 404 for a
      * member of another station, so the groups a stranger is in cannot be read or probed.
      */
-    private void requireOwnedMember(Context ctx, int memberId) {
-        requireOwnedOrNotFound(ctx, memberId, stationMemberRepository::findById, StationMember::stationId);
+    private StationMember requireOwnedMember(Context ctx, int memberId) {
+        return requireOwnedOrNotFound(ctx, memberId, memberService::findById, StationMember::stationId);
     }
 
     @Override
@@ -103,13 +109,16 @@ public class MemberGroupRoutes implements Routes {
         routes.post(prefix + "/groups/{id}/convert-to-tag", this::convertToTag, StationPermission.MEMBER_MANAGE_GROUP);
 
         routes.get(prefix + "/station-members/{memberId}/groups", this::getMemberGroups, StationPermission.MEMBER_READ);
+        routes.put(
+                prefix + "/station-members/{memberId}/groups",
+                this::setMemberGroups,
+                StationPermission.MEMBER_EDIT,
+                StationPermission.MEMBER_MANAGE_GROUP);
+        routes.get(
+                prefix + "/station-members/{memberId}/user-type/{userType}/consequences",
+                this::getUserTypeConsequences,
+                StationPermission.MEMBER_EDIT);
     }
-
-    private MemberWithName toMemberWithName(StationMember m) {
-        return MemberWithName.from(m, accountRepository, memberIdentityFactory, memberNameResolver);
-    }
-
-    // -- Groups --
 
     @OpenApi(
             path = "/api/v1/groups",
@@ -118,7 +127,7 @@ public class MemberGroupRoutes implements Routes {
             tags = {"Member Groups"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberGroup[].class)))
     private void list(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(groupService.findByStation(session.stationId()));
     }
 
@@ -130,15 +139,14 @@ public class MemberGroupRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = GroupRequest.class)),
             responses = {
                 @OpenApiResponse(status = "201", content = @OpenApiContent(from = MemberGroup.class)),
-                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+                @OpenApiResponse(status = "409", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void create(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(GroupRequest.class);
-        if (isBlank(request.name())) {
-            throw Refusal.GROUP_NAME_MISSING_ON_CREATE.raise();
-        }
-        ctx.status(HttpStatus.CREATED).json(groupService.create(session.stationId(), request.name()));
+        ctx.status(HttpStatus.CREATED)
+                .json(groupRules.create(session.stationId(), request.name(), request.groupRules(), session.user()));
     }
 
     @OpenApi(
@@ -162,7 +170,7 @@ public class MemberGroupRoutes implements Routes {
                             ctx.json(new GroupDetail(group.id(), group.stationId(), group.name(), members));
                         },
                         () -> {
-                            throw Refusal.GROUP_NOT_HERE_ON_READ.raise();
+                            throw MemberRefusal.GROUP_NOT_HERE_ON_READ.raise();
                         });
     }
 
@@ -170,48 +178,56 @@ public class MemberGroupRoutes implements Routes {
             path = "/api/v1/groups/{id}",
             methods = HttpMethod.PUT,
             summary = "Update a member group",
+            description = "Rules sent with the group replace its binding and set. Members the new binding does not "
+                    + "take are refused and listed, unless removeNonMatching takes them out of the group. Members "
+                    + "who would be in two groups of the set are always refused and listed.",
             tags = {"Member Groups"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = GroupRequest.class)),
             responses = {
                 @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberGroup.class)),
-                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+                @OpenApiResponse(
+                        status = "409",
+                        content = @OpenApiContent(from = GroupRuleRefused.GroupRuleRefusedBody.class))
             })
     private void update(Context ctx) {
         int id = pathInt(ctx, "id");
-        requireOwnedOrNotFound(ctx, id, groupService::findById, MemberGroup::stationId);
+        var group = requireOwnedOrNotFound(ctx, id, groupService::findById, MemberGroup::stationId);
         var request = ctx.bodyAsClass(GroupRequest.class);
-        if (isBlank(request.name())) {
-            throw Refusal.GROUP_NAME_MISSING_ON_CHANGE.raise();
-        }
-        groupService
-                .update(id, request.name(), request.color(), request.position())
-                .ifPresentOrElse(ctx::json, () -> {
-                    throw Refusal.GROUP_NOT_HERE_ON_CHANGE.raise();
-                });
+        ctx.json(groupRules.update(
+                group,
+                request.name(),
+                request.color(),
+                request.position(),
+                request.groupRules(),
+                request.removeNonMatching(),
+                UserSession.from(ctx)));
     }
 
     @OpenApi(
             path = "/api/v1/groups/{id}",
             methods = HttpMethod.DELETE,
             summary = "Delete a member group",
+            description = "Refused while content is limited to the group. A group that grants permissions can only "
+                    + "be deleted by somebody holding all of them, and asks for a fresh proof.",
             tags = {"Member Groups"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             responses = {
                 @OpenApiResponse(status = "204"),
-                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+                @OpenApiResponse(status = "403", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+                @OpenApiResponse(status = "409", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void delete(Context ctx) {
         int id = pathInt(ctx, "id");
-        requireOwnedOrNotFound(ctx, id, groupService::findById, MemberGroup::stationId);
-        if (groupService.delete(id)) {
+        var group = requireOwnedOrNotFound(ctx, id, groupService::findById, MemberGroup::stationId);
+        if (groupService.delete(group, UserSession.from(ctx))) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
-            throw Refusal.GROUP_NOT_HERE_ON_DELETE.raise();
+            throw MemberRefusal.GROUP_NOT_HERE_ON_DELETE.raise();
         }
     }
-
-    // -- Group Members --
 
     @OpenApi(
             path = "/api/v1/groups/{id}/members",
@@ -219,13 +235,11 @@ public class MemberGroupRoutes implements Routes {
             summary = "Get members of a group",
             tags = {"Member Groups"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = StationMember[].class)))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberWithName[].class)))
     private void getMembers(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedOrNotFound(ctx, id, groupService::findById, MemberGroup::stationId);
-        ctx.json(groupService.findMembers(id).stream()
-                .map(this::toMemberWithName)
-                .toList());
+        ctx.json(groupService.findMembers(id).stream().map(memberViews::named).toList());
     }
 
     @OpenApi(
@@ -237,17 +251,24 @@ public class MemberGroupRoutes implements Routes {
             tags = {"Member Groups"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SetMembersRequest.class)),
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberWithName[].class)))
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberWithName[].class)),
+                @OpenApiResponse(
+                        status = "400",
+                        content = @OpenApiContent(from = GroupRuleRefused.GroupRuleRefusedBody.class)),
+                @OpenApiResponse(
+                        status = "409",
+                        content = @OpenApiContent(from = GroupRuleRefused.GroupRuleRefusedBody.class))
+            })
     private void setMembers(Context ctx) {
         int groupId = pathInt(ctx, "id");
-        UserSession session = UserSession.from(ctx);
-        requireOwnedOrNotFound(ctx, groupId, groupService::findById, MemberGroup::stationId);
+        StationSession session = StationSession.from(ctx);
+        var group = requireOwnedOrNotFound(ctx, groupId, groupService::findById, MemberGroup::stationId);
         var request = ctx.bodyAsClass(SetMembersRequest.class);
         List<Integer> memberIds = request.memberIds() != null ? request.memberIds() : List.of();
 
-        var result =
-                groupService.setMembers(groupId, memberIds, session.member().id());
-        ctx.json(result.stream().map(this::toMemberWithName).toList());
+        var result = groupMemberships.setMembers(group, memberIds, request.move(), session);
+        ctx.json(result.stream().map(memberViews::named).toList());
     }
 
     @OpenApi(
@@ -263,7 +284,47 @@ public class MemberGroupRoutes implements Routes {
         ctx.json(groupService.findGroupsForMember(memberId));
     }
 
-    // -- Group Permissions --
+    @OpenApi(
+            path = "/api/v1/station-members/{memberId}/groups",
+            methods = HttpMethod.PUT,
+            summary = "Replace the groups a member is in",
+            description = "Provide every group the member should be in. Choosing another group of a set moves the "
+                    + "member; two groups of one set, a group of another station and a group bound to other user "
+                    + "types are refused. Joining or leaving a group that grants permissions asks for a fresh "
+                    + "proof, and only groups granting nothing the caller lacks can be joined.",
+            tags = {"Member Groups"},
+            pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = MemberGroupsRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberGroup[].class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+                @OpenApiResponse(status = "403", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void setMemberGroups(Context ctx) {
+        var member = requireOwnedMember(ctx, pathInt(ctx, "memberId"));
+        var request = ctx.bodyAsClass(MemberGroupsRequest.class);
+        List<Integer> groupIds = request.groupIds() != null ? request.groupIds() : List.of();
+        ctx.json(groupMemberships.replaceGroupsOfMember(member, groupIds, StationSession.from(ctx)));
+    }
+
+    @OpenApi(
+            path = "/api/v1/station-members/{memberId}/user-type/{userType}/consequences",
+            methods = HttpMethod.GET,
+            summary = "Get the groups a member would leave on becoming another user type",
+            tags = {"Member Groups"},
+            pathParams = {
+                @OpenApiParam(name = "memberId", type = Integer.class, required = true),
+                @OpenApiParam(name = "userType", type = StationUserType.class, required = true)
+            },
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberGroup[].class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void getUserTypeConsequences(Context ctx) {
+        int memberId = pathInt(ctx, "memberId");
+        requireOwnedMember(ctx, memberId);
+        ctx.json(userTypeChanges.consequences(memberId, ctx.pathParam("userType")));
+    }
 
     @OpenApi(
             path = "/api/v1/groups/{id}/permissions",
@@ -305,26 +366,73 @@ public class MemberGroupRoutes implements Routes {
             path = "/api/v1/groups/{id}/convert-to-tag",
             methods = HttpMethod.POST,
             summary = "Convert a group to a tag (keeps members, deletes the group)",
+            description = "Held to the same rules as deleting the group.",
             tags = {"Member Groups"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             responses = {
                 @OpenApiResponse(status = "204"),
-                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+                @OpenApiResponse(status = "403", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+                @OpenApiResponse(status = "409", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void convertToTag(Context ctx) {
         int id = pathInt(ctx, "id");
-        requireOwnedOrNotFound(ctx, id, groupService::findById, MemberGroup::stationId);
-        groupService.convertToTag(id);
+        var group = requireOwnedOrNotFound(ctx, id, groupService::findById, MemberGroup::stationId);
+        groupService.convertToTag(group, UserSession.from(ctx));
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
-    // -- Request/Response records --
+    /**
+     * A group as it is created or changed.
+     *
+     * @param name              its name
+     * @param color             its colour, or {@code null} for none
+     * @param position          its place in the order, or {@code null} to keep the one it has
+     * @param rules             its binding and set, or {@code null} to leave them as they are
+     * @param removeNonMatching whether members a new binding does not take are taken out of the group,
+     *                          rather than refused
+     */
+    public record GroupRequest(
+            @Nullable String name,
+            @Nullable String color,
+            @Nullable Integer position,
+            @Nullable GroupRulesRequest rules,
+            boolean removeNonMatching) {
+        @Nullable
+        GroupRules groupRules() {
+            return rules == null ? null : new GroupRules(rules.groupSetId(), Set.copyOf(rules.userTypes()));
+        }
+    }
 
-    public record GroupRequest(String name, String color, int position) {}
+    /**
+     * The rules of a group.
+     *
+     * @param groupSetId the set it belongs to, or {@code null} for none
+     * @param userTypes  the member types it takes, empty for every type
+     */
+    public record GroupRulesRequest(Integer groupSetId, List<StationUserType> userTypes) {
+        public GroupRulesRequest {
+            userTypes = userTypes == null ? List.of() : userTypes;
+        }
+    }
+
+    /**
+     * Every group one member should be in.
+     *
+     * @param groupIds the groups
+     */
+    public record MemberGroupsRequest(List<Integer> groupIds) {}
 
     public record GroupDetail(int id, int stationId, String name, List<StationMember> members) {}
 
-    public record SetMembersRequest(List<Integer> memberIds) {}
+    /**
+     * The members a group should hold.
+     *
+     * @param memberIds every member it should hold afterwards
+     * @param move      whether members already in another group of the same set are moved out of it,
+     *                  rather than refused
+     */
+    public record SetMembersRequest(List<Integer> memberIds, boolean move) {}
 
     public record SetGroupPermissionsRequest(List<Integer> permissionIds) {}
 }

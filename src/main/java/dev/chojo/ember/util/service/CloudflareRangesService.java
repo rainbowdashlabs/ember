@@ -6,6 +6,8 @@
 package dev.chojo.ember.util.service;
 
 import dev.chojo.ember.conf.file.elements.Network;
+import dev.chojo.ember.feature.federation.service.OutboundHttp;
+import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.util.ClientIp;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -20,17 +22,8 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 
 /**
- * Fetches Cloudflare's published edge IP ranges from {@code cloudflare.com} and
- * hot-swaps them into {@link ClientIp}. Runs once on startup so the in-memory
- * list reflects the latest upstream data without requiring a rebuild; the build
- * still bakes a snapshot into the classpath so the first request after boot is
- * never gated on the live fetch finishing.
- *
- * <p>Skipped when {@link Network#cloudflare()} is {@code false} - a non-CF
- * deployment never reads {@code CF-Connecting-IP} anyway, so the list is unused.
- *
- * <p>Failures are logged at {@code warn} and leave the build-time snapshot in
- * place. Never throws to the caller.
+ * Replaces the Cloudflare edge ranges in {@link ClientIp} with the ones Cloudflare publishes, once at startup
+ * and only with Cloudflare enabled. The committed snapshot answers until then and stays on any failure.
  */
 @Singleton
 public class CloudflareRangesService {
@@ -39,35 +32,27 @@ public class CloudflareRangesService {
     private static final URI IPS_V6 = URI.create("https://www.cloudflare.com/ips-v6");
     private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(10);
 
-    private final HttpClient httpClient = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(5))
-            .followRedirects(HttpClient.Redirect.NORMAL)
-            .build();
+    private final HttpClient httpClient = OutboundHttp.trustedClient(Duration.ofSeconds(5), HttpClient.Redirect.NORMAL);
 
     private final Network network;
+    private final TaskScheduler scheduler;
 
     @Inject
-    public CloudflareRangesService(Network network) {
+    public CloudflareRangesService(Network network, TaskScheduler scheduler) {
         this.network = network;
+        this.scheduler = scheduler;
     }
 
-    /**
-     * Kicks off the refresh on a virtual thread so the startup sequence is
-     * never blocked on outbound HTTP to {@code cloudflare.com}.
-     */
+    /** Refreshes in the background, so startup never waits on {@code cloudflare.com}. */
     public void refreshAsync() {
         if (!network.cloudflare()) {
             log.debug("Cloudflare integration disabled; skipping edge range refresh");
             return;
         }
-        Thread.ofVirtual().name("cloudflare-ranges-refresh").start(this::refresh);
+        scheduler.background("cloudflare-ranges-refresh", this::refresh);
     }
 
-    /**
-     * Performs the synchronous refresh - fetches both {@code ips-v4} and
-     * {@code ips-v6}, parses, and replaces the in-memory list. Returns silently
-     * on any failure.
-     */
+    /** Fetches both range lists and applies them; a failure is logged and leaves the current list. */
     public void refresh() {
         try {
             String body = fetch(IPS_V4) + "\n" + fetch(IPS_V6);

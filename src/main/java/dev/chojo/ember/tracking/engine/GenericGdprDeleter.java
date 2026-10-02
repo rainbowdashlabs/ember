@@ -12,9 +12,10 @@ import dev.chojo.ember.tracking.DataTracking;
 import dev.chojo.ember.tracking.DeletionStrategy;
 import dev.chojo.ember.tracking.IdentityColumn;
 import dev.chojo.ember.tracking.IdentityType;
-import dev.chojo.ember.tracking.Status;
 import dev.chojo.ember.tracking.Strategy;
 import dev.chojo.ember.tracking.TableEntry;
+import dev.chojo.ember.tracking.TrackingStatus;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -66,13 +67,10 @@ public final class GenericGdprDeleter {
         this.deletionOrder = List.copyOf(topo);
     }
 
-    private static ColumnEntry resolveColumn(TableEntry table, String name) {
-        if (table.columns() == null) return null;
+    private static @Nullable ColumnEntry resolveColumn(TableEntry table, String name) {
         for (var c : table.columns()) if (c.name().equals(name)) return c;
         return null;
     }
-
-    // -- per-table operations ------------------------------------------------
 
     /**
      * Whether this column is one the requested identity may be matched against.
@@ -81,12 +79,15 @@ public final class GenericGdprDeleter {
      * columns carry which identity, one it names for this type. Without the second half a strategy
      * unrelated to the identity being erased would run anyway: station_member.id is deleted outright,
      * but only ever for a member, never for the account behind them.
+     *
+     * <p>A table that declares no identity columns at all is matched permissively.
      */
     private static boolean identityMatchesColumn(TableEntry table, IdentityType type, ColumnEntry column) {
         if (!typeCanHoldIdentity(type, column)) return false;
         var ctx = table.gdprExport();
-        if (ctx == null || ctx.identityColumns() == null) return true; // permissive when no identity declared
-        for (IdentityColumn ic : ctx.identityColumns()) {
+        List<IdentityColumn> identityColumns = ctx == null ? null : ctx.identityColumns();
+        if (identityColumns == null || identityColumns.isEmpty()) return true;
+        for (IdentityColumn ic : identityColumns) {
             if (ic.type() == type && column.name().equals(ic.column())) return true;
         }
         return false;
@@ -117,8 +118,6 @@ public final class GenericGdprDeleter {
         };
     }
 
-    // -- SQL emitters --------------------------------------------------------
-
     private static int asInt(Object o) {
         if (o instanceof Number n) return n.intValue();
         return Integer.parseInt(o.toString());
@@ -132,33 +131,37 @@ public final class GenericGdprDeleter {
     /**
      * Applies every TRACKED deletion strategy whose identity column matches {@code type}.
      * Returns a structured report of what changed.
+     *
+     * <p>All updates (null and anonymise) run before any delete, so a cascade cannot take away a row
+     * that was meant to be anonymised. Deletes then run children first.
      */
     public Report deleteByIdentity(IdentityType type, Object identityValue) {
         var report = new Report();
-
-        // Phase 1 - UPDATE operations (NULL + ANONYMIZE). Must run before the DELETEs so we don't
-        // lose the rows we'd anonymise via cascade.
         for (String tableName : deletionOrder) {
             applyUpdatesForTable(tableName, type, identityValue, report);
         }
 
-        // Phase 2 - DELETE operations, children-first.
         for (String tableName : deletionOrder) {
             applyDeletesForTable(tableName, type, identityValue, report);
         }
         return report;
     }
 
-    // -- helpers -------------------------------------------------------------
+    /**
+     * The deletion strategies of a table whose deletion is tracked; none for a table that is not, or
+     * that declares no strategies.
+     */
+    private static List<DeletionStrategy> trackedStrategies(TableEntry table) {
+        var deletion = table.gdprDeletion();
+        if (deletion == null || deletion.status() != TrackingStatus.TRACKED) return List.of();
+        List<DeletionStrategy> strategies = deletion.strategies();
+        return strategies == null ? List.of() : strategies;
+    }
 
     private void applyUpdatesForTable(String tableName, IdentityType type, Object idVal, Report report) {
-        var table = tracking.tables() == null ? null : tracking.tables().get(tableName);
-        if (table == null || table.gdprDeletion() == null) return;
-        if (table.gdprDeletion().status() != Status.TRACKED) return;
-        var strategies = table.gdprDeletion().strategies();
-        if (strategies == null) return;
-
-        for (DeletionStrategy s : strategies) {
+        var table = tracking.tables().get(tableName);
+        if (table == null) return;
+        for (DeletionStrategy s : trackedStrategies(table)) {
             ColumnEntry col = resolveColumn(table, s.column());
             if (col == null) {
                 report.skipped.add(new SkippedOp(tableName, s.column(), s.strategy(), "column not found on table"));
@@ -171,21 +174,15 @@ public final class GenericGdprDeleter {
                 case ANONYMIZE -> runAnonymizeUpdate(tableName, col, type, idVal, report);
                 case CASCADE, RETAIN, RETAIN_UNLINKED, NOT_APPLICABLE ->
                     report.noOps.add(new NoOp(tableName, s.column(), s.strategy()));
-                case DELETE_EXPLICIT -> {
-                    /* handled in phase 2 */
-                }
+                case DELETE_EXPLICIT -> {}
             }
         }
     }
 
     private void applyDeletesForTable(String tableName, IdentityType type, Object idVal, Report report) {
-        var table = tracking.tables() == null ? null : tracking.tables().get(tableName);
-        if (table == null || table.gdprDeletion() == null) return;
-        if (table.gdprDeletion().status() != Status.TRACKED) return;
-        var strategies = table.gdprDeletion().strategies();
-        if (strategies == null) return;
-
-        for (DeletionStrategy s : strategies) {
+        var table = tracking.tables().get(tableName);
+        if (table == null) return;
+        for (DeletionStrategy s : trackedStrategies(table)) {
             if (s.strategy() != Strategy.DELETE_EXPLICIT) continue;
             ColumnEntry col = resolveColumn(table, s.column());
             if (col == null) {
@@ -216,9 +213,12 @@ public final class GenericGdprDeleter {
         report.executed.add(new ExecutedOp(tableName, col.name(), Strategy.NULL, rows));
     }
 
+    /**
+     * Keeps the row but replaces the identity with a placeholder chosen by column type. Integers have
+     * no safe placeholder, so a nullable one is set to null and a required one is left for manual
+     * handling.
+     */
     private void runAnonymizeUpdate(String tableName, ColumnEntry col, IdentityType type, Object idVal, Report report) {
-        // Pick a sentinel by column type. Anonymising means the row is preserved but the identity
-        // value is replaced with a non-identifying placeholder.
         String castWhere = type == IdentityType.MEMBER_UID ? "::uuid" : "";
         Call c;
         String sql;
@@ -235,7 +235,6 @@ public final class GenericGdprDeleter {
             }
             case "int4", "int8" -> {
                 if (col.nullable()) {
-                    // No safe integer sentinel - fall back to NULL.
                     sql = "UPDATE " + tableName + " SET " + col.name() + " = NULL WHERE " + col.name() + " = :id"
                             + castWhere + ";";
                     c = bindIdentity(type, idVal);
@@ -260,8 +259,6 @@ public final class GenericGdprDeleter {
         int rows = query(sql).single(c).update().rows();
         report.executed.add(new ExecutedOp(tableName, col.name(), Strategy.ANONYMIZE, rows));
     }
-
-    // -- report types --------------------------------------------------------
 
     public record ExecutedOp(String table, String column, Strategy strategy, int rowsAffected) {}
 

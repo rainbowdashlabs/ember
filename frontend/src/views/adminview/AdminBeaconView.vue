@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, onMounted, ref} from 'vue'
+import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
@@ -17,8 +17,8 @@ import BeaconReportList from './adminbeaconview/BeaconReportList.vue'
 import BeaconMetricsTable from './adminbeaconview/BeaconMetricsTable.vue'
 import {beacon} from '@/api'
 import {useMonitoringCounts} from '@/composables/useMonitoringCounts'
-import type {BeaconFault, BeaconMetricsRow, BeaconReport, BeaconStatus} from '@/api/beacon'
-import {describeFailure, type Failure} from '@/util/failure'
+import type {BeaconFault, BeaconMetricsRow, BeaconReport, BeaconStatus} from '@/api/generated/schema'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 
 /**
  * What other instances have reported here, which is this instance's own error log and its own
@@ -49,34 +49,25 @@ const status = ref<BeaconStatus | null>(null)
 const faults = ref<BeaconFault[]>([])
 const reports = ref<BeaconReport[]>([])
 const metrics = ref<BeaconMetricsRow[]>([])
-const loading = ref(true)
-const failure = ref<Failure | null>(null)
 const showAcknowledged = ref(false)
 
 const isBeacon = computed(() => status.value?.receiving === true)
 
-async function load() {
-  loading.value = true
-  failure.value = null
-  try {
-    status.value = await beacon.getStatus()
-    if (!status.value.receiving) return
-    const [f, r, m] = await Promise.all([
-      beacon.listFaults(showAcknowledged.value),
-      beacon.listBeaconReports(showAcknowledged.value),
-      beacon.listBeaconMetrics(30),
-    ])
-    faults.value = f
-    reports.value = r
-    metrics.value = m
-  } catch (e) {
-    failure.value = describeFailure(e, t)
-  } finally {
-    loading.value = false
-  }
-}
-
-onMounted(load)
+const {loading, failure, reload: load} = useAsyncLoader(async (isCurrent) => {
+  const current = await beacon.getStatus()
+  if (!isCurrent()) return
+  status.value = current
+  if (!current.receiving) return
+  const [f, r, m] = await Promise.all([
+    beacon.listFaults(showAcknowledged.value),
+    beacon.listBeaconReports(showAcknowledged.value),
+    beacon.listBeaconMetrics(30),
+  ])
+  if (!isCurrent()) return
+  faults.value = f
+  reports.value = r
+  metrics.value = m
+})
 
 function toggleAcknowledged() {
   showAcknowledged.value = !showAcknowledged.value

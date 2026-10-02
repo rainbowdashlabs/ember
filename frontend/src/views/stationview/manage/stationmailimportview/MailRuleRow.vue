@@ -11,11 +11,11 @@ import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
-import type {MailRule} from '@/api/mailImport'
+import type {RuleResponse} from '@/api/generated/schema'
 
 /** One rule, as a line somebody can read without opening it. */
 const props = defineProps<{
-  rule: MailRule
+  rule: RuleResponse
 }>()
 
 const emit = defineEmits<{

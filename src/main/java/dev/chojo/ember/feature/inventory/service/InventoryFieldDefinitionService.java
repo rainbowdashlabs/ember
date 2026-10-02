@@ -5,15 +5,18 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
+import dev.chojo.ember.api.refusal.InventoryRefusal;
 import dev.chojo.ember.feature.inventory.entity.FieldConfig;
-import dev.chojo.ember.feature.inventory.entity.FieldType;
 import dev.chojo.ember.feature.inventory.entity.InventoryFieldDefinition;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.repository.InventoryArtRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryFieldDefinitionRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
+import dev.chojo.ember.feature.question.FieldType;
+import dev.chojo.ember.feature.question.FieldTypes;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -110,7 +113,8 @@ public class InventoryFieldDefinitionService {
     public List<InventoryFieldDefinition> resolveForItem(InventoryItem item) {
         Map<String, InventoryFieldDefinition> byKey = new LinkedHashMap<>();
         List<InventoryFieldDefinition> levels = new ArrayList<>(repository.findInventoryLevel(item.inventoryId()));
-        if (item.artId() != null) levels.addAll(repository.findByArt(item.artId()));
+        Integer artId = item.artId();
+        if (artId != null) levels.addAll(repository.findByArt(artId));
         levels.addAll(repository.findByItem(item.id()));
         for (InventoryFieldDefinition definition : levels) {
             InventoryFieldDefinition standing = byKey.get(definition.key());
@@ -134,7 +138,7 @@ public class InventoryFieldDefinitionService {
             FieldType fieldType,
             boolean required,
             int sortOrder,
-            FieldConfig config) {
+            @Nullable FieldConfig config) {
         return create(inventoryId, null, null, key, label, fieldType, required, sortOrder, config);
     }
 
@@ -158,14 +162,14 @@ public class InventoryFieldDefinitionService {
      */
     public InventoryFieldDefinition create(
             int inventoryId,
-            Integer artId,
-            Integer itemId,
+            @Nullable Integer artId,
+            @Nullable Integer itemId,
             String key,
             String label,
             FieldType fieldType,
             boolean required,
             int sortOrder,
-            FieldConfig config) {
+            @Nullable FieldConfig config) {
         if (key == null || !KEY_PATTERN.matcher(key).matches()) {
             throw new IllegalArgumentException(
                     "Field key must be lower-case ASCII, start with a letter, and use only [a-z0-9_]");
@@ -175,6 +179,9 @@ public class InventoryFieldDefinitionService {
         }
         if (fieldType == null) {
             throw new IllegalArgumentException("Field type is required");
+        }
+        if (!FieldTypes.INVENTORY.contains(fieldType)) {
+            throw InventoryRefusal.INVENTORY_FIELD_TYPE_NOT_OFFERED.raise();
         }
         if (artId != null && itemId != null) {
             throw new IllegalArgumentException("A field belongs to a kind or to a single piece, never to both");
@@ -211,7 +218,7 @@ public class InventoryFieldDefinitionService {
      * @param artId       the kind the definition names, or {@code null}
      * @param itemId      the piece the definition names, or {@code null}
      */
-    private void requireInInventory(int inventoryId, Integer artId, Integer itemId) {
+    private void requireInInventory(int inventoryId, @Nullable Integer artId, @Nullable Integer itemId) {
         if (artId != null
                 && artRepository
                         .findById(artId)
@@ -228,7 +235,8 @@ public class InventoryFieldDefinitionService {
         }
     }
 
-    private List<InventoryFieldDefinition> sameLevel(int inventoryId, Integer artId, Integer itemId) {
+    private List<InventoryFieldDefinition> sameLevel(
+            int inventoryId, @Nullable Integer artId, @Nullable Integer itemId) {
         if (itemId != null) return repository.findByItem(itemId);
         if (artId != null) return repository.findByArt(artId);
         return repository.findInventoryLevel(inventoryId);
@@ -283,14 +291,17 @@ public class InventoryFieldDefinitionService {
 
     /**
      * Returns the default-shaped config for the given field type.
+     *
+     * @throws IllegalArgumentException for a type an inventory does not offer
      */
     public FieldConfig defaultConfig(FieldType type) {
         return switch (type) {
             case DATE -> new FieldConfig.DateConfig();
-            case ENUM -> new FieldConfig.EnumConfig(List.of());
+            case CHOICE -> new FieldConfig.EnumConfig(List.of());
             case TEXT -> new FieldConfig.TextConfig(false, 200);
             case NUMBER -> new FieldConfig.NumberConfig(null, null, null, "");
             case BOOLEAN -> new FieldConfig.BooleanConfig("Yes", "No");
+            default -> throw new IllegalArgumentException("An inventory does not offer " + type);
         };
     }
 }

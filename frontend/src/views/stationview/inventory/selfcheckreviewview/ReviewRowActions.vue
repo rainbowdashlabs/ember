@@ -10,7 +10,7 @@ import SuccessButton from '@/components/button/SuccessButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import type {SelfCheckReviewRow} from '@/api/selfChecks'
+import type {SelfCheckReviewRow} from '@/api/generated/schema'
 
 /**
  * What a reviewer may do with one answer.

@@ -3,8 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type { InventoryItem } from '@/api/inventory'
-import type { MemberIdentity } from '@/api/types'
+import type { InventoryItem, MemberIdentity } from '@/api/generated/schema'
 
 /**
  * A lost inventory item enriched with the data the overview view needs to

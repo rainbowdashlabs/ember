@@ -6,10 +6,10 @@
 package dev.chojo.ember.feature.comment.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.CommentRefusal;
 import dev.chojo.ember.feature.comment.entity.EntityNote;
 import dev.chojo.ember.feature.comment.entity.NoteEntityType;
 import dev.chojo.ember.feature.comment.entity.NoteVersion;
@@ -24,6 +24,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 
@@ -32,6 +33,10 @@ import static dev.chojo.ember.api.RouteSupport.pathInt;
 /**
  * HTTP route definitions for entity notes.
  * Provides endpoints for reading and updating notes with version history.
+ *
+ * <p>The routes serve several entity types with different permissions (event notes need
+ * {@code EVENT_EDIT}, item and member notes {@code MEMBER_NOTES}), so the route gate admits either
+ * and each handler narrows it per entity type.
  */
 @SuppressWarnings("DefaultAnnotationParam")
 @Singleton
@@ -47,29 +52,25 @@ public class NoteRoutes implements Routes {
         return entityType == NoteEntityType.EVENT ? StationPermission.EVENT_EDIT : StationPermission.MEMBER_NOTES;
     }
 
-    private static void requireNoteAccess(UserSession session, NoteEntityType entityType) {
+    private static void requireNoteAccess(StationSession session, NoteEntityType entityType) {
         StationPermission required = requiredPermission(entityType);
         if (!session.hasPermission(required)) {
-            throw Refusal.NOTES_NOT_YOURS.raise();
+            throw CommentRefusal.NOTES_NOT_YOURS.raise();
         }
     }
 
     private NoteAccess resolveAccess(Context ctx) {
         var entityType = NoteEntityType.valueOf(ctx.pathParam("entityType").toUpperCase());
         int entityId = pathInt(ctx, "entityId");
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         requireNoteAccess(session, entityType);
         return new NoteAccess(entityType, entityId, session);
     }
 
-    private record NoteAccess(NoteEntityType entityType, int entityId, UserSession session) {}
+    private record NoteAccess(NoteEntityType entityType, int entityId, StationSession session) {}
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        // Note routes are shared by multiple entity types with different permission requirements
-        // (EVENT notes require EVENT_EDIT, ITEM / MEMBER notes require MEMBER_NOTES). Pass both
-        // roles so callers with either pass the route-level gate; the per-entity-type check is
-        // refined inside each handler via {@link #requireNoteAccess}.
         routes.get(
                 prefix + "/notes/{entityType}/{entityId}",
                 this::getNote,
@@ -126,7 +127,7 @@ public class NoteRoutes implements Routes {
         var access = resolveAccess(ctx);
         var request = ctx.bodyAsClass(UpdateNoteRequest.class);
         if (request.content() == null) {
-            throw Refusal.NOTE_NEEDS_TEXT.raise();
+            throw CommentRefusal.NOTE_NEEDS_TEXT.raise();
         }
         var note = noteService.updateNote(
                 access.entityType(),
@@ -155,7 +156,7 @@ public class NoteRoutes implements Routes {
         var note = noteService
                 .findNote(
                         access.entityType(), access.entityId(), access.session().stationId())
-                .orElseThrow(Refusal.NOTE_NOT_HERE::raise);
+                .orElseThrow(CommentRefusal.NOTE_NOT_HERE::raise);
         var versions = noteService.findVersions(note.id());
         ctx.json(versions.stream().map(this::toVersionResponse).toList());
     }
@@ -179,12 +180,12 @@ public class NoteRoutes implements Routes {
      * API response representing a note.
      */
     public record NoteResponse(
-            Integer id,
+            @Nullable Integer id,
             NoteEntityType entityType,
             int entityId,
             String content,
-            Integer updatedBy,
-            Instant updatedAt) {}
+            @Nullable Integer updatedBy,
+            @Nullable Instant updatedAt) {}
 
     /**
      * API response representing a note version.

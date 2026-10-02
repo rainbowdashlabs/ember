@@ -6,7 +6,7 @@
 <script setup lang="ts">
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import type {LendingRequestDetail} from '@/api/lending'
+import type {LendingRequestDetail} from '@/api/generated/schema'
 import {formatDate} from '@/util/format'
 
 defineProps<{

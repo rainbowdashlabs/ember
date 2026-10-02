@@ -11,8 +11,9 @@ import RowLink from '@/components/navigation/RowLink.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import WaitingListStatusBadge from '@/components/badge/WaitingListStatusBadge.vue'
-import type { WaitingListEntryWithScore } from '@/api/waitingList'
+import type { WaitingListEntryWithScore } from '@/api/generated/schema'
 import { formatDate } from '@/util/format'
+import { entryFullName } from './entryFullName'
 
 const props = defineProps<{
   entries: WaitingListEntryWithScore[]
@@ -21,10 +22,6 @@ const props = defineProps<{
 
 const { t } = useI18n()
 
-function entryFullName(item: WaitingListEntryWithScore): string {
-  const e = item.entry
-  return e.lastname ? `${e.firstname} ${e.lastname}` : e.firstname
-}
 
 function canNavigateToMember(item: WaitingListEntryWithScore): boolean {
   return item.entry.status === 'JOINED' && !!item.entry.memberId && !!props.canLinkMember
@@ -47,7 +44,7 @@ function finishedDate(item: WaitingListEntryWithScore): string {
   <NeutralContainer class="space-y-4">
     <SubHeader>{{ t('waitingList.sectionFinished') }} ({{ entries.length }})</SubHeader>
 
-    <EmptyState compact v-if="entries.length === 0">{{ t('waitingList.noFinishedEntries') }}</EmptyState>
+    <EmptyState v-if="entries.length === 0" compact>{{ t('waitingList.noFinishedEntries') }}</EmptyState>
 
     <div v-if="entries.length > 0" class="space-y-2">
       <div

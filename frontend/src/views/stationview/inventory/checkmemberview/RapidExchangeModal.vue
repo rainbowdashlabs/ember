@@ -16,7 +16,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import HandedInChoice from './rapidexchangemodal/HandedInChoice.vue'
-import type {InventorySize} from '@/api/inventory'
+import type {InventorySize} from '@/api/generated/schema'
 import type {Failure} from '@/util/failure'
 
 /** Why a piece is being exchanged. Anything that is neither of the two common ones is said in words. */

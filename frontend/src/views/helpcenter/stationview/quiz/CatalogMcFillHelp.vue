@@ -47,7 +47,7 @@ const noop = () => undefined
     <HelpSection :title="t('helpCenter.quizCatalogMcFill.exampleTitle')">
       <p>{{ t('helpCenter.quizCatalogMcFill.exampleText') }}</p>
       <div class="flex items-center gap-2 mb-4">
-        <SecondaryButton :icon="['fas', 'chevron-left']">Grundlagen Atemschutz</SecondaryButton>
+        <SecondaryButton :icon="['fas', 'chevron-left']">{{ t('helpCenter.sample.quiz.breathingBasics') }}</SecondaryButton>
         <SectionHeader>{{ t('quiz.ai.fillMcAnswers') }}</SectionHeader>
       </div>
       <NeutralContainer class="space-y-4 max-w-md">
@@ -77,7 +77,7 @@ const noop = () => undefined
       </div>
       <NeutralContainer>
         <div class="flex items-start justify-between gap-2 mb-3">
-          <SubHeader>Welches Gas atmen wir ein?</SubHeader>
+          <SubHeader>{{ t('helpCenter.sample.quiz.whichGas') }}</SubHeader>
           <MutedIconButton :icon="['fas', 'xmark']" :label="t('common.remove')" hover="error" class="shrink-0"/>
         </div>
         <div class="space-y-1.5">

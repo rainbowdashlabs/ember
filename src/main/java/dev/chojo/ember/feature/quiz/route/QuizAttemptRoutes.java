@@ -6,10 +6,10 @@
 package dev.chojo.ember.feature.quiz.route;
 
 import dev.chojo.ember.api.MemberIdentity;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.QuizRefusal;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.quiz.entity.AttemptStatus;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestion;
@@ -18,12 +18,19 @@ import dev.chojo.ember.feature.quiz.entity.QuizTestAttempt;
 import dev.chojo.ember.feature.quiz.entity.QuizTestAttemptQuestion;
 import dev.chojo.ember.feature.quiz.service.QuizAttemptService;
 import dev.chojo.ember.feature.quiz.service.QuizQuestionService;
+import dev.chojo.ember.feature.quiz.service.QuizRouteGuards;
 import dev.chojo.ember.feature.quiz.service.QuizTestAccessService;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
+import io.javalin.openapi.HttpMethod;
+import io.javalin.openapi.OpenApi;
+import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiRequestBody;
+import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -69,18 +76,24 @@ public class QuizAttemptRoutes implements Routes {
         routes.post(prefix + "/quiz/attempts/{id}/grade", this::gradeAttempt, StationPermission.TEST_REVIEW);
     }
 
+    @OpenApi(
+            path = "/api/v1/quiz/tests/{id}/start",
+            methods = HttpMethod.POST,
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = QuizAttemptDetail.class)),
+                @OpenApiResponse(status = "201", content = @OpenApiContent(from = QuizAttemptDetail.class))
+            })
     private void startAttempt(Context ctx) {
         int testId = pathInt(ctx, "id");
-        var session = UserSession.from(ctx);
-        if (session.member() == null) throw Refusal.QUIZ_ATTEMPT_NEEDS_MEMBERSHIP_TO_START.raise();
+        var session = StationSession.from(ctx);
         var test = guards.requireOwnedTest(ctx, testId);
         int memberId = session.member().id();
-        if (!accessService.isTestAccessible(test, memberId, session.permissions())) {
-            throw Refusal.QUIZ_TEST_NOT_OPEN_TO_YOU.raise();
+        if (!accessService.isTestAccessible(test, memberId, session.user().permissions())) {
+            throw QuizRefusal.QUIZ_TEST_NOT_OPEN_TO_YOU.raise();
         }
         var existing = attemptService.findAttempt(testId, session.member().id());
         if (existing.isPresent()) {
-            ctx.json(new AttemptDetail(
+            ctx.json(new QuizAttemptDetail(
                     existing.get(),
                     attemptService.findAttemptQuestions(existing.get().id()),
                     attemptService.findAnswers(existing.get().id()),
@@ -90,21 +103,24 @@ public class QuizAttemptRoutes implements Routes {
         }
         var attempt = attemptService.startAttempt(testId, session.member().id());
         ctx.status(HttpStatus.CREATED)
-                .json(new AttemptDetail(
+                .json(new QuizAttemptDetail(
                         attempt, attemptService.findAttemptQuestions(attempt.id()), List.of(), null, null));
     }
 
+    @OpenApi(
+            path = "/api/v1/quiz/tests/{id}/my-attempt",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MyQuizAttempt.class)))
     private void getMyAttempt(Context ctx) {
         int testId = pathInt(ctx, "id");
-        var session = UserSession.from(ctx);
-        if (session.member() == null) throw Refusal.QUIZ_ATTEMPT_NEEDS_MEMBERSHIP_TO_READ.raise();
+        var session = StationSession.from(ctx);
         guards.requireOwnedTest(ctx, testId);
         var attempt = attemptService.findAttempt(testId, session.member().id());
         if (attempt.isEmpty()) {
-            ctx.json(new EmptyAttemptResponse());
+            ctx.json(new NoQuizAttempt());
             return;
         }
-        ctx.json(new AttemptDetail(
+        ctx.json(new QuizAttemptDetail(
                 attempt.get(),
                 attemptService.findAttemptQuestions(attempt.get().id()),
                 attemptService.findAnswers(attempt.get().id()),
@@ -112,13 +128,18 @@ public class QuizAttemptRoutes implements Routes {
                 null));
     }
 
+    @OpenApi(
+            path = "/api/v1/quiz/attempts/{id}/answer",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = QuizAnswerRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = QuizSuccessResponse.class)))
     private void saveAnswer(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var attempt = guards.requireMemberAttempt(ctx, session);
         if (attempt.status() != AttemptStatus.IN_PROGRESS) {
-            throw Refusal.QUIZ_ALREADY_HANDED_IN.raise();
+            throw QuizRefusal.QUIZ_ALREADY_HANDED_IN.raise();
         }
-        var req = ctx.bodyAsClass(AnswerRequest.class);
+        var req = ctx.bodyAsClass(QuizAnswerRequest.class);
         attemptService.saveAnswer(attempt.id(), req.questionId(), req.answer());
         ctx.json(new QuizSuccessResponse(true));
     }
@@ -131,23 +152,35 @@ public class QuizAttemptRoutes implements Routes {
      * run out, or whose paper was already in, was told it had gone through and had no reason to
      * look again.
      */
+    @OpenApi(
+            path = "/api/v1/quiz/attempts/{id}/submit",
+            methods = HttpMethod.POST,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = QuizTestAttempt.class)))
     private void submitAttempt(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var attempt = guards.requireMemberAttempt(ctx, session);
         if (!attemptService.submitAttempt(attempt.id())) {
-            throw Refusal.QUIZ_NOT_HANDED_IN.raise();
+            throw QuizRefusal.QUIZ_NOT_HANDED_IN.raise();
         }
         ctx.json(attemptService
                 .findAttemptById(attempt.id())
-                .orElseThrow(Refusal.QUIZ_ATTEMPT_NOT_HERE_AFTER_HANDING_IN::raise));
+                .orElseThrow(QuizRefusal.QUIZ_ATTEMPT_NOT_HERE_AFTER_HANDING_IN::raise));
     }
 
+    @OpenApi(
+            path = "/api/v1/quiz/tests/{id}/attempts",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = QuizTestAttempt[].class)))
     private void listAttempts(Context ctx) {
         int testId = pathInt(ctx, "id");
         guards.requireOwnedTest(ctx, testId);
         ctx.json(attemptService.findAttempts(testId));
     }
 
+    @OpenApi(
+            path = "/api/v1/quiz/attempts/{id}",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = QuizAttemptDetail.class)))
     private void getAttemptDetail(Context ctx) {
         int attemptId = pathInt(ctx, "id");
         var attempt = guards.requireOwnedAttempt(ctx, attemptId);
@@ -163,40 +196,61 @@ public class QuizAttemptRoutes implements Routes {
             memberIdentity = memberIdentityFactory.fromMemberId(attempt.memberId());
         } catch (Exception ignored) {
         }
-        ctx.json(new AttemptDetail(attempt, attemptQuestions, answers, questions, memberIdentity));
+        ctx.json(new QuizAttemptDetail(attempt, attemptQuestions, answers, questions, memberIdentity));
     }
 
+    @OpenApi(
+            path = "/api/v1/quiz/answers/{id}/grade",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = QuizGradeRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = QuizSuccessResponse.class)))
     private void gradeAnswer(Context ctx) {
         int answerId = pathInt(ctx, "id");
-        var answer = attemptService.findAnswerById(answerId).orElseThrow(Refusal.QUIZ_ANSWER_NOT_HERE::raise);
+        var answer = attemptService.findAnswerById(answerId).orElseThrow(QuizRefusal.QUIZ_ANSWER_NOT_HERE::raise);
         guards.requireOwnedAttempt(ctx, answer.attemptId());
-        var req = ctx.bodyAsClass(GradeRequest.class);
-        if (req.points() == null) throw Refusal.QUIZ_GRADE_NEEDS_POINTS.raise();
+        var req = ctx.bodyAsClass(QuizGradeRequest.class);
+        if (req.points() == null) throw QuizRefusal.QUIZ_GRADE_NEEDS_POINTS.raise();
         attemptService.gradeAnswer(answerId, req.points());
         ctx.json(new QuizSuccessResponse(true));
     }
 
+    @OpenApi(
+            path = "/api/v1/quiz/attempts/{id}/grade",
+            methods = HttpMethod.POST,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = QuizTestAttempt.class)))
     private void gradeAttempt(Context ctx) {
         int attemptId = pathInt(ctx, "id");
-        var session = UserSession.from(ctx);
-        if (session.member() == null) throw Refusal.QUIZ_GRADING_NEEDS_MEMBERSHIP.raise();
+        var session = StationSession.from(ctx);
         guards.requireOwnedAttempt(ctx, attemptId);
         attemptService.gradeAttempt(attemptId, session.member().id());
         attemptService.findAttemptById(attemptId).ifPresentOrElse(ctx::json, () -> {
-            throw Refusal.QUIZ_ATTEMPT_NOT_HERE_AFTER_GRADING.raise();
+            throw QuizRefusal.QUIZ_ATTEMPT_NOT_HERE_AFTER_GRADING.raise();
         });
     }
 
-    public record AnswerRequest(int questionId, String answer) {}
+    public record QuizAnswerRequest(int questionId, String answer) {}
 
-    public record GradeRequest(Double points) {}
+    public record QuizGradeRequest(Double points) {}
 
-    public record AttemptDetail(
+    /**
+     * What a member finds of their own paper: the paper, or nothing where they have not started one.
+     */
+    public sealed interface MyQuizAttempt permits QuizAttemptDetail, NoQuizAttempt {}
+
+    /**
+     * An attempt with its questions and answers.
+     *
+     * @param questionDetails the questions in full, sent only to a reviewer
+     * @param memberIdentity  who wrote the paper, sent only to a reviewer and only where it resolves
+     */
+    public record QuizAttemptDetail(
             QuizTestAttempt attempt,
             List<QuizTestAttemptQuestion> questions,
             List<QuizTestAnswer> answers,
-            List<QuizQuestion> questionDetails,
-            MemberIdentity memberIdentity) {}
+            @Nullable List<QuizQuestion> questionDetails,
+            @Nullable MemberIdentity memberIdentity)
+            implements MyQuizAttempt {}
 
-    private record EmptyAttemptResponse() {}
+    /** The answer for a member who has not started the paper yet. */
+    public record NoQuizAttempt() implements MyQuizAttempt {}
 }

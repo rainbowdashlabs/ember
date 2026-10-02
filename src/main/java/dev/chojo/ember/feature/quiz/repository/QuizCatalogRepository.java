@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.quiz.entity.QuizQuestion;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestionType;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.Optional;
@@ -35,8 +36,6 @@ public class QuizCatalogRepository {
     private static final String QUIZ_QUESTION_COLUMNS = """
             id, catalog_id, category_id, question_type, title, description, image_url, points, \
             auto_points, config, position, created_at, updated_at""";
-
-    // -- Catalogs --
 
     public List<QuizCatalog> findByStation(int stationId) {
         return query("SELECT %s FROM quiz_catalog WHERE station_id = :station_id ORDER BY name;", QUIZ_CATALOG_COLUMNS)
@@ -154,8 +153,6 @@ public class QuizCatalogRepository {
                 .first();
     }
 
-    // -- Categories --
-
     public List<QuizCategory> findCategoriesByStation(int stationId) {
         return query(
                         "SELECT %s FROM quiz_category WHERE station_id = :station_id ORDER BY position;",
@@ -198,8 +195,6 @@ public class QuizCatalogRepository {
         return deleteById("quiz_category", id);
     }
 
-    // -- Questions --
-
     public List<QuizQuestion> findQuestions(int catalogId) {
         return query(
                         "SELECT %s FROM quiz_question WHERE catalog_id = :catalog_id ORDER BY position;",
@@ -232,11 +227,11 @@ public class QuizCatalogRepository {
 
     public QuizQuestion createQuestion(
             int catalogId,
-            Integer categoryId,
+            @Nullable Integer categoryId,
             QuizQuestionType quizQuestionType,
             String title,
             String description,
-            String imageUrl,
+            @Nullable String imageUrl,
             double points,
             boolean autoPoints,
             String config,
@@ -262,10 +257,10 @@ public class QuizCatalogRepository {
 
     public boolean updateQuestion(
             int id,
-            Integer categoryId,
+            @Nullable Integer categoryId,
             String title,
             String description,
-            String imageUrl,
+            @Nullable String imageUrl,
             double points,
             boolean autoPoints,
             String config,

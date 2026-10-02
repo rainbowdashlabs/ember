@@ -29,7 +29,7 @@ function bufferToBase64Url(buffer: ArrayBuffer | null | undefined): string {
     const bytes = new Uint8Array(buffer)
     let binary = ''
     for (const byte of bytes) binary += String.fromCharCode(byte)
-    return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+    return btoa(binary).replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/, '')
 }
 
 /** A credential descriptor as the server serialises it: the id arrives URL-safe base64 encoded. */
@@ -212,27 +212,23 @@ interface SignalCapableCredential {
 /**
  * Tells the authenticator which credentials still exist, so a passkey deleted here disappears
  * from the member's phone instead of haunting its account picker. Best effort: the signal
- * methods are new and their absence must never break the screen that calls this.
+ * methods are new and their absence must never break the screen that calls this. A device the
+ * signal fails on keeps a stale entry until the next one succeeds.
  */
 export async function signalAcceptedCredentials(rpId: string, userId: string, credentialIds: string[]): Promise<void> {
     if (!isWebAuthnSupported()) return
     const signal = (window.PublicKeyCredential as unknown as SignalCapableCredential).signalAllAcceptedCredentials
     if (!signal) return
-    try {
-        await signal({rpId, userId, allAcceptedCredentialIds: credentialIds})
-    } catch {
-        // The device keeps a stale entry; the next successful signal clears it.
-    }
+    await signal({rpId, userId, allAcceptedCredentialIds: credentialIds}).catch(() => {})
 }
 
-/** Keeps the name the device shows beside a passkey in step with the account. Best effort. */
+/**
+ * Keeps the name the device shows beside a passkey in step with the account. Best effort: a failure
+ * is ignored, since a stale name costs nothing.
+ */
 export async function signalUserDetails(rpId: string, userId: string, name: string, displayName: string): Promise<void> {
     if (!isWebAuthnSupported()) return
     const signal = (window.PublicKeyCredential as unknown as SignalCapableCredential).signalCurrentUserDetails
     if (!signal) return
-    try {
-        await signal({rpId, userId, name, displayName})
-    } catch {
-        // Nothing to do: the stale name costs nothing.
-    }
+    await signal({rpId, userId, name, displayName}).catch(() => {})
 }

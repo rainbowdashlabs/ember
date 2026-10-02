@@ -9,7 +9,7 @@ import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import type {SelfCheckRaisedView} from '@/api/selfChecks'
+import type {SelfCheckRaisedView} from '@/api/generated/schema'
 
 /**
  * What the member set going beside their answers, in the two groups a reviewer has to tell apart.

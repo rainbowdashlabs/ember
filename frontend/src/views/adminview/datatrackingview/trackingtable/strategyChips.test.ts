@@ -3,9 +3,9 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-// @vitest-environment happy-dom
+/** @vitest-environment happy-dom */
 import {describe, expect, it} from 'vitest'
-import type {DataTracking, TableEntry} from '@/api/dataTracking'
+import type {DataTracking, TableEntry} from '@/api/generated/schema'
 import {isCascadeMisleading, strategyChipsOf} from './strategyChips'
 
 function entry(strategies: {strategy: string, column: string}[], foreignKeys: TableEntry['foreignKeys'] = []): TableEntry {

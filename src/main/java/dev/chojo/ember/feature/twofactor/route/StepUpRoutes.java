@@ -6,12 +6,11 @@
 package dev.chojo.ember.feature.twofactor.route;
 
 import dev.chojo.ember.api.RateLimits;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StepUpCategory;
-import dev.chojo.ember.conf.file.elements.Network;
+import dev.chojo.ember.api.refusal.TwoFactorRefusal;
 import dev.chojo.ember.feature.account.service.AuthRateLimiter;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.devicerequest.entity.DeviceRequestPurpose;
@@ -22,8 +21,12 @@ import dev.chojo.ember.feature.twofactor.entity.TwoFactorEvent;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorKind;
 import dev.chojo.ember.feature.twofactor.service.TwoFactorAuditService;
 import dev.chojo.ember.feature.twofactor.service.TwoFactorService;
-import dev.chojo.ember.util.ClientIp;
 import io.javalin.http.Context;
+import io.javalin.openapi.HttpMethod;
+import io.javalin.openapi.OpenApi;
+import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiRequestBody;
+import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -45,7 +48,6 @@ public class StepUpRoutes implements Routes {
     private final TwoFactorAuditService auditService;
     private final AuthRateLimiter rateLimiter;
     private final DeviceRequestService deviceRequestService;
-    private final Network network;
 
     @Inject
     public StepUpRoutes(
@@ -54,15 +56,13 @@ public class StepUpRoutes implements Routes {
             AuthService authService,
             TwoFactorAuditService auditService,
             AuthRateLimiter rateLimiter,
-            DeviceRequestService deviceRequestService,
-            Network network) {
+            DeviceRequestService deviceRequestService) {
         this.twoFactorService = twoFactorService;
         this.passkeyService = passkeyService;
         this.authService = authService;
         this.auditService = auditService;
         this.rateLimiter = rateLimiter;
         this.deviceRequestService = deviceRequestService;
-        this.network = network;
     }
 
     @Override
@@ -82,13 +82,21 @@ public class StepUpRoutes implements Routes {
      * than asking somebody to trust a blank, and nothing else does: whoever raises this may already
      * hold a stolen cookie, so every word on the approval screen is the product's own.
      */
+    @OpenApi(
+            path = "/api/v1/auth/stepup/device/begin",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = DeviceStepUpBeginRequest.class)),
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = DeviceStepUpBeginResponse.class)))
     private void beginDeviceStepUp(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        RateLimits.enforce(rateLimiter.tryStepUpDeviceRequest(clientIp(ctx), session.accountId()));
+        RateLimits.enforce(
+                TwoFactorRefusal.STEP_UP_DEVICE_REQUEST_TOO_OFTEN,
+                rateLimiter.tryStepUpDeviceRequest(ctx.ip(), session.accountId()));
         if (!twoFactorService
                 .availableProofs(session.accountId(), session.sessionId())
                 .contains(StepUpProof.ANOTHER_DEVICE)) {
-            throw Refusal.NO_OTHER_DEVICE_TO_CONFIRM.raise();
+            throw TwoFactorRefusal.NO_OTHER_DEVICE_TO_CONFIRM.raise();
         }
         var request = ctx.bodyAsClass(DeviceStepUpBeginRequest.class);
         var created = deviceRequestService.createStepUpRequest(
@@ -105,15 +113,24 @@ public class StepUpRoutes implements Routes {
      * The asking device waiting for the other one. A confirmed request stamps this session, and the
      * caller then retries whatever it was refused for.
      */
+    @OpenApi(
+            path = "/api/v1/auth/stepup/device/poll",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = DeviceStepUpPollRequest.class)),
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = DeviceStepUpPollResponse.class)))
     private void pollDeviceStepUp(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(DeviceStepUpPollRequest.class);
         if (request.pollSecret() == null || request.pollSecret().isBlank()) {
-            throw Refusal.DEVICE_STEP_UP_POLL_SECRET_MISSING.raise();
+            throw TwoFactorRefusal.DEVICE_STEP_UP_POLL_SECRET_MISSING.raise();
         }
-        RateLimits.enforce(rateLimiter.tryDevicePoll(clientIp(ctx), request.pollSecret()));
+        RateLimits.enforce(
+                TwoFactorRefusal.STEP_UP_DEVICE_POLL_TOO_OFTEN,
+                rateLimiter.tryDevicePoll(ctx.ip(), request.pollSecret()));
         var result = deviceRequestService.poll(request.pollSecret(), Set.of(DeviceRequestPurpose.STEP_UP));
-        if (result.claimToken() != null && deviceRequestService.claimStepUp(result.claimToken())) {
+        String claimToken = result.claimToken();
+        if (claimToken != null && deviceRequestService.claimStepUp(claimToken)) {
             auditService.record(
                     session.accountId(),
                     null,
@@ -121,10 +138,10 @@ public class StepUpRoutes implements Routes {
                     null,
                     ctx.userAgent(),
                     ctx.header("CF-IPCountry"));
-            ctx.json(new DeviceStepUpPollResponse("CONFIRMED"));
+            ctx.json(new DeviceStepUpPollResponse(DeviceStepUpStatus.CONFIRMED));
             return;
         }
-        ctx.json(new DeviceStepUpPollResponse(result.status().name()));
+        ctx.json(new DeviceStepUpPollResponse(DeviceStepUpStatus.of(result.status())));
     }
 
     /**
@@ -134,17 +151,13 @@ public class StepUpRoutes implements Routes {
      */
     private static StepUpCategory parseCategory(String raw) {
         if (raw == null || raw.isBlank()) {
-            throw Refusal.STEP_UP_CATEGORY_MISSING.raise();
+            throw TwoFactorRefusal.STEP_UP_CATEGORY_MISSING.raise();
         }
         try {
             return StepUpCategory.valueOf(raw);
         } catch (IllegalArgumentException e) {
-            throw Refusal.STEP_UP_CATEGORY_UNKNOWN.raise();
+            throw TwoFactorRefusal.STEP_UP_CATEGORY_UNKNOWN.raise();
         }
-    }
-
-    private String clientIp(Context ctx) {
-        return ClientIp.resolve(ctx, network).getHostAddress();
     }
 
     /**
@@ -153,18 +166,26 @@ public class StepUpRoutes implements Routes {
      * written down: a log with only the successes in it says nothing about the endpoint an
      * attacker would grind.
      */
+    @OpenApi(
+            path = "/api/v1/auth/stepup/password",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = PasswordStepUpRequest.class)),
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = StepUpVerifiedResponse.class)))
     private void passwordStepUp(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        RateLimits.enforce(rateLimiter.tryPasswordStepUp(clientIp(ctx), session.accountId()));
+        RateLimits.enforce(
+                TwoFactorRefusal.STEP_UP_PASSWORD_TOO_OFTEN,
+                rateLimiter.tryPasswordStepUp(ctx.ip(), session.accountId()));
 
         var request = ctx.bodyAsClass(PasswordStepUpRequest.class);
         if (request.password() == null || request.password().isBlank()) {
-            throw Refusal.STEP_UP_PASSWORD_MISSING.raise();
+            throw TwoFactorRefusal.STEP_UP_PASSWORD_MISSING.raise();
         }
 
         Set<StepUpProof> proofs = twoFactorService.availableProofs(session.accountId());
         if (!proofs.contains(StepUpProof.PASSWORD)) {
-            throw Refusal.PASSWORD_IS_NOT_A_PROOF_HERE.raise();
+            throw TwoFactorRefusal.PASSWORD_IS_NOT_A_PROOF_HERE.raise();
         }
 
         if (!authService.verifyPassword(session.accountId(), request.password())) {
@@ -175,7 +196,7 @@ public class StepUpRoutes implements Routes {
                     null,
                     ctx.userAgent(),
                     ctx.header("CF-IPCountry"));
-            throw Refusal.STEP_UP_PASSWORD_WRONG.raise();
+            throw TwoFactorRefusal.STEP_UP_PASSWORD_WRONG.raise();
         }
 
         twoFactorService.markSessionTwoFactorVerified(session.sessionId(), StepUpProof.PASSWORD);
@@ -189,22 +210,36 @@ public class StepUpRoutes implements Routes {
         ctx.json(new StepUpVerifiedResponse(Instant.now()));
     }
 
+    @OpenApi(
+            path = "/api/v1/auth/stepup/passkey/begin",
+            methods = HttpMethod.POST,
+            responses =
+                    @OpenApiResponse(
+                            status = "200",
+                            content = @OpenApiContent(from = PasskeyStepUpBeginResponse.class)))
     private void beginPasskeyStepUp(Context ctx) {
         UserSession session = UserSession.from(ctx);
         if (!twoFactorService.availableProofs(session.accountId()).contains(StepUpProof.PASSKEY)) {
-            throw Refusal.NO_PASSKEY_TO_CONFIRM_WITH.raise();
+            throw TwoFactorRefusal.NO_PASSKEY_TO_CONFIRM_WITH.raise();
         }
         var start = passkeyService.startStepUp(session.accountId());
         ctx.json(new PasskeyStepUpBeginResponse(start.challengeToken(), start.optionsJson()));
     }
 
+    @OpenApi(
+            path = "/api/v1/auth/stepup/passkey/finish",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = PasskeyStepUpFinishRequest.class)),
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = StepUpVerifiedResponse.class)))
     private void finishPasskeyStepUp(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(PasskeyStepUpFinishRequest.class);
         if (request.challengeToken() == null || request.credentialJson() == null) {
-            throw Refusal.PASSKEY_STEP_UP_DETAILS_MISSING.raise();
+            throw TwoFactorRefusal.PASSKEY_STEP_UP_DETAILS_MISSING.raise();
         }
-        RateLimits.enforce(rateLimiter.tryTwoFactor(clientIp(ctx), session.accountId()));
+        RateLimits.enforce(
+                TwoFactorRefusal.STEP_UP_PASSKEY_TOO_OFTEN, rateLimiter.tryTwoFactor(ctx.ip(), session.accountId()));
         if (!passkeyService.finishStepUp(session.accountId(), request.challengeToken(), request.credentialJson())) {
             auditService.record(
                     session.accountId(),
@@ -213,7 +248,7 @@ public class StepUpRoutes implements Routes {
                     TwoFactorKind.WEBAUTHN,
                     ctx.userAgent(),
                     ctx.header("CF-IPCountry"));
-            throw Refusal.PASSKEY_STEP_UP_REFUSED.raise();
+            throw TwoFactorRefusal.PASSKEY_STEP_UP_REFUSED.raise();
         }
         twoFactorService.markSessionTwoFactorVerified(session.sessionId(), StepUpProof.PASSKEY);
         auditService.record(
@@ -248,5 +283,28 @@ public class StepUpRoutes implements Routes {
 
     public record DeviceStepUpPollRequest(String pollSecret) {}
 
-    public record DeviceStepUpPollResponse(String status) {}
+    public record DeviceStepUpPollResponse(DeviceStepUpStatus status) {}
+
+    /**
+     * Where a step-up raised for another device stands, as the asking device polls it. The states of
+     * the request itself, and {@link #CONFIRMED} once the approval has stamped the asking session.
+     */
+    public enum DeviceStepUpStatus {
+        PENDING,
+        APPROVED,
+        EXPIRED,
+        UNKNOWN,
+        REJECTED,
+        CONFIRMED;
+
+        static DeviceStepUpStatus of(DeviceRequestService.PollStatus status) {
+            return switch (status) {
+                case PENDING -> PENDING;
+                case APPROVED -> APPROVED;
+                case EXPIRED -> EXPIRED;
+                case UNKNOWN -> UNKNOWN;
+                case REJECTED -> REJECTED;
+            };
+        }
+    }
 }

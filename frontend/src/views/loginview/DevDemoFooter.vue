@@ -6,7 +6,8 @@
 <script setup lang="ts">
 import {useI18n} from 'vue-i18n'
 import DemoAccountBrowser from '@/views/loginview/DemoAccountBrowser.vue'
-import type {DemoAccount, DemoAccountsView} from '@/composables/useDemoAccounts'
+import type {DemoAccount} from '@/api/generated/schema'
+import type {DemoAccountsView} from '@/composables/useDemoAccounts'
 
 const props = defineProps<{
   view: DemoAccountsView

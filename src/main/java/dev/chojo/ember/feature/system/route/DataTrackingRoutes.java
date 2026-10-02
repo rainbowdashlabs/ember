@@ -5,13 +5,23 @@
  */
 package dev.chojo.ember.feature.system.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.auth.InstancePermission;
+import dev.chojo.ember.api.refusal.SystemRefusal;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.feature.system.service.DataTrackingAdminService;
+import dev.chojo.ember.feature.system.service.DataTrackingAdminService.Summary;
+import dev.chojo.ember.feature.system.service.DataTrackingAdminService.TableUpdate;
+import dev.chojo.ember.tracking.DataTracking;
+import dev.chojo.ember.tracking.TableEntry;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
+import io.javalin.openapi.HttpMethod;
+import io.javalin.openapi.OpenApi;
+import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiParam;
+import io.javalin.openapi.OpenApiRequestBody;
+import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -51,14 +61,34 @@ public class DataTrackingRoutes implements Routes {
                 InstancePermission.ADMINISTRATOR);
     }
 
+    @OpenApi(
+            path = "/api/v1/admin/data-tracking",
+            methods = HttpMethod.GET,
+            summary = "The data tracking file as it stands",
+            tags = {"Admin"},
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = DataTracking.class)))
     private void getTracking(Context ctx) throws Exception {
         ctx.json(service.load());
     }
 
+    @OpenApi(
+            path = "/api/v1/admin/data-tracking/summary",
+            methods = HttpMethod.GET,
+            summary = "Counts of tracked, ignored and unverified tables",
+            tags = {"Admin"},
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Summary.class)))
     private void getSummary(Context ctx) throws Exception {
         ctx.json(service.summarize());
     }
 
+    @OpenApi(
+            path = "/api/v1/admin/data-tracking/tables/{table}",
+            methods = HttpMethod.PUT,
+            summary = "Update the tracking of one table",
+            tags = {"Admin"},
+            pathParams = @OpenApiParam(name = "table", type = String.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = TableUpdate.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = TableEntry.class)))
     private void updateTable(Context ctx) throws Exception {
         String table = ctx.pathParam("table");
         var payload = ctx.bodyAsClass(DataTrackingAdminService.TableUpdate.class);
@@ -67,10 +97,17 @@ public class DataTrackingRoutes implements Routes {
             ctx.status(HttpStatus.OK).json(updated);
         } catch (IllegalArgumentException e) {
             log.warn("Data tracking table {} could not be written", table, e);
-            throw Refusal.TRACKED_TABLE_NOT_HERE.raise();
+            throw SystemRefusal.TRACKED_TABLE_NOT_HERE.raise();
         }
     }
 
+    @OpenApi(
+            path = "/api/v1/admin/data-tracking/tables/{table}/verify-columns",
+            methods = HttpMethod.POST,
+            summary = "Mark every column of one table as verified",
+            tags = {"Admin"},
+            pathParams = @OpenApiParam(name = "table", type = String.class, required = true),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = TableEntry.class)))
     private void verifyColumns(Context ctx) throws Exception {
         String table = ctx.pathParam("table");
         try {
@@ -78,7 +115,7 @@ public class DataTrackingRoutes implements Routes {
             ctx.status(HttpStatus.OK).json(updated);
         } catch (IllegalArgumentException e) {
             log.warn("Data tracking columns of table {} could not be checked", table, e);
-            throw Refusal.TRACKED_TABLE_NOT_HERE_ON_CHECK.raise();
+            throw SystemRefusal.TRACKED_TABLE_NOT_HERE_ON_CHECK.raise();
         }
     }
 }

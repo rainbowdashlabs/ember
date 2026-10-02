@@ -46,7 +46,7 @@ function close() {
 </script>
 
 <template>
-  <SidebarGroup data-onboarding="nav.manage" :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => emit('update:openGroup', v)" :icon="['fas', 'gears']" :label="t('sidebar.manage')" prefix="/station/manage" :to="manageDefaultRoute" name="station-manage" @navigate="close">
+  <SidebarGroup data-onboarding="nav.manage" :open-group="isDesktop ? undefined : openGroup" :icon="['fas', 'gears']" :label="t('sidebar.manage')" prefix="/station/manage" :to="manageDefaultRoute" name="station-manage" @update:open-group="v => emit('update:openGroup', v)" @navigate="close">
     <SidebarLink v-if="hasPermission(StationPermission.STATION_LOOK_AND_FEEL)" :icon="['fas', 'palette']" name="station-theme" to="/station/manage/theme" @navigate="close">
       {{ t('sidebar.stationTheme') }}
     </SidebarLink>

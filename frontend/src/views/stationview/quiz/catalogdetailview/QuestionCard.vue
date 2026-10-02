@@ -9,7 +9,8 @@ import QuestionCardCollapsedMobile from './QuestionCardCollapsedMobile.vue'
 import QuestionCardCollapsedDesktop from './QuestionCardCollapsedDesktop.vue'
 import QuestionInlineEditor from './QuestionInlineEditor.vue'
 import QuestionReportList from './QuestionReportList.vue'
-import type { QuizCategory, QuizQuestion, QuizQuestionReport, QuizQuestionTypeName } from '@/api/quiz'
+import type { QuizQuestionTypeName } from '@/api/quiz'
+import type { QuizCategory, QuizQuestion, QuizQuestionReport } from '@/api/generated/schema'
 import type { Failure } from '@/util/failure'
 import { useBreakpoint } from '@/composables/useBreakpoint'
 
@@ -72,7 +73,6 @@ const { isMobile } = useBreakpoint()
     </template>
     <QuestionInlineEditor
       v-else
-      :is-editing="true"
       v-model:title="editorTitle"
       v-model:description="editorDescription"
       v-model:question-type="editorQuestionType"
@@ -80,6 +80,7 @@ const { isMobile } = useBreakpoint()
       v-model:points="editorPoints"
       v-model:auto-points="editorAutoPoints"
       v-model:config="editorConfig"
+      :is-editing="true"
       :image-preview="editorImagePreview"
       :auth-image-src="editorAuthImageSrc"
       :has-image="editorHasImage"

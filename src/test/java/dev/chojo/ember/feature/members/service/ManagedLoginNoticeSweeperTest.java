@@ -7,6 +7,9 @@ package dev.chojo.ember.feature.members.service;
 
 import org.junit.jupiter.api.Test;
 
+import java.time.Duration;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -24,6 +27,18 @@ class ManagedLoginNoticeSweeperTest {
         new ManagedLoginNoticeSweeper(noticeService).sweep();
 
         verify(noticeService).dispatch();
+    }
+
+    @Test
+    void theTaskSweepsEveryMinute() {
+        var noticeService = mock(ManagedLoginNoticeService.class);
+        var task = new ManagedLoginNoticeSweeper(noticeService).scheduledTasks().getFirst();
+
+        task.work().run();
+
+        verify(noticeService).dispatch();
+        assertEquals("managed-login-notice-sweep", task.name());
+        assertEquals(Duration.ofMinutes(1), task.schedule().period());
     }
 
     @Test

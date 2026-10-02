@@ -19,11 +19,11 @@ vi.mock('@/composables/useSession', () => ({
     useSession: () => ({loaded: ref(true)}),
 }))
 
-const query: Record<string, string> = {}
+const route: {query: Record<string, string>} = {query: {}}
 
 vi.mock('vue-router', async (importOriginal) => ({
     ...(await importOriginal<typeof import('vue-router')>()),
-    useRoute: () => ({query}),
+    useRoute: () => route,
 }))
 
 /**
@@ -43,7 +43,7 @@ describe('LendingCreateRequestView', () => {
         availableCount: 4,
     }
     async function open(dates: {dateFrom?: string; dateTo?: string} = {}) {
-        Object.assign(query, {inventoryId: '26', stationId: STATION_ID, stationName: ENTRY.stationName}, dates)
+        route.query = {inventoryId: '26', stationId: STATION_ID, stationName: ENTRY.stationName, ...dates}
         return mountSuspended(LendingCreateRequestView)
     }
 
@@ -55,7 +55,7 @@ describe('LendingCreateRequestView', () => {
 
     beforeEach(() => {
         vi.clearAllMocks()
-        for (const key of Object.keys(query)) delete query[key]
+        route.query = {}
         listAvailable.mockResolvedValue({entries: [ENTRY]})
     })
 

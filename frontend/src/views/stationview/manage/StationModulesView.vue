@@ -4,20 +4,19 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {onMounted, ref, watch} from 'vue'
+import {ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
-import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
+import StationModuleList from './stationmodulesview/StationModuleList.vue'
 import {stationManage} from '@/api'
 import {StationPermission} from '@/api/types'
+import type {ModulesResponse, StationModule} from '@/api/generated/schema'
 import {useSession} from '@/composables/useSession'
 import {useAsyncAction} from '@/composables/useAsyncAction'
-import {describeFailure, type Failure} from '@/util/failure'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 
 const {hasPermission, loaded, load: reloadSession} = useSession()
 const router = useRouter()
@@ -29,39 +28,11 @@ watch(loaded, (isLoaded) => {
 
 const {t} = useI18n()
 
-const loading = ref(true)
-const disabledModules = ref<Set<string>>(new Set())
-const clusterDenied = ref<Set<string>>(new Set())
+const disabledModules = ref<Set<StationModule>>(new Set())
+const clusterDenied = ref<Set<StationModule>>(new Set())
 const clusterName = ref<string | null>(null)
 
-const allModules = [
-  {key: 'INVENTORY', label: 'moduleInventory'},
-  {key: 'NEWS', label: 'moduleNews'},
-  {key: 'EVENTS', label: 'moduleEvents'},
-  {key: 'ATTENDANCE', label: 'moduleAttendance'},
-  {key: 'FORMS', label: 'moduleForms'},
-  {key: 'LOST_AND_FOUND', label: 'moduleLostAndFound'},
-  {key: 'WAITING_LIST', label: 'moduleWaitingList'},
-  {key: 'QUIZ', label: 'moduleQuiz'},
-  {key: 'TEST_PROTOCOL', label: 'moduleTestProtocol'},
-  {key: 'KNOWLEDGE_BASE', label: 'moduleKnowledgeBase'},
-  {key: 'BOARDS', label: 'moduleBoards'},
-  {key: 'PROCEDURES', label: 'moduleProcedures'},
-  {key: 'DOCUMENTS', label: 'moduleDocuments'},
-]
-
-function isModuleEnabled(key: string): boolean {
-  return !disabledModules.value.has(key) && !clusterDenied.value.has(key)
-}
-
-/** A module the cluster switched off is shown as locked rather than simply off, and says who locked it. */
-function isLockedByCluster(key: string): boolean {
-  return clusterDenied.value.has(key)
-}
-
-const loadFailure = ref<Failure | null>(null)
-
-const {running: modulesSaving, failure, run: toggleModule} = useAsyncAction(async (key: string) => {
+const {running: modulesSaving, failure, run: toggleModule} = useAsyncAction(async (key: StationModule) => {
   const next = new Set(disabledModules.value)
   if (next.has(key)) next.delete(key)
   else next.add(key)
@@ -70,19 +41,14 @@ const {running: modulesSaving, failure, run: toggleModule} = useAsyncAction(asyn
   reloadSession()
 })
 
-function apply(res: stationManage.ModulesResponse) {
+function apply(res: ModulesResponse) {
   disabledModules.value = new Set(res.disabledModules)
-  clusterDenied.value = new Set(res.clusterDeniedModules ?? [])
-  clusterName.value = res.clusterName ?? null
+  clusterDenied.value = new Set(res.clusterDeniedModules)
+  clusterName.value = res.clusterName
 }
 
-onMounted(async () => {
-  try {
-    apply(await stationManage.getDisabledModules())
-  } catch (e) {
-    loadFailure.value = describeFailure(e, t)
-  }
-  loading.value = false
+const {loading, failure: loadFailure} = useAsyncLoader(async () => {
+  apply(await stationManage.getDisabledModules())
 })
 </script>
 
@@ -96,23 +62,8 @@ onMounted(async () => {
       <FailureAlert :failure="loadFailure"/>
       <FailureAlert :failure="failure"/>
 
-      <NeutralContainer v-if="!loading" class="space-y-4">
-        <SectionHeader>{{ t('stationManage.modulesTitle') }}</SectionHeader>
-        <p class="text-sm text-(--text-muted)">{{ t('stationManage.modulesHint') }}</p>
-        <div class="space-y-3">
-          <div v-for="mod in allModules" :key="mod.key" data-testid="module-toggle" :data-module="mod.key"
-               class="flex items-center gap-3">
-            <ToggleInput :model-value="isModuleEnabled(mod.key)"
-                         :disabled="modulesSaving || isLockedByCluster(mod.key)"
-                         @update:model-value="toggleModule(mod.key)"/>
-            <span class="text-sm font-medium">{{ t(`stationManage.${mod.label}`) }}</span>
-            <span v-if="isLockedByCluster(mod.key)" class="text-xs text-(--text-muted)">
-              <font-awesome-icon :icon="['fas', 'lock']" class="mr-1 h-3 w-3"/>
-              {{ t('stationManage.moduleClusterLocked', {cluster: clusterName ?? ''}) }}
-            </span>
-          </div>
-        </div>
-      </NeutralContainer>
+      <StationModuleList v-if="!loading" :disabled-modules="disabledModules" :cluster-denied="clusterDenied"
+                         :cluster-name="clusterName" :saving="modulesSaving" @toggle="toggleModule"/>
     </div>
   </ViewContent>
 </template>

@@ -11,7 +11,7 @@ import EmptyState from '@/components/feedback/EmptyState.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import WaitingSectionToolbar from './waitingsection/WaitingSectionToolbar.vue'
 import WaitingSectionTable from './waitingsection/WaitingSectionTable.vue'
-import type { WaitingListEntryWithScore, WaitingListField } from '@/api/waitingList'
+import type { WaitingListEntryWithScore, WaitingListField } from '@/api/generated/schema'
 import { useDataTable } from '@/composables/useDataTable'
 import { byDate } from '@/composables/useSortable'
 import { fieldIdOfColumn, SCORE_KEY, waitingColumns } from './waitingsection/waitingColumns'
@@ -81,7 +81,7 @@ function setColumns(keys: (string | number)[], visible: boolean) {
       <span class="text-sm">{{ t('waitingList.hideBelowJoinAge') }}</span>
     </div>
 
-    <EmptyState compact v-if="entries.length === 0">{{ t('waitingList.noEntries') }}</EmptyState>
+    <EmptyState v-if="entries.length === 0" compact>{{ t('waitingList.noEntries') }}</EmptyState>
 
     <WaitingSectionTable
       v-else

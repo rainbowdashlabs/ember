@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.quiz.service.QuizService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -131,7 +132,8 @@ public class RequirementsService {
      * @param memberId whose gear it is about, which is what tells a guardian's several apart
      * @param dueOn    the day the answer is wanted by, or {@code null} where none was named
      */
-    public record SelfCheckItem(int id, int memberId, LocalDate dueOn) {}
+    public record SelfCheckItem(
+            int id, int memberId, @Nullable LocalDate dueOn) {}
 
     /**
      * One registration short of an answer to a question its appointment gained after the sign-up.
@@ -140,7 +142,12 @@ public class RequirementsService {
      *                   a guardian can tell the members in their care apart
      */
     public record RegistrationUpdateItem(
-            int registrationId, int eventId, String eventName, LocalDate eventDate, int memberId, String memberName) {}
+            int registrationId,
+            int eventId,
+            String eventName,
+            LocalDate eventDate,
+            int memberId,
+            @Nullable String memberName) {}
 
     /**
      * What a member still owes.

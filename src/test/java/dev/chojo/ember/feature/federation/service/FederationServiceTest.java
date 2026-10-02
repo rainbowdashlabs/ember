@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.quiz.entity.CatalogMetadata;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import dev.chojo.ember.util.TestStationKeys;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
@@ -44,7 +45,7 @@ class FederationServiceTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         federationRepo = new FederationRepository();
-        service = new FederationService(federationRepo, stationRepo, new Api());
+        service = new FederationService(federationRepo, stationRepo, TestStationKeys.store(), new Api());
 
         stationA = stationRepo.create("FedSvcTestStationA");
         stationB = stationRepo.create("FedSvcTestStationB");
@@ -106,7 +107,6 @@ class FederationServiceTest extends RepositoryTestBase {
         assertFalse(partner.isRemote());
         partnerIdAtoB = partner.id();
 
-        // Verify reverse partner exists
         var reversePartners = service.findPartners(stationB.id());
         assertTrue(reversePartners.stream()
                 .anyMatch(p -> p.partnerStationId().equals(stationA.uid())
@@ -129,12 +129,9 @@ class FederationServiceTest extends RepositoryTestBase {
         assertEquals(partnerIdAtoB, found.get().id());
     }
 
-    // -- Capabilities --
-
     @Test
     @Order(10)
     void hasCapabilityReturnsTrueWhenEnabled() {
-        // Capabilities are initialized with all enabled during acceptInvite
         assertTrue(service.hasCapability(
                 federationRepo.findPartnerById(partnerIdAtoB).orElseThrow(),
                 CapabilityType.KB_SHARE,
@@ -172,8 +169,6 @@ class FederationServiceTest extends RepositoryTestBase {
         assertFalse(caps.isEmpty());
     }
 
-    // -- Suspend / Resume --
-
     @Test
     @Order(20)
     void suspendPartner() {
@@ -190,8 +185,6 @@ class FederationServiceTest extends RepositoryTestBase {
         assertEquals(FederationPartner.FederationStatus.ACTIVE, partner.status());
     }
 
-    // -- Change Logging --
-
     @Test
     @Order(30)
     void logAndRetrieveChanges() {
@@ -204,8 +197,6 @@ class FederationServiceTest extends RepositoryTestBase {
         assertTrue(changes.stream().anyMatch(c -> c.contentType() == ContentType.KB && c.contentId() == 42));
     }
 
-    // -- Federation Version (tested via partner entity) --
-
     @Test
     @Order(41)
     void contractCoversAllCapabilities() {
@@ -215,8 +206,6 @@ class FederationServiceTest extends RepositoryTestBase {
             assertNotNull(contract.featureHash(capability), "Missing surface hash for " + capability);
         }
     }
-
-    // -- Keypair --
 
     @Test
     @Order(50)
@@ -230,8 +219,6 @@ class FederationServiceTest extends RepositoryTestBase {
         assertNotNull(encoded);
         assertFalse(encoded.isEmpty());
     }
-
-    // -- Remote Host --
 
     @Test
     @Order(60)
@@ -248,12 +235,10 @@ class FederationServiceTest extends RepositoryTestBase {
         assertNotNull(partner);
         assertEquals(FederationPartner.FederationStatus.ACTIVE, partner.status());
 
-        // The partner record from C's POV should show A as remote
         var found = federationRepo.findPartnerById(partner.id()).orElseThrow();
         assertEquals("https://remote-a.example.com", found.remoteHost());
         assertTrue(found.isRemote());
 
-        // The reverse partner (A -> C) should show C as remote
         var reversePartners = service.findPartners(stationA.id());
         var reverse = reversePartners.stream()
                 .filter(p -> p.partnerStationId().equals(stationC.uid()))
@@ -262,7 +247,6 @@ class FederationServiceTest extends RepositoryTestBase {
         assertEquals("https://remote-c.example.com", reverse.remoteHost());
         assertTrue(reverse.isRemote());
 
-        // Cleanup
         service.endFederation(partner.id());
         stationRepo.delete(stationC.id());
     }
@@ -274,17 +258,14 @@ class FederationServiceTest extends RepositoryTestBase {
         var keyPair = service.generateKeyPair();
         var partner = service.acceptInvite(stationA.id(), stationD.id(), service.encodePublicKey(keyPair), null, null);
 
-        // Initially local
         var reverse = service.findPartners(stationA.id()).stream()
                 .filter(p -> p.partnerStationId().equals(stationD.uid()))
                 .findFirst()
                 .orElseThrow();
         assertFalse(reverse.isRemote());
 
-        // Update remote host for stationD (it moved to a remote server)
         service.updateRemoteHost(stationD.uid(), "https://new-host.example.com");
 
-        // Now the partner record pointing at stationD should have the new host
         var updated = service.findPartners(stationA.id()).stream()
                 .filter(p -> p.partnerStationId().equals(stationD.uid()))
                 .findFirst()
@@ -292,7 +273,6 @@ class FederationServiceTest extends RepositoryTestBase {
         assertEquals("https://new-host.example.com", updated.remoteHost());
         assertTrue(updated.isRemote());
 
-        // Cleanup
         service.endFederation(partner.id());
         stationRepo.delete(stationD.id());
     }
@@ -317,10 +297,6 @@ class FederationServiceTest extends RepositoryTestBase {
         stationRepo.delete(stationE.id());
         stationRepo.delete(stationF.id());
     }
-
-    // -- End Federation --
-
-    // -- Pairing Code Parsing --
 
     @Test
     @Order(70)
@@ -350,7 +326,6 @@ class FederationServiceTest extends RepositoryTestBase {
         var code = service.generateStationInvite(stationA.id(), stationA.uid());
         var parts = service.parsePairingCode(code).orElseThrow();
         assertTrue(service.consumeInviteToken(stationA.id(), parts.token()));
-        // Consuming again should fail
         assertFalse(service.consumeInviteToken(stationA.id(), parts.token()));
     }
 
@@ -368,14 +343,12 @@ class FederationServiceTest extends RepositoryTestBase {
 
     @Test
     @Order(75)
-    void encodePrivateKey() {
-        var keyPair = service.generateKeyPair();
-        String encoded = service.encodePrivateKey(keyPair);
-        assertNotNull(encoded);
-        assertFalse(encoded.isEmpty());
+    void ensureStationKeyIsStable() {
+        String publicKey = service.ensureStationKey(stationA.id());
+        assertNotNull(publicKey);
+        assertFalse(publicKey.isEmpty());
+        assertEquals(publicKey, service.ensureStationKey(stationA.id()));
     }
-
-    // -- Pair request flow --
 
     @Test
     @Order(80)
@@ -387,16 +360,13 @@ class FederationServiceTest extends RepositoryTestBase {
         assertNotNull(request);
         assertEquals(FederationPartner.FederationStatus.PENDING, request.status());
 
-        // Find pending requests for target station
         var pending = service.findPendingRequests(stationH.id());
         assertTrue(pending.stream().anyMatch(p -> p.stationId() == stationG.id()));
 
-        // Accept the request
         var accepted = service.acceptPairRequest(request.id());
         assertNotNull(accepted);
         assertEquals(FederationPartner.FederationStatus.ACTIVE, accepted.status());
 
-        // Cleanup
         service.endFederation(accepted.id());
         stationRepo.delete(stationG.id());
         stationRepo.delete(stationH.id());
@@ -415,8 +385,6 @@ class FederationServiceTest extends RepositoryTestBase {
         stationRepo.delete(stationI.id());
         stationRepo.delete(stationJ.id());
     }
-
-    // -- KB/Quiz/Protocol shares --
 
     @Test
     @Order(85)
@@ -439,12 +407,9 @@ class FederationServiceTest extends RepositoryTestBase {
         assertNotNull(shares);
     }
 
-    // -- Metadata Cache --
-
     @Test
     @Order(88)
     void metadataCacheOperations() {
-        // Use the existing partner between stationA and stationB (created at order 4)
         var cached = service.getCachedMetadata(partnerIdAtoB, ContentType.KB);
         assertNotNull(cached);
 
@@ -458,8 +423,6 @@ class FederationServiceTest extends RepositoryTestBase {
         assertTrue(refreshed.stream().anyMatch(c -> c.remoteId() == 42));
     }
 
-    // -- End Federation --
-
     @Test
     @Order(89)
     void endFederationNonExistent() {
@@ -472,7 +435,6 @@ class FederationServiceTest extends RepositoryTestBase {
         assertTrue(service.endFederation(partnerIdAtoB));
         assertTrue(service.findPartner(partnerIdAtoB).isEmpty());
 
-        // Reverse partner should also be deleted
         var reversePartners = service.findPartners(stationB.id());
         assertTrue(reversePartners.stream().noneMatch(p -> p.partnerStationId().equals(stationA.uid())));
     }
@@ -483,11 +445,9 @@ class FederationServiceTest extends RepositoryTestBase {
         var stationK = stationRepo.create("FedSvcTestStationK");
         var stationL = stationRepo.create("FedSvcTestStationL");
 
-        // Create a pair request and then activate it (so it is no longer PENDING)
         var keyPair = service.generateKeyPair();
         var partner = service.acceptInvite(stationK.id(), stationL.id(), service.encodePublicKey(keyPair), null, null);
 
-        // Trying to acceptPairRequest on an ACTIVE partner should throw
         assertThrows(IllegalStateException.class, () -> service.acceptPairRequest(partner.id()));
 
         service.endFederation(partner.id());
@@ -498,7 +458,6 @@ class FederationServiceTest extends RepositoryTestBase {
     @Test
     @Order(101)
     void pairingCodePartsIsStationInviteWithNullToken() {
-        // PairingCodeParts with null token - isStationInvite should be false
         var parts = new FederationService.PairingCodeParts(stationA.uid(), "localhost", null);
         assertFalse(parts.isStationInvite());
     }
@@ -513,19 +472,17 @@ class FederationServiceTest extends RepositoryTestBase {
     @Test
     @Order(103)
     void kbShareCreateAndDelete() {
-        // KB share requires either a file_id or folder_id (CHECK constraint)
         var folder = knowledgeBaseRepo.createFolder(stationA.id(), null, "FedTestFolder", "", memberA.id());
         var share = service.createKbShare(stationA.id(), null, folder.id(), ShareScope.ALL_PARTNERS);
         assertNotNull(share);
         assertTrue(service.deleteKbShare(share.id(), stationA.id()));
-        assertFalse(service.deleteKbShare(share.id(), stationA.id())); // Already deleted
+        assertFalse(service.deleteKbShare(share.id(), stationA.id()), "already deleted");
         knowledgeBaseRepo.purgeFolder(folder.id());
     }
 
     @Test
     @Order(104)
     void quizShareCreateAndDelete() {
-        // Create a quiz catalog to reference
         var catalog = quizCatalogRepo.create(stationA.id(), "Test Quiz Catalog", "desc", false, CatalogMetadata.none());
         var share = service.createQuizShare(stationA.id(), catalog.id(), ShareScope.ALL_PARTNERS);
         assertNotNull(share);
@@ -535,7 +492,6 @@ class FederationServiceTest extends RepositoryTestBase {
     @Test
     @Order(105)
     void protocolShareCreateAndDelete() {
-        // Create a protocol to reference (description must not be null)
         var protocol = testProtocolRepo.createProtocol(stationA.id(), "Test Protocol", "", null);
         var share = service.createProtocolShare(stationA.id(), protocol.id(), ShareScope.ALL_PARTNERS);
         assertNotNull(share);

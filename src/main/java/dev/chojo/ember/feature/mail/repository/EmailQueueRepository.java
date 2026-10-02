@@ -6,10 +6,13 @@
 package dev.chojo.ember.feature.mail.repository;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import dev.chojo.ember.feature.mail.entity.EmailQueueStatus;
 import dev.chojo.ember.feature.mail.entity.MailDeliveryStatus;
 import dev.chojo.ember.util.sql.WhereBuilder;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.LinkedHashMap;
@@ -30,8 +33,10 @@ import static dev.chojo.ember.util.sql.SqlSupport.count;
 public class EmailQueueRepository {
 
     /**
-     * How long a mail may sit in sending before the worker that took it counts as dead. Every send
-     * finishes or gives up well inside this, so anything older was left behind rather than delayed.
+     * How long a mail may sit in sending, counted from when the worker last took it in hand, before
+     * that worker counts as dead. Every send finishes or gives up well inside this, so anything older
+     * was left behind rather than delayed. Counting from when the mail was written instead would
+     * call every old mail on a retry stuck.
      */
     private static final int STUCK_MINUTES = 10;
 
@@ -42,7 +47,8 @@ public class EmailQueueRepository {
             row.getString("body"),
             row.getObject("station_id", Integer.class),
             row.getInt("attempts"),
-            row.getInt("provider_position"));
+            row.getInt("provider_position"),
+            row.get("created_at", INSTANT_TIMESTAMP));
 
     /**
      * Enqueues an email without a station association (global/system email).
@@ -63,7 +69,7 @@ public class EmailQueueRepository {
      * @param body      the HTML email body
      * @param stationId the station ID (null for system emails)
      */
-    public void enqueue(String recipient, String subject, String body, Integer stationId) {
+    public void enqueue(String recipient, String subject, String body, @Nullable Integer stationId) {
         query(
                         "INSERT INTO email_queue(recipient, subject, body, station_id) VALUES(:recipient, :subject, :body, :station_id);")
                 .single(call().bind("recipient", recipient)
@@ -74,9 +80,11 @@ public class EmailQueueRepository {
     }
 
     /**
-     * Atomically fetches pending emails and marks them as SENDING to prevent double-processing.
-     * Global emails (no station) can be excluded while the instance-wide mail provider is not
-     * configured, so they stay queued untouched until an operator sets one up.
+     * Atomically fetches pending emails that are due and marks them as SENDING to prevent
+     * double-processing. A mail whose next attempt lies in the future is left alone until then.
+     * Rows another claim holds locked are skipped rather than waited for, so two workers never take
+     * the same mail. Global emails (no station) can be excluded while the instance-wide mail
+     * provider is not configured, so they stay queued untouched until an operator sets one up.
      *
      * @param limit         the maximum number of emails to fetch
      * @param includeGlobal whether emails without a station association are fetched
@@ -84,13 +92,17 @@ public class EmailQueueRepository {
      */
     public List<QueuedEmail> fetchPending(int limit, boolean includeGlobal) {
         return query("""
-                UPDATE email_queue SET status = 'SENDING'
+                UPDATE email_queue SET status = 'SENDING', claimed_at = now()
                 WHERE id IN (
                     SELECT id FROM email_queue
-                    WHERE status = 'PENDING' AND (:include_global OR station_id IS NOT NULL)
-                    ORDER BY created_at LIMIT :limit
+                    WHERE status = 'PENDING'
+                      AND next_attempt_at <= now()
+                      AND (:include_global OR station_id IS NOT NULL)
+                    ORDER BY created_at
+                    LIMIT :limit
+                    FOR UPDATE SKIP LOCKED
                 )
-                RETURNING id, recipient, subject, body, station_id, attempts, provider_position;""")
+                RETURNING id, recipient, subject, body, station_id, attempts, provider_position, created_at;""")
                 .single(call().bind("limit", limit).bind("include_global", includeGlobal))
                 .map(QUEUED_EMAIL)
                 .all();
@@ -104,7 +116,7 @@ public class EmailQueueRepository {
      * @param detail    the reason the provider gave, or null
      * @param messageId the message id the provider assigned, or null when it named none
      */
-    public void recordDelivery(int id, MailDeliveryStatus status, String detail, String messageId) {
+    public void recordDelivery(int id, MailDeliveryStatus status, @Nullable String detail, @Nullable String messageId) {
         query("""
                 UPDATE email_queue
                 SET
@@ -128,7 +140,7 @@ public class EmailQueueRepository {
      */
     public Optional<QueuedEmail> findById(int id) {
         return query(
-                        "SELECT id, recipient, subject, body, station_id, attempts, provider_position FROM email_queue WHERE id = :id;")
+                        "SELECT id, recipient, subject, body, station_id, attempts, provider_position, created_at FROM email_queue WHERE id = :id;")
                 .single(call().bind("id", id))
                 .map(QUEUED_EMAIL)
                 .first();
@@ -146,12 +158,13 @@ public class EmailQueueRepository {
      * @param stationId the station the report is limited to, or null for no limit
      * @return the most recently queued match
      */
-    public Optional<QueuedEmail> findLatestFor(String recipient, String subject, Integer stationId) {
+    public Optional<QueuedEmail> findLatestFor(
+            String recipient, @Nullable String subject, @Nullable Integer stationId) {
         var where = WhereBuilder.create()
                 .add("AND subject = :subject", "subject", subject)
                 .add("AND station_id = :station_id", "station_id", stationId);
         return query("""
-                SELECT id, recipient, subject, body, station_id, attempts, provider_position
+                SELECT id, recipient, subject, body, station_id, attempts, provider_position, created_at
                 FROM email_queue
                 WHERE recipient = :recipient
                   %s
@@ -219,7 +232,7 @@ public class EmailQueueRepository {
      * @param stationId the station whose chain is meant, or null for the instance chain
      * @param position  which provider of that chain
      */
-    public int getProviderDailyCount(LocalDate day, Integer stationId, int position) {
+    public int getProviderDailyCount(LocalDate day, @Nullable Integer stationId, int position) {
         return count(
                 """
                         SELECT
@@ -255,6 +268,35 @@ public class EmailQueueRepository {
      */
     public void requeue(int id) {
         query("UPDATE email_queue SET status = 'PENDING' WHERE id = :id;")
+                .single(call().bind("id", id))
+                .update();
+    }
+
+    /**
+     * Puts an email back in the queue, not to be taken again before the delay has passed.
+     *
+     * @param id    the queued email ID
+     * @param delay how long the queue holds it back
+     */
+    public void retryAfter(int id, Duration delay) {
+        query("""
+                UPDATE email_queue
+                SET
+                    status          = 'PENDING',
+                    next_attempt_at = now() + make_interval(secs => :seconds)
+                WHERE id = :id;""")
+                .single(call().bind("id", id).bind("seconds", (int) delay.toSeconds()))
+                .update();
+    }
+
+    /**
+     * Renews the claim on an email the worker is about to send, so the time it waited behind the
+     * rest of its batch is not mistaken for a worker that died holding it.
+     *
+     * @param id the queued email ID
+     */
+    public void renewClaim(int id) {
+        query("UPDATE email_queue SET claimed_at = now() WHERE id = :id;")
                 .single(call().bind("id", id))
                 .update();
     }
@@ -316,15 +358,17 @@ public class EmailQueueRepository {
     /**
      * @param attempts         how many times the provider currently in turn has tried this mail
      * @param providerPosition which provider of the chain is in turn, counted from zero
+     * @param createdAt        when the mail was queued, which is where its retry window starts
      */
     public record QueuedEmail(
             int id,
             String recipient,
             String subject,
             String body,
-            Integer stationId,
+            @Nullable Integer stationId,
             int attempts,
-            int providerPosition) {}
+            int providerPosition,
+            Instant createdAt) {}
 
     /**
      * How the post stands, in one row.
@@ -337,7 +381,13 @@ public class EmailQueueRepository {
      *                 holding them: they are counted separately because nothing retries them
      * @param oldestPendingAt when the longest-waiting mail was written, or null when none waits
      */
-    public record QueueSummary(int pending, int sending, int sent, int failed, int stuck, Instant oldestPendingAt) {}
+    public record QueueSummary(
+            int pending,
+            int sending,
+            int sent,
+            int failed,
+            int stuck,
+            @Nullable Instant oldestPendingAt) {}
 
     /**
      * One mail as the dashboard shows it. The body is deliberately absent: this is a list of what
@@ -348,10 +398,10 @@ public class EmailQueueRepository {
             String recipient,
             String subject,
             Instant createdAt,
-            Instant sentAt,
-            String status,
+            @Nullable Instant sentAt,
+            EmailQueueStatus status,
             MailDeliveryStatus deliveryStatus,
-            String deliveryDetail,
+            @Nullable String deliveryDetail,
             int attempts,
             int providerPosition) {}
 
@@ -361,7 +411,7 @@ public class EmailQueueRepository {
             row.getString("subject"),
             row.get("created_at", INSTANT_TIMESTAMP),
             row.get("sent_at", INSTANT_TIMESTAMP),
-            row.getString("status"),
+            row.getEnum("status", EmailQueueStatus.class),
             row.getEnum("delivery_status", MailDeliveryStatus.class),
             row.getString("delivery_detail"),
             row.getInt("attempts"),
@@ -372,7 +422,7 @@ public class EmailQueueRepository {
      *
      * @param stationId the station whose post is meant, or null for the instance's
      */
-    public QueueSummary summary(Integer stationId) {
+    public QueueSummary summary(@Nullable Integer stationId) {
         var where = WhereBuilder.create().add("AND station_id = :station_id", "station_id", stationId);
         String scope = stationId == null ? "AND station_id IS NULL" : where.fragment();
         return query("""
@@ -382,7 +432,7 @@ public class EmailQueueRepository {
                             count(*) FILTER (WHERE status = 'SENT')                     AS sent,
                             count(*) FILTER (WHERE status = 'FAILED')                   AS failed,
                             count(*) FILTER (WHERE status = 'SENDING'
-                                             AND created_at < now() - make_interval(mins => %d)) AS stuck,
+                                             AND claimed_at < now() - make_interval(mins => %d)) AS stuck,
                             min(created_at) FILTER (WHERE status = 'PENDING')           AS oldest
                         FROM
                             email_queue
@@ -409,7 +459,7 @@ public class EmailQueueRepository {
      * @param stationId the station whose post is meant, or null for the instance's
      * @return position to number of mails waiting there
      */
-    public Map<Integer, Integer> pendingByProvider(Integer stationId) {
+    public Map<Integer, Integer> pendingByProvider(@Nullable Integer stationId) {
         var where = WhereBuilder.create().add("AND station_id = :station_id", "station_id", stationId);
         String scope = stationId == null ? "AND station_id IS NULL" : where.fragment();
         Map<Integer, Integer> counts = new LinkedHashMap<>();
@@ -441,7 +491,7 @@ public class EmailQueueRepository {
      * @param stationId the station whose post is meant, or null for the instance's
      * @param limit     how many to return
      */
-    public List<QueueEntry> stuck(Integer stationId, int limit) {
+    public List<QueueEntry> stuck(@Nullable Integer stationId, int limit) {
         var where = WhereBuilder.create().add("AND station_id = :station_id", "station_id", stationId);
         String scope = stationId == null ? "AND station_id IS NULL" : where.fragment();
         return query("""
@@ -452,10 +502,10 @@ public class EmailQueueRepository {
                             email_queue
                         WHERE
                             status = 'SENDING'
-                            AND created_at < now() - make_interval(mins => %d)
+                            AND claimed_at < now() - make_interval(mins => %d)
                             %s
                         ORDER BY
-                            created_at
+                            claimed_at
                         LIMIT :limit;""", STUCK_MINUTES, scope)
                 .single((stationId == null ? call() : where.apply(call())).bind("limit", limit))
                 .map(QUEUE_ENTRY)
@@ -467,22 +517,27 @@ public class EmailQueueRepository {
      *
      * <p>Scoped to the owner and to the stuck ones on purpose: a mail the worker is holding right
      * now must not be pulled out from under it, and one owner must not reach into another's post.
+     * A mail put back is due at once, whatever backoff it was under, and keeps the attempts it has
+     * already used: the send it was left behind in was never counted.
      *
      * @param stationId the station whose post is meant, or null for the instance's
      * @param id        the one mail meant, or null for every stuck one
      * @return how many mails were put back
      */
-    public int requeueStuck(Integer stationId, Integer id) {
+    public int requeueStuck(@Nullable Integer stationId, @Nullable Integer id) {
         var where = WhereBuilder.create()
                 .add("AND station_id = :station_id", "station_id", stationId)
                 .add("AND id = :id", "id", id);
         String owner = stationId == null ? "AND station_id IS NULL" : "";
         return query("""
                         UPDATE email_queue
-                        SET status = 'PENDING'
+                        SET
+                            status          = 'PENDING',
+                            claimed_at      = NULL,
+                            next_attempt_at = now()
                         WHERE
                             status = 'SENDING'
-                            AND created_at < now() - make_interval(mins => %d)
+                            AND claimed_at < now() - make_interval(mins => %d)
                             %s
                             %s;""", STUCK_MINUTES, owner, where.fragment())
                 .single(where.apply(call()))
@@ -496,7 +551,7 @@ public class EmailQueueRepository {
      * @param stationId the station whose post is meant, or null for the instance's
      * @param limit     how many to return
      */
-    public List<QueueEntry> recent(Integer stationId, int limit) {
+    public List<QueueEntry> recent(@Nullable Integer stationId, int limit) {
         var where = WhereBuilder.create().add("AND station_id = :station_id", "station_id", stationId);
         String scope = stationId == null ? "AND station_id IS NULL" : where.fragment();
         return query("""

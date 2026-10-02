@@ -5,7 +5,7 @@
  */
 <script setup lang="ts">
 import {useI18n} from 'vue-i18n'
-import type {MemberGroup} from '@/api/types'
+import type {MemberGroup} from '@/api/generated/schema'
 
 defineProps<{
   data: MemberGroup

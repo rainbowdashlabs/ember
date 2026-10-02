@@ -9,7 +9,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
-import type {InventoryArt} from '@/api/inventoryArts'
+import type {InventoryArt} from '@/api/generated/schema'
 
 /**
  * The kind the ticked pieces are to become: one that is already there, or a word typed in.

@@ -19,16 +19,17 @@ import {CanvasRenderer} from 'echarts/renderers'
 import {BarChart, LineChart} from 'echarts/charts'
 import {GridComponent, TooltipComponent, LegendComponent, DataZoomComponent} from 'echarts/components'
 import * as apiStatus from '@/api/apiStatus'
-import type {EndpointStats, HourlyStats, StatusBreakdown} from '@/api/apiStatus'
+import type {EndpointStats, HourlyStats, StatusBreakdown} from '@/api/generated/schema'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {bottomLegend, cartesianGrid, chartTextColor} from '@/util/chartLayout'
-import {darkThemeActive as isDark} from '@/util/themeState'
+import {useThemePaint} from '@/composables/useThemePaint'
 import EndpointStatsPanel from './adminapistatusview/EndpointStatsPanel.vue'
 import {formatMs} from './adminapistatusview/apiStatusFormat'
 
 use([CanvasRenderer, BarChart, LineChart, GridComponent, TooltipComponent, LegendComponent, DataZoomComponent])
 
-const {t} = useI18n()
+const {t, locale} = useI18n()
+const {dark: isDark} = useThemePaint()
 
 const textColor = computed(() => chartTextColor(isDark.value))
 
@@ -139,7 +140,7 @@ const statusChartOption = computed(() => {
         <template v-else>
             <div class="grid grid-cols-3 gap-3 mb-6">
                 <NeutralContainer class="text-center">
-                    <p class="text-2xl font-bold">{{ totalRequests.toLocaleString('de-DE') }}</p>
+                    <p class="text-2xl font-bold">{{ totalRequests.toLocaleString(locale) }}</p>
                     <p class="text-xs text-[var(--text-muted)]">{{ t('apiStatus.totalRequests') }}</p>
                 </NeutralContainer>
                 <NeutralContainer class="text-center">

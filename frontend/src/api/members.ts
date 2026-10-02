@@ -4,42 +4,29 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-import type {EmailChangeStatusName} from './auth'
-import type {MessageResponse} from './types'
+import type {
+    InviteRequest,
+    MemberInviteResponse,
+    MemberSearchResult,
+    MessageResponse,
+    OnboardAgainResponse,
+    PasskeyCodeResponse,
+    ResetPasswordRequest,
+    UpdateAccountResponse,
+} from './generated/schema'
 
-export interface InviteRequest {
-    email?: string
-    firstName?: string
-    lastName?: string
-    /** Whether the setup mail leaves with the account. Absent means it does. */
-    sendSetupMail?: boolean
-}
-
-export interface InviteResponse {
-    id: number
-    email?: string
-    firstName?: string
-    lastName?: string
-}
-
-export interface ResetPasswordRequest {
-    accountId?: number
-    forceChange?: boolean
-}
-
-export async function invite(data: InviteRequest): Promise<InviteResponse> {
-    const res = await client.post<InviteResponse>('/members/invite', data)
+export async function invite(data: InviteRequest): Promise<MemberInviteResponse> {
+    const res = await client.post<MemberInviteResponse>('/members/invite', data)
     return res.data
 }
 
-export interface UpdateAccountResponse extends MessageResponse {
-    /**
-     * What became of an address given in the same call. Absent when the address was left alone,
-     * COMMITTED when it is already the account's, WAITING when a link still has to be clicked.
-     */
-    emailChange?: EmailChangeStatusName | null
-}
-
+/**
+ * Changes an account's address, sign-in name and register name.
+ *
+ * <p>The answer's `emailChange` says what became of an address given in the same call: null when
+ * the address was left alone, COMMITTED when it is already the account's, WAITING when a link still
+ * has to be clicked.
+ */
 export async function updateAccount(accountId: number, data: {
     email?: string;
     /** The name this account signs in with. Absent leaves it alone; empty clears it. */
@@ -68,47 +55,24 @@ export async function resetPassword(data: ResetPasswordRequest): Promise<Message
     return res.data
 }
 
-export interface OnboardAgainResult {
-    /** Whether a setup mail could go out; when not, the QR code in the room is the way. */
-    mailed: boolean
-}
-
 /**
  * Onboards a member again: every passkey disabled, every session ended, a fresh setup link where
- * mail about the account already goes.
+ * mail about the account already goes. The answer says whether a setup mail could go out; when not,
+ * the QR code in the room is the way.
  */
-export async function onboardAgain(accountId: number): Promise<OnboardAgainResult> {
-    const res = await client.post<OnboardAgainResult>('/members/onboard-again', {accountId})
+export async function onboardAgain(accountId: number): Promise<OnboardAgainResponse> {
+    const res = await client.post<OnboardAgainResponse>('/members/onboard-again', {accountId})
     return res.data
 }
 
-export interface MemberPasskeyCode {
-    code: string
-    qrPng: string
-    expiresAt: string
-}
-
 /** The member manager's passkey code, for an addressless member with no guardian to hand it over. */
-export async function issuePasskeyCode(accountId: number): Promise<MemberPasskeyCode> {
-    const res = await client.post<MemberPasskeyCode>('/members/passkey-code', {accountId})
+export async function issuePasskeyCode(accountId: number): Promise<PasskeyCodeResponse> {
+    const res = await client.post<PasskeyCodeResponse>('/members/passkey-code', {accountId})
     return res.data
 }
 
 export async function revokePasskeyCode(accountId: number): Promise<void> {
     await client.delete(`/members/passkey-code/${accountId}`)
-}
-
-// -- Page-editor picker. PAGE_EDIT-gated. --
-
-export interface MemberSearchResult {
-    memberUid: string
-    displayName: string
-    userType: string | null
-    /** The colour their name is painted in, from their highest-priority coloured group. */
-    nameColor: string | null
-    displayTag: string | null
-    displayTagColor: string | null
-    avatarUrl: string | null
 }
 
 export async function searchMembers(query?: string, limit = 20): Promise<MemberSearchResult[]> {

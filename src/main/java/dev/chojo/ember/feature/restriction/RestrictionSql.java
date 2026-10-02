@@ -113,16 +113,35 @@ public final class RestrictionSql {
     }
 
     /**
+     * A predicate letting a member see an entity: either they manage the entity type, or the
+     * entity's restrictions take them in.
+     *
+     * <p>Whether somebody manages the type is never worked out in SQL. It is the manager permission
+     * of the type in the member's resolved permissions, which the caller already holds or resolves,
+     * and it reaches the statement through {@code managerExpression}, usually a bound boolean.
+     *
+     * @param type                the restricted entity type
+     * @param entityIdExpression  the SQL expression yielding the entity ID, e.g. {@code n.id}
+     * @param memberIdExpression  the SQL expression yielding the member ID, e.g. {@code :member_id}
+     * @param managerExpression   the SQL expression saying whether that member manages the type,
+     *                            e.g. {@code :is_manager}
+     */
+    public static String visibleFor(
+            RestrictionType type, String entityIdExpression, String memberIdExpression, String managerExpression) {
+        return "(%s OR %s)".formatted(managerExpression, admits(type, entityIdExpression, memberIdExpression));
+    }
+
+    /**
      * A predicate calling the {@code check_restriction} database function, which resolves the
-     * member's user type, groups and tags, the entity's restriction mode and the manager bypass on
-     * its own.
+     * member's user type, groups and tags and the entity's restriction mode on its own. Nobody is
+     * let through for managing the entity type; {@link #visibleFor} adds that.
      *
      * @param type                the restricted entity type
      * @param entityIdExpression  the SQL expression yielding the entity ID, e.g. {@code n.id}
      * @param memberIdExpression  the SQL expression yielding the member ID, e.g. {@code :member_id}
      */
-    public static String visibleFor(RestrictionType type, String entityIdExpression, String memberIdExpression) {
-        return "check_restriction('%s', '%s', '%s', '%s', '%s', %s, %s, '%s')"
+    public static String admits(RestrictionType type, String entityIdExpression, String memberIdExpression) {
+        return "check_restriction('%s', '%s', '%s', '%s', '%s', %s, %s)"
                 .formatted(
                         type.table(),
                         type.fkColumn(),
@@ -130,8 +149,7 @@ public final class RestrictionSql {
                         type.entityIdColumn(),
                         type.modeColumn(),
                         entityIdExpression,
-                        memberIdExpression,
-                        type.managerPermission().name());
+                        memberIdExpression);
     }
 
     private static String existsRestriction(RestrictionType type, String entityIdExpression) {

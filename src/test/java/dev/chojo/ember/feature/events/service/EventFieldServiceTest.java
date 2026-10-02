@@ -5,16 +5,15 @@
  */
 package dev.chojo.ember.feature.events.service;
 
+import dev.chojo.ember.api.refusal.EventRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
-import dev.chojo.ember.feature.attendance.entity.AttendanceFieldType;
-import dev.chojo.ember.feature.events.entity.EventFieldConfig;
-import dev.chojo.ember.feature.events.entity.EventFieldType;
+import dev.chojo.ember.feature.events.entity.EventFieldDraft;
+import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.StationEvent;
-import dev.chojo.ember.feature.events.repository.EventFieldRepository;
-import dev.chojo.ember.feature.members.service.UserTagService;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
@@ -41,8 +40,7 @@ class EventFieldServiceTest extends RepositoryTestBase {
         service = new EventFieldService(
                 eventFieldRepo,
                 stationMemberRepo,
-                memberGroupRepo,
-                new UserTagService(userTagRepo, memberGroupRepo),
+                memberEligibility,
                 eventRepo,
                 attendanceRepo,
                 eventFieldRegistrationService);
@@ -98,16 +96,10 @@ class EventFieldServiceTest extends RepositoryTestBase {
     @Order(1)
     void replaceAndFindByEvent() {
         var fields = List.of(
-                new EventFieldRepository.FieldEntry(
-                        "Location",
-                        EventFieldType.STRING,
-                        EventFieldConfig.parse("{}"),
-                        "Berlin HQ",
-                        true,
-                        null,
-                        false),
-                new EventFieldRepository.FieldEntry(
-                        "Notes", EventFieldType.STRING, EventFieldConfig.parse("{}"), "Bring gear", false, null, true));
+                new EventFieldDraft(
+                        "Location", FieldType.TEXT, EventQuestionSettings.parse("{}"), "Berlin HQ", true, null, false),
+                new EventFieldDraft(
+                        "Notes", FieldType.TEXT, EventQuestionSettings.parse("{}"), "Bring gear", false, null, true));
         service.replaceFields(eventId, fields);
 
         var found = service.findByEvent(eventId);
@@ -123,10 +115,10 @@ class EventFieldServiceTest extends RepositoryTestBase {
     void replaceFieldsClearsOld() {
         service.replaceFields(
                 eventId,
-                List.of(new EventFieldRepository.FieldEntry(
+                List.of(new EventFieldDraft(
                         "SingleField",
-                        EventFieldType.STRING,
-                        EventFieldConfig.parse("{}"),
+                        FieldType.TEXT,
+                        EventQuestionSettings.parse("{}"),
                         "value",
                         false,
                         null,
@@ -149,12 +141,12 @@ class EventFieldServiceTest extends RepositoryTestBase {
     void aTieToAnotherSheetIsNotKept() {
         var ours = attendanceRepo.createTemplate(station.id(), "Bogen des Termins");
         attendanceRepo.createTemplateField(
-                ours.id(), "Ausbilder", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 0);
+                ours.id(), "Ausbilder", FieldType.TEXT, AttendanceFieldConfig.parse("{}"), 0);
         int mine = attendanceRepo.findTemplateFields(ours.id()).getFirst().id();
 
         var theirs = attendanceRepo.createTemplate(station.id(), "Ein anderer Bogen");
         attendanceRepo.createTemplateField(
-                theirs.id(), "Ausbilder", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 0);
+                theirs.id(), "Ausbilder", FieldType.TEXT, AttendanceFieldConfig.parse("{}"), 0);
         int foreign = attendanceRepo.findTemplateFields(theirs.id()).getFirst().id();
 
         var onOurSheet = eventRepo.create(
@@ -178,12 +170,12 @@ class EventFieldServiceTest extends RepositoryTestBase {
         service.replaceFields(
                 onOurSheet.id(),
                 List.of(
-                        new EventFieldRepository.FieldEntry(
-                                "Eigene", EventFieldType.STRING, EventFieldConfig.parse("{}"), "", false, mine, false),
-                        new EventFieldRepository.FieldEntry(
+                        new EventFieldDraft(
+                                "Eigene", FieldType.TEXT, EventQuestionSettings.parse("{}"), "", false, mine, false),
+                        new EventFieldDraft(
                                 "Fremde",
-                                EventFieldType.STRING,
-                                EventFieldConfig.parse("{}"),
+                                FieldType.TEXT,
+                                EventQuestionSettings.parse("{}"),
                                 "",
                                 false,
                                 foreign,
@@ -207,8 +199,8 @@ class EventFieldServiceTest extends RepositoryTestBase {
                 "and the one into another sheet is not");
 
         eventRepo.delete(onOurSheet.id());
-        attendanceRepo.deleteTemplate(ours.id());
-        attendanceRepo.deleteTemplate(theirs.id());
+        attendanceRepo.archiveTemplate(ours.id());
+        attendanceRepo.archiveTemplate(theirs.id());
     }
 
     @Test
@@ -223,23 +215,23 @@ class EventFieldServiceTest extends RepositoryTestBase {
     void findDistinctFieldNames() {
         service.replaceFields(
                 eventId,
-                List.of(new EventFieldRepository.FieldEntry(
-                        "Location", EventFieldType.STRING, EventFieldConfig.parse("{}"), "Berlin", true, null, false)));
+                List.of(new EventFieldDraft(
+                        "Location", FieldType.TEXT, EventQuestionSettings.parse("{}"), "Berlin", true, null, false)));
         service.replaceFields(
                 event2Id,
                 List.of(
-                        new EventFieldRepository.FieldEntry(
+                        new EventFieldDraft(
                                 "Location",
-                                EventFieldType.STRING,
-                                EventFieldConfig.parse("{}"),
+                                FieldType.TEXT,
+                                EventQuestionSettings.parse("{}"),
                                 "Munich",
                                 true,
                                 null,
                                 false),
-                        new EventFieldRepository.FieldEntry(
+                        new EventFieldDraft(
                                 "Topic",
-                                EventFieldType.STRING,
-                                EventFieldConfig.parse("{}"),
+                                FieldType.TEXT,
+                                EventQuestionSettings.parse("{}"),
                                 "Training",
                                 false,
                                 null,
@@ -248,30 +240,27 @@ class EventFieldServiceTest extends RepositoryTestBase {
         var names = service.findDistinctFieldNames(station.id());
         assertTrue(names.contains("Location"));
         assertTrue(names.contains("Topic"));
-        // Location appears in both events but should only appear once
         assertEquals(1, names.stream().filter(n -> n.equals("Location")).count());
     }
 
     @Test
     @Order(5)
     void findOverviewFieldsByEvents() {
-        // Set event1 with overview field, event2 without
         service.replaceFields(
                 eventId,
                 List.of(
-                        new EventFieldRepository.FieldEntry(
-                                "Loc", EventFieldType.STRING, EventFieldConfig.parse("{}"), "A", true, null, false),
-                        new EventFieldRepository.FieldEntry(
-                                "Note", EventFieldType.STRING, EventFieldConfig.parse("{}"), "B", false, null, false)));
+                        new EventFieldDraft(
+                                "Loc", FieldType.TEXT, EventQuestionSettings.parse("{}"), "A", true, null, false),
+                        new EventFieldDraft(
+                                "Note", FieldType.TEXT, EventQuestionSettings.parse("{}"), "B", false, null, false)));
         service.replaceFields(
                 event2Id,
-                List.of(new EventFieldRepository.FieldEntry(
-                        "Loc", EventFieldType.STRING, EventFieldConfig.parse("{}"), "C", true, null, false)));
+                List.of(new EventFieldDraft(
+                        "Loc", FieldType.TEXT, EventQuestionSettings.parse("{}"), "C", true, null, false)));
 
         var map = service.findOverviewFieldsByEvents(List.of(eventId, event2Id));
         assertTrue(map.containsKey(eventId));
         assertTrue(map.containsKey(event2Id));
-        // Only overview=true fields are included
         assertEquals(1, map.get(eventId).size());
         assertEquals("Loc", map.get(eventId).getFirst().name());
         assertEquals(1, map.get(event2Id).size());
@@ -292,32 +281,46 @@ class EventFieldServiceTest extends RepositoryTestBase {
     @Test
     @Order(7)
     void aValueTheFieldDoesNotOfferIsRefused() {
-        var choice = EventFieldConfig.parse("{\"options\":[\"rot\",\"blau\"]}");
+        var choice = EventQuestionSettings.parse("{\"options\":[\"rot\",\"blau\"]}");
 
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> service.replaceFields(
                         eventId,
-                        List.of(new EventFieldRepository.FieldEntry(
-                                "Farbe", EventFieldType.ENUM, choice, "gelb", true, null, false))));
+                        List.of(new EventFieldDraft("Farbe", FieldType.CHOICE, choice, "gelb", true, null, false))));
 
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> service.replaceFields(
                         eventId,
-                        List.of(new EventFieldRepository.FieldEntry(
+                        List.of(new EventFieldDraft(
                                 "Tag",
-                                EventFieldType.DATE,
-                                EventFieldConfig.parse("{}"),
+                                FieldType.DATE,
+                                EventQuestionSettings.parse("{}"),
                                 "irgendwann",
                                 true,
                                 null,
                                 false))));
 
         service.replaceFields(
-                eventId,
-                List.of(new EventFieldRepository.FieldEntry(
-                        "Farbe", EventFieldType.ENUM, choice, "blau", true, null, false)));
+                eventId, List.of(new EventFieldDraft("Farbe", FieldType.CHOICE, choice, "blau", true, null, false)));
         assertEquals("blau", service.findByEvent(eventId).getFirst().value());
+    }
+
+    /** An age counts itself from a profile, so an appointment does not take one and keeps its fields. */
+    @Test
+    @Order(8)
+    void aTypeAnAppointmentDoesNotOfferIsRefused() {
+        var before = service.findByEvent(eventId);
+
+        var refused = assertThrows(
+                RefusalResponse.class,
+                () -> service.replaceFields(
+                        eventId,
+                        List.of(new EventFieldDraft(
+                                "Alter", FieldType.AGE, EventQuestionSettings.empty(), "", false, null, false))));
+
+        assertEquals(EventRefusal.APPOINTMENT_FIELD_TYPE_NOT_OFFERED, refused.refusal());
+        assertEquals(before, service.findByEvent(eventId), "nothing was written");
     }
 }

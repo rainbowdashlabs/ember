@@ -5,7 +5,8 @@
  */
 import { computed, ref, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { StationUserType, type StationMember } from '@/api/types'
+import { StationUserType } from '@/api/types'
+import type { MemberWithName } from '@/api/generated/schema'
 import { stationMembers } from '@/api'
 import { memberDisplayName } from '../listview/useMemberData'
 import { describeFailure, type Failure } from '@/util/failure'
@@ -23,12 +24,12 @@ import { describeFailure, type Failure } from '@/util/failure'
  */
 export function useManagedMembers(
     memberId: Ref<number>,
-    allMembers: Ref<StationMember[]>,
+    allMembers: Ref<MemberWithName[]>,
     failure: Ref<Failure | null>,
 ) {
   const { t } = useI18n()
 
-  const managedMembers = ref<StationMember[]>([])
+  const managedMembers = ref<MemberWithName[]>([])
 
   /**
    * Who may still be taken on. Only the kinds that can have a guardian at all, and nobody who is

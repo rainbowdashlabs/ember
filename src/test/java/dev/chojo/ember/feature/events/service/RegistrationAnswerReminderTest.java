@@ -7,16 +7,18 @@ package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
-import dev.chojo.ember.feature.events.entity.EventFieldType;
-import dev.chojo.ember.feature.events.entity.EventRegistrationFieldConfig;
+import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
+import dev.chojo.ember.feature.events.entity.RegistrationFieldDraft;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
-import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository.FieldEntry;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.notifications.entity.StationAudience;
+import dev.chojo.ember.feature.notifications.service.Notifier;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
@@ -27,15 +29,12 @@ import org.junit.jupiter.api.Test;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -53,7 +52,7 @@ class RegistrationAnswerReminderTest extends RepositoryTestBase {
     private static Account account;
     private static StationMember member;
 
-    private NotificationService notifications;
+    private Notifier notifications;
     private RegistrationAnswerReminder reminder;
     private StationEvent event;
 
@@ -62,7 +61,7 @@ class RegistrationAnswerReminderTest extends RepositoryTestBase {
         var services = newEventServices(new DomainEventBus(Set.of()));
         crudService = services.crud();
         registrationService = services.registration();
-        fieldService = new EventRegistrationFieldService(new EventRegistrationFieldRepository());
+        fieldService = new EventRegistrationFieldService(new EventRegistrationFieldRepository(), memberEligibility);
 
         station = stationRepo.create("AnswerReminderStation");
         account = accountRepo.create("answer-reminder@test.com", "Anna", "Antwort");
@@ -77,9 +76,9 @@ class RegistrationAnswerReminderTest extends RepositoryTestBase {
 
     @BeforeEach
     void freshEvent() {
-        notifications = mock(NotificationService.class);
+        notifications = mock(Notifier.class);
         reminder = new RegistrationAnswerReminder(
-                fieldService, eventRegistrationRepo, eventRepo, stationMemberRepo, memberNameResolver, notifications);
+                fieldService, eventRegistrationRepo, eventRepo, memberNameResolver, notifications);
         var start = Instant.now().plus(3, ChronoUnit.DAYS);
         event = crudService.create(
                 station.id(),
@@ -100,30 +99,30 @@ class RegistrationAnswerReminderTest extends RepositoryTestBase {
                 null);
     }
 
-    private static FieldEntry required(String name) {
-        return new FieldEntry(
+    private static RegistrationFieldDraft required(String name) {
+        return new RegistrationFieldDraft(
                 name,
-                EventFieldType.STRING,
-                new EventRegistrationFieldConfig(true, null, null, null, null, null, null, null, false),
+                FieldType.TEXT,
+                new EventQuestionSettings(null, null, null, null, null, false, false, true, null, null, null, false),
                 true);
     }
 
-    private static FieldEntry optional(String name) {
-        return new FieldEntry(
+    private static RegistrationFieldDraft optional(String name) {
+        return new RegistrationFieldDraft(
                 name,
-                EventFieldType.STRING,
-                new EventRegistrationFieldConfig(false, null, null, null, null, null, null, null, false),
+                FieldType.TEXT,
+                new EventQuestionSettings(null, null, null, null, null, false, false, false, null, null, null, false),
                 true);
     }
 
     /** What the member is told, which is that this appointment wants something from them. */
     private void verifyToldOnce() {
         verify(notifications)
-                .notifyMembersIfAbsent(
-                        argThat((Collection<Integer> audience) -> audience.contains(member.id())),
+                .notify(
+                        eq(StationAudience.household(List.of(member.id()))),
                         eq(NotificationType.REGISTRATION_ANSWER_MISSING),
                         any(NotificationData.class),
-                        anyInt());
+                        eq(Delivery.ONCE_WHILE_UNREAD));
     }
 
     /**
@@ -149,7 +148,7 @@ class RegistrationAnswerReminderTest extends RepositoryTestBase {
 
         reminder.replaceQuestions(event.id(), List.of(optional("Allergien")));
 
-        verify(notifications, never()).notifyMembersIfAbsent(any(), any(), any(), anyInt());
+        verify(notifications, never()).notify(any(), any(), any(), any());
     }
 
     /** Somebody who answered the question at the moment it appeared is short of nothing. */
@@ -163,7 +162,7 @@ class RegistrationAnswerReminderTest extends RepositoryTestBase {
 
         reminder.replaceQuestions(event.id(), List.of(required("Schwimmabzeichen"), optional("Allergien")));
 
-        verify(notifications, never()).notifyMembersIfAbsent(any(), any(), any(), anyInt());
+        verify(notifications, never()).notify(any(), any(), any(), any());
     }
 
     /**
@@ -180,7 +179,7 @@ class RegistrationAnswerReminderTest extends RepositoryTestBase {
 
         reminder.replaceQuestions(event.id(), List.of(required("Schwimmabzeichen")));
 
-        verify(notifications, never()).notifyMembersIfAbsent(any(), any(), any(), anyInt());
+        verify(notifications, never()).notify(any(), any(), any(), any());
         assertEquals(
                 RegistrationStatus.WITHDRAWN,
                 registrationService.findById(registration.id()).orElseThrow().status());

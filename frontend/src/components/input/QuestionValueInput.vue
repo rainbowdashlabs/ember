@@ -54,7 +54,15 @@ const props = withDefaults(defineProps<{
    */
   required?: boolean
   placeholder?: string
-}>(), {step: 1})
+}>(), {
+  options: () => [],
+  members: () => [],
+  min: undefined,
+  max: undefined,
+  step: 1,
+  maxLength: undefined,
+  placeholder: undefined,
+})
 
 const {t} = useI18n()
 
@@ -66,7 +74,7 @@ const asBoolean = computed(() => value.value === 'true' || value.value === '1')
 const emptyChoiceLabel = computed(() => (props.required ? t('questionValue.chooseOne') : '-'))
 
 const choices = computed(() =>
-    (props.options ?? []).map(option => (typeof option === 'string' ? {value: option, label: option} : option)))
+    props.options.map(option => (typeof option === 'string' ? {value: option, label: option} : option)))
 
 function write(next: unknown) {
   value.value = next == null ? '' : String(next)
@@ -121,7 +129,7 @@ function write(next: unknown) {
       v-else-if="kind === Kinds.MEMBER_LIST"
       multiple
       :disabled="disabled"
-      :members="members ?? []"
+      :members="members"
       :placeholder="placeholder ?? t('questionValue.chooseMember')"
       :selected="memberIdsOf(value)"
       @update:selected="write(formatMemberIds($event))"
@@ -131,7 +139,7 @@ function write(next: unknown) {
       v-else-if="kind === Kinds.MEMBER"
       clearable
       :disabled="disabled"
-      :members="members ?? []"
+      :members="members"
       :model-value="value"
       :placeholder="placeholder ?? t('questionValue.chooseMember')"
       @update:model-value="write($event)"

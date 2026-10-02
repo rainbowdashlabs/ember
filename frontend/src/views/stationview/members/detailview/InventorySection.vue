@@ -9,7 +9,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import InventoryItemCard from '@/views/stationview/inventory/InventoryItemCard.vue'
-import type { MyInventoryItem } from '@/api/inventory'
+import type { MyInventoryItem } from '@/api/generated/schema'
 
 const { t } = useI18n()
 
@@ -32,7 +32,7 @@ const emit = defineEmits<{
   <NeutralContainer class="space-y-3">
     <div class="flex items-center justify-between">
       <SubHeader>{{ t('memberDetail.inventory') }}</SubHeader>
-      <PrimaryButton :icon="['fas', 'plus']" v-if="showInventoryManagement" @click="emit('assignItem')">
+      <PrimaryButton v-if="showInventoryManagement" :icon="['fas', 'plus']" @click="emit('assignItem')">
         {{ t('memberDetail.assignItem') }}
       </PrimaryButton>
     </div>

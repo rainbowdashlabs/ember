@@ -48,8 +48,6 @@ class ProcedureServiceTest {
         service = new ProcedureService(repository, eventBus);
     }
 
-    // ── Template delegates ──
-
     @Test
     void findTemplatesByStation() {
         var templates = List.of(new ProcedureTemplate(1, STATION_ID, "T1", "D1", false, MEMBER_ID, Instant.now()));
@@ -139,12 +137,22 @@ class ProcedureServiceTest {
 
     @Test
     void setTemplateItemDependencies() {
+        when(repository.findTemplateItems(TEMPLATE_ID))
+                .thenReturn(List.of(
+                        new ProcedureTemplateItem(1, TEMPLATE_ID, "A", null, true, true, 0),
+                        new ProcedureTemplateItem(2, TEMPLATE_ID, "B", null, true, true, 1)));
         var deps = List.of(new int[] {1, 2});
         service.setTemplateItemDependencies(TEMPLATE_ID, deps);
         verify(repository).setTemplateItemDependencies(TEMPLATE_ID, deps);
     }
 
-    // ── Procedure queries ──
+    @Test
+    void findTemplateItemInKnowsOnlyTheStepsOfThatTemplate() {
+        var step = new ProcedureTemplateItem(1, TEMPLATE_ID, "A", null, true, true, 0);
+        when(repository.findTemplateItems(TEMPLATE_ID)).thenReturn(List.of(step));
+        assertEquals(Optional.of(step), service.findTemplateItemIn(TEMPLATE_ID, 1));
+        assertTrue(service.findTemplateItemIn(TEMPLATE_ID, 2).isEmpty());
+    }
 
     @Test
     void findProceduresByStation() {
@@ -171,8 +179,6 @@ class ProcedureServiceTest {
         when(repository.findProcedureById(PROCEDURE_ID)).thenReturn(Optional.empty());
         assertTrue(service.findProcedureById(PROCEDURE_ID).isEmpty());
     }
-
-    // ── Create procedure without template ──
 
     @Test
     void createProcedureWithoutTemplate() {
@@ -226,8 +232,6 @@ class ProcedureServiceTest {
         assertEquals(List.of(proc), service.findProceduresByOccurrence(STATION_ID, EVENT_ID, date));
     }
 
-    // ── Create procedure with template (snapshot) ──
-
     @Test
     void createProcedureWithTemplateSnapshots() {
         var proc = procedure(PROCEDURE_ID, TEMPLATE_ID);
@@ -262,8 +266,9 @@ class ProcedureServiceTest {
 
         var ti1 = new ProcedureTemplateItem(10, TEMPLATE_ID, "S1", "D1", true, true, 1);
         when(repository.findTemplateItems(TEMPLATE_ID)).thenReturn(List.of(ti1));
-        // Dependency references a template item ID that doesn't exist in the snapshot
-        when(repository.findTemplateItemDependencies(TEMPLATE_ID)).thenReturn(List.of(new int[] {10, 99}));
+        int templateItemOutsideSnapshot = 99;
+        when(repository.findTemplateItemDependencies(TEMPLATE_ID))
+                .thenReturn(List.of(new int[] {10, templateItemOutsideSnapshot}));
 
         var pi1 = procedureItem(501, false);
         when(repository.snapshotTemplateItem(PROCEDURE_ID, ti1)).thenReturn(pi1);
@@ -273,15 +278,11 @@ class ProcedureServiceTest {
         verify(repository, never()).addItemDependency(anyInt(), anyInt());
     }
 
-    // ── Update procedure ──
-
     @Test
     void updateProcedure() {
         when(repository.updateProcedure(PROCEDURE_ID, "N", "D", true, null)).thenReturn(true);
         assertTrue(service.updateProcedure(PROCEDURE_ID, "N", "D", true, null));
     }
-
-    // ── Resolve / Reopen ──
 
     @Test
     void resolveProcedureSuccess() {
@@ -337,15 +338,11 @@ class ProcedureServiceTest {
         verify(eventBus, never()).publish(any());
     }
 
-    // ── Delete procedure ──
-
     @Test
     void deleteProcedure() {
         when(repository.deleteProcedure(PROCEDURE_ID)).thenReturn(true);
         assertTrue(service.deleteProcedure(PROCEDURE_ID));
     }
-
-    // ── Assignees ──
 
     @Test
     void findAssigneeIds() {
@@ -361,7 +358,6 @@ class ProcedureServiceTest {
 
         service.addAssignees(PROCEDURE_ID, List.of(MEMBER_ID, MEMBER_ID_2), MEMBER_ID);
 
-        // Only MEMBER_ID_2 should be added (MEMBER_ID already exists)
         verify(repository).addAssignee(PROCEDURE_ID, MEMBER_ID_2);
         verify(repository, never()).addAssignee(PROCEDURE_ID, MEMBER_ID);
         verify(eventBus).publish(any(ProcedureAssigned.class));
@@ -392,8 +388,6 @@ class ProcedureServiceTest {
         assertTrue(service.removeAssignee(PROCEDURE_ID, MEMBER_ID));
     }
 
-    // ── Items ──
-
     @Test
     void findItems() {
         when(repository.findItems(PROCEDURE_ID)).thenReturn(List.of());
@@ -418,8 +412,6 @@ class ProcedureServiceTest {
         when(repository.deleteItem(ITEM_ID)).thenReturn(true);
         assertTrue(service.deleteItem(ITEM_ID));
     }
-
-    // ── Check item ──
 
     @Test
     void checkItemSuccess() {
@@ -447,10 +439,10 @@ class ProcedureServiceTest {
     @Test
     void checkItemDependencyNotMet() {
         var item = procedureItem(ITEM_ID, false);
-        var depItem = procedureItem(ITEM_ID + 1, false); // dependency is unchecked
+        var uncheckedDependency = procedureItem(ITEM_ID + 1, false);
         when(repository.findItemById(ITEM_ID)).thenReturn(Optional.of(item));
         when(repository.findItemDependencies(PROCEDURE_ID)).thenReturn(List.of(new int[] {ITEM_ID, ITEM_ID + 1}));
-        when(repository.findItems(PROCEDURE_ID)).thenReturn(List.of(item, depItem));
+        when(repository.findItems(PROCEDURE_ID)).thenReturn(List.of(item, uncheckedDependency));
 
         assertFalse(service.checkItem(ITEM_ID, MEMBER_ID));
         verify(repository, never()).checkItem(anyInt(), anyInt());
@@ -498,15 +490,11 @@ class ProcedureServiceTest {
         verify(eventBus, never()).publish(any());
     }
 
-    // ── Uncheck item ──
-
     @Test
     void uncheckItem() {
         when(repository.uncheckItem(ITEM_ID)).thenReturn(true);
         assertTrue(service.uncheckItem(ITEM_ID));
     }
-
-    // ── Update item note ──
 
     @Test
     void updateItemNote() {
@@ -514,15 +502,30 @@ class ProcedureServiceTest {
         assertTrue(service.updateItemNote(ITEM_ID, "note"));
     }
 
-    // ── Item dependencies ──
-
     @Test
     void findItemDependencies() {
         when(repository.findItemDependencies(PROCEDURE_ID)).thenReturn(List.of());
         assertEquals(List.of(), service.findItemDependencies(PROCEDURE_ID));
     }
 
-    // ── Sidebar counts ──
+    @Test
+    void setItemDependenciesBetweenStepsOfTheProcedure() {
+        when(repository.findItems(PROCEDURE_ID))
+                .thenReturn(List.of(
+                        new ProcedureItem(1, PROCEDURE_ID, "A", null, null, true, true, 0, false, null, null),
+                        new ProcedureItem(2, PROCEDURE_ID, "B", null, null, true, true, 1, false, null, null)));
+        var deps = List.of(new int[] {2, 1});
+        service.setItemDependencies(PROCEDURE_ID, deps);
+        verify(repository).setItemDependencies(PROCEDURE_ID, deps);
+    }
+
+    @Test
+    void findItemInKnowsOnlyTheStepsOfThatProcedure() {
+        var step = new ProcedureItem(ITEM_ID, PROCEDURE_ID, "A", null, null, true, true, 0, false, null, null);
+        when(repository.findItemById(ITEM_ID)).thenReturn(Optional.of(step));
+        assertEquals(Optional.of(step), service.findItemIn(PROCEDURE_ID, ITEM_ID));
+        assertTrue(service.findItemIn(PROCEDURE_ID + 1, ITEM_ID).isEmpty());
+    }
 
     @Test
     void countOpenByAssigneeWithAvailableItems() {
@@ -536,8 +539,6 @@ class ProcedureServiceTest {
         when(repository.countOpenByStation(STATION_ID)).thenReturn(3);
         assertEquals(3, service.countOpenByStation(STATION_ID));
     }
-
-    // ── Helpers ──
 
     private Procedure procedure(int id, Integer templateId) {
         return new Procedure(

@@ -6,6 +6,7 @@
 package dev.chojo.ember.tracking;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -19,16 +20,24 @@ import java.util.List;
  */
 @JsonInclude(JsonInclude.Include.NON_EMPTY)
 public record GdprExportContext(
-        Status status, String reason, List<IdentityColumn> identityColumns, List<String> ignoredColumns) {
+        TrackingStatus status,
+        @Nullable String reason,
+        @Nullable List<IdentityColumn> identityColumns,
+        @Nullable List<String> ignoredColumns) {
+    public GdprExportContext {
+        identityColumns = identityColumns == null ? List.of() : identityColumns;
+        ignoredColumns = ignoredColumns == null ? List.of() : ignoredColumns;
+    }
+
     public static GdprExportContext unverified() {
-        return new GdprExportContext(Status.UNVERIFIED, null, List.of(), List.of());
+        return new GdprExportContext(TrackingStatus.UNVERIFIED, null, List.of(), List.of());
     }
 
     public static GdprExportContext ignored(String reason) {
-        return new GdprExportContext(Status.IGNORED, reason, List.of(), List.of());
+        return new GdprExportContext(TrackingStatus.IGNORED, reason, List.of(), List.of());
     }
 
     public static GdprExportContext tracked(List<IdentityColumn> identityColumns) {
-        return new GdprExportContext(Status.TRACKED, null, identityColumns, List.of());
+        return new GdprExportContext(TrackingStatus.TRACKED, null, identityColumns, List.of());
     }
 }

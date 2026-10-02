@@ -37,8 +37,8 @@ const {t} = useI18n()
       <TextInput
           v-model="scan"
           :placeholder="t('inventory.checkContainer.scanPlaceholder')"
-          @keydown.enter="emit('submit')"
           class="flex-1"
+          @keydown.enter="emit('submit')"
       />
       <ScanButton mode="continuous" @decoded="emit('decoded', $event)" />
     </div>

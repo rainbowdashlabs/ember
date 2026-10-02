@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.onboarding.entity;
 
+import org.jspecify.annotations.Nullable;
+
 import java.time.Instant;
 
 /**
@@ -24,9 +26,9 @@ import java.time.Instant;
 public record OnboardingTaskView(
         String id,
         String key,
-        String subject,
-        Integer subjectId,
+        @Nullable String subject,
+        @Nullable Integer subjectId,
         OnboardingTaskState state,
         boolean confirmable,
-        String actorName,
-        Instant changedAt) {}
+        @Nullable String actorName,
+        @Nullable Instant changedAt) {}

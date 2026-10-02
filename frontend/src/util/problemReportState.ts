@@ -3,7 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {readonly, ref} from 'vue'
+import {readonly} from 'vue'
+import {browserRef} from '@/util/browserState'
 
 /**
  * What a report is about, where it was opened from something that failed rather than from the button.
@@ -25,8 +26,8 @@ export interface ReportAbout {
     code?: string
 }
 
-const open = ref(false)
-const about = ref<ReportAbout | null>(null)
+const open = browserRef(false)
+const about = browserRef<ReportAbout | null>(null)
 
 /**
  * Asks for the problem report form, optionally about something that has just failed.

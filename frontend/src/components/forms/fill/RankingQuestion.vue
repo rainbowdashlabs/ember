@@ -6,7 +6,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import MutedIconButton from '@/components/button/MutedIconButton.vue'
-import type { RankingAnswer } from '@/api/forms'
+import type { RankingAnswer } from '@/api/generated/schema'
 import { optionLabel, optionsOf } from '@/util/formOptions'
 
 const props = defineProps<{

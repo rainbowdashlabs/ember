@@ -13,7 +13,7 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import ColorBadge from '@/components/badge/ColorBadge.vue'
 import {events} from '@/api'
-import type {AwaitingAnswer, EventCategory} from '@/api/events'
+import type {AwaitingAnswer, EventCategory} from '@/api/generated/schema'
 
 /**
  * The events whose registration is running out and which nobody in the household has answered.
@@ -52,15 +52,15 @@ function daysLeft(entry: AwaitingAnswer): number {
 
 const soonest = computed(() => awaiting.value.length > 0 ? daysLeft(awaiting.value[0]!) : 0)
 
+/** Loads the panel, which says nothing when it cannot load rather than breaking the page. */
 async function loadData() {
-  try {
-    const [entries, cats] = await Promise.all([
-      events.listAwaitingAnswer(),
-      events.listCategories().catch(() => []),
-    ])
+  await Promise.all([
+    events.listAwaitingAnswer(),
+    events.listCategories().catch(() => []),
+  ]).then(([entries, cats]) => {
     awaiting.value = entries
     categories.value = cats
-  } catch { /* a dashboard panel that cannot load says nothing rather than breaking the page */ }
+  }).catch(() => {})
 }
 
 onMounted(loadData)
@@ -74,7 +74,7 @@ onMounted(loadData)
       <InfoBadge v-if="soonest <= 1" class="ml-2">{{ t('dashboard.awaitingSoon') }}</InfoBadge>
     </SectionHeader>
     <div class="overflow-y-auto flex-1 space-y-2">
-      <EmptyState compact v-if="awaiting.length === 0">{{ t('dashboard.noAwaitingAnswer') }}</EmptyState>
+      <EmptyState v-if="awaiting.length === 0" compact>{{ t('dashboard.noAwaitingAnswer') }}</EmptyState>
       <RowLink v-for="entry in awaiting" :key="entry.eventId" :to="eventPage(entry)">
         <NeutralContainer
             data-testid="awaiting-answer"

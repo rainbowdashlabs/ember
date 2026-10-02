@@ -8,19 +8,18 @@ package dev.chojo.ember.feature.board.service;
 import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.BoardRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.board.entity.LanePreset;
 import dev.chojo.ember.feature.board.entity.TicketPriority;
 import dev.chojo.ember.feature.members.entity.StationMember;
-import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.UserTagService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
-import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
 import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -62,11 +61,11 @@ class TicketAssignmentNeedsWriteAccessTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         var memberService = newStationMemberService(null, null);
-        var groupService = new MemberGroupService(memberGroupRepo, stationMemberRepo, userTagRepo, noBus());
+        var groupService = newMemberGroupService();
         var tagService = new UserTagService(userTagRepo, memberGroupRepo);
         boardService = new BoardService(boardRepo, memberService, groupService, tagService);
 
-        var backend = new LocalStorageBackend();
+        var backend = localStorage();
         var storage = new StorageService(new StorageBackendResolver(backend), backend);
         ticketService = new BoardTicketService(
                 boardTicketRepo,
@@ -76,8 +75,7 @@ class TicketAssignmentNeedsWriteAccessTest extends RepositoryTestBase {
                 memberService,
                 memberIdentityFactory,
                 memberNameResolver,
-                new BoardAttachmentService(storage, stationRepo, backend),
-                silentCommentMentions());
+                new BoardAttachmentService(storage, stationRepo, backend));
 
         station = stationRepo.create("Assignment Station");
         writerAccount = accountRepo.create("assign-writer@test.com", "Wanda", "Writer");
@@ -97,8 +95,8 @@ class TicketAssignmentNeedsWriteAccessTest extends RepositoryTestBase {
         boardId = board.id();
         laneId = boardService.findLanes(boardId).getFirst().id();
 
-        var crew = groupService.create(station.id(), "Assignment Crew");
-        groupService.setMembers(crew.id(), List.of(writer.id()), null);
+        var crew = memberGroupRepo.create(station.id(), "Assignment Crew");
+        memberGroupRepo.addMember(crew.id(), writer.id());
         boardService.setEditAccess(boardId, List.of(), List.of(crew.id()), List.of());
 
         ticketId = ticketService
@@ -124,8 +122,8 @@ class TicketAssignmentNeedsWriteAccessTest extends RepositoryTestBase {
 
     @Test
     void creatingATicketForSomebodyWhoMayNotWriteIsRefused() {
-        assertThrows(
-                BadRequestResponse.class,
+        var refused = assertThrows(
+                RefusalResponse.class,
                 () -> ticketService.createTicket(
                         boardId,
                         laneId,
@@ -135,12 +133,13 @@ class TicketAssignmentNeedsWriteAccessTest extends RepositoryTestBase {
                         TicketPriority.MEDIUM,
                         null,
                         identity(writer)));
+        assertEquals(BoardRefusal.BOARD_TICKET_ASSIGNEE_MAY_NOT_EDIT, refused.refusal());
     }
 
     @Test
     void updatingATicketOntoSomebodyWhoMayNotWriteIsRefused() {
-        assertThrows(
-                BadRequestResponse.class,
+        var refused = assertThrows(
+                RefusalResponse.class,
                 () -> ticketService.updateTicket(
                         ticketId,
                         "Zu vergeben",
@@ -149,12 +148,14 @@ class TicketAssignmentNeedsWriteAccessTest extends RepositoryTestBase {
                         TicketPriority.MEDIUM,
                         null,
                         identity(writer)));
+        assertEquals(BoardRefusal.BOARD_TICKET_ASSIGNEE_MAY_NOT_EDIT, refused.refusal());
     }
 
     @Test
     void handingATicketToSomebodyWhoMayNotWriteIsRefused() {
-        assertThrows(
-                BadRequestResponse.class, () -> ticketService.assignTicket(ticketId, identity(outsider), writer.id()));
+        var refused = assertThrows(
+                RefusalResponse.class, () -> ticketService.assignTicket(ticketId, identity(outsider), writer.id()));
+        assertEquals(BoardRefusal.BOARD_TICKET_ASSIGNEE_MAY_NOT_EDIT, refused.refusal());
 
         assertNull(ticketService.findById(ticketId).orElseThrow().assignee(), "the ticket stayed on nobody");
     }
@@ -220,10 +221,8 @@ class TicketAssignmentNeedsWriteAccessTest extends RepositoryTestBase {
     void aBoardThatOnlyRestrictsReadingFallsBackToWhoMayRead() {
         int readOnly =
                 boardService.create(station.id(), "Reading Board", "", "RDG").id();
-        var readers = new MemberGroupService(memberGroupRepo, stationMemberRepo, userTagRepo, noBus())
-                .create(station.id(), "Reading Crew");
-        new MemberGroupService(memberGroupRepo, stationMemberRepo, userTagRepo, noBus())
-                .setMembers(readers.id(), List.of(writer.id()), null);
+        var readers = memberGroupRepo.create(station.id(), "Reading Crew");
+        memberGroupRepo.addMember(readers.id(), writer.id());
         boardService.setViewAccess(readOnly, List.of(), List.of(readers.id()), List.of());
 
         var allowed = boardService.findMembersWhoMayEdit(readOnly, station.id());

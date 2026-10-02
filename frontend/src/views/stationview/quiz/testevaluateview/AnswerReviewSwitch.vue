@@ -5,7 +5,8 @@
  */
 <script setup lang="ts">
 import {computed} from 'vue'
-import {QuizQuestionTypes, type QuizQuestion, type QuizTestAnswer} from '@/api/quiz'
+import {QuizQuestionTypes} from '@/api/quiz'
+import type {QuizQuestion, QuizTestAnswer} from '@/api/generated/schema'
 import McAnswerReview from './McAnswerReview.vue'
 import TrueFalseAnswerReview from './TrueFalseAnswerReview.vue'
 import ConnectAnswerReview from './ConnectAnswerReview.vue'
@@ -20,9 +21,9 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'toggle-gap', answerId: number, gapIndex: number, questionId: number): void
-  (e: 'mark-correct', answerId: number, maxPoints: number): void
-  (e: 'mark-wrong', answerId: number, maxPoints: number): void
+  'toggle-gap': [answerId: number, gapIndex: number, questionId: number]
+  'mark-correct': [answerId: number, maxPoints: number]
+  'mark-wrong': [answerId: number, maxPoints: number]
 }>()
 
 const type = computed(() => props.question.quizQuestionType)

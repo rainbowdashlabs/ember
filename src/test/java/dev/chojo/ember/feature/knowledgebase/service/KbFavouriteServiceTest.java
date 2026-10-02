@@ -6,6 +6,8 @@
 package dev.chojo.ember.feature.knowledgebase.service;
 
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.KnowledgeBaseRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
@@ -23,6 +25,7 @@ import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.storage.service.PdfCompressor;
 import dev.chojo.ember.feature.storage.service.PresentationCompressor;
+import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import io.javalin.http.NotFoundResponse;
 import org.junit.jupiter.api.AfterAll;
@@ -68,7 +71,7 @@ class KbFavouriteServiceTest extends RepositoryTestBase {
                 fileStorage,
                 content,
                 access,
-                new KbPresentationService(knowledgeBaseRepo, fileStorage, content),
+                new KbPresentationService(knowledgeBaseRepo, fileStorage, content, new TaskScheduler()),
                 linkMetadata,
                 new PresentationCompressor(storageConfig),
                 new PdfCompressor(storageConfig),
@@ -177,18 +180,20 @@ class KbFavouriteServiceTest extends RepositoryTestBase {
                 file.id(),
                 new RestrictionSelection(List.of(StationUserType.TEAM), List.of(), List.of(), List.of(), null));
 
-        assertThrows(
-                NotFoundResponse.class,
+        var refused = assertThrows(
+                RefusalResponse.class,
                 () -> favourites.markLocal(station.id(), reader(), KbFavouriteTarget.FILE, file.id()));
+        assertEquals(KnowledgeBaseRefusal.KB_FAVOURITE_ENTRY_NOT_HERE_OR_NOT_YOURS, refused.refusal());
     }
 
     @Test
     void anotherStationsFileCannotBeMarkedAsOneOfThisStations() {
         var foreign = file(otherStation.id(), "Fremd");
 
-        assertThrows(
-                NotFoundResponse.class,
+        var refused = assertThrows(
+                RefusalResponse.class,
                 () -> favourites.markLocal(station.id(), reader(), KbFavouriteTarget.FILE, foreign.id()));
+        assertEquals(KnowledgeBaseRefusal.KB_FAVOURITE_ENTRY_NOT_HERE_OR_NOT_YOURS, refused.refusal());
     }
 
     /** The name comes from the partner's answer, never from whatever the page sent. */

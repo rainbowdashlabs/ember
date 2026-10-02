@@ -31,14 +31,13 @@ const { t } = useI18n()
       <p>{{ t('helpCenter.quiz.trainingStep1Text') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Catalog selection -->
     <div class="space-y-2">
       <NeutralContainer>
         <label class="flex items-center gap-2 cursor-pointer">
           <ToggleInput :model-value="true" disabled />
           <div>
-            <span class="font-medium">Brandschutz Grundlagen</span>
-            <p class="text-xs text-(--text-muted)">12 Fragen</p>
+            <span class="font-medium">{{ t('helpCenter.sample.quiz.fireBasics') }}</span>
+            <p class="text-xs text-(--text-muted)">{{ t('helpCenter.sample.quiz.questionCount', {count: 12}) }}</p>
           </div>
         </label>
       </NeutralContainer>
@@ -46,8 +45,8 @@ const { t } = useI18n()
         <label class="flex items-center gap-2 cursor-pointer">
           <ToggleInput :model-value="false" disabled />
           <div>
-            <span class="font-medium">Erste Hilfe</span>
-            <p class="text-xs text-(--text-muted)">8 Fragen</p>
+            <span class="font-medium">{{ t('helpCenter.sample.quiz.firstAid') }}</span>
+            <p class="text-xs text-(--text-muted)">{{ t('helpCenter.sample.quiz.questionCount', {count: 8}) }}</p>
           </div>
         </label>
       </NeutralContainer>
@@ -60,7 +59,6 @@ const { t } = useI18n()
       <p>{{ t('helpCenter.quiz.trainingStep2Text') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Question with progress -->
     <div class="space-y-3">
       <div class="space-y-1">
         <div class="flex justify-between text-sm text-(--text-muted)">
@@ -75,7 +73,7 @@ const { t } = useI18n()
       <NeutralContainer>
         <div class="space-y-3">
           <SectionLabel>{{ t('quiz.questionTypes.FILL_IN_THE_BLANK') }}</SectionLabel>
-          <SubHeader class="font-medium">Welche Nummer hat die Feuerwehr?</SubHeader>
+          <SubHeader class="font-medium">{{ t('helpCenter.sample.quiz.fireNumberShort') }}</SubHeader>
           <TextInput model-value="112" disabled />
         </div>
       </NeutralContainer>
@@ -91,10 +89,9 @@ const { t } = useI18n()
       <p>{{ t('helpCenter.quiz.trainingStep3Text') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Revealed answer -->
     <SuccessContainer>
       <div>
-        <label class="text-xs font-semibold block mb-1">{{ t('quiz.training.correctAnswer') }}</label>
+        <span class="text-xs font-semibold block mb-1">{{ t('quiz.training.correctAnswer') }}</span>
         <p class="text-sm">112</p>
       </div>
     </SuccessContainer>
@@ -108,7 +105,6 @@ const { t } = useI18n()
       <p>{{ t('helpCenter.quiz.trainingFinishText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Finished -->
     <SuccessContainer>
       <div class="text-center space-y-2 py-2">
         <font-awesome-icon :icon="['fas', 'trophy']" class="text-2xl" />

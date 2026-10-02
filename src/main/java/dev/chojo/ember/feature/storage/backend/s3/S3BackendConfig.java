@@ -32,12 +32,4 @@ public record S3BackendConfig(
         String secretKey,
         boolean pathStyle,
         Optional<String> sseAlgorithm,
-        String basePath) {
-
-    /**
-     * Returns a copy with the supplied {@code basePath} replacing the existing one.
-     */
-    public S3BackendConfig withBasePath(String basePath) {
-        return new S3BackendConfig(endpoint, region, bucket, accessKey, secretKey, pathStyle, sseAlgorithm, basePath);
-    }
-}
+        String basePath) {}

@@ -5,11 +5,10 @@
  */
 package dev.chojo.ember.feature.legal.service;
 
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.conf.file.elements.Api;
-import dev.chojo.ember.conf.file.elements.Network;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -38,7 +37,6 @@ class ConsentServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() throws IOException {
-        // Create minimal directory structure for legal docs
         Path privacyDir = tempDir.resolve("privacy");
         Path tosDir = tempDir.resolve("tos");
         Path consentDir = tempDir.resolve("consent");
@@ -49,7 +47,6 @@ class ConsentServiceTest extends RepositoryTestBase {
         Files.createDirectories(consentDir.resolve("de"));
         Files.createDirectories(imprintDir.resolve("de"));
 
-        // Write simple markdown content
         Files.writeString(privacyDir.resolve("de").resolve("01-privacy.md"), "# Privacy\nWe value your privacy.");
         Files.writeString(tosDir.resolve("de").resolve("01-tos.md"), "# Terms\nThese are the terms.");
         Files.writeString(consentDir.resolve("de").resolve("01-consent.md"), "# Consent\nPlease consent.");
@@ -63,7 +60,7 @@ class ConsentServiceTest extends RepositoryTestBase {
         when(apiConfig.placeholderFile())
                 .thenReturn(tempDir.resolve("placeholders.json").toString());
 
-        service = new ConsentService(accountRepo, apiConfig, new Network());
+        service = new ConsentService(accountRepo, apiConfig);
         service.initialize();
 
         account = accountRepo.create("consent-svc@test.com", "Consent", "SvcTester");
@@ -119,7 +116,6 @@ class ConsentServiceTest extends RepositoryTestBase {
     @Test
     @Order(6)
     void getPrivacyPolicyFallbackLocale() {
-        // Non-existent locale falls back to default
         var doc = service.getPrivacyPolicy("xx");
         assertNotNull(doc);
     }
@@ -136,7 +132,6 @@ class ConsentServiceTest extends RepositoryTestBase {
                 "127.0.0.1",
                 "DE",
                 "TestAgent/1.0");
-        // No exception = success
     }
 
     @Test
@@ -159,26 +154,29 @@ class ConsentServiceTest extends RepositoryTestBase {
     @Order(20)
     void getDiffSameVersion() {
         var versions = service.getCurrentVersions();
-        // Same version diff should return null or empty
-        var diff = service.getPrivacyDiff(versions.privacyVersion(), versions.privacyVersion());
-        // Either null (no archived version yet) or empty string - just verify no exception
-        // diff may be null if no history archive exists yet
-        assertTrue(diff == null || diff.isEmpty() || !diff.isEmpty());
+        assertNull(service.getPrivacyDiff(versions.privacyVersion(), versions.privacyVersion()));
     }
 
     @Test
     @Order(21)
-    void getTosDiff() {
-        var versions = service.getCurrentVersions();
-        var diff = service.getTosDiff(versions.tosVersion(), versions.tosVersion());
-        assertTrue(diff == null || diff.isEmpty() || !diff.isEmpty());
+    void getTosDiff() throws IOException {
+        String before = service.getCurrentVersions().tosVersion();
+        Files.writeString(tempDir.resolve("tos").resolve("de").resolve("01-tos.md"), "# Terms\nThese are new terms.");
+        service.initialize();
+        String after = service.getCurrentVersions().tosVersion();
+        assertNotEquals(before, after);
+
+        var diff = service.getTosDiff(before, after);
+
+        assertNotNull(diff);
+        assertTrue(diff.contains("- These are the terms."), diff);
+        assertTrue(diff.contains("+ These are new terms."), diff);
     }
 
     @Test
     @Order(22)
     void recordConsentWithNullCountry() {
         var versions = service.getCurrentVersions();
-        // null country should be accepted
         assertDoesNotThrow(() -> service.recordConsent(
                 account.id(),
                 versions.consentVersion(),
@@ -211,30 +209,42 @@ class ConsentServiceTest extends RepositoryTestBase {
                 "Agent/2.0");
         var latest = service.findLatestConsent(account.id());
         assertTrue(latest.isPresent());
-        // Should return some consent record
         assertNotNull(latest.get().consentVersion());
     }
 
     @Test
     @Order(24)
-    void getPrivacyDiffDifferentVersions() {
-        // fromVersion different from toVersion - should return null or some string
-        var diff = service.getPrivacyDiff("version-a", "version-b");
-        // Just verify no exception - result is null when no history exists
-        assertTrue(diff == null || diff.isEmpty() || !diff.isEmpty());
+    void getPrivacyDiffDifferentVersions() throws IOException {
+        String before = service.getCurrentVersions().privacyVersion();
+        Files.writeString(
+                tempDir.resolve("privacy").resolve("de").resolve("01-privacy.md"),
+                "# Privacy\nWe value your privacy a lot.");
+        service.initialize();
+        String after = service.getCurrentVersions().privacyVersion();
+        assertNotEquals(before, after);
+
+        var diff = service.getPrivacyDiff(before, after);
+
+        assertNotNull(diff);
+        assertTrue(diff.contains("- We value your privacy."), diff);
+        assertTrue(diff.contains("+ We value your privacy a lot."), diff);
+    }
+
+    @Test
+    @Order(24)
+    void getPrivacyDiffOfVersionsNeverArchivedIsNull() {
+        assertNull(service.getPrivacyDiff("version-a", "version-b"));
     }
 
     @Test
     @Order(25)
     void initializeIsIdempotent() {
-        // Calling initialize a second time should not throw
         assertDoesNotThrow(() -> service.initialize());
     }
 
     @Test
     @Order(30)
     void initializeLogsWhenDocumentsChange() throws IOException {
-        // Create a fresh set of directories with new content to trigger the "changed" path
         Path freshPrivacy = tempDir.resolve("privacy2");
         Path freshTos = tempDir.resolve("tos2");
         Path freshConsent = tempDir.resolve("consent2");
@@ -256,13 +266,10 @@ class ConsentServiceTest extends RepositoryTestBase {
         when(apiConfig2.consentDir()).thenReturn(freshConsent.toString());
         when(apiConfig2.imprintDir()).thenReturn(freshImprint.toString());
 
-        var service2 = new ConsentService(accountRepo, apiConfig2, new Network());
-        // First init - all documents are new, so changed=true
+        var service2 = new ConsentService(accountRepo, apiConfig2);
         assertDoesNotThrow(service2::initialize);
-        // Second init - same content, so changed=false (exercises the else branch)
         assertDoesNotThrow(service2::initialize);
 
-        // Modify one doc and re-init to trigger the log.warn with mixed changed/unchanged
         Files.writeString(freshPrivacy.resolve("de").resolve("01-privacy.md"), "# Privacy v3\nUpdated again.");
         assertDoesNotThrow(service2::initialize);
     }
@@ -277,16 +284,16 @@ class ConsentServiceTest extends RepositoryTestBase {
 
         var current = service.getCurrentVersions();
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> service.requireAcceptance(ctx, null, current.privacyVersion(), current.tosVersion()));
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> service.requireAcceptance(ctx, "", current.privacyVersion(), current.tosVersion()));
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> service.requireAcceptance(ctx, current.consentVersion(), null, current.tosVersion()));
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> service.requireAcceptance(ctx, current.consentVersion(), current.privacyVersion(), null));
     }
 
@@ -300,7 +307,7 @@ class ConsentServiceTest extends RepositoryTestBase {
 
         var current = service.getCurrentVersions();
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> service.requireAcceptance(ctx, "old-consent", current.privacyVersion(), current.tosVersion()));
     }
 
@@ -356,7 +363,7 @@ class ConsentServiceTest extends RepositoryTestBase {
         when(apiConfig.imprintDir()).thenReturn(empty.toString());
         when(apiConfig.placeholderFile())
                 .thenReturn(tempDir.resolve("placeholders.json").toString());
-        var bare = new ConsentService(accountRepo, apiConfig, new Network());
+        var bare = new ConsentService(accountRepo, apiConfig);
 
         assertFalse(bare.hasOwnLegalTexts(), "the bundled template standing in is not the operator's own text");
     }

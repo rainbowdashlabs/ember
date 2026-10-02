@@ -3,18 +3,34 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-// @vitest-environment happy-dom
+/** @vitest-environment happy-dom */
 import {describe, expect, it} from 'vitest'
-import {ItemCustody, ItemOwner, type InventoryItem} from '@/api/inventory'
+import {ItemCustody, ItemOwner} from '@/api/inventory'
+import type {InventoryItem} from '@/api/generated/schema'
 import {isAtHand, stockByArt, stockByInventory} from './inventoryStock'
 
 function piece(id: number, patch: Partial<InventoryItem> = {}): InventoryItem {
   return {
     id,
     inventoryId: 1,
+    internalId: null,
+    name: `Piece ${id}`,
+    sizeId: null,
     artId: 7,
-    custody: ItemCustody.AT_STATION,
+    metadata: {fields: {}},
+    assignedTo: null,
+    lostAt: null,
+    lostNote: null,
+    lostNoteBy: null,
     ownerKind: ItemOwner.STATION,
+    ownerClusterId: null,
+    ownerStationId: null,
+    loanRequestItemId: null,
+    custody: ItemCustody.AT_STATION,
+    custodyStationId: null,
+    custodyPartnerStationId: null,
+    custodyMovementId: null,
+    containerId: null,
     ...patch,
   }
 }
@@ -40,10 +56,6 @@ describe('isAtHand', () => {
     expect(isAtHand(piece(1, {custody: ItemCustody.LOST}))).toBe(false)
     expect(isAtHand(piece(1, {custody: ItemCustody.IN_TRANSIT}))).toBe(false)
     expect(isAtHand(piece(1, {custody: ItemCustody.WITH_PARTNER}))).toBe(false)
-  })
-
-  it('leaves out a piece nobody wrote a custody for', () => {
-    expect(isAtHand(piece(1, {custody: null}))).toBe(false)
   })
 })
 

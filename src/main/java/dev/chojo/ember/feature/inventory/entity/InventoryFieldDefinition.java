@@ -6,8 +6,10 @@
 package dev.chojo.ember.feature.inventory.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.question.Question;
 import dev.chojo.ember.feature.question.QuestionSettings;
+import org.jspecify.annotations.Nullable;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -38,8 +40,8 @@ import java.util.List;
 public record InventoryFieldDefinition(
         int id,
         int inventoryId,
-        Integer artId,
-        Integer itemId,
+        @Nullable Integer artId,
+        @Nullable Integer itemId,
         String key,
         String label,
         FieldType fieldType,
@@ -52,10 +54,14 @@ public record InventoryFieldDefinition(
      *
      * <p>What it holds is typed already, which is why a date here has always been a date. What
      * nothing measured is whether a choice is one of the ones written down and whether a measurement
-     * sits between its bounds.
+     * sits between its bounds. A number carries a fraction where its step is below one, which is how
+     * the field already offers one on the screen, and is whole everywhere else.
      */
     public Question question() {
-        return settings().withRequired(required).asQuestion(label, fieldType.kind());
+        return settings()
+                .withRequired(required)
+                .asQuestion(label, fieldType)
+                .orElseThrow(() -> new IllegalStateException("Every inventory field holds a value: " + fieldType));
     }
 
     /** What this field says about the question it asks, out of the settings typed per kind. */
@@ -67,7 +73,7 @@ public record InventoryFieldDefinition(
                             .toList());
         }
         if (config instanceof FieldConfig.NumberConfig(BigDecimal min, BigDecimal max, BigDecimal step, String unit)) {
-            return QuestionSettings.none().withBounds(min, max);
+            return QuestionSettings.none().withBounds(min, max).withStep(step);
         }
         return QuestionSettings.none();
     }
@@ -77,7 +83,7 @@ public record InventoryFieldDefinition(
      */
     public static RowMapping<InventoryFieldDefinition> map() {
         return row -> {
-            FieldType type = row.getEnum("field_type", FieldType.class);
+            FieldType type = FieldType.valueOf(row.getString("field_type"));
             return new InventoryFieldDefinition(
                     row.getInt("id"),
                     row.getInt("inventory_id"),

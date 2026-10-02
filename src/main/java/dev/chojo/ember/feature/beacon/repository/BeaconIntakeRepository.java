@@ -7,8 +7,8 @@ package dev.chojo.ember.feature.beacon.repository;
 
 import dev.chojo.ember.feature.beacon.entity.BeaconPayloads;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
-import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Optional;
 
@@ -46,7 +46,11 @@ public class BeaconIntakeRepository {
      * clears it in their configuration clears it here too.
      */
     public void touchInstance(
-            String instanceId, String publicKey, String contactName, String contactMail, String version) {
+            String instanceId,
+            String publicKey,
+            @Nullable String contactName,
+            @Nullable String contactMail,
+            @Nullable String version) {
         query("""
                         INSERT INTO beacon_instance (instance_id, public_key, contact_name, contact_mail, last_version)
                         VALUES (:id, :key, :name, :mail, :version)
@@ -103,7 +107,7 @@ public class BeaconIntakeRepository {
      * check the instance's own version passed.
      */
     public void upsertProblemInstance(
-            int problemId, String instanceId, String version, BeaconPayloads.ProblemPayload payload) {
+            int problemId, String instanceId, @Nullable String version, BeaconPayloads.ProblemPayload payload) {
         query("""
                         INSERT INTO beacon_problem_instance (problem_id, instance_id, version, occurrences, first_seen, last_seen)
                         VALUES (:problem, :instance, :version, :count, :first, :last)
@@ -167,32 +171,5 @@ public class BeaconIntakeRepository {
                         .bind("inventory", subject.inventory())
                         .bind("version", version))
                 .insert();
-    }
-
-    /**
-     * Whether this delivery has been seen before.
-     *
-     * <p>Signing the body alone leaves a captured report replayable, and replayable straight into the
-     * count of how many installations hit a fault. The nonce is what makes one delivery arrive once.
-     *
-     * @return true when the nonce was new and has now been recorded
-     */
-    public boolean recordNonce(String instanceId, String nonce, Instant issuedAt) {
-        return query("""
-                        INSERT INTO beacon_nonce (instance_id, nonce, issued_at)
-                        VALUES (:instance, :nonce, :issued)
-                        ON CONFLICT (instance_id, nonce) DO NOTHING;""")
-                .single(call().bind("instance", instanceId)
-                        .bind("nonce", nonce)
-                        .bind("issued", issuedAt, INSTANT_TIMESTAMP))
-                .insert()
-                .changed();
-    }
-
-    /** Forgets nonces older than the drift window, which cannot be replayed anyway. */
-    public void pruneNonces(Instant before) {
-        query("DELETE FROM beacon_nonce WHERE issued_at < :before;")
-                .single(call().bind("before", before, INSTANT_TIMESTAMP))
-                .delete();
     }
 }

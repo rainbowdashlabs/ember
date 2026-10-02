@@ -8,8 +8,7 @@ import {defineComponent, h} from 'vue'
 import {flushPromises} from '@vue/test-utils'
 import {mountSuspended} from '@nuxt/test-utils/runtime'
 import NewsSearchPicker from './NewsSearchPicker.vue'
-import type {NewsSearchResult} from '@/api/news'
-import type {BlockAudience} from '@/api/pageManage'
+import type {BlockAudience, NewsSearchResult} from '@/api/generated/schema'
 import {provideBlockAudience} from '@/composables/useBlockAudience'
 
 const searchNews = vi.fn()
@@ -29,7 +28,7 @@ function entries(count: number, from = 1): NewsSearchResult[] {
         publicUid: `uid-${from + index}`,
         title: `Drehleiter ${from + index}`,
         summary: '',
-        publishedAt: null,
+        publishedAt: '2026-09-12T10:00:00Z',
     }))
 }
 

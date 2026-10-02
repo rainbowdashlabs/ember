@@ -16,22 +16,17 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import RowLink from '@/components/navigation/RowLink.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import AsyncSection from '@/components/feedback/AsyncSection.vue'
-import TextInput from '@/components/input/text/TextInput.vue'
 import SearchInput from '@/components/input/text/SearchInput.vue'
-import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
-import DateInput from '@/components/input/datetime/DateInput.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import { useSession } from '@/composables/useSession'
 import { useConfirmAction } from '@/composables/useConfirmAction'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
-import { describeFailure } from '@/util/failure'
 import { procedures } from '@/api'
 import { StationPermission } from '@/api/types'
-import {ProcedureStatus, type Procedure, type ProcedureRequest, type ProcedureTemplate} from '@/api/procedures'
+import {ProcedureStatus, type ProcedureListParams, type ProcedureStatusName} from '@/api/procedures'
+import type {Procedure} from '@/api/generated/schema'
 import { formatDate } from '@/util/format'
 
 const { t } = useI18n()
@@ -39,27 +34,20 @@ const router = useRouter()
 const { hasPermission, loaded } = useSession()
 
 const canEdit = computed(() => hasPermission(StationPermission.PROCEDURE_EDIT))
-const canManage = computed(() => hasPermission(StationPermission.PROCEDURE_MANAGER))
 
 const items = ref<Procedure[]>([])
-const templates = ref<ProcedureTemplate[]>([])
 
 const searchQuery = ref('')
-const statusFilter = ref<string>(ProcedureStatus.OPEN)
+const statusFilter = ref<ProcedureStatusName | ''>(ProcedureStatus.OPEN)
 const assigneeFilter = ref<string>(canEdit.value ? 'all' : 'me')
 
-const showCreateModal = ref(false)
-const createMode = ref<'manual' | 'template'>('manual')
-const newName = ref('')
-const newDescription = ref('')
-const newDueAt = ref('')
-const newTemplateId = ref<number | null>(null)
-
-const {loading, failure, reload} = useAsyncLoader(async () => {
-  const params: { status?: string; assignee?: string } = {}
+const {loading, failure, reload} = useAsyncLoader(async (isCurrent) => {
+  const params: ProcedureListParams = {}
   if (statusFilter.value) params.status = statusFilter.value
   if (assigneeFilter.value === 'me') params.assignee = 'me'
-  items.value = await procedures.getProcedures(params)
+  const found = await procedures.getProcedures(params)
+  if (!isCurrent()) return
+  items.value = found
 }, {autoLoad: false})
 
 const {
@@ -87,41 +75,6 @@ const filteredItems = computed(() => {
 
 function procedurePage(p: Procedure) {
   return { name: 'procedure-detail', params: { id: p.id } }
-}
-
-/** An empty template list and one that could not be read are different answers, so they read so. */
-async function loadTemplates() {
-  try {
-    templates.value = (await procedures.getTemplates()).filter(tpl => !tpl.archived)
-  } catch (e) {
-    failure.value = describeFailure(e, t)
-  }
-}
-
-function openCreateModal() {
-  newName.value = ''
-  newDescription.value = ''
-  newDueAt.value = ''
-  newTemplateId.value = null
-  createMode.value = 'manual'
-  showCreateModal.value = true
-  loadTemplates()
-}
-
-async function handleCreate() {
-  if (createMode.value === 'manual' && !newName.value.trim()) return
-  if (createMode.value === 'template' && newTemplateId.value == null) return
-  try {
-    const data: ProcedureRequest = createMode.value === 'template'
-        ? { templateId: newTemplateId.value ?? undefined }
-        : { name: newName.value.trim(), description: newDescription.value || undefined }
-    if (newDueAt.value) data.dueAt = newDueAt.value
-    const created = await procedures.createProcedure(data)
-    showCreateModal.value = false
-    router.push({ name: 'procedure-detail', params: { id: created.id } })
-  } catch (e) {
-    failure.value = describeFailure(e, t)
-  }
 }
 
 watch([statusFilter, assigneeFilter], () => reload())
@@ -193,40 +146,6 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
       </div>
     </AsyncSection>
 
-    <Modal v-model="showCreateModal">
-      <SubHeader class="mb-3">{{ t('procedures.createProcedure') }}</SubHeader>
-      <div class="flex gap-2 mb-4">
-        <SelectionToggleButton :selected="createMode === 'manual'" @toggle="createMode = 'manual'">
-          {{ t('procedures.createManual') }}
-        </SelectionToggleButton>
-        <SelectionToggleButton :selected="createMode === 'template'" @toggle="createMode = 'template'">
-          {{ t('procedures.createFromTemplate') }}
-        </SelectionToggleButton>
-      </div>
-      <form @submit.prevent="handleCreate" class="space-y-3">
-        <template v-if="createMode === 'template'">
-          <FieldLabel class="mb-1">{{ t('procedures.selectTemplate') }}</FieldLabel>
-          <div v-if="templates.length === 0" class="text-sm text-[var(--text-muted)]">{{ t('procedures.noTemplates') }}</div>
-          <SelectInput v-else :model-value="newTemplateId != null ? String(newTemplateId) : ''" @update:model-value="(v: string | number | null | undefined) => { newTemplateId = v ? Number(v) : null }">
-            <option value="">-</option>
-            <option v-for="tpl in templates" :key="tpl.id" :value="String(tpl.id)">{{ tpl.name }}</option>
-          </SelectInput>
-        </template>
-        <template v-else>
-          <TextInput v-model="newName" :placeholder="t('procedures.name')" required />
-          <TextAreaInput v-model="newDescription" :placeholder="t('procedures.description')" />
-        </template>
-        <div>
-          <FieldLabel class="mb-1">{{ t('procedures.dueDate') }}</FieldLabel>
-          <DateInput v-model="newDueAt" />
-        </div>
-        <div class="flex gap-2 justify-end">
-          <PrimaryButton type="submit">{{ t('procedures.createProcedure') }}</PrimaryButton>
-        </div>
-      </form>
-    </Modal>
-
-    <!-- Delete Modal -->
     <Modal v-model="showDeleteModal">
       <SubHeader class="mb-3">{{ t('procedures.deleteConfirm') }}</SubHeader>
       <p class="mb-4">{{ deleteTarget?.name }}</p>

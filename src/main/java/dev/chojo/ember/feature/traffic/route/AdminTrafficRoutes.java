@@ -5,19 +5,24 @@
  */
 package dev.chojo.ember.feature.traffic.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.auth.InstancePermission;
+import dev.chojo.ember.api.refusal.TrafficRefusal;
 import dev.chojo.ember.feature.traffic.entity.AuthBucket;
-import dev.chojo.ember.feature.traffic.entity.TrafficBucket;
-import dev.chojo.ember.feature.traffic.repository.StationTrafficRepository;
+import dev.chojo.ember.feature.traffic.service.TrafficReportService;
+import dev.chojo.ember.feature.traffic.service.TrafficReportService.HourlyTrafficResponse;
 import io.javalin.http.Context;
+import io.javalin.openapi.HttpMethod;
+import io.javalin.openapi.OpenApi;
+import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiParam;
+import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
-import java.util.List;
 
 /**
  * Instance-admin traffic monitoring routes. Returns pre-aggregated hourly rows from
@@ -30,42 +35,42 @@ import java.util.List;
 @Singleton
 public class AdminTrafficRoutes implements Routes {
 
-    private final StationTrafficRepository repository;
+    private final TrafficReportService traffic;
 
     @Inject
-    public AdminTrafficRoutes(StationTrafficRepository repository) {
-        this.repository = repository;
+    public AdminTrafficRoutes(TrafficReportService traffic) {
+        this.traffic = traffic;
     }
 
     private static Instant parseInstant(Context ctx, String paramName) {
         String raw = ctx.queryParam(paramName);
         if (raw == null || raw.isBlank()) {
-            throw Refusal.TRAFFIC_SPAN_MISSING.raise(paramName);
+            throw TrafficRefusal.TRAFFIC_SPAN_MISSING.raise(paramName);
         }
         try {
             return Instant.parse(raw);
         } catch (Exception e) {
-            throw Refusal.TRAFFIC_SPAN_NOT_A_TIME.raise(paramName);
+            throw TrafficRefusal.TRAFFIC_SPAN_NOT_A_TIME.raise(paramName);
         }
     }
 
-    private static Integer parseOptionalInt(Context ctx, String paramName) {
+    private static @Nullable Integer parseOptionalInt(Context ctx, String paramName) {
         String raw = ctx.queryParam(paramName);
         if (raw == null || raw.isBlank()) return null;
         try {
             return Integer.valueOf(raw);
         } catch (NumberFormatException e) {
-            throw Refusal.TRAFFIC_NUMBER_NOT_A_NUMBER.raise(paramName);
+            throw TrafficRefusal.TRAFFIC_NUMBER_NOT_A_NUMBER.raise(paramName);
         }
     }
 
-    private static AuthBucket parseOptionalAuth(Context ctx) {
+    private static @Nullable AuthBucket parseOptionalAuth(Context ctx) {
         String raw = ctx.queryParam("auth");
         if (raw == null || raw.isBlank()) return null;
         try {
             return AuthBucket.valueOf(raw);
         } catch (IllegalArgumentException e) {
-            throw Refusal.TRAFFIC_KIND_UNKNOWN.raise();
+            throw TrafficRefusal.TRAFFIC_KIND_UNKNOWN.raise();
         }
     }
 
@@ -74,34 +79,24 @@ public class AdminTrafficRoutes implements Routes {
         routes.get(prefix + "/admin/traffic/hourly", this::hourly, InstancePermission.ADMINISTRATOR);
     }
 
+    @OpenApi(
+            path = "/api/v1/admin/traffic/hourly",
+            methods = HttpMethod.GET,
+            summary = "Hourly traffic of every station and of the instance itself",
+            tags = {"Monitoring"},
+            queryParams = {
+                @OpenApiParam(name = "from", type = Instant.class, required = true),
+                @OpenApiParam(name = "to", type = Instant.class, required = true),
+                @OpenApiParam(name = "stationId", type = Integer.class),
+                @OpenApiParam(name = "auth", type = AuthBucket.class)
+            },
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = HourlyTrafficResponse.class)))
     private void hourly(Context ctx) {
         Instant from = parseInstant(ctx, "from");
         Instant to = parseInstant(ctx, "to");
         if (to.isBefore(from)) {
-            throw Refusal.TRAFFIC_SPAN_ENDS_BEFORE_IT_STARTS.raise();
+            throw TrafficRefusal.TRAFFIC_SPAN_ENDS_BEFORE_IT_STARTS.raise();
         }
-        Integer stationId = parseOptionalInt(ctx, "stationId");
-        AuthBucket auth = parseOptionalAuth(ctx);
-
-        List<TrafficBucket> buckets = repository.findHourly(from, to, stationId, auth);
-        ctx.json(new HourlyTrafficResponse(
-                buckets.stream().map(HourlyTrafficRow::from).toList()));
+        ctx.json(traffic.hourly(from, to, parseOptionalInt(ctx, "stationId"), parseOptionalAuth(ctx)));
     }
-
-    /**
-     * Wire-shape response payload for the hourly endpoint.
-     */
-    public record HourlyTrafficRow(
-            Instant hour, Integer stationId, AuthBucket auth, long ingressBytes, long egressBytes, long requests) {
-        static HourlyTrafficRow from(TrafficBucket b) {
-            return new HourlyTrafficRow(
-                    b.hour(), b.stationId(), b.auth(), b.ingressBytes(), b.egressBytes(), b.requests());
-        }
-    }
-
-    /**
-     * Container response so additional aggregations can be added without bumping the API
-     * version (e.g. summary totals once phase 14 introduces the egress cap).
-     */
-    public record HourlyTrafficResponse(List<HourlyTrafficRow> rows) {}
 }

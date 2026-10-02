@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.federation.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Generic share record used for KB files/folders, quiz catalogs, and protocols.
@@ -13,10 +14,10 @@ import de.chojo.sadu.mapper.rowmapper.RowMapping;
 public record FederationShare(
         int id,
         int stationId,
-        Integer fileId,
-        Integer folderId,
-        Integer catalogId,
-        Integer protocolId,
+        @Nullable Integer fileId,
+        @Nullable Integer folderId,
+        @Nullable Integer catalogId,
+        @Nullable Integer protocolId,
         ShareScope shareScope) {
 
     public static RowMapping<FederationShare> mapKb() {

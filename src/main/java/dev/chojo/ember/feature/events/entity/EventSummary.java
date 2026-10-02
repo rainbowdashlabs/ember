@@ -5,26 +5,33 @@
  */
 package dev.chojo.ember.feature.events.entity;
 
+import org.jspecify.annotations.Nullable;
+
 import java.time.Instant;
 
 /**
  * Sparse representation of a station event for list views and federated browse responses.
  * Contains only the fields needed to render an event list row.
+ *
+ * <p>{@code seriesCancelled} says that every date is off for good. A single date that is off is told
+ * beside the date it belongs to, since the appointment itself goes on.
  */
 public record EventSummary(
         int id,
         int stationId,
         String name,
-        String description,
+        @Nullable String description,
         StationEvent.EventType eventType,
-        Integer dayOfWeek,
+        @Nullable Integer dayOfWeek,
         Instant startTime,
         Instant endTime,
         boolean requiresRegistration,
-        Instant registrationDeadline,
-        Integer categoryId,
-        Integer templateId,
-        boolean restricted) {
+        @Nullable Instant registrationDeadline,
+        @Nullable Integer categoryId,
+        @Nullable Integer templateId,
+        boolean restricted,
+        boolean seriesCancelled,
+        @Nullable Integer registrationLimit) {
 
     public static EventSummary of(StationEvent event) {
         return new EventSummary(
@@ -40,6 +47,8 @@ public record EventSummary(
                 event.registrationDeadline(),
                 event.categoryId(),
                 event.templateId(),
-                event.restricted());
+                event.restricted(),
+                event.cancelled(),
+                event.registrationLimit());
     }
 }

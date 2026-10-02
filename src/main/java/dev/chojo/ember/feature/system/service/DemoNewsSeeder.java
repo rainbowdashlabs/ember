@@ -5,11 +5,16 @@
  */
 package dev.chojo.ember.feature.system.service;
 
+import dev.chojo.ember.feature.comment.entity.CommentEntityType;
+import dev.chojo.ember.feature.comment.entity.CommentWriter;
+import dev.chojo.ember.feature.comment.entity.NewComment;
+import dev.chojo.ember.feature.comment.service.CommentService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.news.service.NewsService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -19,11 +24,14 @@ import java.util.List;
 @Singleton
 public class DemoNewsSeeder implements DemoPerStationSeeder {
     private final NewsService newsService;
+    private final CommentService commentService;
     private final StationMemberRepository stationMemberRepository;
 
     @Inject
-    public DemoNewsSeeder(NewsService newsService, StationMemberRepository stationMemberRepository) {
+    public DemoNewsSeeder(
+            NewsService newsService, CommentService commentService, StationMemberRepository stationMemberRepository) {
         this.newsService = newsService;
+        this.commentService = commentService;
         this.stationMemberRepository = stationMemberRepository;
     }
 
@@ -111,56 +119,15 @@ public class DemoNewsSeeder implements DemoPerStationSeeder {
                 List.of(),
                 List.of());
 
-        // Mark first two news as blog entries
         newsService.updatePublicBlog(news1.id(), true);
         newsService.updatePublicBlog(news2.id(), true);
 
-        // Comments on news
-        var comment1 = newsService.createComment(
-                stationId,
-                news1.id(),
-                null,
-                stationMemberRepository.resolveIdentity(elternMembers.get(0).id()),
-                "Demo User",
-                "Super, endlich eine moderne Plattform!");
-        newsService.createComment(
-                stationId,
-                news1.id(),
-                comment1.id(),
-                stationMemberRepository.resolveIdentity(
-                        betreuerMembers.getFirst().id()),
-                "Demo User",
-                "Danke! Bei Fragen einfach melden.");
-        newsService.createComment(
-                stationId,
-                news1.id(),
-                null,
-                stationMemberRepository.resolveIdentity(elternMembers.get(1).id()),
-                "Demo User",
-                "Kann man hier auch Abwesenheiten eintragen?");
-        newsService.createComment(
-                stationId,
-                news2.id(),
-                null,
-                stationMemberRepository.resolveIdentity(
-                        fortgeschrittenMembers.get(0).id()),
-                "Demo User",
-                "Ich bin dabei! \uD83D\uDCAA");
-        var comment2 = newsService.createComment(
-                stationId,
-                news2.id(),
-                null,
-                stationMemberRepository.resolveIdentity(
-                        fortgeschrittenMembers.get(1).id()),
-                "Demo User",
-                "Wie viele Plätze gibt es?");
-        newsService.createComment(
-                stationId,
-                news2.id(),
-                comment2.id(),
-                stationMemberRepository.resolveIdentity(betreuerMembers.get(0).id()),
-                "Demo User",
-                "Wir haben 8 Plätze. Bitte schnell anmelden!");
+        int comment1 = comment(news1.id(), null, elternMembers.get(0), "Super, endlich eine moderne Plattform!");
+        comment(news1.id(), comment1, betreuerMembers.getFirst(), "Danke! Bei Fragen einfach melden.");
+        comment(news1.id(), null, elternMembers.get(1), "Kann man hier auch Abwesenheiten eintragen?");
+        comment(news2.id(), null, fortgeschrittenMembers.get(0), "Ich bin dabei! \uD83D\uDCAA");
+        int comment2 = comment(news2.id(), null, fortgeschrittenMembers.get(1), "Wie viele Plätze gibt es?");
+        comment(news2.id(), comment2, betreuerMembers.get(0), "Wir haben 8 Plätze. Bitte schnell anmelden!");
 
         var news3 = newsService.create(
                 stationId,
@@ -208,22 +175,23 @@ public class DemoNewsSeeder implements DemoPerStationSeeder {
                 List.of(),
                 List.of());
 
-        newsService.createComment(
-                stationId,
-                news3.id(),
-                null,
-                stationMemberRepository.resolveIdentity(elternMembers.get(2).id()),
-                "Demo User",
-                "Werden die alten Helme eingesammelt?");
-        newsService.createComment(
-                stationId,
-                news3.id(),
-                null,
-                stationMemberRepository.resolveIdentity(betreuerMembers.get(1).id()),
-                "Demo User",
-                "Ja, bitte zur nächsten Übung mitbringen.");
+        comment(news3.id(), null, elternMembers.get(2), "Werden die alten Helme eingesammelt?");
+        comment(news3.id(), null, betreuerMembers.get(1), "Ja, bitte zur nächsten Übung mitbringen.");
 
         return new SeedResult(news1.id());
+    }
+
+    /**
+     * Writes a demo comment on an entry, telling whoever a comment written there tells.
+     *
+     * @return the comment's id
+     */
+    private int comment(int newsId, @Nullable Integer parentId, StationMember author, String content) {
+        var target = commentService.target(CommentEntityType.NEWS, newsId).orElseThrow();
+        var writer = CommentWriter.local(stationMemberRepository.resolveIdentity(author.id()), "Demo User");
+        return commentService
+                .createOn(target, writer, new NewComment(parentId, null, content))
+                .id();
     }
 
     public record SeedResult(int firstNewsId) {}

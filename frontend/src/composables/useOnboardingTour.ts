@@ -3,16 +3,13 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {computed, readonly, ref} from 'vue'
+import {computed, readonly} from 'vue'
 import {useRouter} from 'vue-router'
 import {useSession} from './useSession'
 import {StationPermission} from '@/api/types'
-import {handoverPending} from '@/util/onboardingState'
+import {onboardingState} from '@/util/onboardingState'
 
 const STORAGE_KEY = 'onboarding_tour_completed'
-
-const isActive = ref(false)
-const currentStep = ref(0)
 
 export interface TourStep {
     id: string
@@ -45,6 +42,9 @@ const ALL_STEPS: TourStep[] = [
 ]
 
 export function useOnboardingTour() {
+    const isActive = useState('useOnboardingTour.active', () => false)
+    const currentStep = useState('useOnboardingTour.step', () => 0)
+    const {handoverPending} = onboardingState()
     const {hasPermission} = useSession()
     const router = useRouter()
 
@@ -104,19 +104,27 @@ export function useOnboardingTour() {
         return localStorage.getItem(STORAGE_KEY) === 'true'
     }
 
+    /**
+     * Starts the tour for somebody who has not finished it, but only on the dashboard root. A reader
+     * who followed a deep link is left where they meant to go, and the tour waits for their next
+     * dashboard visit.
+     */
     function checkFirstLogin() {
         if (isTourCompleted()) return
-        // Auto-start the onboarding tour only when the user lands on the dashboard root.
-        // If they followed a deep link (an email/feed notification, a shared item URL, …)
-        // we honour where they intended to go and leave the tour for their next dashboard
-        // visit; otherwise the tour's first step would yank them off the deep link.
         if (router.currentRoute.value.name !== 'dashboard-overview') return
         startTour()
+    }
+
+    /** Says the task tour has taken over from the introduction, so the handover is not made twice. */
+    function takeHandover() {
+        handoverPending.value = false
     }
 
     return {
         isActive: readonly(isActive),
         currentStep: readonly(currentStep),
+        handoverPending: readonly(handoverPending),
+        takeHandover,
         filteredSteps,
         totalSteps,
         currentStepData,

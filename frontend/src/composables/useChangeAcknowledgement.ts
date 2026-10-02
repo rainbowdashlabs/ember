@@ -6,7 +6,7 @@
 import { ref, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { profileFieldChanges } from '@/api'
-import type { ProfileFieldChange } from '@/api/profileFieldChanges'
+import type { ChangeEntry } from '@/api/profileFieldChanges'
 import { useSidebarCounts } from '@/composables/useSidebarCounts'
 import { describeFailure, type Failure } from '@/util/failure'
 
@@ -65,11 +65,11 @@ export function useChangeAcknowledgement(
     }
   }
 
-  function isAcknowledgedByMe(change: ProfileFieldChange): boolean {
+  function isAcknowledgedByMe(change: ChangeEntry): boolean {
     return change.acknowledgements.some(a => a.acknowledgedBy === currentMemberId())
   }
 
-  function unacknowledgedCount(changes: ProfileFieldChange[]): number {
+  function unacknowledgedCount(changes: ChangeEntry[]): number {
     return changes.filter(c => c.requiresAcknowledgement && !isAcknowledgedByMe(c)).length
   }
 

@@ -4,30 +4,13 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-import type {AssignmentRequest, AssignmentTarget, ProfileField, ProfileFieldRequest} from './profileFields'
-import type {ProfileFieldAssignment} from '@/util/profileFields'
-
-/**
- * A question an association asks, which is a station's question kept in another table.
- *
- * <p>The same shape as a station's on purpose. The settings ride in the same {@code config}, so a
- * width set here lays the field out beside a station's own in the one grid, and anything the station
- * fields gain is gained here without a second declaration to keep in step.
- */
-export type ClusterField = ProfileField
-
-export type ClusterFieldRequest = ProfileFieldRequest
-
-/**
- * What an association may ask for.
- *
- * <p>Everything except a date of birth: a station declares its own, and a second one would collide.
- * A section holds no answer and is allowed, so an association can head its block of questions rather
- * than having them run into the station's. An expiry date reminds the association's own member
- * management rather than the station's.
- */
-export const CLUSTER_FIELD_TYPES
-    = ['TEXT', 'NUMBER', 'DATE', 'EXPIRY_DATE', 'BOOLEAN', 'ENUM', 'AGE', 'SECTION'] as const
+import type {AssignmentTarget, EditableFieldRequest, ProfileFieldScopeName} from './profileFields'
+import type {
+    AssignmentRequest,
+    ClusterFieldResponse,
+    ClusterProfileFieldAssignment,
+    ProfileFieldAssignment,
+} from './generated/schema'
 
 /**
  * The kinds of member an association may ask.
@@ -37,17 +20,21 @@ export const CLUSTER_FIELD_TYPES
  */
 export const CLUSTER_FIELD_ROLES = ['MEMBER', 'GUARDIAN', 'TEAM', 'MANAGER'] as const
 
-export async function listFields(): Promise<ClusterField[]> {
-    const res = await client.get<ClusterField[]>('/cluster/fields')
+export async function listFields(): Promise<ClusterFieldResponse[]> {
+    const res = await client.get<ClusterFieldResponse[]>('/cluster/fields')
     return res.data
 }
 
-export async function createField(data: ClusterFieldRequest): Promise<ClusterField> {
-    const res = await client.post<ClusterField>('/cluster/fields', data)
+/**
+ * Adds a question. It is written the way the shared field editor writes a station's, with the
+ * association's two settings beside it.
+ */
+export async function createField(data: EditableFieldRequest): Promise<ClusterFieldResponse> {
+    const res = await client.post<ClusterFieldResponse>('/cluster/fields', data)
     return res.data
 }
 
-export async function updateField(fieldId: number, data: ClusterFieldRequest): Promise<void> {
+export async function updateField(fieldId: number, data: EditableFieldRequest): Promise<void> {
     await client.put(`/cluster/fields/${fieldId}`, data)
 }
 
@@ -55,35 +42,21 @@ export async function deleteField(fieldId: number): Promise<void> {
     await client.delete(`/cluster/fields/${fieldId}`)
 }
 
-/** Field id to answer, in the same JSON shape a station field's answer has. */
-export interface ClusterFieldValues {
-    values: Record<number, string>
-}
-
-export async function getMemberValues(memberId: number): Promise<ClusterFieldValues> {
-    const res = await client.get<ClusterFieldValues>(`/cluster/fields/member/${memberId}`)
-    return res.data
-}
-
-export async function setMemberValues(memberId: number, values: Record<number, string>): Promise<void> {
-    await client.put(`/cluster/fields/member/${memberId}`, {values})
-}
-
-/** Puts one audience's questions in a given order in one request. */
-export async function reorderFields(role: string, fieldIds: number[]): Promise<void> {
-    await client.put('/cluster/fields/order', {scope: role, fieldIds})
+/** Puts one audience's questions in a given order in one request, named by role as a station's order is. */
+export async function reorderFields(role: ProfileFieldScopeName, fieldIds: number[]): Promise<void> {
+    await client.put('/cluster/fields/order', {role, fieldIds})
 }
 
 /**
  * Every assignment of this cluster's questions, which is what each audience's form is built from.
  *
- * <p>An association can only ever name a kind of member, so its rows carry no kind of target. The one
- * they would carry is filled in here, because everything that reads an assignment reads a station's
+ * <p>An association can only ever name a kind of member, so its rows carry no kind of target and no
+ * group. Both are filled in here, because everything that reads an assignment reads a station's
  * and an association's through the same code and has no business knowing which it got.
  */
 export async function listAssignments(): Promise<ProfileFieldAssignment[]> {
-    const res = await client.get<Omit<ProfileFieldAssignment, 'targetKind'>[]>('/cluster/fields/assignments')
-    return res.data.map(assignment => ({...assignment, targetKind: 'ROLE'}))
+    const res = await client.get<ClusterProfileFieldAssignment[]>('/cluster/fields/assignments')
+    return res.data.map(assignment => ({...assignment, targetKind: 'ROLE', groupId: null}))
 }
 
 /** Asks a kind of member this question, or changes how it is put to them. */

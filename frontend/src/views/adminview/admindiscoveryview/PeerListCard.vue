@@ -9,21 +9,22 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import PeerRow from './PeerRow.vue'
-import type {DiscoveryPeer, DiscoveryPeerSource} from '@/api/discovery'
+import type {DiscoveryPeerSource} from '@/api/discovery'
+import type {PeerResponse} from '@/api/generated/schema'
 
 defineProps<{
-  peers: DiscoveryPeer[]
+  peers: PeerResponse[]
   sourceLabel: Record<DiscoveryPeerSource, string>
   inFlightKey: string | null
 }>()
 
 const emit = defineEmits<{
-  upvote: [peer: DiscoveryPeer]
-  downvote: [peer: DiscoveryPeer]
-  block: [peer: DiscoveryPeer]
-  unblock: [peer: DiscoveryPeer]
-  ping: [peer: DiscoveryPeer]
-  remove: [peer: DiscoveryPeer]
+  upvote: [peer: PeerResponse]
+  downvote: [peer: PeerResponse]
+  block: [peer: PeerResponse]
+  unblock: [peer: PeerResponse]
+  ping: [peer: PeerResponse]
+  remove: [peer: PeerResponse]
 }>()
 
 const {t} = useI18n()

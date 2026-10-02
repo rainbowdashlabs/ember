@@ -8,7 +8,9 @@ import {useI18n} from 'vue-i18n'
 import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
-import CheckTableDummy from './checkoverviewhelp/CheckTableDummy.vue'
+import CheckOverviewTabs from '@/views/stationview/inventory/checkoverviewview/CheckOverviewTabs.vue'
+import MemberCheckTable from '@/views/stationview/inventory/checkoverviewview/MemberCheckTable.vue'
+import {currentMemberId, members} from './checkoverviewhelp/fixtures'
 
 const {t} = useI18n()
 </script>
@@ -24,9 +26,11 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.inventoryChecks.step2') }}</p>
       <p>{{ t('helpCenter.inventoryChecks.step3') }}</p>
       <p>{{ t('helpCenter.inventoryChecks.step4') }}</p>
+      <div class="space-y-3">
+        <CheckOverviewTabs active-tab="team"/>
+        <MemberCheckTable :members="members" :current-member-id="currentMemberId"/>
+      </div>
     </HelpSection>
-
-    <CheckTableDummy/>
 
     <HelpSection :title="t('helpCenter.inventoryChecks.sortTitle')">
       <p>{{ t('helpCenter.inventoryChecks.sortText') }}</p>

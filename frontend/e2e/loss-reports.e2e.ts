@@ -36,7 +36,8 @@ async function owningCluster(page: Page, headers: Record<string, string>): Promi
 
 /**
  * A piece of the association's gear in one member's hands, made for one story so no other story loses
- * theirs. Arrangement, not the story: what is walked is what happens to it afterwards.
+ * theirs. Arrangement, not the story: what is walked is what happens to it afterwards. Its name is
+ * unique, since every list these stories read is shared with the rest of the suite.
  */
 async function clusterGearFor(page: Page, headers: Record<string, string>, memberId: number, label: string) {
     const clusterId = await owningCluster(page, headers)
@@ -44,8 +45,6 @@ async function clusterGearFor(page: Page, headers: Record<string, string>, membe
     const holder = inventories.find((i: {inventoryType: string}) => i.inventoryType !== 'INTERNAL')
     expect(holder, 'the station keeps an inventory that may hold the association gear').toBeTruthy()
 
-    // Named for this story alone: every list these stories read is shared with the rest of the suite,
-    // and two jackets called the same thing are two rows nobody can tell apart
     const internalId = `${label}-${Date.now()}`
     const name = `Einsatzjacke ${internalId}`
     const made = await page.request.post(`/api/v1/inventories/${holder.id}/items`, {
@@ -77,10 +76,11 @@ function cardFor(page: Page, internalId: string) {
     return page.getByTestId('inventory-item-card').filter({hasText: internalId})
 }
 
+/**
+ * What an association demands of a loss report is a setting for the whole association, so these
+ * stories run one at a time, each with room for three browser contexts.
+ */
 test.describe('Losing a piece of the association gear', () => {
-    // One at a time, and with room for three browser contexts each: what an association demands of a
-    // loss report is a setting for the whole association, so a story that changes it changes what every
-    // other story here is answered with.
     test.describe.configure({mode: 'serial', timeout: 120_000})
 
     /**
@@ -125,14 +125,14 @@ test.describe('Losing a piece of the association gear', () => {
         await expect(cardFor(memberPage, gear.internalId).getByTestId('item-lost-note'))
             .toContainText(note, {timeout: 15000})
 
-        // The association hears nothing until somebody asks it for a replacement
         const gearManager = await clusterAccountWith(request, 'CLUSTER_INVENTORY_MANAGER')
         const clusterView = await clusterPage(browser, request, gearManager)
         const cluster = await theSeededCluster(clusterView)
         const queue = await clusterView.request
             .get('/api/v1/cluster/inventory/queue', {headers: await clusterHeaders(clusterView, cluster)})
             .then(r => r.json())
-        expect(queue.some((entry: {itemName: string}) => entry.itemName === gear.internalId)).toBeFalsy()
+        expect(queue.some((entry: {itemName: string}) => entry.itemName === gear.internalId),
+            'the association hears nothing until somebody asks it for a replacement').toBeFalsy()
         await clusterView.context().close()
     })
 
@@ -159,12 +159,10 @@ test.describe('Losing a piece of the association gear', () => {
         await expect(managerPage.getByTestId('report-loss')).toBeVisible({timeout: 15000})
         await managerPage.getByTestId('report-loss-open').click()
         await managerPage.getByTestId('report-loss-note').fill(managerNote)
-        // Enabled before clicked: a send the form will not accept would otherwise be waited on until
-        // the story runs out of time, and the reason would be nowhere in the failure
-        await expect(managerPage.getByTestId('report-loss-send')).toBeEnabled()
+        await expect(managerPage.getByTestId('report-loss-send'), 'the form accepts the send').toBeEnabled()
         await managerPage.getByTestId('report-loss-send').click()
-        // The screen says the chain has been started, which is how the story knows the send landed
-        await expect(managerPage.getByText('Die Bewegung wurde angestoßen')).toBeVisible({timeout: 15000})
+        await expect(managerPage.getByText('Die Bewegung wurde angestoßen'), 'the send landed')
+            .toBeVisible({timeout: 15000})
 
         const gearManager = await clusterAccountWith(request, 'CLUSTER_INVENTORY_MANAGER')
         const clusterView = await clusterPage(browser, request, gearManager)
@@ -189,7 +187,8 @@ test.describe('Losing a piece of the association gear', () => {
      * CLS-52c - A refused replacement leaves the loss standing.
      *
      * The loss is not the association's to accept or refuse. What it answers is the replacement, and a
-     * refusal does not find the jacket.
+     * refusal does not find the jacket. The refusal is arranged rather than walked, since CLS-52b walks
+     * the association's side.
      */
     test('a refused replacement leaves the item missing', async ({
         clusterStationManagerPage: managerPage, clusterStationMemberPage: memberPage, browser, request,
@@ -208,8 +207,6 @@ test.describe('Losing a piece of the association gear', () => {
         expect(reported.ok(), 'the report is raised').toBeTruthy()
         const movementId = (await reported.json()).id
 
-        // The association refusing is arranged rather than walked: what this story is about is what the
-        // station is left looking at afterwards, and CLS-52b already walks the association's side.
         const gearManager = await clusterAccountWith(request, 'CLUSTER_INVENTORY_MANAGER')
         const clusterView = await clusterPage(browser, request, gearManager)
         const cluster = await theSeededCluster(clusterView)
@@ -222,9 +219,8 @@ test.describe('Losing a piece of the association gear', () => {
 
         await managerPage.goto(`/station/inventory/item/${gear.id}`)
         await expect(managerPage.getByTestId('app-shell')).toBeVisible({timeout: 15000})
-        // A refusal does not find the jacket. The panel that only shows for missing gear is still there,
-        // offering the report again, because asking a second time is the station's to decide.
-        await expect(managerPage.getByTestId('report-loss')).toBeVisible({timeout: 15000})
+        await expect(managerPage.getByTestId('report-loss'), 'asking again is the station\'s to decide')
+            .toBeVisible({timeout: 15000})
         const item = await managerPage.request
             .get(`/api/v1/inventory-items/${gear.id}`, {headers: managerHeaders})
             .then(r => r.json())
@@ -259,8 +255,7 @@ test.describe('Losing a piece of the association gear', () => {
         await clusterView.goto('/cluster/inventory/settings')
         await expect(clusterView.getByTestId('loss-report-setting')).toBeVisible({timeout: 15000})
         await clusterView.getByTestId('loss-report-requires').selectOption('DOCUMENT')
-        // The select saves as it changes, and the report below is answered by what was saved
-        await expect.poll(asks, {timeout: 15000}).toBe('DOCUMENT')
+        await expect.poll(asks, {message: 'the select saves as it changes', timeout: 15000}).toBe('DOCUMENT')
 
         try {
             const refused = await managerPage.request.post(`/api/v1/inventory-items/${gear.id}/loss-report`, {
@@ -269,7 +264,6 @@ test.describe('Losing a piece of the association gear', () => {
             })
             expect(refused.status(), 'a report without the document is refused').toBe(400)
 
-            // The station's own screen asks for the file rather than letting the report be sent without it
             await managerPage.goto(`/station/inventory/item/${gear.id}`)
             await managerPage.getByTestId('report-loss-open').click({timeout: 15000})
             await managerPage.getByTestId('report-loss-note').fill('Bitte Ersatz')
@@ -286,14 +280,13 @@ test.describe('Losing a piece of the association gear', () => {
      * CLS-52e - A guardian reports for the person they act for.
      *
      * The same screen, the other tab. The note records the guardian as its author acting for the member,
-     * so the trail says who actually wrote it.
+     * so the trail says who actually wrote it. The gear lives at the manager's own station, since gear
+     * at another station is not the guardian's to report, and is reported from the charge's tab.
      */
     test('a guardian reports a loss for the person they act for', async ({
         clusterStationManagerPage: managerPage, browser, request,
     }) => {
         const managerHeaders = await apiHeaders(managerPage)
-        // At the manager's own station: the gear this story makes lives there, and gear at another
-        // station is not the guardian's to report however much they act for its holder
         const manager = await clusterStationManager(request)
         const accounts = await demoAccounts(request)
         const guardian = accounts.find(account => !!account.email
@@ -309,7 +302,6 @@ test.describe('Losing a piece of the association gear', () => {
         const gear = await clusterGearFor(managerPage, managerHeaders, managed[0].id, 'CLS52E')
 
         await page.goto('/station/profile/inventory')
-        // Their charge's tab, which is where a guardian does everything else for them too
         await page.getByRole('button', {name: managed[0].name}).click({timeout: 15000})
         await expect(cardFor(page, gear.internalId)).toBeVisible({timeout: 15000})
 
@@ -317,10 +309,9 @@ test.describe('Losing a piece of the association gear', () => {
         await page.getByTestId('report-lost-note').fill('Im Zeltlager verloren')
         await page.getByTestId('report-lost-submit').click()
 
-        // The note says who wrote it, which is the guardian acting for the member rather than the member
         const note = cardFor(page, gear.internalId).getByTestId('item-lost-note')
         await expect(note).toContainText('Im Zeltlager verloren', {timeout: 15000})
-        await expect(note).toContainText(guardian!.lastName)
+        await expect(note, 'the guardian is named as acting for the member').toContainText(guardian!.lastName)
         await page.context().close()
     })
 })

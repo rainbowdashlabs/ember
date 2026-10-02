@@ -51,10 +51,8 @@ public final class SqlSupport {
     }
 
     /**
-     * Deletes a single row by primary key, reporting whether a row was removed.
-     *
-     * <p>For a table that carries a {@code station_id}, prefer {@link #deleteByIdInStation}: a
-     * handler can forget to check whose row it is, and a statement that names the station cannot.
+     * Deletes a single row by primary key, reporting whether a row was removed. For a table with a
+     * {@code station_id}, use {@link #deleteByIdInStation}.
      */
     public static boolean deleteById(String table, int id) {
         return query("DELETE FROM %s WHERE id = :id;", table)
@@ -64,14 +62,9 @@ public final class SqlSupport {
     }
 
     /**
-     * Deletes a single row by primary key, but only within the given station, reporting whether a
-     * row was removed.
-     *
-     * <p>This exists because the unscoped delete beside it is the path of least resistance, and a
-     * handler that names a row by id and never asks whose it is has been the shape of every
-     * cross-station delete found here. Putting the station in the statement moves the check to
-     * where a caller cannot skip it, and turns a cross-station delete into a delete that removes
-     * nothing.
+     * Deletes a single row by primary key within the station, reporting whether a row was removed. The station
+     * in the statement turns a cross-station delete into one that removes nothing, where a separate check
+     * could be forgotten.
      */
     public static boolean deleteByIdInStation(String table, int id, int stationId) {
         return query("DELETE FROM %s WHERE id = :id AND station_id = :station_id;", table)
@@ -101,12 +94,8 @@ public final class SqlSupport {
     }
 
     /**
-     * Rewrites {@code positionColumn} for every row of {@code table} named in
-     * {@code orderedIds} to its zero-based index in the list, scoped by
-     * {@code scopeColumn = scopeId} so ids from foreign scopes are ignored. Runs as two
-     * set-based statements - first parking the rows on distinct negative positions, then
-     * landing them on their final ones - to satisfy {@code UNIQUE(scope, position)}
-     * constraints that would reject a direct permutation.
+     * Sets each listed row's position to its index in the list, ignoring ids outside the scope. The rows are
+     * parked on negative positions first, since {@code UNIQUE(scope, position)} rejects a direct permutation.
      */
     public static void reorder(
             String table, String positionColumn, String scopeColumn, int scopeId, List<Integer> orderedIds) {

@@ -6,10 +6,15 @@
 package dev.chojo.ember.feature.system.route;
 
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.system.service.SidebarCountService;
 import io.javalin.http.Context;
+import io.javalin.openapi.HttpMethod;
+import io.javalin.openapi.OpenApi;
+import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -28,12 +33,19 @@ public class SidebarCountRoutes implements Routes {
         routes.get(prefix + "/sidebar-counts", this::getSidebarCounts, StationPermission.LOGIN);
     }
 
+    @OpenApi(
+            path = "/api/v1/sidebar-counts",
+            methods = HttpMethod.GET,
+            responses =
+                    @OpenApiResponse(
+                            status = "200",
+                            content = @OpenApiContent(from = SidebarCountService.SidebarCounts.class)))
     private void getSidebarCounts(Context ctx) {
         UserSession session = UserSession.from(ctx);
         if (session.member() == null || session.stationId() == null) {
             ctx.json(new SidebarCountService.SidebarCounts(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
             return;
         }
-        ctx.json(sidebarCountService.getCounts(session));
+        ctx.json(sidebarCountService.getCounts(StationSession.of(session)));
     }
 }

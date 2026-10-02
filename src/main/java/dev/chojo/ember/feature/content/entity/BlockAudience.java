@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.content.entity;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * Who reads the content a block sits in, which decides what a block naming a news entry or an
  * appointment may name and show.
@@ -32,7 +34,7 @@ public enum BlockAudience {
      * @param raw the name as the request gives it, or null
      * @return the audience
      */
-    public static BlockAudience named(String raw) {
+    public static BlockAudience named(@Nullable String raw) {
         return MEMBERS.name().equalsIgnoreCase(raw) ? MEMBERS : PUBLIC;
     }
 }

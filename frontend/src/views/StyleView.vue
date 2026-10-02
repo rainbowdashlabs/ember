@@ -11,7 +11,7 @@ import {useRoute} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import ThemeSelector from '@/components/theme/ThemeSelector.vue'
 import type {ThemeColors} from '@/theme/themes'
-import {contrastTextColor, ensureContrast} from '@/theme/contrast'
+import {activeModeVariables, applyVariables, backgroundVariables} from '@/theme/palette'
 
 import StylePrideText from '@/views/styleview/StylePrideText.vue'
 import StyleLayeredLogo from '@/views/styleview/StyleLayeredLogo.vue'
@@ -31,34 +31,7 @@ const hasCustomParam = ref(false)
 
 function applyCustomColors(colors: ThemeColors) {
   const isDark = document.documentElement.classList.contains('dark')
-  const mode = isDark ? colors.dark : colors.light
-  const root = document.documentElement.style
-  root.setProperty('--color-primary', mode.primary)
-  root.setProperty('--color-primary-accent', mode.primaryAccent)
-  root.setProperty('--color-secondary', mode.secondary)
-  root.setProperty('--color-secondary-accent', mode.secondaryAccent)
-  root.setProperty('--color-info', mode.info)
-  root.setProperty('--color-info-accent', mode.infoAccent)
-  root.setProperty('--color-success', mode.success)
-  root.setProperty('--color-error', mode.error)
-  root.setProperty('--color-bg-light', colors.bgLight)
-  root.setProperty('--color-bg-light-accent', colors.bgLightAccent)
-  root.setProperty('--color-bg-dark', colors.bgDark)
-  root.setProperty('--color-bg-dark-accent', colors.bgDarkAccent)
-  root.setProperty('--color-primary-text', contrastTextColor(mode.primary))
-  root.setProperty('--color-primary-accent-text', contrastTextColor(mode.primaryAccent))
-  root.setProperty('--color-secondary-text', contrastTextColor(mode.secondary))
-  root.setProperty('--color-secondary-accent-text', contrastTextColor(mode.secondaryAccent))
-  root.setProperty('--color-info-text', contrastTextColor(mode.info))
-  root.setProperty('--color-info-accent-text', contrastTextColor(mode.infoAccent))
-  root.setProperty('--color-success-text', contrastTextColor(mode.success))
-  root.setProperty('--color-error-text', contrastTextColor(mode.error))
-  const pageBg = isDark ? colors.bgDark : colors.bgLight
-  root.setProperty('--color-primary-badge', ensureContrast(mode.primaryAccent, pageBg))
-  root.setProperty('--color-secondary-badge', ensureContrast(mode.secondaryAccent, pageBg))
-  root.setProperty('--color-info-badge', ensureContrast(mode.infoAccent, pageBg))
-  root.setProperty('--color-success-badge', ensureContrast(mode.success, pageBg))
-  root.setProperty('--color-error-badge', ensureContrast(mode.error, pageBg))
+  applyVariables({...backgroundVariables(colors), ...activeModeVariables(colors, isDark)})
 }
 
 watchEffect(() => {

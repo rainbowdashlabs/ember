@@ -9,7 +9,7 @@ import {flushPromises} from '@vue/test-utils'
 import {mountSuspended} from '@nuxt/test-utils/runtime'
 import NewsTeaserCell from './NewsTeaserCell.vue'
 import type {FoundNews} from '../embeddedNewsLookup'
-import type {BlockAudience} from '@/api/pageManage'
+import type {BlockAudience} from '@/api/generated/schema'
 import {provideBlockAudience} from '@/composables/useBlockAudience'
 
 const findEmbeddedNews = vi.fn()
@@ -32,7 +32,7 @@ function entry(newsUid: string, over: Partial<FoundNews> = {}): FoundNews {
 }
 
 async function shown(newsUid: string | null, audience?: BlockAudience) {
-    const props = {config: {newsUid}, stationUid: 'station-a', timezone: 'Europe/Berlin'}
+    const props = {config: newsUid ? {newsUid} : {}, stationUid: 'station-a', timezone: 'Europe/Berlin'}
     const host = defineComponent({
         setup() {
             if (audience) provideBlockAudience(audience)

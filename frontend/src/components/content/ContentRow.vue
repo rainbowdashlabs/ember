@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import type {PageRow} from '@/api/pageManage'
+import type {ContentRow as RowData} from '@/api/generated/schema'
 import ContentCell from './ContentCell.vue'
 import type {ContentRenderContext} from '@/util/contentContext'
 
@@ -13,7 +13,7 @@ import type {ContentRenderContext} from '@/util/contentContext'
  * screen, where side by side stops being readable.
  */
 defineProps<{
-    row: PageRow
+    row: RowData
     context: ContentRenderContext
 }>()
 </script>

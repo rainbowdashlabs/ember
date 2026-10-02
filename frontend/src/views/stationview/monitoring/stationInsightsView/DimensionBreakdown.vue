@@ -7,7 +7,7 @@
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import MutedText from '@/components/typography/MutedText.vue'
-import type {DimensionTotal} from '@/api/insights'
+import type {DimensionTotal} from '@/api/generated/schema'
 
 const props = defineProps<{
   rows: DimensionTotal[]
@@ -23,7 +23,7 @@ const max = computed(() => props.rows.reduce((m, r) => Math.max(m, r.hits), 1))
     <div v-for="row in rows" :key="row.dimension" class="flex items-center gap-3 text-sm">
       <div class="w-32 truncate" :title="row.dimension">{{ row.dimension }}</div>
       <div class="flex-1 h-3 rounded bg-(--bg-accent) overflow-hidden">
-        <div class="h-full bg-(--accent)" :style="{width: `${(row.hits / max) * 100}%`}"></div>
+        <div class="h-full bg-(--accent)" :style="{width: `${(row.hits / max) * 100}%`}"/>
       </div>
       <div class="w-16 text-right font-mono">{{ n(row.hits) }}</div>
     </div>

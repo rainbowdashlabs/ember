@@ -3,11 +3,12 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-// @vitest-environment happy-dom
+/** @vitest-environment happy-dom */
 import {describe, expect, it} from 'vitest'
-import {hasDetails, type ProblemEntry} from './problems'
+import {hasDetails} from './problems'
+import type {ProblemSnapshot} from './generated/schema'
 
-function entry(over: Partial<ProblemEntry> = {}): ProblemEntry {
+function entry(over: Partial<ProblemSnapshot> = {}): ProblemSnapshot {
     return {
         id: 1,
         level: 'WARN',

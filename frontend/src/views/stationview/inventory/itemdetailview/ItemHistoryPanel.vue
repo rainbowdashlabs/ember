@@ -8,11 +8,11 @@ import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
-import type {InventoryItemHistory} from '@/api/inventory'
+import type {HistoryResponse} from '@/api/generated/schema'
 import {formatDate} from '@/util/format'
 
 const props = defineProps<{
-  entries: InventoryItemHistory[]
+  entries: HistoryResponse[]
 }>()
 
 const {t} = useI18n()

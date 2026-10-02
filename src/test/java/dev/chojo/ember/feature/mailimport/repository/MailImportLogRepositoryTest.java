@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.mailimport.repository;
 
+import dev.chojo.ember.feature.documents.entity.Uploader;
 import dev.chojo.ember.feature.mailimport.entity.MailImportOutcome;
 import dev.chojo.ember.feature.mailimport.entity.MailRuleAction;
 import dev.chojo.ember.feature.mailimport.entity.MailSecurity;
@@ -237,7 +238,7 @@ class MailImportLogRepositoryTest extends RepositoryTestBase {
                 4096,
                 false,
                 false,
-                null,
+                Uploader.nobody(),
                 List.of());
         repository.record(
                 mailboxId,

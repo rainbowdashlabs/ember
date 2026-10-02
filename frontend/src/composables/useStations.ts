@@ -3,19 +3,50 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {computed, readonly, ref} from 'vue'
+import {computed, readonly} from 'vue'
 import {session} from '@/api'
 import client from '@/api/client'
 import {getItem, removeItem, setItem} from '@/api/storage'
-import type {StationMembership} from '@/api/session'
+import type {StationMembership} from '@/api/generated/schema'
 
-const stationList = ref<StationMembership[]>([])
-const loaded = ref(false)
-const currentStationId = ref<string | null>(getItem('station_id') ?? null)
-const activeLogoUrl = ref<string | null>(null)
-const stationLogos = ref<Map<string, string>>(new Map())
+/**
+ * The stations the reader belongs to, which one they work at, and the logos the browser fetched for them,
+ * held per request.
+ *
+ * <p>The current station starts out unknown, the same on the server and in the browser; the one this
+ * browser stored is put in by {@link restoreActiveStation}, never read here.
+ */
+function stationsState() {
+    return {
+        stationList: useState<StationMembership[]>('useStations.list', () => []),
+        loaded: useState('useStations.loaded', () => false),
+        currentStationId: useState<string | null>('useStations.current', () => null),
+        activeLogoUrl: useState<string | null>('useStations.activeLogo', () => null),
+        stationLogos: useState<Map<string, string>>('useStations.logos', () => new Map()),
+    }
+}
 
+/** Puts the station this browser last worked at into the state. Called by the client plugin. */
+export function restoreActiveStation() {
+    stationsState().currentStationId.value = getItem('station_id')
+}
+
+async function fetchLogo(stationId: string): Promise<string | null> {
+    const res = await client.get(`/stations/${stationId}/logo?size=256`, {
+        responseType: 'blob',
+        validateStatus: (status) => status === 200 || status === 404,
+    })
+    if (res.status === 404) return null
+    return URL.createObjectURL(res.data)
+}
+
+/**
+ * The stations the reader belongs to and which one they work at, exposed read-only with the operations
+ * that change them. Take it at the top of a setup or a composable, before anything is awaited.
+ */
 export function useStations() {
+    const {stationList, loaded, currentStationId, activeLogoUrl, stationLogos} = stationsState()
+
     async function load() {
         loaded.value = false
         try {
@@ -23,8 +54,7 @@ export function useStations() {
         } catch {
             stationList.value = []
         }
-        const stored = getItem('station_id')
-        currentStationId.value = stored ?? null
+        currentStationId.value = getItem('station_id')
         loaded.value = true
         await loadAllLogos()
     }
@@ -53,57 +83,33 @@ export function useStations() {
         activeLogoUrl.value = null
     }
 
-    async function fetchLogo(stationId: string): Promise<string | null> {
-        const res = await client.get(`/stations/${stationId}/logo?size=256`, {
-            responseType: 'blob',
-            validateStatus: (status) => status === 200 || status === 404,
-        })
-        if (res.status === 404) return null
-        return URL.createObjectURL(res.data)
-    }
-
+    /** Fetches the logos not fetched yet; a logo that fails to arrive is left out. */
     async function loadAllLogos() {
         const newMap = new Map(stationLogos.value)
         for (const station of stationList.value) {
             if (newMap.has(station.stationId)) continue
-            try {
-                const url = await fetchLogo(station.stationId)
-                if (url) {
-                    newMap.set(station.stationId, url)
-                    if (station.stationId === currentStationId.value) {
-                        activeLogoUrl.value = url
-                    }
-                }
-            } catch {
-                // Network error
-            }
+            const url = await fetchLogo(station.stationId).catch(() => null)
+            if (!url) continue
+            newMap.set(station.stationId, url)
+            if (station.stationId === currentStationId.value) activeLogoUrl.value = url
         }
         stationLogos.value = newMap
     }
 
     async function loadActiveLogo() {
-        if (currentStationId.value === null) {
+        const stationId = currentStationId.value
+        if (stationId === null) {
             activeLogoUrl.value = null
             return
         }
-        const existing = stationLogos.value.get(currentStationId.value)
+        const existing = stationLogos.value.get(stationId)
         if (existing) {
             activeLogoUrl.value = existing
             return
         }
-        try {
-            const url = await fetchLogo(currentStationId.value)
-            if (url) {
-                const newMap = new Map(stationLogos.value)
-                newMap.set(currentStationId.value, url)
-                stationLogos.value = newMap
-                activeLogoUrl.value = url
-            } else {
-                activeLogoUrl.value = null
-            }
-        } catch {
-            activeLogoUrl.value = null
-        }
+        const url = await fetchLogo(stationId).catch(() => null)
+        activeLogoUrl.value = url
+        if (url) stationLogos.value = new Map(stationLogos.value).set(stationId, url)
     }
 
     function getStationLogoUrl(stationId: string): string | null {

@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {CatalogMetadata, QuizCatalogExport, QuizCatalogExportCategory} from '@/api/quiz'
+import type {CatalogMetadata, CatalogTransfer, CatalogTransferCategory} from '@/api/generated/schema'
 import type {ImportDraft} from '../csvimportview/quizCsvImport'
 
 const FORMAT_VERSION = 1
@@ -17,7 +17,7 @@ export const NO_METADATA: CatalogMetadata = {language: null, source: null, autho
  *
  * @throws SyntaxError when the file is not JSON at all
  */
-export async function readCatalogFile(file: File): Promise<QuizCatalogExport> {
+export async function readCatalogFile(file: File): Promise<CatalogTransfer> {
     const parsed = JSON.parse(await file.text())
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
         throw new SyntaxError('The file is not a catalog export')
@@ -26,8 +26,8 @@ export async function readCatalogFile(file: File): Promise<QuizCatalogExport> {
 }
 
 /** Accepts the shape earlier versions exported, which kept the catalog's fields at the top level. */
-function normalize(parsed: Record<string, unknown>): QuizCatalogExport {
-    if (parsed.catalog) return parsed as unknown as QuizCatalogExport
+function normalize(parsed: Record<string, unknown>): CatalogTransfer {
+    if (parsed.catalog) return parsed as unknown as CatalogTransfer
     return {
         formatVersion: FORMAT_VERSION,
         catalog: {
@@ -36,16 +36,16 @@ function normalize(parsed: Record<string, unknown>): QuizCatalogExport {
             trainingEnabled: parsed.trainingEnabled === true,
             metadata: NO_METADATA,
         },
-        categories: (parsed.categories ?? []) as QuizCatalogExport['categories'],
-        questions: (parsed.questions ?? []) as QuizCatalogExport['questions'],
+        categories: (parsed.categories ?? []) as CatalogTransfer['categories'],
+        questions: (parsed.questions ?? []) as CatalogTransfer['questions'],
     }
 }
 
 /** The categories at least one of the questions going in actually refers to. */
 export function usedCategories(
-    categories: QuizCatalogExportCategory[],
+    categories: CatalogTransferCategory[],
     drafts: ImportDraft[],
-): QuizCatalogExportCategory[] {
+): CatalogTransferCategory[] {
     const referenced = new Set(drafts.map(draft => draft.question.categoryKey).filter(Boolean))
     return categories.filter(category => referenced.has(category.key))
 }
@@ -56,9 +56,9 @@ export function usedCategories(
  */
 export function toTransfer(
     catalog: {name: string; description: string; trainingEnabled: boolean; metadata: CatalogMetadata},
-    categories: QuizCatalogExportCategory[],
+    categories: CatalogTransferCategory[],
     drafts: ImportDraft[],
-): QuizCatalogExport {
+): CatalogTransfer {
     return {
         formatVersion: FORMAT_VERSION,
         catalog,

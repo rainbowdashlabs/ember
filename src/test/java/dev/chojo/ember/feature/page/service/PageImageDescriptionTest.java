@@ -14,20 +14,17 @@ import dev.chojo.ember.feature.content.entity.CellContentType;
 import dev.chojo.ember.feature.content.service.CellDescriptions;
 import dev.chojo.ember.feature.content.service.ContentBlockService;
 import dev.chojo.ember.feature.media.entity.StationFile;
-import dev.chojo.ember.feature.media.service.ImageVariantService;
+import dev.chojo.ember.feature.media.service.ImageVariants;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import dev.chojo.ember.feature.media.service.MediaReferenceRegistry;
 import dev.chojo.ember.feature.media.service.MediaStorageService;
-import dev.chojo.ember.feature.media.service.MediaVariantService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.page.entity.StationPage;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
-import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
 import dev.chojo.ember.feature.storage.service.StorageQuotaService;
 import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import dev.chojo.ember.util.ShareTokens;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -56,7 +53,7 @@ class PageImageDescriptionTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        var backend = new LocalStorageBackend();
+        var backend = localStorage();
         var storageService = new StorageService(new StorageBackendResolver(backend), backend);
         var storageConfig = new Storage();
         var storage = new MediaStorageService(storageService, stationRepo, backend);
@@ -64,7 +61,7 @@ class PageImageDescriptionTest extends RepositoryTestBase {
                 mediaFileRepo,
                 mediaMetaRepo,
                 storage,
-                new MediaVariantService(storage, storageConfig),
+                new ImageVariants(storageService),
                 new MediaReferenceRegistry(contentContainerRepo),
                 new StorageQuotaService(storageUsageRepo, storageConfig, new DomainEventBus(Set.of())));
         blocks = contentBlocks();
@@ -74,8 +71,7 @@ class PageImageDescriptionTest extends RepositoryTestBase {
                 media,
                 new CellDescriptions(media, (stationId, pageUid) -> Optional.empty()),
                 stationMemberRepo,
-                new AvatarService(new ImageVariantService(storageService)),
-                new ShareTokens(),
+                new AvatarService(new ImageVariants(storageService)),
                 stationRepo);
         station = stationRepo.create("ImageDescriptionStation");
         account = accountRepo.create("image-desc@test.com", "Image", "Author");

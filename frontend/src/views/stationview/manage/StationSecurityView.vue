@@ -4,25 +4,22 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {computed, onMounted, ref, watch} from 'vue'
+import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import SubHeader from '@/components/typography/SubHeader.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import ErrorButton from '@/components/button/ErrorButton.vue'
-import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import ButtonRow from '@/components/button/ButtonRow.vue'
-import Modal from '@/components/feedback/Modal.vue'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import PoliciesPanel from './stationsecurityview/PoliciesPanel.vue'
 import MembersPanel from './stationsecurityview/MembersPanel.vue'
 import {twoFactorAdmin} from '@/api'
-import type {MemberStatus, TwoFactorPolicy} from '@/api/twoFactorAdmin'
+import type {MemberStatus, StationUserType, TwoFactorPolicyEntry} from '@/api/generated/schema'
 import {StationPermission} from '@/api/types'
 import {useSession} from '@/composables/useSession'
-import {describeFailure, type Failure} from '@/util/failure'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {describeFailure} from '@/util/failure'
 
 const {t} = useI18n()
 const {hasPermission, loaded} = useSession()
@@ -34,38 +31,34 @@ watch(loaded, (isLoaded) => {
   }
 }, {immediate: true})
 
-const loading = ref(true)
-const failure = ref<Failure | null>(null)
-const userTypes = ref<string[]>([])
-const policies = ref<TwoFactorPolicy[]>([])
+const userTypes = ref<StationUserType[]>([])
+const policies = ref<TwoFactorPolicyEntry[]>([])
 const members = ref<MemberStatus[]>([])
-const saving = ref<string | null>(null)
+const saving = ref<StationUserType | null>(null)
 
 const policyByUserType = computed(() => {
-  const map = new Map<string, TwoFactorPolicy>()
+  const map = new Map<StationUserType, TwoFactorPolicyEntry>()
   for (const p of policies.value) {
     if (p.userType) map.set(p.userType, p)
   }
   return map
 })
 
+const {loading, failure, reload} = useAsyncLoader(async () => {
+  const [types, p, m] = await Promise.all([
+    twoFactorAdmin.listAssignableUserTypes(),
+    twoFactorAdmin.listStationPolicies(),
+    twoFactorAdmin.listStationMemberStatus(),
+  ])
+  userTypes.value = types
+  policies.value = p
+  members.value = m
+})
+
+/** Reads the page back, naming a failure with the sentence given where the caller has a better one. */
 async function load(staleMessage?: string) {
-  loading.value = true
-  failure.value = null
-  try {
-    const [t, p, m] = await Promise.all([
-      twoFactorAdmin.listAssignableUserTypes(),
-      twoFactorAdmin.listStationPolicies(),
-      twoFactorAdmin.listStationMemberStatus(),
-    ])
-    userTypes.value = t
-    policies.value = p
-    members.value = m
-  } catch (e) {
-    const described = describeFailure(e, t)
-    failure.value = staleMessage ? {...described, message: staleMessage} : described
-  }
-  loading.value = false
+  await reload()
+  if (staleMessage && failure.value) failure.value = {...failure.value, message: staleMessage}
 }
 
 /**
@@ -74,7 +67,7 @@ async function load(staleMessage?: string) {
  * <p>The read is answered for separately: a policy that was written and a page that then failed to
  * refresh used to report a refused write, and the reader flicks the switch again.
  */
-async function togglePolicy(userType: string) {
+async function togglePolicy(userType: StationUserType) {
   const existing = policyByUserType.value.get(userType)
   saving.value = userType
   try {
@@ -119,8 +112,6 @@ async function confirmReset() {
   resetLoading.value = false
   await load(t('failure.staleAfterAction'))
 }
-
-onMounted(load)
 </script>
 
 <template>
@@ -146,23 +137,17 @@ onMounted(load)
         />
       </template>
 
-      <Modal :model-value="resetTarget !== null" size="sm" @update:model-value="resetTarget = null">
-        <div v-if="resetTarget" class="space-y-4 p-4">
-          <SubHeader>{{ t('twoFactor.admin.resetConfirmTitle') }}</SubHeader>
-          <p class="text-sm">
-            {{ t('twoFactor.admin.resetConfirmText', {name: resetTarget.firstName + ' ' + resetTarget.lastName}) }}
-          </p>
-          <Alert variant="error">{{ t('twoFactor.admin.resetWarning') }}</Alert>
-          <ButtonRow pair align="end">
-            <SecondaryButton :disabled="resetLoading" @click="resetTarget = null">
-              {{ t('common.cancel') }}
-            </SecondaryButton>
-            <ErrorButton :disabled="resetLoading" @click="confirmReset">
-              {{ resetLoading ? t('common.loading') : t('twoFactor.admin.reset') }}
-            </ErrorButton>
-          </ButtonRow>
-        </div>
-      </Modal>
+      <ConfirmDeleteModal
+          :model-value="resetTarget !== null"
+          :title="t('twoFactor.admin.resetConfirmTitle')"
+          :message="t('twoFactor.admin.resetConfirmText', {name: `${resetTarget?.firstName} ${resetTarget?.lastName}`})"
+          :confirm-label="t('twoFactor.admin.reset')"
+          :busy="resetLoading"
+          @update:model-value="resetTarget = null"
+          @confirm="confirmReset"
+      >
+        <Alert variant="error">{{ t('twoFactor.admin.resetWarning') }}</Alert>
+      </ConfirmDeleteModal>
     </div>
   </ViewContent>
 </template>

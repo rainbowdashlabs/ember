@@ -36,7 +36,6 @@ const questionTypes = [
       <p>{{ t('helpCenter.quiz.addQuestionsText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Add question buttons -->
     <div class="flex flex-wrap gap-2">
       <SecondaryButton v-for="questionType in questionTypes" :key="questionType" :icon="['fas', 'plus']" disabled>
         {{ t(`quiz.questionTypes.${questionType}`) }}
@@ -51,7 +50,6 @@ const questionTypes = [
       <p>{{ t('helpCenter.quiz.typeMultipleChoiceText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Multiple choice question -->
     <NeutralContainer>
       <div class="space-y-3">
         <div class="flex items-center justify-between">
@@ -60,9 +58,9 @@ const questionTypes = [
         </div>
         <TextInput model-value="Was ist kein Löschmittel?" disabled />
         <div class="space-y-1 opacity-60 text-sm">
-          <label class="flex items-center gap-2"><ToggleInput :model-value="false" disabled /> Wasser</label>
-          <label class="flex items-center gap-2"><ToggleInput :model-value="true" disabled /> Benzin</label>
-          <label class="flex items-center gap-2"><ToggleInput :model-value="false" disabled /> Schaum</label>
+          <label class="flex items-center gap-2"><ToggleInput :model-value="false" disabled /> {{ t('helpCenter.sample.quiz.water') }}</label>
+          <label class="flex items-center gap-2"><ToggleInput :model-value="true" disabled /> {{ t('helpCenter.sample.quiz.petrol') }}</label>
+          <label class="flex items-center gap-2"><ToggleInput :model-value="false" disabled /> {{ t('helpCenter.sample.quiz.foam') }}</label>
           <label class="flex items-center gap-2"><ToggleInput :model-value="false" disabled /> CO2</label>
         </div>
       </div>
@@ -96,15 +94,14 @@ const questionTypes = [
       <p>{{ t('helpCenter.quiz.categoriesText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Categories -->
     <NeutralContainer>
       <div class="space-y-2">
         <div class="flex items-center justify-between">
-          <span class="font-medium text-sm">Grundwissen</span>
+          <span class="font-medium text-sm">{{ t('helpCenter.sample.quiz.basicKnowledge') }}</span>
           <span class="text-xs text-(--text-muted)">5 {{ t('quiz.questions.title') }}</span>
         </div>
         <div class="flex items-center justify-between">
-          <span class="font-medium text-sm">Fortgeschritten</span>
+          <span class="font-medium text-sm">{{ t('helpCenter.sample.groups.advanced') }}</span>
           <span class="text-xs text-(--text-muted)">7 {{ t('quiz.questions.title') }}</span>
         </div>
       </div>
@@ -115,7 +112,6 @@ const questionTypes = [
       <p>{{ t('helpCenter.quiz.reportsAcknowledge') }}</p>
     </HelpSection>
 
-    <!-- Dummy: an open note on a question -->
     <InfoContainer class="space-y-2">
       <div class="flex items-center gap-2">
         <font-awesome-icon :icon="['fas', 'flag']" />
@@ -123,8 +119,8 @@ const questionTypes = [
       </div>
       <div class="flex items-start justify-between gap-3">
         <div>
-          <p class="text-sm">Die Antwort stimmt so nicht mehr, seit 2024 gilt eine neue Regel.</p>
-          <MutedText class="block text-xs">Nora &bull; 12.03.2026 18:40</MutedText>
+          <p class="text-sm">{{ t('helpCenter.sample.quiz.ruleChanged') }}</p>
+          <MutedText class="block text-xs">{{ t('helpCenter.sample.quiz.commentMeta') }}</MutedText>
         </div>
         <SecondaryButton class="shrink-0 text-xs" :icon="['fas', 'check']" disabled>
           {{ t('quiz.report.acknowledge') }}

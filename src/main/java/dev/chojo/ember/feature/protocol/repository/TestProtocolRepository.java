@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.protocol.entity.TestProtocolRunCheck;
 import dev.chojo.ember.feature.protocol.entity.TestProtocolRunMember;
 import dev.chojo.ember.feature.protocol.entity.TestProtocolSection;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.sql.Date;
 import java.time.Instant;
@@ -43,8 +44,6 @@ public class TestProtocolRepository {
     private static final String TEST_PROTOCOL_RUN_CHECK_COLUMNS =
             "run_member_id, item_id, checked, checked_by, checked_at";
 
-    // -- Protocols --
-
     public List<TestProtocol> findProtocols(int stationId) {
         return query(
                         "SELECT %s FROM test_protocol WHERE station_id = :station_id ORDER BY name;",
@@ -72,7 +71,8 @@ public class TestProtocolRepository {
         return findById("test_protocol", TEST_PROTOCOL_COLUMNS, id, TestProtocol.map());
     }
 
-    public TestProtocol createProtocol(int stationId, String name, String description, Integer passThreshold) {
+    public TestProtocol createProtocol(
+            int stationId, String name, String description, @Nullable Integer passThreshold) {
         return insertReturning(
                 """
                 INSERT INTO test_protocol(station_id, name, description, pass_threshold)
@@ -86,7 +86,7 @@ public class TestProtocolRepository {
                 TEST_PROTOCOL_COLUMNS);
     }
 
-    public boolean updateProtocol(int id, String name, String description, Integer passThreshold) {
+    public boolean updateProtocol(int id, String name, String description, @Nullable Integer passThreshold) {
         return query("""
                 UPDATE test_protocol
                 SET
@@ -112,8 +112,6 @@ public class TestProtocolRepository {
         return deleteByIdInStation("test_protocol", id, stationId);
     }
 
-    // -- Sections --
-
     public List<TestProtocolSection> findSections(int protocolId) {
         return query("""
                 SELECT %s
@@ -128,11 +126,11 @@ public class TestProtocolRepository {
 
     public TestProtocolSection createSection(
             int protocolId,
-            Integer parentId,
+            @Nullable Integer parentId,
             String name,
             String description,
-            Integer maxPoints,
-            Integer passThreshold,
+            @Nullable Integer maxPoints,
+            @Nullable Integer passThreshold,
             int position) {
         return insertReturning(
                 """
@@ -151,7 +149,12 @@ public class TestProtocolRepository {
     }
 
     public boolean updateSection(
-            int id, String name, String description, Integer maxPoints, Integer passThreshold, int position) {
+            int id,
+            String name,
+            String description,
+            @Nullable Integer maxPoints,
+            @Nullable Integer passThreshold,
+            int position) {
         return query("""
                 UPDATE test_protocol_section SET name = :name, description = :description,
                 max_points = :max_points, pass_threshold = :pass_threshold, position = :position WHERE id = :id;""")
@@ -184,8 +187,6 @@ public class TestProtocolRepository {
                 .map(row -> row.getInt("station_id"))
                 .first();
     }
-
-    // -- Items --
 
     public List<TestProtocolItem> findItems(int sectionId) {
         return query(
@@ -258,8 +259,6 @@ public class TestProtocolRepository {
                 .first();
     }
 
-    // -- Runs --
-
     public List<TestProtocolRun> findRuns(int stationId) {
         return query(
                         "SELECT %s FROM test_protocol_run WHERE station_id = :station_id ORDER BY created_at DESC;",
@@ -304,8 +303,6 @@ public class TestProtocolRepository {
     public boolean deleteRun(int id, int stationId) {
         return deleteByIdInStation("test_protocol_run", id, stationId);
     }
-
-    // -- Run Members --
 
     public List<TestProtocolRunMember> findRunMembers(int runId) {
         return query(
@@ -380,8 +377,6 @@ public class TestProtocolRepository {
                 .changed();
     }
 
-    // -- Section Done --
-
     public List<Integer> findDoneSections(int runMemberId) {
         return query("SELECT section_id FROM test_protocol_run_section_done WHERE run_member_id = :run_member_id;")
                 .single(call().bind("run_member_id", runMemberId))
@@ -428,8 +423,6 @@ public class TestProtocolRepository {
                 .map(TestProtocolRunMember.map())
                 .all();
     }
-
-    // -- Checks --
 
     public List<TestProtocolRunCheck> findChecks(int runMemberId) {
         return query(

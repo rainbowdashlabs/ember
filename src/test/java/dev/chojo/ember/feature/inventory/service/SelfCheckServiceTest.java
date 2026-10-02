@@ -6,11 +6,12 @@
 package dev.chojo.ember.feature.inventory.service;
 
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.InventoryRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.equipment.service.EquipmentAvailabilityService;
-import dev.chojo.ember.feature.events.service.EventBreakService;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
@@ -25,10 +26,7 @@ import dev.chojo.ember.feature.inventory.entity.SelfCheckState;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.ConflictResponse;
-import io.javalin.http.ForbiddenResponse;
-import io.javalin.http.NotFoundResponse;
+import dev.chojo.ember.util.TestStationKeys;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -119,14 +117,11 @@ class SelfCheckServiceTest extends RepositoryTestBase {
      */
     private static InventoryItem borrowFromThePartner() {
         federationRepo = new FederationRepository();
-        federationService = new FederationService(federationRepo, stationRepo, new Api());
+        federationService = new FederationService(federationRepo, stationRepo, TestStationKeys.store(), new Api());
         var lending = newLendingService(
                 new DomainEventBus(Set.of()),
                 new EquipmentAvailabilityService(
-                        equipmentAvailabilityRepo,
-                        equipmentNeedRepo,
-                        eventRepo,
-                        new EventBreakService(eventBreakRepo)));
+                        equipmentAvailabilityRepo, equipmentNeedRepo, eventRepo, occurrenceCalendar));
         var keyPair = federationService.generateKeyPair();
         federationService.acceptInvite(
                 station.id(), otherStation.id(), federationService.encodePublicKey(keyPair), null, null);
@@ -253,7 +248,7 @@ class SelfCheckServiceTest extends RepositoryTestBase {
     void onlyAnAnswerSayingTheRecordIsWrongTakesASizeOnAPiece() {
         int taskId = handOut();
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> selfCheckService.answer(
                         taskId,
                         station.id(),
@@ -262,7 +257,7 @@ class SelfCheckServiceTest extends RepositoryTestBase {
                         List.of(new SelfCheckAnswerInput(
                                 misrecorded.id(), null, null, SelfCheckAnswer.HAVE_IT, "", null, large.id()))));
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> selfCheckService.answer(
                         taskId,
                         station.id(),
@@ -283,7 +278,7 @@ class SelfCheckServiceTest extends RepositoryTestBase {
     void aSizeThatIsNotOneThisKindOfGearComesInIsRefused() {
         int taskId = handOut();
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> selfCheckService.answer(
                         taskId,
                         station.id(),
@@ -297,7 +292,7 @@ class SelfCheckServiceTest extends RepositoryTestBase {
     void onlyAPlaceTheMemberIsHoldingSomethingForTakesASize() {
         int taskId = handOut();
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> selfCheckService.answer(
                         taskId,
                         station.id(),
@@ -324,22 +319,23 @@ class SelfCheckServiceTest extends RepositoryTestBase {
 
     @Test
     void handingOutNeedsSomebodyToAsk() {
-        assertThrows(
-                BadRequestResponse.class, () -> selfCheckService.handOut(station.id(), List.of(), null, guardian.id()));
-        assertThrows(BadRequestResponse.class, () -> selfCheckService.handOut(station.id(), null, null, guardian.id()));
+        var empty = assertThrows(
+                RefusalResponse.class, () -> selfCheckService.handOut(station.id(), List.of(), null, guardian.id()));
+        assertEquals(InventoryRefusal.SELF_CHECK_NO_MEMBER_NAMED, empty.refusal());
+        assertThrows(RefusalResponse.class, () -> selfCheckService.handOut(station.id(), null, null, guardian.id()));
     }
 
     @Test
     void handingOutRefusesSomebodyOfAnotherStation() {
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> selfCheckService.handOut(station.id(), List.of(elsewhere.id()), null, guardian.id()));
     }
 
     @Test
     void handingOutRefusesAFormerMember() {
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> selfCheckService.handOut(station.id(), List.of(leaver.id()), null, guardian.id()));
     }
 
@@ -378,17 +374,16 @@ class SelfCheckServiceTest extends RepositoryTestBase {
                         .read(taskId, station.id(), guardian.id(), true)
                         .task()
                         .id());
-        assertThrows(ForbiddenResponse.class, () -> selfCheckService.read(taskId, station.id(), guardian.id(), false));
-        assertThrows(ForbiddenResponse.class, () -> selfCheckService.read(taskId, station.id(), stranger.id(), true));
+        assertThrows(RefusalResponse.class, () -> selfCheckService.read(taskId, station.id(), guardian.id(), false));
+        assertThrows(RefusalResponse.class, () -> selfCheckService.read(taskId, station.id(), stranger.id(), true));
         selfCheckService.closeAllFor(member.id());
     }
 
     @Test
     void aTaskOfAnotherStationIsSimplyNotThere() {
         int taskId = handOut();
-        assertThrows(
-                NotFoundResponse.class, () -> selfCheckService.read(taskId, otherStation.id(), member.id(), false));
-        assertThrows(NotFoundResponse.class, () -> selfCheckService.read(-1, station.id(), member.id(), false));
+        assertThrows(RefusalResponse.class, () -> selfCheckService.read(taskId, otherStation.id(), member.id(), false));
+        assertThrows(RefusalResponse.class, () -> selfCheckService.read(-1, station.id(), member.id(), false));
         selfCheckService.closeAllFor(member.id());
     }
 
@@ -452,17 +447,16 @@ class SelfCheckServiceTest extends RepositoryTestBase {
     void nothingIsWrittenWithoutAnAnswer() {
         int taskId = handOut();
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> selfCheckService.answer(taskId, station.id(), member.id(), false, List.of()));
         assertThrows(
-                BadRequestResponse.class,
-                () -> selfCheckService.answer(taskId, station.id(), member.id(), false, null));
+                RefusalResponse.class, () -> selfCheckService.answer(taskId, station.id(), member.id(), false, null));
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> selfCheckService.answer(
                         taskId, station.id(), member.id(), false, Arrays.asList((SelfCheckAnswerInput) null)));
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> selfCheckService.answer(
                         taskId,
                         station.id(),
@@ -476,7 +470,7 @@ class SelfCheckServiceTest extends RepositoryTestBase {
     void anAnswerHasToFitTheThingItIsAbout() {
         int taskId = handOut();
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> selfCheckService.answer(
                         taskId,
                         station.id(),
@@ -484,7 +478,7 @@ class SelfCheckServiceTest extends RepositoryTestBase {
                         false,
                         List.of(aboutPiece(owned.id(), SelfCheckAnswer.NEVER_HAD))));
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> selfCheckService.answer(
                         taskId,
                         station.id(),
@@ -500,7 +494,7 @@ class SelfCheckServiceTest extends RepositoryTestBase {
         var somebodyElses = inventoryRepo.createItem(inventory.id(), "SCS-OTHER", "Boots", null, null);
         itemCustodyService.assignToMember(somebodyElses.id(), stranger.id(), "");
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> selfCheckService.answer(
                         taskId,
                         station.id(),
@@ -508,7 +502,7 @@ class SelfCheckServiceTest extends RepositoryTestBase {
                         false,
                         List.of(aboutPiece(somebodyElses.id(), SelfCheckAnswer.HAVE_IT))));
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> selfCheckService.answer(
                         taskId, station.id(), member.id(), false, List.of(aboutPiece(-1, SelfCheckAnswer.HAVE_IT))));
         itemCustodyService.takeBack(somebodyElses.id());
@@ -520,7 +514,7 @@ class SelfCheckServiceTest extends RepositoryTestBase {
     void whatCannotBeSaidAboutAPieceIsRefused() {
         int taskId = handOut();
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> selfCheckService.answer(
                         taskId,
                         station.id(),
@@ -528,7 +522,7 @@ class SelfCheckServiceTest extends RepositoryTestBase {
                         false,
                         List.of(aboutPiece(owned.id(), SelfCheckAnswer.DO_NOT_HAVE_IT))));
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> selfCheckService.answer(
                         taskId,
                         station.id(),
@@ -542,7 +536,7 @@ class SelfCheckServiceTest extends RepositoryTestBase {
     void anEmptyPlaceHasToBeOneTheMemberActuallyHas() {
         int taskId = handOut();
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> selfCheckService.answer(
                         taskId,
                         station.id(),
@@ -550,7 +544,7 @@ class SelfCheckServiceTest extends RepositoryTestBase {
                         false,
                         List.of(new SelfCheckAnswerInput(null, null, 0, SelfCheckAnswer.NEVER_HAD, "", null, null))));
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> selfCheckService.answer(
                         taskId,
                         station.id(),
@@ -559,7 +553,7 @@ class SelfCheckServiceTest extends RepositoryTestBase {
                         List.of(new SelfCheckAnswerInput(
                                 null, inventory.id(), -1, SelfCheckAnswer.NEVER_HAD, "", null, null))));
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> selfCheckService.answer(
                         taskId,
                         station.id(),
@@ -567,7 +561,7 @@ class SelfCheckServiceTest extends RepositoryTestBase {
                         false,
                         List.of(new SelfCheckAnswerInput(null, -1, 0, SelfCheckAnswer.NEVER_HAD, "", null, null))));
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> selfCheckService.answer(
                         taskId,
                         station.id(),
@@ -581,7 +575,7 @@ class SelfCheckServiceTest extends RepositoryTestBase {
     void onlyAPlaceSomethingIsHeldForTakesANumber() {
         int taskId = handOut();
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> selfCheckService.answer(
                         taskId,
                         station.id(),
@@ -598,9 +592,11 @@ class SelfCheckServiceTest extends RepositoryTestBase {
         assertEquals(SelfCheckState.SUBMITTED, submitted.state());
         assertEquals(member.id(), submitted.submittedBy());
 
-        assertThrows(ConflictResponse.class, () -> selfCheckService.submit(taskId, station.id(), member.id(), false));
+        var again = assertThrows(
+                RefusalResponse.class, () -> selfCheckService.submit(taskId, station.id(), member.id(), false));
+        assertEquals(InventoryRefusal.SELF_CHECK_CLOSED, again.refusal());
         assertThrows(
-                ConflictResponse.class,
+                RefusalResponse.class,
                 () -> selfCheckService.answer(
                         taskId,
                         station.id(),
@@ -608,7 +604,7 @@ class SelfCheckServiceTest extends RepositoryTestBase {
                         false,
                         List.of(aboutPiece(owned.id(), SelfCheckAnswer.HAVE_IT))));
         assertThrows(
-                ConflictResponse.class,
+                RefusalResponse.class,
                 () -> selfCheckService.recordLoss(taskId, station.id(), member.id(), false, owned.id()));
         selfCheckService.closeAllFor(member.id());
     }

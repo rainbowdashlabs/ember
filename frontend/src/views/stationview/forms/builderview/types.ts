@@ -3,7 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type { PageTarget, QuestionType } from '@/api/forms'
+import type { QuestionType } from '@/api/forms'
+import type { PageTarget } from '@/api/generated/schema'
 
 export interface QuestionDraft {
   id: string

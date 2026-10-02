@@ -61,7 +61,6 @@ public class NoteService {
 
         var note = noteRepository.createOrUpdate(entityType, entityId, stationId, newContent, authorId);
 
-        // If there was existing content, compute and store a version diff
         if (existing.isPresent()) {
             String oldContent = existing.get().content();
             String patch = TextDiff.createPatch(oldContent, newContent);

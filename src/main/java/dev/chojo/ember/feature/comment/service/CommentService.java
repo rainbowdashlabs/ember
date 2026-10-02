@@ -6,32 +6,54 @@
 package dev.chojo.ember.feature.comment.service;
 
 import dev.chojo.ember.api.MemberIdentity;
+import dev.chojo.ember.api.RouteSupport;
+import dev.chojo.ember.api.StationSession;
+import dev.chojo.ember.api.refusal.CommentRefusal;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.CommentCreated;
 import dev.chojo.ember.event.events.CommentDeleted;
 import dev.chojo.ember.feature.comment.entity.Comment;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
-import dev.chojo.ember.feature.comment.repository.EventCommentRepository;
+import dev.chojo.ember.feature.comment.entity.CommentFilter;
+import dev.chojo.ember.feature.comment.entity.CommentWriter;
+import dev.chojo.ember.feature.comment.entity.Moderation;
+import dev.chojo.ember.feature.comment.entity.NewComment;
+import dev.chojo.ember.feature.comment.entity.TargetInfo;
+import dev.chojo.ember.feature.comment.repository.CommentRepository;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
- * Service providing business logic for event comments, including CRUD operations and @mention handling.
+ * The comments on every kind of target: reading, writing, changing and removing them, and telling
+ * whoever a comment concerns.
+ *
+ * <p>What all kinds share lives here: the thread, the check that an answer stays on the target of
+ * the comment it answers, the soft delete, the one preview cut, the mentions and the events. What
+ * differs between kinds (who may read, write and moderate, who else is told, where a notification
+ * opens) is asked of the {@link CommentTarget} bound for the kind.
+ *
+ * <p>The refusals a route answers for a comment that is missing or not the caller's to change stay
+ * the route's own, since their codes are public; the service names only what is new to all kinds,
+ * an answer to a comment on another target.
  */
 @Singleton
 public class CommentService {
     private static final Logger log = LoggerFactory.getLogger(CommentService.class);
     private static final int PREVIEW_LENGTH = 100;
+    private static final int NO_STATION = -1;
 
-    private final EventCommentRepository commentRepository;
+    private final CommentRepository repository;
+    private final Map<CommentEntityType, CommentTarget> targets;
     private final DomainEventBus eventBus;
     private final StationMemberService stationMemberService;
     private final StationRepository stationRepository;
@@ -39,12 +61,14 @@ public class CommentService {
 
     @Inject
     public CommentService(
-            EventCommentRepository commentRepository,
+            CommentRepository repository,
+            Map<CommentEntityType, CommentTarget> targets,
             DomainEventBus eventBus,
             StationMemberService stationMemberService,
             StationRepository stationRepository,
             CommentMentions mentions) {
-        this.commentRepository = commentRepository;
+        this.repository = repository;
+        this.targets = targets;
         this.eventBus = eventBus;
         this.stationMemberService = stationMemberService;
         this.stationRepository = stationRepository;
@@ -55,190 +79,308 @@ public class CommentService {
         return content.length() > PREVIEW_LENGTH ? content.substring(0, PREVIEW_LENGTH) + "…" : content;
     }
 
-    /**
-     * Finds all comments for an event.
-     *
-     * @param eventId the event ID
-     * @return the list of comments
-     */
-    public List<Comment> findByEvent(int eventId) {
-        return commentRepository.findByEvent(eventId);
+    private static int stationOf(TargetInfo target) {
+        return Objects.requireNonNullElse(target.stationId(), 0);
+    }
+
+    private CommentTarget targetOf(CommentEntityType type) {
+        return Objects.requireNonNull(targets.get(type), () -> "No comment target is bound for " + type);
     }
 
     /**
-     * Finds comments scoped to a specific occurrence of a recurring event. {@code null}
-     * returns only whole-event comments (event_date IS NULL); a non-null date returns
-     * comments stamped with exactly that occurrence.
+     * The thing a comment of the given kind hangs under.
+     *
+     * @param type     the kind of target
+     * @param targetId the target
+     * @return the target, empty when it does not exist
      */
-    public List<Comment> findByEventAndDate(int eventId, LocalDate eventDate) {
-        return commentRepository.findByEventAndDate(eventId, eventDate);
+    public Optional<TargetInfo> target(CommentEntityType type, int targetId) {
+        return targetOf(type).find(targetId);
     }
 
     /**
-     * Finds a comment by its ID.
+     * The target, after asserting the member may read its comments. A missing target is refused the
+     * way its kind names it.
      *
-     * @param id the comment ID
-     * @return the comment, if found
+     * @param session  the reader
+     * @param type     the kind of target
+     * @param targetId the target
+     * @return the target
      */
-    public Optional<Comment> findById(int id) {
-        return commentRepository.findById(id);
+    public TargetInfo requireReadable(StationSession session, CommentEntityType type, int targetId) {
+        var target = targetOf(type);
+        var info = target.find(targetId).orElseThrow(() -> target.missing().raise());
+        target.requireReadable(session, info);
+        return info;
     }
 
     /**
-     * The station owning the event a comment hangs under.
+     * The comments on one target, oldest first.
      *
-     * @param commentId the comment ID
-     * @return the owning station, empty when there is no such comment
+     * @param type     the kind of target
+     * @param targetId the target
+     * @param filter   which of them to show
+     * @return the comments, deleted placeholders included so the threads keep their shape
      */
-    public Optional<Integer> findCommentStation(int commentId) {
-        return commentRepository.findCommentStation(commentId);
+    public List<Comment> list(CommentEntityType type, int targetId, CommentFilter filter) {
+        return switch (filter) {
+            case CommentFilter.All all -> repository.findByTarget(type, targetId);
+            case CommentFilter.Occurrence occurrence -> repository.findByEventOccurrence(targetId, occurrence.date());
+            case CommentFilter.FromStation from -> repository.findByTargetFrom(type, targetId, from.stationUid());
+        };
     }
 
     /**
-     * Creates a new comment and publishes mention events for any @mentioned members.
+     * How many comments one target carries, deleted placeholders included.
      *
-     * @param stationId   the station ID
-     * @param eventId     the event ID
-     * @param parentId    parent comment ID for replies, or {@code null}
-     * @param author      the identity of the author, or {@code null} for anonymous/federated without identity
-     * @param authorName  the display name of the author
-     * @param content     the comment text
-     * @param entityTitle the title/name of the event (used in notifications)
-     * @return the created comment
+     * @param type     the kind of target
+     * @param targetId the target
+     * @return the number of comments
+     */
+    public int count(CommentEntityType type, int targetId) {
+        return repository.count(type, targetId);
+    }
+
+    /**
+     * Finds a comment of the given kind. A comment of another kind is never found here, whatever its
+     * id.
+     *
+     * @param type the kind of target the comment must hang under
+     * @param id   the comment
+     * @return the comment, if there is one of that kind
+     */
+    public Optional<Comment> findById(CommentEntityType type, int id) {
+        return repository.findById(type, id);
+    }
+
+    /**
+     * Writes a comment as a member, after asserting they may write on the target.
+     *
+     * @param session  the writer
+     * @param type     the kind of target
+     * @param targetId the target
+     * @param writer   who writes, with the name notifications show
+     * @param comment  the comment
+     * @return the stored comment
      */
     public Comment create(
-            int stationId,
-            int eventId,
-            Integer parentId,
-            MemberIdentity author,
-            String authorName,
-            String content,
-            String entityTitle,
-            LocalDate eventDate) {
-        var comment = commentRepository.create(eventId, parentId, author, content, eventDate);
-        log.info("Created event comment {} on event {} (station {})", comment.id(), eventId, stationId);
-
-        // Resolve author to local member ID (null if federated / not on this station)
-        Integer authorMemberId = resolveLocalMemberId(stationId, author);
-
-        // Notify parent comment author on reply (skip for federated comments without a local author)
-        if (parentId != null && authorMemberId != null) {
-            commentRepository.findById(parentId).ifPresent(parent -> {
-                Integer parentAuthorId = resolveLocalMemberId(stationId, parent.author());
-                if (parentAuthorId != null && !parentAuthorId.equals(authorMemberId)) {
-                    eventBus.publish(new CommentCreated(
-                            stationId,
-                            CommentEntityType.EVENT,
-                            eventId,
-                            entityTitle,
-                            null,
-                            comment.id(),
-                            parentId,
-                            parentAuthorId,
-                            authorMemberId,
-                            authorName,
-                            preview(content)));
-                }
-            });
-        }
-
-        if (authorMemberId != null) {
-            mentions.announce(
-                    mentionOrigin(stationId, authorMemberId, authorName, eventId, entityTitle, comment.id(), content),
-                    content);
-        }
-
-        return comment;
+            StationSession session, CommentEntityType type, int targetId, CommentWriter writer, NewComment comment) {
+        var target = targetOf(type);
+        var info = target.find(targetId).orElseThrow(() -> target.missing().raise());
+        target.requireWritable(session, info);
+        return store(info, writer, comment);
     }
 
     /**
-     * Updates the content of a comment and announces the mentions the edit added. Whoever the
-     * comment already mentioned is not told again, and a comment without a local author raises
-     * nothing, the same as when it was written.
+     * Writes a comment whose writer the caller has already let in: a member of a partner station,
+     * whose request was checked against what is shared where it arrived, or a comment the demo
+     * seeds. Whom it tells follows from the writer's origin, as for any other comment.
      *
-     * @param stationId  the station the comment was written in
-     * @param id         the comment ID
-     * @param authorName the display name of the author
-     * @param content    the new content
-     * @return {@code true} if the comment was updated
+     * @param target  the target
+     * @param writer  who writes
+     * @param comment the comment
+     * @return the stored comment
      */
-    public boolean update(int stationId, int id, String authorName, String content) {
-        var previous = commentRepository.findById(id);
-        boolean updated = commentRepository.update(id, content);
-        if (!updated) {
-            log.warn("Update for event comment {} affected zero rows", id);
-            return false;
+    public Comment createOn(TargetInfo target, CommentWriter writer, NewComment comment) {
+        return store(target, writer, comment);
+    }
+
+    private Comment store(TargetInfo target, CommentWriter writer, NewComment comment) {
+        var parent = requireParentOn(target, comment.parentId());
+        var stored = repository.create(
+                target.type(),
+                target.id(),
+                parent.isPresent() ? parent.get().eventDate() : comment.eventDate(),
+                comment.parentId(),
+                writer.identity(),
+                comment.content());
+        log.info(
+                "Created {} comment {} on {} (station {})",
+                target.type(),
+                stored.id(),
+                target.id(),
+                target.stationId());
+        announceCreated(target, stored, writer);
+        return stored;
+    }
+
+    /**
+     * The comment an answer replies to, refusing one that is not on the same target, which would
+     * otherwise tell the author of a comment elsewhere about it and open the wrong page for them.
+     *
+     * <p>An answer takes its parent's occurrence date, whatever it was sent with: a thread belongs to
+     * the one date its first comment is about, and the whole-appointment view sends answers without one.
+     *
+     * @return the parent, or empty for a comment that answers nothing
+     */
+    private Optional<Comment> requireParentOn(TargetInfo target, @Nullable Integer parentId) {
+        if (parentId == null) return Optional.empty();
+        var parent = repository.findById(target.type(), parentId).filter(found -> found.targetId() == target.id());
+        if (parent.isEmpty()) throw CommentRefusal.COMMENT_PARENT_ELSEWHERE.raise();
+        return parent;
+    }
+
+    private void announceCreated(TargetInfo commentedOn, Comment comment, CommentWriter writer) {
+        var target = seenFrom(commentedOn, writer.identity());
+        var audience = targetOf(target.type()).audienceFor(target, writer.origin());
+        int stationId = stationOf(target);
+        Integer authorMemberId = resolveLocalMemberId(stationId, writer.identity());
+        Integer parentAuthorId = audience.parentAuthor() ? parentAuthorOf(stationId, comment) : null;
+        boolean answersSomebodyElse = parentAuthorId != null && !parentAuthorId.equals(authorMemberId);
+        if (answersSomebodyElse || audience.others() != null) {
+            eventBus.publish(new CommentCreated(
+                    stationId,
+                    target.type(),
+                    target.title(),
+                    targetOf(target.type()).link(target, comment.id()),
+                    comment.id(),
+                    comment.parentId(),
+                    parentAuthorId,
+                    authorMemberId,
+                    writer.name(),
+                    preview(comment.content()),
+                    audience.others()));
         }
-        log.info("Updated event comment {}", id);
-        previous.ifPresent(comment -> announceAddedMentions(stationId, comment, authorName, content));
-        return true;
+        if (audience.mentions()) {
+            mentions.announce(
+                    origin(target, comment.id(), authorMemberId, writer.name(), comment.content()), comment.content());
+        }
     }
 
-    private void announceAddedMentions(int stationId, Comment previous, String authorName, String content) {
-        Integer authorMemberId = resolveLocalMemberId(stationId, previous.author());
-        if (authorMemberId == null) return;
-        commentRepository
-                .findCommentedEvent(previous.id())
-                .ifPresent(event -> mentions.announceAdded(
-                        mentionOrigin(
-                                stationId,
-                                authorMemberId,
-                                authorName,
-                                event.id(),
-                                event.name(),
-                                previous.id(),
-                                content),
-                        previous.content(),
-                        content));
+    private @Nullable Integer parentAuthorOf(int stationId, Comment comment) {
+        Integer parentId = comment.parentId();
+        if (parentId == null) return null;
+        return repository
+                .findById(comment.type(), parentId)
+                .map(parent -> resolveLocalMemberId(stationId, parent.author()))
+                .orElse(null);
     }
 
-    private static CommentMentions.Origin mentionOrigin(
-            int stationId,
-            int authorMemberId,
-            String authorName,
-            int eventId,
-            String eventTitle,
-            int commentId,
-            String content) {
+    private CommentMentions.Origin origin(
+            TargetInfo target, int commentId, @Nullable Integer authorMemberId, String authorName, String content) {
         return new CommentMentions.Origin(
-                stationId,
+                stationOf(target),
                 authorMemberId,
                 authorName,
-                CommentEntityType.EVENT,
-                eventId,
-                eventTitle,
-                null,
+                target.type(),
+                target.title(),
+                targetOf(target.type()).link(target, commentId),
                 commentId,
                 preview(content));
     }
 
     /**
-     * Deletes a comment by ID and announces the removal, so that whatever was written about it can
-     * be withdrawn. The owning station is read before the row goes, since afterwards there is
-     * nothing left to read it from.
+     * Whether a member may change or remove a comment: its author always may, anybody else only
+     * where the target lets them moderate.
      *
-     * @param id the comment ID
-     * @return {@code true} if the comment was deleted
+     * @param session the member
+     * @param actor   the member's identity
+     * @param comment the comment
+     * @param action  what they want to do with it
+     * @return {@code true} when they may
      */
-    public boolean delete(int id) {
-        int stationId = commentRepository.findCommentStation(id).orElse(0);
-        boolean deleted = commentRepository.delete(id);
-        if (deleted) {
-            eventBus.publish(new CommentDeleted(stationId, CommentEntityType.EVENT, id));
-            log.info("Deleted event comment {}", id);
-        } else {
-            log.warn("Delete for event comment {} affected zero rows", id);
-        }
-        return deleted;
+    public boolean mayModify(StationSession session, MemberIdentity actor, Comment comment, Moderation action) {
+        var author = comment.author();
+        if (author != null && author.sameMember(actor)) return true;
+        var target = targetOf(comment.type());
+        return target.find(comment.targetId())
+                .map(info -> target.mayModerate(session, info, action))
+                .orElse(false);
     }
 
     /**
-     * Resolves a MemberIdentity to a local member ID on the given station.
-     * Returns {@code null} if the identity is null or the member is not local.
+     * Refuses unless the comment belongs to the member's station: it hangs under something the
+     * station owns, or, under a news entry the instance published to every station, it was written
+     * from that station.
+     *
+     * @param session the member
+     * @param comment the comment
      */
-    private Integer resolveLocalMemberId(int stationId, MemberIdentity identity) {
+    public void requireSameStation(StationSession session, Comment comment) {
+        RouteSupport.requireSameStation(session.user(), owningStation(comment));
+    }
+
+    private int owningStation(Comment comment) {
+        Integer stationId = comment.stationId();
+        if (stationId != null) return stationId;
+        var author = comment.author();
+        if (author == null) return NO_STATION;
+        return stationRepository.resolveId(author.stationUid()).orElse(NO_STATION);
+    }
+
+    /**
+     * The target as the station of the given member sees it. A news entry the instance published to
+     * every station belongs to none of them, and a comment under it belongs to the station its
+     * author wrote from, so that is where whatever it tells goes.
+     */
+    private TargetInfo seenFrom(TargetInfo target, @Nullable MemberIdentity member) {
+        if (target.stationId() != null || member == null) return target;
+        return stationRepository
+                .resolveId(member.stationUid())
+                .map(stationId -> new TargetInfo(
+                        target.type(),
+                        target.id(),
+                        stationId,
+                        target.title(),
+                        target.ticketAddress(),
+                        target.systemEntry()))
+                .orElse(target);
+    }
+
+    /**
+     * Rewrites a comment and announces the mentions the edit added. Whoever the comment already
+     * mentioned is not told again, and an edit from a partner station tells nobody, as its comment
+     * did not either.
+     *
+     * @param previous the comment as it stands
+     * @param writer   who changes it
+     * @param content  the new text
+     * @return the changed comment, empty when it went in the meantime
+     */
+    public Optional<Comment> update(Comment previous, CommentWriter writer, String content) {
+        if (!repository.update(previous.type(), previous.id(), content)) {
+            log.warn("Update for {} comment {} affected zero rows", previous.type(), previous.id());
+            return Optional.empty();
+        }
+        log.info("Updated {} comment {}", previous.type(), previous.id());
+        target(previous.type(), previous.targetId())
+                .ifPresent(target ->
+                        announceAddedMentions(seenFrom(target, writer.identity()), previous, writer, content));
+        return repository.findById(previous.type(), previous.id());
+    }
+
+    private void announceAddedMentions(TargetInfo target, Comment previous, CommentWriter writer, String content) {
+        if (!targetOf(target.type()).audienceFor(target, writer.origin()).mentions()) return;
+        Integer authorMemberId = resolveLocalMemberId(stationOf(target), writer.identity());
+        mentions.announceAdded(
+                origin(target, previous.id(), authorMemberId, writer.name(), content), previous.content(), content);
+    }
+
+    /**
+     * Removes a comment and announces the removal, so that whatever was written about it can be
+     * withdrawn. A comment others answered stays as an empty placeholder.
+     *
+     * @param comment the comment
+     * @return {@code true} if the comment was removed
+     */
+    public boolean delete(Comment comment) {
+        var target = target(comment.type(), comment.targetId()).map(info -> seenFrom(info, comment.author()));
+        if (!repository.delete(comment.type(), comment.id())) {
+            log.warn("Delete for {} comment {} affected zero rows", comment.type(), comment.id());
+            return false;
+        }
+        target.ifPresent(info -> eventBus.publish(new CommentDeleted(
+                stationOf(info), comment.type(), targetOf(comment.type()).link(info, comment.id()), comment.id())));
+        log.info("Deleted {} comment {}", comment.type(), comment.id());
+        return true;
+    }
+
+    /**
+     * The member of the given station an identity names, {@code null} when the identity is missing
+     * or belongs to another station.
+     */
+    private @Nullable Integer resolveLocalMemberId(int stationId, @Nullable MemberIdentity identity) {
         if (identity == null) return null;
-        // Check if the identity belongs to this station
         int identityStationId =
                 stationRepository.resolveId(identity.stationUid()).orElse(0);
         if (identityStationId != stationId) return null;

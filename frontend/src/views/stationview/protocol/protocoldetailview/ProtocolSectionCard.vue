@@ -12,7 +12,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import ProtocolItemRow from './ProtocolItemRow.vue'
 import ProtocolSubsectionBlock from './ProtocolSubsectionBlock.vue'
-import type { TestProtocolSection, TestProtocolItem } from '@/api/protocol'
+import type { TestProtocolSection, TestProtocolItem } from '@/api/generated/schema'
 
 const props = defineProps<{
   section: TestProtocolSection
@@ -23,12 +23,12 @@ const props = defineProps<{
 }>()
 
 defineEmits<{
-  (e: 'addItem', sectionId: number): void
-  (e: 'addSubsection', parentId: number): void
-  (e: 'editSection', s: TestProtocolSection): void
-  (e: 'deleteSection', id: number): void
-  (e: 'editItem', item: TestProtocolItem): void
-  (e: 'deleteItem', id: number): void
+  addItem: [sectionId: number]
+  addSubsection: [parentId: number]
+  editSection: [s: TestProtocolSection]
+  deleteSection: [id: number]
+  editItem: [item: TestProtocolItem]
+  deleteItem: [id: number]
 }>()
 
 const { t } = useI18n()

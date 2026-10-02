@@ -9,7 +9,8 @@ import {useI18n} from 'vue-i18n'
 import ItemChip from '@/components/inventory/ItemChip.vue'
 import {glyphFor} from '@/util/glyph'
 import {useMovementParties} from '@/composables/useMovementParties'
-import {MovementPurpose, type Movement} from '@/api/movements'
+import {MovementPurpose} from '@/api/movements'
+import type {MovementResponse} from '@/api/generated/schema'
 
 /**
  * Both ends of a movement: what is going back, what is coming for it, and whose gear that is.
@@ -20,7 +21,7 @@ import {MovementPurpose, type Movement} from '@/api/movements'
  */
 const {t} = useI18n()
 
-const props = defineProps<{movement: Movement}>()
+const props = defineProps<{movement: MovementResponse}>()
 
 const {ownerLabel} = useMovementParties(toRef(props, 'movement'))
 

@@ -5,10 +5,12 @@
  */
 package dev.chojo.ember.feature.events.repository;
 
+import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
@@ -100,6 +102,41 @@ public class EventReminderRepository {
                   AND event_date = :event_date
                   AND days_before = :days_before;""",
                 call().bind("event_id", eventId).bind("event_date", eventDate).bind("days_before", daysBefore));
+    }
+
+    /**
+     * The dates of an appointment, from one day on, that a reminder has already gone out for.
+     *
+     * @param eventId the appointment
+     * @param from    the first date asked about
+     * @return the dates, in no particular order
+     */
+    public List<LocalDate> findSentDatesFrom(int eventId, LocalDate from) {
+        return query("""
+                SELECT DISTINCT event_date
+                FROM event_reminder_sent
+                WHERE event_id = :event_id
+                  AND event_date >= :from;""")
+                .single(call().bind("event_id", eventId).bind("from", from))
+                .map(row -> row.getObject("event_date", LocalDate.class))
+                .all();
+    }
+
+    /**
+     * Forgets the reminders sent for dates an appointment no longer falls on, so nothing about them
+     * is kept for a day that is not an occasion any more.
+     *
+     * @param eventId the appointment
+     * @param dates   the dates it no longer falls on
+     */
+    public void deleteSentOn(int eventId, Collection<LocalDate> dates) {
+        if (dates.isEmpty()) return;
+        query("""
+                DELETE FROM event_reminder_sent
+                WHERE event_id = :event_id
+                  AND event_date = ANY(:dates);""")
+                .single(call().bind("event_id", eventId).bind("dates", List.copyOf(dates), PostgreSqlTypes.DATE))
+                .delete();
     }
 
     /**

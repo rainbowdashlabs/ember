@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.protocol.service;
 
+import dev.chojo.ember.api.refusal.TestProtocolRefusal;
 import dev.chojo.ember.feature.federation.entity.CapabilityType;
 import dev.chojo.ember.feature.federation.entity.ContentType;
 import dev.chojo.ember.feature.federation.entity.Direction;
@@ -13,8 +14,11 @@ import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationDisplayNames;
 import dev.chojo.ember.feature.federation.service.FederationEntityResolver;
 import dev.chojo.ember.feature.federation.service.FederationFanout;
-import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationService;
+import dev.chojo.ember.feature.federation.transport.FederationEndpoints;
+import dev.chojo.ember.feature.federation.transport.FederationServer;
+import dev.chojo.ember.feature.federation.transport.FederationTransport;
+import dev.chojo.ember.feature.federation.transport.ServingPartner;
 import dev.chojo.ember.feature.protocol.entity.TestProtocol;
 import dev.chojo.ember.feature.protocol.entity.TestProtocolItem;
 import dev.chojo.ember.feature.protocol.entity.TestProtocolRun;
@@ -23,54 +27,113 @@ import dev.chojo.ember.feature.protocol.entity.TestProtocolRunMember;
 import dev.chojo.ember.feature.protocol.entity.TestProtocolSection;
 import dev.chojo.ember.feature.protocol.repository.TestProtocolRepository;
 import dev.chojo.ember.feature.protocol.route.RemoteTestProtocolRoutes;
+import dev.chojo.ember.feature.protocol.route.RemoteTestProtocolRoutes.RemoteProtocolDetail;
+import dev.chojo.ember.feature.protocol.route.RemoteTestProtocolRoutes.RemoteProtocolSummary;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
-import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
+/**
+ * Test protocols, their runs, and the protocols federation partners share with a station.
+ *
+ * <p>The protocols this station shares are served to a partner through one set of serving
+ * functions, reached over the {@code /remote} routes from another instance and through the local
+ * transport from this one, so a partner sees the same protocols wherever it lives.
+ */
 @Singleton
-public class TestProtocolService {
+public class TestProtocolService implements FederationServer {
     private static final Logger log = LoggerFactory.getLogger(TestProtocolService.class);
 
     private final TestProtocolRepository repository;
     private final FederationService federationService;
     private final FederationRepository federationRepository;
-    private final FederationHttpClient federationHttpClient;
     private final StationRepository stationRepository;
     private final FederationFanout fanout;
     private final FederationEntityResolver entityResolver;
+    private final FederationTransport transport;
 
     @Inject
     public TestProtocolService(
             TestProtocolRepository repository,
             FederationService federationService,
             FederationRepository federationRepository,
-            FederationHttpClient federationHttpClient,
             StationRepository stationRepository,
             FederationFanout fanout,
-            FederationEntityResolver entityResolver) {
+            FederationEntityResolver entityResolver,
+            FederationTransport transport) {
         this.repository = repository;
         this.federationService = federationService;
         this.federationRepository = federationRepository;
-        this.federationHttpClient = federationHttpClient;
         this.stationRepository = stationRepository;
         this.fanout = fanout;
         this.entityResolver = entityResolver;
+        this.transport = transport;
     }
 
-    // -- Protocols --
+    @Override
+    public void serveOn(FederationEndpoints endpoints) {
+        endpoints.serve(RemoteTestProtocolRoutes.BROWSE_PROTOCOLS, (partner, params, body) -> serveProtocols(partner));
+        endpoints.serve(
+                RemoteTestProtocolRoutes.GET_PROTOCOL,
+                (partner, params, body) -> serveProtocol(partner, params.integer("id")));
+    }
+
+    /**
+     * The protocols this station shares with a partner.
+     *
+     * @param partner the partnership the request arrived on
+     * @return a summary per shared protocol of this station
+     */
+    public List<RemoteProtocolSummary> serveProtocols(ServingPartner partner) {
+        return federationRepository.findProtocolShares(partner.servingStationId()).stream()
+                .flatMap(share -> Stream.ofNullable(share.protocolId()))
+                .flatMap(protocolId -> findProtocol(protocolId).stream())
+                .filter(protocol -> protocol.stationId() == partner.servingStationId())
+                .map(protocol -> new RemoteProtocolSummary(
+                        protocol.id(),
+                        protocol.name(),
+                        protocol.description(),
+                        protocol.updatedAt().toString()))
+                .toList();
+    }
+
+    /**
+     * One protocol this station shares with a partner, with its sections and items.
+     *
+     * <p>A partner is paired with a station, not entitled to everything it holds, and protocol ids
+     * are sequential: a protocol that is missing, belongs to another station or is not shared is
+     * refused alike.
+     *
+     * @param partner    the partnership the request arrived on
+     * @param protocolId the protocol asked for
+     * @return the protocol
+     */
+    public RemoteProtocolDetail serveProtocol(ServingPartner partner, int protocolId) {
+        var protocol = findProtocol(protocolId)
+                .filter(found -> found.stationId() == partner.servingStationId())
+                .filter(found -> isShared(partner, protocolId))
+                .orElseThrow(TestProtocolRefusal.REMOTE_PROTOCOL_NOT_SHARED::raise);
+        return new RemoteProtocolDetail(protocol, findSections(protocolId), findAllItemsByProtocol(protocolId));
+    }
+
+    private boolean isShared(ServingPartner partner, int protocolId) {
+        return federationRepository.findProtocolShares(partner.servingStationId()).stream()
+                .anyMatch(share -> Objects.equals(share.protocolId(), protocolId));
+    }
 
     public List<TestProtocol> findProtocols(int stationId) {
         return repository.findProtocols(stationId);
@@ -84,13 +147,14 @@ public class TestProtocolService {
         return repository.findProtocolById(id);
     }
 
-    public TestProtocol createProtocol(int stationId, String name, String description, Integer passThreshold) {
+    public TestProtocol createProtocol(
+            int stationId, String name, String description, @Nullable Integer passThreshold) {
         TestProtocol protocol = repository.createProtocol(stationId, name, description, passThreshold);
         log.info("Created test protocol {} (name='{}') in station {}", protocol.id(), name, stationId);
         return protocol;
     }
 
-    public boolean updateProtocol(int id, String name, String description, Integer passThreshold) {
+    public boolean updateProtocol(int id, String name, String description, @Nullable Integer passThreshold) {
         boolean updated = repository.updateProtocol(id, name, description, passThreshold);
         if (updated) log.info("Updated test protocol {} (name='{}')", id, name);
         else log.warn("Update of test protocol {} did not change any row", id);
@@ -103,8 +167,6 @@ public class TestProtocolService {
         else log.warn("Delete of test protocol {} did not change any row", id);
         return deleted;
     }
-
-    // -- Sections --
 
     public List<TestProtocolSection> findSections(int protocolId) {
         return repository.findSections(protocolId);
@@ -126,11 +188,11 @@ public class TestProtocolService {
 
     public TestProtocolSection createSection(
             int protocolId,
-            Integer parentId,
+            @Nullable Integer parentId,
             String name,
             String description,
-            Integer maxPoints,
-            Integer passThreshold,
+            @Nullable Integer maxPoints,
+            @Nullable Integer passThreshold,
             int position) {
         TestProtocolSection section =
                 repository.createSection(protocolId, parentId, name, description, maxPoints, passThreshold, position);
@@ -144,7 +206,12 @@ public class TestProtocolService {
     }
 
     public boolean updateSection(
-            int id, String name, String description, Integer maxPoints, Integer passThreshold, int position) {
+            int id,
+            String name,
+            String description,
+            @Nullable Integer maxPoints,
+            @Nullable Integer passThreshold,
+            int position) {
         boolean updated = repository.updateSection(id, name, description, maxPoints, passThreshold, position);
         if (updated) log.info("Updated section {} (name='{}')", id, name);
         else log.warn("Update of section {} did not change any row", id);
@@ -157,8 +224,6 @@ public class TestProtocolService {
         else log.warn("Delete of section {} did not change any row", id);
         return deleted;
     }
-
-    // -- Items --
 
     public List<TestProtocolItem> findItems(int sectionId) {
         return repository.findItems(sectionId);
@@ -187,8 +252,6 @@ public class TestProtocolService {
         else log.warn("Delete of protocol item {} did not change any row", id);
         return deleted;
     }
-
-    // -- Runs --
 
     public List<TestProtocolRun> findRuns(int stationId) {
         return repository.findRuns(stationId);
@@ -230,8 +293,6 @@ public class TestProtocolService {
         else log.warn("Delete of protocol run {} did not change any row", id);
         return deleted;
     }
-
-    // -- Run Members --
 
     public List<TestProtocolRunMember> findRunMembers(int runId) {
         return repository.findRunMembers(runId);
@@ -279,7 +340,6 @@ public class TestProtocolService {
         for (var entry : checks.entrySet()) {
             repository.upsertCheck(runMemberId, entry.getKey(), entry.getValue(), checkedBy);
         }
-        // Recalculate and update score
         var allChecks = repository.findChecks(runMemberId);
         var allItems = repository.findAllItemsByProtocol(protocolId);
         var itemPoints = allItems.stream().collect(Collectors.toMap(TestProtocolItem::id, TestProtocolItem::points));
@@ -298,8 +358,6 @@ public class TestProtocolService {
                 checkedBy,
                 score);
     }
-
-    // -- Section Done --
 
     public List<Integer> findDoneSections(int runId, int memberId) {
         var rm = repository.findRunMember(runId, memberId);
@@ -341,7 +399,6 @@ public class TestProtocolService {
         if (rm.isEmpty()) return false;
         int runMemberId = rm.get().id();
 
-        // Calculate total score from checked items
         var checks = repository.findChecks(runMemberId);
         var allItems = repository.findAllItemsByProtocol(protocolId);
         var itemPoints = allItems.stream().collect(Collectors.toMap(TestProtocolItem::id, TestProtocolItem::points));
@@ -367,17 +424,12 @@ public class TestProtocolService {
         return completed;
     }
 
-    // -- Federated protocols --
-
     public List<SharedProtocolItem> browseSharedProtocols(int stationId) {
         var partners = federationService.findPartners(stationId).stream()
                 .filter(p -> p.status() == FederationPartner.FederationStatus.ACTIVE)
                 .filter(p -> federationService.hasCapability(p, CapabilityType.PROTOCOL_SHARE, Direction.IMPORT))
                 .toList();
-        return fanout.fanOut(
-                partners,
-                partner -> browseSharedProtocolsDirect(resolvePartnerStationId(partner), partner),
-                partner -> browseSharedProtocolsViaHttp(stationId, partner, resolvePartnerStationId(partner)));
+        return fanout.fanOut(partners, this::browsePartner).items();
     }
 
     /**
@@ -403,22 +455,9 @@ public class TestProtocolService {
                 .toList();
     }
 
-    public FederatedProtocolDetail getFederatedProtocol(int localStationId, UUID partnerStationUid, int protocolId) {
-        return entityResolver.resolve(
-                localStationId,
-                partnerStationUid,
-                RemoteTestProtocolRoutes.GET_PROTOCOL.at(protocolId),
-                FederatedProtocolDetail.class,
-                "protocol",
-                partner -> {
-                    var protocol = findProtocol(protocolId).orElseThrow();
-                    if (protocol.stationId() != resolvePartnerStationId(partner)) {
-                        throw new BadRequestResponse("Protocol does not belong to this partner");
-                    }
-                    var sections = findSections(protocolId);
-                    var items = findAllItemsByProtocol(protocolId);
-                    return new FederatedProtocolDetail(protocol, sections, items);
-                });
+    public RemoteProtocolDetail getFederatedProtocol(int localStationId, UUID partnerStationUid, int protocolId) {
+        var partner = entityResolver.requireActivePartner(localStationId, partnerStationUid);
+        return transport.get(partner, RemoteTestProtocolRoutes.GET_PROTOCOL.at(protocolId), RemoteProtocolDetail.class);
     }
 
     public TestProtocol copyProtocol(int protocolId, int targetStationId) {
@@ -471,52 +510,19 @@ public class TestProtocolService {
         return newProto;
     }
 
-    public List<RemoteProtocol> fetchSharedProtocols(
-            String remoteHost, UUID partnerStationUid, int localStationId, String localPrivateKeyBase64) {
-        return federationHttpClient.getList(
-                remoteHost,
-                RemoteTestProtocolRoutes.BROWSE_PROTOCOLS.at(),
-                partnerStationUid,
-                localStationId,
-                localPrivateKeyBase64,
-                RemoteProtocol.class);
-    }
-
-    private List<SharedProtocolItem> browseSharedProtocolsDirect(int remoteStationId, FederationPartner partner) {
-        var result = new ArrayList<SharedProtocolItem>();
-        var shares = federationRepository.findProtocolShares(remoteStationId);
-        for (var share : shares) {
-            if (share.protocolId() != null) {
-                findProtocol(share.protocolId()).ifPresent(proto -> {
-                    result.add(new SharedProtocolItem(
-                            proto.id(), proto.name(), proto.description(), remoteStationId, partner.id()));
+    private List<SharedProtocolItem> browsePartner(FederationPartner partner) {
+        int sourceStationId = resolvePartnerStationId(partner);
+        return transport
+                .getList(partner, RemoteTestProtocolRoutes.BROWSE_PROTOCOLS.at(), RemoteProtocolSummary.class)
+                .stream()
+                .map(protocol -> {
                     federationRepository.upsertMetadataCache(
-                            partner.id(), ContentType.PROTOCOL, proto.id(), proto.name(), proto.description());
-                });
-            }
-        }
-        return result;
+                            partner.id(), ContentType.PROTOCOL, protocol.id(), protocol.name(), protocol.description());
+                    return new SharedProtocolItem(
+                            protocol.id(), protocol.name(), protocol.description(), sourceStationId, partner.id());
+                })
+                .toList();
     }
-
-    private List<SharedProtocolItem> browseSharedProtocolsViaHttp(
-            int localStationId, FederationPartner partner, int remoteStationId) {
-        var result = new ArrayList<SharedProtocolItem>();
-        var protocols = fetchSharedProtocols(
-                partner.remoteHost(), partner.partnerStationId(), localStationId, getPrivateKey(localStationId));
-        for (var remoteProto : protocols) {
-            result.add(new SharedProtocolItem(
-                    remoteProto.id(), remoteProto.name(), remoteProto.description(), remoteStationId, partner.id()));
-            federationRepository.upsertMetadataCache(
-                    partner.id(),
-                    ContentType.PROTOCOL,
-                    remoteProto.id(),
-                    remoteProto.name(),
-                    remoteProto.description());
-        }
-        return result;
-    }
-
-    // -- Federation helpers --
 
     private int resolvePartnerStationId(FederationPartner partner) {
         return stationRepository
@@ -525,28 +531,17 @@ public class TestProtocolService {
                 .orElse(0);
     }
 
-    private String getPrivateKey(int stationId) {
-        return stationRepository
-                .findById(stationId)
-                .map(Station::federationPrivateKey)
-                .orElse(null);
-    }
-
-    public record FederatedProtocolDetail(
-            TestProtocol protocol, List<TestProtocolSection> sections, List<TestProtocolItem> items) {}
-
-    // -- Federation HTTP convenience methods --
-
     public record SharedProtocolItem(int id, String name, String description, int sourceStationId, int partnerId) {}
 
     /**
-     * A shared protocol as shown to users, carrying the owning partner station's display name.
+     * A protocol shared by a partner, carrying the owning partner station's display name. The
+     * station UUID addresses the serving station on the federated read routes and is null when the
+     * partnership behind it can no longer be resolved.
      */
-    /**
-     * A protocol shared by a partner. The station UUID addresses the serving station on the
-     * federated read routes and is null when the partnership behind it can no longer be resolved.
-     */
-    public record SharedProtocolView(int id, String name, String description, String stationName, String stationUid) {}
-
-    public record RemoteProtocol(int id, String name, String description) {}
+    public record SharedProtocolView(
+            int id,
+            String name,
+            String description,
+            String stationName,
+            @Nullable String stationUid) {}
 }

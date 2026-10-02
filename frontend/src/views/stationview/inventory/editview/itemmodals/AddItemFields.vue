@@ -12,8 +12,7 @@ import NumberInput from '@/components/input/number/NumberInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import ScanButton from '@/components/scanner/ScanButton.vue'
 import ArtPicker from '../../ArtPicker.vue'
-import type {InventoryDetail} from '@/api/inventory'
-import type {InventoryArt} from '@/api/inventoryArts'
+import type {InventoryArt, InventoryDetail} from '@/api/generated/schema'
 
 /**
  * What is asked when a piece is written down: its identifier, its name, what kind of thing it is,
@@ -58,7 +57,7 @@ onMounted(() => internalIdInput.value?.$el?.focus())
     </div>
     <div v-if="heterogeneous" class="space-y-1">
       <FieldLabel>{{ t('inventory.art.field') }}</FieldLabel>
-      <ArtPicker v-model:artId="artId" v-model:draft="artDraft" :arts="arts"/>
+      <ArtPicker v-model:art-id="artId" v-model:draft="artDraft" :arts="arts"/>
       <p class="text-xs text-(--text-muted)">{{ t('inventory.art.fieldHint') }}</p>
     </div>
     <div v-if="detail.hasSizes" class="space-y-1">

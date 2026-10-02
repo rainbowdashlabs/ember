@@ -16,7 +16,7 @@ import StationMap from '@/components/map/StationMap.vue'
 import DiscoveryFilterBar from '@/views/stationview/discovery/indexview/DiscoveryFilterBar.vue'
 import DiscoveryStationCard from '@/views/stationview/discovery/indexview/DiscoveryStationCard.vue'
 import {discovery, stationManage} from '@/api'
-import type {DiscoveredStation} from '@/api/discovery'
+import type {DiscoveredStationResponse} from '@/api/generated/schema'
 import type {MapStation} from '@/components/map/StationMap.vue'
 
 const {t} = useI18n()
@@ -27,7 +27,7 @@ const query = ref('')
 const radius = ref(100)
 const nearMeOnly = ref(false)
 
-const stations = ref<DiscoveredStation[]>([])
+const stations = ref<DiscoveredStationResponse[]>([])
 
 interface LatLon {
   lat: number
@@ -99,7 +99,7 @@ const mapStations = computed<MapStation[]>(() => filtered.value
         latitude: s.latitude as number,
         longitude: s.longitude as number,
         subtitle,
-        href: s.contactUrl ?? null,
+        href: s.contactUrl,
         tint,
       }
     }),

@@ -21,9 +21,10 @@ import {readonly} from 'vue'
  */
 function headerState() {
     return {
-        title: useState<string>('page-header-title', () => ''),
-        subtitle: useState<string>('page-header-subtitle', () => ''),
-        owner: useState<number | null>('page-header-owner', () => null),
+        title: useState<string>('usePageHeader.title', () => ''),
+        subtitle: useState<string>('usePageHeader.subtitle', () => ''),
+        owner: useState<number | null>('usePageHeader.owner', () => null),
+        claims: useState('usePageHeader.claims', () => 0),
     }
 }
 
@@ -31,8 +32,6 @@ export function usePageHeader() {
     const {title, subtitle} = headerState()
     return {title: readonly(title), subtitle: readonly(subtitle)}
 }
-
-let claims = 0
 
 /**
  * Binds the shared page header to a single owning component instance. Writing claims
@@ -45,8 +44,8 @@ let claims = 0
  * the state, and only something a payload can carry survives the journey.
  */
 export function claimPageHeader() {
-    const {title, subtitle, owner} = headerState()
-    const id = ++claims
+    const {title, subtitle, owner, claims} = headerState()
+    const id = ++claims.value
 
     return {
         set(newTitle: string, newSubtitle: string) {

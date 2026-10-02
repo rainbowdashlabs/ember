@@ -5,58 +5,45 @@
  */
 <script lang="ts" setup>
 import {computed} from 'vue'
-import QuestionValueInput from '@/components/input/QuestionValueInput.vue'
-import {fromMember} from '@/components/input/select/memberOption'
-import type {StationMember} from '@/api/types'
-import {EventFieldTypes} from '@/api/events'
-import {QuestionKinds, questionKindOf, type QuestionKindName} from '@/util/questions'
+import FieldAnswerInput from '@/components/input/FieldAnswerInput.vue'
+import {fromMember, type MemberLike} from '@/components/input/select/memberOption'
+import {memberConstraintOf} from '@/api/fieldTypes'
+import type {EventQuestionSettings} from '@/api/generated/schema'
 
 /**
  * Answering a question an appointment asks.
  *
- * <p>The box itself is the one every feature uses. What stays here is the half that is the
- * appointment's own: which members a question may name. An appointment can narrow that to a group,
- * to a kind of member or to a tag, and nothing else in Ember does, so the shared box is handed the
- * people rather than taught the rules.
+ * <p>The box itself is the one every feature uses, bounds and all. What stays here is the half that
+ * is the appointment's own: which members a question may name. An appointment can narrow that to a
+ * group, to a kind of member or to a tag, and the shared box is handed the people rather than taught
+ * the rules.
  */
 const modelValue = defineModel<string>({required: true})
 
 const props = defineProps<{
   fieldType: string
-  config?: Record<string, unknown>
+  config?: Partial<EventQuestionSettings> | null
   disabled?: boolean
-  allMembers?: StationMember[]
-  groupMembers?: Map<number, StationMember[]>
-  tagMembers?: Map<number, StationMember[]>
+  allMembers?: MemberLike[]
+  groupMembers?: Map<number, MemberLike[]>
+  tagMembers?: Map<number, MemberLike[]>
 }>()
 
-type FieldConfig = {
-  options?: string[]
-  groupId?: number
-  userType?: string
-  tagId?: number
-}
-
-const config = computed<FieldConfig>(() => (props.config ?? {}) as FieldConfig)
-
-const kind = computed<QuestionKindName>(() => questionKindOf(props.fieldType, true) ?? QuestionKinds.TEXT)
+const settings = computed<Partial<EventQuestionSettings>>(() => props.config ?? {})
 
 /** Who the question may name, narrowed the way the appointment narrowed it. */
 const memberOptions = computed(() => narrowedMembers().map(fromMember))
 
-function narrowedMembers(): StationMember[] {
+function narrowedMembers(): MemberLike[] {
   const all = props.allMembers ?? []
-  const {groupId, userType, tagId} = config.value
-  switch (props.fieldType) {
-    case EventFieldTypes.MEMBER_OF_GROUP:
-    case EventFieldTypes.MEMBER_LIST_OF_GROUP:
-      return groupId && props.groupMembers?.has(groupId) ? props.groupMembers.get(groupId)! : all
-    case EventFieldTypes.MEMBER_OF_TYPE:
-    case EventFieldTypes.MEMBER_LIST_OF_TYPE:
+  const {groupId, userType, tagId} = settings.value
+  switch (memberConstraintOf(props.fieldType)) {
+    case 'group':
+      return (groupId != null && props.groupMembers?.get(groupId)) || all
+    case 'userType':
       return userType ? all.filter(member => member.userType === userType) : all
-    case EventFieldTypes.MEMBER_OF_TAG:
-    case EventFieldTypes.MEMBER_LIST_OF_TAG:
-      return tagId && props.tagMembers?.has(tagId) ? props.tagMembers.get(tagId)! : all
+    case 'tag':
+      return (tagId != null && props.tagMembers?.get(tagId)) || all
     default:
       return all
   }
@@ -64,11 +51,14 @@ function narrowedMembers(): StationMember[] {
 </script>
 
 <template>
-  <QuestionValueInput
+  <FieldAnswerInput
       v-model="modelValue"
       :disabled="disabled"
-      :kind="kind"
+      :field-type="fieldType"
+      :max="settings.max"
       :members="memberOptions"
-      :options="config.options ?? []"
+      :min="settings.min"
+      :options="settings.options ?? []"
+      :required="settings.required"
   />
 </template>

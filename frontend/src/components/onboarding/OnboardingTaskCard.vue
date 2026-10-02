@@ -17,7 +17,8 @@ import {emberGuide, defaultGazePositions} from '@/composables/useEmberLogo'
 import {useOnboardingTasks} from '@/composables/useOnboardingTasks'
 import {flowFor} from '@/util/onboardingFlows'
 import {canInstall, runInstall} from '@/util/installPrompt'
-import {OnboardingTaskState, type OnboardingLevelName, type OnboardingTaskView} from '@/api/onboarding'
+import {OnboardingTaskState, type OnboardingLevelName} from '@/api/onboarding'
+import type {OnboardingTaskView} from '@/api/generated/schema'
 
 /**
  * What Ember still asks of the reader, on the level it asks it.
@@ -87,7 +88,7 @@ function body(task: OnboardingTaskView): string {
  * else the task keeps the written instructions it always had.
  */
 function installable(task: OnboardingTaskView): boolean {
-  return task.key === 'member.bookmark' && canInstall.value
+  return task.key === 'member.bookmark' && canInstall()
 }
 
 /** Ticks the task off when the reader went through with the installation, and not before. */

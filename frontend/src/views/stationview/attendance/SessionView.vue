@@ -8,33 +8,36 @@ import {computed, onMounted, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
+import type {AttendanceStatus, SheetOptions} from '@/api/attendance'
 import type {
   AttendanceEntry,
   AttendanceSession,
   AttendanceSessionField,
-  AttendanceStatus,
   AttendanceTemplateField,
-  TemplateGroupEntry,
-} from '@/api/attendance'
-import {StationPermission, type MemberGroup, type StationMember} from '@/api/types'
+  MemberGroup,
+  MemberWithName,
+  SessionAudience,
+} from '@/api/generated/schema'
+import {StationPermission} from '@/api/types'
 import {attendance, events, memberGroups, stationMembers} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {useAsyncAction} from '@/composables/useAsyncAction'
-import type {SheetOptions} from '@/api/attendance'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import ExportSheetModal from './sessionview/ExportSheetModal.vue'
 import {useSessionMeta} from './sessionview/useSessionMeta'
 import {useCheckMode, type CheckRow} from './sessionview/useCheckMode'
 import {useSessionFields} from './sessionview/useSessionFields'
 import {useSessionNotes} from './sessionview/useSessionNotes'
 import SessionContent from './sessionview/SessionContent.vue'
+import {buildMemberSections, type MemberSection} from './sessionview/memberSections'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import {presentFile} from '@/util/documentFile'
 import {useSessionEventLink} from './sessionview/useSessionEventLink'
 import {formatWeekdayDate, localInputToInstant, timeOnDayOf} from '@/util/format'
 import {reportCaughtError} from '@/util/devErrorReporter'
-import {describeFailure, type Failure} from '@/util/failure'
+import {describeFailure} from '@/util/failure'
 
-const {t} = useI18n()
+const {t, locale} = useI18n()
 const route = useRoute()
 const router = useRouter()
 const {loaded, hasPermission, sessionInfo} = useSession()
@@ -63,13 +66,12 @@ const showDeleteConfirm = ref(false)
 const session = ref<AttendanceSession | null>(null)
 const sessionFields = ref<AttendanceSessionField[]>([])
 const templateFields = ref<AttendanceTemplateField[]>([])
-const templateGroups = ref<TemplateGroupEntry[]>([])
+/** Whom the sheet expects, as the backend decides it: what it was started with, or its template's. */
+const audience = ref<SessionAudience>({userTypes: [], groupIds: []})
 const entries = ref<AttendanceEntry[]>([])
-const allMembers = ref<StationMember[]>([])
+const allMembers = ref<MemberWithName[]>([])
 const groups = ref<MemberGroup[]>([])
-const groupMembers = ref<Map<number, StationMember[]>>(new Map())
-const loading = ref(true)
-const failure = ref<Failure | null>(null)
+const groupMembers = ref<Map<number, MemberWithName[]>>(new Map())
 
 const selectedMemberId = ref('')
 
@@ -100,6 +102,30 @@ const spansDays = computed(() => {
   return new Date(start).toDateString() !== new Date(end).toDateString()
 })
 
+const {loading, failure, reload: loadData} = useAsyncLoader(async () => {
+  const [detail, members, allGroups] = await Promise.all([
+    attendance.getSession(sessionId.value),
+    stationMembers.listMembers(true),
+    memberGroups.listGroups(),
+  ])
+  await loadNotes()
+  session.value = detail.session ?? null
+  sessionFields.value = detail.fields ?? []
+  entries.value = detail.entries ?? []
+  locked.value = detail.locked ?? false
+  audience.value = detail.audience ?? {userTypes: [], groupIds: []}
+  allMembers.value = members
+  groups.value = allGroups
+
+  if (session.value) {
+    await loadSheetFields(detail.templateFields ?? [])
+    await loadEventContext(session.value.eventId ?? null)
+  }
+
+  initFieldValues(sessionFields.value)
+}, {autoLoad: false})
+loading.value = true
+
 const {
   setSessionStartTime,
   setSessionEndTime,
@@ -129,38 +155,14 @@ const openRows = computed((): CheckRow[] => {
 const {checkMode, checkIndex, currentCheckRow, startCheckMode, checkSetStatus, skipCheck} = useCheckMode(openRows, markRow)
 const {fieldValues, parseFieldConfig, onFieldUpdate, setFieldMemberIds, initFieldValues} = useSessionFields(sessionId, templateFields, entries, failure)
 
-interface MemberSection {
-  group: MemberGroup | null
-  members: StationMember[]
-}
-
-const memberSections = computed((): MemberSection[] => {
-  const sections: MemberSection[] = []
-  const assignedMemberIds = new Set<number>()
-  const sortByName = (a: StationMember, b: StationMember) =>
-      (a.name ?? '').localeCompare(b.name ?? '', 'de')
-
-  for (const tg of templateGroups.value) {
-    const group = groups.value.find(g => g.id === tg.groupId)
-    if (!group) continue
-    const members = [...(groupMembers.value.get(tg.groupId) ?? [])].sort(sortByName)
-    if (members.length > 0) {
-      sections.push({group, members})
-      members.forEach(m => assignedMemberIds.add(m.id))
-    }
-  }
-
-  const ungroupedMembers = entries.value
-      .filter(e => !assignedMemberIds.has(e.memberId))
-      .map(e => allMembers.value.find(m => m.id === e.memberId))
-      .filter((m): m is StationMember => m != null)
-      .sort(sortByName)
-
-  if (ungroupedMembers.length > 0) {
-    sections.push({group: null, members: ungroupedMembers})
-  }
-  return sections
-})
+const memberSections = computed((): MemberSection[] => buildMemberSections({
+  audience: audience.value,
+  groups: groups.value,
+  groupMembers: groupMembers.value,
+  allMembers: allMembers.value,
+  entries: entries.value,
+  locale: locale.value,
+}))
 
 function getMemberName(memberId: number): string {
   const m = allMembers.value.find(mm => mm.id === memberId)
@@ -172,8 +174,7 @@ function getMemberIdentity(memberId: number) {
 }
 
 function referencedGroupIds(fields: AttendanceTemplateField[]): Set<number> {
-  const groupIds = new Set<number>()
-  for (const tg of templateGroups.value) groupIds.add(tg.groupId)
+  const groupIds = new Set<number>(audience.value.groupIds)
   for (const field of fields) {
     const cfg = parseFieldConfig(field.config)
     if (cfg.groupId) groupIds.add(cfg.groupId)
@@ -181,8 +182,8 @@ function referencedGroupIds(fields: AttendanceTemplateField[]): Set<number> {
   return groupIds
 }
 
-async function loadGroupMembers(fields: AttendanceTemplateField[]): Promise<Map<number, StationMember[]>> {
-  const byGroup = new Map<number, StationMember[]>()
+async function loadGroupMembers(fields: AttendanceTemplateField[]): Promise<Map<number, MemberWithName[]>> {
+  const byGroup = new Map<number, MemberWithName[]>()
   for (const groupId of referencedGroupIds(fields)) {
     try {
       byGroup.set(groupId, await memberGroups.getGroupMembers(groupId))
@@ -193,14 +194,13 @@ async function loadGroupMembers(fields: AttendanceTemplateField[]): Promise<Map<
   return byGroup
 }
 
-async function loadTemplateContext(templateId: number) {
-  const [tplFields, tplDetail] = await Promise.all([
-    attendance.listTemplateFields(templateId),
-    attendance.getTemplate(templateId),
-  ])
-  templateFields.value = tplFields
-  templateGroups.value = tplDetail.groups ?? []
-  groupMembers.value = await loadGroupMembers(tplFields)
+/**
+ * The fields the sheet shows, as the sheet itself names them: the template's fields in use and the
+ * deleted ones this sheet answered, so an answer never disappears with its field.
+ */
+async function loadSheetFields(fields: AttendanceTemplateField[]) {
+  templateFields.value = fields
+  groupMembers.value = await loadGroupMembers(fields)
 }
 
 /**
@@ -225,35 +225,6 @@ async function loadEventContext(eventId: number | null) {
   }
 }
 
-async function loadData() {
-  loading.value = true
-  failure.value = null
-  try {
-    const [detail, members, allGroups] = await Promise.all([
-      attendance.getSession(sessionId.value),
-      stationMembers.listMembers(true),
-      memberGroups.listGroups(),
-    ])
-    await loadNotes()
-    session.value = detail.session ?? null
-    sessionFields.value = detail.fields ?? []
-    entries.value = detail.entries ?? []
-    locked.value = detail.locked ?? false
-    allMembers.value = members
-    groups.value = allGroups
-
-    if (session.value) {
-      await loadTemplateContext(session.value.templateId)
-      await loadEventContext(session.value.eventId ?? null)
-    }
-
-    initFieldValues(sessionFields.value)
-  } catch (e) {
-    failure.value = describeFailure(e, t)
-  } finally {
-    loading.value = false
-  }
-}
 
 /**
  * Doing something to the sheet and then reading it back, which are two things and not one.

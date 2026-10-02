@@ -106,10 +106,9 @@ class WebAuthnRelyingPartyFactoryTest {
         assertTrue(parties.localhostFallback(), "the fallback must be carried so the passkey mode can be held at OFF");
     }
 
+    /** A Docker service name with an underscore is not a valid host, so URI parsing fails and localhost is used. */
     @Test
     void rpIdFallsBackToLocalhostWhenBaseUrlInvalid() throws Exception {
-        // Docker service names with underscores are RFC 3986 invalid as hosts. The factory
-        // catches IllegalArgumentException from URI parsing and falls back to localhost.
         var parties = build(settings("", "", "none"), apiWithBaseUrl("http://ember_target_backend:8080"));
         assertEquals("localhost", parties.passkey().getIdentity().getId());
         assertTrue(parties.localhostFallback());
@@ -122,8 +121,7 @@ class WebAuthnRelyingPartyFactoryTest {
         assertFalse(parties.localhostFallback());
     }
 
-    // -- The settings move from auth.twoFactor.webauthn to auth.webauthn --
-
+    /** The settings move from {@code auth.twoFactor.webauthn} to {@code auth.webauthn}. */
     @Test
     void newLocationWinsWhenSet() throws Exception {
         var auth = new Auth();
@@ -147,8 +145,10 @@ class WebAuthnRelyingPartyFactoryTest {
         assertEquals("Old Name", resolved.rpName());
         assertEquals("indirect", resolved.attestation());
         assertEquals(90, resolved.timeoutSeconds());
-        // The adoption mutates the new location, so the runtime and the admin screen agree.
-        assertEquals("old.host", auth.webauthn().rpId());
+        assertEquals(
+                "old.host",
+                auth.webauthn().rpId(),
+                "the adoption writes the new location, so the runtime and the admin screen agree");
     }
 
     @Test

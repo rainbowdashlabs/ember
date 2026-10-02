@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.federation.service;
 
+import dev.chojo.ember.api.refusal.FederationRefusal;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.federation.contract.FederationContractVersions;
 import dev.chojo.ember.feature.federation.entity.CapabilityType;
@@ -18,10 +19,12 @@ import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.entity.FederationShare;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
+import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
-import io.javalin.http.BadRequestResponse;
+import dev.chojo.ember.util.RandomTokens;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,7 +32,6 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
-import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.List;
@@ -39,15 +41,34 @@ import java.util.UUID;
 @Singleton
 public class FederationService {
     private static final Logger log = LoggerFactory.getLogger(FederationService.class);
+    private static final String PAIRING_TOKEN_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
     private final FederationRepository repository;
     private final StationRepository stationRepository;
+    private final StationKeyStore stationKeys;
     private final String instanceHost;
 
     @Inject
-    public FederationService(FederationRepository repository, StationRepository stationRepository, Api apiConfig) {
+    public FederationService(
+            FederationRepository repository,
+            StationRepository stationRepository,
+            StationKeyStore stationKeys,
+            Api apiConfig) {
         this.repository = repository;
         this.stationRepository = stationRepository;
+        this.stationKeys = stationKeys;
         this.instanceHost = extractHost(apiConfig.baseUrl());
+    }
+
+    /**
+     * The public half of the key the station signs federation traffic with, generating the key pair
+     * on first use. A station that already has a key keeps it, so its existing partners go on
+     * verifying what it sends.
+     *
+     * @param stationId the station
+     * @return the Base64 public key
+     */
+    public String ensureStationKey(int stationId) {
+        return stationKeys.ensurePublicKey(stationId);
     }
 
     /**
@@ -67,8 +88,6 @@ public class FederationService {
             return baseUrl;
         }
     }
-
-    // -- Pairing Code --
 
     /**
      * Generates a discovery/pairing code: ember-BASE64(stationUid)-BASE64(host).
@@ -102,7 +121,6 @@ public class FederationService {
     public Optional<PairingCodeParts> parsePairingCode(String code) {
         if (!code.startsWith("ember-")) return Optional.empty();
         String rest = code.substring("ember-".length());
-        // Split into exactly 2 or 3 parts: encodedUid, encodedHost, [token]
         String[] segments = rest.split("-", 3);
         if (segments.length < 2) return Optional.empty();
         try {
@@ -182,7 +200,7 @@ public class FederationService {
         record Requested(FederationPartner partner) implements CodeOutcome {}
 
         /** The code was turned away, for the named reason. */
-        record Refused(CodeRefusal reason, String detail) implements CodeOutcome {}
+        record Refused(CodeRefusal reason, @Nullable String detail) implements CodeOutcome {}
     }
 
     /**
@@ -224,7 +242,7 @@ public class FederationService {
             return new CodeOutcome.Requested(createPairRequest(enteringStationId, targetStationId));
         }
 
-        if (!consumeInviteToken(targetStationId, parts.token())) {
+        if (!consumeInviteToken(targetStationId, parts.requireToken())) {
             return new CodeOutcome.Refused(CodeRefusal.SPENT_TOKEN, null);
         }
         repository.deletePendingRequest(enteringStationId, target.get().uid());
@@ -252,12 +270,6 @@ public class FederationService {
         return Base64.getEncoder().encodeToString(keyPair.getPublic().getEncoded());
     }
 
-    // -- Keypair --
-
-    public String encodePrivateKey(KeyPair keyPair) {
-        return Base64.getEncoder().encodeToString(keyPair.getPrivate().getEncoded());
-    }
-
     public List<FederationPartner> findPartners(int stationId) {
         return repository.findPartners(stationId);
     }
@@ -266,7 +278,87 @@ public class FederationService {
         return repository.findPartnerById(id);
     }
 
-    // -- Partner Management --
+    /**
+     * The partner row a station holds for another station, whatever state the partnership is in.
+     *
+     * @param stationId         the station holding the row
+     * @param partnerStationUid the station it partners with
+     * @return the row, or empty when the two are not partners
+     */
+    public Optional<FederationPartner> findPartnerByRemoteUid(int stationId, UUID partnerStationUid) {
+        return repository.findPartnerByStationAndRemoteUid(stationId, partnerStationUid);
+    }
+
+    /**
+     * The name a partner station is shown under, the local station's own name first, then the name
+     * recorded with the partnership, and "Unknown" when neither is known.
+     *
+     * @param partner the partnership
+     * @return the name to show
+     */
+    public String partnerName(FederationPartner partner) {
+        return FederationDisplayNames.partnerName(stationRepository, partner, "Unknown");
+    }
+
+    /**
+     * The name of the station that asked for a pairing, or "Unknown" when it is gone.
+     *
+     * @param request the pending pair request
+     * @return the requesting station's name
+     */
+    public String requesterName(FederationPartner request) {
+        return stationRepository
+                .findById(request.stationId())
+                .map(Station::name)
+                .orElse("Unknown");
+    }
+
+    /**
+     * A pending pair request, as long as it asks the given station.
+     *
+     * @param requestId the request
+     * @param stationId the station that would answer it
+     * @return the request, or empty when there is none or it asks another station
+     */
+    public Optional<FederationPartner> findRequestTo(int requestId, int stationId) {
+        UUID stationUid =
+                stationRepository.findById(stationId).map(Station::uid).orElse(null);
+        return repository.findPartnerById(requestId).filter(request -> request.partnerStationId()
+                .equals(stationUid));
+    }
+
+    /**
+     * A station invite for the given station.
+     *
+     * @param stationId the inviting station
+     * @return the invite code, or empty when the station does not exist
+     */
+    public Optional<String> generateStationInvite(int stationId) {
+        return stationRepository.findById(stationId).map(station -> generateStationInvite(station.id(), station.uid()));
+    }
+
+    /**
+     * Remembers where a partner wants to be told about changes.
+     *
+     * @param partnerId  the partnership
+     * @param webhookUrl the partner's webhook address, already checked as one this instance calls
+     */
+    public void registerWebhook(int partnerId, String webhookUrl) {
+        repository.setWebhookUrl(partnerId, webhookUrl);
+    }
+
+    /**
+     * The changes a partner polls for, noting that it has polled.
+     *
+     * @param partner the polling partnership
+     * @param since   the moment the partner last saw
+     * @return the station's content changes since then
+     */
+    public List<FederationChangeLog> syncChanges(FederationPartner partner, Instant since) {
+        var changes = repository.findChangesSince(partner.stationId(), since);
+        repository.updateLastSyncAt(partner.id());
+        return changes;
+    }
 
     /**
      * Creates a pending pair request from the requesting station to the target station.
@@ -294,16 +386,13 @@ public class FederationService {
         }
 
         int requestingStationId = partner.stationId();
-        // partner.partnerStationId() is now a UUID - resolve back to int for local station lookup
         int targetStationId = stationRepository
                 .findByUid(partner.partnerStationId())
                 .orElseThrow()
                 .id();
 
-        // Delete the pending request record
         repository.deletePartner(partnerId);
 
-        // Create full bidirectional federation with fresh keypairs
         var keyPair = generateKeyPair();
         return acceptInvite(targetStationId, requestingStationId, encodePublicKey(keyPair), null, null);
     }
@@ -326,7 +415,8 @@ public class FederationService {
 
     /**
      * Accepts a federation invite on the same instance (or cross-instance).
-     * Creates bidirectional partner records with optional remote host URLs.
+     * Creates bidirectional partner records with optional remote host URLs, every capability
+     * enabled in both directions.
      *
      * @param acceptingStationId   the station accepting the invite
      * @param initiatingStationId  the station that created the invite
@@ -338,28 +428,21 @@ public class FederationService {
             int acceptingStationId,
             int initiatingStationId,
             String initiatingPublicKey,
-            String initiatingRemoteHost,
-            String acceptingRemoteHost) {
-        var keyPair = generateKeyPair();
-        String acceptingPublicKey = encodePublicKey(keyPair);
-
-        // Store private key on accepting station (if not already set)
-        stationRepository.updateFederationPrivateKey(acceptingStationId, encodePrivateKey(keyPair));
+            @Nullable String initiatingRemoteHost,
+            @Nullable String acceptingRemoteHost) {
+        String acceptingPublicKey = ensureStationKey(acceptingStationId);
 
         UUID acceptingUid = resolveStationUid(acceptingStationId);
         UUID initiatingUid = resolveStationUid(initiatingStationId);
 
-        // Create partner record: initiating -> accepting (from initiating's POV, accepting may be remote)
         var partner = repository.createPartner(
                 initiatingStationId, acceptingUid, null, initiatingPublicKey, acceptingRemoteHost);
         repository.activatePartner(partner.id(), acceptingPublicKey);
 
-        // Create reverse partner record: accepting -> initiating (from accepting's POV, initiating may be remote)
         var reverse = repository.createPartner(
                 acceptingStationId, initiatingUid, null, acceptingPublicKey, initiatingRemoteHost);
         repository.activatePartner(reverse.id(), initiatingPublicKey);
 
-        // Initialize default capabilities (all enabled for both directions)
         for (var cap : CapabilityType.values()) {
             for (var dir : Direction.values()) {
                 repository.upsertCapability(partner.id(), cap, dir, true);
@@ -406,19 +489,21 @@ public class FederationService {
      * @param newHost    the new base URL (null if the station moved to the same instance)
      */
     public void updateRemoteHost(UUID stationUid, String newHost) {
-        // We need to find all records across ALL stations where partner_station_id = stationUid
-        // and update their remote_host
         repository.updateRemoteHostForPartnerStation(stationUid, newHost);
         log.info("Updated remote host for partners pointing at station {} to {}", stationUid, newHost);
     }
 
+    /**
+     * Ends a federation on both sides, deleting the partner station's reverse record as well.
+     *
+     * @param partnerId the partner record to end
+     * @return {@code true} if the record was deleted
+     */
     public boolean endFederation(int partnerId) {
         requireDeletable(partnerId);
-        // Find and delete the reverse partner too
         var partner = repository.findPartnerById(partnerId);
         if (partner.isPresent()) {
             var p = partner.get();
-            // Find reverse: look up the partner station by UUID, then find its partners
             var partnerStation = stationRepository.findByUid(p.partnerStationId());
             if (partnerStation.isPresent()) {
                 UUID ourUid = resolveStationUid(p.stationId());
@@ -438,8 +523,6 @@ public class FederationService {
         }
         return deleted;
     }
-
-    // -- Pairs a cluster owns --
 
     /**
      * Wires a station into its cluster's federation.
@@ -536,7 +619,7 @@ public class FederationService {
     private void requirePausable(int partnerId) {
         repository.findPartnerById(partnerId).ifPresent(partner -> {
             if (!partner.pausableByStation()) {
-                throw new BadRequestResponse("This connection carries the cluster's own content and cannot be paused");
+                throw FederationRefusal.FEDERATION_CLUSTER_PARTNER_NOT_PAUSABLE.raise();
             }
         });
     }
@@ -544,8 +627,7 @@ public class FederationService {
     private void requireDeletable(int partnerId) {
         repository.findPartnerById(partnerId).ifPresent(partner -> {
             if (!partner.deletableByStation()) {
-                throw new BadRequestResponse(
-                        "This connection belongs to the cluster and ends when its membership does");
+                throw FederationRefusal.FEDERATION_CLUSTER_PARTNER_NOT_DELETABLE.raise();
             }
         });
     }
@@ -558,8 +640,6 @@ public class FederationService {
         repository.upsertCapability(partnerId, capability, direction, enabled);
         log.info("Set federation capability {} {} to {} for partner {}", capability, direction, enabled, partnerId);
     }
-
-    // -- Capabilities --
 
     /**
      * Whether a capability is effectively usable with a partner: the admin toggle is on and
@@ -597,7 +677,8 @@ public class FederationService {
         return repository.findKbShareTargets(shareId);
     }
 
-    public FederationShare createKbShare(int stationId, Integer fileId, Integer folderId, ShareScope shareScope) {
+    public FederationShare createKbShare(
+            int stationId, @Nullable Integer fileId, @Nullable Integer folderId, ShareScope shareScope) {
         return createKbShare(stationId, fileId, folderId, shareScope, List.of());
     }
 
@@ -607,7 +688,11 @@ public class FederationService {
      * @param partnerIds the partnerships it is for, read only when the scope names stations
      */
     public FederationShare createKbShare(
-            int stationId, Integer fileId, Integer folderId, ShareScope shareScope, List<Integer> partnerIds) {
+            int stationId,
+            @Nullable Integer fileId,
+            @Nullable Integer folderId,
+            ShareScope shareScope,
+            List<Integer> partnerIds) {
         var share = repository.createKbShare(stationId, fileId, folderId, shareScope);
         if (shareScope == ShareScope.SPECIFIC) {
             repository.setKbShareTargets(share.id(), partnerIds);
@@ -620,8 +705,6 @@ public class FederationService {
                 partnerIds.size());
         return share;
     }
-
-    // -- Sharing --
 
     public boolean deleteKbShare(int id, int stationId) {
         boolean deleted = repository.deleteKbShare(id, stationId);
@@ -673,20 +756,18 @@ public class FederationService {
         return deleted;
     }
 
-    // Available for remote sync - not yet called from routes
+    // TODO: wire into remote sync; no route calls this yet
     public List<FederationMetadataCache> getCachedMetadata(int partnerId, ContentType contentType) {
         return repository.findCachedMetadata(partnerId, contentType);
     }
 
-    // Available for remote sync - not yet called from routes
+    // TODO: wire into remote sync; no route calls this yet
     public void refreshMetadataCache(int partnerId, ContentType contentType, List<FederationMetadataCache> entries) {
         for (var entry : entries) {
             repository.upsertMetadataCache(
                     partnerId, contentType, entry.remoteId(), entry.title(), entry.description());
         }
     }
-
-    // -- Metadata Cache --
 
     /**
      * Logs a content change for federation sync polling.
@@ -702,26 +783,32 @@ public class FederationService {
         return repository.findChangesSince(stationId, since);
     }
 
-    // -- Change Tracking --
-
     private String generateRandomToken() {
-        var random = new SecureRandom();
-        var chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
-        var sb = new StringBuilder();
-        for (int i = 0; i < 12; i++) sb.append(chars.charAt(random.nextInt(chars.length())));
-        return sb.toString();
+        return RandomTokens.code(PAIRING_TOKEN_ALPHABET, 12);
     }
 
     /**
      * Resolves an internal station ID to its UUID.
      */
     private UUID resolveStationUid(int stationId) {
-        return stationRepository.resolveUid(stationId);
+        return stationRepository.requireUid(stationId);
     }
 
-    public record PairingCodeParts(UUID stationUid, String host, String token) {
+    public record PairingCodeParts(
+            UUID stationUid, String host, @Nullable String token) {
         public boolean isStationInvite() {
             return token != null && !token.isBlank();
+        }
+
+        /**
+         * The token of a station invite, which a plain pairing code does not carry.
+         *
+         * @return the token
+         * @throws IllegalStateException for a plain pairing code
+         */
+        public String requireToken() {
+            if (token == null || token.isBlank()) throw new IllegalStateException("A pairing code carries no token");
+            return token;
         }
     }
 }

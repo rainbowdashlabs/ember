@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.events.entity;
 
+import org.jspecify.annotations.Nullable;
+
 import java.time.LocalDate;
 
 /**
@@ -24,5 +26,12 @@ import java.time.LocalDate;
  * @param event        the appointment
  * @param nextDate     the first date from today on that it falls on, null where it has none left
  * @param previousDate the last date before today that it fell on, null where it has yet to run
+ * @param cancellation why the date the row is ordered by is off, the next date on the list of
+ *                     appointments still to come and the previous one on the other; null while that
+ *                     date takes place
  */
-public record DatedEvent(EventSummary event, LocalDate nextDate, LocalDate previousDate) {}
+public record DatedEvent(
+        EventSummary event,
+        @Nullable LocalDate nextDate,
+        @Nullable LocalDate previousDate,
+        @Nullable CancellationNotice cancellation) {}

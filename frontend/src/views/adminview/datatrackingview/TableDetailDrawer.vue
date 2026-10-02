@@ -7,9 +7,18 @@
 import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {dataTracking} from '@/api'
-import {TrackingStatus, type ColumnEntry, type DeletionStrategy, type GdprDeletionContext, type GdprExportContext, type TableEntry, type TrackingStatusName, type TransferContext} from '@/api/dataTracking'
+import {TrackingStatus, type TrackingStatusName} from '@/api/dataTracking'
+import type {
+  ColumnEntry,
+  DeletionStrategy,
+  GdprDeletionContext,
+  GdprExportContext,
+  TableEntry,
+  TransferContext,
+} from '@/api/generated/schema'
 import TableDetailHeader from './TableDetailHeader.vue'
 import TableDetailBody from './TableDetailBody.vue'
+import SidePanel from '@/components/feedback/SidePanel.vue'
 import {describeFailure, type Failure} from '@/util/failure'
 
 const props = defineProps<{
@@ -68,7 +77,7 @@ function ensureDeletionStrategies(): DeletionStrategy[] {
 function addDeletionStrategy() {
   const arr = ensureDeletionStrategies()
   const firstColumn = columns.value[0]?.name ?? ''
-  arr.push({column: firstColumn, strategy: 'NULL', reason: '', legalBasis: null})
+  arr.push({column: firstColumn, strategy: 'NULL', reason: ''})
 }
 
 function removeDeletionStrategy(index: number) {
@@ -112,26 +121,23 @@ async function verifyAll() {
 </script>
 
 <template>
-  <div class="fixed inset-0 z-50 flex">
-    <div class="flex-1 bg-black/40" @click="emit('close')"/>
-    <div class="w-full max-w-2xl bg-(--bg) border-l border-(--border) shadow-2xl overflow-y-auto">
-      <TableDetailHeader :name="name" :entry="entry" @close="emit('close')"/>
-      <TableDetailBody
-          :entry="entry"
-          :columns="columns"
-          :station-transfer="stationTransfer"
-          :gdpr-export="gdprExport"
-          :gdpr-deletion="gdprDeletion"
-          :statuses="statuses"
-          :strategies="STRATEGIES"
-          :column-options="columnOptions"
-          :failure="failure"
-          :save="save"
-          @close="emit('close')"
-          @verify-all="verifyAll"
-          @add-strategy="addDeletionStrategy"
-          @remove-strategy="removeDeletionStrategy"
-      />
-    </div>
-  </div>
+  <SidePanel :model-value="true" @update:model-value="emit('close')">
+    <TableDetailHeader :name="name" :entry="entry" @close="emit('close')"/>
+    <TableDetailBody
+        v-model:station-transfer="stationTransfer"
+        v-model:gdpr-export="gdprExport"
+        v-model:gdpr-deletion="gdprDeletion"
+        :entry="entry"
+        :columns="columns"
+        :statuses="statuses"
+        :strategies="STRATEGIES"
+        :column-options="columnOptions"
+        :failure="failure"
+        :save="save"
+        @close="emit('close')"
+        @verify-all="verifyAll"
+        @add-strategy="addDeletionStrategy"
+        @remove-strategy="removeDeletionStrategy"
+    />
+  </SidePanel>
 </template>

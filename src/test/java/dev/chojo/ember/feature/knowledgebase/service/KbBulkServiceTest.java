@@ -13,25 +13,29 @@ import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.cluster.service.ClusterAutoShareService;
+import dev.chojo.ember.feature.comment.service.CommentService;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationEntityResolver;
 import dev.chojo.ember.feature.federation.service.FederationFanout;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationService;
+import dev.chojo.ember.feature.federation.service.OutboundHttp;
 import dev.chojo.ember.feature.federation.service.RemoteUrlValidator;
+import dev.chojo.ember.feature.federation.transport.FederationTransport;
 import dev.chojo.ember.feature.knowledgebase.entity.KbAccessLevel;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFolder;
 import dev.chojo.ember.feature.knowledgebase.entity.KbRefusalReason;
-import dev.chojo.ember.feature.knowledgebase.repository.KbCommentRepository;
 import dev.chojo.ember.feature.knowledgebase.service.KbAccessService.MemberAccess;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.storage.service.PdfCompressor;
 import dev.chojo.ember.feature.storage.service.PresentationCompressor;
+import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import dev.chojo.ember.util.TestStationKeys;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -60,7 +64,7 @@ class KbBulkServiceTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         var federationRepo = new FederationRepository();
-        var federation = new FederationService(federationRepo, stationRepo, new Api());
+        var federation = new FederationService(federationRepo, stationRepo, TestStationKeys.store(), new Api());
         var httpClient = mock(FederationHttpClient.class);
         var storageConfig = new Storage();
         var fileStorage = mock(KbFileStorageService.class);
@@ -73,8 +77,8 @@ class KbBulkServiceTest extends RepositoryTestBase {
                 fileStorage,
                 contentService,
                 accessService,
-                new KbPresentationService(knowledgeBaseRepo, fileStorage, contentService),
-                new KbLinkMetadataService(new RemoteUrlValidator(new Federation(), new Demo())),
+                new KbPresentationService(knowledgeBaseRepo, fileStorage, contentService, new TaskScheduler()),
+                new KbLinkMetadataService(new OutboundHttp(new RemoteUrlValidator(new Federation(), new Demo()))),
                 new PresentationCompressor(storageConfig),
                 new PdfCompressor(storageConfig),
                 new ClusterAutoShareService(new ClusterRepository(), new FederationRepository()));
@@ -84,13 +88,13 @@ class KbBulkServiceTest extends RepositoryTestBase {
                 searchService,
                 federation,
                 federationRepo,
-                httpClient,
+                mock(FederationTransport.class),
                 stationRepo,
-                new KbCommentRepository(),
+                mock(CommentService.class),
                 mock(EventFederationRepository.class),
                 memberNameResolver,
-                new FederationFanout(),
-                new FederationEntityResolver(federationRepo, stationRepo, httpClient),
+                new FederationFanout(new TaskScheduler()),
+                new FederationEntityResolver(federationRepo),
                 mock(KbPdfExportService.class),
                 accessService);
         tagService = new KbTagService(knowledgeBaseRepo);

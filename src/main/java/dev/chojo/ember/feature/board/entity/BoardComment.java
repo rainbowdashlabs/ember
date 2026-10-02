@@ -5,46 +5,50 @@
  */
 package dev.chojo.ember.feature.board.entity;
 
-import de.chojo.sadu.mapper.rowmapper.RowMapping;
-import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.api.MemberIdentity;
+import dev.chojo.ember.feature.comment.entity.Comment;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
-import java.util.UUID;
 
-import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
-
+/**
+ * A new comment on a ticket of a shared board, as the board's station answers the partner that
+ * wrote it. Only the federation sends it: every other path speaks of a {@link Comment}.
+ *
+ * @param id        the comment
+ * @param ticketId  the ticket it hangs under, on the serving station
+ * @param parentId  the comment it answers, {@code null} for a top-level comment
+ * @param author    who wrote it, {@code null} where nobody can be named
+ * @param content   the text
+ * @param deleted   whether it was removed
+ * @param createdAt when it was written
+ * @param updatedAt when it was last changed, {@code null} if never
+ */
 public record BoardComment(
         int id,
         int ticketId,
-        Integer parentId,
-        MemberIdentity author,
+        @Nullable Integer parentId,
+        @Nullable MemberIdentity author,
         String content,
         boolean deleted,
         Instant createdAt,
-        Instant updatedAt) {
+        @Nullable Instant updatedAt) {
 
-    public static RowMapping<BoardComment> map() {
-        return row -> {
-            UUID authorStationUid = row.get("author_station_uid", StandardValueConverter.UUID_STRING);
-            UUID authorMemberUid = row.get("author_member_uid", StandardValueConverter.UUID_STRING);
-            MemberIdentity author = (authorStationUid != null && authorMemberUid != null)
-                    ? new MemberIdentity(authorStationUid, authorMemberUid)
-                    : null;
-
-            return new BoardComment(
-                    row.getInt("id"),
-                    row.getInt("ticket_id"),
-                    row.getObject("parent_id", Integer.class),
-                    author,
-                    row.getString("content"),
-                    row.getBoolean("deleted"),
-                    row.get("created_at", INSTANT_TIMESTAMP),
-                    row.get("updated_at", INSTANT_TIMESTAMP));
-        };
-    }
-
-    public BoardComment withAuthor(MemberIdentity author) {
-        return new BoardComment(id, ticketId, parentId, author, content, deleted, createdAt, updatedAt);
+    /**
+     * The wire form of a stored comment on a ticket.
+     *
+     * @param comment a comment whose target is a board ticket
+     * @return the same comment as a board comment
+     */
+    public static BoardComment of(Comment comment) {
+        return new BoardComment(
+                comment.id(),
+                comment.targetId(),
+                comment.parentId(),
+                comment.author(),
+                comment.content(),
+                comment.deleted(),
+                comment.createdAt(),
+                comment.updatedAt());
     }
 }

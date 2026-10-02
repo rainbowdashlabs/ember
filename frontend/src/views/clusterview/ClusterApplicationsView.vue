@@ -17,7 +17,8 @@ import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import SingleFieldModal from '@/components/feedback/SingleFieldModal.vue'
 import {clusterStations} from '@/api'
-import {ClusterApplicationStatus, type ClusterApplication} from '@/api/clusterStations'
+import {ClusterApplicationStatus} from '@/api/clusterStations'
+import type {ClusterApplicationResponse} from '@/api/generated/schema'
 import {useConfigPanel} from '@/composables/useConfigPanel'
 import {useModalTarget} from '@/composables/useModalTarget'
 import {formatDate} from '@/util/format'
@@ -27,7 +28,7 @@ const {t} = useI18n()
 const busy = ref(false)
 const denyReason = ref('')
 
-const {config: applications, loading, failure, runWith} = useConfigPanel<ClusterApplication[]>({
+const {config: applications, loading, failure, runWith} = useConfigPanel<ClusterApplicationResponse[]>({
   initial: [],
   fetch: () => clusterStations.listApplications(),
 })
@@ -35,11 +36,11 @@ const {config: applications, loading, failure, runWith} = useConfigPanel<Cluster
 const pending = computed(() => applications.value.filter(a => a.status === ClusterApplicationStatus.PENDING))
 const decided = computed(() => applications.value.filter(a => a.status !== ClusterApplicationStatus.PENDING))
 
-const {isOpen: showDeny, target: denyTarget, open: openDeny} = useModalTarget<ClusterApplication>(() => {
+const {isOpen: showDeny, target: denyTarget, open: openDeny} = useModalTarget<ClusterApplicationResponse>(() => {
   denyReason.value = ''
 })
 
-async function approve(application: ClusterApplication) {
+async function approve(application: ClusterApplicationResponse) {
   await runWith(async () => {
     await clusterStations.decideApplication(application.id, true)
     return clusterStations.listApplications()

@@ -22,8 +22,8 @@ import type {RowEditData} from '@/components/content/blockeditor/EditorRow.vue'
 import {internalContentContext} from '@/util/contentContext'
 import {provideBlockAudience} from '@/composables/useBlockAudience'
 import {ContentMode, type ContentModeName} from '@/api/news'
-import type {PageRow} from '@/api/pageManage'
-import {KbFileType, type KbFile} from '@/api/knowledgeBase'
+import {KbFileType} from '@/api/knowledgeBase'
+import type {ContentRow, KbFile} from '@/api/generated/schema'
 import {downloadAuthed} from '@/util/downloadAuthed'
 
 const props = defineProps<{
@@ -36,7 +36,7 @@ const props = defineProps<{
   canEdit: boolean
   contentMode: ContentModeName
   stationUid: string
-  readerRows: PageRow[]
+  readerRows: ContentRow[]
 }>()
 
 const editContent = defineModel<string>('editContent', {required: true})
@@ -60,7 +60,6 @@ async function downloadOther() {
 </script>
 
 <template>
-  <!-- MARKDOWN -->
   <template v-if="file.fileType === KbFileType.MARKDOWN">
     <template v-if="contentMode === ContentMode.RICH">
       <ContentBlockEditor
@@ -95,7 +94,6 @@ async function downloadOther() {
     </template>
   </template>
 
-  <!-- TEXT -->
   <template v-else-if="file.fileType === KbFileType.TEXT">
     <div v-if="editing">
       <TextAreaInput v-model="editContent" class="font-mono min-h-[400px]" @input="emit('contentInput')"/>
@@ -106,21 +104,18 @@ async function downloadOther() {
     </NeutralContainer>
   </template>
 
-  <!-- PDF -->
   <template v-else-if="file.fileType === KbFileType.PDF">
     <NeutralContainer class="p-0">
       <AuthIframe :src="contentUrl" :title="file.name" class="w-full min-h-[80vh] rounded"/>
     </NeutralContainer>
   </template>
 
-  <!-- IMAGE -->
   <template v-else-if="file.fileType === KbFileType.IMAGE">
     <NeutralContainer class="flex justify-center">
       <AuthImage :src="contentUrl" :alt="file.name" class="max-w-full max-h-[80vh] rounded"/>
     </NeutralContainer>
   </template>
 
-  <!-- YOUTUBE -->
   <template v-else-if="file.fileType === KbFileType.YOUTUBE">
     <NeutralContainer v-if="youtubeEmbedUrl" class="p-0">
       <div class="relative pb-[56.25%] h-0">
@@ -136,7 +131,6 @@ async function downloadOther() {
     <Alert v-else variant="error">{{ t('kb.noContent') }}</Alert>
   </template>
 
-  <!-- LINK -->
   <template v-else-if="file.fileType === KbFileType.LINK">
     <NeutralContainer class="space-y-4">
       <div class="flex items-center gap-2">
@@ -155,7 +149,6 @@ async function downloadOther() {
     </NeutralContainer>
   </template>
 
-  <!-- PRESENTATION -->
   <template v-else-if="file.fileType === KbFileType.PRESENTATION">
     <KbPresentationContent
         :file="file" :content-url="contentUrl" :can-edit="canEdit"
@@ -163,7 +156,6 @@ async function downloadOther() {
     />
   </template>
 
-  <!-- OTHER -->
   <template v-else>
     <NeutralContainer class="text-center py-8">
       <font-awesome-icon :icon="['fas', 'file']" class="text-4xl text-[var(--text-muted)] mb-4"/>

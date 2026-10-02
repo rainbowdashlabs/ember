@@ -6,88 +6,19 @@
 import client from './client'
 import {documentFrom, type DocumentFile} from '@/util/documentFile'
 import {uploadFile} from './upload'
-import type {MessageResponse, SessionInfo} from './types'
+import type {
+    ActiveSession,
+    ConsentChangesResponse,
+    ConsentStatusResponse,
+    CrossStationDashboard,
+    DocumentResponse,
+    LegalVersionsResponse,
+    MessageResponse,
+    RecordConsentRequest,
+    SessionInfo,
+    StationMembership,
+} from './generated/schema'
 import {prepareImageUpload} from '@/util/imageUpload'
-
-export interface ActiveSession {
-    id: number
-    userAgent?: string
-    createdAt?: string
-    lastUsedAt?: string
-    expiresAt?: string
-    isCurrent?: boolean
-    location?: string
-}
-
-export interface DocumentResponse {
-    html: string
-    version: string
-}
-
-export interface LegalVersionsResponse {
-    privacyVersion: string
-    tosVersion: string
-    consentVersion: string
-}
-
-export interface ConsentStatusResponse {
-    consented: boolean
-    current: boolean
-    consentVersion?: string
-    privacyVersion?: string
-    tosVersion?: string
-    consentedAt?: string
-    currentPrivacyVersion: string
-    currentTosVersion: string
-    currentConsentVersion: string
-}
-
-export interface RecordConsentRequest {
-    consentVersion: string
-    privacyVersion?: string
-    tosVersion?: string
-}
-
-export interface ConsentChangesResponse {
-    privacyChanged: boolean
-    tosChanged: boolean
-    privacyDiff?: string
-    tosDiff?: string
-    privacyHtml?: string
-    tosHtml?: string
-    currentPrivacyVersion: string
-    currentTosVersion: string
-    currentConsentVersion: string
-}
-
-export interface StationMembership {
-    memberId: number
-    stationId: string
-    stationName?: string
-}
-
-export interface CrossStationSummary {
-    stationId: string
-    stationName: string
-    notifications: number
-    requirements: number
-}
-
-export interface CrossStationNotification {
-    stationId: string
-    stationName: string
-    id: number
-    type: string
-    localeKey: string
-    params: Record<string, string>
-    link?: { route: string; routeParams: Record<string, unknown> }
-    createdAt: string
-}
-
-export interface CrossStationDashboard {
-    stations: CrossStationSummary[]
-    recentNotifications: CrossStationNotification[]
-}
 
 export async function getSessionInfo(): Promise<SessionInfo> {
     const res = await client.get<SessionInfo>('/session')

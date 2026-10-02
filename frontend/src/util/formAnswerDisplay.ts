@@ -3,7 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import { QuestionTypes, type ChoiceAnswer, type LikertAnswer, type RankingAnswer } from '@/api/forms'
+import { QuestionTypes } from '@/api/forms'
+import type { ChoiceAnswer, LikertAnswer, RankingAnswer } from '@/api/generated/schema'
 import { optionLabel, optionsOf } from '@/util/formOptions'
 
 const EMPTY = '–'

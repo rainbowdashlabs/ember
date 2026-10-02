@@ -15,13 +15,13 @@ import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
-import type {EventPartnerPlaces, FederatedEventRegistration} from '@/api/events'
+import type {EnrichedFederationRegistration, PartnerPlacesView} from '@/api/generated/schema'
 import {formatDate} from '@/util/format'
 
 const props = defineProps<{
-  registrations: FederatedEventRegistration[]
+  registrations: EnrichedFederationRegistration[]
   /** What each partner may do here, by partner. Absent means this station decides, as it always did. */
-  partnerPlaces: EventPartnerPlaces[]
+  partnerPlaces: PartnerPlacesView[]
 }>()
 
 /**

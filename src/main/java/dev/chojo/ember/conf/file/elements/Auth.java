@@ -196,6 +196,34 @@ public class Auth {
         return deviceHandshake;
     }
 
+    public void tokenBytes(int tokenBytes) {
+        this.tokenBytes = tokenBytes;
+    }
+
+    public void verifyTokenHours(int verifyTokenHours) {
+        this.verifyTokenHours = verifyTokenHours;
+    }
+
+    public void passwordTokenHours(int passwordTokenHours) {
+        this.passwordTokenHours = passwordTokenHours;
+    }
+
+    public void setupTokenDays(int setupTokenDays) {
+        this.setupTokenDays = setupTokenDays;
+    }
+
+    public void sessionMinutes(int sessionMinutes) {
+        this.sessionMinutes = sessionMinutes;
+    }
+
+    public void untrustedSessionMinutes(int untrustedSessionMinutes) {
+        this.untrustedSessionMinutes = untrustedSessionMinutes;
+    }
+
+    public void tokenPepper(String tokenPepper) {
+        this.tokenPepper = tokenPepper;
+    }
+
     @Override
     public String toString() {
         return "Auth{" + "tokenBytes="

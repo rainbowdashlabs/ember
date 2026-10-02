@@ -3,13 +3,13 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {ref} from 'vue'
+import {readonly} from 'vue'
 
-const needsReconsent = ref(false)
-
+/** Whether the reader has to agree to changed terms again before they may go anywhere else. */
 export function useConsentGuard() {
+    const needsReconsent = useState('useConsentGuard', () => false)
     return {
-        needsReconsent,
+        needsReconsent: readonly(needsReconsent),
         setNeedsReconsent(value: boolean) {
             needsReconsent.value = value
         },

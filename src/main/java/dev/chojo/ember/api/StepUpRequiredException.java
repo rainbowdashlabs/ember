@@ -12,9 +12,8 @@ import java.util.Set;
 
 /**
  * Raised when a route requires a fresh proof of presence but the session's last verification is
- * outside the configured freshness window. The exception is translated by {@link ApiServer}
- * into a {@code 401} response with body
- * {@code {error:"step_up_required", category:"...", proofs:[...]}} and header
+ * outside the configured freshness window. The exception is translated by {@link ExceptionMapping}
+ * into a {@code 401} response with a {@link StepUpChallenge} as its body and the header
  * {@code X-StepUp-Required}. The proofs are what this account can currently give, so the dialog
  * offers exactly those and never one nobody can produce.
  */

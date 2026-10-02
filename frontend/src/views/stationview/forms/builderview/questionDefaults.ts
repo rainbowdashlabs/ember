@@ -3,8 +3,12 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import { QuestionTypes, type QuestionType } from '@/api/forms'
-import { blankOption } from '@/util/formOptions'
+import { QuestionTypes, type MultiLimitType, type QuestionType, type RatingIcon } from '@/api/forms'
+import type { FormQuestionConfig } from '@/api/generated/schema'
+import { blankOption, optionsOf } from '@/util/formOptions'
+
+const MULTI_LIMIT_TYPES: readonly MultiLimitType[] = ['NONE', 'AT_MOST', 'AT_LEAST', 'EXACTLY']
+const RATING_ICONS: readonly RatingIcon[] = ['STAR', 'NUMBER', 'HEART', 'THUMB_UP']
 
 /** The settings a question of the given kind starts with, one empty option included where it has options. */
 export function defaultConfig(type: QuestionType): Record<string, unknown> {
@@ -16,5 +20,57 @@ export function defaultConfig(type: QuestionType): Record<string, unknown> {
     case QuestionTypes.DATE: return {}
     case QuestionTypes.RANKING: return { options: [blankOption([])] }
     case QuestionTypes.LIKERT: return { statements: [blankOption([])], scaleMin: 1, scaleMax: 5, scaleLabels: [] }
+  }
+}
+
+function flag(value: unknown): boolean | undefined {
+  return typeof value === 'boolean' ? value : undefined
+}
+
+function whole(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value) ? value : undefined
+}
+
+function oneOf<T extends string>(allowed: readonly T[], value: unknown): T | undefined {
+  return allowed.find(candidate => candidate === value)
+}
+
+function texts(value: unknown): string[] | undefined {
+  return Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === 'string') : undefined
+}
+
+/**
+ * The settings of a question in the shape the server reads them: only the settings its kind has,
+ * marked with that kind. The editor keeps whatever its fields wrote; the server refuses a setting it
+ * does not know, so what is sent is picked out here.
+ *
+ * @param type   the kind of question
+ * @param config what the editor holds for it
+ */
+export function questionConfigOf(type: QuestionType, config: Record<string, unknown>): FormQuestionConfig {
+  switch (type) {
+    case QuestionTypes.CHOICE:
+      return {
+        questionType: type,
+        options: optionsOf(config),
+        multiSelect: flag(config.multiSelect),
+        dropdown: flag(config.dropdown),
+        allowOther: flag(config.allowOther),
+        multiLimitType: oneOf(MULTI_LIMIT_TYPES, config.multiLimitType),
+        multiLimit: whole(config.multiLimit),
+      }
+    case QuestionTypes.TEXT: return { questionType: type, longAnswer: flag(config.longAnswer) }
+    case QuestionTypes.RATING:
+      return { questionType: type, scale: whole(config.scale), icon: oneOf(RATING_ICONS, config.icon) }
+    case QuestionTypes.DATE: return { questionType: type }
+    case QuestionTypes.RANKING: return { questionType: type, options: optionsOf(config) }
+    case QuestionTypes.LIKERT:
+      return {
+        questionType: type,
+        statements: optionsOf(config, 'statements'),
+        scaleMin: whole(config.scaleMin),
+        scaleMax: whole(config.scaleMax),
+        scaleLabels: texts(config.scaleLabels),
+      }
   }
 }

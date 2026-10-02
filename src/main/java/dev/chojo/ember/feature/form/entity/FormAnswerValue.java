@@ -5,10 +5,12 @@
  */
 package dev.chojo.ember.feature.form.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import dev.chojo.ember.util.Json;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import tools.jackson.databind.ObjectMapper;
 
@@ -26,12 +28,12 @@ import static org.slf4j.LoggerFactory.getLogger;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({
-    @JsonSubTypes.Type(value = FormAnswerValue.Choice.class, name = "CHOICE"),
-    @JsonSubTypes.Type(value = FormAnswerValue.Text.class, name = "TEXT"),
-    @JsonSubTypes.Type(value = FormAnswerValue.Rating.class, name = "RATING"),
-    @JsonSubTypes.Type(value = FormAnswerValue.DateValue.class, name = "DATE"),
-    @JsonSubTypes.Type(value = FormAnswerValue.Ranking.class, name = "RANKING"),
-    @JsonSubTypes.Type(value = FormAnswerValue.Likert.class, name = "LIKERT"),
+    @JsonSubTypes.Type(value = FormAnswerValue.ChoiceAnswer.class, name = "CHOICE"),
+    @JsonSubTypes.Type(value = FormAnswerValue.TextAnswer.class, name = "TEXT"),
+    @JsonSubTypes.Type(value = FormAnswerValue.RatingAnswer.class, name = "RATING"),
+    @JsonSubTypes.Type(value = FormAnswerValue.DateAnswer.class, name = "DATE"),
+    @JsonSubTypes.Type(value = FormAnswerValue.RankingAnswer.class, name = "RANKING"),
+    @JsonSubTypes.Type(value = FormAnswerValue.LikertAnswer.class, name = "LIKERT"),
 })
 public sealed interface FormAnswerValue {
     Logger log = getLogger(FormAnswerValue.class);
@@ -40,7 +42,7 @@ public sealed interface FormAnswerValue {
     /**
      * Parses a JSON string into the appropriate answer value for the given question type.
      */
-    static FormAnswerValue parse(FormQuestionType formQuestionType, String json) {
+    static @Nullable FormAnswerValue parse(FormQuestionType formQuestionType, @Nullable String json) {
         if (json == null || json.isBlank()) return null;
         try {
             return MAPPER.readValue(json, formQuestionType.answerClass());
@@ -75,10 +77,11 @@ public sealed interface FormAnswerValue {
      *
      * <p>The fill screens send an answer of the right shape for every question, answered or not, so
      * this is the one place that decides what counts as not answered. Empty answers are dropped before
-     * anything is checked or stored.
+     * anything is checked or stored. It is worked out from the answer and never written with it.
      *
      * @return whether the answer is empty
      */
+    @JsonIgnore
     boolean isEmpty();
 
     /**
@@ -99,7 +102,7 @@ public sealed interface FormAnswerValue {
      * Selected option keys + optional other text.
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record Choice(List<String> selected, String other) implements FormAnswerValue {
+    record ChoiceAnswer(List<String> selected, @Nullable String other) implements FormAnswerValue {
         @Override
         public boolean isEmpty() {
             return (selected == null || selected.isEmpty()) && blank(other);
@@ -120,7 +123,7 @@ public sealed interface FormAnswerValue {
                     ? List.<String>of()
                     : selected.stream().filter(key -> !removed.contains(key)).toList();
             if (kept.isEmpty() && (other == null || other.isBlank())) return Optional.empty();
-            return Optional.of(new Choice(kept, other));
+            return Optional.of(new ChoiceAnswer(kept, other));
         }
     }
 
@@ -128,7 +131,7 @@ public sealed interface FormAnswerValue {
      * Free text answer.
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record Text(String text) implements FormAnswerValue {
+    record TextAnswer(String text) implements FormAnswerValue {
         @Override
         public boolean isEmpty() {
             return blank(text);
@@ -139,7 +142,7 @@ public sealed interface FormAnswerValue {
      * Numeric rating.
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record Rating(int rating) implements FormAnswerValue {
+    record RatingAnswer(int rating) implements FormAnswerValue {
         @Override
         public boolean isEmpty() {
             return rating < 1;
@@ -150,7 +153,7 @@ public sealed interface FormAnswerValue {
      * Date answer.
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record DateValue(String date) implements FormAnswerValue {
+    record DateAnswer(String date) implements FormAnswerValue {
         @Override
         public boolean isEmpty() {
             return blank(date);
@@ -161,7 +164,7 @@ public sealed interface FormAnswerValue {
      * Ordered ranking.
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record Ranking(List<String> order) implements FormAnswerValue {
+    record RankingAnswer(List<String> order) implements FormAnswerValue {
         @Override
         public boolean isEmpty() {
             return order == null || order.isEmpty();
@@ -177,7 +180,7 @@ public sealed interface FormAnswerValue {
             var kept = order == null
                     ? List.<String>of()
                     : order.stream().filter(key -> !removed.contains(key)).toList();
-            return kept.isEmpty() ? Optional.empty() : Optional.of(new Ranking(kept));
+            return kept.isEmpty() ? Optional.empty() : Optional.of(new RankingAnswer(kept));
         }
     }
 
@@ -185,7 +188,7 @@ public sealed interface FormAnswerValue {
      * Likert scale ratings keyed by statement key.
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record Likert(Map<String, Integer> ratings) implements FormAnswerValue {
+    record LikertAnswer(Map<String, Integer> ratings) implements FormAnswerValue {
         @Override
         public boolean isEmpty() {
             return ratings == null || ratings.isEmpty();
@@ -204,7 +207,7 @@ public sealed interface FormAnswerValue {
                     if (!removed.contains(key)) kept.put(key, rating);
                 });
             }
-            return kept.isEmpty() ? Optional.empty() : Optional.of(new Likert(kept));
+            return kept.isEmpty() ? Optional.empty() : Optional.of(new LikertAnswer(kept));
         }
     }
 }

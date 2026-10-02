@@ -7,7 +7,8 @@ import {computed, toValue, type ComputedRef, type MaybeRefOrGetter} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
 import {useSession} from '@/composables/useSession'
-import {ShareGrant, ShareScope, type ShareSetting} from '@/api/lending'
+import {ShareGrant, ShareScope} from '@/api/lending'
+import type {ShareSetting} from '@/api/generated/schema'
 import {StationPermission} from '@/api/types'
 
 /**

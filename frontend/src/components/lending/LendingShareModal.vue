@@ -21,7 +21,8 @@ import ErrorButton from '@/components/button/ErrorButton.vue'
 import * as federation from '@/api/federation'
 import * as lending from '@/api/lending'
 import type {ShareGrantName, ShareScopeName, ShareTarget} from '@/api/lending'
-import {describeFailure, type Failure} from '@/util/failure'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {describeFailure} from '@/util/failure'
 
 /**
  * The one place a station says what it offers a partner, used from the inventory and from a single
@@ -45,29 +46,19 @@ const grant = ref<ShareGrantName>('GRANT')
 const scope = ref<ShareScopeName>('ALL_PARTNERS')
 const partnerIds = ref<string[]>([])
 const partnerOptions = ref<{ value: string; label: string }[]>([])
-const loading = ref(false)
 const saving = ref(false)
-const failure = ref<Failure | null>(null)
 
 const grantHint = computed(() => t(`lendingShare.grantHint.${props.target}`))
 
-async function load() {
-  loading.value = true
-  failure.value = null
-  try {
-    const partners = await federation.listPartners()
-    partnerOptions.value = partners.map(p => ({value: String(p.partner.id), label: p.partnerStationName}))
-    const setting = await lending.getShare(props.target, props.targetId)
-    shared.value = setting.shared
-    grant.value = setting.grant ?? 'GRANT'
-    scope.value = setting.scope ?? 'ALL_PARTNERS'
-    partnerIds.value = setting.partnerIds.map(String)
-  } catch (e) {
-    failure.value = {...describeFailure(e, t), message: t('lendingShare.loadError')}
-  } finally {
-    loading.value = false
-  }
-}
+const {loading, failure, reload: load} = useAsyncLoader(async () => {
+  const partners = await federation.listPartners()
+  partnerOptions.value = partners.map(p => ({value: String(p.partner.id), label: p.partnerStationName}))
+  const setting = await lending.getShare(props.target, props.targetId)
+  shared.value = setting.shared
+  grant.value = setting.grant ?? 'GRANT'
+  scope.value = setting.scope ?? 'ALL_PARTNERS'
+  partnerIds.value = setting.partnerIds.map(String)
+}, {autoLoad: false, errorMessageKey: 'lendingShare.loadError'})
 
 watch(open, (isOpen) => {
   if (isOpen) load()

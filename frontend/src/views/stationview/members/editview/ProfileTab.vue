@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {ref} from 'vue'
+import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import TextInput from '@/components/input/text/TextInput.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
@@ -14,30 +14,30 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import ProfileFieldsLayout, {type LaidOutField} from '@/components/profilefields/ProfileFieldsLayout.vue'
+import ProfileFieldsLayout from '@/components/profilefields/ProfileFieldsLayout.vue'
 import NicknameSection from '@/components/member/NicknameSection.vue'
-import {valueFields} from '@/components/profilefields/fieldLayout'
-import {profileKey, type MergedProfileField} from '@/util/profileFields'
-import type {StationMember} from '@/api/types'
-import {profileFields, members, stationMembers} from '@/api'
+import type {MemberWithName} from '@/api/generated/schema'
+import {members, stationMembers} from '@/api'
 import {useSession} from '@/composables/useSession'
+import type {ProfileAnswers} from '@/composables/useProfileAnswers'
 import {describeFailure, type Failure} from '@/util/failure'
 
 const {t} = useI18n()
 const {sessionInfo} = useSession()
 
 const props = defineProps<{
-  member: StationMember
+  member: MemberWithName
   memberId: number
-  fields: MergedProfileField[]
-  initialValues: Map<string, string>
+  /** The member's answers as the station's member management holds them while they are changed. */
+  answers: ProfileAnswers
 }>()
+
+const fields = computed(() => props.answers.fields.value)
 
 const editFirstName = ref(props.member.firstName ?? '')
 const editLastName = ref(props.member.lastName ?? '')
 const editEmail = ref(props.member.email ?? '')
 const editUsername = ref(props.member.username ?? '')
-const editValues = ref(new Map(props.initialValues))
 
 /**
  * The name this station calls the member by, which whoever keeps the members may put right.
@@ -70,20 +70,8 @@ async function onJoinDateChange(value: string | undefined) {
   }
 }
 
-function getEditValue(field: LaidOutField): string {
-  return editValues.value.get(profileKey(field.id, field.origin ?? 'STATION')) ?? ''
-}
-
-function setEditValue(field: LaidOutField, val: string) {
-  const key = profileKey(field.id, field.origin ?? 'STATION')
-  editValues.value = new Map([...editValues.value, [key, val]])
-}
-
 /**
  * Writes the account, then the answers and the name the station calls them by.
- *
- * <p>A field the association keeps to itself has no control on this screen, so sending it back would
- * send whatever was read rather than anything anybody typed. Those are left out.
  *
  * <p>The account is written first and caught on its own, because an address or a username somebody else
  * already has is the ordinary way this fails and the server names which. What follows is caught apart:
@@ -108,14 +96,7 @@ async function save() {
   }
 
   try {
-    const entries = valueFields(props.fields)
-        .filter(f => !(f as MergedProfileField).readonlyAtStation)
-        .map(f => ({
-          fieldId: f.id,
-          value: JSON.stringify(getEditValue(f)),
-          origin: (f as MergedProfileField).origin,
-        }))
-    await profileFields.setValues(props.memberId, {values: entries})
+    await props.answers.save(props.memberId)
     await members.setNickname(props.memberId, editNickname.value.trim() || null)
   } catch (e) {
     failure.value = {...describeFailure(e, t), message: t('memberEdit.accountSavedRestNot')}
@@ -172,9 +153,9 @@ async function save() {
       <SubHeader class="text-sm">{{ t('memberEdit.fields') }}</SubHeader>
       <ProfileFieldsLayout
           :fields="fields"
-          :get-value="getEditValue"
+          :get-value="answers.valueOf"
           can-edit-readonly
-          @update="setEditValue"
+          @update="answers.update"
       />
     </NeutralContainer>
 

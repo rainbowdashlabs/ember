@@ -14,8 +14,9 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import AttendanceFieldModal from './attendanceconfigedit/FieldModal.vue'
 import EditContent from './attendanceconfigedit/EditContent.vue'
-import type {AttendanceTemplateField, TemplateGroupEntry} from '@/api/attendance'
-import type {MemberGroup} from '@/api/types'
+import type {
+    AttendanceTemplateField, MemberGroup, StationUserType, TemplateFieldRequest, TemplateGroupEntry,
+} from '@/api/generated/schema'
 import {attendance, memberGroups} from '@/api'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useAsyncAction} from '@/composables/useAsyncAction'
@@ -36,6 +37,7 @@ const isEdit = computed(() => templateId.value !== null)
 const name = ref('')
 const fields = ref<AttendanceTemplateField[]>([])
 const templateGroups = ref<TemplateGroupEntry[]>([])
+const templateUserTypes = ref<StationUserType[]>([])
 const availableGroups = ref<MemberGroup[]>([])
 
 const showFieldModal = ref(false)
@@ -60,6 +62,7 @@ const {loading, failure} = useAsyncLoader(async () => {
   name.value = detail.name ?? ''
   fields.value = detail.fields ?? []
   templateGroups.value = detail.groups ?? []
+  templateUserTypes.value = detail.userTypes ?? []
   availableGroups.value = groups
 })
 
@@ -106,6 +109,16 @@ async function saveGroups() {
   }
 }
 
+async function saveUserTypes(userTypes: StationUserType[]) {
+  if (!templateId.value) return
+  templateUserTypes.value = userTypes
+  try {
+    templateUserTypes.value = await attendance.setTemplateUserTypes(templateId.value, {userTypes})
+  } catch (e) {
+    failure.value = describeFailure(e, t)
+  }
+}
+
 function openAddField() {
   editingField.value = null
   showFieldModal.value = true
@@ -117,7 +130,7 @@ function openEditField(field: AttendanceTemplateField) {
 }
 
 const {running: fieldSaving, failure: fieldSaveFailure, run: saveField} = useAsyncAction(
-    async (data: { name: string; fieldType: string; config: Record<string, unknown>; position: number }) => {
+    async (data: TemplateFieldRequest) => {
       if (!templateId.value) return
       if (editingField.value) {
         fields.value = await attendance.updateTemplateField(templateId.value, editingField.value.id, data)
@@ -135,9 +148,9 @@ async function reorderFields(fromIndex: number, toIndex: number) {
   try {
     for (const f of fields.value) {
       await attendance.updateTemplateField(templateId.value!, f.id, {
-        name: f.name ?? '',
-        fieldType: f.fieldType ?? '',
-        config: f.config ?? {},
+        name: f.name,
+        fieldType: f.fieldType,
+        config: f.config,
         position: f.position,
       })
     }
@@ -187,8 +200,10 @@ function goBack() {
           :is-edit="isEdit"
           :fields="fields"
           :template-groups="templateGroups"
+          :template-user-types="templateUserTypes"
           :available-groups="availableGroups"
           :save-template="saveTemplate"
+          @update-user-types="saveUserTypes"
           @add-group="addGroup"
           @remove-group="removeGroup"
           @reorder-groups="reorderGroups"

@@ -6,7 +6,7 @@
 <script setup lang="ts">
 import {watch} from 'vue'
 import {useRouter} from 'vue-router'
-import type {PublicStationInfo} from '@/api/discovery'
+import type {PublicStationInfo} from '@/api/generated/schema'
 import {usePublicStationAddress} from '@/composables/usePublicStationAddress'
 
 const router = useRouter()
@@ -27,7 +27,6 @@ function redirect(info: PublicStationInfo | null) {
   }
 }
 
-// Station info is provided by PublicStationShell - redirect once available
 if (station.value) {
   redirect(station.value)
 }

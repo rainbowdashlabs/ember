@@ -5,34 +5,34 @@
  */
 package dev.chojo.ember.feature.federation.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
-import dev.chojo.ember.feature.account.repository.AccountRepository;
-import dev.chojo.ember.feature.events.entity.StationEvent;
-import dev.chojo.ember.feature.events.service.EventCrudService;
+import dev.chojo.ember.api.refusal.FederationRefusal;
+import dev.chojo.ember.feature.federation.entity.InventoryBlock;
 import dev.chojo.ember.feature.federation.entity.LendingMessage;
-import dev.chojo.ember.feature.federation.entity.LendingRequest;
-import dev.chojo.ember.feature.federation.entity.LendingRequestItem;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
-import dev.chojo.ember.feature.federation.repository.LendingRepository;
+import dev.chojo.ember.feature.federation.entity.LentOutItem;
+import dev.chojo.ember.feature.federation.service.LendingRequestViewService;
+import dev.chojo.ember.feature.federation.service.LendingRequestViewService.AvailableItemDetail;
+import dev.chojo.ember.feature.federation.service.LendingRequestViewService.EnrichedItem;
+import dev.chojo.ember.feature.federation.service.LendingRequestViewService.EnrichedMessage;
+import dev.chojo.ember.feature.federation.service.LendingRequestViewService.LendingRequestResponse;
 import dev.chojo.ember.feature.federation.service.LendingService;
-import dev.chojo.ember.feature.inventory.entity.Inventory;
-import dev.chojo.ember.feature.inventory.entity.InventorySize;
-import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.members.entity.NameParts;
-import dev.chojo.ember.feature.members.repository.StationMemberRepository;
-import dev.chojo.ember.feature.station.entity.Station;
-import dev.chojo.ember.feature.station.repository.StationRepository;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
+import io.javalin.openapi.HttpMethod;
+import io.javalin.openapi.OpenApi;
+import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiRequestBody;
+import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -48,29 +48,12 @@ import static dev.chojo.ember.api.RouteSupport.pathInt;
 public class LendingRoutes implements Routes {
 
     private final LendingService service;
-    private final LendingRepository lendingRepository;
-    private final StationRepository stationRepository;
-    private final InventoryRepository inventoryRepository;
-    private final StationMemberRepository stationMemberRepository;
-    private final AccountRepository accountRepository;
-    private final EventCrudService eventService;
+    private final LendingRequestViewService views;
 
     @Inject
-    public LendingRoutes(
-            LendingService service,
-            LendingRepository lendingRepository,
-            StationRepository stationRepository,
-            InventoryRepository inventoryRepository,
-            StationMemberRepository stationMemberRepository,
-            AccountRepository accountRepository,
-            EventCrudService eventService) {
-        this.eventService = eventService;
+    public LendingRoutes(LendingService service, LendingRequestViewService views) {
         this.service = service;
-        this.lendingRepository = lendingRepository;
-        this.stationRepository = stationRepository;
-        this.inventoryRepository = inventoryRepository;
-        this.stationMemberRepository = stationMemberRepository;
-        this.accountRepository = accountRepository;
+        this.views = views;
     }
 
     @Override
@@ -138,28 +121,40 @@ public class LendingRoutes implements Routes {
         routes.delete(prefix + "/lending/blocks/{id}", this::deleteBlock, StationPermission.INVENTORY_LENDING_MANAGER);
     }
 
+    @OpenApi(
+            path = "/api/v1/lending/requests",
+            methods = HttpMethod.GET,
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = LendingRequestResponse[].class)))
     private void listRequests(Context ctx) {
-        var session = UserSession.from(ctx);
-        var requests = service.findRequestsByStation(session.stationId());
-        var stream = requests.stream();
-        if (!session.hasPermission(StationPermission.INVENTORY_LENDING_MANAGER)) {
-            UUID sessionStationUid = stationRepository.resolveUid(session.stationId());
-            stream = stream.filter(r -> Objects.equals(r.requestingStationUid(), sessionStationUid));
-        }
-        ctx.json(stream.map(r -> enrichRequest(r, session.stationId())).toList());
+        var session = StationSession.from(ctx);
+        ctx.json(views.requestsFor(
+                session.stationId(), session.hasPermission(StationPermission.INVENTORY_LENDING_MANAGER)));
     }
 
+    @OpenApi(
+            path = "/api/v1/lending/requests",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = CreateLendingRequest.class)),
+            responses =
+                    @OpenApiResponse(status = "201", content = @OpenApiContent(from = LendingRequestResponse.class)))
     private void createRequest(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(CreateLendingRequest.class);
-        if (req.owningStationId() == session.stationId()) {
-            throw Refusal.LENDING_FROM_OWN_STATION.raise();
+        if (views.isOwnStation(session.stationId(), req.owningStationId())) {
+            throw FederationRefusal.LENDING_FROM_OWN_STATION.raise();
         }
         if (req.dateFrom() == null) {
-            throw Refusal.LENDING_FIRST_DAY_MISSING.raise();
+            throw FederationRefusal.LENDING_FIRST_DAY_MISSING.raise();
         }
 
-        LocalDate dateTo = req.dateTo() != null ? req.dateTo() : req.dateFrom();
+        LocalDate dateTo = Objects.requireNonNullElse(req.dateTo(), req.dateFrom());
+        var lines = req.items() == null
+                ? List.<LendingService.RequestLine>of()
+                : req.items().stream()
+                        .map(item -> new LendingService.RequestLine(
+                                item.inventoryId(), item.itemId(), item.artId(), item.quantity(), item.needId()))
+                        .toList();
         var request = service.createRequest(
                 session.stationId(),
                 req.owningStationId(),
@@ -168,94 +163,77 @@ public class LendingRoutes implements Routes {
                 session.member().id(),
                 req.eventId(),
                 req.eventDate(),
-                occasionOf(session.stationId(), req.eventId()));
+                views.occasionOf(session.stationId(), req.eventId()),
+                lines);
 
-        if (req.items() != null) {
-            for (var item : req.items()) {
-                service.addRequestItem(
-                        request.id(), item.inventoryId(), item.itemId(), item.artId(), item.quantity(), item.needId());
-            }
-        }
-
-        ctx.status(HttpStatus.CREATED).json(enrichRequest(request, session.stationId()));
+        ctx.status(HttpStatus.CREATED).json(views.describe(request, session.stationId()));
     }
 
+    @OpenApi(
+            path = "/api/v1/lending/requests/{id}",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = LendingRequestDetail.class)))
     private void getRequest(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
-        var request = service.findRequest(id).orElseThrow(Refusal.LENDING_REQUEST_NOT_HERE_OR_NOT_YOURS::raise);
-        verifyAccess(request, session.stationId());
-
-        var items = service.findRequestItems(id);
-        ctx.json(new LendingRequestDetail(enrichRequest(request, session.stationId()), enrichItems(items)));
+        var request = views.requireParty(id, session.stationId());
+        ctx.json(new LendingRequestDetail(views.describe(request, session.stationId()), views.describeItems(id)));
     }
 
+    @OpenApi(
+            path = "/api/v1/lending/requests/{id}/approve",
+            methods = HttpMethod.POST,
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = LendingRequestResponse.class)))
     private void approveRequest(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
-        var request = service.findRequest(id).orElseThrow(Refusal.LENDING_REQUEST_NOT_HERE_OR_NOT_YOURS::raise);
-        verifyOwner(request, session.stationId());
+        views.requireOwner(id, session.stationId());
         service.approveRequest(id, session.stationId());
-        ctx.json(enrichRequest(
-                service.findRequest(id).orElseThrow(Refusal.LENDING_REQUEST_NOT_HERE_AFTER_APPROVAL::raise),
+        ctx.json(views.describe(
+                service.findRequest(id).orElseThrow(FederationRefusal.LENDING_REQUEST_NOT_HERE_AFTER_APPROVAL::raise),
                 session.stationId()));
     }
 
+    @OpenApi(
+            path = "/api/v1/lending/requests/{id}/decline",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = DeclineBody.class)),
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = LendingRequestResponse.class)))
     private void declineRequest(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
-        var request = service.findRequest(id).orElseThrow(Refusal.LENDING_REQUEST_NOT_HERE_OR_NOT_YOURS::raise);
-        verifyOwner(request, session.stationId());
+        views.requireOwner(id, session.stationId());
         var body = ctx.bodyAsClass(DeclineBody.class);
         service.declineRequest(id, session.stationId(), body.reason());
-        ctx.json(enrichRequest(
-                service.findRequest(id).orElseThrow(Refusal.LENDING_REQUEST_NOT_HERE_AFTER_DECLINE::raise),
+        ctx.json(views.describe(
+                service.findRequest(id).orElseThrow(FederationRefusal.LENDING_REQUEST_NOT_HERE_AFTER_DECLINE::raise),
                 session.stationId()));
     }
 
+    @OpenApi(
+            path = "/api/v1/lending/requests/{id}/available-items",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = AvailableItemDetail[].class)))
     private void availableItemsForRequest(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
-        var request = service.findRequest(id).orElseThrow(Refusal.LENDING_REQUEST_NOT_HERE_OR_NOT_YOURS::raise);
-        verifyOwner(request, session.stationId());
-
-        var requestItems = service.findRequestItems(id);
-        var result = new ArrayList<AvailableItemDetail>();
-        for (var ri : requestItems) {
-            if (ri.inventoryId() == null) continue;
-            var inv = inventoryRepository.findById(ri.inventoryId()).orElse(null);
-            if (inv == null) continue;
-            var assignable = service.findAssignableItems(session.stationId(), ri.inventoryId());
-            for (var item : assignable) {
-                String sizeName = null;
-                if (item.sizeId() != null) {
-                    sizeName = inventoryRepository.findSizes(ri.inventoryId()).stream()
-                            .filter(s -> s.id() == item.sizeId())
-                            .map(InventorySize::label)
-                            .findFirst()
-                            .orElse(null);
-                }
-                result.add(new AvailableItemDetail(
-                        item.id(),
-                        ri.inventoryId(),
-                        inv.name(),
-                        item.internalId(),
-                        item.name(),
-                        sizeName,
-                        ri.id(),
-                        ri.itemId() != null && ri.itemId() == item.id()));
-            }
-        }
-        ctx.json(result);
+        views.requireOwner(id, session.stationId());
+        ctx.json(views.availableItems(id, session.stationId()));
     }
 
+    @OpenApi(
+            path = "/api/v1/lending/requests/{id}/assign-items",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = AssignItemsRequest.class)),
+            responses = @OpenApiResponse(status = "204"))
     private void assignItems(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
-        var request = service.findRequest(id).orElseThrow(Refusal.LENDING_REQUEST_NOT_HERE_OR_NOT_YOURS::raise);
-        verifyOwner(request, session.stationId());
+        var request = views.requireOwner(id, session.stationId());
         if (request.status() != LendingStatus.APPROVED) {
-            throw Refusal.LENDING_REQUEST_NOT_APPROVED.raise();
+            throw FederationRefusal.LENDING_REQUEST_NOT_APPROVED.raise();
         }
 
         var assignments = ctx.bodyAsClass(AssignItemsRequest.class);
@@ -267,96 +245,101 @@ public class LendingRoutes implements Routes {
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
+    @OpenApi(
+            path = "/api/v1/lending/requests/{id}/lent",
+            methods = HttpMethod.POST,
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = LendingRequestResponse.class)))
     private void markLent(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
-        var request = service.findRequest(id).orElseThrow(Refusal.LENDING_REQUEST_NOT_HERE_OR_NOT_YOURS::raise);
-        verifyOwner(request, session.stationId());
+        views.requireOwner(id, session.stationId());
         service.markLent(id, session.stationId());
-        ctx.json(enrichRequest(
-                service.findRequest(id).orElseThrow(Refusal.LENDING_REQUEST_NOT_HERE_AFTER_LENDING::raise),
+        ctx.json(views.describe(
+                service.findRequest(id).orElseThrow(FederationRefusal.LENDING_REQUEST_NOT_HERE_AFTER_LENDING::raise),
                 session.stationId()));
     }
 
+    @OpenApi(
+            path = "/api/v1/lending/requests/{id}/returned",
+            methods = HttpMethod.POST,
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = LendingRequestResponse.class)))
     private void markReturned(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
-        var request = service.findRequest(id).orElseThrow(Refusal.LENDING_REQUEST_NOT_HERE_OR_NOT_YOURS::raise);
-        verifyAccess(request, session.stationId());
+        views.requireParty(id, session.stationId());
         service.markReturned(id, session.stationId());
-        ctx.json(enrichRequest(
-                service.findRequest(id).orElseThrow(Refusal.LENDING_REQUEST_NOT_HERE_AFTER_RETURN::raise),
+        ctx.json(views.describe(
+                service.findRequest(id).orElseThrow(FederationRefusal.LENDING_REQUEST_NOT_HERE_AFTER_RETURN::raise),
                 session.stationId()));
     }
 
+    @OpenApi(
+            path = "/api/v1/lending/requests/{id}/close",
+            methods = HttpMethod.POST,
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = LendingRequestResponse.class)))
     private void closeRequest(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
-        var request = service.findRequest(id).orElseThrow(Refusal.LENDING_REQUEST_NOT_HERE_OR_NOT_YOURS::raise);
-        verifyAccess(request, session.stationId());
+        views.requireParty(id, session.stationId());
         service.closeRequest(id, session.stationId());
-        ctx.json(enrichRequest(
-                service.findRequest(id).orElseThrow(Refusal.LENDING_REQUEST_NOT_HERE_AFTER_CLOSING::raise),
+        ctx.json(views.describe(
+                service.findRequest(id).orElseThrow(FederationRefusal.LENDING_REQUEST_NOT_HERE_AFTER_CLOSING::raise),
                 session.stationId()));
     }
 
+    @OpenApi(
+            path = "/api/v1/lending/requests/{id}/messages",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EnrichedMessage[].class)))
     private void getMessages(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
-        var request = service.findRequest(id).orElseThrow(Refusal.LENDING_REQUEST_NOT_HERE_OR_NOT_YOURS::raise);
-        verifyAccess(request, session.stationId());
-        var messages = service.getMessages(id, session.stationId());
-        ctx.json(messages.stream().map(this::enrichMessage).toList());
+        views.requireParty(id, session.stationId());
+        ctx.json(service.getMessages(id, session.stationId()).stream()
+                .map(message -> views.describe(message, session.stationId()))
+                .toList());
     }
 
-    private EnrichedMessage enrichMessage(LendingMessage msg) {
-        String senderName = null;
-        if (!msg.isSystem() && msg.senderMemberId() != null) {
-            senderName = stationMemberRepository
-                    .findById(msg.senderMemberId())
-                    .map(m -> {
-                        if (m.displayName() != null && !m.displayName().isBlank()) return m.displayName();
-                        if (m.accountId() != null) {
-                            return accountRepository
-                                    .findById(m.accountId())
-                                    .map(a -> NameParts.of(a).called())
-                                    .orElse(null);
-                        }
-                        return null;
-                    })
-                    .orElse(null);
-        }
-        String stationName = stationRepository
-                .findByUid(msg.senderStationUid())
-                .map(Station::name)
-                .orElse("Unknown");
-        return new EnrichedMessage(msg, senderName, stationName);
-    }
-
+    @OpenApi(
+            path = "/api/v1/lending/requests/{id}/messages",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = MessageBody.class)),
+            responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = LendingMessage.class)))
     private void sendMessage(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
-        var request = service.findRequest(id).orElseThrow(Refusal.LENDING_REQUEST_NOT_HERE_OR_NOT_YOURS::raise);
-        verifyAccess(request, session.stationId());
+        views.requireParty(id, session.stationId());
         var body = ctx.bodyAsClass(MessageBody.class);
         if (body.message() == null || body.message().isBlank()) {
-            throw Refusal.LENDING_MESSAGE_NEEDS_TEXT.raise();
+            throw FederationRefusal.LENDING_MESSAGE_NEEDS_TEXT.raise();
         }
-        String senderName = NameParts.of(session.account()).called();
+        String senderName = NameParts.of(session.user().account()).called();
         var msg = service.sendMessage(id, session.stationId(), session.member().id(), senderName, body.message());
         ctx.status(HttpStatus.CREATED).json(msg);
     }
 
+    @OpenApi(
+            path = "/api/v1/lending/blocks",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = InventoryBlock[].class)))
     private void listBlocks(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         ctx.json(service.findBlocks(session.stationId()));
     }
 
+    @OpenApi(
+            path = "/api/v1/lending/blocks",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = CreateBlockRequest.class)),
+            responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = InventoryBlock.class)))
     private void createBlock(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(CreateBlockRequest.class);
         if (req.blockFrom() == null || req.blockTo() == null) {
-            throw Refusal.LENDING_BLOCK_SPAN_MISSING.raise();
+            throw FederationRefusal.LENDING_BLOCK_SPAN_MISSING.raise();
         }
         var block = service.createBlock(
                 session.stationId(),
@@ -364,91 +347,28 @@ public class LendingRoutes implements Routes {
                 req.itemId(),
                 req.blockFrom(),
                 req.blockTo(),
-                req.reason() != null ? req.reason() : "");
+                Objects.requireNonNullElse(req.reason(), ""));
         ctx.status(HttpStatus.CREATED).json(block);
     }
 
+    @OpenApi(
+            path = "/api/v1/lending/blocks/{id}",
+            methods = HttpMethod.DELETE,
+            responses = @OpenApiResponse(status = "204"))
     private void deleteBlock(Context ctx) {
         int id = pathInt(ctx, "id");
-        service.deleteBlock(id, UserSession.from(ctx).stationId());
+        service.deleteBlock(id, StationSession.from(ctx).stationId());
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
-    private void verifyAccess(LendingRequest request, int stationId) {
-        UUID stationUid = stationRepository.resolveUid(stationId);
-        if (!Objects.equals(request.requestingStationUid(), stationUid)
-                && !Objects.equals(request.owningStationUid(), stationUid)) {
-            throw Refusal.LENDING_REQUEST_NOT_HERE_OR_NOT_YOURS.raise();
-        }
-    }
-
-    private void verifyOwner(LendingRequest request, int stationId) {
-        UUID stationUid = stationRepository.resolveUid(stationId);
-        if (!Objects.equals(request.owningStationUid(), stationUid)) {
-            throw Refusal.LENDING_NOT_THE_OWNING_STATION.raise();
-        }
-    }
-
-    private LendingRequestResponse enrichRequest(LendingRequest request, int currentStationId) {
-        String requestingName = stationRepository
-                .findByUid(request.requestingStationUid())
-                .map(Station::name)
-                .orElse("Unknown");
-        String owningName = stationRepository
-                .findByUid(request.owningStationUid())
-                .map(Station::name)
-                .orElse("Unknown");
-        UUID currentStationUid = stationRepository.resolveUid(currentStationId);
-        boolean isOwner = Objects.equals(request.owningStationUid(), currentStationUid);
-
-        String itemSummary = service.buildItemSummary(request.id());
-
-        boolean overdue = (request.status() == LendingStatus.LENT || request.status() == LendingStatus.APPROVED)
-                && request.requestedDateTo() != null
-                && request.requestedDateTo().isBefore(LocalDate.now());
-
-        return new LendingRequestResponse(request, requestingName, owningName, isOwner, itemSummary, overdue);
-    }
-
-    /**
-     * What the owning station is told the request is for: the appointment's name, and nothing else.
-     *
-     * <p>Copied here rather than resolved later, so a rename does not rewrite what was asked for and
-     * nothing that is added to an appointment afterwards can travel with it.
-     *
-     * @param stationId the station asking
-     * @param eventId   the appointment the list was collected for, or {@code null}
-     * @return the name, or an empty string where there is no appointment or it is not this station's
-     */
-    private String occasionOf(int stationId, Integer eventId) {
-        if (eventId == null) return "";
-        return eventService
-                .findById(eventId)
-                .filter(event -> event.stationId() == stationId)
-                .map(StationEvent::name)
-                .orElse("");
-    }
-
-    private List<EnrichedItem> enrichItems(List<LendingRequestItem> items) {
-        return items.stream()
-                .map(item -> {
-                    String name = item.inventoryId() != null
-                            ? inventoryRepository
-                                    .findById(item.inventoryId())
-                                    .map(Inventory::name)
-                                    .orElse("Unbekannt")
-                            : "Unbekannt";
-                    return new EnrichedItem(item, name);
-                })
-                .toList();
-    }
-
+    @OpenApi(
+            path = "/api/v1/lending/inventory/{inventoryId}/lent-out",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = LentOutItem[].class)))
     private void lentOutByInventory(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int inventoryId = pathInt(ctx, "inventoryId");
-        var lentItems = lendingRepository.findLentOutByInventory(
-                inventoryId, stationRepository.resolveUid(session.stationId()));
-        ctx.json(lentItems);
+        ctx.json(views.lentOut(inventoryId, session.stationId()));
     }
 
     /**
@@ -456,49 +376,36 @@ public class LendingRoutes implements Routes {
      * @param eventDate the date of that appointment, or {@code null}
      */
     public record CreateLendingRequest(
-            int owningStationId,
+            UUID owningStationId,
             LocalDate dateFrom,
-            LocalDate dateTo,
-            Integer eventId,
-            LocalDate eventDate,
-            List<ItemRequest> items) {}
+            @Nullable LocalDate dateTo,
+            @Nullable Integer eventId,
+            @Nullable LocalDate eventDate,
+            List<LendingItemRequest> items) {}
 
     /**
      * @param artId  the kind of thing the line asks for, or {@code null}
      * @param needId the line of an appointment's needs this fills, or {@code null}
      */
-    public record ItemRequest(Integer inventoryId, Integer itemId, Integer artId, int quantity, Integer needId) {}
+    public record LendingItemRequest(
+            @Nullable Integer inventoryId,
+            @Nullable Integer itemId,
+            @Nullable Integer artId,
+            int quantity,
+            @Nullable Integer needId) {}
 
-    public record DeclineBody(String reason) {}
+    public record DeclineBody(@Nullable String reason) {}
 
     public record MessageBody(String message) {}
 
     public record CreateBlockRequest(
-            Integer inventoryId, Integer itemId, LocalDate blockFrom, LocalDate blockTo, String reason) {}
-
-    public record LendingRequestResponse(
-            LendingRequest request,
-            String requestingStationName,
-            String owningStationName,
-            boolean isOwner,
-            String itemSummary,
-            boolean overdue) {}
-
-    public record EnrichedMessage(LendingMessage message, String senderName, String senderStationName) {}
-
-    public record EnrichedItem(LendingRequestItem item, String inventoryName) {}
+            @Nullable Integer inventoryId,
+            @Nullable Integer itemId,
+            LocalDate blockFrom,
+            LocalDate blockTo,
+            @Nullable String reason) {}
 
     public record LendingRequestDetail(LendingRequestResponse request, List<EnrichedItem> items) {}
-
-    public record AvailableItemDetail(
-            int itemId,
-            int inventoryId,
-            String inventoryName,
-            String internalId,
-            String itemName,
-            String sizeName,
-            int requestItemId,
-            boolean preselected) {}
 
     public record AssignItemsRequest(List<ItemAssignment> items) {}
 

@@ -9,7 +9,8 @@ import { useI18n } from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import MutedIconButton from '@/components/button/MutedIconButton.vue'
 import ItemCardSummary from './inventoryitemcard/ItemCardSummary.vue'
-import { ItemCustody, type MyInventoryItem } from '@/api/inventory'
+import { ItemCustody } from '@/api/inventory'
+import type { MyInventoryItem } from '@/api/generated/schema'
 
 const { t } = useI18n()
 
@@ -42,7 +43,7 @@ const emit = defineEmits<{
  * can watch what is happening to it, and it is dimmed so they can see it is not theirs to wear.
  */
 const awayFromMember = computed(() =>
-    !!props.item.movementStep && props.item.custody !== ItemCustody.WITH_MEMBER)
+    !!props.item.movement && props.item.custody !== ItemCustody.WITH_MEMBER)
 </script>
 
 <template>
@@ -57,13 +58,13 @@ const awayFromMember = computed(() =>
       <div class="flex items-center gap-1">
         <MutedIconButton
             v-if="props.showExchangeButton && props.item.inventoryHomogeneous !== false
-              && !props.item.movementStep"
+              && !props.item.movement"
             :icon="['fas', 'rotate']"
             :label="t('profile.requestExchange')"
             @click="emit('requestExchange', props.item)"
         />
         <MutedIconButton
-            v-if="props.showLostButton && !props.item.lostAt && !props.item.movementStep"
+            v-if="props.showLostButton && !props.item.lostAt && !props.item.movement"
             :icon="['fas', 'triangle-exclamation']"
             :label="t('profile.reportLost')"
             data-testid="item-report-lost"

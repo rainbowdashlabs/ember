@@ -10,14 +10,14 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import ProfileFieldsDisplay from '@/components/profilefields/ProfileFieldsDisplay.vue'
 import ChangeHistory from './ChangeHistory.vue'
-import type { ProfileFieldChange } from '@/api/profileFieldChanges'
-import type { ProfileField } from '@/api/profileFields'
+import type { ChangeEntry } from '@/api/profileFieldChanges'
+import type { ProfileQuestion } from '@/api/profileFields'
 
 defineProps<{
-  applicableFields: ProfileField[]
+  applicableFields: ProfileQuestion[]
   memberId: number
   currentMemberId: number
-  changes: ProfileFieldChange[]
+  changes: ChangeEntry[]
   showChangeHistory: boolean
   getFieldValue: (fieldId: number) => unknown
 }>()
@@ -32,7 +32,7 @@ const { t } = useI18n()
 <template>
   <NeutralContainer class="space-y-3">
     <SubHeader class="text-sm">{{ t('memberDetail.fields') }}</SubHeader>
-    <MutedText tag="div" size="sm" class="py-2" v-if="applicableFields.length === 0">
+    <MutedText v-if="applicableFields.length === 0" tag="div" size="sm" class="py-2">
       {{ t('memberDetail.noFields') }}
     </MutedText>
     <ProfileFieldsDisplay :fields="applicableFields" :get-value="field => getFieldValue(field.id)"/>

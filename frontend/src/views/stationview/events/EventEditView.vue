@@ -4,7 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, onMounted, ref, watch} from 'vue'
+import {computed, ref} from 'vue'
+import {until} from '@vueuse/core'
 import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
 import {reportCaughtError} from '@/util/devErrorReporter'
@@ -13,9 +14,9 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
-import {describeFailure, type Failure} from '@/util/failure'
+import {describeFailure} from '@/util/failure'
 import {events} from '@/api'
-import type {EventRegistrationFieldDefinition} from '@/api/events'
+import type {RegistrationFieldDefinition} from '@/api/generated/schema'
 import {StationPermission} from '@/api/types'
 import EventEditBody from './eventeditview/EventEditBody.vue'
 import {useEventForm} from './eventeditview/useEventForm'
@@ -24,8 +25,10 @@ import {useEventFieldDefaults} from './eventeditview/useEventFieldDefaults'
 import {useEventFederationShare} from './eventeditview/useEventFederationShare'
 import {useEventAttachments} from './eventeditview/useEventAttachments'
 import AttachmentsCard from './eventeditview/AttachmentsCard.vue'
+import {asSaved} from './eventshared/eventQuestions'
 import {useSession} from '@/composables/useSession'
 import {useAsyncAction} from '@/composables/useAsyncAction'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useFlashMessage} from '@/composables/useFlashMessage'
 
 const {t} = useI18n()
@@ -49,15 +52,12 @@ const data = useEventEditData(
 const fieldDefaults = useEventFieldDefaults()
 const federationShare = useEventFederationShare(canFederate)
 
-const loading = ref(true)
-const failure = ref<Failure | null>(null)
-
 /**
  * What the editor itself turned down, as opposed to what the server did. An end before its own
  * start is the reader's own typing, so it is said plainly and never offered as a bug to report.
  */
 const refused = ref('')
-const registrationFields = ref<EventRegistrationFieldDefinition[]>([])
+const registrationFields = ref<RegistrationFieldDefinition[]>([])
 const {message: templateAppliedMessage, flash: flashTemplateApplied} = useFlashMessage(3000)
 
 /**
@@ -76,14 +76,33 @@ const pageTitle = computed(() => {
 const pageSubtitle = computed(() =>
     isEdit.value ? t('pages.event-edit.subtitle') : t('pages.event-new.subtitle'))
 
+/**
+ * Fills the editor from an appointment template, its registration questions included.
+ *
+ * <p>The questions join the editor's list rather than arriving only on the server: the list is what
+ * the editor writes back on save, so a question it did not hold would be removed again by the same
+ * save that created the appointment.
+ */
 async function applyEventTemplate(templateId: string | undefined) {
   if (!templateId) return
   try {
-    form.applyTemplate(await events.getTemplate(Number(templateId)))
+    const detail = await events.getTemplate(Number(templateId))
+    form.applyTemplate(detail)
+    registrationFields.value = [...registrationFields.value, ...detail.registrationFields.map(asDefinition)]
     flashTemplateApplied(t('eventTemplates.applied'))
   } catch (e) {
     reportCaughtError(e, 'applyEventTemplate')
     failure.value = describeFailure(e, t)
+  }
+}
+
+/** A question as the editor works on it: its definition, without the id of wherever it is stored. */
+function asDefinition(field: RegistrationFieldDefinition): RegistrationFieldDefinition {
+  return {
+    name: field.name,
+    fieldType: field.fieldType,
+    config: field.config,
+    overview: field.overview,
   }
 }
 
@@ -93,17 +112,12 @@ async function applyEventTemplate(templateId: string | undefined) {
  */
 async function loadRegistrationFields(id: number) {
   const loadedFields = await events.listRegistrationFields(id).catch(() => [])
-  registrationFields.value = loadedFields.map(f => ({
-    name: f.name,
-    fieldType: f.fieldType,
-    config: f.config ?? {},
-    overview: f.overview,
-  }))
+  registrationFields.value = loadedFields.map(asDefinition)
 }
 
-async function loadData() {
-  loading.value = true
-  failure.value = null
+/** Fills the editor once the session is there, since the choices it offers depend on the station. */
+const {loading, failure} = useAsyncLoader(async () => {
+  await until(loaded).toBe(true)
   try {
     await data.load()
     if (isEdit.value) {
@@ -118,11 +132,9 @@ async function loadData() {
     }
   } catch (e) {
     reportCaughtError(e, 'EventEditView.loadData')
-    failure.value = describeFailure(e, t)
-  } finally {
-    loading.value = false
+    throw e
   }
-}
+})
 
 async function writeEvent() {
   let savedEventId: number
@@ -137,7 +149,7 @@ async function writeEvent() {
   await fieldDefaults.save(savedEventId, isEdit.value)
   await events.setEventReminders(savedEventId, form.state.reminders)
   await events.setEventFields(savedEventId, {fields: form.namedFields()})
-  await events.setRegistrationFields(savedEventId, registrationFields.value.filter(f => f.name.trim() !== ''))
+  await events.setRegistrationFields(savedEventId, registrationFields.value.filter(f => f.name?.trim()).map(asSaved))
   await federationShare.save(savedEventId)
 }
 
@@ -171,14 +183,6 @@ function leaveEditor() {
 function goBack() {
   leaveEditor()
 }
-
-onMounted(() => {
-  if (loaded.value) loadData()
-})
-
-watch(loaded, (isLoaded) => {
-  if (isLoaded && loading.value) loadData()
-})
 
 const bodyProps = computed(() => ({
   isEdit: isEdit.value,

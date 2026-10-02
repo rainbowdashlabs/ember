@@ -8,12 +8,15 @@ package dev.chojo.ember.feature.passkey.service;
 import com.yubico.webauthn.RelyingParty;
 import com.yubico.webauthn.data.RelyingPartyIdentity;
 import dev.chojo.ember.conf.Conf;
+import dev.chojo.ember.conf.ConfigChanges;
 import dev.chojo.ember.conf.file.File;
 import dev.chojo.ember.conf.file.elements.Auth;
 import dev.chojo.ember.conf.file.elements.PasskeySettings;
 import dev.chojo.ember.feature.account.entity.AccountCredential;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.mail.repository.EmailQueueRepository;
+import dev.chojo.ember.feature.passkey.entity.AdoptionFigures;
+import dev.chojo.ember.feature.passkey.entity.PasswordlessReport;
 import dev.chojo.ember.feature.passkey.repository.PasskeyRepository;
 import dev.chojo.ember.feature.twofactor.service.RelyingParties;
 import dev.chojo.ember.feature.twofactor.service.TwoFactorAuditService;
@@ -71,6 +74,7 @@ class PasskeyAdminServiceTest {
 
         service = new PasskeyAdminService(
                 conf,
+                new ConfigChanges(conf),
                 modeService,
                 passkeyRepository,
                 emailQueueRepository,
@@ -84,7 +88,7 @@ class PasskeyAdminServiceTest {
         when(modeService.effectiveMode()).thenReturn(PasskeySettings.Mode.OPTIONAL);
         when(emailQueueRepository.findLastSentAt()).thenReturn(Optional.of(Instant.EPOCH));
         when(passkeyRepository.countAccountsDependingOnPasskey()).thenReturn(3);
-        when(passkeyRepository.adoptionFigures()).thenReturn(new PasskeyRepository.AdoptionFigures(5, 40, 35));
+        when(passkeyRepository.adoptionFigures()).thenReturn(new AdoptionFigures(5, 40, 35));
 
         var status = service.status();
 
@@ -144,7 +148,7 @@ class PasskeyAdminServiceTest {
 
     @Test
     void theBulkFormActsOnTheEligibleAndCountsThePassedOver() {
-        when(passkeyRepository.adoptionFigures()).thenReturn(new PasskeyRepository.AdoptionFigures(2, 5, 3));
+        when(passkeyRepository.adoptionFigures()).thenReturn(new AdoptionFigures(2, 5, 3));
         when(passkeyRepository.listRetireEligibleAccounts()).thenReturn(List.of(3, 4));
         when(accountRepository.findCredential(anyInt())).thenReturn(Optional.of(mock(AccountCredential.class)));
         when(passkeyRepository.hasTriedSignInPasskey(3)).thenReturn(true);
@@ -158,7 +162,7 @@ class PasskeyAdminServiceTest {
 
     @Test
     void theReportAndTheResidueComeStraightFromTheRepository() {
-        when(passkeyRepository.passwordlessReport()).thenReturn(new PasskeyRepository.PasswordlessReport(4, 3, 2, 1));
+        when(passkeyRepository.passwordlessReport()).thenReturn(new PasswordlessReport(4, 3, 2, 1));
         when(passkeyRepository.listResidue()).thenReturn(List.of());
 
         assertEquals(4, service.passwordlessReport().wouldKeepPassword());

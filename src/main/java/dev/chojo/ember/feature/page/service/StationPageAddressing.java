@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.HashSet;
 import java.util.Optional;
@@ -37,7 +38,7 @@ public class StationPageAddressing implements CellDescriptions.PageAddressing {
     }
 
     @Override
-    public Optional<CellDescriptions.PageAddress> addressOf(Integer stationId, String pageUid) {
+    public Optional<CellDescriptions.PageAddress> addressOf(@Nullable Integer stationId, String pageUid) {
         UUID uid;
         try {
             uid = UUID.fromString(pageUid);

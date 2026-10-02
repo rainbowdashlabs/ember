@@ -10,7 +10,8 @@ import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
-import {LendingStatus, type LendingRequestDetail} from '@/api/lending'
+import {LendingStatus} from '@/api/lending'
+import type {LendingRequestDetail} from '@/api/generated/schema'
 
 defineProps<{
   detail: LendingRequestDetail
@@ -29,10 +30,10 @@ const {t} = useI18n()
 <template>
   <ButtonRow class="mb-4">
     <template v-if="detail.request.isOwner">
-      <SuccessButton :icon="['fas', 'check']" v-if="detail.request.request.status === LendingStatus.REQUESTED" @click="emit('approve')">
+      <SuccessButton v-if="detail.request.request.status === LendingStatus.REQUESTED" :icon="['fas', 'check']" @click="emit('approve')">
         {{ t('lending.approve') }}
       </SuccessButton>
-      <ErrorButton :icon="['fas', 'xmark']" v-if="detail.request.request.status === LendingStatus.REQUESTED" @click="emit('decline')">
+      <ErrorButton v-if="detail.request.request.status === LendingStatus.REQUESTED" :icon="['fas', 'xmark']" @click="emit('decline')">
         {{ t('lending.decline') }}
       </ErrorButton>
     </template>

@@ -12,10 +12,12 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import StepDispatcher from './createview/StepDispatcher.vue'
-import {parseFieldConfig, type ProfileField} from '@/api/profileFields'
-import {StationUserType, type MemberGroup, type StationMember} from '@/api/types'
+import {parseFieldConfig} from '@/api/profileFields'
+import type {MemberGroup, MemberWithName, ProfileField} from '@/api/generated/schema'
+import {StationUserType} from '@/api/types'
 import {memberGroups, members, profileFields, stationMembers} from '@/api'
 import {setFieldValue as writeFieldValue} from '@/util/profileFields'
+import {admits, groupOfSet, toggled} from '@/util/groupRules'
 import {todayIsoDate} from '@/util/format'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useAsyncAction} from '@/composables/useAsyncAction'
@@ -36,7 +38,7 @@ const allFields = ref<ProfileField[]>([])
 const fieldValues = ref<Map<number, string>>(new Map())
 const allGroups = ref<MemberGroup[]>([])
 const selectedGroupIds = ref<Set<number>>(new Set())
-const allMembers = ref<StationMember[]>([])
+const allMembers = ref<MemberWithName[]>([])
 const selectedManagerIds = ref<Set<number>>(new Set())
 const createdManagers = ref<Array<{
   id: number;
@@ -89,14 +91,16 @@ function nextFromGroups() {
   }
 }
 
+/** The groups that take the kind of member being created; a group bound to other kinds is not offered. */
+const offeredGroups = computed(() => allGroups.value.filter(group => admits(group, selectedUserType.value)))
+
+/** Picks or drops a group, and drops the other group of its set, since a member is in only one of those. */
 function toggleGroup(id: number) {
-  const newSet = new Set(selectedGroupIds.value)
-  if (newSet.has(id)) {
-    newSet.delete(id)
-  } else {
-    newSet.add(id)
-  }
-  selectedGroupIds.value = newSet
+  const group = allGroups.value.find(candidate => candidate.id === id)
+  const sibling = groupOfSet(selectedGroupIds.value, allGroups.value, group?.groupSetId, id)
+  const next = toggled(selectedGroupIds.value, id)
+  if (sibling && next.has(id)) next.delete(sibling.id)
+  selectedGroupIds.value = next
 }
 
 function setManagers(ids: number[]) {
@@ -186,10 +190,9 @@ const {running: saving, failure: createFailure, run: createAccount, clearError: 
     await profileFields.setValues(newMember.id, {values: entries})
   }
 
-  for (const groupId of selectedGroupIds.value) {
-    const currentMembers = await memberGroups.getGroupMembers(groupId)
-    const memberIds = [...currentMembers.map(m => m.id), newMember.id]
-    await memberGroups.setGroupMembers(groupId, {memberIds})
+  const groupIds = offeredGroups.value.map(group => group.id).filter(id => selectedGroupIds.value.has(id))
+  if (groupIds.length > 0) {
+    await memberGroups.setMemberGroups(newMember.id, groupIds)
   }
 
   if (selectedUserType.value === StationUserType.MEMBER && selectedManagerIds.value.size > 0) {
@@ -246,7 +249,7 @@ function startOver() {
           v-model:last-name="lastName"
           :scope-fields="scopeFields"
           :field-values="fieldValues"
-          :all-groups="allGroups"
+          :all-groups="offeredGroups"
           :selected-group-ids="selectedGroupIds"
           :all-members="allMembers"
           :selected-manager-ids="selectedManagerIds"

@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed} from 'vue'
+import {computed, useId} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
@@ -17,12 +17,20 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import FieldHint from '@/components/typography/FieldHint.vue'
 import RestrictionsField from '@/components/input/RestrictionsField.vue'
-import type {RestrictionSelection} from '@/components/input/restriction'
+import type {RestrictionSelection} from '@/api/types'
 import EventFieldList from './EventFieldList.vue'
 import RepeatEndField from './RepeatEndField.vue'
-import type {AttendanceTemplate, AttendanceTemplateField} from '@/api/attendance'
-import {EventTypes, isRecurringEvent, needsDayOfWeek, type EventCategory, type EventFieldEntry} from '@/api/events'
-import type {MemberGroup, StationMember, UserTag} from '@/api/types'
+import {EventTypes, isRecurringEvent, needsDayOfWeek} from '@/api/events'
+import type {
+    AttendanceTemplate,
+    AttendanceTemplateField,
+    EventCategory,
+    EventFieldEntry,
+    MemberGroup,
+    UserTag,
+} from '@/api/generated/schema'
+import type {MemberLike} from '@/components/input/select/memberOption'
+import {weekdayName} from '@/util/format'
 
 defineProps<{
   categories: EventCategory[]
@@ -32,9 +40,9 @@ defineProps<{
   tags?: UserTag[]
   showSchedule?: boolean
   showValue?: boolean
-  allMembers?: StationMember[]
-  groupMembers?: Map<number, StationMember[]>
-  tagMembers?: Map<number, StationMember[]>
+  allMembers?: MemberLike[]
+  groupMembers?: Map<number, MemberLike[]>
+  tagMembers?: Map<number, MemberLike[]>
 }>()
 
 const name = defineModel<string>('name', {required: true})
@@ -56,8 +64,7 @@ const hasDeadline = defineModel<boolean>('hasDeadline')
 const registrationDeadline = defineModel<string>('registrationDeadline')
 const registrationLimit = defineModel<number>('registrationLimit')
 const minRegistrations = defineModel<number>('minRegistrations')
-const hasThreshold = defineModel<boolean>('hasThreshold')
-const thresholdDate = defineModel<string>('thresholdDate')
+const thresholdDays = defineModel<number>('thresholdDays')
 const registrationCloseDays = defineModel<number>('registrationCloseDays')
 
 const restriction = defineModel<RestrictionSelection>('restriction', {required: true})
@@ -74,6 +81,8 @@ const endsBeforeItStarts = computed(() =>
     !!startTime.value && !!endTime.value && new Date(endTime.value) < new Date(startTime.value))
 
 const {t} = useI18n()
+
+const labelId = useId()
 </script>
 
 <template>
@@ -107,7 +116,6 @@ const {t} = useI18n()
       </div>
     </div>
 
-    <!-- Schedule section (only for single event creation) -->
     <template v-if="showSchedule && eventType !== undefined">
       <hr class="border-(--border)"/>
       <div class="space-y-2">
@@ -132,13 +140,7 @@ const {t} = useI18n()
       <div v-if="needsDayOfWeek(eventType)" class="space-y-1">
         <FieldLabel>{{ t('events.dayOfWeek') }}</FieldLabel>
         <SelectInput v-model="dayOfWeek" class="w-full">
-          <option value="1">Montag</option>
-          <option value="2">Dienstag</option>
-          <option value="3">Mittwoch</option>
-          <option value="4">Donnerstag</option>
-          <option value="5">Freitag</option>
-          <option value="6">Samstag</option>
-          <option value="7">Sonntag</option>
+          <option v-for="day in 7" :key="day" :value="String(day)">{{ weekdayName(day) }}</option>
         </SelectInput>
       </div>
 
@@ -165,26 +167,25 @@ const {t} = useI18n()
 
     <slot name="after-schedule" />
 
-    <!-- Registration -->
     <template v-if="requiresRegistration !== undefined">
       <hr class="border-(--border)"/>
       <SubHeader>{{ t('events.registration') }}</SubHeader>
 
       <div class="flex items-center justify-between">
-        <label class="text-sm font-medium">{{ t('events.requiresRegistration') }}</label>
-        <ToggleInput v-model="requiresRegistration"/>
+        <span :id="`${labelId}-registration`" class="text-sm font-medium">{{ t('events.requiresRegistration') }}</span>
+        <ToggleInput v-model="requiresRegistration" :aria-labelledby="`${labelId}-registration`"/>
       </div>
 
       <template v-if="requiresRegistration">
         <div class="flex items-center justify-between">
-          <label class="text-sm font-medium">{{ t('events.requiresConfirmation') }}</label>
-          <ToggleInput v-model="requiresConfirmation"/>
+          <span :id="`${labelId}-confirmation`" class="text-sm font-medium">{{ t('events.requiresConfirmation') }}</span>
+          <ToggleInput v-model="requiresConfirmation" :aria-labelledby="`${labelId}-confirmation`"/>
         </div>
         <p class="text-xs text-(--text-muted)">{{ t('events.requiresConfirmationHint') }}</p>
 
         <div class="flex items-center justify-between">
-          <label class="text-sm font-medium">{{ t('events.hasDeadline') }}</label>
-          <ToggleInput v-model="hasDeadline"/>
+          <span :id="`${labelId}-deadline`" class="text-sm font-medium">{{ t('events.hasDeadline') }}</span>
+          <ToggleInput v-model="hasDeadline" :aria-labelledby="`${labelId}-deadline`"/>
         </div>
 
         <div v-if="hasDeadline" class="space-y-1">
@@ -203,17 +204,11 @@ const {t} = useI18n()
           <NumberInput v-model="minRegistrations" placeholder=""/>
         </div>
 
-        <template v-if="minRegistrations && minRegistrations > 0">
-          <div class="flex items-center justify-between">
-            <label class="text-sm font-medium">{{ t('events.thresholdDate') }}</label>
-            <ToggleInput v-model="hasThreshold"/>
-          </div>
-          <div v-if="hasThreshold" class="space-y-1">
-            <FieldLabel>{{ t('events.thresholdDate') }}</FieldLabel>
-            <DateTimeInput v-model="thresholdDate"/>
-            <p class="text-xs text-(--text-muted)">{{ t('events.thresholdHint') }}</p>
-          </div>
-        </template>
+        <div v-if="minRegistrations && minRegistrations > 0" class="space-y-1">
+          <FieldLabel>{{ t('events.thresholdDays') }}</FieldLabel>
+          <NumberInput v-model="thresholdDays" :placeholder="t('events.thresholdDaysPlaceholder')"/>
+          <p class="text-xs text-(--text-muted)">{{ t('events.thresholdDaysHint') }}</p>
+        </div>
 
         <div v-if="eventType !== undefined && eventType !== 'ONE_TIME'" class="space-y-1">
           <FieldLabel>{{ t('events.registrationCloseDays') }}</FieldLabel>
@@ -223,7 +218,6 @@ const {t} = useI18n()
       </template>
     </template>
 
-    <!-- Restrictions -->
     <template v-if="groups && tags">
       <hr class="border-(--border)"/>
       <SubHeader>{{ t('events.restrictions') }}</SubHeader>
@@ -231,21 +225,20 @@ const {t} = useI18n()
       <FieldLabel>{{ t('events.restrictToRoles') }}</FieldLabel>
       <p class="text-xs text-(--text-muted)">{{ t('events.restrictToRolesHint') }}</p>
       <RestrictionsField
+          v-model="restriction"
           :groups="groups"
           :tags="tags"
-          v-model="restriction"
       />
 
       <FieldLabel>{{ t('events.restrictVisibility') }}</FieldLabel>
       <p class="text-xs text-(--text-muted)">{{ t('events.restrictVisibilityHint') }}</p>
       <RestrictionsField
+          v-model="viewRestriction"
           :groups="groups"
           :tags="tags"
-          v-model="viewRestriction"
       />
     </template>
 
-    <!-- Event Fields -->
     <hr class="border-(--border)"/>
     <EventFieldList
         v-model:fields="fields"

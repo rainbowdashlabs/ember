@@ -3,9 +3,9 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {Comment} from '@/api/comments'
-import type {MemberGroup, UserTag} from '@/api/types'
+import type {CommentResponse, MemberGroup, UserTag} from '@/api/generated/schema'
 import type {PitchNews, PitchNewsSettings} from './pitchTypes'
+import {pitchIdentity} from './pitchMembers'
 
 /**
  * The news a demonstration shows, handed to the application's own list item and editor panels.
@@ -20,14 +20,14 @@ function published(days: number): string {
 export const NEWS_ITEMS: PitchNews[] = [
     {
         kind: 'local', id: 1, title: 'Zeltlager 2026 - Anmeldung offen', publicBlog: true,
-        author: {stationUid: 'wache', memberUid: 'm-clara', name: 'Clara Weiß'},
+        author: pitchIdentity('Clara Weiß', 'm-clara'),
         publishedAt: published(2), commentCount: 4,
         contentHtml: '<p>Vom 12. bis 14. Juli geht es an den Talsee. Anmeldung läuft über den Termin, '
             + 'Rückfragen gern in den Kommentaren.</p>',
     },
     {
         kind: 'local', id: 2, title: 'Neue Ausrüstung ist da', restricted: true,
-        author: {stationUid: 'wache', memberUid: 'm-ben', name: 'Ben Krüger'},
+        author: pitchIdentity('Ben Krüger', 'm-ben'),
         publishedAt: published(5), commentCount: 0,
         contentHtml: '<p>Die neuen Helme sind eingetroffen. Anprobe am Dienstag, bitte alte Helme mitbringen.</p>',
     },
@@ -39,13 +39,13 @@ export const NEWS_ITEMS: PitchNews[] = [
 ]
 
 const GROUPS: MemberGroup[] = [
-    {id: 1, stationId: 'wache', name: 'Löschgruppe', position: 0},
-    {id: 2, stationId: 'wache', name: 'Anwärter', position: 1},
+    {id: 1, stationId: 'wache', name: 'Löschgruppe', color: null, position: 0, groupSetId: null, userTypes: []},
+    {id: 2, stationId: 'wache', name: 'Anwärter', color: null, position: 1, groupSetId: null, userTypes: []},
 ]
 
 const TAGS: UserTag[] = [
-    {id: 1, stationId: 'wache', name: 'Atemschutz'},
-    {id: 2, stationId: 'wache', name: 'Fahrdienst'},
+    {id: 1, stationId: 'wache', name: 'Atemschutz', color: null, visible: true, position: 0},
+    {id: 2, stationId: 'wache', name: 'Fahrdienst', color: null, visible: true, position: 1},
 ]
 
 /** What the editor panels of a post show: who may read it, whether it is public, who else gets it. */
@@ -67,19 +67,21 @@ export const NEWS_SETTINGS: PitchNewsSettings = {
 }
 
 /** The questions under the post, drawn by the application's own comment thread. */
-export const NEWS_COMMENTS: Comment[] = [
+export const NEWS_COMMENTS: CommentResponse[] = [
     {
-        id: 1, parentId: null,
-        author: {stationUid: 'wache', memberUid: 'm-anna', name: 'Anna Müller'},
+        id: 1,
+        author: pitchIdentity('Anna Müller', 'm-anna'),
         authorName: 'Anna Müller',
         content: 'Können Geschwister mitkommen, die noch nicht dabei sind?',
+        deleted: false,
         createdAt: published(1),
     },
     {
         id: 2, parentId: 1,
-        author: {stationUid: 'wache', memberUid: 'm-clara', name: 'Clara Weiß'},
+        author: pitchIdentity('Clara Weiß', 'm-clara'),
         authorName: 'Clara Weiß',
         content: '@[Anna Müller] Ja, bitte bei der Anmeldung als Begleitperson eintragen.',
+        deleted: false,
         createdAt: published(1),
     },
 ]

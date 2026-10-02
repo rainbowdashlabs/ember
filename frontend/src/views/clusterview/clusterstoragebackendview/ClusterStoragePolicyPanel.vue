@@ -30,8 +30,8 @@ defineProps<{
 }>()
 
 const emit = defineEmits<{
-    (e: 'save'): void
-    (e: 'drop'): void
+    save: []
+    drop: []
 }>()
 
 const reach = defineModel<ClusterBackendReachName>('reach', {required: true})

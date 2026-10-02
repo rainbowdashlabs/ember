@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, useId } from 'vue'
 import { useI18n } from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
@@ -12,10 +12,11 @@ import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import RestrictionPicker from '@/components/input/RestrictionPicker.vue'
 import TableColumnPicker from '@/components/table/TableColumnPicker.vue'
-import { type RestrictionSelection, emptyRestriction } from '@/components/input/restriction'
+import { emptyRestriction } from '@/components/input/restriction'
+import type { RestrictionSelection } from '@/api/types'
 import type { DataTableApi } from '@/composables/useDataTable'
 import type { FilterCriteria } from '@/composables/useMemberFilter'
-import type { MemberGroup, StationMember, UserTag } from '@/api/types'
+import type { MemberGroup, MemberWithName, UserTag } from '@/api/generated/schema'
 
 const { t } = useI18n()
 
@@ -28,7 +29,7 @@ defineProps<{
   groups: MemberGroup[]
   tags: UserTag[]
   /** The table whose columns, one per inventory, the list offers to show. */
-  table: DataTableApi<StationMember>
+  table: DataTableApi<MemberWithName>
 }>()
 
 const emit = defineEmits<{
@@ -36,6 +37,7 @@ const emit = defineEmits<{
 }>()
 
 const restriction = ref<RestrictionSelection>(emptyRestriction())
+const showEmptyLabelId = useId()
 
 function emitFilter() {
   emit('filter', {
@@ -50,14 +52,14 @@ function emitFilter() {
 <template>
   <NeutralContainer class="flex flex-wrap items-center gap-4">
     <RestrictionPicker
+        v-model="restriction"
         :groups="groups"
         :tags="tags"
-        v-model="restriction"
         @update:model-value="emitFilter"
     />
     <div class="flex items-center gap-2">
-      <label class="text-sm font-medium">{{ t('inventoryMembers.showEmpty') }}</label>
-      <ToggleInput v-model="showEmpty" />
+      <span :id="showEmptyLabelId" class="text-sm font-medium">{{ t('inventoryMembers.showEmpty') }}</span>
+      <ToggleInput v-model="showEmpty" :aria-labelledby="showEmptyLabelId" />
     </div>
     <TableColumnPicker :table="table"/>
   </NeutralContainer>

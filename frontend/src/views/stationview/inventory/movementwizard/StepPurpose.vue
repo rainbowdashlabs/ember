@@ -7,6 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
+import BareButton from '@/components/button/BareButton.vue'
 import type {MovementPurposeName} from '@/api/movements'
 
 /**
@@ -36,7 +37,7 @@ function pick(chosen: MovementPurposeName) {
 <template>
   <div class="space-y-3">
     <SubHeader>{{ t('movements.wizard.purpose.title') }}</SubHeader>
-    <button
+    <BareButton
         v-for="option in props.purposes"
         :key="option"
         :class="[
@@ -44,11 +45,10 @@ function pick(chosen: MovementPurposeName) {
           purpose === option ? 'border-primary bg-primary/10' : 'border-(--border) hover:border-primary',
         ]"
         :data-testid="`wizard-purpose-${option}`"
-        type="button"
         @click="pick(option)"
     >
       <span class="block text-sm font-medium">{{ t(`movements.wizard.purpose.${option}`) }}</span>
       <MutedText size="sm">{{ t(`movements.wizard.purpose.${option}Hint`) }}</MutedText>
-    </button>
+    </BareButton>
   </div>
 </template>

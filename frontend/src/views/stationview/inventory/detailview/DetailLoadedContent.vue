@@ -8,7 +8,14 @@ import { useI18n } from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import ItemsByArt from './ItemsByArt.vue'
-import type {InventoryArt} from '@/api/inventoryArts'
+import type {
+  InventoryArt,
+  InventoryDetail,
+  InventoryItem,
+  InventorySize,
+  LentOutItem,
+  ProcurementResponse,
+} from '@/api/generated/schema'
 import type { ItemTableApi } from '../itemtable/useItemTable'
 import InventoryItemTable from '../itemtable/InventoryItemTable.vue'
 import ItemListControls from '../itemtable/ItemListControls.vue'
@@ -18,10 +25,8 @@ import LendingSharePanel from '@/components/lending/LendingSharePanel.vue'
 import ProcurementTable from './ProcurementTable.vue'
 import LostItemsTable from './LostItemsTable.vue'
 import FreeItemsGrid from './FreeItemsGrid.vue'
-import {isLendableInventory, type InventoryDetail, type InventoryItem, type InventorySize} from '@/api/inventory'
-import type { ProcurementEntry } from '@/api/procurement'
-import type { StationMember } from '@/api/types'
-import type { LentOutItem } from '@/api/lending'
+import {isLendableInventory} from '@/api/inventory'
+import type { MemberLike } from '@/components/input/select/memberOption'
 import type { InventoryItemActionEmits } from '../itemEmits'
 
 type SizeStat = {
@@ -58,8 +63,8 @@ const props = withDefaults(defineProps<{
   arts?: InventoryArt[]
   freeItems: InventoryItem[]
   lostItems: InventoryItem[]
-  memberMap: Map<number, StationMember>
-  openProcurement: ProcurementEntry[]
+  memberMap: Map<number, MemberLike>
+  openProcurement: ProcurementResponse[]
   lentOutItems: LentOutItem[]
   lentItemStationMap: Map<number, string>
   containerPathById: Map<number, string>
@@ -119,9 +124,9 @@ function memberIdentity(memberId: number) {
       :count="items.length"
       :show-quick-assign="permissions.canCreateItem && permissions.canQuickAssign"
       :show-intake="permissions.canCreateItem && permissions.canTakeStock"
-      @intake="$emit('openIntake')"
       :show-add="permissions.canCreateItem && permissions.canAddInternal"
       :show-search="items.length > 0"
+      @intake="$emit('openIntake')"
       @quick-assign="$emit('openQuickAssign')"
       @add="$emit('openAdd')"
     />

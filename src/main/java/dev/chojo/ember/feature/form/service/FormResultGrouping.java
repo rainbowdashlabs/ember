@@ -6,16 +6,17 @@
 package dev.chojo.ember.feature.form.service;
 
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.FormRefusal;
 import dev.chojo.ember.feature.form.service.FormRespondents.Respondent;
-import dev.chojo.ember.feature.form.service.FormResultQuery.Grouping;
+import dev.chojo.ember.feature.form.service.FormResultQuery.ResultGrouping;
 import dev.chojo.ember.feature.members.entity.ProfileField;
-import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.ProfileFieldRepository;
 import dev.chojo.ember.feature.members.repository.UserTagRepository;
-import io.javalin.http.BadRequestResponse;
+import dev.chojo.ember.feature.question.FieldType;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -24,6 +25,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 
@@ -74,7 +76,7 @@ public class FormResultGrouping {
      * Whether a respondent can be in more than one group of this grouping, so the groups can add up
      * to more responses than there are.
      */
-    public static boolean overlaps(Grouping grouping) {
+    public static boolean overlaps(@Nullable ResultGrouping grouping) {
         return grouping != null
                 && (grouping.by() == FormResultQuery.Dimension.GROUP || grouping.by() == FormResultQuery.Dimension.TAG);
     }
@@ -87,8 +89,8 @@ public class FormResultGrouping {
      * @param grouping    what to split them by
      * @return the groups, in display order
      */
-    public List<Bucket> split(int stationId, List<Respondent> respondents, Grouping grouping) {
-        if (grouping == null || grouping.by() == null) throw new BadRequestResponse("Nothing to group by");
+    public List<Bucket> split(int stationId, List<Respondent> respondents, ResultGrouping grouping) {
+        if (grouping == null || grouping.by() == null) throw FormRefusal.FORM_RESULTS_GROUPING_MISSING.raise();
         var buckets =
                 switch (grouping.by()) {
                     case USER_TYPE ->
@@ -97,9 +99,10 @@ public class FormResultGrouping {
                                 Arrays.stream(StationUserType.values())
                                         .map(type -> new Category(type.name(), type.name()))
                                         .toList(),
-                                respondent -> respondent.userType() == null
-                                        ? Set.of()
-                                        : Set.of(respondent.userType().name()));
+                                respondent -> {
+                                    var userType = respondent.userType();
+                                    return userType == null ? Set.of() : Set.of(userType.name());
+                                });
                     case GROUP ->
                         categorical(
                                 respondents,
@@ -116,24 +119,23 @@ public class FormResultGrouping {
                                 respondent -> keysOf(respondent.tagIds()));
                     case FIELD -> byField(stationId, respondents, grouping);
                     case AGE ->
-                        brackets(
-                                respondents,
-                                boundsOr(grouping.bounds(), DEFAULT_AGE_BOUNDS),
-                                respondent -> respondent.age() == null
-                                        ? null
-                                        : respondent.age().doubleValue());
+                        brackets(respondents, boundsOr(grouping.bounds(), DEFAULT_AGE_BOUNDS), respondent -> {
+                            Integer age = respondent.age();
+                            return age == null ? null : age.doubleValue();
+                        });
                 };
         return limited(buckets, grouping.only());
     }
 
-    private List<Bucket> byField(int stationId, List<Respondent> respondents, Grouping grouping) {
+    private List<Bucket> byField(int stationId, List<Respondent> respondents, ResultGrouping grouping) {
+        Integer fieldId = grouping.fieldId();
         var field = FormRespondents.groupableFields(profileFields.findByStation(stationId)).stream()
-                .filter(candidate -> grouping.fieldId() != null && candidate.id() == grouping.fieldId())
+                .filter(candidate -> fieldId != null && candidate.id() == fieldId)
                 .findFirst()
-                .orElseThrow(() -> new BadRequestResponse("Unknown profile field to group by"));
+                .orElseThrow(FormRefusal.FORM_RESULTS_GROUPING_FIELD_NOT_HERE::raise);
         Function<Respondent, String> answer =
                 respondent -> respondent.fieldValues().get(field.id());
-        if (field.fieldType() == ProfileFieldType.NUMBER && FormResultQuery.notEmpty(grouping.bounds())) {
+        if (field.fieldType() == FieldType.NUMBER && FormResultQuery.notEmpty(grouping.bounds())) {
             return brackets(respondents, grouping.bounds(), respondent -> {
                 var value = answer.apply(respondent);
                 return value == null ? null : FormResultQuery.numberOf(value);
@@ -147,11 +149,10 @@ public class FormResultGrouping {
 
     private static List<Category> categoriesOf(ProfileField field, List<Respondent> respondents) {
         return switch (field.fieldType()) {
-            case ENUM -> {
-                var options = field.config() == null || field.config().options() == null
-                        ? List.<String>of()
-                        : field.config().options();
-                yield options.stream()
+            case CHOICE -> {
+                var config = field.config();
+                List<String> options = config == null ? null : config.options();
+                yield Objects.requireNonNullElse(options, List.<String>of()).stream()
                         .map(option -> new Category(option, option))
                         .toList();
             }

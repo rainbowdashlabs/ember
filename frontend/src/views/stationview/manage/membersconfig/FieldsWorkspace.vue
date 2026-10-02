@@ -12,7 +12,7 @@ import AudiencesPanel from './AudiencesPanel.vue'
 import FieldsPreview from './FieldsPreview.vue'
 import type {AskedField} from './askedField'
 import type {FieldTemplate} from './fieldTemplates'
-import type {ProfileField} from '@/api/profileFields'
+import type {EditableField} from '@/api/profileFields'
 import type {useFieldsConfig} from '@/composables/useFieldsConfig'
 
 /**
@@ -54,8 +54,8 @@ const audienceCount = computed(() => c.allAssignments.value.reduce<Record<number
           :roles="props.roles"
           :groups="c.availableGroups.value"
           @add="c.openAddField"
-          @select="(f: ProfileField) => c.select(f.id)"
-          @toggle-checked="(f: ProfileField) => c.toggleChecked(f.id)"
+          @select="(f: EditableField) => c.select(f.id)"
+          @toggle-checked="(f: EditableField) => c.toggleChecked(f.id)"
           @assign-checked="c.assignCheckedTo"
           @clear-checked="c.clearChecked"
           @edit="c.openEditField"

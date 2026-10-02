@@ -9,7 +9,6 @@ import dev.chojo.ember.api.LocalRouteServer;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.event.DomainEventBus;
-import dev.chojo.ember.feature.comment.service.CommentMentions;
 import dev.chojo.ember.feature.content.BlockReferenceTestBase;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.members.service.MemberLookupService;
@@ -18,6 +17,7 @@ import dev.chojo.ember.feature.news.entity.News;
 import dev.chojo.ember.feature.news.service.NewsAttachmentService;
 import dev.chojo.ember.feature.news.service.NewsFederationService;
 import dev.chojo.ember.feature.news.service.NewsService;
+import dev.chojo.ember.feature.news.service.PublicBlogService;
 import dev.chojo.ember.feature.station.entity.Station;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -63,13 +63,13 @@ class NewsBlockRoutesTest extends BlockReferenceTestBase {
                 new DomainEventBus(Set.of()),
                 stationMemberRepo,
                 mock(MemberLookupService.class),
-                accountRepo,
-                mock(CommentMentions.class));
+                mock(MemberNameResolver.class));
         var routes = new NewsRoutes(
                 newsService,
+                newCommentService(new DomainEventBus(Set.of())),
                 mock(NewsAttachmentService.class),
                 mock(NewsFederationService.class),
-                stationRepo,
+                new PublicBlogService(stationRepo),
                 mock(MemberNameResolver.class),
                 memberIdentityFactory,
                 mock(EmailService.class));

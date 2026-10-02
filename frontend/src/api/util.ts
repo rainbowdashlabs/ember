@@ -4,12 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {uploadFile} from './upload'
+import type {CsvResponse} from './generated/schema'
 
-export interface ParsedCsv {
-    headers: string[]
-    rows: string[][]
-}
-
-export async function parseCsv(file: File, separator: string): Promise<ParsedCsv> {
-    return uploadFile<ParsedCsv>('/util/csv/parse', {file, separator})
+export async function parseCsv(file: File, separator: string): Promise<CsvResponse> {
+    return uploadFile<CsvResponse>('/util/csv/parse', {file, separator})
 }

@@ -13,14 +13,14 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import MailingNumberField from './MailingNumberField.vue'
-import type {MailingConfig} from '@/api/adminSettings'
+import type {MailingConfigResponse} from '@/api/generated/schema'
 
 /**
  * What is left of the mailing page once the providers became a list of their own: the settings
  * that belong to the instance rather than to any one provider, and the actions that act on all of
  * them at once.
  */
-const config = defineModel<MailingConfig>({required: true})
+const config = defineModel<MailingConfigResponse>({required: true})
 
 defineProps<{
   clearing: boolean

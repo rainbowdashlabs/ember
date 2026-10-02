@@ -15,11 +15,11 @@ import dev.chojo.ember.feature.inventory.service.ItemMovementService;
 import dev.chojo.ember.feature.inventory.service.SelfCheckService;
 import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
-import dev.chojo.ember.feature.members.repository.ProfileFieldRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.repository.UserTagRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,7 +40,7 @@ public class FormerMemberService {
     private final MemberGroupRepository groupRepository;
     private final UserTagRepository tagRepository;
     private final AttendanceRepository attendanceRepository;
-    private final ProfileFieldRepository profileFieldRepository;
+    private final ProfileFieldCore profileFields;
     private final DocumentService documentService;
     private final SelfCheckService selfCheckService;
 
@@ -53,7 +53,7 @@ public class FormerMemberService {
             MemberGroupRepository groupRepository,
             UserTagRepository tagRepository,
             AttendanceRepository attendanceRepository,
-            ProfileFieldRepository profileFieldRepository,
+            ProfileFieldCore profileFields,
             DocumentService documentService,
             SelfCheckService selfCheckService) {
         this.selfCheckService = selfCheckService;
@@ -64,7 +64,7 @@ public class FormerMemberService {
         this.groupRepository = groupRepository;
         this.tagRepository = tagRepository;
         this.attendanceRepository = attendanceRepository;
-        this.profileFieldRepository = profileFieldRepository;
+        this.profileFields = profileFields;
         this.documentService = documentService;
     }
 
@@ -73,18 +73,16 @@ public class FormerMemberService {
      *
      * @return null if OK, error message otherwise
      */
-    public String canMarkFormer(int memberId) {
+    public @Nullable String canMarkFormer(int memberId) {
         var member = memberRepository.findById(memberId).orElse(null);
         if (member == null) return "Member not found";
         if (member.former()) return "Member is already former";
 
-        // Check: no inventory assigned
         var assignedItems = inventoryRepository.findItemsByMember(memberId);
         if (!assignedItems.isEmpty()) {
             return "Member still has " + assignedItems.size() + " inventory items assigned";
         }
 
-        // Check: only TEAM or MEMBER can become former (not GUARDIAN, MANAGER, ADMIN)
         var roles = memberRepository.findPermissions(memberId);
         boolean hasForbiddenRole = roles.stream()
                 .anyMatch(r -> r.permission() == StationPermission.MEMBER_GUARDIAN
@@ -120,10 +118,8 @@ public class FormerMemberService {
 
         log.info("Marking member {} as former", memberId);
 
-        // Remove all roles
         memberRepository.revokeAllPermissions(memberId);
 
-        // Remove all manager relations (both as manager and as managed)
         memberRepository.removeAllManagers(memberId);
         memberRepository.removeAllManaged(memberId);
 
@@ -133,34 +129,30 @@ public class FormerMemberService {
 
         selfCheckService.closeAllFor(memberId);
 
-        // Remove from all groups
         var groups = groupRepository.findGroupsForMember(memberId);
         for (var group : groups) {
             groupRepository.removeMember(group.id(), memberId);
         }
 
-        // Remove from all tags
         var tags = tagRepository.findTagsForMember(memberId);
         for (var tag : tags) {
             tagRepository.removeMember(tag.id(), memberId);
         }
 
-        // Delete absences
         attendanceRepository.deleteAbsencesByMember(memberId);
 
-        // Delete non-archived profile field values
-        profileFieldRepository.deleteNonArchivedValues(memberId);
+        profileFields.clearOnArchive(memberId);
 
-        documentService.releaseMember(memberId);
+        documentService.memberLeaves(memberId, DocumentService.Leaving.ARCHIVED);
 
         var member = memberRepository.findById(memberId).orElseThrow();
-        if (member.accountId() != null) {
-            var account = accountRepository.findById(member.accountId()).orElse(null);
+        Integer accountId = member.accountId();
+        if (accountId != null) {
+            var account = accountRepository.findById(accountId).orElse(null);
             String frozen = account != null ? NameParts.of(account).identified() : "";
             memberRepository.setDisplayNameAndClearAccount(memberId, frozen == null ? "" : frozen);
         }
 
-        // Set former flag
         memberRepository.setFormer(memberId, true);
 
         log.info("Member {} marked as former", memberId);

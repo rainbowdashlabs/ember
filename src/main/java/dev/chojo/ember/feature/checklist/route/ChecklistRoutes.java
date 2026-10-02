@@ -5,11 +5,12 @@
  */
 package dev.chojo.ember.feature.checklist.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.ChecklistRefusal;
 import dev.chojo.ember.feature.checklist.entity.Checklist;
 import dev.chojo.ember.feature.checklist.entity.ChecklistCell;
 import dev.chojo.ember.feature.checklist.entity.ChecklistCellNoteHistory;
@@ -25,7 +26,6 @@ import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
 import dev.chojo.ember.feature.members.entity.NameParts;
-import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.restriction.Restriction;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
@@ -41,6 +41,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,8 +49,6 @@ import java.io.IOException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
-import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 
@@ -67,7 +66,6 @@ public class ChecklistRoutes implements Routes {
     private final ChecklistService checklistService;
     private final ChecklistExportService exportService;
     private final MemberNameResolver memberNameResolver;
-    private final StationMemberRepository memberRepository;
     private final EventCrudService eventCrudService;
     private final EventRestrictionService eventRestrictionService;
 
@@ -76,13 +74,11 @@ public class ChecklistRoutes implements Routes {
             ChecklistService checklistService,
             ChecklistExportService exportService,
             MemberNameResolver memberNameResolver,
-            StationMemberRepository memberRepository,
             EventCrudService eventCrudService,
             EventRestrictionService eventRestrictionService) {
         this.checklistService = checklistService;
         this.exportService = exportService;
         this.memberNameResolver = memberNameResolver;
-        this.memberRepository = memberRepository;
         this.eventCrudService = eventCrudService;
         this.eventRestrictionService = eventRestrictionService;
     }
@@ -135,7 +131,7 @@ public class ChecklistRoutes implements Routes {
                             status = "200",
                             content = @OpenApiContent(from = ChecklistSummaryResponse[].class)))
     private void list(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var summaries = checklistService.findSummaries(session.stationId());
         ctx.json(summaries.stream().map(this::toSummaryResponse).toList());
     }
@@ -149,13 +145,13 @@ public class ChecklistRoutes implements Routes {
             responses =
                     @OpenApiResponse(status = "201", content = @OpenApiContent(from = ChecklistDetailResponse.class)))
     private void create(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(CreateRequest.class);
         if (request.name() == null || request.name().isBlank()) {
-            throw Refusal.CHECKLIST_NEEDS_A_NAME.raise();
+            throw ChecklistRefusal.CHECKLIST_NEEDS_A_NAME.raise();
         }
         if (request.columns() == null || request.columns().isEmpty()) {
-            throw Refusal.CHECKLIST_NEEDS_A_COLUMN.raise();
+            throw ChecklistRefusal.CHECKLIST_NEEDS_A_COLUMN.raise();
         }
         var columnSpecs = request.columns().stream()
                 .map(c -> new ColumnSpec(requireLabel(c.label()), c.description() == null ? "" : c.description()))
@@ -198,15 +194,15 @@ public class ChecklistRoutes implements Routes {
             responses =
                     @OpenApiResponse(status = "200", content = @OpenApiContent(from = ChecklistDetailResponse.class)))
     private void update(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var checklist = loadOwned(ctx);
         var request = ctx.bodyAsClass(UpdateRequest.class);
         String name = request.name() != null ? request.name() : checklist.name();
-        if (name.isBlank()) throw Refusal.CHECKLIST_RENAME_NEEDS_A_NAME.raise();
+        if (name.isBlank()) throw ChecklistRefusal.CHECKLIST_RENAME_NEEDS_A_NAME.raise();
         String description = request.description() != null ? request.description() : checklist.description();
         OccurrenceSpec occurrence = resolveOccurrence(session, request.source());
         if (occurrence != null && request.restriction() != null) {
-            throw Refusal.CHECKLIST_FOLLOWS_ONE_THING.raise();
+            throw ChecklistRefusal.CHECKLIST_FOLLOWS_ONE_THING.raise();
         }
         RestrictionMode mode = request.restriction() != null ? resolveMode(request.restriction()) : checklist.mode();
         FilterSpec filterSpec = request.restriction() != null ? toFilterSpec(request.restriction()) : null;
@@ -310,12 +306,12 @@ public class ChecklistRoutes implements Routes {
         var checklist = loadOwned(ctx);
         var request = ctx.bodyAsClass(ReorderColumnsRequest.class);
         if (request.orderedIds() == null || request.orderedIds().isEmpty()) {
-            throw Refusal.CHECKLIST_COLUMN_ORDER_MISSING.raise();
+            throw ChecklistRefusal.CHECKLIST_COLUMN_ORDER_MISSING.raise();
         }
         try {
             checklistService.reorderColumns(checklist.id(), request.orderedIds());
         } catch (IllegalArgumentException e) {
-            throw Refusal.CHECKLIST_COLUMN_ORDER_INCOMPLETE.raise();
+            throw ChecklistRefusal.CHECKLIST_COLUMN_ORDER_INCOMPLETE.raise();
         }
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -332,9 +328,9 @@ public class ChecklistRoutes implements Routes {
         var checklist = loadOwned(ctx);
         var request = ctx.bodyAsClass(AddMembersRequest.class);
         if (request.memberIds() == null || request.memberIds().isEmpty()) {
-            throw Refusal.CHECKLIST_NAMES_NO_MEMBERS.raise();
+            throw ChecklistRefusal.CHECKLIST_NAMES_NO_MEMBERS.raise();
         }
-        var validIds = filterToStation(request.memberIds(), checklist.stationId());
+        var validIds = checklistService.membersOfStation(request.memberIds(), checklist.stationId());
         var result = checklistService.addMembers(checklist.id(), validIds);
         ctx.json(new AddMembersResponse(result.added(), result.restored(), result.skipped()));
     }
@@ -369,7 +365,7 @@ public class ChecklistRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = CellWriteRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = CellResponse.class)))
     private void writeCell(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var checklist = loadOwned(ctx);
         var entry = loadEntry(ctx, checklist);
         var column = loadColumn(ctx, checklist);
@@ -417,14 +413,14 @@ public class ChecklistRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = BulkSetRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BulkSetResponse.class)))
     private void bulkSetColumn(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var checklist = loadOwned(ctx);
         var column = loadColumn(ctx, checklist);
         var request = ctx.bodyAsClass(BulkSetRequest.class);
         if (request.entryIds() == null) {
-            throw Refusal.CHECKLIST_NAMES_NO_ROWS.raise();
+            throw ChecklistRefusal.CHECKLIST_NAMES_NO_ROWS.raise();
         }
-        var validEntryIds = filterEntryIds(request.entryIds(), checklist.id());
+        var validEntryIds = checklistService.rowsOfChecklist(request.entryIds(), checklist.id());
         int updated = checklistService.bulkSetColumn(
                 column.id(), validEntryIds, request.checked(), session.member().id());
         ctx.json(new BulkSetResponse(updated));
@@ -464,11 +460,11 @@ public class ChecklistRoutes implements Routes {
             ctx.result(pdf.bytes());
         } catch (IOException e) {
             log.error("Failed to render checklist PDF for {}", checklist.id(), e);
-            throw Refusal.CHECKLIST_PDF_NOT_MADE.raise();
+            throw ChecklistRefusal.CHECKLIST_PDF_NOT_MADE.raise();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             log.warn("Rendering the PDF of checklist {} was interrupted", checklist.id(), e);
-            throw Refusal.CHECKLIST_PDF_INTERRUPTED.raise();
+            throw ChecklistRefusal.CHECKLIST_PDF_INTERRUPTED.raise();
         }
     }
 
@@ -479,52 +475,27 @@ public class ChecklistRoutes implements Routes {
 
     private ChecklistColumn loadColumn(Context ctx, Checklist checklist) {
         int columnId = pathInt(ctx, "columnId");
-        var column = checklistService.findColumn(columnId).orElseThrow(Refusal.CHECKLIST_COLUMN_NOT_HERE::raise);
+        var column =
+                checklistService.findColumn(columnId).orElseThrow(ChecklistRefusal.CHECKLIST_COLUMN_NOT_HERE::raise);
         if (column.checklistId() != checklist.id()) {
-            throw Refusal.CHECKLIST_COLUMN_ON_ANOTHER_LIST.raise();
+            throw ChecklistRefusal.CHECKLIST_COLUMN_ON_ANOTHER_LIST.raise();
         }
         return column;
     }
 
     private ChecklistEntry loadEntry(Context ctx, Checklist checklist) {
         int entryId = pathInt(ctx, "entryId");
-        var entry = checklistService.findEntry(entryId).orElseThrow(Refusal.CHECKLIST_ROW_NOT_HERE::raise);
+        var entry = checklistService.findEntry(entryId).orElseThrow(ChecklistRefusal.CHECKLIST_ROW_NOT_HERE::raise);
         if (entry.checklistId() != checklist.id()) {
-            throw Refusal.CHECKLIST_ROW_ON_ANOTHER_LIST.raise();
+            throw ChecklistRefusal.CHECKLIST_ROW_ON_ANOTHER_LIST.raise();
         }
         return entry;
     }
 
-    private List<Integer> filterToStation(List<Integer> memberIds, int stationId) {
-        var deduped = new HashSet<Integer>();
-        var stationMemberIds = new HashSet<Integer>();
-        for (var member : memberRepository.findByStation(stationId)) {
-            stationMemberIds.add(member.id());
-        }
-        var out = new ArrayList<Integer>();
-        for (int id : memberIds) {
-            if (deduped.add(id) && stationMemberIds.contains(id)) {
-                out.add(id);
-            }
-        }
-        return out;
-    }
-
-    private List<Integer> filterEntryIds(List<Integer> entryIds, int checklistId) {
-        var checklistEntryIds = new HashSet<Integer>();
-        for (var entry : checklistService.findEntries(checklistId, true)) {
-            checklistEntryIds.add(entry.id());
-        }
-        var deduped = new HashSet<Integer>();
-        var out = new ArrayList<Integer>();
-        for (int id : entryIds) {
-            if (deduped.add(id) && checklistEntryIds.contains(id)) {
-                out.add(id);
-            }
-        }
-        return out;
-    }
-
+    /**
+     * The whole list for its screen. A list that follows nothing has nothing to measure its rows
+     * against, so every row counts as inside its filter rather than none.
+     */
     private ChecklistDetailResponse buildDetail(Checklist checklist) {
         var columns = checklistService.findColumns(checklist.id());
         var aliveEntries = checklistService.findEntries(checklist.id(), false);
@@ -534,8 +505,6 @@ public class ChecklistRoutes implements Routes {
         var entryResponses = aliveEntries.stream()
                 .map(entry -> {
                     String name = memberNameResolver.called(entry.memberId());
-                    // A list that follows nothing has nothing to measure its rows against, so it
-                    // marks none of them rather than marking all of them.
                     boolean inFilter =
                             !membership.following() || membership.memberIds().contains(entry.memberId());
                     return new EntryResponse(
@@ -551,7 +520,7 @@ public class ChecklistRoutes implements Routes {
                 checklist.id(),
                 checklist.name(),
                 checklist.description(),
-                checklist.mode().name(),
+                checklist.mode(),
                 checklist.createdAt(),
                 checklist.createdBy(),
                 checklist.lastRefreshedAt(),
@@ -566,7 +535,7 @@ public class ChecklistRoutes implements Routes {
      * What the list follows, so the screen can say it. Absent means the list follows its filter, or
      * the appointment it used to follow has been deleted and it now follows nothing.
      */
-    private SourceOccurrenceResponse toSourceResponse(Checklist checklist) {
+    private @Nullable SourceOccurrenceResponse toSourceResponse(Checklist checklist) {
         if (!checklist.followsEvent()) return null;
         String eventName = eventCrudService
                 .findById(checklist.sourceEventId())
@@ -583,27 +552,27 @@ public class ChecklistRoutes implements Routes {
      * exists at all, and a date came with it. Without the date the reference would resolve to every
      * occurrence there has ever been.
      */
-    private OccurrenceSpec resolveOccurrence(UserSession session, SourceOccurrenceRequest request) {
+    private OccurrenceSpec resolveOccurrence(StationSession session, SourceOccurrenceRequest request) {
         if (request == null || request.eventId() == null) return null;
         LocalDate date = parseDate(request.date());
-        if (date == null) throw Refusal.CHECKLIST_OCCURRENCE_DAY_MISSING.raise();
+        if (date == null) throw ChecklistRefusal.CHECKLIST_OCCURRENCE_DAY_MISSING.raise();
         var event = eventCrudService
                 .findById(request.eventId())
                 .filter(e -> e.stationId() == session.stationId())
-                .orElseThrow(Refusal.CHECKLIST_APPOINTMENT_NOT_HERE::raise);
-        if (session.member() != null
-                && !eventRestrictionService.canView(event.id(), session.member().id(), session.permissions())) {
-            throw Refusal.CHECKLIST_APPOINTMENT_NOT_YOURS_TO_FOLLOW.raise();
+                .orElseThrow(ChecklistRefusal.CHECKLIST_APPOINTMENT_NOT_HERE::raise);
+        if (!eventRestrictionService.canView(
+                event.id(), session.member().id(), session.user().permissions())) {
+            throw ChecklistRefusal.CHECKLIST_APPOINTMENT_NOT_YOURS_TO_FOLLOW.raise();
         }
         return new OccurrenceSpec(event.id(), date);
     }
 
-    private static LocalDate parseDate(String raw) {
+    private static @Nullable LocalDate parseDate(String raw) {
         if (raw == null || raw.isBlank()) return null;
         try {
             return LocalDate.parse(raw.trim());
         } catch (DateTimeParseException e) {
-            throw Refusal.CHECKLIST_DAY_NOT_A_DATE.raise(raw.trim());
+            throw ChecklistRefusal.CHECKLIST_DAY_NOT_A_DATE.raise(raw.trim());
         }
     }
 
@@ -644,7 +613,6 @@ public class ChecklistRoutes implements Routes {
         var userTypes = filter.stream()
                 .map(Restriction::userType)
                 .filter(Objects::nonNull)
-                .map(Enum::name)
                 .toList();
         var groupIds = filter.stream()
                 .map(Restriction::groupId)
@@ -656,32 +624,26 @@ public class ChecklistRoutes implements Routes {
                 .map(Restriction::memberId)
                 .filter(Objects::nonNull)
                 .toList();
-        return new RestrictionResponse(userTypes, groupIds, tagIds, memberIds, mode.name());
+        return new RestrictionResponse(userTypes, groupIds, tagIds, memberIds, mode);
     }
 
-    private static FilterSpec toFilterSpec(RestrictionRequest req) {
+    private static FilterSpec toFilterSpec(@Nullable RestrictionRequest req) {
         if (req == null) return FilterSpec.empty();
-        var userTypes = req.userTypes() == null
-                ? List.<StationUserType>of()
-                : req.userTypes().stream().map(StationUserType::valueOf).toList();
+        var userTypes = req.userTypes() != null ? req.userTypes() : List.<StationUserType>of();
         var groupIds = req.groupIds() != null ? req.groupIds() : List.<Integer>of();
         var tagIds = req.tagIds() != null ? req.tagIds() : List.<Integer>of();
         var memberIds = req.memberIds() != null ? req.memberIds() : List.<Integer>of();
         return new FilterSpec(userTypes, groupIds, tagIds, memberIds);
     }
 
-    private static RestrictionMode resolveMode(RestrictionRequest req) {
-        if (req == null || req.mode() == null) return RestrictionMode.AND;
-        try {
-            return RestrictionMode.valueOf(req.mode());
-        } catch (IllegalArgumentException e) {
-            throw Refusal.CHECKLIST_FILTER_MODE_UNKNOWN.raise(req.mode());
-        }
+    private static RestrictionMode resolveMode(@Nullable RestrictionRequest req) {
+        if (req == null) return RestrictionMode.AND;
+        return Objects.requireNonNullElse(req.mode(), RestrictionMode.AND);
     }
 
     private static String requireLabel(String label) {
         if (label == null || label.isBlank()) {
-            throw Refusal.CHECKLIST_COLUMN_NEEDS_A_LABEL.raise();
+            throw ChecklistRefusal.CHECKLIST_COLUMN_NEEDS_A_LABEL.raise();
         }
         return label.trim();
     }
@@ -695,7 +657,7 @@ public class ChecklistRoutes implements Routes {
             String description,
             int memberCount,
             int columnCount,
-            Instant lastRefreshedAt,
+            @Nullable Instant lastRefreshedAt,
             Instant createdAt) {}
 
     /**
@@ -705,15 +667,15 @@ public class ChecklistRoutes implements Routes {
             int id,
             String name,
             String description,
-            String mode,
+            RestrictionMode mode,
             Instant createdAt,
-            Integer createdBy,
-            Instant lastRefreshedAt,
+            @Nullable Integer createdBy,
+            @Nullable Instant lastRefreshedAt,
             List<ColumnResponse> columns,
             List<EntryResponse> entries,
             List<CellResponse> cells,
             RestrictionResponse restriction,
-            SourceOccurrenceResponse source) {}
+            @Nullable SourceOccurrenceResponse source) {}
 
     /**
      * The appointment occurrence a list follows, or {@code null} when it follows its filter or has
@@ -723,25 +685,42 @@ public class ChecklistRoutes implements Routes {
      * @param eventDate the one date whose sign-ups it follows
      * @param eventName the appointment's name, so the header can say it without a second request
      */
-    public record SourceOccurrenceResponse(Integer eventId, LocalDate eventDate, String eventName) {}
+    public record SourceOccurrenceResponse(
+            Integer eventId, LocalDate eventDate, @Nullable String eventName) {}
 
     public record ColumnResponse(int id, int position, String label, String description) {}
 
     public record EntryResponse(
-            int id, int memberId, String memberName, Instant addedAt, Instant deletedAt, boolean inFilter) {}
+            int id,
+            int memberId,
+            String memberName,
+            Instant addedAt,
+            @Nullable Instant deletedAt,
+            boolean inFilter) {}
 
     public record CellResponse(
-            int id, int entryId, int columnId, boolean checked, String note, Instant updatedAt, Integer updatedBy) {}
+            int id,
+            int entryId,
+            int columnId,
+            boolean checked,
+            @Nullable String note,
+            Instant updatedAt,
+            @Nullable Integer updatedBy) {}
 
     public record NoteHistoryEntryResponse(
-            int id, String oldNote, String newNote, Integer changedBy, String changedByName, Instant changedAt) {}
+            int id,
+            @Nullable String oldNote,
+            @Nullable String newNote,
+            @Nullable Integer changedBy,
+            @Nullable String changedByName,
+            Instant changedAt) {}
 
     public record RestrictionResponse(
-            List<String> userTypes,
+            List<StationUserType> userTypes,
             List<Integer> groupIds,
             List<Integer> tagIds,
             List<Integer> memberIds,
-            String mode) {}
+            RestrictionMode mode) {}
 
     public record CreateRequest(
             String name,
@@ -768,11 +747,11 @@ public class ChecklistRoutes implements Routes {
     public record ReorderColumnsRequest(List<Integer> orderedIds) {}
 
     public record RestrictionRequest(
-            List<String> userTypes,
+            List<StationUserType> userTypes,
             List<Integer> groupIds,
             List<Integer> tagIds,
             List<Integer> memberIds,
-            String mode) {}
+            @Nullable RestrictionMode mode) {}
 
     public record AddMembersRequest(List<Integer> memberIds) {}
 
@@ -780,7 +759,8 @@ public class ChecklistRoutes implements Routes {
 
     public record RefreshResponse(int added, int alreadyPresent) {}
 
-    public record CellWriteRequest(boolean checked, String note) {}
+    public record CellWriteRequest(
+            boolean checked, @Nullable String note) {}
 
     public record BulkSetRequest(List<Integer> entryIds, boolean checked) {}
 

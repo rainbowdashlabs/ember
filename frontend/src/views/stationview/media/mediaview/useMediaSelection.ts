@@ -4,13 +4,13 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {ref, watch, type Ref} from 'vue'
-import type {StationFileListing} from '@/api/media'
+import type {FileListing} from '@/api/generated/schema'
 
 /**
  * Checkbox selection for the file grid, including shift-click range selection and the
  * multi-select mode toggle.
  */
-export function useMediaSelection(pagedFiles: Ref<StationFileListing[]>, activeFolder: Ref<number | null>) {
+export function useMediaSelection(pagedFiles: Ref<FileListing[]>, activeFolder: Ref<number | null>) {
     const selectedIds = ref<number[]>([])
     const multiSelect = ref(false)
     const lastCheckedIndex = ref<number | null>(null)

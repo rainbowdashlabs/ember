@@ -14,7 +14,8 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import {PageVisibility, type PageVisibilityName, type StationPage} from '@/api/pageManage'
+import {PageVisibility, type PageVisibilityName} from '@/api/pageManage'
+import type {StationPage} from '@/api/generated/schema'
 
 /**
  * Who reaches a page, as three states rather than a switch.
@@ -69,16 +70,23 @@ const options: {value: PageVisibilityName; labelKey: string; hintKey: string}[] 
             <SubHeader>{{ t('stationPages.changeVisibility') }}</SubHeader>
             <FailureAlert :failure="failure"/>
 
-            <div
-                v-for="option in options"
-                :key="option.value"
-                class="cursor-pointer rounded-theme border-2 px-4 py-3 transition-colors"
-                :class="chosen === option.value
-                    ? 'border-primary bg-primary/10'
-                    : 'border-(--border) hover:border-primary/50'"
-                @click="chosen = option.value">
-                <p class="font-medium">{{ t(option.labelKey) }}</p>
-                <MutedText tag="p" size="sm">{{ t(option.hintKey) }}</MutedText>
+            <div role="radiogroup" :aria-label="t('stationPages.changeVisibility')" class="space-y-3">
+                <div
+                    v-for="option in options"
+                    :key="option.value"
+                    class="cursor-pointer rounded-theme border-2 px-4 py-3 transition-colors"
+                    :class="chosen === option.value
+                        ? 'border-primary bg-primary/10'
+                        : 'border-(--border) hover:border-primary/50'"
+                    role="radio"
+                    tabindex="0"
+                    :aria-checked="chosen === option.value"
+                    @click="chosen = option.value"
+                    @keydown.enter.prevent="chosen = option.value"
+                    @keydown.space.prevent="chosen = option.value">
+                    <p class="font-medium">{{ t(option.labelKey) }}</p>
+                    <MutedText tag="p" size="sm">{{ t(option.hintKey) }}</MutedText>
+                </div>
             </div>
 
             <ButtonRow pair align="end">

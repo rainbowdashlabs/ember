@@ -6,18 +6,20 @@
 package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.feature.events.entity.EventAttachment;
 import dev.chojo.ember.feature.events.repository.EventAttachmentRepository;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
-import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -59,7 +61,7 @@ public class EventAttachmentService {
      * the question is asked of what the row says rather than of what has already been loaded.
      */
     public static void requireSizeToTravel(long fileSize, long limit) {
-        if (fileSize > limit) throw new BadRequestResponse("This file is too large to hand to a partner station");
+        if (fileSize > limit) throw EventRefusal.EVENT_FILE_TOO_LARGE_FOR_PARTNER.raise();
     }
 
     /**
@@ -110,9 +112,11 @@ public class EventAttachmentService {
      * Attaches a file from the station's library to the event. The file has to belong to the same
      * station, because an attachment is a reference into that station's library and nothing else.
      */
-    public EventAttachment attach(int eventId, int stationId, int fileId, String label, boolean internal) {
-        var file = media.findFile(fileId).orElseThrow(() -> new BadRequestResponse("Unknown file"));
-        if (file.stationId() != stationId) throw new BadRequestResponse("File belongs to another station");
+    public EventAttachment attach(int eventId, int stationId, int fileId, @Nullable String label, boolean internal) {
+        var file = media.findFile(fileId).orElseThrow(EventRefusal.EVENT_FILE_TO_ATTACH_NOT_HERE::raise);
+        if (!Objects.equals(file.stationId(), stationId)) {
+            throw EventRefusal.EVENT_FILE_TO_ATTACH_NOT_HERE.raise();
+        }
         var attachment = repository.attach(eventId, fileId, blankToNull(label), internal);
         log.info(
                 "File {} attached to event {} in station {} ({})",
@@ -123,7 +127,7 @@ public class EventAttachmentService {
         return attachment;
     }
 
-    public boolean update(int attachmentId, String label, boolean internal) {
+    public boolean update(int attachmentId, @Nullable String label, boolean internal) {
         return repository.update(attachmentId, blankToNull(label), internal);
     }
 
@@ -141,7 +145,7 @@ public class EventAttachmentService {
                 .toList();
     }
 
-    private static String blankToNull(String label) {
+    private static @Nullable String blankToNull(@Nullable String label) {
         return label == null || label.isBlank() ? null : label;
     }
 }

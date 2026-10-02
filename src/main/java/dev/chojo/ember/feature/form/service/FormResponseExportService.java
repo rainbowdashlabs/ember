@@ -23,6 +23,7 @@ import dev.chojo.ember.util.DocumentWord;
 import dev.chojo.ember.util.ExportedDocument;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
@@ -74,7 +75,7 @@ public class FormResponseExportService {
      * @param separator what goes between the cells of a spreadsheet, or {@code null} for the sheet
      */
     public ExportedDocument export(
-            int formId, String formTitle, Station station, String generatedBy, CsvWriter.Separator separator)
+            int formId, String formTitle, Station station, String generatedBy, CsvWriter.@Nullable Separator separator)
             throws Exception {
         var table = tableOf(formId, station);
         String language = StationFormat.languageOf(station);
@@ -142,10 +143,8 @@ public class FormResponseExportService {
             values.add(nameOf(response.memberId(), language));
             if (describesMembers) {
                 var respondent = described.get(index);
-                values.add(
-                        respondent.userType() == null
-                                ? ""
-                                : DocumentWord.forUserType(respondent.userType().name(), language));
+                var userType = respondent.userType();
+                values.add(userType == null ? "" : DocumentWord.forUserType(userType.name(), language));
                 values.add(respondent.groupIds().stream()
                         .map(groupNames::get)
                         .filter(Objects::nonNull)
@@ -162,14 +161,14 @@ public class FormResponseExportService {
                 var value = FormAnswerValue.parse(question.formQuestionType(), answers.get(question.id()));
                 values.add(FormAnswerText.of(question, value, language));
             }
-            rows.add(new MemberTable.MemberTableRow(
-                    response.memberId() == null ? 0 : response.memberId(), List.copyOf(values)));
+            Integer memberId = response.memberId();
+            rows.add(new MemberTable.MemberTableRow(memberId == null ? 0 : memberId, List.copyOf(values)));
         }
         return new MemberTable(List.copyOf(columns), List.copyOf(rows));
     }
 
     /** An answer given without an account behind it still has a row; it simply has nobody's name on it. */
-    private String nameOf(Integer memberId, String language) {
+    private String nameOf(@Nullable Integer memberId, String language) {
         if (memberId == null) return "en".equals(language) ? "Not signed in" : "Ohne Anmeldung";
         String name = memberNameResolver.official(memberId);
         return name != null ? name : "#" + memberId;

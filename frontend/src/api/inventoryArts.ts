@@ -5,55 +5,7 @@
  */
 import client from './client'
 import {createScopedCrudResource} from './crud'
-import type {InventoryItem} from './inventory'
-
-/**
- * A kind of thing inside one inventory, sitting between the inventory and the piece.
- *
- * Kinds exist only in inventories that hold a drawer of different things. An inventory of one
- * thing in many copies is structured by its sizes instead.
- */
-export interface InventoryArt {
-    id: number
-    inventoryId: number
-    name: string
-    note: string
-    position: number
-    /** The name trimmed and lowered, maintained by the backend. Two stations that write the same word mean the same kind. */
-    mergeKey: string
-    /** The FontAwesome name its pieces are drawn with, absent when they follow the inventory. */
-    icon?: string | null
-    /** The colour that picture is drawn in, absent when it follows the inventory. */
-    color?: string | null
-}
-
-export interface ArtRequest {
-    name: string
-    note: string
-    position: number
-    icon?: string | null
-    color?: string | null
-}
-
-/** How many pieces of one kind an inventory holds, and how many of those are free. */
-export interface ArtStock {
-    artId: number
-    name: string
-    pieces: number
-    free: number
-}
-
-/** One name written on the pieces of an inventory, with a count. What the tidying screen reads. */
-export interface ItemNameCount {
-    name: string
-    pieces: number
-    unassigned: number
-}
-
-/** How many pieces a tidying action changed. */
-export interface TidyResult {
-    changed: number
-}
+import type {ArtRequest, ArtStock, InventoryArt, InventoryItem, ItemNameCount, TidyResult} from './generated/schema'
 
 const arts = createScopedCrudResource<InventoryArt, ArtRequest, ArtRequest>(
     (inventoryId: number) => `/inventories/${inventoryId}/arts`,

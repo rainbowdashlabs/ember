@@ -5,7 +5,8 @@
  */
 package dev.chojo.ember.feature.members.entity;
 
-import jakarta.annotation.Nullable;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import org.jspecify.annotations.Nullable;
 
 /**
  * One column a station asked for, named by what it points at rather than by what it says.
@@ -39,7 +40,11 @@ public record MemberTableColumn(
         return new MemberTableColumn(MemberTableColumnKind.REGISTRATION_FIELD, null, fieldId);
     }
 
-    /** Whether this column names something real, which a selection read back from a client may not. */
+    /**
+     * Whether this column names something real, which a selection read back from a client may not.
+     * It is asked, never sent: a column travels as what it points at.
+     */
+    @JsonIgnore
     public boolean isWellFormed() {
         return switch (kind) {
             case BUILTIN -> key != null && !key.isBlank();

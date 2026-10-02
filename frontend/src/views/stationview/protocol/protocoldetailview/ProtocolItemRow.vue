@@ -8,7 +8,7 @@ import { useI18n } from 'vue-i18n'
 import IconButton from '@/components/button/IconButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import MutedIcon from '@/components/display/MutedIcon.vue'
-import type { TestProtocolItem } from '@/api/protocol'
+import type { TestProtocolItem } from '@/api/generated/schema'
 
 defineProps<{
   item: TestProtocolItem

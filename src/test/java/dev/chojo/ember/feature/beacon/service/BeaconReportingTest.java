@@ -10,12 +10,14 @@ import dev.chojo.ember.feature.beacon.repository.BeaconMetricsSourceRepository;
 import dev.chojo.ember.feature.discovery.service.DiscoveryHttpClient;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.system.repository.ApplicationSettingRepository;
+import dev.chojo.ember.feature.system.service.UpdateCheckService;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.time.Duration;
 import java.time.Instant;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -65,7 +67,8 @@ class BeaconReportingTest extends RepositoryTestBase {
                 new BeaconMetricsSourceRepository(),
                 new BeaconMetricsIdentity(settings),
                 new BeaconMetricsScheduler(settings, new BeaconMetricsIdentity(settings)),
-                httpClient);
+                httpClient,
+                version("26.15.0"));
     }
 
     /** Nothing has been switched on, so nothing is on. */
@@ -192,20 +195,28 @@ class BeaconReportingTest extends RepositoryTestBase {
                 new BeaconMetricsSourceRepository(),
                 new BeaconMetricsIdentity(settings),
                 new BeaconMetricsScheduler(settings, new BeaconMetricsIdentity(settings)),
-                httpClient);
+                httpClient,
+                version("26.15.0"));
         config.update(true, "https://beacon.test", false, false, true, true, false, "", "");
 
-        suppressed.start("26.15.0");
+        suppressed.scheduledTasks().getFirst().work().run();
 
         verify(httpClient, never()).unsignedPost(anyString(), anyString(), any());
     }
 
-    /** The watch starts on an ordinary instance, and starting it sends nothing by itself. */
+    /** The watch is set up on an ordinary instance, and setting it up sends nothing by itself. */
     @Test
     void theWatchStartsWithoutSendingAnything() {
         config.update(true, "https://beacon.test", false, false, true, true, false, "", "");
-        metrics.start("26.15.0");
+        var watch = metrics.scheduledTasks().getFirst();
         verify(httpClient, never()).unsignedPost(anyString(), anyString(), any());
+        assertEquals(Duration.ofMinutes(10), watch.schedule().period());
+    }
+
+    private static UpdateCheckService version(String version) {
+        var updates = mock(UpdateCheckService.class);
+        when(updates.currentVersion()).thenReturn(version);
+        return updates;
     }
 
     /**

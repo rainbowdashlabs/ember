@@ -10,7 +10,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
-import type {InventorySize} from '@/api/inventory'
+import type {InventorySize} from '@/api/generated/schema'
 
 /**
  * Why, in the words of whoever is starting it, and the size where a swap asks for a different one.

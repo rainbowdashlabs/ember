@@ -13,8 +13,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import type {TemplateGroupEntry} from '@/api/attendance'
-import type {MemberGroup} from '@/api/types'
+import type {MemberGroup, TemplateGroupEntry} from '@/api/generated/schema'
 
 const props = defineProps<{
   groups: TemplateGroupEntry[]
@@ -44,7 +43,7 @@ const unselectedGroups = computed(() => {
     <SectionHeader>{{ t('attendanceConfig.groups') }}</SectionHeader>
     <p class="text-sm text-(--text-muted)">{{ t('attendanceConfig.groupsHint') }}</p>
 
-    <EmptyState compact v-if="groups.length === 0">{{ t('attendanceConfig.noGroups') }}</EmptyState>
+    <EmptyState v-if="groups.length === 0" compact>{{ t('attendanceConfig.noGroups') }}</EmptyState>
 
     <DragList
         :items="groups"
@@ -66,7 +65,7 @@ const unselectedGroups = computed(() => {
     <div v-if="unselectedGroups.length > 0" class="pt-2">
       <FieldLabel class="mb-1">{{ t('attendanceConfig.addGroup') }}</FieldLabel>
       <div class="flex flex-wrap gap-2">
-        <SecondaryButton :icon="['fas', 'plus']" v-for="group in unselectedGroups" :key="group.id"
+        <SecondaryButton v-for="group in unselectedGroups" :key="group.id" :icon="['fas', 'plus']"
                          @click="emit('add', group.id)">
           {{ group.name }}
         </SecondaryButton>

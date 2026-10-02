@@ -7,18 +7,18 @@
 import {useI18n} from 'vue-i18n'
 import IconButton from '@/components/button/IconButton.vue'
 import BaseButton from '@/components/button/BaseButton.vue'
-import type {StationFile, StationFileListing} from '@/api/media'
+import type {FileListing, StationFile} from '@/api/generated/schema'
 
 const props = defineProps<{
-  entry: StationFileListing
+  entry: FileListing
   isImage: (f: StationFile) => boolean
   urlFor: (f: StationFile) => string
   formatSize: (bytes: number) => string
 }>()
 
 const emit = defineEmits<{
-  (e: 'pick', file: StationFile): void
-  (e: 'edit', file: StationFile): void
+  pick: [file: StationFile]
+  edit: [file: StationFile]
 }>()
 
 const {t} = useI18n()

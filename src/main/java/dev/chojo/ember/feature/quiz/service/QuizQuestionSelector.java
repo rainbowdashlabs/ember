@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -48,9 +49,10 @@ public class QuizQuestionSelector {
         for (var section : sections) {
             for (var source : testRepository.findSources(section.id())) {
                 List<QuizQuestion> picked;
-                if (source.categoryId() != null) {
+                Integer categoryId = source.categoryId();
+                if (categoryId != null) {
                     picked = pickFromPool(
-                            catalogRepository.findQuestionsByCategory(source.catalogId(), source.categoryId()),
+                            catalogRepository.findQuestionsByCategory(source.catalogId(), categoryId),
                             source.questionCount());
                 } else {
                     picked = pickBalancedFromCatalog(source.catalogId(), source.questionCount());
@@ -76,8 +78,9 @@ public class QuizQuestionSelector {
         for (var section : testRepository.findSections(testId)) {
             for (var source : testRepository.findSources(section.id())) {
                 List<QuizQuestion> pool;
-                if (source.categoryId() != null) {
-                    pool = catalogRepository.findQuestionsByCategory(source.catalogId(), source.categoryId());
+                Integer categoryId = source.categoryId();
+                if (categoryId != null) {
+                    pool = catalogRepository.findQuestionsByCategory(source.catalogId(), categoryId);
                 } else {
                     pool = catalogRepository.findQuestions(source.catalogId());
                 }
@@ -112,7 +115,7 @@ public class QuizQuestionSelector {
         var byCategory = new LinkedHashMap<Integer, List<QuizQuestion>>();
         for (var question : allQuestions) {
             byCategory
-                    .computeIfAbsent(question.categoryId() != null ? question.categoryId() : -1, _ -> new ArrayList<>())
+                    .computeIfAbsent(Objects.requireNonNullElse(question.categoryId(), -1), _ -> new ArrayList<>())
                     .add(question);
         }
         for (var list : byCategory.values()) {

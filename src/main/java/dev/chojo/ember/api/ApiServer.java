@@ -5,42 +5,23 @@
  */
 package dev.chojo.ember.api;
 
-import dev.chojo.ember.api.auth.ClusterPermission;
-import dev.chojo.ember.api.auth.InstancePermission;
-import dev.chojo.ember.api.auth.InstanceUserType;
-import dev.chojo.ember.api.auth.StationPermission;
-import dev.chojo.ember.api.auth.StationUserType;
-import dev.chojo.ember.api.auth.StepUpCategory;
-import dev.chojo.ember.api.auth.StepUpGuard;
+import dev.chojo.ember.api.auth.AccessGate;
+import dev.chojo.ember.api.refusal.GeneralRefusal;
+import dev.chojo.ember.api.refusal.StorageRefusal;
+import dev.chojo.ember.api.refusal.SystemRefusal;
 import dev.chojo.ember.conf.file.elements.Api;
-import dev.chojo.ember.conf.file.elements.Auth;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.Network;
-import dev.chojo.ember.feature.account.repository.AccountRepository;
-import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
-import dev.chojo.ember.feature.cluster.service.ClusterService;
 import dev.chojo.ember.feature.insights.service.BotClassifier;
 import dev.chojo.ember.feature.insights.service.PageHitRecorder;
 import dev.chojo.ember.feature.insights.service.RefererDomainExtractor;
-import dev.chojo.ember.feature.members.entity.MemberGroup;
-import dev.chojo.ember.feature.members.entity.StationMember;
-import dev.chojo.ember.feature.members.entity.UserTag;
-import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
-import dev.chojo.ember.feature.members.repository.StationMemberRepository;
-import dev.chojo.ember.feature.members.repository.UserTagRepository;
-import dev.chojo.ember.feature.members.service.ProfileFieldService;
-import dev.chojo.ember.feature.members.service.StationMemberInviteService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
-import dev.chojo.ember.feature.storage.migration.MigrationException;
-import dev.chojo.ember.feature.storage.service.StationReadOnlyForTransferException;
 import dev.chojo.ember.feature.system.service.ApiRequestLogger;
-import dev.chojo.ember.feature.system.service.DemoService;
 import dev.chojo.ember.feature.traffic.service.AuthBucketClassifier;
 import dev.chojo.ember.feature.traffic.service.StationResolver;
 import dev.chojo.ember.feature.traffic.service.StationTrafficRecorder;
-import dev.chojo.ember.feature.twofactor.service.TwoFactorService;
 import dev.chojo.ember.util.ClientIp;
 import dev.chojo.ember.util.DevErrorWriter;
 import dev.chojo.ember.util.LogRedaction;
@@ -48,46 +29,23 @@ import io.javalin.Javalin;
 import io.javalin.compression.CompressionStrategy;
 import io.javalin.compression.Gzip;
 import io.javalin.config.JavalinConfig;
-import io.javalin.config.RoutesConfig;
 import io.javalin.config.SizeUnit;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
-import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HandlerType;
-import io.javalin.http.HttpResponseException;
 import io.javalin.http.HttpStatus;
-import io.javalin.http.UnauthorizedResponse;
-import io.javalin.openapi.plugin.OpenApiPlugin;
-import io.javalin.openapi.plugin.OpenApiPluginConfiguration;
 import io.javalin.openapi.plugin.swagger.SwaggerConfiguration;
 import io.javalin.openapi.plugin.swagger.SwaggerPlugin;
-import io.javalin.security.RouteRole;
 import jakarta.inject.Inject;
-import jakarta.inject.Provider;
 import jakarta.inject.Singleton;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpServletResponseWrapper;
+import org.eclipse.jetty.server.handler.GracefulHandler;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import tools.jackson.core.JacksonException;
-import tools.jackson.core.exc.StreamReadException;
-import tools.jackson.databind.DeserializationFeature;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.exc.MismatchedInputException;
-import tools.jackson.databind.exc.UnrecognizedPropertyException;
-import tools.jackson.databind.exc.ValueInstantiationException;
-import tools.jackson.databind.json.JsonMapper;
 
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.HexFormat;
+import java.time.Duration;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -99,20 +57,26 @@ import static java.util.Objects.requireNonNullElse;
 
 /**
  * Configures and starts the Javalin HTTP server.
- * Sets up CORS, OpenAPI/Swagger, authentication/authorization, exception handling,
- * cache-control headers, demo mode guards, and registers all feature route groups.
+ * Sets up CORS, OpenAPI/Swagger, rate limits, demo mode guards and request logging, and wires the
+ * {@link AccessGate}, the {@link ResponseHeaderPolicy} and the {@link ExceptionMapping} into the
+ * application before registering all feature route groups.
  */
 @Singleton
 public class ApiServer {
     public static final String ATTR_SESSION = "session";
+
+    /** How long requests that are already running may take to finish once the server stops. */
+    public static final Duration STOP_TIMEOUT = Duration.ofSeconds(10);
+
     private static final Logger log = LoggerFactory.getLogger(ApiServer.class);
-    private static final String API_PREFIX = "/api/v1";
-    // Note on the transfer endpoints: /station/transfer/create-token and
-    // /station/transfer/abort are NOT blocked here on purpose. They are mandatory for the
-    // cross-instance transfer test harness (the compose.dev.yaml "transfer" profile), and the
-    // import-side counterpart /admin/transfer/import is already gated by
-    // InstancePermission.ADMINISTRATOR which demo accounts do not hold - so the source can
-    // mint a token but a stranger on the demo cannot pull a station off of it.
+    static final String API_PREFIX = "/api/v1";
+
+    /**
+     * Paths blocked outright in public demo mode.
+     *
+     * <p>The transfer token endpoints stay open on purpose: the cross-instance transfer harness needs
+     * them, and the import side is gated by the administrator permission no demo account holds.
+     */
     private static final Set<String> DEMO_BLOCKED_PATHS = Set.of(
             "/api/v1/auth/change-password",
             "/api/v1/auth/set-password",
@@ -151,85 +115,124 @@ public class ApiServer {
 
     private final Set<Routes> routes;
     private final Api apiConfig;
-    private final Auth authConfig;
     private final Demo demoConfig;
-    private final AccessManager accessManager;
-    private final AccountRepository accountRepository;
-    private final StationMemberRepository stationMemberRepository;
     private final StationRepository stationRepository;
     private final ClusterRepository clusterRepository;
-    private final Provider<ClusterService> clusterService;
-    private final ProfileFieldService profileFieldService;
-    private final MemberGroupRepository memberGroupRepository;
-    private final UserTagRepository userTagRepository;
     private final ApiRequestLogger apiRequestLogger;
-    private final DemoService demoService;
     private final StationTrafficRecorder trafficRecorder;
     private final StationResolver stationResolver;
     private final AuthBucketClassifier authClassifier;
     private final PageHitRecorder pageHitRecorder;
     private final RefererDomainExtractor refererExtractor;
     private final BotClassifier botClassifier;
-    private final TwoFactorService twoFactorService;
-    private final StepUpGuard stepUpGuard;
     private final Network network;
     private final GlobalRateLimiter globalRateLimiter;
+    private final AccessGate accessGate;
+    private final ResponseHeaderPolicy responseHeaderPolicy;
+    private final ExceptionMapping exceptionMapping;
+    private final DevErrorWriter devErrorWriter;
+    private volatile Javalin app;
 
     @Inject
     public ApiServer(
             Set<Routes> routes,
             Api apiConfig,
-            Auth authConfig,
             Demo demoConfig,
-            AccessManager accessManager,
-            AccountRepository accountRepository,
-            StationMemberRepository stationMemberRepository,
             StationRepository stationRepository,
             ClusterRepository clusterRepository,
-            Provider<ClusterService> clusterService,
-            ProfileFieldService profileFieldService,
-            MemberGroupRepository memberGroupRepository,
-            UserTagRepository userTagRepository,
             ApiRequestLogger apiRequestLogger,
-            DemoService demoService,
             StationTrafficRecorder trafficRecorder,
             StationResolver stationResolver,
             AuthBucketClassifier authClassifier,
             PageHitRecorder pageHitRecorder,
             RefererDomainExtractor refererExtractor,
             BotClassifier botClassifier,
-            TwoFactorService twoFactorService,
-            StepUpGuard stepUpGuard,
             Network network,
-            GlobalRateLimiter globalRateLimiter) {
+            GlobalRateLimiter globalRateLimiter,
+            AccessGate accessGate,
+            ResponseHeaderPolicy responseHeaderPolicy,
+            ExceptionMapping exceptionMapping,
+            DevErrorWriter devErrorWriter) {
         this.routes = routes;
         this.apiConfig = apiConfig;
-        this.authConfig = authConfig;
         this.demoConfig = demoConfig;
-        this.accessManager = accessManager;
-        this.accountRepository = accountRepository;
-        this.stationMemberRepository = stationMemberRepository;
         this.stationRepository = stationRepository;
         this.clusterRepository = clusterRepository;
-        this.clusterService = clusterService;
-        this.profileFieldService = profileFieldService;
-        this.memberGroupRepository = memberGroupRepository;
-        this.userTagRepository = userTagRepository;
         this.apiRequestLogger = apiRequestLogger;
-        this.demoService = demoService;
         this.trafficRecorder = trafficRecorder;
         this.stationResolver = stationResolver;
         this.authClassifier = authClassifier;
         this.pageHitRecorder = pageHitRecorder;
         this.refererExtractor = refererExtractor;
         this.botClassifier = botClassifier;
-        this.twoFactorService = twoFactorService;
-        this.stepUpGuard = stepUpGuard;
         this.network = network;
         this.globalRateLimiter = globalRateLimiter;
-        this.apiRequestLogger.start();
-        this.trafficRecorder.start();
-        this.pageHitRecorder.start();
+        this.accessGate = accessGate;
+        this.responseHeaderPolicy = responseHeaderPolicy;
+        this.exceptionMapping = exceptionMapping;
+        this.devErrorWriter = devErrorWriter;
+    }
+
+    /**
+     * Writes a request to the trace log: method, address, headers and the start of the body, with
+     * secrets redacted. Nothing is assembled unless trace logging is on, because reading the body
+     * and formatting every header would otherwise be paid on every request for a line nobody sees.
+     */
+    private static void traceRequest(Context ctx) {
+        if (ctx.method() == HandlerType.OPTIONS || !log.isTraceEnabled()) return;
+        String body;
+        String contentType = ctx.contentType();
+        if (isSensitivePath(ctx.path())) {
+            body = "[REDACTED - contains sensitive data]";
+        } else if (contentType == null || contentType.contains("text") || contentType.equals(JSON)) {
+            body = ctx.body().substring(0, Math.min(ctx.body().length(), 180));
+        } else {
+            body = "Bytes";
+        }
+        log.trace(
+                "Received request on route: {} {}\nHeaders:\n{}\nBody:\n{}",
+                ctx.method() + " " + LogRedaction.redactQueryString(ctx.url()),
+                LogRedaction.redactQueryString(requireNonNullElse(ctx.queryString(), "")),
+                traceHeaders(ctx.headerMap()),
+                body);
+    }
+
+    /**
+     * Writes a response to the trace log: status, headers and the start of a JSON body, with
+     * secrets redacted. Like {@link #traceRequest}, only assembled while trace logging is on.
+     */
+    private static void traceResponse(Context ctx) {
+        if (ctx.method() == HandlerType.OPTIONS || !log.isTraceEnabled()) return;
+        String body;
+        if (isSensitivePath(ctx.path())) {
+            body = "[REDACTED]";
+        } else if (JSON.equals(ctx.res().getContentType())) {
+            String result = requireNonNullElse(ctx.result(), "");
+            body = result.substring(0, Math.min(result.length(), 360));
+        } else {
+            body = "Bytes";
+        }
+        var headers = new LinkedHashMap<String, String>();
+        for (String name : ctx.res().getHeaderNames()) {
+            headers.put(name, ctx.res().getHeader(name));
+        }
+        log.trace(
+                "Answered request on route: {} {}\nStatus: {}\nHeaders:\n{}\nBody:\n{}",
+                ctx.method() + " " + LogRedaction.redactQueryString(ctx.url()),
+                LogRedaction.redactQueryString(requireNonNullElse(ctx.queryString(), "")),
+                ctx.status(),
+                traceHeaders(headers),
+                body);
+    }
+
+    private static boolean isSensitivePath(String path) {
+        return path.contains("/auth/") || path.contains("/ai/") || path.contains("/admin/config/");
+    }
+
+    private static String traceHeaders(Map<String, String> headers) {
+        return LogRedaction.redactHeaders(headers).entrySet().stream()
+                .map(header -> "   " + header.getKey() + ": " + header.getValue())
+                .collect(Collectors.joining("\n"));
     }
 
     /**
@@ -263,10 +266,23 @@ public class ApiServer {
      *   <li>The length of {@code ctx.result()} for legacy {@code String}-bodied routes.</li>
      * </ol>
      *
-     * <p>Adds an approximation of response header bytes on top - same precision target as
+     * <p>A {@code 304 Not Modified} carries no body, whatever the handler produced before the tag
+     * matched. Adds an approximation of response header bytes on top - same precision target as
      * ingress.
      */
     private static long estimateEgressBytes(Context ctx) {
+        long bodyBytes = ctx.status() == HttpStatus.NOT_MODIFIED ? 0 : bodyBytesOf(ctx);
+        long headerBytes = 0;
+        for (String name : ctx.res().getHeaderNames()) {
+            headerBytes += name.length();
+            String value = ctx.res().getHeader(name);
+            if (value != null) headerBytes += value.length();
+            headerBytes += 4;
+        }
+        return Math.max(0, bodyBytes) + headerBytes + 12;
+    }
+
+    private static long bodyBytesOf(Context ctx) {
         long bodyBytes = jettyContentCount(ctx);
         if (bodyBytes <= 0) {
             String contentLength = ctx.res().getHeader("Content-Length");
@@ -277,17 +293,53 @@ public class ApiServer {
                 }
             }
         }
-        if (bodyBytes <= 0 && ctx.result() != null) {
-            bodyBytes = ctx.result().length();
+        String result = ctx.result();
+        if (bodyBytes <= 0 && result != null) {
+            bodyBytes = result.length();
         }
-        long headerBytes = 0;
-        for (String name : ctx.res().getHeaderNames()) {
-            headerBytes += name.length();
-            String value = ctx.res().getHeader(name);
-            if (value != null) headerBytes += value.length();
-            headerBytes += 4;
-        }
-        return Math.max(0, bodyBytes) + headerBytes + 12;
+        return bodyBytes;
+    }
+
+    /**
+     * Records how long an API request took and how it ended. Runs as a Javalin request logger,
+     * after the response is written, so the status is the one the client received, a
+     * {@code 304} included.
+     */
+    private void recordTiming(Context ctx, Float executionTimeMs) {
+        if (!ctx.path().startsWith(API_PREFIX)) return;
+        apiRequestLogger.record(
+                ctx.method().name(),
+                ApiRequestLogger.routeTemplate(ctx),
+                ctx.statusCode(),
+                Math.round(executionTimeMs));
+    }
+
+    /**
+     * Counts a successful read of a public page. Only a page handler that resolved the page stores its
+     * id on the context, so file serves, partner lookups and misses are never counted.
+     */
+    private void recordPublicPageHit(Context ctx) {
+        if (ctx.method() != HandlerType.GET) return;
+        if (ctx.statusCode() >= 400) return;
+        Object pageIdAttr = ctx.attribute(PageHitRecorder.ATTR_PAGE_HIT_PAGE_ID);
+        if (!(pageIdAttr instanceof Integer pageId)) return;
+        String country = ctx.header("CF-IPCountry");
+        String referer = refererExtractor.extract(ctx.header("Referer"));
+        boolean isBot = botClassifier.isBot(ctx.userAgent());
+        pageHitRecorder.record(pageId, country, referer, isBot);
+    }
+
+    /**
+     * Adds a request to the per-station traffic counters. Runs as a Javalin request logger, after
+     * the response is written, so Jetty has counted what it sent.
+     */
+    private void recordTraffic(Context ctx, Float executionTimeMs) {
+        if (ctx.method() == HandlerType.OPTIONS) return;
+        trafficRecorder.record(
+                stationResolver.resolve(ctx).orElse(null),
+                authClassifier.classify(ctx),
+                estimateIngressBytes(ctx),
+                estimateEgressBytes(ctx));
     }
 
     /**
@@ -317,17 +369,20 @@ public class ApiServer {
         return -1;
     }
 
-    private static String bodyDigest(String body) {
-        try {
-            byte[] digest = MessageDigest.getInstance("SHA-256").digest(body.getBytes(StandardCharsets.UTF_8));
-            return HexFormat.of().formatHex(digest, 0, 8);
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 not available", e);
+    /**
+     * Builds the application and starts serving it on the configured host and port.
+     */
+    public void start() {
+        if (demoConfig.dev()) {
+            devErrorWriter.clearOnStartup();
         }
+        app = create().start(apiConfig.host(), apiConfig.port());
+        log.info("API server started on {}:{}", apiConfig.host(), apiConfig.port());
     }
 
     /**
-     * Creates the Javalin application, registers all middleware, routes, and plugins, then starts the server.
+     * Creates the Javalin application with all middleware, routes and plugins registered, without
+     * starting it, so that the application a test talks to is the one production serves.
      *
      * <p>A development instance accepts every origin. A write from an origin the rule does not name is
      * answered 400 after the handler has already done the work, so the file is uploaded, the row is
@@ -335,25 +390,23 @@ public class ApiServer {
      * happens to be in front of it that afternoon, a tunnel to a phone among them, and naming the three
      * ports it used to name meant every one of those read as a broken application.
      */
-    public void start() {
-        if (demoConfig.dev()) {
-            DevErrorWriter.clearOnStartup();
-        }
-        var app = Javalin.create(config -> {
+    public Javalin create() {
+        return Javalin.create(config -> {
             config.http.defaultContentType = "application/json";
-            config.jsonMapper(jacksonMapper(stationRepository, clusterRepository));
+            config.jetty.modifyServer(server -> {
+                server.setStopTimeout(STOP_TIMEOUT.toMillis());
+                server.insertHandler(new GracefulHandler());
+            });
+            config.jsonMapper(ApiJsonMapper.forApi(stationRepository, clusterRepository));
             configureCompression(config);
+            ClientIp.installOn(config.contextResolver, network);
+            config.contextResolver.scheme = ApiServer::forwardedScheme;
 
             config.jetty.multipartConfig.maxFileSize(apiConfig.maxUploadSizeBytes(), SizeUnit.BYTES);
             config.jetty.multipartConfig.maxInMemoryFileSize(1, SizeUnit.MB);
             config.jetty.multipartConfig.maxTotalRequestSize(apiConfig.maxRequestSizeBytes(), SizeUnit.BYTES);
 
-            config.registerPlugin(new OpenApiPlugin(this::configureOpenApi));
             config.registerPlugin(new SwaggerPlugin(this::configureSwagger));
-
-            if (demoConfig.dev()) {
-                // config.bundledPlugins.enableDevLogging();
-            }
 
             config.bundledPlugins.enableCors(cors -> cors.addRule(rule -> {
                 for (String origin : apiConfig.allowedOrigins()) {
@@ -366,146 +419,41 @@ public class ApiServer {
 
             config.routes.before(this::enforceGlobalRateLimit);
 
-            config.routes.before(ctx -> {
-                if (ctx.method() == HandlerType.OPTIONS) return;
-                String bodyLog;
-                if (ctx.path().contains("/ai/")
-                        || ctx.path().contains("/auth/")
-                        || ctx.path().contains("/admin/config/")) {
-                    bodyLog = "[REDACTED - contains sensitive data]";
-                } else if (ctx.contentType() == null
-                        || ctx.contentType().contains("text")
-                        || ctx.contentType().equals(JSON)) {
-                    bodyLog = ctx.body().substring(0, Math.min(ctx.body().length(), 180));
-                } else {
-                    bodyLog = "Bytes";
-                }
-                log.trace(
-                        "Received request on route: {} {}\nHeaders:\n{}\nBody:\n{}",
-                        ctx.method() + " " + LogRedaction.redactQueryString(ctx.url()),
-                        LogRedaction.redactQueryString(requireNonNullElse(ctx.queryString(), "")),
-                        LogRedaction.redactHeaders(ctx.headerMap()).entrySet().stream()
-                                .map(h -> "   " + h.getKey() + ": " + h.getValue())
-                                .collect(Collectors.joining("\n")),
-                        bodyLog);
-            });
+            config.routes.before(ApiServer::traceRequest);
+            config.routes.after(ApiServer::traceResponse);
 
-            config.routes.after(ctx -> {
-                if (ctx.method() == HandlerType.OPTIONS) return;
-                String responseBody;
-                if (ctx.path().contains("/auth/")
-                        || ctx.path().contains("/ai/")
-                        || ctx.path().contains("/admin/config/")) {
-                    responseBody = "[REDACTED]";
-                } else if (JSON.equals(ctx.res().getContentType())) {
-                    String result = requireNonNullElse(ctx.result(), "");
-                    responseBody = result.substring(0, Math.min(result.length(), 360));
-                } else {
-                    responseBody = "Bytes";
-                }
-                var responseHeaders = new LinkedHashMap<String, String>();
-                for (String h : ctx.res().getHeaderNames()) {
-                    responseHeaders.put(h, ctx.res().getHeader(h));
-                }
-                log.trace(
-                        "Answered request on route: {} {}\nStatus: {}\nHeaders:\n{}\nBody:\n{}",
-                        ctx.method() + " " + LogRedaction.redactQueryString(ctx.url()),
-                        LogRedaction.redactQueryString(requireNonNullElse(ctx.queryString(), "")),
-                        ctx.status(),
-                        LogRedaction.redactHeaders(responseHeaders).entrySet().stream()
-                                .map(h -> "   " + h.getKey() + ": " + h.getValue())
-                                .collect(Collectors.joining("\n")),
-                        responseBody);
-            });
+            responseHeaderPolicy.install(config.routes);
 
-            config.routes.after(this::applyBrowserSecurityHeaders);
+            config.requestLogger.http(this::recordTiming);
+            config.requestLogger.http(this::recordTraffic);
 
-            // Cache-control headers
-            config.routes.after(ApiServer::applyCacheHeaders);
+            config.routes.after(this::recordPublicPageHit);
 
-            // Federation response headers
-            config.routes.after(this::applyFederationHeaders);
-
-            // API request timing
-            config.routes.before(ctx -> ctx.attribute("_requestStart", System.currentTimeMillis()));
-            config.routes.after(ctx -> {
-                Long start = ctx.attribute("_requestStart");
-                if (start != null && ctx.path().startsWith(API_PREFIX)) {
-                    long duration = System.currentTimeMillis() - start;
-                    apiRequestLogger.record(ctx.method().name(), ctx.path(), ctx.statusCode(), duration);
-                }
-            });
-
-            // Per-station traffic counters. Recorded after the response is
-            // committed so Jetty has populated content-length on the response side.
-            config.routes.after(ctx -> {
-                if (ctx.method() == HandlerType.OPTIONS) return;
-                long ingress = estimateIngressBytes(ctx);
-                long egress = estimateEgressBytes(ctx);
-                trafficRecorder.record(
-                        stationResolver.resolve(ctx).orElse(null), authClassifier.classify(ctx), ingress, egress);
-            });
-
-            // Per-public-page hit counters. Only fires when a public page
-            // handler has resolved the page row and stashed its id on the context - file
-            // serves, partner lookups, and 404s are excluded by construction.
-            config.routes.after(ctx -> {
-                if (ctx.method() != HandlerType.GET) return;
-                if (ctx.statusCode() >= 400) return;
-                Object pageIdAttr = ctx.attribute(PageHitRecorder.ATTR_PAGE_HIT_PAGE_ID);
-                if (!(pageIdAttr instanceof Integer pageId)) return;
-                String country = ctx.header("CF-IPCountry");
-                String referer = refererExtractor.extract(ctx.header("Referer"));
-                boolean isBot = botClassifier.isBot(ctx.userAgent());
-                pageHitRecorder.record(pageId, country, referer, isBot);
-            });
-
-            // demoConfig.enabled() vs demoConfig.dev():
-            //   - enabled(): public demo mode - the instance is reset on an idle timer and
-            //     handed to anonymous visitors. handleDemoGuard runs to block destructive
-            //     and externally-effecting endpoints (account deletion, external probes,
-            //     real-mail tests, file uploads, AI calls, …). See DEMO_BLOCKED_PATHS.
-            //   - dev(): local-development flag. Enables /api/v1/dev/errors, relaxes secure-
-            //     cookie requirements over plain HTTP, and skips the eager admin bootstrap.
-            //     NO endpoints are blocked in dev mode - the demo guard is intentionally
-            //     not attached so transfer, uploads, probes and everything else are usable.
             if (demoConfig.enabled()) {
                 config.routes.before(this::handleDemoGuard);
             }
 
-            config.routes.beforeMatched(this::handleAccess);
+            config.routes.beforeMatched(accessGate);
             config.routes.beforeMatched(this::handleStationReadOnly);
 
-            setupExceptionHandlers(config.routes);
+            exceptionMapping.install(config.routes);
 
-            // Public endpoints
-            config.routes.get(
-                    API_PREFIX + "/public/config",
-                    ctx -> ctx.json(new PublicConfigResponse(
-                            apiConfig.demoUrl() != null ? apiConfig.demoUrl() : "",
-                            demoConfig.enabled() || demoConfig.dev(),
-                            loadAppVersion())));
-
-            // Public demo endpoints
-            config.routes.get(
-                    API_PREFIX + "/demo/status",
-                    ctx -> ctx.json(new DemoStatusResponse(demoConfig.enabled(), demoConfig.dev())));
-
-            if (demoConfig.enabled() || demoConfig.dev()) {
-                config.routes.get(API_PREFIX + "/demo/accounts", this::handleDemoAccounts);
-            }
-
-            if (demoConfig.dev()) {
-                config.routes.post(API_PREFIX + "/dev/errors", this::handleDevErrorReport);
-                config.routes.post(API_PREFIX + "/dev/reset", this::handleDevReset);
-            }
+            config.routes.get(ApiDocumentation.PATH, ApiDocumentation.load());
 
             for (Routes route : routes) {
                 route.register(config.routes, API_PREFIX);
             }
         });
-        app.start(apiConfig.host(), apiConfig.port());
-        log.info("API server started on {}:{}", apiConfig.host(), apiConfig.port());
+    }
+
+    /**
+     * Stops accepting connections and lets the requests already running finish within
+     * {@link #STOP_TIMEOUT}. Does nothing when the server was never started.
+     */
+    public void stop() {
+        var running = app;
+        if (running == null) return;
+        running.stop();
     }
 
     /**
@@ -527,303 +475,62 @@ public class ApiServer {
      *       WebAuthn enrolment routes (would lock a demo session out behind a key that cannot
      *       be reproduced after the demo resets).</li>
      * </ol>
+     *
+     * <p>Attached only in public demo mode. The local development flag blocks nothing, so transfer,
+     * uploads and probes stay usable there.
      */
     private void handleDemoGuard(@NotNull Context ctx) {
         String path = ctx.path();
         var method = ctx.method();
 
         if (DEMO_BLOCKED_PATHS.contains(path)) {
-            throw new BadRequestResponse("This action is disabled in demo mode");
+            throw SystemRefusal.DEMO_BLOCKS_ACTION.raise();
         }
 
         if (method != HandlerType.GET && DEMO_BLOCKED_WRITE_PATHS.contains(path)) {
-            throw new BadRequestResponse("This action is disabled in demo mode");
+            throw SystemRefusal.DEMO_BLOCKS_UPLOAD.raise();
         }
 
         if (path.startsWith("/api/v1/admin/stations") && (method == HandlerType.POST || method == HandlerType.DELETE)) {
-            throw new BadRequestResponse("Station management is disabled in demo mode");
+            throw SystemRefusal.DEMO_BLOCKS_STATION_MANAGEMENT.raise();
         }
 
         if (method == HandlerType.PUT
                 && (path.matches("/api/v1/station-members/\\d+/roles") || path.matches("/api/v1/groups/\\d+/roles"))) {
-            throw new BadRequestResponse("Role changes are disabled in demo mode");
+            throw SystemRefusal.DEMO_BLOCKS_ROLE_CHANGES.raise();
         }
 
         if (path.startsWith("/api/v1/account/2fa/webauthn/register/")) {
-            throw new BadRequestResponse("Security-key setup is disabled in demo mode");
+            throw SystemRefusal.DEMO_BLOCKS_SECURITY_KEY_SETUP.raise();
         }
 
         if (method == HandlerType.POST && path.matches("/api/v1/public/station-invite/[^/]+/accept")) {
-            throw new BadRequestResponse("Accepting invites is disabled in demo mode");
+            throw SystemRefusal.DEMO_BLOCKS_ACCEPTING_INVITES.raise();
         }
 
         if (method == HandlerType.POST && path.matches("/api/v1/public/station/[^/]+/waitlists/[^/]+/register")) {
-            throw new BadRequestResponse("Public waiting-list registration is disabled in demo mode");
+            throw SystemRefusal.DEMO_BLOCKS_PUBLIC_WAITING_LIST_SIGN_UP.raise();
         }
 
         if (method == HandlerType.POST && path.matches("/api/v1/pages/\\d+/files")) {
-            throw new BadRequestResponse("File uploads are disabled in demo mode");
+            throw SystemRefusal.DEMO_BLOCKS_PAGE_UPLOADS.raise();
         }
 
         if (method == HandlerType.POST
                 && (path.matches("/api/v1/kb/folders/\\d+/icon") || path.matches("/api/v1/kb/files/\\d+/images"))) {
-            throw new BadRequestResponse("File uploads are disabled in demo mode");
+            throw SystemRefusal.DEMO_BLOCKS_KB_UPLOADS.raise();
         }
 
         if (method == HandlerType.POST && path.matches("/api/v1/admin/discovery/peers/probe")) {
-            throw new BadRequestResponse("External probes are disabled in demo mode");
+            throw SystemRefusal.DEMO_BLOCKS_PEER_PROBES.raise();
         }
 
         if (method == HandlerType.POST && path.matches("/api/v1/lending/requests")) {
-            throw new BadRequestResponse("Cross-station lending is disabled in demo mode");
+            throw SystemRefusal.DEMO_BLOCKS_LENDING.raise();
         }
 
         if (method == HandlerType.POST && path.matches("/api/v1/ai/providers/[^/]+/models")) {
-            throw new BadRequestResponse("External AI calls are disabled in demo mode");
-        }
-    }
-
-    /**
-     * Serves the list of demo accounts with their roles, groups, and tags for the demo login page.
-     */
-    private void handleDevErrorReport(@NotNull Context ctx) {
-        record ErrorReport(String source, String message, String stack, String context) {}
-        var report = ctx.bodyAsClass(ErrorReport.class);
-        DevErrorWriter.writeFrontend(
-                report.source() != null ? report.source() : "unknown",
-                report.message() != null ? report.message() : "",
-                report.stack() != null ? report.stack() : "",
-                report.context() != null ? report.context() : "");
-        ctx.status(HttpStatus.NO_CONTENT);
-    }
-
-    /**
-     * Throws the data away and seeds it again, so a test run starts from the state the seeder
-     * describes rather than from whatever the run before it left behind.
-     *
-     * <p>Registered only while the backend runs with {@code demo.dev}, alongside the password-free
-     * login that serves the same purpose. It is destructive by design and has no place anywhere a
-     * real station's data lives.
-     *
-     * <p>A wipe that fails answers with the failure rather than with success, because the end-to-end
-     * suite asks for this before every run and stops when it is refused. Told that a database it
-     * never got was fresh, it would run its stories against whatever the run before left.
-     */
-    private void handleDevReset(@NotNull Context ctx) {
-        log.info("Dev reset requested, discarding all data and seeding again");
-        demoService.resetAndSeed();
-        ctx.status(HttpStatus.NO_CONTENT);
-    }
-
-    private void handleDemoAccounts(@NotNull Context ctx) {
-        // A cluster's home station has no members, so it would only ever be an empty group
-        var allStations = stationRepository.findAllRegular();
-        var stationGroups = new ArrayList<DemoStationGroup>();
-        for (var station : allStations) {
-            var members = stationMemberRepository.findByStation(station.id());
-            var accounts = new ArrayList<DemoAccount>();
-            for (StationMember member : members) {
-                if (member.accountId() == null) continue;
-                accountRepository.findById(member.accountId()).ifPresent(account -> {
-                    var permissions = stationMemberRepository.findPermissions(member.id());
-                    var permissionNames =
-                            permissions.stream().map(p -> p.permission().name()).toList();
-                    var groupNames = memberGroupRepository.findGroupsForMember(member.id()).stream()
-                            .map(MemberGroup::name)
-                            .toList();
-                    var tagNames = userTagRepository.findTagsForMember(member.id()).stream()
-                            .map(UserTag::name)
-                            .toList();
-                    boolean complete = profileFieldService.isProfileComplete(member.id());
-                    accounts.add(new DemoAccount(
-                            account.email(),
-                            account.firstName(),
-                            account.lastName(),
-                            member.userType(),
-                            permissionNames,
-                            groupNames,
-                            tagNames,
-                            complete,
-                            account.instanceUserType() == InstanceUserType.ADMINISTRATOR,
-                            clusterPermissionsOf(account.id())));
-                });
-            }
-            if (!accounts.isEmpty()) {
-                stationGroups.add(new DemoStationGroup(station.uid().toString(), station.name(), accounts));
-            }
-        }
-
-        // A row on a cluster's own station is a byline on what the cluster writes, not somebody being at a
-        // station: the demo administrator would otherwise vanish from this list the moment they write for a
-        // cluster, and the picker is where they are chosen.
-        var regularStationIds = allStations.stream().map(Station::id).collect(Collectors.toSet());
-        var noStationAccounts = new ArrayList<DemoAccount>();
-        for (var account : accountRepository.findAll()) {
-            boolean atAStation = stationMemberRepository.findAllByAccountId(account.id()).stream()
-                    .anyMatch(member -> regularStationIds.contains(member.stationId()));
-            if (atAStation) {
-                continue;
-            }
-            boolean administrator = account.instanceUserType() == InstanceUserType.ADMINISTRATOR;
-            StationUserType bucket = administrator ? StationUserType.MANAGER : StationUserType.MEMBER;
-            noStationAccounts.add(new DemoAccount(
-                    account.email(),
-                    account.firstName(),
-                    account.lastName(),
-                    bucket,
-                    List.of(),
-                    List.of(),
-                    List.of(),
-                    true,
-                    administrator,
-                    clusterPermissionsOf(account.id())));
-        }
-
-        ctx.json(new DemoAccountsResponse(noStationAccounts, stationGroups));
-    }
-
-    /**
-     * Before-matched handler that enforces authentication and role-based authorization.
-     * Resolves the session from the Authorization header, stores it as a context attribute,
-     * and checks that the user has at least one of the required route roles.
-     *
-     * <p>A station or cluster header naming something this instance cannot find is answered as a
-     * bad request, not as an unauthorized one. Only the bearer says whether the sign-in still
-     * stands, and every client reads a 401 as the sign-in being over: answering a stale header
-     * that way threw away a perfectly good session and put the reader back on the login screen,
-     * which is the one thing a wrong header must not be able to do.
-     */
-    private void handleAccess(@NotNull Context ctx) {
-        Set<RouteRole> routeRoles = ctx.routeRoles();
-
-        // Routes with no roles defined are public - still populate session if token or federation headers present
-        if (routeRoles.isEmpty()) {
-            // Try federation signature auth for /remote/ endpoints
-            if (ctx.header("X-Federation-Station-Id") != null) {
-                accessManager
-                        .resolveFederationSession(ctx)
-                        .ifPresent(s -> ctx.attribute(FederationSession.ATTR_FEDERATION_SESSION, s));
-            }
-            // Try bearer token auth (best effort)
-            String publicAuthHeader = ctx.header("Authorization");
-            if (publicAuthHeader != null && publicAuthHeader.startsWith("Bearer ")) {
-                String publicToken = publicAuthHeader.substring(7);
-                if (!publicToken.isBlank()) {
-                    Station publicStation = null;
-                    String publicStationId = ctx.header("X-Station-Id");
-                    if (publicStationId != null && !publicStationId.isBlank()) {
-                        try {
-                            publicStation = stationRepository
-                                    .findByUid(UUID.fromString(publicStationId))
-                                    .orElse(null);
-                        } catch (IllegalArgumentException ignored) {
-                        }
-                    }
-                    accessManager
-                            .resolveUserSession(publicToken, publicStation)
-                            .ifPresent(s -> ctx.attribute(ATTR_SESSION, s));
-                }
-            }
-            return;
-        }
-
-        String authHeader = ctx.header("Authorization");
-        String token = null;
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            token = authHeader.substring(7);
-        }
-
-        if (token == null || token.isBlank()) {
-            throw new UnauthorizedResponse("Missing or invalid Authorization header");
-        }
-
-        Station station = null;
-        String stationIdHeader = ctx.header("X-Station-Id");
-        if (stationIdHeader != null && !stationIdHeader.isBlank()) {
-            try {
-                var uid = UUID.fromString(stationIdHeader);
-                station = stationRepository.findByUid(uid).orElse(null);
-                if (station == null) {
-                    throw new BadRequestResponse("Unknown station");
-                }
-            } catch (IllegalArgumentException e) {
-                log.warn("Invalid X-Station-Id header value", e);
-                throw new BadRequestResponse("Invalid X-Station-Id header");
-            }
-        }
-
-        // A request may name a cluster as well as a station: one person can wear both hats at once
-        Cluster cluster = null;
-        String clusterIdHeader = ctx.header("X-Cluster-Id");
-        if (clusterIdHeader != null && !clusterIdHeader.isBlank()) {
-            try {
-                cluster = clusterRepository
-                        .findByUid(UUID.fromString(clusterIdHeader))
-                        .orElseThrow(() -> new BadRequestResponse("Unknown cluster"));
-            } catch (IllegalArgumentException e) {
-                log.warn("Invalid X-Cluster-Id header value", e);
-                throw new BadRequestResponse("Invalid X-Cluster-Id header");
-            }
-        }
-
-        // Resolve user session with account info and roles
-        Optional<UserSession> sessionOpt = accessManager.resolveUserSession(token, station, cluster);
-        if (sessionOpt.isEmpty()) {
-            throw new UnauthorizedResponse("Invalid or expired session");
-        }
-
-        UserSession session = sessionOpt.get();
-        ctx.attribute(ATTR_SESSION, session);
-
-        // Record user agent, location, and update last-used timestamp
-        String userAgent = ctx.userAgent();
-        String location = ctx.header("CF-IPCountry");
-        accountRepository.touchSession(token, userAgent, location);
-
-        // Track activity for demo idle reset
-        if (demoConfig.enabled()) {
-            demoService.recordActivity();
-        }
-
-        // If route only requires LOGIN, authenticated is enough
-        if (routeRoles.size() == 1 && routeRoles.contains(StationPermission.LOGIN)) {
-            return;
-        }
-
-        // Check if user has any of the required permissions (permissions are already expanded).
-        // Routes can declare a StepUpCategory alongside permissions; permission roles still gate access,
-        // and a fresh 2FA verification is additionally required when any StepUpCategory is present.
-        boolean permissionRequired = false;
-        boolean permissionGranted = false;
-        StepUpCategory stepUpCategory = null;
-        for (RouteRole required : routeRoles) {
-            if (required instanceof StepUpCategory sc) {
-                stepUpCategory = sc;
-                continue;
-            }
-            permissionRequired = true;
-            if (required instanceof StationPermission sp && session.hasPermission(sp)) {
-                permissionGranted = true;
-            } else if (required instanceof InstancePermission ip && session.hasInstancePermission(ip)) {
-                permissionGranted = true;
-            } else if (required instanceof ClusterPermission cp && session.hasClusterPermission(cp)) {
-                permissionGranted = true;
-            }
-        }
-
-        if (permissionRequired && !permissionGranted) {
-            // What a route asks for decides which of the three sets the answer should name: telling
-            // somebody their station permissions when the route wanted a cluster one explains nothing.
-            Set<? extends RouteRole> held = routeRoles.stream().anyMatch(r -> r instanceof ClusterPermission)
-                    ? session.clusterPermissions()
-                    : session.permissions();
-            ctx.header("X-Required-Permissions", routeRoles.toString());
-            ctx.header("X-User-Permissions", held.toString());
-            throw new ForbiddenResponse("Insufficient permissions. Required: " + routeRoles + ", Current: " + held);
-        }
-
-        if (stepUpCategory != null) {
-            stepUpGuard.require(session, stepUpCategory);
+            throw SystemRefusal.DEMO_BLOCKS_AI_CALLS.raise();
         }
     }
 
@@ -846,10 +553,10 @@ public class ApiServer {
             if (path.equals(API_PREFIX + "/station/transfer/abort")) return;
             if (path.equals(API_PREFIX + "/station/transfer/status")) return;
             UserSession session = ctx.attribute(ATTR_SESSION);
-            if (session == null || session.stationId() == null) return;
-            int stationId = session.stationId();
+            Integer stationId = session == null ? null : session.stationId();
+            if (stationId == null) return;
             if (stationRepository.isReadOnlyForTransfer(stationId)) {
-                throw new StationReadOnlyForTransferException(stationId);
+                throw StorageRefusal.STATION_READ_ONLY_FOR_TRANSFER.raise();
             }
             return;
         }
@@ -868,245 +575,13 @@ public class ApiServer {
             if (stationOpt.isEmpty()) return;
             int stationId = stationOpt.get().id();
             if (stationRepository.isReadOnlyForTransfer(stationId)) {
-                throw new StationReadOnlyForTransferException(stationId);
+                throw StorageRefusal.STATION_READ_ONLY_FOR_TRANSFER_ON_ADMIN_STORAGE.raise();
             }
         }
-    }
-
-    /**
-     * Creates the Jackson 3 JSON mapper the API reads requests and writes responses with, configured
-     * with ISO date formatting.
-     *
-     * <p>{@code FAIL_ON_UNKNOWN_PROPERTIES} is Jackson's default but pinned explicitly, so an inbound
-     * payload with extra fields is rejected with 400 rather than silently dropped. A mapper copied from
-     * another site (the federation HTTP client tolerates unknown fields on purpose, for cross-version
-     * compatibility) must not regress this. Route tests build their server with the same mapper, so a
-     * request shape the API refuses is refused there too.
-     *
-     * @param stationRepository resolves the station ids written as addresses
-     * @param clusterRepository resolves the cluster ids written as addresses
-     * @return the mapper
-     */
-    public static Jackson3Mapper jacksonMapper(
-            StationRepository stationRepository, ClusterRepository clusterRepository) {
-        ObjectMapper mapper = JsonMapper.builder()
-                .addModule(new StationIdModule(stationRepository))
-                .addModule(new ClusterIdModule(clusterRepository))
-                .disable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
-                .enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
-                .defaultDateFormat(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSX"))
-                .build();
-        return new Jackson3Mapper(mapper);
-    }
-
-    private void configureOpenApi(OpenApiPluginConfiguration config) {
-        config.withDocumentationPath("/docs")
-                .withDefinitionConfiguration((_, definition) -> definition.info(info -> {
-                    info.title("Ember API");
-                    info.version("1.0");
-                    info.description("Documentation for the Ember API");
-                }));
     }
 
     private void configureSwagger(SwaggerConfiguration config) {
-        config.withDocumentationPath("/docs").withUiPath("/swagger-ui");
-    }
-
-    /**
-     * Records that nothing was found at an address, quietly where the address is one scanners try
-     * everywhere.
-     *
-     * <p>A 404 is worth an operator's attention when a client asks for something that ought to be
-     * there, and worth none when it is the hundredth guess at a credentials file. Since the address is
-     * part of what the fault log writes down, every spelling of a probe arrived as a fault of its own
-     * and the ones worth reading were lost among them.
-     *
-     * @param ctx     the request that found nothing
-     * @param message what the response said, which for an address no route claims is Javalin's own wording
-     */
-    private void logNotFound(Context ctx, String message) {
-        if (ScannerProbes.looksLikeAProbe(ctx.path())) {
-            log.debug("404 on {} {}: {}", ctx.method(), ctx.path(), message);
-            return;
-        }
-        log.warn("404 on {} {}: {}", ctx.method(), ctx.path(), message);
-    }
-
-    /**
-     * Registers exception handlers that convert exceptions into standardized JSON error responses.
-     *
-     * <p>Every one of them answers with a sentence. A status on its own leaves the reader unable to
-     * tell whether they sent something wrong or Ember fell over, which is the one thing they need
-     * to know before deciding whether to fix it or report it, so the body always carries prose and
-     * the status is chosen to say honestly whose problem this is.
-     *
-     * <p>The technical half of a fault never reaches the reader. A stack trace, a statement, a
-     * constraint name and a file path all stay in the log, and the response carries only the short
-     * reference that finds the log line.
-     */
-    private void setupExceptionHandlers(RoutesConfig routes) {
-        boolean devErrors = demoConfig.dev();
-
-        routes.exception(StepUpRequiredException.class, (err, ctx) -> {
-            ctx.status(HttpStatus.UNAUTHORIZED);
-            ctx.header("X-StepUp-Required", err.category().name());
-            ctx.json(Map.of(
-                    "error",
-                    "step_up_required",
-                    "category",
-                    err.category().name(),
-                    "proofs",
-                    err.proofs().stream().map(Enum::name).sorted().toList()));
-        });
-
-        routes.exception(ApiException.class, (err, ctx) -> {
-            logFailure(ctx, err.status().getCode(), err.getMessage(), err, devErrors);
-            ctx.json(new ErrorResponseWrapper(err.getClass().getSimpleName(), err.getMessage()))
-                    .status(err.status());
-        });
-
-        routes.exception(RefusalResponse.class, (err, ctx) -> {
-            logFailure(ctx, err.getStatus(), err.getMessage(), err, devErrors);
-            ctx.json(err.body()).status(err.getStatus());
-        });
-
-        routes.exception(HttpResponseException.class, (err, ctx) -> {
-            int code = err.getStatus();
-            logFailure(ctx, code, err.getMessage(), err, devErrors);
-            Long retryAfter = null;
-            if (err instanceof RateLimits.TooManyRequestsException refused) {
-                retryAfter = refused.retryAfterSeconds();
-                ctx.header("Retry-After", Long.toString(retryAfter));
-            }
-            ctx.json(new ErrorResponseWrapper(HttpStatus.forStatus(code).getMessage(), err.getMessage(), retryAfter))
-                    .status(code);
-        });
-
-        routes.exception(IllegalArgumentException.class, (err, ctx) -> {
-            log.warn("Invalid input on {} {}: {}", ctx.method(), ctx.path(), err.getMessage(), err);
-            String said = Failures.readable(err.getMessage()).orElse(Refusal.INPUT_NOT_USABLE.message());
-            ctx.json(ErrorResponseWrapper.of(Refusal.INPUT_NOT_USABLE, said)).status(Refusal.INPUT_NOT_USABLE.status());
-        });
-
-        // A copy that cannot be made is a refusal with a reason, not a fault. It reaches here from the acts
-        // that move files as a side effect of something else - a station joining a cluster or being let go -
-        // where the caller has to be told that nothing happened and why.
-        routes.exception(MigrationException.class, (err, ctx) -> {
-            log.warn("Storage move refused on {} {}: {}", ctx.method(), ctx.path(), err.getMessage());
-            ctx.json(new ErrorResponseWrapper("Storage Unavailable", err.getMessage()))
-                    .status(HttpStatus.BAD_REQUEST);
-        });
-
-        // Somebody who cannot be given an account is the same kind of answer: the address is already
-        // somebody's, and the caller has to be told so. It is mapped here rather than at each route
-        // because provisioning happens as a side effect of several acts, naming a manager for a
-        // station among them, and every route that forgot the mapping turned a refusal into a fault
-        // with no message at all.
-        routes.exception(StationMemberInviteService.ProvisionException.class, (err, ctx) -> {
-            log.warn("Member could not be provisioned on {} {}: {}", ctx.method(), ctx.path(), err.getMessage());
-            ctx.json(new ErrorResponseWrapper("Conflict", err.getMessage())).status(HttpStatus.CONFLICT);
-        });
-
-        routes.exception(StreamReadException.class, (err, ctx) -> {
-            log.warn("Malformed body on {} {}: {}", ctx.method(), ctx.path(), err.getMessage());
-            answerRefusal(ctx, Refusal.BODY_NOT_JSON, Refusal.BODY_NOT_JSON.message());
-        });
-
-        routes.exception(MismatchedInputException.class, (err, ctx) -> {
-            log.warn("Rejected body on {} {}: {}", ctx.method(), ctx.path(), err.getMessage());
-            if (err instanceof UnrecognizedPropertyException unknown) {
-                answerRefusal(
-                        ctx,
-                        Refusal.BODY_UNEXPECTED_FIELD,
-                        Refusal.BODY_UNEXPECTED_FIELD.message() + ": " + unknown.getPropertyName());
-                return;
-            }
-            answerRefusal(ctx, Refusal.BODY_DOES_NOT_MATCH, atFieldPath(Refusal.BODY_DOES_NOT_MATCH, err.getPath()));
-        });
-
-        routes.exception(ValueInstantiationException.class, (err, ctx) -> {
-            log.warn("Rejected value in body on {} {}: {}", ctx.method(), ctx.path(), err.getMessage());
-            answerRefusal(ctx, Refusal.BODY_VALUE_REJECTED, rejectedValueDetail(err));
-        });
-
-        routes.exception(Exception.class, (err, ctx) -> {
-            var refusal = Failures.describe(err);
-            String reference = Failures.reference();
-            boolean ours = refusal.status().getCode() >= 500;
-            if (ours) {
-                log.error("Unhandled exception on route {} {}, reference {}", ctx.method(), ctx.path(), reference, err);
-            } else {
-                log.warn("Request refused on route {} {}, reference {}", ctx.method(), ctx.path(), reference, err);
-            }
-            if (devErrors) DevErrorWriter.write(err, ctx.method() + " " + ctx.path());
-            ctx.json(new ErrorResponseWrapper(
-                            refusal.status().getMessage(),
-                            refusal.message(),
-                            refusal.code(),
-                            null,
-                            ours ? reference : null))
-                    .status(refusal.status());
-        });
-    }
-
-    /**
-     * Writes a named refusal as the error body and status it stands for.
-     */
-    private static void answerRefusal(Context ctx, Refusal refusal, String message) {
-        ctx.json(ErrorResponseWrapper.of(refusal, message)).status(refusal.status());
-    }
-
-    /**
-     * Records a failure on its way out, at the volume its status deserves.
-     *
-     * <p>A fault is an error with its stack trace, a miss is whatever {@link #logNotFound} decides,
-     * and an ordinary refusal is a warning without one, because a reader sending something wrong is
-     * not an event an operator needs a trace for. A {@code 401} is left silent: an expired session
-     * is the most ordinary thing that happens here.
-     */
-    private void logFailure(Context ctx, int code, String message, Throwable err, boolean devErrors) {
-        if (code >= 500) {
-            log.error("HTTP {} on {} {}: {}", code, ctx.method(), ctx.path(), message, err);
-            if (devErrors) DevErrorWriter.write(err, ctx.method() + " " + ctx.path());
-            return;
-        }
-        if (code == 404) {
-            logNotFound(ctx, message);
-            if (devErrors) DevErrorWriter.write(err, ctx.method() + " " + ctx.path());
-            return;
-        }
-        if (code >= 400 && code != 401) {
-            log.warn("HTTP {} on {} {}: {}", code, ctx.method(), ctx.path(), message);
-        }
-    }
-
-    /**
-     * Names the place in a body a refusal was about, where Jackson recorded one.
-     *
-     * <p>Naming the place is the difference between a reader guessing and a reader looking. The
-     * place is spelled the way the sender wrote it, out of their own field names, so nothing of
-     * the type it failed to become is revealed.
-     */
-    private static String atFieldPath(Refusal refusal, List<JacksonException.Reference> path) {
-        return Failures.fieldPath(path)
-                .map(where -> refusal.message() + ", at " + where)
-                .orElse(refusal.message());
-    }
-
-    /**
-     * Says what was wrong with a value the body carried that whatever it describes refused to take.
-     *
-     * <p>This is the refusal a record writes in its own constructor, so its wording is the most
-     * useful thing there is to pass on, and it is passed on wherever it reads as prose rather than
-     * as machinery.
-     */
-    private static String rejectedValueDetail(ValueInstantiationException err) {
-        String where =
-                Failures.fieldPath(err.getPath()).map(path -> ", at " + path).orElse("");
-        String said = err.getCause() == null ? null : err.getCause().getMessage();
-        return Failures.readable(said)
-                .map(prose -> prose + where)
-                .orElse(Refusal.BODY_VALUE_REJECTED.message() + where);
+        config.withDocumentationPath(ApiDocumentation.PATH).withUiPath("/swagger-ui");
     }
 
     /**
@@ -1142,247 +617,20 @@ public class ApiServer {
         if (demoConfig.dev()) return;
         if (ctx.path().startsWith(API_PREFIX + "/remote/")) return;
 
-        String clientIp;
-        try {
-            clientIp = ClientIp.resolve(ctx, network).getHostAddress();
-        } catch (Exception e) {
-            clientIp = ctx.ip();
-        }
-
         boolean expensivePath = ctx.path().contains("/ai/");
-        RateLimits.enforce(globalRateLimiter.check(clientIp, expensivePath));
+        RateLimits.enforce(GeneralRefusal.REQUESTS_TOO_OFTEN, globalRateLimiter.check(ctx.ip(), expensivePath));
     }
 
     /**
-     * After-handler that sets Cache-Control and ETag headers based on the request path.
-     *
-     * <p>Ordering matters: content-hashed page files get an immutable year-long cache; the public
-     * configuration is revalidated every time because it names the running version; a waiting-list
-     * entry behind its own link is nobody's to keep, so it is stored nowhere; everything else under
-     * {@code /public/} is publicly cacheable; only then are non-public
-     * binary resources given a short private cache. Error responses receive no caching
-     * headers, and the binary-resource match is segment-precise so an authenticated path
-     * that merely contains {@code image}/{@code logo} as a substring (e.g. the logout
-     * endpoint) is not mis-tagged as cacheable.
+     * The scheme the visitor used: the first entry of {@code X-Forwarded-Proto} when a proxy set
+     * one, the scheme of the socket request otherwise. Installed as the context resolver so
+     * {@link Context#scheme()} answers it everywhere.
      */
-    /**
-     * Hardens every response in the browser.
-     *
-     * <p>The API hands out what members uploaded, and {@code SafeInlineMime} answers with
-     * {@code application/octet-stream} for everything it will not show inline. Without
-     * {@code nosniff} a browser may look at the body anyway and render it as HTML, which is the
-     * hole that allow-list exists to close, so this header is what makes the refusal hold.
-     *
-     * <p>Framing is limited to this origin rather than refused outright: the application shows a
-     * PDF, a presentation and a knowledge-base file by pointing an {@code iframe} at the endpoint
-     * that serves it, so a flat refusal blocks the application from displaying its own files while
-     * doing nothing about another site, which the same-origin rule already stops.
-     *
-     * <p>A route that has already asked for something stricter keeps its own referrer policy: the
-     * user feed says {@code no-referrer} so its token cannot travel in a {@code Referer}. Strict
-     * transport security is sent only over HTTPS, and never by a development instance, which is
-     * served over plain HTTP and would pin a browser to a scheme it cannot answer.
-     */
-    private void applyBrowserSecurityHeaders(@NotNull Context ctx) {
-        ctx.header("X-Content-Type-Options", "nosniff");
-        ctx.header("X-Frame-Options", "SAMEORIGIN");
-        ctx.header("Content-Security-Policy", "frame-ancestors 'self'");
-        if (ctx.res().getHeader("Referrer-Policy") == null) {
-            ctx.header("Referrer-Policy", "strict-origin-when-cross-origin");
-        }
-        if (!demoConfig.dev() && isHttps(ctx)) {
-            ctx.header("Strict-Transport-Security", "max-age=31536000");
-        }
-    }
-
-    private static boolean isHttps(@NotNull Context ctx) {
+    private static String forwardedScheme(@NotNull Context ctx) {
         String forwarded = ctx.header("X-Forwarded-Proto");
         if (forwarded != null && !forwarded.isBlank()) {
-            return "https".equalsIgnoreCase(forwarded.split(",")[0].trim());
+            return forwarded.split(",")[0].trim();
         }
-        return "https".equalsIgnoreCase(ctx.scheme());
+        return ctx.req().getScheme();
     }
-
-    private static void applyCacheHeaders(@NotNull Context ctx) {
-        if (ctx.method() != HandlerType.GET) return;
-        if (ctx.statusCode() >= 400) return;
-
-        String path = ctx.path();
-
-        if (path.startsWith(API_PREFIX + "/public/pages/") && path.contains("/files/")) {
-            ctx.header("Cache-Control", "public, max-age=31536000, immutable");
-            ctx.header("Vary", "Accept");
-            return;
-        }
-
-        // What this one says is the version that is running, which is the one thing a deployment
-        // changes. Held for an hour it made every deployment look as though it had not happened.
-        // The tag is still written, so asking again costs a 304 on all the days nothing changed.
-        if (path.equals(API_PREFIX + "/public/config")) {
-            ctx.header("Cache-Control", "public, no-cache");
-            addETag(ctx);
-            return;
-        }
-
-        if (path.startsWith(API_PREFIX + "/public/waiting-list/entry/")) {
-            ctx.header("Cache-Control", "private, no-store");
-            return;
-        }
-
-        if (path.startsWith(API_PREFIX + "/public/shared/") || path.startsWith(API_PREFIX + "/public/shared-form/")) {
-            ctx.header("Cache-Control", "private, no-store");
-            ctx.header("Referrer-Policy", "no-referrer");
-            ctx.header("X-Robots-Tag", "noindex");
-            return;
-        }
-
-        if (path.startsWith(API_PREFIX + "/public/")) {
-            ctx.header("Cache-Control", "public, max-age=3600");
-            addETag(ctx);
-            return;
-        }
-
-        if (isBinaryResourcePath(path)) {
-            ctx.header("Cache-Control", "private, max-age=300");
-            return;
-        }
-
-        if (path.startsWith(API_PREFIX + "/demo/")) {
-            ctx.header("Cache-Control", "public, max-age=60");
-            return;
-        }
-
-        if (path.startsWith(API_PREFIX + "/")) {
-            ctx.header("Cache-Control", "private, no-cache");
-            addETag(ctx);
-        }
-    }
-
-    /**
-     * Matches the binary-resource endpoints (avatars, logos, images) by whole path
-     * segment or suffix rather than substring, so unrelated paths that merely contain
-     * {@code avatar}/{@code logo}/{@code image} - such as {@code /auth/logout} - are
-     * excluded.
-     */
-    private static boolean isBinaryResourcePath(String path) {
-        return path.endsWith("/avatar")
-                || path.endsWith("/logo")
-                || path.endsWith("/image")
-                || path.endsWith("/images")
-                || path.contains("/images/")
-                || path.contains("/logo-fragment/");
-    }
-
-    /**
-     * After-handler that sets federation station identity headers on responses from
-     * {@code /federated/} and {@code /remote/} endpoints.
-     * For remote endpoints (server-to-server), the headers identify this station.
-     * For federated endpoints, route handlers set these headers themselves per entity.
-     */
-    private void applyFederationHeaders(@NotNull Context ctx) {
-        String path = ctx.path();
-        if (!path.startsWith(API_PREFIX + "/remote/")) return;
-
-        // For /remote/ responses, identify this station (the one serving the data)
-        FederationSession fedSession = ctx.attribute(FederationSession.ATTR_FEDERATION_SESSION);
-        if (fedSession != null) {
-            stationRepository
-                    .findById(fedSession.stationId())
-                    .ifPresent(station -> FederationHeaders.setStationHeaders(ctx, station));
-        }
-    }
-
-    /**
-     * Computes an ETag from the SHA-256 of the response body (truncated to 16
-     * hex chars / 64 bits) and handles conditional 304 Not Modified responses.
-     * SHA-256 is collision-resistant for the 64-bit truncation we expose, so an
-     * attacker cannot craft a different body that produces the same ETag the way
-     * a {@code String.hashCode()}-based tag would have allowed.
-     */
-    private static void addETag(@NotNull Context ctx) {
-        String body = ctx.result();
-        if (body == null || body.isEmpty()) return;
-
-        String etag = "\"" + bodyDigest(body) + "\"";
-        ctx.header("ETag", etag);
-
-        String ifNoneMatch = ctx.header("If-None-Match");
-        if (etag.equals(ifNoneMatch)) {
-            ctx.status(HttpStatus.NOT_MODIFIED);
-            ctx.result("");
-        }
-    }
-
-    private String loadAppVersion() {
-        try (InputStream is = getClass().getClassLoader().getResourceAsStream("version")) {
-            if (is != null) {
-                return new String(is.readAllBytes(), StandardCharsets.UTF_8).strip();
-            }
-        } catch (Exception e) {
-            log.warn("Failed to read version resource", e);
-        }
-        return "unknown";
-    }
-
-    /**
-     * Representation of a demo account returned by the demo accounts endpoint.
-     *
-     * @param email           the account email
-     * @param firstName       the first name
-     * @param lastName        the last name
-     * @param userType        the user type assigned to this member
-     * @param groups          the group names the member belongs to
-     * @param tags            the tag names assigned to this member
-     * @param profileComplete whether the member's profile is fully filled in
-     */
-    /**
-     * One account the demo instance offers for signing in.
-     *
-     * @param instanceAdministrator whether the account administers the instance itself. Station
-     *                              permissions say nothing about that, so a caller looking for
-     *                              someone who may reach the admin area has no other way to tell.
-     */
-
-    /**
-     * Everything an account may do for any cluster it belongs to, flattened.
-     *
-     * <p>Flattened because the stories that read this pick an actor by what they are allowed to do, and the
-     * demo has one cluster: telling them which cluster each right came from would be a distinction with
-     * nothing behind it. An account in no cluster answers with nothing, which is the same answer the picker
-     * gives.
-     *
-     * @param accountId the account
-     * @return the names of the permissions it holds, sorted, each once
-     */
-    private List<String> clusterPermissionsOf(int accountId) {
-        var service = clusterService.get();
-        return clusterRepository.findAll().stream()
-                .flatMap(cluster -> service.findMembers(cluster.id()).stream())
-                .filter(member -> member.accountId() == accountId)
-                .flatMap(member -> service.resolvePermissions(member).stream())
-                .map(Enum::name)
-                .distinct()
-                .sorted()
-                .toList();
-    }
-
-    public record DemoAccount(
-            String email,
-            String firstName,
-            String lastName,
-            StationUserType userType,
-            List<String> permissions,
-            List<String> groups,
-            List<String> tags,
-            boolean profileComplete,
-            boolean instanceAdministrator,
-            List<String> clusterPermissions) {}
-
-    public record PublicConfigResponse(String demoUrl, boolean demo, String version) {}
-
-    public record DemoStatusResponse(boolean demo, boolean dev) {}
-
-    public record DemoStationGroup(String stationId, String stationName, List<DemoAccount> accounts) {}
-
-    public record DemoAccountsResponse(List<DemoAccount> noStationAccounts, List<DemoStationGroup> stationGroups) {}
 }

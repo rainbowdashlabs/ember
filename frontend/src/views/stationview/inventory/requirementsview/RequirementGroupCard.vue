@@ -15,21 +15,20 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedIcon from '@/components/display/MutedIcon.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
-import type { InventoryRequirement } from '@/api/inventory'
-import type { StationGroup } from '@/api/clusterStationGroups'
+import type { RequirementResponse, StationGroupResponse } from '@/api/generated/schema'
 import type { RequirementGroup } from './types'
 
 const props = defineProps<{
   group: RequirementGroup
   inventoryName: (id: number) => string
   /** The association's ways of filing its stations, so a requirement can say which it is for. */
-  stationGroups?: StationGroup[]
+  stationGroups?: StationGroupResponse[]
 }>()
 
 const emit = defineEmits<{
   addItem: [target: { type: 'userType' | 'group'; key: string }]
-  updateQuantity: [req: InventoryRequirement, quantity: number]
-  remove: [req: InventoryRequirement]
+  updateQuantity: [req: RequirementResponse, quantity: number]
+  remove: [req: RequirementResponse]
   reorder: [group: RequirementGroup, fromIndex: number, toIndex: number]
 }>()
 
@@ -45,7 +44,7 @@ const { t } = useI18n()
  * The group of stations a requirement is written for, or an empty string for one written for all of
  * them. Named rather than numbered, and absent at a station, which is handed no groups to name.
  */
-function stationGroupName(req: InventoryRequirement): string {
+function stationGroupName(req: RequirementResponse): string {
   if (!req.stationGroupId) return ''
   return props.stationGroups?.find(group => group.id === req.stationGroupId)?.name ?? ''
 }
@@ -55,7 +54,7 @@ const own = computed(() => props.group.items.filter(req => !req.clusterName))
 const fromCluster = computed(() => props.group.items.filter(req => !!req.clusterName))
 
 /** The association's inventory is not among the station's, so the name has to come with the row. */
-function nameOf(req: InventoryRequirement): string {
+function nameOf(req: RequirementResponse): string {
   return req.inventoryName ?? props.inventoryName(req.inventoryId)
 }
 </script>

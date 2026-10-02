@@ -13,28 +13,23 @@ import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
-import SubHeader from '@/components/typography/SubHeader.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import ButtonRow from '@/components/button/ButtonRow.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Modal from '@/components/feedback/Modal.vue'
-import ErrorButton from '@/components/button/ErrorButton.vue'
-import UserAvatar from '@/components/avatar/UserAvatar.vue'
-import NewsCommentSection from '@/components/comment/NewsCommentSection.vue'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
+import CommentSection from '@/components/comment/CommentSection.vue'
 import NewsViewBadge from './newsshared/NewsViewBadge.vue'
 import AttachmentList from './newsshared/AttachmentList.vue'
 import NewsBody from './newsshared/NewsBody.vue'
 import NewsEntryHeader from './newsshared/NewsEntryHeader.vue'
 import {internalContentContext} from '@/util/contentContext'
 import {INSTANCE_MEDIA_SCOPE} from '@/api/media'
-import type {NewsEntry} from '@/api/news'
+import type {NewsResponse} from '@/api/generated/schema'
 import {news} from '@/api'
+import {newsCommentSource} from '@/api/news'
 import {useSession} from '@/composables/useSession'
 import {useConfirmAction} from '@/composables/useConfirmAction'
-import {formatDateTime} from '@/util/format'
-import ProseContent from '@/components/display/ProseContent.vue'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -44,7 +39,7 @@ const {canManageNews, sessionInfo} = useSession()
 provideBlockAudience('MEMBERS')
 const stationUid = computed(() => sessionInfo.value?.stationId ?? '')
 
-const entry = ref<NewsEntry | null>(null)
+const entry = ref<NewsResponse | null>(null)
 
 /**
  * The entry's own headline at the head of the page, because "Neuigkeit" is the same word above every
@@ -66,9 +61,11 @@ interface ViewBadgeRef {
 const viewBadge = ref<ViewBadgeRef | null>(null)
 const recordedViewIds = new Set<number>()
 
-const {loading, failure, reload} = useAsyncLoader(async () => {
+const {loading, failure, reload} = useAsyncLoader(async (isCurrent) => {
   const id = Number(route.params.id)
-  entry.value = await news.getNews(id)
+  const loaded = await news.getNews(id)
+  if (!isCurrent()) return
+  entry.value = loaded
   if (entry.value && !recordedViewIds.has(id)) {
     recordedViewIds.add(id)
     news.recordNewsView(id).then(() => viewBadge.value?.refresh())
@@ -80,7 +77,7 @@ const {
   show: showDeleteModal,
   request: requestDelete,
   confirm: confirmDelete,
-} = useConfirmAction<NewsEntry>({
+} = useConfirmAction<NewsResponse>({
   onConfirm: async e => {
     await news.deleteNews(e.id)
   },
@@ -89,6 +86,8 @@ const {
   },
   failure,
 })
+
+const commentSource = computed(() => newsCommentSource(Number(route.params.id)))
 
 watch(() => route.params.id, reload)
 </script>
@@ -125,18 +124,16 @@ watch(() => route.params.id, reload)
         <AttachmentList :attachments="entry.attachments ?? []" :station-uid="stationUid"/>
 
         <div class="pt-3 border-t border-bg-light-accent dark:border-bg-dark-accent">
-          <NewsCommentSection :news-id="entry.id"/>
+          <CommentSection :source="commentSource"/>
         </div>
       </NeutralContainer>
 
-      <Modal v-model="showDeleteModal">
-        <template #title>{{ t('news.deleteConfirmTitle') }}</template>
-        <p class="mb-4">{{ t('news.deleteConfirmMessage') }}</p>
-        <ButtonRow pair align="end">
-          <SecondaryButton @click="showDeleteModal = false">{{ t('common.cancel') }}</SecondaryButton>
-          <ErrorButton @click="confirmDelete">{{ t('common.delete') }}</ErrorButton>
-        </ButtonRow>
-      </Modal>
+      <ConfirmDeleteModal
+          v-model="showDeleteModal"
+          :title="t('news.deleteConfirmTitle')"
+          :message="t('news.deleteConfirmMessage')"
+          @confirm="confirmDelete"
+      />
     </div>
   </ViewContent>
 </template>

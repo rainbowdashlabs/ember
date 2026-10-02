@@ -17,6 +17,7 @@ import DeleteButton from '@/components/button/DeleteButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import MutedIcon from '@/components/display/MutedIcon.vue'
+import UserTypesEditor from '@/views/stationview/manage/attendanceconfigedit/UserTypesEditor.vue'
 
 const {t} = useI18n()
 </script>
@@ -31,7 +32,6 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.attendanceConfigEdit.nameText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Template name field -->
     <NeutralContainer class="space-y-4">
       <SectionHeader>{{ t('attendanceConfig.editTitle') }}</SectionHeader>
       <div class="space-y-1">
@@ -41,17 +41,22 @@ const {t} = useI18n()
       <PrimaryButton disabled>{{ t('attendanceConfig.save') }}</PrimaryButton>
     </NeutralContainer>
 
+    <HelpSection :title="t('helpCenter.attendanceConfigEdit.userTypesTitle')">
+      <p>{{ t('helpCenter.attendanceConfigEdit.userTypesText') }}</p>
+    </HelpSection>
+
+    <UserTypesEditor :model-value="['TEAM']"/>
+
     <HelpSection :title="t('helpCenter.attendanceConfigEdit.groupsTitle')">
       <p>{{ t('helpCenter.attendanceConfigEdit.groupsText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Groups list -->
     <NeutralContainer class="space-y-4">
       <SectionHeader>{{ t('attendanceConfig.groups') }}</SectionHeader>
       <p class="text-sm text-(--text-muted)">{{ t('attendanceConfig.groupsHint') }}</p>
       <div class="space-y-2">
         <NeutralContainer class="flex items-center justify-between py-2 px-3">
-          <span class="text-sm font-medium">Anfänger</span>
+          <span class="text-sm font-medium">{{ t('helpCenter.sample.groups.beginners') }}</span>
           <div class="flex items-center gap-2">
             <MutedIcon :icon="['fas', 'chevron-up']"/>
             <MutedIcon :icon="['fas', 'chevron-down']"/>
@@ -59,7 +64,7 @@ const {t} = useI18n()
           </div>
         </NeutralContainer>
         <NeutralContainer class="flex items-center justify-between py-2 px-3">
-          <span class="text-sm font-medium">Fortgeschrittene</span>
+          <span class="text-sm font-medium">{{ t('helpCenter.sample.groups.advancedPlural') }}</span>
           <div class="flex items-center gap-2">
             <MutedIcon :icon="['fas', 'chevron-up']"/>
             <MutedIcon :icon="['fas', 'chevron-down']"/>
@@ -67,7 +72,7 @@ const {t} = useI18n()
           </div>
         </NeutralContainer>
         <NeutralContainer class="flex items-center justify-between py-2 px-3">
-          <span class="text-sm font-medium">Betreuer</span>
+          <span class="text-sm font-medium">{{ t('helpCenter.sample.groups.supervisors') }}</span>
           <div class="flex items-center gap-2">
             <MutedIcon :icon="['fas', 'chevron-up']"/>
             <MutedIcon :icon="['fas', 'chevron-down']"/>
@@ -84,7 +89,6 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.attendanceConfigEdit.fieldsText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Fields list -->
     <NeutralContainer class="space-y-4">
       <div class="flex items-center justify-between">
         <SectionHeader>{{ t('attendanceConfig.fields') }}</SectionHeader>
@@ -96,7 +100,7 @@ const {t} = useI18n()
         <NeutralContainer class="flex items-center justify-between py-2 px-3">
           <div>
             <span class="text-sm font-medium">{{ t('helpCenter.exampleFields.remark') }}</span>
-            <MutedText class="ml-2">{{ t('helpCenter.fieldTypes.text') }}</MutedText>
+            <MutedText class="ml-2">{{ t('fieldTypes.label.TEXT') }}</MutedText>
           </div>
           <div class="flex items-center gap-2">
             <EditButton disabled/>
@@ -106,7 +110,7 @@ const {t} = useI18n()
         <NeutralContainer class="flex items-center justify-between py-2 px-3">
           <div>
             <span class="text-sm font-medium">{{ t('helpCenter.exampleFields.rank') }}</span>
-            <MutedText class="ml-2">{{ t('helpCenter.fieldTypes.enum') }}</MutedText>
+            <MutedText class="ml-2">{{ t('fieldTypes.label.CHOICE') }}</MutedText>
           </div>
           <div class="flex items-center gap-2">
             <EditButton disabled/>
@@ -116,7 +120,7 @@ const {t} = useI18n()
         <NeutralContainer class="flex items-center justify-between py-2 px-3">
           <div>
             <span class="text-sm font-medium">{{ t('helpCenter.exampleFields.arrival') }}</span>
-            <MutedText class="ml-2">{{ t('helpCenter.fieldTypes.time') }}</MutedText>
+            <MutedText class="ml-2">{{ t('fieldTypes.label.TIME') }}</MutedText>
           </div>
           <div class="flex items-center gap-2">
             <EditButton disabled/>

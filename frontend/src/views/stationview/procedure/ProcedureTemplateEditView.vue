@@ -27,7 +27,7 @@ import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { procedures } from '@/api'
 import { StationPermission } from '@/api/types'
-import type { TemplateDetail, ProcedureTemplateItem } from '@/api/procedures'
+import type { ProcedureTemplateDetail, ProcedureTemplateItem } from '@/api/generated/schema'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -36,7 +36,7 @@ const { hasPermission, loaded } = useSession()
 
 const canManage = computed(() => hasPermission(StationPermission.PROCEDURE_MANAGER))
 
-const detail = ref<TemplateDetail | null>(null)
+const detail = ref<ProcedureTemplateDetail | null>(null)
 
 const templateId = computed(() => Number(route.params.id))
 
@@ -119,6 +119,15 @@ function openEditItemModal(item: ProcedureTemplateItem) {
   showItemModal.value = true
 }
 
+/**
+ * Where a new step goes: after every step the template has. The server stores the position it is
+ * given and orders the steps by it, so a step sent without one would stand anywhere among the first.
+ */
+function nextPosition(): number {
+  const positions = detail.value?.items.map(item => item.position) ?? []
+  return positions.length === 0 ? 0 : Math.max(...positions) + 1
+}
+
 async function handleSaveItem() {
   if (!itemTitle.value.trim()) return
   await writeThenReload(async () => {
@@ -128,6 +137,7 @@ async function handleSaveItem() {
         description: itemDescription.value || undefined,
         isPublic: itemIsPublic.value,
         userAssigned: itemUserAssigned.value,
+        position: editingItem.value.position,
       })
     } else {
       await procedures.createTemplateItem(templateId.value, {
@@ -135,6 +145,7 @@ async function handleSaveItem() {
         description: itemDescription.value || undefined,
         isPublic: itemIsPublic.value,
         userAssigned: itemUserAssigned.value,
+        position: nextPosition(),
       })
     }
     showItemModal.value = false
@@ -145,9 +156,12 @@ async function handleDeleteItem(itemId: number) {
   await writeThenReload(() => procedures.deleteTemplateItem(templateId.value, itemId))
 }
 
+/** The dependencies of the template, one entry per step and the step it waits for. */
+const dependencies = computed(() => procedures.dependencyEntries(detail.value?.dependencies ?? []))
+
+/** The steps the given step waits for. */
 function getDepsForItem(itemId: number): number[] {
-  if (!detail.value) return []
-  return detail.value.dependencies.filter(d => d[1] === itemId).map(d => d[0])
+  return dependencies.value.filter(d => d.itemId === itemId).map(d => d.dependsOnItemId)
 }
 
 function getItemById(itemId: number): ProcedureTemplateItem | undefined {
@@ -162,16 +176,17 @@ function openDepModal(item: ProcedureTemplateItem) {
 
 async function addDependency() {
   if (!depTargetItem.value || depSelectedId.value == null || !detail.value) return
-  const newDeps = [...detail.value.dependencies, [depSelectedId.value, depTargetItem.value.id]]
+  const newDeps = [...dependencies.value, {itemId: depTargetItem.value.id, dependsOnItemId: depSelectedId.value}]
   await writeThenReload(async () => {
     await procedures.setTemplateDependencies(templateId.value, newDeps)
     depSelectedId.value = null
   })
 }
 
-async function removeDependency(fromId: number, toId: number) {
+/** Stops the step from waiting for the given one. */
+async function removeDependency(depId: number, itemId: number) {
   if (!detail.value) return
-  const newDeps = detail.value.dependencies.filter(d => !(d[0] === fromId && d[1] === toId))
+  const newDeps = dependencies.value.filter(d => !(d.itemId === itemId && d.dependsOnItemId === depId))
   await writeThenReload(() => procedures.setTemplateDependencies(templateId.value, newDeps))
 }
 
@@ -187,7 +202,6 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
     <FailureAlert :failure="failure" class="mb-4"/>
 
     <template v-if="detail && !loading">
-      <!-- Header -->
       <div class="flex items-start justify-between mb-4 gap-4">
         <div class="flex-1 min-w-0">
           <p v-if="detail.template.description" class="text-[var(--text-muted)] text-sm mt-1">{{ detail.template.description }}</p>
@@ -202,7 +216,6 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
         </ButtonRow>
       </div>
 
-      <!-- Items -->
       <div class="flex items-center justify-between mb-3">
         <SubHeader>{{ t('procedures.items') }}</SubHeader>
         <PrimaryButton v-if="canManage" @click="openAddItemModal">
@@ -231,10 +244,9 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
       </div>
     </template>
 
-    <!-- Edit Template Modal -->
     <Modal v-model="showEditModal">
       <SubHeader class="mb-3">{{ t('procedures.editTemplate') }}</SubHeader>
-      <form @submit.prevent="handleEdit" class="space-y-3">
+      <form class="space-y-3" @submit.prevent="handleEdit">
         <TextInput v-model="editName" :placeholder="t('procedures.templateName')" required />
         <TextAreaInput v-model="editDescription" :placeholder="t('procedures.templateDescription')" />
         <div class="flex gap-2 justify-end">
@@ -243,10 +255,9 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
       </form>
     </Modal>
 
-    <!-- Add/Edit Item Modal -->
     <Modal v-model="showItemModal">
       <SubHeader class="mb-3">{{ editingItem ? t('procedures.editItem') : t('procedures.addItem') }}</SubHeader>
-      <form @submit.prevent="handleSaveItem" class="space-y-3">
+      <form class="space-y-3" @submit.prevent="handleSaveItem">
         <TextInput v-model="itemTitle" :placeholder="t('procedures.itemTitle')" required />
         <TextAreaInput v-model="itemDescription" :placeholder="t('procedures.itemDescription')" />
         <div class="flex items-center gap-4">
@@ -265,12 +276,11 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
       </form>
     </Modal>
 
-    <!-- Dependency Modal -->
     <Modal v-model="showDepModal">
       <SubHeader class="mb-3">{{ t('procedures.dependencies') }}: {{ depTargetItem?.title }}</SubHeader>
       <div v-if="detail" class="space-y-3">
         <div class="flex gap-2">
-          <SelectInput :model-value="depSelectedId != null ? String(depSelectedId) : ''" @update:model-value="(v: string | number | null | undefined) => { depSelectedId = v ? Number(v) : null }" class="flex-1">
+          <SelectInput :model-value="depSelectedId != null ? String(depSelectedId) : ''" class="flex-1" @update:model-value="(v: string | number | null | undefined) => { depSelectedId = v ? Number(v) : null }">
             <option value="">{{ t('procedures.dependsOn') }}...</option>
             <option
               v-for="item in detail.items.filter(i => i.id !== depTargetItem?.id && !getDepsForItem(depTargetItem?.id ?? 0).includes(i.id))"
@@ -287,7 +297,7 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
         <div v-if="depTargetItem && getDepsForItem(depTargetItem.id).length > 0" class="space-y-1">
           <div v-for="depId in getDepsForItem(depTargetItem.id)" :key="depId" class="flex items-center justify-between bg-[var(--bg-light-accent)] dark:bg-[var(--bg-dark-accent)] rounded px-2 py-1 text-sm">
             <span>{{ getItemById(depId)?.title ?? depId }}</span>
-            <IconButton :icon="['fas', 'trash']" label="Remove" class="!p-0 text-[var(--error)]" @click="removeDependency(depId, depTargetItem!.id)" />
+            <IconButton :icon="['fas', 'trash']" :label="t('common.remove')" class="!p-0 text-[var(--error)]" @click="removeDependency(depId, depTargetItem!.id)" />
           </div>
         </div>
         <p v-else class="text-sm text-[var(--text-muted)]">{{ t('procedures.empty') }}</p>

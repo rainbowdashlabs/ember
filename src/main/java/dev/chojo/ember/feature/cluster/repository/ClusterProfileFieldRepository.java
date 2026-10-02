@@ -11,8 +11,8 @@ import dev.chojo.ember.feature.cluster.entity.ClusterProfileField;
 import dev.chojo.ember.feature.cluster.entity.ClusterProfileFieldAssignment;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
-import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.ProfileFieldValue;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -35,6 +35,20 @@ public class ClusterProfileFieldRepository {
             "id, cluster_id, name, field_type, config, required, readonly, width, station_readonly, "
                     + "keep_on_archive, station_group_id";
 
+    /**
+     * Whether the association's question {@code cpf} reaches the station {@code s}. A question naming a
+     * group of stations reaches only the stations filed under it.
+     *
+     * <p>Every statement that asks which questions reach a station reads this, so the targeting is
+     * written once.
+     */
+    public static final String REACHES_STATION = """
+            (cpf.station_group_id IS NULL
+             OR EXISTS (SELECT 1
+                        FROM cluster_station_group_membership m
+                        WHERE m.group_id = cpf.station_group_id
+                          AND m.station_id = s.id))""";
+
     public List<ClusterProfileField> findByCluster(int clusterId) {
         return query("""
                 SELECT %s FROM cluster_profile_field
@@ -51,7 +65,7 @@ public class ClusterProfileFieldRepository {
      * @param fieldType the type to look for
      * @return the fields, grouped by association and oldest first within one
      */
-    public List<ClusterProfileField> findAllByType(ProfileFieldType fieldType) {
+    public List<ClusterProfileField> findAllByType(FieldType fieldType) {
         return query("""
                 SELECT %s FROM cluster_profile_field
                 WHERE field_type = :field_type
@@ -102,12 +116,8 @@ public class ClusterProfileFieldRepository {
                 JOIN station s ON s.cluster_id = cpf.cluster_id
                 WHERE s.id = :station_id
                   AND a.role = :role
-                  AND (cpf.station_group_id IS NULL
-                       OR EXISTS (SELECT 1
-                                  FROM cluster_station_group_membership m
-                                  WHERE m.group_id = cpf.station_group_id
-                                    AND m.station_id = s.id))
-                ORDER BY a.position, cpf.name;""", AssignedClusterProfileField.COLUMNS)
+                  AND %s
+                ORDER BY a.position, cpf.name;""", AssignedClusterProfileField.COLUMNS, REACHES_STATION)
                 .single(call().bind("station_id", stationId).bind("role", role))
                 .map(AssignedClusterProfileField.map())
                 .all();
@@ -145,9 +155,9 @@ public class ClusterProfileFieldRepository {
             int fieldId,
             ProfileFieldScope role,
             int position,
-            String widthOverride,
-            Boolean readonlyOverride,
-            Boolean requiredOverride) {
+            @Nullable String widthOverride,
+            @Nullable Boolean readonlyOverride,
+            @Nullable Boolean requiredOverride) {
         query("""
                 INSERT INTO cluster_profile_field_assignment
                     (field_id, role, position, width_override, readonly_override, required_override)
@@ -218,11 +228,7 @@ public class ClusterProfileFieldRepository {
                 FROM cluster_profile_field cpf
                          JOIN station s ON s.cluster_id = cpf.cluster_id
                 WHERE s.id = :station_id
-                  AND (cpf.station_group_id IS NULL
-                       OR EXISTS (SELECT 1
-                                  FROM cluster_station_group_membership m
-                                  WHERE m.group_id = cpf.station_group_id
-                                    AND m.station_id = s.id));""")
+                  AND %s;""", REACHES_STATION)
                 .single(call().bind("station_id", stationId))
                 .map(row -> row.getInt("id"))
                 .all());
@@ -231,14 +237,14 @@ public class ClusterProfileFieldRepository {
     public ClusterProfileField create(
             int clusterId,
             String name,
-            ProfileFieldType fieldType,
+            FieldType fieldType,
             ProfileFieldConfig config,
             boolean required,
             boolean readonly,
-            String width,
+            @Nullable String width,
             boolean stationReadonly,
             boolean keepOnArchive,
-            Integer stationGroupId) {
+            @Nullable Integer stationGroupId) {
         return SqlSupport.insertReturning(
                 """
                 INSERT
@@ -266,14 +272,14 @@ public class ClusterProfileFieldRepository {
     public boolean update(
             int id,
             String name,
-            ProfileFieldType fieldType,
+            FieldType fieldType,
             ProfileFieldConfig config,
             boolean required,
             boolean readonly,
-            String width,
+            @Nullable String width,
             boolean stationReadonly,
             boolean keepOnArchive,
-            Integer stationGroupId) {
+            @Nullable Integer stationGroupId) {
         return query("""
                 UPDATE cluster_profile_field
                 SET name             = :name,
@@ -304,8 +310,6 @@ public class ClusterProfileFieldRepository {
         return SqlSupport.deleteById("cluster_profile_field", id);
     }
 
-    // -- Values --
-
     /**
      * What one member answered to the questions their station is actually asked.
      *
@@ -315,22 +319,32 @@ public class ClusterProfileFieldRepository {
      * @param memberId the station member
      * @return one entry per answered field that reaches the member's station
      */
-    public List<Value> findValues(int memberId) {
+    public List<ProfileFieldValue> findValues(int memberId) {
         return query("""
-                SELECT cpfv.field_id, cpfv.value
+                SELECT cpfv.member_id, cpfv.field_id, cpfv.value
                 FROM cluster_profile_field_value cpfv
                 JOIN cluster_profile_field cpf ON cpf.id = cpfv.field_id
                 JOIN station_member sm ON sm.id = cpfv.member_id
                 JOIN station s ON s.id = sm.station_id AND s.cluster_id = cpf.cluster_id
                 WHERE cpfv.member_id = :member_id
-                  AND (cpf.station_group_id IS NULL
-                       OR EXISTS (SELECT 1
-                                  FROM cluster_station_group_membership m
-                                  WHERE m.group_id = cpf.station_group_id
-                                    AND m.station_id = s.id));""")
+                  AND %s;""", REACHES_STATION)
                 .single(call().bind("member_id", memberId))
-                .map(row -> new Value(row.getInt("field_id"), row.getString("value")))
+                .map(ProfileFieldValue.map())
                 .all();
+    }
+
+    /**
+     * Removes a leaving member's answers to every question not marked to be kept, whether or not it still
+     * reaches their station.
+     *
+     * @param memberId the member who leaves
+     * @return how many answers were removed
+     */
+    public int deleteNonKeptValues(int memberId) {
+        return query("""
+                DELETE FROM cluster_profile_field_value
+                WHERE member_id = :member_id
+                  AND field_id NOT IN (SELECT id FROM cluster_profile_field WHERE keep_on_archive);""").single(call().bind("member_id", memberId)).delete().rows();
     }
 
     /**
@@ -375,9 +389,4 @@ public class ClusterProfileFieldRepository {
                 USING station_member sm
                 WHERE sm.id = cpfv.member_id AND sm.station_id = :station_id;""").single(call().bind("station_id", stationId)).delete().rows();
     }
-
-    /**
-     * @param value the answer as stored, which is JSON like a station field's
-     */
-    public record Value(int fieldId, String value) {}
 }

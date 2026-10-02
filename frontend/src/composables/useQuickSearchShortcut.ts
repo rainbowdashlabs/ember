@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import { onBeforeUnmount, onMounted } from 'vue'
+import { useEventListener } from '@vueuse/core'
 import { useQuickSearch, type QuickSearchScope } from '@/composables/useQuickSearch'
 
 /**
@@ -26,8 +26,7 @@ export function useQuickSearchShortcut(scope: QuickSearchScope) {
     else open(scope)
   }
 
-  onMounted(() => window.addEventListener('keydown', onKeydown))
-  onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
+  useEventListener('keydown', onKeydown)
 
   /** Opens the palette this shell owns, for the header's search button. */
   function openScoped() {

@@ -8,6 +8,7 @@ import {computed, onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
+import BareButton from '@/components/button/BareButton.vue'
 import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
 import {fromMember, type MemberOption} from '@/components/input/select/memberOption'
 import {stationMembers} from '@/api'
@@ -56,16 +57,15 @@ onMounted(async () => {
       <MemberSelectInput v-model="picked" :members="members" data-testid="wizard-member"/>
     </div>
 
-    <button
+    <BareButton
         :class="[
           'w-full rounded-theme border px-3 py-2 text-left text-sm transition-colors',
           forTheStore ? 'border-primary bg-primary/10' : 'border-(--border) hover:border-primary',
         ]"
         data-testid="wizard-party-store"
-        type="button"
         @click="chooseStore"
     >
       {{ t('movements.wizard.party.store') }}
-    </button>
+    </BareButton>
   </div>
 </template>

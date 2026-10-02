@@ -6,17 +6,18 @@
 package dev.chojo.ember.feature.cluster.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.ClusterPermission;
+import dev.chojo.ember.api.refusal.ClusterRefusal;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.entity.ClusterApplication;
 import dev.chojo.ember.feature.cluster.entity.ClusterApplicationStatus;
+import dev.chojo.ember.feature.cluster.entity.ClusterMember;
 import dev.chojo.ember.feature.cluster.service.ClusterApplicationService;
 import dev.chojo.ember.feature.cluster.service.ClusterService;
 import dev.chojo.ember.feature.station.entity.Station;
-import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.station.service.StationService;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -28,6 +29,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -42,16 +44,16 @@ import java.util.UUID;
 public class ClusterStationRoutes implements Routes {
     private final ClusterService clusterService;
     private final ClusterApplicationService applicationService;
-    private final StationRepository stationRepository;
+    private final StationService stationService;
 
     @Inject
     public ClusterStationRoutes(
             ClusterService clusterService,
             ClusterApplicationService applicationService,
-            StationRepository stationRepository) {
+            StationService stationService) {
         this.clusterService = clusterService;
         this.applicationService = applicationService;
-        this.stationRepository = stationRepository;
+        this.stationService = stationService;
     }
 
     @Override
@@ -105,9 +107,9 @@ public class ClusterStationRoutes implements Routes {
             })
     private void releaseStation(Context ctx) {
         Cluster cluster = requireActive(ctx);
-        Station station = stationRepository
+        Station station = stationService
                 .findByUid(parseUid(ctx.pathParam("stationUid")))
-                .orElseThrow(Refusal.STATION_NOT_HERE_ON_CLUSTER_RELEASE::raise);
+                .orElseThrow(ClusterRefusal.STATION_NOT_HERE_ON_CLUSTER_RELEASE::raise);
         clusterService.releaseStation(cluster.id(), station.id());
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -141,9 +143,8 @@ public class ClusterStationRoutes implements Routes {
             })
     private void decide(Context ctx) {
         Cluster cluster = requireActive(ctx);
-        UserSession session = UserSession.from(ctx);
-        Integer decidedBy =
-                session.clusterMember() != null ? session.clusterMember().id() : null;
+        ClusterMember decider = UserSession.from(ctx).clusterMember();
+        Integer decidedBy = decider != null ? decider.id() : null;
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         var request = ctx.bodyAsClass(ApplicationDecisionRequest.class);
 
@@ -158,15 +159,17 @@ public class ClusterStationRoutes implements Routes {
     private Cluster requireActive(Context ctx) {
         UserSession session = UserSession.from(ctx);
         Integer clusterId = session.clusterId();
-        if (clusterId == null) throw Refusal.NO_CLUSTER_CHOSEN_FOR_CLUSTER_STATIONS.raise();
-        return clusterService.findById(clusterId).orElseThrow(Refusal.CLUSTER_NOT_HERE_FOR_CLUSTER_STATIONS::raise);
+        if (clusterId == null) throw ClusterRefusal.NO_CLUSTER_CHOSEN_FOR_CLUSTER_STATIONS.raise();
+        return clusterService
+                .findById(clusterId)
+                .orElseThrow(ClusterRefusal.CLUSTER_NOT_HERE_FOR_CLUSTER_STATIONS::raise);
     }
 
     private static UUID parseUid(String raw) {
         try {
             return UUID.fromString(raw);
         } catch (IllegalArgumentException e) {
-            throw Refusal.STATION_NOT_AN_IDENTITY_ON_CLUSTER_RELEASE.raise(raw);
+            throw ClusterRefusal.STATION_NOT_AN_IDENTITY_ON_CLUSTER_RELEASE.raise(raw);
         }
     }
 
@@ -175,7 +178,7 @@ public class ClusterStationRoutes implements Routes {
     }
 
     private ClusterApplicationResponse toApplicationResponse(ClusterApplication application) {
-        String stationName = stationRepository
+        String stationName = stationService
                 .findById(application.stationId())
                 .map(Station::name)
                 .orElse(null);
@@ -193,15 +196,17 @@ public class ClusterStationRoutes implements Routes {
     /**
      * @param approve whether to let the station in; when false the reason is shown to its owner
      */
-    public record ApplicationDecisionRequest(boolean approve, String reason) {}
+    public record ApplicationDecisionRequest(
+            boolean approve, @Nullable String reason) {}
 
-    public record ClusterStationResponse(UUID uid, String name, String publicSlug) {}
+    public record ClusterStationResponse(
+            UUID uid, String name, @Nullable String publicSlug) {}
 
     public record ClusterApplicationResponse(
             int id,
-            String stationName,
+            @Nullable String stationName,
             Instant requestedAt,
             ClusterApplicationStatus status,
-            String denyReason,
-            Instant resolvedAt) {}
+            @Nullable String denyReason,
+            @Nullable Instant resolvedAt) {}
 }

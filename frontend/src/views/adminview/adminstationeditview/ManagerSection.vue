@@ -12,7 +12,7 @@ import EditButton from '@/components/button/EditButton.vue'
 import SuccessContainer from '@/components/container/SuccessContainer.vue'
 import InfoContainer from '@/components/container/InfoContainer.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import type {ManagerDetail} from '@/api/stations'
+import type {ManagerDetail} from '@/api/generated/schema'
 
 const props = defineProps<{
   manager: ManagerDetail | null
@@ -44,7 +44,7 @@ const displayName = computed(() => {
   <div class="space-y-2">
     <FieldLabel>{{ t('adminStations.managerEmail') }}</FieldLabel>
 
-    <component v-if="showCurrent" :is="manager!.accountReady ? SuccessContainer : InfoContainer"
+    <component :is="manager!.accountReady ? SuccessContainer : InfoContainer" v-if="showCurrent"
                class="flex items-center justify-between">
       <div>
         <div class="font-medium">{{ displayName }}</div>

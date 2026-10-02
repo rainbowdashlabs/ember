@@ -13,12 +13,14 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import NewsList, { type UnifiedNewsItem } from './listview/NewsList.vue'
-import type {FederatedNewsItem, NewsEntry} from '@/api/news'
+import type {FederatedNewsListing} from '@/api/news'
+import type {NewsResponse} from '@/api/generated/schema'
 import { news } from '@/api'
 import { useSession } from '@/composables/useSession'
 import { useConfirmDelete } from '@/composables/useConfirmDelete'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { describeFailure } from '@/util/failure'
+import { StationPermission } from '@/api/types'
 
 const { t } = useI18n()
 defineProps<{
@@ -29,22 +31,21 @@ defineProps<{
 
 const router = useRouter()
 const newsRoutes = useNewsRoutes()
-import { StationPermission } from '@/api/types'
 const { hasPermission } = useSession()
 const canEditNews = computed(() => hasPermission(StationPermission.NEWS_EDIT))
 
 const PAGE_SIZE = 20
 
-const entries = ref<NewsEntry[]>([])
+const entries = ref<NewsResponse[]>([])
 const loadingMore = ref(false)
 const hasMore = ref(true)
 
-const federatedNews = ref<FederatedNewsItem[]>([])
+const federatedNews = ref<FederatedNewsListing[]>([])
 
 const { loading, failure, reload } = useAsyncLoader(async () => {
   const [batch, fed] = await Promise.all([
     news.listNews(0, PAGE_SIZE),
-    news.listFederatedNews().catch(() => [] as FederatedNewsItem[]),
+    news.listFederatedNews().catch(() => [] as FederatedNewsListing[]),
   ])
   entries.value = batch
   hasMore.value = batch.length >= PAGE_SIZE
@@ -56,7 +57,7 @@ const {
   target: deleteTarget,
   requestDelete,
   confirm: confirmDelete,
-} = useConfirmDelete<NewsEntry>({
+} = useConfirmDelete<NewsResponse>({
   onDelete: e => news.deleteNews(e.id),
   onSuccess: () => reload(),
   failure,
@@ -109,10 +110,12 @@ function setViewBadgeRef(el: unknown, newsId: number) {
   }
 }
 
+/**
+ * Every entry the list shows. One the instance published comes back in the station's own list,
+ * because that is where it is read, but marked as a system entry: it is not the station's to edit.
+ */
 const allNews = computed<UnifiedNewsItem[]>(() => {
   const local: UnifiedNewsItem[] = entries.value.map(e => ({
-    // An entry the instance published comes back in the station's own list, because that is where
-    // it is read, but it is not the station's to edit and it says where it came from.
     kind: e.systemEntry ? 'system' : 'local',
     id: e.id,
     title: e.title,
@@ -231,7 +234,7 @@ watch(() => entries.value.length, async () => {
   >
     <div class="space-y-6">
       <div class="flex items-center justify-between">
-        <PrimaryButton :icon="['fas', 'plus']" v-if="canEditNews" @click="router.push({ name: newsRoutes.create })">
+        <PrimaryButton v-if="canEditNews" :icon="['fas', 'plus']" @click="router.push({ name: newsRoutes.create })">
           {{ t('news.create') }}
         </PrimaryButton>
       </div>

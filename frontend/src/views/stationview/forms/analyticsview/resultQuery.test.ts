@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-// @vitest-environment happy-dom
+/** @vitest-environment happy-dom */
 import {describe, expect, it} from 'vitest'
 import {ResultDimension, ResultMatch} from '@/api/forms'
 import {decodeView, DEFAULT_AGE_BOUNDS, emptyFilter, encodeView, filterActive, groupingBy, parseBounds, toQuery} from './resultQuery'

@@ -8,21 +8,23 @@ import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import BareButton from '@/components/button/BareButton.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
-import {clusterMemberIdentity, type ClusterMemberSummary} from '@/api/clusterMembers'
+import {clusterMemberIdentity} from '@/api/clusterMembers'
+import type {ClusterMemberResponse} from '@/api/generated/schema'
 
 /** Who runs the association. The list the page opens on, rather than a form. */
 const props = defineProps<{
-  members: readonly ClusterMemberSummary[]
+  members: readonly ClusterMemberResponse[]
   selectedId: number | null
   editable: boolean
 }>()
 
 const emit = defineEmits<{
-  select: [member: ClusterMemberSummary]
+  select: [member: ClusterMemberResponse]
   add: []
 }>()
 
@@ -41,7 +43,7 @@ const {t} = useI18n()
     <EmptyState v-if="props.members.length === 0">{{ t('clusterMembers.empty') }}</EmptyState>
 
     <div v-else class="space-y-2">
-      <button
+      <BareButton
           v-for="member in props.members"
           :key="member.id"
           data-testid="roster-row"
@@ -56,7 +58,7 @@ const {t} = useI18n()
           <SecondaryBadge>{{ t(`clusterOverview.role.${member.userType}`) }}</SecondaryBadge>
         </div>
         <MutedText v-if="member.name && member.email" size="sm">{{ member.email }}</MutedText>
-      </button>
+      </BareButton>
     </div>
   </NeutralContainer>
 </template>

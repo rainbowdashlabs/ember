@@ -3,8 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type { Inventory, InventoryItem } from '@/api/inventory'
-import type { StationMember } from '@/api/types'
+import type { Inventory, InventoryItem, MemberWithName } from '@/api/generated/schema'
 import { ColumnTypes, type TableColumn } from '@/components/table/tableColumn'
 import { memberNameColumn } from '@/views/stationview/members/listview/memberColumns'
 
@@ -33,7 +32,7 @@ export function inventoryIdOfColumn(key: string): number | null {
  * The columns of who holds what: the member, and one column per inventory listing the pieces they
  * hold from it. An inventory column sorts and filters by the pieces as the list names them.
  */
-export function inventoryMemberColumns(sources: InventoryMemberColumnSources): TableColumn<StationMember>[] {
+export function inventoryMemberColumns(sources: InventoryMemberColumnSources): TableColumn<MemberWithName>[] {
   const { t, inventories, itemsFor, label } = sources
   return [
     memberNameColumn(t),
@@ -41,7 +40,7 @@ export function inventoryMemberColumns(sources: InventoryMemberColumnSources): T
       key: inventoryColumnKey(inventory.id),
       label: inventory.name ?? '',
       type: ColumnTypes.TEXT,
-      value: (member: StationMember) => itemsFor(member.id, inventory.id).map(label),
+      value: (member: MemberWithName) => itemsFor(member.id, inventory.id).map(label),
     })),
   ]
 }

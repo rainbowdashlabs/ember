@@ -58,21 +58,55 @@ test.describe('Boards', () => {
         await createTicket(page, key)
     })
 
-    /** A ticket carries the conversation about it, which is most of what a board is for. */
+    /**
+     * A ticket carries the conversation about it, which is most of what a board is for. The comment
+     * box is a rich text editor, so it is typed into rather than filled.
+     */
     test('a ticket takes a comment', async ({managerPage: page}) => {
         const comment = unique('Kommentar')
 
         const key = await createBoard(page)
         await createTicket(page, key)
 
-        await page.getByRole('button', {name: /Kommentare/}).click()
-        // The comment box is a rich text editor, so its placeholder is text on the page rather
-        // than an attribute, and it takes typing rather than a fill.
+        await page.getByRole('tab', {name: /Kommentare/}).click()
         await page.locator('[contenteditable="true"]').last().click()
         await page.keyboard.type(comment)
         await page.getByRole('button', {name: 'Absenden'}).click()
 
         await expect(page.getByText(comment).first()).toBeVisible()
+    })
+
+    /**
+     * A ticket comment belongs to whoever wrote it. Its author puts it right and takes it back from
+     * the ticket's comments, and the count on the tab follows what is left.
+     */
+    test('the author changes and removes their ticket comment', async ({managerPage: page}) => {
+        const first = unique('Kommentar')
+        const second = unique('Korrektur')
+
+        const key = await createBoard(page)
+        await createTicket(page, key)
+
+        await page.getByRole('tab', {name: /Kommentare/}).click()
+        await page.locator('[contenteditable="true"]').last().click()
+        await page.keyboard.type(first)
+        await page.getByRole('button', {name: 'Absenden'}).click()
+
+        const written = page.locator('[id^="comment-"]').filter({hasText: first})
+        await expect(written).toHaveCount(1)
+        const comment = page.locator(`#${await written.getAttribute('id')}`)
+        await expect(page.getByRole('tab', {name: 'Kommentare (1)'})).toBeVisible()
+        await comment.getByRole('button', {name: 'Bearbeiten', exact: true}).click()
+        await comment.locator('[contenteditable="true"]').click()
+        await page.keyboard.press('ControlOrMeta+A')
+        await page.keyboard.type(second)
+        await comment.getByRole('button', {name: 'Speichern', exact: true}).click()
+
+        await expect(comment).toContainText(second)
+        await expect(comment).toContainText('bearbeitet')
+        await comment.getByRole('button', {name: 'Löschen', exact: true}).click()
+        await expect(page.locator('[id^="comment-"]').filter({hasText: second})).toHaveCount(0)
+        await expect(page.getByRole('tab', {name: 'Kommentare (0)'})).toBeVisible()
     })
 
     /**
@@ -97,6 +131,10 @@ test.describe('Boards', () => {
     /**
      * A ticket nobody owns is a ticket nobody does. Assigning it is one click on the line that says
      * so, and the name it then carries is what the board shows on the card.
+     *
+     * The save is awaited before the reload, which would otherwise tear the request down before it
+     * leaves. Whoever the menu offers first is taken, since the station's people change as other
+     * stories run, and the board is given longer than the default wait to draw from its requests.
      */
     test('a ticket is assigned to a member', async ({managerPage: page}) => {
         const key = await createBoard(page)
@@ -106,22 +144,14 @@ test.describe('Boards', () => {
 
         const assignee = page.getByTestId('ticket-assignee')
 
-        // Picking a name saves the ticket, and clicking only dispatches the click: it says nothing
-        // about the save having gone out. Reloading straight afterwards tears the page down and
-        // takes the request with it, so the assignment is lost and the story fails having asked for
-        // something nobody ever sent. Waiting for the answer is what makes the reload meaningful.
         const saved = page.waitForResponse(
             response => response.request().method() === 'PUT'
                 && /\/tickets\/\d+$/.test(new URL(response.url()).pathname),
         )
-        // Whoever the menu offers first: who is in the station changes as the other stories create
-        // people, and the story only needs somebody to hand the ticket to.
         const name = await pickFirstMember(assignee)
         expect((await saved).status()).toBe(200)
 
         await page.reload()
-        // The board is drawn from several requests, and under load the default wait ran out before
-        // the last of them landed, which read as an assignment that had not been kept.
         await expect(page.getByTestId('app-shell')).toBeVisible()
         await expect(page.getByText(name).first()).toBeVisible({timeout: 30000})
         await expect(page.getByText('Nicht zugewiesen')).toHaveCount(0)
@@ -137,6 +167,7 @@ test.describe('Boards', () => {
      *
      * <p>Nobody in particular is picked. Who belongs to the seeded station changes as the other
      * stories create people, so the story reads a name off the menu and then types part of it back.
+     * The menu opens with the empty answer highlighted, so one press down reaches that person.
      */
     test('a member is found by typing and taken with the keyboard', async ({managerPage: page}) => {
         const key = await createBoard(page)
@@ -146,10 +177,10 @@ test.describe('Boards', () => {
         const assignee = page.getByTestId('ticket-assignee')
         await openMemberMenu(assignee)
 
-        const search = assignee.getByTestId('member-select-search').getByRole('searchbox')
+        const search = page.getByTestId('member-select-search').getByRole('searchbox')
         await expect(search, 'a member menu always offers a search').toBeVisible()
 
-        await expect(assignee.getByTestId('member-select-empty'),
+        await expect(page.getByTestId('member-select-empty'),
             'a ticket may be left unassigned, so this menu offers the empty answer').toBeVisible()
 
         const people = await offeredMembers(assignee)
@@ -157,20 +188,16 @@ test.describe('Boards', () => {
         expect(people, 'the menu lists people by their first name')
             .toEqual([...people].sort((one, other) => one.localeCompare(other, 'de', {sensitivity: 'base'})))
 
-        // Escape leaves the ticket as it was, which is the half of the keyboard that must not save.
         await search.press('Escape')
-        await expect(assignee.getByTestId('member-select-panel')).toBeHidden()
-        await expect(page.getByText('Nicht zugewiesen').first()).toBeVisible()
+        await expect(page.getByTestId('member-select-panel')).toBeHidden()
+        await expect(page.getByText('Nicht zugewiesen').first(), 'Escape leaves the ticket as it was').toBeVisible()
 
         const wanted = people[0]!
         await page.getByText('Nicht zugewiesen').first().click()
         await openMemberMenu(assignee)
         await search.fill(wanted.split(' ')[0]!)
-        await expect(assignee.getByTestId('member-select-option').first()).toContainText(wanted)
+        await expect(page.getByTestId('member-select-option').first()).toContainText(wanted)
 
-        // The menu opens with the empty answer highlighted, so one press down walks onto the person
-        // the search left standing and Enter takes them. Waiting for the save is what makes the
-        // reload below mean anything: a reload without it tears the request down before it leaves.
         const saved = page.waitForResponse(
             response => response.request().method() === 'PUT'
                 && /\/tickets\/\d+$/.test(new URL(response.url()).pathname),
@@ -195,11 +222,11 @@ test.describe('Boards', () => {
         const key = await createBoard(page)
         await createTicket(page, key)
 
-        await page.getByRole('button', {name: 'Add', exact: true}).first().click()
+        await page.getByRole('button', {name: 'Zum Ticket hinzufügen', exact: true}).click()
         await page.getByText('Checkliste').last().click()
 
         await page.getByPlaceholder('Punkt hinzufügen').fill(item)
-        await page.getByRole('button', {name: 'Hinzufügen'}).first().click()
+        await page.getByRole('button', {name: 'Hinzufügen', exact: true}).first().click()
         await expect(page.getByText(item)).toBeVisible()
 
         await page.getByRole('checkbox').first().click()
@@ -217,7 +244,6 @@ test.describe('Boards', () => {
         const ticket = await createTicket(page, key)
 
         await page.goto(`/station/boards/${key}/settings`)
-        // The switch belongs to the line that names it, and the settings page has more than one.
         await page.getByText('Backlog', {exact: true}).locator('xpath=following-sibling::button').click()
         await expect(page.getByText('Gespeichert')).toBeVisible()
 
@@ -243,7 +269,6 @@ test.describe('Boards', () => {
     test('the archive of a board lists what has been done for a while', async ({managerPage: page}) => {
         await page.goto('/station/boards')
 
-        // The list navigates by click handler rather than by link, as the planner does.
         const board = page.locator('main [class*="cursor-pointer"]').first()
         await expect(board).toBeVisible()
         await board.click()

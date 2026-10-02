@@ -10,14 +10,14 @@ import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
-import type {AttendanceEntry} from '@/api/attendance'
-import type {MemberGroup, StationMember} from '@/api/types'
+import type {AttendanceEntry} from '@/api/generated/schema'
+import type {MemberSection} from './memberSections'
 
 const {t} = useI18n()
 
 const props = defineProps<{
   entries: AttendanceEntry[]
-  memberSections: { group: MemberGroup | null; members: StationMember[] }[]
+  memberSections: MemberSection[]
 }>()
 
 function countByStatus(entries: AttendanceEntry[]) {
@@ -40,7 +40,8 @@ const sectionCounts = computed(() => {
         .map(m => entryByMember.get(m.id))
         .filter((e): e is AttendanceEntry => e != null)
     return {
-      group: section.group,
+      key: section.key,
+      title: section.title,
       counts: countByStatus(sectionEntries),
     }
   })
@@ -49,9 +50,8 @@ const sectionCounts = computed(() => {
 
 <template>
   <div class="space-y-2">
-    <!-- Per-group summaries -->
-    <div v-for="sc in sectionCounts" :key="sc.group?.id ?? 'ungrouped'" class="flex items-center gap-3 text-sm flex-wrap">
-      <span class="font-medium min-w-24">{{ sc.group?.name ?? t('attendanceSession.otherMembers') }}</span>
+    <div v-for="sc in sectionCounts" :key="sc.key" class="flex items-center gap-3 text-sm flex-wrap">
+      <span class="font-medium min-w-24">{{ sc.title ?? t('attendanceSession.otherMembers') }}</span>
       <SecondaryBadge v-if="sc.counts.unconfirmed > 0">
         {{ sc.counts.unconfirmed }} {{ t('attendanceSession.unconfirmed') }}
       </SecondaryBadge>
@@ -60,7 +60,6 @@ const sectionCounts = computed(() => {
       <InfoBadge>{{ sc.counts.declined }} {{ t('attendanceSession.declined') }}</InfoBadge>
     </div>
 
-    <!-- Total summary -->
     <div v-if="sectionCounts.length > 1" class="flex items-center gap-3 text-sm flex-wrap border-t border-(--border) pt-2">
       <span class="font-medium min-w-24">{{ t('attendanceSession.total') }}</span>
       <SecondaryBadge v-if="totalCounts.unconfirmed > 0">

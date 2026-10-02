@@ -6,19 +6,24 @@
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { boards } from '@/api'
-import type { MemberCompletion } from '@/api/stationMembers'
 import * as federatedBoards from '@/api/federatedBoards'
 import type {
-    Board, BoardLane, BoardField, BoardLabel, BoardTicket, BoardChecklistItem,
-    BoardTicketLink, BoardTicketTransition, BoardTicketHistoryEntry, BoardComment,
-    BoardWeblink, BoardTicketAttachment, BoardTicketKbLink, BoardTicketFieldValue,
-    BoardFieldTypeName, TicketPriorityName,
+    AnyBoard, BoardFieldRaw, BoardFieldTypeName, LinkTypeName, TypedBoardField, TypedBoardFieldValue,
 } from '@/api/boards'
+import type { CommentSource } from '@/api/comments'
+import type {
+    BoardChecklistItem, BoardLabel, BoardLane, BoardTicket, BoardTicketAttachment,
+    BoardTicketHistoryResponse, BoardTicketKbLink, BoardTicketLink, BoardTicketTransitionResponse, BoardWeblink,
+    ChecklistItemRequest, MemberCompletion, MoveTicketRequest, ReorderChecklistRequest, TicketSummary, UpdateTicketRequest,
+} from '@/api/generated/schema'
 
 /**
  * Provides a unified board API that works for both local and federated boards.
  * When `partnerUid` is present in route params, delegates to the federated API.
  * Otherwise, uses the local API.
+ *
+ * <p>A partner's board offers no weblinks, field values or wiki links, and does not take reordered
+ * checklists: those reads answer empty and those writes do nothing there.
  */
 export function useBoardApi() {
     const route = useRoute()
@@ -35,13 +40,11 @@ export function useBoardApi() {
             : `/station/boards/${boardKey.value}`,
     )
 
-    // -- Board / Ticket reads --
-
-    async function getBoard(): Promise<{ board: Board | federatedBoards.FederatedBoardDetail; canEdit: boolean; shareMode?: string }> {
+    async function getBoard(): Promise<{ board: AnyBoard; canEdit: boolean; shareMode?: federatedBoards.BoardShareModeName }> {
         if (isFederated.value) {
             const detail = await federatedBoards.getBoard(partnerUid.value!, boardKey.value)
             const canEdit = detail.shareMode === federatedBoards.BoardShareMode.FULL
-            return { board: detail.board as unknown as Board, canEdit, shareMode: detail.shareMode }
+            return { board: detail.board, canEdit, shareMode: detail.shareMode }
         }
         const [board, editResult] = await Promise.all([
             boards.getBoard(boardKey.value),
@@ -60,7 +63,7 @@ export function useBoardApi() {
         return boards.getLanes(boardKey.value)
     }
 
-    async function getFields(): Promise<BoardField[]> {
+    async function getFields(): Promise<TypedBoardField[]> {
         if (isFederated.value) return federatedBoards.getFields(partnerUid.value!, boardKey.value)
         return boards.getFields(boardKey.value)
     }
@@ -70,7 +73,7 @@ export function useBoardApi() {
         return boards.getLabels(boardKey.value)
     }
 
-    async function listTickets(): Promise<BoardTicket[]> {
+    async function listTickets(): Promise<TicketSummary[]> {
         if (isFederated.value) return federatedBoards.listTickets(partnerUid.value!, boardKey.value)
         return boards.listTickets(boardKey.value)
     }
@@ -91,8 +94,6 @@ export function useBoardApi() {
         return boards.getAssignableMembers(boardKey.value)
     }
 
-    // -- Ticket detail data --
-
     async function getChecklist(): Promise<BoardChecklistItem[]> {
         if (isFederated.value) return federatedBoards.getChecklist(partnerUid.value!, boardKey.value, ticketNumber.value)
         return boards.getChecklist(boardKey.value, ticketNumber.value)
@@ -103,23 +104,23 @@ export function useBoardApi() {
         return boards.getLinks(boardKey.value, ticketNumber.value)
     }
 
-    async function getTransitions(): Promise<BoardTicketTransition[]> {
+    async function getTransitions(): Promise<BoardTicketTransitionResponse[]> {
         if (isFederated.value) return federatedBoards.getTransitions(partnerUid.value!, boardKey.value, ticketNumber.value)
         return boards.getTransitions(boardKey.value, ticketNumber.value)
     }
 
-    async function getHistory(): Promise<BoardTicketHistoryEntry[]> {
+    async function getHistory(): Promise<BoardTicketHistoryResponse[]> {
         if (isFederated.value) return federatedBoards.getHistory(partnerUid.value!, boardKey.value, ticketNumber.value)
         return boards.getHistory(boardKey.value, ticketNumber.value)
     }
 
-    async function getComments(): Promise<BoardComment[]> {
-        if (isFederated.value) return federatedBoards.getComments(partnerUid.value!, boardKey.value, ticketNumber.value)
-        return boards.getComments(boardKey.value, ticketNumber.value)
+    function commentSource(): CommentSource {
+        if (isFederated.value) return federatedBoards.partnerTicketCommentSource(partnerUid.value!, boardKey.value, ticketNumber.value)
+        return boards.ticketCommentSource(boardKey.value, ticketNumber.value)
     }
 
     async function getWeblinks(): Promise<BoardWeblink[]> {
-        if (isFederated.value) return [] // not available for federated
+        if (isFederated.value) return []
         return boards.getWeblinks(boardKey.value, ticketNumber.value)
     }
 
@@ -128,8 +129,8 @@ export function useBoardApi() {
         return boards.getAttachments(boardKey.value, ticketNumber.value)
     }
 
-    async function getFieldValues(): Promise<BoardTicketFieldValue[]> {
-        if (isFederated.value) return [] // not available for federated
+    async function getFieldValues(): Promise<TypedBoardFieldValue[]> {
+        if (isFederated.value) return []
         return boards.getFieldValues(boardKey.value, ticketNumber.value)
     }
 
@@ -139,30 +140,17 @@ export function useBoardApi() {
     }
 
     async function getKbLinks(): Promise<BoardTicketKbLink[]> {
-        if (isFederated.value) return [] // not available for federated
+        if (isFederated.value) return []
         return boards.getKbLinks(boardKey.value, ticketNumber.value)
     }
 
     async function getWatchers(): Promise<number[]> {
-        if (isFederated.value) {
-            const data = await federatedBoards.getWatchers(partnerUid.value!, boardKey.value, ticketNumber.value)
-            return data.local ?? []
-        }
+        if (isFederated.value) return federatedBoards.getWatchers(partnerUid.value!, boardKey.value, ticketNumber.value)
         return boards.getWatchers(boardKey.value, ticketNumber.value)
     }
 
-    // -- Write operations --
-
-    async function updateTicket(data: { title: string; description?: string | null; assignedMemberId?: number | null; priority: TicketPriorityName; dueDate?: string | null }): Promise<BoardTicket> {
-        if (isFederated.value) {
-            return federatedBoards.updateTicket(partnerUid.value!, boardKey.value, ticketNumber.value, {
-                title: data.title,
-                description: data.description ?? null,
-                assignedMemberId: data.assignedMemberId ?? null,
-                priority: data.priority,
-                dueDate: data.dueDate ?? null,
-            })
-        }
+    async function updateTicket(data: UpdateTicketRequest): Promise<BoardTicket> {
+        if (isFederated.value) return federatedBoards.updateTicket(partnerUid.value!, boardKey.value, ticketNumber.value, data)
         return boards.updateTicket(boardKey.value, ticketNumber.value, data)
     }
 
@@ -171,7 +159,7 @@ export function useBoardApi() {
         return boards.deleteTicket(boardKey.value, ticketNumber.value)
     }
 
-    async function moveTicket(data: { toLaneId: number; position: number }): Promise<void> {
+    async function moveTicket(data: MoveTicketRequest): Promise<void> {
         if (isFederated.value) { await federatedBoards.moveTicket(partnerUid.value!, boardKey.value, ticketNumber.value, data); return }
         await boards.moveTicket(boardKey.value, ticketNumber.value, data)
     }
@@ -181,7 +169,7 @@ export function useBoardApi() {
         await boards.addChecklistItem(boardKey.value, ticketNumber.value, data)
     }
 
-    async function updateChecklistItem(itemId: number, data: { title: string; checked: boolean }): Promise<void> {
+    async function updateChecklistItem(itemId: number, data: ChecklistItemRequest): Promise<void> {
         if (isFederated.value) { await federatedBoards.updateChecklistItem(partnerUid.value!, boardKey.value, ticketNumber.value, itemId, data); return }
         await boards.updateChecklistItem(boardKey.value, ticketNumber.value, itemId, data)
     }
@@ -191,24 +179,9 @@ export function useBoardApi() {
         await boards.deleteChecklistItem(boardKey.value, ticketNumber.value, itemId)
     }
 
-    async function reorderChecklist(data: { orderedIds: number[] }): Promise<void> {
-        if (isFederated.value) return // not available for federated
+    async function reorderChecklist(data: ReorderChecklistRequest): Promise<void> {
+        if (isFederated.value) return
         await boards.reorderChecklist(boardKey.value, ticketNumber.value, data)
-    }
-
-    async function createComment(data: { parentId: number | null; content: string }): Promise<void> {
-        if (isFederated.value) { await federatedBoards.addComment(partnerUid.value!, boardKey.value, ticketNumber.value, data); return }
-        await boards.createComment(boardKey.value, ticketNumber.value, data)
-    }
-
-    async function updateComment(commentId: number, data: { content: string }): Promise<void> {
-        if (isFederated.value) return // not available for federated
-        await boards.updateComment(boardKey.value, ticketNumber.value, commentId, data)
-    }
-
-    async function deleteComment(_commentId: number): Promise<void> {
-        if (isFederated.value) return // not available for federated
-        await boards.deleteComment(boardKey.value, ticketNumber.value, _commentId)
     }
 
     async function addTicketLabel(labelId: number): Promise<BoardLabel[]> {
@@ -221,12 +194,12 @@ export function useBoardApi() {
         await boards.removeTicketLabel(boardKey.value, ticketNumber.value, labelId)
     }
 
-    async function createLink(linkedTicketId: number, linkedTicketNumber: number, linkType: string): Promise<void> {
+    async function createLink(linkedTicketId: number, linkedTicketNumber: number, linkType: LinkTypeName): Promise<void> {
         if (isFederated.value) {
             await federatedBoards.createLink(partnerUid.value!, boardKey.value, ticketNumber.value, { linkedTicketNumber, linkType })
             return
         }
-        await boards.createLink(boardKey.value, ticketNumber.value, { linkedTicketId, linkType: linkType as import('@/api/boards').LinkTypeName })
+        await boards.createLink(boardKey.value, ticketNumber.value, { linkedTicketId, linkType })
     }
 
     async function deleteLink(linkedTicketId: number, linkedTicketNumber: number): Promise<void> {
@@ -247,18 +220,18 @@ export function useBoardApi() {
         await boards.unwatchTicket(boardKey.value, ticketNumber.value)
     }
 
-    async function setFieldValue(fieldId: number, fieldType: BoardFieldTypeName, value: unknown): Promise<void> {
-        if (isFederated.value) return // not available for federated
+    async function setFieldValue(fieldId: number, fieldType: BoardFieldTypeName, value: BoardFieldRaw): Promise<void> {
+        if (isFederated.value) return
         await boards.setFieldValue(boardKey.value, ticketNumber.value, fieldId, fieldType, value)
     }
 
     async function deleteFieldValue(fieldId: number): Promise<void> {
-        if (isFederated.value) return // not available for federated
+        if (isFederated.value) return
         await boards.deleteFieldValue(boardKey.value, ticketNumber.value, fieldId)
     }
 
     async function uploadAttachment(file: File): Promise<BoardTicketAttachment | null> {
-        if (isFederated.value) return null // not available for federated
+        if (isFederated.value) return null
         return boards.uploadAttachment(boardKey.value, ticketNumber.value, file)
     }
 
@@ -273,7 +246,6 @@ export function useBoardApi() {
         boardKey,
         ticketNumber,
         backRoute,
-        // Reads
         getBoard,
         getTicket,
         getLanes,
@@ -286,14 +258,13 @@ export function useBoardApi() {
         getLinks,
         getTransitions,
         getHistory,
-        getComments,
+        commentSource,
         getWeblinks,
         getAttachments,
         getFieldValues,
         getTicketLabels,
         getKbLinks,
         getWatchers,
-        // Writes
         updateTicket,
         deleteTicket,
         moveTicket,
@@ -301,9 +272,6 @@ export function useBoardApi() {
         updateChecklistItem,
         deleteChecklistItem,
         reorderChecklist,
-        createComment,
-        updateComment,
-        deleteComment,
         addTicketLabel,
         removeTicketLabel,
         createLink,

@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.api;
 
+import dev.chojo.ember.api.refusal.BodyRefusal;
 import org.junit.jupiter.api.Test;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.DeserializationFeature;
@@ -113,7 +114,7 @@ class UnreadablePayloadTest {
     void aBodyThatIsNotJsonAtAllIsRefusedWithASentenceOfItsOwn() {
         assertThrows(JacksonException.class, () -> MAPPER.readValue("{not json", Answers.class));
 
-        assertTrue(Failures.readable(Refusal.BODY_NOT_JSON.message()).isPresent());
-        assertEquals(400, Refusal.BODY_NOT_JSON.status().getCode());
+        assertTrue(Failures.readable(BodyRefusal.BODY_NOT_JSON.message()).isPresent());
+        assertEquals(400, BodyRefusal.BODY_NOT_JSON.status().getCode());
     }
 }

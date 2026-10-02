@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {useId} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
@@ -11,12 +12,13 @@ import MutedText from '@/components/typography/MutedText.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
-import type {LegalFile} from '@/api/adminSettings'
+import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
+import type {LegalFileEntry} from '@/api/generated/schema'
 
 const {t} = useI18n()
 
 defineProps<{
-  file: LegalFile
+  file: LegalFileEntry
   index: number
   total: number
 }>()
@@ -29,16 +31,14 @@ const emit = defineEmits<{
   updateContent: [value: string]
 }>()
 
-function onInput(event: Event) {
-  emit('updateContent', (event.target as HTMLTextAreaElement).value)
-}
+const nameId = useId()
 </script>
 
 <template>
   <NeutralContainer class="space-y-2" :class="{ 'opacity-50': !file.enabled }">
     <div class="flex items-center gap-2">
       <ToggleInput :model-value="file.enabled" @update:model-value="emit('toggle')"/>
-      <SubHeader class="flex-1 min-w-0">
+      <SubHeader :id="nameId" class="flex-1 min-w-0">
         {{ file.generated ? t('adminSettings.legal.generatedName') : (file.displayName || file.filename) }}
       </SubHeader>
       <IconButton :icon="['fas', 'chevron-up']" :label="t('adminSettings.legal.moveUp')"
@@ -48,12 +48,13 @@ function onInput(event: Event) {
       <DeleteButton v-if="!file.generated" @click="emit('delete')"/>
     </div>
     <MutedText v-if="file.generated" size="sm">{{ t('adminSettings.legal.generatedHint') }}</MutedText>
-    <textarea
+    <TextAreaInput
         v-if="!file.generated"
-        :value="file.content"
-        class="w-full rounded-lg border border-(--border) bg-(--bg) text-(--text) p-3 min-h-[200px] font-mono text-sm outline-none resize-y focus:ring-2 focus:ring-primary/50"
+        :model-value="file.content"
+        :aria-labelledby="nameId"
+        class="min-h-[200px] font-mono text-sm"
         :placeholder="t('adminSettings.legal.contentPlaceholder')"
-        @input="onInput"
+        @update:model-value="value => emit('updateContent', value ?? '')"
     />
     <pre
         v-else

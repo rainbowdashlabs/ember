@@ -5,9 +5,9 @@
  */
 package dev.chojo.ember.feature.station.service;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.StationRefusal;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.entity.AccountCredential;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
@@ -27,9 +27,9 @@ import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.entity.ThemeFeel;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.util.SlugGenerator;
-import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -112,11 +112,8 @@ public class StationService {
      * @return the created station
      */
     public Station create(String name) {
-        var station = stationRepository.create(name);
-        // Ensure every station has a federation private key
-        var keyPair = federationService.generateKeyPair();
-        stationRepository.updateFederationPrivateKey(station.id(), federationService.encodePrivateKey(keyPair));
-        // Auto-generate a public slug from the station name
+        var station = stationRepository.create(name, DiscoveryVisibility.NEW_STATION_DEFAULT);
+        federationService.ensureStationKey(station.id());
         var slug = SlugGenerator.uniqueSlug(
                 name, (s, _) -> stationRepository.findBySlug(s).isPresent(), 0);
         stationRepository.updatePublicSlug(station.id(), slug);
@@ -132,7 +129,7 @@ public class StationService {
      * @return the created station
      */
     public Station createWithManager(String name, String managerEmail) {
-        var station = stationRepository.create(name);
+        var station = stationRepository.create(name, DiscoveryVisibility.NEW_STATION_DEFAULT);
         assignManager(station.id(), managerEmail);
         log.info("Station created with manager: id={}, name='{}', manager='{}'", station.id(), name, managerEmail);
         return station;
@@ -185,6 +182,13 @@ public class StationService {
         return Optional.empty();
     }
 
+    /**
+     * Saves a station's look and feel.
+     *
+     * <p>A setting its cluster has locked keeps what the cluster last wrote, whatever the station sent.
+     * Refusing the whole save instead would stop the station changing the parts it may still change,
+     * which arrive in the same request.
+     */
     public void updateThemeSettings(
             int id,
             String defaultTheme,
@@ -192,11 +196,8 @@ public class StationService {
             String customThemeColors,
             ThemeFeel defaultFeel,
             boolean allowUserFeel) {
-        Station current = stationRepository.findById(id).orElseThrow(NotFoundResponse::new);
+        Station current = stationRepository.findById(id).orElseThrow(StationRefusal.STATION_NOT_HERE_FOR_LOOK::raise);
         Locks locks = lookAndFeelLocks(id);
-        // A locked setting keeps whatever the cluster last wrote, whatever the station sent. Refusing the
-        // whole save instead would stop a station changing the parts it may still change, which are on the
-        // same screen and in the same request.
         stationRepository.updateThemeSettings(
                 id,
                 locks.theme() ? current.defaultTheme() : defaultTheme,
@@ -267,14 +268,30 @@ public class StationService {
     }
 
     /**
-     * Deletes a station by its ID.
+     * Deletes a station by its ID, and forgets its identity so its address stops resolving at once.
      *
      * @param id the station ID
      * @return {@code true} if the station was deleted
      */
     public boolean delete(int id) {
         log.info("Station deleted: id={}", id);
-        return stationRepository.delete(id);
+        boolean deleted = stationRepository.delete(id);
+        if (deleted) stationRepository.invalidateUidCache(id);
+        return deleted;
+    }
+
+    /**
+     * Deletes the local copy of a station that has been moved to another instance, without the
+     * confirmation mail a deletion otherwise waits for: the data lives on the destination, and what
+     * is left here is a stale shadow. Refused for a station that was not moved.
+     *
+     * @param id the station
+     */
+    public void deleteMoved(int id) {
+        if (!stationRepository.isReadOnlyForTransfer(id)) {
+            throw StationRefusal.STATION_NOT_MOVED.raise();
+        }
+        delete(id);
     }
 
     /**
@@ -321,8 +338,9 @@ public class StationService {
      * asked for an account that is not there.
      */
     private Optional<ManagerInfo> managerInfoOf(StationMember member) {
-        if (member.accountId() == null) return Optional.empty();
-        Account account = accountRepository.findById(member.accountId()).orElse(null);
+        Integer accountId = member.accountId();
+        if (accountId == null) return Optional.empty();
+        Account account = accountRepository.findById(accountId).orElse(null);
         if (account == null) return Optional.empty();
         Optional<AccountCredential> credential = accountRepository.findCredential(account.id());
         boolean accountReady = credential
@@ -338,7 +356,7 @@ public class StationService {
     public boolean transferOwnership(int stationId, int currentMemberId, int newOwnerMemberId) {
         var station = stationRepository.findById(stationId).orElse(null);
         if (station == null) return false;
-        if (station.ownerMemberId() == null || station.ownerMemberId() != currentMemberId) return false;
+        if (!station.isOwnedBy(currentMemberId)) return false;
 
         Permission managerRole = memberRepository
                 .findPermissionByName(StationPermission.STATION_ADMINISTRATOR)
@@ -364,7 +382,7 @@ public class StationService {
      */
     public boolean isOwner(int stationId, int memberId) {
         var station = stationRepository.findById(stationId).orElse(null);
-        return station != null && station.ownerMemberId() != null && station.ownerMemberId() == memberId;
+        return station != null && station.isOwnedBy(memberId);
     }
 
     /**
@@ -394,8 +412,6 @@ public class StationService {
         return disabled;
     }
 
-    // -- Modules --
-
     /**
      * Replaces all disabled modules for a station with the given set.
      */
@@ -405,10 +421,10 @@ public class StationService {
     }
 
     /**
-     * Checks whether a module is enabled for a station.
+     * Checks whether a module is enabled for a station. A cluster's denial outranks the station's own
+     * answer.
      */
     public boolean isModuleEnabled(int stationId, StationModule module) {
-        // A cluster's denial outranks the station's own answer, whichever way that answer went
         if (clusterRepository.isModuleDeniedForStation(stationId, module)) return false;
         return !stationRepository.findDisabledModules(stationId).contains(module);
     }
@@ -471,11 +487,11 @@ public class StationService {
         log.info("Station {} turned its public blog {}", stationId, enabled ? "on" : "off");
     }
 
-    public void updatePublicSlug(int stationId, String slug) {
+    public void updatePublicSlug(int stationId, @Nullable String slug) {
         if (slug != null) {
             var existing = stationRepository.findBySlug(slug);
             if (existing.isPresent() && existing.get().id() != stationId) {
-                throw Refusal.STATION_SLUG_TAKEN.raise();
+                throw StationRefusal.STATION_SLUG_TAKEN.raise();
             }
         }
         stationRepository.updatePublicSlug(stationId, slug);

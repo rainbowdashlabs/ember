@@ -6,6 +6,7 @@
 package dev.chojo.ember.tracking;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Strategy applied to an identity column when an account or member is deleted.
@@ -16,7 +17,11 @@ import com.fasterxml.jackson.annotation.JsonInclude;
  * @param legalBasis legal justification - required when {@code strategy = RETAIN}
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public record DeletionStrategy(String column, Strategy strategy, String reason, String legalBasis) {
+public record DeletionStrategy(
+        String column,
+        Strategy strategy,
+        @Nullable String reason,
+        @Nullable String legalBasis) {
     public DeletionStrategy(String column, Strategy strategy, String reason) {
         this(column, strategy, reason, null);
     }

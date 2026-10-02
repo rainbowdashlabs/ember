@@ -14,11 +14,10 @@ import {test, expect} from '@playwright/test'
  * skips the sign-in entirely, and the step lives in the sign-in.
  *
  * It stops short of actually setting the address. Setting it ends every session of that account,
- * and every other story here holds one.
+ * and every other story here holds one. The stories run one after another, since each sign-in throws
+ * away the step token the one before it was handed.
  */
 test.describe('First start', () => {
-    // One after another: every story here signs in as the same account, and each sign-in throws
-    // away the step token the one before it was handed. Run at once they take each other's turn.
     test.describe.configure({mode: 'serial'})
 
     const MADE_UP = 'admin@ember.local'
@@ -66,7 +65,8 @@ test.describe('First start', () => {
         const login = await request.post('/api/v1/auth/login', {data: {identifier: email, password}})
 
         expect(login.status()).toBe(200)
-        expect((await login.json()).token).toBeTruthy()
+        const {cookies} = await request.storageState()
+        expect(cookies.find(cookie => cookie.name === 'ember_session')?.value).toBeTruthy()
     })
 
     test('another made-up address is refused at the step', async ({page}) => {

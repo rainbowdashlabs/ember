@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.mailimport.service;
 
 import dev.chojo.ember.util.Sha256;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 
@@ -43,7 +44,8 @@ public final class MessageIdentity {
      * @param receivedAt when it arrived
      * @return the identity to record
      */
-    public static Identity of(String messageId, String sender, String subject, Instant receivedAt) {
+    public static Identity of(
+            @Nullable String messageId, @Nullable String sender, @Nullable String subject, Instant receivedAt) {
         if (messageId != null && !messageId.isBlank()) {
             return new Identity(messageId.trim(), false);
         }

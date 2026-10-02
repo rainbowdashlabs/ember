@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-// @vitest-environment happy-dom
+/** @vitest-environment happy-dom */
 import {describe, expect, it} from 'vitest'
 import {mount} from '@vue/test-utils'
 import {createI18n} from 'vue-i18n'
@@ -13,7 +13,7 @@ import deDE from '@/i18n/de-DE'
 function panel(confirmedByMail: boolean) {
   return mount(WaitlistSuccessPanel, {
     props: {confirmedByMail},
-    global: {plugins: [createI18n({legacy: false, locale: 'de-DE', messages: {'de-DE': deDE}})]},
+    global: {plugins: [createI18n({legacy: false, locale: 'de-DE', messages: {'de-DE': deDE, en: {}}})]},
   })
 }
 

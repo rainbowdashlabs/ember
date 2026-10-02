@@ -7,6 +7,8 @@ package dev.chojo.ember.feature.attendance.entity;
 
 import dev.chojo.ember.feature.question.QuestionConfigs;
 import dev.chojo.ember.feature.question.QuestionSettings;
+import dev.chojo.ember.feature.question.QuestionValues;
+import org.jspecify.annotations.Nullable;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -24,12 +26,13 @@ import java.util.List;
  */
 public record AttendanceFieldConfig(
         boolean required,
-        Integer groupId,
+        @Nullable Integer groupId,
         boolean autoAttend,
-        List<String> options,
-        Object defaultValue,
-        String width) {
+        @Nullable List<String> options,
+        @Nullable Object defaultValue,
+        @Nullable String width) {
     private static final AttendanceFieldConfig EMPTY = new AttendanceFieldConfig(false, null, false, null, null, null);
+    private static final String TODAY = "__TODAY__";
 
     /**
      * Parses a JSON string into an {@link AttendanceFieldConfig}, returning an empty default on failure.
@@ -45,31 +48,29 @@ public record AttendanceFieldConfig(
         return QuestionConfigs.toJson(this);
     }
 
-    /** What this field says about the question it asks, as everything that measures one reads it. */
-    public QuestionSettings settings() {
-        return QuestionSettings.required(required).withDefault(defaultValue).withOptions(options);
-    }
-
     /**
-     * Checks whether this config specifies a default value.
+     * What this field says about the question it asks, as everything that measures one reads it.
      *
-     * @return {@code true} if a default value is set
+     * <p>The starting value is the one a sheet made now would start at, so a date field that starts
+     * at today is measured as the date it will hold rather than as the word that stands for it.
      */
-    public boolean hasDefaultValue() {
-        return defaultValue != null;
+    public QuestionSettings settings() {
+        return QuestionSettings.required(required)
+                .withDefault(startingAnswer())
+                .withOptions(options)
+                .withWidth(width)
+                .withMembers(groupId, null, null);
     }
 
     /**
-     * Returns the default value as a JSON string suitable for JSONB storage.
-     * Handles the __TODAY__ sentinel for date fields.
+     * What a sheet made now starts this field at, as plain text.
+     *
+     * @return the starting answer, today's date for a date field that starts at today, or null where
+     *     the field starts empty
      */
-    public String resolveDefaultValueJson() {
+    public @Nullable String startingAnswer() {
         if (defaultValue == null) return null;
-        if (defaultValue instanceof String s) {
-            if ("__TODAY__".equals(s)) {
-                return "\"" + LocalDate.now() + "\"";
-            }
-        }
-        return QuestionConfigs.toJson(defaultValue);
+        if (TODAY.equals(defaultValue)) return LocalDate.now().toString();
+        return QuestionValues.read(QuestionConfigs.toJson(defaultValue));
     }
 }

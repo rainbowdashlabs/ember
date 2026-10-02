@@ -18,18 +18,16 @@ import type {QuestionDraft} from '../types'
  * The settings of one question that have a sensible default and only refine it, for the top of its
  * menu. A date question has none, and then nothing is drawn, the divider under it included.
  */
-const props = defineProps<{
-  question: QuestionDraft
-}>()
+const question = defineModel<QuestionDraft>('question', {required: true})
 
 const {t} = useI18n()
 
-const hasSettings = computed(() => props.question.questionType !== QuestionTypes.DATE)
+const hasSettings = computed(() => question.value.questionType !== QuestionTypes.DATE)
 </script>
 
 <template>
   <template v-if="hasSettings">
-    <ChoiceSettings v-if="question.questionType === QuestionTypes.CHOICE" :question="question"/>
+    <ChoiceSettings v-if="question.questionType === QuestionTypes.CHOICE" v-model:question="question"/>
     <MenuSettingRow v-else-if="question.questionType === QuestionTypes.TEXT" :label="t('forms.text.longAnswer')">
       <ToggleInput v-model="(question.config.longAnswer as boolean)"/>
     </MenuSettingRow>
@@ -37,7 +35,7 @@ const hasSettings = computed(() => props.question.questionType !== QuestionTypes
     <MenuSettingRow v-else-if="question.questionType === QuestionTypes.RANKING" :label="t('forms.questionShuffle')">
       <ToggleInput v-model="question.shuffle"/>
     </MenuSettingRow>
-    <LikertSettings v-else-if="question.questionType === QuestionTypes.LIKERT" :question="question"/>
-    <hr class="my-1 border-(--border)">
+    <LikertSettings v-else-if="question.questionType === QuestionTypes.LIKERT" v-model:question="question"/>
+    <hr class="my-1 border-(--border)"/>
   </template>
 </template>

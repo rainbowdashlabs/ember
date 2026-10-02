@@ -3,11 +3,11 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-// @vitest-environment happy-dom
+/** @vitest-environment happy-dom */
 import {mount} from '@vue/test-utils'
 import {describe, expect, it} from 'vitest'
 import SessionHeader from './SessionHeader.vue'
-import type {AttendanceSession} from '@/api/attendance'
+import type {AttendanceSession} from '@/api/generated/schema'
 
 const i18n = {global: {stubs: {'font-awesome-icon': true}}}
 
@@ -17,7 +17,12 @@ function sheet(overrides: Partial<AttendanceSession> = {}): AttendanceSession {
         templateId: 1,
         startTime: '2026-03-17T17:00:00.000Z',
         endTime: '2026-03-17T21:00:00.000Z',
+        createdAt: '2026-03-17T16:00:00.000Z',
+        eventId: null,
         title: 'Übung',
+        unlockedUntil: null,
+        lockedAt: null,
+        countedMinutes: null,
         ...overrides,
     }
 }

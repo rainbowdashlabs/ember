@@ -6,8 +6,17 @@
 import {type Ref, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {attendance} from '@/api'
-import type {AttendanceEntry, AttendanceTemplateField} from '@/api/attendance'
+import type {AttendanceEntry, AttendanceTemplateField} from '@/api/generated/schema'
 import {describeFailure, type Failure} from '@/util/failure'
+
+/** A stored field value read as JSON, or the stored text itself where it is not JSON. */
+function decodedOrRaw(stored: string): unknown {
+  try {
+    return JSON.parse(stored)
+  } catch {
+    return stored
+  }
+}
 
 export function useSessionFields(
     sessionId: Ref<number>,
@@ -80,10 +89,7 @@ export function useSessionFields(
   function initFieldValues(sessionFields: { fieldId: number; value?: string }[]) {
     const fv = new Map<number, string>()
     for (const sf of sessionFields) {
-      let val = sf.value ?? ''
-      try {
-        val = JSON.parse(val)
-      } catch { /* use as-is */ }
+      const val = decodedOrRaw(sf.value ?? '')
       fv.set(sf.fieldId, typeof val === 'string' ? val : String(val))
     }
     fieldValues.value = fv

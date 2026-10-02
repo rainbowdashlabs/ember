@@ -18,14 +18,12 @@ function selectStep(index: number, disabled?: boolean) {
 <template>
   <div class="flex items-center w-full gap-0">
     <template v-for="(step, index) in steps" :key="index">
-      <!-- Chevron separator -->
       <font-awesome-icon
           v-if="index > 0"
           :icon="['fas', 'chevron-right']"
           class="shrink-0 mx-1 text-xs"
           :class="index <= currentStep ? 'text-primary' : 'text-(--text-muted) opacity-40'"
       />
-      <!-- Step -->
       <div
           class="flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-sm font-medium cursor-pointer select-none transition-colors duration-200"
           :class="[
@@ -37,7 +35,14 @@ function selectStep(index: number, disabled?: boolean) {
                   ? 'bg-(--bg-accent) text-(--text-muted) cursor-not-allowed opacity-50'
                   : 'bg-(--bg-accent) text-(--text) hover:bg-(--bg-accent)/80',
           ]"
+          role="button"
+          tabindex="0"
+          :aria-label="step.label"
+          :aria-current="index === currentStep ? 'step' : undefined"
+          :aria-disabled="step.disabled"
           @click="selectStep(index, step.disabled)"
+          @keydown.enter.prevent="selectStep(index, step.disabled)"
+          @keydown.space.prevent="selectStep(index, step.disabled)"
       >
         <span
             class="flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold shrink-0"

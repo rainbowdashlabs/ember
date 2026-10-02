@@ -4,7 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script generic="T" lang="ts" setup>
-import {ref} from 'vue'
+import {ref, watch, type Ref} from 'vue'
+import {VueDraggable, type SortableEvent} from 'vue-draggable-plus'
 import DragListRow from './draglist/DragListRow.vue'
 import {useFinePointer} from '@/composables/useFinePointer'
 
@@ -15,6 +16,15 @@ import {useFinePointer} from '@/composables/useFinePointer'
  * Where there is a mouse, the grip between them picks the row up as well, which is faster over a long
  * list. Dragging hangs off the grip rather than the row itself, so a row holding a text field can still
  * be typed in and its text selected.
+ *
+ * <p>Dragging is the mouse's shortcut and nothing more, so the grip and the drop area carry no
+ * meaning for a screen reader or a keyboard: the arrows are the control, and the grip is hidden
+ * from assistive technology while the drop area is marked as presentation.
+ *
+ * <p>The dragging itself is the one drag library the application uses, the same one the kanban board
+ * runs on. It moves a copy of the rows while the row is in the air; the order that counts is the
+ * caller's, so the copy is put back to it once the row is dropped, and the caller hears the move as
+ * one `reorder`.
  */
 const props = defineProps<{
   items: T[]
@@ -32,8 +42,12 @@ const emit = defineEmits<{
 
 const {finePointer} = useFinePointer()
 
+const rows = ref([]) as Ref<T[]>
+watch(() => [...props.items], items => {
+  rows.value = items
+}, {immediate: true})
+
 const dragIndex = ref<number | null>(null)
-const dropIndicator = ref<number | null>(null)
 
 function move(index: number, direction: -1 | 1) {
   const to = index + direction
@@ -41,90 +55,41 @@ function move(index: number, direction: -1 | 1) {
   emit('reorder', index, to)
 }
 
-/**
- * Picks the row up by its grip, while dragging the whole row rather than the little icon that was
- * grabbed: what is being moved is the row, and a cursor towing one icon says otherwise.
- */
-function onDragStart(index: number, event: DragEvent) {
-  dragIndex.value = index
-  const row = (event.currentTarget as HTMLElement).closest('[data-drag-row]')
-  if (row && event.dataTransfer) {
-    event.dataTransfer.setDragImage(row, 12, 12)
-  }
-  if (event.dataTransfer) {
-    event.dataTransfer.effectAllowed = 'move'
-  }
+function onStart(event: SortableEvent) {
+  dragIndex.value = event.oldIndex ?? null
 }
 
-function onDragOver(index: number, event: DragEvent) {
-  event.preventDefault()
-  if (dragIndex.value === null) return
-
-  const target = event.currentTarget as HTMLElement
-  const rect = target.getBoundingClientRect()
-  const midY = rect.top + rect.height / 2
-
-  dropIndicator.value = event.clientY < midY ? index : index + 1
-}
-
-function onDragLeave(event: DragEvent) {
-  const target = event.currentTarget as HTMLElement
-  if (!target.contains(event.relatedTarget as Node)) {
-    dropIndicator.value = null
-  }
-}
-
-function onDrop() {
-  if (dragIndex.value !== null && dropIndicator.value !== null) {
-    let toIndex = dropIndicator.value
-    if (toIndex > dragIndex.value) {
-      toIndex--
-    }
-    if (toIndex !== dragIndex.value) {
-      emit('reorder', dragIndex.value, toIndex)
-    }
-  }
+function onEnd(event: SortableEvent) {
   dragIndex.value = null
-  dropIndicator.value = null
-}
-
-function onDragEnd() {
-  dragIndex.value = null
-  dropIndicator.value = null
-}
-
-function onContainerDragOver(event: DragEvent) {
-  event.preventDefault()
+  rows.value = [...props.items]
+  const {oldIndex, newIndex} = event
+  if (oldIndex === undefined || newIndex === undefined || oldIndex === newIndex) return
+  emit('reorder', oldIndex, newIndex)
 }
 </script>
 
 <template>
-  <div @dragover="onContainerDragOver" @drop="onDrop">
-    <template v-for="(item, index) in items" :key="keyFn(item, index)">
-      <div
-          v-if="dropIndicator === index && dragIndex !== index && dragIndex !== index - 1"
-          class="h-0.5 bg-primary rounded-full mx-2 my-1"
-      />
-
-      <DragListRow
-          :disabled="disabled"
-          :dragging="dragIndex === index"
-          :fine-pointer="finePointer"
-          :index="index"
-          :total="items.length"
-          @dragend="onDragEnd"
-          @dragleave="onDragLeave($event)"
-          @dragover="onDragOver(index, $event)"
-          @grab="onDragStart"
-          @move="move"
-      >
-        <slot :dragging="dragIndex === index" :index="index" :item="item"/>
-      </DragListRow>
-    </template>
-
-    <div
-        v-if="dropIndicator === items.length && dragIndex !== items.length - 1"
-        class="h-0.5 bg-primary rounded-full mx-2 my-1"
-    />
-  </div>
+  <VueDraggable
+      v-model="rows"
+      :animation="150"
+      :disabled="disabled || !finePointer"
+      ghost-class="opacity-40"
+      handle="[data-drag-grip]"
+      role="presentation"
+      @end="onEnd"
+      @start="onStart"
+  >
+    <DragListRow
+        v-for="(item, index) in rows"
+        :key="keyFn(item, index)"
+        :disabled="disabled"
+        :dragging="dragIndex === index"
+        :fine-pointer="finePointer"
+        :index="index"
+        :total="rows.length"
+        @move="move"
+    >
+      <slot :dragging="dragIndex === index" :index="index" :item="item"/>
+    </DragListRow>
+  </VueDraggable>
 </template>

@@ -6,7 +6,7 @@
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
 import Spinner from '@/components/feedback/Spinner.vue'
-import type {ProfileFieldChange} from '@/api/profileFieldChanges'
+import type {ChangeEntry} from '@/api/profileFieldChanges'
 import HistoryChangeCard from './HistoryChangeCard.vue'
 import HistoryPagination from './HistoryPagination.vue'
 
@@ -14,7 +14,7 @@ const {t} = useI18n()
 
 defineProps<{
   loading: boolean
-  changes: ProfileFieldChange[]
+  changes: ChangeEntry[]
   offset: number
   limit: number
   total: number

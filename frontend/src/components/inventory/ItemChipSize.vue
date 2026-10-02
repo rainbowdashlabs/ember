@@ -4,6 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import PillBadge from '@/components/badge/PillBadge.vue'
+
 /**
  * A size as a chip names it: small and quiet, unless it is the size that was asked for, which is what
  * a reader choosing a piece is looking for.
@@ -16,11 +18,11 @@ const props = defineProps<{
 </script>
 
 <template>
-  <span
+  <PillBadge
       :class="props.wanted ? 'bg-success/20 font-semibold text-success' : 'bg-(--bg-accent) text-(--text-muted)'"
-      class="inline-flex shrink-0 items-center gap-1 rounded-full px-1.5 py-0.5 text-xs"
+      class="shrink-0 gap-1 px-1.5 py-0.5 text-xs"
   >
     <font-awesome-icon v-if="props.wanted" :icon="['fas', 'check']"/>
     {{ props.label }}
-  </span>
+  </PillBadge>
 </template>

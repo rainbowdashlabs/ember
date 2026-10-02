@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-// @vitest-environment happy-dom
+/** @vitest-environment happy-dom */
 import {afterEach, describe, expect, it} from 'vitest'
 import {requestStepUp, StepUpCancelledError, stepUpPending, useStepUpPrompt} from './stepUp'
 

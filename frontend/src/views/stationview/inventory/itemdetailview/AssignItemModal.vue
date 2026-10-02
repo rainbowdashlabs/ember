@@ -12,12 +12,12 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import type {StationMember} from '@/api/types'
+import type {MemberLike} from '@/components/input/select/memberOption'
 
 const show = defineModel<boolean>({default: false})
 
 const props = defineProps<{
-  members: StationMember[]
+  members: MemberLike[]
 }>()
 
 const emit = defineEmits<{

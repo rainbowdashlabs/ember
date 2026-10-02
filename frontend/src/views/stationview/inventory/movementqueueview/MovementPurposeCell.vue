@@ -9,14 +9,14 @@ import {useI18n} from 'vue-i18n'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import {useMovementRowView} from './movementRowView'
-import type {Movement} from '@/api/movements'
+import type {MovementResponse} from '@/api/generated/schema'
 
 /**
  * What kind of movement it is and whose gear it moves. The two together are what a row is: a swap
  * of the station's own gear and a swap of the association's walk different chains.
  */
 const props = defineProps<{
-  movement: Movement
+  movement: MovementResponse
 }>()
 
 const {t} = useI18n()

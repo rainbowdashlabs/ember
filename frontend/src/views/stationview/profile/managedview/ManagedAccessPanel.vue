@@ -19,9 +19,10 @@ import Alert from '@/components/feedback/Alert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import PasskeyCodeDisplay from '@/components/passkey/PasskeyCodeDisplay.vue'
 import {managedMembers, passkeys} from '@/api'
-import type {ManagedAccess, PasskeyCode} from '@/api/managedMembers'
+import type {ManagedAccess, PasskeyCodeResponse} from '@/api/generated/schema'
 import type {PasskeyModeName} from '@/api/adminSettings'
-import {describeFailure, type Failure} from '@/util/failure'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {describeFailure} from '@/util/failure'
 
 /**
  * The access a guardian manages for one member in their care: the address the account is reached
@@ -38,26 +39,23 @@ const access = ref<ManagedAccess | null>(null)
 const email = ref('')
 const username = ref('')
 const password = ref('')
-const loading = ref(false)
-const failure = ref<Failure | null>(null)
 const notice = ref('')
 
-async function load() {
-  loading.value = true
-  failure.value = null
+const {loading, failure, reload: load} = useAsyncLoader(async (isCurrent) => {
   notice.value = ''
+  let found: ManagedAccess
   try {
-    access.value = await managedMembers.getAccess(props.memberId)
-    email.value = access.value.email ?? ''
-    username.value = access.value.username ?? ''
-    password.value = ''
+    found = await managedMembers.getAccess(props.memberId)
   } catch (e) {
-    access.value = null
-    failure.value = describeFailure(e, t)
-  } finally {
-    loading.value = false
+    if (isCurrent()) access.value = null
+    throw e
   }
-}
+  if (!isCurrent()) return
+  access.value = found
+  email.value = found.email ?? ''
+  username.value = found.username ?? ''
+  password.value = ''
+}, {autoLoad: false})
 
 async function saveEmail() {
   failure.value = null
@@ -99,7 +97,7 @@ async function savePassword() {
 }
 
 const passkeyMode = ref<PasskeyModeName>('OFF')
-const passkeyCode = ref<PasskeyCode | null>(null)
+const passkeyCode = ref<PasskeyCodeResponse | null>(null)
 const passwordless = computed(() => passkeyMode.value === 'PASSWORDLESS')
 
 onMounted(() => {
@@ -115,15 +113,14 @@ async function issueCode() {
   }
 }
 
-/** The abandoned attempt must not leave a photographed code alive for the rest of its window. */
+/**
+ * The abandoned attempt must not leave a photographed code alive for the rest of its window. A
+ * failed revoke is let go, since the code still dies with its five minutes.
+ */
 async function revokeCode() {
   if (!passkeyCode.value) return
   passkeyCode.value = null
-  try {
-    await managedMembers.revokePasskeyCode(props.memberId)
-  } catch {
-    // The code still dies with its five minutes.
-  }
+  await managedMembers.revokePasskeyCode(props.memberId).catch(() => {})
 }
 
 async function toggleLogin(enabled: boolean) {

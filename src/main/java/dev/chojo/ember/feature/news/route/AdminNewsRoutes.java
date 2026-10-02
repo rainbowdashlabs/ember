@@ -6,17 +6,23 @@
 package dev.chojo.ember.feature.news.route;
 
 import dev.chojo.ember.api.MemberIdentity;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.auth.InstancePermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.NewsRefusal;
 import dev.chojo.ember.conf.file.elements.Api;
+import dev.chojo.ember.feature.comment.entity.Comment;
+import dev.chojo.ember.feature.comment.entity.CommentEntityType;
+import dev.chojo.ember.feature.comment.entity.CommentFilter;
+import dev.chojo.ember.feature.comment.service.CommentService;
 import dev.chojo.ember.feature.content.entity.ContentMode;
 import dev.chojo.ember.feature.content.entity.ContentRow;
+import dev.chojo.ember.feature.content.route.SaveBlocksRequest;
+import dev.chojo.ember.feature.media.entity.StationFile;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
+import dev.chojo.ember.feature.media.service.MediaLibraryService.FileListing;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.news.entity.News;
-import dev.chojo.ember.feature.news.entity.NewsComment;
 import dev.chojo.ember.feature.news.service.NewsService;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
@@ -29,11 +35,13 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Objects;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 
@@ -54,14 +62,20 @@ public class AdminNewsRoutes implements Routes {
     private static final Logger log = LoggerFactory.getLogger(AdminNewsRoutes.class);
 
     private final NewsService newsService;
+    private final CommentService commentService;
     private final MemberNameResolver memberNameResolver;
     private final MediaLibraryService media;
     private final Api apiConfig;
 
     @Inject
     public AdminNewsRoutes(
-            NewsService newsService, MemberNameResolver memberNameResolver, MediaLibraryService media, Api apiConfig) {
+            NewsService newsService,
+            CommentService commentService,
+            MemberNameResolver memberNameResolver,
+            MediaLibraryService media,
+            Api apiConfig) {
         this.newsService = newsService;
+        this.commentService = commentService;
         this.memberNameResolver = memberNameResolver;
         this.media = media;
         this.apiConfig = apiConfig;
@@ -83,6 +97,10 @@ public class AdminNewsRoutes implements Routes {
                 prefix + "/admin/media/files/{fileId}", this::deleteInstanceFile, InstancePermission.ADMINISTRATOR);
     }
 
+    /**
+     * Lists the system entries as summaries. A rich entry's blocks are left unread, which would cost a
+     * query per row for something the list never shows.
+     */
     @OpenApi(
             path = "/api/v1/admin/news",
             methods = HttpMethod.GET,
@@ -96,8 +114,6 @@ public class AdminNewsRoutes implements Routes {
     private void list(Context ctx) {
         int offset = ctx.queryParamAsClass("offset", Integer.class).getOrDefault(0);
         int limit = ctx.queryParamAsClass("limit", Integer.class).getOrDefault(50);
-        // A list row shows a summary, so the blocks of a rich entry are left unread: fetching them
-        // for every row would ask the database once per row for something the list never shows.
         ctx.json(newsService.findSystem(offset, limit).stream()
                 .map(news -> toResponse(news, false))
                 .toList());
@@ -124,7 +140,7 @@ public class AdminNewsRoutes implements Routes {
     private void create(Context ctx) {
         var request = ctx.bodyAsClass(SystemNewsRequest.class);
         if (request.title() == null || request.title().isBlank()) {
-            throw Refusal.SYSTEM_NEWS_NEEDS_A_TITLE.raise();
+            throw NewsRefusal.SYSTEM_NEWS_NEEDS_A_TITLE.raise();
         }
         boolean rich = request.contentMode() == ContentMode.RICH;
         NewsRoutes.requireBody(rich, request.contentMarkdown());
@@ -152,7 +168,7 @@ public class AdminNewsRoutes implements Routes {
         int id = requireSystemEntry(pathInt(ctx, "id")).id();
         var request = ctx.bodyAsClass(SystemNewsRequest.class);
         if (request.title() == null || request.title().isBlank()) {
-            throw Refusal.SYSTEM_NEWS_NEEDS_A_TITLE_ON_UPDATE.raise();
+            throw NewsRefusal.SYSTEM_NEWS_NEEDS_A_TITLE_ON_UPDATE.raise();
         }
         newsService
                 .update(
@@ -163,7 +179,7 @@ public class AdminNewsRoutes implements Routes {
                         List.of(),
                         List.of(),
                         List.of())
-                .orElseThrow(Refusal.SYSTEM_NEWS_NOT_HERE_ON_UPDATE::raise);
+                .orElseThrow(NewsRefusal.SYSTEM_NEWS_NOT_HERE_ON_UPDATE::raise);
         ctx.json(toResponse(requireSystemEntry(id), true));
     }
 
@@ -177,7 +193,7 @@ public class AdminNewsRoutes implements Routes {
     private void retract(Context ctx) {
         int id = requireSystemEntry(pathInt(ctx, "id")).id();
         if (!newsService.delete(id)) {
-            throw Refusal.SYSTEM_NEWS_NOT_DELETED.raise();
+            throw NewsRefusal.SYSTEM_NEWS_NOT_DELETED.raise();
         }
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -188,14 +204,14 @@ public class AdminNewsRoutes implements Routes {
             summary = "Save the blocks of an entry the instance published",
             tags = {"Admin"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
-            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = NewsRoutes.SaveBlocksRequest.class)),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SaveBlocksRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = SystemNewsResponse.class)))
     private void saveBlocks(Context ctx) {
         int id = requireSystemEntry(pathInt(ctx, "id")).id();
-        var request = ctx.bodyAsClass(NewsRoutes.SaveBlocksRequest.class);
+        var request = ctx.bodyAsClass(SaveBlocksRequest.class);
         var saved = newsService
                 .saveBlocks(id, request.toRowData())
-                .orElseThrow(Refusal.SYSTEM_NEWS_NOT_HERE_ON_BLOCK_SAVE::raise);
+                .orElseThrow(NewsRefusal.SYSTEM_NEWS_NOT_HERE_ON_BLOCK_SAVE::raise);
         ctx.json(toResponse(saved, true));
     }
 
@@ -208,7 +224,8 @@ public class AdminNewsRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = SystemNewsResponse.class)))
     private void enableBlocks(Context ctx) {
         int id = requireSystemEntry(pathInt(ctx, "id")).id();
-        var switched = newsService.switchToRich(id).orElseThrow(Refusal.SYSTEM_NEWS_NOT_HERE_ON_BLOCK_SWITCH::raise);
+        var switched =
+                newsService.switchToRich(id).orElseThrow(NewsRefusal.SYSTEM_NEWS_NOT_HERE_ON_BLOCK_SWITCH::raise);
         ctx.json(toResponse(switched, true));
     }
 
@@ -222,7 +239,7 @@ public class AdminNewsRoutes implements Routes {
                     @OpenApiResponse(status = "200", content = @OpenApiContent(from = SystemCommentResponse[].class)))
     private void listComments(Context ctx) {
         int id = requireSystemEntry(pathInt(ctx, "id")).id();
-        ctx.json(newsService.findComments(id).stream()
+        ctx.json(commentService.list(CommentEntityType.NEWS, id, CommentFilter.ALL).stream()
                 .map(this::toCommentResponse)
                 .toList());
     }
@@ -232,33 +249,35 @@ public class AdminNewsRoutes implements Routes {
             methods = HttpMethod.GET,
             summary = "List the files the instance holds",
             tags = {"Admin"},
-            responses = @OpenApiResponse(status = "200"))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FileListing[].class)))
     private void listInstanceFiles(Context ctx) {
         ctx.json(media.listLibrary(null, true));
     }
 
+    /**
+     * Takes a file into the instance library. It names no station and no uploader: an administrator
+     * is not a member of anything to record.
+     */
     @OpenApi(
             path = "/api/v1/admin/media/files",
             methods = HttpMethod.POST,
             summary = "Take a file into the library the instance holds",
             tags = {"Admin"},
-            responses = @OpenApiResponse(status = "201"))
+            responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = StationFile.class)))
     private void uploadInstanceFile(Context ctx) {
         var file = ctx.uploadedFile("file");
-        if (file == null) throw Refusal.INSTANCE_UPLOAD_MISSING_FILE.raise();
-        if (file.size() > apiConfig.maxUploadSizeBytes()) throw Refusal.INSTANCE_UPLOAD_TOO_LARGE.raise();
+        if (file == null) throw NewsRefusal.INSTANCE_UPLOAD_MISSING_FILE.raise();
+        if (file.size() > apiConfig.maxUploadSizeBytes()) throw NewsRefusal.INSTANCE_UPLOAD_TOO_LARGE.raise();
         try (var content = file.content()) {
             byte[] data = content.readAllBytes();
-            // No station and no member: the file belongs to the instance, and an administrator is
-            // not a member of anything to record as its uploader.
             ctx.status(HttpStatus.CREATED)
                     .json(media.upload(null, null, null, file.filename(), file.contentType(), data));
         } catch (IllegalArgumentException e) {
             log.warn("Refused an instance media upload", e);
-            throw Refusal.INSTANCE_UPLOAD_NOT_TAKEN.raise();
+            throw NewsRefusal.INSTANCE_UPLOAD_NOT_TAKEN.raise();
         } catch (Exception e) {
             log.warn("Failed to upload an instance media file", e);
-            throw Refusal.INSTANCE_UPLOAD_NOT_SAVED.raise();
+            throw NewsRefusal.INSTANCE_UPLOAD_NOT_SAVED.raise();
         }
     }
 
@@ -271,13 +290,13 @@ public class AdminNewsRoutes implements Routes {
             responses = @OpenApiResponse(status = "204"))
     private void deleteInstanceFile(Context ctx) {
         int fileId = pathInt(ctx, "fileId");
-        var file = media.findFile(fileId).orElseThrow(Refusal.INSTANCE_FILE_NOT_HERE::raise);
-        // A station's file is that station's business, however much of the instance one holds.
-        if (file.stationId() != null) {
-            throw Refusal.INSTANCE_FILE_NOT_HERE.raise();
+        var file = media.findFile(fileId).orElseThrow(NewsRefusal.INSTANCE_FILE_NOT_HERE::raise);
+        boolean belongsToStation = file.stationId() != null;
+        if (belongsToStation) {
+            throw NewsRefusal.INSTANCE_FILE_NOT_HERE.raise();
         }
         if (!media.deleteFile(fileId)) {
-            throw Refusal.INSTANCE_FILE_NOT_DELETED.raise();
+            throw NewsRefusal.INSTANCE_FILE_NOT_DELETED.raise();
         }
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -290,9 +309,9 @@ public class AdminNewsRoutes implements Routes {
      * over what one station wrote to its members.
      */
     private News requireSystemEntry(int id) {
-        var news = newsService.findById(id).orElseThrow(Refusal.SYSTEM_NEWS_NOT_HERE::raise);
+        var news = newsService.findById(id).orElseThrow(NewsRefusal.SYSTEM_NEWS_NOT_HERE::raise);
         if (!news.systemEntry()) {
-            throw Refusal.SYSTEM_NEWS_NOT_HERE.raise();
+            throw NewsRefusal.SYSTEM_NEWS_NOT_HERE.raise();
         }
         return news;
     }
@@ -309,7 +328,7 @@ public class AdminNewsRoutes implements Routes {
                 news.publishedAt(),
                 news.createdAt(),
                 restrictions.userTypes(),
-                newsService.countComments(news.id()),
+                commentService.count(CommentEntityType.NEWS, news.id()),
                 news.contentMode(),
                 rows);
     }
@@ -319,14 +338,14 @@ public class AdminNewsRoutes implements Routes {
      * from, which is the whole point of reading every station's comments at once: knowing who is
      * asking is what makes the answer possible.
      */
-    private SystemCommentResponse toCommentResponse(NewsComment comment) {
-        var resolved = comment.author() != null ? memberNameResolver.resolveDisplay(comment.author()) : null;
+    private SystemCommentResponse toCommentResponse(Comment comment) {
+        var resolved = memberNameResolver.resolveDisplay(comment.author());
         return new SystemCommentResponse(
                 comment.id(),
-                comment.newsId(),
+                comment.targetId(),
                 comment.parentId(),
-                resolved != null ? resolved.identity() : null,
-                resolved != null && resolved.name() != null ? resolved.name() : "",
+                resolved.identity(),
+                Objects.requireNonNullElse(resolved.name(), ""),
                 comment.content(),
                 comment.deleted(),
                 comment.createdAt());
@@ -356,7 +375,7 @@ public class AdminNewsRoutes implements Routes {
             String title,
             String contentMarkdown,
             String contentHtml,
-            Instant publishedAt,
+            @Nullable Instant publishedAt,
             Instant createdAt,
             List<StationUserType> userTypes,
             int commentCount,
@@ -366,8 +385,8 @@ public class AdminNewsRoutes implements Routes {
     public record SystemCommentResponse(
             int id,
             int newsId,
-            Integer parentId,
-            MemberIdentity author,
+            @Nullable Integer parentId,
+            @Nullable MemberIdentity author,
             String authorName,
             String content,
             boolean deleted,

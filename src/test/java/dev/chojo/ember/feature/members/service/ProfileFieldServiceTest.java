@@ -5,10 +5,10 @@
  */
 package dev.chojo.ember.feature.members.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.MemberRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.members.entity.FieldOrigin;
 import dev.chojo.ember.feature.members.entity.FieldValueEntry;
@@ -17,12 +17,10 @@ import dev.chojo.ember.feature.members.entity.ProfileFieldChange;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.members.entity.ProfileFieldTarget;
-import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.StationMember;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
@@ -36,7 +34,6 @@ import java.util.List;
 
 import static de.chojo.sadu.queries.api.query.Query.query;
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.mock;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class ProfileFieldServiceTest extends RepositoryTestBase {
@@ -48,15 +45,7 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        service = new ProfileFieldService(
-                profileFieldRepo,
-                profileFieldChangeRepo,
-                mock(NotificationService.class),
-                stationMemberRepo,
-                accountRepo,
-                clusterProfileFieldRepo,
-                memberGroupRepo,
-                memberPermissionResolver);
+        service = profileFieldService;
         station = stationRepo.create("ProfileField Station");
         account = accountRepo.create("pfield-svc@test.com", "Profile", "Tester");
         member = stationMemberRepo.create(station.id(), account.id());
@@ -73,7 +62,7 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
      *
      * @return the definition, so a test can put it to somebody else as well
      */
-    private static ProfileField ask(String name, ProfileFieldType type, String config, ProfileFieldScope role, int at) {
+    private static ProfileField ask(String name, FieldType type, String config, ProfileFieldScope role, int at) {
         return ask(name, type, config, role, at, false, false);
     }
 
@@ -85,7 +74,7 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
      */
     private static ProfileField ask(
             String name,
-            ProfileFieldType type,
+            FieldType type,
             String config,
             ProfileFieldScope role,
             int at,
@@ -100,7 +89,7 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
     @Test
     @Order(1)
     void create() {
-        var field = ask("Phone", ProfileFieldType.TEXT, "{}", ProfileFieldScope.MEMBER, 1);
+        var field = ask("Phone", FieldType.TEXT, "{}", ProfileFieldScope.MEMBER, 1);
         assertNotNull(field);
         assertEquals("Phone", field.name());
         assertEquals(
@@ -141,7 +130,7 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
     @Order(5)
     void update() {
         var updated = service.update(
-                fieldId, "Mobile", ProfileFieldType.TEXT, ProfileFieldConfig.parse("{}"), false, false, null, false);
+                fieldId, "Mobile", FieldType.TEXT, ProfileFieldConfig.parse("{}"), false, false, null, false);
         assertTrue(updated.isPresent());
         assertEquals("Mobile", updated.get().name());
         assertFalse(updated.get().required());
@@ -150,12 +139,10 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
     @Test
     @Order(6)
     void updateNonExistent() {
-        var result = service.update(
-                99999, "X", ProfileFieldType.TEXT, ProfileFieldConfig.parse("{}"), false, false, null, false);
+        var result =
+                service.update(99999, "X", FieldType.TEXT, ProfileFieldConfig.parse("{}"), false, false, null, false);
         assertTrue(result.isEmpty());
     }
-
-    // -- Values --
 
     @Test
     @Order(10)
@@ -176,7 +163,6 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
     @Test
     @Order(12)
     void setValuesTwiceRecordsChange() {
-        // Second call with a different value should record a change
         var entries = List.of(new FieldValueEntry(fieldId, "\"555-9999\""));
         var result = service.setValues(member.id(), entries, member.id());
         assertFalse(result.isEmpty());
@@ -187,7 +173,6 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
     @Order(13)
     void findChanges() {
         var changes = service.findChanges(member.id());
-        // At least one change was recorded (initial set)
         assertFalse(changes.isEmpty());
     }
 
@@ -221,7 +206,6 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
     @Test
     @Order(17)
     void acknowledgeAll() {
-        // Set a value again to create a new unacknowledged change
         var entries = List.of(new FieldValueEntry(fieldId, "\"555-0000\""));
         service.setValues(member.id(), entries, member.id());
 
@@ -236,26 +220,21 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
         assertNotNull(summary);
     }
 
-    // -- Profile completeness --
-
     @Test
     @Order(21)
     void isProfileCompleteWithNothingRequired() {
-        // The member's one field is not required, so nothing is outstanding
-        assertTrue(service.isProfileComplete(member.id()));
+        assertTrue(service.isProfileComplete(member.id()), "the member's one field is not required");
     }
 
     @Test
     @Order(22)
     void isProfileCompleteRequiredFieldMissing() {
-        // Create a required field with no value for a new member
-        var reqField = ask("Required Field", ProfileFieldType.TEXT, "{}", ProfileFieldScope.MEMBER, 10, true, false);
+        var reqField = ask("Required Field", FieldType.TEXT, "{}", ProfileFieldScope.MEMBER, 10, true, false);
         var account2 = accountRepo.create("pfield-empty@test.com", "Empty", "Member");
         var member2 = stationMemberRepo.create(station.id(), account2.id());
 
         assertFalse(service.isProfileComplete(member2.id()));
 
-        // Cleanup
         service.delete(reqField.id());
         stationMemberRepo.delete(member2.id());
         accountRepo.delete(account2.id());
@@ -272,7 +251,7 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
     void aSelectionLeftEmptyIsNotAnAnswer() {
         var chooser = ask(
                 "Chosen thing",
-                ProfileFieldType.ENUM,
+                FieldType.CHOICE,
                 "{\"options\":[\"A\",\"B\"]}",
                 ProfileFieldScope.MEMBER,
                 11,
@@ -298,15 +277,20 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
         accountRepo.delete(account3.id());
     }
 
-    // -- findApplicableFields / scopeForUserType --
-
     @Test
     @Order(23)
     void findApplicableFieldsForMember() {
         stationMemberRepo.setUserType(member.id(), StationUserType.MEMBER);
+        var memberField = ask("ApplicableMemberField", FieldType.TEXT, "{}", ProfileFieldScope.MEMBER, 20);
+        var guardianField = ask("ApplicableGuardianField", FieldType.TEXT, "{}", ProfileFieldScope.GUARDIAN, 21);
+
         var fields = service.findApplicableFields(member.id());
-        assertNotNull(fields);
-        // Should return MEMBER-scope fields since member has MEMBER user type
+
+        assertTrue(fields.stream().anyMatch(f -> f.id() == memberField.id()), "a member is asked the member field");
+        assertTrue(
+                fields.stream().noneMatch(f -> f.id() == guardianField.id()), "and not what only guardians are asked");
+        service.delete(memberField.id());
+        service.delete(guardianField.id());
     }
 
     /**
@@ -321,16 +305,10 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
         var drivers = memberGroupRepo.create(station.id(), "Fahrer " + member.id());
         var others = memberGroupRepo.create(station.id(), "Andere " + member.id());
         var forDrivers = service.create(
-                station.id(),
-                "Führerscheinklasse",
-                ProfileFieldType.TEXT,
-                ProfileFieldConfig.empty(),
-                false,
-                false,
-                null);
+                station.id(), "Führerscheinklasse", FieldType.TEXT, ProfileFieldConfig.empty(), false, false, null);
         service.assignToGroup(forDrivers.id(), drivers.id(), 30, null, null, null);
         var forOthers = service.create(
-                station.id(), "Etwas anderes", ProfileFieldType.TEXT, ProfileFieldConfig.empty(), false, false, null);
+                station.id(), "Etwas anderes", FieldType.TEXT, ProfileFieldConfig.empty(), false, false, null);
         service.assignToGroup(forOthers.id(), others.id(), 31, null, null, null);
 
         assertTrue(
@@ -354,7 +332,7 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
     @Order(23)
     void findApplicableFieldsForGuardian() {
         stationMemberRepo.setUserType(member.id(), StationUserType.GUARDIAN);
-        var guardianField = ask("GuardianField", ProfileFieldType.TEXT, "{}", ProfileFieldScope.GUARDIAN, 20);
+        var guardianField = ask("GuardianField", FieldType.TEXT, "{}", ProfileFieldScope.GUARDIAN, 20);
         var fields = service.findApplicableFields(member.id());
         assertTrue(fields.stream().anyMatch(f -> f.id() == guardianField.id()));
         service.delete(guardianField.id());
@@ -365,7 +343,7 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
     @Order(23)
     void findApplicableFieldsForTeam() {
         stationMemberRepo.setUserType(member.id(), StationUserType.TEAM);
-        var teamField = ask("TeamField", ProfileFieldType.TEXT, "{}", ProfileFieldScope.TEAM, 20);
+        var teamField = ask("TeamField", FieldType.TEXT, "{}", ProfileFieldScope.TEAM, 20);
         var fields = service.findApplicableFields(member.id());
         assertTrue(fields.stream().anyMatch(f -> f.id() == teamField.id()));
         service.delete(teamField.id());
@@ -382,9 +360,9 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
     @Order(23)
     void findApplicableFieldsForManager() {
         stationMemberRepo.setUserType(member.id(), StationUserType.MANAGER);
-        var mgrField = ask("ManagerField", ProfileFieldType.TEXT, "{}", ProfileFieldScope.MANAGER, 20);
-        var teamOnly = ask("TeamOnlyField", ProfileFieldType.TEXT, "{}", ProfileFieldScope.TEAM, 21);
-        var both = ask("AskedOfBoth", ProfileFieldType.TEXT, "{}", ProfileFieldScope.TEAM, 22);
+        var mgrField = ask("ManagerField", FieldType.TEXT, "{}", ProfileFieldScope.MANAGER, 20);
+        var teamOnly = ask("TeamOnlyField", FieldType.TEXT, "{}", ProfileFieldScope.TEAM, 21);
+        var both = ask("AskedOfBoth", FieldType.TEXT, "{}", ProfileFieldScope.TEAM, 22);
         service.assignToRole(both.id(), ProfileFieldScope.MANAGER, 22, null, null, null);
 
         var fields = service.findApplicableFields(member.id());
@@ -409,8 +387,8 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
     @Order(23)
     void findApplicableFieldsForTrial() {
         stationMemberRepo.setUserType(member.id(), StationUserType.TRIAL);
-        var forTrials = ask("TrialField", ProfileFieldType.TEXT, "{}", ProfileFieldScope.TRIAL, 24);
-        var forMembers = ask("MemberOnlyField", ProfileFieldType.TEXT, "{}", ProfileFieldScope.MEMBER, 25);
+        var forTrials = ask("TrialField", FieldType.TEXT, "{}", ProfileFieldScope.TRIAL, 24);
+        var forMembers = ask("MemberOnlyField", FieldType.TEXT, "{}", ProfileFieldScope.MEMBER, 25);
 
         var fields = service.findApplicableFields(member.id());
 
@@ -436,7 +414,7 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
         stationMemberRepo.setUserType(member.id(), StationUserType.MEMBER);
         var crew = memberGroupRepo.create(station.id(), "Besatzung " + member.id());
         memberGroupRepo.addMember(crew.id(), member.id());
-        var field = ask("Schuhgröße", ProfileFieldType.TEXT, "{}", ProfileFieldScope.MEMBER, 26);
+        var field = ask("Schuhgröße", FieldType.TEXT, "{}", ProfileFieldScope.MEMBER, 26);
         service.assignToGroup(field.id(), crew.id(), 26, null, null, null);
 
         var fields = service.findApplicableFields(member.id());
@@ -457,18 +435,13 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
         assertTrue(fields.isEmpty());
     }
 
-    // -- What counts as a complete profile --
-
     @Test
     @Order(24)
     void isProfileCompleteReadonlyRequired() {
-        // Readonly + required fields should be skipped
-        var readonlyReqField =
-                ask("ReadonlyReq", ProfileFieldType.TEXT, "{}", ProfileFieldScope.MEMBER, 30, true, true);
+        var readonlyReqField = ask("ReadonlyReq", FieldType.TEXT, "{}", ProfileFieldScope.MEMBER, 30, true, true);
         var account3 = accountRepo.create("pfield-readonly@test.com", "Readonly", "Test");
         var member3 = stationMemberRepo.create(station.id(), account3.id());
-        // Should be complete - readonly required fields are skipped
-        assertTrue(service.isProfileComplete(member3.id()));
+        assertTrue(service.isProfileComplete(member3.id()), "a read-only required field is skipped");
         service.delete(readonlyReqField.id());
         stationMemberRepo.delete(member3.id());
         accountRepo.delete(account3.id());
@@ -477,11 +450,9 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
     @Test
     @Order(24)
     void isProfileCompleteWithEmptyValue() {
-        // Empty string and "\"\"" should count as missing
-        var reqField = ask("EmptyValField", ProfileFieldType.TEXT, "{}", ProfileFieldScope.MEMBER, 31, true, false);
+        var reqField = ask("EmptyValField", FieldType.TEXT, "{}", ProfileFieldScope.MEMBER, 31, true, false);
         var account4 = accountRepo.create("pfield-emptyval@test.com", "Empty", "Val");
         var member4 = stationMemberRepo.create(station.id(), account4.id());
-        // Set empty quoted value
         service.setValues(member4.id(), List.of(new FieldValueEntry(reqField.id(), "\"\"")), member4.id());
         assertFalse(service.isProfileComplete(member4.id()));
         service.delete(reqField.id());
@@ -501,7 +472,7 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
     void aGroupsQuestionIsRequiredOfItsMembers() {
         var group = memberGroupRepo.create(station.id(), "Ausbilder " + java.util.UUID.randomUUID());
         var groupField = service.create(
-                station.id(), "GroupField", ProfileFieldType.TEXT, ProfileFieldConfig.empty(), true, false, null);
+                station.id(), "GroupField", FieldType.TEXT, ProfileFieldConfig.empty(), true, false, null);
         service.assignToGroup(groupField.id(), group.id(), 32, null, null, null);
         var account5 = accountRepo.create("pfield-group@test.com", "Group", "Member");
         var member5 = stationMemberRepo.create(station.id(), account5.id());
@@ -532,7 +503,7 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
     void groupFieldKeepsTheGroupItNames() {
         var group = memberGroupRepo.create(station.id(), "Namensgruppe " + java.util.UUID.randomUUID());
         var groupField = service.create(
-                station.id(), "GroupOwned", ProfileFieldType.TEXT, ProfileFieldConfig.empty(), false, false, null);
+                station.id(), "GroupOwned", FieldType.TEXT, ProfileFieldConfig.empty(), false, false, null);
         service.assignToGroup(groupField.id(), group.id(), 33, null, null, null);
 
         var assignment = service.findAssignments(groupField.id()).getFirst();
@@ -543,18 +514,13 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
         memberGroupRepo.delete(group.id());
     }
 
-    // -- acknowledgeAll with changes --
-
     @Test
     @Order(24)
     void acknowledgeAllWithPendingChanges() {
-        // Create a new field change by setting a value
-        var tmpField =
-                ask("AckAllField", ProfileFieldType.TEXT, "{\"notifyOnChange\":true}", ProfileFieldScope.MEMBER, 40);
+        var tmpField = ask("AckAllField", FieldType.TEXT, "{\"notifyOnChange\":true}", ProfileFieldScope.MEMBER, 40);
         service.setValues(member.id(), List.of(new FieldValueEntry(tmpField.id(), "\"initial\"")), member.id());
         service.setValues(member.id(), List.of(new FieldValueEntry(tmpField.id(), "\"changed\"")), member.id());
 
-        // Now acknowledgeAll from a different acknowledger
         var account5 = accountRepo.create("pfield-ack@test.com", "Ack", "User");
         var member5 = stationMemberRepo.create(station.id(), account5.id());
         var acks = service.acknowledgeAll(member.id(), member5.id(), "Batch ack");
@@ -575,8 +541,7 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
     @Test
     @Order(24)
     void whatAManagerChangesNeedsNoAcknowledgement() {
-        var watched = ask(
-                "SelbstGeaendert", ProfileFieldType.TEXT, "{\"notifyOnChange\":true}", ProfileFieldScope.MEMBER, 41);
+        var watched = ask("SelbstGeaendert", FieldType.TEXT, "{\"notifyOnChange\":true}", ProfileFieldScope.MEMBER, 41);
         var changesRole = stationMemberRepo
                 .findPermissionByName(StationPermission.MEMBER_CHANGES)
                 .orElseThrow();
@@ -625,24 +590,24 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
     @Test
     @Order(29)
     void aStationAsksForADateOfBirthOnce() {
-        var birthDate = ask("Geburtstag", ProfileFieldType.BIRTH_DATE, "{}", ProfileFieldScope.TEAM, 60);
+        var birthDate = ask("Geburtstag", FieldType.BIRTH_DATE, "{}", ProfileFieldScope.TEAM, 60);
 
         service.assignToRole(birthDate.id(), ProfileFieldScope.GUARDIAN, 61, null, null, null);
         service.assignToRole(birthDate.id(), ProfileFieldScope.MANAGER, 62, null, null, null);
         assertEquals(3, service.findAssignments(birthDate.id()).size(), "one question, three audiences");
 
         var refused = assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> service.create(
                         station.id(),
                         "Noch ein Geburtstag",
-                        ProfileFieldType.BIRTH_DATE,
+                        FieldType.BIRTH_DATE,
                         ProfileFieldConfig.parse("{}"),
                         false,
                         false,
                         null),
                 "a second date of birth is a duplicate, not a different question");
-        assertTrue(refused.getMessage().contains("already asks"));
+        assertEquals(MemberRefusal.PROFILE_BIRTH_DATE_ALREADY_ASKED, refused.refusal());
 
         profileFieldRepo.delete(birthDate.id());
     }
@@ -651,12 +616,11 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
     @Test
     @Order(29)
     void anOrderIsWrittenInOneGo() {
-        var first = ask("Erstes", ProfileFieldType.TEXT, "{}", ProfileFieldScope.MANAGER, 80);
-        var second = ask("Zweites", ProfileFieldType.TEXT, "{}", ProfileFieldScope.MANAGER, 81);
+        var first = ask("Erstes", FieldType.TEXT, "{}", ProfileFieldScope.MANAGER, 80);
+        var second = ask("Zweites", FieldType.TEXT, "{}", ProfileFieldScope.MANAGER, 81);
 
         service.reorder(station.id(), ProfileFieldScope.MANAGER, List.of(second.id(), first.id()));
 
-        // Nothing to move is not an error, and writes nothing
         service.reorder(station.id(), ProfileFieldScope.MANAGER, List.of());
 
         var ordered = service.findByStationAndScope(station.id(), ProfileFieldScope.MANAGER);
@@ -670,27 +634,27 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
     @Test
     @Order(30)
     void onlyOneBirthDateFieldPerStation() {
-        var birthDate = ask("Geburtsdatum", ProfileFieldType.BIRTH_DATE, "{}", ProfileFieldScope.MEMBER, 50);
+        var birthDate = ask("Geburtsdatum", FieldType.BIRTH_DATE, "{}", ProfileFieldScope.MEMBER, 50);
 
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> service.create(
                         station.id(),
                         "Zweites Geburtsdatum",
-                        ProfileFieldType.BIRTH_DATE,
+                        FieldType.BIRTH_DATE,
                         ProfileFieldConfig.parse("{}"),
                         false,
                         false,
                         null),
                 "a station may declare one birth date field");
 
-        var plain = ask("Eintrittsdatum", ProfileFieldType.DATE, "{}", ProfileFieldScope.MEMBER, 52);
+        var plain = ask("Eintrittsdatum", FieldType.DATE, "{}", ProfileFieldScope.MEMBER, 52);
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> service.update(
                         plain.id(),
                         plain.name(),
-                        ProfileFieldType.BIRTH_DATE,
+                        FieldType.BIRTH_DATE,
                         ProfileFieldConfig.parse("{}"),
                         false,
                         false,
@@ -702,7 +666,7 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
                 service.update(
                                 birthDate.id(),
                                 "Geburtstag",
-                                ProfileFieldType.BIRTH_DATE,
+                                FieldType.BIRTH_DATE,
                                 ProfileFieldConfig.parse("{}"),
                                 false,
                                 false,
@@ -729,8 +693,7 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
                 .build();
         var hidden = strict.readValue("{\"showAge\":false}", ProfileFieldConfig.class);
 
-        var birthDate =
-                service.create(station.id(), "Geburtsdatum", ProfileFieldType.BIRTH_DATE, hidden, false, false, null);
+        var birthDate = service.create(station.id(), "Geburtsdatum", FieldType.BIRTH_DATE, hidden, false, false, null);
         assertEquals(
                 Boolean.FALSE,
                 service.findById(birthDate.id()).orElseThrow().config().showAge());
@@ -738,7 +701,7 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
         service.update(
                 birthDate.id(),
                 "Geburtsdatum",
-                ProfileFieldType.BIRTH_DATE,
+                FieldType.BIRTH_DATE,
                 ProfileFieldConfig.parse("{}"),
                 false,
                 false,
@@ -766,7 +729,7 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
                  "remindMember":false,"remindManagement":true}""", ProfileFieldConfig.class);
 
         var firstAid = service.create(
-                station.id(), "Erste Hilfe gültig bis", ProfileFieldType.EXPIRY_DATE, settings, false, true, null);
+                station.id(), "Erste Hilfe gültig bis", FieldType.EXPIRY_DATE, settings, false, true, null);
 
         var kept = service.findById(firstAid.id()).orElseThrow().config().expiry();
         assertEquals(90, kept.warnFromDays());
@@ -787,19 +750,13 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
         var refused = assertThrows(
                 RefusalResponse.class,
                 () -> service.create(
-                        station.id(),
-                        "Führerschein gültig bis",
-                        ProfileFieldType.EXPIRY_DATE,
-                        backwards,
-                        false,
-                        false,
-                        null));
-        assertEquals(Refusal.EXPIRY_SETTINGS_OUT_OF_RANGE, refused.refusal());
+                        station.id(), "Führerschein gültig bis", FieldType.EXPIRY_DATE, backwards, false, false, null));
+        assertEquals(MemberRefusal.EXPIRY_SETTINGS_OUT_OF_RANGE, refused.refusal());
 
         var licence = service.create(
                 station.id(),
                 "Führerschein gültig bis",
-                ProfileFieldType.EXPIRY_DATE,
+                FieldType.EXPIRY_DATE,
                 ProfileFieldConfig.empty(),
                 false,
                 false,
@@ -810,7 +767,7 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
                 () -> service.update(
                         licence.id(),
                         "Führerschein gültig bis",
-                        ProfileFieldType.EXPIRY_DATE,
+                        FieldType.EXPIRY_DATE,
                         noGap,
                         false,
                         false,
@@ -823,11 +780,11 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
     @Test
     @Order(31)
     void aBirthDateFieldCanBeReplacedAfterTheFirstIsGone() {
-        var first = ask("Geburtsdatum", ProfileFieldType.BIRTH_DATE, "{}", ProfileFieldScope.MEMBER, 60);
+        var first = ask("Geburtsdatum", FieldType.BIRTH_DATE, "{}", ProfileFieldScope.MEMBER, 60);
         service.delete(first.id());
 
-        var second = ask("Geburtsdatum neu", ProfileFieldType.BIRTH_DATE, "{}", ProfileFieldScope.GUARDIAN, 61);
-        assertEquals(ProfileFieldType.BIRTH_DATE, second.fieldType());
+        var second = ask("Geburtsdatum neu", FieldType.BIRTH_DATE, "{}", ProfileFieldScope.GUARDIAN, 61);
+        assertEquals(FieldType.BIRTH_DATE, second.fieldType());
         service.delete(second.id());
     }
 
@@ -846,7 +803,7 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
         var kept = clusterProfileFieldRepo.create(
                 cluster.id(),
                 "Führerscheinklasse",
-                ProfileFieldType.TEXT,
+                FieldType.TEXT,
                 ProfileFieldConfig.parse("{}"),
                 false,
                 false,
@@ -858,7 +815,7 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
         var open = clusterProfileFieldRepo.create(
                 cluster.id(),
                 "Funkrufname",
-                ProfileFieldType.TEXT,
+                FieldType.TEXT,
                 ProfileFieldConfig.parse("{}"),
                 false,
                 false,
@@ -914,12 +871,12 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
         alignFieldNumbering();
 
         var ofTheGroup = service.create(
-                station.id(), "Maschinist seit", ProfileFieldType.TEXT, ProfileFieldConfig.empty(), false, false, null);
+                station.id(), "Maschinist seit", FieldType.TEXT, ProfileFieldConfig.empty(), false, false, null);
         service.assignToGroup(ofTheGroup.id(), crew.id(), 40, null, null, null);
         var ofTheAssociation = clusterProfileFieldRepo.create(
                 cluster.id(),
                 "Funkrufname",
-                ProfileFieldType.TEXT,
+                FieldType.TEXT,
                 ProfileFieldConfig.parse("{}"),
                 false,
                 false,
@@ -965,8 +922,7 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
     @Test
     @Order(60)
     void sayingNothingTwiceIsNotAChange() {
-        var field =
-                ask("Nothing said", ProfileFieldType.TEXT, "{\"notifyOnChange\":true}", ProfileFieldScope.MEMBER, 60);
+        var field = ask("Nothing said", FieldType.TEXT, "{\"notifyOnChange\":true}", ProfileFieldScope.MEMBER, 60);
 
         service.setValues(member.id(), List.of(new FieldValueEntry(field.id(), "\"\"")), member.id());
 
@@ -980,19 +936,41 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
      * An age counts itself, so nobody has changed one.
      *
      * <p>It was recorded as a change like any other and somebody was asked to confirm a number that
-     * the passing of time had produced.
+     * the passing of time had produced. An age takes no value now, but a form still sends the empty
+     * one it shows, and that is no change either.
      */
     @Test
     @Order(61)
     void anAgeCountingItselfIsNotAChangeAnybodyMade() {
-        var field = ask("Alter", ProfileFieldType.AGE, "{\"notifyOnChange\":true}", ProfileFieldScope.MEMBER, 61);
+        var field = ask("Alter", FieldType.AGE, "{\"notifyOnChange\":true}", ProfileFieldScope.MEMBER, 61);
 
-        service.setValues(member.id(), List.of(new FieldValueEntry(field.id(), "15")), member.id());
+        service.setValues(member.id(), List.of(new FieldValueEntry(field.id(), "\"\"")), member.id());
 
         assertTrue(
                 profileFieldChangeRepo.findByMember(member.id()).stream()
                         .noneMatch(c -> c.fieldId() != null && c.fieldId() == field.id()),
                 "a number nobody wrote is not a change anybody made");
+    }
+
+    /** A place belongs to an appointment, so the profile does not take one and writes nothing. */
+    @Test
+    @Order(62)
+    void aTypeTheProfileDoesNotOfferIsRefused() {
+        int before = service.findByStation(station.id()).size();
+
+        var refused = assertThrows(
+                RefusalResponse.class,
+                () -> service.create(
+                        station.id(),
+                        "Treffpunkt",
+                        FieldType.LOCATION,
+                        ProfileFieldConfig.empty(),
+                        false,
+                        false,
+                        null));
+
+        assertEquals(MemberRefusal.PROFILE_FIELD_TYPE_NOT_OFFERED, refused.refusal());
+        assertEquals(before, service.findByStation(station.id()).size());
     }
 
     @Test

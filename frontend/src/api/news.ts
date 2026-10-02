@@ -4,26 +4,30 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-import { createCrudResource, createScopedCrudResource, pageParams } from './crud'
-import type { MemberIdentity } from './types'
-import type { BlockAudience, PageRow, SaveRowRequest } from './pageManage'
+import { createCrudResource, pageParams } from './crud'
+import { noMentionables, stationMentionables, type CommentSource } from './comments'
+import { StationPermission } from './types'
+import type {
+    BlockAudience,
+    BlockRowRequest,
+    CommentResponse,
+    FederatedNewsData,
+    FederatedNewsItem,
+    NewsAttachment,
+    NewsFederationShareResponse,
+    NewsRequest,
+    NewsResponse,
+    NewsSearchPage,
+    NewsTeaser,
+    NewsViewCountResponse,
+    NewsViewsResponse,
+    PublicBlogEntry,
+    components,
+} from '@/api/generated/schema'
 
-/**
- * A file a news entry hands over. It points at the station media library rather than holding
- * bytes of its own, so the same flyer attached to three entries is stored once.
- */
-export interface NewsAttachment {
-    id: number
-    newsId: number
-    fileId: number
-    label: string | null
-    sortOrder: number
-    createdAt: string
-    fileName: string
-    mimeType: string
-    fileSize: number
-    contentHash: string
-}
+type Schemas = components['schemas']
+
+export type ContentModeName = Schemas['ContentMode']
 
 /**
  * How an entry was written. A plain entry is one markdown field, which is the right tool for a
@@ -33,110 +37,46 @@ export interface NewsAttachment {
 export const ContentMode = {
     SIMPLE: 'SIMPLE',
     RICH: 'RICH',
-} as const
+} as const satisfies Record<ContentModeName, ContentModeName>
 
-export type ContentModeName = (typeof ContentMode)[keyof typeof ContentMode]
+export type NewsVisibilityRoleName = Schemas['NewsVisibilityRole']
 
-export interface NewsEntry {
-    id: number
-    stationId: string
-    title: string
-    contentMarkdown: string
-    contentHtml: string
-    author: MemberIdentity | null
-    authorName: string
-    publishedAt?: string
-    createdAt?: string
-    userTypes: string[]
-    groupIds: number[]
-    tagIds: number[]
-    memberIds: number[]
-    commentCount: number
-    restricted?: boolean
-    publicBlog?: boolean
-    viewCount: number
-    viewedByMe: boolean
-    attachments: NewsAttachment[]
-    contentMode: ContentModeName
-    /** The blocks of a rich entry as written, for the editor. Empty for a plain one, and on list responses. */
-    rows: PageRow[]
-    /**
-     * The same blocks as a reader sees them, where a picture the entry says nothing about carries
-     * the alt text and description of its media file.
-     */
-    describedRows: PageRow[]
-    /**
-     * Whether the instance published this to every station at once. Such an entry belongs to no
-     * station, carries no author, and is shown as coming from Ember itself.
-     */
-    systemEntry: boolean
+/** Who at a partner station may read a shared entry. */
+export const NewsVisibilityRole = {
+    MEMBER: 'MEMBER',
+    TEAM: 'TEAM',
+    MANAGER: 'MANAGER',
+} as const satisfies Record<NewsVisibilityRoleName, NewsVisibilityRoleName>
+
+/** The role a select hands back, read as one the server knows; anything else is every member. */
+export function visibilityRoleOf(value: string): NewsVisibilityRoleName {
+    return Object.values(NewsVisibilityRole).find(role => role === value) ?? NewsVisibilityRole.MEMBER
+}
+const news = createCrudResource<NewsResponse, NewsRequest>('/news')
+
+/** The thread under one of the station's own entries; a news manager removes anybody's comment there. */
+export function newsCommentSource(newsId: number): CommentSource {
+    return {
+        list: async () => (await client.get<CommentResponse[]>(`/news/${newsId}/comments`)).data,
+        create: (parentId, content) => client.post(`/news/${newsId}/comments`, {parentId, content}),
+        update: (commentId, content) => client.put(`/news/comments/${commentId}`, {content}),
+        remove: commentId => client.delete(`/news/comments/${commentId}`),
+        mentionables: () => stationMentionables({type: 'NEWS', entityId: newsId}),
+        moderator: StationPermission.NEWS_MANAGER,
+    }
 }
 
-/**
- * What is sent when an entry is written. The body goes as Markdown alone: the HTML that is served
- * back to readers is rendered and sanitised on the server, so a browser's rendering is never stored.
- */
-export interface NewsRequest {
-    title: string
-    contentMarkdown: string
-    userTypes: string[]
-    groupIds: number[]
-    tagIds: number[]
-    memberIds: number[]
-    publicBlog?: boolean
-    /** Set when creating an entry that is built from blocks, which brings no written markdown. */
-    contentMode?: ContentModeName
-}
-
-export interface PublicBlogEntry {
-    id: number
-    /** Stable opaque public identifier - referenced by NEWS_TEASER cells. */
-    publicUid: string
-    title: string
-    contentHtml: string
-    authorName: string
-    publishedAt: string
-    attachments: NewsAttachment[]
-    contentMode: ContentModeName
-    rows: PageRow[]
-}
-
-export interface NewsComment {
-    id: number
-    newsId: number
-    parentId: number | null
-    author: MemberIdentity | null
-    authorName: string
-    content: string
-    deleted?: boolean
-    createdAt: string
-    updatedAt?: string | null
-}
-
-export interface CommentRequest {
-    parentId?: number | null
-    content: string
-}
-
-const news = createCrudResource<NewsEntry, NewsRequest>('/news')
-
-const newsComments = createScopedCrudResource<NewsComment, CommentRequest>(
-    (newsId: number) => `/news/${newsId}/comments`,
-)
-
-const comments = createCrudResource<NewsComment, CommentRequest>('/news/comments')
-
-export interface NewsSearchResult {
-    publicUid: string
-    title: string
-    summary: string
-    publishedAt: string | null
-}
-
-/** One page of the news block picker's search, and whether a larger limit finds more. */
-export interface NewsSearchPage {
-    entries: NewsSearchResult[]
-    more: boolean
+/** The thread under an entry a partner station shares, where only authors change or remove anything. */
+export function partnerNewsCommentSource(stationUid: string, newsId: number): CommentSource {
+    const base = `/federated/${stationUid}/news`
+    return {
+        list: async () => (await client.get<CommentResponse[]>(`${base}/${newsId}/comments`)).data,
+        create: (parentId, content) => client.post(`${base}/${newsId}/comments`, {parentId, content}),
+        update: (commentId, content) => client.put(`${base}/comments/${commentId}`, {content}),
+        remove: commentId => client.delete(`${base}/comments/${commentId}`),
+        mentionables: noMentionables,
+        moderator: null,
+    }
 }
 
 /**
@@ -149,15 +89,6 @@ export async function searchNews(query: string, limit: number, scope: BlockAudie
     if (query) params.q = query
     const res = await client.get<NewsSearchPage>('/news/search', {params})
     return res.data
-}
-
-/** A news entry as a news block shows it. */
-export interface NewsTeaser {
-    id: number
-    publicUid: string
-    title: string
-    summary: string
-    publishedAt: string | null
 }
 
 /**
@@ -184,21 +115,17 @@ export async function getMemberNewsTeaser(newsUid: string): Promise<NewsTeaser> 
     return res.data
 }
 
-// -- Federation share management --
-
-export interface NewsFederationShareInfo {
-    shared: boolean
-    scope?: string
-    visibilityRole?: string
-    partnerIds?: number[]
-}
-
-export async function getFederationShare(newsId: number): Promise<NewsFederationShareInfo> {
-    const res = await client.get<NewsFederationShareInfo>(`/news/${newsId}/federation`)
+export async function getFederationShare(newsId: number): Promise<NewsFederationShareResponse> {
+    const res = await client.get<NewsFederationShareResponse>(`/news/${newsId}/federation`)
     return res.data
 }
 
-export async function setFederationShare(newsId: number, scope: string, visibilityRole: string, partnerIds?: number[]): Promise<void> {
+export async function setFederationShare(
+    newsId: number,
+    scope: Schemas['ShareScope'],
+    visibilityRole: NewsVisibilityRoleName,
+    partnerIds?: number[],
+): Promise<void> {
     await client.put(`/news/${newsId}/federation`, { scope, visibilityRole, partnerIds: partnerIds ?? [] })
 }
 
@@ -206,85 +133,40 @@ export async function removeFederationShare(newsId: number): Promise<void> {
     await client.delete(`/news/${newsId}/federation`)
 }
 
-// -- Federated news browse/detail --
-
-export interface FederatedNewsItem {
-    id: number
-    title: string
-    contentHtml?: string
-    authorName?: string
-    publishedAt: string
-    commentCount: number
-    visibilityRole: string
-    stationName: string
-    stationId: string
-}
-
-interface RawFederatedNewsItem {
-    partnerId: number
-    partnerStationName: string
-    partnerStationUid?: string
-    news: {
-        id: number
-        title: string
-        contentHtml?: string
-        authorName?: string
-        publishedAt: string
-        commentCount: number
-        visibilityRole: string
-    }
-}
-
-export async function listFederatedNews(): Promise<FederatedNewsItem[]> {
-    const res = await client.get<RawFederatedNewsItem[]>('/federated/news')
-    return res.data.map(item => ({
-        id: item.news.id,
-        title: item.news.title,
-        contentHtml: item.news.contentHtml ?? '',
-        authorName: item.news.authorName ?? '',
-        publishedAt: item.news.publishedAt,
-        commentCount: item.news.commentCount,
-        visibilityRole: item.news.visibilityRole,
-        stationName: item.partnerStationName,
-        stationId: item.partnerStationUid ?? String(item.partnerId),
-    }))
-}
-
-export interface FederatedNewsDetail {
+/** A partner's news entry as the station's news list shows it next to its own. */
+export interface FederatedNewsListing {
     id: number
     title: string
     contentHtml: string
     authorName: string
     publishedAt: string
     commentCount: number
+    visibilityRole: NewsVisibilityRoleName
+    stationName: string
+    stationId: string
 }
 
-export async function getFederatedNews(stationUid: string, newsId: number): Promise<FederatedNewsDetail> {
-    const res = await client.get<FederatedNewsDetail>(`/federated/${stationUid}/news/${newsId}`)
+export async function listFederatedNews(): Promise<FederatedNewsListing[]> {
+    const res = await client.get<FederatedNewsItem[]>('/federated/news')
+    return res.data.map(item => ({
+        id: item.news.id,
+        title: item.news.title,
+        contentHtml: item.news.contentHtml,
+        authorName: item.news.authorName,
+        publishedAt: item.news.publishedAt,
+        commentCount: item.news.commentCount,
+        visibilityRole: item.news.visibilityRole,
+        stationName: item.partnerStationName,
+        stationId: item.partnerStationUid,
+    }))
+}
+
+export async function getFederatedNews(stationUid: string, newsId: number): Promise<FederatedNewsData> {
+    const res = await client.get<FederatedNewsData>(`/federated/${stationUid}/news/${newsId}`)
     return res.data
 }
 
-// -- Federated news comments --
-
-export async function listFederatedNewsComments(stationUid: string, newsId: number): Promise<NewsComment[]> {
-    const res = await client.get<NewsComment[]>(`/federated/${stationUid}/news/${newsId}/comments`)
-    return res.data
-}
-
-export async function createFederatedNewsComment(stationUid: string, newsId: number, data: CommentRequest): Promise<NewsComment> {
-    const res = await client.post<NewsComment>(`/federated/${stationUid}/news/${newsId}/comments`, data)
-    return res.data
-}
-
-export async function updateFederatedNewsComment(stationUid: string, commentId: number, data: CommentRequest): Promise<void> {
-    await client.put(`/federated/${stationUid}/news/comments/${commentId}`, data)
-}
-
-export async function deleteFederatedNewsComment(stationUid: string, commentId: number): Promise<void> {
-    await client.delete(`/federated/${stationUid}/news/comments/${commentId}`)
-}
-
-export async function listNews(offset = 0, limit = 20): Promise<NewsEntry[]> {
+export async function listNews(offset = 0, limit = 20): Promise<NewsResponse[]> {
     return news.list(pageParams({offset, limit}))
 }
 
@@ -293,31 +175,12 @@ export const createNews = news.create
 export const updateNews = news.update
 export const deleteNews = news.remove
 
-export const listComments = newsComments.list
-export const createComment = newsComments.create
-export const updateComment = comments.update
-export const deleteComment = comments.remove
-
-// --- View tracking ---
-
-export interface NewsViewerEntry {
-    member: import('./types').MemberIdentity
-    seenAt: string | null
-}
-
-export interface NewsViewsResponse {
-    seen: NewsViewerEntry[]
-    unseen: NewsViewerEntry[]
-}
-
-// -- Blocks --
-
 /**
  * Turns a plain entry into one built from blocks. What the author already wrote becomes a single
  * markdown block, which they then split up as they like.
  */
-export async function enableNewsBlocks(newsId: number): Promise<NewsEntry> {
-    const res = await client.post<NewsEntry>(`/news/${newsId}/blocks/enable`)
+export async function enableNewsBlocks(newsId: number): Promise<NewsResponse> {
+    const res = await client.post<NewsResponse>(`/news/${newsId}/blocks/enable`)
     return res.data
 }
 
@@ -325,12 +188,10 @@ export async function enableNewsBlocks(newsId: number): Promise<NewsEntry> {
  * Saves the blocks of a rich entry. The stored text is rewritten from them on every save, which is
  * what keeps the search summary, the feed and the federation payload current.
  */
-export async function saveNewsBlocks(newsId: number, rows: SaveRowRequest[]): Promise<NewsEntry> {
-    const res = await client.put<NewsEntry>(`/news/${newsId}/blocks`, {rows})
+export async function saveNewsBlocks(newsId: number, rows: BlockRowRequest[]): Promise<NewsResponse> {
+    const res = await client.put<NewsResponse>(`/news/${newsId}/blocks`, {rows})
     return res.data
 }
-
-// -- Attachments --
 
 export async function attachNewsFile(newsId: number, fileId: number, label?: string | null): Promise<NewsAttachment> {
     const res = await client.post<NewsAttachment>(`/news/${newsId}/attachments`, {fileId, label: label ?? null})
@@ -359,11 +220,9 @@ export async function listNewsViewers(newsId: number): Promise<NewsViewsResponse
 }
 
 export async function getNewsViewCount(newsId: number): Promise<number> {
-    const res = await client.get<{count: number}>(`/news/${newsId}/view-count`)
+    const res = await client.get<NewsViewCountResponse>(`/news/${newsId}/view-count`)
     return res.data.count
 }
-
-// --- Public Blog ---
 
 export async function listPublicBlog(stationUid: string, offset = 0, limit = 20): Promise<PublicBlogEntry[]> {
     const res = await client.get<PublicBlogEntry[]>(`/public/station/${stationUid}/blog`, {

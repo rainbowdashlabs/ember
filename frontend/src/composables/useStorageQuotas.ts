@@ -6,7 +6,9 @@
 import {inject, provide, ref, type InjectionKey, type Ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {describeFailure, saying, type Failure} from '@/util/failure'
-import type {CategoryUsage, QuotaOriginName} from '@/api/storageMonitoring'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import type {CategoryUsage} from '@/api/generated/schema'
+import type {QuotaOriginName} from '@/api/storageMonitoring'
 
 /**
  * One station as the storage panels read it.
@@ -112,29 +114,21 @@ export function useStorageQuotas(port: StorageQuotasPort, capabilities: StorageC
 
     const stations: Ref<StorageRoomRow[]> = ref([])
     const tiers: Ref<QuotaTier[]> = ref([])
-    const loading = ref(true)
     const busy = ref(false)
-    const loadFailure = ref<Failure | null>(null)
     const writeFailure = ref<Failure | null>(null)
 
-    /** The described failure, said in this screen's own words where the caller brought some. */
-    function describe(e: unknown, message?: string): Failure {
-        const described = describeFailure(e, t)
-        return message ? saying(described, message) : described
-    }
+    const {loading, failure: loadFailure, reload: fetchQuotas} = useAsyncLoader(async (isCurrent) => {
+        const loaded = await port.load()
+        if (!isCurrent()) return
+        stations.value = loaded.stations
+        tiers.value = loaded.tiers
+    }, {autoLoad: false})
+    loading.value = true
 
+    /** Reads the quotas, naming a failure with the sentence given where the caller has a better one. */
     async function reload(staleMessage?: string) {
-        loading.value = true
-        loadFailure.value = null
-        try {
-            const loaded = await port.load()
-            stations.value = loaded.stations
-            tiers.value = loaded.tiers
-        } catch (e) {
-            loadFailure.value = describe(e, staleMessage)
-        } finally {
-            loading.value = false
-        }
+        await fetchQuotas()
+        if (staleMessage && loadFailure.value) loadFailure.value = saying(loadFailure.value, staleMessage)
     }
 
     /**
@@ -151,7 +145,7 @@ export function useStorageQuotas(port: StorageQuotasPort, capabilities: StorageC
         try {
             await write()
         } catch (e) {
-            writeFailure.value = describe(e)
+            writeFailure.value = describeFailure(e, t)
             return false
         } finally {
             busy.value = false

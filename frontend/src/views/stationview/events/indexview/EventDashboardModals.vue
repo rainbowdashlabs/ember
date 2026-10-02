@@ -9,7 +9,7 @@ import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import BreakModal from './BreakModal.vue'
 import HolidayImportModal from './HolidayImportModal.vue'
 import ExportModal from './ExportModal.vue'
-import type {EventBreak, EventCategory, StationEvent} from '@/api/events'
+import type {EventBreak, EventCategory, EventSummary} from '@/api/generated/schema'
 import type {Failure} from '@/util/failure'
 
 const {t} = useI18n()
@@ -23,16 +23,16 @@ const showDeleteBreak = defineModel<boolean>('showDeleteBreak', {required: true}
 defineProps<{
   categories: EventCategory[]
   editingBreak: EventBreak | null
-  deleteEventTarget: StationEvent | null
+  deleteEventTarget: EventSummary | null
   deleteBreakTarget: EventBreak | null
 }>()
 
 defineEmits<{
-  (e: 'error', failure: Failure): void
-  (e: 'save-break', data: { name: string; startDate: string; endDate: string }): void
-  (e: 'import-holidays', holidays: Array<{ name: string; startDate: string; endDate: string }>): void
-  (e: 'confirm-delete-event'): void
-  (e: 'confirm-delete-break'): void
+  error: [failure: Failure]
+  'save-break': [data: { name: string; startDate: string; endDate: string }]
+  'import-holidays': [holidays: Array<{ name: string; startDate: string; endDate: string }>]
+  'confirm-delete-event': []
+  'confirm-delete-break': []
 }>()
 </script>
 

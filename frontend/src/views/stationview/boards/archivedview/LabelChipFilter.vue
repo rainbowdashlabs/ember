@@ -6,7 +6,7 @@
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
 import IconButton from '@/components/button/IconButton.vue'
-import type {BoardLabel} from '@/api/boards'
+import type {BoardLabel} from '@/api/generated/schema'
 import BoardLabelBadge from '../tickettable/BoardLabelBadge.vue'
 
 /**

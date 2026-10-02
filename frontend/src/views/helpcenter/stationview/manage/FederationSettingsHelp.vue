@@ -26,7 +26,6 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.federationSettings.visibilityText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Discovery visibility -->
     <NeutralContainer class="space-y-4">
       <SubHeader>{{ t('discovery.settings.visibility') }}</SubHeader>
       <SelectInput model-value="INSTANCE" disabled class="w-full">
@@ -45,7 +44,6 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.federationSettings.publicKbText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Public KB toggle -->
     <NeutralContainer class="space-y-4">
       <SubHeader>{{ t('stationManage.publicKb.title') }}</SubHeader>
       <MutedText size="sm">{{ t('stationManage.publicKb.hint') }}</MutedText>
@@ -59,7 +57,6 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.federationSettings.publicCalendarText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Public calendar toggle -->
     <NeutralContainer class="space-y-4">
       <SubHeader>{{ t('stationManage.publicCalendar.title') }}</SubHeader>
       <MutedText size="sm">{{ t('stationManage.publicCalendar.hint') }}</MutedText>
@@ -69,7 +66,6 @@ const {t} = useI18n()
       </div>
     </NeutralContainer>
 
-    <!-- Dummy: Save button -->
     <NeutralContainer>
       <PrimaryButton disabled>{{ t('stationManage.save') }}</PrimaryButton>
     </NeutralContainer>

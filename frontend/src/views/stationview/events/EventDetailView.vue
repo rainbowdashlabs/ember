@@ -10,9 +10,18 @@ import {useRoute} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
-import type {AttendanceTemplate} from '@/api/attendance'
-import {isRecurringEvent, type AbsentMember, type EventCategory, type EventField, type EventRegistrationEntry, type StationEvent} from '@/api/events'
-import type {StationMember} from '@/api/types'
+import {CancellationCauses, isRecurringEvent} from '@/api/events'
+import type {
+  AbsentMemberResponse,
+  AttendanceTemplate,
+  CancellationNotice,
+  EventCategory,
+  AppointmentField,
+  ManagedMember,
+  MemberCompletion,
+  RegistrationResponse,
+  StationEvent,
+} from '@/api/generated/schema'
 import {attendance, events, managedMembers as managedMembersApi, stationMembers} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
@@ -45,17 +54,18 @@ const focusedDate = computed(() => {
 const event = ref<StationEvent | null>(null)
 const categories = ref<EventCategory[]>([])
 const templates = ref<AttendanceTemplate[]>([])
-const fields = ref<EventField[]>([])
+const fields = ref<AppointmentField[]>([])
 const reminders = ref<number[]>([])
-const absentMembers = ref<AbsentMember[]>([])
-const managedMembers = ref<StationMember[]>([])
-const allMembers = ref<StationMember[]>([])
+const absentMembers = ref<AbsentMemberResponse[]>([])
+const managedMembers = ref<ManagedMember[]>([])
+const allMembers = ref<MemberCompletion[]>([])
 const eligibleMembers = ref<Record<number, number[]>>({})
-const allMyRegistrations = ref<EventRegistrationEntry[]>([])
+const allMyRegistrations = ref<RegistrationResponse[]>([])
+const cancelledDates = ref<CancellationNotice[]>([])
 
 /** The answers given for this appointment on the date being looked at, and no other. */
 const myRegistrations = computed(() => allMyRegistrations.value.filter(
-    (registration: EventRegistrationEntry) =>
+    (registration: RegistrationResponse) =>
         registration.eventId === eventId.value && registration.eventDate === effectiveDate.value))
 
 async function reloadMyRegistrations() {
@@ -87,6 +97,23 @@ const nextOccurrenceDate = ref<string | null>(null)
  * in the meantime would be a day the page then asks its sign-ups under.
  */
 const effectiveDate = computed((): string | null => focusedDate.value ?? nextOccurrenceDate.value)
+
+/**
+ * Why the date on screen is off, or null while it takes place. A series called off as a whole is off
+ * on every date, with the reason given for the series.
+ */
+const cancellation = computed((): CancellationNotice | null => {
+  const ev = event.value
+  if (!ev) return null
+  if (ev.cancelled) {
+    return {date: effectiveDate.value, cause: CancellationCauses.MANUAL, reason: ev.cancelReason, cancelledAt: ev.cancelledAt}
+  }
+  return cancelledDates.value.find(notice => notice.date === effectiveDate.value) ?? null
+})
+
+/** Whether the date on screen is already behind the station, which nothing can call off or bring back. */
+const datePast = computed(() =>
+    !!effectiveDate.value && effectiveDate.value < stationDayOf(new Date(), stationTimezone.value))
 
 /**
  * The day written above a time on this page.
@@ -160,23 +187,20 @@ const currentTemplateName = computed(() => {
 })
 
 const {loading, failure, reload} = useAsyncLoader(async () => {
-  const [ev, cats, flds, completions, nextDate] = await Promise.all([
+  const [ev, cats, flds, completions, nextDate, offDates] = await Promise.all([
     events.getEvent(eventId.value),
     events.listCategories(),
     events.getEventFields(eventId.value),
     stationMembers.listCompletions().catch(() => []),
     events.getNextDate(eventId.value).catch(() => null),
+    events.listCancelledDates(eventId.value).catch(() => []),
   ])
   event.value = ev
+  cancelledDates.value = offDates
   nextOccurrenceDate.value = nextDate
   categories.value = cats
   fields.value = flds
-  allMembers.value = completions.map(c => ({
-    id: c.id,
-    stationId: '',
-    accountId: 0,
-    name: c.name,
-  }))
+  allMembers.value = completions
   try { reminders.value = await events.getEventReminders(eventId.value) } catch { reminders.value = [] }
   await reloadMyRegistrations()
   if (canManageEvents()) {
@@ -186,9 +210,7 @@ const {loading, failure, reload} = useAsyncLoader(async () => {
     isGuardian() ? managedMembersApi.listManaged() : Promise.resolve([]),
     events.listEligibleMembers(),
   ])
-  managedMembers.value = managed.map(m => ({
-    id: m.id, stationId: m.stationId, accountId: m.accountId, name: m.name, email: m.email,
-  }))
+  managedMembers.value = managed
   eligibleMembers.value = elig
   if ((canManageEvents() || canManageAttendance()) && isRecurringEvent(ev.eventType) && ev.dayOfWeek) {
     await loadAbsences()
@@ -231,7 +253,7 @@ async function onEventCancelled() {
   await reload()
 }
 
-function onFieldUpdated(field: EventField) {
+function onFieldUpdated(field: AppointmentField) {
   const i = fields.value.findIndex(f => f.id === field.id)
   if (i >= 0) fields.value.splice(i, 1, field)
 }
@@ -254,6 +276,8 @@ function onFieldUpdated(field: EventField) {
         :absent-members="absentMembers"
         :focused-date="focusedDate"
         :effective-date="effectiveDate"
+        :cancellation="cancellation"
+        :date-past="datePast"
         :start-formatted="startFormatted"
         :end-formatted="endFormatted"
         :category-name="currentCategoryName"

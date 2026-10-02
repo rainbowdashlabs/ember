@@ -5,7 +5,7 @@
  */
 <script setup lang="ts">
 import QuestionOptionsEditor from '@/components/input/QuestionOptionsEditor.vue'
-import type { FormOption } from '@/api/forms'
+import type { Option } from '@/api/generated/schema'
 import { blankOption } from '@/util/formOptions'
 
 /**
@@ -16,22 +16,22 @@ import { blankOption } from '@/util/formOptions'
  * its words keeps the key it has, and a row added gets a new one. That is what lets a question with
  * answers be reordered and reworded without the answers changing what they say.
  */
-const options = defineModel<FormOption[]>({ required: true })
+const options = defineModel<Option[]>({ required: true })
 
 defineProps<{
   label?: string
   addLabel?: string
 }>()
 
-function labelOf(option: FormOption): string {
+function labelOf(option: Option): string {
   return option.label
 }
 
-function relabelled(option: FormOption, label: string): FormOption {
+function relabelled(option: Option, label: string): Option {
   return { ...option, label }
 }
 
-function fresh(): FormOption {
+function fresh(): Option {
   return blankOption(options.value)
 }
 </script>

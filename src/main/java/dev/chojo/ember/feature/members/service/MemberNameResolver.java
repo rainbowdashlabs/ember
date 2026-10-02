@@ -20,9 +20,11 @@ import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -125,8 +127,9 @@ public class MemberNameResolver {
         var memberOpt = memberService.findById(memberId);
         if (memberOpt.isEmpty()) return NameParts.unknown();
         var member = memberOpt.get();
-        if (member.accountId() != null) {
-            var account = accountRepository.findById(member.accountId()).orElse(null);
+        Integer accountId = member.accountId();
+        if (accountId != null) {
+            var account = accountRepository.findById(accountId).orElse(null);
             if (account != null) {
                 return NameParts.of(account.firstName(), account.lastName(), nicknameAt(member));
             }
@@ -140,13 +143,14 @@ public class MemberNameResolver {
      * <p>A station that has switched them off keeps every nickname and reads none, so turning the
      * setting back on gives everybody their name back rather than asking them to type it again.
      */
-    private String nicknameAt(StationMember member) {
-        if (member.nickname() == null || member.nickname().isBlank()) return null;
+    private @Nullable String nicknameAt(StationMember member) {
+        String nickname = member.nickname();
+        if (nickname == null || nickname.isBlank()) return null;
         return stationRepository
                         .findById(member.stationId())
                         .map(Station::nicknamesEnabled)
                         .orElse(false)
-                ? member.nickname()
+                ? nickname
                 : null;
     }
 
@@ -186,7 +190,7 @@ public class MemberNameResolver {
         }
         return federationRepository
                 .findPartnerById(partnerId)
-                .map(p -> FederationDisplayNames.partnerName(stationRepository, p, null))
+                .map(p -> FederationDisplayNames.knownPartnerName(stationRepository, p))
                 .orElse(null);
     }
 
@@ -209,10 +213,9 @@ public class MemberNameResolver {
      * Resolves a display name from a MemberIdentity.
      * Tries local member resolution first, then federated name cache, then station name fallback.
      */
-    public String resolve(MemberIdentity identity) {
+    public @Nullable String resolve(@Nullable MemberIdentity identity) {
         if (identity == null) return null;
 
-        // Try local: resolve the member UUID back to an internal ID via station lookup
         var station = stationRepository.findByUid(identity.stationUid()).orElse(null);
         if (station != null) {
             var memberId = memberService.resolveId(station.id(), identity.memberUid());
@@ -222,7 +225,6 @@ public class MemberNameResolver {
             }
         }
 
-        // Try federated name cache
         var partner = federationRepository.findPartnerByRemoteStationUid(identity.stationUid());
         if (partner.isPresent()) {
             var cached = eventFederationRepository
@@ -231,12 +233,11 @@ public class MemberNameResolver {
             if (cached != null) return cached;
         }
 
-        // Fallback to station name
         if (station != null) return station.name();
         return null;
     }
 
-    public ResolvedMember resolveDisplay(MemberIdentity identity) {
+    public ResolvedMember resolveDisplay(@Nullable MemberIdentity identity) {
         if (identity == null) return new ResolvedMember(null, null);
         var enriched = enrichDisplay(identity);
         var name = resolve(identity);
@@ -245,14 +246,12 @@ public class MemberNameResolver {
 
     /**
      * Enriches a MemberIdentity with display metadata (name, station name, name color, visible tag badge).
-     * Results are cached for 5 minutes after last access.
+     * Results are cached for 5 minutes after last access, but only once a name was found: a cached
+     * miss would keep a federated member nameless for the whole time after their name arrives.
      */
     public MemberIdentity enrichDisplay(MemberIdentity identity) {
         if (identity == null) return null;
 
-        // Resolve once, then cache only if we have a name. Caching null would keep federated
-        // members nameless for the full TTL even after their name lands in the partner cache
-        // (e.g. via a later signed federation push or a demo seeder re-run).
         var cached = displayCache.getIfPresent(identity.memberUid());
         var data = cached != null ? cached : resolveDisplayData(identity);
         if (cached == null && data.name() != null) {
@@ -273,7 +272,6 @@ public class MemberNameResolver {
                         name, stationName, resolveNameColor(memberId.get()), resolveDisplayTag(memberId.get()));
             }
         }
-        // Federated: fall back to the partner name cache for the remote member.
         var partner = federationRepository.findPartnerByRemoteStationUid(identity.stationUid());
         if (partner.isPresent()) {
             var name = eventFederationRepository
@@ -284,21 +282,26 @@ public class MemberNameResolver {
         return new DisplayData(null, stationName, null, null);
     }
 
-    private String resolveNameColor(int memberId) {
+    private @Nullable String resolveNameColor(int memberId) {
         List<MemberGroup> groups = groupService.findGroupsForMember(memberId);
         return groups.stream()
-                .filter(g -> g.color() != null && !g.color().isBlank())
+                .filter(g -> hasColor(g.color()))
                 .max(Comparator.comparingInt(MemberGroup::position))
                 .map(MemberGroup::color)
                 .orElse(null);
     }
 
-    private MemberIdentity.DisplayTag resolveDisplayTag(int memberId) {
+    private static boolean hasColor(@Nullable String color) {
+        return color != null && !color.isBlank();
+    }
+
+    private MemberIdentity.@Nullable DisplayTag resolveDisplayTag(int memberId) {
         List<UserTag> tags = tagService.findTagsForMember(memberId);
         return tags.stream()
-                .filter(t -> t.visible() && t.color() != null && !t.color().isBlank())
+                .filter(t -> t.visible() && hasColor(t.color()))
                 .max(Comparator.comparingInt(UserTag::position))
-                .map(t -> new MemberIdentity.DisplayTag(t.name(), t.color()))
+                .map(t -> new MemberIdentity.DisplayTag(
+                        t.name(), Objects.requireNonNull(t.color(), "only tags with a color are shown")))
                 .orElse(null);
     }
 
@@ -306,8 +309,12 @@ public class MemberNameResolver {
      * Resolves both the display name and enriched identity (with nameColor and displayTag) in one call.
      * This is the preferred method for building API responses.
      */
-    public record ResolvedMember(MemberIdentity identity, String name) {}
+    public record ResolvedMember(
+            @Nullable MemberIdentity identity, @Nullable String name) {}
 
     private record DisplayData(
-            String name, String stationName, String nameColor, MemberIdentity.DisplayTag displayTag) {}
+            @Nullable String name,
+            @Nullable String stationName,
+            @Nullable String nameColor,
+            MemberIdentity.@Nullable DisplayTag displayTag) {}
 }

@@ -7,19 +7,19 @@
 import {useI18n} from 'vue-i18n'
 import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import FileCard from './FileCard.vue'
-import type {StationFile, StationFileListing} from '@/api/media'
+import type {FileListing, StationFile} from '@/api/generated/schema'
 
 const props = defineProps<{
   loading: boolean
-  filtered: StationFileListing[]
+  filtered: FileListing[]
   isImage: (f: StationFile) => boolean
   urlFor: (f: StationFile) => string
   formatSize: (bytes: number) => string
 }>()
 
 const emit = defineEmits<{
-  (e: 'pick', file: StationFile): void
-  (e: 'edit', file: StationFile): void
+  pick: [file: StationFile]
+  edit: [file: StationFile]
 }>()
 
 const {t} = useI18n()

@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
+import dev.chojo.ember.api.refusal.InventoryRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
@@ -13,7 +15,6 @@ import dev.chojo.ember.feature.inventory.entity.MovementPurpose;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -122,10 +123,11 @@ class MovementTargetingTest extends RepositoryTestBase {
     void aCombinationWithNoChainIsRefused() {
         int own = piece(internal, ItemOwner.STATION);
 
-        assertThrows(
-                BadRequestResponse.class,
+        var refused = assertThrows(
+                RefusalResponse.class,
                 () -> movementTargeting.resolve(station.id(), MovementPurpose.RETURN, null, own, null, internal),
                 "the station does not hand its own gear back to itself");
+        assertEquals(InventoryRefusal.MOVEMENT_FLOW_NOT_BOUND, refused.refusal());
     }
 
     /** Two combinations are two chains, which is the whole reason the party is not folded into the purpose. */

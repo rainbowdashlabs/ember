@@ -12,10 +12,12 @@ import dev.chojo.ember.feature.discovery.service.DiscoveryKeyService;
 import dev.chojo.ember.feature.discovery.service.DiscoverySigningService;
 import dev.chojo.ember.util.TestRemoteUrlValidator;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.time.Instant;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
@@ -41,6 +43,9 @@ class BeaconDeliveryTest {
     /** What the intake reads to learn who signed a delivery. */
     private static final String KEY_HEADER = DiscoverySigningService.BEACON_KEY_HEADER;
 
+    @TempDir
+    Path keyDir;
+
     private record Delivery(String body, String signature, String key) {}
 
     /**
@@ -63,7 +68,7 @@ class BeaconDeliveryTest {
         });
         server.start();
         try {
-            var client = new DiscoveryHttpClient(signing, TestRemoteUrlValidator.permissive());
+            var client = new DiscoveryHttpClient(signing, TestRemoteUrlValidator.permissiveOutbound());
             var answered = client.beaconPost(
                     "http://127.0.0.1:" + server.getAddress().getPort(), "/api/v1/beacon/reports", payload);
             assertEquals(status, answered.orElseThrow().status(), "the beacon's answer is handed back, not a boolean");
@@ -102,7 +107,7 @@ class BeaconDeliveryTest {
      */
     @Test
     void aDeliveryCarriesTheKeyTheIntakeAsksFor() throws IOException {
-        var signing = new DiscoverySigningService(new DiscoveryKeyService());
+        var signing = new DiscoverySigningService(new DiscoveryKeyService(keyDir));
 
         var delivered = deliveredTo(202, signing, aReport());
 
@@ -121,7 +126,7 @@ class BeaconDeliveryTest {
      */
     @Test
     void whatWasSignedIsWhatTheIntakeVerifies() throws IOException {
-        var signing = new DiscoverySigningService(new DiscoveryKeyService());
+        var signing = new DiscoverySigningService(new DiscoveryKeyService(keyDir));
 
         var delivered = deliveredTo(202, signing, aReport());
 
@@ -133,7 +138,7 @@ class BeaconDeliveryTest {
     /** The key the intake computes an identity from is the one the delivery carried. */
     @Test
     void theKeyNamesTheInstanceItCameFrom() throws IOException {
-        var keys = new DiscoveryKeyService();
+        var keys = new DiscoveryKeyService(keyDir);
         var signing = new DiscoverySigningService(keys);
 
         var delivered = deliveredTo(202, signing, aReport());
@@ -154,7 +159,7 @@ class BeaconDeliveryTest {
      */
     @Test
     void aRefusalIsHandedBackWithWhatTheBeaconSaid() throws IOException {
-        var signing = new DiscoverySigningService(new DiscoveryKeyService());
+        var signing = new DiscoverySigningService(new DiscoveryKeyService(keyDir));
 
         var delivered = deliveredTo(403, signing, aReport());
 
@@ -164,8 +169,8 @@ class BeaconDeliveryTest {
     /** A beacon that cannot be reached is empty rather than a status nobody can read. */
     @Test
     void aBeaconThatCannotBeReachedIsSaidToBeUnreachable() {
-        var signing = new DiscoverySigningService(new DiscoveryKeyService());
-        var client = new DiscoveryHttpClient(signing, TestRemoteUrlValidator.permissive());
+        var signing = new DiscoverySigningService(new DiscoveryKeyService(keyDir));
+        var client = new DiscoveryHttpClient(signing, TestRemoteUrlValidator.permissiveOutbound());
 
         assertTrue(client.beaconPost("http://127.0.0.1:1", "/api/v1/beacon/reports", aReport())
                 .isEmpty());

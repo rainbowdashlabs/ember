@@ -20,7 +20,7 @@ test.describe('Cluster knowledge', () => {
      * an association cannot reach a station's settings. So the field that marks one article public was drawn
      * only where the switch was on, and the switch could never be turned on. The story turns it on from the
      * association's own wiki page and then reads the result with no session at all, which is the only way to
-     * know the switch means what it says.
+     * know the switch means what it says. The switch saves as it is flipped, so nothing else is pressed.
      */
     test('an association turns its public wiki on and an article is readable there',
         async ({adminPage: page, browser, request}) => {
@@ -45,7 +45,6 @@ test.describe('Cluster knowledge', () => {
             const stranger = await browser.newContext()
             const publicPage = await stranger.newPage()
 
-            // The switch is saved as it is flipped, so the public wiki answers without anything else pressed
             await expect(async () => {
                 await publicPage.goto(`/public/station/${homeStationUid}/knowledge`)
                 await expect(publicPage.getByText(name).first()).toBeVisible({timeout: 5000})
@@ -96,9 +95,8 @@ test.describe('Cluster knowledge', () => {
             await expect(own.stationPage.getByTestId('kb-item').filter({hasText: fileName}))
                 .toHaveCount(1, {timeout: 15000})
 
-            // Inside somebody else's folder there has to be a way back out, and it was missing
             const trail = own.stationPage.locator('nav').filter({hasText: folderName})
-            await expect(trail).toBeVisible()
+            await expect(trail, 'inside somebody else\'s folder there is a way back out').toBeVisible()
             await trail.getByText('Wiki').first().click()
             await expect(own.stationPage.getByTestId('kb-item').filter({hasText: folderName}))
                 .toHaveCount(1, {timeout: 15000})
@@ -128,7 +126,6 @@ test.describe('Cluster knowledge', () => {
             expect(written.ok(), `the association wrote an article (${await written.text()})`).toBeTruthy()
             const fileId = (await written.json()).id
 
-            // The station the story can read as is the one it keeps a page for, so that is the one named
             const partners = await page.request
                 .get('/api/v1/federation/partners', {headers: own.contentHeaders})
                 .then(r => r.json())
@@ -203,11 +200,13 @@ test.describe('Cluster knowledge', () => {
             await expect(aimedTile).toHaveCount(1, {timeout: 15000})
             await expect(aimedTile.getByTestId('kb-reach')).toHaveAttribute('data-reach', 'narrow')
 
-            // Everything an association writes goes to all its stations, which is its own thing to say
             const openTile = page.getByTestId('kb-item').filter({hasText: open})
-            await expect(openTile.getByTestId('kb-reach')).toHaveAttribute('data-reach', 'federated')
+            await expect(openTile.getByTestId('kb-reach'), 'what an association writes goes to all its stations')
+                .toHaveAttribute('data-reach', 'federated')
 
             await page.getByRole('switch').first().click()
+            await expect(page.getByText('Öffentliches Wiki gespeichert.'),
+                'the switch is saved before the page is read again').toBeVisible()
             await expect(async () => {
                 await page.reload()
                 await expect(openTile.getByTestId('kb-reach')).toHaveAttribute('data-reach', 'public', {timeout: 5000})

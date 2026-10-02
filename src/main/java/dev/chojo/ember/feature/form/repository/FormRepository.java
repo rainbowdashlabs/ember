@@ -26,6 +26,7 @@ import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.util.Json;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.Collection;
@@ -52,7 +53,7 @@ public class FormRepository {
             "%s, (SELECT count(*) FROM form_response fr WHERE fr.form_id = f.id)::INT AS response_count, GREATEST(f.updated_at, (SELECT MAX(fr2.updated_at) FROM form_response fr2 WHERE fr2.form_id = f.id)) AS last_activity_at"
                     .formatted(RestrictionSql.restrictedFlag(RestrictionType.FORM, "f.id"));
     private static final String FORM_VISIBLE_FOR_MEMBER =
-            RestrictionSql.visibleFor(RestrictionType.FORM, "f.id", ":member_id");
+            RestrictionSql.visibleFor(RestrictionType.FORM, "f.id", ":member_id", ":is_manager");
     private static final String QUESTION_COLUMNS =
             "q.id, q.form_id, q.position, p.page_key, q.question_type, q.title, q.description, q.required, q.shuffle, q.config, q.branch";
     private static final String PAGE_COLUMNS =
@@ -60,8 +61,6 @@ public class FormRepository {
     private static final String RESPONSE_COLUMNS =
             "id, form_id, member_id, submitted_by, submitted_at, updated_at, submitter_hash, acknowledged_at, acknowledged_by, path";
     private static final String ANSWER_COLUMNS = "id, response_id, question_id, value";
-
-    // -- Forms --
 
     /**
      * Retrieves all forms for a station, ordered by creation date descending.
@@ -146,21 +145,24 @@ public class FormRepository {
     }
 
     /**
-     * Retrieves forms for a station that the given member is allowed to see.
-     * Uses the DB restriction check function which resolves role inheritance, mode, and manager bypass.
+     * Retrieves forms for a station that the given member is allowed to see: all of them for a form
+     * manager, otherwise those whose restrictions take the member in.
      *
      * @param stationId the station ID
      * @param memberId  the requesting member ID
+     * @param manager   whether the member manages forms, taken from their resolved permissions
      * @return the filtered list of forms
      */
-    public List<Form> findByStationForMember(int stationId, int memberId) {
+    public List<Form> findByStationForMember(int stationId, int memberId, boolean manager) {
         return query("""
                 SELECT %s, %s
                 FROM form f
                 WHERE f.station_id = :station_id
                   AND %s
                 ORDER BY f.created_at DESC;""", FORM_COLUMNS, FORM_COMPUTED, FORM_VISIBLE_FOR_MEMBER)
-                .single(call().bind("station_id", stationId).bind("member_id", memberId))
+                .single(call().bind("station_id", stationId)
+                        .bind("member_id", memberId)
+                        .bind("is_manager", manager))
                 .map(Form.map())
                 .all();
     }
@@ -223,8 +225,8 @@ public class FormRepository {
             boolean shuffleQuestions,
             boolean allowEdit,
             boolean forced,
-            Instant startAt,
-            Instant endAt,
+            @Nullable Instant startAt,
+            @Nullable Instant endAt,
             int createdBy,
             FormPurpose purpose) {
         return SqlSupport.insertReturning(
@@ -272,8 +274,8 @@ public class FormRepository {
             boolean shuffleQuestions,
             boolean allowEdit,
             boolean forced,
-            Instant startAt,
-            Instant endAt) {
+            @Nullable Instant startAt,
+            @Nullable Instant endAt) {
         return query("""
                 UPDATE form
                 SET title = :title, description = :description,
@@ -326,7 +328,7 @@ public class FormRepository {
      * @param replacement the link to put in its place
      * @return whether the form still held the expected link and was given the new one
      */
-    public boolean replaceShareToken(int id, String expected, String replacement) {
+    public boolean replaceShareToken(int id, @Nullable String expected, String replacement) {
         return query("""
                 UPDATE form
                 SET share_token = :replacement,
@@ -345,7 +347,7 @@ public class FormRepository {
      * @param link    an address offered to go on to, or {@code null}
      * @param label   what the link says, or {@code null} for the address itself
      */
-    public void updateCompletion(int id, String message, String link, String label) {
+    public void updateCompletion(int id, @Nullable String message, @Nullable String link, @Nullable String label) {
         query("""
                 UPDATE form
                 SET completion_message = :message, completion_link = :link, completion_link_label = :label
@@ -376,8 +378,6 @@ public class FormRepository {
                 .update()
                 .changed();
     }
-
-    // -- Questions --
 
     /**
      * Retrieves all questions for a form, page by page and in their order on each page.
@@ -458,7 +458,7 @@ public class FormRepository {
             boolean required,
             boolean shuffle,
             FormQuestionConfig config,
-            QuestionBranch branch) {
+            @Nullable QuestionBranch branch) {
         return SqlSupport.insertReturning(
                 """
                 WITH q AS (
@@ -503,7 +503,7 @@ public class FormRepository {
             boolean required,
             boolean shuffle,
             FormQuestionConfig config,
-            QuestionBranch branch,
+            @Nullable QuestionBranch branch,
             int position) {
         return query("""
                 UPDATE form_question
@@ -607,8 +607,6 @@ public class FormRepository {
     public boolean deleteQuestion(int id) {
         return SqlSupport.deleteById("form_question", id);
     }
-
-    // -- Responses --
 
     /**
      * Retrieves all responses for a form, ordered by submission time.
@@ -886,8 +884,6 @@ public class FormRepository {
                 call().bind("form_id", formId).bind("member_id", memberId));
     }
 
-    // -- Answers --
-
     /**
      * Retrieves all answers for a specific response.
      *
@@ -970,8 +966,6 @@ public class FormRepository {
                         .bind("value", value.toJson()))
                 .insert();
     }
-
-    // -- Restrictions --
 
     /**
      * Updates the restriction mode for a form.

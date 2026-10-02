@@ -4,20 +4,27 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import axios, {type AxiosError, type InternalAxiosRequestConfig} from 'axios'
-
-declare module 'axios' {
-    export interface InternalAxiosRequestConfig {
-        _startTime?: number
-        _stepUpAttempts?: number
-    }
-}
-import {getItem, removeItem, setItem} from './storage'
+import {getItem, removeItem} from './storage'
+import {CSRF_HEADER, csrfToken} from './sessionCookie'
 import {showToast} from '@/util/toast'
 import {reportApiError} from '@/util/devErrorReporter'
 import {requestStepUp, StepUpCancelledError, StepUpProof, type StepUpCategory, type StepUpProofName} from '@/util/stepUp'
 import type {ApiErrorBody} from '@/util/apiError'
 import {getActingStation} from '@/util/actingStationState'
-import i18n from '@/i18n'
+import {isPublicRoute} from '@/util/publicRoute'
+import {translator} from '@/util/translatorState'
+import {browserShallowRef} from '@/util/browserState'
+
+declare module 'axios' {
+    export interface InternalAxiosRequestConfig {
+        _startTime?: number
+        _stepUpAttempts?: number
+        _carriedSession?: boolean
+    }
+}
+
+/** The methods that change something, which are the ones that have to prove they came from this page. */
+const UNSAFE_METHODS: ReadonlySet<string> = new Set(['post', 'put', 'patch', 'delete'])
 
 /**
  * How often one request may be sent back through the step-up prompt. One answered challenge that
@@ -26,9 +33,6 @@ import i18n from '@/i18n'
  * wrong, and asking a third time would only loop.
  */
 const MAX_STEP_UP_ATTEMPTS = 2
-
-/** The largest delay setTimeout takes. Anything past it wraps and fires immediately instead. */
-const MAX_TIMER_DELAY = 2_147_483_647
 
 const STEP_UP_CATEGORIES: readonly StepUpCategory[] = [
     'ACCOUNT_SECURITY',
@@ -54,7 +58,7 @@ function stepUpProofsOf(body: ApiErrorBody | undefined): StepUpProofName[] | nul
     return body.proofs.filter((proof): proof is StepUpProofName => (known as string[]).includes(proof))
 }
 
-// -- Request history for problem reports --
+/** One request as a problem report lists it. */
 export interface RequestHistoryEntry {
     method: string
     url: string
@@ -64,23 +68,39 @@ export interface RequestHistoryEntry {
     error?: string
 }
 
-const requestHistory: RequestHistoryEntry[] = []
 const MAX_HISTORY = 20
 
+/** The last requests this browser sent, newest last, for the problem report. */
+const requestHistory = browserShallowRef<readonly RequestHistoryEntry[]>([])
+
 export function getRequestHistory(): RequestHistoryEntry[] {
-    return [...requestHistory]
+    return [...requestHistory.value]
 }
 
 /**
- * How long any request waits before giving up.
+ * Notes a request that has been answered or has failed, keeping the last {@link MAX_HISTORY}.
  *
- * <p>Without this a request to a server that accepts the connection and then says nothing waits for
- * ever, which is what a backend still working through its startup does. A screen waiting on such a
- * request shows a spinner that never stops and says nothing, and a reader restarting their instance sees
- * exactly that. Sixty seconds is long enough for the slowest thing here to answer and short enough that
- * a reader learns something before they give up.
- *
- * <p>The few calls that legitimately take longer set their own deadline.
+ * @param config the request as it went out
+ * @param status the status it was answered with, or null where no answer came
+ * @param error  what went wrong, where something did
+ */
+function recordRequest(config: InternalAxiosRequestConfig, status: number | null, error?: string): void {
+    const start = config._startTime
+    const entry: RequestHistoryEntry = {
+        method: (config.method ?? 'GET').toUpperCase(),
+        url: config.url ?? '',
+        status,
+        duration: start ? Date.now() - start : 0,
+        timestamp: new Date().toISOString(),
+        ...(error === undefined ? {} : {error}),
+    }
+    requestHistory.value = [...requestHistory.value, entry].slice(-MAX_HISTORY)
+}
+
+/**
+ * How long any request waits before giving up. Without it a server that accepts the connection and
+ * then says nothing, as a backend still starting up does, leaves a spinner that never stops. The few
+ * calls that legitimately take longer set their own deadline.
  */
 const REQUEST_DEADLINE_MS = 60_000
 
@@ -92,80 +112,63 @@ const client = axios.create({
     },
 })
 
-// -- Refresh gate: block requests while token is being refreshed --
-
-let refreshing = false
-let refreshQueue: Array<(config: InternalAxiosRequestConfig) => void> = []
-
+/**
+ * Adds what a request carries besides the session cookie, which the browser sends on its own: the
+ * token proving a change came from this page, and the station and cluster it acts for.
+ *
+ * <p>A screen that edits an association's own content acts at the station the association owns,
+ * whether or not the reader has a station of their own selected. Station and cluster may both be
+ * sent, since one person can manage a cluster and belong to one of its stations.
+ */
 function applyAuthHeaders(config: InternalAxiosRequestConfig) {
-    const token = getItem('session_token')
-    if (token) {
-        config.headers.Authorization = `Bearer ${token}`
+    const csrf = csrfToken()
+    config._carriedSession = csrf !== null
+    if (csrf && UNSAFE_METHODS.has((config.method ?? 'get').toLowerCase())) {
+        config.headers[CSRF_HEADER] = csrf
     }
-    // A screen that edits an association's own content acts at the station the association owns, whether or
-    // not the reader has a station of their own selected.
     const stationId = getActingStation() ?? getItem('station_id')
     if (stationId) {
         config.headers['X-Station-Id'] = stationId
     }
-    // A request may carry both: one person can be a cluster manager and a member of one of its stations
     const clusterId = getItem('cluster_id')
     if (clusterId) {
         config.headers['X-Cluster-Id'] = clusterId
     }
 }
 
-function waitForRefresh(config: InternalAxiosRequestConfig): Promise<InternalAxiosRequestConfig> {
-    return new Promise((resolve) => {
-        refreshQueue.push(() => {
-            applyAuthHeaders(config)
-            resolve(config)
-        })
-    })
+/**
+ * Stops a request whose step-up prompt has been answered as often as it may be. Answering again
+ * cannot help, so the toast says why the action stopped rather than leave the caller to show a bare
+ * failure with no prompt in sight.
+ */
+function rejectExhaustedStepUp(error: AxiosError): Promise<never> {
+    showToast(translator.t('twoFactor.stepUp.stillRequired'), 'error')
+    return Promise.reject(error)
 }
 
-function releaseQueue() {
-    refreshQueue.forEach((cb) => cb({} as InternalAxiosRequestConfig))
-    refreshQueue = []
+/**
+ * Tells the reader a request was refused for want of rights. Rights are the station's to give, so the
+ * toast points there rather than at a bug report.
+ */
+function toastDenied(said: string | undefined): void {
+    showToast(said?.trim() ? said : translator.t('failure.DENIED.message'), 'error')
 }
 
 client.interceptors.request.use((config) => {
     config._startTime = Date.now()
-    // If refreshing and this isn't the refresh request itself, wait
-    if (refreshing && !config.url?.includes('/auth/refresh')) {
-        return waitForRefresh(config)
-    }
-
     applyAuthHeaders(config)
     return config
 })
 
 client.interceptors.response.use(
     (response) => {
-        const start = response.config._startTime
-        requestHistory.push({
-            method: (response.config.method ?? 'GET').toUpperCase(),
-            url: response.config.url ?? '',
-            status: response.status,
-            duration: start ? Date.now() - start : 0,
-            timestamp: new Date().toISOString(),
-        })
-        if (requestHistory.length > MAX_HISTORY) requestHistory.shift()
+        recordRequest(response.config, response.status)
         return response
     },
     (error) => {
         const config = error?.config
         if (config) {
-            const start = config._startTime
-            requestHistory.push({
-                method: (config.method ?? 'GET').toUpperCase(),
-                url: config.url ?? '',
-                status: error?.response?.status ?? null,
-                duration: start ? Date.now() - start : 0,
-                timestamp: new Date().toISOString(),
-                error: error?.response?.data?.message ?? error?.message,
-            })
-            if (requestHistory.length > MAX_HISTORY) requestHistory.shift()
+            recordRequest(config, error?.response?.status ?? null, error?.response?.data?.message ?? error?.message)
         }
         const status = error?.response?.status
         if (status && status !== 401 && status !== 403) {
@@ -183,10 +186,7 @@ client.interceptors.response.use(
             if (isStepUp && config) {
                 const attempts = config._stepUpAttempts ?? 0
                 if (attempts >= MAX_STEP_UP_ATTEMPTS) {
-                    // Answering again cannot help, so say why the action stopped rather than let the
-                    // caller render a bare "something went wrong" with no prompt in sight.
-                    showToast(i18n.global.t('twoFactor.stepUp.stillRequired'), 'error')
-                    return Promise.reject(error as AxiosError)
+                    return rejectExhaustedStepUp(error as AxiosError)
                 }
                 config._stepUpAttempts = attempts + 1
                 const category = stepUpCategoryOf(body, error.response?.headers?.['x-stepup-required'])
@@ -196,86 +196,21 @@ client.interceptors.response.use(
                         stepUpErr instanceof StepUpCancelledError ? (error as AxiosError) : stepUpErr,
                     ))
             }
-            const token = getItem('session_token')
-            if (token && !refreshing && !isStepUp) {
-                removeItem('session_token')
+            if (config?._carriedSession && !body?.code) {
                 removeItem('station_id')
                 removeItem('cluster_id')
                 const currentPath = window.location.pathname
-                const isPublicPath = currentPath === '/'
-                    || currentPath === '/login'
-                    || currentPath === '/2fa-verify'
-                    || currentPath.startsWith('/helpcenter')
-                if (!isPublicPath) {
+                if (!isPublicRoute(currentPath)) {
                     const fullPath = currentPath + window.location.search
                     window.location.href = '/login?redirect=' + encodeURIComponent(fullPath)
                 }
             }
         }
         if (error.response?.status === 403) {
-            // Rights are the station's to give, so the toast points there rather than at a bug report.
-            const said = error.response?.data?.message
-            showToast(said?.trim() ? said : i18n.global.t('failure.DENIED.message'), 'error')
+            toastDenied(error.response?.data?.message)
         }
         return Promise.reject(error)
     },
 )
-
-// -- Token refresh --
-
-let refreshTimer: ReturnType<typeof setTimeout> | null = null
-
-export function scheduleTokenRefresh(expiresAt: string) {
-    cancelTokenRefresh()
-    const expiryMs = new Date(expiresAt).getTime()
-    const now = Date.now()
-    // Refresh 2 minutes before expiry
-    const delay = Math.max(expiryMs - now - 2 * 60 * 1000, 10_000)
-
-    // A session can outlast the longest wait a timer can express, and a longer one fires at once
-    // rather than late: left alone that turns a month-long session into a refresh every few
-    // seconds. Wait out the ceiling and work out the rest afterwards.
-    if (delay > MAX_TIMER_DELAY) {
-        refreshTimer = setTimeout(() => scheduleTokenRefresh(expiresAt), MAX_TIMER_DELAY)
-        return
-    }
-
-    refreshTimer = setTimeout(async () => {
-        const token = getItem('session_token')
-        if (!token) return
-
-        refreshing = true
-        try {
-            const res = await client.post<{ token?: string; expiresAt?: string }>('/auth/refresh', {token})
-            if (res.data.token) {
-                setItem('session_token', res.data.token)
-                if (res.data.expiresAt) {
-                    setItem('session_expires_at', res.data.expiresAt)
-                    scheduleTokenRefresh(res.data.expiresAt)
-                }
-            }
-        } catch {
-            // Refresh failed - session will expire, 401 interceptor will handle redirect
-        } finally {
-            refreshing = false
-            releaseQueue()
-        }
-    }, delay)
-}
-
-export function cancelTokenRefresh() {
-    if (refreshTimer !== null) {
-        clearTimeout(refreshTimer)
-        refreshTimer = null
-    }
-}
-
-export function initTokenRefresh() {
-    const token = getItem('session_token')
-    const expiresAt = getItem('session_expires_at')
-    if (token && expiresAt) {
-        scheduleTokenRefresh(expiresAt)
-    }
-}
 
 export default client

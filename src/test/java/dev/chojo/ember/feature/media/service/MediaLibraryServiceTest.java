@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.media.service;
 
+import dev.chojo.ember.api.refusal.GeneralRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
@@ -13,10 +15,10 @@ import dev.chojo.ember.feature.content.entity.CellContentType;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
-import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
 import dev.chojo.ember.feature.storage.service.StorageQuotaService;
 import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import dev.chojo.ember.util.OversizedPictures;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -37,7 +39,7 @@ class MediaLibraryServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        var backend = new LocalStorageBackend();
+        var backend = localStorage();
         var storageService = new StorageService(new StorageBackendResolver(backend), backend);
         var storageConfig = new Storage();
         var storage = new MediaStorageService(storageService, stationRepo, backend);
@@ -45,7 +47,7 @@ class MediaLibraryServiceTest extends RepositoryTestBase {
                 mediaFileRepo,
                 mediaMetaRepo,
                 storage,
-                new MediaVariantService(storage, storageConfig),
+                new ImageVariants(storageService),
                 new MediaReferenceRegistry(contentContainerRepo),
                 new StorageQuotaService(storageUsageRepo, storageConfig, new DomainEventBus(Set.of())));
         station = stationRepo.create("MediaLibraryStation");
@@ -80,6 +82,19 @@ class MediaLibraryServiceTest extends RepositoryTestBase {
         } finally {
             media.deleteFile(file.id());
         }
+    }
+
+    @Test
+    void anImageWithTooManyPixelsIsRefusedBeforeAnythingIsStored() {
+        byte[] bomb = OversizedPictures.pngClaiming(30_000, 30_000);
+        int before = media.listLibrary(station.id(), true).size();
+
+        var refusal = assertThrows(
+                RefusalResponse.class,
+                () -> media.upload(station.id(), pageId, member.id(), "bomb.png", "image/png", bomb));
+
+        assertEquals(GeneralRefusal.PICTURE_TOO_MANY_PIXELS, refusal.refusal());
+        assertEquals(before, media.listLibrary(station.id(), true).size());
     }
 
     @Test
@@ -203,6 +218,25 @@ class MediaLibraryServiceTest extends RepositoryTestBase {
             assertTrue(media.read(station.id(), "  ").isEmpty());
             assertTrue(media.read(station.id(), "no-such-hash").isEmpty());
             assertTrue(media.readById(-1).isEmpty());
+        } finally {
+            media.deleteFile(file.id());
+        }
+    }
+
+    @Test
+    void theDeliveryReadsAnswerByHashAndSayNothingForMissingOnes() throws Exception {
+        var file = media.upload(station.id(), null, null, "delivered.png", "image/png", bytes("delivered"));
+        try {
+            String hash = file.contentHash();
+            assertTrue(media.readVariant(station.id(), hash, null, "image/webp").isPresent());
+            assertTrue(media.readVariant(station.id(), hash, 256, null).isPresent());
+            assertTrue(media.readVariant(station.id(), " ", 256, "image/webp").isEmpty());
+            assertTrue(media.readVariant(station.id(), null, 256, "image/webp").isEmpty());
+            assertTrue(media.readPicture(station.id(), hash, 128).isPresent());
+            assertTrue(media.readPicture(station.id(), hash, null).isPresent());
+            assertTrue(media.readPicture(station.id(), "no-such-hash", 128).isEmpty());
+            assertTrue(media.readPicture(station.id(), null, 128).isEmpty());
+            assertTrue(media.readPicture(station.id(), "", "image/png", 128).isEmpty());
         } finally {
             media.deleteFile(file.id());
         }

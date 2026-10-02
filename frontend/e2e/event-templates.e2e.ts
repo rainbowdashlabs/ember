@@ -27,15 +27,17 @@ async function openTemplate(page: Page, name: string) {
 
 /** The questions in the order the editor lists them, which is the order they will be asked in. */
 async function fieldNames(page: Page): Promise<string[]> {
-    return page.getByTestId('event-field-name').evaluateAll(
+    return page.getByTestId('event-field-list').getByTestId('event-field-name').evaluateAll(
         inputs => inputs.map(input => (input as HTMLInputElement).value),
     )
 }
 
+/**
+ * Three of these stories edit the template the station starts with: one reorders its questions, one
+ * changes the width of the first, and one copies it and compares. Side by side they would read each
+ * other's edits, so they run in order.
+ */
 test.describe('Event templates', () => {
-    // Three of these stories edit the same template the station starts with: one reorders its
-    // questions, one changes the width of the first, and one copies it and compares. Run side by
-    // side they read each other's edits, so they go in order.
     test.describe.configure({mode: 'serial'})
 
     /**
@@ -43,6 +45,9 @@ test.describe('Event templates', () => {
      *
      * <p>Reordering used to mean deleting everything after the misplaced question and typing it in
      * again, so the story reads the order back after a reload rather than trusting the screen.
+     *
+     * <p>The arrows are taken from the list of questions, since a question offering choices carries
+     * a list of its own whose arrows answer to the same name.
      */
     test('a question can be moved and the new order is kept', async ({managerPage: page}) => {
         await openTemplate(page, 'Standard-Übung')
@@ -50,8 +55,6 @@ test.describe('Event templates', () => {
         const before = await fieldNames(page)
         expect(before.length, 'the seeded template asks at least two things').toBeGreaterThan(1)
 
-        // Scoped to the list of questions, because a question offering choices now carries a list of
-        // its own and its arrows answer to the same name.
         await page.getByTestId('event-field-list').getByTestId('move-down').first().click()
         await expect.poll(() => fieldNames(page)).toEqual([before[1], before[0], ...before.slice(2)])
 
@@ -76,12 +79,13 @@ test.describe('Event templates', () => {
         await openTemplate(page, 'Standard-Übung')
 
         await page.getByRole('button', {name: 'Feld hinzufügen'}).click()
-        const added = page.getByTestId('event-field-name').last()
+        const questions = page.getByTestId('event-field-list')
+        const added = questions.getByTestId('event-field-name').last()
         await added.fill('Ausbilder')
 
-        await page.getByTestId('event-field-type').last().selectOption({label: 'Mitglied aus Gruppe'})
+        await questions.getByTestId('event-field-type').last().selectOption({label: 'Mitglied aus Gruppe'})
 
-        const groups = page.getByTestId('event-field-group').last()
+        const groups = questions.getByTestId('question-group').last()
         await expect(groups).toBeVisible()
         await expect(groups.locator('option')).not.toHaveCount(1)
     })
@@ -146,11 +150,9 @@ test.describe('Event templates', () => {
      * <p>A template said which sheet the attendance is taken on, and applying it to an appointment
      * left that empty, so whoever applied it set the same thing again by hand. The story sets the
      * sheet on the template, applies the template to a new appointment, and reads the appointment's
-     * own field back.
+     * own field back. The template is its own, since the stories beside it read the seeded ones.
      */
     test('applying a template brings its attendance sheet along', async ({managerPage: page}) => {
-        // A template of its own rather than one of the seeded ones: the story saves it, and the
-        // stories running beside it read the seeded templates as they stand.
         const name = unique('Vorlage')
 
         await page.goto('/station/events/templates')
@@ -193,9 +195,7 @@ test.describe('Event templates', () => {
         const taken = await take.getAttribute('data-testid')
         await take.click()
 
-        // It arrives as a question of the appointment, under the sheet's own name
-        await expect(page.getByTestId('event-field-name').last()).toHaveValue(offered)
-        // and tied to the field it came from, which is what the dropdown would otherwise be for
+        await expect(page.getByTestId('event-field-list').getByTestId('event-field-name').last()).toHaveValue(offered)
         await expect(page.locator(`[data-testid="${taken}"]`),
             'a field already taken is not offered again').toHaveCount(0)
     })
@@ -218,7 +218,7 @@ test.describe('Event templates', () => {
 
         const onTemplate = page.getByTestId('restriction-groups')
         await onTemplate.getByRole('button').first().click()
-        await onTemplate.getByRole('button', {name: 'Anfänger'}).click()
+        await page.getByRole('option', {name: 'Anfänger'}).click()
         await expect(onTemplate.getByRole('button').first()).toHaveText(/Anfänger/)
 
         const save = page.locator('.save-button').last()

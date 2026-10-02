@@ -9,7 +9,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import RowLink from '@/components/navigation/RowLink.vue'
 import TestRowMobile from './testrow/TestRowMobile.vue'
 import TestRowDesktop from './testrow/TestRowDesktop.vue'
-import type {QuizTest} from '@/api/quiz'
+import type {QuizTest} from '@/api/generated/schema'
 import { pressedAControl } from '@/util/rowPress'
 
 const props = defineProps<{

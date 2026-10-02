@@ -4,10 +4,12 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed} from 'vue'
+import {computed, onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useEventRoutes} from '@/composables/useEventRoutes'
-import {isRecurringEvent, type EventBreak, type EventCategory, type StationEvent} from '@/api/events'
+import {events} from '@/api'
+import {isRecurringEvent} from '@/api/events'
+import type {EventBreak, EventCategory, EventSummary} from '@/api/generated/schema'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import CalendarDayCell from '@/views/stationview/events/upcomingview/eventscalendar/CalendarDayCell.vue'
@@ -22,7 +24,7 @@ import {formatTime} from '@/util/format'
  * {@link useEventCalendarGrid}; this component renders it and colours the chips by category.
  */
 const props = defineProps<{
-  allEvents: StationEvent[]
+  allEvents: EventSummary[]
   eventBreaks: EventBreak[]
   selectedCategoryId: string
   searchQuery: string
@@ -68,7 +70,23 @@ const categoryStyle = computed<Record<number, {bg: string; fg: string}>>(() => {
   return out
 })
 
-function chipStyle(ev: StationEvent): {backgroundColor: string; color: string} | undefined {
+/**
+ * The dates cancelled one by one, as `eventId|date`. Read by the calendar itself, because the list of
+ * appointments it is handed says only which series are cancelled as a whole.
+ */
+const cancelledKeys = ref(new Set<string>())
+
+onMounted(async () => {
+  const cancelled = await events.listStationCancelledDates().catch(() => [])
+  cancelledKeys.value = new Set(cancelled.map(entry => `${entry.eventId}|${entry.cancellation.date}`))
+})
+
+/** Whether an appointment is off on this date, on its own or with its whole series. */
+function isCancelled(ev: EventSummary, date: string): boolean {
+  return ev.seriesCancelled || cancelledKeys.value.has(`${ev.id}|${date}`)
+}
+
+function chipStyle(ev: EventSummary): {backgroundColor: string; color: string} | undefined {
   if (ev.categoryId == null) return undefined
   const s = categoryStyle.value[ev.categoryId]
   if (!s) return undefined
@@ -79,7 +97,7 @@ function chipStyle(ev: StationEvent): {backgroundColor: string; color: string} |
  * The page a chip opens: a repeating appointment carries the day it was pressed on, so the reader
  * lands on the occurrence they were looking at rather than on the first of the series.
  */
-function detailRoute(ev: StationEvent, date: string) {
+function detailRoute(ev: EventSummary, date: string) {
   if (isRecurringEvent(ev.eventType)) {
     return {name: eventRoutes.detailOnDate, params: {id: ev.id, date}}
   }
@@ -128,6 +146,7 @@ function detailRoute(ev: StationEvent, date: string) {
             :chip-style="chipStyle"
             :detail-route="detailRoute"
             :format-time="formatTime"
+            :is-cancelled="isCancelled"
         />
         <CalendarMultiDayBar
             v-for="(bar, barIdx) in week.bars"
@@ -136,6 +155,7 @@ function detailRoute(ev: StationEvent, date: string) {
             :chip-style="chipStyle"
             :detail-route="detailRoute"
             :format-time="formatTime"
+            :is-cancelled="isCancelled"
         />
       </div>
     </div>

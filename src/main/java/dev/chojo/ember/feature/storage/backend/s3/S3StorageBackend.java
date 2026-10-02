@@ -5,17 +5,20 @@
  */
 package dev.chojo.ember.feature.storage.backend.s3;
 
+import dev.chojo.ember.feature.storage.backend.BackendDestination;
 import dev.chojo.ember.feature.storage.backend.HealthStatus;
 import dev.chojo.ember.feature.storage.backend.ObjectMetadata;
 import dev.chojo.ember.feature.storage.backend.StorageBackend;
 import dev.chojo.ember.feature.storage.backend.StorageBackendType;
 import dev.chojo.ember.feature.storage.backend.StorageException;
 import dev.chojo.ember.feature.storage.backend.StoredStream;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.ResponseInputStream;
+import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -30,33 +33,35 @@ import software.amazon.awssdk.services.s3.model.MetadataDirective;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.S3Exception;
+import software.amazon.awssdk.services.s3.model.S3Object;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
- * S3-backed {@link StorageBackend}. Uses AWS SDK v2 against any S3-compatible endpoint
- * (AWS S3, MinIO, Backblaze B2, Wasabi, Cloudflare R2, Hetzner Object Storage, …).
- *
- * <p>Unlike the filesystem backends, S3 carries metadata natively on the object - no sidecar
- * file. Content type lands on the object header; SHA-256, optional filename and content
- * encoding ride in {@code x-amz-meta-*} user metadata. {@link #updateMetadata} reissues a
- * {@code CopyObject} with {@code MetadataDirective=REPLACE} so the SHA-256 sealed after the
- * upload stream drains lands on the object without re-uploading bytes.
- *
- * <p>The probe writes a small marker under {@code _probe/<uuid>} and removes it afterwards;
- * if the bucket itself is unreachable the SDK surfaces the underlying failure and the probe
- * returns unhealthy.
+ * Storage on any S3-compatible endpoint through the AWS SDK. Metadata lives on the object itself: the
+ * content type on its header, the rest in {@code x-amz-meta-*}; {@link #updateMetadata} rewrites it with
+ * a {@code CopyObject} instead of uploading the bytes again.
  */
-public class S3StorageBackend implements StorageBackend, AutoCloseable {
+public class S3StorageBackend implements StorageBackend {
+    /** How long one attempt of a call may take. */
+    public static final Duration ATTEMPT_TIMEOUT = Duration.ofSeconds(30);
+
+    /** How long a call may take with its retries. */
+    public static final Duration CALL_TIMEOUT = Duration.ofMinutes(2);
+
     private static final Logger log = LoggerFactory.getLogger(S3StorageBackend.class);
     private static final String PROBE_PREFIX = "_probe";
     private static final String META_SHA256 = "sha256";
@@ -68,19 +73,12 @@ public class S3StorageBackend implements StorageBackend, AutoCloseable {
     private final String basePath;
 
     public S3StorageBackend(S3BackendConfig config) {
-        this(config, defaultClient(config));
-    }
-
-    /**
-     * Visible for tests that want to inject a pre-configured {@link S3Client}.
-     */
-    S3StorageBackend(S3BackendConfig config, S3Client s3) {
         this.config = config;
-        this.s3 = s3;
-        this.basePath = normalizeBasePath(config.basePath());
+        this.s3 = client(config);
+        this.basePath = BackendDestination.objectPrefix(config.basePath());
     }
 
-    private static S3Client defaultClient(S3BackendConfig config) {
+    private static S3Client client(S3BackendConfig config) {
         return S3Client.builder()
                 .endpointOverride(URI.create(config.endpoint()))
                 .region(Region.of(config.region()))
@@ -89,15 +87,11 @@ public class S3StorageBackend implements StorageBackend, AutoCloseable {
                 .serviceConfiguration(S3Configuration.builder()
                         .pathStyleAccessEnabled(config.pathStyle())
                         .build())
+                .overrideConfiguration(ClientOverrideConfiguration.builder()
+                        .apiCallAttemptTimeout(ATTEMPT_TIMEOUT)
+                        .apiCallTimeout(CALL_TIMEOUT)
+                        .build())
                 .build();
-    }
-
-    private static String normalizeBasePath(String basePath) {
-        if (basePath == null || basePath.isBlank() || basePath.equals("/")) return "";
-        String trimmed = basePath;
-        while (trimmed.startsWith("/")) trimmed = trimmed.substring(1);
-        while (trimmed.endsWith("/")) trimmed = trimmed.substring(0, trimmed.length() - 1);
-        return trimmed;
     }
 
     private static Map<String, String> encodeMetadata(ObjectMetadata metadata) {
@@ -121,6 +115,11 @@ public class S3StorageBackend implements StorageBackend, AutoCloseable {
     @Override
     public StorageBackendType type() {
         return StorageBackendType.S3;
+    }
+
+    @Override
+    public String destination() {
+        return BackendDestination.s3(config.endpoint(), config.bucket(), basePath);
     }
 
     @Override
@@ -209,43 +208,25 @@ public class S3StorageBackend implements StorageBackend, AutoCloseable {
 
     @Override
     public List<String> listByPrefix(String prefix) {
-        String rooted = prefix == null ? "" : prefix;
-        String s3Prefix = rooted.isEmpty() ? basePath : key(rooted);
-        var out = new ArrayList<String>();
-        String continuation = null;
-        do {
-            ListObjectsV2Request.Builder req =
-                    ListObjectsV2Request.builder().bucket(config.bucket()).prefix(s3Prefix);
-            if (continuation != null) req.continuationToken(continuation);
-            var resp = s3.listObjectsV2(req.build());
-            for (var obj : resp.contents()) {
-                String relative = stripBase(obj.key());
-                if (relative == null) continue;
-                out.add(relative);
-            }
-            continuation = Boolean.TRUE.equals(resp.isTruncated()) ? resp.nextContinuationToken() : null;
-        } while (continuation != null);
-        out.sort(String::compareTo);
-        return out;
+        return objects(prefix)
+                .map(object -> stripBase(object.key()))
+                .filter(Objects::nonNull)
+                .sorted()
+                .collect(Collectors.toCollection(ArrayList::new));
     }
 
     @Override
     public long sumSizeByPrefix(String prefix) {
+        return objects(prefix).mapToLong(S3Object::size).sum();
+    }
+
+    private Stream<S3Object> objects(String prefix) {
         String rooted = prefix == null ? "" : prefix;
-        String s3Prefix = rooted.isEmpty() ? basePath : key(rooted);
-        long total = 0;
-        String continuation = null;
-        do {
-            ListObjectsV2Request.Builder req =
-                    ListObjectsV2Request.builder().bucket(config.bucket()).prefix(s3Prefix);
-            if (continuation != null) req.continuationToken(continuation);
-            var resp = s3.listObjectsV2(req.build());
-            for (var obj : resp.contents()) {
-                total += obj.size();
-            }
-            continuation = Boolean.TRUE.equals(resp.isTruncated()) ? resp.nextContinuationToken() : null;
-        } while (continuation != null);
-        return total;
+        var request = ListObjectsV2Request.builder()
+                .bucket(config.bucket())
+                .prefix(rooted.isEmpty() ? basePath : key(rooted))
+                .build();
+        return s3.listObjectsV2Paginator(request).contents().stream();
     }
 
     @Override
@@ -287,7 +268,7 @@ public class S3StorageBackend implements StorageBackend, AutoCloseable {
         return basePath.isEmpty() ? fullKey : basePath + "/" + fullKey;
     }
 
-    private String stripBase(String objectKey) {
+    private @Nullable String stripBase(String objectKey) {
         if (basePath.isEmpty()) return objectKey;
         String prefix = basePath + "/";
         if (objectKey.equals(basePath)) return null;

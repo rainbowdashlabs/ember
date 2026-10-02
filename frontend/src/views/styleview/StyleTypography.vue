@@ -26,7 +26,6 @@ import ProseContent from '@/components/display/ProseContent.vue'
 </script>
 
 <template>
-  <!-- Typography -->
   <section class="space-y-4">
     <SectionHeader>Typography</SectionHeader>
     <div class="space-y-2">
@@ -51,7 +50,6 @@ import ProseContent from '@/components/display/ProseContent.vue'
     </div>
   </section>
 
-  <!-- Field Labels -->
   <section class="space-y-4">
     <SectionHeader>Field Labels</SectionHeader>
     <div class="space-y-3">
@@ -63,7 +61,6 @@ import ProseContent from '@/components/display/ProseContent.vue'
     </div>
   </section>
 
-  <!-- Stat Values -->
   <section class="space-y-4">
     <SectionHeader>Stat Value</SectionHeader>
     <div class="flex gap-6">
@@ -86,7 +83,6 @@ import ProseContent from '@/components/display/ProseContent.vue'
     </div>
   </section>
 
-  <!-- Bullet List -->
   <section class="space-y-4">
     <SectionHeader>Bullet List</SectionHeader>
     <BulletList>
@@ -96,7 +92,6 @@ import ProseContent from '@/components/display/ProseContent.vue'
     </BulletList>
   </section>
 
-  <!-- Display Components -->
   <section class="space-y-4">
     <SectionHeader>Display Components</SectionHeader>
     <div class="space-y-3">

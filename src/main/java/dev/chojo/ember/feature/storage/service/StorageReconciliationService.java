@@ -10,35 +10,30 @@ import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.entity.StorageScope;
 import dev.chojo.ember.feature.storage.repository.StorageUsageRepository;
+import dev.chojo.ember.lifecycle.Schedule;
+import dev.chojo.ember.lifecycle.ScheduledTask;
+import dev.chojo.ember.lifecycle.TaskSource;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
 
 /**
- * Periodic sanity check that reconciles {@code station_storage_usage} against the actual bytes
- * on the backend. Hot-path tracking happens in {@link StorageQuotaService}; this service only
- * runs on a schedule (default daily) and on manual admin trigger to catch drift between the
- * incremental counters and the real on-disk size.
- *
- * <p>Reconciliation goes through {@link StorageService#sumSize(StorageScope, StorageCategory)},
- * which delegates to the resolved backend's prefix-sum primitive. The producer never walks the
- * filesystem directly - that detail stays behind the storage interface so S3 / SMB / SFTP
- * backends pick the appropriate native operation.
+ * Corrects the usage counters {@link StorageQuotaService} keeps incrementally against the bytes the
+ * backends actually hold, on a schedule and when an administrator asks.
  */
 @Singleton
-public class StorageReconciliationService {
+public class StorageReconciliationService implements TaskSource {
     private static final Logger log = LoggerFactory.getLogger(StorageReconciliationService.class);
 
     private static final List<StorageCategory> STATION_CATEGORIES = List.of(
@@ -54,6 +49,7 @@ public class StorageReconciliationService {
     private final StorageUsageRepository usageRepository;
     private final StationRepository stationRepository;
     private final StorageService storage;
+    private final Duration reconciliationInterval;
 
     @Inject
     public StorageReconciliationService(
@@ -64,19 +60,9 @@ public class StorageReconciliationService {
         this.usageRepository = usageRepository;
         this.stationRepository = stationRepository;
         this.storage = storage;
-
-        var scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
-            var t = new Thread(r, "storage-reconciliation");
-            t.setDaemon(true);
-            return t;
-        });
-        int intervalHours = storageConfig.reconciliationIntervalHours();
-        scheduler.scheduleWithFixedDelay(this::reconcileAll, 1, intervalHours * 60L, TimeUnit.MINUTES);
+        this.reconciliationInterval = Duration.ofHours(storageConfig.reconciliationIntervalHours());
     }
 
-    /**
-     * Reconciles storage usage for every station.
-     */
     public void reconcileAll() {
         try {
             log.info("Starting storage reconciliation for all stations");
@@ -90,9 +76,6 @@ public class StorageReconciliationService {
         }
     }
 
-    /**
-     * Reconciles storage usage for one station.
-     */
     public void reconcileStation(int stationId) {
         try {
             UUID stationUid = stationRepository.resolveUid(stationId);
@@ -237,5 +220,13 @@ public class StorageReconciliationService {
                     storage.listKeys(scope, StorageCategory.IMAGE_AVATAR, "").size();
         }
         usageRepository.setUsage(stationId, StorageCategory.IMAGE_AVATAR, totalBytes, fileCount);
+    }
+
+    @Override
+    public List<ScheduledTask> scheduledTasks() {
+        return List.of(new ScheduledTask(
+                "storage-reconciliation",
+                Schedule.fixedDelay(Duration.ofMinutes(1), reconciliationInterval),
+                this::reconcileAll));
     }
 }

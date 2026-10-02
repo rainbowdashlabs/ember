@@ -16,7 +16,7 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import { adminSettings } from '@/api'
-import type { TotpConfig } from '@/api/adminSettings'
+import type { TotpConfig } from '@/api/generated/schema'
 import { useConfigPanel } from '@/composables/useConfigPanel'
 
 const { t } = useI18n()

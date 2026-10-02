@@ -7,7 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import IconButton from '@/components/button/IconButton.vue'
 import DropdownMenuItem from '@/components/button/DropdownMenuItem.vue'
-import type {StationFile} from '@/api/media'
+import type {StationFile} from '@/api/generated/schema'
 
 defineProps<{
     file: StationFile

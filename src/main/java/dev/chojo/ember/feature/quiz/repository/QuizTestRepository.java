@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.restriction.RestrictionSql;
 import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.List;
@@ -40,7 +41,7 @@ public class QuizTestRepository {
     private static final String TEST_COLUMNS_BARE =
             "id, station_id, title, description, status, time_limit, shuffle, forced, start_at, end_at, created_by, created_at, updated_at, restriction_mode, EXISTS(SELECT 1 FROM quiz_test_restriction r WHERE r.test_id = id) AS restricted";
     private static final String TEST_VISIBLE_FOR_MEMBER =
-            RestrictionSql.visibleFor(RestrictionType.QUIZ_TEST, "t.id", ":member_id");
+            RestrictionSql.visibleFor(RestrictionType.QUIZ_TEST, "t.id", ":member_id", ":is_manager");
     private static final String QUIZ_TEST_SECTION_COLUMNS = "id, test_id, title, description, position";
     private static final String QUIZ_TEST_SECTION_SOURCE_COLUMNS =
             "id, section_id, catalog_id, category_id, question_count";
@@ -51,8 +52,6 @@ public class QuizTestRepository {
     private static final String QUIZ_TEST_ANSWER_COLUMNS =
             "id, attempt_id, question_id, section_id, answer, points, graded, position";
     private static final String QUIZ_TEST_FROZEN_QUESTION_COLUMNS = "id, test_id, question_id, section_id, position";
-
-    // -- Tests --
 
     public List<QuizTest> findByStation(int stationId) {
         return query("""
@@ -65,14 +64,22 @@ public class QuizTestRepository {
                 .all();
     }
 
-    public List<QuizTest> findByStationForMember(int stationId, int memberId) {
+    /**
+     * The station's tests a member may see: all of them for a test manager, otherwise those whose
+     * restrictions take the member in.
+     *
+     * @param manager whether the member manages tests, taken from their resolved permissions
+     */
+    public List<QuizTest> findByStationForMember(int stationId, int memberId, boolean manager) {
         return query("""
                 SELECT %s
                 FROM quiz_test t
                 WHERE t.station_id = :station_id
                   AND %s
                 ORDER BY t.created_at DESC;""", TEST_COLUMNS, TEST_VISIBLE_FOR_MEMBER)
-                .single(call().bind("station_id", stationId).bind("member_id", memberId))
+                .single(call().bind("station_id", stationId)
+                        .bind("member_id", memberId)
+                        .bind("is_manager", manager))
                 .map(QuizTest.map())
                 .all();
     }
@@ -110,7 +117,7 @@ public class QuizTestRepository {
             int stationId,
             String title,
             String description,
-            Integer timeLimit,
+            @Nullable Integer timeLimit,
             boolean shuffle,
             boolean forced,
             int createdBy) {
@@ -134,11 +141,11 @@ public class QuizTestRepository {
             int id,
             String title,
             String description,
-            Integer timeLimit,
+            @Nullable Integer timeLimit,
             boolean shuffle,
             boolean forced,
-            Instant startAt,
-            Instant endAt) {
+            @Nullable Instant startAt,
+            @Nullable Instant endAt) {
         return query("""
                 UPDATE quiz_test
                 SET title = :title, description = :description, time_limit = :time_limit,
@@ -173,8 +180,6 @@ public class QuizTestRepository {
                 "SELECT count(*) AS cnt FROM quiz_test_attempt WHERE test_id = :test_id;",
                 call().bind("test_id", testId));
     }
-
-    // -- Sections --
 
     public List<QuizTestSection> findSections(int testId) {
         return query(
@@ -220,8 +225,6 @@ public class QuizTestRepository {
                 .delete();
     }
 
-    // -- Section Sources --
-
     public List<QuizTestSectionSource> findSources(int sectionId) {
         return query(
                         "SELECT %s FROM quiz_test_section_source WHERE section_id = :section_id;",
@@ -231,7 +234,8 @@ public class QuizTestRepository {
                 .all();
     }
 
-    public QuizTestSectionSource createSource(int sectionId, int catalogId, Integer categoryId, int questionCount) {
+    public QuizTestSectionSource createSource(
+            int sectionId, int catalogId, @Nullable Integer categoryId, int questionCount) {
         return insertReturning(
                 """
                 INSERT INTO quiz_test_section_source(section_id, catalog_id, category_id, question_count)
@@ -254,8 +258,6 @@ public class QuizTestRepository {
                 .single(call().bind("section_id", sectionId))
                 .delete();
     }
-
-    // -- Attempts --
 
     public List<QuizTestAttempt> findAttempts(int testId) {
         return query(
@@ -316,8 +318,6 @@ public class QuizTestRepository {
                 .changed();
     }
 
-    // -- Attempt Questions --
-
     public List<QuizTestAttemptQuestion> findAttemptQuestions(int attemptId) {
         return query(
                         "SELECT %s FROM quiz_test_attempt_question WHERE attempt_id = :attempt_id ORDER BY position;",
@@ -337,8 +337,6 @@ public class QuizTestRepository {
                         .bind("position", position))
                 .insert();
     }
-
-    // -- Answers --
 
     public List<QuizTestAnswer> findAnswers(int attemptId) {
         return query(
@@ -366,7 +364,7 @@ public class QuizTestRepository {
                 .insert();
     }
 
-    public void saveAnswer(int attemptId, int questionId, QuizAnswerValue answer) {
+    public void saveAnswer(int attemptId, int questionId, @Nullable QuizAnswerValue answer) {
         query("""
                 INSERT INTO quiz_test_answer(attempt_id, question_id, answer)
                 VALUES (:attempt_id, :question_id, :answer::jsonb)
@@ -384,9 +382,7 @@ public class QuizTestRepository {
                 .changed();
     }
 
-    // -- Member Access --
-
-    public void grantMemberAccess(int testId, int memberId, Instant closesAt) {
+    public void grantMemberAccess(int testId, int memberId, @Nullable Instant closesAt) {
         query("""
                 INSERT INTO quiz_test_member_access(test_id, member_id, closes_at)
                 VALUES (:test_id, :member_id, :closes_at)
@@ -409,8 +405,6 @@ public class QuizTestRepository {
                 .single(call().bind("test_id", testId).bind("member_id", memberId))
                 .delete();
     }
-
-    // -- Frozen Questions --
 
     public List<QuizTestFrozenQuestion> findFrozenQuestions(int testId) {
         return query(
@@ -443,8 +437,6 @@ public class QuizTestRepository {
                 .single(call().bind("test_id", testId).bind("position", position))
                 .delete();
     }
-
-    // -- Restrictions --
 
     public boolean updateRestrictionMode(int testId, RestrictionMode mode) {
         return query("UPDATE quiz_test SET restriction_mode = :mode WHERE id = :id;")

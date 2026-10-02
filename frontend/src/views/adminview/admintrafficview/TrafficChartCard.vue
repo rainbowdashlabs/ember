@@ -9,7 +9,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import TrafficChart from './TrafficChart.vue'
-import type {HourlyTrafficRow} from '@/api/traffic'
+import type {HourlyTrafficRow} from '@/api/generated/schema'
 
 defineProps<{
   rows: HourlyTrafficRow[]

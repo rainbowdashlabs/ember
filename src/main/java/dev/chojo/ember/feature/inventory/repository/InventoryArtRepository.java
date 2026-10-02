@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.inventory.entity.InventoryArt;
 import dev.chojo.ember.feature.inventory.entity.ItemNameCount;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Collection;
 import java.util.List;
@@ -103,7 +104,7 @@ public class InventoryArtRepository {
      * @param position    the sort position
      * @return the kind that was written
      */
-    public InventoryArt create(int inventoryId, String name, String note, int position) {
+    public InventoryArt create(int inventoryId, String name, @Nullable String note, int position) {
         return create(inventoryId, name, note, position, Glyph.NONE);
     }
 
@@ -117,7 +118,7 @@ public class InventoryArtRepository {
      * @param glyph       the picture the pieces of this kind are drawn with
      * @return the kind that was written
      */
-    public InventoryArt create(int inventoryId, String name, String note, int position, Glyph glyph) {
+    public InventoryArt create(int inventoryId, String name, @Nullable String note, int position, Glyph glyph) {
         return SqlSupport.insertReturning(
                 """
                 INSERT INTO inventory_art(inventory_id, name, note, position, icon, color)
@@ -143,7 +144,7 @@ public class InventoryArtRepository {
      * @param glyph    the picture the pieces of this kind are drawn with
      * @return {@code true} when a row changed
      */
-    public boolean update(int id, String name, String note, int position, Glyph glyph) {
+    public boolean update(int id, String name, @Nullable String note, int position, Glyph glyph) {
         return query("""
                 UPDATE inventory_art
                 SET name = :name, note = :note, position = :position, icon = :icon, color = :color
@@ -269,7 +270,7 @@ public class InventoryArtRepository {
      * @param itemIds the pieces
      * @return how many pieces were changed
      */
-    public int setArt(Integer artId, Collection<Integer> itemIds) {
+    public int setArt(@Nullable Integer artId, Collection<Integer> itemIds) {
         if (itemIds.isEmpty()) return 0;
         return query("""
                 UPDATE inventory_item

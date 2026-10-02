@@ -4,7 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {onBeforeUnmount, onMounted, watch} from 'vue'
+import {onKeyStroke} from '@vueuse/core'
+import {watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute} from 'vue-router'
 import DropdownMenuItem from '@/components/button/DropdownMenuItem.vue'
@@ -15,8 +16,8 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'close'): void
-  (e: 'logout'): void
+  close: []
+  logout: []
 }>()
 
 const {t} = useI18n()
@@ -25,12 +26,7 @@ const route = useRoute()
 /** The account page, which the menu reaches as the link it is rather than as a press to be acted on. */
 const accountPage = {name: 'account'}
 
-function onEsc(e: KeyboardEvent) {
-  if (e.key === 'Escape') emit('close')
-}
-
-onMounted(() => window.addEventListener('keydown', onEsc))
-onBeforeUnmount(() => window.removeEventListener('keydown', onEsc))
+onKeyStroke('Escape', () => emit('close'))
 
 watch(() => route.fullPath, () => emit('close'))
 
@@ -55,8 +51,10 @@ function pickLogout() {
 
   <template v-else>
     <transition name="drawer">
-      <div v-if="props.open" class="fixed inset-0 z-50 flex" @click.self="emit('close')">
-        <div class="absolute inset-0 bg-black/40" data-testid="account-drawer-backdrop" @click="emit('close')"/>
+      <div v-if="props.open" class="fixed inset-0 z-50 flex" role="presentation"
+           @click.self="emit('close')" @keydown.esc="emit('close')">
+        <div class="absolute inset-0 bg-black/40" data-testid="account-drawer-backdrop" role="presentation" aria-hidden="true"
+             @click="emit('close')"/>
         <div class="relative ml-auto h-full w-72 bg-(--bg) shadow-xl flex flex-col gap-1 p-3">
           <DropdownMenuItem :icon="['fas', 'gear']" :to="accountPage">
             {{ t('header.accountSettings') }}

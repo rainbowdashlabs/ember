@@ -4,22 +4,21 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {computed, type Ref} from 'vue'
-import {useI18n} from 'vue-i18n'
 import {glyphFor} from '@/util/glyph'
 import {useMovementParties} from '@/composables/useMovementParties'
-import {MovementState, type Movement} from '@/api/movements'
+import type {MovementResponse} from '@/api/generated/schema'
 
 /**
  * What one movement looks like in a list, whichever list it stands in.
  *
  * <p>The queue and the inventory overview draw the same cells for the same movement. Working them
- * out twice is how the two drift apart.
+ * out twice is how the two drift apart. Where it stands is worded by `useMovementStanding`, which the
+ * gear a movement runs on shares.
  *
  * @param movement the movement being drawn
  */
-export function useMovementRowView(movement: Ref<Movement>) {
-    const {t} = useI18n()
-    const {ownerLabel, actorLabel} = useMovementParties(movement)
+export function useMovementRowView(movement: Ref<MovementResponse>) {
+    const {ownerLabel} = useMovementParties(movement)
 
     const chip = computed(() => ({
         glyph: glyphFor({icon: movement.value.icon, color: movement.value.color}),
@@ -30,8 +29,6 @@ export function useMovementRowView(movement: Ref<Movement>) {
         inventoryName: movement.value.itemName ? movement.value.inventoryName : null,
     }))
 
-    const open = computed(() => movement.value.state === MovementState.OPEN)
-
     /**
      * Whose gear it is, said on every row.
      *
@@ -41,12 +38,5 @@ export function useMovementRowView(movement: Ref<Movement>) {
      */
     const owner = computed(() => ownerLabel.value)
 
-    /** Who is being waited on, or how it ended for one that is over. */
-    const standing = computed(() => {
-        if (!open.value) return t(`movements.state.${movement.value.state}`)
-        const actor = movement.value.currentStepActor
-        return actor ? t('movements.waitingFor', {party: actorLabel(actor)}) : ''
-    })
-
-    return {chip, open, owner, standing}
+    return {chip, owner}
 }

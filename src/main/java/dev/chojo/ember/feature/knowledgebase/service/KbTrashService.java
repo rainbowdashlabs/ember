@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.knowledgebase.service.KbAccessService.MemberAcces
 import dev.chojo.ember.feature.page.repository.PageRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -79,7 +80,7 @@ public class KbTrashService {
      * @param memberId who deleted it, {@code null} when nobody in particular did
      * @return {@code true} when the article was in use until now
      */
-    public boolean deleteFile(int fileId, Integer memberId) {
+    public boolean deleteFile(int fileId, @Nullable Integer memberId) {
         if (!repository.softDeleteFile(fileId, memberId)) return false;
         repository.deleteSearchIndex(List.of(fileId));
         log.info("KB file {} moved to the trash by member {}", fileId, memberId);
@@ -93,7 +94,7 @@ public class KbTrashService {
      * @param memberId who deleted it, {@code null} when nobody in particular did
      * @return {@code true} when the folder was in use until now
      */
-    public boolean deleteFolder(int folderId, Integer memberId) {
+    public boolean deleteFolder(int folderId, @Nullable Integer memberId) {
         if (!repository.softDeleteFolder(folderId, memberId)) return false;
         var files = repository.markSubtreeDeleted(folderId, memberId);
         repository.deleteSearchIndex(files);
@@ -184,18 +185,16 @@ public class KbTrashService {
         var files = repository.findTrashedFiles(stationId);
         var childFolders = new HashMap<Integer, List<TrashedFolder>>();
         for (var folder : folders) {
-            if (folder.parentId() != null) {
-                childFolders
-                        .computeIfAbsent(folder.parentId(), key -> new ArrayList<>())
-                        .add(folder);
+            Integer parentId = folder.parentId();
+            if (parentId != null) {
+                childFolders.computeIfAbsent(parentId, key -> new ArrayList<>()).add(folder);
             }
         }
         var folderFiles = new HashMap<Integer, List<TrashedFile>>();
         for (var file : files) {
-            if (file.folderId() != null) {
-                folderFiles
-                        .computeIfAbsent(file.folderId(), key -> new ArrayList<>())
-                        .add(file);
+            Integer folderId = file.folderId();
+            if (folderId != null) {
+                folderFiles.computeIfAbsent(folderId, key -> new ArrayList<>()).add(file);
             }
         }
 
@@ -315,11 +314,11 @@ public class KbTrashService {
                 pages.stream().anyMatch(PageRepository.EmbeddingPage::reachable));
     }
 
-    private boolean mayManage(MemberAccess access, Integer folderId, Integer fileId) {
+    private boolean mayManage(MemberAccess access, @Nullable Integer folderId, @Nullable Integer fileId) {
         return accessService.effectiveLevel(access, folderId, fileId).covers(KbAccessLevel.MANAGE);
     }
 
-    private String nameOf(Integer memberId) {
+    private @Nullable String nameOf(@Nullable Integer memberId) {
         return memberId == null ? null : authorNameService.resolveMemberName(memberId);
     }
 
@@ -368,7 +367,7 @@ public class KbTrashService {
         contentService.deleteBlocks(file);
     }
 
-    private boolean inTrash(Integer folderId) {
+    private boolean inTrash(@Nullable Integer folderId) {
         return folderId != null && repository.findDeletedFolderById(folderId).isPresent();
     }
 
@@ -386,9 +385,9 @@ public class KbTrashService {
             int id,
             String name,
             String description,
-            KbFileType fileType,
+            @Nullable KbFileType fileType,
             Instant deletedAt,
-            String deletedByName,
+            @Nullable String deletedByName,
             long bytes,
             int contained) {}
 
@@ -406,7 +405,7 @@ public class KbTrashService {
      * @param movedToRoot whether the entry had to come back at the top level because the folder it
      *                    was deleted from is itself in the trash
      */
-    public record RestoreResult(boolean restored, String name, boolean movedToRoot) {
+    public record RestoreResult(boolean restored, @Nullable String name, boolean movedToRoot) {
         static RestoreResult missing() {
             return new RestoreResult(false, null, false);
         }

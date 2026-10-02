@@ -9,10 +9,10 @@ import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import InfoContainer from '@/components/container/InfoContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import ThemeSelector from '@/components/theme/ThemeSelector.vue'
-import DummyEmailSettings from './settingshelp/DummyEmailSettings.vue'
+import NotificationsSection from '@/views/stationview/profile/settingsview/NotificationsSection.vue'
+import {DEMO_SETTINGS} from './fixtures'
 
 const {t} = useI18n()
 </script>
@@ -37,18 +37,7 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.settings.emailText') }}</p>
     </HelpSection>
 
-    <InfoContainer class="space-y-2">
-      <p class="text-sm">
-        {{ t('userSettings.mailProviderInfo', {provider: 'Beispiel Mail GmbH'}) }}
-      </p>
-      <p class="text-xs">
-        <a href="#" class="text-primary hover:underline">
-          {{ t('userSettings.mailProviderPrivacy') }}
-        </a>
-      </p>
-    </InfoContainer>
-
-    <DummyEmailSettings/>
+    <NotificationsSection :settings="DEMO_SETTINGS"/>
 
     <HelpSection :title="t('helpCenter.settings.typesTitle')">
       <p>{{ t('helpCenter.settings.typesText') }}</p>

@@ -21,12 +21,13 @@ import type { PageDraft } from '../types'
  * would otherwise notice the questions on it are never asked.
  */
 defineProps<{
-  page: PageDraft
   index: number
   last: boolean
   /** Whether some path through the form reaches this page. */
   reached: boolean
 }>()
+
+const page = defineModel<PageDraft>('page', {required: true})
 
 const emit = defineEmits<{
   move: [direction: -1 | 1]

@@ -5,14 +5,15 @@
  */
 package dev.chojo.ember.feature.federation.repository;
 
-import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.feature.federation.entity.InventoryBlock;
 import dev.chojo.ember.feature.federation.entity.LendingMessage;
 import dev.chojo.ember.feature.federation.entity.LendingRequest;
 import dev.chojo.ember.feature.federation.entity.LendingRequestItem;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
+import dev.chojo.ember.feature.federation.entity.LentOutItem;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -35,15 +36,13 @@ import static dev.chojo.ember.util.sql.SqlSupport.insertReturning;
 public class LendingRepository {
     private static final String LENDING_REQUEST_COLUMNS = """
             id, requesting_station_uid, owning_station_uid, status, requested_date_from, \
-            requested_date_to, created_by, created_at, updated_at, event_id, event_date, occasion""";
+            requested_date_to, created_by, created_at, updated_at, event_id, event_date, occasion, uid""";
     private static final String LENDING_REQUEST_ITEM_COLUMNS =
-            "id, request_id, inventory_id, item_id, art_id, quantity, need_id";
+            "id, request_id, inventory_id, item_id, art_id, quantity, need_id, label";
     private static final String LENDING_MESSAGE_COLUMNS =
             "id, request_id, sender_station_uid, sender_member_id, message, is_system, created_at";
     private static final String INVENTORY_BLOCK_COLUMNS =
             "id, station_id, inventory_id, item_id, block_from, block_to, reason";
-
-    // -- Lending Requests --
 
     public LendingRequest createRequest(
             UUID requestingStationUid,
@@ -54,12 +53,42 @@ public class LendingRepository {
             Integer eventId,
             LocalDate eventDate,
             String occasion) {
+        return createRequest(
+                UUID.randomUUID(),
+                requestingStationUid,
+                owningStationUid,
+                dateFrom,
+                dateTo,
+                createdBy,
+                eventId,
+                eventDate,
+                occasion);
+    }
+
+    /**
+     * Writes a request down under the identity it carries between the two stations.
+     *
+     * @param uid       the identity both copies of the request share
+     * @param createdBy the member who asked, or {@code null} where that member is on another instance
+     * @return the stored request
+     */
+    public LendingRequest createRequest(
+            UUID uid,
+            UUID requestingStationUid,
+            UUID owningStationUid,
+            LocalDate dateFrom,
+            LocalDate dateTo,
+            @Nullable Integer createdBy,
+            @Nullable Integer eventId,
+            @Nullable LocalDate eventDate,
+            String occasion) {
         return insertReturning(
                 """
-                INSERT INTO federation_lending_request(requesting_station_uid, owning_station_uid, status, requested_date_from, requested_date_to, created_by, event_id, event_date, occasion)
-                VALUES (:requesting_station_uid::uuid, :owning_station_uid::uuid, :status, :date_from, :date_to, :created_by, :event_id, :event_date, :occasion)
+                INSERT INTO federation_lending_request(uid, requesting_station_uid, owning_station_uid, status, requested_date_from, requested_date_to, created_by, event_id, event_date, occasion)
+                VALUES (:uid::uuid, :requesting_station_uid::uuid, :owning_station_uid::uuid, :status, :date_from, :date_to, :created_by, :event_id, :event_date, :occasion)
                 RETURNING %s;""",
-                call().bind("requesting_station_uid", requestingStationUid, StandardValueConverter.UUID_STRING)
+                call().bind("uid", uid, StandardValueConverter.UUID_STRING)
+                        .bind("requesting_station_uid", requestingStationUid, StandardValueConverter.UUID_STRING)
                         .bind("owning_station_uid", owningStationUid, StandardValueConverter.UUID_STRING)
                         .bind("status", LendingStatus.REQUESTED)
                         .bind("date_from", dateFrom)
@@ -92,6 +121,50 @@ public class LendingRepository {
         return findById("federation_lending_request", LENDING_REQUEST_COLUMNS, id, LendingRequest.map());
     }
 
+    /**
+     * This instance's copy of a request, found by the identity both copies share.
+     *
+     * @param uid the request's identity between the two stations
+     * @return the request, if this instance holds a copy
+     */
+    public Optional<LendingRequest> findRequestByUid(UUID uid) {
+        return query("""
+                SELECT %s FROM federation_lending_request
+                WHERE uid = :uid::uuid;""", LENDING_REQUEST_COLUMNS)
+                .single(call().bind("uid", uid, StandardValueConverter.UUID_STRING))
+                .map(LendingRequest.map())
+                .first();
+    }
+
+    /**
+     * Removes a request this instance wrote down and could not deliver.
+     *
+     * @param uid the request's identity between the two stations
+     * @return true when a row went
+     */
+    public boolean deleteRequest(UUID uid) {
+        return query("DELETE FROM federation_lending_request WHERE uid = :uid::uuid;")
+                .single(call().bind("uid", uid, StandardValueConverter.UUID_STRING))
+                .delete()
+                .changed();
+    }
+
+    /**
+     * Names the lines of a request, in the order they were written, with what the lending station
+     * calls them.
+     *
+     * @param requestId the request
+     * @param labels    one name per line, in line order
+     */
+    public void labelItems(int requestId, List<String> labels) {
+        var items = findItemsByRequest(requestId);
+        for (int i = 0; i < items.size() && i < labels.size(); i++) {
+            query("UPDATE federation_lending_request_item SET label = :label WHERE id = :id;")
+                    .single(call().bind("id", items.get(i).id()).bind("label", labels.get(i)))
+                    .update();
+        }
+    }
+
     public List<LendingRequest> findRequestsByStation(UUID stationUid) {
         return query("""
                 SELECT %s
@@ -112,10 +185,13 @@ public class LendingRepository {
                 .changed();
     }
 
-    // -- Lending Request Items --
-
     public LendingRequestItem addRequestItem(
-            int requestId, Integer inventoryId, Integer itemId, Integer artId, int quantity, Integer needId) {
+            int requestId,
+            @Nullable Integer inventoryId,
+            @Nullable Integer itemId,
+            @Nullable Integer artId,
+            int quantity,
+            @Nullable Integer needId) {
         return insertReturning(
                 """
                 INSERT INTO federation_lending_request_item(request_id, inventory_id, item_id, art_id, quantity, need_id)
@@ -226,7 +302,7 @@ public class LendingRepository {
     }
 
     public LendingMessage createMessage(
-            int requestId, UUID senderStationUid, Integer senderMemberId, String message, boolean isSystem) {
+            int requestId, UUID senderStationUid, @Nullable Integer senderMemberId, String message, boolean isSystem) {
         return insertReturning(
                 """
                 INSERT INTO federation_lending_message(request_id, sender_station_uid, sender_member_id, message, is_system)
@@ -240,8 +316,6 @@ public class LendingRepository {
                 LendingMessage.map(),
                 LENDING_MESSAGE_COLUMNS);
     }
-
-    // -- Messages --
 
     public List<LendingMessage> findMessagesByRequest(int requestId) {
         return query(
@@ -271,7 +345,12 @@ public class LendingRepository {
     }
 
     public InventoryBlock createBlock(
-            int stationId, Integer inventoryId, Integer itemId, LocalDate blockFrom, LocalDate blockTo, String reason) {
+            int stationId,
+            @Nullable Integer inventoryId,
+            @Nullable Integer itemId,
+            LocalDate blockFrom,
+            LocalDate blockTo,
+            String reason) {
         return insertReturning(
                 """
                 INSERT INTO federation_inventory_block(station_id, inventory_id, item_id, block_from, block_to, reason)
@@ -286,8 +365,6 @@ public class LendingRepository {
                 InventoryBlock.map(),
                 INVENTORY_BLOCK_COLUMNS);
     }
-
-    // -- Inventory Blocks --
 
     public List<InventoryBlock> findBlocksByStation(int stationId) {
         return query(
@@ -324,16 +401,23 @@ public class LendingRepository {
                 .all();
     }
 
-    public boolean isBlocked(int stationId, Integer inventoryId, Integer itemId, LocalDate dateFrom, LocalDate dateTo) {
+    public boolean isBlocked(
+            int stationId,
+            @Nullable Integer inventoryId,
+            @Nullable Integer itemId,
+            LocalDate dateFrom,
+            LocalDate dateTo) {
         var blocks = findActiveBlocks(stationId, dateFrom, dateTo);
         for (var block : blocks) {
-            if (block.inventoryId() == null && block.itemId() == null) {
+            Integer blockedInventory = block.inventoryId();
+            Integer blockedItem = block.itemId();
+            if (blockedInventory == null && blockedItem == null) {
                 return true;
             }
-            if (block.inventoryId() != null && block.inventoryId().equals(inventoryId) && block.itemId() == null) {
+            if (blockedInventory != null && blockedInventory.equals(inventoryId) && blockedItem == null) {
                 return true;
             }
-            if (block.itemId() != null && block.itemId().equals(itemId)) {
+            if (blockedItem != null && blockedItem.equals(itemId)) {
                 return true;
             }
         }
@@ -344,33 +428,5 @@ public class LendingRepository {
         return count("""
                 SELECT count(*) AS cnt FROM federation_lending_request
                 WHERE owning_station_uid = :station_uid::uuid AND status = 'REQUESTED';""", call().bind("station_uid", stationUid, StandardValueConverter.UUID_STRING));
-    }
-
-    /**
-     * Finds items from lending requests that are currently lent out (APPROVED or LENT status)
-     * for a specific inventory, owned by a specific station.
-     */
-    public record LentOutItem(
-            int requestItemId,
-            int requestId,
-            Integer itemId,
-            int quantity,
-            Integer assignedItemId,
-            String status,
-            LocalDate dateFrom,
-            LocalDate dateTo,
-            String requestingStationName) {
-        public static RowMapping<LentOutItem> map() {
-            return row -> new LentOutItem(
-                    row.getInt("request_item_id"),
-                    row.getInt("request_id"),
-                    row.getObject("item_id", Integer.class),
-                    row.getInt("quantity"),
-                    row.getObject("assigned_item_id", Integer.class),
-                    row.getString("status"),
-                    row.getObject("date_from", LocalDate.class),
-                    row.getObject("date_to", LocalDate.class),
-                    row.getString("requesting_station_name"));
-        }
     }
 }

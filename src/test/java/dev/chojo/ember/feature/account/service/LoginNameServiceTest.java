@@ -5,12 +5,15 @@
  */
 package dev.chojo.ember.feature.account.service;
 
+import dev.chojo.ember.api.refusal.MemberRefusal;
+import dev.chojo.ember.api.refusal.Refusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.function.Executable;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -55,24 +58,25 @@ class LoginNameServiceTest extends RepositoryTestBase {
 
     @Test
     void anAddressIsNotAName() {
-        assertThrows(BadRequestResponse.class, () -> service.validated("otto@test.com", other.id()));
+        assertRefused(
+                MemberRefusal.USERNAME_CHARACTERS_NOT_TAKEN, () -> service.validated("otto@test.com", other.id()));
     }
 
     @Test
     void tooShortAndTooLongAreRefused() {
-        assertThrows(BadRequestResponse.class, () -> service.validated("ab", other.id()));
-        assertThrows(BadRequestResponse.class, () -> service.validated("a".repeat(33), other.id()));
+        assertRefused(MemberRefusal.USERNAME_LENGTH_NOT_TAKEN, () -> service.validated("ab", other.id()));
+        assertRefused(MemberRefusal.USERNAME_LENGTH_NOT_TAKEN, () -> service.validated("a".repeat(33), other.id()));
     }
 
     @Test
     void spacesAndPunctuationAreRefused() {
-        assertThrows(BadRequestResponse.class, () -> service.validated("otto other", other.id()));
-        assertThrows(BadRequestResponse.class, () -> service.validated("otto!", other.id()));
+        assertRefused(MemberRefusal.USERNAME_CHARACTERS_NOT_TAKEN, () -> service.validated("otto other", other.id()));
+        assertRefused(MemberRefusal.USERNAME_CHARACTERS_NOT_TAKEN, () -> service.validated("otto!", other.id()));
     }
 
     @Test
     void somebodyElsesNameIsRefusedWhateverItsCase() {
-        assertThrows(BadRequestResponse.class, () -> service.validated("NINA.NAME", other.id()));
+        assertRefused(MemberRefusal.USERNAME_TAKEN, () -> service.validated("NINA.NAME", other.id()));
     }
 
     @Test
@@ -86,9 +90,13 @@ class LoginNameServiceTest extends RepositoryTestBase {
         accountRepo.updateUsername(noAddress.id(), "kim.kind");
         var stored = accountRepo.findById(noAddress.id()).orElseThrow();
 
-        assertThrows(BadRequestResponse.class, () -> service.validatedFor(stored, ""));
+        assertRefused(MemberRefusal.USERNAME_IS_THE_ONLY_WAY_IN, () -> service.validatedFor(stored, ""));
 
         accountRepo.delete(noAddress.id());
+    }
+
+    private static void assertRefused(Refusal expected, Executable call) {
+        assertEquals(expected, assertThrows(RefusalResponse.class, call).refusal());
     }
 
     @Test

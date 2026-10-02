@@ -10,11 +10,10 @@ import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.events.entity.BatchFieldEntry;
 import dev.chojo.ember.feature.events.entity.BatchRequest;
 import dev.chojo.ember.feature.events.entity.BatchRow;
-import dev.chojo.ember.feature.events.entity.EventFieldConfig;
-import dev.chojo.ember.feature.events.entity.EventFieldType;
+import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.IntervalConfig;
 import dev.chojo.ember.feature.events.entity.IntervalType;
-import dev.chojo.ember.feature.members.service.UserTagService;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -49,8 +48,7 @@ class BatchEventServiceTest extends RepositoryTestBase {
         var fieldService = new EventFieldService(
                 eventFieldRepo,
                 stationMemberRepo,
-                memberGroupRepo,
-                new UserTagService(userTagRepo, memberGroupRepo),
+                memberEligibility,
                 eventRepo,
                 attendanceRepo,
                 eventFieldRegistrationService);
@@ -74,8 +72,8 @@ class BatchEventServiceTest extends RepositoryTestBase {
         Instant end2 = start2.plus(2, ChronoUnit.HOURS);
 
         var inlineFields = List.of(
-                new BatchFieldEntry("Location", EventFieldType.STRING, EventFieldConfig.parse("{}"), true, null),
-                new BatchFieldEntry("Notes", EventFieldType.STRING, EventFieldConfig.parse("{}"), false, null));
+                new BatchFieldEntry("Location", FieldType.TEXT, EventQuestionSettings.empty(), true, null),
+                new BatchFieldEntry("Notes", FieldType.TEXT, EventQuestionSettings.empty(), false, null));
 
         var rows = List.of(
                 new BatchRow("Event Day 1", start1, end1, Map.of("Location", "Berlin", "Notes", "Bring gear")),

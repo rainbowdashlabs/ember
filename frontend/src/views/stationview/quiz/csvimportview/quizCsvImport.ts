@@ -3,7 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {QuizQuestionTypes, type CsvMappings, type QuizCatalogExportQuestion, type QuizQuestionTypeName} from '@/api/quiz'
+import {QuizQuestionTypes, type QuizQuestionTypeName} from '@/api/quiz'
+import type {CatalogTransferQuestion, CsvMappings} from '@/api/generated/schema'
 
 /**
  * A drafted question as the wizard holds it: what would be created, the answer cell it was read
@@ -11,7 +12,7 @@ import {QuizQuestionTypes, type CsvMappings, type QuizCatalogExportQuestion, typ
  * everything here edits a config that already has its shape.
  */
 export interface ImportDraft {
-    question: QuizCatalogExportQuestion
+    question: CatalogTransferQuestion
     rawAnswer: string
     answerSeparator: string
     included: boolean
@@ -34,7 +35,10 @@ export const ANSWER_SEPARATOR_PRESETS: {label: string; value: string}[] = [
     {label: '␣', value: ' '},
 ]
 
-export function createQuizCsvMapping(headers: string[]): CsvMappings {
+/** A column mapping as the wizard holds it: every field set, even where it names no column. */
+export type CsvMappingForm = Required<CsvMappings>
+
+export function createQuizCsvMapping(headers: string[]): CsvMappingForm {
     return {
         questionColumn: headers[0] ?? '',
         answerColumn: headers[1] ?? '',
@@ -58,12 +62,12 @@ type PairConfig = {pairs?: {left: string; right: string}[]}
 type ListConfig = {items?: string[]; answers?: string[]}
 
 /** Whether a question of this type keeps its answers as a list the wizard can edit. */
-export function hasAnswerList(type: QuizQuestionTypeName): boolean {
+export function hasAnswerList(type: string): boolean {
     return type !== QuizQuestionTypes.TRUE_FALSE && type !== QuizQuestionTypes.IMAGE_TEXT
 }
 
 /** Whether the wizard offers to mark single entries right or wrong. */
-export function hasCorrectness(type: QuizQuestionTypeName): boolean {
+export function hasCorrectness(type: string): boolean {
     return type === QuizQuestionTypes.MULTIPLE_CHOICE
 }
 

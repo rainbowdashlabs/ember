@@ -5,9 +5,15 @@
  */
 package dev.chojo.ember.feature.events.entity;
 
+import dev.chojo.ember.feature.question.FieldType;
+import org.jspecify.annotations.Nullable;
+
 /**
- * Field definition copied onto every event created in a batch. Either supplied
- * inline on the batch request, or derived from the picked event template.
+ * Field definition copied onto every event created in a batch, as the batch request supplies it.
  */
 public record BatchFieldEntry(
-        String name, EventFieldType fieldType, EventFieldConfig config, boolean overview, Integer attendanceFieldId) {}
+        String name,
+        FieldType fieldType,
+        EventQuestionSettings config,
+        boolean overview,
+        @Nullable Integer attendanceFieldId) {}

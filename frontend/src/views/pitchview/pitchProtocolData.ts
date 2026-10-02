@@ -3,9 +3,9 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {EvaluationResponse, TestProtocolItem, TestProtocolSection} from '@/api/protocol'
-import type {StationMember} from '@/api/types'
+import type {EvaluationResponse, MemberWithName, TestProtocolItem, TestProtocolSection} from '@/api/generated/schema'
 import type {PitchEvaluation, PitchGrading} from './pitchTypes'
+import {pitchMember} from './pitchMembers'
 
 /**
  * The badge test a demonstration works through. The grading panel and the evaluation table of the
@@ -42,18 +42,14 @@ export const PROTOCOL_GRADING: PitchGrading = {
     section: EQUIPMENT,
     childSections: [ON_VEHICLE],
     sectionItems: (sectionId: number) => ITEMS.filter(entry => entry.sectionId === sectionId),
-    checks: new Map([[1, true], [2, true], [5, true]]),
+    checks: new Map([[1, true], [2, true], [5, true]]) as ReadonlyMap<number, boolean>,
     score: 5,
     maxPoints: 10,
     done: false,
 }
 
-function member(id: number, name: string): StationMember {
-    return {id, stationId: 'wache', accountId: id, name}
-}
-
-const MEMBERS = [member(1, 'Anna Müller'), member(2, 'Ben Krüger'),
-    member(3, 'Clara Weiß'), member(4, 'Jonas Behr')]
+const MEMBERS = [pitchMember(1, 'Anna Müller'), pitchMember(2, 'Ben Krüger'),
+    pitchMember(3, 'Clara Weiß'), pitchMember(4, 'Jonas Behr')]
 
 const SCORES: Record<number, number[]> = {
     1: [8, 7, 6, 6],
@@ -82,5 +78,5 @@ const EVAL_DATA: EvaluationResponse = {
 
 export const PROTOCOL_EVALUATION: PitchEvaluation = {
     evalData: EVAL_DATA,
-    memberMap: new Map(MEMBERS.map(entry => [entry.id, entry])),
+    memberMap: new Map(MEMBERS.map(entry => [entry.id, entry])) as ReadonlyMap<number, MemberWithName>,
 }

@@ -14,7 +14,8 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import TimeInput from '@/components/input/datetime/TimeInput.vue'
 import OccurrenceSearchPicker from '@/components/input/search/OccurrenceSearchPicker.vue'
 import type {EventOccurrenceRef} from '@/api/events'
-import type {WaitingListEntryWithScore} from '@/api/waitingList'
+import type {WaitingListEntryWithScore} from '@/api/generated/schema'
+import {entryFullName} from './entryFullName'
 
 /**
  * The invitation to come and look, which is the one transition that has something to fill in.
@@ -31,16 +32,12 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'cancel'): void
-  (e: 'confirm'): void
+  cancel: []
+  confirm: []
 }>()
 
 const {t} = useI18n()
 
-function entryFullName(item: WaitingListEntryWithScore): string {
-  const e = item.entry
-  return e.lastname ? `${e.firstname} ${e.lastname}` : e.firstname
-}
 
 function onUpdate(value: boolean) {
   if (!value) emit('cancel')

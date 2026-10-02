@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.events.repository;
 
 import dev.chojo.ember.feature.content.BlockReferenceTestBase;
 import dev.chojo.ember.feature.content.entity.BlockAudience;
+import dev.chojo.ember.feature.events.entity.PickerMode;
 import org.junit.jupiter.api.Test;
 
 import java.util.UUID;
@@ -24,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class EventOpenLookupRepositoryTest extends BlockReferenceTestBase {
 
     private static boolean offered(BlockAudience audience, String name) {
-        return eventRepo.searchForPicker(station.id(), audience, "übung", EventRepository.PickerMode.ALL, 20).stream()
+        return eventRepo.searchForPicker(station.id(), audience, "übung", PickerMode.ALL, 20).stream()
                 .anyMatch(found -> name.equals(found.name()));
     }
 

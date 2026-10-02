@@ -127,18 +127,14 @@ class FederationSigningServiceTest {
     }
 
     @Test
-    void decodeAndVerifyWithEncodedKeys() {
+    void verifyWithDecodedPublicKey() {
         String body = "test payload";
         Instant timestamp = Instant.now();
 
         String encodedPublic = Base64.getEncoder().encodeToString(publicKey.getEncoded());
-        String encodedPrivate = Base64.getEncoder().encodeToString(privateKey.getEncoded());
-
         PublicKey decodedPublic = signingService.decodePublicKey(encodedPublic);
-        PrivateKey decodedPrivate = signingService.decodePrivateKey(encodedPrivate);
 
-        String signature =
-                signingService.sign("POST", PATH, RECIPIENT, NONCE, body, timestamp.toString(), decodedPrivate);
+        String signature = signingService.sign("POST", PATH, RECIPIENT, NONCE, body, timestamp.toString(), privateKey);
         assertTrue(signingService.verify("POST", PATH, RECIPIENT, NONCE, body, signature, decodedPublic, timestamp));
     }
 
@@ -198,11 +194,6 @@ class FederationSigningServiceTest {
     }
 
     @Test
-    void decodePrivateKeyInvalid() {
-        assertThrows(RuntimeException.class, () -> signingService.decodePrivateKey("not-a-valid-key"));
-    }
-
-    @Test
     void signAndVerifyLargeBodyWithUtf8() {
         String body = "äöü".repeat(5000);
         Instant timestamp = Instant.now();
@@ -258,22 +249,5 @@ class FederationSigningServiceTest {
         String signature = signingService.signEnrollmentPayload(payload, privateKey);
         assertTrue(signingService.verifyEnrollmentPayload(payload, signature, publicKey));
         assertFalse(signingService.verifyEnrollmentPayload(payload + "x", signature, publicKey));
-    }
-
-    /**
-     * A station keeps only the private half of its key pair, so joining a second partner has to be
-     * able to hand out the public half that belongs to it rather than a freshly generated one.
-     */
-    @Test
-    void derivesThePublicKeyBelongingToAStoredPrivateKey() {
-        String stored = Base64.getEncoder().encodeToString(privateKey.getEncoded());
-        String expected = Base64.getEncoder().encodeToString(publicKey.getEncoded());
-
-        assertEquals(expected, signingService.derivePublicKey(stored));
-    }
-
-    @Test
-    void derivingFromSomethingThatIsNoPrivateKeyFails() {
-        assertThrows(RuntimeException.class, () -> signingService.derivePublicKey("not-a-key"));
     }
 }

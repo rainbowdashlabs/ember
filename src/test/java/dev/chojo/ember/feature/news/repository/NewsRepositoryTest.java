@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.news.repository;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.content.entity.BlockAudience;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.news.entity.News;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -29,7 +30,6 @@ class NewsRepositoryTest extends RepositoryTestBase {
     private static Account account;
     private static StationMember member;
     private static int newsId;
-    private static int commentId;
 
     @BeforeAll
     static void setup() {
@@ -69,6 +69,23 @@ class NewsRepositoryTest extends RepositoryTestBase {
     }
 
     @Test
+    @Order(3)
+    void anInstanceDraftStaysOutOfAStationsListUntilItIsPublished() {
+        var draft = newsRepo.createSystem("Instance draft", "draft", "<p>draft</p>", false);
+        var published = newsRepo.createSystem("Instance news", "news", "<p>news</p>", true);
+        try {
+            var ids = newsRepo.findByStation(station.id(), 0, 50).stream()
+                    .map(News::id)
+                    .toList();
+            assertFalse(ids.contains(draft.id()));
+            assertTrue(ids.contains(published.id()));
+        } finally {
+            newsRepo.delete(draft.id());
+            newsRepo.delete(published.id());
+        }
+    }
+
+    @Test
     @Order(4)
     void update() {
         assertTrue(newsRepo.update(newsId, "Updated News", "# Updated", "<h1>Updated</h1>"));
@@ -78,12 +95,9 @@ class NewsRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(5)
     void findVisibleForMember() {
-        // No group restrictions, should be visible
-        var visible = newsRepo.findVisibleForMember(station.id(), member.id(), 0, 10);
+        var visible = newsRepo.findVisibleForMember(station.id(), member.id(), false, 0, 10);
         assertEquals(1, visible.size());
     }
-
-    // -- Restrictions (now handled by RestrictionRepository) --
 
     @Test
     @Order(10)
@@ -101,71 +115,10 @@ class NewsRepositoryTest extends RepositoryTestBase {
         memberGroupRepo.delete(group.id());
     }
 
-    // -- Comments --
-
-    @Test
-    @Order(20)
-    void createComment() {
-        var authorIdentity = stationMemberRepo.resolveIdentity(member.id());
-        var comment = newsRepo.createComment(newsId, null, authorIdentity, "Great news!");
-        assertNotNull(comment);
-        assertEquals("Great news!", comment.content());
-        commentId = comment.id();
-    }
-
-    @Test
-    @Order(21)
-    void findCommentsByNews() {
-        assertEquals(1, newsRepo.findCommentsByNews(newsId).size());
-    }
-
-    @Test
-    @Order(22)
-    void countComments() {
-        assertEquals(1, newsRepo.countComments(newsId));
-    }
-
-    @Test
-    @Order(23)
-    void findCommentById() {
-        assertTrue(newsRepo.findCommentById(commentId).isPresent());
-        assertTrue(newsRepo.findCommentById(99999).isEmpty());
-    }
-
-    @Test
-    @Order(24)
-    void updateComment() {
-        assertTrue(newsRepo.updateComment(commentId, "Updated comment"));
-        assertEquals(
-                "Updated comment",
-                newsRepo.findCommentById(commentId).orElseThrow().content());
-    }
-
-    @Test
-    @Order(25)
-    void createReply() {
-        var authorIdentity = stationMemberRepo.resolveIdentity(member.id());
-        var reply = newsRepo.createComment(newsId, commentId, authorIdentity, "Reply to comment");
-        assertNotNull(reply);
-        assertEquals(commentId, reply.parentId());
-        assertEquals(2, newsRepo.countComments(newsId));
-        newsRepo.deleteComment(reply.id());
-    }
-
-    @Test
-    @Order(26)
-    void deleteComment() {
-        assertTrue(newsRepo.deleteComment(commentId));
-        assertEquals(0, newsRepo.countComments(newsId));
-    }
-
-    // -- Acknowledgements --
-
     @Test
     @Order(30)
     void acknowledge() {
         assertDoesNotThrow(() -> newsRepo.acknowledge(newsId, member.id()));
-        // Idempotent - calling again should not throw
         assertDoesNotThrow(() -> newsRepo.acknowledge(newsId, member.id()));
     }
 
@@ -179,11 +132,9 @@ class NewsRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(32)
     void countUnacknowledged() {
-        // Create a second account/member that has not acknowledged
         var account2 = accountRepo.create("news2@test.com", "News2", "User2");
         var member2 = stationMemberRepo.create(station.id(), account2.id());
-        int unacked = newsRepo.countUnacknowledged(station.id(), member2.id());
-        // There is one published news article that member2 has not acknowledged
+        int unacked = newsRepo.countUnacknowledged(station.id(), member2.id(), false);
         assertEquals(1, unacked);
         accountRepo.delete(account2.id());
     }
@@ -191,8 +142,7 @@ class NewsRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(33)
     void countUnacknowledgedWhenAcknowledged() {
-        // member already acknowledged the article in Order(30)
-        int unacked = newsRepo.countUnacknowledged(station.id(), member.id());
+        int unacked = newsRepo.countUnacknowledged(station.id(), member.id(), false);
         assertEquals(0, unacked);
     }
 
@@ -248,18 +198,14 @@ class NewsRepositoryTest extends RepositoryTestBase {
         assertFalse(newsRepo.hasPublicBlogEntries(station.id()));
     }
 
-    // -- Views --
-
     @Test
     @Order(50)
     void recordViewAndCount() {
-        // No views yet
         assertEquals(0, newsRepo.countViews(newsId));
         assertFalse(newsRepo.hasViewed(newsId, member.id()));
         newsRepo.recordView(newsId, member.id());
         assertEquals(1, newsRepo.countViews(newsId));
         assertTrue(newsRepo.hasViewed(newsId, member.id()));
-        // Idempotent - second call adds no row
         newsRepo.recordView(newsId, member.id());
         assertEquals(1, newsRepo.countViews(newsId));
     }
@@ -269,13 +215,12 @@ class NewsRepositoryTest extends RepositoryTestBase {
     void findSeenAndUnseenViewers() {
         var account2 = accountRepo.create("news-views2@test.com", "News2", "Viewer");
         var member2 = stationMemberRepo.create(station.id(), account2.id());
-        // member has viewed, member2 has not
         var seen = newsRepo.findSeenViewers(newsId);
         assertEquals(1, seen.size());
         assertEquals(member.uid(), seen.getFirst().member().memberUid());
         assertNotNull(seen.getFirst().seenAt());
 
-        var unseen = newsRepo.findUnseenViewers(newsId, station.id());
+        var unseen = newsRepo.findUnseenViewers(newsId, station.id(), List.of());
         assertTrue(unseen.stream().anyMatch(v -> v.member().memberUid().equals(member2.uid())));
         assertTrue(unseen.stream().allMatch(v -> v.seenAt() == null));
 
@@ -303,9 +248,9 @@ class NewsRepositoryTest extends RepositoryTestBase {
         var otherAccount = accountRepo.create("other-news@test.com", "Other", "Reader");
         var otherMember = stationMemberRepo.create(otherStation.id(), otherAccount.id());
         try {
-            assertTrue(newsRepo.isVisibleForMember(newsId, member.id()), "the station's own member reads it");
+            assertTrue(newsRepo.isVisibleForMember(newsId, member.id(), false), "the station's own member reads it");
             assertFalse(
-                    newsRepo.isVisibleForMember(newsId, otherMember.id()),
+                    newsRepo.isVisibleForMember(newsId, otherMember.id(), false),
                     "a member of another station does not read it");
         } finally {
             stationRepo.delete(otherStation.id());
@@ -323,9 +268,9 @@ class NewsRepositoryTest extends RepositoryTestBase {
                 newsRepo.createSystem("Wartung", "Kurz nicht erreichbar.", "<p>Kurz nicht erreichbar.</p>", true);
         try {
             assertTrue(systemNews.systemEntry(), "it belongs to no station");
-            assertTrue(newsRepo.isVisibleForMember(systemNews.id(), member.id()));
+            assertTrue(newsRepo.isVisibleForMember(systemNews.id(), member.id(), false));
             assertTrue(
-                    newsRepo.findVisibleForMember(station.id(), member.id(), 0, 50).stream()
+                    newsRepo.findVisibleForMember(station.id(), member.id(), false, 0, 50).stream()
                             .anyMatch(n -> n.id() == systemNews.id()),
                     "a station's news list holds it alongside its own");
         } finally {

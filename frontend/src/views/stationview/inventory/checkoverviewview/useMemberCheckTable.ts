@@ -6,7 +6,7 @@
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {ColumnTypes, type TableColumn} from '@/components/table/tableColumn'
-import type {MemberCheckSummary} from '@/api/inventoryCheck'
+import type {EnrichedCheckSummary} from '@/api/generated/schema'
 import {byValue} from '@/composables/useSortable'
 import {useDataTable} from '@/composables/useDataTable'
 import {checkerName, formatDate, isLockedByMe, isLockedByOther, memberName} from './memberHelpers'
@@ -24,16 +24,16 @@ export const CheckStatus = {
  * @param members         the members of the tab that is open
  * @param currentMemberId who is looking, which decides whether a check under way is theirs
  */
-export function useMemberCheckTable(members: () => MemberCheckSummary[], currentMemberId: () => number | undefined) {
+export function useMemberCheckTable(members: () => EnrichedCheckSummary[], currentMemberId: () => number | undefined) {
     const {t} = useI18n()
 
-    function statusOf(member: MemberCheckSummary): string | null {
+    function statusOf(member: EnrichedCheckSummary): string | null {
         if (isLockedByOther(member, currentMemberId())) return CheckStatus.LOCKED
         if (isLockedByMe(member, currentMemberId())) return CheckStatus.MINE
         return member.lastCheckedAt ? null : CheckStatus.NEVER
     }
 
-    const columns = computed<TableColumn<MemberCheckSummary>[]>(() => [
+    const columns = computed<TableColumn<EnrichedCheckSummary>[]>(() => [
         {key: 'name', label: t('inventory.check.member'), type: ColumnTypes.TEXT, value: memberName, pinned: true},
         {
             key: 'lastChecked', label: t('inventory.check.lastChecked'), type: ColumnTypes.DATE_TIME,
@@ -54,7 +54,7 @@ export function useMemberCheckTable(members: () => MemberCheckSummary[], current
         },
     ])
 
-    return useDataTable<MemberCheckSummary>({
+    return useDataTable<EnrichedCheckSummary>({
         id: 'inventory-checks',
         rows: members,
         columns,

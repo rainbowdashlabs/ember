@@ -7,11 +7,11 @@
 import { useI18n } from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import type { PermissionGrant, MemberGroup, UserTag } from '@/api/types'
+import type { Permission, MemberGroup, UserTag } from '@/api/generated/schema'
 
 defineProps<{
   memberUserType: string
-  memberPermissions: PermissionGrant[]
+  memberPermissions: Permission[]
   memberGroupList: MemberGroup[]
   memberTagList: UserTag[]
 }>()

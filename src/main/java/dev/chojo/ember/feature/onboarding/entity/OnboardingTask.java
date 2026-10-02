@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.onboarding.entity;
 
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.station.entity.StationModule;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Arrays;
 import java.util.List;
@@ -81,7 +82,11 @@ public enum OnboardingTask {
      * from a type reaches everybody else, which is what a task about the reader's own training
      * needs: it concerns a guardian's child rather than the guardian.
      */
-    public record Audience(StationUserType only, StationUserType except) {
+    public record Audience(
+            @Nullable StationUserType only, @Nullable StationUserType except) {
+        /** Everybody who signs in. */
+        public static final Audience EVERYONE = new Audience(null, null);
+
         public static Audience only(StationUserType type) {
             return new Audience(type, null);
         }
@@ -98,19 +103,28 @@ public enum OnboardingTask {
     private final String key;
     private final OnboardingLevel level;
     private final boolean derived;
-    private final StationModule module;
+    private final @Nullable StationModule module;
     private final Audience audience;
 
     OnboardingTask(String key, OnboardingLevel level, boolean derived) {
-        this(key, level, derived, null, null);
+        this(key, level, derived, Audience.EVERYONE);
     }
 
     OnboardingTask(String key, OnboardingLevel level, boolean derived, StationModule module) {
-        this(key, level, derived, null, module);
+        this(key, level, derived, Audience.EVERYONE, module);
     }
 
+    /**
+     * A task that needs no module. Kept apart from the one that names a module rather than handed a
+     * {@code null}, because SpotBugs does not see the nullness marks on an enum constructor's
+     * parameters.
+     */
     OnboardingTask(String key, OnboardingLevel level, boolean derived, Audience audience) {
-        this(key, level, derived, audience, null);
+        this.key = key;
+        this.level = level;
+        this.derived = derived;
+        this.audience = audience;
+        this.module = null;
     }
 
     OnboardingTask(String key, OnboardingLevel level, boolean derived, Audience audience, StationModule module) {
@@ -141,7 +155,7 @@ public enum OnboardingTask {
 
     /** Whether this task is asked of the given user type at all. */
     public boolean reaches(StationUserType userType) {
-        return audience == null || audience.includes(userType);
+        return audience.includes(userType);
     }
 
     /**
@@ -149,7 +163,7 @@ public enum OnboardingTask {
      * looking after two children sets up two children, and one tick may not stand for both.
      */
     public boolean perManagedMember() {
-        return audience != null && audience.only() == StationUserType.GUARDIAN;
+        return audience.only() == StationUserType.GUARDIAN;
     }
 
     /** The tasks of one level, in the order they are asked. */

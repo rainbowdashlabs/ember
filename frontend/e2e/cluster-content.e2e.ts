@@ -20,14 +20,14 @@ test.describe('Cluster content', () => {
      * CLS-31 - A cluster knowledge base article reaches every member station.
      *
      * Read at the station over the connection it already has. There is no page of federated articles of
-     * their own: they arrive in the station's own wiki, which is the point.
+     * their own: they arrive in the station's own wiki, which is the point. Shared articles are shown by
+     * default, so nothing has to be switched on first.
      */
     test('a cluster article reaches the member stations', async ({adminPage: page, browser, request}) => {
         const cluster = await enterCluster(page)
         const headers = await clusterHeaders(page, cluster)
         const name = `Dienstanweisung ${test.info().workerIndex}-${Date.now()}`
 
-        // Written the way the screens write it: the station's own knowledge base, over the cluster's station
         const written = await page.request.post('/api/v1/kb/files/markdown', {
             headers,
             data: {folderId: null, name, description: 'Vom Verband', content: '# Gilt für alle'},
@@ -36,15 +36,12 @@ test.describe('Cluster content', () => {
 
         const station = await pageAsThrowaway(browser, request, [], await clusterStationManager(request))
 
-        // Read on the station's own wiki, which is where somebody at the station would look for it.
-        // Shared articles are shown by default, so nothing has to be switched on first.
         await station.goto('/station/knowledge')
         await expect(station.getByTestId('app-shell')).toBeVisible()
 
-        // Once, however many shares reach it, and badged with the association rather than a station
         const entry = station.getByTestId('kb-item').filter({hasText: name})
-        await expect(entry).toHaveCount(1, {timeout: 15000})
-        await expect(entry).toContainText(cluster.name)
+        await expect(entry, 'listed once, however many shares reach it').toHaveCount(1, {timeout: 15000})
+        await expect(entry, 'badged with the association rather than a station').toContainText(cluster.name)
 
         await station.context().close()
     })
@@ -67,11 +64,10 @@ test.describe('Cluster content', () => {
 
         const station = await pageAsThrowaway(browser, request, [], await clusterStationManager(request))
 
-        // In the station's own news list, among what the station wrote itself, and sent by the association
         await station.goto('/station/news')
         await expect(station.getByTestId('app-shell')).toBeVisible()
-        await expect(station.getByText(title).first()).toBeVisible({timeout: 15000})
-        await expect(station.getByText(cluster.name).first()).toBeVisible()
+        await expect(station.getByText(title).first(), 'in the station\'s own news list').toBeVisible({timeout: 15000})
+        await expect(station.getByText(cluster.name).first(), 'sent by the association').toBeVisible()
 
         await station.context().close()
     })
@@ -104,7 +100,6 @@ test.describe('Cluster content', () => {
 
         const station = await pageAsThrowaway(browser, request, [], await clusterStationManager(request))
 
-        // The member's own list of what is coming up, which is where a registration is actually made
         await station.goto('/station/events/upcoming')
         await expect(station.getByTestId('app-shell')).toBeVisible()
 
@@ -112,8 +107,6 @@ test.describe('Cluster content', () => {
         await expect(tile).toBeVisible({timeout: 15000})
         await expect(tile.getByText(cluster.name)).toBeVisible()
 
-        // Registering is the member's act and the appointment is the association's: one row, both ends.
-        // The partner's appointment is answered with the same controls the station's own use.
         await tile.getByTestId('answer-selected').click()
         await expect(tile.locator('[data-testid^="undo-answer-"]').first()).toBeVisible({timeout: 15000})
 
@@ -136,18 +129,18 @@ test.describe('Cluster content', () => {
         })
         expect(written.ok()).toBeTruthy()
 
-        // On the station's own news list while it still answers to the cluster
         await own.stationPage.goto('/station/news')
         await expect(own.stationPage.getByTestId('app-shell')).toBeVisible()
-        await expect(own.stationPage.getByText(title).first()).toBeVisible({timeout: 15000})
+        await expect(own.stationPage.getByText(title).first(), 'listed while the station answers to the cluster')
+            .toBeVisible({timeout: 15000})
 
         const released = await page.request.delete(`/api/v1/cluster/stations/${own.stationUid}`,
             {headers: own.headers})
         expect(released.ok()).toBeTruthy()
 
-        // And gone from it afterwards. The page still works; what went is the cluster's half of it.
         await own.stationPage.reload()
         await expect(own.stationPage.getByTestId('app-shell')).toBeVisible()
-        await expect(own.stationPage.getByText(title)).toHaveCount(0, {timeout: 15000})
+        await expect(own.stationPage.getByText(title), 'the page still works and the cluster\'s half is gone')
+            .toHaveCount(0, {timeout: 15000})
     })
 })

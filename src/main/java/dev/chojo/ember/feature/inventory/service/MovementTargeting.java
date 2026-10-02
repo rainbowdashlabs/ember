@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
+import dev.chojo.ember.api.refusal.InventoryRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
@@ -17,6 +19,7 @@ import dev.chojo.ember.feature.inventory.entity.MovementPurpose;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Optional;
 
@@ -52,7 +55,7 @@ public class MovementTargeting {
      * @param party          the end that is not the owner: a member, or the station's store
      * @param flowId         the chain those three resolve to
      */
-    public record Target(ItemOwner ownerKind, Integer ownerClusterId, MovementParty party, int flowId) {}
+    public record Target(ItemOwner ownerKind, @Nullable Integer ownerClusterId, MovementParty party, int flowId) {}
 
     /**
      * Works out the owner, the party and the chain for a movement that is about to be started, or for
@@ -73,10 +76,10 @@ public class MovementTargeting {
     public Target resolve(
             int stationId,
             MovementPurpose purpose,
-            Integer memberId,
-            Integer outgoingItemId,
-            Integer incomingItemId,
-            Integer inventoryId) {
+            @Nullable Integer memberId,
+            @Nullable Integer outgoingItemId,
+            @Nullable Integer incomingItemId,
+            @Nullable Integer inventoryId) {
         ItemOwner ownerKind = ownerOf(outgoingItemId, incomingItemId, inventoryId);
         Integer ownerClusterId = owningClusterOf(outgoingItemId != null ? outgoingItemId : incomingItemId, stationId);
         MovementParty party = memberId != null ? MovementParty.MEMBER : MovementParty.STORE;
@@ -117,7 +120,8 @@ public class MovementTargeting {
      * @param inventoryId    the inventory it is about, or {@code null}
      * @return whose gear it is
      */
-    public ItemOwner ownerOf(Integer outgoingItemId, Integer incomingItemId, Integer inventoryId) {
+    public ItemOwner ownerOf(
+            @Nullable Integer outgoingItemId, @Nullable Integer incomingItemId, @Nullable Integer inventoryId) {
         ItemOwner named = ownerOfItem(outgoingItemId);
         if (named != null) return named;
         named = ownerOfItem(incomingItemId);
@@ -166,7 +170,7 @@ public class MovementTargeting {
      * @param stationId the station running the movement
      * @return the owning body, or {@code null} when no body owns it
      */
-    public Integer owningClusterOf(Integer itemId, int stationId) {
+    public @Nullable Integer owningClusterOf(@Nullable Integer itemId, int stationId) {
         if (itemId != null) {
             Optional<InventoryItem> item = inventoryRepository.findItemById(itemId);
             if (item.isPresent()) return item.get().ownerClusterId();
@@ -174,7 +178,49 @@ public class MovementTargeting {
         return clusterRepository.findByStation(stationId).map(Cluster::id).orElse(null);
     }
 
-    private ItemOwner ownerOfItem(Integer itemId) {
+    /**
+     * Where a movement belongs: whose gear it is, who it is with, and the chain that combination is
+     * bound to today.
+     *
+     * <p>A station is free to unbind a combination while a movement of that kind is still walking,
+     * and a row that cannot be read is worse than one that cannot say where it ought to be. The chain
+     * it is actually on stands in for the answer then.
+     *
+     * @param movement the movement
+     * @return where it belongs, falling back to the chain it walks
+     */
+    public Target belongsOn(ItemMovement movement) {
+        try {
+            return of(movement);
+        } catch (RefusalResponse unbound) {
+            if (unbound.refusal() != InventoryRefusal.MOVEMENT_FLOW_NOT_BOUND) throw unbound;
+            return new Target(
+                    ownerOf(movement.outgoingItemId(), movement.incomingItemId(), movement.inventoryId()),
+                    owningClusterOf(
+                            movement.outgoingItemId() != null ? movement.outgoingItemId() : movement.incomingItemId(),
+                            movement.stationId()),
+                    movement.memberId() != null ? MovementParty.MEMBER : MovementParty.STORE,
+                    movement.flowId() != null ? movement.flowId() : 0);
+        }
+    }
+
+    /**
+     * The association that owns the gear of a target, where one on this instance does.
+     *
+     * <p>"The owner" is an abstraction on screen, and somebody holding a pair of gloves cannot tell
+     * from it whose gloves they are. A name can, and the identity tells one body's gear from
+     * another's where a replacement is being picked.
+     *
+     * @param target whose gear it is and which body that is
+     * @return the association, or empty where the station owns it or the body is not here
+     */
+    public Optional<Cluster> owningCluster(Target target) {
+        Integer ownerClusterId = target.ownerClusterId();
+        if (target.ownerKind() != ItemOwner.CLUSTER || ownerClusterId == null) return Optional.empty();
+        return clusterRepository.findById(ownerClusterId);
+    }
+
+    private @Nullable ItemOwner ownerOfItem(@Nullable Integer itemId) {
         if (itemId == null) return null;
         return inventoryRepository
                 .findItemById(itemId)

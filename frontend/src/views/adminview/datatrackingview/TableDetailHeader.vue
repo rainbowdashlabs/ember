@@ -5,7 +5,7 @@
  */
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
-import type {TableEntry} from '@/api/dataTracking'
+import type {TableEntry} from '@/api/generated/schema'
 import IconButton from '@/components/button/IconButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 

@@ -5,8 +5,8 @@
  */
 import { computed, ref, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { MyInventoryItem } from '@/api/inventory'
-import {StationUserType, type StationMember} from '@/api/types'
+import type { MemberWithName, MyInventoryItem } from '@/api/generated/schema'
+import {StationUserType} from '@/api/types'
 import { stationMembers } from '@/api'
 import { useAsyncAction } from '@/composables/useAsyncAction'
 import type { Failure } from '@/util/failure'
@@ -17,7 +17,7 @@ import type { Failure } from '@/util/failure'
  */
 export function useMemberLifecycle(
     memberId: Ref<number>,
-    member: Ref<StationMember | null>,
+    member: Ref<MemberWithName | null>,
     memberUserType: Ref<string>,
     memberInventory: Ref<MyInventoryItem[]>,
     failure: Ref<Failure | null>,

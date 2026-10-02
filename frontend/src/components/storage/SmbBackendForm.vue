@@ -12,12 +12,12 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import PasswordInput from '@/components/input/text/PasswordInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
-import type {SmbRequest} from '@/api/storageBackend'
+import type {SmbForm} from '@/util/storageBackendForm'
 
-const model = defineModel<SmbRequest>({required: true})
+const model = defineModel<SmbForm>({required: true})
 const {t} = useI18n()
 
-const hostInvalid = computed(() => /:\/\//.test(model.value.host ?? ''))
+const hostInvalid = computed(() => (model.value.host ?? '').includes('://'))
 </script>
 
 <template>

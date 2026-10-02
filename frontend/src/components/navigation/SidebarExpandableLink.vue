@@ -8,6 +8,7 @@ import {computed, ref, useSlots, watch} from 'vue'
 import {useRoute} from 'vue-router'
 import {useSidebarCollapse} from '@/composables/useSidebarCollapse'
 import {collectSidebarPaths, sidebarEntryVNodes} from '@/util/sidebarEntries'
+import BareButton from '@/components/button/BareButton.vue'
 
 const {collapsed} = useSidebarCollapse()
 
@@ -66,7 +67,7 @@ watch(isInPath, (active) => {
         <font-awesome-icon v-if="icon" :icon="icon" class="w-4 shrink-0"/>
         <span class="flex-1 truncate" :class="collapsed ? 'lg:hidden' : ''"><slot name="label"/></span>
       </router-link>
-      <button
+      <BareButton
           v-if="hasVisibleChildren"
           class="flex items-center justify-center w-8 h-8 rounded-theme text-[var(--text)] transition-colors duration-150"
           :class="collapsed ? 'lg:hidden' : ''"
@@ -76,7 +77,7 @@ watch(isInPath, (active) => {
             :icon="['fas', expanded ? 'chevron-down' : 'chevron-right']"
             class="h-2.5 w-2.5"
         />
-      </button>
+      </BareButton>
     </div>
     <div v-if="hasVisibleChildren && expanded" class="ml-3 flex flex-col gap-0.5 mt-0.5" :class="collapsed ? 'lg:hidden' : ''">
       <slot/>

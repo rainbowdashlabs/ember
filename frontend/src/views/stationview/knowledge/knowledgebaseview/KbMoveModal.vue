@@ -16,7 +16,8 @@ import MutedText from '@/components/typography/MutedText.vue'
 import KbFolderPicker from './KbFolderPicker.vue'
 import {knowledgeBase} from '@/api'
 import {describeFailure, type Failure} from '@/util/failure'
-import {KbReach, type KbFolderTreeEntry, type KbReachName, type MovePreview} from '@/api/knowledgeBase'
+import {KbReach, type KbReachName} from '@/api/knowledgeBase'
+import type {FolderTreeEntry, MovePreview} from '@/api/generated/schema'
 import {kbRefusalMessage} from './kbRefusals'
 
 /**
@@ -33,7 +34,7 @@ const props = defineProps<{
     folder: {id: number; name: string} | null
     /** The article being moved, or null when a folder is. */
     file: {id: number; name: string} | null
-    folders: KbFolderTreeEntry[]
+    folders: FolderTreeEntry[]
 }>()
 
 const emit = defineEmits<{

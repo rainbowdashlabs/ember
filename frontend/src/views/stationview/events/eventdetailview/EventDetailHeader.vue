@@ -16,7 +16,8 @@ import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ActionsMenu from '@/components/button/ActionsMenu.vue'
 import DropdownMenuItem from '@/components/button/DropdownMenuItem.vue'
-import {isRecurringEvent, type StationEvent} from '@/api/events'
+import {isRecurringEvent} from '@/api/events'
+import type {StationEvent} from '@/api/generated/schema'
 import {eventTypeLabelKey} from '../eventshared/eventTypeLabel'
 import {formatDate} from '@/util/format'
 import {computed} from 'vue'
@@ -28,6 +29,10 @@ const props = defineProps<{
   canWriteNews: boolean
   /** The one occurrence the page is showing, which is the one an announcement is about. */
   effectiveDate: string | null
+  /** Whether the occurrence on screen is off, on its own or with the whole series. */
+  dateCancelled: boolean
+  /** Whether the occurrence on screen is already behind the station, which nothing can call off or bring back. */
+  datePast: boolean
   /** What the event is called a kind of, shown beside its name. Absent where it has no category. */
   categoryName?: string
   /** The sheet this occurrence already has, which is opened rather than taken again. */
@@ -37,8 +42,10 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'cancel'): void
-  (e: 'attendance'): void
+  'cancel-date': []
+  'cancel-series': []
+  'restore-date': []
+  attendance: []
 }>()
 
 const {t} = useI18n()
@@ -57,8 +64,25 @@ const repeatEnd = computed(() => {
 /** Whether the menu offers anything about the sheet of this occurrence. */
 const hasAttendance = computed(() => props.attendanceSessionId != null || props.canTakeAttendance === true)
 
+/** A date still to come that takes place can be called off; the rest of a series is left alone. */
+const canCancelDate = computed(() =>
+    props.canManageEvents && !!props.effectiveDate && !props.dateCancelled && !props.datePast)
+
+/** A series that is not off yet can still be called off as a whole, which is final. */
+const canCancelSeries = computed(() =>
+    props.canManageEvents && isRecurringEvent(props.event.eventType) && !props.event.cancelled)
+
+/** A date called off on its own can be brought back while it is still to come. A cancelled series stays off. */
+const canRestoreDate = computed(() =>
+    props.canManageEvents && props.dateCancelled && !props.event.cancelled && !props.datePast)
+
+/**
+ * Whether the actions menu shows. Editing stays a button of its own, because the appointment is
+ * opened to be changed; announcing and calling off are occasional, and calling off comes last and
+ * coloured, since a row under a harmless one reads as harmless otherwise.
+ */
 const hasMenu = computed(() =>
-    props.canWriteNews || hasAttendance.value || (props.canManageEvents && !props.event.cancelled))
+    props.canWriteNews || hasAttendance.value || canCancelDate.value || canCancelSeries.value || canRestoreDate.value)
 
 function goBack() {
   router.push({name: props.canManageEvents ? 'events' : 'events-upcoming'})
@@ -94,13 +118,8 @@ function announce() {
         <font-awesome-icon v-if="isRecurringEvent(event.eventType)" :icon="['fas', 'rotate']" class="mr-1 h-3 w-3"/>{{ t(eventTypeLabelKey(event.eventType)) }}
       </SecondaryBadge>
       <SecondaryBadge v-if="repeatEnd" data-testid="event-repeat-end">{{ repeatEnd }}</SecondaryBadge>
-      <ErrorBadge v-if="event.cancelled">{{ t('events.cancelled') }}</ErrorBadge>
+      <ErrorBadge v-if="dateCancelled">{{ t('events.cancelled') }}</ErrorBadge>
     </div>
-    <!--
-      The appointment is opened to be changed, so editing stays a button of its own. Announcing it
-      and calling it off are both occasional, and calling it off comes last and coloured because a
-      full width row under a harmless one reads as harmless otherwise.
-    -->
     <ButtonRow align="end">
       <SecondaryButton @click="goBack"><font-awesome-icon :icon="['fas', 'arrow-left']" class="mr-1"/>{{ t('common.back') }}</SecondaryButton>
       <PrimaryButton v-if="canManageEvents" @click="goEdit"><font-awesome-icon :icon="['fas', 'pen']" class="mr-1"/>{{ t('events.editEvent') }}</PrimaryButton>
@@ -113,9 +132,17 @@ function announce() {
                           @click="emit('attendance')">
           {{ attendanceSessionId ? t('events.openAttendance') : t('events.takeAttendance') }}
         </DropdownMenuItem>
-        <DropdownMenuItem v-if="canManageEvents && !event.cancelled" :icon="['fas', 'ban']" destructive
-                          @click="emit('cancel')">
-          {{ t('events.cancelEvent') }}
+        <DropdownMenuItem v-if="canRestoreDate" :icon="['fas', 'rotate-left']" data-testid="event-restore-date"
+                          @click="emit('restore-date')">
+          {{ t('events.restoreDate') }}
+        </DropdownMenuItem>
+        <DropdownMenuItem v-if="canCancelDate" :icon="['fas', 'ban']" destructive data-testid="event-cancel-date"
+                          @click="emit('cancel-date')">
+          {{ t('events.cancelDate') }}
+        </DropdownMenuItem>
+        <DropdownMenuItem v-if="canCancelSeries" :icon="['fas', 'calendar-xmark']" destructive
+                          data-testid="event-cancel-series" @click="emit('cancel-series')">
+          {{ t('events.cancelSeries') }}
         </DropdownMenuItem>
       </ActionsMenu>
     </ButtonRow>

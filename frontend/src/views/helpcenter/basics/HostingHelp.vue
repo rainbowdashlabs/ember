@@ -19,6 +19,9 @@ const {t} = useI18n()
 /** The address this help page is being read at, so the command says where it fetches from. */
 const origin = computed(() => (import.meta.client ? window.location.origin : 'https://ember-panel.de'))
 
+/** The installer command, which is shell rather than text and reads the same in every language. */
+const installCommand = computed(() => `curl -fsSL ${origin.value}/install.sh | bash`)
+
 const requirements = [
   {icon: ['fas', 'server'], key: 'server'},
   {icon: ['fas', 'database'], key: 'database'},
@@ -42,7 +45,7 @@ const requirements = [
     <HelpSection :title="t('helpCenter.basics.hosting.installer')">
       <p>{{ t('helpCenter.basics.hosting.installerText') }}</p>
       <NeutralContainer class="p-4 mt-3 font-mono text-xs bg-(--bg-accent)">
-        curl -fsSL {{ origin }}/install.sh | bash
+        {{ installCommand }}
       </NeutralContainer>
       <p class="mt-3">{{ t('helpCenter.basics.hosting.installerPageText') }}</p>
       <router-link :to="{name: 'install'}">
@@ -98,6 +101,7 @@ const requirements = [
         <li><code>data/account/&lt;uuid&gt;/</code> - {{ t('helpCenter.basics.hosting.dataAccount') }}</li>
         <li><code>data/inst/</code> - {{ t('helpCenter.basics.hosting.dataInst') }}</li>
         <li><code>data/discovery/</code> - {{ t('helpCenter.basics.hosting.dataDiscovery') }}</li>
+        <li><code>data/secrets/</code> - {{ t('helpCenter.basics.hosting.dataSecrets') }}</li>
         <li><code>data/maps/</code> - {{ t('helpCenter.basics.hosting.dataMaps') }}</li>
       </BulletList>
       <p class="mt-2 text-sm">{{ t('helpCenter.basics.hosting.dataDirText2') }}</p>

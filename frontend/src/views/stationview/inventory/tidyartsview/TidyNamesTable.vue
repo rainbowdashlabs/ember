@@ -7,7 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
-import type {ItemNameCount} from '@/api/inventoryArts'
+import type {ItemNameCount} from '@/api/generated/schema'
 
 /**
  * The distinct names written on the pieces, commonest first.
@@ -17,7 +17,7 @@ import type {ItemNameCount} from '@/api/inventoryArts'
  */
 defineProps<{
   names: ItemNameCount[]
-  selected: Set<string>
+  selected: ReadonlySet<string>
 }>()
 
 const emit = defineEmits<{

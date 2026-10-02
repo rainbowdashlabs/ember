@@ -9,25 +9,22 @@ import {onMounted, ref, computed, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import LendingRequestList from '@/views/stationview/inventory/lendingview/LendingRequestList.vue'
-import StationBadge from '@/components/badge/StationBadge.vue'
+import LendingOfferList from '@/views/stationview/inventory/lendingview/LendingOfferList.vue'
+import LendingOfferFilters from '@/views/stationview/inventory/lendingview/LendingOfferFilters.vue'
+import LendingTabs from '@/views/stationview/inventory/lendingview/LendingTabs.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
-import SearchInput from '@/components/input/text/SearchInput.vue'
-import DateInput from '@/components/input/datetime/DateInput.vue'
-import type {LendingRequestResponse, AvailableInventoryEntry, LendingEmptyReasonName} from '@/api/lending'
+import type {LendingEmptyReasonName} from '@/api/lending'
+import type {AvailableInventoryEntry, LendingRequestResponse} from '@/api/generated/schema'
 import * as lending from '@/api/lending'
 import {useSession} from '@/composables/useSession'
 import {StationPermission} from '@/api/types'
-import FieldLabel from '@/components/typography/FieldLabel.vue'
-import {describeFailure, type Failure} from '@/util/failure'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 
 const routes = useInventoryRoutes()
@@ -42,8 +39,6 @@ const activeTab = ref<'offers' | 'requests'>('offers')
 
 const availableItems = ref<AvailableInventoryEntry[]>([])
 const emptyReason = ref<LendingEmptyReasonName | null>(null)
-const loadingAvailable = ref(true)
-const availableFailure = ref<Failure | null>(null)
 const searchQuery = ref('')
 const filterDateFrom = ref('')
 const filterDateTo = ref('')
@@ -68,22 +63,25 @@ const emptyMessage = computed(() => {
   return t('lending.noAvailable')
 })
 
-async function loadAvailable() {
-  loadingAvailable.value = true
-  availableFailure.value = null
-  try {
+/**
+ * What the partners have free for the period the filter names.
+ *
+ * <p>Asked for only once the session is there, and the offers wait for it from the first render on.
+ */
+const {
+    loading: loadingAvailable,
+    failure: availableFailure,
+    reload: loadAvailable,
+} = useAsyncLoader(async (isCurrent) => {
     const options: { q?: string; from?: string; to?: string } = {}
     if (filterDateFrom.value) options.from = filterDateFrom.value
     if (filterDateTo.value) options.to = filterDateTo.value
     const result = await lending.listAvailable(options)
+    if (!isCurrent()) return
     availableItems.value = result.entries
     emptyReason.value = result.emptyReason
-  } catch (e) {
-    availableFailure.value = describeFailure(e, t)
-  } finally {
-    loadingAvailable.value = false
-  }
-}
+}, {autoLoad: false})
+loadingAvailable.value = true
 
 watch([filterDateFrom, filterDateTo], () => {
   loadAvailable()
@@ -158,37 +156,17 @@ watch(loaded, (v) => {
       </ButtonRow>
     </div>
 
-    <!-- Tab toggle -->
-    <div class="flex gap-2 mb-4">
-      <SelectionToggleButton :selected="activeTab === 'offers'" @toggle="activeTab = 'offers'">
-        <font-awesome-icon :icon="['fas', 'boxes-stacked']" class="mr-1"/>
-        {{ t('lending.tabs.offers') }}
-      </SelectionToggleButton>
-      <SelectionToggleButton :selected="activeTab === 'requests'" @toggle="activeTab = 'requests'">
-        <font-awesome-icon :icon="['fas', 'list']" class="mr-1"/>
-        {{ t('lending.tabs.requests') }}
-      </SelectionToggleButton>
-    </div>
+    <LendingTabs v-model="activeTab" class="mb-4"/>
 
     <Alert v-if="requestSuccess" variant="success" class="mb-4">{{ requestSuccess }}</Alert>
 
     <template v-if="activeTab === 'offers'">
-      <SearchInput
-          v-model="searchQuery"
-          :placeholder="t('lending.searchInventory')"
+      <LendingOfferFilters
+          v-model:search-query="searchQuery"
+          v-model:date-from="filterDateFrom"
+          v-model:date-to="filterDateTo"
           class="mb-4"
       />
-
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-        <div>
-          <FieldLabel class="mb-1">{{ t('lending.dateFrom') }}</FieldLabel>
-          <DateInput v-model="filterDateFrom"/>
-        </div>
-        <div>
-          <FieldLabel class="mb-1">{{ t('lending.dateTo') }}</FieldLabel>
-          <DateInput v-model="filterDateTo"/>
-        </div>
-      </div>
 
       <AsyncSection
           :empty="filteredItems.length === 0"
@@ -196,35 +174,7 @@ watch(loaded, (v) => {
           :failure="availableFailure"
           :loading="loadingAvailable"
       >
-        <div class="flex flex-col gap-2">
-          <SubHeader class="mb-1">{{ t('lending.availableItems') }}</SubHeader>
-          <NeutralContainer v-for="item in filteredItems" :key="`${item.stationId}-${item.inventoryId}`">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div class="flex flex-col gap-1">
-                <div class="flex items-center gap-2 flex-wrap">
-                  <span class="font-medium">{{ item.inventoryName }}</span>
-                  <StationBadge :station-name="item.stationName"/>
-                </div>
-                <span class="text-xs text-[var(--text-muted)]">
-                  {{ item.availableCount }} {{ t('lending.available') }}
-                  <template v-if="item.distanceKm != null">
-                    · {{ t('lendingDistance.distanceKm', {distance: item.distanceKm.toFixed(1)}) }}
-                  </template>
-                  <template v-else>
-                    · {{ t('lendingDistance.distanceUnknown') }}
-                  </template>
-                </span>
-              </div>
-              <PrimaryButton
-                  :icon="['fas', 'paper-plane']"
-                  data-testid="lending-offer-request"
-                  @click="navigateToCreateRequest(item)"
-              >
-                {{ t('lending.requestItem') }}
-              </PrimaryButton>
-            </div>
-          </NeutralContainer>
-        </div>
+        <LendingOfferList :items="filteredItems" @request="navigateToCreateRequest"/>
       </AsyncSection>
     </template>
 

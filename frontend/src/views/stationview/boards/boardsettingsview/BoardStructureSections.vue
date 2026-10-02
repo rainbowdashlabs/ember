@@ -8,12 +8,11 @@ import BoardGeneralSection from './BoardGeneralSection.vue'
 import BoardLanesSection from './BoardLanesSection.vue'
 import BoardFieldsSection from './BoardFieldsSection.vue'
 import type { LaneDraft } from './BoardLanesSection.vue'
-import type { FieldDraft, FieldTypeOption } from './BoardFieldsSection.vue'
+import type { BoardFieldDraft, BoardFieldTypeName } from '@/api/boards'
 
 defineProps<{
     lanes: LaneDraft[]
-    fields: FieldDraft[]
-    fieldTypeOptions: FieldTypeOption[]
+    fields: BoardFieldDraft[]
 }>()
 
 const name = defineModel<string>('name', { required: true })
@@ -22,15 +21,15 @@ const hideDoneAfterDays = defineModel<number>('hideDoneAfterDays', { required: t
 const hasBacklog = defineModel<boolean>('hasBacklog', { required: true })
 const newLaneName = defineModel<string>('newLaneName', { required: true })
 const newFieldName = defineModel<string>('newFieldName', { required: true })
-const newFieldType = defineModel<string>('newFieldType', { required: true })
+const newFieldType = defineModel<BoardFieldTypeName>('newFieldType', { required: true })
 
 const emit = defineEmits<{
-    (e: 'addLane'): void
-    (e: 'removeLane', index: number): void
-    (e: 'moveLane', index: number, dir: -1 | 1): void
-    (e: 'addField'): void
-    (e: 'removeField', index: number): void
-    (e: 'moveField', index: number, dir: -1 | 1): void
+    addLane: []
+    removeLane: [index: number]
+    moveLane: [index: number, dir: -1 | 1]
+    addField: []
+    removeField: [index: number]
+    moveField: [index: number, dir: -1 | 1]
 }>()
 </script>
 
@@ -55,7 +54,6 @@ const emit = defineEmits<{
             :lanes="lanes"
             :new-field-name="newFieldName"
             :new-field-type="newFieldType"
-            :field-type-options="fieldTypeOptions"
             @update:new-field-name="v => newFieldName = v"
             @update:new-field-type="v => newFieldType = v"
             @add="emit('addField')"

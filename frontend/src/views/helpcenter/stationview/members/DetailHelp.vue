@@ -38,7 +38,6 @@ const tabs = [
       <p>{{ t('helpCenter.membersDetail.whatShownText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Member header with action buttons -->
     <HelpSection :title="t('helpCenter.membersDetail.headerTitle')">
       <div class="flex items-center justify-between flex-wrap gap-2">
         <SecondaryButton :icon="['fas', 'chevron-left']">
@@ -57,10 +56,9 @@ const tabs = [
         </ButtonRow>
       </div>
 
-      <SectionHeader class="mt-3">Max Mustermann</SectionHeader>
+      <SectionHeader class="mt-3">{{ t('helpCenter.sample.people.maxMustermann') }}</SectionHeader>
       <p class="text-sm text-(--text-muted)">max@example.com</p>
 
-      <!-- Dummy: Tab bar showing all tabs -->
       <TabBar :model-value="activeTab" :tabs="tabs" class="mt-3"/>
     </HelpSection>
 
@@ -68,7 +66,6 @@ const tabs = [
       <p>{{ t('helpCenter.membersDetail.fieldsText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Profile fields -->
     <HelpSection :title="t('helpCenter.membersDetail.profileExampleTitle')">
       <NeutralContainer class="space-y-3">
         <SubHeader class="text-sm">{{ t('memberDetail.fields') }}</SubHeader>
@@ -87,7 +84,7 @@ const tabs = [
           </div>
           <div class="text-sm">
             <span class="text-(--text-muted)">{{ t('helpCenter.exampleFields.emergencyContact') }}:</span>
-            <span class="ml-1 font-medium">Petra Mustermann</span>
+            <span class="ml-1 font-medium">{{ t('helpCenter.sample.people.petraMustermann') }}</span>
           </div>
         </div>
       </NeutralContainer>
@@ -97,7 +94,6 @@ const tabs = [
       <p>{{ t('helpCenter.membersDetail.permissionsText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Permissions tab -->
     <HelpSection :title="t('helpCenter.membersDetail.permissionsExampleTitle')">
       <NeutralContainer class="space-y-3">
         <SubHeader class="text-sm">{{ t('memberDetail.userType') }}</SubHeader>
@@ -112,7 +108,7 @@ const tabs = [
       <NeutralContainer class="space-y-3 mt-2">
         <SubHeader class="text-sm">{{ t('memberDetail.groups') }}</SubHeader>
         <div class="flex flex-wrap gap-2">
-          <SecondaryBadge>Anfänger</SecondaryBadge>
+          <SecondaryBadge>{{ t('helpCenter.sample.groups.beginners') }}</SecondaryBadge>
         </div>
       </NeutralContainer>
     </HelpSection>
@@ -134,7 +130,6 @@ const tabs = [
       <p>{{ t('helpCenter.membersDetail.missingHandOutText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Inventory items -->
     <HelpSection :title="t('helpCenter.membersDetail.inventoryExampleTitle')">
       <NeutralContainer class="space-y-3">
         <div class="flex items-center justify-between">
@@ -147,8 +142,8 @@ const tabs = [
           <NeutralContainer>
             <div class="flex items-start justify-between gap-2">
               <div>
-                <div class="font-medium text-sm">Helm <span class="font-normal text-(--text-muted)">M</span></div>
-                <div class="text-xs text-(--text-muted)">Helme</div>
+                <div class="font-medium text-sm">{{ t('helpCenter.sample.equipment.helmet') }} <span class="font-normal text-(--text-muted)">M</span></div>
+                <div class="text-xs text-(--text-muted)">{{ t('helpCenter.sample.equipment.helmets') }}</div>
               </div>
               <div class="flex items-center gap-1">
                 <IconButton :icon="['fas', 'rotate']" label="Tausch" disabled/>

@@ -17,7 +17,8 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import EventFieldValueInput from './EventFieldValueInput.vue'
 import {useAnswerMembers} from './useAnswerMembers'
-import type {EventRegistrationField, RegistrationFieldValue} from '@/api/events'
+import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
+import type {EventRegistrationField} from '@/api/generated/schema'
 import type {AnswerablePerson, PersonAnswer} from '@/util/eventAnswers'
 
 /**
@@ -55,7 +56,7 @@ const answers = ref(new Map()) as Ref<Map<K, Record<number, string>>>
 
 const asksQuestions = computed(() => props.attending && props.fields.length > 0)
 
-const {allMembers, loadMembers} = useAnswerMembers(computed(() => props.fields))
+const {allMembers, groupMembers, tagMembers, loadMembers} = useAnswerMembers(computed(() => props.fields))
 
 /**
  * What each person's answers start out as: whatever the question was given as its starting point.
@@ -132,11 +133,10 @@ function confirm() {
                 :key="person.key"
                 class="flex items-center gap-2 text-sm"
             >
-                <input
-                    type="checkbox"
-                    :checked="chosen.includes(person.key)"
+                <CheckboxInput
+                    :model-value="chosen.includes(person.key)"
                     :data-testid="`answer-for-${person.key}`"
-                    @change="toggle(person.key)"
+                    @update:model-value="toggle(person.key)"
                 />
                 {{ person.name }}
             </label>
@@ -149,8 +149,10 @@ function confirm() {
                     <FieldLabel>{{ field.name }}{{ field.config?.required ? ' *' : '' }}</FieldLabel>
                     <EventFieldValueInput
                         :field-type="field.fieldType"
-                        :config="{...field.config}"
+                        :config="field.config"
                         :all-members="allMembers"
+                        :group-members="groupMembers"
+                        :tag-members="tagMembers"
                         :model-value="answerFor(key, field.id)"
                         @update:model-value="value => setAnswer(key, field.id, value)"
                     />

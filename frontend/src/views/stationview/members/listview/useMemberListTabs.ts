@@ -6,10 +6,9 @@
 import { computed, ref, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { StationUserType } from '@/api/types'
-import type { ProfileField } from '@/api/profileFields'
+import type { ProfileField, ProfileFieldAssignment } from '@/api/generated/schema'
 import { fieldAudiences } from '@/composables/useFieldAudiences'
 import { emptyTableState, type DataTableState } from '@/composables/useDataTable'
-import type { ProfileFieldAssignment } from '@/util/profileFields'
 
 const TAB_KEYS = ['ALL', StationUserType.TRIAL, StationUserType.MEMBER, StationUserType.GUARDIAN,
   StationUserType.TEAM, StationUserType.MANAGER] as const

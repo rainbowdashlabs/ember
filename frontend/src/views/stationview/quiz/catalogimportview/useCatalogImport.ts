@@ -6,14 +6,9 @@
 import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {ai, quiz, util} from '@/api'
-import {getItem} from '@/api/storage'
-import {
-    QuizQuestionTypes,
-    type CatalogMetadata,
-    type CatalogTransferProblem,
-    type QuizCatalogExport,
-    type QuizCatalogExportCategory,
-} from '@/api/quiz'
+import {loadAiCredentials} from '@/util/aiCredentials'
+import {QuizQuestionTypes} from '@/api/quiz'
+import type {CatalogMetadata, CatalogTransfer, CatalogTransferCategory, CatalogTransferProblem} from '@/api/generated/schema'
 import {createQuizCsvMapping, type ImportDraft} from '../csvimportview/quizCsvImport'
 import {NO_METADATA, readCatalogFile, toTransfer, usedCategories} from './catalogImport'
 import {describeFailure, type Failure} from '@/util/failure'
@@ -52,7 +47,7 @@ export function useCatalogImport(catalogId: () => number | null) {
     const mapping = ref(createQuizCsvMapping([]))
 
     const drafts = ref<ImportDraft[]>([])
-    const categories = ref<QuizCatalogExportCategory[]>([])
+    const categories = ref<CatalogTransferCategory[]>([])
 
     const catalogName = ref('')
     const catalogDescription = ref('')
@@ -64,7 +59,8 @@ export function useCatalogImport(catalogId: () => number | null) {
     const aiPrompt = ref('')
     const aiStatus = ref('')
 
-    const hasAiKey = computed(() => !!getItem('ai_api_key'))
+    const hasAiKey = ref(false)
+    loadAiCredentials().then(credentials => hasAiKey.value = credentials.available).catch(() => {})
     const isSheet = computed(() => !!file.value && !file.value.name.toLowerCase().endsWith('.json'))
     const includedCount = computed(() => drafts.value.filter(draft => draft.included).length)
 
@@ -99,7 +95,7 @@ export function useCatalogImport(catalogId: () => number | null) {
         problems.value = []
     }
 
-    function loadFromFile(transfer: QuizCatalogExport) {
+    function loadFromFile(transfer: CatalogTransfer) {
         categories.value = transfer.categories ?? []
         drafts.value = (transfer.questions ?? []).map(question => ({
             question,
@@ -163,8 +159,9 @@ export function useCatalogImport(catalogId: () => number | null) {
      * invented is looked at and corrected on screen instead of landing unseen in the catalog.
      */
     async function generateMissingAnswers() {
-        const apiKey = getItem('ai_api_key') ?? ''
-        if (!generateWrongAnswers.value || !apiKey) return
+        if (!generateWrongAnswers.value) return
+        const {provider, model, available} = await loadAiCredentials()
+        if (!available) return
         const catalogContext = t('quiz.csv.aiCatalogContext', {name: catalogName.value})
         const context = aiPrompt.value ? `${aiPrompt.value}\n${catalogContext}` : catalogContext
         const targets = drafts.value.filter(
@@ -177,9 +174,8 @@ export function useCatalogImport(catalogId: () => number | null) {
                 const config = draft.question.config as {options?: {text: string; correct: boolean}[]}
                 const options = config.options ?? []
                 const wrongAnswers = await ai.generate({
-                    provider: getItem('ai_provider') ?? 'openai',
-                    apiKey,
-                    model: getItem('ai_model') || null,
+                    provider,
+                    model: model || null,
                     question: `${context}\n\n${draft.question.title}`,
                     correctAnswer: options
                         .filter(option => option.correct)

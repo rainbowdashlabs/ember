@@ -8,11 +8,17 @@ import {useI18n} from 'vue-i18n'
 import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
-import DummyGeneralSettings from '@/views/helpcenter/adminview/settingshelp/DummyGeneralSettings.vue'
-import DummyThemeSettings from '@/views/helpcenter/adminview/settingshelp/DummyThemeSettings.vue'
-import DummyAuthSettings from '@/views/helpcenter/adminview/settingshelp/DummyAuthSettings.vue'
+import GeneralPanel from '@/views/adminview/adminsettingsview/GeneralPanel.vue'
+import ThemePanel from '@/views/adminview/adminsettingsview/ThemePanel.vue'
+import {DEFAULT_THEME_KEY, Feel} from '@/theme/themes'
 
 const {t} = useI18n()
+
+/** The mail languages an instance ships with, offered in the picker. */
+const sampleMailLocales = ['de', 'en']
+
+/** Saving does nothing in the help. */
+async function noSave() {}
 </script>
 
 <template>
@@ -29,14 +35,16 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.adminSettings.themeText') }}</p>
     </HelpSection>
 
-    <HelpSection :title="t('helpCenter.adminSettings.authTitle')">
-      <p>{{ t('helpCenter.adminSettings.authText') }}</p>
-    </HelpSection>
-
     <HelpSection :title="t('helpCenter.adminSettings.exampleTitle')">
-      <DummyGeneralSettings/>
-      <DummyThemeSettings/>
-      <DummyAuthSettings/>
+      <div class="space-y-4">
+        <GeneralPanel
+          :registration-enabled="true"
+          :available-mail-locales="sampleMailLocales"
+          :force-pride-flag="false"
+          default-mail-locale="de"
+        />
+        <ThemePanel :default-theme="DEFAULT_THEME_KEY" :default-feel="Feel.ROUNDED" :lock-feel="false" :save="noSave"/>
+      </div>
     </HelpSection>
 
     <HelpTip>{{ t('helpCenter.adminSettings.tip') }}</HelpTip>

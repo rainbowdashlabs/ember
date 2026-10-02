@@ -147,7 +147,6 @@ public class DemoPageSeeder implements DemoPerStationSeeder {
     public void seed(int stationId, int memberId) {
         var media = seedMediaLibrary(stationId, memberId);
 
-        // Landing page: Willkommen
         var welcome = pageService.create(stationId, "Willkommen", null, memberId);
         pageService.savePage(
                 welcome.id(),
@@ -191,7 +190,6 @@ public class DemoPageSeeder implements DemoPerStationSeeder {
         pageService.setVisibility(welcome.id(), PageVisibility.PUBLIC);
         pageService.setLandingPage(stationId, welcome.id());
 
-        // About page with child pages
         var about = pageService.create(stationId, "Über uns", null, memberId);
         pageService.savePage(
                 about.id(),
@@ -215,7 +213,6 @@ public class DemoPageSeeder implements DemoPerStationSeeder {
                                 Viele sind heute aktive Mitglieder der Einsatzabteilung.""", CellConfig.EMPTY)))));
         pageService.setVisibility(about.id(), PageVisibility.PUBLIC);
 
-        // Child: Team
         var team = pageService.create(stationId, "Unser Team", about.id(), memberId);
         pageService.savePage(
                 team.id(),
@@ -242,7 +239,6 @@ public class DemoPageSeeder implements DemoPerStationSeeder {
                                 - Jonas Fischer""", CellConfig.EMPTY)))));
         pageService.setVisibility(team.id(), PageVisibility.PUBLIC);
 
-        // Child: Ausrüstung
         var equipment = pageService.create(stationId, "Ausrüstung", about.id(), memberId);
         pageService.savePage(
                 equipment.id(),
@@ -267,7 +263,6 @@ public class DemoPageSeeder implements DemoPerStationSeeder {
                                 Die Ausrüstung wird von der Gemeinde gestellt und muss bei Austritt zurückgegeben werden.""", CellConfig.EMPTY)))));
         pageService.setVisibility(equipment.id(), PageVisibility.PUBLIC);
 
-        // Mitmachen page
         var join = pageService.create(stationId, "Mitmachen", null, memberId);
         pageService.savePage(
                 join.id(),

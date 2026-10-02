@@ -9,6 +9,7 @@ import dev.chojo.ember.feature.events.entity.EventCategory;
 import dev.chojo.ember.feature.events.repository.EventCategoryRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,14 +53,22 @@ public class EventCategoryService {
     /**
      * Creates a new event category.
      *
-     * @param stationId the station ID
-     * @param name      the category name
-     * @param position  the display order position
-     * @param color     optional display color (#RRGGBB), or null
+     * @param stationId      the station ID
+     * @param name           the category name
+     * @param position       the display order position
+     * @param maxShownEvents how many upcoming events of the category the overview shows, or null for all
+     * @param isPublic       whether the category's events show on the public calendar
+     * @param color          optional display color (#RRGGBB), or null
      * @return the created category
      */
-    public EventCategory create(int stationId, String name, int position, String color) {
-        var category = categoryRepository.create(stationId, name, position, color);
+    public EventCategory create(
+            int stationId,
+            String name,
+            int position,
+            @Nullable Integer maxShownEvents,
+            boolean isPublic,
+            @Nullable String color) {
+        var category = categoryRepository.create(stationId, name, position, maxShownEvents, isPublic, color);
         log.info("Created event category {} for station {}", category.id(), stationId);
         return category;
     }
@@ -73,7 +82,13 @@ public class EventCategoryService {
      * @param color    the optional new display color (#RRGGBB), or null to clear
      * @return true if the category was updated
      */
-    public boolean update(int id, String name, int position, Integer maxShownEvents, boolean isPublic, String color) {
+    public boolean update(
+            int id,
+            String name,
+            int position,
+            @Nullable Integer maxShownEvents,
+            boolean isPublic,
+            @Nullable String color) {
         if (categoryRepository.update(id, name, position, maxShownEvents, isPublic, color)) {
             log.info("Updated event category {}", id);
             return true;

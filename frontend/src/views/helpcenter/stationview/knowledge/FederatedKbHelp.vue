@@ -29,25 +29,24 @@ const showFederated = ref(true)
       <p>{{ t('helpCenter.federatedKb.badgeText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: File tile with station badge -->
     <NeutralContainer>
       <div class="grid grid-cols-3 gap-3">
         <div class="flex flex-col items-center gap-2 p-3 rounded border border-bg-light-accent dark:border-bg-dark-accent">
           <font-awesome-icon :icon="['fas', 'file-lines']" class="text-2xl text-primary" />
-          <span class="text-xs font-medium text-center">Grundlagen PSA</span>
+          <span class="text-xs font-medium text-center">{{ t('helpCenter.sample.knowledge.psaBasics') }}</span>
           <StationBadge station-name="JF Musterstadt" />
-          <span class="text-xs text-(--text-muted)">Schutzausrüstung</span>
+          <span class="text-xs text-(--text-muted)">{{ t('helpCenter.sample.knowledge.protectiveGear') }}</span>
         </div>
         <div class="flex flex-col items-center gap-2 p-3 rounded border border-bg-light-accent dark:border-bg-dark-accent">
           <font-awesome-icon :icon="['fas', 'file-lines']" class="text-2xl text-primary" />
-          <span class="text-xs font-medium text-center">Knotenkunde</span>
+          <span class="text-xs font-medium text-center">{{ t('helpCenter.sample.knowledge.knotCraft') }}</span>
           <StationBadge station-name="JF Beispieldorf" />
-          <span class="text-xs text-(--text-muted)">Knoten & Stiche</span>
+          <span class="text-xs text-(--text-muted)">{{ t('helpCenter.sample.knowledge.knotsAndHitches') }}</span>
         </div>
         <div class="flex flex-col items-center gap-2 p-3 rounded border border-bg-light-accent dark:border-bg-dark-accent">
           <font-awesome-icon :icon="['fas', 'file-lines']" class="text-2xl text-(--text-muted)" />
-          <span class="text-xs font-medium text-center">Willkommen</span>
-          <span class="text-xs text-(--text-muted)">Eigene Datei</span>
+          <span class="text-xs font-medium text-center">{{ t('helpCenter.sample.knowledge.welcome') }}</span>
+          <span class="text-xs text-(--text-muted)">{{ t('helpCenter.sample.knowledge.ownFile') }}</span>
         </div>
       </div>
     </NeutralContainer>
@@ -56,7 +55,6 @@ const showFederated = ref(true)
       <p>{{ t('helpCenter.federatedKb.filterText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Toggle filter -->
     <NeutralContainer>
       <div class="flex flex-wrap items-center gap-2">
         <SelectionToggleButton :selected="showFederated" @toggle="showFederated = !showFederated">
@@ -71,16 +69,15 @@ const showFederated = ref(true)
       <p>{{ t('helpCenter.federatedKb.copyText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Copy action -->
     <NeutralContainer>
       <div class="flex items-center gap-2">
         <font-awesome-icon :icon="['fas', 'file-lines']" class="text-xl text-primary" />
         <div class="flex-1 min-w-0">
           <div class="flex items-center gap-2">
-            <span class="text-sm font-medium">Grundlagen PSA</span>
+            <span class="text-sm font-medium">{{ t('helpCenter.sample.knowledge.psaBasics') }}</span>
             <StationBadge station-name="JF Musterstadt" />
           </div>
-          <span class="text-xs text-(--text-muted)">Schutzausrüstung erklärt</span>
+          <span class="text-xs text-(--text-muted)">{{ t('helpCenter.sample.knowledge.protectiveGearExplained') }}</span>
         </div>
         <IconButton :icon="['fas', 'copy']" :label="t('federation.copyToStation')" />
       </div>

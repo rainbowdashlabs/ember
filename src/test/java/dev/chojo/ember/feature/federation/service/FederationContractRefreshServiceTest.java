@@ -12,7 +12,9 @@ import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.route.RemoteFederationRoutes;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import dev.chojo.ember.util.TestStationKeys;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -54,7 +56,7 @@ class FederationContractRefreshServiceTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         federationRepo = new FederationRepository();
-        federationService = new FederationService(federationRepo, stationRepo, new Api());
+        federationService = new FederationService(federationRepo, stationRepo, TestStationKeys.store(), new Api());
         httpClient = mock(FederationHttpClient.class);
 
         station = stationRepo.create("ContractRefreshStation");
@@ -107,7 +109,8 @@ class FederationContractRefreshServiceTest extends RepositoryTestBase {
     @BeforeEach
     void resetClientAndService() {
         reset(httpClient);
-        service = new FederationContractRefreshService(federationRepo, stationRepo, httpClient);
+        when(httpClient.canSign(station.id())).thenReturn(true);
+        service = new FederationContractRefreshService(federationRepo, httpClient, new TaskScheduler());
     }
 
     private static void stubPing(FederationContract contract) {
@@ -116,7 +119,6 @@ class FederationContractRefreshServiceTest extends RepositoryTestBase {
                         pathIs(RemoteFederationRoutes.VERSION_PING.path()),
                         any(),
                         eq(station.id()),
-                        any(),
                         eq(RemoteFederationRoutes.VersionPingResponse.class)))
                 .thenReturn(contract == null ? null : new RemoteFederationRoutes.VersionPingResponse(contract));
     }

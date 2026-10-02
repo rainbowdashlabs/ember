@@ -5,72 +5,69 @@
  */
 import client from './client'
 import { createCrudResource } from './crud'
+import type {
+    CapabilityRequest,
+    components,
+    FederatedKbBrowse,
+    FederationCapability,
+    FederationInfoResponse,
+    FederationPartner,
+    FederationShare,
+    InviteCodeResponse,
+    KbFile,
+    KbShareRequest,
+    KbShareResponse,
+    PairRequestResponse,
+    PartnerResponse,
+    ProtocolShareRequest,
+    QuizCatalog,
+    QuizShareRequest,
+    StationPickerResult,
+    TestProtocol,
+} from './generated/schema'
 
-export interface FederationContract {
-    core: string
-    features: Record<string, string>
-}
+type Schemas = components['schemas']
 
-export interface FederationPartner {
-    id: number
-    stationId: string
-    partnerStationId: string
-    inviteCode: string | null
-    publicKey: string | null
-    partnerPublicKey: string | null
-    status: 'PENDING' | 'ACTIVE' | 'SUSPENDED'
-    federationContract: FederationContract | null
-    createdAt: string
-    updatedAt: string
-    remoteHost: string | null
-}
+export type FederationStatusName = Schemas['FederationStatus']
 
-export interface PartnerResponse {
-    partner: FederationPartner
-    partnerStationName: string
-}
+/** Where a partnership stands: offered, in force, or put on hold by either side. */
+export const FederationStatus = {
+    PENDING: 'PENDING',
+    ACTIVE: 'ACTIVE',
+    SUSPENDED: 'SUSPENDED',
+} as const satisfies Record<FederationStatusName, FederationStatusName>
 
-export interface FederationCapability {
-    id: number
-    partnerId: number
-    capability: string
-    direction: string
-    enabled: boolean
-}
+export type CapabilityTypeName = Schemas['CapabilityType']
 
-export interface FederationShare {
-    id: number
-    stationId: string
-    fileId: number | null
-    folderId: number | null
-    catalogId: number | null
-    protocolId: number | null
-    shareScope: string
-}
+/** What two partners may share with one another, each switched on per direction. */
+export const CapabilityType = {
+    KB_SHARE: 'KB_SHARE',
+    QUIZ_SHARE: 'QUIZ_SHARE',
+    PROTOCOL_SHARE: 'PROTOCOL_SHARE',
+    INVENTORY_LEND: 'INVENTORY_LEND',
+    EVENT_SHARE: 'EVENT_SHARE',
+    BOARD_SHARE: 'BOARD_SHARE',
+    NEWS_SHARE: 'NEWS_SHARE',
+} as const satisfies Record<CapabilityTypeName, CapabilityTypeName>
 
-/**
- * An item a partner shares, in the shape every federated browse endpoint answers. The station
- * UUID is what addresses the item on the federated read routes; it is null when the partnership
- * behind the item no longer resolves, and such an item can only be copied, not opened.
- */
-export interface SharedContentItem {
-    remoteId: number
-    title: string
-    description: string
-    stationName: string
-    stationUid: string | null
-    partnerId: number
-}
+export type CapabilityDirectionName = Schemas['Direction']
 
-// -- Partners --
+/** Whether a capability lets this station take from a partner or hand to it. */
+export const CapabilityDirection = {
+    IMPORT: 'IMPORT',
+    EXPORT: 'EXPORT',
+} as const satisfies Record<CapabilityDirectionName, CapabilityDirectionName>
+
+/** A shared article or folder as the federated browse answers it. */
+export type SharedContentItem = FederatedKbBrowse['files'][number] | FederatedKbBrowse['folders'][number]
 
 export async function listPartners(): Promise<PartnerResponse[]> {
     const res = await client.get<PartnerResponse[]>('/federation/partners')
     return res.data
 }
 
-export async function createInvite(): Promise<{ inviteCode: string }> {
-    const res = await client.post<{ inviteCode: string }>('/federation/invite')
+export async function createInvite(): Promise<InviteCodeResponse> {
+    const res = await client.post<InviteCodeResponse>('/federation/invite')
     return res.data
 }
 
@@ -98,37 +95,19 @@ export async function endFederation(id: number): Promise<void> {
     await client.delete(`/federation/partners/${id}`)
 }
 
-// -- Capabilities --
-
 export async function getCapabilities(partnerId: number): Promise<FederationCapability[]> {
     const res = await client.get<FederationCapability[]>(`/federation/partners/${partnerId}/capabilities`)
     return res.data
 }
 
-export async function setCapabilities(partnerId: number, capabilities: { capability: string; direction: string; enabled: boolean }[]): Promise<FederationCapability[]> {
+export async function setCapabilities(partnerId: number, capabilities: CapabilityRequest[]): Promise<FederationCapability[]> {
     const res = await client.put<FederationCapability[]>(`/federation/partners/${partnerId}/capabilities`, capabilities)
     return res.data
 }
 
-// -- Shares --
-
-interface KbShareRequest {
-    fileId?: number
-    folderId?: number
-    shareScope?: string
-}
-
-interface QuizShareRequest {
-    catalogId: number
-    shareScope?: string
-}
-
-interface ProtocolShareRequest {
-    protocolId: number
-    shareScope?: string
-}
-
-const kbShares = createCrudResource<FederationShare, KbShareRequest>('/federation/shares/kb')
+const kbShares = createCrudResource<KbShareResponse, KbShareRequest, KbShareRequest, KbShareResponse, FederationShare>(
+    '/federation/shares/kb',
+)
 const quizShares = createCrudResource<FederationShare, QuizShareRequest>('/federation/shares/quiz')
 const protocolShares = createCrudResource<FederationShare, ProtocolShareRequest>('/federation/shares/protocol')
 
@@ -144,54 +123,34 @@ export const listProtocolShares = protocolShares.list
 export const createProtocolShare = protocolShares.create
 export const deleteProtocolShare = protocolShares.remove
 
-// -- Browse shared content --
-
-/** One level of what the partners share: their folders and the articles standing beside them. */
-export interface SharedKbBrowse {
-    folders: SharedContentItem[]
-    files: SharedContentItem[]
-    /** The way back out of a shared folder, outermost first. Empty at the top of the shared list. */
-    trail: SharedContentItem[]
-}
-
-export async function browseSharedKb(): Promise<SharedKbBrowse> {
-    const res = await client.get<SharedKbBrowse>('/federated/kb')
+export async function browseSharedKb(): Promise<FederatedKbBrowse> {
+    const res = await client.get<FederatedKbBrowse>('/federated/kb')
     return res.data
 }
 
 /** What is inside a folder a partner shares. */
-export async function browseSharedKbFolder(stationUid: string, folderId: number): Promise<SharedKbBrowse> {
-    const res = await client.get<SharedKbBrowse>(`/federated/${stationUid}/kb/folders/${folderId}`)
+export async function browseSharedKbFolder(stationUid: string, folderId: number): Promise<FederatedKbBrowse> {
+    const res = await client.get<FederatedKbBrowse>(`/federated/${stationUid}/kb/folders/${folderId}`)
     return res.data
 }
 
-// -- Copy --
-
-export async function copyKbFile(fileId: number): Promise<unknown> {
-    const res = await client.post(`/federated/kb/files/${fileId}/copy`)
+export async function copyKbFile(fileId: number): Promise<KbFile> {
+    const res = await client.post<KbFile>(`/federated/kb/files/${fileId}/copy`)
     return res.data
 }
 
-export async function copyQuizCatalog(catalogId: number): Promise<unknown> {
-    const res = await client.post(`/federated/quiz/catalogs/${catalogId}/copy`)
+export async function copyQuizCatalog(catalogId: number): Promise<QuizCatalog> {
+    const res = await client.post<QuizCatalog>(`/federated/quiz/catalogs/${catalogId}/copy`)
     return res.data
 }
 
-export async function copyProtocol(protocolId: number): Promise<unknown> {
-    const res = await client.post(`/federated/protocols/${protocolId}/copy`)
+export async function copyProtocol(protocolId: number): Promise<TestProtocol> {
+    const res = await client.post<TestProtocol>(`/federated/protocols/${protocolId}/copy`)
     return res.data
 }
 
-// -- Pair Requests --
-
-export interface PairRequest {
-    id: number
-    stationName: string
-    createdAt: string
-}
-
-export async function listPairRequests(): Promise<PairRequest[]> {
-    const res = await client.get<PairRequest[]>('/federation/requests')
+export async function listPairRequests(): Promise<PairRequestResponse[]> {
+    const res = await client.get<PairRequestResponse[]>('/federation/requests')
     return res.data
 }
 
@@ -203,24 +162,12 @@ export async function declinePairRequest(id: number): Promise<void> {
     await client.post(`/federation/requests/${id}/decline`)
 }
 
-// -- Info --
-
-export async function getFederationInfo(): Promise<{ contract: FederationContract }> {
-    const res = await client.get<{ contract: FederationContract }>('/federation/info')
+export async function getFederationInfo(): Promise<FederationInfoResponse> {
+    const res = await client.get<FederationInfoResponse>('/federation/info')
     return res.data
 }
 
-// -- Page-editor PARTNER_STATIONS picker. PAGE_EDIT-gated. --
-
-export interface StationPickerResult {
-    stationUid: string
-    name: string
-    city: string | null
-    country: string | null
-    logoUrl: string | null
-    selectable: boolean
-}
-
+/** The partner stations the page editor's partner list may offer, gated by page editing. */
 export async function searchFederationStations(query?: string, limit = 20): Promise<StationPickerResult[]> {
     const params: Record<string, string | number> = {limit}
     if (query) params.q = query

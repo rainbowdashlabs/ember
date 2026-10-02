@@ -5,15 +5,18 @@
  */
 package dev.chojo.ember.feature.equipment.service;
 
+import dev.chojo.ember.feature.equipment.entity.Recommendation;
 import dev.chojo.ember.feature.equipment.repository.EquipmentRecommendationRepository;
 import dev.chojo.ember.feature.federation.service.LendingService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
 
 /**
  * Borrowing as a browser rather than a search.
@@ -52,7 +55,7 @@ public class EquipmentBrowseService {
      * @param itemId    the piece that was picked
      * @return the recommendations
      */
-    public List<EquipmentRecommendationRepository.Recommendation> recommendationsFor(int stationId, int itemId) {
+    public List<Recommendation> recommendationsFor(int stationId, int itemId) {
         return recommendationRepository.forItem(stationId, itemId, RECOMMENDATION_LIMIT);
     }
 
@@ -74,7 +77,7 @@ public class EquipmentBrowseService {
         var checked = new ArrayList<LineCheck>(lines.size());
         for (var line : lines) {
             int free = offers.stream()
-                    .filter(entry -> entry.stationId() == line.owningStationId())
+                    .filter(entry -> entry.stationId().equals(line.owningStationId()))
                     .filter(entry -> entry.inventoryId() == line.inventoryId())
                     .filter(entry -> line.artId() == null || Objects.equals(entry.artId(), line.artId()))
                     .mapToInt(LendingService.AvailableInventoryEntry::availableCount)
@@ -102,13 +105,18 @@ public class EquipmentBrowseService {
     /**
      * One line of a collected list, as it stands before anything has been sent.
      *
-     * @param owningStationId the station the gear belongs to
+     * @param owningStationId the station the gear belongs to, which may be on another instance
      * @param inventoryId     the inventory it is filed in
      * @param artId           the kind asked for, or {@code null} for a count out of the whole inventory
      * @param quantity        how many pieces
      * @param needId          the line of an appointment's needs this would fill, or {@code null}
      */
-    public record CollectedLine(int owningStationId, int inventoryId, Integer artId, int quantity, Integer needId) {}
+    public record CollectedLine(
+            UUID owningStationId,
+            int inventoryId,
+            @Nullable Integer artId,
+            int quantity,
+            @Nullable Integer needId) {}
 
     /**
      * What one collected line would still find.

@@ -12,8 +12,7 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import type { QuizCatalog, QuizCategory, QuizSectionDetail } from '@/api/quiz'
-import type { MemberGroup, UserTag } from '@/api/types'
+import type { MemberGroup, QuizCatalog, QuizCategory, QuizSectionDetail, UserTag } from '@/api/generated/schema'
 import { quiz, memberGroups, userTags } from '@/api'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { describeFailure } from '@/util/failure'
@@ -22,6 +21,7 @@ import TestRestrictionsForm from './testbuilderview/TestRestrictionsForm.vue'
 import TestSectionsEditor from './testbuilderview/TestSectionsEditor.vue'
 import {moveWithin} from '@/util/reorder'
 import {instantToLocalInput} from '@/util/format'
+import {userTypesOf} from '@/util/stationUserTypes'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -53,6 +53,8 @@ const allTags = ref<UserTag[]>([])
 const selectedUserTypes = ref<string[]>([])
 const selectedGroupIds = ref<number[]>([])
 const selectedTagIds = ref<number[]>([])
+/** The members the test is put to by name, which this screen does not edit and sends back as read. */
+const keptMemberIds = ref<number[]>([])
 
 const catalogs = ref<QuizCatalog[]>([])
 const catalogCategories = ref<Map<number, QuizCategory[]>>(new Map())
@@ -93,6 +95,10 @@ function removeSection(index: number) {
 
 function reorderSections(fromIndex: number, toIndex: number) {
   sections.value = moveWithin(sections.value, fromIndex, toIndex)
+}
+
+function updateSection(index: number, section: SectionDraft) {
+  sections.value[index] = section
 }
 
 function addSource(section: SectionDraft) {
@@ -166,6 +172,7 @@ const { loading, failure } = useAsyncLoader(async () => {
       selectedUserTypes.value = restrictions.userTypes ?? []
       selectedGroupIds.value = restrictions.groupIds ?? []
       selectedTagIds.value = restrictions.tagIds ?? []
+      keptMemberIds.value = restrictions.memberIds
     } catch { void 0 }
 
     sections.value = detail.sections.map((sec: QuizSectionDetail) => ({
@@ -237,9 +244,10 @@ async function save() {
   try {
     await saveSections(id)
     await quiz.setRestrictions(id, {
-      userTypes: selectedUserTypes.value,
+      userTypes: userTypesOf(selectedUserTypes.value),
       groupIds: selectedGroupIds.value,
       tagIds: selectedTagIds.value,
+      memberIds: keptMemberIds.value,
     })
   } catch (e) {
     failure.value = {...describeFailure(e, t), message: t('quiz.tests.savedWithoutSections')}
@@ -269,11 +277,11 @@ async function save() {
         />
 
         <TestRestrictionsForm
-            :groups="allGroups"
-            :tags="allTags"
             v-model:selected-user-types="selectedUserTypes"
             v-model:selected-group-ids="selectedGroupIds"
             v-model:selected-tag-ids="selectedTagIds"
+            :groups="allGroups"
+            :tags="allTags"
         />
 
         <TestSectionsEditor
@@ -284,6 +292,7 @@ async function save() {
             @add-section="addSection"
             @reorder-sections="reorderSections"
             @remove-section="removeSection"
+            @update-section="updateSection"
             @add-source="addSource"
             @remove-source="removeSource"
         />

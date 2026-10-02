@@ -5,7 +5,7 @@
  */
 import {computed, type MaybeRefOrGetter} from 'vue'
 import {useI18n} from 'vue-i18n'
-import type {ClusterItem} from '@/api/clusterInventory'
+import type {ClusterItemResponse} from '@/api/generated/schema'
 import {ColumnTypes, enumOptions, type TableColumn} from '@/components/table/tableColumn'
 import {useDataTable} from '@/composables/useDataTable'
 
@@ -16,10 +16,10 @@ const AWAY_CUSTODIES = ['AT_STATION', 'WITH_MEMBER', 'WITH_PARTNER', 'IN_TRANSIT
  * The association's pieces that are out at its stations as one table, which the screen shows a
  * block per station. The columns, sort and filters chosen in one block hold for all of them.
  */
-export function useOutItemTable(items: MaybeRefOrGetter<readonly ClusterItem[]>) {
+export function useOutItemTable(items: MaybeRefOrGetter<readonly ClusterItemResponse[]>) {
     const {t} = useI18n()
 
-    const columns = computed<TableColumn<ClusterItem>[]>(() => [
+    const columns = computed<TableColumn<ClusterItemResponse>[]>(() => [
         {key: 'name', label: t('clusterInventory.outColumn.name'), type: ColumnTypes.TEXT, value: item => item.name, pinned: true},
         {key: 'internalId', label: t('clusterInventory.outColumn.internalId'), type: ColumnTypes.TEXT, value: item => item.internalId, defaultVisible: false},
         {key: 'size', label: t('clusterInventory.outColumn.size'), type: ColumnTypes.TEXT, value: item => item.sizeLabel},
@@ -30,7 +30,7 @@ export function useOutItemTable(items: MaybeRefOrGetter<readonly ClusterItem[]>)
         },
     ])
 
-    return useDataTable<ClusterItem>({
+    return useDataTable<ClusterItemResponse>({
         id: 'cluster-items-out',
         rows: items,
         columns,

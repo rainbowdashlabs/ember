@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {computed, onMounted, ref} from 'vue'
+import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
@@ -16,7 +16,9 @@ import MutedText from '@/components/typography/MutedText.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import LogEntryRow from '@/components/log/LogEntryRow.vue'
 import LogFilterBar from './adminlogview/LogFilterBar.vue'
-import {LOG_LEVELS, searchLog, type ApplicationLogPage, type LogEntry} from '@/api/applicationLog'
+import {LOG_LEVELS, searchLog} from '@/api/applicationLog'
+import type {ApplicationLogPage, LogEntry} from '@/api/generated/schema'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {describeFailure, type Failure} from '@/util/failure'
 
 /**
@@ -30,9 +32,7 @@ const {t} = useI18n()
 
 const entries = ref<LogEntry[]>([])
 const page = ref<ApplicationLogPage | null>(null)
-const loading = ref(true)
 const loadingMore = ref(false)
-const failure = ref<Failure | null>(null)
 const moreFailure = ref<Failure | null>(null)
 
 const search = ref('')
@@ -47,20 +47,13 @@ const query = computed(() => ({
   thread: thread.value,
 }))
 
-async function reload() {
-  loading.value = true
-  failure.value = null
+const {loading, failure, reload} = useAsyncLoader(async (isCurrent) => {
   moreFailure.value = null
-  try {
-    const result = await searchLog(query.value)
-    page.value = result
-    entries.value = result.entries
-  } catch (e) {
-    failure.value = describeFailure(e, t)
-  } finally {
-    loading.value = false
-  }
-}
+  const result = await searchLog(query.value)
+  if (!isCurrent()) return
+  page.value = result
+  entries.value = result.entries
+})
 
 /**
  * Reads further back from the oldest line on screen, which is what a cursor is for.
@@ -82,8 +75,6 @@ async function loadMore() {
     loadingMore.value = false
   }
 }
-
-onMounted(reload)
 </script>
 
 <template>

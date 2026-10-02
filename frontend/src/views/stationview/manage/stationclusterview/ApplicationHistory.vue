@@ -8,11 +8,11 @@ import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
-import type {StationClusterApplication} from '@/api/clusterStations'
+import type {ClusterApplicationView} from '@/api/generated/schema'
 import {formatDate} from '@/util/format'
 
 defineProps<{
-  applications: StationClusterApplication[]
+  applications: ClusterApplicationView[]
 }>()
 
 const {t} = useI18n()

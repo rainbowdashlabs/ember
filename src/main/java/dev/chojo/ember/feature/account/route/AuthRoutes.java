@@ -9,19 +9,21 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.RateLimits;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.api.StepUpChallenge;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.auth.SessionCookies;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StepUpCategory;
+import dev.chojo.ember.api.refusal.MemberRefusal;
+import dev.chojo.ember.api.refusal.Refusal;
 import dev.chojo.ember.conf.file.elements.Demo;
-import dev.chojo.ember.conf.file.elements.Network;
 import dev.chojo.ember.conf.file.elements.PasskeySettings;
+import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.entity.LoginResult;
 import dev.chojo.ember.feature.account.service.AuthRateLimiter;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.passkey.service.PasskeyModeService;
-import dev.chojo.ember.util.ClientIp;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -32,47 +34,50 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
+import java.util.Objects;
 
 /**
  * Routes for authentication operations including registration, login, email verification,
  * password management, and email change confirmation.
+ *
+ * <p>The outcome switches of the password and email-change flows end in a throwing default: an
+ * outcome added later would otherwise fall out of the switch with nothing written, and an empty 200
+ * reads as success. The address-setup flow maps its outcomes in a switch expression instead, which
+ * the compiler holds to every outcome.
  */
 @Singleton
 public class AuthRoutes implements Routes {
     private final AuthService authService;
     private final AuthRateLimiter rateLimiter;
-    private final Network network;
     private final Demo demo;
     private final PasskeyModeService passkeyModeService;
+    private final SessionCookies sessionCookies;
 
     @Inject
     public AuthRoutes(
             AuthService authService,
             AuthRateLimiter rateLimiter,
-            Network network,
             Demo demo,
-            PasskeyModeService passkeyModeService) {
+            PasskeyModeService passkeyModeService,
+            SessionCookies sessionCookies) {
         this.authService = authService;
         this.rateLimiter = rateLimiter;
-        this.network = network;
         this.demo = demo;
         this.passkeyModeService = passkeyModeService;
+        this.sessionCookies = sessionCookies;
     }
 
     private static boolean isBlank(String s) {
         return s == null || s.isBlank();
     }
 
-    private static String extractBearerToken(Context ctx) {
-        String header = ctx.header("Authorization");
-        if (header == null) return null;
-        String prefix = "Bearer ";
-        if (header.regionMatches(true, 0, prefix, 0, prefix.length())) {
-            return header.substring(prefix.length()).trim();
-        }
-        return null;
+    /** Answers a sign-in: the session goes into the cookie, and the body says what was decided. */
+    private void answerSignIn(Context ctx, @Nullable LoginResult login) {
+        sessionCookies.issue(ctx, login);
+        ctx.status(HttpStatus.OK).json(LoginResponse.of(login));
     }
 
     @Override
@@ -88,7 +93,6 @@ public class AuthRoutes implements Routes {
         if (demo.dev() || demo.enabled()) {
             routes.post(prefix + "/demo/login", this::demoLogin);
         }
-        routes.post(prefix + "/auth/refresh", this::refresh);
         routes.post(prefix + "/auth/logout", this::logout);
         routes.post(
                 prefix + "/auth/change-password",
@@ -98,10 +102,10 @@ public class AuthRoutes implements Routes {
         routes.post(prefix + "/auth/confirm-email-change", this::confirmEmailChange);
     }
 
-    private String clientIp(Context ctx) {
-        return ClientIp.resolve(ctx, network).getHostAddress();
-    }
-
+    /**
+     * Registers an account. A passwordless instance asks for no password: the verification mail's
+     * link is where the passkey is made.
+     */
     @OpenApi(
             path = "/api/v1/auth/register",
             methods = HttpMethod.POST,
@@ -116,16 +120,14 @@ public class AuthRoutes implements Routes {
                 @OpenApiResponse(status = "409", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void register(Context ctx) {
-        RateLimits.enforce(rateLimiter.tryRegister(clientIp(ctx)));
+        RateLimits.enforce(MemberRefusal.REGISTERING_TOO_OFTEN, rateLimiter.tryRegister(ctx.ip()));
         var request = ctx.bodyAsClass(RegisterRequest.class);
-        // On a passwordless instance no password is asked for: the account is created without
-        // one, and the verification mail's link is where the passkey is made.
         boolean passwordless = passkeyModeService.effectiveMode() == PasskeySettings.Mode.PASSWORDLESS;
         if (isBlank(request.email())
                 || isBlank(request.firstName())
                 || isBlank(request.lastName())
                 || (!passwordless && isBlank(request.password()))) {
-            throw Refusal.REGISTRATION_DETAILS_MISSING.raise();
+            throw MemberRefusal.REGISTRATION_DETAILS_MISSING.raise();
         }
 
         var result = authService.registerSelf(
@@ -134,17 +136,18 @@ public class AuthRoutes implements Routes {
                 request.lastName(),
                 request.password(),
                 request.registrationCode());
-        if (!result.success()) {
-            throw Refusal.REGISTRATION_REFUSED.raise();
+        Account account = result.account();
+        if (!result.success() || account == null) {
+            throw MemberRefusal.REGISTRATION_REFUSED.raise();
         }
 
         ctx.status(HttpStatus.CREATED)
                 .json(new RegisterResponse(
-                        result.account().id(),
-                        result.account().email(),
-                        result.account().firstName(),
-                        result.account().lastName(),
-                        result.account().emailVerified()));
+                        account.id(),
+                        account.email(),
+                        account.firstName(),
+                        account.lastName(),
+                        account.emailVerified()));
     }
 
     @OpenApi(
@@ -159,16 +162,16 @@ public class AuthRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void verifyEmail(Context ctx) {
-        RateLimits.enforce(rateLimiter.tryVerifyEmail(clientIp(ctx)));
+        RateLimits.enforce(MemberRefusal.EMAIL_VERIFYING_TOO_OFTEN, rateLimiter.tryVerifyEmail(ctx.ip()));
         var request = ctx.bodyAsClass(TokenRequest.class);
         if (isBlank(request.token())) {
-            throw Refusal.EMAIL_VERIFICATION_TOKEN_MISSING.raise();
+            throw MemberRefusal.EMAIL_VERIFICATION_TOKEN_MISSING.raise();
         }
 
         if (authService.verifyEmail(request.token())) {
             ctx.status(HttpStatus.OK).json(new MessageResponse("Email verified"));
         } else {
-            throw Refusal.EMAIL_VERIFICATION_LINK_NOT_GOOD.raise();
+            throw MemberRefusal.EMAIL_VERIFICATION_LINK_NOT_GOOD.raise();
         }
     }
 
@@ -186,9 +189,11 @@ public class AuthRoutes implements Routes {
     private void resendVerification(Context ctx) {
         var request = ctx.bodyAsClass(EmailRequest.class);
         if (isBlank(request.email())) {
-            throw Refusal.RESEND_VERIFICATION_ADDRESS_MISSING.raise();
+            throw MemberRefusal.RESEND_VERIFICATION_ADDRESS_MISSING.raise();
         }
-        RateLimits.enforce(rateLimiter.tryResendVerification(clientIp(ctx), request.email()));
+        RateLimits.enforce(
+                MemberRefusal.VERIFICATION_MAIL_TOO_OFTEN,
+                rateLimiter.tryResendVerification(ctx.ip(), request.email()));
 
         authService.resendVerification(request.email());
         ctx.status(HttpStatus.OK)
@@ -209,23 +214,21 @@ public class AuthRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void setPassword(Context ctx) {
-        RateLimits.enforce(rateLimiter.trySetPassword(clientIp(ctx)));
+        RateLimits.enforce(MemberRefusal.PASSWORD_SETTING_TOO_OFTEN, rateLimiter.trySetPassword(ctx.ip()));
         var request = ctx.bodyAsClass(SetPasswordRequest.class);
         if (isBlank(request.token()) || isBlank(request.password())) {
-            throw Refusal.PASSWORD_SETUP_DETAILS_MISSING.raise();
+            throw MemberRefusal.PASSWORD_SETUP_DETAILS_MISSING.raise();
         }
 
         var result = authService.setPasswordAndSignIn(
                 request.token(), request.password(), ctx.userAgent(), ctx.header("CF-IPCountry"));
         switch (result.outcome()) {
-            case OK -> ctx.status(HttpStatus.OK).json(LoginResponse.of(result.login()));
-            case PASSWORD_TOO_SHORT -> throw Refusal.NEW_PASSWORD_TOO_SHORT.raise();
-            case PASSWORD_BREACHED -> throw Refusal.NEW_PASSWORD_BREACHED.raise();
-            case TOKEN_INVALID -> throw Refusal.PASSWORD_SETUP_LINK_UNKNOWN.raise();
-            case TOKEN_EXPIRED -> throw Refusal.PASSWORD_SETUP_LINK_EXPIRED.raise();
-            case PASSWORDLESS_MODE -> throw Refusal.PASSWORDS_SWITCHED_OFF.raise();
-            // An outcome added later and not answered here would otherwise fall out of the switch
-            // with nothing written, and an empty 200 reads as a password that was set.
+            case OK -> answerSignIn(ctx, result.login());
+            case PASSWORD_TOO_SHORT -> throw MemberRefusal.NEW_PASSWORD_TOO_SHORT.raise();
+            case PASSWORD_BREACHED -> throw MemberRefusal.NEW_PASSWORD_BREACHED.raise();
+            case TOKEN_INVALID -> throw MemberRefusal.PASSWORD_SETUP_LINK_UNKNOWN.raise();
+            case TOKEN_EXPIRED -> throw MemberRefusal.PASSWORD_SETUP_LINK_EXPIRED.raise();
+            case PASSWORDLESS_MODE -> throw MemberRefusal.PASSWORDS_SWITCHED_OFF.raise();
             default -> throw new IllegalStateException("Unhandled set-password outcome: " + result.outcome());
         }
     }
@@ -243,22 +246,35 @@ public class AuthRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void setAddress(Context ctx) {
-        RateLimits.enforce(rateLimiter.trySetPassword(clientIp(ctx)));
+        RateLimits.enforce(MemberRefusal.ADDRESS_SETTING_TOO_OFTEN, rateLimiter.trySetPassword(ctx.ip()));
         var request = ctx.bodyAsClass(SetAddressRequest.class);
         if (isBlank(request.token()) || isBlank(request.email())) {
-            throw Refusal.ADDRESS_SETUP_DETAILS_MISSING.raise();
+            throw MemberRefusal.ADDRESS_SETUP_DETAILS_MISSING.raise();
         }
 
         var result = authService.setRequiredAddress(
                 request.token(), request.email(), ctx.userAgent(), ctx.header("CF-IPCountry"));
-        switch (result.outcome()) {
-            case OK -> ctx.status(HttpStatus.OK).json(LoginResponse.of(result.login()));
-            case TOKEN_INVALID -> throw Refusal.ADDRESS_SETUP_LINK_UNKNOWN.raise();
-            case TOKEN_EXPIRED -> throw Refusal.ADDRESS_SETUP_LINK_EXPIRED.raise();
-            case ADDRESS_MALFORMED -> throw Refusal.ADDRESS_MALFORMED.raise();
-            case ADDRESS_UNREACHABLE -> throw Refusal.ADDRESS_UNREACHABLE.raise();
-            case ADDRESS_TAKEN -> throw Refusal.ADDRESS_TAKEN_ON_SETUP.raise();
-        }
+        if (result.outcome() != AuthService.AddressOutcome.OK)
+            throw addressSetupRefusal(result.outcome()).raise();
+        answerSignIn(ctx, result.login());
+    }
+
+    /**
+     * The refusal for an address that was not put on the account. A switch expression, so an outcome
+     * added later does not compile until it is answered here.
+     *
+     * @param outcome what became of the attempt, anything but {@code OK}
+     * @return the refusal to answer with
+     */
+    static Refusal addressSetupRefusal(AuthService.AddressOutcome outcome) {
+        return switch (outcome) {
+            case TOKEN_INVALID -> MemberRefusal.ADDRESS_SETUP_LINK_UNKNOWN;
+            case TOKEN_EXPIRED -> MemberRefusal.ADDRESS_SETUP_LINK_EXPIRED;
+            case ADDRESS_MALFORMED -> MemberRefusal.ADDRESS_MALFORMED;
+            case ADDRESS_UNREACHABLE -> MemberRefusal.ADDRESS_UNREACHABLE;
+            case ADDRESS_TAKEN -> MemberRefusal.ADDRESS_TAKEN_ON_SETUP;
+            case OK -> throw new IllegalArgumentException("An address that was set needs no refusal");
+        };
     }
 
     @OpenApi(
@@ -272,7 +288,7 @@ public class AuthRoutes implements Routes {
             responses =
                     @OpenApiResponse(status = "200", content = @OpenApiContent(from = AuthService.TokenStatus.class)))
     private void passwordLinkStatus(Context ctx) {
-        RateLimits.enforce(rateLimiter.trySetPassword(clientIp(ctx)));
+        RateLimits.enforce(MemberRefusal.PASSWORD_LINK_CHECKED_TOO_OFTEN, rateLimiter.trySetPassword(ctx.ip()));
         var request = ctx.bodyAsClass(TokenRequest.class);
         ctx.json(authService.checkPasswordToken(request.token()));
     }
@@ -292,9 +308,10 @@ public class AuthRoutes implements Routes {
     private void forgotPassword(Context ctx) {
         var request = ctx.bodyAsClass(EmailRequest.class);
         if (isBlank(request.email())) {
-            throw Refusal.FORGOTTEN_PASSWORD_ADDRESS_MISSING.raise();
+            throw MemberRefusal.FORGOTTEN_PASSWORD_ADDRESS_MISSING.raise();
         }
-        RateLimits.enforce(rateLimiter.tryForgotPassword(clientIp(ctx), request.email()));
+        RateLimits.enforce(
+                MemberRefusal.PASSWORD_RESET_TOO_OFTEN, rateLimiter.tryForgotPassword(ctx.ip(), request.email()));
 
         authService.requestPasswordReset(request.email());
         ctx.status(HttpStatus.OK).json(new MessageResponse("If the email exists, a password reset link has been sent"));
@@ -305,7 +322,7 @@ public class AuthRoutes implements Routes {
             methods = HttpMethod.POST,
             summary = "Log in",
             description =
-                    "Authenticates with an email address or a username, and a password. Returns a session token, or a password change token if a password change is required.",
+                    "Authenticates with an email address or a username, and a password. Sets the session cookie, or returns the token of the step still owed: a password change, an address or a second factor.",
             tags = {"Auth"},
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = LoginRequest.class)),
             responses = {
@@ -315,9 +332,9 @@ public class AuthRoutes implements Routes {
     private void login(Context ctx) {
         var request = ctx.bodyAsClass(LoginRequest.class);
         if (isBlank(request.identifier()) || isBlank(request.password())) {
-            throw Refusal.SIGN_IN_DETAILS_MISSING.raise();
+            throw MemberRefusal.SIGN_IN_DETAILS_MISSING.raise();
         }
-        RateLimits.enforce(rateLimiter.tryLogin(clientIp(ctx), request.identifier()));
+        RateLimits.enforce(MemberRefusal.SIGN_IN_TOO_OFTEN, rateLimiter.tryLogin(ctx.ip(), request.identifier()));
 
         var result = authService.login(
                 request.identifier(),
@@ -327,10 +344,10 @@ public class AuthRoutes implements Routes {
                 ctx.cookie("ember_2fa_trust"),
                 request.trustedDevice());
         if (!result.success()) {
-            throw Refusal.SIGN_IN_REFUSED.raise();
+            throw MemberRefusal.SIGN_IN_REFUSED.raise();
         }
 
-        ctx.status(HttpStatus.OK).json(LoginResponse.of(result));
+        answerSignIn(ctx, result);
     }
 
     @OpenApi(
@@ -348,77 +365,62 @@ public class AuthRoutes implements Routes {
     private void demoLogin(Context ctx) {
         var request = ctx.bodyAsClass(DemoLoginRequest.class);
         if (isBlank(request.email())) {
-            throw Refusal.DEMO_SIGN_IN_ADDRESS_MISSING.raise();
+            throw MemberRefusal.DEMO_SIGN_IN_ADDRESS_MISSING.raise();
         }
         var result = authService.loginAsDemo(request.email(), ctx.userAgent(), ctx.header("CF-IPCountry"));
         if (!result.success()) {
-            throw Refusal.DEMO_SIGN_IN_REFUSED.raise();
+            throw MemberRefusal.DEMO_SIGN_IN_REFUSED.raise();
         }
-        ctx.status(HttpStatus.OK).json(LoginResponse.of(result));
-    }
-
-    @OpenApi(
-            path = "/api/v1/auth/refresh",
-            methods = HttpMethod.POST,
-            summary = "Refresh session",
-            description = "Exchanges a valid session token for a new one. The old token is invalidated.",
-            tags = {"Auth"},
-            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = TokenRequest.class)),
-            responses = {
-                @OpenApiResponse(status = "200", content = @OpenApiContent(from = SessionResponse.class)),
-                @OpenApiResponse(status = "401", content = @OpenApiContent(from = ErrorResponseWrapper.class))
-            })
-    private void refresh(Context ctx) {
-        RateLimits.enforce(rateLimiter.tryRefresh(clientIp(ctx)));
-        var request = ctx.bodyAsClass(TokenRequest.class);
-        if (isBlank(request.token())) {
-            throw Refusal.SESSION_RENEWAL_TOKEN_MISSING.raise();
-        }
-
-        var result = authService.refreshSession(request.token(), ctx.userAgent(), ctx.header("CF-IPCountry"));
-        if (!result.success()) {
-            throw Refusal.SESSION_NOT_RENEWED.raise();
-        }
-
-        ctx.status(HttpStatus.OK).json(new SessionResponse(result.token(), result.expiresAt()));
+        answerSignIn(ctx, result);
     }
 
     @OpenApi(
             path = "/api/v1/auth/logout",
             methods = HttpMethod.POST,
             summary = "Log out",
-            description = "Invalidates the session token.",
+            description =
+                    "Ends the session the session cookie names and clears the cookie. Answers the same whether or not there was a session to end.",
             tags = {"Auth"},
-            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = TokenRequest.class)),
             responses = {@OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class))})
     private void logout(Context ctx) {
-        var request = ctx.bodyAsClass(TokenRequest.class);
-        if (isBlank(request.token())) {
-            throw Refusal.SIGN_OUT_TOKEN_MISSING.raise();
-        }
-
-        authService.logout(request.token());
+        SessionCookies.token(ctx).ifPresent(authService::logout);
+        sessionCookies.clear(ctx);
         ctx.status(HttpStatus.OK).json(new MessageResponse("Logged out"));
     }
 
+    /**
+     * Rotates the password and, with it, the token of the session asking, so the browser keeps its
+     * sign-in on a token nobody could have read before the change.
+     */
+    @OpenApi(
+            path = "/api/v1/auth/change-password",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ChangePasswordRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)),
+                @OpenApiResponse(status = "401", content = @OpenApiContent(from = StepUpChallenge.class))
+            })
     private void changePassword(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        RateLimits.enforce(rateLimiter.tryChangePassword(session.accountId()));
+        RateLimits.enforce(MemberRefusal.PASSWORD_CHANGE_TOO_OFTEN, rateLimiter.tryChangePassword(session.accountId()));
         var request = ctx.bodyAsClass(ChangePasswordRequest.class);
         if (isBlank(request.currentPassword()) || isBlank(request.newPassword())) {
-            throw Refusal.PASSWORD_CHANGE_DETAILS_MISSING.raise();
+            throw MemberRefusal.PASSWORD_CHANGE_DETAILS_MISSING.raise();
         }
-        String currentSessionToken = extractBearerToken(ctx);
+        String currentSessionToken = SessionCookies.token(ctx).orElse(null);
         var outcome = authService.changePassword(
                 session.accountId(), currentSessionToken, request.currentPassword(), request.newPassword());
         switch (outcome) {
-            case OK -> ctx.json(new MessageResponse("Password changed"));
-            case NEW_PASSWORD_TOO_SHORT -> throw Refusal.CHANGED_PASSWORD_TOO_SHORT.raise();
-            case NEW_PASSWORD_BREACHED -> throw Refusal.CHANGED_PASSWORD_BREACHED.raise();
-            case NO_PASSWORD_SET -> throw Refusal.ACCOUNT_HAS_NO_PASSWORD.raise();
-            case CURRENT_PASSWORD_WRONG -> throw Refusal.CURRENT_PASSWORD_WRONG.raise();
-            // An outcome added later and not answered here would otherwise fall out of the switch
-            // with nothing written, and an empty 200 reads as a password that changed.
+            case OK -> {
+                sessionCookies.issue(
+                        ctx,
+                        authService.rotateSession(currentSessionToken, ctx.userAgent(), ctx.header("CF-IPCountry")));
+                ctx.json(new MessageResponse("Password changed"));
+            }
+            case NEW_PASSWORD_TOO_SHORT -> throw MemberRefusal.CHANGED_PASSWORD_TOO_SHORT.raise();
+            case NEW_PASSWORD_BREACHED -> throw MemberRefusal.CHANGED_PASSWORD_BREACHED.raise();
+            case NO_PASSWORD_SET -> throw MemberRefusal.ACCOUNT_HAS_NO_PASSWORD.raise();
+            case CURRENT_PASSWORD_WRONG -> throw MemberRefusal.CURRENT_PASSWORD_WRONG.raise();
             default -> throw new IllegalStateException("Unhandled change-password outcome: " + outcome);
         }
     }
@@ -434,26 +436,22 @@ public class AuthRoutes implements Routes {
                 @OpenApiResponse(status = "400")
             })
     private void confirmEmailChange(Context ctx) {
-        RateLimits.enforce(rateLimiter.tryConfirmEmailChange(clientIp(ctx)));
+        RateLimits.enforce(MemberRefusal.EMAIL_CHANGE_CONFIRMED_TOO_OFTEN, rateLimiter.tryConfirmEmailChange(ctx.ip()));
         var request = ctx.bodyAsClass(TokenRequest.class);
-        if (isBlank(request.token())) throw Refusal.EMAIL_CHANGE_TOKEN_MISSING.raise();
+        if (isBlank(request.token())) throw MemberRefusal.EMAIL_CHANGE_TOKEN_MISSING.raise();
         var result = authService.confirmEmailChange(request.token());
         switch (result) {
-            case COMMITTED -> ctx.json(new EmailChangeResponse("COMMITTED", "Email address updated"));
+            case COMMITTED -> ctx.json(new EmailChangeResponse(EmailChangeStatus.COMMITTED, "Email address updated"));
             case WAITING ->
                 ctx.json(
                         new EmailChangeResponse(
-                                "WAITING",
+                                EmailChangeStatus.WAITING,
                                 "Confirmation received. Waiting for the other address to confirm before the change takes effect."));
-            case DUPLICATE -> throw Refusal.EMAIL_CHANGE_ADDRESS_TAKEN.raise();
-            case INVALID -> throw Refusal.EMAIL_CHANGE_LINK_NOT_GOOD.raise();
-            // An outcome added later and not answered here would otherwise fall out of the switch
-            // with nothing written, and an empty 200 reads as an address that changed.
+            case DUPLICATE -> throw MemberRefusal.EMAIL_CHANGE_ADDRESS_TAKEN.raise();
+            case INVALID -> throw MemberRefusal.EMAIL_CHANGE_LINK_NOT_GOOD.raise();
             default -> throw new IllegalStateException("Unhandled email-change outcome: " + result);
         }
     }
-
-    // -- Request/Response records --
 
     /**
      * Request body for self-registration with optional station registration code.
@@ -484,7 +482,7 @@ public class AuthRoutes implements Routes {
     public record DemoLoginRequest(String email) {}
 
     /**
-     * Request body containing a one-time token for verification, password set, refresh, or logout.
+     * Request body containing a one-time token for verification or password set.
      */
     public record TokenRequest(String token) {}
 
@@ -495,7 +493,15 @@ public class AuthRoutes implements Routes {
      *               still has to. The page tells the two apart by this rather than by the wording.
      * @param message what to say about it
      */
-    public record EmailChangeResponse(String status, String message) {}
+    public record EmailChangeResponse(EmailChangeStatus status, String message) {}
+
+    /** Where an email change stands once one of its two addresses has confirmed. */
+    public enum EmailChangeStatus {
+        /** Both addresses confirmed and the account carries the new one. */
+        COMMITTED,
+        /** This address confirmed; the other one still has to. */
+        WAITING
+    }
 
     /**
      * Request body for changing a password while authenticated.
@@ -527,58 +533,60 @@ public class AuthRoutes implements Routes {
     public record RegisterResponse(int id, String email, String firstName, String lastName, boolean emailVerified) {}
 
     /**
-     * Response body for login. Contains either a session token or a password change token,
-     * depending on whether a forced password change is required.
+     * Response body for login: a finished sign-in, or the one step still standing in the way of one.
+     *
+     * <p>A finished sign-in travels in the session cookie, never in the body, so {@code expiresAt}
+     * says only how long the session lasts.
      */
     public record LoginResponse(
-            String token,
-            Instant expiresAt,
+            @Nullable Instant expiresAt,
             boolean passwordChangeRequired,
-            String passwordChangeToken,
-            Instant passwordChangeTokenExpiresAt,
+            @Nullable String passwordChangeToken,
+            @Nullable Instant passwordChangeTokenExpiresAt,
             boolean addressRequired,
-            String addressToken,
-            Instant addressTokenExpiresAt,
+            @Nullable String addressToken,
+            @Nullable Instant addressTokenExpiresAt,
             boolean twoFactorRequired,
-            String preAuthToken,
-            Instant preAuthTokenExpiresAt) {
+            @Nullable String preAuthToken,
+            @Nullable Instant preAuthTokenExpiresAt) {
 
         /** Neither a session nor a way to one: whoever asked has to sign in by hand. */
         public static LoginResponse none() {
-            return new LoginResponse(null, null, false, null, null, false, null, null, false, null, null);
+            return new LoginResponse(null, false, null, null, false, null, null, false, null, null);
         }
 
-        public static LoginResponse session(String token, Instant expiresAt) {
-            return new LoginResponse(token, expiresAt, false, null, null, false, null, null, false, null, null);
+        public static LoginResponse session(Instant expiresAt) {
+            return new LoginResponse(expiresAt, false, null, null, false, null, null, false, null, null);
         }
 
         public static LoginResponse passwordChange(String token, Instant expiresAt) {
-            return new LoginResponse(null, null, true, token, expiresAt, false, null, null, false, null, null);
+            return new LoginResponse(null, true, token, expiresAt, false, null, null, false, null, null);
         }
 
         public static LoginResponse address(String token, Instant expiresAt) {
-            return new LoginResponse(null, null, false, null, null, true, token, expiresAt, false, null, null);
+            return new LoginResponse(null, false, null, null, true, token, expiresAt, false, null, null);
         }
 
         public static LoginResponse twoFactor(String preAuthToken, Instant expiresAt) {
-            return new LoginResponse(null, null, false, null, null, false, null, null, true, preAuthToken, expiresAt);
+            return new LoginResponse(null, false, null, null, false, null, null, true, preAuthToken, expiresAt);
         }
 
         /**
          * Whatever the sign-in decided, said the way the API says it: a session, or the one step
          * still standing in the way of one.
          */
-        public static LoginResponse of(LoginResult login) {
+        public static LoginResponse of(@Nullable LoginResult login) {
             if (login == null || !login.success()) return none();
-            if (login.passwordChangeRequired()) return passwordChange(login.token(), login.expiresAt());
-            if (login.addressRequired()) return address(login.token(), login.expiresAt());
-            if (login.twoFactorRequired()) return twoFactor(login.preAuthToken(), login.preAuthTokenExpiresAt());
-            return session(login.token(), login.expiresAt());
+            if (login.twoFactorRequired()) {
+                return twoFactor(
+                        Objects.requireNonNull(login.preAuthToken(), "a factor step carries its token"),
+                        Objects.requireNonNull(login.preAuthTokenExpiresAt(), "a factor step carries its expiry"));
+            }
+            String token = Objects.requireNonNull(login.token(), "every other success carries a token");
+            Instant expiresAt = Objects.requireNonNull(login.expiresAt(), "every other success carries an expiry");
+            if (login.passwordChangeRequired()) return passwordChange(token, expiresAt);
+            if (login.addressRequired()) return address(token, expiresAt);
+            return session(expiresAt);
         }
     }
-
-    /**
-     * Response body for a refreshed session with the new token and expiration.
-     */
-    public record SessionResponse(String token, Instant expiresAt) {}
 }

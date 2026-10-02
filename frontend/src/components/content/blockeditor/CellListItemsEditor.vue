@@ -32,6 +32,7 @@ const props = withDefaults(defineProps<{
     /** Columns in the per-item grid (defaults to the widest field span sum, capped at 2). */
     gridCols?: 1 | 2 | 3
 }>(), {
+    addLabel: undefined,
     gridCols: 2,
 })
 

@@ -7,6 +7,7 @@
 import {onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
+import BareButton from '@/components/button/BareButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import {useStations} from '@/composables/useStations'
@@ -43,7 +44,7 @@ function openAllStations() {
 
 <template>
   <template v-if="loaded && hasMultipleStations">
-    <button
+    <BareButton
         class="flex items-center gap-2 text-sm text-(--text-muted) hover:text-(--text) transition-colors"
         @click="showModal = true"
     >
@@ -51,7 +52,7 @@ function openAllStations() {
       <font-awesome-icon v-else :icon="['fas', 'building']" class="h-3.5 w-3.5"/>
       <span>{{ activeStation?.stationName ?? t('stationSwitcher.noStation') }}</span>
       <font-awesome-icon :icon="['fas', 'chevron-right']" class="h-3 w-3"/>
-    </button>
+    </BareButton>
 
     <Modal v-model="showModal">
       <div class="space-y-4">

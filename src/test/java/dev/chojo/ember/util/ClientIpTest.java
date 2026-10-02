@@ -7,6 +7,7 @@ package dev.chojo.ember.util;
 
 import dev.chojo.ember.conf.file.elements.Network;
 import io.javalin.http.Context;
+import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
@@ -55,7 +56,9 @@ class ClientIpTest {
 
     private static Context ctx(String ip, String xff, String realIp, String cfConnectingIp) {
         Context ctx = Mockito.mock(Context.class);
-        Mockito.when(ctx.ip()).thenReturn(ip);
+        HttpServletRequest request = Mockito.mock(HttpServletRequest.class);
+        Mockito.when(request.getRemoteAddr()).thenReturn(ip);
+        Mockito.when(ctx.req()).thenReturn(request);
         Mockito.when(ctx.header("X-Forwarded-For")).thenReturn(xff);
         Mockito.when(ctx.header("X-Real-IP")).thenReturn(realIp);
         Mockito.when(ctx.header("CF-Connecting-IP")).thenReturn(cfConnectingIp);

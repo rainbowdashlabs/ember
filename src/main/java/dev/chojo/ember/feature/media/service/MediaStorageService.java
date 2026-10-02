@@ -5,51 +5,34 @@
  */
 package dev.chojo.ember.feature.media.service;
 
+import dev.chojo.ember.feature.media.image.MediaTypes;
+import dev.chojo.ember.feature.media.image.VariantFile;
+import dev.chojo.ember.feature.media.image.VariantLayout;
 import dev.chojo.ember.feature.station.repository.StationRepository;
-import dev.chojo.ember.feature.storage.backend.StoredStream;
 import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.entity.StorageScope;
 import dev.chojo.ember.feature.storage.entity.Variant;
 import dev.chojo.ember.feature.storage.service.StorageService;
+import dev.chojo.ember.util.Sha256;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.jspecify.annotations.Nullable;
 
-import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.HexFormat;
-import java.util.List;
-import java.util.Locale;
-import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Stream;
 
 /**
- * On-disk storage for the station media library (images, PDFs, downloads). Backed by the
- * unified {@link StorageService}; this class owns only the library's keying convention
- * (content-hash key, {@code orig.<ext>} / {@code w<width>.<ext>} variant slot).
+ * The media library's keying: a file is stored under its content hash, in the library of its station
+ * or in the instance's own. Everything about the files of one hash beyond the original, their sizes
+ * and the drawn page of a document, belongs to {@link ImageVariants}.
  *
  * <p>Layout in the storage model:
  * {@code <scope>/<category>/<contentHash>/<variantFilename>} →
  * {@code station/<uid>/media/files/<contentHash>/orig.<ext>}.
- *
- * <p>A one-shot boot migration relocates uploads from the oldest
- * {@code data/page-files/<stationUid>/<contentHash>/...} layout straight into the current one,
- * so a station that never ran the intermediate layout is not left behind. Stations sitting on
- * the intermediate {@code station/<uid>/page-files} prefix are moved by
- * {@link MediaPrefixMigrationService}, which can also reach a remote backend.
  */
 @Singleton
 public class MediaStorageService {
-    private static final Logger log = LoggerFactory.getLogger(MediaStorageService.class);
-    private static final String ORIG_PREFIX = "orig";
-
     private final StorageService storage;
     private final StationRepository stationRepository;
     private final LocalStorageBackend localBackend;
@@ -60,104 +43,44 @@ public class MediaStorageService {
         this.storage = storage;
         this.stationRepository = stationRepository;
         this.localBackend = localBackend;
-        migrateLegacyRoot();
     }
 
     /**
      * Hex SHA-256 of the given bytes (lowercase).
      */
     public static String hash(byte[] data) {
-        try {
-            var digest = MessageDigest.getInstance("SHA-256").digest(data);
-            return HexFormat.of().formatHex(digest);
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 unavailable", e);
-        }
-    }
-
-    private static String mimeForExtension(String ext) {
-        return switch (ext) {
-            case "jpg", "jpeg" -> "image/jpeg";
-            case "png" -> "image/png";
-            case "gif" -> "image/gif";
-            case "webp" -> "image/webp";
-            case "svg" -> "image/svg+xml";
-            case "pdf" -> "application/pdf";
-            default -> "application/octet-stream";
-        };
-    }
-
-    private static String extensionFor(String mimeType) {
-        if (mimeType == null) return "bin";
-        return switch (mimeType.toLowerCase(Locale.ROOT)) {
-            case "image/jpeg" -> "jpg";
-            case "image/png" -> "png";
-            case "image/gif" -> "gif";
-            case "image/webp" -> "webp";
-            case "image/svg+xml" -> "svg";
-            case "application/pdf" -> "pdf";
-            default -> "bin";
-        };
+        return Sha256.hex(data);
     }
 
     /**
-     * Persists the original bytes for a (station, hash) pair. Idempotent - calling twice with
-     * the same hash is a semantic no-op because the bytes are identical by definition.
-     */
-    public void store(Integer stationId, String contentHash, byte[] data, String contentType) throws IOException {
-        StorageScope scope = stationScope(stationId);
-        cleanupLegacyOriginals(scope, contentHash, ORIG_PREFIX);
-        String filename = ORIG_PREFIX + "." + extensionFor(contentType);
-        storage.store(scope, categoryFor(stationId), contentHash, new Variant(filename), data, contentType);
-    }
-
-    /**
-     * Reads the original bytes + MIME type for a (station, hash). Returns
-     * {@link Optional#empty()} when no original is present.
-     */
-    public Optional<FileData> read(Integer stationId, String contentHash) {
-        return readVariant(stationId, contentHash, ORIG_PREFIX, null);
-    }
-
-    /**
-     * Reads a single named variant from the (station, hash) directory.
+     * Where the files of one hash are stored.
      *
-     * <p>{@code baseName} is the file name without extension (e.g. {@code "orig"},
-     * {@code "w512"}). {@code extension} pins a specific format ({@code "webp"},
-     * {@code "jpg"}, …) - pass {@code null} to accept any extension, which is the right
-     * choice when reading the original whose on-disk format is whatever the user uploaded.
+     * @param stationId   the station, or {@code null} for the instance's own library
+     * @param contentHash the hash
+     * @return the scope, category and key the files live under
      */
-    public Optional<FileData> readVariant(Integer stationId, String contentHash, String baseName, String extension) {
-        StorageScope scope = stationScope(stationId);
-        String filename = pickVariantFilename(scope, contentHash, baseName, extension);
-        if (filename == null) return Optional.empty();
-        Optional<StoredStream> opt = storage.read(scope, categoryFor(stationId), contentHash, new Variant(filename));
-        if (opt.isEmpty()) return Optional.empty();
-        try (StoredStream s = opt.get()) {
-            byte[] data = s.body().readAllBytes();
-            String contentType = contentTypeFor(filename, s.metadata().contentType());
-            return Optional.of(new FileData(data, contentType));
-        } catch (IOException e) {
-            log.error(
-                    "Failed to read media file station={} hash={} base={} ext={}",
-                    stationId,
-                    contentHash,
-                    baseName,
-                    extension,
-                    e);
-            return Optional.empty();
+    public Location locate(@Nullable Integer stationId, String contentHash) {
+        if (stationId == null) {
+            return new Location(new StorageScope.Instance(), StorageCategory.INSTANCE_MEDIA_FILES, contentHash);
         }
+        UUID uid = stationRepository.requireUid(stationId);
+        return new Location(new StorageScope.Station(stationId, uid), StorageCategory.MEDIA_FILES, contentHash);
     }
 
     /**
-     * Writes a single variant blob into the (station, hash) directory under
-     * {@code <variantName>.<extension>}.
+     * Persists the original bytes for a (station, hash) pair, replacing an original stored under
+     * another extension. Idempotent: the bytes of one hash are identical by definition.
      */
-    public void storeVariant(Integer stationId, String contentHash, String variantName, String extension, byte[] data) {
-        String filename = variantName + "." + extension;
-        String contentType = mimeForExtension(extension);
-        storage.store(
-                stationScope(stationId), categoryFor(stationId), contentHash, new Variant(filename), data, contentType);
+    public void store(@Nullable Integer stationId, String contentHash, byte[] data, String contentType) {
+        Location at = locate(stationId, contentHash);
+        for (String key : storage.listKeys(at.scope(), at.category(), contentHash)) {
+            VariantFile file = VariantFile.of(key);
+            if (VariantLayout.LIBRARY.isOriginal(file)) {
+                storage.delete(at.scope(), at.category(), contentHash, new Variant(file.fileName()));
+            }
+        }
+        String filename = VariantLayout.LIBRARY.originalName(MediaTypes.extensionFor(contentType));
+        storage.store(at.scope(), at.category(), contentHash, new Variant(filename), data, contentType);
     }
 
     /**
@@ -165,131 +88,28 @@ public class MediaStorageService {
      * Caller is responsible for ensuring no other DB rows reference the same hash within the
      * same station.
      */
-    public void delete(Integer stationId, String contentHash) {
-        storage.deletePrefix(stationScope(stationId), categoryFor(stationId), contentHash);
+    public void delete(@Nullable Integer stationId, String contentHash) {
+        Location at = locate(stationId, contentHash);
+        storage.deletePrefix(at.scope(), at.category(), contentHash);
     }
 
     /**
-     * Visible for the variant service and tests: the absolute on-disk directory that holds
-     * the original and every variant for a given (station, hash). Returns a path even when
-     * the directory does not yet exist on disk.
+     * Visible for tests: the absolute on-disk directory that holds the original and every variant
+     * for a given (station, hash). Returns a path even when the directory does not yet exist on disk.
      */
-    public Path hashDir(Integer stationId, String contentHash) {
-        String full = storage.fullKey(stationScope(stationId), categoryFor(stationId), contentHash, Variant.ORIGINAL);
-        return localBackend.resolve(full);
+    public Path hashDir(@Nullable Integer stationId, String contentHash) {
+        Location at = locate(stationId, contentHash);
+        return localBackend.resolve(storage.fullKey(at.scope(), at.category(), contentHash, Variant.ORIGINAL));
     }
 
     /**
-     * Where a file's bytes live.
+     * Where the files of one hash live. The category follows the scope: the same folder name, declared
+     * once for a station and once for the instance, because the storage layer checks that a category
+     * is used at the scope it was declared for.
      *
-     * <p>A file belongs to a station's library or to the instance's own, and the instance's has no
-     * station to name a folder after. Null means the instance, the same way it does in the column
-     * the file is read from.
+     * @param scope    the station's scope, or the instance's
+     * @param category the library category of that scope
+     * @param key      the content hash
      */
-    /**
-     * The category a file's bytes live under. It follows the scope: the same folder name, declared
-     * once for a station and once for the instance, because the storage layer checks that a
-     * category is used at the scope it was declared for.
-     */
-    private StorageCategory categoryFor(Integer stationId) {
-        return stationId == null ? StorageCategory.INSTANCE_MEDIA_FILES : StorageCategory.MEDIA_FILES;
-    }
-
-    /** The same choice made from the scope, for the helpers that hold one rather than a station. */
-    private StorageCategory categoryFor(StorageScope scope) {
-        return scope instanceof StorageScope.Instance
-                ? StorageCategory.INSTANCE_MEDIA_FILES
-                : StorageCategory.MEDIA_FILES;
-    }
-
-    private StorageScope stationScope(Integer stationId) {
-        if (stationId == null) return new StorageScope.Instance();
-        UUID uid = stationRepository.resolveUid(stationId);
-        return new StorageScope.Station(stationId, uid);
-    }
-
-    /**
-     * Splits a storage key into its bare filename (the part after the last slash) and the base
-     * name that precedes the file extension.
-     */
-    private static KeyParts splitKey(String key) {
-        int slash = key.lastIndexOf('/');
-        String filename = slash < 0 ? key : key.substring(slash + 1);
-        int dot = filename.lastIndexOf('.');
-        String base = dot < 0 ? filename : filename.substring(0, dot);
-        return new KeyParts(filename, base);
-    }
-
-    private String pickVariantFilename(StorageScope scope, String contentHash, String baseName, String extension) {
-        if (extension != null && !extension.isEmpty()) {
-            String candidate = baseName + "." + extension;
-            if (storage.exists(scope, categoryFor(scope), contentHash, new Variant(candidate))) {
-                return candidate;
-            }
-            return null;
-        }
-        List<String> keys = storage.listKeys(scope, categoryFor(scope), contentHash);
-        String fallback = null;
-        for (String key : keys) {
-            var name = splitKey(key);
-            if (!name.base().equals(baseName)) continue;
-            if (!name.filename().endsWith(".webp")) return name.filename();
-            if (fallback == null) fallback = name.filename();
-        }
-        return fallback;
-    }
-
-    private void cleanupLegacyOriginals(StorageScope scope, String contentHash, String keepBase) {
-        for (String key : storage.listKeys(scope, categoryFor(scope), contentHash)) {
-            var name = splitKey(key);
-            if (name.base().equals(keepBase)) {
-                storage.delete(scope, categoryFor(scope), contentHash, new Variant(name.filename()));
-            }
-        }
-    }
-
-    private void migrateLegacyRoot() {
-        Path legacyRoot = localBackend.root().resolve("page-files");
-        if (!Files.isDirectory(legacyRoot)) return;
-        log.info("Migrating legacy media layout from {}", legacyRoot);
-        try (Stream<Path> stationDirs = Files.list(legacyRoot)) {
-            for (Path stationDir : stationDirs.filter(Files::isDirectory).toList()) {
-                String uid = stationDir.getFileName().toString();
-                Path target = localBackend
-                        .root()
-                        .resolve("station")
-                        .resolve(uid)
-                        .resolve(StorageCategory.MEDIA_FILES.prefix());
-                Files.createDirectories(target.getParent());
-                if (Files.exists(target)) continue;
-                Files.move(stationDir, target, StandardCopyOption.ATOMIC_MOVE);
-            }
-            try {
-                Files.deleteIfExists(legacyRoot);
-            } catch (IOException e) {
-                log.debug("Legacy media root {} stays behind, empty", legacyRoot, e);
-            }
-        } catch (IOException e) {
-            log.warn("Legacy media migration failed; older uploads may not be reachable", e);
-        }
-    }
-
-    private String contentTypeFor(String filename, String stored) {
-        if (filename.endsWith(".webp")) return "image/webp";
-        if (stored != null && !stored.isBlank() && !"application/octet-stream".equals(stored)) {
-            return stored;
-        }
-        int dot = filename.lastIndexOf('.');
-        String ext = dot < 0 ? "" : filename.substring(dot + 1).toLowerCase(Locale.ROOT);
-        return mimeForExtension(ext);
-    }
-
-    /**
-     * The bytes + MIME type returned by {@link #read}. {@code contentType} is derived from
-     * the variant's extension (WebP always reports {@code image/webp}; the original falls back
-     * to the stored sidecar) so callers can set the {@code Content-Type} header verbatim.
-     */
-    public record FileData(byte[] data, String contentType) {}
-
-    private record KeyParts(String filename, String base) {}
+    public record Location(StorageScope scope, StorageCategory category, String key) {}
 }

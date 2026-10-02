@@ -6,10 +6,10 @@
 package dev.chojo.ember.feature.cluster.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.ClusterPermission;
+import dev.chojo.ember.api.refusal.ClusterRefusal;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.entity.ClusterInventoryTag;
 import dev.chojo.ember.feature.cluster.service.ClusterInventoryTagService;
@@ -25,6 +25,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 
@@ -124,8 +125,10 @@ public class ClusterInventoryTagRoutes implements Routes {
     private Cluster requireActive(Context ctx) {
         UserSession session = UserSession.from(ctx);
         Integer clusterId = session.clusterId();
-        if (clusterId == null) throw Refusal.NO_CLUSTER_CHOSEN_FOR_INVENTORY_TAGS.raise();
-        return clusterService.findById(clusterId).orElseThrow(Refusal.CLUSTER_NOT_HERE_FOR_INVENTORY_TAGS::raise);
+        if (clusterId == null) throw ClusterRefusal.NO_CLUSTER_CHOSEN_FOR_INVENTORY_TAGS.raise();
+        return clusterService
+                .findById(clusterId)
+                .orElseThrow(ClusterRefusal.CLUSTER_NOT_HERE_FOR_INVENTORY_TAGS::raise);
     }
 
     /**
@@ -134,5 +137,9 @@ public class ClusterInventoryTagRoutes implements Routes {
      * @param position       where it should sit
      * @param stationGroupId the group of stations it is meant for, or {@code null} for all of them
      */
-    public record ClusterTagRequest(String name, String color, int position, Integer stationGroupId) {}
+    public record ClusterTagRequest(
+            String name,
+            @Nullable String color,
+            int position,
+            @Nullable Integer stationGroupId) {}
 }

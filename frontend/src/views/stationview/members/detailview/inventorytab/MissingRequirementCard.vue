@@ -12,7 +12,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import type {InventoryItem, RequiredInventoryItem} from '@/api/inventory'
+import type {InventoryItem, RequiredInventoryItem} from '@/api/generated/schema'
 
 /**
  * One inventory the member is short of, with the two ways to put that right: hand over a piece

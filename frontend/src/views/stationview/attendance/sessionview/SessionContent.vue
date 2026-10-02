@@ -8,14 +8,9 @@ import {useI18n} from 'vue-i18n'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import type {
-  AttendanceEntry,
-  AttendanceSession,
-  AttendanceStatus,
-  AttendanceTemplateField,
-  MemberNotes,
-} from '@/api/attendance'
-import type {MemberGroup, MemberIdentity, StationMember} from '@/api/types'
+import type {AttendanceStatus} from '@/api/attendance'
+import type {AttendanceEntry, AttendanceSession, AttendanceTemplateField, MemberNotes, MemberWithName} from '@/api/generated/schema'
+import type {PersonIdentity} from '@/util/personIdentity'
 import type {CheckRow} from './useCheckMode'
 import SessionToolbar from './SessionToolbar.vue'
 import SessionHeader from './SessionHeader.vue'
@@ -24,11 +19,7 @@ import SessionFieldsPanel from './SessionFieldsPanel.vue'
 import AttendanceSummary from './AttendanceSummary.vue'
 import MemberListPanel from './MemberListPanel.vue'
 import type {Failure} from '@/util/failure'
-
-interface MemberSection {
-  group: MemberGroup | null
-  members: StationMember[]
-}
+import type {MemberSection} from './memberSections'
 
 const {t} = useI18n()
 
@@ -50,11 +41,11 @@ defineProps<{
   openRows: CheckRow[]
   currentCheckRow: CheckRow | null
   currentMemberName: string
-  currentMemberIdentity: MemberIdentity | null
+  currentMemberIdentity: PersonIdentity | null
   templateFields: AttendanceTemplateField[]
   fieldValues: Map<number, string>
-  groupMembers: Map<number, StationMember[]>
-  allMembers: StationMember[]
+  groupMembers: Map<number, MemberWithName[]>
+  allMembers: MemberWithName[]
   entries: AttendanceEntry[]
   memberSections: MemberSection[]
   /** When the appointment behind the sheet runs, absent where the sheet stands on its own. */

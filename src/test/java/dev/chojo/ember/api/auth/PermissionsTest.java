@@ -46,14 +46,12 @@ class PermissionsTest {
     @Test
     void stationAdministratorIncludesTransitiveChildren() {
         Set<StationPermission> expanded = StationPermission.expand(EnumSet.of(StationPermission.STATION_ADMINISTRATOR));
-        // STATION_ADMINISTRATOR -> STATION_MANAGER -> includes LOGIN via hierarchy
-        assertTrue(expanded.contains(StationPermission.LOGIN));
+        assertTrue(expanded.contains(StationPermission.LOGIN), "LOGIN is reached through STATION_MANAGER");
         assertTrue(expanded.contains(StationPermission.USER));
     }
 
     @Test
     void managementPermissionsDoNotIncludeLogin() {
-        // Individual management permissions should not include LOGIN
         for (var perm : new StationPermission[] {
             StationPermission.ATTENDANCE_MANAGER, StationPermission.INVENTORY_MANAGER,
             StationPermission.EVENT_MANAGER, StationPermission.MEMBER_MANAGER
@@ -71,9 +69,8 @@ class PermissionsTest {
 
     @Test
     void memberGuardianDoesNotIncludeLogin() {
-        // MEMBER_GUARDIAN is a standalone permission, not a child of LOGIN
         Set<StationPermission> expanded = StationPermission.expand(EnumSet.of(StationPermission.MEMBER_GUARDIAN));
-        assertFalse(expanded.contains(StationPermission.LOGIN));
+        assertFalse(expanded.contains(StationPermission.LOGIN), "MEMBER_GUARDIAN stands alone, outside LOGIN");
     }
 
     @Test

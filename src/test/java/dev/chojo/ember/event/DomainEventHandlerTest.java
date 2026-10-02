@@ -35,54 +35,57 @@ import dev.chojo.ember.event.events.ProcurementFulfilled;
 import dev.chojo.ember.event.events.RegistrationDeadlineExpired;
 import dev.chojo.ember.event.events.StorageWarningEvent;
 import dev.chojo.ember.event.events.WaitlistPublicRegistration;
-import dev.chojo.ember.event.handlers.BoardTicketChangedHandler;
-import dev.chojo.ember.event.handlers.BulkMentionedInCommentHandler;
-import dev.chojo.ember.event.handlers.ClusterItemIssuedHandler;
-import dev.chojo.ember.event.handlers.ClusterItemLostHandler;
-import dev.chojo.ember.event.handlers.CommentCreatedHandler;
-import dev.chojo.ember.event.handlers.CommentDeletedHandler;
-import dev.chojo.ember.event.handlers.EventCreatedHandler;
-import dev.chojo.ember.event.handlers.EventDeletedHandler;
-import dev.chojo.ember.event.handlers.EventRegistrationStatusHandler;
-import dev.chojo.ember.event.handlers.EventsBatchCreatedHandler;
-import dev.chojo.ember.event.handlers.FormDeletedHandler;
-import dev.chojo.ember.event.handlers.FormPublishedHandler;
-import dev.chojo.ember.event.handlers.LendingMessageSentHandler;
-import dev.chojo.ember.event.handlers.LendingRequestedHandler;
-import dev.chojo.ember.event.handlers.LendingStatusChangedHandler;
-import dev.chojo.ember.event.handlers.MembersAddedToGroupHandler;
-import dev.chojo.ember.event.handlers.MentionedInCommentHandler;
-import dev.chojo.ember.event.handlers.MovementAdvancedHandler;
-import dev.chojo.ember.event.handlers.MovementDeclinedHandler;
-import dev.chojo.ember.event.handlers.MovementStartedHandler;
-import dev.chojo.ember.event.handlers.NewsCreatedHandler;
-import dev.chojo.ember.event.handlers.NewsDeletedHandler;
-import dev.chojo.ember.event.handlers.ProcurementCreatedHandler;
-import dev.chojo.ember.event.handlers.ProcurementFulfilledHandler;
-import dev.chojo.ember.event.handlers.RegistrationDeadlineExpiredHandler;
-import dev.chojo.ember.event.handlers.StorageWarningHandler;
-import dev.chojo.ember.event.handlers.WaitlistPublicRegistrationHandler;
 import dev.chojo.ember.feature.board.entity.BoardTicketAddress;
+import dev.chojo.ember.feature.board.handler.BoardTicketChangedHandler;
 import dev.chojo.ember.feature.cluster.entity.StationKind;
 import dev.chojo.ember.feature.cluster.service.ClusterService;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.comment.entity.MentionType;
+import dev.chojo.ember.feature.comment.handler.BulkMentionedInCommentHandler;
+import dev.chojo.ember.feature.comment.handler.CommentCreatedHandler;
+import dev.chojo.ember.feature.comment.handler.CommentDeletedHandler;
+import dev.chojo.ember.feature.comment.handler.MentionedInCommentHandler;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.events.handler.EventCreatedHandler;
+import dev.chojo.ember.feature.events.handler.EventDeletedHandler;
+import dev.chojo.ember.feature.events.handler.EventRegistrationStatusHandler;
+import dev.chojo.ember.feature.events.handler.EventsBatchCreatedHandler;
+import dev.chojo.ember.feature.events.handler.RegistrationDeadlineExpiredHandler;
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
+import dev.chojo.ember.feature.federation.handler.LendingMessageSentHandler;
+import dev.chojo.ember.feature.federation.handler.LendingRequestedHandler;
+import dev.chojo.ember.feature.federation.handler.LendingStatusChangedHandler;
+import dev.chojo.ember.feature.form.handler.FormDeletedHandler;
+import dev.chojo.ember.feature.form.handler.FormPublishedHandler;
 import dev.chojo.ember.feature.inventory.entity.StepActor;
+import dev.chojo.ember.feature.inventory.handler.ClusterItemIssuedHandler;
+import dev.chojo.ember.feature.inventory.handler.ClusterItemLostHandler;
+import dev.chojo.ember.feature.inventory.handler.MovementAdvancedHandler;
+import dev.chojo.ember.feature.inventory.handler.MovementDeclinedHandler;
+import dev.chojo.ember.feature.inventory.handler.MovementStartedHandler;
+import dev.chojo.ember.feature.inventory.handler.ProcurementCreatedHandler;
+import dev.chojo.ember.feature.inventory.handler.ProcurementFulfilledHandler;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.members.handler.MembersAddedToGroupHandler;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.news.handler.NewsCreatedHandler;
+import dev.chojo.ember.feature.news.handler.NewsDeletedHandler;
+import dev.chojo.ember.feature.notifications.entity.Audience;
+import dev.chojo.ember.feature.notifications.entity.ClusterAudience;
+import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
+import dev.chojo.ember.feature.notifications.entity.NotificationData.NotificationLink;
 import dev.chojo.ember.feature.notifications.entity.NotificationLinks;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.notifications.entity.StationAudience;
+import dev.chojo.ember.feature.notifications.service.Notifier;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.feature.restriction.service.RestrictionService;
@@ -90,6 +93,8 @@ import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.ThemeFeel;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.storage.handler.StorageWarningHandler;
+import dev.chojo.ember.feature.waitinglist.handler.WaitlistPublicRegistrationHandler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -105,7 +110,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class DomainEventHandlerTest {
-    private NotificationService notificationService;
+    private Notifier notifier;
     private StationMemberRepository memberRepository;
     private ClusterService clusterService;
     private MemberGroupRepository memberGroupRepository;
@@ -115,10 +120,13 @@ class DomainEventHandlerTest {
 
     private static final int STATION_ID = 1;
     private static final int MEMBER_ID = 10;
+    private static final NotificationLink NEWS_COMMENT_LINK = NotificationLinks.comment(NotificationLinks.news(5), 100);
+    private static final StationAudience NEWS_MANAGERS =
+            StationAudience.holders(STATION_ID, StationPermission.NEWS_MANAGER);
 
     @BeforeEach
     void setUp() {
-        notificationService = mock(NotificationService.class);
+        notifier = mock(Notifier.class);
         memberRepository = mock(StationMemberRepository.class);
         clusterService = mock(ClusterService.class);
         memberGroupRepository = mock(MemberGroupRepository.class);
@@ -132,10 +140,15 @@ class DomainEventHandlerTest {
                 id, STATION_ID, UUID.randomUUID(), id, false, null, "Member " + id, StationUserType.MEMBER, null);
     }
 
+    /** Verifies the notifier was asked once to tell exactly this audience this type. */
+    private void verifyTold(Audience audience, NotificationType type, Delivery delivery) {
+        verify(notifier).notify(eq(audience), eq(type), any(NotificationData.class), eq(delivery));
+    }
+
     /** A mentioned group that belongs to the station the comment was written in. */
     private void groupInStation(int groupId) {
         when(memberGroupRepository.findById(groupId))
-                .thenReturn(Optional.of(new MemberGroup(groupId, STATION_ID, "Crew", null, 0)));
+                .thenReturn(Optional.of(new MemberGroup(groupId, STATION_ID, "Crew", null, 0, null, List.of())));
     }
 
     /** A mentioned event that belongs to the station the comment was written in. */
@@ -143,11 +156,9 @@ class DomainEventHandlerTest {
         when(eventRepository.findById(eventId)).thenReturn(Optional.of(stationEvent(eventId, "Event " + eventId)));
     }
 
-    // -- EventCreatedHandler --
-
     @Test
     void eventCreatedNotifiesStation() {
-        var handler = new EventCreatedHandler(notificationService, restrictionService);
+        var handler = new EventCreatedHandler(notifier, restrictionService);
         assertEquals(EventCreated.class, handler.eventType());
 
         var stationEvent = new StationEvent(
@@ -174,26 +185,18 @@ class DomainEventHandlerTest {
                 null,
                 null,
                 null,
-                false,
                 null,
                 null,
                 null);
         handler.handle(new EventCreated(STATION_ID, stationEvent));
 
-        verify(notificationService)
-                .notifyAudience(
-                        eq(STATION_ID),
-                        eq(Optional.empty()),
-                        eq(NotificationType.NEW_EVENT),
-                        any(NotificationData.class));
+        verifyTold(StationAudience.wholeStation(STATION_ID), NotificationType.NEW_EVENT, Delivery.EVERY_TIME);
     }
 
+    /** The whole description is passed on, because the feed cuts it at a word boundary on the way out. */
     @Test
     void eventCreatedPassesFullDescriptionThrough() {
-        // Handler now passes the full description through; word-boundary truncation lives in
-        // the feed renderer (NotificationService.truncateSnippet) so we don't mangle text
-        // mid-word at the publisher.
-        var handler = new EventCreatedHandler(notificationService, restrictionService);
+        var handler = new EventCreatedHandler(notifier, restrictionService);
         String longDesc = "A".repeat(100);
         var stationEvent = new StationEvent(
                 42,
@@ -219,22 +222,23 @@ class DomainEventHandlerTest {
                 null,
                 null,
                 null,
-                false,
                 null,
                 null,
                 null);
         handler.handle(new EventCreated(STATION_ID, stationEvent));
 
-        verify(notificationService)
-                .notifyAudience(eq(STATION_ID), eq(Optional.empty()), eq(NotificationType.NEW_EVENT), argThat(data -> {
-                    var map = data.paramsAsMap();
-                    return map.get("eventDescription").length() == 100;
-                }));
+        verify(notifier)
+                .notify(
+                        eq(StationAudience.wholeStation(STATION_ID)),
+                        eq(NotificationType.NEW_EVENT),
+                        argThat(data ->
+                                data.paramsAsMap().get("eventDescription").length() == 100),
+                        eq(Delivery.EVERY_TIME));
     }
 
     @Test
     void eventCreatedHandlesNullDescription() {
-        var handler = new EventCreatedHandler(notificationService, restrictionService);
+        var handler = new EventCreatedHandler(notifier, restrictionService);
         var stationEvent = new StationEvent(
                 42,
                 STATION_ID,
@@ -259,34 +263,40 @@ class DomainEventHandlerTest {
                 null,
                 null,
                 null,
-                false,
                 null,
                 null,
                 null);
         handler.handle(new EventCreated(STATION_ID, stationEvent));
 
-        verify(notificationService)
-                .notifyAudience(
-                        eq(STATION_ID),
-                        eq(Optional.empty()),
+        verify(notifier)
+                .notify(
+                        eq(StationAudience.wholeStation(STATION_ID)),
                         eq(NotificationType.NEW_EVENT),
-                        any(NotificationData.class));
+                        argThat(data -> "".equals(data.paramsAsMap().get("eventDescription"))),
+                        eq(Delivery.EVERY_TIME));
     }
 
-    // -- EventDeletedHandler --
+    @Test
+    void eventCreatedWithARestrictedAudienceTellsOnlyThatAudience() {
+        var handler = new EventCreatedHandler(notifier, restrictionService);
+        when(restrictionService.findMembersPassingRestriction(RestrictionType.EVENT_VIEW, 7, STATION_ID))
+                .thenReturn(Optional.of(Set.of(30)));
+
+        handler.handle(new EventCreated(STATION_ID, stationEvent(7, "Geheim")));
+
+        verifyTold(StationAudience.members(Set.of(30)), NotificationType.NEW_EVENT, Delivery.EVERY_TIME);
+    }
 
     @Test
     void eventDeletedCleansUpNotifications() {
-        var handler = new EventDeletedHandler(notificationService);
+        var handler = new EventDeletedHandler(notifier);
         assertEquals(EventDeleted.class, handler.eventType());
 
         handler.handle(new EventDeleted(STATION_ID, 42, "Übungsabend"));
 
-        verify(notificationService).deleteAllPointingAt(NotificationLinks.event(42));
-        verify(notificationService).deleteAllPointingAt(NotificationLinks.eventDates(42));
+        verify(notifier).withdrawAll(NotificationLinks.event(42));
+        verify(notifier).withdrawAll(NotificationLinks.eventDates(42));
     }
-
-    // -- EventsBatchCreatedHandler --
 
     @Test
     void eventsBatchCreatedEmitsSingleAggregateNotification() {
@@ -300,19 +310,22 @@ class DomainEventHandlerTest {
                 stationEvent(4, "Probe 4"));
         handler.handle(new EventsBatchCreated(STATION_ID, events));
 
-        verify(notificationService)
-                .notifyStation(eq(STATION_ID), eq(NotificationType.NEW_EVENTS_BATCH), argThat(data -> {
-                    var map = data.paramsAsMap();
-                    // preview shows the first 3 event names plus an ellipsis marker for the rest
-                    String preview = map.get("eventPreview");
-                    return "4".equals(map.get("count"))
-                            && preview != null
-                            && preview.contains("Probe 1")
-                            && preview.contains("Probe 2")
-                            && preview.contains("Probe 3")
-                            && preview.contains("…")
-                            && !preview.contains("Probe 4");
-                }));
+        verify(notifier)
+                .notify(
+                        eq(StationAudience.wholeStation(STATION_ID)),
+                        eq(NotificationType.NEW_EVENTS_BATCH),
+                        argThat(data -> {
+                            var map = data.paramsAsMap();
+                            String preview = map.get("eventPreview");
+                            return "4".equals(map.get("count"))
+                                    && preview != null
+                                    && preview.contains("Probe 1")
+                                    && preview.contains("Probe 2")
+                                    && preview.contains("Probe 3")
+                                    && preview.contains("…")
+                                    && !preview.contains("Probe 4");
+                        }),
+                        eq(Delivery.EVERY_TIME));
     }
 
     @Test
@@ -321,8 +334,7 @@ class DomainEventHandlerTest {
 
         handler.handle(new EventsBatchCreated(STATION_ID, List.of()));
 
-        verify(notificationService, never())
-                .notifyStation(anyInt(), eq(NotificationType.NEW_EVENTS_BATCH), any(NotificationData.class));
+        verifyNoInteractions(notifier);
     }
 
     @Test
@@ -337,16 +349,22 @@ class DomainEventHandlerTest {
         handler.handle(new EventsBatchCreated(
                 STATION_ID, List.of(stationEvent(1, "Open"), stationEvent(2, "Hidden"), stationEvent(3, "Closed"))));
 
-        verify(notificationService)
-                .notifyMembers(eq(List.of(30)), eq(NotificationType.NEW_EVENTS_BATCH), argThat(data -> "3"
-                        .equals(data.paramsAsMap().get("count"))));
-        verify(notificationService)
-                .notifyMembers(eq(List.of(31)), eq(NotificationType.NEW_EVENTS_BATCH), argThat(data -> {
-                    var map = data.paramsAsMap();
-                    return "1".equals(map.get("count")) && "Open".equals(map.get("eventPreview"));
-                }));
-        verify(notificationService, never())
-                .notifyStation(anyInt(), eq(NotificationType.NEW_EVENTS_BATCH), any(NotificationData.class));
+        verify(notifier)
+                .notify(
+                        eq(StationAudience.members(List.of(30))),
+                        eq(NotificationType.NEW_EVENTS_BATCH),
+                        argThat(data -> "3".equals(data.paramsAsMap().get("count"))),
+                        eq(Delivery.EVERY_TIME));
+        verify(notifier)
+                .notify(
+                        eq(StationAudience.members(List.of(31))),
+                        eq(NotificationType.NEW_EVENTS_BATCH),
+                        argThat(data -> {
+                            var map = data.paramsAsMap();
+                            return "1".equals(map.get("count")) && "Open".equals(map.get("eventPreview"));
+                        }),
+                        eq(Delivery.EVERY_TIME));
+        verify(notifier, never()).notify(eq(StationAudience.wholeStation(STATION_ID)), any(), any(), any());
     }
 
     @Test
@@ -358,15 +376,13 @@ class DomainEventHandlerTest {
 
         handler.handle(new EventsBatchCreated(STATION_ID, List.of(stationEvent(1, "Hidden"))));
 
-        verify(notificationService)
-                .notifyMembers(eq(List.of(30)), eq(NotificationType.NEW_EVENTS_BATCH), any(NotificationData.class));
-        verify(notificationService, never())
-                .notifyMembers(eq(List.of(31)), eq(NotificationType.NEW_EVENTS_BATCH), any(NotificationData.class));
+        verifyTold(StationAudience.members(List.of(30)), NotificationType.NEW_EVENTS_BATCH, Delivery.EVERY_TIME);
+        verify(notifier, never()).notify(eq(StationAudience.members(List.of(31))), any(), any(), any());
     }
 
     private EventsBatchCreatedHandler batchHandler() {
         return new EventsBatchCreatedHandler(
-                notificationService, mock(StationRepository.class), memberRepository, restrictionService);
+                notifier, mock(StationRepository.class), memberRepository, restrictionService);
     }
 
     private StationEvent stationEvent(int id, String name) {
@@ -394,229 +410,210 @@ class DomainEventHandlerTest {
                 null,
                 null,
                 null,
-                false,
                 null,
                 null,
                 null);
     }
 
-    // -- EventRegistrationStatusHandler --
-
     @Test
     void eventRegistrationStatusNotifiesMemberAndManagers() {
-        var handler = new EventRegistrationStatusHandler(notificationService, memberRepository);
+        var handler = new EventRegistrationStatusHandler(notifier);
         assertEquals(EventRegistrationStatusChanged.class, handler.eventType());
-
-        when(memberRepository.findMembersWithPermission(STATION_ID, StationPermission.EVENT_MANAGER))
-                .thenReturn(List.of(member(20), member(21)));
 
         handler.handle(new EventRegistrationStatusChanged(
                 STATION_ID, 42, "Übungsabend", MEMBER_ID, "Tim Berger", RegistrationStatus.ACCEPTED));
 
-        verify(notificationService)
-                .notify(eq(MEMBER_ID), eq(NotificationType.EVENT_REGISTRATION_STATUS), any(NotificationData.class));
-        verify(notificationService)
-                .notifyMembersIfAbsent(
-                        eq(List.of(20, 21)),
-                        eq(NotificationType.EVENT_REGISTRATION_STATUS),
-                        any(NotificationData.class),
-                        eq(MEMBER_ID));
+        verifyTold(StationAudience.member(MEMBER_ID), NotificationType.EVENT_REGISTRATION_STATUS, Delivery.EVERY_TIME);
+        verifyTold(
+                StationAudience.holders(STATION_ID, StationPermission.EVENT_MANAGER)
+                        .except(MEMBER_ID),
+                NotificationType.EVENT_REGISTRATION_STATUS,
+                Delivery.ONCE_WHILE_UNREAD);
     }
-
-    // -- NewsCreatedHandler --
 
     @Test
     void newsCreatedNotifiesStation() {
-        var handler = new NewsCreatedHandler(notificationService, restrictionService);
+        var handler = new NewsCreatedHandler(notifier, restrictionService);
         assertEquals(NewsCreated.class, handler.eventType());
+        when(restrictionService.findMembersPassingRestriction(any(), anyInt(), anyInt()))
+                .thenReturn(Optional.empty());
 
         handler.handle(new NewsCreated(STATION_ID, 5, "Neue Nachricht", "Test Author", "Vorschau-Text"));
 
-        verify(notificationService)
-                .notifyAudience(
-                        eq(STATION_ID),
-                        eq(Optional.empty()),
-                        eq(NotificationType.NEW_NEWS),
-                        any(NotificationData.class));
+        verifyTold(StationAudience.wholeStation(STATION_ID), NotificationType.NEW_NEWS, Delivery.EVERY_TIME);
     }
-
-    // -- NewsDeletedHandler --
 
     @Test
     void newsDeletedCleansUpNewsAndCommentNotifications() {
-        var handler = new NewsDeletedHandler(notificationService);
+        var handler = new NewsDeletedHandler(notifier);
         assertEquals(NewsDeleted.class, handler.eventType());
 
         handler.handle(new NewsDeleted(STATION_ID, 5, "Alte Nachricht"));
 
-        verify(notificationService).deleteAllPointingAt(NotificationLinks.news(5));
+        verify(notifier).withdrawAll(NotificationLinks.news(5));
     }
-
-    // -- FormPublishedHandler --
 
     @Test
     void formPublishedNotifiesStation() {
-        var handler = new FormPublishedHandler(notificationService, restrictionService);
+        var handler = new FormPublishedHandler(notifier, restrictionService);
         assertEquals(FormPublished.class, handler.eventType());
+        when(restrictionService.findMembersPassingRestriction(any(), anyInt(), anyInt()))
+                .thenReturn(Optional.empty());
 
         handler.handle(new FormPublished(STATION_ID, 7, "Zufriedenheitsumfrage"));
 
-        verify(notificationService)
-                .notifyAudience(
-                        eq(STATION_ID),
-                        eq(Optional.empty()),
-                        eq(NotificationType.NEW_FORM),
-                        any(NotificationData.class));
+        verifyTold(StationAudience.wholeStation(STATION_ID), NotificationType.NEW_FORM, Delivery.EVERY_TIME);
     }
-
-    // -- FormDeletedHandler --
 
     @Test
     void formDeletedCleansUpNotifications() {
-        var handler = new FormDeletedHandler(notificationService);
+        var handler = new FormDeletedHandler(notifier);
         assertEquals(FormDeleted.class, handler.eventType());
 
         handler.handle(new FormDeleted(STATION_ID, 7));
 
-        verify(notificationService).deleteAllPointingAt(NotificationLinks.form(7));
+        verify(notifier).withdrawAll(NotificationLinks.form(7));
     }
-
-    // -- CommentCreatedHandler --
 
     @Test
     void commentCreatedNotifiesParentAuthorOnReply() {
-        var handler = new CommentCreatedHandler(notificationService, memberRepository);
+        var handler = new CommentCreatedHandler(notifier);
         assertEquals(CommentCreated.class, handler.eventType());
-
-        when(memberRepository.findMembersWithPermission(STATION_ID, StationPermission.NEWS_MANAGER))
-                .thenReturn(List.of(member(30)));
 
         handler.handle(new CommentCreated(
                 STATION_ID,
                 CommentEntityType.NEWS,
-                5,
                 "News Title",
-                null,
+                NEWS_COMMENT_LINK,
                 100,
                 99,
                 20,
                 MEMBER_ID,
                 "Author",
-                "preview"));
+                "preview",
+                NEWS_MANAGERS));
 
-        verify(notificationService)
-                .notifyIfAbsent(eq(20), eq(NotificationType.NEWS_COMMENT), argThat(data -> NotificationLinks.comment(
-                                CommentEntityType.NEWS, 5, null, 100)
-                        .equals(data.link())));
-        verify(notificationService)
-                .notifyMembersIfAbsent(
-                        eq(List.of(30)), eq(NotificationType.NEWS_COMMENT), any(NotificationData.class), eq(MEMBER_ID));
+        verify(notifier)
+                .notify(
+                        eq(StationAudience.member(20)),
+                        eq(NotificationType.NEWS_COMMENT),
+                        argThat(data -> NEWS_COMMENT_LINK.equals(data.link())),
+                        eq(Delivery.ONCE_WHILE_UNREAD));
+        verifyTold(
+                StationAudience.holders(STATION_ID, StationPermission.NEWS_MANAGER)
+                        .except(MEMBER_ID),
+                NotificationType.NEWS_COMMENT,
+                Delivery.ONCE_WHILE_UNREAD);
     }
 
     @Test
     void commentCreatedSkipsParentNotificationWhenSameAuthor() {
-        var handler = new CommentCreatedHandler(notificationService, memberRepository);
-        when(memberRepository.findMembersWithPermission(STATION_ID, StationPermission.NEWS_MANAGER))
-                .thenReturn(List.of());
+        var handler = new CommentCreatedHandler(notifier);
 
         handler.handle(new CommentCreated(
                 STATION_ID,
                 CommentEntityType.NEWS,
-                5,
                 "News Title",
-                null,
+                NEWS_COMMENT_LINK,
                 100,
                 99,
                 MEMBER_ID,
                 MEMBER_ID,
                 "Author",
-                "preview"));
+                "preview",
+                NEWS_MANAGERS));
 
-        verify(notificationService, never()).notifyIfAbsent(eq(MEMBER_ID), any(), any());
+        verify(notifier, never()).notify(eq(StationAudience.member(MEMBER_ID)), any(), any(), any());
     }
 
     @Test
-    void commentCreatedSkipsManagerNotifyForEventComments() {
-        var handler = new CommentCreatedHandler(notificationService, memberRepository);
+    void commentCreatedTellsNobodyElseWhenTheTargetNamesNobody() {
+        var handler = new CommentCreatedHandler(notifier);
 
         handler.handle(new CommentCreated(
                 STATION_ID,
                 CommentEntityType.EVENT,
-                5,
                 "Event Title",
-                null,
+                NotificationLinks.comment(NotificationLinks.event(5), 100),
                 100,
                 null,
                 null,
                 MEMBER_ID,
                 "Author",
-                "preview"));
+                "preview",
+                null));
 
-        verify(notificationService, never()).notifyMembersIfAbsent(anyList(), any(), any(), anyInt());
+        verify(notifier, never()).notify(any(), any(), any(), any());
     }
 
     @Test
     void commentCreatedNoParentAuthorSkipsParentNotification() {
-        var handler = new CommentCreatedHandler(notificationService, memberRepository);
-        when(memberRepository.findMembersWithPermission(STATION_ID, StationPermission.NEWS_MANAGER))
-                .thenReturn(List.of(member(30)));
+        var handler = new CommentCreatedHandler(notifier);
 
         handler.handle(new CommentCreated(
                 STATION_ID,
                 CommentEntityType.NEWS,
-                5,
                 "News Title",
-                null,
+                NEWS_COMMENT_LINK,
                 100,
                 null,
                 null,
                 MEMBER_ID,
                 "Author",
-                "preview"));
+                "preview",
+                NEWS_MANAGERS));
 
-        verify(notificationService, never()).notifyIfAbsent(anyInt(), any(), any());
-        verify(notificationService)
-                .notifyMembersIfAbsent(
-                        eq(List.of(30)), eq(NotificationType.NEWS_COMMENT), any(NotificationData.class), eq(MEMBER_ID));
+        verify(notifier).notify(any(), any(), any(), any());
+        verifyTold(
+                StationAudience.holders(STATION_ID, StationPermission.NEWS_MANAGER)
+                        .except(MEMBER_ID),
+                NotificationType.NEWS_COMMENT,
+                Delivery.ONCE_WHILE_UNREAD);
     }
-
-    // -- CommentDeletedHandler --
 
     @Test
     void commentDeletedWithdrawsWhatNamesThatComment() {
-        var handler = new CommentDeletedHandler(notificationService);
+        var handler = new CommentDeletedHandler(notifier);
         assertEquals(CommentDeleted.class, handler.eventType());
 
-        handler.handle(new CommentDeleted(STATION_ID, CommentEntityType.NEWS, 100));
+        handler.handle(new CommentDeleted(STATION_ID, CommentEntityType.NEWS, NEWS_COMMENT_LINK, 100));
 
-        verify(notificationService).deleteAllPointingAt(NotificationLinks.commentAlone(CommentEntityType.NEWS, 100));
+        verify(notifier).withdrawAll(new NotificationLink("news-detail", Map.of(), Map.of("comment", 100)));
     }
-
-    // -- MentionedInCommentHandler --
 
     @Test
     void mentionedInCommentNotifiesMentionedMember() {
-        var handler = new MentionedInCommentHandler(notificationService);
+        var handler = new MentionedInCommentHandler(notifier);
         assertEquals(MentionedInComment.class, handler.eventType());
 
         handler.handle(new MentionedInComment(
-                STATION_ID, 25, MEMBER_ID, "Author", CommentEntityType.NEWS, 5, "Test Title", null, 70, "hi there"));
+                STATION_ID,
+                25,
+                MEMBER_ID,
+                "Author",
+                CommentEntityType.NEWS,
+                "Test Title",
+                NEWS_COMMENT_LINK,
+                70,
+                "hi there"));
 
-        verify(notificationService)
-                .notifyIfAbsent(eq(25), eq(NotificationType.COMMENT_MENTION), any(NotificationData.class));
+        verifyTold(StationAudience.member(25), NotificationType.COMMENT_MENTION, Delivery.ONCE_WHILE_UNREAD);
     }
 
     @Test
-    void mentionedInCommentUsesEventLinkForEventComments() {
-        var handler = new MentionedInCommentHandler(notificationService);
+    void mentionedInCommentOpensTheLinkItCarries() {
+        var handler = new MentionedInCommentHandler(notifier);
+        var link = NotificationLinks.comment(NotificationLinks.event(5), 70);
 
         handler.handle(new MentionedInComment(
-                STATION_ID, 25, MEMBER_ID, "Author", CommentEntityType.EVENT, 5, "Test Title", null, 70, "hi there"));
+                STATION_ID, 25, MEMBER_ID, "Author", CommentEntityType.EVENT, "Test Title", link, 70, "hi there"));
 
-        verify(notificationService)
-                .notifyIfAbsent(eq(25), eq(NotificationType.COMMENT_MENTION), argThat(data -> NotificationLinks.comment(
-                                CommentEntityType.EVENT, 5, null, 70)
-                        .equals(data.link())));
+        verify(notifier)
+                .notify(
+                        eq(StationAudience.member(25)),
+                        eq(NotificationType.COMMENT_MENTION),
+                        argThat(data -> link.equals(data.link())),
+                        eq(Delivery.ONCE_WHILE_UNREAD));
     }
 
     /**
@@ -626,7 +623,7 @@ class DomainEventHandlerTest {
      */
     @Test
     void mentionedInATicketCommentNamesTheBoardAndTheNumber() {
-        var handler = new MentionedInCommentHandler(notificationService);
+        var handler = new MentionedInCommentHandler(notifier);
 
         handler.handle(new MentionedInComment(
                 STATION_ID,
@@ -634,26 +631,25 @@ class DomainEventHandlerTest {
                 MEMBER_ID,
                 "DEV-42",
                 CommentEntityType.BOARD_TICKET,
-                7,
                 "DEV-42",
-                new BoardTicketAddress("DEV", 42),
+                NotificationLinks.comment(NotificationLinks.ticket(new BoardTicketAddress("DEV", 42), 7), 70),
                 70,
                 "hi there"));
 
-        verify(notificationService).notifyIfAbsent(eq(25), eq(NotificationType.COMMENT_MENTION), argThat(data -> {
-            var link = data.link();
-            return "ticket-detail".equals(link.route())
-                    && Map.of("boardKey", "DEV", "ticketNumber", 42, "ticketId", 7)
-                            .equals(link.routeParams())
-                    && Map.of("comment", 70).equals(link.query());
-        }));
+        verify(notifier)
+                .notify(
+                        eq(StationAudience.member(25)),
+                        eq(NotificationType.COMMENT_MENTION),
+                        argThat(data -> "ticket-detail".equals(data.link().route())
+                                && Map.of("boardKey", "DEV", "ticketNumber", 42, "ticketId", 7)
+                                        .equals(data.link().routeParams())
+                                && Map.of("comment", 70).equals(data.link().query())),
+                        eq(Delivery.ONCE_WHILE_UNREAD));
     }
-
-    // -- BulkMentionedInCommentHandler --
 
     private BulkMentionedInCommentHandler bulkHandler() {
         return new BulkMentionedInCommentHandler(
-                notificationService,
+                notifier,
                 memberGroupRepository,
                 eventRepository,
                 registrationRepository,
@@ -679,18 +675,17 @@ class DomainEventHandlerTest {
                         MEMBER_ID,
                         "Author",
                         CommentEntityType.NEWS,
-                        1,
                         "Title",
                         MentionType.GROUP,
                         5,
-                        null,
+                        NEWS_COMMENT_LINK,
                         70,
                         "preview snippet"));
 
-        verify(notificationService)
-                .notifyIfAbsent(eq(20), eq(NotificationType.COMMENT_MENTION), any(NotificationData.class));
-        verify(notificationService)
-                .notifyIfAbsent(eq(21), eq(NotificationType.COMMENT_MENTION), any(NotificationData.class));
+        verifyTold(
+                StationAudience.members(List.of(20, 21)).except(MEMBER_ID),
+                NotificationType.COMMENT_MENTION,
+                Delivery.ONCE_WHILE_UNREAD);
     }
 
     @Test
@@ -704,18 +699,17 @@ class DomainEventHandlerTest {
                         MEMBER_ID,
                         "Author",
                         CommentEntityType.NEWS,
-                        1,
                         "Title",
                         MentionType.GROUP,
                         5,
-                        null,
+                        NEWS_COMMENT_LINK,
                         70,
                         "preview snippet"));
 
-        verify(notificationService, never())
-                .notifyIfAbsent(eq(MEMBER_ID), eq(NotificationType.COMMENT_MENTION), any(NotificationData.class));
-        verify(notificationService)
-                .notifyIfAbsent(eq(21), eq(NotificationType.COMMENT_MENTION), any(NotificationData.class));
+        verifyTold(
+                StationAudience.members(List.of(MEMBER_ID, 21)).except(MEMBER_ID),
+                NotificationType.COMMENT_MENTION,
+                Delivery.ONCE_WHILE_UNREAD);
     }
 
     @Test
@@ -739,18 +733,15 @@ class DomainEventHandlerTest {
                         null,
                         "Author",
                         CommentEntityType.NEWS,
-                        1,
                         "Title",
                         MentionType.EVENT,
                         42,
-                        null,
+                        NEWS_COMMENT_LINK,
                         70,
                         "preview snippet"));
 
-        verify(notificationService)
-                .notifyIfAbsent(eq(20), eq(NotificationType.COMMENT_MENTION), any(NotificationData.class));
-        verify(notificationService, never())
-                .notifyIfAbsent(eq(21), eq(NotificationType.COMMENT_MENTION), any(NotificationData.class));
+        verifyTold(
+                StationAudience.household(List.of(20)), NotificationType.COMMENT_MENTION, Delivery.ONCE_WHILE_UNREAD);
     }
 
     @Test
@@ -773,18 +764,17 @@ class DomainEventHandlerTest {
                         null,
                         "Author",
                         CommentEntityType.NEWS,
-                        1,
                         "Title",
                         MentionType.EVENT,
                         42,
-                        null,
+                        NEWS_COMMENT_LINK,
                         70,
                         "preview snippet"));
 
-        verify(notificationService)
-                .notifyIfAbsent(eq(30), eq(NotificationType.COMMENT_MENTION), any(NotificationData.class));
-        verify(notificationService)
-                .notifyIfAbsent(eq(31), eq(NotificationType.COMMENT_MENTION), any(NotificationData.class));
+        verifyTold(
+                StationAudience.household(List.of(30, 31)),
+                NotificationType.COMMENT_MENTION,
+                Delivery.ONCE_WHILE_UNREAD);
     }
 
     @Test
@@ -805,16 +795,15 @@ class DomainEventHandlerTest {
                         null,
                         "Author",
                         CommentEntityType.NEWS,
-                        1,
                         "Title",
                         MentionType.EVENT,
                         42,
-                        null,
+                        NEWS_COMMENT_LINK,
                         70,
                         "preview snippet"));
 
-        verify(notificationService)
-                .notifyIfAbsent(eq(30), eq(NotificationType.COMMENT_MENTION), any(NotificationData.class));
+        verifyTold(
+                StationAudience.household(List.of(30)), NotificationType.COMMENT_MENTION, Delivery.ONCE_WHILE_UNREAD);
     }
 
     /**
@@ -825,7 +814,7 @@ class DomainEventHandlerTest {
     @Test
     void bulkMentionOfAnotherStationsGroupNotifiesNobody() {
         when(memberGroupRepository.findById(5))
-                .thenReturn(Optional.of(new MemberGroup(5, STATION_ID + 1, "Foreign crew", null, 0)));
+                .thenReturn(Optional.of(new MemberGroup(5, STATION_ID + 1, "Foreign crew", null, 0, null, List.of())));
 
         bulkHandler()
                 .handle(new BulkMentionedInComment(
@@ -833,16 +822,18 @@ class DomainEventHandlerTest {
                         MEMBER_ID,
                         "Author",
                         CommentEntityType.NEWS,
-                        1,
                         "Title",
                         MentionType.GROUP,
                         5,
-                        null,
+                        NEWS_COMMENT_LINK,
                         70,
                         "preview snippet"));
 
         verify(memberGroupRepository, never()).findMembers(anyInt());
-        verify(notificationService, never()).notifyIfAbsent(anyInt(), any(), any());
+        verifyTold(
+                StationAudience.members(List.of()).except(MEMBER_ID),
+                NotificationType.COMMENT_MENTION,
+                Delivery.ONCE_WHILE_UNREAD);
     }
 
     /** The same for an event: the registrations of another station's event reach nobody. */
@@ -858,16 +849,18 @@ class DomainEventHandlerTest {
                         MEMBER_ID,
                         "Author",
                         CommentEntityType.NEWS,
-                        1,
                         "Title",
                         MentionType.REGISTERED,
                         42,
-                        null,
+                        NEWS_COMMENT_LINK,
                         70,
                         "preview snippet"));
 
         verify(registrationRepository, never()).findByEvent(anyInt());
-        verify(notificationService, never()).notifyIfAbsent(anyInt(), any(), any());
+        verifyTold(
+                StationAudience.household(List.of()).except(MEMBER_ID),
+                NotificationType.COMMENT_MENTION,
+                Delivery.ONCE_WHILE_UNREAD);
     }
 
     @Test
@@ -887,18 +880,15 @@ class DomainEventHandlerTest {
                         null,
                         "Author",
                         CommentEntityType.NEWS,
-                        1,
                         "Title",
                         MentionType.REGISTERED,
                         42,
-                        null,
+                        NEWS_COMMENT_LINK,
                         70,
                         "preview snippet"));
 
-        verify(notificationService)
-                .notifyIfAbsent(eq(20), eq(NotificationType.COMMENT_MENTION), any(NotificationData.class));
-        verify(notificationService, never())
-                .notifyIfAbsent(eq(21), eq(NotificationType.COMMENT_MENTION), any(NotificationData.class));
+        verifyTold(
+                StationAudience.household(List.of(20)), NotificationType.COMMENT_MENTION, Delivery.ONCE_WHILE_UNREAD);
     }
 
     @Test
@@ -918,18 +908,15 @@ class DomainEventHandlerTest {
                         null,
                         "Author",
                         CommentEntityType.NEWS,
-                        1,
                         "Title",
                         MentionType.DECLINED,
                         42,
-                        null,
+                        NEWS_COMMENT_LINK,
                         70,
                         "preview snippet"));
 
-        verify(notificationService, never())
-                .notifyIfAbsent(eq(20), eq(NotificationType.COMMENT_MENTION), any(NotificationData.class));
-        verify(notificationService)
-                .notifyIfAbsent(eq(21), eq(NotificationType.COMMENT_MENTION), any(NotificationData.class));
+        verifyTold(
+                StationAudience.household(List.of(21)), NotificationType.COMMENT_MENTION, Delivery.ONCE_WHILE_UNREAD);
     }
 
     @Test
@@ -947,18 +934,16 @@ class DomainEventHandlerTest {
                         null,
                         "Author",
                         CommentEntityType.NEWS,
-                        1,
                         "Title",
                         MentionType.REGISTERED,
                         42,
-                        null,
+                        NEWS_COMMENT_LINK,
                         70,
                         "preview snippet"));
 
-        verify(notificationService)
-                .notifyIfAbsent(eq(20), eq(NotificationType.COMMENT_MENTION), any(NotificationData.class));
-        verify(notificationService)
-                .notifyIfAbsent(eq(50), eq(NotificationType.COMMENT_MENTION), any(NotificationData.class));
+        var audience = org.mockito.ArgumentCaptor.forClass(Audience.class);
+        verify(notifier).notify(audience.capture(), eq(NotificationType.COMMENT_MENTION), any(), any());
+        assertEquals(Set.of(20), ((StationAudience) audience.getValue()).wardIds(), "their guardians are told too");
     }
 
     @Test
@@ -972,89 +957,89 @@ class DomainEventHandlerTest {
                         null,
                         "Author",
                         CommentEntityType.EVENT,
-                        1,
                         "Title",
                         MentionType.GROUP,
                         5,
-                        null,
+                        NotificationLinks.comment(NotificationLinks.event(1), 70),
                         70,
                         "preview snippet"));
 
-        verify(notificationService)
-                .notifyIfAbsent(eq(20), eq(NotificationType.COMMENT_MENTION), argThat(data -> "event-detail"
-                        .equals(data.link().route())));
+        verify(notifier)
+                .notify(
+                        eq(StationAudience.members(List.of(20))),
+                        eq(NotificationType.COMMENT_MENTION),
+                        argThat(data -> "event-detail".equals(data.link().route())),
+                        eq(Delivery.ONCE_WHILE_UNREAD));
     }
-
-    // -- MovementStartedHandler --
 
     @Test
     void movementStartedTellsWhoeverTheChainWaitsOn() {
-        var handler = new MovementStartedHandler(notificationService, memberRepository, () -> clusterService);
+        var handler = new MovementStartedHandler(notifier);
         assertEquals(MovementStarted.class, handler.eventType());
-
-        when(memberRepository.findMembersWithPermission(STATION_ID, StationPermission.INVENTORY_MANAGER))
-                .thenReturn(List.of(member(30), member(31)));
 
         handler.handle(new MovementStarted(
                 STATION_ID, 1, MEMBER_ID, "Max", 99, "Helm", "Kaputt", MEMBER_ID, StepActor.STATION, null));
 
-        verify(notificationService)
-                .notifyMembersIfAbsent(
-                        eq(List.of(30, 31)),
-                        eq(NotificationType.MOVEMENT_RAISED),
-                        any(NotificationData.class),
-                        eq(MEMBER_ID));
+        verifyTold(
+                StationAudience.holders(STATION_ID, StationPermission.INVENTORY_MANAGER)
+                        .except(MEMBER_ID),
+                NotificationType.MOVEMENT_RAISED,
+                Delivery.ONCE_WHILE_UNREAD);
     }
-
-    // -- MovementAdvancedHandler --
 
     @Test
     void movementAdvancedTellsTheStationWhenItsStepIsNext() {
-        var handler = new MovementAdvancedHandler(notificationService, memberRepository, () -> clusterService);
+        var handler = new MovementAdvancedHandler(notifier);
         assertEquals(MovementAdvanced.class, handler.eventType());
-
-        when(memberRepository.findMembersWithPermission(STATION_ID, StationPermission.INVENTORY_MANAGER))
-                .thenReturn(List.of(member(30)));
 
         handler.handle(new MovementAdvanced(
                 STATION_ID, 1, MEMBER_ID, 99, "Helm", "Tausch angekündigt", MEMBER_ID, StepActor.STATION, null));
 
-        verify(notificationService)
-                .notifyMembersIfAbsent(
-                        eq(List.of(30)),
-                        eq(NotificationType.MOVEMENT_ADVANCED),
-                        any(NotificationData.class),
-                        eq(MEMBER_ID));
+        verifyTold(
+                StationAudience.holders(STATION_ID, StationPermission.INVENTORY_MANAGER)
+                        .except(MEMBER_ID),
+                NotificationType.MOVEMENT_ADVANCED,
+                Delivery.ONCE_WHILE_UNREAD);
     }
 
     @Test
     void movementAdvancedTellsTheMemberWhenTheirStepIsNext() {
-        var handler = new MovementAdvancedHandler(notificationService, memberRepository, () -> clusterService);
+        var handler = new MovementAdvancedHandler(notifier);
 
         handler.handle(new MovementAdvanced(
                 STATION_ID, 1, MEMBER_ID, 99, "Helm", "Ersatz erhalten", 30, StepActor.MEMBER, null));
 
-        verify(notificationService)
-                .notifyMembersIfAbsent(
-                        eq(List.of(MEMBER_ID)),
-                        eq(NotificationType.MOVEMENT_ADVANCED),
-                        any(NotificationData.class),
-                        eq(30));
-        verify(memberRepository, never()).findMembersWithPermission(anyInt(), any());
+        verifyTold(
+                StationAudience.member(MEMBER_ID).except(30),
+                NotificationType.MOVEMENT_ADVANCED,
+                Delivery.ONCE_WHILE_UNREAD);
     }
 
     @Test
     void aChainThatHasEndedTellsTheMemberItConcerned() {
-        var handler = new MovementAdvancedHandler(notificationService, memberRepository, () -> clusterService);
+        var handler = new MovementAdvancedHandler(notifier);
 
         handler.handle(new MovementAdvanced(STATION_ID, 1, MEMBER_ID, 99, "Helm", "Ersatz ausgegeben", 30, null, null));
 
-        verify(notificationService)
-                .notifyMembersIfAbsent(
-                        eq(List.of(MEMBER_ID)),
-                        eq(NotificationType.MOVEMENT_ADVANCED),
-                        any(NotificationData.class),
-                        eq(30));
+        verifyTold(
+                StationAudience.member(MEMBER_ID).except(30),
+                NotificationType.MOVEMENT_ADVANCED,
+                Delivery.ONCE_WHILE_UNREAD);
+    }
+
+    /** A member step with nobody named falls back to the team that runs the inventory. */
+    @Test
+    void aMemberStepWithoutAMemberTellsTheTeam() {
+        var handler = new MovementAdvancedHandler(notifier);
+
+        handler.handle(
+                new MovementAdvanced(STATION_ID, 1, null, 99, "Helm", "Ersatz erhalten", 30, StepActor.MEMBER, null));
+
+        verifyTold(
+                StationAudience.holders(STATION_ID, StationPermission.INVENTORY_MANAGER)
+                        .except(30),
+                NotificationType.MOVEMENT_ADVANCED,
+                Delivery.ONCE_WHILE_UNREAD);
     }
 
     /**
@@ -1063,20 +1048,16 @@ class DomainEventHandlerTest {
      */
     @Test
     void anOwnerStepIsAnnouncedToTheStationStandingInForIt() {
-        var handler = new MovementAdvancedHandler(notificationService, memberRepository, () -> clusterService);
-
-        when(memberRepository.findMembersWithPermission(STATION_ID, StationPermission.INVENTORY_MANAGER))
-                .thenReturn(List.of(member(30)));
+        var handler = new MovementAdvancedHandler(notifier);
 
         handler.handle(new MovementAdvanced(
                 STATION_ID, 1, MEMBER_ID, 99, "Helm", "An den Träger geschickt", MEMBER_ID, StepActor.OWNER, null));
 
-        verify(notificationService)
-                .notifyMembersIfAbsent(
-                        eq(List.of(30)),
-                        eq(NotificationType.MOVEMENT_ADVANCED),
-                        any(NotificationData.class),
-                        eq(MEMBER_ID));
+        verifyTold(
+                StationAudience.holders(STATION_ID, StationPermission.INVENTORY_MANAGER)
+                        .except(MEMBER_ID),
+                NotificationType.MOVEMENT_ADVANCED,
+                Delivery.ONCE_WHILE_UNREAD);
     }
 
     /**
@@ -1085,22 +1066,18 @@ class DomainEventHandlerTest {
      */
     @Test
     void anOwnerStepOnClusterGearIsAnnouncedToTheCluster() {
-        var handler = new MovementAdvancedHandler(notificationService, memberRepository, () -> clusterService);
-
-        when(clusterService.findMemberIdsWith(7, ClusterPermission.CLUSTER_INVENTORY_MANAGER))
-                .thenReturn(List.of(40, 41));
+        var handler = new MovementAdvancedHandler(notifier);
 
         handler.handle(new MovementAdvanced(
                 STATION_ID, 1, MEMBER_ID, 99, "Helm", "An den Träger geschickt", MEMBER_ID, StepActor.OWNER, 7));
 
-        verify(notificationService)
-                .notifyClusterMembersIfAbsent(
-                        eq(List.of(40, 41)),
+        verify(notifier)
+                .notify(
+                        eq(ClusterAudience.holders(7, ClusterPermission.CLUSTER_INVENTORY_MANAGER)),
                         eq(NotificationType.MOVEMENT_ADVANCED),
                         argThat(data -> "cluster-movements".equals(data.link().route())),
-                        isNull());
-        verify(notificationService).notifyMembersIfAbsent(eq(List.of()), any(), any(NotificationData.class), anyInt());
-        verify(memberRepository, never()).findMembersWithPermission(anyInt(), any());
+                        eq(Delivery.ONCE_WHILE_UNREAD));
+        verify(notifier).notify(any(), any(), any(), any());
     }
 
     /**
@@ -1109,13 +1086,13 @@ class DomainEventHandlerTest {
      */
     @Test
     void aChainThatEndsWithNoMemberTellsNobody() {
-        var handler = new MovementAdvancedHandler(notificationService, memberRepository, () -> clusterService);
+        var handler = new MovementAdvancedHandler(notifier);
 
         handler.handle(new MovementAdvanced(STATION_ID, 1, null, 99, "Helm", "Eingelagert", 30, null, null));
 
-        verify(notificationService).notifyMembersIfAbsent(eq(List.of()), any(), any(NotificationData.class), anyInt());
-        verify(notificationService)
-                .notifyClusterMembersIfAbsent(eq(List.of()), any(), any(NotificationData.class), isNull());
+        var audience = org.mockito.ArgumentCaptor.forClass(Audience.class);
+        verify(notifier).notify(audience.capture(), any(), any(), any());
+        assertTrue(((StationAudience) audience.getValue()).reachesNobody());
     }
 
     /** A station with a name, which is the only thing the lost-gear message reads off it. */
@@ -1133,7 +1110,6 @@ class DomainEventHandlerTest {
                 ThemeFeel.ROUNDED,
                 true,
                 PublicKbMode.OFF,
-                null,
                 DiscoveryVisibility.NONE,
                 null,
                 false,
@@ -1156,153 +1132,123 @@ class DomainEventHandlerTest {
                 false);
     }
 
-    // -- ClusterItemIssuedHandler --
-
     /**
      * Being told that something is coming is a different sentence from being asked to acknowledge a step,
      * so it reaches the station as its own message and lands on the movement carrying it.
      */
     @Test
     void clusterItemIssuedTellsTheStationWhatIsOnItsWay() {
-        var handler = new ClusterItemIssuedHandler(notificationService, memberRepository);
+        var handler = new ClusterItemIssuedHandler(notifier);
         assertEquals(ClusterItemIssued.class, handler.eventType());
-
-        when(memberRepository.findMembersWithPermission(STATION_ID, StationPermission.INVENTORY_MANAGER))
-                .thenReturn(List.of(member(30), member(31)));
 
         handler.handle(new ClusterItemIssued(STATION_ID, 5, "Kreisverband Musterstadt", "Jacke"));
 
-        verify(notificationService)
-                .notifyMembersIfAbsent(
-                        eq(List.of(30, 31)),
+        verify(notifier)
+                .notify(
+                        eq(StationAudience.holders(STATION_ID, StationPermission.INVENTORY_MANAGER)),
                         eq(NotificationType.CLUSTER_ITEM_ISSUED),
                         argThat(data ->
                                 "inventory-movement-detail".equals(data.link().route())),
-                        eq(0));
+                        eq(Delivery.ONCE_WHILE_UNREAD));
     }
-
-    // -- ClusterItemLostHandler --
 
     @Test
     void clusterItemLostTellsTheClusterAndNamesTheStation() {
         var stationRepository = mock(StationRepository.class);
-        var handler = new ClusterItemLostHandler(notificationService, stationRepository, () -> clusterService);
+        var handler = new ClusterItemLostHandler(notifier, stationRepository);
         assertEquals(ClusterItemLost.class, handler.eventType());
 
         when(stationRepository.findById(STATION_ID)).thenReturn(Optional.of(station("JF Nachbarstadt")));
-        when(clusterService.findMemberIdsWith(7, ClusterPermission.CLUSTER_INVENTORY_MANAGER))
-                .thenReturn(List.of(40));
 
         handler.handle(new ClusterItemLost(7, "Helm", STATION_ID));
 
-        verify(notificationService)
-                .notifyClusterMembersIfAbsent(
-                        eq(List.of(40)),
+        verify(notifier)
+                .notify(
+                        eq(ClusterAudience.holders(7, ClusterPermission.CLUSTER_INVENTORY_MANAGER)),
                         eq(NotificationType.CLUSTER_ITEM_LOST),
                         argThat(data -> "cluster-inventory".equals(data.link().route())),
-                        isNull());
+                        eq(Delivery.ONCE_WHILE_UNREAD));
     }
 
     /** A station that has gone since the report still leaves a message worth reading. */
     @Test
     void clusterItemLostSurvivesAStationThatIsNoLongerThere() {
         var stationRepository = mock(StationRepository.class);
-        var handler = new ClusterItemLostHandler(notificationService, stationRepository, () -> clusterService);
+        var handler = new ClusterItemLostHandler(notifier, stationRepository);
 
         when(stationRepository.findById(STATION_ID)).thenReturn(Optional.empty());
-        when(clusterService.findMemberIdsWith(7, ClusterPermission.CLUSTER_INVENTORY_MANAGER))
-                .thenReturn(List.of(40));
 
         handler.handle(new ClusterItemLost(7, "Helm", STATION_ID));
 
-        verify(notificationService)
-                .notifyClusterMembersIfAbsent(
-                        eq(List.of(40)), eq(NotificationType.CLUSTER_ITEM_LOST), any(NotificationData.class), isNull());
+        verifyTold(
+                ClusterAudience.holders(7, ClusterPermission.CLUSTER_INVENTORY_MANAGER),
+                NotificationType.CLUSTER_ITEM_LOST,
+                Delivery.ONCE_WHILE_UNREAD);
     }
-
-    // -- MovementDeclinedHandler --
 
     @Test
     void movementDeclinedTellsBothEnds() {
-        var handler = new MovementDeclinedHandler(notificationService, memberRepository);
+        var handler = new MovementDeclinedHandler(notifier);
         assertEquals(MovementDeclined.class, handler.eventType());
-
-        when(memberRepository.findMembersWithPermission(STATION_ID, StationPermission.INVENTORY_MANAGER))
-                .thenReturn(List.of(member(30)));
 
         handler.handle(new MovementDeclined(STATION_ID, 1, MEMBER_ID, 99, "Helm", "Kein Ersatz", 30));
 
-        verify(notificationService)
-                .notifyMembersIfAbsent(
-                        eq(List.of(30, MEMBER_ID)),
-                        eq(NotificationType.MOVEMENT_DECLINED),
-                        any(NotificationData.class),
-                        eq(30));
+        verifyTold(
+                StationAudience.holders(STATION_ID, StationPermission.INVENTORY_MANAGER)
+                        .and(StationAudience.member(MEMBER_ID))
+                        .except(30),
+                NotificationType.MOVEMENT_DECLINED,
+                Delivery.ONCE_WHILE_UNREAD);
     }
-
-    // -- ProcurementCreatedHandler --
 
     @Test
     void procurementCreatedNotifiesMember() {
-        var handler = new ProcurementCreatedHandler(notificationService);
+        var handler = new ProcurementCreatedHandler(notifier);
         assertEquals(ProcurementCreated.class, handler.eventType());
 
         handler.handle(new ProcurementCreated(STATION_ID, MEMBER_ID, 99, "Schlauch"));
 
-        verify(notificationService)
-                .notify(eq(MEMBER_ID), eq(NotificationType.PROCUREMENT_REQUESTED), any(NotificationData.class));
+        verifyTold(StationAudience.member(MEMBER_ID), NotificationType.PROCUREMENT_REQUESTED, Delivery.EVERY_TIME);
     }
-
-    // -- ProcurementFulfilledHandler --
 
     @Test
     void procurementFulfilledNotifiesMember() {
-        var handler = new ProcurementFulfilledHandler(notificationService);
+        var handler = new ProcurementFulfilledHandler(notifier);
         assertEquals(ProcurementFulfilled.class, handler.eventType());
 
         handler.handle(new ProcurementFulfilled(STATION_ID, MEMBER_ID, 99, "Schlauch"));
 
-        verify(notificationService)
-                .notify(eq(MEMBER_ID), eq(NotificationType.PROCUREMENT_FULFILLED), any(NotificationData.class));
+        verifyTold(StationAudience.member(MEMBER_ID), NotificationType.PROCUREMENT_FULFILLED, Delivery.EVERY_TIME);
     }
-
-    // -- MembersAddedToGroupHandler --
 
     @Test
     void membersAddedToGroupNotifiesAllMembers() {
-        var handler = new MembersAddedToGroupHandler(notificationService, memberRepository);
+        var handler = new MembersAddedToGroupHandler(notifier, memberRepository);
         assertEquals(MembersAddedToGroup.class, handler.eventType());
 
         var memberIds = List.of(10, 11, 12);
         handler.handle(new MembersAddedToGroup(STATION_ID, "Anfänger", memberIds, null));
 
-        verify(notificationService)
-                .notifyMembers(eq(memberIds), eq(NotificationType.MEMBER_ADDED_TO_GROUP), any(NotificationData.class));
+        verifyTold(StationAudience.members(memberIds), NotificationType.MEMBER_ADDED_TO_GROUP, Delivery.EVERY_TIME);
     }
-
-    // -- LendingRequestedHandler --
 
     @Test
     void lendingRequestedNotifiesOwningStationManagers() {
-        var handler = new LendingRequestedHandler(notificationService);
+        var handler = new LendingRequestedHandler(notifier);
         assertEquals(LendingRequested.class, handler.eventType());
 
         int owningStationId = 2;
         handler.handle(new LendingRequested(STATION_ID, owningStationId, 99, "Feuerwehr Ost", "2x Schlauch"));
 
-        verify(notificationService)
-                .notifyMembersWithRole(
-                        eq(owningStationId),
-                        eq("INVENTORY_MANAGER"),
-                        eq(NotificationType.LENDING_NEW_REQUEST),
-                        any(NotificationData.class));
+        verifyTold(
+                StationAudience.holders(owningStationId, StationPermission.INVENTORY_MANAGER),
+                NotificationType.LENDING_NEW_REQUEST,
+                Delivery.EVERY_TIME);
     }
-
-    // -- LendingStatusChangedHandler --
 
     @Test
     void lendingStatusChangedNotifiesTargetStation() {
-        var handler = new LendingStatusChangedHandler(notificationService);
+        var handler = new LendingStatusChangedHandler(notifier);
         assertEquals(LendingStatusChanged.class, handler.eventType());
 
         int targetStationId = 3;
@@ -1314,115 +1260,93 @@ class DomainEventHandlerTest {
                 "Feuerwehr West",
                 LendingStatus.APPROVED));
 
-        verify(notificationService)
-                .notifyMembersWithRole(
-                        eq(targetStationId),
-                        eq("INVENTORY_MANAGER"),
-                        eq(NotificationType.LENDING_STATUS_CHANGE),
-                        any(NotificationData.class));
+        verifyTold(
+                StationAudience.holders(targetStationId, StationPermission.INVENTORY_MANAGER),
+                NotificationType.LENDING_STATUS_CHANGE,
+                Delivery.EVERY_TIME);
     }
-
-    // -- LendingMessageSentHandler --
 
     @Test
     void lendingMessageSentNotifiesTargetStation() {
-        var handler = new LendingMessageSentHandler(notificationService);
+        var handler = new LendingMessageSentHandler(notifier);
         assertEquals(LendingMessageSent.class, handler.eventType());
 
         int targetStationId = 3;
         handler.handle(new LendingMessageSent(STATION_ID, targetStationId, 99, "Feuerwehr West", "Max Mustermann"));
 
-        verify(notificationService)
-                .notifyMembersWithRole(
-                        eq(targetStationId),
-                        eq("INVENTORY_MANAGER"),
-                        eq(NotificationType.LENDING_NEW_MESSAGE),
-                        any(NotificationData.class));
+        verifyTold(
+                StationAudience.holders(targetStationId, StationPermission.INVENTORY_MANAGER),
+                NotificationType.LENDING_NEW_MESSAGE,
+                Delivery.EVERY_TIME);
     }
-
-    // -- RegistrationDeadlineExpiredHandler --
 
     @Test
     void registrationDeadlineExpiredNotifiesEventManagers() {
-        var handler = new RegistrationDeadlineExpiredHandler(notificationService, memberRepository);
+        var handler = new RegistrationDeadlineExpiredHandler(notifier);
         assertEquals(RegistrationDeadlineExpired.class, handler.eventType());
-
-        when(memberRepository.findMembersWithPermission(STATION_ID, StationPermission.EVENT_MANAGER))
-                .thenReturn(List.of(member(20), member(21)));
 
         handler.handle(new RegistrationDeadlineExpired(STATION_ID, 42, "Übungsabend", 5));
 
-        verify(notificationService)
-                .notifyMembers(
-                        eq(List.of(20, 21)),
-                        eq(NotificationType.REGISTRATION_DEADLINE_EXPIRED),
-                        any(NotificationData.class));
+        verifyTold(
+                StationAudience.holders(STATION_ID, StationPermission.EVENT_MANAGER),
+                NotificationType.REGISTRATION_DEADLINE_EXPIRED,
+                Delivery.EVERY_TIME);
     }
-
-    // -- BoardTicketChangedHandler --
 
     @Test
     void boardTicketChangedNotifiesWatchers() {
-        var handler = new BoardTicketChangedHandler(notificationService);
+        var handler = new BoardTicketChangedHandler(notifier);
         assertEquals(BoardTicketChanged.class, handler.eventType());
 
         handler.handle(new BoardTicketChanged(
                 STATION_ID, 1, 42, "DEV", 7, "Dev Board", "DEV-7", "Neuer Kommentar", MEMBER_ID, List.of(20, 21)));
 
-        verify(notificationService)
-                .notifyMembersIfAbsent(
-                        eq(List.of(20, 21)),
-                        eq(NotificationType.BOARD_TICKET_UPDATE),
-                        any(NotificationData.class),
-                        eq(MEMBER_ID));
+        verifyTold(
+                StationAudience.members(List.of(20, 21)).except(MEMBER_ID),
+                NotificationType.BOARD_TICKET_UPDATE,
+                Delivery.ONCE_WHILE_UNREAD);
     }
 
     @Test
     void boardTicketChangedSkipsEmptyWatchers() {
-        var handler = new BoardTicketChangedHandler(notificationService);
+        var handler = new BoardTicketChangedHandler(notifier);
 
         handler.handle(new BoardTicketChanged(
                 STATION_ID, 1, 42, "DEV", 7, "Dev Board", "DEV-7", "Update", MEMBER_ID, List.of()));
 
-        verify(notificationService)
-                .notifyMembersIfAbsent(
-                        eq(List.of()),
-                        eq(NotificationType.BOARD_TICKET_UPDATE),
-                        any(NotificationData.class),
-                        eq(MEMBER_ID));
+        verifyTold(
+                StationAudience.members(List.of()).except(MEMBER_ID),
+                NotificationType.BOARD_TICKET_UPDATE,
+                Delivery.ONCE_WHILE_UNREAD);
     }
 
     @Test
     void storageWarningNotifiesStationManagers() {
-        var handler = new StorageWarningHandler(notificationService);
+        var handler = new StorageWarningHandler(notifier);
         var event = new StorageWarningEvent(STATION_ID, 85, 4_500_000_000L, 5_368_709_120L);
 
         assertEquals(StorageWarningEvent.class, handler.eventType());
 
         handler.handle(event);
 
-        verify(notificationService)
-                .notifyMembersWithRole(
-                        eq(STATION_ID),
-                        eq("STATION_MANAGER"),
-                        eq(NotificationType.STORAGE_WARNING),
-                        any(NotificationData.class));
+        verifyTold(
+                StationAudience.holders(STATION_ID, StationPermission.STATION_MANAGER),
+                NotificationType.STORAGE_WARNING,
+                Delivery.EVERY_TIME);
     }
 
     @Test
     void waitlistPublicRegistrationHandlerNotifiesWaitlistEditRole() {
-        var handler = new WaitlistPublicRegistrationHandler(notificationService);
+        var handler = new WaitlistPublicRegistrationHandler(notifier);
         var event = new WaitlistPublicRegistration(STATION_ID, "Max Müller", "Warteliste 2026");
 
         assertEquals(WaitlistPublicRegistration.class, handler.eventType());
 
         handler.handle(event);
 
-        verify(notificationService)
-                .notifyMembersWithRole(
-                        eq(STATION_ID),
-                        eq("WAITLIST_EDIT"),
-                        eq(NotificationType.WAITLIST_PUBLIC_REGISTRATION),
-                        any(NotificationData.class));
+        verifyTold(
+                StationAudience.holders(STATION_ID, StationPermission.WAITLIST_EDIT),
+                NotificationType.WAITLIST_PUBLIC_REGISTRATION,
+                Delivery.EVERY_TIME);
     }
 }

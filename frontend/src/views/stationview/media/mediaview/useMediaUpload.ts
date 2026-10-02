@@ -5,7 +5,8 @@
  */
 import {ref, type Ref} from 'vue'
 import {useI18n} from 'vue-i18n'
-import {moveMediaFileToFolder, uploadMediaFile, type StationFileListing} from '@/api/media'
+import {moveMediaFileToFolder, uploadMediaFile} from '@/api/media'
+import type {FileListing} from '@/api/generated/schema'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 
 const UPLOAD_CONCURRENCY = 2
@@ -14,7 +15,7 @@ const UPLOAD_CONCURRENCY = 2
  * Uploads dropped files into the open folder, a couple at a time, prepending each stored file to
  * the listing as soon as it lands.
  */
-export function useMediaUpload(entries: Ref<StationFileListing[]>, activeFolder: Ref<number | null>) {
+export function useMediaUpload(entries: Ref<FileListing[]>, activeFolder: Ref<number | null>) {
     const {t} = useI18n()
     const uploadError = ref<string | null>(null)
 

@@ -52,12 +52,11 @@ const dummyPausedExport = ref(false)
       <p>{{ t('helpCenter.federation.partnerListText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Partner list -->
     <NeutralContainer>
       <div class="space-y-2">
         <div class="flex items-center gap-2">
           <div class="flex-1 min-w-0">
-            <div class="font-medium text-sm">JF Musterstadt</div>
+            <div class="font-medium text-sm">{{ t('helpCenter.sample.stations.jfMusterstadt') }}</div>
             <div class="text-xs text-(--text-muted)">v1</div>
           </div>
           <SuccessBadge>{{ t('federation.active') }}</SuccessBadge>
@@ -67,7 +66,7 @@ const dummyPausedExport = ref(false)
         </div>
         <div class="flex items-center gap-2">
           <div class="flex-1 min-w-0">
-            <div class="font-medium text-sm">JF Beispieldorf</div>
+            <div class="font-medium text-sm">{{ t('helpCenter.sample.stations.jfBeispieldorf') }}</div>
             <div class="text-xs text-(--text-muted)">v1</div>
           </div>
           <SecondaryBadge>{{ t('federation.pending') }}</SecondaryBadge>
@@ -77,7 +76,7 @@ const dummyPausedExport = ref(false)
         </div>
         <div class="flex items-center gap-2">
           <div class="flex-1 min-w-0">
-            <div class="font-medium text-sm">JF Altenburg</div>
+            <div class="font-medium text-sm">{{ t('helpCenter.sample.stations.jfAltenburg') }}</div>
             <div class="text-xs text-(--text-muted)">v1</div>
           </div>
           <ErrorBadge>{{ t('federation.suspended') }}</ErrorBadge>
@@ -106,7 +105,6 @@ const dummyPausedExport = ref(false)
       </ol>
     </HelpSection>
 
-    <!-- Dummy: Invite code -->
     <NeutralContainer>
       <div class="space-y-3">
         <div>
@@ -134,7 +132,6 @@ const dummyPausedExport = ref(false)
       <p>{{ t('helpCenter.federation.capabilitiesText2') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Capabilities table -->
     <NeutralContainer>
       <table class="w-full text-sm">
         <thead>
@@ -189,7 +186,6 @@ const dummyPausedExport = ref(false)
       <p>{{ t('helpCenter.federation.compatibilityText2') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Incompatible feature row -->
     <NeutralContainer>
       <table class="w-full text-sm">
         <tbody>

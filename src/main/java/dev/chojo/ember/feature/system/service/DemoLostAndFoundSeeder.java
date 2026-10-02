@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.lostandfound.service.LostAndFoundService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,11 +53,15 @@ public class DemoLostAndFoundSeeder implements DemoPerStationSeeder {
     }
 
     /**
+     * Seeds three found items, one of them claimed, so both the new-item and the claimed notifications
+     * fire and the page has rows to scroll through.
+     *
      * @param today the station's today, which the days the items were found are counted back from
+     * @param eltern unused, kept so the signature matches the other seeders
      * @return one of the seeded items so callers (e.g. the notification showcase) can
      * construct a deep link with a real id.
      */
-    public LostAndFoundItem seed(
+    public @Nullable LostAndFoundItem seed(
             LocalDate today,
             int stationId,
             List<StationMember> betreuer,
@@ -65,23 +70,16 @@ public class DemoLostAndFoundSeeder implements DemoPerStationSeeder {
         if (betreuer.isEmpty()) return null;
         int finder = betreuer.getFirst().id();
 
-        // An unclaimed item - produces a LOST_AND_FOUND_NEW notification for every member.
         var jacket =
                 service.create(stationId, "Blaue Jacke Größe M, im Geräteraum gefunden", today.minusDays(2), finder);
 
-        // A second item that's been claimed - produces both LOST_AND_FOUND_NEW (on create) and
-        // LOST_AND_FOUND_CLAIMED (on claim, sent to LOST_AND_FOUND_MANAGER members).
         var helmet = service.create(stationId, "Roter Helm Größe S", today.minusDays(5), finder);
         if (!anfaenger.isEmpty()) {
             String claimerName = "Lena Schmidt";
             service.claim(helmet.id(), anfaenger.getFirst().id(), stationId, claimerName);
         }
 
-        // One more so the lost-and-found page has at least three rows to scroll through.
         service.create(stationId, "Trinkflasche mit Wachsabzeichen, Marke unklar", today.minusDays(1), finder);
-        if (!eltern.isEmpty()) {
-            // No-op; eltern parameter kept symmetric with the other seeders.
-        }
 
         log.info("Demo: Created lost-and-found items (one claimed)");
         return jacket;

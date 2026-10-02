@@ -9,8 +9,9 @@ import {useI18n} from 'vue-i18n'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import {FieldWidths, type FieldWidthName} from '@/components/profilefields/fieldLayout'
-import {widthLabel} from '../fieldTypes'
-import type {AssignmentRequest, ProfileField} from '@/api/profileFields'
+import {widthLabel} from '../fieldWidths'
+import type {EditableField} from '@/api/profileFields'
+import type {AssignmentRequest} from '@/api/generated/schema'
 import type {Audience} from '@/composables/useFieldsConfig'
 
 /**
@@ -24,7 +25,7 @@ import type {Audience} from '@/composables/useFieldsConfig'
  * say otherwise for its own audience, which is how a team writes a date the members only read.
  */
 const props = defineProps<{
-  field: ProfileField
+  field: EditableField
   audience: Audience
 }>()
 

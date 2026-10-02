@@ -4,8 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {getItem, removeItem, setItem} from '@/api/storage'
-import type {AccountInfo} from '@/api/types'
-import {sessionInfo} from '@/util/sessionState'
+import type {AccountInfo} from '@/api/generated/schema'
+import {sessionState} from '@/util/sessionState'
 
 const LANDING_AREA_KEY = 'landing_area'
 
@@ -62,7 +62,9 @@ export function forgetLandingMemory(): void {
  * ordinary case for a bookmark. Holding the note here rather than writing it unnamed keeps it out of
  * the reach of the next person: it lives no longer than the page that took it.
  */
-let unclaimed: Omit<LandingMemory, 'account'> | null = null
+function unclaimedArea() {
+    return useState<Omit<LandingMemory, 'account'> | null>('landingMemoryState.unclaimed', () => null)
+}
 
 function write(memory: LandingMemory): void {
     setItem(LANDING_AREA_KEY, JSON.stringify(memory))
@@ -87,17 +89,19 @@ function areaOf(path: string): Omit<LandingMemory, 'account'> | null {
  * @param path where the reader is going
  */
 export function rememberVisitedArea(path: string): void {
+    const unclaimed = unclaimedArea()
     const area = areaOf(path)
     if (!area) return
-    const account = accountKey(sessionInfo.value?.account)
+    const account = accountKey(sessionState().value.info?.account)
     if (account) write({...area, account})
-    else unclaimed = area
+    else unclaimed.value = area
 }
 
 /** Puts the name of the session that has just answered to what was noted before it did. */
 export function claimVisitedArea(): void {
-    if (!unclaimed) return
-    const account = accountKey(sessionInfo.value?.account)
-    if (account) write({...unclaimed, account})
-    unclaimed = null
+    const unclaimed = unclaimedArea()
+    if (!unclaimed.value) return
+    const account = accountKey(sessionState().value.info?.account)
+    if (account) write({...unclaimed.value, account})
+    unclaimed.value = null
 }

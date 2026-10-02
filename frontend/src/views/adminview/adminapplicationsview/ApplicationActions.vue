@@ -9,7 +9,8 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import {ApplicationStatus, type StationApplication} from '@/api/stationApplications'
+import {ApplicationStatus} from '@/api/stationApplications'
+import type {StationApplication} from '@/api/generated/schema'
 
 /** What can be done with one application: a waiting one is accepted or denied, a denied one says why. */
 defineProps<{

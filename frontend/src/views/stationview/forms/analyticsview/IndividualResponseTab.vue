@@ -9,12 +9,12 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import MutedIconButton from '@/components/button/MutedIconButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
-import type { FormResponse, FormQuestionInfo } from '@/api/forms'
+import type { FormResponseEntry, FormQuestionInfo } from '@/api/generated/schema'
 import { formatDateTime } from '@/util/format'
 
 defineProps<{
-  responses: FormResponse[]
-  currentResponse: FormResponse | null
+  responses: FormResponseEntry[]
+  currentResponse: FormResponseEntry | null
   currentResponseIndex: number
   questions: FormQuestionInfo[]
   loadingResponse: boolean

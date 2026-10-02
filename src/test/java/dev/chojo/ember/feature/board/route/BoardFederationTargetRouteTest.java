@@ -16,7 +16,9 @@ import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.board.entity.BoardShareMode;
 import dev.chojo.ember.feature.board.service.BoardService;
 import dev.chojo.ember.feature.board.service.BoardTicketService;
+import dev.chojo.ember.feature.board.service.FederatedBoardNotificationService;
 import dev.chojo.ember.feature.board.service.FederatedBoardService;
+import dev.chojo.ember.feature.board.service.SharedBoardChangeService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
@@ -82,6 +84,8 @@ class BoardFederationTargetRouteTest extends RepositoryTestBase {
         var routes = new BoardRoutes(
                 boardService,
                 federatedBoardService,
+                new SharedBoardChangeService(
+                        boardService, federatedBoardService, mock(FederatedBoardNotificationService.class)),
                 mock(StationMemberService.class),
                 memberIdentityFactory,
                 new BoardRouteGuards(boardService, mock(BoardTicketService.class), memberIdentityFactory));

@@ -10,8 +10,7 @@ import { useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
-import IconButton from '@/components/button/IconButton.vue'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import BoardCard from './BoardCard.vue'
 import RowLink from '@/components/navigation/RowLink.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
@@ -22,7 +21,8 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import { boards } from '@/api'
-import {LanePreset, type Board, type LanePresetName} from '@/api/boards'
+import {LanePreset, type LanePresetName} from '@/api/boards'
+import type {Board} from '@/api/generated/schema'
 import { useConfirmDelete } from '@/composables/useConfirmDelete'
 import { useConfigPanel } from '@/composables/useConfigPanel'
 import { useAsyncAction } from '@/composables/useAsyncAction'
@@ -43,7 +43,6 @@ const createValidationError = ref('')
 
 const {
     show: showDeleteModal,
-    target: deleteTarget,
     requestDelete: confirmDelete,
     confirm: handleDelete,
 } = useConfirmDelete<Board>({
@@ -102,24 +101,12 @@ function handleCreate() {
         >
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <RowLink v-for="board in boardList" :key="board.id" :to="boardPage(board)">
-                    <NeutralContainer class="h-full cursor-pointer hover:border-[var(--accent)] transition-colors">
-                        <div class="flex items-start justify-between">
-                            <div>
-                                <div class="flex items-center gap-2 mb-1">
-                                    <span class="text-xs font-mono text-[var(--text-muted)] bg-[var(--bg-muted)] px-1.5 py-0.5 rounded">{{ board.shortKey }}</span>
-                                    <SubHeader>{{ board.name }}</SubHeader>
-                                </div>
-                                <p v-if="board.description" class="text-sm text-[var(--text-muted)] line-clamp-2">{{ board.description }}</p>
-                            </div>
-                            <div class="flex items-center gap-1 shrink-0">
-                                <IconButton :icon="['fas', 'gears']" :label="t('boards.settings')" @click="router.push(`/station/boards/${board.shortKey}/settings`)" />
-                                <DeleteButton @click="confirmDelete(board)" />
-                            </div>
-                        </div>
-                        <div class="mt-3 text-xs text-[var(--text-muted)]">
-                            {{ board.ticketCounter }} {{ board.ticketCounter === 1 ? 'Ticket' : 'Tickets' }}
-                        </div>
-                    </NeutralContainer>
+                    <BoardCard
+                        :board="board"
+                        manageable
+                        @settings="router.push(`/station/boards/${board.shortKey}/settings`)"
+                        @delete="confirmDelete(board)"
+                    />
                 </RowLink>
             </div>
         </AsyncSection>

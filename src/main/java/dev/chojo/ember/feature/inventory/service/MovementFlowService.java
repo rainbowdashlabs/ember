@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
+import dev.chojo.ember.api.refusal.InventoryRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.inventory.entity.AckKind;
@@ -22,9 +24,9 @@ import dev.chojo.ember.feature.inventory.repository.ItemMovementRepository;
 import dev.chojo.ember.feature.inventory.repository.ItemMovementRepository.OpenMovementOnFlow;
 import dev.chojo.ember.feature.inventory.repository.MovementFlowRepository;
 import dev.chojo.ember.util.sql.Transactions;
-import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -487,8 +489,8 @@ public class MovementFlowService {
      *
      * @param flowId the chain that would be written again
      * @return the chain the preset writes and where each open movement would land
-     * @throws BadRequestResponse when the chain belongs to the body above the station, when nothing
-     *                            is bound to it, or when no preset covers the combination it serves
+     * @throws RefusalResponse when the chain belongs to the body above the station, when nothing
+     *                         is bound to it, or when no preset covers the combination it serves
      */
     public RestorePlan planRestore(int flowId) {
         Preset preset = presetFor(restorableFlow(flowId));
@@ -521,9 +523,9 @@ public class MovementFlowService {
      * @param actorMemberId who asked for it, which the carried movements' log entries name
      * @param chosen        where the movements the preset does not answer for are to land, which may
      *                      be empty when it answers for all of them
-     * @throws BadRequestResponse when the chain belongs to the body above the station, when nothing
-     *                            is bound to it, when no preset covers the combination it serves, or
-     *                            when a movement on it is left without a landing
+     * @throws RefusalResponse when the chain belongs to the body above the station, when nothing
+     *                         is bound to it, when no preset covers the combination it serves, or
+     *                         when a movement on it is left without a landing
      */
     public void restoreToPreset(int flowId, Integer actorMemberId, List<ChosenLanding> chosen) {
         Preset preset = presetFor(restorableFlow(flowId));
@@ -563,11 +565,11 @@ public class MovementFlowService {
      * which is not here.
      */
     private MovementFlow restorableFlow(int flowId) {
-        MovementFlow flow =
-                flowRepository.findFlowById(flowId).orElseThrow(() -> new BadRequestResponse("No such flow"));
+        MovementFlow flow = flowRepository
+                .findFlowById(flowId)
+                .orElseThrow(InventoryRefusal.MOVEMENT_FLOW_NOT_HERE_TO_RESTORE::raise);
         if (flow.stationId() == null) {
-            throw new BadRequestResponse(
-                    "That chain belongs to the body above the station, which is not the station's to write again");
+            throw InventoryRefusal.MOVEMENT_FLOW_RESTORE_BELONGS_TO_ASSOCIATION.raise();
         }
         return flow;
     }
@@ -590,16 +592,13 @@ public class MovementFlowService {
         MovementFlowBinding binding = flowRepository.findBindings(flow.stationId()).stream()
                 .filter(candidate -> candidate.flowId() == flow.id())
                 .findFirst()
-                .orElseThrow(() -> new BadRequestResponse(
-                        "Nothing is bound to that chain, so there is no preset it could be written from"));
+                .orElseThrow(InventoryRefusal.MOVEMENT_FLOW_RESTORE_NOT_BOUND::raise);
         String combination = combinationOf(binding.ownerKind(), binding.purpose(), binding.party());
         return PRESETS.stream()
                 .filter(preset -> combinationOf(preset.ownerKind(), preset.purpose(), preset.party())
                         .equals(combination))
                 .findFirst()
-                .orElseThrow(() -> new BadRequestResponse(
-                        "No preset covers %s gear, %s and %s, so that chain has none to be written from"
-                                .formatted(binding.ownerKind(), binding.purpose(), binding.party())));
+                .orElseThrow(InventoryRefusal.MOVEMENT_FLOW_RESTORE_NO_PRESET::raise);
     }
 
     /**
@@ -618,9 +617,8 @@ public class MovementFlowService {
             Integer landing = choices.get(standing == null ? null : standing.id());
             if (landing == null && certain.isPresent()) landing = certain.getAsInt();
             if (landing == null) {
-                throw new BadRequestResponse(
-                        "The movements on %s have nowhere to stand in the new chain, so the restore has to be told where they land"
-                                .formatted(whereItStands(standing)));
+                throw InventoryRefusal.MOVEMENT_FLOW_RESTORE_LANDING_MISSING.raise(
+                        standing == null ? null : standing.label());
             }
             for (OpenMovementOnFlow movement : group.getValue()) {
                 carries.add(new Carry(movement.id(), standing == null ? null : standing.label(), landing));
@@ -644,20 +642,18 @@ public class MovementFlowService {
                 .collect(Collectors.toCollection(HashSet::new));
         var choices = new LinkedHashMap<Integer, Integer>();
         for (ChosenLanding choice : chosen) {
-            if (choice.stepIndex() == null) {
-                throw new BadRequestResponse("Every landing names the step it is to land on");
+            Integer stepIndex = choice.stepIndex();
+            if (stepIndex == null) {
+                throw InventoryRefusal.MOVEMENT_FLOW_RESTORE_LANDING_NAMES_NO_STEP.raise();
             }
             if (!occupied.contains(choice.stepId())) {
-                throw new BadRequestResponse("No movement of this chain stands on step %s, so it has no landing here"
-                        .formatted(choice.stepId()));
+                throw InventoryRefusal.MOVEMENT_FLOW_RESTORE_LANDING_FOR_EMPTY_STEP.raise();
             }
-            if (choice.stepIndex() < 0 || choice.stepIndex() >= replacements.size()) {
-                throw new BadRequestResponse("The preset writes %d steps, so step %s cannot land on step %d"
-                        .formatted(replacements.size(), choice.stepId(), choice.stepIndex()));
+            if (stepIndex < 0 || stepIndex >= replacements.size()) {
+                throw InventoryRefusal.MOVEMENT_FLOW_RESTORE_LANDING_OUT_OF_RANGE.raise();
             }
-            if (choices.put(choice.stepId(), choice.stepIndex()) != null) {
-                throw new BadRequestResponse("Step %s is given two landings, and its movements can only stand on one"
-                        .formatted(choice.stepId()));
+            if (choices.put(choice.stepId(), stepIndex) != null) {
+                throw InventoryRefusal.MOVEMENT_FLOW_RESTORE_LANDING_TWICE.raise();
             }
         }
         return choices;
@@ -689,11 +685,6 @@ public class MovementFlowService {
         return movement.currentStepId() == null
                 ? null
                 : flowRepository.findStepById(movement.currentStepId()).orElse(null);
-    }
-
-    /** Where a movement stands, said the way a refusal has to say it. */
-    private static String whereItStands(MovementFlowStep standing) {
-        return standing == null ? "no step of this chain" : "'%s'".formatted(standing.label());
     }
 
     private PlannedStep plannedStep(int index, PresetStep step) {
@@ -809,13 +800,13 @@ public class MovementFlowService {
      * @param ownerId     the owning cluster when {@code ownerKind} is CLUSTER, otherwise {@code null}
      * @param purpose     what the movement is for
      * @return the flow to walk
-     * @throws BadRequestResponse when the station has no flow bound for that pair
+     * @throws RefusalResponse when the station has no flow bound for that pair
      */
     public int resolveFlow(
             int stationId,
-            Integer inventoryId,
+            @Nullable Integer inventoryId,
             ItemOwner ownerKind,
-            Integer ownerId,
+            @Nullable Integer ownerId,
             MovementPurpose purpose,
             MovementParty party) {
         ensurePresets(stationId);
@@ -825,8 +816,7 @@ public class MovementFlowService {
         }
         return flowRepository
                 .findBoundFlow(stationId, inventoryId, ownerKind, purpose, party)
-                .orElseThrow(() -> new BadRequestResponse("No flow is bound for %s gear, %s and %s at this station"
-                        .formatted(ownerKind, purpose, party)));
+                .orElseThrow(InventoryRefusal.MOVEMENT_FLOW_NOT_BOUND::raise);
     }
 
     /**
@@ -895,9 +885,12 @@ public class MovementFlowService {
         return flow;
     }
 
+    /**
+     * Creates a flow the station owns. The presets are ensured first, so writing a flow of one's own never
+     * keeps them from arriving.
+     */
     public MovementFlow createFlow(int stationId, String name, MovementPurpose purpose) {
         if (name == null || name.isBlank()) throw new FlowRefusedException(FlowProblem.Code.FLOW_NAME_REQUIRED);
-        // Before this one, so that writing a flow of your own is not what stops the presets arriving
         ensurePresets(stationId);
         MovementFlow flow = flowRepository.createFlow(stationId, name, purpose);
         log.info("Created movement flow {} ('{}', {}) for station {}", flow.id(), name, purpose, stationId);
@@ -912,6 +905,23 @@ public class MovementFlowService {
         return renamed;
     }
 
+    /**
+     * Says whether a chain waits for the member to confirm a piece they received.
+     *
+     * <p>Only steps reached from now on follow it. A movement already waiting on such a step keeps waiting,
+     * because nobody reached that step after the change and the record would otherwise claim a confirmation
+     * at a moment when nothing happened.
+     *
+     * @param flowId the chain
+     * @param skip   whether the receipt is confirmed for the member as soon as a movement reaches it
+     * @return whether the chain exists
+     */
+    public boolean setSkipMemberReceipt(int flowId, boolean skip) {
+        boolean changed = flowRepository.setSkipMemberReceipt(flowId, skip);
+        if (changed) log.info("Movement flow {} {} the member's receipt", flowId, skip ? "skips" : "waits for");
+        return changed;
+    }
+
     public boolean archiveFlow(int flowId) {
         requireNoOpenMovement(flowId);
         boolean archived = flowRepository.archiveFlow(flowId);
@@ -923,8 +933,8 @@ public class MovementFlowService {
     /**
      * Adds a step at the end of a flow.
      *
-     * @throws BadRequestResponse when a movement is still walking the flow, or when the step would
-     *                            be a second one naming the replacement
+     * @throws RefusalResponse when a movement is still walking the flow, or when the step would
+     *                         be a second one naming the replacement
      */
     public MovementFlowStep addStep(
             int flowId,
@@ -961,8 +971,9 @@ public class MovementFlowService {
             StepSubject subject,
             ItemCustody custodyAfter,
             boolean picksItem) {
-        MovementFlowStep step =
-                flowRepository.findStepById(stepId).orElseThrow(() -> new BadRequestResponse("No such step"));
+        MovementFlowStep step = flowRepository
+                .findStepById(stepId)
+                .orElseThrow(InventoryRefusal.MOVEMENT_FLOW_STEP_NOT_HERE_TO_CHANGE::raise);
         requireLabel(label);
         requireStepCustody(custodyAfter);
         boolean behaviourChanges = step.actor() != actor
@@ -992,8 +1003,9 @@ public class MovementFlowService {
      * way they were walked.
      */
     public boolean archiveStep(int stepId) {
-        MovementFlowStep step =
-                flowRepository.findStepById(stepId).orElseThrow(() -> new BadRequestResponse("No such step"));
+        MovementFlowStep step = flowRepository
+                .findStepById(stepId)
+                .orElseThrow(InventoryRefusal.MOVEMENT_FLOW_STEP_NOT_HERE_TO_ARCHIVE::raise);
         requireNoOpenMovement(step.flowId());
         if (flowRepository.isBound(step.flowId())) {
             var remaining = flowRepository.findActiveSteps(step.flowId()).stream()
@@ -1016,8 +1028,8 @@ public class MovementFlowService {
      *
      * @param flowId  the chain
      * @param stepIds every active step of the chain, in the order they are to be walked
-     * @throws BadRequestResponse when the list is not exactly the chain's active steps, or when a
-     *                            movement is walking it right now
+     * @throws RefusalResponse when the list is not exactly the chain's active steps, or when a
+     *                         movement is walking it right now
      */
     public void reorderSteps(int flowId, List<Integer> stepIds) {
         requireNoOpenMovement(flowId);
@@ -1055,23 +1067,23 @@ public class MovementFlowService {
         return flowRepository
                 .findFlowById(flowId)
                 .map(MovementFlow::purpose)
-                .orElseThrow(() -> new BadRequestResponse("No such flow"));
+                .orElseThrow(InventoryRefusal.MOVEMENT_FLOW_NOT_HERE_FOR_PURPOSE::raise);
     }
 
     public void bind(
             int stationId,
-            Integer inventoryId,
+            @Nullable Integer inventoryId,
             ItemOwner ownerKind,
             MovementPurpose purpose,
             MovementParty party,
             int flowId) {
         MovementFlow flow =
-                flowRepository.findFlowById(flowId).orElseThrow(() -> new BadRequestResponse("No such flow"));
+                flowRepository.findFlowById(flowId).orElseThrow(InventoryRefusal.MOVEMENT_FLOW_NOT_HERE_TO_BIND::raise);
         if (flow.stationId() == null || flow.stationId() != stationId) {
-            throw new BadRequestResponse("That flow belongs to somebody else");
+            throw InventoryRefusal.MOVEMENT_FLOW_NOT_YOURS_TO_BIND.raise();
         }
         if (flow.purpose() != purpose) {
-            throw new BadRequestResponse("That flow is for %s, not %s".formatted(flow.purpose(), purpose));
+            throw InventoryRefusal.MOVEMENT_FLOW_BOUND_TO_OTHER_PURPOSE.raise();
         }
         MovementFlowValidation.requireWalkable(purpose, flowRepository.findActiveSteps(flowId));
         flowRepository.bind(stationId, inventoryId, ownerKind, purpose, party, flowId);
@@ -1097,7 +1109,7 @@ public class MovementFlowService {
      * At most one incoming step per flow names the replacement, because two would mean two answers
      * to which item arrived.
      */
-    private void requirePicksItemFree(int flowId, StepSubject subject, Integer exceptStepId) {
+    private void requirePicksItemFree(int flowId, StepSubject subject, @Nullable Integer exceptStepId) {
         if (subject != StepSubject.INCOMING) {
             throw new FlowRefusedException(FlowProblem.Code.ONLY_ARRIVAL_NAMES_ITEM);
         }
@@ -1161,7 +1173,11 @@ public class MovementFlowService {
      *                       restore has to be told
      */
     public record PlannedLanding(
-            Integer stepId, String standingOn, int movements, Integer suggestedIndex, boolean certain) {}
+            @Nullable Integer stepId,
+            @Nullable String standingOn,
+            int movements,
+            @Nullable Integer suggestedIndex,
+            boolean certain) {}
 
     /**
      * Where the movements on one step are to land, as somebody chose it.
@@ -1169,7 +1185,8 @@ public class MovementFlowService {
      * @param stepId    the step they stand on, which has to be one of the chain being written again
      * @param stepIndex the step of the preset they land on, counted from the front
      */
-    public record ChosenLanding(Integer stepId, Integer stepIndex) {}
+    public record ChosenLanding(
+            @Nullable Integer stepId, @Nullable Integer stepIndex) {}
 
     private record Preset(
             String name, MovementPurpose purpose, ItemOwner ownerKind, MovementParty party, List<PresetStep> steps) {

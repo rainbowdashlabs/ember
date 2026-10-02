@@ -6,7 +6,8 @@
 <script lang="ts" setup>
 import {computed, ref} from 'vue'
 import EntitySearchPicker from './EntitySearchPicker.vue'
-import {listUpcomingOccurrences, type EventOccurrenceRef, type UpcomingEventOccurrence} from '@/api/events'
+import {listUpcomingOccurrences, type EventOccurrenceRef} from '@/api/events'
+import type {UpcomingEventOccurrence} from '@/api/generated/schema'
 import {formatDate} from '@/util/format'
 
 /**

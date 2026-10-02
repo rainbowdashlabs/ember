@@ -16,8 +16,8 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import TemplateChoiceRow from './TemplateChoiceRow.vue'
 import {adminSettings} from '@/api'
-import type {LegalTemplate} from '@/api/adminSettings'
-import {describeFailure, type Failure} from '@/util/failure'
+import type {TemplateSection} from '@/api/generated/schema'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 
 const {t} = useI18n()
 
@@ -33,33 +33,22 @@ const existingNames = computed(() => new Set(props.existing))
 const show = defineModel<boolean>('show', {required: true})
 
 const emit = defineEmits<{
-  load: [templates: LegalTemplate[]]
+  load: [templates: TemplateSection[]]
 }>()
 
-const templates = ref<LegalTemplate[]>([])
+const templates = ref<TemplateSection[]>([])
 const selected = ref<Set<string>>(new Set())
-const loading = ref(false)
-const failure = ref<Failure | null>(null)
-
 /**
  * Fetches the templates on offer, and says so when it cannot.
  *
  * <p>It used to swallow the failure and leave the list empty, which reads as an installation that
  * ships no templates at all rather than one that could not be asked.
  */
-async function load() {
-  loading.value = true
-  failure.value = null
+const {loading, failure, reload: load} = useAsyncLoader(async () => {
   templates.value = []
   selected.value = new Set()
-  try {
-    templates.value = await adminSettings.getLegalTemplates(props.type, props.locale)
-  } catch (e) {
-    failure.value = describeFailure(e, t)
-  } finally {
-    loading.value = false
-  }
-}
+  templates.value = await adminSettings.getLegalTemplates(props.type, props.locale)
+}, {autoLoad: false})
 
 function toggle(name: string) {
   const next = new Set(selected.value)

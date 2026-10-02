@@ -33,4 +33,16 @@ public class Theming {
     public boolean lockFeel() {
         return lockFeel;
     }
+
+    public void defaultTheme(String defaultTheme) {
+        this.defaultTheme = defaultTheme;
+    }
+
+    public void defaultFeel(ThemeFeel defaultFeel) {
+        this.defaultFeel = defaultFeel;
+    }
+
+    public void lockFeel(boolean lockFeel) {
+        this.lockFeel = lockFeel;
+    }
 }

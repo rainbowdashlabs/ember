@@ -9,13 +9,15 @@ import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
-import dev.chojo.ember.feature.attendance.entity.AttendanceFieldType;
 import dev.chojo.ember.feature.attendance.entity.AttendanceSession;
 import dev.chojo.ember.feature.attendance.entity.AttendanceTemplate;
+import dev.chojo.ember.feature.attendance.entity.SessionAudience;
 import dev.chojo.ember.feature.attendance.entity.SessionSummary;
+import dev.chojo.ember.feature.attendance.entity.TemplateGroup;
 import dev.chojo.ember.feature.members.entity.MemberAbsence;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
@@ -29,6 +31,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -54,8 +57,6 @@ class AttendanceRepositoryTest extends RepositoryTestBase {
         stationRepo.delete(station.id());
         accountRepo.delete(account.id());
     }
-
-    // -- Templates --
 
     @Test
     @Order(1)
@@ -87,13 +88,10 @@ class AttendanceRepositoryTest extends RepositoryTestBase {
                 attendanceRepo.findTemplateById(templateId).orElseThrow().name());
     }
 
-    // -- Template Fields --
-
     @Test
     @Order(10)
     void createTemplateField() {
-        attendanceRepo.createTemplateField(
-                templateId, "Notes", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 1);
+        attendanceRepo.createTemplateField(templateId, "Notes", FieldType.TEXT, AttendanceFieldConfig.parse("{}"), 1);
         var fields = attendanceRepo.findTemplateFields(templateId);
         assertEquals(1, fields.size());
         assertEquals("Notes", fields.getFirst().name());
@@ -104,7 +102,7 @@ class AttendanceRepositoryTest extends RepositoryTestBase {
     @Order(11)
     void updateTemplateField() {
         assertTrue(attendanceRepo.updateTemplateField(
-                fieldId, "Comment", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 2));
+                templateId, fieldId, "Comment", FieldType.TEXT, AttendanceFieldConfig.parse("{}"), 2));
         var fields = attendanceRepo.findTemplateFields(templateId);
         assertEquals("Comment", fields.getFirst().name());
         assertEquals(2, fields.getFirst().position());
@@ -112,12 +110,17 @@ class AttendanceRepositoryTest extends RepositoryTestBase {
 
     @Test
     @Order(12)
-    void deleteTemplateField() {
-        assertTrue(attendanceRepo.deleteTemplateField(fieldId));
-        assertTrue(attendanceRepo.findTemplateFields(templateId).isEmpty());
-    }
+    void archiveTemplateField() {
+        assertFalse(attendanceRepo.isFieldArchived(templateId, fieldId));
 
-    // -- Sessions --
+        assertTrue(attendanceRepo.archiveTemplateField(templateId, fieldId));
+
+        assertTrue(attendanceRepo.findTemplateFields(templateId).isEmpty());
+        assertTrue(attendanceRepo.isFieldArchived(templateId, fieldId));
+        assertFalse(attendanceRepo.archiveTemplateField(templateId, fieldId));
+        assertFalse(attendanceRepo.updateTemplateField(
+                templateId, fieldId, "Again", FieldType.TEXT, AttendanceFieldConfig.parse("{}"), 2));
+    }
 
     @Test
     @Order(20)
@@ -216,14 +219,11 @@ class AttendanceRepositoryTest extends RepositoryTestBase {
         assertNotNull(recent);
     }
 
-    // -- Session Fields --
-
     @Test
     @Order(25)
     void setAndFindSessionField() {
-        // Re-create a template field for this test
         attendanceRepo.createTemplateField(
-                templateId, "Location", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 1);
+                templateId, "Location", FieldType.TEXT, AttendanceFieldConfig.parse("{}"), 1);
         int fId = attendanceRepo.findTemplateFields(templateId).getFirst().id();
 
         attendanceRepo.setSessionField(sessionId, fId, "\"Room A\"");
@@ -231,7 +231,6 @@ class AttendanceRepositoryTest extends RepositoryTestBase {
         assertEquals(1, fields.size());
         assertEquals("\"Room A\"", fields.getFirst().value());
 
-        // Upsert
         attendanceRepo.setSessionField(sessionId, fId, "\"Room B\"");
         assertEquals(
                 "\"Room B\"",
@@ -240,8 +239,6 @@ class AttendanceRepositoryTest extends RepositoryTestBase {
         attendanceRepo.deleteSessionField(sessionId, fId);
         assertTrue(attendanceRepo.findSessionFields(sessionId).isEmpty());
     }
-
-    // -- Entries --
 
     @Test
     @Order(30)
@@ -286,7 +283,6 @@ class AttendanceRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(33)
     void resetTimes() {
-        // entry already has check-in/check-out from previous test; reset them
         assertTrue(attendanceRepo.resetTimes(entryId));
         AttendanceEntry entry = attendanceRepo.findEntry(sessionId, member.id()).orElseThrow();
         assertNull(entry.checkIn());
@@ -299,8 +295,6 @@ class AttendanceRepositoryTest extends RepositoryTestBase {
         assertTrue(attendanceRepo.deleteEntry(entryId));
         assertTrue(attendanceRepo.findEntries(sessionId).isEmpty());
     }
-
-    // -- Update Entry Status --
 
     @Test
     @Order(35)
@@ -315,8 +309,6 @@ class AttendanceRepositoryTest extends RepositoryTestBase {
         attendanceRepo.deleteEntry(entry.id());
     }
 
-    // -- Template Groups --
-
     @Test
     @Order(40)
     void setAndFindTemplateGroups() {
@@ -324,10 +316,7 @@ class AttendanceRepositoryTest extends RepositoryTestBase {
         MemberGroup group2 = memberGroupRepo.create(station.id(), "Group B");
 
         attendanceRepo.setTemplateGroups(
-                templateId,
-                List.of(
-                        new AttendanceRepository.TemplateGroup(group1.id(), 1),
-                        new AttendanceRepository.TemplateGroup(group2.id(), 2)));
+                templateId, List.of(new TemplateGroup(group1.id(), 1), new TemplateGroup(group2.id(), 2)));
 
         var groups = attendanceRepo.findTemplateGroups(templateId);
         assertEquals(2, groups.size());
@@ -336,11 +325,9 @@ class AttendanceRepositoryTest extends RepositoryTestBase {
         assertEquals(group2.id(), groups.get(1).groupId());
         assertEquals(2, groups.get(1).position());
 
-        // Replace with only one group
-        attendanceRepo.setTemplateGroups(templateId, List.of(new AttendanceRepository.TemplateGroup(group2.id(), 1)));
+        attendanceRepo.setTemplateGroups(templateId, List.of(new TemplateGroup(group2.id(), 1)));
         assertEquals(1, attendanceRepo.findTemplateGroups(templateId).size());
 
-        // Clear all
         attendanceRepo.setTemplateGroups(templateId, List.of());
         assertTrue(attendanceRepo.findTemplateGroups(templateId).isEmpty());
 
@@ -348,7 +335,69 @@ class AttendanceRepositoryTest extends RepositoryTestBase {
         memberGroupRepo.delete(group2.id());
     }
 
-    // -- Member IDs by user type / group --
+    /** A template's user types are replaced as a whole, like its groups, and come back as a set. */
+    @Test
+    @Order(43)
+    void setAndFindTemplateUserTypes() {
+        assertTrue(attendanceRepo.findTemplateUserTypes(templateId).isEmpty());
+
+        attendanceRepo.setTemplateUserTypes(templateId, Set.of(StationUserType.TEAM, StationUserType.TRIAL));
+        assertEquals(
+                Set.of(StationUserType.TEAM, StationUserType.TRIAL), attendanceRepo.findTemplateUserTypes(templateId));
+
+        attendanceRepo.setTemplateUserTypes(templateId, Set.of(StationUserType.MEMBER));
+        assertEquals(Set.of(StationUserType.MEMBER), attendanceRepo.findTemplateUserTypes(templateId));
+
+        attendanceRepo.setTemplateUserTypes(templateId, Set.of());
+        assertTrue(attendanceRepo.findTemplateUserTypes(templateId).isEmpty());
+    }
+
+    /** Archiving a template keeps its user types, because its sheets still read them. */
+    @Test
+    @Order(44)
+    void templateUserTypesStayWithAnArchivedTemplate() {
+        int archived = attendanceRepo.createTemplate(station.id(), "Archived").id();
+        attendanceRepo.setTemplateUserTypes(archived, Set.of(StationUserType.TEAM));
+
+        assertTrue(attendanceRepo.archiveTemplate(archived));
+
+        assertEquals(Set.of(StationUserType.TEAM), attendanceRepo.findTemplateUserTypes(archived));
+        assertTrue(attendanceRepo.isArchived(archived));
+        assertTrue(attendanceRepo.findActiveTemplateById(archived).isEmpty());
+    }
+
+    /**
+     * A sheet keeps whom it was started with: its user types and its groups, the groups in the order
+     * they were chosen, and a group named twice only once.
+     */
+    @Test
+    @Order(45)
+    void aSheetKeepsItsAudience() {
+        MemberGroup first = memberGroupRepo.create(station.id(), "Audience First");
+        MemberGroup second = memberGroupRepo.create(station.id(), "Audience Second");
+        int sheet = attendanceRepo
+                .createSession(templateId, Instant.now(), Instant.now().plusSeconds(3600), null, "Audience", null)
+                .id();
+
+        assertTrue(attendanceRepo.findSessionAudience(sheet).namesNobody());
+
+        attendanceRepo.setSessionAudience(
+                sheet,
+                new SessionAudience(Set.of(StationUserType.TEAM), List.of(second.id(), first.id(), second.id())));
+        var kept = attendanceRepo.findSessionAudience(sheet);
+        assertEquals(Set.of(StationUserType.TEAM), kept.userTypes());
+        assertEquals(List.of(second.id(), first.id()), kept.groupIds());
+
+        attendanceRepo.setSessionAudience(sheet, new SessionAudience(Set.of(StationUserType.GUARDIAN), List.of()));
+        kept = attendanceRepo.findSessionAudience(sheet);
+        assertEquals(Set.of(StationUserType.GUARDIAN), kept.userTypes());
+        assertTrue(kept.groupIds().isEmpty());
+
+        attendanceRepo.deleteSession(sheet);
+        assertTrue(attendanceRepo.findSessionAudience(sheet).namesNobody());
+        memberGroupRepo.delete(first.id());
+        memberGroupRepo.delete(second.id());
+    }
 
     @Test
     @Order(41)
@@ -365,8 +414,6 @@ class AttendanceRepositoryTest extends RepositoryTestBase {
         assertNotNull(ids);
         memberGroupRepo.delete(group.id());
     }
-
-    // -- Report Presets --
 
     private static int presetId;
     private static MemberGroup presetGroupA;
@@ -431,8 +478,6 @@ class AttendanceRepositoryTest extends RepositoryTestBase {
         assertTrue(attendanceRepo.deletePreset(presetId));
         assertTrue(attendanceRepo.findPresets(station.id()).stream().noneMatch(p -> p.id() == presetId));
     }
-
-    // -- Absences --
 
     private static int absenceId;
 
@@ -506,8 +551,6 @@ class AttendanceRepositoryTest extends RepositoryTestBase {
         assertFalse(attendanceRepo.isAbsent(member.id()));
     }
 
-    // -- Cleanup --
-
     @Test
     @Order(90)
     void deleteSession() {
@@ -516,8 +559,14 @@ class AttendanceRepositoryTest extends RepositoryTestBase {
 
     @Test
     @Order(99)
-    void deleteTemplate() {
-        assertTrue(attendanceRepo.deleteTemplate(templateId));
+    void archiveTemplate() {
+        assertFalse(attendanceRepo.isArchived(templateId));
+        assertTrue(attendanceRepo.findActiveTemplateById(templateId).isPresent());
+
+        assertTrue(attendanceRepo.archiveTemplate(templateId));
+
         assertTrue(attendanceRepo.findTemplatesByStation(station.id()).isEmpty());
+        assertTrue(attendanceRepo.findTemplateById(templateId).isPresent());
+        assertFalse(attendanceRepo.archiveTemplate(templateId));
     }
 }

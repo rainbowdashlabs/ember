@@ -6,7 +6,7 @@
 <script lang="ts" setup>
 import DragList from '@/components/input/DragList.vue'
 import PageRow from './PageRow.vue'
-import type {StationPage} from '@/api/pageManage'
+import type {StationPage} from '@/api/generated/schema'
 
 interface FlatPageEntry {
   page: StationPage
@@ -21,13 +21,13 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'reorder', fromIndex: number, toIndex: number): void
-  (e: 'edit', page: StationPage): void
-  (e: 'duplicate', page: StationPage): void
-  (e: 'change-visibility', page: StationPage): void
-  (e: 'share-link', page: StationPage): void
-  (e: 'set-landing', page: StationPage): void
-  (e: 'delete', page: StationPage): void
+  reorder: [fromIndex: number, toIndex: number]
+  edit: [page: StationPage]
+  duplicate: [page: StationPage]
+  'change-visibility': [page: StationPage]
+  'share-link': [page: StationPage]
+  'set-landing': [page: StationPage]
+  delete: [page: StationPage]
 }>()
 </script>
 

@@ -19,17 +19,24 @@ import Alert from '@/components/feedback/Alert.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import EventFormPanel from './eventshared/EventFormPanel.vue'
-import {type RestrictionSelection, emptyRestriction, toRestriction} from '@/components/input/restriction'
+import {emptyRestriction, toRestriction} from '@/components/input/restriction'
+import type {RestrictionSelection} from '@/api/types'
 import BatchScheduleStep from './batchcreateview/BatchScheduleStep.vue'
 import BatchEditTable from './batchcreateview/BatchEditTable.vue'
-import type {AttendanceTemplateField} from '@/api/attendance'
-import type {BatchFieldEntry, BatchRow, EventFieldEntry, EventTemplate} from '@/api/events'
+import type {
+    AttendanceTemplateField,
+    BatchFieldEntryDto,
+    BatchRow,
+    EventFieldEntry,
+    EventTemplate,
+} from '@/api/generated/schema'
 import {attendance, events} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useEventEditDeps} from '@/composables/useEventEditDeps'
 import {describeFailure} from '@/util/failure'
+import {asSaved} from './eventshared/eventQuestions'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -89,12 +96,12 @@ async function applyTemplate() {
     if (tpl.requiresConfirmation != null) requiresConfirmation.value = tpl.requiresConfirmation
     fieldDefs.value = detail.fields.map(f => ({
       name: f.name,
-      fieldType: f.fieldType ?? 'STRING',
-      config: typeof f.config === 'string' ? (f.config ? JSON.parse(f.config) : {}) : (f.config ?? {}),
+      fieldType: f.fieldType,
+      config: f.config,
       value: f.defaultValue ?? '',
-      overview: f.overview ?? false,
-      attendanceFieldId: f.attendanceFieldId ?? null,
-      isPublic: f.isPublic ?? false,
+      overview: f.overview,
+      attendanceFieldId: f.attendanceFieldId,
+      isPublic: f.isPublic,
     }))
   } catch (e) {
     failure.value = describeFailure(e, t)
@@ -111,7 +118,7 @@ async function applyTemplate() {
 function onScheduleDone(newRows: BatchRow[]) {
   const defaults: Record<string, string> = {}
   for (const field of fieldDefs.value) {
-    if (field.name.trim() && field.value) defaults[field.name] = field.value
+    if (field.name?.trim() && field.value) defaults[field.name] = field.value
   }
   rows.value = newRows.map(row => ({...row, fieldValues: {...defaults, ...(row.fieldValues ?? {})}}))
   step.value = 3
@@ -119,13 +126,13 @@ function onScheduleDone(newRows: BatchRow[]) {
 
 const {running: saving, failure: createFailure, run: createBatch} = useAsyncAction(async () => {
   failure.value = null
-  const inlineFields: BatchFieldEntry[] = fieldDefs.value.filter(f => f.name.trim()).map(f => ({
+  const inlineFields: BatchFieldEntryDto[] = fieldDefs.value.map(asSaved).flatMap(f => (f.name?.trim() ? [{
     name: f.name,
     fieldType: f.fieldType,
-    config: f.config ?? undefined,
+    config: f.config,
     overview: f.overview,
     attendanceFieldId: f.attendanceFieldId,
-  }))
+  }] : []))
   const created = await events.createBatchEvents({
     name: eventName.value || undefined,
     description: eventDescription.value || undefined,

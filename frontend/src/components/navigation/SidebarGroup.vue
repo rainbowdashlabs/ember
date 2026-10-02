@@ -4,19 +4,16 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, onUnmounted, ref, useSlots, watch} from 'vue'
+import {computed, ref, useSlots, watch} from 'vue'
 import {useRoute, useRouter} from 'vue-router'
 import {useSidebarCollapse} from '@/composables/useSidebarCollapse'
 import {useSidebarInFlyout} from '@/composables/useSidebarFlyoutContext'
 import {useFlyoutHover} from '@/composables/useFlyoutHover'
 import SidebarFlyoutMenu from '@/components/navigation/SidebarFlyoutMenu.vue'
+import BareButton from '@/components/button/BareButton.vue'
+import CountBadge from '@/components/badge/CountBadge.vue'
 import {collectSidebarPaths, sidebarEntryVNodes} from '@/util/sidebarEntries'
-import {
-  bestSidebarMatch,
-  claimSidebarGroup,
-  releaseSidebarGroup,
-  reportSidebarMatch,
-} from '@/util/sidebarGroupState'
+import {bestSidebarMatch, followSidebarMatch} from '@/util/sidebarGroupState'
 
 const props = defineProps<{
   icon?: string[]
@@ -66,21 +63,19 @@ const matchLength = computed(() => {
   return best
 })
 
-const groupId = claimSidebarGroup()
-watch(matchLength, length => reportSidebarMatch(groupId, length), {immediate: true})
-onUnmounted(() => releaseSidebarGroup(groupId))
+followSidebarMatch(matchLength)
 
 /**
  * Lit only when nothing matches the page better. Without that the group declared `/cluster` would be
  * highlighted on every page of the association, which is the one group that says nothing about where
  * you are.
  *
- * <p>A best of zero means nobody has reported yet, which on a server render is every time, and matching
- * at all is then the best answer available.
+ * <p>A best of zero means nobody has reported yet, which on a server render and on the browser's first
+ * render is every time, and matching at all is then the best answer available.
  */
 const isActive = computed(() => {
   if (matchLength.value === 0) return false
-  const best = bestSidebarMatch.value
+  const best = bestSidebarMatch()
   return best === 0 || matchLength.value === best
 })
 
@@ -195,8 +190,8 @@ watch(() => collapsed.value, (value) => {
     <div class="flex items-center">
       <component
           :is="to ? 'router-link' : 'button'"
-          :to="to"
           :ref="setAnchor"
+          :to="to"
           :title="collapsed ? label : undefined"
           :data-active="isActive ? 'true' : undefined"
           :class="[
@@ -212,13 +207,9 @@ watch(() => collapsed.value, (value) => {
       >
         <font-awesome-icon v-if="icon" :icon="icon" class="w-4 shrink-0"/>
         <span class="flex-1 text-left truncate" :class="collapsed ? 'lg:hidden' : ''">{{ label }}</span>
-        <span v-if="badge && badge > 0"
-              :class="collapsed ? 'lg:hidden' : ''"
-              class="inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full text-xs font-bold bg-error text-error-text">{{
-            badge
-          }}</span>
+        <CountBadge v-if="badge && badge > 0" :count="badge" :class="collapsed ? 'lg:hidden' : ''"/>
       </component>
-      <button
+      <BareButton
           v-if="hasVisibleChildren"
           class="flex items-center justify-center w-8 h-8 rounded-theme text-[var(--text)] transition-colors duration-150"
           :class="collapsed ? 'lg:hidden' : ''"
@@ -228,7 +219,7 @@ watch(() => collapsed.value, (value) => {
             :icon="['fas', expanded ? 'chevron-down' : 'chevron-right']"
             class="h-3 w-3"
         />
-      </button>
+      </BareButton>
     </div>
 
     <div v-if="hasVisibleChildren && expanded" class="ml-4 flex flex-col gap-1 mt-1" :class="collapsed ? 'lg:hidden' : ''">
@@ -248,7 +239,7 @@ watch(() => collapsed.value, (value) => {
         @close="flyoutForce(false)"
         @header-click="onHeaderClick"
     >
-      <div @click="onChildNavigate">
+      <div role="presentation" @click="onChildNavigate">
         <slot/>
       </div>
     </SidebarFlyoutMenu>

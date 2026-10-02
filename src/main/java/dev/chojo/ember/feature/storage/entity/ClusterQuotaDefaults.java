@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.storage.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import org.jspecify.annotations.Nullable;
 
 /**
  * What a cluster gives a station it has granted nothing of its own.
@@ -24,13 +25,13 @@ import de.chojo.sadu.mapper.rowmapper.RowMapping;
  */
 public record ClusterQuotaDefaults(
         int clusterId,
-        Long quotaBytes,
-        Long quotaKbBytes,
-        Long quotaBoardBytes,
-        Long quotaImagesBytes,
-        Long quotaPagesBytes,
-        Long perFileBytes,
-        Long perImageBytes) {
+        @Nullable Long quotaBytes,
+        @Nullable Long quotaKbBytes,
+        @Nullable Long quotaBoardBytes,
+        @Nullable Long quotaImagesBytes,
+        @Nullable Long quotaPagesBytes,
+        @Nullable Long perFileBytes,
+        @Nullable Long perImageBytes) {
 
     /** A cluster that has set none of them, which is every cluster until somebody does. */
     public static ClusterQuotaDefaults none(int clusterId) {

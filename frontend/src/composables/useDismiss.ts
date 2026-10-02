@@ -3,7 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {onBeforeUnmount, watch, type Ref} from 'vue'
+import {useEventListener} from '@vueuse/core'
+import type {Ref} from 'vue'
 
 /** How a panel was sent away: by a press somewhere else on the page, or by the escape key. */
 export type DismissedBy = 'outside' | 'escape'
@@ -46,22 +47,7 @@ export function useDismiss(
         onDismiss('escape')
     }
 
-    let listening = false
-
-    function listen() {
-        if (listening) return
-        document.addEventListener('pointerdown', onPointerDown, true)
-        document.addEventListener('keydown', onKeyDown)
-        listening = true
-    }
-
-    function stopListening() {
-        if (!listening) return
-        document.removeEventListener('pointerdown', onPointerDown, true)
-        document.removeEventListener('keydown', onKeyDown)
-        listening = false
-    }
-
-    watch(open, showing => showing ? listen() : stopListening(), {immediate: true})
-    onBeforeUnmount(stopListening)
+    const openDocument = () => (open.value ? document : null)
+    useEventListener(openDocument, 'pointerdown', onPointerDown, {capture: true})
+    useEventListener(openDocument, 'keydown', onKeyDown)
 }

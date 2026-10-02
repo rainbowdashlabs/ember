@@ -6,6 +6,8 @@
 package dev.chojo.ember.feature.inventory.service;
 
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.InventoryRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.inventory.entity.CheckResult;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
@@ -30,10 +32,6 @@ import dev.chojo.ember.feature.inventory.entity.SelfCheckState;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.ConflictResponse;
-import io.javalin.http.ForbiddenResponse;
-import io.javalin.http.NotFoundResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -193,7 +191,7 @@ class SelfCheckReviewServiceTest extends RepositoryTestBase {
         SelfCheckRow row = answer(task, gloves, SelfCheckAnswer.WRONG_RECORD);
 
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> selfCheckReviewService.take(task.id(), row.id(), station.id(), reviewer.id()));
     }
 
@@ -204,7 +202,7 @@ class SelfCheckReviewServiceTest extends RepositoryTestBase {
                 task.id(), inventory.id(), 1, SelfCheckAnswer.HAVE_ONE, "", "SCR-TYPED", null, member.id());
 
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> selfCheckReviewService.take(task.id(), row.id(), station.id(), reviewer.id()));
     }
 
@@ -420,7 +418,7 @@ class SelfCheckReviewServiceTest extends RepositoryTestBase {
                 List.of(new SelfCheckAnswerInput(shirt.id(), null, null, SelfCheckAnswer.HAVE_IT, "", null, null)));
 
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> selfCheckService.holdBack(
                         task.id(),
                         station.id(),
@@ -565,7 +563,7 @@ class SelfCheckReviewServiceTest extends RepositoryTestBase {
         SelfCheckRow row = answer(task, helmet, SelfCheckAnswer.HAVE_IT);
 
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> selfCheckReviewService.correctAndTake(
                         task.id(),
                         row.id(),
@@ -581,7 +579,7 @@ class SelfCheckReviewServiceTest extends RepositoryTestBase {
         SelfCheckRow row = answer(task, coat, SelfCheckAnswer.WRONG_RECORD);
 
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> selfCheckReviewService.correctAndTake(task.id(), row.id(), station.id(), reviewer.id(), null));
     }
 
@@ -650,7 +648,7 @@ class SelfCheckReviewServiceTest extends RepositoryTestBase {
         SelfCheckRow row = answer(task, cap, SelfCheckAnswer.HAVE_IT);
 
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> selfCheckReviewService.refuse(task.id(), row.id(), station.id(), reviewer.id(), "   "));
     }
 
@@ -663,7 +661,7 @@ class SelfCheckReviewServiceTest extends RepositoryTestBase {
         selfCheckReviewService.take(task.id(), row.id(), station.id(), reviewer.id());
 
         assertThrows(
-                ConflictResponse.class,
+                RefusalResponse.class,
                 () -> selfCheckReviewService.take(task.id(), row.id(), station.id(), reviewer.id()));
     }
 
@@ -673,9 +671,10 @@ class SelfCheckReviewServiceTest extends RepositoryTestBase {
         SelfCheck task = selfCheckRepo.create(station.id(), member.id(), reviewer.id(), null);
         SelfCheckRow row = answer(task, scarf, SelfCheckAnswer.HAVE_IT);
 
-        assertThrows(
-                ConflictResponse.class,
+        var refused = assertThrows(
+                RefusalResponse.class,
                 () -> selfCheckReviewService.take(task.id(), row.id(), station.id(), reviewer.id()));
+        assertEquals(InventoryRefusal.SELF_CHECK_REVIEW_TASK_NOT_WAITING, refused.refusal());
     }
 
     @Test
@@ -687,9 +686,10 @@ class SelfCheckReviewServiceTest extends RepositoryTestBase {
         SelfCheckRow row = selfCheckRepo.answerForItem(
                 ownTask.id(), own.id(), inventory.id(), SelfCheckAnswer.HAVE_IT, "", null, null, reviewer.id());
 
-        assertThrows(
-                ForbiddenResponse.class,
+        var refused = assertThrows(
+                RefusalResponse.class,
                 () -> selfCheckReviewService.take(ownTask.id(), row.id(), station.id(), reviewer.id()));
+        assertEquals(InventoryRefusal.SELF_CHECK_REVIEW_OF_OWN_GEAR, refused.refusal());
         var review = selfCheckReviewService.read(ownTask.id(), station.id(), reviewer.id());
         assertFalse(review.mayApprove());
         assertEquals("This submission is about your own gear", review.approvalRefusal());
@@ -703,7 +703,7 @@ class SelfCheckReviewServiceTest extends RepositoryTestBase {
                 task.id(), ward.id(), inventory.id(), SelfCheckAnswer.HAVE_IT, "", null, null, guardian.id());
 
         assertThrows(
-                ForbiddenResponse.class,
+                RefusalResponse.class,
                 () -> selfCheckReviewService.take(task.id(), row.id(), station.id(), guardian.id()));
         var review = selfCheckReviewService.read(task.id(), station.id(), guardian.id());
         assertFalse(review.mayApprove());
@@ -718,7 +718,7 @@ class SelfCheckReviewServiceTest extends RepositoryTestBase {
                 task.id(), shared.id(), inventory.id(), SelfCheckAnswer.HAVE_IT, "", null, null, guardian.id());
 
         assertThrows(
-                ForbiddenResponse.class,
+                RefusalResponse.class,
                 () -> selfCheckReviewService.refuse(task.id(), row.id(), station.id(), guardian.id(), "no"));
     }
 
@@ -726,7 +726,7 @@ class SelfCheckReviewServiceTest extends RepositoryTestBase {
     void aTaskOfAnotherStationAnswersAsAbsent() {
         SelfCheck task = submitted();
         assertThrows(
-                NotFoundResponse.class, () -> selfCheckReviewService.read(task.id(), otherStation.id(), reviewer.id()));
+                RefusalResponse.class, () -> selfCheckReviewService.read(task.id(), otherStation.id(), reviewer.id()));
     }
 
     @Test
@@ -737,7 +737,7 @@ class SelfCheckReviewServiceTest extends RepositoryTestBase {
         SelfCheckRow row = answer(other, elsewhere, SelfCheckAnswer.HAVE_IT);
 
         assertThrows(
-                NotFoundResponse.class,
+                RefusalResponse.class,
                 () -> selfCheckReviewService.take(task.id(), row.id(), station.id(), reviewer.id()));
     }
 

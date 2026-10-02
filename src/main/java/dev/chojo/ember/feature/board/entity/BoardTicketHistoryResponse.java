@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.board.entity;
 
 import dev.chojo.ember.api.MemberIdentity;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 
@@ -16,12 +17,13 @@ public record BoardTicketHistoryResponse(
         int id,
         int ticketId,
         BoardTicketHistoryAction action,
-        String detail,
-        MemberIdentity actor,
-        String actorName,
+        @Nullable String detail,
+        @Nullable MemberIdentity actor,
+        @Nullable String actorName,
         Instant createdAt) {
 
-    public static BoardTicketHistoryResponse from(BoardTicketHistory h, MemberIdentity actor, String actorName) {
+    public static BoardTicketHistoryResponse from(
+            BoardTicketHistory h, @Nullable MemberIdentity actor, @Nullable String actorName) {
         return new BoardTicketHistoryResponse(
                 h.id(), h.ticketId(), h.action(), h.detail(), actor, actorName, h.createdAt());
     }

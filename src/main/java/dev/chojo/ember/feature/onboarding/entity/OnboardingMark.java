@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.onboarding.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 
@@ -21,8 +22,12 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * @param actorId who said it, on the shared levels, or null on a member's own tasks and once that
  *                person is gone
  */
-public record OnboardingMark(String taskKey, String state, Instant changedAt, Integer actorId) {
-    public static RowMapping<OnboardingMark> map(String actorColumn) {
+public record OnboardingMark(
+        String taskKey,
+        String state,
+        Instant changedAt,
+        @Nullable Integer actorId) {
+    public static RowMapping<OnboardingMark> map(@Nullable String actorColumn) {
         return row -> new OnboardingMark(
                 row.getString("task_key"),
                 row.getString("state"),

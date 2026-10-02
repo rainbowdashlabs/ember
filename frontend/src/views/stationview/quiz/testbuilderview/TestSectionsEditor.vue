@@ -10,7 +10,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import DragList from '@/components/input/DragList.vue'
 import TestSectionCard from './TestSectionCard.vue'
-import type { QuizCatalog, QuizCategory } from '@/api/quiz'
+import type { QuizCatalog, QuizCategory } from '@/api/generated/schema'
 
 interface SourceDraft {
   key: string
@@ -37,6 +37,7 @@ const emit = defineEmits<{
   addSection: []
   reorderSections: [fromIndex: number, toIndex: number]
   removeSection: [index: number]
+  updateSection: [index: number, section: SectionDraft]
   addSource: [section: SectionDraft]
   removeSource: [section: SectionDraft, sourceIndex: number]
 }>()
@@ -53,7 +54,7 @@ const { t } = useI18n()
       </SecondaryButton>
     </div>
 
-    <EmptyState compact v-if="props.sections.length === 0">{{ t('quiz.sections.noSections') }}</EmptyState>
+    <EmptyState v-if="props.sections.length === 0" compact>{{ t('quiz.sections.noSections') }}</EmptyState>
 
     <DragList
         :items="props.sections"
@@ -68,6 +69,7 @@ const { t } = useI18n()
             :catalogs="props.catalogs"
             :get-categories-for-catalog="props.getCategoriesForCatalog"
             :on-catalog-change="props.onCatalogChange"
+            @update:section="changed => emit('updateSection', sIdx, changed)"
             @remove="emit('removeSection', sIdx)"
             @add-source="emit('addSource', section)"
             @remove-source="srcIdx => emit('removeSource', section, srcIdx)"

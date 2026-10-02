@@ -5,6 +5,7 @@
  */
 <script lang="ts" setup>
 import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { useI18n } from 'vue-i18n'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import LaneStatusMover from '../boardview/LaneStatusMover.vue'
 import TicketLabelsField from './TicketLabelsField.vue'
@@ -12,41 +13,40 @@ import TicketPriorityField from './TicketPriorityField.vue'
 import TicketAssigneeField from './TicketAssigneeField.vue'
 import TicketDueDateField from './TicketDueDateField.vue'
 import TicketCustomFields from './TicketCustomFields.vue'
-import type {
-    BoardLane, BoardLabel, BoardField, BoardTicket,
-    TicketPriorityName, BoardFieldTypeName,
-} from '@/api/boards'
-import type { MemberCompletion } from '@/api/stationMembers'
+import type { BoardFieldRaw, BoardFieldTypeName, TicketPriorityName, TypedBoardField } from '@/api/boards'
+import type { BoardLabel, BoardLane, BoardTicket, MemberCompletion } from '@/api/generated/schema'
 import type {PriorityOption} from './types'
 import { formatDateTime } from '@/util/format'
 import type { Failure } from '@/util/failure'
 
 
-const props = defineProps<{
+defineProps<{
     ticket: BoardTicket
     lanes: BoardLane[]
     members: MemberCompletion[]
     assignableMembers: MemberCompletion[]
     allLabels: BoardLabel[]
     ticketLabels: BoardLabel[]
-    boardFields: BoardField[]
+    boardFields: TypedBoardField[]
     priorityOptions: PriorityOption[]
     canEdit: boolean
     /** What the last action or load ran into, described, or nothing where nothing has. */
     failure: Failure | null
 }>()
 
+const { t } = useI18n()
+
 const priority = defineModel<TicketPriorityName>('priority')
 const assignedMemberId = defineModel<string>('assignedMemberId', { default: '' })
 const dueDate = defineModel<string>('dueDate', { default: '' })
-const fieldValues = defineModel<Record<number, unknown>>('fieldValues', { default: () => ({}) })
+const fieldValues = defineModel<Record<number, BoardFieldRaw | null>>('fieldValues', { default: () => ({}) })
 
 const emit = defineEmits<{
     moveTo: [laneId: number]
     saveTicket: []
     toggleLabel: [id: number]
     createLabel: [name: string]
-    saveField: [fieldId: number, fieldType: BoardFieldTypeName, value: unknown]
+    saveField: [fieldId: number, fieldType: BoardFieldTypeName, value: BoardFieldRaw | null]
 }>()
 
 const editingPriority = ref(false)
@@ -109,8 +109,8 @@ onBeforeUnmount(() => document.removeEventListener('click', handleClickOutside))
             @save="(id, type, value) => emit('saveField', id, type, value)"
         />
         <div class="text-xs text-[var(--text-muted)] space-y-1 pt-4 border-t border-[var(--border)]">
-            <p v-if="ticket.createdAt">Erstellt: {{ formatDateTime(ticket.createdAt) }}</p>
-            <p v-if="ticket.updatedAt">Geändert: {{ formatDateTime(ticket.updatedAt) }}</p>
+            <p v-if="ticket.createdAt">{{ t('boards.createdAtLine', {when: formatDateTime(ticket.createdAt)}) }}</p>
+            <p v-if="ticket.updatedAt">{{ t('boards.updatedAtLine', {when: formatDateTime(ticket.updatedAt)}) }}</p>
         </div>
         <FailureAlert :failure="failure"/>
     </div>

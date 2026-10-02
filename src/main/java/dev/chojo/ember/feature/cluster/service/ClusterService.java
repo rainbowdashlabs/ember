@@ -7,6 +7,8 @@ package dev.chojo.ember.feature.cluster.service;
 
 import dev.chojo.ember.api.auth.ClusterPermission;
 import dev.chojo.ember.api.auth.ClusterUserType;
+import dev.chojo.ember.api.refusal.ClusterRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.ClusterApplicationResolved;
 import dev.chojo.ember.event.events.ClusterStationReleased;
@@ -16,13 +18,14 @@ import dev.chojo.ember.feature.cluster.entity.StationKind;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.inventory.service.ClusterItemHandoverService;
+import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.repository.ClusterStorageQuotaRepository;
-import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -94,8 +97,8 @@ public class ClusterService {
      * @param description a sentence about it, or {@code null}
      * @return the cluster
      */
-    public Cluster create(String name, String description) {
-        if (name == null || name.isBlank()) throw new BadRequestResponse("A cluster needs a name");
+    public Cluster create(String name, @Nullable String description) {
+        if (name == null || name.isBlank()) throw ClusterRefusal.CLUSTER_NEEDS_A_NAME_ON_CREATE.raise();
 
         Station home = stationRepository.create(name.trim());
         stationRepository.markAsClusterHome(home.id());
@@ -110,10 +113,10 @@ public class ClusterService {
      * Renames a cluster, keeping the home station in step. Federation resolves a partner's label from the
      * local station row, so the two drifting apart would show member stations the old name on shared content.
      */
-    public boolean rename(int clusterId, String name, String description) {
-        if (name == null || name.isBlank()) throw new BadRequestResponse("A cluster needs a name");
+    public boolean rename(int clusterId, String name, @Nullable String description) {
+        if (name == null || name.isBlank()) throw ClusterRefusal.CLUSTER_NEEDS_A_NAME_ON_RENAME.raise();
         Cluster cluster =
-                clusterRepository.findById(clusterId).orElseThrow(() -> new BadRequestResponse("No such cluster"));
+                clusterRepository.findById(clusterId).orElseThrow(ClusterRefusal.CLUSTER_GONE_BEFORE_RENAME::raise);
         stationRepository.update(cluster.homeStationId(), name.trim());
         boolean renamed = clusterRepository.rename(clusterId, name.trim(), description);
         if (renamed) log.info("Cluster {} is now called '{}'", clusterId, name.trim());
@@ -129,15 +132,14 @@ public class ClusterService {
      *
      * @param clusterId the cluster
      * @return {@code true} when it was deleted
-     * @throws BadRequestResponse when stations still belong to it
+     * @throws RefusalResponse when stations still belong to it
      */
     public boolean delete(int clusterId) {
         Cluster cluster =
-                clusterRepository.findById(clusterId).orElseThrow(() -> new BadRequestResponse("No such cluster"));
+                clusterRepository.findById(clusterId).orElseThrow(ClusterRefusal.CLUSTER_GONE_BEFORE_DELETE::raise);
         List<Integer> stations = clusterRepository.findStationIds(clusterId);
         if (!stations.isEmpty()) {
-            throw new BadRequestResponse(
-                    "This cluster still has %d station(s). Release them first.".formatted(stations.size()));
+            throw ClusterRefusal.CLUSTER_STILL_HAS_STATIONS.raise();
         }
         boolean deleted = clusterRepository.delete(clusterId);
         if (deleted) {
@@ -158,10 +160,10 @@ public class ClusterService {
      * @return the station
      */
     public Station createStation(int clusterId, String name) {
-        if (name == null || name.isBlank()) throw new BadRequestResponse("A station needs a name");
+        if (name == null || name.isBlank()) throw ClusterRefusal.CLUSTER_NEW_STATION_NEEDS_A_NAME.raise();
         requireCluster(clusterId);
 
-        Station station = stationRepository.create(name.trim());
+        Station station = stationRepository.create(name.trim(), DiscoveryVisibility.NEW_STATION_DEFAULT);
         joinStation(clusterId, station.id());
         log.info("Cluster {} created station {}", clusterId, station.id());
         return station;
@@ -174,6 +176,9 @@ public class ClusterService {
      * its content, the modules it denies, the look it sets and the gear it lends. Each of those is wired in
      * as it arrives, and each of them is undone again by {@link #releaseStation(int, int)}.
      *
+     * <p>The files move before the membership is written: a station taken in whose bytes stayed behind
+     * would resolve to storage they are not on, and a copy that cannot run leaves it unjoined instead.
+     *
      * @param clusterId the cluster
      * @param stationId the station joining it
      */
@@ -181,14 +186,12 @@ public class ClusterService {
         Cluster cluster = requireCluster(clusterId);
         Station station = requireStation(stationId);
         if (station.stationKind() == StationKind.CLUSTER_HOME) {
-            throw new BadRequestResponse("A cluster's own station cannot join another cluster");
+            throw ClusterRefusal.CLUSTER_HOME_STATION_CANNOT_JOIN.raise();
         }
         if (station.clusterId() != null && station.clusterId() != clusterId) {
-            throw new BadRequestResponse("This station already belongs to another cluster");
+            throw ClusterRefusal.CLUSTER_STATION_ALREADY_IN_ANOTHER.raise();
         }
 
-        // The files first, and the membership after them: a station taken in whose bytes stayed behind
-        // resolves to storage they are not on, and a copy that cannot run leaves it unjoined instead
         storageBackendService.takeOverOnJoin(clusterId, stationId);
 
         stationRepository.setCluster(stationId, clusterId);
@@ -210,28 +213,27 @@ public class ClusterService {
      * cluster owns is put back in its own store rather than deleted: the station losing its cluster is not
      * the same as the gear ceasing to exist.
      *
+     * <p>The files move back first, for the same reason as on joining. The station's answers go, but the
+     * history of who changed what stays: an audit trail is not the cluster's to take away. The storage grant
+     * goes with the membership, and what the instance says about the station applies again.
+     *
      * @param clusterId the cluster letting go
      * @param stationId the station being released
-     * @throws BadRequestResponse when that station does not answer to this cluster
+     * @throws RefusalResponse when that station does not answer to this cluster
      */
     public void releaseStation(int clusterId, int stationId) {
         Cluster cluster = requireCluster(clusterId);
         Station station = requireStation(stationId);
         if (station.clusterId() == null || station.clusterId() != clusterId) {
-            throw new BadRequestResponse("That station does not belong to this cluster");
+            throw ClusterRefusal.CLUSTER_RELEASE_STATION_NOT_IN_IT.raise();
         }
 
-        // And on the way out the files come first as well, for the same reason in the other direction
         storageBackendService.handBackOnRelease(clusterId, stationId);
 
         itemHandoverService.recallFromStation(clusterId, stationId);
         federationService.removeClusterFederation(stationId);
-        // The answers go, the history of who changed what stays: an audit trail is not the cluster's to
-        // take away when it lets a station go
         fieldService.clearValuesOfStation(stationId);
         stationGroupService.forgetStation(stationId);
-        // The room went with the membership. What the instance says about the station stands again, untouched
-        // all along
         quotaRepository.deleteGrant(stationId);
         stationRepository.setCluster(stationId, null);
         log.info("Cluster {} released station {}", clusterId, stationId);
@@ -306,11 +308,11 @@ public class ClusterService {
     /**
      * Takes an account on as a cluster member.
      *
-     * @throws BadRequestResponse when they already belong to this cluster
+     * @throws RefusalResponse when they already belong to this cluster
      */
     public ClusterMember addMember(int clusterId, int accountId, ClusterUserType userType) {
         if (clusterRepository.findMember(clusterId, accountId).isPresent()) {
-            throw new BadRequestResponse("That account is already a member of this cluster");
+            throw ClusterRefusal.CLUSTER_ACCOUNT_ALREADY_A_MEMBER.raise();
         }
         ClusterMember member = clusterRepository.addMember(
                 clusterId, accountId, userType != null ? userType : ClusterUserType.CLUSTER_USER);
@@ -366,7 +368,7 @@ public class ClusterService {
     public void grant(int memberId, ClusterPermission permission) {
         int permissionId = clusterRepository
                 .findPermissionId(permission)
-                .orElseThrow(() -> new BadRequestResponse("No such permission: " + permission));
+                .orElseThrow(() -> ClusterRefusal.CLUSTER_PERMISSION_NOT_KNOWN_ON_GRANT.raise(permission.name()));
         clusterRepository.grantPermission(memberId, permissionId);
         log.info("Cluster member {} was granted {}", memberId, permission);
     }
@@ -382,11 +384,11 @@ public class ClusterService {
     }
 
     private Cluster requireCluster(int clusterId) {
-        return clusterRepository.findById(clusterId).orElseThrow(() -> new BadRequestResponse("No such cluster"));
+        return clusterRepository.findById(clusterId).orElseThrow(ClusterRefusal.CLUSTER_GONE_FOR_STATION_CHANGE::raise);
     }
 
     private Station requireStation(int stationId) {
-        return stationRepository.findById(stationId).orElseThrow(() -> new BadRequestResponse("No such station"));
+        return stationRepository.findById(stationId).orElseThrow(ClusterRefusal.CLUSTER_STATION_GONE_FOR_CHANGE::raise);
     }
 
     private Set<StationModule> modulesToDisable() {

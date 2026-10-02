@@ -1,0 +1,637 @@
+[ {
+  "configKey" : "database.host",
+  "env" : "DB_HOST",
+  "default" : "localhost"
+}, {
+  "configKey" : "database.port",
+  "env" : "DB_PORT",
+  "default" : "5432"
+}, {
+  "configKey" : "database.user",
+  "env" : "DB_USER",
+  "default" : "ember"
+}, {
+  "configKey" : "database.password",
+  "env" : "DB_PASSWORD",
+  "default" : "ember"
+}, {
+  "configKey" : "database.database",
+  "env" : "DB_DATABASE",
+  "default" : "ember"
+}, {
+  "configKey" : "database.schema",
+  "env" : "DB_SCHEMA",
+  "default" : "ember"
+}, {
+  "configKey" : "database.poolSize",
+  "env" : "DB_POOLSIZE",
+  "default" : "5"
+}, {
+  "configKey" : "api.host",
+  "env" : "API_HOST",
+  "default" : "0.0.0.0"
+}, {
+  "configKey" : "api.port",
+  "env" : "API_PORT",
+  "default" : "8080"
+}, {
+  "configKey" : "api.baseUrl",
+  "env" : "API_BASEURL",
+  "default" : "http://localhost:3000"
+}, {
+  "configKey" : "api.demoUrl",
+  "env" : "API_DEMOURL",
+  "default" : "https://demo.ember-panel.de"
+}, {
+  "configKey" : "api.allowedOrigins",
+  "env" : "API_ALLOWEDORIGINS",
+  "default" : "[]"
+}, {
+  "configKey" : "api.maxImageSizeBytes",
+  "env" : "API_MAXIMAGESIZEBYTES",
+  "default" : "5242880"
+}, {
+  "configKey" : "api.maxUploadSizeBytes",
+  "env" : "API_MAXUPLOADSIZEBYTES",
+  "default" : "52428800"
+}, {
+  "configKey" : "api.maxRequestSizeBytes",
+  "env" : "API_MAXREQUESTSIZEBYTES",
+  "default" : "62914560"
+}, {
+  "configKey" : "api.privacyPolicyDir",
+  "env" : "API_PRIVACYPOLICYDIR",
+  "default" : "data/documents/privacy"
+}, {
+  "configKey" : "api.consentDir",
+  "env" : "API_CONSENTDIR",
+  "default" : "data/documents/consent"
+}, {
+  "configKey" : "api.tosDir",
+  "env" : "API_TOSDIR",
+  "default" : "data/documents/tos"
+}, {
+  "configKey" : "api.imprintDir",
+  "env" : "API_IMPRINTDIR",
+  "default" : "data/documents/imprint"
+}, {
+  "configKey" : "api.placeholderFile",
+  "env" : "API_PLACEHOLDERFILE",
+  "default" : "data/documents/placeholders.json"
+}, {
+  "configKey" : "api.httpGzipEnabled",
+  "env" : "API_HTTPGZIPENABLED",
+  "default" : "true"
+}, {
+  "configKey" : "api.httpGzipLevel",
+  "env" : "API_HTTPGZIPLEVEL",
+  "default" : "6"
+}, {
+  "configKey" : "api.httpGzipMinSizeBytes",
+  "env" : "API_HTTPGZIPMINSIZEBYTES",
+  "default" : "1024"
+}, {
+  "configKey" : "mailing.provider",
+  "env" : null,
+  "default" : "SMTP"
+}, {
+  "configKey" : "mailing.smtp.host",
+  "env" : null,
+  "default" : "-"
+}, {
+  "configKey" : "mailing.smtp.port",
+  "env" : null,
+  "default" : "665"
+}, {
+  "configKey" : "mailing.smtp.ssl",
+  "env" : null,
+  "default" : "false"
+}, {
+  "configKey" : "mailing.user",
+  "env" : "MAILING_USER",
+  "default" : "-"
+}, {
+  "configKey" : "mailing.password",
+  "env" : "MAILING_PASSWORD",
+  "default" : "-"
+}, {
+  "configKey" : "mailing.apiKey",
+  "env" : "MAILING_APIKEY",
+  "default" : "-"
+}, {
+  "configKey" : "mailing.senderAddress",
+  "env" : "MAILING_SENDERADDRESS",
+  "default" : "-"
+}, {
+  "configKey" : "mailing.senderName",
+  "env" : "MAILING_SENDERNAME",
+  "default" : "Ember"
+}, {
+  "configKey" : "mailing.properties",
+  "env" : null,
+  "default" : "{}"
+}, {
+  "configKey" : "mailing.dailySendLimit",
+  "env" : "MAILING_DAILYSENDLIMIT",
+  "default" : "200"
+}, {
+  "configKey" : "mailing.notificationDigestIntervalMinutes",
+  "env" : "MAILING_NOTIFICATIONDIGESTINTERVALMINUTES",
+  "default" : "60"
+}, {
+  "configKey" : "mailing.webhookSecret",
+  "env" : "MAILING_WEBHOOKSECRET",
+  "default" : "-"
+}, {
+  "configKey" : "mailing.providers",
+  "env" : null,
+  "default" : "[]"
+}, {
+  "configKey" : "mailing.fallbacks",
+  "env" : null,
+  "default" : "[]"
+}, {
+  "configKey" : "mailing.attempts",
+  "env" : "MAILING_ATTEMPTS",
+  "default" : "2"
+}, {
+  "configKey" : "mailing.sweegoWebhookSecret",
+  "env" : "MAILING_SWEEGOWEBHOOKSECRET",
+  "default" : "-"
+}, {
+  "configKey" : "auth.tokenBytes",
+  "env" : "AUTH_TOKENBYTES",
+  "default" : "32"
+}, {
+  "configKey" : "auth.verifyTokenHours",
+  "env" : "AUTH_VERIFYTOKENHOURS",
+  "default" : "24"
+}, {
+  "configKey" : "auth.passwordTokenHours",
+  "env" : "AUTH_PASSWORDTOKENHOURS",
+  "default" : "72"
+}, {
+  "configKey" : "auth.resetTokenHours",
+  "env" : "AUTH_RESETTOKENHOURS",
+  "default" : "1"
+}, {
+  "configKey" : "auth.setupTokenDays",
+  "env" : "AUTH_SETUPTOKENDAYS",
+  "default" : "30"
+}, {
+  "configKey" : "auth.managedLoginNoticeMinutes",
+  "env" : "AUTH_MANAGEDLOGINNOTICEMINUTES",
+  "default" : "5"
+}, {
+  "configKey" : "auth.sessionMinutes",
+  "env" : "AUTH_SESSIONMINUTES",
+  "default" : "43200"
+}, {
+  "configKey" : "auth.untrustedSessionMinutes",
+  "env" : "AUTH_UNTRUSTEDSESSIONMINUTES",
+  "default" : "60"
+}, {
+  "configKey" : "auth.tokenPepper",
+  "env" : "AUTH_TOKENPEPPER",
+  "default" : "-"
+}, {
+  "configKey" : "auth.hibp.enabled",
+  "env" : null,
+  "default" : "true"
+}, {
+  "configKey" : "auth.hibp.staleAfterDays",
+  "env" : null,
+  "default" : "30"
+}, {
+  "configKey" : "auth.hibp.endpoint",
+  "env" : null,
+  "default" : "https://api.pwnedpasswords.com/range/"
+}, {
+  "configKey" : "auth.hibp.timeoutSeconds",
+  "env" : null,
+  "default" : "5"
+}, {
+  "configKey" : "auth.twoFactor.enabled",
+  "env" : "TWOFACTORSETTINGS_ENABLED",
+  "default" : "true"
+}, {
+  "configKey" : "auth.twoFactor.secretKey",
+  "env" : "TWOFACTORSETTINGS_SECRETKEY",
+  "default" : "-"
+}, {
+  "configKey" : "auth.twoFactor.stepUpFreshnessSeconds",
+  "env" : "TWOFACTORSETTINGS_STEPUPFRESHNESSSECONDS",
+  "default" : "300"
+}, {
+  "configKey" : "auth.twoFactor.localProofFreshnessSeconds",
+  "env" : "TWOFACTORSETTINGS_LOCALPROOFFRESHNESSSECONDS",
+  "default" : "120"
+}, {
+  "configKey" : "auth.twoFactor.trustedDeviceMaxDays",
+  "env" : "TWOFACTORSETTINGS_TRUSTEDDEVICEMAXDAYS",
+  "default" : "30"
+}, {
+  "configKey" : "auth.twoFactor.enrollmentGraceDays",
+  "env" : "TWOFACTORSETTINGS_ENROLLMENTGRACEDAYS",
+  "default" : "7"
+}, {
+  "configKey" : "auth.twoFactor.totp.digits",
+  "env" : null,
+  "default" : "6"
+}, {
+  "configKey" : "auth.twoFactor.totp.periodSeconds",
+  "env" : null,
+  "default" : "30"
+}, {
+  "configKey" : "auth.twoFactor.totp.algorithm",
+  "env" : null,
+  "default" : "SHA1"
+}, {
+  "configKey" : "auth.twoFactor.totp.driftWindow",
+  "env" : null,
+  "default" : "1"
+}, {
+  "configKey" : "auth.twoFactor.totp.issuer",
+  "env" : null,
+  "default" : "Ember"
+}, {
+  "configKey" : "auth.twoFactor.backupCodes.count",
+  "env" : null,
+  "default" : "10"
+}, {
+  "configKey" : "auth.webauthn.rpId",
+  "env" : "AUTH_WEBAUTHN_RPID",
+  "default" : "-"
+}, {
+  "configKey" : "auth.webauthn.rpName",
+  "env" : "AUTH_WEBAUTHN_RPNAME",
+  "default" : "-"
+}, {
+  "configKey" : "auth.webauthn.attestation",
+  "env" : "AUTH_WEBAUTHN_ATTESTATION",
+  "default" : "none"
+}, {
+  "configKey" : "auth.webauthn.timeoutSeconds",
+  "env" : "AUTH_WEBAUTHN_TIMEOUTSECONDS",
+  "default" : "60"
+}, {
+  "configKey" : "auth.passkeys.mode",
+  "env" : "AUTH_PASSKEYS_MODE",
+  "default" : "OPTIONAL"
+}, {
+  "configKey" : "auth.passkeys.printAdminEnrollmentLink",
+  "env" : "AUTH_PASSKEYS_PRINTADMINENROLLMENTLINK",
+  "default" : "false"
+}, {
+  "configKey" : "auth.deviceHandshake.requestBurst",
+  "env" : null,
+  "default" : "60"
+}, {
+  "configKey" : "auth.deviceHandshake.requestsPerMinute",
+  "env" : null,
+  "default" : "4"
+}, {
+  "configKey" : "auth.deviceHandshake.pollBurst",
+  "env" : null,
+  "default" : "600"
+}, {
+  "configKey" : "auth.deviceHandshake.pollsPerMinute",
+  "env" : null,
+  "default" : "600"
+}, {
+  "configKey" : "auth.deviceHandshake.enrolmentBurst",
+  "env" : null,
+  "default" : "40"
+}, {
+  "configKey" : "auth.deviceHandshake.enrolmentsPerMinute",
+  "env" : null,
+  "default" : "40"
+}, {
+  "configKey" : "demo.dev",
+  "env" : "DEMO_DEV",
+  "default" : "false"
+}, {
+  "configKey" : "demo.idleResetMinutes",
+  "env" : "DEMO_IDLERESETMINUTES",
+  "default" : "15"
+}, {
+  "configKey" : "demo.enabled",
+  "env" : "DEMO_ENABLED",
+  "default" : "false"
+}, {
+  "configKey" : "demo.federationForceHttp",
+  "env" : "DEMO_FEDERATIONFORCEHTTP",
+  "default" : "false"
+}, {
+  "configKey" : "demo.stableSessionTokens",
+  "env" : "DEMO_STABLESESSIONTOKENS",
+  "default" : "true"
+}, {
+  "configKey" : "theming.defaultTheme",
+  "env" : "THEMING_DEFAULTTHEME",
+  "default" : "ember"
+}, {
+  "configKey" : "theming.defaultFeel",
+  "env" : null,
+  "default" : "ROUNDED"
+}, {
+  "configKey" : "theming.lockFeel",
+  "env" : "THEMING_LOCKFEEL",
+  "default" : "false"
+}, {
+  "configKey" : "storage.defaultTotal",
+  "env" : "STORAGE_DEFAULTTOTAL",
+  "default" : "5G"
+}, {
+  "configKey" : "storage.defaultKb",
+  "env" : "STORAGE_DEFAULTKB",
+  "default" : "4G"
+}, {
+  "configKey" : "storage.defaultBoard",
+  "env" : "STORAGE_DEFAULTBOARD",
+  "default" : "3G"
+}, {
+  "configKey" : "storage.defaultImages",
+  "env" : "STORAGE_DEFAULTIMAGES",
+  "default" : "1G"
+}, {
+  "configKey" : "storage.defaultPages",
+  "env" : "STORAGE_DEFAULTPAGES",
+  "default" : "1G"
+}, {
+  "configKey" : "storage.defaultPerFile",
+  "env" : "STORAGE_DEFAULTPERFILE",
+  "default" : "50M"
+}, {
+  "configKey" : "storage.defaultPerImage",
+  "env" : "STORAGE_DEFAULTPERIMAGE",
+  "default" : "5M"
+}, {
+  "configKey" : "storage.warningThresholdPercent",
+  "env" : "STORAGE_WARNINGTHRESHOLDPERCENT",
+  "default" : "80"
+}, {
+  "configKey" : "storage.compressPresentations",
+  "env" : "STORAGE_COMPRESSPRESENTATIONS",
+  "default" : "true"
+}, {
+  "configKey" : "storage.compressOfficeDocs",
+  "env" : "STORAGE_COMPRESSOFFICEDOCS",
+  "default" : "true"
+}, {
+  "configKey" : "storage.compressPdfs",
+  "env" : "STORAGE_COMPRESSPDFS",
+  "default" : "true"
+}, {
+  "configKey" : "storage.compressTextFiles",
+  "env" : "STORAGE_COMPRESSTEXTFILES",
+  "default" : "true"
+}, {
+  "configKey" : "storage.compressThreshold",
+  "env" : "STORAGE_COMPRESSTHRESHOLD",
+  "default" : "10M"
+}, {
+  "configKey" : "storage.reconciliationIntervalHours",
+  "env" : "STORAGE_RECONCILIATIONINTERVALHOURS",
+  "default" : "24"
+}, {
+  "configKey" : "storage.imageVariantsEnabled",
+  "env" : "STORAGE_IMAGEVARIANTSENABLED",
+  "default" : "true"
+}, {
+  "configKey" : "storage.imageVariantsWidths",
+  "env" : "STORAGE_IMAGEVARIANTSWIDTHS",
+  "default" : "128,256,512,1024,2048"
+}, {
+  "configKey" : "storage.imageVariantsWebp",
+  "env" : "STORAGE_IMAGEVARIANTSWEBP",
+  "default" : "true"
+}, {
+  "configKey" : "storage.backend.type",
+  "env" : null,
+  "default" : "LOCAL"
+}, {
+  "configKey" : "storage.backend.local.root",
+  "env" : null,
+  "default" : "data"
+}, {
+  "configKey" : "storage.backend.smb.host",
+  "env" : null,
+  "default" : "-"
+}, {
+  "configKey" : "storage.backend.smb.port",
+  "env" : null,
+  "default" : "445"
+}, {
+  "configKey" : "storage.backend.smb.share",
+  "env" : null,
+  "default" : "-"
+}, {
+  "configKey" : "storage.backend.smb.domain",
+  "env" : null,
+  "default" : "-"
+}, {
+  "configKey" : "storage.backend.smb.username",
+  "env" : null,
+  "default" : "-"
+}, {
+  "configKey" : "storage.backend.smb.password",
+  "env" : null,
+  "default" : "-"
+}, {
+  "configKey" : "storage.backend.smb.passwordEnc",
+  "env" : null,
+  "default" : "-"
+}, {
+  "configKey" : "storage.backend.smb.basePath",
+  "env" : null,
+  "default" : "-"
+}, {
+  "configKey" : "storage.backend.smb.seal",
+  "env" : null,
+  "default" : "true"
+}, {
+  "configKey" : "storage.backend.smb.dfs",
+  "env" : null,
+  "default" : "false"
+}, {
+  "configKey" : "storage.backend.sftp.host",
+  "env" : null,
+  "default" : "-"
+}, {
+  "configKey" : "storage.backend.sftp.port",
+  "env" : null,
+  "default" : "22"
+}, {
+  "configKey" : "storage.backend.sftp.username",
+  "env" : null,
+  "default" : "-"
+}, {
+  "configKey" : "storage.backend.sftp.password",
+  "env" : null,
+  "default" : "-"
+}, {
+  "configKey" : "storage.backend.sftp.passwordEnc",
+  "env" : null,
+  "default" : "-"
+}, {
+  "configKey" : "storage.backend.sftp.privateKey",
+  "env" : null,
+  "default" : "-"
+}, {
+  "configKey" : "storage.backend.sftp.privateKeyEnc",
+  "env" : null,
+  "default" : "-"
+}, {
+  "configKey" : "storage.backend.sftp.knownHostsFingerprint",
+  "env" : null,
+  "default" : "-"
+}, {
+  "configKey" : "storage.backend.sftp.basePath",
+  "env" : null,
+  "default" : "-"
+}, {
+  "configKey" : "storage.backend.s3.endpoint",
+  "env" : null,
+  "default" : "-"
+}, {
+  "configKey" : "storage.backend.s3.region",
+  "env" : null,
+  "default" : "-"
+}, {
+  "configKey" : "storage.backend.s3.bucket",
+  "env" : null,
+  "default" : "-"
+}, {
+  "configKey" : "storage.backend.s3.accessKey",
+  "env" : null,
+  "default" : "-"
+}, {
+  "configKey" : "storage.backend.s3.accessKeyEnc",
+  "env" : null,
+  "default" : "-"
+}, {
+  "configKey" : "storage.backend.s3.secretKey",
+  "env" : null,
+  "default" : "-"
+}, {
+  "configKey" : "storage.backend.s3.secretKeyEnc",
+  "env" : null,
+  "default" : "-"
+}, {
+  "configKey" : "storage.backend.s3.pathStyle",
+  "env" : null,
+  "default" : "false"
+}, {
+  "configKey" : "storage.backend.s3.sseAlgorithm",
+  "env" : null,
+  "default" : "-"
+}, {
+  "configKey" : "storage.backend.s3.basePath",
+  "env" : null,
+  "default" : "-"
+}, {
+  "configKey" : "storage.credentialEncryptionKey",
+  "env" : "STORAGE_CREDENTIALENCRYPTIONKEY",
+  "default" : "-"
+}, {
+  "configKey" : "metrics.requestStatsRetentionDays",
+  "env" : "METRICS_REQUESTSTATSRETENTIONDAYS",
+  "default" : "3"
+}, {
+  "configKey" : "metrics.feedStatsRetentionDays",
+  "env" : "METRICS_FEEDSTATSRETENTIONDAYS",
+  "default" : "90"
+}, {
+  "configKey" : "metrics.trafficEnabled",
+  "env" : "METRICS_TRAFFICENABLED",
+  "default" : "true"
+}, {
+  "configKey" : "metrics.trafficRetentionDays",
+  "env" : "METRICS_TRAFFICRETENTIONDAYS",
+  "default" : "90"
+}, {
+  "configKey" : "metrics.trafficFlushIntervalSeconds",
+  "env" : "METRICS_TRAFFICFLUSHINTERVALSECONDS",
+  "default" : "30"
+}, {
+  "configKey" : "metrics.webStatsEnabled",
+  "env" : "METRICS_WEBSTATSENABLED",
+  "default" : "true"
+}, {
+  "configKey" : "metrics.webStatsRetentionDays",
+  "env" : "METRICS_WEBSTATSRETENTIONDAYS",
+  "default" : "365"
+}, {
+  "configKey" : "metrics.webStatsFlushIntervalSeconds",
+  "env" : "METRICS_WEBSTATSFLUSHINTERVALSECONDS",
+  "default" : "30"
+}, {
+  "configKey" : "network.trustedProxies",
+  "env" : "NETWORK_TRUSTEDPROXIES",
+  "default" : "[]"
+}, {
+  "configKey" : "network.cloudflare",
+  "env" : "NETWORK_CLOUDFLARE",
+  "default" : "false"
+}, {
+  "configKey" : "federation.allowPrivateHosts",
+  "env" : "FEDERATION_ALLOWPRIVATEHOSTS",
+  "default" : "false"
+}, {
+  "configKey" : "logging.databaseEnabled",
+  "env" : "LOGGING_DATABASEENABLED",
+  "default" : "false"
+}, {
+  "configKey" : "logging.databaseLevel",
+  "env" : "LOGGING_DATABASELEVEL",
+  "default" : "DEBUG"
+}, {
+  "configKey" : "logging.retentionDays",
+  "env" : "LOGGING_RETENTIONDAYS",
+  "default" : "14"
+}, {
+  "configKey" : "knowledgeBase.trashRetentionDays",
+  "env" : "KNOWLEDGE_BASE_TRASHRETENTIONDAYS",
+  "default" : "30"
+}, {
+  "configKey" : "attendance.freezeAfterDays",
+  "env" : "ATTENDANCE_FREEZEAFTERDAYS",
+  "default" : "7"
+}, {
+  "configKey" : "updates.enabled",
+  "env" : "UPDATES_ENABLED",
+  "default" : "true"
+}, {
+  "configKey" : "updates.checkIntervalHours",
+  "env" : "UPDATES_CHECKINTERVALHOURS",
+  "default" : "1"
+}, {
+  "configKey" : "updates.repository",
+  "env" : "UPDATES_REPOSITORY",
+  "default" : "rainbowdashlabs/ember"
+}, {
+  "configKey" : "changelog.announceUpdates",
+  "env" : "CHANGELOG_ANNOUNCEUPDATES",
+  "default" : "true"
+}, {
+  "configKey" : "mailImport.enabled",
+  "env" : "MAIL_IMPORT_ENABLED",
+  "default" : "true"
+}, {
+  "configKey" : "mailImport.minimumIntervalMinutes",
+  "env" : "MAIL_IMPORT_MINIMUMINTERVALMINUTES",
+  "default" : "15"
+}, {
+  "configKey" : "mailImport.maxAttachmentsPerCycle",
+  "env" : "MAIL_IMPORT_MAXATTACHMENTSPERCYCLE",
+  "default" : "50"
+}, {
+  "configKey" : "mailImport.timeoutSeconds",
+  "env" : "MAIL_IMPORT_TIMEOUTSECONDS",
+  "default" : "30"
+}, {
+  "configKey" : "mailImport.logRetentionDays",
+  "env" : "MAIL_IMPORT_LOGRETENTIONDAYS",
+  "default" : "365"
+} ]

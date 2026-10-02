@@ -6,6 +6,7 @@
 package dev.chojo.ember.event.events;
 
 import dev.chojo.ember.event.DomainEvent;
+import org.jspecify.annotations.Nullable;
 
 /**
  * The cluster has changed how much room the station has.
@@ -14,4 +15,5 @@ import dev.chojo.ember.event.DomainEvent;
  * @param clusterName the cluster that decided, for the reader
  * @param quotaBytes  what it may now use, or {@code null} when it was handed back to the instance default
  */
-public record ClusterQuotaChanged(int stationId, String clusterName, Long quotaBytes) implements DomainEvent {}
+public record ClusterQuotaChanged(
+        int stationId, String clusterName, @Nullable Long quotaBytes) implements DomainEvent {}

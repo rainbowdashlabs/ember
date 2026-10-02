@@ -35,8 +35,8 @@ function close() {
 </script>
 
 <template>
-  <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => emit('update:openGroup', v)" :icon="['fas', 'clipboard-user']" :label="t('sidebar.attendance')"
-                prefix="/station/attendance" :to="attendanceDefaultRoute" name="attendance-new" @navigate="close">
+  <SidebarGroup :open-group="isDesktop ? undefined : openGroup" :icon="['fas', 'clipboard-user']" :label="t('sidebar.attendance')" prefix="/station/attendance"
+                :to="attendanceDefaultRoute" name="attendance-new" @update:open-group="v => emit('update:openGroup', v)" @navigate="close">
     <SidebarLink v-if="hasPermission(StationPermission.ATTENDANCE_READ)" :icon="['fas', 'clock-rotate-left']" name="attendance-past" to="/station/attendance/past"
                  @navigate="close">
       {{ t('sidebar.pastAttendance') }}

@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.inventory.entity.StepActor;
 import dev.chojo.ember.feature.inventory.entity.StepSubject;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.Optional;
@@ -29,12 +30,11 @@ import static de.chojo.sadu.queries.api.query.Query.query;
  */
 @Singleton
 public class MovementFlowRepository {
-    private static final String FLOW_COLUMNS = "id, station_id, cluster_id, name, purpose, archived";
+    private static final String FLOW_COLUMNS =
+            "id, station_id, cluster_id, name, purpose, archived, skip_member_receipt";
     private static final String STEP_COLUMNS =
             "id, flow_id, position, label, actor, subject, custody_after, picks_item, archived";
     private static final String BINDING_COLUMNS = "station_id, inventory_id, owner_kind, purpose, party, flow_id";
-
-    // -- Flows --
 
     public Optional<MovementFlow> findFlowById(int id) {
         return SqlSupport.findById("movement_flow", FLOW_COLUMNS, id, MovementFlow.map());
@@ -71,6 +71,20 @@ public class MovementFlowRepository {
     }
 
     /**
+     * Says whether the member's confirmation of a received piece confirms itself on this chain.
+     *
+     * @param id   the chain
+     * @param skip whether the receipt is confirmed for the member as soon as a movement reaches it
+     * @return whether the chain exists
+     */
+    public boolean setSkipMemberReceipt(int id, boolean skip) {
+        return query("UPDATE movement_flow SET skip_member_receipt = :skip WHERE id = :id;")
+                .single(call().bind("skip", skip).bind("id", id))
+                .update()
+                .changed();
+    }
+
+    /**
      * Retires a flow. Flows are archived rather than deleted so a movement that walked one still
      * reads with the words it was walked under.
      */
@@ -80,8 +94,6 @@ public class MovementFlowRepository {
                 .update()
                 .changed();
     }
-
-    // -- Steps --
 
     public Optional<MovementFlowStep> findStepById(int id) {
         return SqlSupport.findById("movement_flow_step", STEP_COLUMNS, id, MovementFlowStep.map());
@@ -188,8 +200,6 @@ public class MovementFlowRepository {
                 "SELECT coalesce(max(position), -1) + 1 FROM movement_flow_step WHERE flow_id = :flow_id;",
                 call().bind("flow_id", flowId));
     }
-
-    // -- Bindings --
 
     /**
      * The flow a station uses for an owner and a purpose. A binding naming the inventory wins over
@@ -345,7 +355,7 @@ public class MovementFlowRepository {
      */
     public boolean bindIfAbsent(
             int stationId,
-            Integer inventoryId,
+            @Nullable Integer inventoryId,
             ItemOwner ownerKind,
             MovementPurpose purpose,
             MovementParty party,
@@ -371,30 +381,26 @@ public class MovementFlowRepository {
 
     /**
      * Points a binding at a flow, replacing whatever it pointed at before.
+     *
+     * <p>One statement rather than a removal followed by a write: two saves of the same binding arriving
+     * together both removed nothing and then both wrote, and the second ran into the first and was refused
+     * as a duplicate. The conflict target names the partial index the binding falls under, which is the
+     * station-wide one without an inventory and the per-inventory one with.
      */
     public void bind(
             int stationId,
-            Integer inventoryId,
+            @Nullable Integer inventoryId,
             ItemOwner ownerKind,
             MovementPurpose purpose,
             MovementParty party,
             int flowId) {
-        query("""
-                DELETE FROM movement_flow_binding
-                WHERE station_id = :station_id
-                  AND owner_kind = :owner_kind
-                  AND purpose = :purpose
-                  AND party = :party
-                  AND inventory_id IS NOT DISTINCT FROM :inventory_id;""")
-                .single(call().bind("station_id", stationId)
-                        .bind("inventory_id", inventoryId)
-                        .bind("owner_kind", ownerKind)
-                        .bind("purpose", purpose)
-                        .bind("party", party))
-                .delete();
+        String target = inventoryId == null
+                ? "(station_id, owner_kind, purpose, party) WHERE inventory_id IS NULL"
+                : "(inventory_id, owner_kind, purpose, party) WHERE inventory_id IS NOT NULL";
         query("""
                 INSERT INTO movement_flow_binding(station_id, inventory_id, owner_kind, purpose, party, flow_id)
-                VALUES (:station_id, :inventory_id, :owner_kind, :purpose, :party, :flow_id);""")
+                VALUES (:station_id, :inventory_id, :owner_kind, :purpose, :party, :flow_id)
+                ON CONFLICT %s DO UPDATE SET flow_id = excluded.flow_id, station_id = excluded.station_id;""", target)
                 .single(call().bind("station_id", stationId)
                         .bind("inventory_id", inventoryId)
                         .bind("owner_kind", ownerKind)

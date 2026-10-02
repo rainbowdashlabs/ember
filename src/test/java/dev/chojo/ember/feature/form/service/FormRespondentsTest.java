@@ -9,8 +9,8 @@ import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.form.entity.FormResponse;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
-import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
@@ -63,7 +63,7 @@ class FormRespondentsTest extends RepositoryTestBase {
         var shirt = profileFieldRepo.create(
                 station.id(),
                 "Größe",
-                ProfileFieldType.ENUM,
+                FieldType.CHOICE,
                 ProfileFieldConfig.parse("{\"options\":[\"S\",\"M\"]}"),
                 false,
                 false,
@@ -73,13 +73,7 @@ class FormRespondentsTest extends RepositoryTestBase {
         profileFieldRepo.setValue(unknownAge.id(), shirtFieldId, StringNode.valueOf(" "));
 
         var born = profileFieldRepo.create(
-                station.id(),
-                "Geburtstag",
-                ProfileFieldType.BIRTH_DATE,
-                ProfileFieldConfig.parse("{}"),
-                false,
-                false,
-                null);
+                station.id(), "Geburtstag", FieldType.BIRTH_DATE, ProfileFieldConfig.parse("{}"), false, false, null);
         profileFieldRepo.setValue(young.id(), born.id(), StringNode.valueOf("2012-06-15"));
         profileFieldRepo.setValue(unknownAge.id(), born.id(), StringNode.valueOf("kein Datum"));
     }

@@ -5,7 +5,8 @@
  */
 import {computed, ref} from 'vue'
 import {knowledgeBase} from '@/api'
-import {KbFavouriteTarget, type FavouriteEntry, type KbFavourite} from '@/api/knowledgeBase'
+import {KbFavouriteTarget, type FavouriteEntry} from '@/api/knowledgeBase'
+import type {KbFavourite} from '@/api/generated/schema'
 
 /**
  * How two favourites are told apart: by what they point at, with the partner as part of it for a

@@ -5,17 +5,19 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.equipment.repository.EquipmentAvailabilityRepository;
 import dev.chojo.ember.feature.equipment.repository.EquipmentNeedRepository;
 import dev.chojo.ember.feature.equipment.service.EquipmentAvailabilityService;
-import dev.chojo.ember.feature.events.service.EventBreakService;
+import dev.chojo.ember.feature.federation.FederationTestTransport;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.repository.InventoryShareRepository;
 import dev.chojo.ember.feature.federation.repository.LendingRepository;
+import dev.chojo.ember.feature.federation.service.FederationFanout;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.federation.service.InventoryShareService;
@@ -26,9 +28,9 @@ import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.ForbiddenResponse;
+import dev.chojo.ember.util.TestStationKeys;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -64,11 +66,13 @@ class BorrowedGearServiceTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         federationRepo = new FederationRepository();
-        federationService = new FederationService(federationRepo, stationRepo, new Api());
+        federationService = new FederationService(federationRepo, stationRepo, TestStationKeys.store(), new Api());
+        var transport = new FederationTestTransport(mock(FederationHttpClient.class), federationRepo, stationRepo);
         lending = new LendingService(
                 new LendingRepository(),
-                mock(FederationHttpClient.class),
+                transport.transport(),
                 federationService,
+                new FederationFanout(new TaskScheduler()),
                 stationRepo,
                 inventoryRepo,
                 clusterRepo,
@@ -81,8 +85,9 @@ class BorrowedGearServiceTest extends RepositoryTestBase {
                         new EquipmentAvailabilityRepository(),
                         new EquipmentNeedRepository(),
                         eventRepo,
-                        new EventBreakService(eventBreakRepo)),
+                        occurrenceCalendar),
                 new DomainEventBus(Set.of()));
+        transport.serve(lending);
 
         owner = stationRepo.create("BorrowedGearOwner");
         borrower = stationRepo.create("BorrowedGearBorrower");
@@ -116,13 +121,10 @@ class BorrowedGearServiceTest extends RepositoryTestBase {
         assertEquals(ItemOwner.PARTNER_STATION, copy.ownerKind());
         assertEquals(owner.id(), copy.ownerStationId());
         assertNotNull(copy.loanRequestItemId());
-        // The snapshot: name and identifier as they stood when the gear changed hands
         assertEquals("Funkgerät", copy.name());
         assertEquals("BG-001", copy.internalId());
-        // It rests at the station that has it, exactly as a cluster's jacket does
         assertEquals(ItemCustody.AT_STATION, copy.custody());
         assertEquals(borrower.id(), copy.custodyStationId());
-        // And it sits on a shelf of that station's own, made for the occasion
         var shelf = inventoryRepo.findById(copy.inventoryId()).orElseThrow();
         assertTrue(shelf.borrowed());
         assertFalse(shelf.homogeneous());
@@ -200,13 +202,12 @@ class BorrowedGearServiceTest extends RepositoryTestBase {
         int requestId = lend(source);
         InventoryItem copy = onlyBorrowedRow();
 
-        assertThrows(
-                ForbiddenResponse.class, () -> inventoryService.updateItem(copy.id(), "X", "Neu", null, null, null));
-        assertThrows(ForbiddenResponse.class, () -> inventoryService.deleteItem(copy.id(), null));
-        assertThrows(ForbiddenResponse.class, () -> inventoryService.moveItem(copy.id(), inventoryId, null));
-        // A borrower cannot lend a partner's radio on to a third station
+        assertThrows(RefusalResponse.class, () -> inventoryService.updateItem(copy.id(), "X", "Neu", null, null, null));
+        assertThrows(RefusalResponse.class, () -> inventoryService.deleteItem(copy.id(), null));
+        assertThrows(RefusalResponse.class, () -> inventoryService.moveItem(copy.id(), inventoryId, null));
         assertTrue(
-                lending.findAssignableItems(borrower.id(), copy.inventoryId()).isEmpty());
+                lending.findAssignableItems(borrower.id(), copy.inventoryId()).isEmpty(),
+                "a borrower cannot lend a partner's radio on to a third station");
 
         handBack(requestId, source);
     }
@@ -217,7 +218,7 @@ class BorrowedGearServiceTest extends RepositoryTestBase {
         int requestId = lend(source);
         InventoryItem copy = onlyBorrowedRow();
 
-        assertThrows(BadRequestResponse.class, () -> itemCustodyService.markLost(copy.id(), "weg", null));
+        assertThrows(RefusalResponse.class, () -> itemCustodyService.markLost(copy.id(), "weg", null));
         assertNull(inventoryRepo.findItemById(copy.id()).orElseThrow().lostAt());
 
         handBack(requestId, source);
@@ -235,9 +236,8 @@ class BorrowedGearServiceTest extends RepositoryTestBase {
         assertEquals("Von anderen", renamed.name());
         assertTrue(renamed.borrowed());
 
-        assertThrows(BadRequestResponse.class, () -> inventoryService.delete(shelfId));
-        // Nothing of the station's own may be filed on it either
-        assertThrows(BadRequestResponse.class, () -> inventoryService.createItem(shelfId, "X", "Eigenes", null, null));
+        assertThrows(RefusalResponse.class, () -> inventoryService.delete(shelfId));
+        assertThrows(RefusalResponse.class, () -> inventoryService.createItem(shelfId, "X", "Eigenes", null, null));
 
         handBack(requestId, source);
         assertTrue(inventoryService.delete(shelfId));
@@ -259,8 +259,6 @@ class BorrowedGearServiceTest extends RepositoryTestBase {
         handBack(requestId, source);
         assertTrue(borrowedGearService.borrowedAt(borrower.id()).isEmpty());
     }
-
-    // -- helpers --
 
     private static InventoryItem ownedPiece(String internalId, String name) {
         return inventoryRepo.createItem(inventoryId, internalId, name, null, null);

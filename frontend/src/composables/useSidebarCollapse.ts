@@ -3,20 +3,22 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {computed, inject, readonly, ref, type InjectionKey, type Ref} from 'vue'
+import {computed, inject, readonly, type InjectionKey, type Ref} from 'vue'
 import {getItem, setItem} from '@/api/storage'
 
 const STORAGE_KEY = 'sidebar_collapsed'
 
-const collapsed = ref<boolean>(getItem(STORAGE_KEY) === '1')
-
-function setCollapsed(value: boolean) {
-    collapsed.value = value
-    setItem(STORAGE_KEY, value ? '1' : '0')
+function collapsedState() {
+    return useState('useSidebarCollapse', () => false)
 }
 
-function toggle() {
-    setCollapsed(!collapsed.value)
+/**
+ * Puts the reader's stored choice into the state, which starts out expanded like the page the
+ * server sends. Called by the client plugin: before the first render where the page was not rendered
+ * on the server, after hydration where it was.
+ */
+export function restoreSidebarCollapse() {
+    collapsedState().value = getItem(STORAGE_KEY) === '1'
 }
 
 /**
@@ -35,7 +37,18 @@ export const SIDEBAR_COLLAPSIBLE: InjectionKey<Ref<boolean> | boolean> = Symbol(
  * to force-expand the sidebar for its subtree.
  */
 export function useSidebarCollapse() {
+    const collapsed = collapsedState()
     const collapsibleProvided = inject(SIDEBAR_COLLAPSIBLE, true)
+
+    function setCollapsed(value: boolean) {
+        collapsed.value = value
+        setItem(STORAGE_KEY, value ? '1' : '0')
+    }
+
+    function toggle() {
+        setCollapsed(!collapsed.value)
+    }
+
     const effectiveCollapsed = computed(() => {
         const isCollapsible = typeof collapsibleProvided === 'boolean'
             ? collapsibleProvided

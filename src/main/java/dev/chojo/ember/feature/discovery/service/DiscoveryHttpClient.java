@@ -6,19 +6,20 @@
 package dev.chojo.ember.feature.discovery.service;
 
 import dev.chojo.ember.api.Failures;
+import dev.chojo.ember.feature.federation.service.OutboundHttp;
+import dev.chojo.ember.feature.federation.service.RefusedDestinationException;
 import dev.chojo.ember.feature.federation.service.RemoteUrlValidator;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tools.jackson.core.JacksonException;
-import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.net.ConnectException;
 import java.net.URI;
 import java.net.UnknownHostException;
-import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.net.http.HttpTimeoutException;
@@ -42,59 +43,46 @@ import javax.net.ssl.SSLException;
  * {@code FAIL_ON_UNKNOWN_PROPERTIES} so a peer running a newer discovery protocol
  * version can add fields to a response without breaking older peers.
  *
- * <p>Every outbound target URL is checked against {@link RemoteUrlValidator} before
- * the request is sent, so attacker-supplied peer base URLs and ping callback URLs
- * cannot be used to reach loopback, link-local, or otherwise private addresses.
+ * <p>Every request goes out through {@link OutboundHttp}: the target host is resolved once, every
+ * address is checked against {@link RemoteUrlValidator}, and the connection goes to the checked
+ * address, so attacker-supplied peer base URLs and ping callback URLs cannot be used to reach
+ * loopback, link-local, or otherwise private addresses, not even by answering DNS differently the
+ * second time.
  */
 @Singleton
 public class DiscoveryHttpClient {
     private static final Logger log = LoggerFactory.getLogger(DiscoveryHttpClient.class);
-    private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(5);
     private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(10);
 
-    private final HttpClient httpClient;
+    private final OutboundHttp outbound;
     private final DiscoverySigningService signingService;
-    private final RemoteUrlValidator urlValidator;
-    private final JsonMapper mapper;
+    private final JsonMapper mapper = OutboundHttp.lenientMapper();
 
     @Inject
-    public DiscoveryHttpClient(DiscoverySigningService signingService, RemoteUrlValidator urlValidator) {
+    public DiscoveryHttpClient(DiscoverySigningService signingService, OutboundHttp outbound) {
         this.signingService = signingService;
-        this.urlValidator = urlValidator;
-        this.httpClient =
-                HttpClient.newBuilder().connectTimeout(CONNECT_TIMEOUT).build();
-        this.mapper = JsonMapper.builder()
-                .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
-                .disable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
-                .build();
-    }
-
-    private static String joinUrl(String baseUrl, String path) {
-        String host = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
-        return host + path;
+        this.outbound = outbound;
     }
 
     /**
      * Performs an unauthenticated GET and deserializes the response. Returns {@code null} on
      * non-2xx or transport failure.
      */
-    public <T> T get(String baseUrl, String path, Class<T> responseType) {
+    public <T> @Nullable T get(String baseUrl, String path, Class<T> responseType) {
         try {
-            String url = joinUrl(baseUrl, path);
-            if (!urlValidator.isAllowed(url)) {
-                log.warn("Discovery GET rejected by RemoteUrlValidator: {}", url);
-                return null;
-            }
             var request = HttpRequest.newBuilder()
-                    .uri(URI.create(url))
+                    .uri(URI.create(OutboundHttp.join(baseUrl, path)))
                     .timeout(REQUEST_TIMEOUT)
                     .GET()
                     .build();
-            var response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            var response = outbound.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() >= 200 && response.statusCode() < 300) {
                 return mapper.readValue(response.body(), responseType);
             }
             log.debug("Discovery GET {} on {} returned HTTP {}", path, baseUrl, response.statusCode());
+            return null;
+        } catch (RefusedDestinationException e) {
+            log.warn("Discovery GET {} on {} refused: {}", path, baseUrl, e.getMessage());
             return null;
         } catch (Exception e) {
             log.debug("Discovery GET {} on {} failed: {}", path, baseUrl, e.getMessage());
@@ -121,24 +109,19 @@ public class DiscoveryHttpClient {
      * @return what the peer said, or a sentence saying why it said nothing
      */
     public <T> Probe<T> probe(String baseUrl, String path, Class<T> responseType) {
-        String url;
+        URI uri;
         try {
-            url = joinUrl(baseUrl, path);
+            uri = URI.create(OutboundHttp.join(baseUrl, path));
         } catch (RuntimeException e) {
             return Probe.stoppedBy("That address could not be read as a web address");
         }
-        if (!urlValidator.isAllowed(url)) {
-            log.warn("Discovery probe rejected by RemoteUrlValidator: {}", url);
-            return Probe.stoppedBy("This instance may not reach that address. Addresses on the local network, "
-                    + "on loopback and in private ranges are refused before the request is sent");
-        }
         try {
             var request = HttpRequest.newBuilder()
-                    .uri(URI.create(url))
+                    .uri(uri)
                     .timeout(REQUEST_TIMEOUT)
                     .GET()
                     .build();
-            var response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            var response = outbound.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() < 200 || response.statusCode() >= 300) {
                 return Probe.stoppedBy("The address answered with HTTP " + response.statusCode()
                         + ". Something is running there, but it is not offering what a peer offers, "
@@ -149,10 +132,25 @@ public class DiscoveryHttpClient {
             log.debug("Discovery probe {} on {} answered with something unreadable", path, baseUrl, e);
             return Probe.stoppedBy("The address answered, but not with anything a peer would send. "
                     + "It is probably not an Ember instance");
+        } catch (RefusedDestinationException e) {
+            log.warn("Discovery probe {} on {} refused: {}", path, baseUrl, e.getMessage());
+            return Probe.stoppedBy(whyItWasRefused(e, uri));
         } catch (Exception e) {
             log.debug("Discovery probe {} on {} failed", path, baseUrl, e);
             return Probe.stoppedBy(whyItFailed(e));
         }
+    }
+
+    /**
+     * Turns a refused destination into the sentence that names the fix.
+     */
+    private static String whyItWasRefused(RefusedDestinationException refusal, URI uri) {
+        return switch (refusal.reason()) {
+            case UNRESOLVABLE -> "The name " + uri.getHost() + " does not resolve. Check the spelling of the address";
+            case MALFORMED, NOT_PUBLIC ->
+                "This instance may not reach that address. Addresses on the local network, "
+                        + "on loopback and in private ranges are refused before the request is sent";
+        };
     }
 
     /**
@@ -187,22 +185,13 @@ public class DiscoveryHttpClient {
      * @param problem why nothing came back, in a sentence an operator can act on, or {@code null}
      *         where something did
      */
-    public record Probe<T>(T value, String problem) {
+    public record Probe<T>(@Nullable T value, @Nullable String problem) {
         static <T> Probe<T> reachedWith(T value) {
             return new Probe<>(value, null);
         }
 
         static <T> Probe<T> stoppedBy(String problem) {
             return new Probe<>(null, problem);
-        }
-
-        /**
-         * Whether the peer answered with what was asked for.
-         *
-         * @return true when {@link #value} is there to be used
-         */
-        public boolean reached() {
-            return value != null;
         }
     }
 
@@ -233,21 +222,19 @@ public class DiscoveryHttpClient {
 
     private boolean post(String baseUrl, String path, Object body, boolean signed) {
         try {
-            String url = joinUrl(baseUrl, path);
-            if (!urlValidator.isAllowed(url)) {
-                log.warn("Discovery POST rejected by RemoteUrlValidator: {}", url);
-                return false;
-            }
             String json = mapper.writeValueAsString(body);
             var request = HttpRequest.newBuilder()
-                    .uri(URI.create(url))
+                    .uri(URI.create(OutboundHttp.join(baseUrl, path)))
                     .timeout(REQUEST_TIMEOUT)
                     .header("Content-Type", "application/json");
             if (signed) request.header(DiscoverySigningService.SIGNATURE_HEADER, signingService.sign(json));
-            var response = httpClient.send(
+            var response = outbound.send(
                     request.POST(HttpRequest.BodyPublishers.ofString(json)).build(),
                     HttpResponse.BodyHandlers.ofString());
             return response.statusCode() >= 200 && response.statusCode() < 300;
+        } catch (RefusedDestinationException e) {
+            log.warn("Discovery POST {} on {} refused: {}", path, baseUrl, e.getMessage());
+            return false;
         } catch (Exception e) {
             log.debug("Discovery POST {} on {} failed: {}", path, baseUrl, e.getMessage(), e);
             return false;
@@ -272,22 +259,20 @@ public class DiscoveryHttpClient {
      */
     public Optional<Answer> beaconPost(String baseUrl, String path, Object body) {
         try {
-            String url = joinUrl(baseUrl, path);
-            if (!urlValidator.isAllowed(url)) {
-                log.warn("Beacon POST rejected by RemoteUrlValidator: {}", url);
-                return Optional.empty();
-            }
             String json = mapper.writeValueAsString(body);
             var request = HttpRequest.newBuilder()
-                    .uri(URI.create(url))
+                    .uri(URI.create(OutboundHttp.join(baseUrl, path)))
                     .timeout(REQUEST_TIMEOUT)
                     .header("Content-Type", "application/json")
                     .header(DiscoverySigningService.SIGNATURE_HEADER, signingService.sign(json))
                     .header(DiscoverySigningService.BEACON_KEY_HEADER, signingService.publicKeyBase64())
                     .POST(HttpRequest.BodyPublishers.ofString(json))
                     .build();
-            var response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            var response = outbound.send(request, HttpResponse.BodyHandlers.ofString());
             return Optional.of(new Answer(response.statusCode(), response.body()));
+        } catch (RefusedDestinationException e) {
+            log.warn("Beacon POST {} on {} refused: {}", path, baseUrl, e.getMessage());
+            return Optional.empty();
         } catch (Exception e) {
             log.debug("Beacon POST {} on {} failed: {}", path, baseUrl, e.getMessage(), e);
             return Optional.empty();

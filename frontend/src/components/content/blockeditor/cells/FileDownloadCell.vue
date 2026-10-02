@@ -5,14 +5,17 @@
  */
 <script lang="ts" setup>
 import {onMounted, ref, watch} from 'vue'
+import {useI18n} from 'vue-i18n'
 import EmptyHint from '@/components/typography/EmptyHint.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import {type FileDownloadConfig} from '@/api/pageManage'
-import {listMediaFiles, type StationFile} from '@/api/media'
+import type {FileDownloadConfig, StationFile} from '@/api/generated/schema'
+import {listMediaFiles} from '@/api/media'
 
 const props = defineProps<{
     config: FileDownloadConfig
 }>()
+
+const {t} = useI18n()
 
 const fileResolved = ref<StationFile | null>(null)
 
@@ -55,5 +58,5 @@ watch(() => props.config.url, resolveFileDownload)
         </div>
         <font-awesome-icon :icon="['fas', 'download']" class="text-(--text-muted)"/>
     </a>
-    <EmptyHint v-else>Datei-URL fehlt</EmptyHint>
+    <EmptyHint v-else>{{ t('stationPages.cellHints.fileUrlMissing') }}</EmptyHint>
 </template>

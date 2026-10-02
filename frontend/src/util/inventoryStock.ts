@@ -3,7 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {ItemCustody, ItemOwner, type InventoryItem} from '@/api/inventory'
+import {ItemCustody, ItemOwner} from '@/api/inventory'
+import type {InventoryItem} from '@/api/generated/schema'
 
 /**
  * Whether a piece is one the station could actually bring along.

@@ -7,25 +7,24 @@ package dev.chojo.ember.feature.system.service;
 
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
-import dev.chojo.ember.feature.attendance.entity.AttendanceFieldType;
 import dev.chojo.ember.feature.attendance.entity.AttendanceTemplate;
+import dev.chojo.ember.feature.attendance.entity.TemplateGroup;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
-import dev.chojo.ember.feature.events.entity.EventFieldConfig;
-import dev.chojo.ember.feature.events.entity.EventFieldType;
+import dev.chojo.ember.feature.events.entity.AppointmentTemplateFieldDraft;
+import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.EventRegistrationField;
-import dev.chojo.ember.feature.events.entity.EventRegistrationFieldConfig;
-import dev.chojo.ember.feature.events.entity.EventTemplateFieldData;
+import dev.chojo.ember.feature.events.entity.RegistrationFieldDraft;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventCategoryRepository;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
-import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository.FieldEntry;
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
 import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventRegistrationFieldService;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
 import dev.chojo.ember.feature.events.service.EventTemplateService;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import jakarta.inject.Inject;
@@ -144,7 +143,8 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
     }
 
     /**
-     * Seeds the station's appointments, each dated on the station's own clock.
+     * Seeds the station's appointments, each dated on the station's own clock. One of them is always today,
+     * so the demo never opens on an empty day.
      *
      * @param days today and the hours of a day as the station has them
      */
@@ -155,33 +155,25 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
             int groupFortgeschrittenId,
             List<StationMember> anfaengerMembers,
             List<StationMember> fortgeschrittenMembers) {
-
-        // -- Attendance templates --
         var templateUebung = attendanceRepository.createTemplate(stationId, "Übung");
         attendanceRepository.setTemplateGroups(
                 templateUebung.id(),
-                List.of(
-                        new AttendanceRepository.TemplateGroup(groupAnfaengerId, 0),
-                        new AttendanceRepository.TemplateGroup(groupFortgeschrittenId, 1)));
+                List.of(new TemplateGroup(groupAnfaengerId, 0), new TemplateGroup(groupFortgeschrittenId, 1)));
         attendanceRepository.createTemplateField(
                 templateUebung.id(),
                 "Thema",
-                AttendanceFieldType.STRING,
+                FieldType.TEXT,
                 AttendanceFieldConfig.parse("{\"defaultValue\":\"Grundausbildung\"}"),
                 0);
 
         var templateGesamt = attendanceRepository.createTemplate(stationId, "Gesamtübung");
         attendanceRepository.setTemplateGroups(
                 templateGesamt.id(),
-                List.of(
-                        new AttendanceRepository.TemplateGroup(groupAnfaengerId, 0),
-                        new AttendanceRepository.TemplateGroup(groupFortgeschrittenId, 1)));
+                List.of(new TemplateGroup(groupAnfaengerId, 0), new TemplateGroup(groupFortgeschrittenId, 1)));
 
-        // -- Event categories --
         var catUebung = categoryRepository.create(stationId, "Übungen", 0, "#ff6421");
         var catVeranstaltung = categoryRepository.create(stationId, "Veranstaltungen", 1, "#73ceff");
         var catWettbewerb = categoryRepository.create(stationId, "Wettbewerbe", 2, "#ffdd1b");
-        // Make Veranstaltungen public (all events in this category visible on public calendar)
         categoryRepository.update(
                 catVeranstaltung.id(),
                 catVeranstaltung.name(),
@@ -190,7 +182,6 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
                 true,
                 catVeranstaltung.color());
 
-        // -- Events --
         LocalDate today = days.today();
         Instant monStart = days.at(today, 17, 30);
         Instant monEnd = days.at(today, 19, 0);
@@ -252,7 +243,6 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
                 null);
         crudService.setRepeatEnd(grundlehrgang.id(), null, 8);
 
-        // Monthly: first Saturday = Elternabend
         var elternabend = crudService.create(
                 stationId,
                 "Elternabend",
@@ -295,7 +285,6 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
         restrictToUserTypes(dienstbesprechung.id(), BETREUER);
         hideFromEveryoneBut(dienstbesprechung.id(), BETREUER);
 
-        // Yearly: Jahreshauptversammlung on Sep 20
         LocalDate jhvDate = today.withMonth(9).withDayOfMonth(20);
         Instant jhvStart = days.at(jhvDate, 18, 0);
         Instant jhvEnd = days.at(jhvDate, 21, 0);
@@ -317,15 +306,12 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
                 null,
                 null);
 
-        // One-time event for today (ensures there's always an event today)
         Instant todayEventStart = days.at(today, 16, 0);
         Instant todayEventEnd = days.at(today, 18, 0);
         var templateTheorie = attendanceRepository.createTemplate(stationId, "Theorieabend");
         attendanceRepository.setTemplateGroups(
                 templateTheorie.id(),
-                List.of(
-                        new AttendanceRepository.TemplateGroup(groupAnfaengerId, 0),
-                        new AttendanceRepository.TemplateGroup(groupFortgeschrittenId, 1)));
+                List.of(new TemplateGroup(groupAnfaengerId, 0), new TemplateGroup(groupFortgeschrittenId, 1)));
         var theorieabend = crudService.create(
                 stationId,
                 "Theorieabend",
@@ -349,7 +335,6 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
                     theorieabend.id(), anfaengerMembers.get(i).id(), today, RegistrationStatus.DECLINED, null);
         }
 
-        // -- Registration-required events --
         LocalDate tagDate = today.plusMonths(1).withDayOfMonth(15);
         Instant nextMonth = days.at(tagDate, 10, 0);
         Instant nextMonthEnd = days.at(tagDate, 16, 0);
@@ -440,7 +425,6 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
                 null);
         restrictToUserTypes(zeltlager.id(), JUGENDFEUERWEHR);
 
-        // Add some registrations
         for (int i = 0; i < 8 && i < fortgeschrittenMembers.size(); i++) {
             registrationRepository.create(
                     tagDerOffenenTuer.id(),
@@ -461,18 +445,15 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
                     RegistrationStatus.ACCEPTED,
                     null);
         }
-        // Some pending registrations for Kreiswettbewerb
         for (int i = 0; i < 6 && i < fortgeschrittenMembers.size(); i++) {
             registrationRepository.create(
                     kreisWettbewerb.id(), fortgeschrittenMembers.get(i).id(), kwDate, RegistrationStatus.PENDING, null);
         }
 
-        // Declined registrations for Stadtfest
         for (int i = 5; i < 8 && i < anfaengerMembers.size(); i++) {
             registrationRepository.create(
                     stadtfest.id(), anfaengerMembers.get(i).id(), stadtfestDate, RegistrationStatus.DECLINED, null);
         }
-        // Declined registrations for Kreiswettbewerb
         for (int i = 6; i < 9 && i < fortgeschrittenMembers.size(); i++) {
             registrationRepository.create(
                     kreisWettbewerb.id(),
@@ -481,7 +462,6 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
                     RegistrationStatus.DECLINED,
                     null);
         }
-        // Denied registration for Tag der offenen Tuer
         if (anfaengerMembers.size() > 9) {
             registrationRepository.create(
                     tagDerOffenenTuer.id(), anfaengerMembers.get(9).id(), tagDate, RegistrationStatus.DENIED, null);
@@ -489,7 +469,6 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
 
         seedMarathon(days, stationId, catVeranstaltung.id(), fortgeschrittenMembers, anfaengerMembers);
 
-        // -- Oeffentlichkeitsarbeit events --
         var catOeffentlichkeit = categoryRepository.create(stationId, "Öffentlichkeitsarbeit", 3, "#00c507");
         categoryRepository.update(
                 catOeffentlichkeit.id(),
@@ -502,7 +481,6 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
         allMembers.addAll(anfaengerMembers);
         allMembers.addAll(fortgeschrittenMembers);
 
-        // Past events (completed)
         String[] oeNames = {
             "Feuerwehrfest Sommerfest",
             "Brandschutztag Grundschule",
@@ -543,8 +521,8 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
             eventFieldRepository.create(
                     oeEvent.id(),
                     "Ort",
-                    EventFieldType.LOCATION,
-                    EventFieldConfig.parse("{}"),
+                    FieldType.LOCATION,
+                    EventQuestionSettings.empty(),
                     oeOrte[e],
                     0,
                     true,
@@ -553,25 +531,23 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
             eventFieldRepository.create(
                     oeEvent.id(),
                     "Treffpunkt",
-                    EventFieldType.STRING,
-                    EventFieldConfig.parse("{}"),
+                    FieldType.TEXT,
+                    EventQuestionSettings.empty(),
                     "Feuerwehrgerätehaus",
                     1,
                     true,
                     null,
                     true);
-            // Create registrations with rotation: offset accepted members per event for variance
             int count = Math.min(oeMemberCounts[e], allMembers.size());
-            int acceptOffset = e * 3; // shift which members get accepted each event
+            int acceptedRotation = e * 3;
             for (int i = 0; i < count; i++) {
-                int rotatedIdx = (i + acceptOffset) % allMembers.size();
+                int rotatedIdx = (i + acceptedRotation) % allMembers.size();
                 var status = i < 6 ? RegistrationStatus.ACCEPTED : RegistrationStatus.DENIED;
                 registrationRepository.create(
                         oeEvent.id(), allMembers.get(rotatedIdx).id(), eventDate, status, null);
             }
         }
 
-        // One open event with pending (unconfirmed) registrations
         LocalDate openDate = today.plusWeeks(1);
         Instant openStart = days.at(openDate, 9, 0);
         Instant openEnd = days.at(openDate, 15, 0);
@@ -596,8 +572,8 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
         eventFieldRepository.create(
                 oeOpen.id(),
                 "Ort",
-                EventFieldType.LOCATION,
-                EventFieldConfig.parse("{}"),
+                FieldType.LOCATION,
+                EventQuestionSettings.empty(),
                 "Rathausplatz Musterstadt",
                 0,
                 true,
@@ -606,8 +582,8 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
         eventFieldRepository.create(
                 oeOpen.id(),
                 "Treffpunkt",
-                EventFieldType.STRING,
-                EventFieldConfig.parse("{}"),
+                FieldType.TEXT,
+                EventQuestionSettings.empty(),
                 "Feuerwehrgerätehaus 08:30",
                 1,
                 true,
@@ -616,27 +592,24 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
         eventFieldRepository.create(
                 oeOpen.id(),
                 "Hinweis",
-                EventFieldType.STRING,
-                EventFieldConfig.parse("{}"),
+                FieldType.TEXT,
+                EventQuestionSettings.empty(),
                 "Dienstkleidung und Ausrüstung mitbringen",
                 2,
                 false,
                 null,
                 false);
-        // 14 registrations: 6 accepted, 8 pending (not yet confirmed)
         int openCount = Math.min(14, allMembers.size());
         for (int i = 0; i < openCount; i++) {
             var status = i < 6 ? RegistrationStatus.ACCEPTED : RegistrationStatus.PENDING;
             registrationRepository.create(oeOpen.id(), allMembers.get(i).id(), openDate, status, null);
         }
 
-        // -- Event Fields --
-        // Per-event fields
         eventFieldRepository.create(
                 tagDerOffenenTuer.id(),
                 "Ort",
-                EventFieldType.LOCATION,
-                EventFieldConfig.parse("{}"),
+                FieldType.LOCATION,
+                EventQuestionSettings.empty(),
                 "Feuerwehrhaus Musterstadt",
                 0,
                 true,
@@ -645,8 +618,8 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
         eventFieldRepository.create(
                 tagDerOffenenTuer.id(),
                 "Treffpunkt",
-                EventFieldType.STRING,
-                EventFieldConfig.parse("{}"),
+                FieldType.TEXT,
+                EventQuestionSettings.empty(),
                 "Haupteingang",
                 1,
                 true,
@@ -655,8 +628,8 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
         eventFieldRepository.create(
                 tagDerOffenenTuer.id(),
                 "Hinweis",
-                EventFieldType.STRING,
-                EventFieldConfig.parse("{}"),
+                FieldType.TEXT,
+                EventQuestionSettings.empty(),
                 "Dienstkleidung tragen",
                 2,
                 false,
@@ -665,8 +638,8 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
         eventFieldRepository.create(
                 stadtfest.id(),
                 "Ort",
-                EventFieldType.LOCATION,
-                EventFieldConfig.parse("{}"),
+                FieldType.LOCATION,
+                EventQuestionSettings.empty(),
                 "Marktplatz Musterstadt",
                 0,
                 true,
@@ -675,8 +648,8 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
         eventFieldRepository.create(
                 stadtfest.id(),
                 "Treffpunkt",
-                EventFieldType.STRING,
-                EventFieldConfig.parse("{}"),
+                FieldType.TEXT,
+                EventQuestionSettings.empty(),
                 "Stand der Jugendfeuerwehr",
                 1,
                 true,
@@ -685,8 +658,8 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
         eventFieldRepository.create(
                 kreisWettbewerb.id(),
                 "Ort",
-                EventFieldType.LOCATION,
-                EventFieldConfig.parse("{}"),
+                FieldType.LOCATION,
+                EventQuestionSettings.empty(),
                 "Sportplatz Nachbarstadt",
                 0,
                 true,
@@ -695,19 +668,18 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
         eventFieldRepository.create(
                 kreisWettbewerb.id(),
                 "Hinweis",
-                EventFieldType.STRING,
-                EventFieldConfig.parse("{}"),
+                FieldType.TEXT,
+                EventQuestionSettings.empty(),
                 "Wettkampfkleidung und Ausrüstung mitbringen",
                 1,
                 false,
                 null,
                 false);
-        // Recurring event fields
         eventFieldRepository.create(
                 evUebung.id(),
                 "Ort",
-                EventFieldType.LOCATION,
-                EventFieldConfig.parse("{}"),
+                FieldType.LOCATION,
+                EventQuestionSettings.empty(),
                 "Feuerwehrhaus Musterstadt",
                 0,
                 true,
@@ -716,8 +688,8 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
         eventFieldRepository.create(
                 evUebung.id(),
                 "Hinweis",
-                EventFieldType.STRING,
-                EventFieldConfig.parse("{}"),
+                FieldType.TEXT,
+                EventQuestionSettings.empty(),
                 "Sportkleidung mitbringen",
                 1,
                 false,
@@ -726,8 +698,8 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
         eventFieldRepository.create(
                 evGesamt.id(),
                 "Ort",
-                EventFieldType.LOCATION,
-                EventFieldConfig.parse("{}"),
+                FieldType.LOCATION,
+                EventQuestionSettings.empty(),
                 "Feuerwehrhaus Musterstadt",
                 0,
                 true,
@@ -736,8 +708,8 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
         eventFieldRepository.create(
                 evGesamt.id(),
                 "Treffpunkt",
-                EventFieldType.STRING,
-                EventFieldConfig.parse("{}"),
+                FieldType.TEXT,
+                EventQuestionSettings.empty(),
                 "Fahrzeughalle",
                 1,
                 true,
@@ -746,8 +718,8 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
         eventFieldRepository.create(
                 theorieabend.id(),
                 "Ort",
-                EventFieldType.LOCATION,
-                EventFieldConfig.parse("{}"),
+                FieldType.LOCATION,
+                EventQuestionSettings.empty(),
                 "Schulungsraum Feuerwehrhaus",
                 0,
                 true,
@@ -756,8 +728,8 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
         eventFieldRepository.create(
                 theorieabend.id(),
                 "Hinweis",
-                EventFieldType.STRING,
-                EventFieldConfig.parse("{}"),
+                FieldType.TEXT,
+                EventQuestionSettings.empty(),
                 "Schreibzeug mitbringen",
                 1,
                 false,
@@ -790,19 +762,19 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
         eventTemplateService.replaceFields(
                 tplStandard.id(),
                 List.of(
-                        new EventTemplateFieldData(
+                        new AppointmentTemplateFieldDraft(
                                 "Ort",
-                                EventFieldType.LOCATION,
-                                EventFieldConfig.parse("{}"),
+                                FieldType.LOCATION,
+                                EventQuestionSettings.empty(),
                                 0,
                                 true,
                                 true,
                                 null,
                                 "Gerätehaus"),
-                        new EventTemplateFieldData(
+                        new AppointmentTemplateFieldDraft(
                                 "Treffpunkt",
-                                EventFieldType.STRING,
-                                EventFieldConfig.parse("{}"),
+                                FieldType.TEXT,
+                                EventQuestionSettings.empty(),
                                 1,
                                 true,
                                 true,
@@ -825,24 +797,10 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
         eventTemplateService.replaceFields(
                 tplWettbewerb.id(),
                 List.of(
-                        new EventTemplateFieldData(
-                                "Ort",
-                                EventFieldType.LOCATION,
-                                EventFieldConfig.parse("{}"),
-                                0,
-                                true,
-                                true,
-                                null,
-                                null),
-                        new EventTemplateFieldData(
-                                "Thema",
-                                EventFieldType.STRING,
-                                EventFieldConfig.parse("{}"),
-                                1,
-                                true,
-                                false,
-                                null,
-                                null)));
+                        new AppointmentTemplateFieldDraft(
+                                "Ort", FieldType.LOCATION, EventQuestionSettings.empty(), 0, true, true, null, null),
+                        new AppointmentTemplateFieldDraft(
+                                "Thema", FieldType.TEXT, EventQuestionSettings.empty(), 1, true, false, null, null)));
         log.info("Demo: Created event templates");
     }
 
@@ -894,31 +852,36 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
         registrationFieldService.replaceFields(
                 marathon.id(),
                 List.of(
-                        new FieldEntry(
+                        new RegistrationFieldDraft(
                                 "Shirtgröße",
-                                EventFieldType.ENUM,
-                                new EventRegistrationFieldConfig(
-                                        true,
-                                        "M",
+                                FieldType.CHOICE,
+                                new EventQuestionSettings(
                                         List.of("XS", "S", "M", "L", "XL", "XXL"),
                                         null,
                                         null,
                                         null,
                                         null,
+                                        false,
+                                        false,
+                                        true,
+                                        "M",
+                                        null,
                                         null,
                                         false),
                                 true),
-                        new FieldEntry(
+                        new RegistrationFieldDraft(
                                 "Begleitpersonen",
-                                EventFieldType.NUMBER,
-                                new EventRegistrationFieldConfig(false, "0", null, 0, 5, null, null, null, false),
+                                FieldType.NUMBER,
+                                new EventQuestionSettings(
+                                        null, null, null, null, null, false, false, false, "0", 0, 5, false),
                                 true),
-                        new FieldEntry(
-                                "Anmerkungen", EventFieldType.TEXTAREA, EventRegistrationFieldConfig.empty(), false),
-                        new FieldEntry(
+                        new RegistrationFieldDraft(
+                                "Anmerkungen", FieldType.LONG_TEXT, EventQuestionSettings.empty(), false),
+                        new RegistrationFieldDraft(
                                 "Startnummer",
-                                EventFieldType.STRING,
-                                new EventRegistrationFieldConfig(false, null, null, null, null, null, null, null, true),
+                                FieldType.TEXT,
+                                new EventQuestionSettings(
+                                        null, null, null, null, null, false, false, false, null, null, null, true),
                                 true)));
 
         var fields = registrationFieldService.findByEvent(marathon.id());

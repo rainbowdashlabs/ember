@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.inventory.entity.InventoryTag;
 import dev.chojo.ember.feature.inventory.entity.TaggedItemSummary;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -58,7 +59,7 @@ public class InventoryTagRepository {
      * @param color     optional hex colour, {@code null} for none
      * @return the created tag
      */
-    public InventoryTag create(int stationId, String name, String color) {
+    public InventoryTag create(int stationId, String name, @Nullable String color) {
         return SqlSupport.insertReturning(
                 """
                 INSERT INTO inventory_tag(station_id, name, color, position)
@@ -108,7 +109,7 @@ public class InventoryTagRepository {
     /**
      * Renames a tag and changes its colour and place.
      */
-    public boolean update(int id, String name, String color, int position) {
+    public boolean update(int id, String name, @Nullable String color, int position) {
         return query("""
                 UPDATE inventory_tag
                 SET name     = :name,

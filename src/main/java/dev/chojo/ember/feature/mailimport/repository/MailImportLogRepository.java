@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.mailimport.repository;
 import dev.chojo.ember.feature.mailimport.entity.MailImportEntry;
 import dev.chojo.ember.feature.mailimport.entity.MailImportOutcome;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.List;
@@ -45,15 +46,15 @@ public class MailImportLogRepository {
     public MailImportEntry record(
             int mailboxId,
             int stationId,
-            Integer ruleId,
+            @Nullable Integer ruleId,
             String messageId,
-            String sender,
-            String subject,
-            String attachmentName,
-            String contentHash,
+            @Nullable String sender,
+            @Nullable String subject,
+            @Nullable String attachmentName,
+            @Nullable String contentHash,
             MailImportOutcome outcome,
-            String reason,
-            Integer documentId) {
+            @Nullable String reason,
+            @Nullable Integer documentId) {
         int id = query("""
                         INSERT INTO mail_import_entry(mailbox_id, station_id, rule_id, message_id, sender, subject,
                                                       attachment_name, content_hash, outcome, reason, document_id)

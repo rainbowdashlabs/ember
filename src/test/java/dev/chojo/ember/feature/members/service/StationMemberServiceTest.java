@@ -5,16 +5,15 @@
  */
 package dev.chojo.ember.feature.members.service;
 
-import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.MemberRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.ForbiddenResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
@@ -24,7 +23,6 @@ import org.junit.jupiter.api.TestMethodOrder;
 
 import java.util.EnumSet;
 import java.util.List;
-import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -114,10 +112,11 @@ class StationMemberServiceTest extends RepositoryTestBase {
         var adminPerm = stationMemberRepo
                 .findPermissionByName(StationPermission.STATION_ADMINISTRATOR)
                 .orElseThrow();
-        assertThrows(
-                ForbiddenResponse.class,
+        var refused = assertThrows(
+                RefusalResponse.class,
                 () -> service.setPermissions(
                         member2.id(), List.of(adminPerm.id()), EnumSet.of(StationPermission.MEMBER_MANAGER), null));
+        assertEquals(MemberRefusal.MEMBER_PERMISSION_NOT_YOURS_TO_GRANT, refused.refusal());
     }
 
     @Test
@@ -132,31 +131,11 @@ class StationMemberServiceTest extends RepositoryTestBase {
     }
 
     @Test
-    @Order(20)
-    void findSpokenForIdsAddsManagedMembersOnlyForGuardians() {
-        stationMemberRepo.addManager(member1.id(), member2.id());
-
-        assertEquals(
-                List.of(member1.id(), member2.id()),
-                service.findSpokenForIds(sessionOf(member1, Set.of(StationPermission.MEMBER_GUARDIAN))));
-        assertEquals(List.of(member1.id()), service.findSpokenForIds(sessionOf(member1, Set.of())));
-        assertEquals(List.of(), service.findSpokenForIds(sessionOf(null, Set.of(StationPermission.MEMBER_GUARDIAN))));
-
-        stationMemberRepo.removeAllManaged(member1.id());
-    }
-
-    private static UserSession sessionOf(StationMember member, Set<StationPermission> permissions) {
-        return new UserSession(account1, 1, station.id(), station.uid(), member, permissions, Set.of(), null);
-    }
-
-    @Test
     @Order(21)
     void setManagers() {
-        // Set member1 as manager of member2
         var result = service.setManagers(member2.id(), List.of(member1.id()));
         assertTrue(result.stream().anyMatch(m -> m.id() == member1.id()));
 
-        // Remove all managers
         var cleared = service.setManagers(member2.id(), List.of());
         assertTrue(cleared.isEmpty());
     }
@@ -165,7 +144,6 @@ class StationMemberServiceTest extends RepositoryTestBase {
     @Order(22)
     void setManagersIdempotent() {
         service.setManagers(member2.id(), List.of(member1.id()));
-        // Setting again with same list should be idempotent
         var result = service.setManagers(member2.id(), List.of(member1.id()));
         assertEquals(1, result.size());
         service.setManagers(member2.id(), List.of());
@@ -205,19 +183,8 @@ class StationMemberServiceTest extends RepositoryTestBase {
     }
 
     @Test
-    @Order(24)
-    void setUserType() {
-        assertTrue(service.setUserType(member1.id(), StationUserType.TEAM));
-        var m = service.findById(member1.id()).orElseThrow();
-        assertEquals(StationUserType.TEAM, m.userType());
-        // Reset
-        service.setUserType(member1.id(), StationUserType.MEMBER);
-    }
-
-    @Test
     @Order(25)
     void setPermissionsGrantsLoginAndTriggersOnboarding() {
-        // Create a member with email for LOGIN permission testing
         var account3 = accountRepo.create("svc-login@test.com", "Login", "Test");
         var member3 = service.create(station.id(), account3.id());
 
@@ -233,7 +200,6 @@ class StationMemberServiceTest extends RepositoryTestBase {
                 null);
         assertTrue(result.stream().anyMatch(r -> r.permission() == StationPermission.LOGIN));
 
-        // Cleanup
         service.delete(member3.id());
         accountRepo.delete(account3.id());
     }
@@ -243,7 +209,6 @@ class StationMemberServiceTest extends RepositoryTestBase {
     void setPermissionsRevokesExisting() {
         var userPerm =
                 stationMemberRepo.findPermissionByName(StationPermission.USER).orElseThrow();
-        // Grant first
         service.setPermissions(
                 member2.id(),
                 List.of(userPerm.id()),
@@ -251,7 +216,6 @@ class StationMemberServiceTest extends RepositoryTestBase {
                 null);
         assertTrue(
                 service.findPermissions(member2.id()).stream().anyMatch(p -> p.permission() == StationPermission.USER));
-        // Revoke by passing empty list
         service.setPermissions(
                 member2.id(),
                 List.of(),
@@ -263,11 +227,9 @@ class StationMemberServiceTest extends RepositoryTestBase {
     @Test
     @Order(27)
     void setManaged() {
-        // Set member1 as manager of member2 via setManaged
         var result = service.setManaged(member1.id(), List.of(member2.id()));
         assertTrue(result.stream().anyMatch(m -> m.id() == member2.id()));
 
-        // Remove via empty list
         var cleared = service.setManaged(member1.id(), List.of());
         assertTrue(cleared.isEmpty());
     }
@@ -284,19 +246,19 @@ class StationMemberServiceTest extends RepositoryTestBase {
     @Test
     @Order(29)
     void setPermissionsRejectsLoginWithoutEmail() {
-        // Create an account without email
         var noEmailAccount = accountRepo.create(null, "NoEmail", "User");
         var noEmailMember = service.create(station.id(), noEmailAccount.id());
 
         var loginPerm =
                 stationMemberRepo.findPermissionByName(StationPermission.LOGIN).orElseThrow();
-        assertThrows(
-                BadRequestResponse.class,
+        var refused = assertThrows(
+                RefusalResponse.class,
                 () -> service.setPermissions(
                         noEmailMember.id(),
                         List.of(loginPerm.id()),
                         EnumSet.of(StationPermission.STATION_ADMINISTRATOR, StationPermission.LOGIN),
                         null));
+        assertEquals(MemberRefusal.MEMBER_SIGN_IN_NEEDS_AN_ADDRESS, refused.refusal());
 
         service.delete(noEmailMember.id());
         accountRepo.delete(noEmailAccount.id());
@@ -315,13 +277,14 @@ class StationMemberServiceTest extends RepositoryTestBase {
                 EnumSet.of(StationPermission.STATION_ADMINISTRATOR, StationPermission.USER),
                 null);
 
-        assertThrows(
-                ForbiddenResponse.class,
+        var refused = assertThrows(
+                RefusalResponse.class,
                 () -> service.setPermissions(
                         member3.id(),
                         List.of(),
                         EnumSet.of(StationPermission.STATION_ADMINISTRATOR, StationPermission.USER),
                         member3.id()));
+        assertEquals(MemberRefusal.MEMBER_OWN_PERMISSION_NOT_REMOVABLE, refused.refusal());
 
         service.delete(member3.id());
         accountRepo.delete(account3.id());
@@ -369,13 +332,14 @@ class StationMemberServiceTest extends RepositoryTestBase {
                 null);
         stationRepo.setOwner(ownerStation.id(), ownerMember.id());
 
-        assertThrows(
-                ForbiddenResponse.class,
+        var refused = assertThrows(
+                RefusalResponse.class,
                 () -> service.setPermissions(
                         ownerMember.id(),
                         List.of(userPerm.id()),
                         EnumSet.of(StationPermission.STATION_ADMINISTRATOR, StationPermission.USER),
                         null));
+        assertEquals(MemberRefusal.MEMBER_OWNER_KEEPS_ADMINISTRATION, refused.refusal());
 
         stationRepo.setOwner(ownerStation.id(), null);
         service.delete(ownerMember.id());
@@ -386,15 +350,58 @@ class StationMemberServiceTest extends RepositoryTestBase {
     @Test
     @Order(29)
     void setManagedRejectsNonManageableUserType() {
-        service.setUserType(member2.id(), StationUserType.TEAM);
-        assertThrows(BadRequestResponse.class, () -> service.setManaged(member1.id(), List.of(member2.id())));
-        service.setUserType(member2.id(), StationUserType.MEMBER);
+        stationMemberRepo.setUserType(member2.id(), StationUserType.TEAM);
+        var refused =
+                assertThrows(RefusalResponse.class, () -> service.setManaged(member1.id(), List.of(member2.id())));
+        assertEquals(MemberRefusal.MEMBER_TYPE_TAKES_NO_GUARDIANS, refused.refusal());
+        stationMemberRepo.setUserType(member2.id(), StationUserType.MEMBER);
+    }
+
+    @Test
+    @Order(29)
+    void setJoinDate() {
+        service.setJoinDate(member1.id(), java.time.LocalDate.of(2019, 3, 4));
+
+        assertEquals(
+                java.time.LocalDate.of(2019, 3, 4),
+                service.findById(member1.id()).orElseThrow().joinDate());
+    }
+
+    @Test
+    @Order(29)
+    void noActiveMemberIsListedAsFormer() {
+        assertTrue(service.findFormerByStation(station.id()).stream().noneMatch(m -> m.id() == member1.id()));
+    }
+
+    /**
+     * What a station grants a user type is added to what the type carries by itself, and every
+     * permission reaches the ones it includes.
+     */
+    @Test
+    @Order(29)
+    void userTypePermissionsAddToTheTypesOwnAndExpand() {
+        var administrator = service.findAllPermissions().stream()
+                .filter(p -> p.permission() == StationPermission.STATION_ADMINISTRATOR)
+                .findFirst()
+                .orElseThrow();
+
+        var granted = service.setUserTypePermissions(station.id(), StationUserType.TEAM, List.of(administrator.id()));
+        var effective = service.effectiveUserTypePermissions(station.id(), StationUserType.TEAM);
+
+        assertEquals(
+                List.of(administrator.id()), granted.stream().map(p -> p.id()).toList());
+        assertEquals(granted, service.findUserTypePermissions(station.id(), StationUserType.TEAM));
+        assertTrue(effective.contains(StationPermission.LOGIN.name()));
+        assertTrue(effective.contains(StationPermission.STATION_ADMINISTRATOR.name()));
+        assertTrue(effective.contains(StationPermission.MEMBER_EDIT.name()));
+        service.setUserTypePermissions(station.id(), StationUserType.TEAM, List.of());
+        assertFalse(service.effectiveUserTypePermissions(station.id(), StationUserType.TEAM)
+                .contains(StationPermission.STATION_ADMINISTRATOR.name()));
     }
 
     @Test
     @Order(30)
     void delete() {
-        // Create a third member to delete
         var account3 = accountRepo.create("svc3@test.com", "Third", "Member");
         var member3 = service.create(station.id(), account3.id());
         assertTrue(service.delete(member3.id()));

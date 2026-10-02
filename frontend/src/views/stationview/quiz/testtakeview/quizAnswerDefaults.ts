@@ -3,21 +3,22 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {QuizQuestionTypes, type QuizQuestion} from '@/api/quiz'
+import {QuizQuestionTypes} from '@/api/quiz'
+import type {QuizQuestionRead} from '@/api/generated/schema'
 import { shuffle } from '@/util/shuffle'
 
 /**
  * Builds the empty answer payload a question starts with, so every input type
  * renders from a shape it understands before the member touches it.
  */
-export function defaultAnswerFor(question: QuizQuestion): string {
-  const config = question.config ?? {}
+export function defaultAnswerFor(question: QuizQuestionRead): string {
+  const config: Record<string, unknown> = question.config
   if (question.quizQuestionType === QuizQuestionTypes.MULTIPLE_CHOICE) {
     return JSON.stringify({ selected: [] })
   }
   if (question.quizQuestionType === QuizQuestionTypes.ORDERING) {
-    const items = (config.items as string[]) ?? []
-    return JSON.stringify({ order: shuffle(items.map((_: string, i: number) => i)) })
+    const items = Array.isArray(config.items) ? config.items : []
+    return JSON.stringify({ order: shuffle(items.map((_, i: number) => i)) })
   }
   if (question.quizQuestionType === QuizQuestionTypes.TRUE_FALSE) {
     return JSON.stringify({ value: null })

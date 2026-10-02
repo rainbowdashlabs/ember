@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.maps.entity;
 
 import dev.chojo.ember.util.Json;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Tile provider configuration, persisted as JSON in the {@code application_setting} table
@@ -39,7 +40,7 @@ public record MapsTilesConfig(
      * Returns the URL template the operator actually configured, falling back to the
      * provider's baked-in default if the operator left the override blank.
      */
-    public String resolvedUrlTemplate() {
+    public @Nullable String resolvedUrlTemplate() {
         if (urlTemplate != null && !urlTemplate.isBlank()) return urlTemplate;
         return provider != null ? provider.defaultUrlTemplate() : null;
     }
@@ -48,7 +49,7 @@ public record MapsTilesConfig(
      * Returns the attribution the operator actually configured, falling back to the
      * provider's baked-in default. Always non-null when the provider is non-null.
      */
-    public String resolvedAttribution() {
+    public @Nullable String resolvedAttribution() {
         if (attribution != null && !attribution.isBlank()) return attribution;
         return provider != null ? provider.defaultAttribution() : null;
     }

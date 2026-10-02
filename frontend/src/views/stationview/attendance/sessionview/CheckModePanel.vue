@@ -15,9 +15,10 @@ import ButtonRow from '@/components/button/ButtonRow.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
 import {useBreakpoint} from '@/composables/useBreakpoint'
 import MemberCheckNotes from './MemberCheckNotes.vue'
-import type {AttendanceStatus, MemberNotes} from '@/api/attendance'
+import type {AttendanceStatus} from '@/api/attendance'
+import type {MemberNotes} from '@/api/generated/schema'
 import type {CheckRow} from './useCheckMode'
-import type {MemberIdentity} from '@/api/types'
+import type {PersonIdentity} from '@/util/personIdentity'
 
 const {t} = useI18n()
 const {isMobile} = useBreakpoint()
@@ -27,7 +28,7 @@ defineProps<{
   checkIndex: number
   totalUnchecked: number
   memberName: string
-  memberIdentity?: MemberIdentity | null
+  memberIdentity?: PersonIdentity | null
   notes?: MemberNotes
   canManageSwap?: boolean
   canSignOffFound?: boolean

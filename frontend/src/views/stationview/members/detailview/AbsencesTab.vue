@@ -20,7 +20,8 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
-import {createMemberAbsence, deleteMemberAbsence, listMemberAbsences, type MemberAbsence} from '@/api/absences'
+import {createMemberAbsence, deleteMemberAbsence, listMemberAbsences} from '@/api/absences'
+import type {MemberAbsence} from '@/api/generated/schema'
 import { useConfigPanel } from '@/composables/useConfigPanel'
 import { useAsyncAction } from '@/composables/useAsyncAction'
 import { useFlashMessage } from '@/composables/useFlashMessage'
@@ -45,8 +46,8 @@ const newReason = ref('')
 
 function statusOf(a: MemberAbsence): 'active' | 'upcoming' | 'expired' {
   const today = todayIsoDate()
-  if (a.absentUntil && a.absentUntil < today) return 'expired'
-  if (a.absentFrom && a.absentFrom > today) return 'upcoming'
+  if (a.absentUntil < today) return 'expired'
+  if (a.absentFrom > today) return 'upcoming'
   return 'active'
 }
 

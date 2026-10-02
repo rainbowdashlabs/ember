@@ -16,6 +16,7 @@ services:
   ember:
     container_name: ember
     image: ghcr.io/rainbowdashlabs/ember-backend:${EMBER_TAG:-latest}
+    stop_grace_period: 30s
     environment:
       DB_HOST: postgres
       DB_PORT: "5432"

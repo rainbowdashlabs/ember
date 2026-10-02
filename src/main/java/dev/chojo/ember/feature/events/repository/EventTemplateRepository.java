@@ -5,14 +5,16 @@
  */
 package dev.chojo.ember.feature.events.repository;
 
-import dev.chojo.ember.feature.events.entity.EventFieldType;
+import dev.chojo.ember.feature.events.entity.AppointmentTemplateField;
+import dev.chojo.ember.feature.events.entity.AppointmentTemplateFieldDraft;
 import dev.chojo.ember.feature.events.entity.EventTemplate;
-import dev.chojo.ember.feature.events.entity.EventTemplateField;
-import dev.chojo.ember.feature.events.entity.EventTemplateFieldData;
+import dev.chojo.ember.feature.events.entity.RegistrationFieldDraft;
+import dev.chojo.ember.feature.events.entity.RegistrationTemplateField;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.Optional;
@@ -55,16 +57,16 @@ public class EventTemplateRepository {
     public boolean update(
             int id,
             String name,
-            String title,
-            String description,
-            Integer categoryId,
-            StationEvent.EventType eventType,
-            Boolean requiresRegistration,
-            String registrationDeadlineOffset,
-            Boolean requiresConfirmation,
-            RestrictionMode restrictionMode,
-            Integer attendanceTemplateId,
-            Integer registrationLimit) {
+            @Nullable String title,
+            @Nullable String description,
+            @Nullable Integer categoryId,
+            StationEvent.@Nullable EventType eventType,
+            @Nullable Boolean requiresRegistration,
+            @Nullable String registrationDeadlineOffset,
+            @Nullable Boolean requiresConfirmation,
+            @Nullable RestrictionMode restrictionMode,
+            @Nullable Integer attendanceTemplateId,
+            @Nullable Integer registrationLimit) {
         return query("""
                 UPDATE event_template SET
                     name = :name,
@@ -123,7 +125,7 @@ public class EventTemplateRepository {
         return SqlSupport.deleteById("event_template", id);
     }
 
-    public List<EventTemplateField> findFields(int templateId) {
+    public List<AppointmentTemplateField> findFields(int templateId) {
         return query("""
                 SELECT id, template_id, name, field_type, config, position, overview, public, attendance_field_id,
                        default_value
@@ -131,29 +133,80 @@ public class EventTemplateRepository {
                 WHERE template_id = :template_id
                 ORDER BY position;""")
                 .single(call().bind("template_id", templateId))
-                .map(EventTemplateField.map())
+                .map(AppointmentTemplateField.map())
                 .all();
     }
 
-    public void replaceFields(int templateId, List<EventTemplateFieldData> fields) {
+    public void replaceFields(int templateId, List<AppointmentTemplateFieldDraft> fields) {
         query("DELETE FROM event_template_field WHERE template_id = :template_id;")
                 .single(call().bind("template_id", templateId))
                 .delete();
-        for (EventTemplateFieldData f : fields) {
+        for (var field : fields) {
             query("""
                     INSERT INTO event_template_field(template_id, name, field_type, config, position, overview, public, attendance_field_id, default_value)
                     VALUES (:template_id, :name, :field_type, :config::JSONB, :position, :overview, :public, :attendance_field_id, :default_value);""")
                     .single(call().bind("template_id", templateId)
-                            .bind("name", f.name())
-                            .bind("field_type", f.fieldType() != null ? f.fieldType() : EventFieldType.STRING)
-                            .bind("config", f.config() != null ? f.config().toJson() : "{}")
-                            .bind("position", f.position())
-                            .bind("overview", f.overview())
-                            .bind("public", f.isPublic())
-                            .bind("attendance_field_id", f.attendanceFieldId())
-                            .bind("default_value", f.defaultValue()))
+                            .bind("name", field.name())
+                            .bind("field_type", field.fieldType())
+                            .bind("config", field.config().toJson())
+                            .bind("position", field.position())
+                            .bind("overview", field.overview())
+                            .bind("public", field.isPublic())
+                            .bind("attendance_field_id", field.attendanceFieldId())
+                            .bind("default_value", field.defaultValue()))
                     .insert();
         }
+    }
+
+    public List<RegistrationTemplateField> findRegistrationFields(int templateId) {
+        return query("""
+                SELECT id, template_id, name, field_type, config, position, overview
+                FROM event_template_registration_field
+                WHERE template_id = :template_id
+                ORDER BY position, id;""")
+                .single(call().bind("template_id", templateId))
+                .map(RegistrationTemplateField.map())
+                .all();
+    }
+
+    public void replaceRegistrationFields(int templateId, List<RegistrationFieldDraft> fields) {
+        query("DELETE FROM event_template_registration_field WHERE template_id = :template_id;")
+                .single(call().bind("template_id", templateId))
+                .delete();
+        for (int i = 0; i < fields.size(); i++) {
+            var field = fields.get(i);
+            query("""
+                    INSERT INTO event_template_registration_field(template_id, name, field_type, config, position, overview)
+                    VALUES (:template_id, :name, :field_type, :config::JSONB, :position, :overview);""")
+                    .single(call().bind("template_id", templateId)
+                            .bind("name", field.name())
+                            .bind("field_type", field.fieldType())
+                            .bind("config", field.config().toJson())
+                            .bind("position", i)
+                            .bind("overview", field.overview()))
+                    .insert();
+        }
+    }
+
+    /**
+     * Copies a template's registration questions onto an appointment, as they stand.
+     *
+     * <p>Copied in one statement and untouched: a question the template has carried since before
+     * registration questions were narrowed to the kinds the editor offers is still copied, because
+     * the template was accepted when it was written.
+     *
+     * @return how many questions were copied
+     */
+    public int copyRegistrationFields(int templateId, int eventId) {
+        return query("""
+                INSERT INTO event_registration_field(event_id, name, field_type, config, position, overview)
+                SELECT :event_id, name, field_type, config, position, overview
+                FROM event_template_registration_field
+                WHERE template_id = :template_id
+                ORDER BY position, id;""")
+                .single(call().bind("template_id", templateId).bind("event_id", eventId))
+                .insert()
+                .rows();
     }
 
     public List<Integer> findReminderDays(int templateId) {

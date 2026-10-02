@@ -10,28 +10,26 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
 import ProfileFieldsLayout, {type LaidOutField} from '@/components/profilefields/ProfileFieldsLayout.vue'
-import type {ProfileField} from '@/api/profileFields'
 
-const props = defineProps<{
-  editableFields: ProfileField[]
-  getValue: (fieldId: number) => string
+/**
+ * The questions of a member's own profile. They come from the station and from its association, whose
+ * questions are numbered on their own, so a value is always asked for and handed back by the whole
+ * field rather than by its number.
+ */
+defineProps<{
+  editableFields: LaidOutField[]
+  getValue: (field: LaidOutField) => string
   saveAction: () => Promise<void>
 }>()
 
 const emit = defineEmits<{
-  (e: 'update', fieldId: number, value: string): void
+  (e: 'update', field: LaidOutField, value: string): void
 }>()
 
 const { t } = useI18n()
 
-// The layout hands back the field it drew, and this form only ever draws the station's own, so the id
-// is still all its caller needs
 function onUpdate(field: LaidOutField, value: string) {
-  emit('update', field.id, value)
-}
-
-function valueOf(field: LaidOutField): string {
-  return props.getValue(field.id)
+  emit('update', field, value)
 }
 </script>
 
@@ -39,9 +37,9 @@ function valueOf(field: LaidOutField): string {
   <NeutralContainer class="space-y-4">
     <SectionHeader>{{ t('profile.title') }}</SectionHeader>
 
-    <EmptyState compact v-if="editableFields.length === 0">{{ t('profile.noFields') }}</EmptyState>
+    <EmptyState v-if="editableFields.length === 0" compact>{{ t('profile.noFields') }}</EmptyState>
 
-    <ProfileFieldsLayout data-onboarding="profile.fields" :fields="editableFields" :get-value="valueOf" @update="onUpdate"/>
+    <ProfileFieldsLayout data-onboarding="profile.fields" :fields="editableFields" :get-value="getValue" @update="onUpdate"/>
 
     <SaveButton data-onboarding="profile.save" :action="saveAction"/>
   </NeutralContainer>

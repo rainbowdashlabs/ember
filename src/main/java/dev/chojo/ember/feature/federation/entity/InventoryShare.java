@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.federation.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import org.jspecify.annotations.Nullable;
 
 /**
  * One statement a station makes about what it offers its partners for lending: a whole inventory, a
@@ -22,9 +23,9 @@ import de.chojo.sadu.mapper.rowmapper.RowMapping;
 public record InventoryShare(
         int id,
         int stationId,
-        Integer inventoryId,
-        Integer artId,
-        Integer itemId,
+        @Nullable Integer inventoryId,
+        @Nullable Integer artId,
+        @Nullable Integer itemId,
         ShareScope shareScope,
         ShareGrant shareGrant) {
 

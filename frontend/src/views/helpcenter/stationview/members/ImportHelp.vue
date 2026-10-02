@@ -27,7 +27,6 @@ const dummySeparator = ref(';')
       <p>{{ t('helpCenter.membersImport.whatIsText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Import type selector -->
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
       <NeutralContainer class="space-y-2 border-primary ring-2 ring-primary/30">
         <div class="flex items-center gap-2">
@@ -49,7 +48,6 @@ const dummySeparator = ref(';')
       <p>{{ t('helpCenter.membersImport.step1Text') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Upload step -->
     <NeutralContainer class="space-y-4">
       <SubHeader>{{ t('csvImport.uploadTitle') }}</SubHeader>
       <div class="flex items-center gap-4 flex-wrap">
@@ -58,17 +56,17 @@ const dummySeparator = ref(';')
         </SecondaryButton>
         <span class="text-sm">
           <font-awesome-icon :icon="['fas', 'check']" class="text-success mr-1"/>
-          mitglieder.csv (25 {{ t('csvImport.rows') }})
+          {{ t('helpCenter.sample.members.membersFile') }} (25 {{ t('csvImport.rows') }})
         </span>
       </div>
-      <div class="flex items-center gap-2">
-        <label class="text-sm font-medium">{{ t('csvImport.separator') }}</label>
+      <label class="flex items-center gap-2">
+        <span class="text-sm font-medium">{{ t('csvImport.separator') }}</span>
         <SelectInput v-model="dummySeparator" class="w-20">
           <option value=";">;</option>
           <option value=",">,</option>
           <option value="&#9;">{{ t('csvImport.tab') }}</option>
         </SelectInput>
-      </div>
+      </label>
       <PrimaryButton>{{ t('csvImport.next') }}</PrimaryButton>
     </NeutralContainer>
 
@@ -76,7 +74,6 @@ const dummySeparator = ref(';')
       <p>{{ t('helpCenter.membersImport.step2Text') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Column mapping -->
     <NeutralContainer class="space-y-4">
       <SubHeader>{{ t('memberImport.mappingTitle') }}</SubHeader>
       <p class="text-sm text-(--text-muted)">{{ t('memberImport.mappingHint') }}</p>
@@ -84,8 +81,8 @@ const dummySeparator = ref(';')
         <div class="rounded-lg px-3 py-2 bg-bg-light-accent/20 dark:bg-bg-dark-accent/20">
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-center">
             <div>
-              <span class="font-medium text-sm">Vorname</span>
-              <div class="text-xs text-(--text-muted)">Max, Anna, Lisa</div>
+              <span class="font-medium text-sm">{{ t('helpCenter.sample.members.firstName') }}</span>
+              <div class="text-xs text-(--text-muted)">{{ t('helpCenter.sample.members.firstNames') }}</div>
             </div>
             <div class="sm:col-span-2 text-sm text-primary font-medium">
               → {{ t('memberImport.targetFirstName') }}
@@ -95,8 +92,8 @@ const dummySeparator = ref(';')
         <div class="rounded-lg px-3 py-2 bg-bg-light-accent/20 dark:bg-bg-dark-accent/20">
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-center">
             <div>
-              <span class="font-medium text-sm">Nachname</span>
-              <div class="text-xs text-(--text-muted)">Mustermann, Schmidt, Weber</div>
+              <span class="font-medium text-sm">{{ t('helpCenter.sample.members.lastName') }}</span>
+              <div class="text-xs text-(--text-muted)">{{ t('helpCenter.sample.members.lastNames') }}</div>
             </div>
             <div class="sm:col-span-2 text-sm text-primary font-medium">
               → {{ t('memberImport.targetLastName') }}
@@ -106,8 +103,8 @@ const dummySeparator = ref(';')
         <div class="rounded-lg px-3 py-2 opacity-50">
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-center">
             <div>
-              <span class="font-medium text-sm">Notizen</span>
-              <div class="text-xs text-(--text-muted)">Anfänger, keine, -</div>
+              <span class="font-medium text-sm">{{ t('helpCenter.sample.members.notes') }}</span>
+              <div class="text-xs text-(--text-muted)">{{ t('helpCenter.sample.members.noteValues') }}</div>
             </div>
             <div class="sm:col-span-2 text-sm text-(--text-muted)">
               → {{ t('memberImport.targetSkip') }}
@@ -135,13 +132,13 @@ const dummySeparator = ref(';')
 
     <HelpSection :title="t('helpCenter.membersImport.duplicatesTitle')">
       <p>{{ t('helpCenter.membersImport.duplicatesText') }}</p>
+      <p>{{ t('helpCenter.membersImport.groupsFitText') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.membersImport.step3')">
       <p>{{ t('helpCenter.membersImport.step3Text') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Result -->
     <SuccessContainer class="space-y-3">
       <SubHeader>{{ t('memberImport.done') }}</SubHeader>
       <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 text-center">

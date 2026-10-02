@@ -8,7 +8,7 @@ package dev.chojo.ember.feature.federation.service;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.route.RemoteFederationRoutes;
-import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.lifecycle.TaskScheduler;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -20,8 +20,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.Executor;
 
 /**
  * Fetches a remote partner's contract vector via the version ping and stores it on the
@@ -37,18 +36,17 @@ public class FederationContractRefreshService {
     private static final Duration RETRY_INTERVAL = Duration.ofMinutes(1);
 
     private final FederationRepository repository;
-    private final StationRepository stationRepository;
     private final FederationHttpClient httpClient;
-    private final ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
+    private final Executor executor;
     private final Set<Integer> inFlight = ConcurrentHashMap.newKeySet();
     private final Map<Integer, Instant> lastAttempt = new ConcurrentHashMap<>();
 
     @Inject
     public FederationContractRefreshService(
-            FederationRepository repository, StationRepository stationRepository, FederationHttpClient httpClient) {
+            FederationRepository repository, FederationHttpClient httpClient, TaskScheduler scheduler) {
         this.repository = repository;
-        this.stationRepository = stationRepository;
         this.httpClient = httpClient;
+        this.executor = scheduler.executor();
     }
 
     /**
@@ -57,15 +55,13 @@ public class FederationContractRefreshService {
      */
     public boolean refresh(FederationPartner partner) {
         if (!partner.isRemote()) return false;
-        var station = stationRepository.findById(partner.stationId()).orElse(null);
-        if (station == null || station.federationPrivateKey() == null) return false;
+        if (!httpClient.canSign(partner.stationId())) return false;
 
         var response = httpClient.get(
-                partner.remoteHost(),
+                partner.requireRemoteHost(),
                 RemoteFederationRoutes.VERSION_PING.at(),
                 partner.partnerStationId(),
                 partner.stationId(),
-                station.federationPrivateKey(),
                 RemoteFederationRoutes.VersionPingResponse.class);
         if (response == null || response.contract() == null) return false;
 
@@ -86,7 +82,7 @@ public class FederationContractRefreshService {
     public void refreshAsync(FederationPartner partner) {
         if (!partner.isRemote() || recentlyAttempted(partner.id()) || !inFlight.add(partner.id())) return;
         lastAttempt.put(partner.id(), Instant.now());
-        executor.submit(() -> {
+        executor.execute(() -> {
             try {
                 refresh(partner);
             } catch (Exception e) {

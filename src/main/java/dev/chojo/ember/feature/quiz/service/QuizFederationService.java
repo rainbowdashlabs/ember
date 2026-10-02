@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.quiz.service;
 
+import dev.chojo.ember.api.refusal.QuizRefusal;
 import dev.chojo.ember.feature.federation.entity.CapabilityType;
 import dev.chojo.ember.feature.federation.entity.ContentType;
 import dev.chojo.ember.feature.federation.entity.Direction;
@@ -13,45 +14,52 @@ import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationDisplayNames;
 import dev.chojo.ember.feature.federation.service.FederationEntityResolver;
 import dev.chojo.ember.feature.federation.service.FederationFanout;
-import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationService;
+import dev.chojo.ember.feature.federation.transport.FederationEndpoints;
+import dev.chojo.ember.feature.federation.transport.FederationServer;
+import dev.chojo.ember.feature.federation.transport.FederationTransport;
+import dev.chojo.ember.feature.federation.transport.ServingPartner;
 import dev.chojo.ember.feature.quiz.entity.CreateQuestionCommand;
 import dev.chojo.ember.feature.quiz.entity.QuizCatalog;
-import dev.chojo.ember.feature.quiz.entity.QuizCategory;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestion;
 import dev.chojo.ember.feature.quiz.route.RemoteQuizRoutes;
+import dev.chojo.ember.feature.quiz.route.RemoteQuizRoutes.RemoteCatalogDetail;
+import dev.chojo.ember.feature.quiz.route.RemoteQuizRoutes.RemoteCatalogSummary;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
-import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
- * The catalogs federation partners share with a station, resolved the same way whether the
- * partner lives on this instance or on another one, plus the copy that turns a partner
- * catalog into an own one.
+ * The catalogs federation partners share with a station, and the catalogs this station shares with
+ * them, plus the copy that turns a partner catalog into an own one.
+ *
+ * <p>Both directions go through one set of serving functions: a partner on another instance reaches
+ * them through the {@code /remote} routes, one on this instance through the local transport, so a
+ * catalog is shown to a partner on exactly the same terms wherever it lives.
  */
 @Singleton
-public class QuizFederationService {
+public class QuizFederationService implements FederationServer {
     private static final Logger log = LoggerFactory.getLogger(QuizFederationService.class);
 
     private final QuizCatalogService catalogService;
     private final QuizQuestionService questionService;
     private final FederationService federationService;
     private final FederationRepository federationRepository;
-    private final FederationHttpClient federationHttpClient;
     private final StationRepository stationRepository;
     private final FederationFanout fanout;
     private final FederationEntityResolver entityResolver;
+    private final FederationTransport transport;
 
     @Inject
     public QuizFederationService(
@@ -59,18 +67,72 @@ public class QuizFederationService {
             QuizQuestionService questionService,
             FederationService federationService,
             FederationRepository federationRepository,
-            FederationHttpClient federationHttpClient,
             StationRepository stationRepository,
             FederationFanout fanout,
-            FederationEntityResolver entityResolver) {
+            FederationEntityResolver entityResolver,
+            FederationTransport transport) {
         this.catalogService = catalogService;
         this.questionService = questionService;
         this.federationService = federationService;
         this.federationRepository = federationRepository;
-        this.federationHttpClient = federationHttpClient;
         this.stationRepository = stationRepository;
         this.fanout = fanout;
         this.entityResolver = entityResolver;
+        this.transport = transport;
+    }
+
+    @Override
+    public void serveOn(FederationEndpoints endpoints) {
+        endpoints.serve(RemoteQuizRoutes.BROWSE_CATALOGS, (partner, params, body) -> serveCatalogs(partner));
+        endpoints.serve(
+                RemoteQuizRoutes.GET_CATALOG, (partner, params, body) -> serveCatalog(partner, params.integer("id")));
+    }
+
+    /**
+     * The catalogs this station shares with a partner.
+     *
+     * @param partner the partnership the request arrived on
+     * @return a summary per shared catalog of this station
+     */
+    public List<RemoteCatalogSummary> serveCatalogs(ServingPartner partner) {
+        return federationRepository.findQuizShares(partner.servingStationId()).stream()
+                .flatMap(share -> Stream.ofNullable(share.catalogId()))
+                .flatMap(catalogId -> catalogService.findCatalog(catalogId).stream())
+                .filter(catalog -> catalog.stationId() == partner.servingStationId())
+                .map(catalog -> new RemoteCatalogSummary(
+                        catalog.id(),
+                        catalog.name(),
+                        catalog.description(),
+                        catalog.updatedAt().toString()))
+                .toList();
+    }
+
+    /**
+     * One catalog this station shares with a partner, with its categories and questions.
+     *
+     * <p>Being paired with the station that owns a catalog says nothing about being allowed to read
+     * it, and catalog ids are sequential, so a catalog that is missing, belongs to another station or
+     * is not shared is refused alike: a partner could otherwise count its way through the whole
+     * question bank.
+     *
+     * @param partner   the partnership the request arrived on
+     * @param catalogId the catalog asked for
+     * @return the catalog
+     */
+    public RemoteCatalogDetail serveCatalog(ServingPartner partner, int catalogId) {
+        var catalog = catalogService
+                .findCatalog(catalogId)
+                .filter(found -> found.stationId() == partner.servingStationId())
+                .filter(found -> isShared(partner, catalogId))
+                .orElseThrow(QuizRefusal.REMOTE_QUIZ_CATALOG_NOT_SHARED::raise);
+        var categories = catalogService.findCategories(catalog.stationId());
+        var questions = questionService.findQuestions(catalog.id());
+        return new RemoteCatalogDetail(catalog, categories, questions);
+    }
+
+    private boolean isShared(ServingPartner partner, int catalogId) {
+        return federationRepository.findQuizShares(partner.servingStationId()).stream()
+                .anyMatch(share -> Objects.equals(share.catalogId(), catalogId));
     }
 
     public List<SharedQuizItem> browseSharedQuiz(int stationId) {
@@ -78,10 +140,7 @@ public class QuizFederationService {
                 .filter(p -> p.status() == FederationPartner.FederationStatus.ACTIVE)
                 .filter(p -> federationService.hasCapability(p, CapabilityType.QUIZ_SHARE, Direction.IMPORT))
                 .toList();
-        return fanout.fanOut(
-                partners,
-                partner -> browseSharedQuizDirect(resolvePartnerStationId(partner), partner),
-                partner -> browseSharedQuizViaHttp(stationId, partner, resolvePartnerStationId(partner)));
+        return fanout.fanOut(partners, this::browsePartner).items();
     }
 
     /**
@@ -104,22 +163,9 @@ public class QuizFederationService {
                 .toList();
     }
 
-    public FederatedCatalogDetail getFederatedQuizCatalog(int localStationId, UUID partnerStationUid, int catalogId) {
-        return entityResolver.resolve(
-                localStationId,
-                partnerStationUid,
-                RemoteQuizRoutes.GET_CATALOG.at(catalogId),
-                FederatedCatalogDetail.class,
-                "catalog",
-                partner -> {
-                    var catalog = catalogService.findCatalog(catalogId).orElseThrow();
-                    if (catalog.stationId() != resolvePartnerStationId(partner)) {
-                        throw new BadRequestResponse("Catalog does not belong to this partner");
-                    }
-                    var categories = catalogService.findCategories(catalog.stationId());
-                    var questions = questionService.findQuestions(catalog.id());
-                    return new FederatedCatalogDetail(catalog, categories, questions);
-                });
+    public RemoteCatalogDetail getFederatedQuizCatalog(int localStationId, UUID partnerStationUid, int catalogId) {
+        var partner = entityResolver.requireActivePartner(localStationId, partnerStationUid);
+        return transport.get(partner, RemoteQuizRoutes.GET_CATALOG.at(catalogId), RemoteCatalogDetail.class);
     }
 
     /**
@@ -170,60 +216,16 @@ public class QuizFederationService {
         return newCatalog;
     }
 
-    public List<RemoteQuizCatalog> fetchSharedQuizCatalogs(
-            String remoteHost, UUID partnerStationUid, int localStationId, String localPrivateKeyBase64) {
-        return federationHttpClient.getList(
-                remoteHost,
-                RemoteQuizRoutes.BROWSE_CATALOGS.at(),
-                partnerStationUid,
-                localStationId,
-                localPrivateKeyBase64,
-                RemoteQuizCatalog.class);
-    }
-
-    private List<SharedQuizItem> browseSharedQuizDirect(int remoteStationId, FederationPartner partner) {
-        var result = new ArrayList<SharedQuizItem>();
-        var shares = federationRepository.findQuizShares(remoteStationId);
-        for (var share : shares) {
-            if (share.catalogId() != null) {
-                catalogService.findCatalog(share.catalogId()).ifPresent(catalog -> {
-                    result.add(new SharedQuizItem(
-                            catalog.id(), catalog.name(), catalog.description(), remoteStationId, partner.id()));
+    private List<SharedQuizItem> browsePartner(FederationPartner partner) {
+        int sourceStationId = resolvePartnerStationId(partner);
+        return transport.getList(partner, RemoteQuizRoutes.BROWSE_CATALOGS.at(), RemoteCatalogSummary.class).stream()
+                .map(catalog -> {
                     federationRepository.upsertMetadataCache(
                             partner.id(), ContentType.QUIZ, catalog.id(), catalog.name(), catalog.description());
-                });
-            }
-        }
-        return result;
-    }
-
-    private List<SharedQuizItem> browseSharedQuizViaHttp(
-            int localStationId, FederationPartner partner, int remoteStationId) {
-        var result = new ArrayList<SharedQuizItem>();
-        var catalogs = fetchSharedQuizCatalogs(
-                partner.remoteHost(), partner.partnerStationId(), localStationId, getPrivateKey(localStationId));
-        for (var remoteCatalog : catalogs) {
-            result.add(new SharedQuizItem(
-                    remoteCatalog.id(),
-                    remoteCatalog.name(),
-                    remoteCatalog.description(),
-                    remoteStationId,
-                    partner.id()));
-            federationRepository.upsertMetadataCache(
-                    partner.id(),
-                    ContentType.QUIZ,
-                    remoteCatalog.id(),
-                    remoteCatalog.name(),
-                    remoteCatalog.description());
-        }
-        return result;
-    }
-
-    private String getPrivateKey(int stationId) {
-        return stationRepository
-                .findById(stationId)
-                .map(Station::federationPrivateKey)
-                .orElse(null);
+                    return new SharedQuizItem(
+                            catalog.id(), catalog.name(), catalog.description(), sourceStationId, partner.id());
+                })
+                .toList();
     }
 
     private int resolvePartnerStationId(FederationPartner partner) {
@@ -233,20 +235,17 @@ public class QuizFederationService {
                 .orElse(0);
     }
 
-    public record FederatedCatalogDetail(
-            QuizCatalog catalog, List<QuizCategory> categories, List<QuizQuestion> questions) {}
-
     public record SharedQuizItem(int id, String name, String description, int sourceStationId, int partnerId) {}
 
     /**
-     * A shared catalog as the browsing station sees it, including the owning station's
-     * display name.
+     * A catalog shared by a partner, including the owning station's display name. The station UUID
+     * addresses the serving station on the federated read routes and is null when the partnership
+     * behind it can no longer be resolved.
      */
-    /**
-     * A catalog shared by a partner. The station UUID addresses the serving station on the
-     * federated read routes and is null when the partnership behind it can no longer be resolved.
-     */
-    public record SharedQuizCatalog(int id, String name, String description, String stationName, String stationUid) {}
-
-    public record RemoteQuizCatalog(int id, String name, String description) {}
+    public record SharedQuizCatalog(
+            int id,
+            String name,
+            String description,
+            String stationName,
+            @Nullable String stationUid) {}
 }

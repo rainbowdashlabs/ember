@@ -18,7 +18,7 @@ import PasskeyRenameModal from '@/views/accountview/accountsecurityview/PasskeyR
 import PasskeyRemoveModal from '@/views/accountview/accountsecurityview/PasskeyRemoveModal.vue'
 import PasskeySwitches from '@/views/accountview/accountsecurityview/PasskeySwitches.vue'
 import {getPasskeysStatus, removePasskey, renamePasskey, setAskWithPassword, setPasswordLogin} from '@/api/passkeys'
-import type {PasskeyEntry, PasskeysStatus} from '@/api/passkeys'
+import type {PasskeyEntryResponse, PasskeysStatusResponse} from '@/api/generated/schema'
 import {isWebAuthnSupported, signalAcceptedCredentials} from '@/util/webauthn'
 import {apiErrorStatus} from '@/util/apiError'
 import {describeFailure, type Failure} from '@/util/failure'
@@ -31,11 +31,11 @@ import {useConfirmDelete} from '@/composables/useConfirmDelete'
  */
 const {t} = useI18n()
 
-const status = ref<PasskeysStatus | null>(null)
+const status = ref<PasskeysStatusResponse | null>(null)
 const failure = ref<Failure | null>(null)
 const notice = ref('')
 const showCreate = ref(false)
-const renameTarget = ref<PasskeyEntry | null>(null)
+const renameTarget = ref<PasskeyEntryResponse | null>(null)
 
 const supported = isWebAuthnSupported()
 
@@ -49,23 +49,28 @@ async function reload() {
 
 onMounted(reload)
 
-const removal = useConfirmDelete<PasskeyEntry>({
+const removal = useConfirmDelete<PasskeyEntryResponse>({
   onDelete: async (entry) => {
     const before = status.value
     const outcome = await removePasskey(entry.id)
     notice.value = outcome.passwordLoginReenabled ? t('passkeys.section.passwordReenabled') : ''
-    // Tell the device's own store which credentials still exist, so the removed passkey
-    // disappears from its picker instead of haunting it.
-    if (before?.rpId && before.userHandle) {
-      const remaining = before.passkeys
-          .filter(p => p.id !== entry.id && p.credentialId)
-          .map(p => p.credentialId as string)
-      await signalAcceptedCredentials(before.rpId, before.userHandle, remaining)
-    }
+    await forgetOnDevice(before, entry.id)
     await reload()
   },
   failure,
 })
+
+/**
+ * Tells the device's own store which credentials still exist, so the removed passkey disappears
+ * from its picker instead of haunting it.
+ */
+async function forgetOnDevice(before: PasskeysStatusResponse | null, removedId: PasskeyEntryResponse['id']) {
+  if (!before?.rpId || !before.userHandle) return
+  const remaining = before.passkeys
+      .filter(p => p.id !== removedId && p.credentialId)
+      .map(p => p.credentialId as string)
+  await signalAcceptedCredentials(before.rpId, before.userHandle, remaining)
+}
 
 /**
  * Removes the passkey, and says which refusal it was.

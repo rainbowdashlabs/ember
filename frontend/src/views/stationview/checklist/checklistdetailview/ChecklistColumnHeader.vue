@@ -12,20 +12,20 @@ import Modal from '@/components/feedback/Modal.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import type {ChecklistColumnDto} from '@/api/checklists'
+import type {ColumnResponse as ChecklistColumn} from '@/api/generated/schema'
 
 const props = defineProps<{
-  column: ChecklistColumnDto
+  column: ChecklistColumn
   filter: 'any' | 'checked' | 'unchecked'
   visibleCount: number
   readOnly?: boolean
 }>()
 
 const emit = defineEmits<{
-  (e: 'set-filter', value: 'any' | 'checked' | 'unchecked'): void
-  (e: 'edit'): void
-  (e: 'bulk-tick'): void
-  (e: 'bulk-clear'): void
+  'set-filter': [value: 'any' | 'checked' | 'unchecked']
+  edit: []
+  'bulk-tick': []
+  'bulk-clear': []
 }>()
 
 const {t} = useI18n()

@@ -7,9 +7,10 @@ package dev.chojo.ember.feature.legal.service;
 
 import dev.chojo.ember.feature.legal.entity.BrowserStorageCatalog;
 import dev.chojo.ember.feature.legal.entity.BrowserStorageEntry;
+import dev.chojo.ember.util.Json;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.io.InputStream;
@@ -37,17 +38,15 @@ public class BrowserStorageService {
      */
     public static final String SECTION_NAME = "browser-storage";
 
-    private static final JsonMapper MAPPER = JsonMapper.builder()
-            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
-            .build();
+    private static final JsonMapper MAPPER = Json.LENIENT;
 
-    private final BrowserStorageCatalog catalog;
+    private final @Nullable BrowserStorageCatalog catalog;
 
     public BrowserStorageService() {
-        this(load());
+        this(load(BrowserStorageCatalog.RESOURCE_PATH));
     }
 
-    BrowserStorageService(BrowserStorageCatalog catalog) {
+    BrowserStorageService(@Nullable BrowserStorageCatalog catalog) {
         this.catalog = catalog;
     }
 
@@ -67,9 +66,10 @@ public class BrowserStorageService {
     /**
      * Returns the declared catalog.
      *
-     * @return every value the application may store in the browser
+     * @return every value the application may store in the browser, or {@code null} where the
+     *         catalog could not be read
      */
-    public BrowserStorageCatalog catalog() {
+    public @Nullable BrowserStorageCatalog catalog() {
         return catalog;
     }
 
@@ -80,6 +80,7 @@ public class BrowserStorageService {
      * @return the markdown section, or an empty string if the catalog could not be read
      */
     public String toMarkdown(String locale) {
+        var catalog = this.catalog;
         if (catalog == null || catalog.entries() == null || catalog.entries().isEmpty()) {
             return "";
         }
@@ -88,14 +89,18 @@ public class BrowserStorageService {
         out.append("## ").append(text.heading().get(locale)).append("\n\n");
         out.append(text.intro().get(locale)).append("\n");
 
-        for (var group : grouped().entrySet()) {
+        for (var group : grouped(catalog).entrySet()) {
             var wording = text.necessity().get(group.getKey());
             out.append("\n### ").append(wording.heading().get(locale)).append("\n\n");
             out.append(wording.description().get(locale)).append("\n\n");
             for (var entry : group.getValue()) {
-                out.append("- **`")
-                        .append(entry.key())
-                        .append("`** - ")
+                out.append("- **`").append(entry.key()).append("`** ");
+                if (entry.kind() == BrowserStorageEntry.Kind.COOKIE) {
+                    out.append("(")
+                            .append(text.kind().get(entry.kind()).get(locale))
+                            .append(") ");
+                }
+                out.append("- ")
                         .append(entry.purpose().get(locale))
                         .append(" *(")
                         .append(text.retention().get(entry.retention()).get(locale))
@@ -107,7 +112,8 @@ public class BrowserStorageService {
         return out.toString();
     }
 
-    private Map<BrowserStorageEntry.Necessity, List<BrowserStorageEntry>> grouped() {
+    private static Map<BrowserStorageEntry.Necessity, List<BrowserStorageEntry>> grouped(
+            BrowserStorageCatalog catalog) {
         Map<BrowserStorageEntry.Necessity, List<BrowserStorageEntry>> groups = new LinkedHashMap<>();
         for (var necessity : BrowserStorageEntry.Necessity.values()) {
             List<BrowserStorageEntry> matching = new ArrayList<>();
@@ -119,10 +125,17 @@ public class BrowserStorageService {
         return groups;
     }
 
-    private static BrowserStorageCatalog load() {
-        try (InputStream in = BrowserStorageService.class.getResourceAsStream(BrowserStorageCatalog.RESOURCE_PATH)) {
+    /**
+     * Reads the catalog from the classpath, or {@code null} when it is missing or unreadable, which
+     * leaves the generated section empty rather than failing the legal documents.
+     *
+     * @param resourcePath where the catalog lies on the classpath
+     * @return the catalog, or {@code null}
+     */
+    static @Nullable BrowserStorageCatalog load(String resourcePath) {
+        try (InputStream in = BrowserStorageService.class.getResourceAsStream(resourcePath)) {
             if (in == null) {
-                log.error("Browser storage catalog not found on classpath: {}", BrowserStorageCatalog.RESOURCE_PATH);
+                log.error("Browser storage catalog not found on classpath: {}", resourcePath);
                 return null;
             }
             return MAPPER.readValue(in, BrowserStorageCatalog.class);

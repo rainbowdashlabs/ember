@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.inventory.entity.LineTarget;
 import dev.chojo.ember.feature.inventory.service.LineTargetService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -100,7 +101,7 @@ public class EquipmentNeedService {
     public EquipmentNeed add(
             int eventId,
             int stationId,
-            LocalDate eventDate,
+            @Nullable LocalDate eventDate,
             LineTarget target,
             int quantity,
             int leadMinutes,

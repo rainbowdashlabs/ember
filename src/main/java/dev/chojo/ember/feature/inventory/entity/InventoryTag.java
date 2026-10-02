@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.inventory.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import org.jspecify.annotations.Nullable;
 
 /**
  * A tag a station puts on its items. Unlike an inventory it says nothing about where a thing is
@@ -20,7 +21,13 @@ import de.chojo.sadu.mapper.rowmapper.RowMapping;
  * @param color         optional hex colour for the badge, {@code null} for the neutral one
  * @param position      where the tag sits in the station's own list
  */
-public record InventoryTag(int id, int stationId, String name, String canonicalName, String color, int position) {
+public record InventoryTag(
+        int id,
+        int stationId,
+        String name,
+        @Nullable String canonicalName,
+        @Nullable String color,
+        int position) {
 
     /**
      * The form two spellings of one tag are compared in, which is what the database stores in

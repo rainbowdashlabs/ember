@@ -8,6 +8,9 @@ package dev.chojo.ember.feature.inventory.entity;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import dev.chojo.ember.feature.question.FieldType;
+import dev.chojo.ember.util.Json;
+import org.jspecify.annotations.Nullable;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.math.BigDecimal;
@@ -16,11 +19,17 @@ import java.util.List;
 /**
  * Typed config for an {@link InventoryFieldDefinition}, varying by
  * {@link FieldType}. Serialised as JSONB in {@code inventory_field_definition.config}.
+ *
+ * <p>The kind is written under the shared type name, so a choice is {@code CHOICE}. Settings
+ * written before the names were shared say {@code ENUM}, and those are still read.
  */
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "kind")
 @JsonSubTypes({
     @JsonSubTypes.Type(value = FieldConfig.DateConfig.class, name = "DATE"),
-    @JsonSubTypes.Type(value = FieldConfig.EnumConfig.class, name = "ENUM"),
+    @JsonSubTypes.Type(
+            value = FieldConfig.EnumConfig.class,
+            name = "CHOICE",
+            names = {"ENUM", "CHOICE"}),
     @JsonSubTypes.Type(value = FieldConfig.TextConfig.class, name = "TEXT"),
     @JsonSubTypes.Type(value = FieldConfig.NumberConfig.class, name = "NUMBER"),
     @JsonSubTypes.Type(value = FieldConfig.BooleanConfig.class, name = "BOOLEAN")
@@ -35,7 +44,7 @@ public sealed interface FieldConfig
     /**
      * Shared Jackson mapper for serialising and parsing field config variants.
      */
-    JsonMapper MAPPER = JsonMapper.builder().build();
+    JsonMapper MAPPER = Json.MAPPER;
 
     /**
      * Parses the {@code config} JSONB for the given field type. The payload is
@@ -100,7 +109,7 @@ public sealed interface FieldConfig
     }
 
     /**
-     * Config for {@link FieldType#ENUM}.
+     * Config for {@link FieldType#CHOICE}.
      *
      * @param options the allowed values, in display order
      */
@@ -115,11 +124,11 @@ public sealed interface FieldConfig
 
         @Override
         public FieldType fieldType() {
-            return FieldType.ENUM;
+            return FieldType.CHOICE;
         }
 
         /**
-         * One option in an ENUM field.
+         * One option in a choice field.
          *
          * @param value stable machine value persisted on the item
          * @param label display label shown in pickers and lists
@@ -151,7 +160,11 @@ public sealed interface FieldConfig
      * @param unit display unit (e.g. "kg", "cm"), may be empty
      */
     @JsonIgnoreProperties(ignoreUnknown = true)
-    record NumberConfig(BigDecimal min, BigDecimal max, BigDecimal step, String unit) implements FieldConfig {
+    record NumberConfig(
+            @Nullable BigDecimal min,
+            @Nullable BigDecimal max,
+            @Nullable BigDecimal step,
+            String unit) implements FieldConfig {
         @Override
         public FieldType fieldType() {
             return FieldType.NUMBER;

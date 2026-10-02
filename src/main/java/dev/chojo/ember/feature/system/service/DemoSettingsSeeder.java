@@ -37,12 +37,14 @@ public class DemoSettingsSeeder implements DemoPerStationSeeder {
         return MODULES;
     }
 
+    /**
+     * Seeds the station's feed token and public knowledge base mode. Station registration is an
+     * instance setting, written alike for every station because the value is the same.
+     */
     @Override
     public void seedStation(DemoRunContext run, DemoStationContext station) {
         feedTokenService.getOrCreate(station.adminMember().id());
         stationRepository.updatePublicKbMode(station.stationId(), PublicKbMode.ALLOW_ALL);
-        // The instance's own setting rather than the station's, written the same way for every station
-        // because the value is the same one
         applicationSettingRepository.setBoolean("station_registration_enabled", false);
     }
 }

@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {FormOption} from '@/api/forms'
+import type {Option} from '@/api/generated/schema'
 
 const KEY_LENGTH = 8
 const KEY_ALPHABET = '0123456789abcdefghijklmnopqrstuvwxyz'
@@ -11,7 +11,7 @@ const KEY_ALPHABET = '0123456789abcdefghijklmnopqrstuvwxyz'
 /** Where a question keeps its keyed options: a choice and a ranking under `options`, a Likert grid under `statements`. */
 export type OptionField = 'options' | 'statements'
 
-function isOption(value: unknown): value is FormOption {
+function isOption(value: unknown): value is Option {
     if (typeof value !== 'object' || value === null) return false
     const candidate = value as Record<string, unknown>
     return typeof candidate.key === 'string' && typeof candidate.label === 'string'
@@ -21,7 +21,7 @@ function isOption(value: unknown): value is FormOption {
  * The keyed options a question's config holds, in their order. Anything in the list that is not a
  * keyed option is left out rather than drawn as a blank row.
  */
-export function optionsOf(config: Record<string, unknown>, field: OptionField = 'options'): FormOption[] {
+export function optionsOf(config: Record<string, unknown>, field: OptionField = 'options'): Option[] {
     const list = config[field]
     return Array.isArray(list) ? list.filter(isOption) : []
 }
@@ -35,7 +35,7 @@ export function optionKeysOf(config: Record<string, unknown>): string[] {
 }
 
 /** The label of the option with this key, or undefined where the question has no such option. */
-export function optionLabel(options: readonly FormOption[], key: string): string | undefined {
+export function optionLabel(options: readonly Option[], key: string): string | undefined {
     return options.find(option => option.key === key)?.label
 }
 
@@ -43,7 +43,7 @@ export function optionLabel(options: readonly FormOption[], key: string): string
  * A fresh key for an option added to the given ones: eight random characters, drawn again in the
  * unlikely case they are already taken within the question.
  */
-export function newOptionKey(taken: readonly FormOption[]): string {
+export function newOptionKey(taken: readonly Option[]): string {
     return freshKey(new Set(taken.map(option => option.key)))
 }
 
@@ -52,7 +52,7 @@ export function newOptionKey(taken: readonly FormOption[]): string {
  * its own: an option, a statement, a page.
  */
 export function freshKey(used: ReadonlySet<string>): string {
-    let key = ''
+    let key: string
     do {
         const bytes = crypto.getRandomValues(new Uint8Array(KEY_LENGTH))
         key = Array.from(bytes, byte => KEY_ALPHABET[byte % KEY_ALPHABET.length]).join('')
@@ -61,7 +61,7 @@ export function freshKey(used: ReadonlySet<string>): string {
 }
 
 /** A new, empty option for the given list, with a key of its own. */
-export function blankOption(taken: readonly FormOption[]): FormOption {
+export function blankOption(taken: readonly Option[]): Option {
     return {key: newOptionKey(taken), label: ''}
 }
 
@@ -70,6 +70,6 @@ export function blankOption(taken: readonly FormOption[]): FormOption {
  * given theirs (`o0`, `o1`, ...). For options written once in code, such as sample data; the editor
  * gives every new option a random key.
  */
-export function numberedOptions(...labels: string[]): FormOption[] {
+export function numberedOptions(...labels: string[]): Option[] {
     return labels.map((label, index) => ({key: `o${index}`, label}))
 }

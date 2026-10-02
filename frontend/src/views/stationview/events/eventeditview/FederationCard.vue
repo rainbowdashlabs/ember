@@ -11,7 +11,8 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import FederationSharePicker from '@/components/input/FederationSharePicker.vue'
 import PartnerPlacesRow from '@/views/stationview/events/eventeditview/federationcard/PartnerPlacesRow.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import type {PartnerResponse} from '@/api/federation'
+import type {PartnerResponse} from '@/api/generated/schema'
+import {ShareScope} from '@/api/lending'
 
 const props = defineProps<{
   partners: PartnerResponse[]
@@ -32,7 +33,7 @@ const places = defineModel<Record<number, {decides: boolean; budget: number | nu
 
 const sharedWith = computed(() => {
   if (!shared.value) return []
-  if (scope.value === 'SPECIFIC_PARTNERS') {
+  if (scope.value === ShareScope.SPECIFIC) {
     return props.partners.filter(entry => partnerIds.value.includes(entry.partner.id))
   }
   return props.partners

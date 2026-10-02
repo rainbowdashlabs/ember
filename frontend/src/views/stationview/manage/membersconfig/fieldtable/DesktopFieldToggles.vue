@@ -6,7 +6,7 @@
 <script lang="ts" setup>
 import CompactToggle from '@/components/input/toggle/CompactToggle.vue'
 import WritabilitySelect from './WritabilitySelect.vue'
-import {type ProfileField, parseFieldConfig} from '@/api/profileFields'
+import {type EditableField, type FieldSwitchName, parseFieldConfig} from '@/api/profileFields'
 import {holdsAnswer} from '@/components/profilefields/fieldLayout'
 import {useFieldsCapabilities, type WritabilityName} from '@/composables/useFieldsConfig'
 
@@ -17,15 +17,15 @@ import {useFieldsCapabilities, type WritabilityName} from '@/composables/useFiel
  * where there is one it gets the named choice in place of the switch.
  */
 defineProps<{
-  field: ProfileField
+  field: EditableField
 }>()
 
 const emit = defineEmits<{
-  toggleConfig: [field: ProfileField, key: string, value: boolean]
-  toggleKeepOnArchive: [field: ProfileField, value: boolean]
-  toggleRequired: [field: ProfileField, value: boolean]
-  toggleReadonly: [field: ProfileField, value: boolean]
-  setWritability: [field: ProfileField, level: WritabilityName]
+  toggleConfig: [field: EditableField, key: FieldSwitchName, value: boolean]
+  toggleKeepOnArchive: [field: EditableField, value: boolean]
+  toggleRequired: [field: EditableField, value: boolean]
+  toggleReadonly: [field: EditableField, value: boolean]
+  setWritability: [field: EditableField, level: WritabilityName]
 }>()
 
 const capabilities = useFieldsCapabilities()

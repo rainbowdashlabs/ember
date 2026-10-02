@@ -27,6 +27,8 @@ defineProps<{
   startTime?: string
   endTime?: string
   formatTime: (iso?: string) => string
+  /** Whether this date is off, which strikes the name through while the row stays where it was. */
+  struck?: boolean
 }>()
 </script>
 
@@ -36,8 +38,8 @@ defineProps<{
         :date="date" :end-date="endDate" :start-time="startTime" :end-time="endTime"
         :format-time="formatTime"/>
     <div class="flex flex-wrap items-center gap-x-2">
-      <router-link v-if="to" :to="to" class="font-medium text-primary hover:underline">{{ name }}</router-link>
-      <span v-else class="font-medium text-primary hover:underline">{{ name }}</span>
+      <router-link v-if="to" :to="to" class="font-medium text-primary hover:underline" :class="{'line-through': struck}">{{ name }}</router-link>
+      <span v-else class="font-medium text-primary hover:underline" :class="{'line-through': struck}">{{ name }}</span>
       <slot/>
     </div>
   </div>

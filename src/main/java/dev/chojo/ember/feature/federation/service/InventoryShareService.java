@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.federation.service;
 
+import dev.chojo.ember.api.refusal.FederationRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.federation.entity.CapabilityType;
 import dev.chojo.ember.feature.federation.entity.Direction;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
@@ -18,8 +20,6 @@ import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.repository.InventoryArtRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -153,7 +153,7 @@ public class InventoryShareService {
     /**
      * Puts a whole inventory on offer, or takes it back out of one.
      *
-     * @throws NotFoundResponse when the inventory is not this station's
+     * @throws RefusalResponse when the inventory is not this station's
      */
     public InventoryShare setInventoryShare(
             int stationId, int inventoryId, ShareScope scope, ShareGrant grant, List<Integer> partnerIds) {
@@ -169,7 +169,7 @@ public class InventoryShareService {
      * the level the drawer of odds and ends is really described at: the good radios go, the cheap
      * ones stay, and neither choice has to be made again when a piece is added.
      *
-     * @throws NotFoundResponse when the kind is not in one of this station's inventories
+     * @throws RefusalResponse when the kind is not in one of this station's inventories
      */
     public InventoryShare setArtShare(
             int stationId, int artId, ShareScope scope, ShareGrant grant, List<Integer> partnerIds) {
@@ -183,7 +183,7 @@ public class InventoryShareService {
     /**
      * Puts one item on offer, or takes it back out of whatever its inventory offers.
      *
-     * @throws NotFoundResponse when the item is not in one of this station's inventories
+     * @throws RefusalResponse when the item is not in one of this station's inventories
      */
     public InventoryShare setItemShare(
             int stationId, int itemId, ShareScope scope, ShareGrant grant, List<Integer> partnerIds) {
@@ -227,21 +227,20 @@ public class InventoryShareService {
         Inventory inventory = inventoryRepository.findByStation(stationId).stream()
                 .filter(inv -> inv.id() == inventoryId)
                 .findFirst()
-                .orElseThrow(() -> new NotFoundResponse("This inventory does not belong to this station"));
+                .orElseThrow(FederationRefusal.SHARE_INVENTORY_NOT_HERE::raise);
         if (inventory.inventoryType() == InventoryType.EXTERNAL) {
-            throw new BadRequestResponse(
-                    "This inventory holds gear of the body above the station, which the station cannot lend out");
+            throw FederationRefusal.SHARE_INVENTORY_NOT_THE_STATIONS.raise();
         }
         return inventory;
     }
 
     private void requireOwnArt(int stationId, int artId) {
-        var art = artRepository.findById(artId).orElseThrow(NotFoundResponse::new);
+        var art = artRepository.findById(artId).orElseThrow(FederationRefusal.SHARE_ITEM_KIND_NOT_HERE::raise);
         requireOwnInventory(stationId, art.inventoryId());
     }
 
     private void requireOwnItem(int stationId, int itemId) {
-        var item = inventoryRepository.findItemById(itemId).orElseThrow(NotFoundResponse::new);
+        var item = inventoryRepository.findItemById(itemId).orElseThrow(FederationRefusal.SHARE_ITEM_NOT_HERE::raise);
         requireOwnInventory(stationId, item.inventoryId());
     }
 

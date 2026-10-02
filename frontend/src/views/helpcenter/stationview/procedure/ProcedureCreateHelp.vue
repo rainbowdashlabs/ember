@@ -15,16 +15,15 @@ import TemplateSelectorSection from '@/views/stationview/procedure/procedurecrea
 import BasicInfoSection from '@/views/stationview/procedure/procedurecreateview/BasicInfoSection.vue'
 import AssigneesSection from '@/views/stationview/procedure/procedurecreateview/AssigneesSection.vue'
 import ItemsSection from '@/views/stationview/procedure/procedurecreateview/ItemsSection.vue'
-import type {EditableItem} from '@/views/stationview/procedure/procedurecreateview/types'
-import type {ProcedureTemplate} from '@/api/procedures'
-import type {MemberCompletion} from '@/api/stationMembers'
+import type {EditableItem} from '@/composables/useProcedureForm'
+import type {MemberCompletion, ProcedureTemplate} from '@/api/generated/schema'
 
 const {t} = useI18n()
 
 const TEMPLATES: ProcedureTemplate[] = [
   {
     id: 1,
-    stationId: 1,
+    stationId: '00000000-0000-0000-0000-000000000001',
     name: 'Aufnahme neues Mitglied',
     description: null,
     archived: false,
@@ -34,8 +33,8 @@ const TEMPLATES: ProcedureTemplate[] = [
 ]
 
 const MEMBERS: MemberCompletion[] = [
-  {id: 1, name: 'Sabine Krüger', stationUid: 'demo', memberUid: 'm-1'},
-  {id: 2, name: 'Jonas Weber', stationUid: 'demo', memberUid: 'm-2'},
+  {id: 1, name: 'Sabine Krüger', stationUid: 'demo', memberUid: 'm-1', stationName: null, nameColor: null, displayTag: null},
+  {id: 2, name: 'Jonas Weber', stationUid: 'demo', memberUid: 'm-2', stationName: null, nameColor: null, displayTag: null},
 ]
 
 const ITEMS: EditableItem[] = [

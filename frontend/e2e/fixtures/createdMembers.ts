@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {APIRequestContext} from '@playwright/test'
+import {request, type BrowserContext, type Page} from '@playwright/test'
 
 /**
  * The people a story made, and taking them away again when it is done.
@@ -21,34 +21,49 @@ import type {APIRequestContext} from '@playwright/test'
  */
 interface Made {
     headers: Record<string, string>
+    /** The session of whoever made them, since the removal runs after their page is closed. */
+    cookies: Awaited<ReturnType<BrowserContext['cookies']>>
+    /** Where the page that made them was, which is where the removal is sent. */
+    origin: string
     /** The membership, which is what the removal names. Nothing rewrites it. */
     memberId: number
 }
 
 const made: Made[] = [];
 
-/** Notes somebody down to be removed when the story that made them ends. */
-export function remember(headers: Record<string, string>, memberId: number) {
-    made.push({headers, memberId})
+/**
+ * Notes somebody down to be removed when the story that made them ends.
+ *
+ * <p>The removal runs once the story's pages are closed, so the session of the page that made them
+ * is noted down with them: the cookie is what signs the removal in, the headers carry the token a
+ * change has to send back and the station.
+ */
+export async function remember(page: Page, headers: Record<string, string>, memberId: number) {
+    made.push({headers, cookies: await page.context().cookies(), origin: new URL(page.url()).origin, memberId})
 }
 
 /**
- * Takes away everybody this worker's story made.
+ * Takes away everybody this worker's story made, each on a context carrying the session that made
+ * them.
  *
  * <p>Failures are swallowed on purpose. A story that already removed its own person, or one whose
  * station is gone, has nothing left to clear, and a tidy-up that fails a passing test would be
  * worse than the untidiness it exists to prevent.
+ *
+ * <p>Each is removed by the id they were made with, since a story may have renamed them.
  */
-export async function removeMade(request: APIRequestContext): Promise<void> {
+export async function removeMade(): Promise<void> {
     const pending = made.splice(0)
     for (const entry of pending) {
+        const context = await request.newContext({
+            baseURL: entry.origin,
+            storageState: {cookies: entry.cookies, origins: []},
+        })
         try {
-            // By the id they were made with. Looking them up by surname again asked the name to be
-            // both unique and unchanged, and a story that renames somebody is exactly what this
-            // cleans up after.
-            await request.delete(`/api/v1/station-members/${entry.memberId}`, {headers: entry.headers})
-        } catch {
-            /* a story that tore down its own station leaves nothing to clear */
+            await context.delete(`/api/v1/station-members/${entry.memberId}`, {headers: entry.headers})
+                .catch(() => undefined)
+        } finally {
+            await context.dispose()
         }
     }
 }

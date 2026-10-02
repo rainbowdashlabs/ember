@@ -6,10 +6,11 @@
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
 import MutedText from '@/components/typography/MutedText.vue'
-import type {AuditEntry} from '@/api/storageBackend'
+import type {AuditEntryResponse} from '@/api/generated/schema'
 
+/** The storage history of a station, an association or the whole instance, newest first. */
 defineProps<{
-    entries: AuditEntry[]
+    entries: AuditEntryResponse[]
 }>()
 
 const {t} = useI18n()
@@ -17,20 +18,21 @@ const {t} = useI18n()
 
 <template>
     <div v-if="!entries.length" class="text-sm">
-        <MutedText tag="p" size="sm">{{ t('stationStorageBackend.audit.empty') }}</MutedText>
+        <MutedText tag="p" size="sm">{{ t('storageBackend.audit.empty') }}</MutedText>
     </div>
     <div v-else class="overflow-x-auto">
         <table class="w-full text-sm">
             <thead>
                 <tr class="border-b border-[var(--border)]">
-                    <th class="text-left p-2">{{ t('stationStorageBackend.audit.timestamp') }}</th>
-                    <th class="text-left p-2">{{ t('stationStorageBackend.audit.action') }}</th>
-                    <th class="text-left p-2">{{ t('stationStorageBackend.audit.outcome') }}</th>
-                    <th class="text-left p-2">{{ t('stationStorageBackend.audit.detail') }}</th>
+                    <th class="text-left p-2">{{ t('storageBackend.audit.timestamp') }}</th>
+                    <th class="text-left p-2">{{ t('storageBackend.audit.action') }}</th>
+                    <th class="text-left p-2">{{ t('storageBackend.audit.outcome') }}</th>
+                    <th class="text-left p-2">{{ t('storageBackend.audit.detail') }}</th>
                 </tr>
             </thead>
             <tbody>
-                <tr v-for="entry in entries" :key="entry.id" class="border-b border-[var(--border)]">
+                <tr v-for="entry in entries" :key="entry.id" class="border-b border-[var(--border)]"
+                    data-testid="storage-audit-row">
                     <td class="p-2 font-mono text-xs">{{ entry.ts }}</td>
                     <td class="p-2">{{ entry.action }}</td>
                     <td class="p-2">{{ entry.outcome }}</td>

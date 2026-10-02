@@ -5,13 +5,15 @@
  */
 package dev.chojo.ember.feature.beacon.service;
 
+import dev.chojo.ember.api.refusal.BeaconRefusal;
+import dev.chojo.ember.auth.signing.DatabaseReplayStore;
+import dev.chojo.ember.auth.signing.SignedRequests;
 import dev.chojo.ember.feature.beacon.entity.BeaconPayloads;
 import dev.chojo.ember.feature.beacon.repository.BeaconIntakeRepository;
 import dev.chojo.ember.feature.discovery.service.DiscoveryKeyService;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.ForbiddenResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,10 +59,12 @@ public class BeaconIntakeService {
     private static final Pattern VERSION = Pattern.compile("^[0-9A-Za-z.\\-+ @:]{1,60}$");
 
     private final BeaconIntakeRepository repository;
+    private final DatabaseReplayStore replayStore;
 
     @Inject
-    public BeaconIntakeService(BeaconIntakeRepository repository) {
+    public BeaconIntakeService(BeaconIntakeRepository repository, DatabaseReplayStore replayStore) {
         this.repository = repository;
+        this.replayStore = replayStore;
     }
 
     /**
@@ -72,23 +76,22 @@ public class BeaconIntakeService {
      */
     public String accept(byte[] publicKey, BeaconPayloads.Envelope envelope, String ownUrl) {
         if (envelope == null || envelope.issuedAt() == null || envelope.nonce() == null) {
-            throw new BadRequestResponse("A report has to say when it was issued and carry a nonce");
+            throw BeaconRefusal.BEACON_DELIVERY_ENVELOPE_INCOMPLETE.raise();
         }
         if (envelope.protocolVersion() > BeaconPayloads.PROTOCOL_VERSION) {
-            throw new BadRequestResponse("This beacon does not speak that protocol version yet");
+            throw BeaconRefusal.BEACON_DELIVERY_PROTOCOL_TOO_NEW.raise();
         }
-        var now = Instant.now();
-        if (Duration.between(envelope.issuedAt(), now).abs().compareTo(DRIFT) > 0) {
-            throw new ForbiddenResponse("The report was issued too far from now");
+        if (!SignedRequests.withinDrift(envelope.issuedAt(), Instant.now(), DRIFT)) {
+            throw BeaconRefusal.BEACON_DELIVERY_OUT_OF_TIME.raise();
         }
         if (envelope.audience() == null || !sameHost(envelope.audience(), ownUrl)) {
-            throw new ForbiddenResponse("The report was addressed to another beacon");
+            throw BeaconRefusal.BEACON_DELIVERY_FOR_ANOTHER_BEACON.raise();
         }
         String instanceId = DiscoveryKeyService.computeInstanceId(publicKey);
-        if (!repository.recordNonce(instanceId, envelope.nonce(), envelope.issuedAt())) {
-            throw new ForbiddenResponse("That report has already been delivered");
+        Instant forgettable = envelope.issuedAt().plus(DRIFT).plus(DRIFT);
+        if (!replayStore.firstSighting("beacon:" + instanceId, envelope.nonce(), forgettable)) {
+            throw BeaconRefusal.BEACON_DELIVERY_ALREADY_TAKEN.raise();
         }
-        repository.pruneNonces(now.minus(DRIFT).minus(DRIFT));
         return instanceId;
     }
 
@@ -109,7 +112,7 @@ public class BeaconIntakeService {
     /** Files a fault and what this instance knows about it. */
     public void storeProblem(String instanceId, String publicKey, BeaconPayloads.ProblemPayload payload) {
         if (payload.fingerprint() == null || payload.fingerprint().isBlank()) {
-            throw new BadRequestResponse("A fault needs a fingerprint");
+            throw BeaconRefusal.BEACON_FAULT_FINGERPRINT_MISSING.raise();
         }
         String version = validVersion(payload.version());
         repository.touchInstance(
@@ -125,7 +128,7 @@ public class BeaconIntakeService {
     /** Stores somebody's own words. */
     public void storeReport(String instanceId, String publicKey, BeaconPayloads.ReportPayload payload) {
         if (payload.message() == null || payload.message().isBlank()) {
-            throw new BadRequestResponse("A report needs a message");
+            throw BeaconRefusal.BEACON_REPORT_MESSAGE_MISSING.raise();
         }
         repository.touchInstance(
                 instanceId,
@@ -155,19 +158,19 @@ public class BeaconIntakeService {
      */
     public int storeMetrics(BeaconPayloads.MetricsBatch batch) {
         if (batch.subjects() == null || batch.subjects().isEmpty()) {
-            throw new BadRequestResponse("A metrics batch needs subjects");
+            throw BeaconRefusal.BEACON_FIGURES_WITHOUT_SUBJECTS.raise();
         }
         if (batch.subjects().size() > MAX_SUBJECTS) {
-            throw new BadRequestResponse("That batch carries more subjects than a beacon accepts");
+            throw BeaconRefusal.BEACON_FIGURES_TOO_MANY_SUBJECTS.raise();
         }
         LocalDate day;
         try {
             day = LocalDate.parse(batch.day());
         } catch (Exception e) {
-            throw new BadRequestResponse("A metrics batch needs a day");
+            throw BeaconRefusal.BEACON_FIGURES_DAY_MISSING.raise();
         }
         if (day.isAfter(LocalDate.now().plusDays(1))) {
-            throw new BadRequestResponse("A metrics batch cannot be for a day that has not happened");
+            throw BeaconRefusal.BEACON_FIGURES_DAY_IN_THE_FUTURE.raise();
         }
         String version = validVersion(batch.version());
         int stored = 0;
@@ -183,7 +186,7 @@ public class BeaconIntakeService {
         return stored;
     }
 
-    private static String clamp(String value, int max) {
+    private static @Nullable String clamp(@Nullable String value, int max) {
         if (value == null) return null;
         String trimmed = value.strip();
         if (trimmed.isEmpty()) return null;
@@ -191,19 +194,23 @@ public class BeaconIntakeService {
     }
 
     /** A contact address that is not one is dropped rather than stored and later rendered. */
-    private static String validMail(String value) {
+    private static @Nullable String validMail(@Nullable String value) {
         String clamped = clamp(value, MAX_FIELD);
         return clamped != null && MAIL.matcher(clamped).matches() ? clamped : null;
     }
 
     /** A version that is not one is dropped, so nothing arbitrary reaches a screen as a version. */
-    private static String validVersion(String value) {
+    private static @Nullable String validVersion(@Nullable String value) {
         String clamped = clamp(value, 60);
         return clamped != null && VERSION.matcher(clamped).matches() ? clamped : null;
     }
 
-    /** The longest message a report may carry, so one sender cannot fill the disk with prose. */
-    public static String clampMessage(String message) {
+    /**
+     * The longest message a report may carry, so one sender cannot fill the disk with prose.
+     *
+     * @return the message cut to length, or {@code null} where nothing but blanks was sent
+     */
+    public static @Nullable String clampMessage(String message) {
         return clamp(message, MAX_MESSAGE);
     }
 }

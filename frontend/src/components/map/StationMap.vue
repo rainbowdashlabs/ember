@@ -5,9 +5,9 @@
  */
 <script setup lang="ts">
 import {nextTick, onBeforeUnmount, onMounted, ref, watch} from 'vue'
-import type {LayerGroup, Map as LeafletMap, Marker, TileLayer} from 'leaflet'
+import type {LayerGroup, Map as LeafletMap, Marker} from 'leaflet'
 import {useMapsConfig} from '@/composables/useMapsConfig'
-import {loadLeaflet} from '@/util/leaflet'
+import {addTileLayer, loadLeaflet} from '@/util/leaflet'
 import 'leaflet/dist/leaflet.css'
 import 'leaflet.markercluster/dist/MarkerCluster.css'
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css'
@@ -54,7 +54,6 @@ const {load} = useMapsConfig()
 type Leaflet = Awaited<ReturnType<typeof loadLeaflet>>
 
 let mapInstance: LeafletMap | null = null
-let tileLayer: TileLayer | null = null
 let markerLayer: LayerGroup | null = null
 const markers: Map<string, Marker> = new Map()
 
@@ -72,11 +71,7 @@ async function init() {
     zoom: props.initialZoom,
     scrollWheelZoom: true,
   })
-  tileLayer = L.tileLayer(config.urlTemplate, {
-    minZoom: config.minZoom,
-    maxZoom: config.maxZoom,
-    attribution: config.attribution,
-  }).addTo(mapInstance)
+  addTileLayer(L, mapInstance, config)
   markerLayer = props.cluster ? L.markerClusterGroup() : L.layerGroup()
   markerLayer.addTo(mapInstance)
   renderMarkers(L)
@@ -150,7 +145,6 @@ onBeforeUnmount(() => {
   if (mapInstance) {
     mapInstance.remove()
     mapInstance = null
-    tileLayer = null
     markerLayer = null
     markers.clear()
   }

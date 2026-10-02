@@ -13,7 +13,7 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import {knowledgeBase} from '@/api'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import type {KbFolder} from '@/api/knowledgeBase'
+import type {KbFolder} from '@/api/generated/schema'
 import KbTagsEditor from './KbTagsEditor.vue'
 import KbFolderIconField from './KbFolderIconField.vue'
 import {useKbEntryEditor} from './useKbEntryEditor'
@@ -61,7 +61,7 @@ async function handleSave() {
 <template>
     <Modal v-model="show">
         <SubHeader class="mb-3">{{ t('kb.editFolder') }}</SubHeader>
-        <form @submit.prevent="handleSave" class="flex flex-col gap-3">
+        <form class="flex flex-col gap-3" @submit.prevent="handleSave">
             <TextInput v-model="editName" :placeholder="t('kb.folderName')" required/>
             <TextAreaInput v-model="editDescription" :placeholder="t('kb.description')"/>
             <KbFolderIconField v-model="iconFile"/>

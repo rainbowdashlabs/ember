@@ -3,7 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {TrackingStatus, type TableEntry, type TrackingStatusName} from '@/api/dataTracking'
+import {TrackingStatus, type TrackingStatusName} from '@/api/dataTracking'
+import type {TableEntry} from '@/api/generated/schema'
 import {ColumnTypes, enumOptions, type TableColumn} from '@/components/table/tableColumn'
 import type {TrackingRow} from './trackingRow'
 

@@ -21,8 +21,7 @@ import EmptyState from '@/components/feedback/EmptyState.vue'
 import InventoryTabs from './clusterinventoryview/InventoryTabs.vue'
 import DispatchItemList from './clusterdispatchview/DispatchItemList.vue'
 import {clusterInventory, clusterStations} from '@/api'
-import type {SendableItem} from '@/api/clusterInventory'
-import type {ClusterStation} from '@/api/clusterStations'
+import type {ClusterStationResponse, SendableItem} from '@/api/generated/schema'
 import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useAsyncAction} from '@/composables/useAsyncAction'
@@ -38,7 +37,7 @@ const {t} = useI18n()
 const router = useRouter()
 const routes = useInventoryRoutes()
 
-const stations = ref<ClusterStation[]>([])
+const stations = ref<ClusterStationResponse[]>([])
 const items = ref<SendableItem[]>([])
 const stationUid = ref('')
 const picked = ref<number[]>([])

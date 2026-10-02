@@ -5,7 +5,10 @@
  */
 package dev.chojo.ember.feature.mailimport.service;
 
+import dev.chojo.ember.api.refusal.MailImportRefusal;
+import dev.chojo.ember.api.refusal.Refusal;
 import dev.chojo.ember.conf.file.elements.MailImport;
+import dev.chojo.ember.feature.documents.service.ContentSniffer;
 import dev.chojo.ember.feature.mailimport.entity.MailImportEntry;
 import dev.chojo.ember.feature.mailimport.entity.MailMailbox;
 import dev.chojo.ember.feature.mailimport.entity.MailRule;
@@ -16,10 +19,9 @@ import dev.chojo.ember.feature.mailimport.repository.MailMailboxRepository;
 import dev.chojo.ember.feature.mailimport.repository.MailRuleRepository;
 import dev.chojo.ember.feature.mailimport.route.MailImportRoutes.RuleRequest;
 import dev.chojo.ember.feature.storage.credential.CredentialCipher;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -77,7 +79,11 @@ public class MailboxService {
      *                         and worth nothing as a security guarantee
      */
     public record TestResult(
-            boolean connected, String error, List<String> folders, boolean folderExists, boolean writesAuthResult) {}
+            boolean connected,
+            @Nullable String error,
+            List<String> folders,
+            boolean folderExists,
+            boolean writesAuthResult) {}
 
     /**
      * Whether a password can be kept at all.
@@ -99,7 +105,7 @@ public class MailboxService {
     }
 
     public MailMailbox require(int id) {
-        return mailboxRepository.findById(id).orElseThrow(NotFoundResponse::new);
+        return mailboxRepository.findById(id).orElseThrow(MailImportRefusal.MAILBOX_NOT_HERE_AFTER_SAVE::raise);
     }
 
     public MailMailbox create(
@@ -109,16 +115,14 @@ public class MailboxService {
             int port,
             MailSecurity security,
             String username,
-            String password,
+            @Nullable String password,
             String folder,
             boolean verifyDkim,
             int intervalMinutes,
             Instant importFrom) {
         requireSomewhereToPutThePassword();
-        if (password == null || password.isBlank()) throw new BadRequestResponse("A mailbox needs a password");
-        requireText(name, "name");
-        requireText(host, "host");
-        requireText(username, "user");
+        if (password == null || password.isBlank()) throw MailImportRefusal.MAILBOX_PASSWORD_MISSING.raise();
+        requireMailboxDetails(name, host, username);
         requireReachable(host, security);
         var mailbox = mailboxRepository.create(
                 stationId,
@@ -148,9 +152,7 @@ public class MailboxService {
             boolean enabled,
             int intervalMinutes,
             Instant importFrom) {
-        requireText(name, "name");
-        requireText(host, "host");
-        requireText(username, "user");
+        requireMailboxDetails(name, host, username);
         requireReachable(host, security);
         return mailboxRepository.update(
                 id,
@@ -168,7 +170,7 @@ public class MailboxService {
 
     public void updatePassword(int id, String password) {
         requireSomewhereToPutThePassword();
-        if (password == null || password.isBlank()) throw new BadRequestResponse("A mailbox needs a password");
+        if (password == null || password.isBlank()) throw MailImportRefusal.MAILBOX_PASSWORD_MISSING_ON_CHANGE.raise();
         mailboxRepository.updatePassword(id, cipher.encrypt(password.getBytes(StandardCharsets.UTF_8)));
     }
 
@@ -210,7 +212,7 @@ public class MailboxService {
     /** Runs one cycle now, which is what everybody does after writing their first rule. */
     public MailImportService.Cycle runNow(MailMailbox mailbox, Instant now) {
         if (!settings.enabled()) {
-            throw new BadRequestResponse("Reading mail for documents is switched off for this instance");
+            throw MailImportRefusal.MAILBOX_RUN_SWITCHED_OFF.raise();
         }
         return importService.run(mailbox, now);
     }
@@ -224,7 +226,7 @@ public class MailboxService {
     }
 
     public MailRule requireRule(int id) {
-        return ruleRepository.findById(id).orElseThrow(NotFoundResponse::new);
+        return ruleRepository.findById(id).orElseThrow(MailImportRefusal.MAILBOX_RULE_NOT_HERE_AFTER_SAVE::raise);
     }
 
     public MailRule createRule(MailMailbox mailbox, RuleRequest request) {
@@ -291,26 +293,28 @@ public class MailboxService {
      * most likely to produce.
      */
     private void validate(RuleRequest request) {
-        requireText(request.name(), "name");
+        requireText(
+                request.name(),
+                MailImportRefusal.MAILBOX_RULE_NAME_MISSING,
+                MailImportRefusal.MAILBOX_RULE_NAME_TOO_LONG);
         if (request.senderPatterns() == null || request.senderPatterns().isEmpty()) {
-            throw new BadRequestResponse("A rule has to say which senders it trusts, or it accepts nothing");
+            throw MailImportRefusal.MAILBOX_RULE_SENDERS_MISSING.raise();
         }
         for (String pattern : request.senderPatterns()) {
             if (!SenderPatterns.isValid(pattern)) {
-                throw new BadRequestResponse(
-                        "%s is neither an address nor a domain written as *@domain".formatted(pattern));
+                throw MailImportRefusal.MAILBOX_RULE_SENDER_NOT_A_PATTERN.raise(pattern);
             }
         }
         if (request.acceptedTypes() == null || request.acceptedTypes().isEmpty()) {
-            throw new BadRequestResponse("A rule has to say which kinds of file it takes");
+            throw MailImportRefusal.MAILBOX_RULE_FILE_KINDS_MISSING.raise();
         }
         for (String type : request.acceptedTypes()) {
             if (!ContentSniffer.SUPPORTED_TYPES.contains(type)) {
-                throw new BadRequestResponse("%s is not a kind of file this can recognise".formatted(type));
+                throw MailImportRefusal.MAILBOX_RULE_FILE_KIND_UNKNOWN.raise(type);
             }
         }
         if (request.action() == MailRuleAction.MOVE && blankToNull(request.moveToFolder()) == null) {
-            throw new BadRequestResponse("Moving a message needs a folder to move it to");
+            throw MailImportRefusal.MAILBOX_RULE_FOLDER_MISSING.raise();
         }
     }
 
@@ -322,19 +326,27 @@ public class MailboxService {
      */
     private void requireReachable(String host, MailSecurity security) {
         var objection = hostPolicy.objection(host, security);
-        if (objection.isPresent()) throw new BadRequestResponse(objection.get());
+        if (objection.isPresent()) {
+            log.info("Mailbox host refused: {}", objection.get());
+            throw MailImportRefusal.MAILBOX_HOST_NOT_REACHABLE.raise();
+        }
     }
 
     private void requireSomewhereToPutThePassword() {
         if (!cipher.isConfigured()) {
-            throw new BadRequestResponse(
-                    "No encryption key is configured on this instance, so a mailbox password cannot be kept safely");
+            throw MailImportRefusal.MAILBOX_PASSWORD_CANNOT_BE_KEPT.raise();
         }
     }
 
-    private static void requireText(String value, String what) {
-        if (value == null || value.isBlank()) throw new BadRequestResponse("A mailbox needs a " + what);
-        if (value.length() > MAX_NAME) throw new BadRequestResponse("The " + what + " is too long");
+    private static void requireMailboxDetails(String name, String host, String username) {
+        requireText(name, MailImportRefusal.MAILBOX_NAME_MISSING, MailImportRefusal.MAILBOX_NAME_TOO_LONG);
+        requireText(host, MailImportRefusal.MAILBOX_HOST_MISSING, MailImportRefusal.MAILBOX_HOST_TOO_LONG);
+        requireText(username, MailImportRefusal.MAILBOX_USER_MISSING, MailImportRefusal.MAILBOX_USER_TOO_LONG);
+    }
+
+    private static void requireText(String value, Refusal missing, Refusal tooLong) {
+        if (value == null || value.isBlank()) throw missing.raise();
+        if (value.length() > MAX_NAME) throw tooLong.raise();
     }
 
     private static String folderOr(String folder) {
@@ -346,7 +358,7 @@ public class MailboxService {
         return Math.max(intervalMinutes, settings.minimumIntervalMinutes());
     }
 
-    private static String blankToNull(String value) {
+    private static @Nullable String blankToNull(@Nullable String value) {
         return value == null || value.isBlank() ? null : value.trim();
     }
 }

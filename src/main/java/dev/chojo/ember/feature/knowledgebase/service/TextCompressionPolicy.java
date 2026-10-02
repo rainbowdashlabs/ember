@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.knowledgebase.service;
 import dev.chojo.ember.conf.file.elements.Storage;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -36,7 +37,7 @@ public class TextCompressionPolicy {
      * Whether {@code contentType} qualifies for transparent on-disk gzip. Always {@code false}
      * when {@link Storage#compressTextFiles()} is off.
      */
-    public boolean shouldGzip(String contentType) {
+    public boolean shouldGzip(@Nullable String contentType) {
         if (!storageConfig.compressTextFiles() || contentType == null) return false;
         String lower = contentType.toLowerCase(Locale.ROOT);
         if (lower.startsWith("text/")) return true;

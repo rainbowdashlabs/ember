@@ -4,96 +4,44 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-import {createCrudResource} from './crud'
+import {createCrudResource, type NoContent} from './crud'
 import {uploadFile} from './upload'
-
-/**
- * A file in the station media library. Files are deduplicated per station by content hash, so
- * uploading the same picture twice gives back the file that is already there.
- */
-export interface StationFile {
-    id: number
-    pageId: number | null
-    stationId: string
-    contentHash: string | null
-    fileName: string
-    mimeType: string
-    fileSize: number
-    uploadedAt: string
-    defaultAltText?: string | null
-    defaultDescription?: string | null
-    folderId?: number | null
-}
-
-/**
- * A file as the browser shows it. `inUse` is false when nothing in the station points at it,
- * `uploadedBy` names the member who first brought it in (null for files that predate uploader
- * tracking).
- */
-export interface StationFileListing {
-    file: StationFile
-    inUse: boolean
-    tagIds: number[]
-    uploadedBy: number | null
-}
-
-export interface StationFileFolder {
-    id: number
-    stationId: string
-    parentId: number | null
-    name: string
-    sortOrder: number
-    createdAt: string
-}
-
-export interface StationFileTag {
-    id: number
-    stationId: string
-    name: string
-    color: string | null
-}
-
-interface FolderRequest {
-    name: string
-    parentId: number | null
-    sortOrder: number
-}
-
-interface TagRequest {
-    name: string
-    color: string | null
-}
-
-interface FileMetaRequest {
-    altText: string | null
-    description: string | null
-}
+import type {
+    FileListing,
+    MediaFileMetaRequest,
+    MediaFolderRequest,
+    MediaPruneResult,
+    MediaTagRequest,
+    StationFile,
+    StationFileFolder,
+    StationFileTag,
+} from '@/api/generated/schema'
 
 const files = createCrudResource<
-    StationFileListing,
-    FileMetaRequest,
-    FileMetaRequest,
-    StationFileListing,
-    StationFileListing,
-    void
+    FileListing,
+    MediaFileMetaRequest,
+    MediaFileMetaRequest,
+    FileListing,
+    FileListing,
+    NoContent
 >('/media/files')
 
 const folders = createCrudResource<
     StationFileFolder,
-    FolderRequest,
-    FolderRequest,
+    MediaFolderRequest,
+    MediaFolderRequest,
     StationFileFolder,
     StationFileFolder,
-    void
+    NoContent
 >('/media/folders')
 
 const tags = createCrudResource<
     StationFileTag,
-    TagRequest,
-    TagRequest,
+    MediaTagRequest,
+    MediaTagRequest,
     StationFileTag,
     StationFileTag,
-    void
+    NoContent
 >('/media/tags')
 
 /**
@@ -106,8 +54,8 @@ export const listMediaFiles = files.list
  * Lists the library the instance holds: files with no station, which every station can be served
  * and which a system notice draws on. Only an instance administrator may read it.
  */
-export async function listInstanceMediaFiles(): Promise<StationFileListing[]> {
-    const res = await client.get<StationFileListing[]>('/admin/media/files')
+export async function listInstanceMediaFiles(): Promise<FileListing[]> {
+    const res = await client.get<FileListing[]>('/admin/media/files')
     return res.data
 }
 
@@ -141,11 +89,11 @@ export async function uploadPageMediaFile(pageId: number, file: File): Promise<S
 
 export async function updateMediaFileMeta(
     fileId: number, altText: string | null, description: string | null): Promise<void> {
-    return files.update(fileId, {altText, description})
+    await files.update(fileId, {altText, description})
 }
 
-export async function pruneMediaFiles(): Promise<{removed: number}> {
-    const res = await client.post<{removed: number}>('/media/files/prune')
+export async function pruneMediaFiles(): Promise<MediaPruneResult> {
+    const res = await client.post<MediaPruneResult>('/media/files/prune')
     return res.data
 }
 
@@ -162,7 +110,7 @@ export async function createMediaFolder(
 
 export async function updateMediaFolder(
     id: number, name: string, parentId: number | null, sortOrder: number): Promise<void> {
-    return folders.update(id, {name, parentId, sortOrder})
+    await folders.update(id, {name, parentId, sortOrder})
 }
 
 export const deleteMediaFolder = folders.remove
@@ -174,7 +122,7 @@ export async function createMediaTag(name: string, color: string | null = null):
 }
 
 export async function updateMediaTag(id: number, name: string, color: string | null): Promise<void> {
-    return tags.update(id, {name, color})
+    await tags.update(id, {name, color})
 }
 
 export const deleteMediaTag = tags.remove

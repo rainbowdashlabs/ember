@@ -74,7 +74,7 @@ function report() {
       <p v-if="guidance" class="break-words opacity-90">{{ guidance }}</p>
       <p v-if="code" class="font-mono text-xs opacity-70 select-all" data-testid="failure-code">{{ code }}</p>
       <div v-if="reportable">
-        <SecondaryButton :icon="['fas', 'bug']" data-testid="failure-report" size="sm" @click="report">
+        <SecondaryButton :icon="['fas', 'bug']" data-testid="failure-report" @click="report">
           {{ t('failure.report') }}
         </SecondaryButton>
       </div>

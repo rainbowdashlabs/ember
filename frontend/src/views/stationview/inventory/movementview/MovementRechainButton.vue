@@ -13,7 +13,7 @@ import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import {movements} from '@/api'
-import type {RechainPlan} from '@/api/movements'
+import type {RechainPlan} from '@/api/generated/schema'
 import {describeFailure, type Failure} from '@/util/failure'
 import MovementRechainPlan from './MovementRechainPlan.vue'
 

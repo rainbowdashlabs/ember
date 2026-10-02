@@ -7,7 +7,7 @@
 import AppIcon from '@/components/display/AppIcon.vue'
 import {computed, ref, watch} from 'vue'
 import TreeNodeButton from '@/components/button/TreeNodeButton.vue'
-import type {InventoryContainer, InventoryContainerKind} from '@/api/inventoryContainers'
+import type {InventoryContainer, InventoryContainerKind} from '@/api/generated/schema'
 
 const props = defineProps<{
   container: InventoryContainer

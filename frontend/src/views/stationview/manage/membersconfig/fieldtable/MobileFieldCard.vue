@@ -4,22 +4,25 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import {useId} from 'vue'
 import {useI18n} from 'vue-i18n'
 import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import CompactToggle from '@/components/input/toggle/CompactToggle.vue'
+import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import AudienceCount from './AudienceCount.vue'
 import WritabilitySelect from './WritabilitySelect.vue'
 import {useFieldsCapabilities, type WritabilityName} from '@/composables/useFieldsConfig'
-import {type ProfileField, parseFieldConfig} from '@/api/profileFields'
+import {type EditableField, type FieldSwitchName, parseFieldConfig} from '@/api/profileFields'
 import {holdsAnswer, isSection, widthOf} from '@/components/profilefields/fieldLayout'
-import {widthLabel} from '../fieldTypes'
+import {widthLabel} from '../fieldWidths'
 
 const {t} = useI18n()
+const writabilityId = useId()
 
 defineProps<{
-  field: ProfileField
+  field: EditableField
   typeLabel: string
   audiences: number
   selected: boolean
@@ -27,15 +30,15 @@ defineProps<{
 }>()
 
 const emit = defineEmits<{
-  select: [field: ProfileField]
-  toggleChecked: [field: ProfileField]
-  edit: [field: ProfileField]
-  delete: [field: ProfileField]
-  toggleConfig: [field: ProfileField, key: string, value: boolean]
-  toggleKeepOnArchive: [field: ProfileField, value: boolean]
-  toggleRequired: [field: ProfileField, value: boolean]
-  toggleReadonly: [field: ProfileField, value: boolean]
-  setWritability: [field: ProfileField, level: WritabilityName]
+  select: [field: EditableField]
+  toggleChecked: [field: EditableField]
+  edit: [field: EditableField]
+  delete: [field: EditableField]
+  toggleConfig: [field: EditableField, key: FieldSwitchName, value: boolean]
+  toggleKeepOnArchive: [field: EditableField, value: boolean]
+  toggleRequired: [field: EditableField, value: boolean]
+  toggleReadonly: [field: EditableField, value: boolean]
+  setWritability: [field: EditableField, level: WritabilityName]
 }>()
 
 const capabilities = useFieldsCapabilities()
@@ -49,10 +52,8 @@ const capabilities = useFieldsCapabilities()
       @click="emit('select', field)">
     <div class="flex items-center justify-between">
       <div class="flex items-center gap-2">
-        <input
-            type="checkbox"
-            class="cursor-pointer"
-            :checked="checked"
+        <CheckboxInput
+            :model-value="checked"
             :aria-label="t('membersConfig.batch.toggleRow')"
             :data-testid="`field-check-${field.name}`"
             @click.stop="emit('toggleChecked', field)"/>
@@ -72,9 +73,9 @@ const capabilities = useFieldsCapabilities()
                        @update:model-value="v => emit('toggleRequired', field, v)"/>
         {{ t('membersConfig.fieldRequired') }}
       </label>
-      <label v-if="capabilities.writability" class="flex items-center gap-1">
+      <label v-if="capabilities.writability" :for="writabilityId" class="flex items-center gap-1">
         <span>{{ t('membersConfig.writability.column') }}</span>
-        <WritabilitySelect :field="field" @set="(f, level) => emit('setWritability', f, level)"/>
+        <WritabilitySelect :id="writabilityId" :field="field" @set="(f, level) => emit('setWritability', f, level)"/>
       </label>
       <label v-else class="flex items-center gap-1">
         <CompactToggle :model-value="!!field.readonly"

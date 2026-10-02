@@ -18,13 +18,13 @@ import {ref} from 'vue'
 const {t} = useI18n()
 
 const SIZES = [
-  {id: 1, inventoryId: 1, label: '152', position: 0},
-  {id: 2, inventoryId: 1, label: '164', position: 1},
+  {id: 1, inventoryId: 1, label: '152', position: 0, note: ''},
+  {id: 2, inventoryId: 1, label: '164', position: 1, note: ''},
 ]
 
 /** A made-up member for the example table, named the way the real one is. */
 function someone(id: number, name: string): IntakeLine {
-  return lineFor({id, stationId: '1', accountId: id, name})
+  return lineFor({id, name})
 }
 
 const lines = ref<IntakeLine[]>([

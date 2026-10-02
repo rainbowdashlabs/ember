@@ -3,7 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {KbRefusalReason, type BulkOutcome, type KbRefusalReasonName} from '@/api/knowledgeBase'
+import {KbRefusalReason, type KbRefusalReasonName} from '@/api/knowledgeBase'
+import type {BulkOutcome} from '@/api/generated/schema'
 
 type Translate = (key: string, named?: Record<string, unknown>) => string
 

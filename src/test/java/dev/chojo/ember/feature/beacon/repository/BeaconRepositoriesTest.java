@@ -186,28 +186,6 @@ class BeaconRepositoriesTest extends RepositoryTestBase {
         assertEquals("10-50", rows.getFirst().members());
     }
 
-    /**
-     * A nonce is taken once. Without that a captured report could be replayed straight into the
-     * count of how many installations met a fault.
-     */
-    @Test
-    void aDeliveryIsAcceptedOnlyOnce() {
-        String id = "inst-" + UUID.randomUUID().toString().substring(0, 8);
-        String nonce = UUID.randomUUID().toString();
-        assertTrue(intake.recordNonce(id, nonce, Instant.now()));
-        assertFalse(intake.recordNonce(id, nonce, Instant.now()));
-    }
-
-    /** Nonces too old to be replayed are swept. */
-    @Test
-    void oldNoncesArePruned() {
-        String id = "inst-" + UUID.randomUUID().toString().substring(0, 8);
-        String nonce = UUID.randomUUID().toString();
-        intake.recordNonce(id, nonce, Instant.now().minusSeconds(7200));
-        intake.pruneNonces(Instant.now().minusSeconds(3600));
-        assertTrue(intake.recordNonce(id, nonce, Instant.now()));
-    }
-
     /** How many instances have ever reported, which is the headline the numbers screen opens with. */
     @Test
     void theInstancesHeardFromAreCounted() {

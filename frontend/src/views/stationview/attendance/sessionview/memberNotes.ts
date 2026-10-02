@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {MemberNotes} from '@/api/attendance'
+import type {MemberNotes} from '@/api/generated/schema'
 
 /**
  * How much stands beside one member's name, counted the same way by the line that offers to show it

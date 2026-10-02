@@ -11,7 +11,7 @@ import InfoBadge from '@/components/badge/InfoBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import ReadonlyQuestionAnswers from './ReadonlyQuestionAnswers.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import type { QuizQuestion, QuizCategory } from '@/api/quiz'
+import type { QuizCategory, QuizQuestion } from '@/api/generated/schema'
 
 const props = defineProps<{
   question: QuizQuestion

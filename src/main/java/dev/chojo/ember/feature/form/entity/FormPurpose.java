@@ -5,8 +5,6 @@
  */
 package dev.chojo.ember.feature.form.entity;
 
-import io.javalin.openapi.OpenApiName;
-
 /**
  * Form audience and sidebar entry point.
  *
@@ -14,7 +12,6 @@ import io.javalin.openapi.OpenApiName;
  * constrains which {@link FormQuestionType} values may be used (see
  * {@link FormQuestionType#allowedFor(FormPurpose)}).
  */
-@OpenApiName("FormPurpose")
 public enum FormPurpose {
     /**
      * Members-only form, surfaced under {@code /station/forms}.

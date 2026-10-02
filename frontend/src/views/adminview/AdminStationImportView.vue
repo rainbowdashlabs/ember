@@ -13,14 +13,15 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import {describeFailure, type Failure} from '@/util/failure'
 import ImportProgressChecklist from '@/components/transfer/ImportProgressChecklist.vue'
 import {transfer} from '@/api'
-import type {ImportProgress} from '@/api/transfer'
+import {ImportStatus} from '@/api/transfer'
+import type {ImportProgressResponse} from '@/api/generated/schema'
 
 const route = useRoute()
 const router = useRouter()
 const {t} = useI18n()
 
 const stationUid = (route.params.stationUid as string) ?? ''
-const progress = ref<ImportProgress | null>(null)
+const progress = ref<ImportProgressResponse | null>(null)
 const failure = ref<Failure | null>(null)
 let pollTimer: ReturnType<typeof setInterval> | null = null
 
@@ -36,7 +37,7 @@ const pageTitle = computed(() => (progress.value?.stationName
 async function tick() {
   try {
     progress.value = await transfer.getImportProgress(stationUid)
-    if (progress.value.status === 'COMPLETED' || progress.value.status === 'FAILED') {
+    if (progress.value.status === ImportStatus.COMPLETED || progress.value.status === ImportStatus.FAILED) {
       stopPolling()
     }
   } catch (e) {

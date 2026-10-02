@@ -11,10 +11,8 @@ import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.backend.HealthStatus;
-import dev.chojo.ember.feature.storage.backend.ObjectMetadata;
 import dev.chojo.ember.feature.storage.backend.StorageBackend;
 import dev.chojo.ember.feature.storage.backend.StorageBackendFactory;
-import dev.chojo.ember.feature.storage.backend.StoredStream;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.entity.StorageScope;
 import dev.chojo.ember.feature.storage.migration.MigrationException;
@@ -26,36 +24,19 @@ import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
-import java.util.HexFormat;
 import java.util.List;
 import java.util.Set;
 
 /**
- * Walks every {@code (scope, category)} whose resolver outcome is the instance default and
- * copies the bytes from that backend onto an operator-supplied target. Drives the byte-copy
- * primitive used by the instance-wide backend swap.
- *
- * <p>Lock + read-only flag are held for the duration of the copy; the actual YAML flip,
- * cached-backend invalidation, and audit emission are layered on top by the route handler
- * (Phase 18.C) which composes this primitive with {@code Configurations.save()} and
- * {@code StorageBackendFactory#invalidateInstanceDefault()}.
- *
- * <p>Idempotent: a key already present on the target with a matching SHA-256 is skipped, so a
- * crashed migration can be re-run and will pick up where it left off.
+ * Copies every key that resolves to the instance default onto a new instance backend, for the
+ * instance-wide swap; the route switches the configuration and writes the audit around it.
  */
 @Singleton
 public class InstanceStorageMigrationService {
     private static final Logger log = LoggerFactory.getLogger(InstanceStorageMigrationService.class);
-
-    /**
-     * Fraction of migrated keys re-read on the target as a sanity check (1%).
-     */
-    private static final int SAMPLE_DENOMINATOR = 100;
 
     private final StationRepository stationRepository;
     private final AccountRepository accountRepository;
@@ -84,11 +65,11 @@ public class InstanceStorageMigrationService {
     }
 
     /**
-     * Acquires the instance lock, flips the read-only flag, probes {@code target}, copies every
-     * key that currently resolves to the instance default onto {@code target}, sample-verifies
-     * the result, and returns the per-source key list so the caller can delete it after the
-     * YAML flip. Lock and read-only flag remain held; the caller is required to call exactly
-     * one of {@link #commit} or {@link #abort} on the returned handle.
+     * Takes the instance lock and the read-only flag, probes the target, copies and sample-checks every
+     * key. Both stay held until the caller calls exactly one of {@link #commit} or {@link #abort}.
+     *
+     * <p>A target at the destination the instance already stands on, as when only its credentials change,
+     * copies nothing and leaves nothing for the commit to delete: its keys are the instance's own files.
      */
     public PreparedMigration prepare(StorageBackendSettings targetSettings) {
         if (!locks.tryAcquireInstance()) {
@@ -107,12 +88,8 @@ public class InstanceStorageMigrationService {
                         "Target probe failed: " + probe.error().orElse("unknown error"));
             }
             StorageBackend source = factory.instanceDefault();
-            if (source == target) {
-                target.close();
-                throw new MigrationException("Target backend resolves to the current instance default");
-            }
             try {
-                CopyOutcome outcome = run(source, target);
+                CopyOutcome outcome = source.sharesDestinationWith(target) ? CopyOutcome.NOTHING : run(source, target);
                 return new PreparedMigration(source, target, outcome);
             } catch (RuntimeException e) {
                 target.close();
@@ -129,238 +106,107 @@ public class InstanceStorageMigrationService {
         }
     }
 
+    /** Copies what stands on the instance default; a station on a backend of its own or its cluster's is skipped. */
     private CopyOutcome run(StorageBackend source, StorageBackend target) {
-        int totalKeys = 0;
-        int copiedCount = 0;
-        int skippedCount = 0;
-        long copiedBytes = 0;
-        var allKeys = new ArrayList<String>();
-        var perScopeKeys = new ArrayList<ScopeKeys>();
-
-        // Anybody whose bytes are not on the disk being swapped, for either of the two reasons they can
-        // have for that: a backend of their own, or their cluster's
+        var keys = new ArrayList<String>();
+        var stats = BackendCopy.Stats.NONE;
         Set<Integer> elsewhere = new HashSet<>(configRepository.findAllStationIds());
         elsewhere.addAll(placementRepository.findAllStationIds());
         for (Station station : stationRepository.findAll()) {
             if (elsewhere.contains(station.id())) continue;
             var scope = new StorageScope.Station(station.id(), station.uid());
-            for (StorageCategory category : StorageCategory.values()) {
-                if (!isInstanceDefaultStationCategory(category)) continue;
-                var stats =
-                        copyCategory(source, target, scope.prefix() + "/" + category.prefix(), allKeys, perScopeKeys);
-                totalKeys += stats.total;
-                copiedCount += stats.copied;
-                skippedCount += stats.skipped;
-                copiedBytes += stats.bytes;
+            for (StorageCategory category : movable(StorageScope.Kind.STATION)) {
+                stats = stats.plus(copyCategory(source, target, scope, category, keys));
             }
         }
-
-        for (StorageCategory category : StorageCategory.values()) {
-            if (!isInstanceDefaultInstanceCategory(category)) continue;
-            var stats = copyCategory(
-                    source,
-                    target,
-                    new StorageScope.Instance().prefix() + "/" + category.prefix(),
-                    allKeys,
-                    perScopeKeys);
-            totalKeys += stats.total;
-            copiedCount += stats.copied;
-            skippedCount += stats.skipped;
-            copiedBytes += stats.bytes;
+        for (StorageCategory category : movable(StorageScope.Kind.INSTANCE)) {
+            stats = stats.plus(copyCategory(source, target, new StorageScope.Instance(), category, keys));
         }
-
         for (Account account : accountRepository.findAll()) {
             var scope = new StorageScope.Account(account.uid());
-            var stats = copyCategory(
-                    source,
-                    target,
-                    scope.prefix() + "/" + StorageCategory.IMAGE_AVATAR.prefix(),
-                    allKeys,
-                    perScopeKeys);
-            totalKeys += stats.total;
-            copiedCount += stats.copied;
-            skippedCount += stats.skipped;
-            copiedBytes += stats.bytes;
+            stats = stats.plus(copyCategory(source, target, scope, StorageCategory.IMAGE_AVATAR, keys));
         }
-
-        int sampleSize = Math.max(1, allKeys.size() / SAMPLE_DENOMINATOR);
-        sampleVerify(target, allKeys, sampleSize);
-        return new CopyOutcome(totalKeys, copiedCount, skippedCount, copiedBytes, perScopeKeys);
+        BackendCopy.sampleVerify(target, keys);
+        return new CopyOutcome(stats, keys);
     }
 
-    private CopyStats copyCategory(
+    private static List<StorageCategory> movable(StorageScope.Kind kind) {
+        return Arrays.stream(StorageCategory.values())
+                .filter(category -> category.isMovable() && category.scopeKind() == kind)
+                .toList();
+    }
+
+    private BackendCopy.Stats copyCategory(
             StorageBackend source,
             StorageBackend target,
-            String prefix,
-            List<String> allKeysSink,
-            List<ScopeKeys> perScopeSink) {
+            StorageScope scope,
+            StorageCategory category,
+            List<String> keysSink) {
+        String prefix = scope.prefix() + "/" + category.prefix();
         List<String> keys = source.listByPrefix(prefix);
-        if (keys.isEmpty()) return new CopyStats(0, 0, 0, 0L);
+        if (keys.isEmpty()) return BackendCopy.Stats.NONE;
         log.info("Migrating {} keys under {}", keys.size(), prefix);
-        int total = 0;
-        int copied = 0;
-        int skipped = 0;
-        long bytes = 0;
-        for (String key : keys) {
-            total++;
-            if (target.exists(key) && hashesMatch(target, source, key)) {
-                skipped++;
-                allKeysSink.add(key);
-                continue;
-            }
-            bytes += copyOne(source, target, key);
-            copied++;
-            allKeysSink.add(key);
-        }
-        perScopeSink.add(new ScopeKeys(keys));
-        return new CopyStats(total, copied, skipped, bytes);
-    }
-
-    private static boolean isInstanceDefaultStationCategory(StorageCategory category) {
-        if (category.isLocalPinned()) return false;
-        if (category.scopeKind() != StorageScope.Kind.STATION) return false;
-        return category.isMovable();
-    }
-
-    private static boolean isInstanceDefaultInstanceCategory(StorageCategory category) {
-        if (category.isLocalPinned()) return false;
-        if (category.scopeKind() != StorageScope.Kind.INSTANCE) return false;
-        return category.isMovable();
-    }
-
-    private long copyOne(StorageBackend source, StorageBackend target, String key) {
-        try (StoredStream stream = source.read(key)
-                .orElseThrow(() -> new MigrationException("Source key disappeared mid-migration: " + key))) {
-            long length = stream.contentLength();
-            ObjectMetadata metadata = stream.metadata();
-            target.store(key, stream.body(), length, metadata);
-            return length;
-        } catch (IOException e) {
-            throw new MigrationException("Failed to read source key " + key, e);
-        }
-    }
-
-    private boolean hashesMatch(StorageBackend a, StorageBackend b, String key) {
-        return hashOf(a, key).equals(hashOf(b, key));
-    }
-
-    private String hashOf(StorageBackend backend, String key) {
-        try (StoredStream stream = backend.read(key).orElseThrow(() -> new MigrationException("Missing key: " + key))) {
-            String stored = stream.metadata().sha256();
-            if (stored != null && !stored.isBlank()) return stored;
-            return computeSha256(stream);
-        } catch (IOException e) {
-            throw new MigrationException("Failed to read key for verification " + key, e);
-        }
-    }
-
-    private static String computeSha256(StoredStream stream) throws IOException {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] buffer = new byte[8 * 1024];
-            int read;
-            while ((read = stream.body().read(buffer)) != -1) {
-                digest.update(buffer, 0, read);
-            }
-            return HexFormat.of().formatHex(digest.digest());
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 unavailable", e);
-        }
-    }
-
-    private void sampleVerify(StorageBackend target, List<String> copiedKeys, int sampleSize) {
-        if (copiedKeys.isEmpty()) return;
-        int step = Math.max(1, copiedKeys.size() / sampleSize);
-        for (int i = 0; i < copiedKeys.size() && i < sampleSize * step; i += step) {
-            String key = copiedKeys.get(i);
-            if (!target.exists(key)) {
-                throw new MigrationException("Sample verification failed: target missing key " + key);
-            }
-        }
+        var stats = BackendCopy.copyAll(source, target, keys);
+        keysSink.addAll(keys);
+        return stats;
     }
 
     /**
-     * Hand back to a {@link PreparedMigration} once the caller has flipped the YAML and
-     * invalidated the factory cache. Deletes the source bytes when {@code keepSource} is
-     * {@code false}, then clears the read-only flag and releases the instance lock.
+     * Finishes a move once the caller has switched the configuration and dropped the cached default:
+     * deletes the source bytes unless {@code keepSource}, closes both backends and releases the lock.
      */
     public MigrationResult commit(PreparedMigration prepared, boolean keepSource) {
         int deleted = 0;
         try {
             if (!keepSource) {
-                for (ScopeKeys scope : prepared.outcome().perScopeKeys()) {
-                    for (String key : scope.keys()) {
-                        try {
-                            prepared.source().delete(key);
-                            deleted++;
-                        } catch (Exception e) {
-                            log.warn("Failed to delete migrated source key {}", key, e);
-                        }
+                for (String key : prepared.outcome().keys()) {
+                    try {
+                        prepared.source().delete(key);
+                        deleted++;
+                    } catch (Exception e) {
+                        log.warn("Failed to delete migrated source key {}", key, e);
                     }
                 }
             }
         } finally {
-            try {
-                prepared.target().close();
-            } catch (Exception e) {
-                log.warn("Failed to close target after commit", e);
-            }
-            try {
-                prepared.source().close();
-            } catch (Exception e) {
-                log.warn("Failed to close source after commit", e);
-            }
+            closeQuietly(prepared.target(), "target after commit");
+            closeQuietly(prepared.source(), "source after commit");
             readOnly.unlock();
             locks.releaseInstance();
         }
-        var o = prepared.outcome();
-        return new MigrationResult(o.totalKeys(), o.copied(), o.skipped(), deleted, o.copiedBytes());
+        var stats = prepared.outcome().stats();
+        return new MigrationResult(stats.total(), stats.copied(), stats.skipped(), deleted, stats.bytes());
     }
 
-    /**
-     * Release the lock and read-only flag without flipping the YAML - the previous backend
-     * stays authoritative. Called by the route handler when the YAML save itself fails after a
-     * successful byte copy.
-     */
+    /** Releases the lock without switching; the previous backend stays in use. */
     public void abort(PreparedMigration prepared) {
-        try {
-            prepared.target().close();
-        } catch (Exception e) {
-            log.warn("Failed to close target after abort", e);
-        }
+        closeQuietly(prepared.target(), "target after abort");
         readOnly.unlock();
         locks.releaseInstance();
     }
 
-    /**
-     * Whether an instance-wide migration is currently in flight. Surfaced by the status
-     * endpoint so the admin UI can render the banner without re-issuing the migrate request.
-     */
+    private static void closeQuietly(StorageBackend backend, String which) {
+        try {
+            backend.close();
+        } catch (Exception e) {
+            log.warn("Failed to close {}", which, e);
+        }
+    }
+
     public boolean isMigrationInFlight() {
         return readOnly.isLocked();
     }
 
     /**
-     * Handle returned by {@link #prepare}. The caller MUST call exactly one of
-     * {@link #commit} or {@link #abort} on this object so the read-only flag and lock are
-     * released. {@code source} and {@code target} are live backend instances; both are closed
-     * by {@code commit}/{@code abort}. The source reference is captured at preparation time so
-     * the delete-source step in {@code commit} keeps working even after the caller has
-     * invalidated the factory cache to surface the new backend to subsequent callers.
+     * What {@link #prepare} hands over for exactly one {@link #commit} or {@link #abort}. The source is
+     * captured here, so the commit still deletes from it after the cached default was dropped.
      */
     public record PreparedMigration(StorageBackend source, StorageBackend target, CopyOutcome outcome) {}
 
-    /**
-     * Result summary returned by {@link #commit}.
-     */
     public record MigrationResult(int totalKeys, int copied, int skipped, int deleted, long copiedBytes) {}
 
-    /**
-     * Internal accumulator: what the byte-copy loop produced before commit / abort.
-     */
-    public record CopyOutcome(int totalKeys, int copied, int skipped, long copiedBytes, List<ScopeKeys> perScopeKeys) {}
-
-    private record CopyStats(int total, int copied, int skipped, long bytes) {}
-
-    private record ScopeKeys(List<String> keys) {}
+    /** What the copy produced, with every key it covered. */
+    record CopyOutcome(BackendCopy.Stats stats, List<String> keys) {
+        static final CopyOutcome NOTHING = new CopyOutcome(BackendCopy.Stats.NONE, List.of());
+    }
 }

@@ -94,7 +94,7 @@ export function usePreviewLayout(
         return Number.isNaN(index) ? null : index
     }
 
-    function startMove(field: AskedField, event: PointerEvent) {
+    function startMove(field: AskedField) {
         if (resizingId.value !== null) return
         release()
         movingId.value = field.id
@@ -123,10 +123,10 @@ export function usePreviewLayout(
      * Widens or narrows one question.
      *
      * <p>The grid is measured rather than assumed, so the snap points follow whatever the panel is
-     * currently wide: the same drag lands on the same width in a narrow window and a wide one.
+     * currently wide: the same drag lands on the same width in a narrow window and a wide one. The
+     * event stops before anything can refuse the resize, or the tile behind the handle starts moving.
      */
     function startResize(field: AskedField, event: PointerEvent, grid: HTMLElement | null) {
-        // Before anything can refuse the resize, or the tile behind the handle starts moving instead.
         event.stopPropagation()
         if (movingId.value !== null || !grid) return
         release()

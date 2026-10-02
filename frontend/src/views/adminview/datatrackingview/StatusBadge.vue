@@ -6,6 +6,7 @@
 <script lang="ts" setup>
 import {computed} from 'vue'
 import type {TrackingStatusName} from '@/api/dataTracking'
+import PillBadge from '@/components/badge/PillBadge.vue'
 
 const props = defineProps<{
   status: TrackingStatusName | string
@@ -28,12 +29,12 @@ const classes = computed(() => {
 </script>
 
 <template>
-  <span
-      class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-mono font-semibold"
+  <PillBadge
+      class="gap-1 px-2 py-0.5 text-xs font-mono font-semibold"
       :class="classes"
   >
     <span v-if="label" class="opacity-70">{{ label }}:</span>
     <span>{{ status }}</span>
     <span v-if="count !== undefined" class="ml-1 opacity-80">({{ count }})</span>
-  </span>
+  </PillBadge>
 </template>

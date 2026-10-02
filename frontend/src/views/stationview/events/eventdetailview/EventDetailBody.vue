@@ -9,9 +9,10 @@ import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import TabBar from '@/components/navigation/TabBar.vue'
 import EventCancelModal from './EventCancelModal.vue'
+import EventCancellationBanner from './EventCancellationBanner.vue'
 import EventRegistrationsTab from './EventRegistrationsTab.vue'
 import EventDetailHeader from './EventDetailHeader.vue'
 import EventInfoTab from './EventInfoTab.vue'
@@ -20,23 +21,37 @@ import EventRegistrationActions from '../eventshared/EventRegistrationActions.vu
 import RegistrationFieldsModal from '../eventshared/RegistrationFieldsModal.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import {isRecurringEvent, type AbsentMember, type EventField, type EventRegistrationEntry, type EventRegistrationField, type RegistrationFieldValue, type StationEvent} from '@/api/events'
+import {isRecurringEvent} from '@/api/events'
+import type {
+  AbsentMemberResponse,
+  CancellationNotice,
+  AppointmentField,
+  EventRegistrationFieldValue,
+  EventRegistrationField,
+  RegistrationResponse,
+  StationEvent,
+} from '@/api/generated/schema'
 import {attendance, events} from '@/api'
 import {useAsyncAction} from '@/composables/useAsyncAction'
-import {StationModules, StationPermission, type StationMember} from '@/api/types'
-import {formatDateTime, stationToday} from '@/util/format'
+import {StationModules, StationPermission} from '@/api/types'
+import type {MemberLike} from '@/components/input/select/memberOption'
+import {formatDateTime} from '@/util/format'
 import {localAnswers, type AnswerablePerson} from '@/util/eventAnswers'
 import {useSession} from '@/composables/useSession'
 
 const props = defineProps<{
   event: StationEvent
   eventId: number
-  fields: EventField[]
-  allMembers: StationMember[]
+  fields: AppointmentField[]
+  allMembers: MemberLike[]
   reminders: number[]
-  absentMembers: AbsentMember[]
+  absentMembers: AbsentMemberResponse[]
   focusedDate: string | null
   effectiveDate: string | null
+  /** Why the date on screen is off, null while it takes place. */
+  cancellation: CancellationNotice | null
+  /** Whether the date on screen is already behind the station. */
+  datePast: boolean
   startFormatted: string
   endFormatted: string
   categoryName: string
@@ -48,17 +63,17 @@ const props = defineProps<{
   canManageAttendance: boolean
   hasPermission: (perm: string) => boolean
   /** The reader's own answers to this date, and those of anybody they answer for. */
-  myRegistrations: EventRegistrationEntry[]
+  myRegistrations: RegistrationResponse[]
   registering: boolean
 }>()
 
 const emit = defineEmits<{
-  (e: 'cancelled'): void
-  (e: 'answers-updated'): void
-  (e: 'field-updated', field: EventField): void
-  (e: 'register', people: AnswerablePerson[]): void
-  (e: 'decline', people: AnswerablePerson[]): void
-  (e: 'withdraw', registrationId: number): void
+  cancelled: []
+  'answers-updated': []
+  'field-updated': [field: AppointmentField]
+  register: [people: AnswerablePerson[]]
+  decline: [people: AnswerablePerson[]]
+  withdraw: [registrationId: number]
 }>()
 
 /**
@@ -68,7 +83,7 @@ const emit = defineEmits<{
 const currentMemberIds = computed(() => props.allMembers.map(member => member.id))
 
 const {t} = useI18n()
-const {isModuleEnabled, stationTimezone} = useSession()
+const {isModuleEnabled} = useSession()
 const router = useRouter()
 
 /**
@@ -100,7 +115,10 @@ watch(() => [props.eventId, props.effectiveDate] as const, async () => {
   }
 }, {immediate: true})
 
-/** Opens the date's own sheet, or the page that takes it where there is none yet. */
+/**
+ * Opens the date's own sheet, or the page that takes it where there is none yet. The day travels
+ * along, or the sheet is written for whichever day the button happened to be pressed.
+ */
 function toAttendance() {
   if (attendanceSessionId.value) {
     router.push({name: 'attendance-session', params: {id: attendanceSessionId.value}})
@@ -110,7 +128,6 @@ function toAttendance() {
     templateId: String(props.event.templateId),
     eventId: String(props.eventId),
   }
-  // The day travels, or the sheet is written for whichever day the button happened to be pressed.
   if (props.effectiveDate) query.date = props.effectiveDate
   router.push({name: 'attendance-new', query})
 }
@@ -148,13 +165,13 @@ const stillTakingAnswers = computed(() => {
  * this used to be on a date whose deadline had passed with nobody having answered.
  */
 const showAnswerBlock = computed(() => {
-  if (!props.effectiveDate) return false
+  if (!props.effectiveDate || props.cancellation) return false
   if (answers.value.length > 0) return true
   if (props.registrableMembers.length === 0) return true
   return stillTakingAnswers.value
 })
 
-const updatingRegistration = ref<EventRegistrationEntry | null>(null)
+const updatingRegistration = ref<RegistrationResponse | null>(null)
 const showUpdateAnswers = ref(false)
 
 /** Opens the answers of one registration, prefilled with what was given. */
@@ -166,7 +183,7 @@ function updateAnswers(registrationId: number) {
 }
 
 const {running: savingAnswers, failure: answersFailure, run: saveAnswers} = useAsyncAction(
-    async (values: RegistrationFieldValue[]) => {
+    async (values: EventRegistrationFieldValue[]) => {
       const registration = updatingRegistration.value
       if (!registration) return
       await events.updateRegistrationFieldValues(registration.id, values)
@@ -219,30 +236,47 @@ const tabs = computed(() => {
   return entries
 })
 
-const showCancelModal = ref(false)
+/**
+ * Which cancellation the dialog is open for: the date on screen, the whole series, or none. The
+ * dialog is told the date, or null for the series.
+ */
+const cancelling = ref<'date' | 'series' | null>(null)
+const cancelDate = computed(() => cancelling.value === 'date' ? props.effectiveDate : null)
+
 function onCancelled() {
-  showCancelModal.value = false
+  cancelling.value = null
   emit('cancelled')
 }
+
+const {failure: restoreFailure, run: restoreDate} = useAsyncAction(async () => {
+  if (!props.effectiveDate) return
+  await events.restoreEventDate(props.eventId, props.effectiveDate)
+  emit('cancelled')
+})
 </script>
 
 <template>
   <div class="space-y-6">
-    <Alert v-if="event.cancelled" variant="error">
-      <span class="font-bold">{{ t('events.cancelled') }}</span>
-      <span v-if="event.cancelReason"> - {{ event.cancelReason }}</span>
-      <span v-if="event.cancelledAt" class="text-xs opacity-75 ml-2">{{ formatDateTime(event.cancelledAt) }}</span>
-    </Alert>
+    <EventCancellationBanner
+        v-if="cancellation"
+        :cancellation="cancellation"
+        :series-cancelled="!!event.cancelled"
+    />
+    <FailureAlert :failure="restoreFailure"/>
 
     <EventDetailHeader
         :event="event"
         :can-manage-events="canManageEvents"
         :can-write-news="hasPermission(StationPermission.NEWS_EDIT)"
         :effective-date="effectiveDate"
+        :date-cancelled="!!cancellation"
+        :date-past="datePast"
         :category-name="categoryName"
         :attendance-session-id="attendanceSessionId"
-        :can-take-attendance="canTakeAttendance"
-        @cancel="showCancelModal = true"
+        :can-take-attendance="canTakeAttendance && !cancellation"
+        @cancel-date="cancelling = 'date'"
+        @cancel-series="cancelling = 'series'"
+        @restore-date="restoreDate"
         @attendance="toAttendance"
     />
 
@@ -251,7 +285,7 @@ function onCancelled() {
       <InfoBadge v-if="event.requiresConfirmation">{{ t('events.requiresConfirmation') }}</InfoBadge>
       <span v-if="event.registrationDeadline" class="text-(--text-muted)">{{ t('events.registrationDeadline') }}: {{ formatDateTime(event.registrationDeadline) }}</span>
       <span v-if="event.minRegistrations" class="text-(--text-muted)">{{ t('events.minRegistrations') }}: {{ event.minRegistrations }}</span>
-      <span v-if="event.thresholdDate" class="text-(--text-muted)">{{ t('events.thresholdDate') }}: {{ formatDateTime(event.thresholdDate) }}</span>
+      <span v-if="event.minRegistrations && event.thresholdDays != null" class="text-(--text-muted)">{{ t('events.thresholdDays') }}: {{ t('events.thresholdDaysValue', {days: event.thresholdDays}) }}</span>
     </div>
 
     <NeutralContainer v-if="showAnswerBlock" class="space-y-2" data-testid="your-answer">
@@ -328,9 +362,10 @@ function onCancelled() {
     />
 
     <EventCancelModal
-        :show="showCancelModal"
+        :show="cancelling !== null"
         :event-id="event.id"
-        @close="showCancelModal = false"
+        :date="cancelDate"
+        @close="cancelling = null"
         @cancelled="onCancelled"
     />
   </div>

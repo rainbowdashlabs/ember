@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.attendance.service;
 
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
@@ -44,7 +45,13 @@ class AttendanceReportServiceTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         service = new AttendanceReportService(
-                attendanceRepo, stationMemberRepo, accountRepo, stationRepo, memberGroupRepo, new Api());
+                attendanceRepo,
+                stationMemberRepo,
+                accountRepo,
+                stationRepo,
+                memberGroupRepo,
+                new Api(),
+                newStationLogoService());
         station = stationRepo.create("Report Station");
         account = accountRepo.create("report-hours@test.com", "Report", "Reader");
         member = stationMemberRepo.create(station.id(), account.id());
@@ -96,6 +103,20 @@ class AttendanceReportServiceTest extends RepositoryTestBase {
                 FRIDAY.minus(1, ChronoUnit.DAYS),
                 FRIDAY.plus(30, ChronoUnit.DAYS),
                 "exact");
+    }
+
+    /** The heading says which user types the report covers in the station's words, not the database's. */
+    @Test
+    void theFilterNamesUserTypesInTheStationsLanguage() {
+        var report = service.buildReport(
+                station.id(),
+                List.of(StationUserType.GUARDIAN, StationUserType.TRIAL),
+                List.of(),
+                FRIDAY.minus(1, ChronoUnit.DAYS),
+                FRIDAY.plus(1, ChronoUnit.DAYS),
+                "exact");
+
+        assertEquals("Erziehungsberechtigter, Probe", report.filterLabel());
     }
 
     @Test

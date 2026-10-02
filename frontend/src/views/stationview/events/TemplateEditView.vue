@@ -4,7 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, onMounted, ref, watch} from 'vue'
+import {computed, ref} from 'vue'
+import {until} from '@vueuse/core'
 import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
 import {reportCaughtError} from '@/util/devErrorReporter'
@@ -14,13 +15,24 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import TemplateEditBody from './templateeditview/TemplateEditBody.vue'
-import {emptyRestriction, toRestriction, type RestrictionSelection} from '@/components/input/restriction'
-import type {AttendanceTemplate, AttendanceTemplateField} from '@/api/attendance'
-import type {EventCategory, EventFieldEntry, EventTemplateDetail} from '@/api/events'
-import type {MemberGroup, UserTag} from '@/api/types'
+import {emptyRestriction, toRestriction} from '@/components/input/restriction'
+import type {RestrictionSelection} from '@/api/types'
+import type {
+    AttendanceTemplate,
+    AttendanceTemplateField,
+    EventCategory,
+    EventFieldEntry,
+    MemberGroup,
+    RegistrationFieldDefinition,
+    TemplateDetailResponse,
+    UserTag,
+} from '@/api/generated/schema'
 import {attendance, events, memberGroups as memberGroupsApi, userTags as userTagsApi} from '@/api'
+import {eventTypeNamed} from './eventeditview/eventFormState'
+import {asSaved} from './eventshared/eventQuestions'
 import {useSession} from '@/composables/useSession'
-import {describeFailure, type Failure} from '@/util/failure'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {describeFailure} from '@/util/failure'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -45,8 +57,6 @@ const sheetFields = computed(() => attendanceFields.value
     .filter(field => String(field.templateId) === attendanceTemplateId.value))
 const groups = ref<MemberGroup[]>([])
 const tags = ref<UserTag[]>([])
-const loading = ref(true)
-const failure = ref<Failure | null>(null)
 
 const name = ref('')
 const title = ref('')
@@ -58,6 +68,7 @@ const requiresConfirmation = ref(false)
 const registrationLimit = ref<number | undefined>(undefined)
 const attendanceTemplateId = ref('')
 const fields = ref<EventFieldEntry[]>([])
+const registrationFields = ref<RegistrationFieldDefinition[]>([])
 const reminderDays = ref<number[]>([])
 const restriction = ref<RestrictionSelection>(emptyRestriction())
 const viewRestriction = ref<RestrictionSelection>(emptyRestriction())
@@ -73,10 +84,7 @@ const pageTitle = computed(() => (openedName.value
     ? t('pages.event-template-edit.titleNamed', {name: openedName.value})
     : t('pages.event-template-edit.title')))
 
-onMounted(() => { if (loaded.value) loadData() })
-watch(loaded, (v) => { if (v && loading.value) loadData() })
-
-function seedForm(detail: EventTemplateDetail) {
+function seedForm(detail: TemplateDetailResponse) {
   const tpl = detail.template
   name.value = tpl.name
   openedName.value = tpl.name
@@ -94,17 +102,23 @@ function seedForm(detail: EventTemplateDetail) {
   fields.value = detail.fields.map(f => ({
     name: f.name,
     fieldType: f.fieldType,
-    config: typeof f.config === 'string' ? (f.config ? JSON.parse(f.config) : {}) : (f.config ?? {}),
+    config: f.config,
     value: f.defaultValue ?? '',
     overview: f.overview,
-    attendanceFieldId: f.attendanceFieldId ?? null,
+    attendanceFieldId: f.attendanceFieldId,
     isPublic: f.isPublic,
+  }))
+  registrationFields.value = detail.registrationFields.map(f => ({
+    name: f.name,
+    fieldType: f.fieldType,
+    config: f.config,
+    overview: f.overview,
   }))
 }
 
-async function loadData() {
-  loading.value = true
-  failure.value = null
+/** Fills the editor once the session is there, since the choices it offers depend on the station. */
+const {loading, failure} = useAsyncLoader(async () => {
+  await until(loaded).toBe(true)
   try {
     const [detail, cats, attTpls, memberGroups, userTags] = await Promise.all([
       events.getTemplate(templateId.value),
@@ -124,11 +138,9 @@ async function loadData() {
     seedForm(detail)
   } catch (e) {
     reportCaughtError(e, 'TemplateEditView.loadData')
-    failure.value = describeFailure(e, t)
-  } finally {
-    loading.value = false
+    throw e
   }
-}
+})
 
 async function save() {
   failure.value = null
@@ -138,7 +150,7 @@ async function save() {
       title: title.value || null,
       description: description.value || null,
       categoryId: categoryId.value ? Number(categoryId.value) : null,
-      eventType: eventType.value || null,
+      eventType: eventTypeNamed(eventType.value) ?? null,
       requiresRegistration: requiresRegistration.value || null,
       requiresConfirmation: requiresConfirmation.value || null,
       registrationLimit: registrationLimit.value ?? null,
@@ -150,17 +162,21 @@ async function save() {
       view: viewRestriction.value,
     })
     await events.setTemplateFields(templateId.value, {
-      fields: fields.value.map((f, i) => ({
+      fields: fields.value.map(asSaved).map((f, i) => ({
         name: f.name,
-        fieldType: f.fieldType ?? 'STRING',
-        config: typeof f.config === 'string' ? JSON.parse(f.config || '{}') : (f.config ?? {}),
+        fieldType: f.fieldType,
+        config: f.config,
         position: i,
-        overview: f.overview,
-        isPublic: f.isPublic,
+        overview: f.overview ?? false,
+        isPublic: f.isPublic ?? false,
         attendanceFieldId: f.attendanceFieldId,
         defaultValue: f.value?.trim() ? f.value : null,
       })),
     })
+    await events.setTemplateRegistrationFields(
+        templateId.value,
+        registrationFields.value.filter(f => f.name?.trim()).map(asSaved),
+    )
   } catch (e) {
     reportCaughtError(e, 'TemplateEditView.save')
     failure.value = describeFailure(e, t)
@@ -198,6 +214,7 @@ async function save() {
           v-model:view-restriction="viewRestriction"
           v-model:reminder-days="reminderDays"
           v-model:fields="fields"
+          v-model:registration-fields="registrationFields"
           :categories="categories"
           :attendance-templates="attendanceTemplates"
           :sheet-fields="sheetFields"

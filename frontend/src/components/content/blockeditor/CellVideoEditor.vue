@@ -30,6 +30,7 @@ const youtubeEmbedUrl = computed(() => toYoutubeEmbedUrl(content.value) ?? conte
             <div v-if="isYouTube" class="relative w-full" style="padding-bottom: 56.25%">
                 <iframe
                     :src="youtubeEmbedUrl"
+                    :title="t('stationPages.contentType.video')"
                     class="absolute inset-0 w-full h-full rounded-theme"
                     frameborder="0"
                     allowfullscreen

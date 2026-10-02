@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.knowledgebase.service;
 
+import dev.chojo.ember.api.refusal.KnowledgeBaseRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.content.entity.CellConfig;
 import dev.chojo.ember.feature.content.entity.CellContentType;
@@ -17,7 +19,6 @@ import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -101,7 +102,8 @@ class KbBlockContentServiceTest extends RepositoryTestBase {
     void onlyAMarkdownArticleCanBeBuiltFromBlocks() {
         int id = createUpload();
         try {
-            assertThrows(BadRequestResponse.class, () -> service.switchToRich(id));
+            var refused = assertThrows(RefusalResponse.class, () -> service.switchToRich(id));
+            assertEquals(KnowledgeBaseRefusal.KB_ONLY_WRITTEN_ARTICLES_TAKE_BLOCKS, refused.refusal());
             assertTrue(service.switchToRich(99999).isEmpty());
         } finally {
             knowledgeBaseRepo.purgeFile(id);
@@ -144,7 +146,8 @@ class KbBlockContentServiceTest extends RepositoryTestBase {
         int id = createArticle("Nur Text");
         try {
             var rows = List.of(row(CellContentType.MARKDOWN, "x", CellConfig.EMPTY));
-            assertThrows(BadRequestResponse.class, () -> service.saveBlocks(id, rows, member.id()));
+            var refused = assertThrows(RefusalResponse.class, () -> service.saveBlocks(id, rows, member.id()));
+            assertEquals(KnowledgeBaseRefusal.KB_ARTICLE_NOT_BUILT_FROM_BLOCKS, refused.refusal());
             assertTrue(service.loadBlocks(knowledgeBaseRepo.findFileById(id).orElseThrow())
                     .isEmpty());
             assertTrue(service.saveBlocks(99999, rows, member.id()).isEmpty());
@@ -160,7 +163,7 @@ class KbBlockContentServiceTest extends RepositoryTestBase {
             service.switchToRich(id);
             var withheld =
                     List.of(row(CellContentType.ACHIEVEMENTS, "", new CellConfig.AchievementsConfig(null, null)));
-            assertThrows(BadRequestResponse.class, () -> service.saveBlocks(id, withheld, member.id()));
+            assertThrows(RefusalResponse.class, () -> service.saveBlocks(id, withheld, member.id()));
         } finally {
             knowledgeBaseRepo.purgeFile(id);
         }

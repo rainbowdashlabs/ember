@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {computed, nextTick, ref} from 'vue'
+import {computed, nextTick} from 'vue'
 
 /**
  * JSON-clone instead of structuredClone - the inputs are Vue reactive Proxies whose hidden
@@ -22,9 +22,15 @@ export interface ClipboardEntry {
     removeCallback?: () => void
 }
 
-const clipboard = ref<ClipboardEntry | null>(null)
-
+/**
+ * The row or cell copied or cut in the page editor, one per tab.
+ *
+ * <p>A cut entry carries the function that removes the original once it is pasted, which no payload
+ * can carry. The editor only ever runs in the browser, so nothing ever has to.
+ */
 export function usePageClipboard() {
+    const clipboard = useState<ClipboardEntry | null>('usePageClipboard', () => null)
+
     function copyRow(row: unknown) {
         clipboard.value = {type: 'row', data: deepClone(row), isCut: false}
     }

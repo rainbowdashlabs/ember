@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import type {Ref} from 'vue'
-import type {AnswerValue} from '@/util/formAnswers'
+import type {FormAnswerValue} from '@/api/generated/schema'
 
 /**
  * The answers and the page walk as a form stood once it was opened, which is what a draft is measured
@@ -18,7 +18,7 @@ import type {AnswerValue} from '@/util/formAnswers'
  * @param answers the answers, by question id
  * @param path    the pages visited, the page shown last
  */
-export function useAnswerBaseline(answers: Ref<Record<number, AnswerValue>>, path: Readonly<Ref<string[]>>) {
+export function useAnswerBaseline(answers: Ref<Record<number, FormAnswerValue>>, path: Readonly<Ref<string[]>>) {
     let settled = snapshot()
 
     function snapshot(): string {

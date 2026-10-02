@@ -9,8 +9,10 @@ import { useI18n } from 'vue-i18n'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import PageAfterSelect from './PageAfterSelect.vue'
-import { PageTargetKind, type PageTarget } from '@/api/forms'
+import { PageTargetKind } from '@/api/forms'
+import type { PageTarget } from '@/api/generated/schema'
 import { optionsOf } from '@/util/formOptions'
+import { withoutKey } from '@/util/record'
 import { canDecide, type FormLayoutEditor } from '../useFormLayout'
 import type { PageChoice } from '../pageChoice'
 
@@ -53,14 +55,14 @@ function titleOf(id: string): string {
 }
 
 function targetOf(optionKey: string): PageTarget {
-  return deciding.value?.branch?.[optionKey] ?? { kind: PageTargetKind.NEXT, page: null }
+  return deciding.value?.branch?.[optionKey] ?? { kind: PageTargetKind.NEXT }
 }
 
 function setTarget(optionKey: string, target: PageTarget) {
-  const branch = deciding.value?.branch
-  if (!branch) return
-  if (target.kind === PageTargetKind.NEXT) delete branch[optionKey]
-  else branch[optionKey] = target
+  const question = deciding.value
+  if (!question?.branch) return
+  if (target.kind === PageTargetKind.NEXT) question.branch = withoutKey(question.branch, optionKey)
+  else question.branch[optionKey] = target
 }
 </script>
 

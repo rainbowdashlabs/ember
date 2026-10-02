@@ -5,9 +5,14 @@
  */
 package dev.chojo.ember.feature.documents.service;
 
+import dev.chojo.ember.api.refusal.ClusterRefusal;
+import dev.chojo.ember.api.refusal.DocumentRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.entity.Account;
-import dev.chojo.ember.feature.media.service.ImageVariantService;
+import dev.chojo.ember.feature.documents.entity.DocumentFilter;
+import dev.chojo.ember.feature.documents.entity.Uploader;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
 import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
 import dev.chojo.ember.feature.storage.service.StorageService;
@@ -30,6 +35,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -53,12 +59,13 @@ class DocumentServiceTest extends RepositoryTestBase {
     static void setup() {
         var backend = new LocalStorageBackend(storageRoot);
         var storage = new StorageService(new StorageBackendResolver(backend), backend);
-        service = new DocumentService(memberDocumentRepo, storage, new ImageVariantService(storage), stationRepo);
+        service = newDocumentService(storage);
         station = stationRepo.create("Document Service Station");
         account = accountRepo.create("doc-service@test.com", "Doc", "Service");
         memberId = stationMemberRepo.create(station.id(), account.id()).id();
     }
 
+    /** A file left behind in the storage root is ignored: it is not worth failing a test over. */
     @AfterAll
     static void cleanup() throws IOException {
         stationRepo.delete(station.id());
@@ -69,7 +76,6 @@ class DocumentServiceTest extends RepositoryTestBase {
                     try {
                         Files.deleteIfExists(path);
                     } catch (IOException ignored) {
-                        // A leftover temporary file is not worth failing a test over.
                     }
                 });
             }
@@ -99,7 +105,7 @@ class DocumentServiceTest extends RepositoryTestBase {
                 content,
                 false,
                 true,
-                memberId,
+                Uploader.member(memberId),
                 List.of("Vertrag"));
 
         assertEquals("Vereinbarung", document.title());
@@ -125,11 +131,15 @@ class DocumentServiceTest extends RepositoryTestBase {
                 "Der Loeschzug rueckte aus.".getBytes(StandardCharsets.UTF_8),
                 false,
                 false,
-                memberId,
+                Uploader.member(memberId),
                 List.of());
 
         var found = memberDocumentRepo.findByStation(
-                station.id(), List.of(), "Loeschzug", true, false, service.searchConfigOf(station.id()), 50, 0);
+                station.id(),
+                new DocumentFilter(List.of(), "Loeschzug", true, false, false),
+                service.searchConfigOf(station.id()),
+                50,
+                0);
 
         assertTrue(found.stream().anyMatch(document -> "Protokoll".equals(document.title())));
     }
@@ -147,11 +157,11 @@ class DocumentServiceTest extends RepositoryTestBase {
                 onePagePdf(),
                 false,
                 false,
-                memberId,
+                Uploader.member(memberId),
                 List.of());
 
         assertTrue(document.hasThumbnail(), "a picture was made of it");
-        assertTrue(service.thumbnail(document, 128).isPresent(), "and it can be read back");
+        assertTrue(service.thumbnail(document, 128, DocumentDoor.STATION).isPresent(), "and it can be read back");
     }
 
     /** Nothing can be read out of arbitrary bytes, and the store carries them all the same. */
@@ -167,11 +177,11 @@ class DocumentServiceTest extends RepositoryTestBase {
                 new byte[] {1, 2, 3, 4},
                 false,
                 false,
-                memberId,
+                Uploader.member(memberId),
                 List.of());
 
         assertFalse(document.hasThumbnail(), "no picture could be made of it");
-        assertTrue(service.thumbnail(document, 128).isEmpty());
+        assertTrue(service.thumbnail(document, 128, DocumentDoor.STATION).isEmpty());
         assertEquals(4, service.read(document).orElseThrow().length);
     }
 
@@ -187,7 +197,7 @@ class DocumentServiceTest extends RepositoryTestBase {
                 "weg".getBytes(StandardCharsets.UTF_8),
                 false,
                 false,
-                memberId,
+                Uploader.member(memberId),
                 List.of());
 
         service.delete(document);
@@ -212,7 +222,7 @@ class DocumentServiceTest extends RepositoryTestBase {
                 "bleibt".getBytes(StandardCharsets.UTF_8),
                 false,
                 true,
-                memberId,
+                Uploader.member(memberId),
                 List.of());
         var released = service.store(
                 station.id(),
@@ -223,10 +233,10 @@ class DocumentServiceTest extends RepositoryTestBase {
                 "geht".getBytes(StandardCharsets.UTF_8),
                 false,
                 false,
-                memberId,
+                Uploader.member(memberId),
                 List.of());
 
-        service.releaseMember(memberId);
+        service.memberLeaves(memberId, DocumentService.Leaving.ARCHIVED);
 
         assertTrue(memberDocumentRepo.findById(kept.id()).isPresent(), "what binds outlasts the membership");
         assertTrue(memberDocumentRepo.isBoundTo(kept.id(), memberId));
@@ -252,13 +262,13 @@ class DocumentServiceTest extends RepositoryTestBase {
                 "Bescheinigung".getBytes(StandardCharsets.UTF_8),
                 false,
                 false,
-                memberId,
+                Uploader.member(memberId),
                 List.of());
 
-        assertTrue(service.mayRead(onAMember.id(), true, false), "whoever may read member documents may read it");
-        assertTrue(service.mayRead(onAMember.id(), true, true), "and still may with both");
-        assertFalse(service.mayRead(onAMember.id(), false, true), "the store permission alone must not reach it");
-        assertFalse(service.mayRead(onAMember.id(), false, false), "and neither does holding nothing");
+        assertTrue(service.mayRead(onAMember, true, false), "whoever may read member documents may read it");
+        assertTrue(service.mayRead(onAMember, true, true), "and still may with both");
+        assertFalse(service.mayRead(onAMember, false, true), "the store permission alone must not reach it");
+        assertFalse(service.mayRead(onAMember, false, false), "and neither does holding nothing");
     }
 
     /** The station's own paperwork, which is what the store permission is for. */
@@ -274,13 +284,112 @@ class DocumentServiceTest extends RepositoryTestBase {
                 "Leiterpruefung".getBytes(StandardCharsets.UTF_8),
                 false,
                 false,
-                memberId,
+                Uploader.member(memberId),
                 List.of());
 
-        assertTrue(service.mayRead(unbound.id(), false, true), "the store permission is enough on its own");
-        assertTrue(service.mayRead(unbound.id(), true, true), "and so is holding both");
-        assertFalse(
-                service.mayRead(unbound.id(), true, false), "reading member documents says nothing about the store");
-        assertFalse(service.mayRead(unbound.id(), false, false), "and neither does holding nothing");
+        assertTrue(service.mayRead(unbound, false, true), "the store permission is enough on its own");
+        assertTrue(service.mayRead(unbound, true, true), "and so is holding both");
+        assertFalse(service.mayRead(unbound, true, false), "reading member documents says nothing about the store");
+        assertFalse(service.mayRead(unbound, false, false), "and neither does holding nothing");
+    }
+
+    /**
+     * A hidden document is kept from everybody who may not read member documents, and naming nobody does
+     * not change that: the store permission alone reached it by id while the listing hid it.
+     */
+    @Test
+    @Order(9)
+    void aHiddenDocumentNamingNobodyIsNotReadOnTheStorePermissionAlone() {
+        var hidden = service.store(
+                station.id(),
+                List.of(),
+                "Vertraulich",
+                "vertraulich.txt",
+                "text/plain",
+                "Nur fuer die Leitung".getBytes(StandardCharsets.UTF_8),
+                true,
+                false,
+                Uploader.member(memberId),
+                List.of());
+
+        assertFalse(service.mayRead(hidden, false, true), "the store permission alone does not reach it");
+        assertTrue(service.mayRead(hidden, true, true), "the permission for member documents does");
+    }
+
+    /**
+     * A member deleted outright takes what was not kept with them, and leaves their name on what was:
+     * the document stays somebody's paperwork, so the store permission alone still does not reach it.
+     */
+    @Test
+    @Order(10)
+    void deletingAMemberKeepsTheirNameOnWhatIsKeptForTheRecord() {
+        var leaving = stationMemberRepo
+                .create(
+                        station.id(),
+                        accountRepo
+                                .create("doc-service-gone@test.com", "Gerd", "Gone")
+                                .id())
+                .id();
+        var kept = service.store(
+                station.id(),
+                List.of(leaving),
+                "Verzicht",
+                "verzicht.txt",
+                "text/plain",
+                "unterschrieben".getBytes(StandardCharsets.UTF_8),
+                false,
+                true,
+                Uploader.member(memberId),
+                List.of());
+        var released = service.store(
+                station.id(),
+                List.of(leaving),
+                "Zettel",
+                "zettel.txt",
+                "text/plain",
+                "egal".getBytes(StandardCharsets.UTF_8),
+                false,
+                false,
+                Uploader.member(memberId),
+                List.of());
+
+        service.memberLeaves(leaving, DocumentService.Leaving.DELETED);
+        stationMemberRepo.delete(leaving);
+
+        var stillThere = memberDocumentRepo.findById(kept.id()).orElseThrow();
+        assertEquals(List.of("Gerd Gone"), memberDocumentRepo.departedOf(kept.id()));
+        assertFalse(service.mayRead(stillThere, false, true), "it did not become the station's own paperwork");
+        assertTrue(memberDocumentRepo.findById(released.id()).isEmpty(), "what was not kept goes");
+    }
+
+    /**
+     * A station that switched documents off has switched off the files too, not only the list of them,
+     * whichever door the reader comes through.
+     */
+    @Test
+    @Order(11)
+    void aStationThatKeepsNoDocumentsServesNoFile() {
+        var document = service.store(
+                station.id(),
+                List.of(memberId),
+                "Ausgeschaltet",
+                "aus.txt",
+                "text/plain",
+                "aus".getBytes(StandardCharsets.UTF_8),
+                false,
+                false,
+                Uploader.member(memberId),
+                List.of());
+        stationRepo.setDisabledModules(station.id(), Set.of(StationModule.DOCUMENTS));
+        try {
+            var atStation = assertThrows(RefusalResponse.class, () -> service.open(document, DocumentDoor.STATION));
+            assertEquals(DocumentRefusal.DOCUMENTS_SWITCHED_OFF, atStation.refusal());
+            var association = assertThrows(
+                    RefusalResponse.class, () -> service.thumbnail(document, 64, DocumentDoor.ASSOCIATION));
+            assertEquals(ClusterRefusal.CLUSTER_MANAGED_STATION_KEEPS_NO_DOCUMENTS, association.refusal());
+            assertTrue(service.read(document).isPresent(), "the personal data export still reads it");
+        } finally {
+            stationRepo.setDisabledModules(station.id(), Set.of());
+        }
     }
 }

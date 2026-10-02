@@ -10,21 +10,12 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.Optional;
 
 /**
- * On-disk JSON shape of the metadata file that filesystem-style backends (local, SMB, SFTP)
- * write alongside every stored object. S3 carries metadata natively on the object header
- * + user-metadata fields and never touches this record.
- *
- * <p>The format is deliberately flat - four optional string fields, no nesting - so a future
- * migration tool can move bytes between backends without re-deriving metadata. Missing
- * {@code originalFilename} or {@code contentEncoding} are encoded as empty strings so the JSON
- * shape stays stable regardless of which optionals are populated.
+ * The JSON sidecar a tree-shaped backend writes beside every object. Flat on purpose, with an absent
+ * filename or encoding written as an empty string, so its shape never changes.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record MetadataSidecar(String contentType, String sha256, String originalFilename, String contentEncoding) {
 
-    /**
-     * Captures the persistent fields of {@code metadata} into a typed JSON-friendly record.
-     */
     public static MetadataSidecar from(ObjectMetadata metadata) {
         return new MetadataSidecar(
                 metadata.contentType(),
@@ -33,17 +24,15 @@ public record MetadataSidecar(String contentType, String sha256, String original
                 metadata.contentEncoding().orElse(""));
     }
 
-    /**
-     * Returns the in-memory {@link ObjectMetadata} this sidecar represents.
-     */
     public ObjectMetadata toObjectMetadata() {
-        String ct = contentType == null || contentType.isBlank() ? "application/octet-stream" : contentType;
-        String sha = sha256 == null ? "" : sha256;
-        Optional<String> filename = originalFilename == null || originalFilename.isEmpty()
-                ? Optional.empty()
-                : Optional.of(originalFilename);
-        Optional<String> encoding =
-                contentEncoding == null || contentEncoding.isEmpty() ? Optional.empty() : Optional.of(contentEncoding);
-        return new ObjectMetadata(ct, sha, filename, encoding);
+        return new ObjectMetadata(
+                contentType == null || contentType.isBlank() ? "application/octet-stream" : contentType,
+                sha256 == null ? "" : sha256,
+                present(originalFilename),
+                present(contentEncoding));
+    }
+
+    private static Optional<String> present(String value) {
+        return value == null || value.isEmpty() ? Optional.empty() : Optional.of(value);
     }
 }

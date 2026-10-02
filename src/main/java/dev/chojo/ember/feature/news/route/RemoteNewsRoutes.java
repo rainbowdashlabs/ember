@@ -5,39 +5,24 @@
  */
 package dev.chojo.ember.feature.news.route;
 
-import dev.chojo.ember.api.FederationSession;
-import dev.chojo.ember.api.MemberIdentity;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.feature.comment.route.CommentResponse;
-import dev.chojo.ember.feature.comment.route.CommentResponseMapper;
-import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.federation.contract.FederationContractBinder;
 import dev.chojo.ember.feature.federation.contract.FederationEndpoint;
 import dev.chojo.ember.feature.federation.contract.FederationSurface;
-import dev.chojo.ember.feature.federation.entity.FederationPartner;
-import dev.chojo.ember.feature.members.service.MemberNameResolver;
-import dev.chojo.ember.feature.news.entity.NewsComment;
+import dev.chojo.ember.feature.federation.transport.FederationEndpoints;
 import dev.chojo.ember.feature.news.entity.NewsVisibilityRole;
-import dev.chojo.ember.feature.news.service.NewsAttachmentService;
-import dev.chojo.ember.feature.news.service.NewsFederationService;
-import dev.chojo.ember.feature.news.service.NewsService;
-import io.javalin.http.Context;
-import io.javalin.http.HttpStatus;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 import java.util.List;
-import java.util.Objects;
 import java.util.UUID;
 
-import static dev.chojo.ember.api.RouteSupport.pathInt;
-
 /**
- * Server-to-server news endpoints served to federation partners. Requests carry an RSA-signed
- * envelope instead of a user session; the consumer side that calls these endpoints lives in
- * {@link FederatedNewsRoutes}.
+ * Server-to-server news endpoints served to federation partners, through the serving functions of
+ * {@code NewsFederationService}. Requests carry an RSA-signed envelope instead of a user session;
+ * the consumer side that calls these endpoints lives in {@link FederatedNewsRoutes}.
  */
 @Singleton
 public class RemoteNewsRoutes implements Routes {
@@ -67,161 +52,21 @@ public class RemoteNewsRoutes implements Routes {
     public static final List<FederationEndpoint> CONTRACT =
             List.of(LIST_NEWS, GET_NEWS, LIST_COMMENTS, CREATE_COMMENT, UPDATE_COMMENT, DELETE_COMMENT);
 
-    private final NewsService newsService;
-    private final NewsAttachmentService attachmentService;
-    private final NewsFederationService newsFederationService;
-    private final EventFederationRepository eventFederationRepository;
-    private final MemberNameResolver memberNameResolver;
+    private final FederationEndpoints endpoints;
 
     @Inject
-    public RemoteNewsRoutes(
-            NewsService newsService,
-            NewsAttachmentService attachmentService,
-            NewsFederationService newsFederationService,
-            EventFederationRepository eventFederationRepository,
-            MemberNameResolver memberNameResolver) {
-        this.newsService = newsService;
-        this.attachmentService = attachmentService;
-        this.newsFederationService = newsFederationService;
-        this.eventFederationRepository = eventFederationRepository;
-        this.memberNameResolver = memberNameResolver;
+    public RemoteNewsRoutes(FederationEndpoints endpoints) {
+        this.endpoints = endpoints;
     }
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        FederationContractBinder.register(
-                routes, prefix, CONTRACT, binder -> binder.handle(LIST_NEWS, this::remoteListNews)
-                        .handle(GET_NEWS, this::remoteGetNews)
-                        .handle(LIST_COMMENTS, this::remoteListComments)
-                        .handle(CREATE_COMMENT, this::remoteCreateComment)
-                        .handle(UPDATE_COMMENT, this::remoteUpdateComment)
-                        .handle(DELETE_COMMENT, this::remoteDeleteComment));
-    }
-
-    private void remoteListNews(Context ctx) {
-        var partner = FederationSession.requirePartner(ctx);
-        var newsIds = newsFederationService.findSharedNewsIds(partner.id(), partner.stationId());
-        var newsList = newsIds.stream()
-                .map(id -> newsService.findById(id).orElse(null))
-                .filter(Objects::nonNull)
-                .map(n -> {
-                    NewsVisibilityRole visibilityRole =
-                            newsFederationService.findVisibilityRole(n.id()).orElse(NewsVisibilityRole.MEMBER);
-                    var authorResolved = n.author() != null ? memberNameResolver.resolveDisplay(n.author()) : null;
-                    String authorName =
-                            authorResolved != null && authorResolved.name() != null ? authorResolved.name() : "";
-                    return new RemoteNewsSummary(
-                            n.id(),
-                            n.title(),
-                            attachmentService.withAttachmentLinksHtml(
-                                    n.contentHtml() != null ? n.contentHtml() : "", n.id(), n.stationId()),
-                            authorName,
-                            n.publishedAt() != null ? n.publishedAt().toString() : "",
-                            newsService.countComments(n.id()),
-                            visibilityRole);
-                })
-                .toList();
-        ctx.json(newsList);
-    }
-
-    private void remoteGetNews(Context ctx) {
-        var partner = FederationSession.requirePartner(ctx);
-        int newsId = pathInt(ctx, "newsId");
-        requireSharedNews(partner, newsId);
-        var news = newsService.findById(newsId).orElseThrow(Refusal.REMOTE_NEWS_NOT_HERE::raise);
-        var authorResolved = news.author() != null ? memberNameResolver.resolveDisplay(news.author()) : null;
-        String authorName = authorResolved != null && authorResolved.name() != null ? authorResolved.name() : "";
-        NewsVisibilityRole visibilityRole =
-                newsFederationService.findVisibilityRole(newsId).orElse(NewsVisibilityRole.MEMBER);
-        ctx.json(new RemoteNewsDetail(
-                news.id(),
-                news.title(),
-                attachmentService.withAttachmentLinks(
-                        news.contentMarkdown() != null ? news.contentMarkdown() : "", news.id(), news.stationId()),
-                attachmentService.withAttachmentLinksHtml(
-                        news.contentHtml() != null ? news.contentHtml() : "", news.id(), news.stationId()),
-                authorName,
-                news.publishedAt() != null ? news.publishedAt().toString() : "",
-                newsService.countComments(newsId),
-                visibilityRole));
-    }
-
-    private void remoteListComments(Context ctx) {
-        var partner = FederationSession.requirePartner(ctx);
-        int newsId = pathInt(ctx, "newsId");
-        requireSharedNews(partner, newsId);
-        var comments = newsService.findComments(newsId);
-        ctx.json(comments.stream().map(this::toCommentResponse).toList());
-    }
-
-    private void remoteCreateComment(Context ctx) {
-        var partner = FederationSession.requirePartner(ctx);
-        int newsId = pathInt(ctx, "newsId");
-        requireSharedNews(partner, newsId);
-        var req = ctx.bodyAsClass(RemoteNewsCommentRequest.class);
-        if (req.content() == null || req.content().isBlank()) {
-            throw Refusal.REMOTE_NEWS_COMMENT_NEEDS_TEXT.raise();
-        }
-        var authorIdentity = new MemberIdentity(partner.partnerStationId(), req.remoteMemberUid());
-        var comment = newsService.createComment(
-                partner.stationId(), newsId, req.parentId(), authorIdentity, req.displayName(), req.content());
-        eventFederationRepository.cacheName(partner.id(), req.remoteMemberUid(), req.displayName());
-        ctx.status(HttpStatus.CREATED).json(toCommentResponse(comment));
-    }
-
-    private void remoteUpdateComment(Context ctx) {
-        var partner = FederationSession.requirePartner(ctx);
-        int commentId = pathInt(ctx, "commentId");
-        var req = ctx.bodyAsClass(RemoteNewsCommentUpdateRequest.class);
-        if (req.content() == null || req.content().isBlank()) {
-            throw Refusal.REMOTE_NEWS_COMMENT_NEEDS_TEXT_ON_UPDATE.raise();
-        }
-        var comment = newsService
-                .findCommentById(commentId)
-                .orElseThrow(Refusal.REMOTE_NEWS_COMMENT_NOT_HERE_ON_UPDATE::raise);
-        var expectedIdentity = new MemberIdentity(partner.partnerStationId(), req.remoteMemberUid());
-        if (!expectedIdentity.sameMember(comment.author())) {
-            throw Refusal.REMOTE_NEWS_COMMENT_NOT_YOURS_TO_EDIT.raise();
-        }
-        newsService.updateComment(commentId, req.content());
-        var updated = newsService
-                .findCommentById(commentId)
-                .orElseThrow(Refusal.REMOTE_NEWS_COMMENT_NOT_HERE_AFTER_UPDATE::raise);
-        ctx.json(toCommentResponse(updated));
-    }
-
-    private void remoteDeleteComment(Context ctx) {
-        var partner = FederationSession.requirePartner(ctx);
-        int commentId = pathInt(ctx, "commentId");
-        var req = ctx.bodyAsClass(RemoteNewsCommentDeleteRequest.class);
-        var comment = newsService
-                .findCommentById(commentId)
-                .orElseThrow(Refusal.REMOTE_NEWS_COMMENT_NOT_HERE_ON_DELETE::raise);
-        var expectedIdentity = new MemberIdentity(partner.partnerStationId(), req.remoteMemberUid());
-        if (!expectedIdentity.sameMember(comment.author())) {
-            throw Refusal.REMOTE_NEWS_COMMENT_NOT_YOURS_TO_DELETE.raise();
-        }
-        if (newsService.deleteComment(partner.stationId(), commentId)) {
-            ctx.status(HttpStatus.NO_CONTENT);
-        } else {
-            throw Refusal.REMOTE_NEWS_COMMENT_NOT_DELETED.raise();
-        }
-    }
-
-    /**
-     * Confirms the partner is allowed to see the given news item, i.e. it is in the
-     * set this station shares with that partner. Guards every {@code /remote/news}
-     * read/write so a partner cannot address never-federated news by enumerating ids.
-     */
-    private void requireSharedNews(FederationPartner partner, int newsId) {
-        var newsIds = newsFederationService.findSharedNewsIds(partner.id(), partner.stationId());
-        if (!newsIds.contains(newsId)) {
-            throw Refusal.NEWS_NOT_SHARED_WITH_PARTNER.raise();
-        }
-    }
-
-    private CommentResponse toCommentResponse(NewsComment comment) {
-        return CommentResponseMapper.fromNews(memberNameResolver, comment);
+        FederationContractBinder.register(routes, prefix, CONTRACT, endpoints, binder -> binder.serve(LIST_NEWS)
+                .serve(GET_NEWS)
+                .serve(LIST_COMMENTS)
+                .serveCreated(CREATE_COMMENT)
+                .serve(UPDATE_COMMENT)
+                .serve(DELETE_COMMENT));
     }
 
     public record RemoteNewsSummary(

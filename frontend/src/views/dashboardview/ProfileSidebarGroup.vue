@@ -28,7 +28,7 @@ function close() {
 </script>
 
 <template>
-  <SidebarGroup data-onboarding="nav.profile" :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => emit('update:openGroup', v)" :icon="['fas', 'user']" :label="t('sidebar.profile')" to="/station/profile" name="profile" @navigate="close">
+  <SidebarGroup data-onboarding="nav.profile" :open-group="isDesktop ? undefined : openGroup" :icon="['fas', 'user']" :label="t('sidebar.profile')" to="/station/profile" name="profile" @update:open-group="v => emit('update:openGroup', v)" @navigate="close">
     <SidebarLink data-onboarding="nav.profile.absences" :icon="['fas', 'calendar-days']" name="profile-absences"
                  to="/station/profile/absences" @navigate="close">
       {{ t('sidebar.absences') }}

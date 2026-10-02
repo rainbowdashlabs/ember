@@ -17,7 +17,7 @@ import deDE from '@/i18n/de-DE'
 const i18n = createI18n({
     legacy: false,
     locale: 'de-DE',
-    messages: {'de-DE': deDE},
+    messages: {'de-DE': deDE, en: {}},
 })
 
 config.global.plugins = [i18n]

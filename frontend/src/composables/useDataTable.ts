@@ -15,7 +15,7 @@ import {
     compareSortValues, sortIconFor, type AriaSort, type SortComparator, type SortDirection, type SortValue,
 } from '@/composables/useSortable'
 import {loadColumnChoices, saveColumnChoices, type ColumnChoices} from '@/util/columnChoices'
-import {sessionStationId} from '@/util/sessionState'
+import {sessionState} from '@/util/sessionState'
 
 /**
  * How one table is being looked at: its sort, its filters and its search.
@@ -89,13 +89,14 @@ export interface FilterDialog {
  */
 export function useDataTable<Row>(options: DataTableOptions<Row>) {
     const {t} = useI18n()
+    const session = sessionState()
     const yesNo: YesNo = {yes: t('common.yes'), no: t('common.no')}
 
     const ownState = reactive(emptyTableState(options.sort?.key ?? null, options.sort?.direction)) as DataTableState
     const state = computed<DataTableState>(() => toValue(options.state) ?? ownState)
 
     const memoryKey = computed(() => {
-        const scope = options.perStation === false ? 'all' : sessionStationId.value ?? '-'
+        const scope = options.perStation === false ? 'all' : session.value.stationId ?? '-'
         return `${scope}:${toValue(options.id)}`
     })
     const choices = ref<ColumnChoices>({})
@@ -224,6 +225,16 @@ export function useDataTable<Row>(options: DataTableOptions<Row>) {
         set: (direction: SortDirection) => { state.value.sortDirection = direction },
     })
 
+    /** Sorts by the given column, or by none, keeping the direction. */
+    function sortBy(key: string | null) {
+        state.value.sortKey = key
+    }
+
+    /** Turns the sort the other way round, whichever column it is on. */
+    function flipSortDirection() {
+        state.value.sortDirection = state.value.sortDirection === 'asc' ? 'desc' : 'asc'
+    }
+
     function sortIcon(key: string): string {
         return sortIconFor(sortColumn.value?.key === key, state.value.sortDirection)
     }
@@ -276,6 +287,11 @@ export function useDataTable<Row>(options: DataTableOptions<Row>) {
         set: (value: string) => { state.value.search = value },
     })
 
+    /** Narrows the rows to those whose searchable text holds the given words. */
+    function searchFor(value: string) {
+        state.value.search = value
+    }
+
     return reactive({
         columns,
         visibleColumns,
@@ -287,6 +303,8 @@ export function useDataTable<Row>(options: DataTableOptions<Row>) {
         isSortable,
         isFilterable,
         toggleSort,
+        sortBy,
+        flipSortDirection,
         sortKey,
         sortDirection,
         sortIcon,
@@ -297,6 +315,7 @@ export function useDataTable<Row>(options: DataTableOptions<Row>) {
         closeFilter,
         setFilter,
         search,
+        searchFor,
     })
 }
 

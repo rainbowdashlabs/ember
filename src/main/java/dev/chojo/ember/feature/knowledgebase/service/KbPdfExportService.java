@@ -16,6 +16,7 @@ import dev.chojo.ember.util.PandocConverter;
 import dev.chojo.ember.util.TypstCompiler;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -142,7 +143,11 @@ public class KbPdfExportService {
      *                      {@code null} for a partner's file, which carries neither
      */
     private byte[] render(
-            ExportSource source, String stationName, Station station, Integer homeStationId, String generatedBy)
+            ExportSource source,
+            String stationName,
+            @Nullable Station station,
+            @Nullable Integer homeStationId,
+            String generatedBy)
             throws IOException, InterruptedException {
         var data = new LinkedHashMap<String, Object>();
         data.put("stationName", stationName == null ? "" : stationName);

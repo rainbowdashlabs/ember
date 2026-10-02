@@ -3,24 +3,19 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-// @vitest-environment happy-dom
+/** @vitest-environment happy-dom */
 import {describe, expect, it} from 'vitest'
 import {mount} from '@vue/test-utils'
 import QuestionOptionsEditor from './QuestionOptionsEditor.vue'
 
 /**
- * The choices a question offers, which every feature used to write for itself out of one box of
- * text. One of them split that box on line breaks while asking for commas, so a station could only
- * ever have one choice: a row per choice is what makes that unspellable.
+ * Mounts the editor with the given props, handing every list it emits back to it as its model, the
+ * way a parent binding it with `v-model` would.
  */
-function mountEditor(options: string[]) {
-    // Typed loosely on purpose: the editor is generic over what an option is, and a mount of a
-    // generic component carries that generic into every assertion below.
-    const wrapper: any = mount(QuestionOptionsEditor, {
-        props: {
-            modelValue: options,
-            'onUpdate:modelValue': (next: unknown[]) => wrapper.setProps({modelValue: next}),
-        },
+function mountBound(props: Record<string, unknown> & {modelValue: unknown[]}) {
+    let giveBack: (next: unknown[]) => void = () => undefined
+    const wrapper = mount(QuestionOptionsEditor, {
+        props: {...props, 'onUpdate:modelValue': (next: unknown[]) => giveBack(next)},
         global: {
             stubs: {
                 DragList: {
@@ -30,7 +25,19 @@ function mountEditor(options: string[]) {
             },
         },
     })
+    giveBack = next => {
+        void wrapper.setProps({modelValue: next})
+    }
     return wrapper
+}
+
+/**
+ * The choices a question offers, which every feature used to write for itself out of one box of
+ * text. One of them split that box on line breaks while asking for commas, so a station could only
+ * ever have one choice: a row per choice is what makes that unspellable.
+ */
+function mountEditor(options: string[]) {
+    return mountBound({modelValue: options})
 }
 
 describe('QuestionOptionsEditor', () => {
@@ -65,22 +72,11 @@ describe('QuestionOptionsEditor', () => {
      */
     it('edits an option that is more than its words', async () => {
         type Option = {text: string; correct: boolean}
-        const wrapper: any = mount(QuestionOptionsEditor, {
-            props: {
-                modelValue: [{text: 'Berlin', correct: true}] as Option[],
-                textOf: (option: unknown) => (option as Option).text,
-                withText: (option: unknown, text: string) => ({...(option as Option), text}),
-                blank: () => ({text: '', correct: false}),
-                'onUpdate:modelValue': (next: unknown[]) => wrapper.setProps({modelValue: next}),
-            },
-            global: {
-                stubs: {
-                    DragList: {
-                        props: ['items'],
-                        template: '<div><template v-for="(item, index) in items"><slot :item="item" :index="index"/></template></div>',
-                    },
-                },
-            },
+        const wrapper = mountBound({
+            modelValue: [{text: 'Berlin', correct: true}] as Option[],
+            textOf: (option: unknown) => (option as Option).text,
+            withText: (option: unknown, text: string) => ({...(option as Option), text}),
+            blank: () => ({text: '', correct: false}),
         })
 
         expect((wrapper.find('[data-testid="question-option-0"]').element as HTMLInputElement).value).toBe('Berlin')

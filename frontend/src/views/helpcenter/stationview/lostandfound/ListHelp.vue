@@ -19,7 +19,6 @@ import DeleteButton from '@/components/button/DeleteButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import DateInput from '@/components/input/datetime/DateInput.vue'
-import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import {StationPermission} from '@/api/types'
 
@@ -32,7 +31,6 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.lostAndFound.whatIsText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Lost and found list -->
     <div class="flex items-center justify-between mb-4">
       <SectionHeader>{{ t('lostAndFound.title') }}</SectionHeader>
       <HelpPermissionGuard :permissions="[StationPermission.LOST_AND_FOUND_CREATE]" :label="t('helpCenter.permissionLabel.lostAndFoundCreate')">
@@ -79,7 +77,6 @@ const {t} = useI18n()
         <p>{{ t('helpCenter.lostAndFound.reportText') }}</p>
       </HelpSection>
 
-      <!-- Dummy: Create form -->
       <NeutralContainer class="space-y-3">
         <p class="text-sm font-semibold">{{ t('lostAndFound.createTitle') }}</p>
         <div class="space-y-1">

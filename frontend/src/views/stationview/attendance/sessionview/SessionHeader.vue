@@ -12,7 +12,7 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import DecimalInput from '@/components/input/number/DecimalInput.vue'
 import DateTimeInput from '@/components/input/datetime/DateTimeInput.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import type {AttendanceSession} from '@/api/attendance'
+import type {AttendanceSession} from '@/api/generated/schema'
 import {formatDateTime, instantToLocalInput} from '@/util/format'
 
 /**

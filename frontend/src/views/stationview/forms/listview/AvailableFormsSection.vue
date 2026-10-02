@@ -8,7 +8,7 @@ import { useI18n } from 'vue-i18n'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import AvailableFormRow from './AvailableFormRow.vue'
-import type { FormListEntry } from '@/api/forms'
+import type { FormListEntry } from '@/api/generated/schema'
 
 defineProps<{
   forms: FormListEntry[]
@@ -26,7 +26,7 @@ const { t } = useI18n()
   <div class="space-y-4">
     <SubHeader v-if="showHeading" class="mt-6">{{ t('forms.fillForm') }}</SubHeader>
 
-    <EmptyState compact v-if="forms.length === 0">{{ t('forms.noAvailableForms') }}</EmptyState>
+    <EmptyState v-if="forms.length === 0" compact>{{ t('forms.noAvailableForms') }}</EmptyState>
 
     <div class="space-y-2">
       <AvailableFormRow

@@ -7,9 +7,11 @@
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
+import PillBadge from '@/components/badge/PillBadge.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import {roleLabel} from '@/composables/useDemoAccounts'
-import type {DemoAccount, RoleGroup} from '@/composables/useDemoAccounts'
+import type {RoleGroup} from '@/composables/useDemoAccounts'
+import type {DemoAccount} from '@/api/generated/schema'
 
 defineProps<{
   roleGroups: RoleGroup[]
@@ -34,8 +36,8 @@ const {t} = useI18n()
           : 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2'"
     >
       <NeutralContainer
-          v-for="account in group.accounts"
-          :key="account.email"
+          v-for="(account, index) in group.accounts"
+          :key="account.email ?? index"
           :class="[
             { 'opacity-50 pointer-events-none': loading },
             compact
@@ -55,21 +57,21 @@ const {t} = useI18n()
         </div>
         <div v-if="account.groups.length > 0"
              :class="compact ? 'flex flex-wrap gap-0.5 mt-0.5' : 'flex flex-wrap gap-1 mt-1'">
-          <span v-for="g in account.groups" :key="g"
-                :class="compact
-                  ? 'inline-block rounded-full px-1 text-[9px] bg-secondary/15 text-secondary-accent'
-                  : 'inline-block rounded-full px-1.5 py-0 text-[10px] bg-secondary/15 text-secondary-accent'">
+          <PillBadge v-for="g in account.groups" :key="g"
+                     :class="compact
+                       ? 'px-1 text-[9px] bg-secondary/15 text-secondary-accent'
+                       : 'px-1.5 py-0 text-[10px] bg-secondary/15 text-secondary-accent'">
             {{ g }}
-          </span>
+          </PillBadge>
         </div>
         <div v-if="account.tags.length > 0"
              :class="compact ? 'flex flex-wrap gap-0.5 mt-0.5' : 'flex flex-wrap gap-1 mt-0.5'">
-          <span v-for="tag in account.tags" :key="tag"
-                :class="compact
-                  ? 'inline-block rounded-full px-1 text-[9px] bg-primary/15 text-primary'
-                  : 'inline-block rounded-full px-1.5 py-0 text-[10px] bg-primary/15 text-primary'">
+          <PillBadge v-for="tag in account.tags" :key="tag"
+                     :class="compact
+                       ? 'px-1 text-[9px] bg-primary/15 text-primary'
+                       : 'px-1.5 py-0 text-[10px] bg-primary/15 text-primary'">
             {{ tag }}
-          </span>
+          </PillBadge>
         </div>
       </NeutralContainer>
     </div>

@@ -54,7 +54,7 @@ function linkedTicketLabel(linkedTicketId: number, tickets: TicketOption[], shor
             <MutedIcon :icon="['fas', 'link']" size="inline" class="shrink-0"/>
             <span class="text-xs text-(--text-muted)">{{ t(linkTypeKey(link.linkType)) }}</span>
             <span class="text-sm truncate flex-1">{{ linkedTicketLabel(link.linkedTicketId, allTickets, shortKey) }}</span>
-            <IconButton :icon="['fas', 'xmark']" label="Remove" class="text-xs sm:opacity-0 sm:group-hover:opacity-100" @click="emit('remove', link.key)" />
+            <IconButton :icon="['fas', 'xmark']" :label="t('common.remove')" class="text-xs sm:opacity-0 sm:group-hover:opacity-100" @click="emit('remove', link.key)" />
         </div>
         <div class="flex gap-2 mt-2 items-center flex-wrap">
             <SelectInput v-model="newType" class="w-40">

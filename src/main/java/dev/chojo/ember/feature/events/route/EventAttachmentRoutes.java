@@ -6,10 +6,10 @@
 package dev.chojo.ember.feature.events.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.feature.events.entity.EventAttachment;
 import dev.chojo.ember.feature.events.service.EventAttachmentService;
 import dev.chojo.ember.feature.events.service.EventCrudService;
@@ -21,18 +21,19 @@ import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
-import io.javalin.openapi.OpenApiName;
 import io.javalin.openapi.OpenApiParam;
 import io.javalin.openapi.OpenApiRequestBody;
 import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
+import java.util.Objects;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
-import static dev.chojo.ember.feature.events.route.EventOwnership.requireOwnedEvent;
+import static dev.chojo.ember.feature.events.service.EventOwnership.requireOwnedEvent;
 
 /**
  * The files an event hands over.
@@ -85,10 +86,10 @@ public class EventAttachmentRoutes implements Routes {
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventAttachment[].class)))
     private void list(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int eventId = pathInt(ctx, "id");
         visibility.requireVisibleEvent(session, eventId);
-        ctx.json(attachmentService.listFor(eventId, session.permissions()));
+        ctx.json(attachmentService.listFor(eventId, session.user().permissions()));
     }
 
     @OpenApi(
@@ -105,17 +106,17 @@ public class EventAttachmentRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void download(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int eventId = pathInt(ctx, "id");
         visibility.requireVisibleEvent(session, eventId);
 
         var attachment = attachmentService
-                .findReadable(pathInt(ctx, "attachmentId"), session.permissions())
+                .findReadable(pathInt(ctx, "attachmentId"), session.user().permissions())
                 .filter(found -> found.eventId() == eventId)
-                .orElseThrow(Refusal.EVENT_FILE_NOT_HERE::raise);
+                .orElseThrow(EventRefusal.EVENT_FILE_NOT_HERE::raise);
 
         var file = media.read(session.stationId(), attachment.contentHash())
-                .orElseThrow(Refusal.EVENT_FILE_CONTENT_NOT_HERE::raise);
+                .orElseThrow(EventRefusal.EVENT_FILE_CONTENT_NOT_HERE::raise);
         String stored = file.contentType();
         ctx.contentType(SafeInlineMime.safeContentType(stored));
         ctx.header(
@@ -129,7 +130,7 @@ public class EventAttachmentRoutes implements Routes {
     }
 
     /** A width that is not a usable number is no width at all, rather than a refusal to answer. */
-    private static Integer parseOptionalWidth(String raw) {
+    private static @Nullable Integer parseOptionalWidth(@Nullable String raw) {
         if (raw == null || raw.isBlank()) return null;
         try {
             int value = Integer.parseInt(raw);
@@ -161,21 +162,21 @@ public class EventAttachmentRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void picture(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int eventId = pathInt(ctx, "id");
         visibility.requireVisibleEvent(session, eventId);
 
         var attachment = attachmentService
-                .findReadable(pathInt(ctx, "attachmentId"), session.permissions())
+                .findReadable(pathInt(ctx, "attachmentId"), session.user().permissions())
                 .filter(found -> found.eventId() == eventId)
-                .orElseThrow(Refusal.EVENT_FILE_NOT_HERE_FOR_PICTURE::raise);
+                .orElseThrow(EventRefusal.EVENT_FILE_NOT_HERE_FOR_PICTURE::raise);
 
         var picture = media.readPicture(
                         session.stationId(),
                         attachment.contentHash(),
                         attachment.mimeType(),
                         parseOptionalWidth(ctx.queryParam("w")))
-                .orElseThrow(Refusal.EVENT_FILE_PICTURE_NOT_HERE::raise);
+                .orElseThrow(EventRefusal.EVENT_FILE_PICTURE_NOT_HERE::raise);
         String stored = picture.contentType();
         ctx.contentType(SafeInlineMime.safeContentType(stored));
         ctx.header(
@@ -197,18 +198,18 @@ public class EventAttachmentRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = AttachmentRequest.class)),
             responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = EventAttachment.class)))
     private void attach(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int eventId = pathInt(ctx, "id");
         requireOwnedEvent(crudService, eventId, session);
         var request = ctx.bodyAsClass(AttachmentRequest.class);
-        if (request.fileId() == null) throw Refusal.EVENT_FILE_NOT_CHOSEN.raise();
+        if (request.fileId() == null) throw EventRefusal.EVENT_FILE_NOT_CHOSEN.raise();
         ctx.status(HttpStatus.CREATED)
                 .json(attachmentService.attach(
                         eventId,
                         session.stationId(),
                         request.fileId(),
                         request.label(),
-                        request.internal() != null && request.internal()));
+                        Boolean.TRUE.equals(request.internal())));
     }
 
     @OpenApi(
@@ -225,9 +226,9 @@ public class EventAttachmentRoutes implements Routes {
     private void update(Context ctx) {
         var attachment = requireOwnedAttachment(ctx);
         var request = ctx.bodyAsClass(AttachmentRequest.class);
-        boolean internal = request.internal() != null ? request.internal() : attachment.internal();
+        boolean internal = Objects.requireNonNullElse(request.internal(), attachment.internal());
         if (!attachmentService.update(attachment.id(), request.label(), internal)) {
-            throw Refusal.EVENT_FILE_NOT_CHANGED.raise();
+            throw EventRefusal.EVENT_FILE_NOT_CHANGED.raise();
         }
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -241,7 +242,7 @@ public class EventAttachmentRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = AttachmentOrderRequest.class)),
             responses = @OpenApiResponse(status = "204"))
     private void reorder(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int eventId = pathInt(ctx, "id");
         requireOwnedEvent(crudService, eventId, session);
         var request = ctx.bodyAsClass(AttachmentOrderRequest.class);
@@ -261,7 +262,7 @@ public class EventAttachmentRoutes implements Routes {
             responses = @OpenApiResponse(status = "204"))
     private void detach(Context ctx) {
         var attachment = requireOwnedAttachment(ctx);
-        if (!attachmentService.detach(attachment.id())) throw Refusal.EVENT_FILE_NOT_REMOVED.raise();
+        if (!attachmentService.detach(attachment.id())) throw EventRefusal.EVENT_FILE_NOT_REMOVED.raise();
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -270,13 +271,13 @@ public class EventAttachmentRoutes implements Routes {
      * event cannot be written through the address of another.
      */
     private EventAttachment requireOwnedAttachment(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int eventId = pathInt(ctx, "id");
         requireOwnedEvent(crudService, eventId, session);
         return attachmentService
                 .find(pathInt(ctx, "attachmentId"))
                 .filter(attachment -> attachment.eventId() == eventId)
-                .orElseThrow(Refusal.EVENT_FILE_NOT_HERE_ON_WRITE::raise);
+                .orElseThrow(EventRefusal.EVENT_FILE_NOT_HERE_ON_WRITE::raise);
     }
 
     /**
@@ -284,9 +285,10 @@ public class EventAttachmentRoutes implements Routes {
      * @param label    what a reader sees instead of the file name, or null to use the file name
      * @param internal whether the file is kept back from the room, false where nothing is said
      */
-    @OpenApiName("EventAttachmentRequest")
-    public record AttachmentRequest(Integer fileId, String label, Boolean internal) {}
+    public record AttachmentRequest(
+            Integer fileId,
+            @Nullable String label,
+            @Nullable Boolean internal) {}
 
-    @OpenApiName("EventAttachmentOrderRequest")
     public record AttachmentOrderRequest(List<Integer> attachmentIds) {}
 }

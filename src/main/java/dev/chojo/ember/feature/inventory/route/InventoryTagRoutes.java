@@ -7,7 +7,7 @@ package dev.chojo.ember.feature.inventory.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.cluster.entity.RecommendedTag;
 import dev.chojo.ember.feature.cluster.service.ClusterInventoryTagService;
@@ -19,13 +19,13 @@ import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
-import io.javalin.openapi.OpenApiName;
 import io.javalin.openapi.OpenApiParam;
 import io.javalin.openapi.OpenApiRequestBody;
 import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -73,7 +73,7 @@ public class InventoryTagRoutes implements Routes {
             tags = {"Inventory"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = TagResponse[].class)))
     private void list(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var counts = tagService.countItemsPerTag(session.stationId());
         ctx.json(tagService.findByStation(session.stationId()).stream()
                 .map(tag -> TagResponse.of(tag, counts.getOrDefault(tag.id(), 0)))
@@ -85,14 +85,14 @@ public class InventoryTagRoutes implements Routes {
             methods = HttpMethod.POST,
             summary = "Write a word down",
             tags = {"Inventory"},
-            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = TagRequest.class)),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = InventoryTagRequest.class)),
             responses = {
                 @OpenApiResponse(status = "201", content = @OpenApiContent(from = TagResponse.class)),
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void create(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        var request = ctx.bodyAsClass(TagRequest.class);
+        StationSession session = StationSession.from(ctx);
+        var request = ctx.bodyAsClass(InventoryTagRequest.class);
         var tag = tagService.create(session.stationId(), request.name(), request.color());
         ctx.status(HttpStatus.CREATED).json(counted(session.stationId(), tag));
     }
@@ -103,15 +103,15 @@ public class InventoryTagRoutes implements Routes {
             pathParams = @OpenApiParam(name = "tagId", type = Integer.class, required = true),
             summary = "Rename a word or change how it looks",
             tags = {"Inventory"},
-            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = TagRequest.class)),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = InventoryTagRequest.class)),
             responses = {
                 @OpenApiResponse(status = "200", content = @OpenApiContent(from = TagResponse.class)),
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void update(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        var request = ctx.bodyAsClass(TagRequest.class);
+        StationSession session = StationSession.from(ctx);
+        var request = ctx.bodyAsClass(InventoryTagRequest.class);
         var tag = tagService.update(
                 session.stationId(), pathInt(ctx, "tagId"), request.name(), request.color(), request.position());
         ctx.json(counted(session.stationId(), tag));
@@ -128,7 +128,7 @@ public class InventoryTagRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void delete(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         tagService.delete(session.stationId(), pathInt(ctx, "tagId"));
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -140,7 +140,7 @@ public class InventoryTagRoutes implements Routes {
             tags = {"Inventory"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = RecommendedTag[].class)))
     private void recommended(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(clusterTagService.recommendationsFor(session.stationId()));
     }
 
@@ -152,7 +152,7 @@ public class InventoryTagRoutes implements Routes {
             queryParams = @OpenApiParam(name = "tag", type = String.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = TaggedItemSummary[].class)))
     private void itemsByTag(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(tagService.findItemsByTag(List.of(session.stationId()), ctx.queryParam("tag")));
     }
 
@@ -164,7 +164,7 @@ public class InventoryTagRoutes implements Routes {
             tags = {"Inventory"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ItemTagsResponse[].class)))
     private void inventoryItemTags(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var byItem = tagService.findTagsInInventory(session.stationId(), pathInt(ctx, "inventoryId"));
         ctx.json(byItem.entrySet().stream()
                 .map(entry -> new ItemTagsResponse(entry.getKey(), entry.getValue()))
@@ -179,7 +179,7 @@ public class InventoryTagRoutes implements Routes {
             tags = {"Inventory"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = InventoryTag[].class)))
     private void itemTags(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(tagService.findTagsForItem(session.stationId(), pathInt(ctx, "itemId")));
     }
 
@@ -195,7 +195,7 @@ public class InventoryTagRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void setItemTags(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(ItemTagsRequest.class);
         ctx.json(tagService.setItemTags(session.stationId(), pathInt(ctx, "itemId"), request.names()));
     }
@@ -214,8 +214,7 @@ public class InventoryTagRoutes implements Routes {
      * @param position where it sits in the list
      * @param itemCount how many things wear it
      */
-    @OpenApiName("InventoryTagResponse")
-    public record TagResponse(int id, String name, String color, int position, int itemCount) {
+    public record TagResponse(int id, String name, @Nullable String color, int position, int itemCount) {
         static TagResponse of(InventoryTag tag, int itemCount) {
             return new TagResponse(tag.id(), tag.name(), tag.color(), tag.position(), itemCount);
         }
@@ -226,8 +225,7 @@ public class InventoryTagRoutes implements Routes {
      * @param color    optional hex colour for the badge
      * @param position where it should sit
      */
-    @OpenApiName("InventoryTagRequest")
-    public record TagRequest(String name, String color, int position) {}
+    public record InventoryTagRequest(String name, @Nullable String color, int position) {}
 
     /**
      * @param names the words a thing should wear, as somebody typed them

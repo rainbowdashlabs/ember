@@ -17,11 +17,12 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import {type StationUsageResponse, getStationUsage} from '@/api/storageMonitoring'
+import {getStationUsage} from '@/api/storageMonitoring'
+import type {StationUsageResponse} from '@/api/generated/schema'
 import {buildStorageCategoryLabeler, formatBytes} from '@/util/storage'
 import {useConfigPanel} from '@/composables/useConfigPanel'
 import {describeFailure} from '@/util/failure'
-import {darkThemeActive as isDark} from '@/util/themeState'
+import {useThemePaint} from '@/composables/useThemePaint'
 import {
   StorageStatus,
   storageStatusOfPercent,
@@ -31,6 +32,7 @@ import {
 use([CanvasRenderer, BarChart, TitleComponent, TooltipComponent, GridComponent])
 
 const {t} = useI18n()
+const {dark: isDark} = useThemePaint()
 
 const {config: usage, loading, error, reload: loadData} = useConfigPanel<StationUsageResponse | null>({
   initial: null,

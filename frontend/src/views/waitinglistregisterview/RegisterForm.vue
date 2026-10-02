@@ -12,8 +12,9 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import PublicConsentCheckbox from '@/components/public/PublicConsentCheckbox.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import GuardianFields from './GuardianFields.vue'
-import DynamicFieldInput from './DynamicFieldInput.vue'
-import type { GuardianInput, WaitingListInviteInfo } from '@/api/waitingList'
+import WaitingListAnswerInput from '@/components/waitinglist/WaitingListAnswerInput.vue'
+import type { GuardianInput } from '@/api/waitingList'
+import type { WaitingListInviteInfo } from '@/api/generated/schema'
 
 const props = defineProps<{
   inviteInfo: WaitingListInviteInfo
@@ -22,10 +23,10 @@ const props = defineProps<{
   fieldValueOf: (fieldId: number) => string
 }>()
 const emit = defineEmits<{
-  (e: 'add-guardian'): void
-  (e: 'remove-guardian', index: number): void
-  (e: 'set-field-value', fieldId: number, value: string): void
-  (e: 'submit'): void
+  'add-guardian': []
+  'remove-guardian': [index: number]
+  'set-field-value': [fieldId: number, value: string]
+  submit: []
 }>()
 
 const firstname = defineModel<string>('firstname', {required: true})
@@ -56,12 +57,12 @@ const { t } = useI18n()
       @remove="emit('remove-guardian', $event)"
     />
 
-    <DynamicFieldInput
+    <WaitingListAnswerInput
       v-for="field in props.inviteInfo.fields"
       :key="field.id"
       :field="field"
-      :value="props.fieldValueOf(field.id)"
-      @update:value="emit('set-field-value', field.id, $event)"
+      :model-value="props.fieldValueOf(field.id)"
+      @update:model-value="emit('set-field-value', field.id, $event)"
     />
 
     <div class="space-y-1">

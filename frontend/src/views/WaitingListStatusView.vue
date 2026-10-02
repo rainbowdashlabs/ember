@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { computed, ref, onMounted } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Alert from '@/components/feedback/Alert.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
@@ -15,8 +15,10 @@ import StatusDetails from './waitingliststatusview/StatusDetails.vue'
 import StatusActions from './waitingliststatusview/StatusActions.vue'
 import InvitationDetails from './waitingliststatusview/InvitationDetails.vue'
 import InvitationAnswerActions from './waitingliststatusview/InvitationAnswerActions.vue'
-import RemoveConfirmationModal from './waitingliststatusview/RemoveConfirmationModal.vue'
-import type { WaitingListAnswerName, WaitingListPublicStatus } from '@/api/waitingList'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
+import MutedText from '@/components/typography/MutedText.vue'
+import type { WaitingListAnswerName } from '@/api/waitingList'
+import type { WaitingListPublicStatus } from '@/api/generated/schema'
 import { waitingList } from '@/api'
 import { describeFailure, type Failure } from '@/util/failure'
 import { useFlashMessage } from '@/composables/useFlashMessage'
@@ -30,7 +32,6 @@ const {
   data: status,
   loading,
   failure: linkFailure,
-  load: loadStatus,
 } = useLinkAccessedResource<WaitingListPublicStatus>(
     'token',
     () => t('waitingList.publicStatus.noToken'),
@@ -100,8 +101,6 @@ const failure = computed(() => confirmFailure.value
     ?? answerFailure.value
     ?? staleFailure.value
     ?? linkFailure.value)
-
-onMounted(loadStatus)
 </script>
 
 <template>
@@ -147,12 +146,17 @@ onMounted(loadStatus)
           <router-link class="text-sm text-primary hover:underline" to="/login">{{ t('waitingList.publicStatus.backToLogin') }}</router-link>
         </div>
       </template>
-
-      <RemoveConfirmationModal
-        v-model="showRemoveModal"
-        :removing="removing"
-        @confirm="removeFromList"
-      />
     </div>
+
+    <ConfirmDeleteModal
+      v-model="showRemoveModal"
+      :title="t('waitingList.publicStatus.removeTitle')"
+      :message="t('waitingList.publicStatus.removeConfirm')"
+      :confirm-label="t('waitingList.publicStatus.removeFromList')"
+      :busy="removing"
+      @confirm="removeFromList"
+    >
+      <MutedText tag="p">{{ t('waitingList.publicStatus.removeHint') }}</MutedText>
+    </ConfirmDeleteModal>
   </div>
 </template>

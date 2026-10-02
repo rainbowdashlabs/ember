@@ -5,7 +5,8 @@
  */
 import { ref, type Ref } from 'vue'
 import { useAsyncAction } from '@/composables/useAsyncAction'
-import {QuizQuestionTypes, type QuizQuestion, type QuizQuestionTypeName} from '@/api/quiz'
+import {QuizQuestionTypes, type QuizQuestionTypeName} from '@/api/quiz'
+import type {QuizQuestion} from '@/api/generated/schema'
 import { quiz } from '@/api'
 import { defaultConfigFor } from './questionDefaultConfig'
 import { useQuestionImage } from './useQuestionImage'

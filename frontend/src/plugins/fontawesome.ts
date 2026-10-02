@@ -5,8 +5,6 @@
  */
 import {library, config} from '@fortawesome/fontawesome-svg-core'
 import '@fortawesome/fontawesome-svg-core/styles.css'
-
-config.autoAddCss = false
 import {FontAwesomeIcon} from '@fortawesome/vue-fontawesome'
 import {
     faAngleDown, faAngleUp, faAnglesDown, faAnglesUp, faArrowDownWideShort, faArrowRight,
@@ -46,6 +44,8 @@ import {
     faGithub, faWindows, faApple, faLinux, faAndroid, faChrome, faFirefoxBrowser, faSafari,
     faEdge, faOpera, faYoutube,
 } from '@fortawesome/free-brands-svg-icons'
+
+config.autoAddCss = false
 
 library.add(
     faDiagramProject, faSun, faMoon, faCheck, faAngleDown, faAngleUp, faAnglesDown, faAnglesUp, faEllipsis,

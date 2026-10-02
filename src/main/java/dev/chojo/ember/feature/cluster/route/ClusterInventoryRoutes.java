@@ -6,10 +6,10 @@
 package dev.chojo.ember.feature.cluster.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.ClusterPermission;
+import dev.chojo.ember.api.refusal.ClusterRefusal;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.entity.LossReportRequirement;
 import dev.chojo.ember.feature.cluster.service.ClusterDispatchService;
@@ -22,6 +22,7 @@ import dev.chojo.ember.feature.inventory.entity.MovementPurpose;
 import dev.chojo.ember.feature.inventory.entity.StepActor;
 import dev.chojo.ember.feature.inventory.entity.StepSubject;
 import dev.chojo.ember.feature.inventory.service.ItemMovementService;
+import dev.chojo.ember.feature.members.entity.StationMember;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -33,6 +34,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.List;
@@ -161,7 +163,7 @@ public class ClusterInventoryRoutes implements Routes {
                         row.itemId(),
                         row.internalId(),
                         row.name(),
-                        row.custody().name(),
+                        row.custody(),
                         row.stationUid(),
                         row.stationName(),
                         row.holderName(),
@@ -182,7 +184,7 @@ public class ClusterInventoryRoutes implements Routes {
         ctx.json(inventoryService.findQueue(cluster.id()).stream()
                 .map(row -> new ClusterQueueResponse(
                         row.movementId(),
-                        row.purpose().name(),
+                        row.purpose(),
                         row.stationUid(),
                         row.stationName(),
                         row.stepLabel(),
@@ -284,7 +286,7 @@ public class ClusterInventoryRoutes implements Routes {
         Cluster cluster = requireActive(ctx);
         var request = ctx.bodyAsClass(ClusterStepOrderRequest.class);
         if (request.stepIds() == null || request.stepIds().isEmpty()) {
-            throw Refusal.CLUSTER_CHAIN_ORDER_NEEDS_STEPS.raise();
+            throw ClusterRefusal.CLUSTER_CHAIN_ORDER_NEEDS_STEPS.raise();
         }
         inventoryService.reorderSteps(cluster.id(), pathInt(ctx, "flowId"), request.stepIds());
         ctx.status(HttpStatus.NO_CONTENT);
@@ -328,7 +330,7 @@ public class ClusterInventoryRoutes implements Routes {
 
     private static void requireStepFields(ClusterStepRequest request) {
         if (request.actor() == null || request.subject() == null || request.custodyAfter() == null) {
-            throw Refusal.CLUSTER_STEP_DETAILS_MISSING.raise();
+            throw ClusterRefusal.CLUSTER_STEP_DETAILS_MISSING.raise();
         }
     }
 
@@ -336,7 +338,7 @@ public class ClusterInventoryRoutes implements Routes {
         return new ClusterFlowResponse(
                 flow.id(),
                 flow.name(),
-                flow.purpose().name(),
+                flow.purpose(),
                 flow.archived(),
                 inventoryService.findSteps(clusterId, flow.id()).stream()
                         .map(ClusterInventoryRoutes::toStep)
@@ -401,17 +403,16 @@ public class ClusterInventoryRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         Cluster cluster = requireActive(ctx);
         var request = ctx.bodyAsClass(DispatchRequest.class);
-        if (request.stationUid() == null) throw Refusal.CLUSTER_DISPATCH_NEEDS_A_STATION.raise();
+        if (request.stationUid() == null) throw ClusterRefusal.CLUSTER_DISPATCH_NEEDS_A_STATION.raise();
 
-        // Acting for the owner: this is the cluster's own store the gear is leaving
-        var actor = new ItemMovementService.Actor(
-                session.member() != null ? session.member().id() : 0, false, true);
+        var actingForTheOwningCluster = new ItemMovementService.Actor(
+                session.memberOpt().map(StationMember::id).orElse(0), false, true);
         var movement = dispatchService.dispatch(
                 cluster.id(),
                 request.stationUid(),
                 request.itemIds() != null ? request.itemIds() : List.of(),
                 request.reason(),
-                actor);
+                actingForTheOwningCluster);
         ctx.status(HttpStatus.CREATED).json(movement);
     }
 
@@ -436,7 +437,7 @@ public class ClusterInventoryRoutes implements Routes {
     private void setLossReportSettings(Context ctx) {
         Cluster cluster = requireActive(ctx);
         var request = ctx.bodyAsClass(LossReportSettings.class);
-        if (request.requires() == null) throw Refusal.CLUSTER_LOSS_REPORT_NEEDS_A_REQUIREMENT.raise();
+        if (request.requires() == null) throw ClusterRefusal.CLUSTER_LOSS_REPORT_NEEDS_A_REQUIREMENT.raise();
         inventoryService.setLossReportRequires(cluster.id(), request.requires());
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -444,16 +445,18 @@ public class ClusterInventoryRoutes implements Routes {
     private Cluster requireActive(Context ctx) {
         UserSession session = UserSession.from(ctx);
         Integer clusterId = session.clusterId();
-        if (clusterId == null) throw Refusal.NO_CLUSTER_CHOSEN_FOR_CLUSTER_INVENTORY.raise();
-        return clusterService.findById(clusterId).orElseThrow(Refusal.CLUSTER_NOT_HERE_FOR_CLUSTER_INVENTORY::raise);
+        if (clusterId == null) throw ClusterRefusal.NO_CLUSTER_CHOSEN_FOR_CLUSTER_INVENTORY.raise();
+        return clusterService
+                .findById(clusterId)
+                .orElseThrow(ClusterRefusal.CLUSTER_NOT_HERE_FOR_CLUSTER_INVENTORY::raise);
     }
 
     private static MovementPurpose parsePurpose(String raw) {
-        if (raw == null || raw.isBlank()) throw Refusal.CLUSTER_CHAIN_NEEDS_A_PURPOSE.raise();
+        if (raw == null || raw.isBlank()) throw ClusterRefusal.CLUSTER_CHAIN_NEEDS_A_PURPOSE.raise();
         try {
             return MovementPurpose.valueOf(raw);
         } catch (IllegalArgumentException e) {
-            throw Refusal.CLUSTER_CHAIN_PURPOSE_UNKNOWN.raise(raw);
+            throw ClusterRefusal.CLUSTER_CHAIN_PURPOSE_UNKNOWN.raise(raw);
         }
     }
 
@@ -465,12 +468,16 @@ public class ClusterInventoryRoutes implements Routes {
     public record LossReportSettings(LossReportRequirement requires) {}
 
     /** One piece resting in the cluster's store, offered on the dispatch screen. */
-    public record SendableItem(int id, String internalId, String name, Integer inventoryId, String inventoryName) {}
+    public record SendableItem(
+            int id, @Nullable String internalId, String name, Integer inventoryId, String inventoryName) {}
 
     /**
      * A consignment: one station, the pieces going to it, and what the cluster wrote about it.
      */
-    public record DispatchRequest(UUID stationUid, List<Integer> itemIds, String reason) {}
+    public record DispatchRequest(
+            UUID stationUid,
+            List<Integer> itemIds,
+            @Nullable String reason) {}
 
     /**
      * @param stationUid the station holding it, or {@code null} when it rests in the cluster's own store
@@ -479,14 +486,14 @@ public class ClusterInventoryRoutes implements Routes {
      */
     public record ClusterItemResponse(
             int id,
-            String internalId,
+            @Nullable String internalId,
             String name,
-            String custody,
-            UUID stationUid,
-            String stationName,
-            String holderName,
-            Integer sizeId,
-            String sizeLabel) {}
+            ItemCustody custody,
+            @Nullable UUID stationUid,
+            @Nullable String stationName,
+            @Nullable String holderName,
+            @Nullable Integer sizeId,
+            @Nullable String sizeLabel) {}
 
     /**
      * One kind of thing the association owns.
@@ -516,11 +523,11 @@ public class ClusterInventoryRoutes implements Routes {
      */
     public record ClusterQueueResponse(
             int movementId,
-            String purpose,
-            UUID stationUid,
-            String stationName,
-            String stepLabel,
-            String itemName,
+            MovementPurpose purpose,
+            @Nullable UUID stationUid,
+            @Nullable String stationName,
+            @Nullable String stepLabel,
+            @Nullable String itemName,
             Instant createdAt) {}
 
     /**
@@ -531,7 +538,7 @@ public class ClusterInventoryRoutes implements Routes {
      * something whose content it never displayed, and a chain with no steps does nothing at all.
      */
     public record ClusterFlowResponse(
-            int id, String name, String purpose, boolean archived, List<ClusterStepResponse> steps) {}
+            int id, String name, MovementPurpose purpose, boolean archived, List<ClusterStepResponse> steps) {}
 
     public record ClusterStepRequest(
             String label, StepActor actor, StepSubject subject, ItemCustody custodyAfter, boolean picksItem) {}

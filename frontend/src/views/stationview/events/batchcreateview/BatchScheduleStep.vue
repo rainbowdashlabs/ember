@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, ref} from 'vue'
+import {computed, ref, useId} from 'vue'
 import {useI18n} from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
@@ -15,7 +15,7 @@ import ToggleSwitch from '@/components/input/toggle/ToggleSwitch.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import type {BatchRow, EventFieldEntry} from '@/api/events'
+import type {BatchRow, EventFieldEntry} from '@/api/generated/schema'
 import {events} from '@/api'
 import {readCsvText} from '@/util/csvText'
 import {describeFailure, type Failure} from '@/util/failure'
@@ -30,10 +30,10 @@ const emit = defineEmits<{
 }>()
 
 const {t} = useI18n()
+const csvFileId = useId()
 
 const mode = ref<'schedule' | 'csv'>('schedule')
 
-// Schedule
 const intervalType = ref('RECURRING')
 const dayOfWeek = ref(1)
 const startDate = ref('')
@@ -42,7 +42,6 @@ const startTime = ref('')
 const endTime = ref('')
 const ignoreBreaks = ref(false)
 
-// CSV
 const csvColumns = ref<string[]>([])
 const csvRows = ref<string[][]>([])
 const columnMapping = ref<Record<string, string>>({})
@@ -68,12 +67,17 @@ const intervalOptions = [
   {value: 'MONTHLY_FIRST', label: 'Monatlich (erster)'},
   {value: 'QUARTERLY', label: 'Vierteljährlich'},
   {value: 'YEARLY', label: 'Jährlich'},
-]
+] as const
+
+/** The interval picked, read back from the offered ones so a stray value falls back to weekly. */
+function pickedInterval() {
+  return intervalOptions.find(option => option.value === intervalType.value)?.value ?? 'RECURRING'
+}
 
 async function generateScheduleDates() {
   try {
     const generated = await events.generateDates({
-      intervalType: intervalType.value,
+      intervalType: pickedInterval(),
       dayOfWeek: dayOfWeek.value,
       startDate: startDate.value,
       endDate: endDate.value,
@@ -101,7 +105,7 @@ function parseCsv(text: string) {
   csvRows.value = rows.map(l => l.split(separator).map(c => c.trim().replace(/^"|"$/g, '')))
 
   const mapping: Record<string, string> = {}
-  const fieldNames = props.fieldDefs.map(f => f.name.toLowerCase())
+  const fieldNames = props.fieldDefs.map(f => (f.name ?? '').toLowerCase())
   for (const col of csvColumns.value) {
     const lower = col.toLowerCase()
     if (['datum', 'date', 'tag'].includes(lower)) mapping[col] = '__date__'
@@ -110,22 +114,26 @@ function parseCsv(text: string) {
     else if (['name', 'terminname', 'event_name', 'titel', 'title', 'bezeichnung'].includes(lower)) mapping[col] = '__name__'
     else {
       const match = props.fieldDefs[fieldNames.indexOf(lower)]
-      if (match) mapping[col] = match.name
+      if (match?.name) mapping[col] = match.name
     }
   }
   columnMapping.value = mapping
   const mapped = Object.values(mapping)
   csvHasTimeColumns.value = mapped.includes('__startTime__') || mapped.includes('__endTime__')
 
-  // Auto-detect date format
   const dateColName = Object.entries(mapping).find(([, v]) => v === '__date__')?.[0]
   if (dateColName && csvRows.value.length > 0) {
     const sample = csvRows.value[0]?.[csvColumns.value.indexOf(dateColName)]?.trim() ?? ''
-    if (/^\d{2}\.\d{2}\.\d{4}$/.test(sample)) csvDateFormat.value = 'DD.MM.YYYY'
-    else if (/^\d{4}-\d{2}-\d{2}$/.test(sample)) csvDateFormat.value = 'YYYY-MM-DD'
-    else if (/^\d{2}\/\d{2}\/\d{4}$/.test(sample)) csvDateFormat.value = 'MM/DD/YYYY'
-    else csvDateFormat.value = 'auto'
+    csvDateFormat.value = detectedDateFormat(sample)
   }
+}
+
+/** The date format a sample from the date column is written in, or `auto` where none fits. */
+function detectedDateFormat(sample: string): typeof csvDateFormat.value {
+  if (/^\d{2}\.\d{2}\.\d{4}$/.test(sample)) return 'DD.MM.YYYY'
+  if (/^\d{4}-\d{2}-\d{2}$/.test(sample)) return 'YYYY-MM-DD'
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(sample)) return 'MM/DD/YYYY'
+  return 'auto'
 }
 
 function parseDateStr(raw: string): string {
@@ -159,7 +167,7 @@ function applyCsvToRows() {
     const isoDate = rawDate ? parseDateStr(rawDate) : ''
     const st = idx(stCol) >= 0 ? csvRow[idx(stCol)]?.trim() : csvFallbackStartTime.value
     const et = idx(etCol) >= 0 ? csvRow[idx(etCol)]?.trim() : csvFallbackEndTime.value
-    const n = idx(nameCol) >= 0 ? csvRow[idx(nameCol)] : undefined
+    const n = idx(nameCol) >= 0 ? csvRow[idx(nameCol)] ?? null : null
     return {
       name: n,
       startTime: isoDate ? `${isoDate}T${st || '00:00'}:00Z` : new Date().toISOString(),
@@ -184,7 +192,6 @@ function applyCsvToRows() {
         @update:model-value="mode = $event as 'schedule' | 'csv'"
     />
 
-    <!-- Schedule mode -->
     <template v-if="mode === 'schedule'">
       <div class="grid gap-4 sm:grid-cols-2">
         <div class="space-y-1">
@@ -229,11 +236,10 @@ function applyCsvToRows() {
       </PrimaryButton>
     </template>
 
-    <!-- CSV mode -->
     <template v-if="mode === 'csv'">
       <div class="space-y-2">
-        <FieldLabel>{{ t('batchCreate.uploadCsv') }}</FieldLabel>
-        <input type="file" accept=".csv,.txt" class="text-sm" @change="handleCsvUpload"/>
+        <FieldLabel :for="csvFileId">{{ t('batchCreate.uploadCsv') }}</FieldLabel>
+        <input :id="csvFileId" type="file" accept=".csv,.txt" class="text-sm" @change="handleCsvUpload"/>
       </div>
 
       <template v-if="csvColumns.length > 0">
@@ -242,7 +248,7 @@ function applyCsvToRows() {
           <div v-for="col in csvColumns" :key="col" class="flex items-center gap-3">
             <span class="w-40 text-sm font-medium truncate">{{ col }}</span>
             <SelectInput :model-value="columnMapping[col] ?? ''"
-                         @update:model-value="columnMapping[col] = String($event ?? '')" class="flex-1">
+                         class="flex-1" @update:model-value="columnMapping[col] = String($event ?? '')">
               <option value="">{{ t('batchCreate.unmapped') }}</option>
               <option value="__date__">{{ t('batchCreate.date') }}</option>
               <option value="__startTime__">{{ t('batchCreate.startTime') }}</option>

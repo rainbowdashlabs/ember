@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.account.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import dev.chojo.ember.api.auth.InstanceUserType;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.Locale;
@@ -36,14 +37,14 @@ public record Account(
         int id,
         UUID uid,
         String email,
-        String username,
+        @Nullable String username,
         String firstName,
         String lastName,
         boolean emailVerified,
         InstanceUserType instanceUserType,
         String fullName,
-        Integer creatingStationId,
-        Instant setupCompletedAt) {
+        @Nullable Integer creatingStationId,
+        @Nullable Instant setupCompletedAt) {
 
     /**
      * What an address ends in when it was made up for somebody who is not meant to sign in. Nothing

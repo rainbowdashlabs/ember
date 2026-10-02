@@ -17,7 +17,7 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import {beacon} from '@/api'
-import type {BeaconStatus} from '@/api/beacon'
+import type {BeaconStatus} from '@/api/generated/schema'
 
 /**
  * What this instance sends, and whether it takes anything in.

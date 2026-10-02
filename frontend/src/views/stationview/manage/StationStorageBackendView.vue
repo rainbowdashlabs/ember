@@ -4,50 +4,29 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, onMounted, ref, watch} from 'vue'
+import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter, RouterLink} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import SubHeader from '@/components/typography/SubHeader.vue'
-import MutedText from '@/components/typography/MutedText.vue'
-import StorageBackendSummary from './stationstoragebackendview/StorageBackendSummary.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import ButtonRow from '@/components/button/ButtonRow.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Modal from '@/components/feedback/Modal.vue'
-import StorageBackendAuditTable from '@/components/storage/StorageBackendAuditTable.vue'
+import StorageApplyConfirmModal from '@/components/storage/StorageApplyConfirmModal.vue'
 import StorageBackendForm from '@/components/storage/StorageBackendForm.vue'
+import StorageBackendHistory from '@/components/storage/StorageBackendHistory.vue'
+import StorageBackendSummaryCard from '@/components/storage/StorageBackendSummaryCard.vue'
 import {StationPermission} from '@/api/types'
 import {useSession} from '@/composables/useSession'
-import {useAsyncAction} from '@/composables/useAsyncAction'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {type StorageBackendChoice, useStorageBackendEditor} from '@/composables/useStorageBackendEditor'
 import {
-    type AuditEntry,
-    type BackendOverrideResponse,
-    type ProbeResult,
-    type S3Request,
-    type SftpRequest,
-    type SmbRequest,
-    type StationApplyRequest,
-    type StationBackendRequest,
     applyStationBackend,
     getStationBackend,
     getStationStorageAudit,
     probeStationBackend,
     probeStationBackendConfig,
 } from '@/api/storageBackend'
-import {
-    newS3,
-    newSftp,
-    newSmb,
-    s3FormFrom,
-    sftpFormFrom,
-    smbFormFrom,
-} from '@/util/storageBackendForm'
-import {describeFailure, type Failure} from '@/util/failure'
+import type {AuditEntryResponse, BackendOverrideResponse} from '@/api/generated/schema'
 
 const {t} = useI18n()
 const {hasPermission, loaded} = useSession()
@@ -59,143 +38,70 @@ watch(loaded, (isLoaded) => {
     }
 }, {immediate: true})
 
-const loading = ref(true)
-const loadFailure = ref<Failure | null>(null)
-const success = ref('')
 const backend = ref<BackendOverrideResponse | null>(null)
-const auditEntries = ref<AuditEntry[]>([])
+const auditEntries = ref<AuditEntryResponse[]>([])
 
-const selectedType = ref<'LOCAL' | 'CLUSTER' | 'S3' | 'SMB' | 'SFTP'>('LOCAL')
-const s3 = ref<S3Request>(newS3())
-const smb = ref<SmbRequest>(newSmb())
-const sftp = ref<SftpRequest>(newSftp())
-const probeOutcome = ref<ProbeResult | null>(null)
-const confirmApply = ref(false)
+const editor = useStorageBackendEditor({
+    probeSaved: probeStationBackend,
+    probeTyped: (request) => probeStationBackendConfig(request),
+    reload: () => loadAll(),
+    reloadHistory: async () => { auditEntries.value = await getStationStorageAudit() },
+}, 'LOCAL')
+
+const {loading, failure: loadFailure, reload: loadAll} = useAsyncLoader(async () => {
+    backend.value = await getStationBackend()
+    editor.seed(backend.value.override, 'LOCAL')
+    auditEntries.value = await getStationStorageAudit()
+})
+const {selectedType, s3, smb, sftp, savedOutcome, typedOutcome, success, pending, probing, saving, failure} = editor
 
 const overrideType = computed(() => backend.value?.override?.type ?? null)
-const hasOverride = computed(() => overrideType.value !== null)
 const onClusterStorage = computed(() => backend.value?.clusterBackend != null)
 const locked = computed(() => backend.value?.locked === true)
 
 /**
- * Where this station's files are, in one line.
+ * Where this station's files are, and what it falls back to.
  *
  * Three answers rather than two, because a station under an association may be standing on the
  * association's storage, and it will not have been the station that put it there.
  */
-const activeBackendLabel = computed(() => {
-    if (!backend.value) return ''
-    if (overrideType.value) return t('stationStorageBackend.summary.override', {type: overrideType.value})
+const summaryLines = computed(() => {
+    if (!backend.value) return []
+    const defaultLine = t('stationStorageBackend.summary.instanceDefault', {type: backend.value.instanceDefault})
+    if (overrideType.value) return [t('stationStorageBackend.summary.override', {type: overrideType.value}), defaultLine]
     if (onClusterStorage.value) {
-        return t('stationStorageBackend.summary.cluster', {
-            type: backend.value.clusterBackend!.type,
-            cluster: backend.value.clusterName ?? '',
-        })
+        return [
+            t('stationStorageBackend.summary.cluster', {
+                type: backend.value.clusterBackend!.type,
+                cluster: backend.value.clusterName ?? '',
+            }),
+            defaultLine,
+        ]
     }
-    return t('stationStorageBackend.summary.inherit', {type: backend.value.instanceDefault})
+    return [t('stationStorageBackend.summary.inherit', {type: backend.value.instanceDefault}), defaultLine]
 })
 
 /**
  * What this station may point itself at. Its association's storage only when there is some to move onto,
  * and nothing at all when the association has said it decides.
  */
-const offeredTypes = computed<('LOCAL' | 'CLUSTER' | 'S3' | 'SMB' | 'SFTP')[]>(() =>
+const offeredTypes = computed<StorageBackendChoice[]>(() =>
     backend.value?.clusterOffersStorage
         ? ['LOCAL', 'CLUSTER', 'S3', 'SMB', 'SFTP']
         : ['LOCAL', 'S3', 'SMB', 'SFTP'],
 )
 
-onMounted(loadAll)
-
-async function loadAll() {
-    loading.value = true
-    loadFailure.value = null
-    try {
-        backend.value = await getStationBackend()
-        seedFormFromBackend()
-        auditEntries.value = await getStationStorageAudit()
-    } catch (e) {
-        loadFailure.value = describeFailure(e, t)
-    } finally {
-        loading.value = false
-    }
-}
-
-function seedFormFromBackend() {
-    const summary = backend.value?.override
-    if (!summary) {
-        selectedType.value = 'LOCAL'
-        return
-    }
-    selectedType.value = summary.type
-    if (summary.type === 'S3') {
-        s3.value = s3FormFrom(summary)
-    } else if (summary.type === 'SMB') {
-        smb.value = smbFormFrom(summary)
-    } else if (summary.type === 'SFTP') {
-        sftp.value = sftpFormFrom(summary)
-    }
-}
-
-function currentRequest(): StationBackendRequest | null {
-    if (selectedType.value === 'LOCAL' || selectedType.value === 'CLUSTER') return null
-    if (selectedType.value === 'S3') return s3.value
-    if (selectedType.value === 'SMB') return smb.value
-    return sftp.value
-}
-
-const {running: probing, run: runProbe} = useAsyncAction(async (call: () => Promise<ProbeResult>) => {
-    try {
-        probeOutcome.value = await call()
-    } catch (e) {
-        probeOutcome.value = {
-            healthy: false,
-            error: describeFailure(e, t).message,
-            checkedAt: new Date().toISOString(),
-        }
-    }
-})
-
-function probe() {
-    if (!hasOverride.value) {
-        probeOutcome.value = null
-        return
-    }
-    probeOutcome.value = null
-    return runProbe(() => probeStationBackend())
-}
-
-function probeConfig() {
-    const req = currentRequest()
-    if (!req) {
-        probeOutcome.value = null
-        return
-    }
-    probeOutcome.value = null
-    return runProbe(() => probeStationBackendConfig(req))
-}
-
-function applyRequest(): StationApplyRequest {
-    if (selectedType.value === 'LOCAL') return {type: 'LOCAL'}
-    if (selectedType.value === 'CLUSTER') return {type: 'CLUSTER'}
-    return currentRequest()!
-}
-
-const {running: saving, failure: applyFailure, run: runApply} = useAsyncAction(
-    async () => {
-        confirmApply.value = false
-        success.value = ''
-        const result = await applyStationBackend(applyRequest())
-        success.value = t('stationStorageBackend.feedback.applied', {
+function requestApply() {
+    const request = editor.currentRequest()
+    editor.askFirst(t('stationStorageBackend.confirm.body'), async () => {
+        const result = await applyStationBackend(request)
+        return t('stationStorageBackend.feedback.applied', {
             copied: result.copied,
             skipped: result.skipped,
             deleted: result.deleted,
         })
-        await loadAll()
-    },
-    {formatError: (e) => describeFailure(e, t).message},
-)
-
+    })
+}
 </script>
 
 <template>
@@ -211,15 +117,18 @@ const {running: saving, failure: applyFailure, run: runApply} = useAsyncAction(
             </div>
 
             <FailureAlert :failure="loadFailure"/>
-            <FailureAlert :failure="applyFailure"/>
+            <FailureAlert :failure="failure"/>
             <Alert v-if="success" variant="success">{{ success }}</Alert>
 
             <Spinner v-if="loading" size="lg" />
 
             <template v-else-if="backend">
-                <StorageBackendSummary
-                    :where="activeBackendLabel"
-                    :instance-default="backend.instanceDefault"
+                <StorageBackendSummaryCard
+                    :lines="summaryLines"
+                    :can-probe="overrideType !== null"
+                    :probing="probing"
+                    :probe-outcome="savedOutcome"
+                    @probe="editor.probeSaved"
                 />
 
                 <Alert v-if="locked" variant="info" data-testid="station-storage-locked">
@@ -236,34 +145,21 @@ const {running: saving, failure: applyFailure, run: runApply} = useAsyncAction(
                     :types="offeredTypes"
                     :probing="probing"
                     :saving="saving"
-                    show-live-probe
-                    :can-probe-live="hasOverride"
-                    :probe-outcome="probeOutcome"
-                    @probe-config="probeConfig"
-                    @probe-live="probe"
-                    @apply="confirmApply = true"
+                    :probe-outcome="typedOutcome"
+                    @probe-config="editor.probeTyped"
+                    @apply="requestApply"
                 />
 
-                <NeutralContainer class="space-y-3">
-                    <SubHeader>{{ t('stationStorageBackend.audit.title') }}</SubHeader>
-                    <StorageBackendAuditTable :entries="auditEntries" />
-                </NeutralContainer>
+                <StorageBackendHistory :entries="auditEntries"/>
             </template>
         </div>
 
-        <Modal v-model="confirmApply" size="md">
-            <div class="space-y-4">
-                <SubHeader>{{ t('stationStorageBackend.confirm.title') }}</SubHeader>
-                <MutedText tag="p" size="sm">{{ t('stationStorageBackend.confirm.body') }}</MutedText>
-                <ButtonRow pair align="end">
-                    <SecondaryButton @click="confirmApply = false">
-                        {{ t('stationStorageBackend.confirm.cancel') }}
-                    </SecondaryButton>
-                    <PrimaryButton :disabled="saving" @click="runApply">
-                        {{ t('stationStorageBackend.confirm.confirm') }}
-                    </PrimaryButton>
-                </ButtonRow>
-            </div>
-        </Modal>
+        <StorageApplyConfirmModal
+            :title="t('stationStorageBackend.confirm.title')"
+            :body="pending?.body ?? null"
+            :saving="saving"
+            @confirm="editor.confirmPending"
+            @cancel="editor.cancelPending"
+        />
     </ViewContent>
 </template>

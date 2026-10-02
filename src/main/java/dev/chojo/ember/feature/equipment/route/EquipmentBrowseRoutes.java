@@ -5,11 +5,11 @@
  */
 package dev.chojo.ember.feature.equipment.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
-import dev.chojo.ember.feature.equipment.repository.EquipmentRecommendationRepository;
+import dev.chojo.ember.api.refusal.EquipmentRefusal;
+import dev.chojo.ember.feature.equipment.entity.Recommendation;
 import dev.chojo.ember.feature.equipment.service.EquipmentBrowseService;
 import io.javalin.http.Context;
 import io.javalin.openapi.HttpMethod;
@@ -59,19 +59,16 @@ public class EquipmentBrowseRoutes implements Routes {
                     "Everything carrying a word the picked piece carries, across the inventories, then the other pieces filed beside it. Words win where both apply.",
             tags = {"Inventory"},
             queryParams = @OpenApiParam(name = "itemId", type = Integer.class, required = true),
-            responses =
-                    @OpenApiResponse(
-                            status = "200",
-                            content = @OpenApiContent(from = EquipmentRecommendationRepository.Recommendation[].class)))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Recommendation[].class)))
     private void recommendations(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         String raw = ctx.queryParam("itemId");
-        if (raw == null || raw.isBlank()) throw Refusal.RECOMMENDATION_PIECE_MISSING.raise();
+        if (raw == null || raw.isBlank()) throw EquipmentRefusal.RECOMMENDATION_PIECE_MISSING.raise();
         int itemId;
         try {
             itemId = Integer.parseInt(raw);
         } catch (NumberFormatException e) {
-            throw Refusal.RECOMMENDATION_PIECE_NOT_A_NUMBER.raise(raw);
+            throw EquipmentRefusal.RECOMMENDATION_PIECE_NOT_A_NUMBER.raise(raw);
         }
         ctx.json(browseService.recommendationsFor(session.stationId(), itemId));
     }
@@ -86,9 +83,9 @@ public class EquipmentBrowseRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = RecheckRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = RecheckResponse.class)))
     private void recheck(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var body = ctx.bodyAsClass(RecheckRequest.class);
-        if (body.from() == null) throw Refusal.COLLECTED_LIST_WINDOW_MISSING.raise();
+        if (body.from() == null) throw EquipmentRefusal.COLLECTED_LIST_WINDOW_MISSING.raise();
         List<EquipmentBrowseService.CollectedLine> lines = body.lines() == null ? List.of() : body.lines();
         LocalDate to = body.to() == null ? body.from() : body.to();
         ctx.json(new RecheckResponse(

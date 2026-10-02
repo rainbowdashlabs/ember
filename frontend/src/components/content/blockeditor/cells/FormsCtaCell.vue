@@ -5,7 +5,7 @@
  */
 <script lang="ts" setup>
 import PublicFormCell from '../PublicFormCell.vue'
-import type {FormsCtaConfig} from '@/api/pageManage'
+import type {FormsCtaConfig} from '@/api/generated/schema'
 
 defineProps<{
     config: FormsCtaConfig

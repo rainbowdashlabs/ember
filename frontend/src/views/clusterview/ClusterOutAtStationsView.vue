@@ -18,7 +18,7 @@ import OutStationFilter from './clusteroutatstationsview/OutStationFilter.vue'
 import OutStationGroup from './clusteroutatstationsview/OutStationGroup.vue'
 import {useOutItemTable} from './clusteroutatstationsview/useOutItemTable'
 import {clusterInventory} from '@/api'
-import type {ClusterItem} from '@/api/clusterInventory'
+import type {ClusterItemResponse} from '@/api/generated/schema'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useBreakpoint} from '@/composables/useBreakpoint'
 
@@ -34,7 +34,7 @@ import {useBreakpoint} from '@/composables/useBreakpoint'
 const {t} = useI18n()
 const {isMobile} = useBreakpoint()
 
-const items = ref<ClusterItem[]>([])
+const items = ref<ClusterItemResponse[]>([])
 
 const {loading, failure} = useAsyncLoader(async () => {
   items.value = await clusterInventory.listItems()
@@ -46,7 +46,7 @@ const away = computed(() => items.value.filter(item => item.custody !== 'WITH_OW
 /** The station the list is narrowed to, empty for all of them. */
 const station = ref('')
 
-function stationOf(item: ClusterItem): string {
+function stationOf(item: ClusterItemResponse): string {
   return item.stationName ?? t('clusterInventory.inTransit')
 }
 
@@ -62,7 +62,7 @@ const atChosenStation = computed(() =>
 const table = useOutItemTable(atChosenStation)
 
 const byStation = computed(() => {
-  const groups = new Map<string, ClusterItem[]>()
+  const groups = new Map<string, ClusterItemResponse[]>()
   for (const item of table.rows) {
     const key = stationOf(item)
     const bucket = groups.get(key)

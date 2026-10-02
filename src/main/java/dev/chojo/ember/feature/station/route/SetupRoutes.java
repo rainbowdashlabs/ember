@@ -6,7 +6,7 @@
 package dev.chojo.ember.feature.station.route;
 
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.station.service.SetupService;
 import dev.chojo.ember.feature.station.service.SetupService.SetupStatus;
@@ -52,7 +52,7 @@ public class SetupRoutes implements Routes {
             tags = {"Station Setup"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = SetupStatus.class)))
     private void getStatus(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(setupService.getStatus(session.stationId()));
     }
 
@@ -68,7 +68,7 @@ public class SetupRoutes implements Routes {
                 @OpenApiResponse(status = "409", content = @OpenApiContent(from = MissingStepsResponse.class))
             })
     private void complete(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var result = setupService.complete(session.stationId());
         switch (result) {
             case COMPLETED, ALREADY_COMPLETE -> ctx.json(setupService.getStatus(session.stationId()));

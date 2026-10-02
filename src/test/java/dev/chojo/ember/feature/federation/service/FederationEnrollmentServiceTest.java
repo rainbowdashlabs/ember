@@ -18,6 +18,7 @@ import dev.chojo.ember.feature.federation.route.RemoteFederationRoutes.Handshake
 import dev.chojo.ember.feature.federation.route.RemoteFederationRoutes.HandshakeResponse;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import dev.chojo.ember.util.TestStationKeys;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -31,7 +32,6 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -60,6 +60,7 @@ class FederationEnrollmentServiceTest extends RepositoryTestBase {
 
     private FederationRepository federationRepo;
     private FederationSigningService signingService;
+    private StationKeyStore keys;
     private FederationService serviceHere;
     private FederationService serviceThere;
     private FederationEnrollmentService here;
@@ -110,15 +111,18 @@ class FederationEnrollmentServiceTest extends RepositoryTestBase {
         federationRepo = new FederationRepository();
         signingService = new FederationSigningService();
         var urlValidator = new RemoteUrlValidator(new Federation(), new Demo());
-        serviceHere = new FederationService(federationRepo, stationRepo, api(HOST_HERE));
-        serviceThere = new FederationService(federationRepo, stationRepo, api(HOST_THERE));
+        keys = TestStationKeys.store();
+        serviceHere = new FederationService(federationRepo, stationRepo, keys, api(HOST_HERE));
+        serviceThere = new FederationService(federationRepo, stationRepo, keys, api(HOST_THERE));
         httpClient = mock(FederationHttpClient.class);
+        var signer = new StationSigner(keys, signingService);
         here = new FederationEnrollmentService(
                 serviceHere,
                 federationRepo,
                 stationRepo,
                 httpClient,
                 signingService,
+                signer,
                 urlValidator,
                 api(HOST_HERE),
                 new Federation());
@@ -128,6 +132,7 @@ class FederationEnrollmentServiceTest extends RepositoryTestBase {
                 stationRepo,
                 httpClient,
                 signingService,
+                signer,
                 urlValidator,
                 api(HOST_THERE),
                 new Federation());
@@ -211,10 +216,7 @@ class FederationEnrollmentServiceTest extends RepositoryTestBase {
         var theirs = onlyPartner(stationThere, stationHere.uid());
         assertEquals(ours.publicKey(), theirs.partnerPublicKey());
         assertEquals(theirs.publicKey(), ours.partnerPublicKey());
-        assertEquals(
-                ours.publicKey(),
-                signingService.derivePublicKey(
-                        stationRepo.findById(stationHere.id()).orElseThrow().federationPrivateKey()));
+        assertEquals(ours.publicKey(), keys.ensurePublicKey(stationHere.id()));
         assertEquals(
                 FederationContractVersions.current().core(),
                 ours.federationContract().core());
@@ -477,13 +479,12 @@ class FederationEnrollmentServiceTest extends RepositoryTestBase {
     void asecondPartnershipKeepsTheStationsKeyPair() {
         letThemAnswer();
         here.enterCode(stationHere.id(), inviteFromThere());
-        String key = stationRepo.findById(stationHere.id()).orElseThrow().federationPrivateKey();
-        assertNotNull(key);
+        var key = keys.privateKey(stationHere.id()).orElseThrow();
 
         letThemFail(FederationHttpClient.HandshakeStatus.UNREACHABLE);
         here.enterCode(stationHere.id(), codeFor(UUID.randomUUID(), HOST_THERE, "sometoken"));
 
-        assertEquals(key, stationRepo.findById(stationHere.id()).orElseThrow().federationPrivateKey());
+        assertEquals(key, keys.privateKey(stationHere.id()).orElseThrow());
     }
 
     @Test
@@ -671,18 +672,11 @@ class FederationEnrollmentServiceTest extends RepositoryTestBase {
 
     @Test
     void aStationWithNoKeyYetGetsOne() {
-        assertFalse(
-                stationRepo.findById(stationHere.id()).orElseThrow().federationPrivateKey() != null
-                        && !stationRepo
-                                .findById(stationHere.id())
-                                .orElseThrow()
-                                .federationPrivateKey()
-                                .isBlank(),
-                "a fresh station signs nothing yet");
+        assertFalse(keys.hasKey(stationHere.id()), "a fresh station signs nothing yet");
         letThemAnswer();
 
         here.enterCode(stationHere.id(), inviteFromThere());
 
-        assertNotNull(stationRepo.findById(stationHere.id()).orElseThrow().federationPrivateKey());
+        assertTrue(keys.hasKey(stationHere.id()));
     }
 }

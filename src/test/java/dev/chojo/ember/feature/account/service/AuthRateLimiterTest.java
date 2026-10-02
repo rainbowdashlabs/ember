@@ -114,14 +114,6 @@ class AuthRateLimiterTest {
     }
 
     @Test
-    void refreshHasHighCeiling() {
-        var clock = new ControllableClock(Instant.parse("2026-06-12T10:00:00Z"));
-        var limiter = new AuthRateLimiter(clock);
-        for (int i = 0; i < 60; i++) assertTrue(limiter.tryRefresh("1.2.3.4").isEmpty());
-        assertTrue(limiter.tryRefresh("1.2.3.4").isPresent());
-    }
-
-    @Test
     void forgotPasswordLimitsPerIpAndIdentity() {
         var clock = new ControllableClock(Instant.parse("2026-06-12T10:00:00Z"));
         var limiter = new AuthRateLimiter(clock);
@@ -262,7 +254,6 @@ class AuthRateLimiterTest {
             assertTrue(limiter.tryDeviceEnroll("1.2.3.4").isEmpty());
         assertTrue(limiter.tryDeviceEnroll("1.2.3.4").isPresent());
 
-        // Three code entries a minute per session, and five approvals an hour per account.
         for (int i = 0; i < 3; i++) assertTrue(limiter.tryDeviceCodeEntry(7, 42).isEmpty());
         assertTrue(limiter.tryDeviceCodeEntry(7, 43).isPresent(), "the fourth entry on one session is refused");
         assertTrue(limiter.tryDeviceCodeEntry(8, 42).isEmpty(), "a fresh session gets its own three");

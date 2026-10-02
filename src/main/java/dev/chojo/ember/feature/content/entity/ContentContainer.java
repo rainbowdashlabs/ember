@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.content.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 
@@ -26,7 +27,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * <p>The container is the owned side of the relation, so deleting the content that owns it has to
  * delete it explicitly. The reference points the wrong way for the database to do that.
  */
-public record ContentContainer(int id, Integer stationId, Instant createdAt) {
+public record ContentContainer(int id, @Nullable Integer stationId, Instant createdAt) {
 
     public static RowMapping<ContentContainer> map() {
         return row -> new ContentContainer(

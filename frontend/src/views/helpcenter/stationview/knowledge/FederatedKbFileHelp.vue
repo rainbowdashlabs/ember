@@ -32,14 +32,13 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.federatedKbFile.howToStep2') }}</p>
       <p>{{ t('helpCenter.federatedKbFile.howToStep3') }}</p>
 
-      <!-- Dummy: header bar of a shared file -->
       <NeutralContainer class="mt-4 space-y-3">
         <div class="flex flex-wrap items-center gap-2">
           <SecondaryButton compact>
             <font-awesome-icon :icon="['fas', 'chevron-left']"/>
             {{ t('kb.backToBrowse') }}
           </SecondaryButton>
-          <PageHeader class="flex-1 !mb-0">Einsatzhinweise Höhenrettung</PageHeader>
+          <PageHeader class="flex-1 !mb-0">{{ t('helpCenter.sample.knowledge.heightRescue') }}</PageHeader>
           <ButtonRow align="end">
             <PrimaryButton compact>
               <font-awesome-icon :icon="['fas', 'copy']"/>
@@ -49,7 +48,7 @@ const {t} = useI18n()
           </ButtonRow>
         </div>
         <StationBadge station-name="Wache Nordstadt"/>
-        <MutedText tag="p" size="sm">Ablauf und Ausrüstung für den Höhenrettungseinsatz.</MutedText>
+        <MutedText tag="p" size="sm">{{ t('helpCenter.sample.knowledge.heightRescueText') }}</MutedText>
       </NeutralContainer>
     </HelpSection>
 

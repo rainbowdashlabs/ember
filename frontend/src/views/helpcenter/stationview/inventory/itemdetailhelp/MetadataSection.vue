@@ -43,7 +43,7 @@ const {t} = useI18n()
         </div>
         <div>
           <FieldLabel class="text-xs">{{ t('itemDetail.assignedTo') }}</FieldLabel>
-          <span>Max Mustermann</span>
+          <span>{{ t('helpCenter.sample.people.maxMustermann') }}</span>
         </div>
       </div>
     </NeutralContainer>
@@ -65,7 +65,7 @@ const {t} = useI18n()
         </div>
         <div>
           <FieldLabel class="text-xs">{{ t('itemDetail.assignedTo') }}</FieldLabel>
-          <span>Erika Musterfrau</span>
+          <span>{{ t('helpCenter.sample.people.erikaMusterfrau') }}</span>
         </div>
       </div>
     </NeutralContainer>

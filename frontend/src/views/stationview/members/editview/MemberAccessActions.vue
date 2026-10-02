@@ -14,8 +14,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import PasskeyCodeDisplay from '@/components/passkey/PasskeyCodeDisplay.vue'
 import {members, passkeys} from '@/api'
-import type {MemberPasskeyCode} from '@/api/members'
-import type {StationMember} from '@/api/types'
+import type {MemberWithName, PasskeyCodeResponse} from '@/api/generated/schema'
 import type {PasskeyModeName} from '@/api/adminSettings'
 import {describeFailure, type Failure} from '@/util/failure'
 
@@ -27,10 +26,10 @@ import {describeFailure, type Failure} from '@/util/failure'
  */
 const {t} = useI18n()
 
-const props = defineProps<{member: StationMember}>()
+const props = defineProps<{member: MemberWithName}>()
 
 const passkeyMode = ref<PasskeyModeName>('OFF')
-const passkeyCode = ref<MemberPasskeyCode | null>(null)
+const passkeyCode = ref<PasskeyCodeResponse | null>(null)
 const failure = ref<Failure | null>(null)
 const notice = ref('')
 const busy = ref(false)

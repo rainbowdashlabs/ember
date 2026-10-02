@@ -6,10 +6,15 @@
 package dev.chojo.ember.feature.federation.route;
 
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.federation.service.LendingService;
+import dev.chojo.ember.feature.federation.service.LendingService.AvailableInventoryResult;
 import io.javalin.http.Context;
+import io.javalin.openapi.HttpMethod;
+import io.javalin.openapi.OpenApi;
+import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -39,8 +44,13 @@ public class FederatedLendingRoutes implements Routes {
                 StationPermission.INVENTORY_LENDING_REQUEST);
     }
 
+    @OpenApi(
+            path = "/api/v1/federated/lending/available",
+            methods = HttpMethod.GET,
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = AvailableInventoryResult.class)))
     private void listAvailable(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         String query = ctx.queryParam("q");
         String fromParam = ctx.queryParam("from");
         String toParam = ctx.queryParam("to");

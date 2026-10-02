@@ -13,13 +13,8 @@ import Alert from '@/components/feedback/Alert.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import {dataTracking, demo} from '@/api'
 import {useAsyncAction} from '@/composables/useAsyncAction'
-import type {
-  DataTracking,
-  DataTrackingSummary,
-  TableEntry,
-  TableUpdatePayload,
-  TrackingStatusName,
-} from '@/api/dataTracking'
+import type {DataTracking, Summary, TableEntry, TableUpdate} from '@/api/generated/schema'
+import type {TrackingStatusName} from '@/api/dataTracking'
 import TableColumnPicker from '@/components/table/TableColumnPicker.vue'
 import TableDetailDrawer from './datatrackingview/TableDetailDrawer.vue'
 import TrackingTable from './datatrackingview/TrackingTable.vue'
@@ -31,14 +26,13 @@ import {findDanglingMemberRefs} from './datatrackingview/danglingMemberRefs'
 import TableFilterBar from './datatrackingview/TableFilterBar.vue'
 import BatchToolbar from './datatrackingview/BatchToolbar.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
-import {describeFailure, type Failure} from '@/util/failure'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {describeFailure} from '@/util/failure'
 
 const {t} = useI18n()
 
 const tracking = ref<DataTracking | null>(null)
-const summary = ref<DataTrackingSummary | null>(null)
-const loading = ref(true)
-const failure = ref<Failure | null>(null)
+const summary = ref<Summary | null>(null)
 const selectedTable = ref<string | null>(null)
 
 const selectedForBatch = ref<Set<string>>(new Set())
@@ -62,22 +56,15 @@ const verifiedPct = computed(() => {
   return Math.round((summary.value.verifiedColumns / summary.value.totalColumns) * 100)
 })
 
-async function loadData() {
-  loading.value = true
-  failure.value = null
-  try {
-    const [tk, sm] = await Promise.all([
-      dataTracking.getDataTracking(),
-      dataTracking.getDataTrackingSummary(),
-    ])
-    tracking.value = tk
-    summary.value = sm
-  } catch (e) {
-    failure.value = describeFailure(e, t)
-  } finally {
-    loading.value = false
-  }
-}
+const {loading, failure, reload: loadData} = useAsyncLoader(async () => {
+  const [tk, sm] = await Promise.all([
+    dataTracking.getDataTracking(),
+    dataTracking.getDataTrackingSummary(),
+  ])
+  tracking.value = tk
+  summary.value = sm
+}, {autoLoad: false})
+loading.value = true
 
 function selectedEntry(): TableEntry | null {
   if (!selectedTable.value || !tracking.value) return null
@@ -130,7 +117,7 @@ const {running: batchSaving, run: applyBatch} = useAsyncAction(async () => {
     const existing = tracking.value.tables[name]
     if (!existing) continue
     try {
-      const payload: TableUpdatePayload = {}
+      const payload: TableUpdate = {}
       if (batchContext.value === 'stationTransfer') {
         payload.stationTransfer = {...existing.stationTransfer, status: batchStatus.value}
       } else if (batchContext.value === 'gdprExport') {
@@ -154,7 +141,7 @@ const {running: batchSaving, run: applyBatch} = useAsyncAction(async () => {
   }
 
   if (failures.length > 0) {
-    batchError.value = `${failures.length} update(s) failed:\n${failures.join('\n')}`
+    batchError.value = `${t('adminDataTracking.batchFailed', {count: failures.length})}\n${failures.join('\n')}`
   } else {
     clearBatchSelection()
   }
@@ -192,9 +179,9 @@ onMounted(async () => {
         <TableColumnPicker :table="table"/>
       </TableFilterBar>
       <BatchToolbar
-          :selected-count="selectedForBatch.size"
           v-model:batch-context="batchContext"
           v-model:batch-status="batchStatus"
+          :selected-count="selectedForBatch.size"
           :batch-saving="batchSaving"
           @apply="applyBatch"
           @select-all="selectAllFiltered"

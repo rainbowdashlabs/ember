@@ -6,7 +6,7 @@
 <script setup lang="ts">
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FederatedBoardCard from './FederatedBoardCard.vue'
-import type {DiscoveredBoard} from '@/api/federatedBoards'
+import type {DiscoveredBoard} from '@/api/generated/schema'
 
 defineProps<{
     stationName: string

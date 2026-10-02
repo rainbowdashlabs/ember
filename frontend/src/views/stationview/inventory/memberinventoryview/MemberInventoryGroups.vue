@@ -9,7 +9,7 @@ import EmptyState from '@/components/feedback/EmptyState.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import InventoryItemCard from '../InventoryItemCard.vue'
-import type {MyInventoryItem} from '@/api/inventory'
+import type {MyInventoryItem} from '@/api/generated/schema'
 
 export interface InventoryGroup {
   inventoryId: number
@@ -40,7 +40,7 @@ const {t} = useI18n()
         <span class="text-sm text-(--text-muted)">{{ group.items.length }}</span>
       </div>
 
-      <MutedText tag="div" size="sm" class="py-2" v-if="group.items.length === 0">
+      <MutedText v-if="group.items.length === 0" tag="div" size="sm" class="py-2">
         {{ t('profile.noInventory') }}
       </MutedText>
 

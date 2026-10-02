@@ -4,6 +4,10 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+/**
+ * A banner saying how something stands. An error is an `alert`, which a screen reader announces
+ * the moment it appears; anything else is a `status`, announced once the reader is free.
+ */
 defineProps<{
   variant: 'info' | 'success' | 'error'
 }>()
@@ -11,6 +15,7 @@ defineProps<{
 
 <template>
   <div
+      :role="variant === 'error' ? 'alert' : 'status'"
       :class="{
       'border-info bg-info/10': variant === 'info',
       'border-success bg-success/10': variant === 'success',

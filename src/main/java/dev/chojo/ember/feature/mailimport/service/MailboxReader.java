@@ -24,6 +24,7 @@ import jakarta.mail.search.ReceivedDateTerm;
 import org.eclipse.angus.mail.iap.ConnectionException;
 import org.eclipse.angus.mail.imap.IMAPFolder;
 import org.eclipse.angus.mail.util.ReadableMime;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,30 +60,36 @@ public class MailboxReader implements AutoCloseable {
     /**
      * One file hanging off a message, with its bytes where they were worth fetching.
      *
-     * @param fileName     what the file is called in the mail
-     * @param declaredType what the mail claims it is, which is never trusted for anything but the first cut
+     * @param fileName     what the file is called in the mail, or null where it is not named
+     * @param declaredType what the mail claims it is, which is never trusted for anything but the first cut,
+     *                     or null where it claims nothing
      * @param declaredSize how big the mail claims it is, or -1 where it does not say
      * @param inline       whether it is embedded rather than attached
      * @param data         the bytes, or null where the part was refused before being fetched
      */
-    public record Attachment(String fileName, String declaredType, long declaredSize, boolean inline, byte[] data) {}
+    public record Attachment(
+            @Nullable String fileName,
+            @Nullable String declaredType,
+            long declaredSize,
+            boolean inline,
+            byte @Nullable [] data) {}
 
     /**
      * One message, as much of it as this feature is allowed to know.
      *
      * @param messageId   its own identifier, or null where it carried none
-     * @param sender      the bare address it came from
-     * @param subject     what it is called
+     * @param sender      the bare address it came from, or null where it names none
+     * @param subject     what it is called, or null where it has no subject
      * @param receivedAt  when it arrived
      * @param authResult  the receiving server's verdict on the sending domain, or null where it wrote none
      * @param attachments the files hanging off it
      */
     public record Envelope(
-            String messageId,
-            String sender,
-            String subject,
+            @Nullable String messageId,
+            @Nullable String sender,
+            @Nullable String subject,
             Instant receivedAt,
-            String authResult,
+            @Nullable String authResult,
             List<Attachment> attachments) {}
 
     private static final Logger log = LoggerFactory.getLogger(MailboxReader.class);
@@ -331,7 +338,7 @@ public class MailboxReader implements AutoCloseable {
      * name that looks like something we accept buys the part a download and then a sniff, which is the
      * authority either way.
      */
-    private static boolean looksWorthLooking(String fileName) {
+    private static boolean looksWorthLooking(@Nullable String fileName) {
         if (fileName == null) return false;
         String lower = fileName.toLowerCase(Locale.ROOT);
         return lower.endsWith(".pdf") || lower.endsWith(".png") || lower.endsWith(".jpg") || lower.endsWith(".jpeg");
@@ -343,21 +350,21 @@ public class MailboxReader implements AutoCloseable {
         }
     }
 
-    private static String baseType(String contentType) {
+    private static @Nullable String baseType(@Nullable String contentType) {
         if (contentType == null) return null;
         int semicolon = contentType.indexOf(';');
         String base = semicolon < 0 ? contentType : contentType.substring(0, semicolon);
         return base.trim().toLowerCase(Locale.ROOT);
     }
 
-    private static String senderOf(Message message) throws MessagingException {
+    private static @Nullable String senderOf(Message message) throws MessagingException {
         var from = message.getFrom();
         if (from == null || from.length == 0) return null;
         if (from[0] instanceof InternetAddress address) return address.getAddress();
         return from[0].toString();
     }
 
-    private static String blankToNull(String value) {
+    private static @Nullable String blankToNull(@Nullable String value) {
         return value == null || value.isBlank() ? null : value.trim();
     }
 
@@ -386,17 +393,19 @@ public class MailboxReader implements AutoCloseable {
         message.setFlag(Flags.Flag.DELETED, true);
     }
 
+    /**
+     * Closes the folder and the store. A failure to close is ignored, since a folder or store that will not
+     * close cleanly has nothing left to tell.
+     */
     @Override
     public void close() {
         try {
             if (folder != null && folder.isOpen()) folder.close(true);
         } catch (MessagingException ignored) {
-            // A folder that will not close cleanly has nothing left to tell us.
         }
         try {
             store.close();
         } catch (MessagingException ignored) {
-            // Nor has a store.
         }
     }
 }

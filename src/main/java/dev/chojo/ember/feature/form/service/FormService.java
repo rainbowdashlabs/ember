@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.form.service;
 
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.FormRefusal;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.FormDeleted;
 import dev.chojo.ember.event.events.FormPublished;
@@ -37,12 +37,11 @@ import dev.chojo.ember.feature.restriction.RestrictionSet;
 import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.feature.restriction.service.RestrictionService;
 import dev.chojo.ember.feature.system.service.RequirementsService;
-import dev.chojo.ember.util.ShareTokens;
+import dev.chojo.ember.util.RandomTokens;
 import dev.chojo.ember.util.sql.Transactions;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -70,7 +69,6 @@ public class FormService {
     private final UserTagService tagService;
     private final RestrictionService restrictionService;
     private final DomainEventBus eventBus;
-    private final ShareTokens shareTokens;
 
     @Inject
     public FormService(
@@ -79,15 +77,13 @@ public class FormService {
             MemberGroupService groupService,
             UserTagService tagService,
             RestrictionService restrictionService,
-            DomainEventBus eventBus,
-            ShareTokens shareTokens) {
+            DomainEventBus eventBus) {
         this.repository = repository;
         this.memberService = memberService;
         this.groupService = groupService;
         this.tagService = tagService;
         this.restrictionService = restrictionService;
         this.eventBus = eventBus;
-        this.shareTokens = shareTokens;
     }
 
     /**
@@ -129,8 +125,6 @@ public class FormService {
         log.info("Updated form {} restriction mode to {}", formId, mode);
     }
 
-    // -- Forms --
-
     /**
      * Retrieves all forms for a station.
      *
@@ -167,10 +161,25 @@ public class FormService {
      *
      * @param stationId the station ID
      * @param memberId  the requesting member ID
+     * @param manager   whether the member manages forms, taken from their session
      * @return the filtered list of forms
      */
-    public List<Form> findByStationForMember(int stationId, int memberId) {
-        return repository.findByStationForMember(stationId, memberId);
+    public List<Form> findByStationForMember(int stationId, int memberId, boolean manager) {
+        return repository.findByStationForMember(stationId, memberId, manager);
+    }
+
+    /**
+     * Retrieves forms for a station that a member other than the caller is allowed to see, such as
+     * somebody a guardian answers for. Whether that member manages forms is resolved here, since
+     * no session carries it.
+     *
+     * @param stationId the station ID
+     * @param memberId  the member whose forms are listed
+     * @return the filtered list of forms
+     */
+    public List<Form> findByStationOnBehalfOf(int stationId, int memberId) {
+        return repository.findByStationForMember(
+                stationId, memberId, restrictionService.manages(RestrictionType.FORM, memberId));
     }
 
     /**
@@ -235,8 +244,8 @@ public class FormService {
             boolean shuffleQuestions,
             boolean allowEdit,
             boolean forced,
-            Instant startAt,
-            Instant endAt,
+            @Nullable Instant startAt,
+            @Nullable Instant endAt,
             int createdBy,
             FormPurpose purpose) {
         var form = repository.create(
@@ -255,9 +264,9 @@ public class FormService {
      * @param message what the reader is told
      * @param link    where the reader may go on to
      * @param label   what the link says
-     * @throws dev.chojo.ember.api.RefusalResponse where the link is neither
+     * @throws dev.chojo.ember.api.refusal.RefusalResponse where the link is neither
      */
-    public void setCompletion(int id, String message, String link, String label) {
+    public void setCompletion(int id, @Nullable String message, @Nullable String link, @Nullable String label) {
         requireOfferableCompletionLink(link);
         repository.updateCompletion(id, blankToNull(message), blankToNull(link), blankToNull(label));
     }
@@ -267,11 +276,11 @@ public class FormService {
      * before a form is created or changed, so a refused link leaves nothing half written.
      *
      * @param link the link, possibly blank, which is none
-     * @throws dev.chojo.ember.api.RefusalResponse where the link is neither
+     * @throws dev.chojo.ember.api.refusal.RefusalResponse where the link is neither
      */
-    public static void requireOfferableCompletionLink(String link) {
+    public static void requireOfferableCompletionLink(@Nullable String link) {
         String cleanLink = blankToNull(link);
-        if (cleanLink != null && !isOfferableLink(cleanLink)) throw Refusal.FORM_COMPLETION_LINK_NOT_A_LINK.raise();
+        if (cleanLink != null && !isOfferableLink(cleanLink)) throw FormRefusal.FORM_COMPLETION_LINK_NOT_A_LINK.raise();
     }
 
     private static boolean isOfferableLink(String link) {
@@ -281,7 +290,7 @@ public class FormService {
                 || (link.startsWith("/") && !link.startsWith("//"));
     }
 
-    private static String blankToNull(String text) {
+    private static @Nullable String blankToNull(@Nullable String text) {
         return text == null || text.isBlank() ? null : text.trim();
     }
 
@@ -377,8 +386,8 @@ public class FormService {
             boolean shuffleQuestions,
             boolean allowEdit,
             boolean forced,
-            Instant startAt,
-            Instant endAt) {
+            @Nullable Instant startAt,
+            @Nullable Instant endAt) {
         boolean wasAccepting =
                 repository.findById(id).map(this::isAcceptingResponses).orElse(false);
         boolean updated =
@@ -465,13 +474,13 @@ public class FormService {
      * @param expected the link the caller was shown
      * @return the new link, or empty where the form has since been given a different one
      */
-    public Optional<String> replaceShareLink(int id, String expected) {
+    public Optional<String> replaceShareLink(int id, @Nullable String expected) {
         var form = repository.findById(id).orElse(null);
         if (form == null) return Optional.empty();
         if (form.purpose() == FormPurpose.INTERNAL) {
-            throw new BadRequestResponse("A form for the station's own members is not sent by link");
+            throw FormRefusal.FORM_INTERNAL_HAS_NO_LINK.raise();
         }
-        String replacement = shareTokens.mint();
+        String replacement = RandomTokens.urlSafe(32);
         if (!repository.replaceShareToken(id, expected, replacement)) return Optional.empty();
         log.info("Form {} share link replaced", id);
         return Optional.of(replacement);
@@ -495,7 +504,7 @@ public class FormService {
         var form = repository.findById(id).orElse(null);
         if (form == null) return false;
         if (form.purpose() == FormPurpose.INTERNAL) {
-            throw new BadRequestResponse("A form for the station's own members is not reached from outside at all");
+            throw FormRefusal.FORM_INTERNAL_HAS_NO_REACH.raise();
         }
         boolean changed = repository.updateVisibility(id, visibility);
         if (changed) log.info("Form {} visibility set to {}", id, visibility);
@@ -547,8 +556,6 @@ public class FormService {
         if (form.startAt() != null && now.isBefore(form.startAt())) return false;
         return form.endAt() == null || !now.isAfter(form.endAt());
     }
-
-    // -- Questions --
 
     /**
      * Retrieves all questions for a form, ordered by position.
@@ -652,7 +659,7 @@ public class FormService {
      *
      * @param formId    the form ID
      * @param questions the questions the form is to have
-     * @throws dev.chojo.ember.api.RefusalResponse where an id is not one of this form's questions, an
+     * @throws dev.chojo.ember.api.refusal.RefusalResponse where an id is not one of this form's questions, an
      *                                             existing question is sent with another type, or the
      *                                             options of a question do not each carry a key of
      *                                             their own
@@ -685,7 +692,7 @@ public class FormService {
      * @param formId    the form ID
      * @param pages     the pages the form is to have, at least one
      * @param questions the questions the form is to have
-     * @throws dev.chojo.ember.api.RefusalResponse where the pages do not each carry a key of their own,
+     * @throws dev.chojo.ember.api.refusal.RefusalResponse where the pages do not each carry a key of their own,
      *                                             one leads anywhere but further down, a question
      *                                             stands on a page that is not sent, or a question is
      *                                             refused as {@link #saveQuestions} describes
@@ -722,11 +729,11 @@ public class FormService {
     }
 
     private static void requireDistinctPageKeys(List<PageEntry> pages) {
-        if (pages.isEmpty()) throw Refusal.FORM_PAGE_KEYS_NOT_DISTINCT.raise();
+        if (pages.isEmpty()) throw FormRefusal.FORM_PAGE_KEYS_NOT_DISTINCT.raise();
         var keys = new HashSet<String>();
         for (var page : pages) {
             if (page.key() == null || page.key().isBlank() || !keys.add(page.key())) {
-                throw Refusal.FORM_PAGE_KEYS_NOT_DISTINCT.raise();
+                throw FormRefusal.FORM_PAGE_KEYS_NOT_DISTINCT.raise();
             }
         }
     }
@@ -735,7 +742,7 @@ public class FormService {
         var positions = pagePositions(pages);
         for (int position = 0; position < pages.size(); position++) {
             if (!leadsForward(PageTarget.orNext(pages.get(position).after()), position, positions)) {
-                throw Refusal.FORM_PAGE_TARGET_NOT_FURTHER_DOWN.raise();
+                throw FormRefusal.FORM_PAGE_TARGET_NOT_FURTHER_DOWN.raise();
             }
         }
     }
@@ -766,19 +773,19 @@ public class FormService {
         String firstPage = pages.getFirst().key();
         var deciding = new HashSet<String>();
         for (var question : questions) {
-            if (question.branch() == null) continue;
-            String pageKey = question.pageKey() == null ? firstPage : question.pageKey();
+            var branch = question.branch();
+            if (branch == null) continue;
+            String pageKey = Objects.requireNonNullElse(question.pageKey(), firstPage);
             if (!(question.config() instanceof FormQuestionConfig.Choice choice)
                     || Boolean.TRUE.equals(choice.multiSelect())
-                    || !choice.optionKeys()
-                            .containsAll(question.branch().targets().keySet())) {
-                throw Refusal.QUESTION_BRANCH_NOT_ON_A_SINGLE_CHOICE.raise();
+                    || !choice.optionKeys().containsAll(branch.targets().keySet())) {
+                throw FormRefusal.QUESTION_BRANCH_NOT_ON_A_SINGLE_CHOICE.raise();
             }
-            if (!deciding.add(pageKey)) throw Refusal.PAGE_BRANCHES_ON_TWO_QUESTIONS.raise();
+            if (!deciding.add(pageKey)) throw FormRefusal.PAGE_BRANCHES_ON_TWO_QUESTIONS.raise();
             int from = positions.get(pageKey);
-            for (var target : question.branch().targets().values()) {
+            for (var target : branch.targets().values()) {
                 if (!leadsForward(PageTarget.orNext(target), from, positions)) {
-                    throw Refusal.FORM_PAGE_TARGET_NOT_FURTHER_DOWN.raise();
+                    throw FormRefusal.FORM_PAGE_TARGET_NOT_FURTHER_DOWN.raise();
                 }
             }
         }
@@ -788,7 +795,7 @@ public class FormService {
         var keys = pages.stream().map(PageEntry::key).collect(Collectors.toSet());
         for (var question : questions) {
             if (question.pageKey() != null && !keys.contains(question.pageKey())) {
-                throw Refusal.QUESTION_ON_NO_PAGE.raise();
+                throw FormRefusal.QUESTION_ON_NO_PAGE.raise();
             }
         }
     }
@@ -805,8 +812,8 @@ public class FormService {
             var page = pages.get(position);
             var after = PageTarget.orNext(page.after());
             var existing = storedByKey.get(page.key());
-            String title = page.title() == null ? "" : page.title();
-            String description = page.description() == null ? "" : page.description();
+            String title = Objects.requireNonNullElse(page.title(), "");
+            String description = Objects.requireNonNullElse(page.description(), "");
             if (existing == null) {
                 ids.put(
                         page.key(),
@@ -826,16 +833,16 @@ public class FormService {
         for (var question : questions) {
             if (question.id() == null) continue;
             var storedQuestion = stored.get(question.id());
-            if (storedQuestion == null) throw Refusal.QUESTION_NOT_ON_THIS_FORM.raise();
+            if (storedQuestion == null) throw FormRefusal.QUESTION_NOT_ON_THIS_FORM.raise();
             if (storedQuestion.formQuestionType() != question.formQuestionType()) {
-                throw Refusal.QUESTION_TYPE_NOT_CHANGEABLE.raise();
+                throw FormRefusal.QUESTION_TYPE_NOT_CHANGEABLE.raise();
             }
         }
     }
 
     private static void requireDistinctOptionKeys(List<QuestionEntry> questions) {
         for (var question : questions) {
-            if (!question.config().hasDistinctOptionKeys()) throw Refusal.QUESTION_OPTION_KEYS_NOT_DISTINCT.raise();
+            if (!question.config().hasDistinctOptionKeys()) throw FormRefusal.QUESTION_OPTION_KEYS_NOT_DISTINCT.raise();
         }
     }
 
@@ -855,7 +862,8 @@ public class FormService {
     }
 
     private void writeQuestion(int formId, int pageId, int position, QuestionEntry q) {
-        if (q.id() == null) {
+        Integer questionId = q.id();
+        if (questionId == null) {
             repository.createQuestion(
                     formId,
                     pageId,
@@ -870,7 +878,7 @@ public class FormService {
             return;
         }
         repository.updateQuestion(
-                q.id(),
+                questionId,
                 pageId,
                 q.title(),
                 q.description(),
@@ -880,8 +888,6 @@ public class FormService {
                 q.branch(),
                 position);
     }
-
-    // -- Responses --
 
     /**
      * Retrieves all responses for a form.
@@ -1085,8 +1091,6 @@ public class FormService {
         return repository.findAnswers(responseId);
     }
 
-    // -- Answers --
-
     /**
      * Retrieves every answer given to a form, each carrying the response it belongs to.
      *
@@ -1107,18 +1111,17 @@ public class FormService {
      *
      * @param formId    the form ID
      * @param selection the restriction selection to apply
-     * @throws BadRequestResponse where the form is answered from outside the station
+     * @throws dev.chojo.ember.api.refusal.RefusalResponse where the form is not here, or is answered from
+     *                                             outside the station
      */
     public void setRestrictions(int formId, RestrictionSelection selection) {
-        var form = repository.findById(formId).orElseThrow(NotFoundResponse::new);
+        var form = repository.findById(formId).orElseThrow(FormRefusal.FORM_NOT_HERE_FOR_RESTRICTIONS::raise);
         if (form.purpose() != FormPurpose.INTERNAL) {
-            throw new BadRequestResponse("A form answered from outside the station has nobody to narrow it to");
+            throw FormRefusal.FORM_FROM_OUTSIDE_HAS_NO_RESTRICTIONS.raise();
         }
         restrictionService.setRestrictions(RestrictionType.FORM, formId, selection);
         log.info("Updated access restrictions for form {}", formId);
     }
-
-    // -- Restrictions --
 
     /**
      * Walks the form with the given answers and refuses them where anything is wrong.
@@ -1126,7 +1129,7 @@ public class FormService {
     private FormPathWalker.Walk walked(int formId, Map<Integer, FormAnswerValue> answers) {
         var walk = FormPathWalker.walk(repository.findPages(formId), repository.findQuestions(formId), answers);
         if (!walk.problems().isEmpty()) {
-            throw new FormAnswersRefused(Refusal.FORM_ANSWER_REFUSED, walk.problems());
+            throw new FormAnswersRefused(FormRefusal.FORM_ANSWER_REFUSED, walk.problems());
         }
         return walk;
     }

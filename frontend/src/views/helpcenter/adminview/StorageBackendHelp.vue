@@ -29,6 +29,10 @@ const {t} = useI18n()
         <HelpSection :title="t('helpCenter.adminStorageBackend.locks.title')">
             <p>{{ t('helpCenter.adminStorageBackend.locks.text') }}</p>
         </HelpSection>
+        <HelpSection :title="t('helpCenter.adminStorageBackend.connections.title')">
+            <p>{{ t('helpCenter.adminStorageBackend.connections.text') }}</p>
+            <p>{{ t('helpCenter.adminStorageBackend.connections.outage') }}</p>
+        </HelpSection>
         <HelpTip>{{ t('helpCenter.adminStorageBackend.tip') }}</HelpTip>
     </HelpArticle>
 </template>

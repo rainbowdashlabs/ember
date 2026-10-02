@@ -5,10 +5,13 @@
  */
 package dev.chojo.ember.feature.attendance.service;
 
+import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.AttendanceRefusal;
+import dev.chojo.ember.api.refusal.EventRefusal;
+import dev.chojo.ember.api.refusal.RefusalDetail;
 import dev.chojo.ember.conf.file.elements.Attendance;
 import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
-import dev.chojo.ember.feature.attendance.entity.AttendanceFieldType;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldValueEntry;
 import dev.chojo.ember.feature.attendance.entity.AttendanceSession;
 import dev.chojo.ember.feature.attendance.entity.AttendanceSessionField;
@@ -16,10 +19,12 @@ import dev.chojo.ember.feature.attendance.entity.AttendanceTemplate;
 import dev.chojo.ember.feature.attendance.entity.AttendanceTemplateField;
 import dev.chojo.ember.feature.attendance.entity.SessionAudience;
 import dev.chojo.ember.feature.attendance.entity.SessionSummary;
+import dev.chojo.ember.feature.attendance.entity.TemplateGroup;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
-import dev.chojo.ember.feature.attendance.repository.AttendanceRepository.TemplateGroup;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
+import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.events.repository.EventDateCancellationRepository;
 import dev.chojo.ember.feature.events.repository.EventFieldDefaultRepository;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
@@ -29,25 +34,27 @@ import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
-import dev.chojo.ember.feature.question.Question;
+import dev.chojo.ember.feature.question.FieldType;
+import dev.chojo.ember.feature.question.FieldTypes;
+import dev.chojo.ember.feature.question.MemberEligibility;
 import dev.chojo.ember.feature.question.QuestionCheck;
 import dev.chojo.ember.feature.question.QuestionValues;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
-import io.javalin.http.BadRequestResponse;
+import dev.chojo.ember.util.Json;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.ObjectReader;
-import tools.jackson.databind.json.JsonMapper;
 
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.Collection;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -63,9 +70,7 @@ import java.util.stream.Collectors;
 @Singleton
 public class AttendanceService {
     private static final Logger log = LoggerFactory.getLogger(AttendanceService.class);
-    private static final ObjectMapper JSON = JsonMapper.builder().build();
-    /** Reads a value only when it is JSON all the way to its end, so a date is not read as a number. */
-    private static final ObjectReader STRICT_JSON = JSON.reader().with(DeserializationFeature.FAIL_ON_TRAILING_TOKENS);
+    private static final ObjectMapper JSON = Json.MAPPER;
     /** How long a sheet runs where nothing and nobody says otherwise. */
     private static final Duration DEFAULT_SESSION_LENGTH = Duration.ofHours(2);
     /** The longest span a sheet may cover, which is longer than any camp and shorter than a typo. */
@@ -82,6 +87,10 @@ public class AttendanceService {
     private final MemberGroupRepository memberGroupRepository;
     private final Attendance attendanceConfig;
     private final StationRepository stationRepository;
+    private final EventDateCancellationRepository cancellationRepository;
+    private final AttendanceAudienceService audienceService;
+    private final MemberEligibility memberEligibility;
+    private final AttendanceTemplateGuards templateGuards;
 
     @Inject
     public AttendanceService(
@@ -93,7 +102,15 @@ public class AttendanceService {
             StationMemberRepository stationMemberRepository,
             MemberGroupRepository memberGroupRepository,
             Attendance attendanceConfig,
-            StationRepository stationRepository) {
+            StationRepository stationRepository,
+            EventDateCancellationRepository cancellationRepository,
+            AttendanceAudienceService audienceService,
+            MemberEligibility memberEligibility,
+            AttendanceTemplateGuards templateGuards) {
+        this.memberEligibility = memberEligibility;
+        this.templateGuards = templateGuards;
+        this.cancellationRepository = cancellationRepository;
+        this.audienceService = audienceService;
         this.attendanceRepository = attendanceRepository;
         this.eventRepository = eventRepository;
         this.eventFieldRepository = eventFieldRepository;
@@ -105,12 +122,25 @@ public class AttendanceService {
         this.stationRepository = stationRepository;
     }
 
-    private static String toJsonValue(Object value) {
-        if (value == null) return null;
-        try {
-            return JSON.writeValueAsString(value);
-        } catch (Exception e) {
-            return null;
+    /**
+     * The day a sheet for an appointment is taken for: a one-time appointment's own day, the day a
+     * caller named for a series, and otherwise the day of the start asked for, or of now.
+     */
+    private static LocalDate sheetDay(StationEvent event, LocalDate eventDate, Instant startTime, ZoneId zone) {
+        if (!event.isRecurring() && event.startTime() != null) {
+            return event.startTime().atZone(zone).toLocalDate();
+        }
+        if (eventDate != null) return eventDate;
+        return (startTime != null ? startTime : Instant.now()).atZone(zone).toLocalDate();
+    }
+
+    /**
+     * Refuses a sheet for a date that was called off, on its own or with its whole series: nobody is
+     * coming, so there is nobody to count.
+     */
+    private void requireNotCancelled(StationEvent event, LocalDate day) {
+        if (event.cancelled() || cancellationRepository.isCancelled(event.id(), day)) {
+            throw EventRefusal.ATTENDANCE_DAY_CANCELLED.raise();
         }
     }
 
@@ -119,8 +149,6 @@ public class AttendanceService {
                 .map(StationMember::id)
                 .collect(Collectors.toSet());
     }
-
-    // -- Templates --
 
     public List<AttendanceTemplate> findTemplatesByStation(int stationId) {
         return attendanceRepository.findTemplatesByStation(stationId);
@@ -149,16 +177,31 @@ public class AttendanceService {
         return Optional.empty();
     }
 
-    public boolean deleteTemplate(int id) {
-        if (attendanceRepository.deleteTemplate(id)) {
-            log.info("Deleted attendance template {}", id);
+    /**
+     * Deletes a template the only way one is deleted: by archiving it, as
+     * {@link AttendanceRepository#archiveTemplate} describes. Its sheets stay as they are.
+     *
+     * @param id the template
+     * @return true where a template in use was archived
+     */
+    public boolean archiveTemplate(int id) {
+        if (attendanceRepository.archiveTemplate(id)) {
+            log.info("Archived attendance template {}, its sheets kept", id);
             return true;
         }
-        log.warn("Cannot delete attendance template: template {} not found", id);
+        log.warn("Cannot archive attendance template: template {} not found or archived already", id);
         return false;
     }
 
-    // -- Template Groups --
+    /**
+     * A template that is still in use, as {@link AttendanceRepository#findActiveTemplateById} finds it.
+     *
+     * @param id the template
+     * @return the template, empty where there is none or it was deleted
+     */
+    public Optional<AttendanceTemplate> findActiveTemplateById(int id) {
+        return attendanceRepository.findActiveTemplateById(id);
+    }
 
     public List<TemplateGroup> findTemplateGroups(int templateId) {
         return attendanceRepository.findTemplateGroups(templateId);
@@ -169,25 +212,50 @@ public class AttendanceService {
         log.info("Set {} template groups for attendance template {}", groups.size(), templateId);
     }
 
-    // -- Template Fields --
+    public Set<StationUserType> findTemplateUserTypes(int templateId) {
+        return attendanceRepository.findTemplateUserTypes(templateId);
+    }
+
+    /**
+     * Replaces the user types a template expects besides the members of its groups.
+     *
+     * @param templateId the template
+     * @param userTypes  the user types, null or empty to expect nobody by type
+     * @return the user types the template now expects
+     */
+    public Set<StationUserType> setTemplateUserTypes(int templateId, Collection<StationUserType> userTypes) {
+        Set<StationUserType> chosen = EnumSet.noneOf(StationUserType.class);
+        if (userTypes != null) chosen.addAll(userTypes);
+        attendanceRepository.setTemplateUserTypes(templateId, chosen);
+        log.info("Set {} template user types for attendance template {}", chosen.size(), templateId);
+        return attendanceRepository.findTemplateUserTypes(templateId);
+    }
+
+    /** Whom a sheet expects, as {@link AttendanceAudienceService#audienceOf} answers it. */
+    public SessionAudience audienceOf(AttendanceSession session) {
+        return audienceService.audienceOf(session);
+    }
 
     public List<AttendanceTemplateField> createTemplateField(
-            int templateId, String name, AttendanceFieldType fieldType, AttendanceFieldConfig config, int position) {
-        requireUsableDefault(name, fieldType, config);
+            int templateId, String name, FieldType fieldType, AttendanceFieldConfig config, int position) {
+        requireUsable(name, fieldType, config);
         attendanceRepository.createTemplateField(templateId, name, fieldType, config, position);
         log.info("Created attendance template field for template {} (type {})", templateId, fieldType);
         return attendanceRepository.findTemplateFields(templateId);
     }
 
+    /**
+     * Changes a field of a template that is still in use.
+     *
+     * @return the template's fields in use, empty where the template has no such field
+     * @throws io.javalin.http.HttpResponseException {@link AttendanceRefusal#ATTENDANCE_FIELD_ARCHIVED}
+     *                                               for a field that was deleted
+     */
     public Optional<List<AttendanceTemplateField>> updateTemplateField(
-            int templateId,
-            int fieldId,
-            String name,
-            AttendanceFieldType fieldType,
-            AttendanceFieldConfig config,
-            int position) {
-        requireUsableDefault(name, fieldType, config);
-        if (attendanceRepository.updateTemplateField(fieldId, name, fieldType, config, position)) {
+            int templateId, int fieldId, String name, FieldType fieldType, AttendanceFieldConfig config, int position) {
+        templateGuards.requireFieldInUse(templateId, fieldId);
+        requireUsable(name, fieldType, config);
+        if (attendanceRepository.updateTemplateField(templateId, fieldId, name, fieldType, config, position)) {
             log.info("Updated attendance template field {} for template {}", fieldId, templateId);
             return Optional.of(attendanceRepository.findTemplateFields(templateId));
         }
@@ -196,27 +264,53 @@ public class AttendanceService {
     }
 
     /**
-     * Refuses a field set up to start from a value it would then refuse as an answer.
+     * Refuses a field of a type a sheet does not offer, or one set up to start from a value it would
+     * then refuse as an answer.
      *
-     * @throws BadRequestResponse naming the field and what is wrong with its starting value
+     * @throws io.javalin.http.HttpResponseException {@link AttendanceRefusal#ATTENDANCE_FIELD_TYPE_NOT_OFFERED}
+     * @throws io.javalin.http.HttpResponseException {@link AttendanceRefusal#ATTENDANCE_FIELD_DEFAULT_NOT_ACCEPTED}
+     *                                               naming the field and what is wrong with its
+     *                                               starting value
      */
-    private void requireUsableDefault(String name, AttendanceFieldType fieldType, AttendanceFieldConfig config) {
+    private void requireUsable(String name, FieldType fieldType, AttendanceFieldConfig config) {
+        if (!FieldTypes.ATTENDANCE.contains(fieldType))
+            throw AttendanceRefusal.ATTENDANCE_FIELD_TYPE_NOT_OFFERED.raise();
         var field = new AttendanceTemplateField(0, 0, name, fieldType, config, 0);
         QuestionCheck.defaultValue(field.question()).ifPresent(problem -> {
-            throw new BadRequestResponse(problem.message());
+            throw AttendanceRefusal.ATTENDANCE_FIELD_DEFAULT_NOT_ACCEPTED.raise(problem.question());
         });
     }
 
-    public Optional<List<AttendanceTemplateField>> deleteTemplateField(int templateId, int fieldId) {
-        if (attendanceRepository.deleteTemplateField(fieldId)) {
-            log.info("Deleted attendance template field {} from template {}", fieldId, templateId);
+    /**
+     * Deletes a field the only way one is deleted: by archiving it, as
+     * {@link AttendanceRepository#archiveTemplateField} describes. The sheets that answered it keep
+     * the answer.
+     *
+     * @param templateId the template the field belongs to
+     * @param fieldId    the field
+     * @return the template's fields still in use, empty where the template has no such field
+     * @throws io.javalin.http.HttpResponseException {@link AttendanceRefusal#ATTENDANCE_FIELD_ARCHIVED}
+     *                                               for a field that was deleted already
+     */
+    public Optional<List<AttendanceTemplateField>> archiveTemplateField(int templateId, int fieldId) {
+        templateGuards.requireFieldInUse(templateId, fieldId);
+        if (attendanceRepository.archiveTemplateField(templateId, fieldId)) {
+            log.info("Archived attendance template field {} of template {}, its answers kept", fieldId, templateId);
             return Optional.of(attendanceRepository.findTemplateFields(templateId));
         }
-        log.warn("Cannot delete attendance template field: field {} not found", fieldId);
+        log.warn("Cannot archive attendance template field: field {} not on template {}", fieldId, templateId);
         return Optional.empty();
     }
 
-    // -- Sessions --
+    /**
+     * The fields a sheet shows, as {@link AttendanceRepository#findSheetFields} finds them.
+     *
+     * @param sessionId the sheet
+     * @return the fields in use and the deleted ones the sheet answered
+     */
+    public List<AttendanceTemplateField> findSheetFields(int sessionId) {
+        return attendanceRepository.findSheetFields(sessionId);
+    }
 
     public List<SessionSummary> findSessionSummaries(int stationId) {
         return attendanceRepository.findSessionSummariesByStation(stationId);
@@ -249,7 +343,7 @@ public class AttendanceService {
      * @param day     the day to look on, null for the station's today
      * @return the sheet, or empty where that day has none
      */
-    public Optional<AttendanceSession> findSessionForEvent(int eventId, LocalDate day) {
+    public Optional<AttendanceSession> findSessionForEvent(int eventId, @Nullable LocalDate day) {
         var event = eventRepository.findById(eventId).orElse(null);
         if (event == null) return Optional.empty();
         var zone = timezoneOf(event.stationId());
@@ -287,10 +381,15 @@ public class AttendanceService {
      * @param title          what it is called, null to take the appointment's or the template's name
      * @param countedMinutes what a whole presence counts as, null to let the times decide
      * @return the sheet
-     * @throws BadRequestResponse where the span or the counted minutes cannot be used
+     * @throws io.javalin.http.HttpResponseException where the span or the counted minutes cannot be used
      */
     public AttendanceSession createSession(
-            int templateId, Instant startTime, Instant endTime, Integer eventId, String title, Integer countedMinutes) {
+            int templateId,
+            Instant startTime,
+            Instant endTime,
+            @Nullable Integer eventId,
+            @Nullable String title,
+            @Nullable Integer countedMinutes) {
         return createSession(templateId, startTime, endTime, eventId, title, countedMinutes, null, null);
     }
 
@@ -298,16 +397,19 @@ public class AttendanceService {
             int templateId,
             Instant startTime,
             Instant endTime,
-            Integer eventId,
-            String title,
-            Integer countedMinutes,
-            SessionAudience audience) {
+            @Nullable Integer eventId,
+            @Nullable String title,
+            @Nullable Integer countedMinutes,
+            @Nullable SessionAudience audience) {
         return createSession(templateId, startTime, endTime, eventId, title, countedMinutes, audience, null);
     }
 
     /**
-     * @param audience whom to enter instead of the template's own groups, null or naming nobody
-     *     where the template decides as it always has
+     * Opens a sheet. Its fields are seeded in rising precedence: the template's starting answers,
+     * then the appointment's field defaults, then the appointment's own answers.
+     *
+     * @param audience whom to enter instead of the template's own user types and groups, kept with the
+     *     sheet; null or naming nobody where the template decides
      * @param eventDate which day of a repeating appointment the sheet is for, null where the sheet
      *     stands on its own or the caller already worked the times out. A series is one row that
      *     comes round again and again, so without this a sheet taken for next Tuesday would be
@@ -317,14 +419,14 @@ public class AttendanceService {
             int templateId,
             Instant startTime,
             Instant endTime,
-            Integer eventId,
-            String title,
-            Integer countedMinutes,
-            SessionAudience audience,
-            LocalDate eventDate) {
+            @Nullable Integer eventId,
+            @Nullable String title,
+            @Nullable Integer countedMinutes,
+            @Nullable SessionAudience audience,
+            @Nullable LocalDate eventDate) {
+        templateGuards.requireOpenForNewWork(templateId);
         requireUsableSpan(startTime, endTime);
         requireUsableCountedMinutes(countedMinutes);
-        // Determine title and default times from the linked event
         String resolvedTitle = title;
         Instant resolvedStart = startTime;
         Instant resolvedEnd = endTime;
@@ -336,12 +438,9 @@ public class AttendanceService {
                 if (resolvedTitle == null || resolvedTitle.isBlank()) {
                     resolvedTitle = event.name();
                 }
+                LocalDate day = sheetDay(event, eventDate, startTime, zone);
+                requireNotCancelled(event, day);
                 if (resolvedStart == null || resolvedEnd == null) {
-                    LocalDate day = eventDate != null
-                            ? eventDate
-                            : (startTime != null ? startTime : Instant.now())
-                                    .atZone(zone)
-                                    .toLocalDate();
                     var span = event.occurrenceOn(day);
                     if (span.isPresent()) {
                         if (resolvedStart == null) resolvedStart = span.get().start();
@@ -370,47 +469,40 @@ public class AttendanceService {
         var session = attendanceRepository.createSession(
                 templateId, resolvedStart, resolvedEnd, eventId, resolvedTitle, countedMinutes);
         log.info("Created attendance session {} for template {} (event {})", session.id(), templateId, eventId);
-        // Auto-populate field defaults from template field config
-        var templateFields = attendanceRepository.findTemplateFields(templateId);
-        for (var field : templateFields) {
-            var config = field.config();
-            if (config.hasDefaultValue()) {
-                String resolved = config.resolveDefaultValueJson();
-                if (resolved != null) {
-                    attendanceRepository.setSessionField(session.id(), field.id(), resolved);
-                }
-            }
+        var templateFields = fieldsById(templateId);
+        for (var field : templateFields.values()) {
+            String starting = field.config().startingAnswer();
+            if (starting != null) writeSessionField(session.id(), field, starting);
         }
-        // Auto-populate field defaults from the linked event (overrides template defaults)
         if (eventId != null) {
             var defaults = eventFieldDefaultRepository.findByEvent(eventId);
             if (!defaults.isEmpty()) {
                 var event = eventRepository.findById(eventId).orElse(null);
                 if (event != null) {
                     for (var def : defaults) {
+                        var field = templateFields.get(def.fieldId());
+                        if (field == null) continue;
                         String resolved =
                                 switch (def.source()) {
-                                    case "VALUE" -> toJsonValue(def.value());
-                                    case "EVENT_NAME" -> toJsonValue(event.name());
-                                    case "EVENT_DESCRIPTION" -> toJsonValue(event.description());
-                                    case "EVENT_START_TIME" -> toJsonValue(event.startTime());
-                                    case "EVENT_END_TIME" -> toJsonValue(event.endTime());
+                                    case "VALUE" -> def.value();
+                                    case "EVENT_NAME" -> event.name();
+                                    case "EVENT_DESCRIPTION" -> event.description();
+                                    case "EVENT_START_TIME" -> textOf(event.startTime());
+                                    case "EVENT_END_TIME" -> textOf(event.endTime());
                                     default -> null;
                                 };
-                        if (resolved != null) {
-                            attendanceRepository.setSessionField(session.id(), def.fieldId(), resolved);
-                        }
+                        if (resolved != null) writeSessionField(session.id(), field, resolved);
                     }
                 }
             }
         }
-        // The appointment's own answers stand above the defaults the sheet and the appointment carry
         if (eventId != null) takeEventFieldValues(session.id(), eventId, dayOf(session), false);
 
+        keepAudience(session, audience);
         var expected = expectedFor(templateId, audience);
         enterExpectedMembers(session.id(), expected, new HashSet<>());
         if (eventId != null) applyRegistrations(session.id(), eventId, expected);
-        enterMembersNamedInAutoAttendFields(session.id(), templateId);
+        enterMembersNamedInAutoAttendFields(session.id());
 
         return session;
     }
@@ -432,76 +524,99 @@ public class AttendanceService {
     private void takeEventFieldValues(int sessionId, int eventId, LocalDate date, boolean keepWhatIsFilled) {
         Set<Integer> filled = keepWhatIsFilled
                 ? attendanceRepository.findSessionFields(sessionId).stream()
-                        .filter(field -> !isEmptyValue(field.value()))
+                        .filter(field -> !QuestionValues.read(field.value()).isEmpty())
                         .map(AttendanceSessionField::fieldId)
                         .collect(Collectors.toSet())
                 : Set.of();
+        var sheetFields = attendanceRepository
+                .findSessionById(sessionId)
+                .map(session -> fieldsById(session.templateId()))
+                .orElse(Map.of());
         for (var field : eventFieldRepository.findByEventOn(eventId, date)) {
-            if (field.attendanceFieldId() == null) continue;
-            if (field.value() == null || field.value().isBlank()) continue;
-            if (filled.contains(field.attendanceFieldId())) continue;
-            String value = asJsonValue(field.value());
-            if (value == null) continue;
-            attendanceRepository.setSessionField(sessionId, field.attendanceFieldId(), value);
+            Integer attendanceFieldId = field.attendanceFieldId();
+            if (attendanceFieldId == null) continue;
+            if (QuestionValues.read(field.value()).isEmpty()) continue;
+            if (filled.contains(attendanceFieldId)) continue;
+            var sheetField = sheetFields.get(attendanceFieldId);
+            if (sheetField == null) continue;
+            writeSessionField(sessionId, sheetField, QuestionValues.read(field.value()));
         }
     }
 
-    /** Whether a sheet field says nothing, whether it was never written or written empty. */
-    private static boolean isEmptyValue(String value) {
-        if (value == null || value.isBlank()) return true;
-        String trimmed = value.trim();
-        return trimmed.equals("\"\"") || trimmed.equals("null");
+    /** The fields of a template, by id. */
+    private Map<Integer, AttendanceTemplateField> fieldsById(int templateId) {
+        return attendanceRepository.findTemplateFields(templateId).stream()
+                .collect(Collectors.toMap(AttendanceTemplateField::id, field -> field));
     }
 
     /**
-     * The value as the sheet keeps it, which is JSON.
+     * Writes one answer onto a sheet in the one shape its field type is kept in, and clears the
+     * field where the answer says nothing.
      *
-     * <p>An appointment keeps its answers as plain text, and a piece of plain text is not JSON:
-     * writing it straight into the sheet threw the whole request away, which is why an answer given
-     * on an appointment never arrived on the sheet it was tied to.
-     *
-     * <p>Only a list or an object is taken as it stands, which is how the members a question holds
-     * are kept. Everything else goes in as the text it is, rather than being read for a number that
-     * happens to stand at its front: a date read that way is a number followed by the rest of the
-     * date, and the rest is what the sheet would have choked on.
+     * @param sessionId the sheet
+     * @param field     the field answered
+     * @param answer    the answer as plain text
      */
-    private static String asJsonValue(String raw) {
+    private void writeSessionField(int sessionId, AttendanceTemplateField field, @Nullable String answer) {
+        var stored = QuestionValues.write(field.fieldType(), answer);
+        if (stored == null) {
+            attendanceRepository.deleteSessionField(sessionId, field.id());
+            return;
+        }
+        attendanceRepository.setSessionField(sessionId, field.id(), stored.toString());
+    }
+
+    /** A value as the plain text an answer holds, written the way the server writes it to JSON. */
+    private static @Nullable String textOf(@Nullable Object value) {
+        if (value == null) return null;
         try {
-            STRICT_JSON.readTree(raw);
-            return raw.trim();
+            return QuestionValues.read(JSON.writeValueAsString(value));
         } catch (Exception e) {
-            // Not JSON, or not JSON all the way to its end, so it goes in as the text it is
-            return toJsonValue(raw);
+            return null;
         }
     }
 
     /**
-     * Everybody the template expects: the members of the groups it names.
+     * Whom a new sheet expects: what it was told, or its template's user types and groups when it was
+     * told nothing.
      *
-     * <p>The template is the only thing that decides who belongs on a sheet. An event the sheet was
-     * made from asks its own question of its own people, and whom it was open to says nothing about
-     * who is expected at the appointment itself.
-     *
-     * @param templateId the template the sheet was made from
-     * @return the members of the template's groups, without those who have left
+     * <p>The sheet and its template are the only things that decide who belongs on it. An event the
+     * sheet was made from asks its own question of its own people, and whom it was open to says
+     * nothing about who is expected at the appointment itself.
      */
-    private Set<Integer> expectedMembers(int templateId) {
-        Set<Integer> expected = new LinkedHashSet<>();
-        for (var group : attendanceRepository.findTemplateGroups(templateId)) {
-            for (var member : memberGroupRepository.findMembers(group.groupId())) {
-                if (!member.former()) expected.add(member.id());
-            }
-        }
-        return expected;
-    }
-
-    /** Whom a new sheet expects: what it was told, or its template's groups when it was told nothing. */
     private Set<Integer> expectedFor(int templateId, SessionAudience audience) {
-        if (audience == null || audience.namesNobody()) return expectedMembers(templateId);
+        var decisive =
+                audience == null || audience.namesNobody() ? audienceService.templateAudience(templateId) : audience;
         return attendanceRepository
                 .findTemplateById(templateId)
-                .map(template -> chosenMembers(template.stationId(), audience))
-                .orElseGet(() -> expectedMembers(templateId));
+                .map(template -> chosenMembers(template.stationId(), decisive))
+                .orElseGet(Set::of);
+    }
+
+    private Set<Integer> groupIdsOf(int stationId) {
+        return memberGroupRepository.findByStation(stationId).stream()
+                .map(MemberGroup::id)
+                .collect(Collectors.toSet());
+    }
+
+    /**
+     * Writes down whom a new sheet was told to expect, so that filling it in later, showing it and
+     * printing it go by the same people. Only groups of the sheet's own station are kept, the same
+     * ones {@link #chosenMembers} reads.
+     *
+     * @param session  the new sheet
+     * @param audience what it was told, null or naming nobody where its template decides
+     */
+    private void keepAudience(AttendanceSession session, SessionAudience audience) {
+        if (audience == null || audience.namesNobody()) return;
+        var stationId =
+                attendanceRepository.findTemplateById(session.templateId()).map(AttendanceTemplate::stationId);
+        if (stationId.isEmpty()) return;
+        Set<Integer> ofThisStation = groupIdsOf(stationId.get());
+        var kept = new SessionAudience(
+                audience.userTypes(),
+                audience.groupIds().stream().filter(ofThisStation::contains).toList());
+        if (!kept.namesNobody()) attendanceRepository.setSessionAudience(session.id(), kept);
     }
 
     /**
@@ -510,13 +625,11 @@ public class AttendanceService {
      * refused, since a sheet is not the place to say what another station keeps.
      *
      * @param stationId the station the sheet belongs to, which bounds both answers
-     * @param audience  the types and groups chosen for this one sheet
+     * @param audience  the types and groups chosen for the sheet, or those of its template
      * @return the members the two answers name, without those who have left
      */
     private Set<Integer> chosenMembers(int stationId, SessionAudience audience) {
-        Set<Integer> ofThisStation = memberGroupRepository.findByStation(stationId).stream()
-                .map(MemberGroup::id)
-                .collect(Collectors.toSet());
+        Set<Integer> ofThisStation = groupIdsOf(stationId);
         Set<Integer> expected = new LinkedHashSet<>();
         for (int groupId : audience.groupIds()) {
             if (!ofThisStation.contains(groupId)) continue;
@@ -616,7 +729,8 @@ public class AttendanceService {
      * @param demanded whether the appointment asked everybody to answer
      * @return the status to write, or null to leave the row as it stands
      */
-    private static AttendanceEntry.AttendanceStatus attendanceFor(RegistrationStatus answer, boolean demanded) {
+    private static AttendanceEntry.@Nullable AttendanceStatus attendanceFor(
+            @Nullable RegistrationStatus answer, boolean demanded) {
         if (answer == RegistrationStatus.ACCEPTED) return AttendanceEntry.AttendanceStatus.UNCONFIRMED;
         if (answer == RegistrationStatus.DECLINED || answer == RegistrationStatus.WITHDRAWN) {
             return AttendanceEntry.AttendanceStatus.DECLINED;
@@ -636,10 +750,10 @@ public class AttendanceService {
      * @param title          what it is called
      * @param countedMinutes what a whole presence counts as, null to let the times decide
      * @return the sheet as it now stands, empty where there is none
-     * @throws BadRequestResponse where the span or the counted minutes cannot be used
+     * @throws io.javalin.http.HttpResponseException where the span or the counted minutes cannot be used
      */
     public Optional<AttendanceSession> updateSession(
-            int id, Instant startTime, Instant endTime, String title, Integer countedMinutes) {
+            int id, Instant startTime, Instant endTime, @Nullable String title, @Nullable Integer countedMinutes) {
         requireUsableSpan(startTime, endTime);
         requireUsableCountedMinutes(countedMinutes);
         if (attendanceRepository.updateSession(id, startTime, endTime, title, countedMinutes)) {
@@ -659,15 +773,16 @@ public class AttendanceService {
      *
      * @param startTime when the sheet begins, null where the caller left it to us
      * @param endTime   when it ends, read the same way
-     * @throws BadRequestResponse naming what is wrong with the span
+     * @throws io.javalin.http.HttpResponseException naming what is wrong with the span
      */
     private void requireUsableSpan(Instant startTime, Instant endTime) {
         if (startTime == null || endTime == null) return;
         if (!endTime.isAfter(startTime)) {
-            throw new BadRequestResponse("The sheet has to end after it starts");
+            throw AttendanceRefusal.ATTENDANCE_SHEET_ENDS_BEFORE_IT_STARTS.raise();
         }
         if (Duration.between(startTime, endTime).compareTo(MAX_SESSION_LENGTH) > 0) {
-            throw new BadRequestResponse("The sheet may not run longer than " + MAX_SESSION_LENGTH.toDays() + " days");
+            throw AttendanceRefusal.ATTENDANCE_SHEET_TOO_LONG.raise(
+                    RefusalDetail.count(MAX_SESSION_LENGTH.toDays(), RefusalDetail.CountUnit.DAYS));
         }
     }
 
@@ -689,9 +804,8 @@ public class AttendanceService {
      * the answers it takes have to be the answers of this day rather than of the series.
      */
     private LocalDate dayOf(AttendanceSession session) {
-        var event = session.eventId() == null
-                ? null
-                : eventRepository.findById(session.eventId()).orElse(null);
+        Integer eventId = session.eventId();
+        var event = eventId == null ? null : eventRepository.findById(eventId).orElse(null);
         var zone = event == null ? ZoneId.systemDefault() : timezoneOf(event.stationId());
         return session.startTime().atZone(zone).toLocalDate();
     }
@@ -704,16 +818,16 @@ public class AttendanceService {
      * Refuses a number of counted minutes that could not be worth anybody's presence.
      *
      * @param countedMinutes what a whole presence counts as, null where the times decide
-     * @throws BadRequestResponse naming what is wrong with the number
+     * @throws io.javalin.http.HttpResponseException naming what is wrong with the number
      */
-    private void requireUsableCountedMinutes(Integer countedMinutes) {
+    private void requireUsableCountedMinutes(@Nullable Integer countedMinutes) {
         if (countedMinutes == null) return;
         if (countedMinutes < 0) {
-            throw new BadRequestResponse("The hours a sheet counts as cannot be negative");
+            throw AttendanceRefusal.ATTENDANCE_COUNTED_HOURS_NEGATIVE.raise();
         }
         if (countedMinutes > MAX_COUNTED_MINUTES) {
-            throw new BadRequestResponse(
-                    "The hours a sheet counts as may not exceed " + MAX_COUNTED_MINUTES / 60 + " hours");
+            throw AttendanceRefusal.ATTENDANCE_COUNTED_HOURS_TOO_MANY.raise(
+                    RefusalDetail.count(MAX_COUNTED_MINUTES / 60, RefusalDetail.CountUnit.HOURS));
         }
     }
 
@@ -726,45 +840,36 @@ public class AttendanceService {
         return false;
     }
 
-    // -- Session Fields (batch) --
-
     /**
      * Writes what a sheet says in its own fields.
      *
-     * <p>What is written is measured against the question it answers, and what is left blank is not:
-     * a sheet is filled in through the appointment and saved as it goes, so demanding every required
-     * answer at every save would refuse the sheet itself.
+     * <p>What is written is measured against the question it answers, including the group a member
+     * field is narrowed to, and what is left blank is not: a sheet is filled in through the
+     * appointment and saved as it goes, so demanding every required answer at every save would refuse
+     * the sheet itself. Every answer is kept in the one shape its type is kept in, and a blank one
+     * clears the field.
      *
-     * @throws BadRequestResponse naming the field and what is wrong with the answer
+     * @throws io.javalin.http.HttpResponseException naming the field and what is wrong with the answer
      */
     public List<AttendanceSessionField> setSessionFields(int sessionId, List<AttendanceFieldValueEntry> fields) {
         requireSessionOpen(sessionId);
-        var questions = questionsOfSession(sessionId);
-        for (var field : fields) {
-            var question = questions.get(field.fieldId());
-            if (question != null) {
-                QuestionCheck.answerIfGiven(question, field.value()).ifPresent(problem -> {
-                    throw new BadRequestResponse(problem.message());
-                });
-            }
+        var sheetFields = attendanceRepository.findSheetFields(sessionId).stream()
+                .collect(Collectors.toMap(AttendanceTemplateField::id, field -> field));
+        for (var entry : fields) {
+            var field = sheetFields.get(entry.fieldId());
+            if (field == null) continue;
+            QuestionCheck.answerIfGiven(field.question(), QuestionValues.read(entry.value()), memberEligibility)
+                    .ifPresent(problem -> {
+                        throw AttendanceRefusal.ATTENDANCE_SHEET_ANSWER_NOT_ACCEPTED.raise(problem.question());
+                    });
         }
-        for (var field : fields) {
-            attendanceRepository.setSessionField(sessionId, field.fieldId(), field.value());
+        for (var entry : fields) {
+            var field = sheetFields.get(entry.fieldId());
+            if (field != null) writeSessionField(sessionId, field, QuestionValues.read(entry.value()));
         }
         log.info("Set {} session field values for attendance session {}", fields.size(), sessionId);
         return attendanceRepository.findSessionFields(sessionId);
     }
-
-    /** The questions a sheet's own fields ask, by field. */
-    private Map<Integer, Question> questionsOfSession(int sessionId) {
-        return attendanceRepository
-                .findSessionById(sessionId)
-                .map(session -> attendanceRepository.findTemplateFields(session.templateId()).stream()
-                        .collect(Collectors.toMap(AttendanceTemplateField::id, AttendanceTemplateField::question)))
-                .orElse(Map.of());
-    }
-
-    // -- Entries --
 
     /**
      * Whether the member had joined the station by the date the sheet is about.
@@ -801,7 +906,7 @@ public class AttendanceService {
      */
     private void requireSessionOpen(int sessionId) {
         if (!isSessionOpen(sessionId)) {
-            throw new BadRequestResponse("This attendance sheet is closed and has to be reopened first");
+            throw AttendanceRefusal.ATTENDANCE_SHEET_CLOSED.raise();
         }
     }
 
@@ -876,7 +981,7 @@ public class AttendanceService {
     public List<AttendanceEntry> createEntry(int sessionId, int memberId, AttendanceEntry.EntrySource source) {
         requireSessionOpen(sessionId);
         if (!hadJoinedBy(dateOf(sessionId), memberId)) {
-            throw new BadRequestResponse("The member had not joined the station on this date");
+            throw AttendanceRefusal.ATTENDANCE_MEMBER_NOT_YET_JOINED.raise();
         }
         AttendanceEntry.AttendanceStatus status;
         if (attendanceRepository.isAbsent(memberId)) {
@@ -919,15 +1024,15 @@ public class AttendanceService {
 
     /**
      * Sync attendance entries from event registrations, absence data, and autoAttend template fields.
-     * - Members of the template's groups → put on the sheet if they are not on it yet
+     * - Whom the sheet expects (its own audience, or its template's) → put on the sheet if not on it yet
      * - Answers on the event → written into the sheet fields they are tied to, where the sheet is empty
      * - ACCEPTED registrations → on the sheet and still to be checked (or ABSENT if member has active absence)
      * - Anything else, where the event asked everybody to answer → DECLINED
      * - Members with active absence who already have PRESENT status → updated to ABSENT
      * - Members from autoAttend fields → added as PRESENT at the end
      *
-     * <p>Only the template's groups put anybody on a sheet, so whom the event was open to has no say
-     * here at all.
+     * <p>Only the sheet's audience puts anybody on it, so whom the event was open to has no say here
+     * at all.
      */
     public List<AttendanceEntry> syncFromEvent(int sessionId) {
         var session = attendanceRepository.findSessionById(sessionId);
@@ -940,11 +1045,12 @@ public class AttendanceService {
         var existingMemberIds =
                 existingEntries.stream().map(AttendanceEntry::memberId).collect(Collectors.toCollection(HashSet::new));
 
-        var expected = expectedMembers(session.get().templateId());
+        var expected = expectedFor(session.get().templateId(), audienceOf(session.get()));
         enterExpectedMembers(sessionId, expected, existingMemberIds);
 
-        if (session.get().eventId() != null) {
-            int eventId = session.get().eventId();
+        Integer sessionEventId = session.get().eventId();
+        if (sessionEventId != null) {
+            int eventId = sessionEventId;
             takeEventFieldValues(sessionId, eventId, dayOf(session.get()), true);
             applyRegistrations(sessionId, eventId, expected);
         }
@@ -958,10 +1064,31 @@ public class AttendanceService {
             }
         }
 
-        enterMembersNamedInAutoAttendFields(sessionId, session.get().templateId());
+        enterMembersNamedInAutoAttendFields(sessionId);
 
         log.info("Synced attendance entries from event for session {}", sessionId);
         return attendanceRepository.findEntries(sessionId);
+    }
+
+    /**
+     * Writes one member's answer to an appointment onto the sheet already open for that date, the
+     * same way filling the sheet in from the appointment writes it.
+     *
+     * <p>Sheets are opened ahead of an appointment, and answers keep coming in after that: a no
+     * given then only reached the sheet once somebody filled it in by hand. Only a row nobody has
+     * decided yet is written, so a mark taken on the sheet outlives a later answer, and a sheet that
+     * is closed is left as it was closed. A row the appointment declined is not opened again by a
+     * later yes, because nothing on the row tells that decline apart from one marked by hand.
+     *
+     * @param eventId   the appointment answered
+     * @param eventDate the date the answer is for
+     * @param memberId  whose answer it is
+     */
+    public void takeAnswer(int eventId, LocalDate eventDate, int memberId) {
+        var sheet = findSessionForEvent(eventId, eventDate).orElse(null);
+        if (sheet == null || !isSessionOpen(sheet.id())) return;
+        if (!expectedFor(sheet.templateId(), audienceOf(sheet)).contains(memberId)) return;
+        applyRegistrations(sheet.id(), eventId, Set.of(memberId));
     }
 
     /**
@@ -976,10 +1103,9 @@ public class AttendanceService {
      * filling it in later did the naming, and until somebody pressed that the people named stood in
      * the field with no row on the sheet at all.
      *
-     * @param sessionId  the sheet being written
-     * @param templateId the template it was made from
+     * @param sessionId the sheet being written
      */
-    private void enterMembersNamedInAutoAttendFields(int sessionId, int templateId) {
+    private void enterMembersNamedInAutoAttendFields(int sessionId) {
         var values = attendanceRepository.findSessionFields(sessionId).stream()
                 .collect(Collectors.toMap(
                         AttendanceSessionField::fieldId, field -> field.value() != null ? field.value() : ""));
@@ -987,7 +1113,7 @@ public class AttendanceService {
                 .map(AttendanceEntry::memberId)
                 .collect(Collectors.toCollection(HashSet::new));
 
-        for (var field : attendanceRepository.findTemplateFields(templateId)) {
+        for (var field : attendanceRepository.findSheetFields(sessionId)) {
             if (!field.config().autoAttend()) continue;
             String value = values.getOrDefault(field.id(), "");
             if (value.isBlank()) continue;
@@ -1042,7 +1168,11 @@ public class AttendanceService {
     }
 
     public MemberAbsence createAbsence(
-            int memberId, LocalDate absentFrom, LocalDate absentUntil, String reason, Integer createdBy) {
+            int memberId,
+            LocalDate absentFrom,
+            LocalDate absentUntil,
+            @Nullable String reason,
+            @Nullable Integer createdBy) {
         var absence = attendanceRepository.createAbsence(memberId, absentFrom, absentUntil, reason, createdBy);
         log.info("Created absence {} for member {} ({} - {})", absence.id(), memberId, absentFrom, absentUntil);
         return absence;
@@ -1051,8 +1181,6 @@ public class AttendanceService {
     public Optional<MemberAbsence> findAbsenceById(int id) {
         return attendanceRepository.findAbsenceById(id);
     }
-
-    // -- Absences --
 
     public List<MemberAbsence> findAbsencesByMember(int memberId) {
         return attendanceRepository.findAbsencesByMember(memberId);
@@ -1083,10 +1211,11 @@ public class AttendanceService {
      */
     private boolean isDeclinedForSession(int sessionId, int memberId) {
         var session = attendanceRepository.findSessionById(sessionId);
-        if (session.isEmpty() || session.get().eventId() == null) return false;
+        Integer eventId = session.map(AttendanceSession::eventId).orElse(null);
+        if (eventId == null) return false;
 
         return eventRegistrationRepository
-                .findNotAttendingMemberIds(session.get().eventId(), dateOf(sessionId))
+                .findNotAttendingMemberIds(eventId, dateOf(sessionId))
                 .contains(memberId);
     }
 }

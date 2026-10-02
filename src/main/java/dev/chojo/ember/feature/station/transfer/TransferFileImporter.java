@@ -6,9 +6,9 @@
 package dev.chojo.ember.feature.station.transfer;
 
 import dev.chojo.ember.feature.account.service.AvatarService;
-import dev.chojo.ember.feature.media.service.ImageVariantService;
+import dev.chojo.ember.feature.media.image.ImageProfile;
+import dev.chojo.ember.feature.media.service.ImageVariants;
 import dev.chojo.ember.feature.media.service.MediaStorageService;
-import dev.chojo.ember.feature.media.service.MediaVariantService;
 import dev.chojo.ember.feature.station.transfer.StationImportContext.NewAccountRef;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.entity.StorageScope;
@@ -32,22 +32,19 @@ public class TransferFileImporter {
     private static final Logger log = LoggerFactory.getLogger(TransferFileImporter.class);
     private final StorageService storageService;
     private final AvatarService avatarService;
-    private final ImageVariantService imageVariantService;
+    private final ImageVariants images;
     private final MediaStorageService mediaStorageService;
-    private final MediaVariantService mediaVariantService;
 
     @Inject
     public TransferFileImporter(
             StorageService storageService,
             AvatarService avatarService,
-            ImageVariantService imageVariantService,
-            MediaStorageService mediaStorageService,
-            MediaVariantService mediaVariantService) {
+            ImageVariants images,
+            MediaStorageService mediaStorageService) {
         this.storageService = storageService;
         this.avatarService = avatarService;
-        this.imageVariantService = imageVariantService;
+        this.images = images;
         this.mediaStorageService = mediaStorageService;
-        this.mediaVariantService = mediaVariantService;
     }
 
     /**
@@ -96,15 +93,15 @@ public class TransferFileImporter {
         boolean totalPinned = false;
         while (true) {
             var page = client.listKeys(category, after);
+            Integer total = page.total();
             if (!totalPinned) {
-                progress.setSubTotal(
-                        page.total() != null ? page.total() : page.keys().size());
+                progress.setSubTotal(total != null ? total : page.keys().size());
                 totalPinned = true;
-            } else if (page.total() == null) {
+            } else if (total == null) {
                 progress.setSubTotal(progress.subTotal() + page.keys().size());
             }
             for (String key : page.keys()) {
-                if (storageService.readRelative(scope, category, key).isPresent()) {
+                if (storageService.existsRelative(scope, category, key)) {
                     skipped++;
                 } else if (streamFile(client, scope, category, key)) {
                     copied++;
@@ -177,27 +174,26 @@ public class TransferFileImporter {
     }
 
     /**
-     * Routes a byte payload received during transfer to the right destination service. Image
-     * categories go through their variant-generating service so the destination rebuilds the
-     * resized / WebP set without pulling the duplicates over the wire. Non-image categories
-     * fall back to a direct {@link StorageService} write.
+     * Routes a byte payload received during transfer to the right destination service. A category
+     * with an {@link ImageProfile} goes through {@link ImageVariants} so the destination rebuilds
+     * the sizes without pulling them over the wire; the library keeps its original itself first.
+     * Every other category is a direct {@link StorageService} write.
      */
     private void store(
             StorageScope.Station scope, StorageCategory category, String relativeKey, byte[] body, String contentType)
             throws IOException {
-        switch (category) {
-            case MEDIA_FILES -> {
-                String contentHash = parentOf(relativeKey);
-                mediaStorageService.store(scope.stationId(), contentHash, body, contentType);
-                mediaVariantService.generateVariants(scope.stationId(), contentHash, body, contentType);
-            }
-            case MEDIA_IMAGES, IMAGE_LOST_AND_FOUND, IMAGE_QUIZ_QUESTION, IMAGE_KB_ICON, IMAGE_KB_IMAGE -> {
-                String baseKey = parentOf(relativeKey);
-                imageVariantService.store(scope, category, baseKey, body, contentType);
-            }
-            default ->
-                storageService.store(
-                        scope, category, relativeKey, new ByteArrayInputStream(body), body.length, contentType);
+        var profile = ImageProfile.of(category);
+        if (profile.isEmpty()) {
+            storageService.store(
+                    scope, category, relativeKey, new ByteArrayInputStream(body), body.length, contentType);
+            return;
         }
+        String setKey = parentOf(relativeKey);
+        if (profile.get() == ImageProfile.LIBRARY) {
+            mediaStorageService.store(scope.stationId(), setKey, body, contentType);
+            images.addSizes(scope, category, setKey, body, contentType);
+            return;
+        }
+        images.store(profile.get(), scope, category, setKey, body, 0);
     }
 }

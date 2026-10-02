@@ -13,7 +13,8 @@ import MutedText from '@/components/typography/MutedText.vue'
 import LendingShareRow from '@/views/stationview/inventory/lendingsharesview/LendingShareRow.vue'
 import LendingShareModal from '@/components/lending/LendingShareModal.vue'
 import * as lending from '@/api/lending'
-import type {ShareDetail, ShareTarget} from '@/api/lending'
+import type {ShareTarget} from '@/api/lending'
+import type {ShareDetail} from '@/api/generated/schema'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 
 const {t} = useI18n()

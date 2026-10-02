@@ -5,120 +5,75 @@
  */
 package dev.chojo.ember.feature.members.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.auth.StationPermission;
-import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.MemberRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
-import dev.chojo.ember.feature.cluster.repository.ClusterProfileFieldRepository;
 import dev.chojo.ember.feature.members.entity.AssignedProfileField;
-import dev.chojo.ember.feature.members.entity.ExpirySettings;
+import dev.chojo.ember.feature.members.entity.FieldDraft;
 import dev.chojo.ember.feature.members.entity.FieldOrigin;
 import dev.chojo.ember.feature.members.entity.FieldValueEntry;
-import dev.chojo.ember.feature.members.entity.MemberGroup;
+import dev.chojo.ember.feature.members.entity.MemberChangeSummary;
 import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.entity.PagedChanges;
+import dev.chojo.ember.feature.members.entity.ProfileAuthor;
 import dev.chojo.ember.feature.members.entity.ProfileField;
 import dev.chojo.ember.feature.members.entity.ProfileFieldAssignment;
 import dev.chojo.ember.feature.members.entity.ProfileFieldChange;
 import dev.chojo.ember.feature.members.entity.ProfileFieldChangeAcknowledgement;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
-import dev.chojo.ember.feature.members.entity.ProfileFieldType;
-import dev.chojo.ember.feature.members.entity.ProfileFieldValue;
-import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.members.entity.ProfileWriter;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.ProfileFieldChangeRepository;
 import dev.chojo.ember.feature.members.repository.ProfileFieldRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
-import dev.chojo.ember.feature.notifications.entity.NotificationData;
-import dev.chojo.ember.feature.notifications.entity.NotificationParams;
-import dev.chojo.ember.feature.notifications.entity.NotificationType;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
-import dev.chojo.ember.feature.question.QuestionCheck;
-import dev.chojo.ember.util.Json;
-import io.javalin.http.BadRequestResponse;
+import dev.chojo.ember.feature.question.FieldType;
+import dev.chojo.ember.owner.Owner;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.time.Duration;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
- * Service for profile field management including field definitions, member values,
- * change tracking with manager attribution, and profile completeness validation.
+ * A station's profile questions, its members' answers and the history of what changed.
+ *
+ * <p>The station's definitions and their audiences are kept here. Answers, whoever asked the question,
+ * go through {@link ProfileFieldCore}, and so does the check a definition passes before it is written
+ * down, which an association's questions pass the same way.
  */
 @Singleton
 public class ProfileFieldService {
     private static final Logger log = LoggerFactory.getLogger(ProfileFieldService.class);
-    private static final Duration MERGE_WINDOW = Duration.ofMinutes(5);
-    /** What an unnamed spacer is filed under, numbered until the name is free. */
-    private static final String SPACER_NAME = "Abstand %d";
 
     private final ProfileFieldRepository profileFieldRepository;
     private final ProfileFieldChangeRepository changeRepository;
-    private final NotificationService notificationService;
     private final StationMemberRepository stationMemberRepository;
     private final AccountRepository accountRepository;
-    private final ClusterProfileFieldRepository clusterFieldRepository;
     private final MemberGroupRepository memberGroupRepository;
-    private final MemberPermissionResolver permissionResolver;
+    private final ProfileFieldCore core;
 
     @Inject
     public ProfileFieldService(
             ProfileFieldRepository profileFieldRepository,
             ProfileFieldChangeRepository changeRepository,
-            NotificationService notificationService,
             StationMemberRepository stationMemberRepository,
             AccountRepository accountRepository,
-            ClusterProfileFieldRepository clusterFieldRepository,
             MemberGroupRepository memberGroupRepository,
-            MemberPermissionResolver permissionResolver) {
+            ProfileFieldCore core) {
         this.profileFieldRepository = profileFieldRepository;
         this.changeRepository = changeRepository;
-        this.notificationService = notificationService;
         this.stationMemberRepository = stationMemberRepository;
         this.accountRepository = accountRepository;
-        this.clusterFieldRepository = clusterFieldRepository;
         this.memberGroupRepository = memberGroupRepository;
-        this.permissionResolver = permissionResolver;
-    }
-
-    // -- Field Definitions --
-
-    /**
-     * Which scopes a kind of member is asked.
-     *
-     * <p>One each, except a manager: they are staff before they are a manager, so the questions put
-     * to the team are put to them as well. That is already how a complete profile is judged, and a
-     * manager who is marked incomplete over a question their own profile never showed them has been
-     * asked something in secret.
-     */
-    /**
-     * The one role a kind of member is asked as.
-     *
-     * <p>This used to hand a manager two scopes and a trial member somebody else's, which is what put
-     * the same question on a manager's profile twice: two scopes were read, both held a field of that
-     * name, and the two were concatenated. Every kind of member now answers as itself, and a station
-     * that wants a manager asked the team's questions assigns them to both.
-     */
-    private static ProfileFieldScope roleOf(StationUserType userType) {
-        if (userType == null) return ProfileFieldScope.MEMBER;
-        return switch (userType) {
-            case TRIAL -> ProfileFieldScope.TRIAL;
-            case MEMBER -> ProfileFieldScope.MEMBER;
-            case GUARDIAN -> ProfileFieldScope.GUARDIAN;
-            case TEAM -> ProfileFieldScope.TEAM;
-            case MANAGER -> ProfileFieldScope.MANAGER;
-        };
+        this.core = core;
     }
 
     public List<ProfileField> findByStation(int stationId) {
@@ -143,47 +98,19 @@ public class ProfileFieldService {
     /**
      * The questions one member's profile asks them.
      *
-     * <p>Two things decide it, and for a while only one of them was read. What kind of member
-     * somebody is picks one scope, which is most of the form. On top of that a station can ask
-     * something of one group alone: whoever drives asks for a licence class, and nobody else is
-     * asked at all. Those were declared, stored and shown in the configuration screen, and then
-     * reached nobody, because this looked at the member's kind and never at the groups they are in.
-     *
-     * <p>A field asked of a group is asked once however many of the member's groups it reaches, and
-     * not a second time where their kind is asked it too. Whether two are the same question is told by
-     * who asked as well as the id, since a station's and its association's fields are numbered apart.
+     * <p>Two things decide it. What kind of member somebody is picks one role, which is most of the form.
+     * On top of that a station can ask something of one group alone: whoever drives asks for a licence
+     * class, and nobody else is asked at all.
      *
      * @param memberId the member whose profile is being filled in
-     * @return the fields of their kind, followed by the ones their groups are asked
+     * @return the fields of their kind, every owner's, followed by the ones their groups are asked
      */
     public List<MergedField> findApplicableFields(int memberId) {
-        var member = stationMemberRepository.findById(memberId).orElse(null);
-        if (member == null) return List.of();
-        List<MergedField> fields = new ArrayList<>(findMergedFields(member.stationId(), roleOf(member.userType())));
-        var seen = fields.stream().map(MergedField::key).collect(Collectors.toSet());
-        for (MergedField field : fieldsOfTheirGroups(member.id(), member.stationId())) {
-            if (seen.add(field.key())) fields.add(field);
-        }
-        return fields;
+        return stationMemberRepository.findById(memberId).map(core::fieldsFor).orElse(List.of());
     }
 
     /**
-     * The group-scoped fields that reach this member, which are the ones asked of a group they are
-     * in. A field of that scope naming no group is asked of nobody: it is half-configured rather
-     * than universal, and the configuration screen lists it separately for exactly that reason.
-     */
-    private List<MergedField> fieldsOfTheirGroups(int memberId, int stationId) {
-        var groupIds = memberGroupRepository.findGroupsForMember(memberId).stream()
-                .map(MemberGroup::id)
-                .toList();
-        if (groupIds.isEmpty()) return List.of();
-        return profileFieldRepository.findByStationAndGroups(stationId, groupIds).stream()
-                .map(field -> merged(field, FieldOrigin.STATION, false))
-                .toList();
-    }
-
-    /**
-     * The fields one kind of member is put on a station's profile: its own, and its cluster's.
+     * The fields one kind of member is put on a station's profile: its own, and its association's.
      *
      * <p>Unioned rather than returned as two lists, so the profile lays out as one form. Each entry carries
      * where it came from, because that decides two things the reader has to see: whether the station may
@@ -191,44 +118,10 @@ public class ProfileFieldService {
      *
      * @param stationId the station
      * @param role      which kind of member the fields are put to
-     * @return the station's own fields first, then the cluster's
+     * @return the station's own fields first, then the association's
      */
     public List<MergedField> findMergedFields(int stationId, ProfileFieldScope role) {
-        List<MergedField> merged = new ArrayList<>();
-        for (AssignedProfileField assigned : profileFieldRepository.findByStationAndScope(stationId, role)) {
-            merged.add(merged(assigned, FieldOrigin.STATION, false));
-        }
-        for (var assigned : clusterFieldRepository.findForStation(stationId, role)) {
-            merged.add(new MergedField(
-                    assigned.field().id(),
-                    assigned.field().name(),
-                    assigned.field().fieldType(),
-                    assigned.field().config(),
-                    assigned.required(),
-                    assigned.assignment().position(),
-                    assigned.width(),
-                    assigned.readonly(),
-                    role,
-                    FieldOrigin.CLUSTER,
-                    assigned.field().stationReadonly()));
-        }
-        return merged;
-    }
-
-    private static MergedField merged(AssignedProfileField assigned, FieldOrigin origin, boolean readonlyAtStation) {
-        var assignment = assigned.assignment();
-        return new MergedField(
-                assigned.field().id(),
-                assigned.field().name(),
-                assigned.field().fieldType(),
-                assigned.field().config(),
-                assigned.required(),
-                assignment.position(),
-                assigned.width(),
-                assigned.readonly(),
-                assignment.role(),
-                origin,
-                readonlyAtStation);
+        return core.fieldsAt(stationId, role);
     }
 
     /**
@@ -242,18 +135,18 @@ public class ProfileFieldService {
      * @param role              the kind of member this was read for, null where a group is asked
      * @param origin            who asked
      * @param readonlyAtStation whether the people at the station may read the answer but not write it, which
-     *                          only a cluster field can be
+     *                          only an association's field can be
      */
     public record MergedField(
             int id,
             String name,
-            ProfileFieldType fieldType,
+            FieldType fieldType,
             ProfileFieldConfig config,
             boolean required,
             int position,
-            String width,
+            @Nullable String width,
             boolean readonly,
-            ProfileFieldScope role,
+            @Nullable ProfileFieldScope role,
             FieldOrigin origin,
             boolean readonlyAtStation) {
         /**
@@ -278,43 +171,78 @@ public class ProfileFieldService {
         return profileFieldRepository.findById(id);
     }
 
+    /**
+     * Writes a question down. Who is asked it is a separate act.
+     *
+     * @param stationId     the station asking
+     * @param name          what it is called, which a spacer may leave empty to be numbered
+     * @param fieldType     what kind of answer it takes
+     * @param config        its settings
+     * @param required      whether an answer is expected
+     * @param readonly      whether only the member management writes the answer
+     * @param width         how much of a row it takes, null for the whole row
+     * @param keepOnArchive whether its answers stay when a member leaves
+     * @return the question
+     * @throws RefusalResponse the checks of {@link ProfileFieldCore#checkedName}, or
+     *                         {@link MemberRefusal#PROFILE_BIRTH_DATE_ALREADY_ASKED}
+     */
     public ProfileField create(
             int stationId,
-            String name,
-            ProfileFieldType fieldType,
+            @Nullable String name,
+            FieldType fieldType,
             ProfileFieldConfig config,
             boolean required,
             boolean readonly,
-            String width) {
+            @Nullable String width,
+            boolean keepOnArchive) {
+        String chosen = core.checkedName(new Owner.Station(stationId), new FieldDraft(name, fieldType, config, false));
         requireSingleBirthDate(stationId, fieldType, 0);
-        String chosen = nameFor(stationId, fieldType, name);
-        requireUsableDefault(chosen, fieldType, config);
-        requireUsableExpiry(config);
-        var field = profileFieldRepository.create(stationId, chosen, fieldType, config, required, readonly, width);
+        var field = profileFieldRepository.create(
+                stationId, chosen, fieldType, config, required, readonly, width, keepOnArchive);
         log.info(
-                "Profile field created: id={}, station={}, name='{}', type={}", field.id(), stationId, name, fieldType);
+                "Profile field created: id={}, station={}, name='{}', type={}",
+                field.id(),
+                stationId,
+                chosen,
+                fieldType);
         return field;
+    }
+
+    /**
+     * The same, for a question whose answers go when a member leaves.
+     *
+     * @see #create(int, String, FieldType, ProfileFieldConfig, boolean, boolean, String, boolean)
+     */
+    public ProfileField create(
+            int stationId,
+            @Nullable String name,
+            FieldType fieldType,
+            ProfileFieldConfig config,
+            boolean required,
+            boolean readonly,
+            @Nullable String width) {
+        return create(stationId, name, fieldType, config, required, readonly, width, false);
     }
 
     public Optional<ProfileField> update(
             int id,
             String name,
-            ProfileFieldType fieldType,
+            FieldType fieldType,
             ProfileFieldConfig config,
             boolean required,
             boolean readonly,
-            String width,
+            @Nullable String width,
             boolean keepOnArchive) {
         var existing = profileFieldRepository.findById(id);
         if (existing.isEmpty()) {
             log.warn("Profile field update affected no rows: id={}", id);
             return Optional.empty();
         }
-        requireUsableDefault(name, fieldType, config);
-        requireUsableExpiry(config);
-        requireSingleBirthDate(existing.get().stationId(), fieldType, id);
-        if (profileFieldRepository.update(id, name, fieldType, config, required, readonly, width, keepOnArchive)) {
-            log.info("Profile field updated: id={}, name='{}', type={}", id, name, fieldType);
+        int stationId = existing.get().stationId();
+        String chosen = core.checkedName(new Owner.Station(stationId), new FieldDraft(name, fieldType, config, false));
+        requireSingleBirthDate(stationId, fieldType, id);
+        if (profileFieldRepository.update(id, chosen, fieldType, config, required, readonly, width, keepOnArchive)) {
+            log.info("Profile field updated: id={}, name='{}', type={}", id, chosen, fieldType);
             return profileFieldRepository.findById(id);
         }
         log.warn("Profile field update affected no rows: id={}", id);
@@ -322,56 +250,30 @@ public class ProfileFieldService {
     }
 
     /**
-     * What to file a question under, which a spacer does not supply itself.
-     *
-     * <p>A spacer is a gap, and nobody wants to think of a name for a gap. The table still needs one
-     * to tell two of them apart and to file the answer nobody will ever give, so an unnamed one is
-     * numbered instead: the first free {@code Abstand N} in the station.
-     *
-     * @param stationId the station the name has to be free in
-     * @param fieldType what is being written down
-     * @param name      what the screen sent, which may be nothing for a spacer
-     * @return the name to file it under
-     */
-    private String nameFor(int stationId, ProfileFieldType fieldType, String name) {
-        if (fieldType != ProfileFieldType.SPACER || name != null && !name.isBlank()) return name;
-        var taken = profileFieldRepository.findByStation(stationId).stream()
-                .map(ProfileField::name)
-                .collect(Collectors.toSet());
-        int number = 1;
-        while (taken.contains(SPACER_NAME.formatted(number))) number++;
-        return SPACER_NAME.formatted(number);
-    }
-
-    /**
      * Rejects a second birth date field in the same station.
      *
-     * <p>There used to be one of these per kind of member, and whether two collided depended on whom
-     * each was put to. A question is written once now and assigned to everybody who is asked it, so a
-     * station needs exactly one date of birth however many kinds of member it wants it from, and a
-     * second is a duplicate rather than a different question.
+     * <p>A question is written once and assigned to everybody who is asked it, so a station needs exactly
+     * one date of birth however many kinds of member it wants it from, and a second is a duplicate rather
+     * than a different question.
      *
      * @param stationId  the station the field belongs to
      * @param fieldType  the type the field is about to carry
      * @param excludedId the field being updated, so it does not clash with itself; 0 when creating
-     * @throws BadRequestResponse if the station already has a date of birth
+     * @throws RefusalResponse if the station already has a date of birth
      */
-    private void requireSingleBirthDate(int stationId, ProfileFieldType fieldType, int excludedId) {
-        if (fieldType != ProfileFieldType.BIRTH_DATE) return;
-        for (ProfileField other :
-                profileFieldRepository.findAllByStationAndType(stationId, ProfileFieldType.BIRTH_DATE)) {
+    private void requireSingleBirthDate(int stationId, FieldType fieldType, int excludedId) {
+        if (fieldType != FieldType.BIRTH_DATE) return;
+        for (ProfileField other : profileFieldRepository.findAllByStationAndType(stationId, FieldType.BIRTH_DATE)) {
             if (other.id() == excludedId) continue;
-            throw new BadRequestResponse("This station already asks for a date of birth: " + other.name()
-                    + ". Assign that one to whoever else should be asked.");
+            throw MemberRefusal.PROFILE_BIRTH_DATE_ALREADY_ASKED.raise(other.name());
         }
     }
 
     /**
      * Puts one audience's form in the given order, in one write.
      *
-     * <p>Dragging one field moves every field after it, and sending that as one update per field made a
-     * screen with twenty of them do twenty round trips for a single drag. The order belongs to the
-     * audience rather than to the field, so reordering one form leaves every other alone.
+     * <p>The order belongs to the audience rather than to the field, so reordering one form leaves every
+     * other alone.
      *
      * @param stationId the station whose fields these are
      * @param role      the audience whose form is being ordered
@@ -406,15 +308,15 @@ public class ProfileFieldService {
             int fieldId,
             ProfileFieldScope role,
             int position,
-            String widthOverride,
-            Boolean readonlyOverride,
-            Boolean requiredOverride) {
+            @Nullable String widthOverride,
+            @Nullable Boolean readonlyOverride,
+            @Nullable Boolean requiredOverride) {
         profileFieldRepository.assignToRole(fieldId, role, position, widthOverride, readonlyOverride, requiredOverride);
         log.info("Profile field {} is asked of {}", fieldId, role);
     }
 
     /**
-     * Puts this question to one group, or changes how it is put to them.
+     * Puts this question to one of the station's groups, or changes how it is put to them.
      *
      * @param fieldId          the question
      * @param groupId          the group to be asked
@@ -422,17 +324,30 @@ public class ProfileFieldService {
      * @param widthOverride    how much of a row it takes here, null to follow the definition
      * @param readonlyOverride whether only the member management writes it here, null to follow the definition
      * @param requiredOverride whether they must answer, null to follow the definition
+     * @throws RefusalResponse {@link MemberRefusal#PROFILE_FIELD_GROUP_NOT_HERE} for a group of another
+     *                         station, or none at all
      */
     public void assignToGroup(
             int fieldId,
             int groupId,
             int position,
-            String widthOverride,
-            Boolean readonlyOverride,
-            Boolean requiredOverride) {
+            @Nullable String widthOverride,
+            @Nullable Boolean readonlyOverride,
+            @Nullable Boolean requiredOverride) {
+        requireGroupOfTheFieldsStation(fieldId, groupId);
         profileFieldRepository.assignToGroup(
                 fieldId, groupId, position, widthOverride, readonlyOverride, requiredOverride);
         log.info("Profile field {} is asked of group {}", fieldId, groupId);
+    }
+
+    private void requireGroupOfTheFieldsStation(int fieldId, int groupId) {
+        var stationId = profileFieldRepository.findById(fieldId).map(ProfileField::stationId);
+        boolean own = stationId.isPresent()
+                && memberGroupRepository
+                        .findById(groupId)
+                        .filter(group -> group.stationId() == stationId.get())
+                        .isPresent();
+        if (!own) throw MemberRefusal.PROFILE_FIELD_GROUP_NOT_HERE.raise();
     }
 
     /** Stops asking a kind of member this question. The definition and its answers stay. */
@@ -462,68 +377,20 @@ public class ProfileFieldService {
     /**
      * Whether this member has answered everything their profile asks of them.
      *
-     * <p>The question is asked of {@link #findApplicableFields(int)}, which is the same list the
-     * profile screen draws. It has to be: what is counted as missing must be something the member
-     * was actually shown, and something they were shown and left empty must be counted. Working the
-     * list out a second time here is what let the two drift, and they did. This one decided from the
-     * member's permissions and threw away every question of group scope, so somebody in the
-     * instructors' group could be missing an answer the instructors are required to give and be told
-     * their profile was complete. Nothing reached the task list, the badge beside it, or the reminder
-     * on the dashboard, because all three ask this.
-     *
-     * <p>A question the member cannot answer is not counted against them: one the station only lets
-     * them read, and one an association asks and keeps to itself.
+     * <p>What is counted as missing must be something the member was actually shown on
+     * {@link #findApplicableFields(int)}, and something they were shown and left empty must be counted.
+     * The task list, the badge beside it, the reminder on the dashboard and the member list all ask the one
+     * rule the repository holds, the list for every row at once.
      *
      * @param memberId the member whose profile is being judged
      * @return whether nothing required of them is left blank
      */
     public boolean isProfileComplete(int memberId) {
-        var answers = findValues(memberId).stream()
-                .collect(Collectors.toMap(
-                        value -> answerKey(value.origin(), value.fieldId()),
-                        MergedValue::value,
-                        (first, ignored) -> first));
-
-        for (var field : findApplicableFields(memberId)) {
-            if (!field.fieldType().holdsValue()) continue;
-            if (!field.required()) continue;
-            if (field.readonly() || field.readonlyAtStation()) continue;
-            if (isBlankAnswer(answers.get(answerKey(field.origin(), field.id())))) return false;
-        }
-        return true;
+        return profileFieldRepository.isProfileComplete(memberId);
     }
-
-    /**
-     * Whether an answer says nothing, in every shape that can reach the column.
-     *
-     * <p>Answers are kept as documents, so emptiness arrives spelled four ways: no row at all, an
-     * empty column, the empty string a text box hands back, and the document null a selection left
-     * on its blank entry produces. That last one reads as the four letters {@code null} rather than
-     * as nothing, which is how a question nobody had answered could count as answered.
-     */
-    private static boolean isBlankAnswer(String value) {
-        return value == null || value.isBlank() || "\"\"".equals(value) || "null".equals(value);
-    }
-
-    /**
-     * How an answer is matched to its question. The two carry their own numbering, so a station's
-     * question three and an association's question three are different questions.
-     */
-    private static String answerKey(FieldOrigin origin, int fieldId) {
-        return origin + "-" + fieldId;
-    }
-
-    // -- Field Values --
 
     public List<MergedValue> findValues(int memberId) {
-        List<MergedValue> values = new ArrayList<>();
-        for (var value : profileFieldRepository.findValues(memberId)) {
-            values.add(new MergedValue(value.fieldId(), value.value(), FieldOrigin.STATION));
-        }
-        for (var value : clusterFieldRepository.findValues(memberId)) {
-            values.add(new MergedValue(value.fieldId(), value.value(), FieldOrigin.CLUSTER));
-        }
-        return values;
+        return core.answersOf(memberId);
     }
 
     /**
@@ -536,145 +403,55 @@ public class ProfileFieldService {
      * @param value   the answer
      * @param origin  who asked
      */
-    public record MergedValue(int fieldId, String value, FieldOrigin origin) {}
-
-    public List<MergedValue> setValues(int memberId, List<FieldValueEntry> entries, int changedBy) {
-        return setValues(memberId, entries, changedBy, false);
-    }
+    public record MergedValue(int fieldId, @Nullable String value, FieldOrigin origin) {}
 
     /**
-     * Saves answers, saying whether the party writing them is the cluster that asked.
-     *
-     * <p>A cluster question marked readable but not writable at the station is locked against the station,
-     * not against the cluster. The station's own screens call the short form above and are refused it; the
-     * cluster's own screens say so here and are not, because the lock is theirs to begin with.
+     * Saves answers written by the member, or by somebody at the station who is not its member management.
      *
      * @param memberId  whose answers these are
      * @param entries   the answers, each naming which table its question lives in
      * @param changedBy the member row recorded as the author
-     * @param asOwner   whether the caller is the cluster that asked, rather than the station that holds them
      * @return every answer this member now has
      */
-    public List<MergedValue> setValues(int memberId, List<FieldValueEntry> entries, int changedBy, boolean asOwner) {
-        Map<Integer, String> oldStation = profileFieldRepository.findValues(memberId).stream()
-                .collect(Collectors.toMap(ProfileFieldValue::fieldId, v -> v.value() != null ? v.value() : "null"));
-        Map<Integer, String> oldCluster = clusterFieldRepository.findValues(memberId).stream()
-                .collect(Collectors.toMap(
-                        ClusterProfileFieldRepository.Value::fieldId, v -> v.value() != null ? v.value() : "null"));
-
-        List<String> changedFieldNames = new ArrayList<>();
-        for (var entry : entries) {
-            String newValue = entry.value() != null ? entry.value() : "null";
-            if (entry.origin() == FieldOrigin.CLUSTER) {
-                writeClusterAnswer(memberId, entry, oldCluster, newValue, changedBy, changedFieldNames, asOwner);
-                continue;
-            }
-
-            String oldValue = oldStation.getOrDefault(entry.fieldId(), "null");
-            if (Objects.equals(oldValue, newValue)) continue;
-
-            requireAnswerable(entry.fieldId(), entry.value());
-            profileFieldRepository.setValue(memberId, entry.fieldId(), Json.document(entry.value()));
-            recordChange(entry.fieldId(), memberId, oldValue, newValue, changedBy);
-            profileFieldRepository.findById(entry.fieldId()).ifPresent(f -> changedFieldNames.add(f.name()));
-        }
-
-        if (!changedFieldNames.isEmpty()) {
-            notifyManagersOfChange(memberId, changedBy, changedFieldNames);
-            log.info(
-                    "Profile fields updated: member={}, changedBy={}, fields={}",
-                    memberId,
-                    changedBy,
-                    changedFieldNames);
-        }
-
-        return findValues(memberId);
+    public List<MergedValue> setValues(int memberId, List<FieldValueEntry> entries, int changedBy) {
+        return setValues(memberId, entries, changedBy, ProfileWriter.station(false));
     }
 
     /**
-     * Refuses a field set up to start from a value it would then refuse as an answer.
+     * Saves answers through the locks the writer has to pass, recorded against a member row.
      *
-     * @throws BadRequestResponse naming the field and what is wrong with its starting value
+     * <p>A member row of another station than the member's, or none at all, is recorded by the account it
+     * belongs to, which is what an association manager acting from their home station leaves.
+     *
+     * @param memberId  whose answers these are
+     * @param entries   the answers, each naming which table its question lives in
+     * @param changedBy the member row recorded as the author
+     * @param writer    who writes them, which decides the locks they pass
+     * @return every answer this member now has
+     * @see ProfileFieldCore#write
      */
-    private void requireUsableDefault(String name, ProfileFieldType fieldType, ProfileFieldConfig config) {
-        new ProfileField(0, 0, name, fieldType, config, false, false, null, false)
-                .question()
-                .flatMap(QuestionCheck::defaultValue)
-                .ifPresent(problem -> {
-                    throw new BadRequestResponse(problem.message());
-                });
+    public List<MergedValue> setValues(
+            int memberId, List<FieldValueEntry> entries, int changedBy, ProfileWriter writer) {
+        ProfileAuthor author = stationMemberRepository
+                .findById(changedBy)
+                .map(ProfileAuthor::member)
+                .orElse(ProfileAuthor.unknown());
+        return core.write(memberId, entries, author, writer);
     }
 
     /**
-     * Refuses expiry settings that count days backwards or repeat without a gap.
+     * Saves answers through the locks the writer has to pass.
      *
-     * <p>Asked whatever the type, because a field keeps its settings when its type changes and turns
-     * back into an expiry date with them.
+     * @param memberId whose answers these are
+     * @param entries  the answers, each naming which table its question lives in
+     * @param author   who is recorded as having made the change
+     * @param writer   who writes them, which decides the locks they pass
+     * @return every answer this member now has
+     * @see ProfileFieldCore#write
      */
-    private static void requireUsableExpiry(ProfileFieldConfig config) {
-        if (config != null && ExpirySettings.outOfRange(config)) {
-            throw Refusal.EXPIRY_SETTINGS_OUT_OF_RANGE.raise();
-        }
-    }
-
-    /**
-     * Refuses an answer the field does not take.
-     *
-     * <p>Only what a save actually changes is measured. An answer stored before anything checked
-     * these is left where it is: a member correcting their address must not be turned away over a
-     * date somebody typed wrongly into another field years ago, and rewriting it for them would be
-     * inventing an answer nobody gave.
-     *
-     * @throws BadRequestResponse naming the field and what is wrong with the answer
-     */
-    private void requireAnswerable(int fieldId, String value) {
-        profileFieldRepository
-                .findById(fieldId)
-                .flatMap(ProfileField::question)
-                .flatMap(question -> QuestionCheck.answerIfGiven(question, value))
-                .ifPresent(problem -> {
-                    throw new BadRequestResponse(problem.message());
-                });
-    }
-
-    /**
-     * Saves one answer to a question the cluster asked.
-     *
-     * <p>A field the cluster keeps to itself is not written when the station is the one writing: the
-     * station's screen shows it without a control, so an entry naming one is a stale form rather than
-     * somebody trying something, and refusing the whole save would lose the answers beside it. The cluster
-     * writing its own is a different matter, and {@code asOwner} says which of the two this is.
-     *
-     * <p>The change is recorded like any other, which is what puts it in front of the people at the station
-     * who acknowledge changes. What is not raised is the cluster's own notification: that one says the
-     * cluster changed something, and here the station did.
-     */
-    private void writeClusterAnswer(
-            int memberId,
-            FieldValueEntry entry,
-            Map<Integer, String> oldValues,
-            String newValue,
-            int changedBy,
-            List<String> changedFieldNames,
-            boolean asOwner) {
-        var field = clusterFieldRepository
-                .findById(entry.fieldId())
-                .filter(candidate -> asOwner || !candidate.stationReadonly())
-                .orElse(null);
-        if (field == null) return;
-
-        String oldValue = oldValues.getOrDefault(field.id(), "null");
-        if (Objects.equals(oldValue, newValue)) return;
-
-        clusterFieldRepository.setValue(memberId, field.id(), Json.document(entry.value()));
-        changeRepository.createForClusterField(
-                field.id(),
-                memberId,
-                oldValue,
-                newValue,
-                changedBy,
-                field.config().notifyOnChange() && !acknowledgesTheirOwn(changedBy));
-        changedFieldNames.add(field.name());
+    public List<MergedValue> setValues(
+            int memberId, List<FieldValueEntry> entries, ProfileAuthor author, ProfileWriter writer) {
+        return core.write(memberId, entries, author, writer);
     }
 
     public boolean deleteValue(int memberId, int fieldId) {
@@ -687,8 +464,7 @@ public class ProfileFieldService {
         return deleted;
     }
 
-    public List<ProfileFieldChangeRepository.MemberChangeSummary> findUnacknowledgedSummary(
-            int stationId, int acknowledgedBy) {
+    public List<MemberChangeSummary> findUnacknowledgedSummary(int stationId, int acknowledgedBy) {
         return changeRepository.findUnacknowledgedSummary(stationId, acknowledgedBy);
     }
 
@@ -701,22 +477,29 @@ public class ProfileFieldService {
                 allAcks.stream().collect(Collectors.groupingBy(ProfileFieldChangeAcknowledgement::changeId));
 
         return changes.stream()
-                .map(c -> new ProfileFieldChange(
-                        c.id(),
-                        c.fieldId(),
-                        c.clusterFieldId(),
-                        c.memberId(),
-                        c.oldValue(),
-                        c.newValue(),
-                        c.changedBy(),
-                        c.changedAt(),
-                        c.requiresAcknowledgement(),
-                        c.changedByName(),
-                        c.fieldName(),
-                        c.fieldType(),
-                        acksByChange.getOrDefault(c.id(), List.of()),
-                        null))
+                .map(c -> withDetails(c, acksByChange.getOrDefault(c.id(), List.of()), null))
                 .toList();
+    }
+
+    private static ProfileFieldChange withDetails(
+            ProfileFieldChange c,
+            List<ProfileFieldChangeAcknowledgement> acknowledgements,
+            @Nullable String memberName) {
+        return new ProfileFieldChange(
+                c.id(),
+                c.fieldId(),
+                c.clusterFieldId(),
+                c.memberId(),
+                c.oldValue(),
+                c.newValue(),
+                c.changedBy(),
+                c.changedAt(),
+                c.requiresAcknowledgement(),
+                c.changedByName(),
+                c.fieldName(),
+                c.fieldType(),
+                acknowledgements,
+                memberName);
     }
 
     /**
@@ -760,32 +543,19 @@ public class ProfileFieldService {
         Map<Integer, List<ProfileFieldChangeAcknowledgement>> acksByChange =
                 allAcks.stream().collect(Collectors.groupingBy(ProfileFieldChangeAcknowledgement::changeId));
 
-        // Resolve member names
         var enriched = changes.stream()
-                .map(c -> {
-                    String memberName = stationMemberRepository
-                            .findById(c.memberId())
-                            .flatMap(m -> accountRepository.findById(m.accountId()))
-                            .map(a -> NameParts.of(a).called())
-                            .orElse("");
-                    return new ProfileFieldChange(
-                            c.id(),
-                            c.fieldId(),
-                            c.clusterFieldId(),
-                            c.memberId(),
-                            c.oldValue(),
-                            c.newValue(),
-                            c.changedBy(),
-                            c.changedAt(),
-                            c.requiresAcknowledgement(),
-                            c.changedByName(),
-                            c.fieldName(),
-                            c.fieldType(),
-                            acksByChange.getOrDefault(c.id(), List.of()),
-                            memberName);
-                })
+                .map(c -> withDetails(c, acksByChange.getOrDefault(c.id(), List.of()), memberNameOf(c.memberId())))
                 .toList();
         return new PagedChanges(enriched, total);
+    }
+
+    private String memberNameOf(int memberId) {
+        return stationMemberRepository
+                .findById(memberId)
+                .flatMap(m -> Optional.ofNullable(m.accountId()))
+                .flatMap(accountRepository::findById)
+                .map(a -> NameParts.of(a).called())
+                .orElse("");
     }
 
     public ProfileFieldChangeAcknowledgement acknowledge(int changeId, int acknowledgedBy, String comment) {
@@ -793,8 +563,6 @@ public class ProfileFieldService {
         log.info("Profile field change acknowledged: change={}, by={}", changeId, acknowledgedBy);
         return ack;
     }
-
-    // -- Change History --
 
     public List<ProfileFieldChangeAcknowledgement> acknowledgeAll(int memberId, int acknowledgedBy, String comment) {
         var unacknowledgedIds = changeRepository.findUnacknowledgedChangeIds(memberId, acknowledgedBy);
@@ -808,77 +576,5 @@ public class ProfileFieldService {
                 acknowledgedBy,
                 result.size());
         return result;
-    }
-
-    private void notifyManagersOfChange(int memberId, int changedBy, List<String> fieldNames) {
-        var member = stationMemberRepository.findById(memberId).orElse(null);
-        if (member == null) return;
-
-        var account = accountRepository.findById(member.accountId()).orElse(null);
-        String memberName = account != null ? NameParts.of(account).called() : "?";
-        String fieldList = String.join(", ", fieldNames);
-
-        var data = NotificationData.of(
-                new NotificationParams.ProfileFieldChanged(memberName, fieldList),
-                new NotificationData.NotificationLink("members-detail", Map.of("id", memberId)));
-
-        var memberMgmtIds =
-                stationMemberRepository
-                        .findMembersWithPermission(member.stationId(), StationPermission.MEMBER_MANAGER)
-                        .stream()
-                        .map(StationMember::id)
-                        .toList();
-
-        notificationService.notifyMembersIfAbsent(
-                memberMgmtIds, NotificationType.PROFILE_FIELD_CHANGED, data, changedBy);
-    }
-
-    /**
-     * Record a change for any field value modification.
-     * Merges with recent changes from the same person within the 5-minute window.
-     * The notify flag is set based on the field's notifyOnChange config.
-     */
-    /**
-     * Whether this person is one of those a change would be put in front of.
-     *
-     * <p>Acknowledging exists so that what a member alters about themselves is seen by somebody at
-     * the station. Where the station made the change itself, it has already been seen by the person
-     * who would confirm it, and the list of things to look at filled up with entries whose only
-     * reader was the one who wrote them.
-     */
-    private boolean acknowledgesTheirOwn(int changedBy) {
-        return permissionResolver.resolve(changedBy).contains(StationPermission.MEMBER_CHANGES);
-    }
-
-    /**
-     * Whether an answer amounts to nothing having been given.
-     *
-     * <p>A question nobody has answered is stored as the absent value, and one answered with an
-     * empty box is stored as an empty string. They are different strings and the same thing: nothing
-     * was said either time. Told apart, they made a change out of somebody opening a form and saving
-     * it, and somebody else was asked to confirm it.
-     */
-    private static boolean saysNothing(String value) {
-        if (value == null) return true;
-        String trimmed = value.trim();
-        return trimmed.isEmpty() || trimmed.equals("null") || trimmed.equals("\"\"");
-    }
-
-    private void recordChange(int fieldId, int memberId, String oldValue, String newValue, int changedBy) {
-        var field = profileFieldRepository.findById(fieldId).orElse(null);
-        if (field == null) return;
-        if (field.fieldType().isCalculated()) return;
-        if (saysNothing(oldValue) && saysNothing(newValue)) return;
-
-        boolean requiresAcknowledgement = field.config().notifyOnChange() && !acknowledgesTheirOwn(changedBy);
-
-        Instant cutoff = Instant.now().minus(MERGE_WINDOW);
-        var recent = changeRepository.findRecentChange(fieldId, memberId, changedBy, cutoff);
-
-        if (recent.isPresent()) {
-            changeRepository.updateChangeNewValue(recent.get().id(), newValue);
-        } else {
-            changeRepository.create(fieldId, memberId, oldValue, newValue, changedBy, requiresAcknowledgement);
-        }
     }
 }

@@ -44,6 +44,7 @@ async function continueToApp() {
   await navigateTo(landing.path)
 }
 
+/** Creates the passkey and moves on to the trial. A cancelled system sheet changes nothing, so the offer stands. */
 async function accept() {
   error.value = ''
   phase.value = 'creating'
@@ -53,7 +54,6 @@ async function accept() {
     await passkeys.passkeyCreateFinish(begin.challengeToken, credentialJson, t('passkeys.defaultLabel'))
     phase.value = 'trial'
   } catch (e) {
-    // A cancelled OS sheet is not an error: nothing changed, and the offer stands.
     error.value = t(webauthnErrorKey(e, 'create'))
     phase.value = 'offer'
   }
@@ -79,7 +79,7 @@ async function runTrial() {
   }
 }
 
-async function answer(kind: 'LATER' | 'DECLINED') {
+async function answer(kind: passkeys.OfferAnswerName) {
   try {
     await passkeys.answerOffer(kind)
   } finally {
@@ -104,8 +104,8 @@ async function answer(kind: 'LATER' | 'DECLINED') {
         <Alert v-if="error" variant="info">{{ error }}</Alert>
         <div class="space-y-2">
           <PrimaryButton class="w-full" @click="accept">{{ t('passkeys.offer.accept') }}</PrimaryButton>
-          <SecondaryButton class="w-full" @click="answer('LATER')">{{ t('passkeys.offer.later') }}</SecondaryButton>
-          <LinkButton class="w-full" @click="answer('DECLINED')">{{ t('passkeys.offer.decline') }}</LinkButton>
+          <SecondaryButton class="w-full" @click="answer(passkeys.OfferAnswer.LATER)">{{ t('passkeys.offer.later') }}</SecondaryButton>
+          <LinkButton class="w-full" @click="answer(passkeys.OfferAnswer.DECLINED)">{{ t('passkeys.offer.decline') }}</LinkButton>
         </div>
       </template>
 

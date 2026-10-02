@@ -13,6 +13,7 @@ const props = withDefaults(defineProps<{
   disabled?: boolean
   step?: string
 }>(), {
+  placeholder: undefined,
   step: '0.01',
 })
 </script>

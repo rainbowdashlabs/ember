@@ -3,11 +3,11 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-// @vitest-environment happy-dom
+/** @vitest-environment happy-dom */
 import {describe, expect, it} from 'vitest'
 import {mount} from '@vue/test-utils'
 import ProfileFieldsLayout, {type LaidOutField} from './ProfileFieldsLayout.vue'
-import {FieldTypes} from '@/api/profileFields'
+import {FieldTypes} from '@/api/fieldTypes'
 
 /**
  * The form a member's answers are given on.
@@ -17,12 +17,11 @@ import {FieldTypes} from '@/api/profileFields'
  * into it, before it began working itself out, is not what it shows.
  */
 describe('ProfileFieldsLayout', () => {
-    const birthDate: LaidOutField = {id: 10, name: 'Geburtsdatum', fieldType: FieldTypes.BIRTH_DATE}
-    const age: LaidOutField = {
-        id: 12,
-        name: 'Alter',
-        fieldType: FieldTypes.AGE,
-        config: {sourceFieldId: 10, ageMode: 'now'},
+    const birthDate = question(10, 'Geburtsdatum', FieldTypes.BIRTH_DATE)
+    const age = question(12, 'Alter', FieldTypes.AGE, {sourceFieldId: 10, ageMode: 'now'})
+
+    function question(id: number, name: string, fieldType: string, config: LaidOutField['config'] = {}): LaidOutField {
+        return {id, name, fieldType, config, required: false, width: null}
     }
 
     function form(values: Record<number, string>) {
@@ -57,7 +56,7 @@ describe('ProfileFieldsLayout', () => {
 
     /** The member sees their own date running out before any reminder tells them. */
     it('marks an expiry date that has passed beside its label', () => {
-        const firstAid: LaidOutField = {id: 20, name: 'Erste Hilfe gültig bis', fieldType: FieldTypes.EXPIRY_DATE}
+        const firstAid = question(20, 'Erste Hilfe gültig bis', FieldTypes.EXPIRY_DATE)
         const view = mount(ProfileFieldsLayout, {
             props: {fields: [firstAid], getValue: () => '2020-01-31'},
         })

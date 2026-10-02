@@ -7,23 +7,25 @@ package dev.chojo.ember.feature.form.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Failures;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.auth.StationFree;
+import dev.chojo.ember.api.refusal.FormRefusal;
 import dev.chojo.ember.conf.file.elements.Network;
 import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.entity.FormAnswerValue;
 import dev.chojo.ember.feature.form.entity.FormPurpose;
 import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
+import dev.chojo.ember.feature.form.entity.FormQuestionType;
 import dev.chojo.ember.feature.form.entity.PageTarget;
 import dev.chojo.ember.feature.form.entity.QuestionBranch;
 import dev.chojo.ember.feature.form.service.FormAnswersRefused;
+import dev.chojo.ember.feature.form.service.FormAnswersRefused.AnswersRefusedBody;
 import dev.chojo.ember.feature.form.service.FormService;
 import dev.chojo.ember.feature.form.service.PublicFormRateLimiter;
+import dev.chojo.ember.feature.form.service.PublicFormService;
 import dev.chojo.ember.feature.form.service.SubmitterHashService;
 import dev.chojo.ember.feature.legal.service.ConsentService;
 import dev.chojo.ember.feature.page.route.SharedPageRoutes;
-import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.service.StationLogoService;
 import dev.chojo.ember.util.ClientIp;
 import io.javalin.http.Context;
@@ -31,13 +33,13 @@ import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
-import io.javalin.openapi.OpenApiName;
 import io.javalin.openapi.OpenApiParam;
 import io.javalin.openapi.OpenApiRequestBody;
 import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tools.jackson.core.JacksonException;
@@ -46,7 +48,6 @@ import java.net.InetAddress;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import static dev.chojo.ember.api.RouteSupport.pathUuid;
 
@@ -72,7 +73,7 @@ public class PublicFormRoutes implements Routes {
     private static final Logger log = LoggerFactory.getLogger(PublicFormRoutes.class);
 
     private final FormService formService;
-    private final StationRepository stationRepository;
+    private final PublicFormService publicForms;
     private final SubmitterHashService hashService;
     private final PublicFormRateLimiter rateLimiter;
     private final ConsentService consentService;
@@ -82,14 +83,14 @@ public class PublicFormRoutes implements Routes {
     @Inject
     public PublicFormRoutes(
             FormService formService,
-            StationRepository stationRepository,
+            PublicFormService publicForms,
             SubmitterHashService hashService,
             PublicFormRateLimiter rateLimiter,
             ConsentService consentService,
             Network network,
             StationLogoService logoService) {
         this.formService = formService;
-        this.stationRepository = stationRepository;
+        this.publicForms = publicForms;
         this.hashService = hashService;
         this.rateLimiter = rateLimiter;
         this.consentService = consentService;
@@ -128,10 +129,10 @@ public class PublicFormRoutes implements Routes {
             summary = "Answer a form reached by the link it was sent with",
             tags = {"Public Forms"},
             pathParams = @OpenApiParam(name = "token", type = String.class, required = true),
-            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = PublicSubmitRequest.class)),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = PublicFormSubmitRequest.class)),
             responses = {
-                @OpenApiResponse(status = "201", content = @OpenApiContent(from = PublicSubmitResponse.class)),
-                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+                @OpenApiResponse(status = "201", content = @OpenApiContent(from = PublicFormSubmitResponse.class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = AnswersRefusedBody.class)),
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
                 @OpenApiResponse(status = "409", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
                 @OpenApiResponse(status = "429", content = @OpenApiContent(from = ErrorResponseWrapper.class))
@@ -161,15 +162,12 @@ public class PublicFormRoutes implements Routes {
             })
     @StationFree("the same link, answering only the name and colours of the station asking")
     private void getSharedFormBrand(Context ctx) {
-        var form = resolveSharedForm(ctx);
-        var station = stationRepository
-                .findById(form.stationId())
-                .orElseThrow(Refusal.STATION_NOT_HERE_BEHIND_FORM_LINK::raise);
+        var station = publicForms.stationOf(resolveSharedForm(ctx));
         ctx.json(SharedPageRoutes.brandOf(station, logoService));
     }
 
     private Form resolveSharedForm(Context ctx) {
-        return formService.findByShareToken(ctx.pathParam("token")).orElseThrow(Refusal.FORM_LINK_UNKNOWN::raise);
+        return publicForms.sharedForm(ctx.pathParam("token"));
     }
 
     @OpenApi(
@@ -207,7 +205,7 @@ public class PublicFormRoutes implements Routes {
                 ? formService.findQuestions(form.id()).stream()
                         .map(q -> new PublicFormQuestion(
                                 q.id(),
-                                q.formQuestionType().name(),
+                                q.formQuestionType(),
                                 q.title(),
                                 q.description(),
                                 q.required(),
@@ -233,7 +231,7 @@ public class PublicFormRoutes implements Routes {
                 pages,
                 questions,
                 open
-                        ? new PublicCompletion(
+                        ? new PublicFormCompletion(
                                 form.completionMessage(), form.completionLink(), form.completionLinkLabel())
                         : null);
     }
@@ -245,7 +243,7 @@ public class PublicFormRoutes implements Routes {
      * <p>A form stops for either of two reasons and sometimes both: its end date passed, or somebody
      * closed it. Whichever happened first is when it actually stopped, and is the date to give.
      */
-    private Instant closedSince(Form form, PublicFormState state) {
+    private @Nullable Instant closedSince(Form form, PublicFormState state) {
         if (state != PublicFormState.CLOSED) return null;
         var byDate = form.endAt() != null && Instant.now().isAfter(form.endAt()) ? form.endAt() : null;
         var byHand = form.closedAt();
@@ -274,10 +272,10 @@ public class PublicFormRoutes implements Routes {
                 @OpenApiParam(name = "stationUid", type = String.class, required = true),
                 @OpenApiParam(name = "publicUid", type = String.class, required = true)
             },
-            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = PublicSubmitRequest.class)),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = PublicFormSubmitRequest.class)),
             responses = {
-                @OpenApiResponse(status = "201", content = @OpenApiContent(from = PublicSubmitResponse.class)),
-                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+                @OpenApiResponse(status = "201", content = @OpenApiContent(from = PublicFormSubmitResponse.class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = AnswersRefusedBody.class)),
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
                 @OpenApiResponse(status = "409", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
                 @OpenApiResponse(status = "410", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
@@ -296,7 +294,7 @@ public class PublicFormRoutes implements Routes {
      */
     private void submit(Context ctx, Form form) {
         if (!formService.isAcceptingResponses(form)) {
-            throw Refusal.FORM_NOT_TAKING_ANSWERS.raise();
+            throw FormRefusal.FORM_NOT_TAKING_ANSWERS.raise();
         }
 
         InetAddress clientIp = ClientIp.resolve(ctx, network);
@@ -304,17 +302,17 @@ public class PublicFormRoutes implements Routes {
 
         var retryAfter = rateLimiter.tryAcquire(form.id(), submitterHash);
         if (retryAfter.isPresent()) {
-            ctx.status(Refusal.FORM_ANSWERED_TOO_OFTEN.status())
+            ctx.status(FormRefusal.FORM_ANSWERED_TOO_OFTEN.status())
                     .header("Retry-After", String.valueOf(retryAfter.get()))
                     .json(ErrorResponseWrapper.of(
-                            Refusal.FORM_ANSWERED_TOO_OFTEN,
-                            Refusal.FORM_ANSWERED_TOO_OFTEN.message(),
+                            FormRefusal.FORM_ANSWERED_TOO_OFTEN,
+                            FormRefusal.FORM_ANSWERED_TOO_OFTEN.message(),
                             retryAfter.get()));
             return;
         }
 
         if (form.purpose() == FormPurpose.POLL && formService.hasAnonymousResponded(form.id(), submitterHash)) {
-            throw Refusal.FORM_ALREADY_ANSWERED.raise();
+            throw FormRefusal.FORM_ALREADY_ANSWERED.raise();
         }
 
         var req = readAnswers(ctx);
@@ -322,9 +320,9 @@ public class PublicFormRoutes implements Routes {
                 consentService.requireAcceptance(ctx, req.consentVersion(), req.privacyVersion(), req.tosVersion());
         try {
             var response = formService.submitAnonymousResponse(form.id(), submitterHash, req.answers(), consent);
-            ctx.status(HttpStatus.CREATED).json(new PublicSubmitResponse(response.id()));
+            ctx.status(HttpStatus.CREATED).json(new PublicFormSubmitResponse(response.id()));
         } catch (FormAnswersRefused refused) {
-            throw refused.as(Refusal.FORM_ANSWER_REFUSED);
+            throw refused.as(FormRefusal.FORM_ANSWER_REFUSED);
         }
     }
 
@@ -336,40 +334,22 @@ public class PublicFormRoutes implements Routes {
      * filled a form in needs to be told that their answers are the thing that did not arrive, and
      * that filling it in again is what to do about it.
      */
-    private PublicSubmitRequest readAnswers(Context ctx) {
+    private PublicFormSubmitRequest readAnswers(Context ctx) {
         try {
-            return ctx.bodyAsClass(PublicSubmitRequest.class);
+            return ctx.bodyAsClass(PublicFormSubmitRequest.class);
         } catch (JacksonException e) {
             log.warn("Unreadable answers sent to {}: {}", ctx.path(), e.getMessage());
             throw Failures.fieldPath(e.getPath())
-                    .map(Refusal.FORM_ANSWER_UNREADABLE::raise)
-                    .orElseGet(Refusal.FORM_ANSWER_UNREADABLE::raise);
+                    .map(FormRefusal.FORM_ANSWER_UNREADABLE::raise)
+                    .orElseGet(FormRefusal.FORM_ANSWER_UNREADABLE::raise);
         }
     }
 
     /**
      * The form a public address names.
-     *
-     * <p>The station part of the address is whatever the link was built from, its uid or its
-     * readable name, the same as every other public address of that station.
      */
     private Form resolvePublicForm(Context ctx) {
-        String stationAddress = ctx.pathParam("stationUid");
-        UUID formUid = pathUuid(ctx, "publicUid");
-        var station = stationRepository
-                .findByAddress(stationAddress)
-                .orElseThrow(Refusal.STATION_NOT_HERE_BEHIND_PUBLIC_FORM::raise);
-        var form = formService.findByPublicUid(formUid).orElseThrow(Refusal.PUBLIC_FORM_NOT_HERE::raise);
-        if (form.stationId() != station.id()) {
-            throw Refusal.PUBLIC_FORM_NOT_HERE.raise();
-        }
-        if (form.purpose() != FormPurpose.CONTACT && form.purpose() != FormPurpose.POLL) {
-            throw Refusal.FORM_NOT_ANSWERED_FROM_OUTSIDE.raise();
-        }
-        if (!form.visibility().openlyAddressed()) {
-            throw Refusal.FORM_NOT_OPENLY_ADDRESSED.raise();
-        }
-        return form;
+        return publicForms.resolveFormOfStation(ctx.pathParam("stationUid"), pathUuid(ctx, "publicUid"));
     }
 
     /**
@@ -378,7 +358,6 @@ public class PublicFormRoutes implements Routes {
      * <p>{@code CLOSED} covers a form somebody closed and one whose end date has passed alike: both
      * mean the same thing to whoever is holding the link.
      */
-    @OpenApiName("PublicFormState")
     public enum PublicFormState {
         OPEN,
         NOT_PUBLISHED,
@@ -386,7 +365,6 @@ public class PublicFormRoutes implements Routes {
         CLOSED
     }
 
-    @OpenApiName("PublicForm")
     public record PublicForm(
             String publicUid,
             String title,
@@ -394,14 +372,14 @@ public class PublicFormRoutes implements Routes {
             FormPurpose purpose,
             PublicFormState state,
             /** When it stopped taking answers, or null while it still does. */
-            Instant closedSince,
+            @Nullable Instant closedSince,
             /** Whether the questions of each page come in a different order for every reader. */
             boolean shuffleQuestions,
             /** The pages, in their order; empty unless the form is open, like the questions. */
             List<PublicFormPage> pages,
             List<PublicFormQuestion> questions,
             /** What the form says once it is sent, or null for the general thanks; null unless the form is open. */
-            PublicCompletion completion) {}
+            @Nullable PublicFormCompletion completion) {}
 
     /**
      * What a public form says once it is sent.
@@ -410,8 +388,10 @@ public class PublicFormRoutes implements Routes {
      * @param link      where the reader may go on to, or null
      * @param linkLabel what the link says, or null for the address itself
      */
-    @OpenApiName("PublicFormCompletion")
-    public record PublicCompletion(String message, String link, String linkLabel) {}
+    public record PublicFormCompletion(
+            @Nullable String message,
+            @Nullable String link,
+            @Nullable String linkLabel) {}
 
     /**
      * One page of a public form, which the browser walks the way the server does on submit.
@@ -421,13 +401,11 @@ public class PublicFormRoutes implements Routes {
      * @param description optional description
      * @param after       where the reader goes once the page is done
      */
-    @OpenApiName("PublicFormPage")
     public record PublicFormPage(String key, String title, String description, PageTarget after) {}
 
-    @OpenApiName("PublicFormQuestion")
     public record PublicFormQuestion(
             int id,
-            String questionType,
+            FormQuestionType questionType,
             String title,
             String description,
             boolean required,
@@ -435,12 +413,13 @@ public class PublicFormRoutes implements Routes {
             String pageKey,
             FormQuestionConfig config,
             /** Where the page leads per option picked, for the question that decides it, or null. */
-            QuestionBranch branch) {}
+            @Nullable QuestionBranch branch) {}
 
-    @OpenApiName("PublicFormSubmitRequest")
-    public record PublicSubmitRequest(
-            Map<Integer, FormAnswerValue> answers, String consentVersion, String privacyVersion, String tosVersion) {}
+    public record PublicFormSubmitRequest(
+            Map<Integer, FormAnswerValue> answers,
+            @Nullable String consentVersion,
+            @Nullable String privacyVersion,
+            @Nullable String tosVersion) {}
 
-    @OpenApiName("PublicFormSubmitResponse")
-    public record PublicSubmitResponse(int responseId) {}
+    public record PublicFormSubmitResponse(int responseId) {}
 }

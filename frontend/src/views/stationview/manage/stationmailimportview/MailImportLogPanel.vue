@@ -10,15 +10,17 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import {mailImport} from '@/api'
-import {MailImportOutcome, wasImported, type MailImportLogEntry} from '@/api/mailImport'
+import {MailImportOutcome, wasImported} from '@/api/mailImport'
+import type {LogEntryResponse} from '@/api/generated/schema'
 import {formatDateTime} from '@/util/format'
-import {describeFailure, type Failure} from '@/util/failure'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 
 /**
  * What was looked at and what became of it.
@@ -29,11 +31,9 @@ import {describeFailure, type Failure} from '@/util/failure'
  */
 const {t} = useI18n()
 
-const entries = ref<MailImportLogEntry[]>([])
+const entries = ref<LogEntryResponse[]>([])
 const total = ref(0)
 const page = ref(0)
-const loading = ref(true)
-const failure = ref<Failure | null>(null)
 
 const pageSize = 50
 const pages = computed(() => Math.max(Math.ceil(total.value / pageSize), 1))
@@ -45,21 +45,18 @@ const pages = computed(() => Math.max(Math.ceil(total.value / pageSize), 1))
  * nothing. The log exists to answer exactly that question, so a silent empty list is the one
  * outcome it must never show for a failure.
  */
-async function reload() {
-  loading.value = entries.value.length === 0
-  failure.value = null
-  try {
-    const result = await mailImport.log(page.value, pageSize)
-    entries.value = result.entries
-    total.value = result.total
-  } catch (e) {
-    failure.value = describeFailure(e, t)
-  }
-  loading.value = false
-}
+const {loading: fetching, failure, reload} = useAsyncLoader(async (isCurrent) => {
+  const result = await mailImport.log(page.value, pageSize)
+  if (!isCurrent()) return
+  entries.value = result.entries
+  total.value = result.total
+}, {autoLoad: false})
+
+/** The spinner stands in for an empty list only; a page already on screen stays while the next one comes. */
+const loading = computed(() => fetching.value && entries.value.length === 0)
 
 /** Only one outcome produced a document; the rest are refusals of one kind or another. */
-function badgeFor(entry: MailImportLogEntry) {
+function badgeFor(entry: LogEntryResponse) {
   if (wasImported(entry.outcome)) return SuccessBadge
   if (entry.outcome === MailImportOutcome.FAILED || entry.outcome === MailImportOutcome.AUTHENTICATION_FAILED) {
     return ErrorBadge
@@ -68,7 +65,7 @@ function badgeFor(entry: MailImportLogEntry) {
 }
 
 watch(page, reload)
-reload()
+void reload()
 </script>
 
 <template>
@@ -103,11 +100,11 @@ reload()
         </li>
       </ul>
 
-      <div v-if="pages > 1" class="flex items-center justify-center gap-3">
+      <ButtonRow v-if="pages > 1" align="center">
         <SecondaryButton :disabled="page === 0" @click="page -= 1">{{ t('common.previous') }}</SecondaryButton>
-        <MutedText size="sm">{{ t('mailImport.pageOf', {page: page + 1, pages}) }}</MutedText>
+        <MutedText size="sm" class="text-center">{{ t('mailImport.pageOf', {page: page + 1, pages}) }}</MutedText>
         <SecondaryButton :disabled="page + 1 >= pages" @click="page += 1">{{ t('common.next') }}</SecondaryButton>
-      </div>
+      </ButtonRow>
     </div>
   </NeutralContainer>
 </template>

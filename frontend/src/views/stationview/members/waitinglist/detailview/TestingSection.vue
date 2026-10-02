@@ -15,8 +15,9 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
-import type { WaitingListEntryWithScore } from '@/api/waitingList'
+import type { WaitingListEntryWithScore } from '@/api/generated/schema'
 import { formatDate } from '@/util/format'
+import { entryFullName } from './entryFullName'
 
 const props = defineProps<{
   entries: WaitingListEntryWithScore[]
@@ -38,10 +39,6 @@ function toggleExpand(entryId: number) {
   expandedId.value = expandedId.value === entryId ? null : entryId
 }
 
-function entryFullName(item: WaitingListEntryWithScore): string {
-  const e = item.entry
-  return e.lastname ? `${e.firstname} ${e.lastname}` : e.firstname
-}
 
 function entryPage(item: WaitingListEntryWithScore): RouteLocationRaw | null {
   return props.listId == null
@@ -54,7 +51,7 @@ function entryPage(item: WaitingListEntryWithScore): RouteLocationRaw | null {
   <NeutralContainer class="space-y-4">
     <SubHeader>{{ t('waitingList.sectionTesting') }} ({{ entries.length }})</SubHeader>
 
-    <EmptyState compact v-if="entries.length === 0">{{ t('waitingList.noTestingEntries') }}</EmptyState>
+    <EmptyState v-if="entries.length === 0" compact>{{ t('waitingList.noTestingEntries') }}</EmptyState>
 
     <div v-if="entries.length > 0" class="space-y-3">
       <NeutralContainer

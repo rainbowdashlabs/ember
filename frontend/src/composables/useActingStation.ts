@@ -3,8 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {onUnmounted, watch, type Ref} from 'vue'
-import {claimActingStation, releaseActingStation} from '@/util/actingStationState'
+import {onUnmounted, useId, watch, type Ref} from 'vue'
+import {actingStationState} from '@/util/actingStationState'
 
 /**
  * Answers every request from this screen for one particular station, for as long as it is open.
@@ -20,9 +20,10 @@ import {claimActingStation, releaseActingStation} from '@/util/actingStationStat
  * @param uid the station to act for, or {@code null} while it is not known yet
  */
 export function useActingStation(uid: Ref<string | null | undefined>) {
-    const token = Symbol('actingStation')
+    const acting = actingStationState()
+    const token = useId()
 
-    watch(uid, next => claimActingStation(token, next ?? null), {immediate: true})
+    watch(uid, next => acting.claim(token, next ?? null), {immediate: true})
 
-    onUnmounted(() => releaseActingStation(token))
+    onUnmounted(() => acting.release(token))
 }

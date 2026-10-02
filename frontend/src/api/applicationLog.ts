@@ -4,50 +4,12 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
+import type {ApplicationLogPage, LogFacet, LoggingConfig, LoggingConfigRequest} from './generated/schema'
 
 /** The severities the log knows, coarsest last so a filter reads in the order people think in. */
 export const LOG_LEVELS = ['ERROR', 'WARN', 'INFO', 'DEBUG', 'TRACE'] as const
 
 export type LogLevel = (typeof LOG_LEVELS)[number]
-
-/** One line of the application log. */
-export interface LogEntry {
-    id: number
-    loggedAt: string
-    level: string
-    logger: string
-    thread: string
-    message: string
-    throwable: string | null
-}
-
-/** A value the log can be narrowed to, and how many lines carry it under the current filter. */
-export interface LogFacet {
-    value: string
-    count: number
-}
-
-/** A page of the log, with what a reader needs to make sense of a short one. */
-export interface ApplicationLogPage {
-    entries: LogEntry[]
-    loggers: LogFacet[]
-    threads: LogFacet[]
-    /** Whether anything is being stored at all. A short log usually means this is off. */
-    databaseEnabled: boolean
-    databaseLevel: string
-    retentionDays: number
-    /** Lines dropped since start because the queue was full, so a gap reads as a gap. */
-    dropped: number
-}
-
-/** What is kept, and for how long. */
-export interface LoggingConfig {
-    databaseEnabled: boolean
-    databaseLevel: string
-    retentionDays: number
-    /** How many lines are stored, so a retention change can be judged before it is made. */
-    storedLines?: number
-}
 
 export interface LogQuery {
     levels?: string[]
@@ -61,6 +23,7 @@ export interface LogQuery {
     limit?: number
 }
 
+/** A page of the log, with what a reader needs to make sense of a short one. */
 export async function searchLog(query: LogQuery = {}): Promise<ApplicationLogPage> {
     const res = await client.get<ApplicationLogPage>('/admin/monitoring/log', {
         params: {
@@ -104,12 +67,13 @@ export async function clearLog(): Promise<void> {
     await client.delete('/admin/monitoring/log')
 }
 
+/** What is kept, for how long, and how many lines that is now. */
 export async function getLoggingConfig(): Promise<LoggingConfig> {
     const res = await client.get<LoggingConfig>('/admin/config/logging')
     return res.data
 }
 
-export async function updateLoggingConfig(config: LoggingConfig): Promise<LoggingConfig> {
+export async function updateLoggingConfig(config: LoggingConfigRequest): Promise<LoggingConfig> {
     const res = await client.put<LoggingConfig>('/admin/config/logging', {
         databaseEnabled: config.databaseEnabled,
         databaseLevel: config.databaseLevel,

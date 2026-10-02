@@ -14,8 +14,8 @@ import dev.chojo.ember.feature.inventory.entity.StepActor;
 import dev.chojo.ember.feature.inventory.service.ItemMovementService;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
-import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -78,10 +78,6 @@ class MemberCheckNotesServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * A birthday is answered from the station's own birth date field, and only where that field is
-     * one the reader may see. A station that keeps it to managers tells nobody else.
-     */
-    /**
      * Two days ago as the station reckons it, which is not the same as two days ago here.
      *
      * <p>A station keeps its own timezone and defaults to Europe/Berlin, so between 22:00 and
@@ -95,16 +91,14 @@ class MemberCheckNotesServiceTest extends RepositoryTestBase {
                 .minusDays(2);
     }
 
+    /**
+     * A birthday is answered from the station's own birth date field, and only where that field is
+     * one the reader may see. A station that keeps it to managers tells nobody else.
+     */
     @Test
     void aBirthdayFollowsTheScopeOfTheFieldItLivesIn() {
         var field = profileFieldRepo.create(
-                station.id(),
-                "Geburtstag",
-                ProfileFieldType.BIRTH_DATE,
-                ProfileFieldConfig.empty(),
-                false,
-                false,
-                null);
+                station.id(), "Geburtstag", FieldType.BIRTH_DATE, ProfileFieldConfig.empty(), false, false, null);
         profileFieldRepo.assignToRole(field.id(), ProfileFieldScope.MANAGER, 0, null, null, null);
         profileFieldRepo.setValue(
                 member.id(),
@@ -189,12 +183,10 @@ class MemberCheckNotesServiceTest extends RepositoryTestBase {
 
         assertTrue(namesSwap(exchange.id()), "the member is still wearing the old piece");
 
-        // Taken in at the station, and then posted to the body above: the two steps the member is not part of.
         var walked = walkOnce(exchange, null);
         walked = walkOnce(walked, null);
         assertFalse(namesSwap(exchange.id()), "the piece is between the station and the association");
 
-        // Received by the body, which then sends the replacement, and the station takes it in.
         walked = walkOnce(walked, null);
         walked = walkOnce(walked, replacement.id());
         walkOnce(walked, null);
@@ -284,7 +276,6 @@ class MemberCheckNotesServiceTest extends RepositoryTestBase {
         var replacement = inventoryRepo.createItem(inventory.id(), "ST-2", "Stiefel", null, null);
         var exchange = swapOf(item.id(), inventory.id(), "Zu klein");
 
-        // The station takes the old pair in, then puts the replacement aside.
         var walked = walkOnce(exchange, null);
         walked = walkOnce(walked, replacement.id());
 

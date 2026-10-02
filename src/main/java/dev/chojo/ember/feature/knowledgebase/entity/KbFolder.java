@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.knowledgebase.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 
@@ -15,10 +16,10 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 public record KbFolder(
         int id,
         int stationId,
-        Integer parentId,
+        @Nullable Integer parentId,
         String name,
         String description,
-        String iconUrl,
+        @Nullable String iconUrl,
         int position,
         int createdBy,
         Instant createdAt,

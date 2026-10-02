@@ -4,9 +4,9 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import { computed, ref, type Ref } from 'vue'
-import type { ProfileField } from '@/api/profileFields'
+import type { FieldOriginName, ProfileQuestion } from '@/api/profileFields'
 import { StationUserType } from '@/api/types'
-import { calculatedAnswer } from '@/util/profileFields'
+import { calculatedAnswer, profileKey } from '@/util/profileFields'
 import { useFieldAudiences } from '@/composables/useFieldAudiences'
 
 /**
@@ -26,20 +26,25 @@ function roleOfUserType(userType: string): string {
 /**
  * Owns the profile field catalogue and the stored values of the viewed member,
  * including which fields apply to a given user type.
+ *
+ * <p>The catalogue is the station's own, while the answers arrive for every question the member is
+ * asked, the association's included. Both owners number their questions apart, so the answers are held
+ * under origin and id together and this screen reads the station's: keyed by the id alone, an
+ * association's answer overwrote the station's of the same number.
  */
 export function useMemberProfileFields(memberUserType: Ref<string>) {
-  const fields = ref<ProfileField[]>([])
-  const values = ref<Map<number, string>>(new Map())
+  const fields = ref<ProfileQuestion[]>([])
+  const values = ref<Map<string, string>>(new Map())
   const audiences = useFieldAudiences()
 
-  function fieldsForUserType(userType: string): ProfileField[] {
+  function fieldsForUserType(userType: string): ProfileQuestion[] {
     return audiences.fieldsFor(fields.value, roleOfUserType(userType))
   }
 
   const applicableFields = computed(() => fieldsForUserType(memberUserType.value))
 
   function rawValue(fieldId: number): unknown {
-    const raw = values.value.get(fieldId) ?? ''
+    const raw = values.value.get(profileKey(fieldId, 'STATION')) ?? ''
     try { return JSON.parse(raw) } catch { return raw }
   }
 
@@ -49,9 +54,9 @@ export function useMemberProfileFields(memberUserType: Ref<string>) {
     return calculated ?? rawValue(fieldId)
   }
 
-  function setValues(entries: { fieldId: number; value?: string | null }[]) {
-    const map = new Map<number, string>()
-    for (const v of entries) { map.set(v.fieldId, v.value ?? '') }
+  function setValues(entries: { fieldId: number; value?: string | null; origin?: FieldOriginName }[]) {
+    const map = new Map<string, string>()
+    for (const v of entries) { map.set(profileKey(v.fieldId, v.origin ?? 'STATION'), v.value ?? '') }
     values.value = map
   }
 

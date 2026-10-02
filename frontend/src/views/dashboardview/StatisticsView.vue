@@ -20,11 +20,12 @@ import SummaryCards from '@/views/dashboardview/statisticsview/SummaryCards.vue'
 import ChartGrid from '@/views/dashboardview/statisticsview/ChartGrid.vue'
 import type {StatsData} from '@/views/dashboardview/statisticsview/statsData'
 import {bottomLegend, cartesianGrid, DONUT_CENTER, DONUT_RADIUS, chartTitle} from '@/util/chartLayout'
-import {darkThemeActive as isDark} from '@/util/themeState'
+import {useThemePaint} from '@/composables/useThemePaint'
 
 use([CanvasRenderer, BarChart, PieChart, LineChart, TitleComponent, TooltipComponent, LegendComponent, GridComponent])
 
 const {t} = useI18n()
+const {dark: isDark} = useThemePaint()
 const {loaded} = useSession()
 
 onMounted(() => {

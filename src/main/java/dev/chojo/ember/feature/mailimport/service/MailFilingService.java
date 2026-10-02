@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.mailimport.service;
 
+import dev.chojo.ember.feature.documents.entity.Uploader;
+import dev.chojo.ember.feature.documents.service.DocumentIntake;
 import dev.chojo.ember.feature.documents.service.DocumentService;
 import dev.chojo.ember.feature.mailimport.entity.MailImportOutcome;
 import dev.chojo.ember.feature.mailimport.entity.MailMailbox;
@@ -15,14 +17,15 @@ import dev.chojo.ember.feature.mailimport.repository.MailOriginRepository;
 import dev.chojo.ember.feature.mailimport.service.MailboxReader.Attachment;
 import dev.chojo.ember.feature.mailimport.service.MailboxReader.Envelope;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
-import dev.chojo.ember.feature.storage.service.StorageQuotaService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 
 /**
  * Turning one attachment into a document, or saying why it did not become one.
@@ -38,7 +41,7 @@ public class MailFilingService {
     private final DocumentService documentService;
     private final MailImportLogRepository logRepository;
     private final MailOriginRepository originRepository;
-    private final StorageQuotaService quotaService;
+    private final DocumentIntake intake;
     private final MemberNaming memberNaming;
 
     /**
@@ -62,12 +65,12 @@ public class MailFilingService {
             DocumentService documentService,
             MailImportLogRepository logRepository,
             MailOriginRepository originRepository,
-            StorageQuotaService quotaService,
+            DocumentIntake intake,
             MemberNaming memberNaming) {
         this.documentService = documentService;
         this.logRepository = logRepository;
         this.originRepository = originRepository;
-        this.quotaService = quotaService;
+        this.intake = intake;
         this.memberNaming = memberNaming;
     }
 
@@ -84,7 +87,8 @@ public class MailFilingService {
     public MailImportOutcome file(
             MailMailbox mailbox, MailRule rule, Envelope envelope, Attachment attachment, String messageId) {
         var recorded = new Recorded(mailbox, rule, envelope, messageId);
-        if (attachment.data() == null) {
+        byte[] data = attachment.data();
+        if (data == null) {
             return record(
                     recorded,
                     attachment,
@@ -94,44 +98,34 @@ public class MailFilingService {
                     null);
         }
 
-        long size = attachment.data().length;
-        long ceiling = quotaService.perFileLimitBytes(mailbox.stationId());
-        if (size > ceiling) {
-            return record(
-                    recorded,
-                    attachment,
-                    null,
-                    MailImportOutcome.TOO_LARGE,
-                    "%d bytes, over the station's limit of %d".formatted(size, ceiling),
-                    null);
+        String hash = MessageIdentity.hashOf(data);
+        var upload = new DocumentIntake.Upload(Objects.requireNonNullElse(attachment.fileName(), ""), null, data);
+        String sniffed;
+        switch (intake.judge(mailbox.stationId(), StorageCategory.MEMBER_DOCUMENTS, upload)) {
+            case DocumentIntake.Verdict.Refused refused -> {
+                String kept = refused.reason() == DocumentIntake.Reason.NO_ROOM ? hash : null;
+                return record(recorded, attachment, kept, outcomeOf(refused.reason()), refused.detail(), null);
+            }
+            case DocumentIntake.Verdict.Taken taken
+            when !taken.recognised() -> {
+                return record(
+                        recorded,
+                        attachment,
+                        null,
+                        MailImportOutcome.TYPE_NOT_ALLOWED,
+                        "The bytes are not a kind of file this can recognise",
+                        null);
+            }
+            case DocumentIntake.Verdict.Taken taken -> sniffed = taken.mimeType();
         }
-        if (size < rule.minSizeBytes()) {
+
+        if (data.length < rule.minSizeBytes()) {
             return record(
                     recorded,
                     attachment,
                     null,
                     MailImportOutcome.TOO_SMALL,
-                    "%d bytes, under the %d this rule counts as a document".formatted(size, rule.minSizeBytes()),
-                    null);
-        }
-
-        String sniffed = ContentSniffer.sniff(attachment.data());
-        if (sniffed == null) {
-            return record(
-                    recorded,
-                    attachment,
-                    null,
-                    MailImportOutcome.TYPE_NOT_ALLOWED,
-                    "The bytes are not a kind of file this can recognise",
-                    null);
-        }
-        if (!ContentSniffer.nameAgrees(attachment.fileName(), sniffed)) {
-            return record(
-                    recorded,
-                    attachment,
-                    null,
-                    MailImportOutcome.TYPE_NOT_ALLOWED,
-                    "Named as one kind of file and made of another (%s)".formatted(sniffed),
+                    "%d bytes, under the %d this rule counts as a document".formatted(data.length, rule.minSizeBytes()),
                     null);
         }
         if (!rule.acceptedTypes().contains(sniffed)) {
@@ -143,8 +137,6 @@ public class MailFilingService {
                     "%s, which this rule does not accept".formatted(sniffed),
                     null);
         }
-
-        String hash = MessageIdentity.hashOf(attachment.data());
         if (logRepository.hasImportedContent(mailbox.stationId(), hash)) {
             return record(
                     recorded,
@@ -155,31 +147,19 @@ public class MailFilingService {
                     null);
         }
 
-        try {
-            quotaService.checkQuota(mailbox.stationId(), StorageCategory.MEMBER_DOCUMENTS, size);
-        } catch (StorageQuotaService.StorageQuotaExceededException e) {
-            return record(
-                    recorded,
-                    attachment,
-                    hash,
-                    MailImportOutcome.QUOTA_EXCEEDED,
-                    "The station has no room left for it",
-                    null);
-        }
-
         var document = documentService.store(
                 mailbox.stationId(),
                 membersFor(rule, envelope, mailbox.stationId()),
                 titleFor(rule, envelope, attachment),
                 fileNameFor(attachment, sniffed),
                 sniffed,
-                attachment.data(),
+                data,
                 rule.hidden(),
                 rule.keepOnArchive(),
-                null,
+                Uploader.nobody(),
                 rule.tags());
-        originRepository.create(
-                document.id(), mailbox.id(), envelope.sender(), envelope.subject(), envelope.receivedAt());
+        String sender = Objects.requireNonNull(envelope.sender(), "a rule only takes mail whose sender it trusts");
+        originRepository.create(document.id(), mailbox.id(), sender, envelope.subject(), envelope.receivedAt());
         log.info(
                 "Filed a document from mail: station={} mailbox={} rule={} document={}",
                 mailbox.stationId(),
@@ -196,7 +176,7 @@ public class MailFilingService {
      */
     public void recordRefusal(
             MailMailbox mailbox,
-            MailRule rule,
+            @Nullable MailRule rule,
             Envelope envelope,
             String messageId,
             MailImportOutcome outcome,
@@ -213,6 +193,15 @@ public class MailFilingService {
                 outcome,
                 reason,
                 null);
+    }
+
+    /** What the import log calls a file the intake would not take. */
+    private static MailImportOutcome outcomeOf(DocumentIntake.Reason reason) {
+        return switch (reason) {
+            case TOO_LARGE -> MailImportOutcome.TOO_LARGE;
+            case NOT_WHAT_IT_IS_CALLED -> MailImportOutcome.TYPE_NOT_ALLOWED;
+            case NO_ROOM -> MailImportOutcome.QUOTA_EXCEEDED;
+        };
     }
 
     /**
@@ -232,12 +221,13 @@ public class MailFilingService {
     }
 
     private static String titleFor(MailRule rule, Envelope envelope, Attachment attachment) {
-        if (rule.titleSource() == MailTitleSource.SUBJECT && envelope.subject() != null) {
-            return envelope.subject();
+        String subject = envelope.subject();
+        if (rule.titleSource() == MailTitleSource.SUBJECT && subject != null) {
+            return subject;
         }
         String name = attachment.fileName();
         if (name == null || name.isBlank()) {
-            return envelope.subject() != null ? envelope.subject() : "Ohne Titel";
+            return Objects.requireNonNullElse(subject, "Ohne Titel");
         }
         int dot = name.lastIndexOf('.');
         return dot > 0 ? name.substring(0, dot) : name;
@@ -250,8 +240,9 @@ public class MailFilingService {
      * third file is called nothing is not usable, so one is made from what the bytes turned out to be.
      */
     private static String fileNameFor(Attachment attachment, String sniffed) {
-        if (attachment.fileName() != null && !attachment.fileName().isBlank()) {
-            return attachment.fileName().trim();
+        String name = attachment.fileName();
+        if (name != null && !name.isBlank()) {
+            return name.trim();
         }
         return "anhang" + extensionFor(sniffed);
     }
@@ -274,10 +265,10 @@ public class MailFilingService {
     private MailImportOutcome record(
             Recorded recorded,
             Attachment attachment,
-            String hash,
+            @Nullable String hash,
             MailImportOutcome outcome,
-            String reason,
-            Integer documentId) {
+            @Nullable String reason,
+            @Nullable Integer documentId) {
         logRepository.record(
                 recorded.mailbox().id(),
                 recorded.mailbox().stationId(),

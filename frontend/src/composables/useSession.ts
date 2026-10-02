@@ -3,20 +3,13 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {computed, readonly} from 'vue'
+import {computed} from 'vue'
 import {session} from '@/api'
 import {getItem} from '@/api/storage'
 import {usePermissions} from '@/composables/usePermissions'
+import {actingStationState} from '@/util/actingStationState'
 import {claimVisitedArea} from '@/util/landingMemoryState'
-import {
-    sessionClusterId,
-    sessionInfo,
-    sessionLoadFailed,
-    sessionLoaded,
-    sessionStationId,
-} from '@/util/sessionState'
-
-let loadSeq = 0
+import {sessionState, sessionWriter} from '@/util/sessionState'
 
 function isTransientError(error: unknown): boolean {
     const status = (error as {response?: {status?: number}})?.response?.status
@@ -27,42 +20,49 @@ function isTransientError(error: unknown): boolean {
  * Lifecycle of the signed-in session plus the account and station state derived from it.
  * Permission checks live in {@link usePermissions} and are composed in here so call sites
  * keep a single entry point.
+ *
+ * <p>Take it at the top of a setup or a composable, before anything is awaited: the session is
+ * held per request. The load counter is held with it, so that an answer to a load that a later
+ * load or a sign-out overtook is dropped.
  */
 export function useSession() {
+    const state = sessionState()
+    const writer = sessionWriter()
+    const acting = actingStationState()
+    const loadSeq = useState('useSession.loadSeq', () => 0)
+
     async function load() {
-        const seq = ++loadSeq
+        const seq = ++loadSeq.value
         const requestedStation = getItem('station_id')
         const requestedCluster = getItem('cluster_id')
         for (let attempt = 1; ; attempt++) {
             try {
                 const info = await session.getSessionInfo()
-                if (seq !== loadSeq) return
-                sessionInfo.value = info
-                sessionLoadFailed.value = false
+                if (seq !== loadSeq.value) return
+                writer.setInfo(info)
+                writer.setLoadFailed(false)
                 break
             } catch (error) {
-                if (seq !== loadSeq) return
+                if (seq !== loadSeq.value) return
                 if (!isTransientError(error) || attempt >= 3) {
-                    sessionInfo.value = null
-                    sessionLoadFailed.value = true
+                    writer.setInfo(null)
+                    writer.setLoadFailed(true)
                     break
                 }
                 await new Promise(resolve => setTimeout(resolve, 500 * attempt))
             }
         }
-        sessionStationId.value = requestedStation
-        sessionClusterId.value = requestedCluster
-        sessionLoaded.value = true
+        writer.setContext(requestedStation, requestedCluster)
+        writer.setLoaded(true)
         claimVisitedArea()
     }
 
     function clear() {
-        loadSeq++
-        sessionInfo.value = null
-        sessionLoaded.value = false
-        sessionLoadFailed.value = false
-        sessionStationId.value = null
-        sessionClusterId.value = null
+        loadSeq.value++
+        writer.setInfo(null)
+        writer.setLoaded(false)
+        writer.setLoadFailed(false)
+        writer.setContext(null, null)
     }
 
     /**
@@ -73,15 +73,16 @@ export function useSession() {
      * register name is all there is.
      */
     function fullName(): string {
-        const called = sessionInfo.value?.member?.calledName
+        const called = state.value.info?.member?.calledName
         if (called) return called
-        const account = sessionInfo.value?.account
+        const account = state.value.info?.account
         if (!account) return ''
         return [account.firstName, account.lastName].filter(Boolean).join(' ')
     }
 
     function isKbPublic(): boolean {
-        return sessionInfo.value?.publicKbMode != null && sessionInfo.value.publicKbMode !== 'OFF'
+        const mode = state.value.info?.publicKbMode
+        return mode != null && mode !== 'OFF'
     }
 
     /**
@@ -92,15 +93,17 @@ export function useSession() {
      * falls on where the station stands. Hand this to {@link stationDayOf} rather than reading a
      * day off the reader's own clock.
      */
-    const stationTimezone = computed(() => sessionInfo.value?.stationTimezone ?? null)
+    const stationTimezone = computed(() => state.value.info?.stationTimezone ?? null)
 
     return {
-        sessionInfo: readonly(sessionInfo),
+        sessionInfo: computed(() => state.value.info),
         stationTimezone,
-        loaded: readonly(sessionLoaded),
-        loadFailed: readonly(sessionLoadFailed),
-        sessionStationId: readonly(sessionStationId),
-        sessionClusterId: readonly(sessionClusterId),
+        loaded: computed(() => state.value.loaded),
+        loadFailed: computed(() => state.value.loadFailed),
+        sessionStationId: computed(() => state.value.stationId),
+        sessionClusterId: computed(() => state.value.clusterId),
+        /** The station an association's screen acts at right now, or null outside such a screen. */
+        actingStation: acting.current,
         load,
         clear,
         fullName,

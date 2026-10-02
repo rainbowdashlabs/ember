@@ -40,7 +40,7 @@ test.describe('Media library', () => {
 
         const body = page.locator('[contenteditable="true"]').first()
         await body.click()
-        await page.getByRole('button', {name: 'Image'}).click()
+        await page.getByRole('button', {name: 'Bild', exact: true}).click()
         await page.getByRole('button', {name: 'Medien'}).click()
 
         await page.getByTestId('media-file').filter({hasText: SEEDED_FILE}).first().click()
@@ -65,7 +65,7 @@ test.describe('Media library', () => {
 
         await page.getByRole('button', {name: 'Bearbeiten', exact: true}).first().click()
         await page.locator('.markdown-editor-content').click()
-        await page.getByRole('button', {name: 'Image'}).click()
+        await page.getByRole('button', {name: 'Bild', exact: true}).click()
         await page.getByRole('button', {name: 'Medien'}).click()
         await page.getByTestId('media-file').filter({hasText: SEEDED_FILE}).first().click()
         await page.getByRole('button', {name: 'Speichern'}).last().click()
@@ -79,12 +79,12 @@ test.describe('Media library', () => {
      * A picture placed on a page is read by people who never log in, and the public page is served
      * by a different route than the station's own view of it. The story reads the seeded showcase
      * page as a stranger, where a library file that only resolves for a member would show nothing.
+     * Under a full suite the page's question about the station sometimes comes back short, and it then
+     * offers another go, which the story presses as a reader would.
      */
     test('a picture on a public page is served to a stranger', async ({page}) => {
         await page.goto('/public/station/jugendfeuerwehr-musterstadt/page/komponenten-schaukasten')
 
-        // The page asks the server what the station is, and under a full suite that call sometimes
-        // comes back short; it says so and offers another go, which is what a reader would press.
         const retry = page.getByRole('button', {name: 'Erneut versuchen'})
         if (await retry.count() > 0) await retry.click()
 

@@ -18,6 +18,8 @@ const props = withDefaults(defineProps<{
   stationLogoUrl?: string | null
   collapsible?: boolean
 }>(), {
+  stationName: undefined,
+  stationLogoUrl: undefined,
   collapsible: true,
 })
 
@@ -38,6 +40,8 @@ const logoSizeClass = computed(() => collapsed.value ? 'h-8 w-8 lg:h-10 lg:w-10 
 <template>
   <div
       v-if="open"
+      role="presentation"
+      aria-hidden="true"
       class="fixed inset-0 z-30 bg-black/50 lg:hidden"
       @click="$emit('close')"
   />

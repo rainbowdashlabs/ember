@@ -39,7 +39,6 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.adminStations.importText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Station list with import tile -->
     <HelpSection :title="t('helpCenter.adminStations.createTitle')">
       <div class="grid gap-4 sm:grid-cols-2">
         <PrimaryContainer
@@ -55,7 +54,7 @@ const {t} = useI18n()
         </NeutralContainer>
 
         <NeutralContainer class="flex items-center justify-between py-6">
-          <span class="font-medium text-lg">DLRG Musterstadt</span>
+          <span class="font-medium text-lg">{{ t('helpCenter.sample.stations.dlrgMusterstadt') }}</span>
           <div class="flex items-center gap-2">
             <EditButton />
             <DeleteButton />
@@ -63,7 +62,7 @@ const {t} = useI18n()
         </NeutralContainer>
 
         <NeutralContainer class="flex items-center justify-between py-6">
-          <span class="font-medium text-lg">DLRG Beispielburg</span>
+          <span class="font-medium text-lg">{{ t('helpCenter.sample.stations.dlrgBeispielburg') }}</span>
           <div class="flex items-center gap-2">
             <EditButton />
             <DeleteButton />
@@ -71,7 +70,6 @@ const {t} = useI18n()
         </NeutralContainer>
       </div>
 
-      <!-- Import modal snapshot -->
       <NeutralContainer class="mt-4 space-y-4">
         <p class="text-sm text-(--text-muted)">{{ t('adminStations.importHint') }}</p>
         <div class="space-y-1">

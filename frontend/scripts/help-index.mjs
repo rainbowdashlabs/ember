@@ -30,7 +30,11 @@ function keysIn(source) {
     return keys
 }
 
-/** The longest dotted prefix every key shares, never shorter than the root itself. */
+/**
+ * The longest dotted prefix every key shares, never shorter than the root itself.
+ *
+ * When every key is the same key, its last segment is a leaf rather than a prefix and is dropped.
+ */
 function commonPrefix(keys) {
     const split = keys.map(key => key.split('.'))
     const shortest = Math.min(...split.map(parts => parts.length))
@@ -40,8 +44,8 @@ function commonPrefix(keys) {
         if (!split.every(parts => parts[index] === segment)) break
         shared.push(segment)
     }
-    // The last shared segment is a leaf when every key is that key, so keep at least the root
-    if (shared.length === split[0].length && shared.length > 1) shared.pop()
+    const sharedIsWholeKey = shared.length === split[0].length
+    if (sharedIsWholeKey && shared.length > 1) shared.pop()
     return shared.length > 0 ? shared.join('.') : split[0][0]
 }
 

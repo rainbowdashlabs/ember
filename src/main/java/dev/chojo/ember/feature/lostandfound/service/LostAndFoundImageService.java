@@ -5,7 +5,9 @@
  */
 package dev.chojo.ember.feature.lostandfound.service;
 
-import dev.chojo.ember.feature.media.service.ImageVariantService;
+import dev.chojo.ember.feature.media.entity.MediaContent;
+import dev.chojo.ember.feature.media.image.ImageProfile;
+import dev.chojo.ember.feature.media.service.ImageVariants;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.entity.StorageScope;
@@ -25,12 +27,15 @@ import java.util.UUID;
 @Singleton
 public class LostAndFoundImageService {
     private static final Logger log = LoggerFactory.getLogger(LostAndFoundImageService.class);
-    private final ImageVariantService variants;
+    private static final ImageProfile PROFILE = ImageProfile.CONTENT;
+    private static final StorageCategory CATEGORY = StorageCategory.IMAGE_LOST_AND_FOUND;
+
+    private final ImageVariants images;
     private final StationRepository stationRepository;
 
     @Inject
-    public LostAndFoundImageService(ImageVariantService variants, StationRepository stationRepository) {
-        this.variants = variants;
+    public LostAndFoundImageService(ImageVariants images, StationRepository stationRepository) {
+        this.images = images;
         this.stationRepository = stationRepository;
     }
 
@@ -38,35 +43,39 @@ public class LostAndFoundImageService {
      * Persists the image for a (stationId, itemId) pair at all standard size variants.
      */
     public void store(int stationId, int itemId, byte[] data, String declaredMime, int maxBytes) throws IOException {
-        variants.store(
-                scope(stationId), StorageCategory.IMAGE_LOST_AND_FOUND, key(itemId), data, declaredMime, maxBytes);
-        log.info("Stored lost-and-found image: station {}, item {} ({} bytes)", stationId, itemId, data.length);
+        images.store(PROFILE, scope(stationId), CATEGORY, key(itemId), data, maxBytes);
+        log.info(
+                "Stored lost-and-found image: station {}, item {} ({} bytes, mime={})",
+                stationId,
+                itemId,
+                data.length,
+                declaredMime);
     }
 
     /**
      * Reads the requested image size, falling back to the original when missing.
      */
-    public Optional<ImageVariantService.ImageData> read(int stationId, int itemId, int size) {
-        return variants.read(scope(stationId), StorageCategory.IMAGE_LOST_AND_FOUND, key(itemId), size);
+    public Optional<MediaContent> read(int stationId, int itemId, int size) {
+        return images.read(PROFILE, scope(stationId), CATEGORY, key(itemId), size);
     }
 
     /**
      * Whether an image exists for the given item.
      */
     public boolean exists(int stationId, int itemId) {
-        return variants.exists(scope(stationId), StorageCategory.IMAGE_LOST_AND_FOUND, key(itemId));
+        return images.exists(PROFILE, scope(stationId), CATEGORY, key(itemId));
     }
 
     /**
      * Removes every variant for the given item's image.
      */
     public void delete(int stationId, int itemId) {
-        variants.delete(scope(stationId), StorageCategory.IMAGE_LOST_AND_FOUND, key(itemId));
+        images.delete(scope(stationId), CATEGORY, key(itemId));
         log.info("Deleted lost-and-found image: station {}, item {}", stationId, itemId);
     }
 
     private StorageScope.Station scope(int stationId) {
-        UUID uid = stationRepository.resolveUid(stationId);
+        UUID uid = stationRepository.requireUid(stationId);
         return new StorageScope.Station(stationId, uid);
     }
 

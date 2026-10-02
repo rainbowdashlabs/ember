@@ -7,6 +7,9 @@ package dev.chojo.ember.feature.waitinglist.service;
 
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.Refusal;
+import dev.chojo.ember.api.refusal.RefusalDetail;
+import dev.chojo.ember.api.refusal.WaitingListRefusal;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.WaitlistInvitationAnswered;
 import dev.chojo.ember.event.events.WaitlistPublicRegistration;
@@ -16,13 +19,19 @@ import dev.chojo.ember.feature.account.service.SetupMail;
 import dev.chojo.ember.feature.legal.entity.ConsentProof;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.members.entity.StationMember;
-import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.members.service.GroupMembershipService;
+import dev.chojo.ember.feature.members.service.UserTypeChangeService;
+import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.notifications.entity.StationAudience;
+import dev.chojo.ember.feature.notifications.service.Notifier;
+import dev.chojo.ember.feature.question.FieldType;
+import dev.chojo.ember.feature.question.FieldTypes;
 import dev.chojo.ember.feature.question.QuestionCheck;
+import dev.chojo.ember.feature.question.QuestionValues;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.waitinglist.entity.GuardianInput;
@@ -34,15 +43,16 @@ import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryStatus;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryValue;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListField;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldConfig;
-import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldType;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListInvitation;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListInvite;
 import dev.chojo.ember.feature.waitinglist.repository.WaitingListRepository;
+import dev.chojo.ember.lifecycle.Schedule;
+import dev.chojo.ember.lifecycle.ScheduledTask;
+import dev.chojo.ember.lifecycle.TaskSource;
 import dev.chojo.ember.util.sql.Transactions;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.ConflictResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tools.jackson.databind.JsonNode;
@@ -56,23 +66,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Singleton
-public class WaitingListService {
+public class WaitingListService implements TaskSource {
     private static final Logger log = LoggerFactory.getLogger(WaitingListService.class);
 
     private final WaitingListRepository repository;
     private final StationRepository stationRepository;
     private final StationMemberRepository stationMemberRepository;
-    private final MemberGroupRepository memberGroupRepository;
+    private final GroupMembershipService groupMemberships;
+    private final UserTypeChangeService userTypeChanges;
     private final AccountRepository accountRepository;
     private final EmailService emailService;
-    private final NotificationService notificationService;
+    private final Notifier notifier;
     private final AccountInviteService accountInviteService;
     private final WaitlistInvitationMessage invitationMessage;
     private final DomainEventBus eventBus;
@@ -82,32 +90,26 @@ public class WaitingListService {
             WaitingListRepository repository,
             StationRepository stationRepository,
             StationMemberRepository stationMemberRepository,
-            MemberGroupRepository memberGroupRepository,
+            GroupMembershipService groupMemberships,
+            UserTypeChangeService userTypeChanges,
             AccountRepository accountRepository,
             EmailService emailService,
-            NotificationService notificationService,
+            Notifier notifier,
             AccountInviteService accountInviteService,
             WaitlistInvitationMessage invitationMessage,
             DomainEventBus eventBus) {
         this.repository = repository;
         this.stationRepository = stationRepository;
         this.stationMemberRepository = stationMemberRepository;
-        this.memberGroupRepository = memberGroupRepository;
+        this.groupMemberships = groupMemberships;
+        this.userTypeChanges = userTypeChanges;
         this.accountRepository = accountRepository;
         this.emailService = emailService;
-        this.notificationService = notificationService;
+        this.notifier = notifier;
         this.accountInviteService = accountInviteService;
         this.invitationMessage = invitationMessage;
         this.eventBus = eventBus;
-        ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
-            var t = new Thread(r, "waitlist-confirmation-checker");
-            t.setDaemon(true);
-            return t;
-        });
-        scheduler.scheduleAtFixedRate(this::checkAllExpiredConfirmations, 1, 24, TimeUnit.HOURS);
     }
-
-    // --- List CRUD (delegates) ---
 
     public List<WaitingList> findByStation(int stationId) {
         return repository.findByStation(stationId);
@@ -121,15 +123,16 @@ public class WaitingListService {
             int stationId,
             String name,
             String description,
-            String scoringFormula,
+            @Nullable String scoringFormula,
             int confirmIntervalDays,
-            Integer testingGroupId,
-            Integer joinGroupId,
+            @Nullable Integer testingGroupId,
+            @Nullable Integer joinGroupId,
             int attendanceThreshold,
             boolean isPublic,
             boolean sendsMail,
-            Integer minAgeRegister,
-            Integer minAgeJoin) {
+            @Nullable Integer minAgeRegister,
+            @Nullable Integer minAgeJoin) {
+        requireGroupsFit(stationId, testingGroupId, joinGroupId);
         var list = repository.create(
                 stationId,
                 name,
@@ -151,15 +154,16 @@ public class WaitingListService {
             int id,
             String name,
             String description,
-            String scoringFormula,
+            @Nullable String scoringFormula,
             int confirmIntervalDays,
-            Integer testingGroupId,
-            Integer joinGroupId,
+            @Nullable Integer testingGroupId,
+            @Nullable Integer joinGroupId,
             int attendanceThreshold,
             boolean isPublic,
             boolean sendsMail,
-            Integer minAgeRegister,
-            Integer minAgeJoin) {
+            @Nullable Integer minAgeRegister,
+            @Nullable Integer minAgeJoin) {
+        repository.findById(id).ifPresent(list -> requireGroupsFit(list.stationId(), testingGroupId, joinGroupId));
         var updated = repository.update(
                 id,
                 name,
@@ -191,8 +195,6 @@ public class WaitingListService {
         return updated;
     }
 
-    // --- Fields ---
-
     public void delete(int id) {
         repository.delete(id);
         log.info("Deleted waiting list {}", id);
@@ -205,12 +207,13 @@ public class WaitingListService {
     public WaitingListField createField(
             int listId,
             String name,
-            WaitingListFieldType fieldType,
+            FieldType fieldType,
             WaitingListFieldConfig config,
             int position,
             boolean required,
             boolean isPublic) {
-        requireSingleBirthDate(listId, fieldType, 0);
+        requireOffered(fieldType);
+        requireSingleBirthDate(listId, fieldType, 0, WaitingListRefusal.WAITING_LIST_SECOND_BIRTH_DATE_ON_CREATE);
         var field = repository.createField(listId, name, fieldType, config, position, required, isPublic);
         log.info("Created waiting-list field {} on list {} (type {})", field.id(), listId, fieldType);
         return field;
@@ -219,14 +222,19 @@ public class WaitingListService {
     public Optional<WaitingListField> updateField(
             int fieldId,
             String name,
-            WaitingListFieldType fieldType,
+            FieldType fieldType,
             WaitingListFieldConfig config,
             int position,
             boolean required,
             boolean isPublic) {
+        requireOffered(fieldType);
         repository
                 .findFieldById(fieldId)
-                .ifPresent(field -> requireSingleBirthDate(field.listId(), fieldType, fieldId));
+                .ifPresent(field -> requireSingleBirthDate(
+                        field.listId(),
+                        fieldType,
+                        fieldId,
+                        WaitingListRefusal.WAITING_LIST_SECOND_BIRTH_DATE_ON_CHANGE));
         var updated = repository.updateField(fieldId, name, fieldType, config, position, required, isPublic);
         if (updated.isPresent()) {
             log.info("Updated waiting-list field {}", fieldId);
@@ -237,25 +245,34 @@ public class WaitingListService {
     }
 
     /**
+     * Refuses a type a waiting list does not offer, such as a member or a place.
+     *
+     * @throws io.javalin.http.HttpResponseException {@link WaitingListRefusal#WAITING_LIST_FIELD_TYPE_NOT_OFFERED}
+     */
+    private static void requireOffered(FieldType fieldType) {
+        if (!FieldTypes.WAITING_LIST.contains(fieldType))
+            throw WaitingListRefusal.WAITING_LIST_FIELD_TYPE_NOT_OFFERED.raise();
+    }
+
+    /**
      * Rejects a second birth date field on the same list.
      *
      * <p>One is what makes the age findable without being told where it is. Two would leave the
      * list to guess, and the guess would be silent.
      *
      * @param excludedId the field being changed, so it does not clash with itself; 0 when creating
+     * @param refusal    what the caller refuses a second date of birth with
      */
-    private void requireSingleBirthDate(int listId, WaitingListFieldType fieldType, int excludedId) {
-        if (fieldType != WaitingListFieldType.BIRTH_DATE) return;
+    private void requireSingleBirthDate(int listId, FieldType fieldType, int excludedId, Refusal refusal) {
+        if (fieldType != FieldType.BIRTH_DATE) return;
         findFieldsByList(listId).stream()
-                .filter(existing -> existing.fieldType() == WaitingListFieldType.BIRTH_DATE)
+                .filter(existing -> existing.fieldType() == FieldType.BIRTH_DATE)
                 .filter(existing -> existing.id() != excludedId)
                 .findFirst()
                 .ifPresent(existing -> {
-                    throw new BadRequestResponse("This list already has a date of birth field: " + existing.name());
+                    throw refusal.raise(existing.name());
                 });
     }
-
-    // --- Invites ---
 
     public void deleteField(int fieldId) {
         repository.deleteField(fieldId);
@@ -266,7 +283,7 @@ public class WaitingListService {
         return repository.findInvitesByList(listId);
     }
 
-    public WaitingListInvite createInvite(int listId, int maxUses, Instant expiresAt) {
+    public WaitingListInvite createInvite(int listId, int maxUses, @Nullable Instant expiresAt) {
         String code = UUID.randomUUID().toString();
         var invite = repository.createInvite(listId, code, maxUses, expiresAt);
         log.info("Created waiting-list invite {} on list {} (maxUses {})", invite.id(), listId, maxUses);
@@ -277,14 +294,10 @@ public class WaitingListService {
         return repository.findInviteByCode(code);
     }
 
-    // --- Registration ---
-
     public void deleteInvite(int inviteId) {
         repository.deleteInvite(inviteId);
         log.info("Deleted waiting-list invite {}", inviteId);
     }
-
-    // --- Public self-service ---
 
     public WaitingListEntry registerViaInvite(
             String inviteCode,
@@ -292,7 +305,7 @@ public class WaitingListService {
             String lastname,
             List<GuardianInput> guardians,
             Map<Integer, JsonNode> fieldValues,
-            String notes,
+            @Nullable String notes,
             ConsentProof consent) {
         var invite = repository
                 .findInviteByCode(inviteCode)
@@ -323,11 +336,14 @@ public class WaitingListService {
             insertGuardians(entry.id(), guardians);
         }
 
-        writeAnswers(invite.listId(), entry.id(), fieldValues);
+        writeAnswers(
+                invite.listId(),
+                entry.id(),
+                fieldValues,
+                WaitingListRefusal.WAITING_LIST_ANSWER_NOT_ACCEPTED_ON_INVITE);
 
         String displayName = entry.fullName();
 
-        // Send registration email to all guardians with an email
         var listForEmail = repository.findById(invite.listId()).orElse(null);
         String stationName = listForEmail != null ? resolveStationName(listForEmail.stationId()) : "";
         int stationId = stationIdForList(invite.listId());
@@ -346,16 +362,15 @@ public class WaitingListService {
             }
         }
 
-        // Notify managers
         repository
                 .findById(invite.listId())
-                .ifPresent(list -> notificationService.notifyMembersWithRole(
-                        list.stationId(),
-                        "WAITLIST_MANAGER",
+                .ifPresent(list -> notifier.notify(
+                        StationAudience.holders(list.stationId(), StationPermission.WAITLIST_MANAGER),
                         NotificationType.WAITLIST_NEW_ENTRY,
                         NotificationData.of(
                                 new NotificationParams.WaitlistNewEntry(displayName, list.name()),
-                                new NotificationData.NotificationLink("waiting-lists", Map.of()))));
+                                new NotificationData.NotificationLink("waiting-lists", Map.of())),
+                        Delivery.EVERY_TIME));
 
         log.info(
                 "Registered waiting-list entry {} on list {} (station {}) via invite",
@@ -384,7 +399,7 @@ public class WaitingListService {
      * keeps its wider reach, because somebody with a permission is standing behind it.
      *
      * @param token the entry's access token
-     * @throws ConflictResponse when the entry has moved past being a list entry
+     * @throws dev.chojo.ember.api.refusal.RefusalResponse when the entry has moved past being a list entry
      */
     public void removeByToken(String token) {
         repository
@@ -397,15 +412,13 @@ public class WaitingListService {
                                         "Self-service removal refused for waiting-list entry {} (is {})",
                                         entry.id(),
                                         entry.status());
-                                throw new ConflictResponse("This entry can no longer be removed from the list");
+                                throw WaitingListRefusal.WAITING_LIST_ENTRY_NO_LONGER_REMOVABLE.raise();
                             }
                             withdrawEntry(entry.id());
                             log.info("Removed waiting-list entry {} via self-service token", entry.id());
                         },
                         () -> log.warn("Self-service withdrawal skipped: no waiting-list entry for token"));
     }
-
-    // --- Entry management ---
 
     public void confirmInterest(String token) {
         repository
@@ -439,30 +452,35 @@ public class WaitingListService {
      *
      * <p>What is left blank is not refused here. A list decides for itself which of its questions
      * have to be answered, and turning a family away mid-form over a question they were about to
-     * reach is not what the check is for.
+     * reach is not what the check is for. Every answer is kept in the one shape its type is kept in,
+     * and a blank one clears what the question held.
      *
-     * @throws BadRequestResponse naming the question and what is wrong with the answer
+     * @param refusal what the caller refuses an answer with
+     * @throws dev.chojo.ember.api.refusal.RefusalResponse naming the question and what is wrong with the
+     *                                             answer
      */
-    private void writeAnswers(int listId, int entryId, Map<Integer, JsonNode> fieldValues) {
+    private void writeAnswers(int listId, int entryId, Map<Integer, JsonNode> fieldValues, Refusal refusal) {
         if (fieldValues == null || fieldValues.isEmpty()) return;
-        var questions = repository.findFieldsByList(listId).stream()
-                .collect(Collectors.toMap(WaitingListField::id, WaitingListField::question));
+        var fields = repository.findFieldsByList(listId).stream()
+                .collect(Collectors.toMap(WaitingListField::id, field -> field));
         for (var answer : fieldValues.entrySet()) {
-            var question = questions.get(answer.getKey());
-            if (question == null) continue;
-            QuestionCheck.answerIfGiven(question, asText(answer.getValue())).ifPresent(problem -> {
-                throw new BadRequestResponse(problem.message());
-            });
+            var field = fields.get(answer.getKey());
+            if (field == null) continue;
+            QuestionCheck.answerIfGiven(field.question(), QuestionValues.read(answer.getValue()))
+                    .ifPresent(problem -> {
+                        throw refusal.raise(problem.question());
+                    });
         }
         for (var answer : fieldValues.entrySet()) {
-            repository.upsertEntryValue(entryId, answer.getKey(), answer.getValue());
+            var field = fields.get(answer.getKey());
+            if (field == null) continue;
+            var stored = QuestionValues.write(field.fieldType(), QuestionValues.read(answer.getValue()));
+            if (stored == null) {
+                repository.deleteEntryValue(entryId, field.id());
+            } else {
+                repository.upsertEntryValue(entryId, field.id(), stored);
+            }
         }
-    }
-
-    /** An answer as somebody typed it, which is what a stored JSON string wraps in quotes. */
-    private static String asText(JsonNode node) {
-        if (node == null || node.isNull()) return null;
-        return node.isString() ? node.asString() : node.toString();
     }
 
     public WaitingListEntry createEntry(
@@ -471,7 +489,7 @@ public class WaitingListService {
             String lastname,
             List<GuardianInput> guardians,
             Map<Integer, JsonNode> fieldValues,
-            String notes) {
+            @Nullable String notes) {
         String parentName = primaryGuardianName(guardians);
         String email = primaryGuardianEmail(guardians);
         String accessToken = UUID.randomUUID().toString();
@@ -480,7 +498,7 @@ public class WaitingListService {
         if (guardians != null) {
             insertGuardians(entry.id(), guardians);
         }
-        writeAnswers(listId, entry.id(), fieldValues);
+        writeAnswers(listId, entry.id(), fieldValues, WaitingListRefusal.WAITING_LIST_ANSWER_NOT_ACCEPTED_ON_CREATE);
         log.info("Created waiting-list entry {} on list {}", entry.id(), listId);
         return entry;
     }
@@ -490,8 +508,8 @@ public class WaitingListService {
             String firstname,
             String lastname,
             List<GuardianInput> guardians,
-            String notes,
-            Map<Integer, JsonNode> fieldValues) {
+            @Nullable String notes,
+            @Nullable Map<Integer, JsonNode> fieldValues) {
         String parentName = primaryGuardianName(guardians);
         String email = primaryGuardianEmail(guardians);
         repository.updateEntry(entryId, firstname, lastname, parentName, email, notes != null ? notes : "");
@@ -500,7 +518,13 @@ public class WaitingListService {
             insertGuardians(entryId, guardians);
         }
         if (fieldValues != null) {
-            repository.findEntryById(entryId).ifPresent(entry -> writeAnswers(entry.listId(), entryId, fieldValues));
+            repository
+                    .findEntryById(entryId)
+                    .ifPresent(entry -> writeAnswers(
+                            entry.listId(),
+                            entryId,
+                            fieldValues,
+                            WaitingListRefusal.WAITING_LIST_ANSWER_NOT_ACCEPTED_ON_CHANGE));
         }
         log.info("Updated waiting-list entry {}", entryId);
     }
@@ -519,8 +543,6 @@ public class WaitingListService {
         repository.deleteEntry(entryId);
         log.info("Deleted waiting-list entry {}", entryId);
     }
-
-    // --- State transitions ---
 
     public int countEntries(int listId) {
         return repository.countEntriesByList(listId);
@@ -545,7 +567,7 @@ public class WaitingListService {
      * @param invitation the appointment they are asked to come to, or {@code null} to invite without
      *                   naming one
      */
-    public WaitingListEntry inviteEntry(int entryId, WaitingListInvitation invitation) {
+    public WaitingListEntry inviteEntry(int entryId, @Nullable WaitingListInvitation invitation) {
         var entry =
                 repository.findEntryById(entryId).orElseThrow(() -> new IllegalArgumentException("Entry not found"));
         if (entry.status() != WaitingListEntryStatus.WAITING) {
@@ -604,12 +626,16 @@ public class WaitingListService {
      * @param date    the one date of it, {@code null} for the same
      */
     public WaitingListEntry answerInvitation(
-            String token, Integer eventId, LocalDate date, WaitingListAnswer answer, String note) {
+            String token,
+            @Nullable Integer eventId,
+            @Nullable LocalDate date,
+            WaitingListAnswer answer,
+            @Nullable String note) {
         var entry =
                 repository.findEntryByToken(token).orElseThrow(() -> new IllegalArgumentException("Entry not found"));
         if (entry.status() != WaitingListEntryStatus.INVITED) {
             log.info("Invitation answer refused for waiting-list entry {} (is {})", entry.id(), entry.status());
-            throw new ConflictResponse("This invitation can no longer be answered");
+            throw WaitingListRefusal.WAITING_LIST_INVITATION_NO_LONGER_OPEN.raise();
         }
         requireAnswersTheCurrentInvitation(entry, eventId, date);
 
@@ -630,14 +656,15 @@ public class WaitingListService {
      * <p>The token never expires and an old mail stays in a mailbox for good, so what the answer
      * says it is about has to match what the entry is actually invited to.
      */
-    private static void requireAnswersTheCurrentInvitation(WaitingListEntry entry, Integer eventId, LocalDate date) {
+    private static void requireAnswersTheCurrentInvitation(
+            WaitingListEntry entry, @Nullable Integer eventId, @Nullable LocalDate date) {
         var current = entry.invitation();
         boolean matches = current == null
                 ? eventId == null
                 : Integer.valueOf(current.eventId()).equals(eventId)
                         && current.date().equals(date);
         if (!matches) {
-            throw new ConflictResponse("This answer is about a different appointment");
+            throw WaitingListRefusal.WAITING_LIST_INVITATION_ANSWER_FOR_ANOTHER.raise();
         }
     }
 
@@ -649,8 +676,7 @@ public class WaitingListService {
      * <p>Every effect carries its own guard rather than one guard around the block. An entry invited
      * before this moved here already has a member, and skipping everything for it would leave it out
      * of a testing group the list gained after the invitation. Setting the user type and granting the
-     * permission are idempotent on their own; adding somebody to a group is not, so that one is asked
-     * about first.
+     * permission are idempotent on their own, and so is joining the testing group.
      *
      * <p>The writes run as one, so a failure halfway cannot leave a member nothing points at.
      */
@@ -663,13 +689,15 @@ public class WaitingListService {
         var list = repository.findById(entry.listId()).orElseThrow();
 
         int memberId = Transactions.call(() -> {
-            int member = entry.memberId() != null ? entry.memberId() : createTrialMember(entry, list.stationId());
-            stationMemberRepository.setUserType(member, StationUserType.TRIAL);
+            Integer existing = entry.memberId();
+            int member = existing != null ? existing : createTrialMember(entry, list.stationId());
+            userTypeChanges.change(member, StationUserType.TRIAL);
             stationMemberRepository
                     .findPermissionByName(StationPermission.USER)
                     .ifPresent(permission -> stationMemberRepository.grantPermission(member, permission.id()));
-            if (list.testingGroupId() != null && !isInGroup(member, list.testingGroupId())) {
-                memberGroupRepository.addMember(list.testingGroupId(), member);
+            Integer testingGroupId = list.testingGroupId();
+            if (testingGroupId != null) {
+                groupMemberships.joinAutomatically(testingGroupId, member);
             }
             repository.updateEntryStatusWithTimestamp(entryId, WaitingListEntryStatus.TESTING, "testing_at");
             return member;
@@ -698,14 +726,12 @@ public class WaitingListService {
         return member.id();
     }
 
-    /** Whether the member already sits in that group, which has no room for a second row. */
-    private boolean isInGroup(int memberId, int groupId) {
-        return memberGroupRepository.findGroupsForMember(memberId).stream().anyMatch(group -> group.id() == groupId);
-    }
-
     /**
-     * Move a TESTING entry to JOINED: remove testing group, assign join group, set MEMBER type,
+     * Move a TESTING entry to JOINED: remove testing group, set MEMBER type, assign join group,
      * and create guardian accounts for each guardian on the entry.
+     *
+     * <p>The type is set before the join group is added, because a group bound to members takes
+     * nobody who is still on trial.
      */
     public WaitingListEntry moveToJoined(int entryId) {
         var entry =
@@ -715,24 +741,22 @@ public class WaitingListService {
         }
         var list = repository.findById(entry.listId()).orElseThrow();
 
-        if (entry.memberId() != null) {
-            // Remove testing group
-            if (list.testingGroupId() != null) {
-                memberGroupRepository.removeMember(list.testingGroupId(), entry.memberId());
+        Integer memberId = entry.memberId();
+        if (memberId != null) {
+            Integer testingGroupId = list.testingGroupId();
+            if (testingGroupId != null) {
+                groupMemberships.leaveAutomatically(testingGroupId, memberId);
             }
-            // Remove TRIAL role
             stationMemberRepository
                     .findPermissionByName(StationPermission.USER)
-                    .ifPresent(role -> stationMemberRepository.revokePermission(entry.memberId(), role.id()));
-            // Assign join group
-            if (list.joinGroupId() != null) {
-                memberGroupRepository.addMember(list.joinGroupId(), entry.memberId());
+                    .ifPresent(role -> stationMemberRepository.revokePermission(memberId, role.id()));
+            userTypeChanges.change(memberId, StationUserType.MEMBER);
+            Integer joinGroupId = list.joinGroupId();
+            if (joinGroupId != null) {
+                groupMemberships.joinAutomatically(joinGroupId, memberId);
             }
-            // Set user type to MEMBER
-            stationMemberRepository.setUserType(entry.memberId(), StationUserType.MEMBER);
 
-            // Create guardian accounts and link them to the member
-            createGuardianAccounts(entry, list);
+            createGuardianAccounts(entry, memberId, list);
         }
 
         repository.updateEntryStatusWithTimestamp(entryId, WaitingListEntryStatus.JOINED, "joined_at");
@@ -751,16 +775,16 @@ public class WaitingListService {
             throw new IllegalStateException("Cannot withdraw an entry that is already JOINED or WITHDRAWN");
         }
 
-        // Delete the linked member and its orphaned account
-        if (entry.memberId() != null) {
-            var member = stationMemberRepository.findById(entry.memberId()).orElse(null);
+        Integer memberId = entry.memberId();
+        if (memberId != null) {
+            var member = stationMemberRepository.findById(memberId).orElse(null);
             if (member != null) {
                 stationMemberRepository.delete(member.id());
-                if (member.accountId() != null) {
-                    var otherMembers = stationMemberRepository.findAllByAccountId(member.accountId());
+                Integer accountId = member.accountId();
+                if (accountId != null) {
+                    var otherMembers = stationMemberRepository.findAllByAccountId(accountId);
                     if (otherMembers.isEmpty()) {
-                        var account =
-                                accountRepository.findById(member.accountId()).orElse(null);
+                        var account = accountRepository.findById(accountId).orElse(null);
                         if (account != null && account.email() == null) {
                             accountRepository.delete(account.id());
                         }
@@ -772,8 +796,6 @@ public class WaitingListService {
         repository.deleteEntry(entryId);
         log.info("Withdrew waiting-list entry {} (was {})", entryId, entry.status());
     }
-
-    // --- Scoring ---
 
     /**
      * Computes the waiting-list position of an entry ranked by score (highest first),
@@ -808,8 +830,6 @@ public class WaitingListService {
         return 0;
     }
 
-    // --- Confirmation checker ---
-
     /**
      * The field a list reads a date of birth from, if it has declared one.
      *
@@ -818,7 +838,7 @@ public class WaitingListService {
      */
     public Optional<WaitingListField> birthDateField(int listId) {
         return findFieldsByList(listId).stream()
-                .filter(field -> field.fieldType() == WaitingListFieldType.BIRTH_DATE)
+                .filter(field -> field.fieldType() == FieldType.BIRTH_DATE)
                 .findFirst();
     }
 
@@ -832,18 +852,11 @@ public class WaitingListService {
         return birthDateField(listId).flatMap(field -> values.stream()
                 .filter(value -> value.fieldId() == field.id())
                 .findFirst()
-                .flatMap(value -> ageFrom(readDate(value))));
-    }
-
-    /** Reads the answer as text, whether it was stored as a string or as something else. */
-    private static String readDate(WaitingListEntryValue value) {
-        var node = value.value();
-        if (node == null || node.isNull()) return null;
-        return node.isString() ? node.asString() : node.toString().replace("\"", "");
+                .flatMap(value -> ageFrom(QuestionValues.read(value.value()))));
     }
 
     private static Optional<Integer> ageFrom(String date) {
-        if (date == null || date.isBlank()) return Optional.empty();
+        if (date.isBlank()) return Optional.empty();
         try {
             return Optional.of((int) ChronoUnit.YEARS.between(LocalDate.parse(date.trim()), LocalDate.now()));
         } catch (Exception e) {
@@ -857,11 +870,7 @@ public class WaitingListService {
      * @param values the answers as submitted, keyed by field
      */
     public Optional<Integer> ageFromSubmitted(int listId, Map<Integer, JsonNode> values) {
-        return birthDateField(listId).flatMap(field -> {
-            var node = values.get(field.id());
-            if (node == null || node.isNull()) return Optional.empty();
-            return ageFrom(node.isString() ? node.asString() : node.toString().replace("\"", ""));
-        });
+        return birthDateField(listId).flatMap(field -> ageFrom(QuestionValues.read(values.get(field.id()))));
     }
 
     /**
@@ -871,11 +880,12 @@ public class WaitingListService {
      * filled in is a form to fix, not a person to turn away.
      */
     public void requireOldEnoughToRegister(WaitingList list, Map<Integer, JsonNode> values) {
-        if (list.minAgeRegister() == null) return;
+        Integer minAge = list.minAgeRegister();
+        if (minAge == null) return;
         ageFromSubmitted(list.id(), values).ifPresent(age -> {
-            if (age < list.minAgeRegister()) {
-                throw new BadRequestResponse(
-                        "This list takes registrations from age %d.".formatted(list.minAgeRegister()));
+            if (age < minAge) {
+                throw WaitingListRefusal.WAITING_LIST_REGISTRANT_TOO_YOUNG.raise(
+                        RefusalDetail.count(minAge, RefusalDetail.CountUnit.YEARS));
             }
         });
     }
@@ -887,36 +897,44 @@ public class WaitingListService {
      * and does not get one is a gap in the answers, not a reason to treat somebody as too young.
      */
     public boolean belowJoinAge(WaitingList list, Optional<Integer> age) {
-        if (list.minAgeJoin() == null) return false;
-        return age.map(years -> years < list.minAgeJoin()).orElse(false);
+        Integer minAge = list.minAgeJoin();
+        if (minAge == null) return false;
+        return age.map(years -> years < minAge).orElse(false);
     }
 
     public double evaluateScore(
-            WaitingListEntry entry, List<WaitingListEntryValue> values, List<WaitingListField> fields, String formula) {
+            WaitingListEntry entry,
+            List<WaitingListEntryValue> values,
+            List<WaitingListField> fields,
+            @Nullable String formula) {
         if (formula == null || formula.isBlank()) return 0.0;
         Map<String, String> variables = new HashMap<>();
         for (var field : fields) {
             String value = values.stream()
                     .filter(v -> v.fieldId() == field.id())
-                    .map(WaitingListEntryValue::value)
+                    .map(entryValue -> QuestionValues.read(entryValue.value()))
+                    .filter(text -> !text.isEmpty())
                     .findFirst()
-                    .map(node ->
-                            node == null || node.isNull() ? "0" : (node.isString() ? node.asString() : node.toString()))
                     .orElse("0");
             variables.put(field.name(), value);
         }
 
-        // Built-in generated fields: waiting time
+        putWaitingTime(variables, entry);
+        return ScoreEvaluator.evaluate(substituteAgeCalls(formula, variables), variables);
+    }
+
+    private static void putWaitingTime(Map<String, String> variables, WaitingListEntry entry) {
         long waitingDays = Duration.between(entry.createdAt(), Instant.now()).toDays();
         variables.put("wartezeit_tage", String.valueOf(waitingDays));
         variables.put("wartezeit_monate", String.valueOf(waitingDays / 30));
         variables.put("wartezeit_quartale", String.valueOf(waitingDays / 91));
         variables.put("wartezeit_jahre", String.valueOf(waitingDays / 365));
+    }
 
-        // Preprocess age([fieldname]) function calls - replace with computed age value
-        String processedFormula = formula;
+    /** Replaces every {@code age([field])} call with the age in years the field's date gives today. */
+    private static String substituteAgeCalls(String formula, Map<String, String> variables) {
         var agePattern = Pattern.compile("age\\(\\[([^]]+)]\\)");
-        var matcher = agePattern.matcher(processedFormula);
+        var matcher = agePattern.matcher(formula);
         var sb = new StringBuilder();
         while (matcher.find()) {
             String fieldName = matcher.group(1);
@@ -933,9 +951,7 @@ public class WaitingListService {
             matcher.appendReplacement(sb, String.valueOf(age));
         }
         matcher.appendTail(sb);
-        processedFormula = sb.toString();
-
-        return ScoreEvaluator.evaluate(processedFormula, variables);
+        return sb.toString();
     }
 
     /**
@@ -949,7 +965,6 @@ public class WaitingListService {
         if (!list.sendsMail()) return;
         String stationName = resolveStationName(list.stationId());
 
-        // Send initial reminders for expired entries
         var expired = repository.findExpiredConfirmations(list.id(), list.confirmIntervalDays());
         for (var entry : expired) {
             emailService.sendWaitlistConfirmReminderEmail(
@@ -962,7 +977,6 @@ public class WaitingListService {
             repository.updateReminderSentAt(entry.id(), Instant.now());
         }
 
-        // Send pre-removal warning (2 weeks before the 30-day grace period ends)
         var preRemoval = repository.findPreRemovalWarningDue(list.id());
         for (var entry : preRemoval) {
             emailService.sendWaitlistRemovalWarningEmail(
@@ -974,7 +988,6 @@ public class WaitingListService {
                     list.stationId());
         }
 
-        // Auto-remove entries past grace period
         var gracePeriodExpired = repository.findGracePeriodExpired(list.id());
         for (var entry : gracePeriodExpired) {
             repository.updateEntryStatus(entry.id(), WaitingListEntryStatus.WITHDRAWN);
@@ -986,8 +999,6 @@ public class WaitingListService {
                     list.id());
         }
     }
-
-    // --- Guardians ---
 
     public List<WaitingListEntryGuardian> findGuardiansByEntry(int entryId) {
         return repository.findGuardiansByEntry(entryId);
@@ -1024,7 +1035,7 @@ public class WaitingListService {
             String email,
             List<GuardianInput> guardians,
             Map<Integer, JsonNode> fieldValues,
-            String notes,
+            @Nullable String notes,
             ConsentProof consent) {
         var list = repository.findById(listId).orElseThrow(() -> new IllegalArgumentException("List not found"));
         if (!list.isPublic()) {
@@ -1102,8 +1113,8 @@ public class WaitingListService {
             String email,
             List<GuardianInput> guardians,
             Map<Integer, JsonNode> fieldValues,
-            String notes,
-            ConsentProof consent) {
+            @Nullable String notes,
+            @Nullable ConsentProof consent) {
         var entry = repository.createEntryWithStatus(
                 list.id(),
                 firstname,
@@ -1128,8 +1139,6 @@ public class WaitingListService {
         return entry;
     }
 
-    // --- Public waitlist ---
-
     public WaitingListEntry approvePendingEntry(int entryId) {
         var entry =
                 repository.findEntryById(entryId).orElseThrow(() -> new IllegalArgumentException("Entry not found"));
@@ -1139,7 +1148,6 @@ public class WaitingListService {
         repository.updateEntryStatus(entryId, WaitingListEntryStatus.WAITING);
         log.info("Approved pending waiting-list entry {}", entryId);
 
-        // Send registration confirmation email to guardians
         var list = repository.findById(entry.listId()).orElse(null);
         if (list == null || list.sendsMail()) {
             String stationName = list != null ? resolveStationName(list.stationId()) : "";
@@ -1224,7 +1232,7 @@ public class WaitingListService {
      * stands either way, and the link that claims it is minted by hand from the member list, at a
      * moment somebody is there to pass it on.
      */
-    private void createGuardianAccounts(WaitingListEntry entry, WaitingList list) {
+    private void createGuardianAccounts(WaitingListEntry entry, int memberId, WaitingList list) {
         int stationId = list.stationId();
         var setupMail = list.sendsMail() ? SetupMail.SEND_NOW : SetupMail.LATER;
         var guardians = repository.findGuardiansByEntry(entry.id());
@@ -1243,12 +1251,12 @@ public class WaitingListService {
                             .flatMap(account ->
                                     stationMemberRepository.findByStationAndAccount(stationId, account.id()));
             if (known.isPresent()) {
-                stationMemberRepository.addManager(known.get().id(), entry.memberId());
+                stationMemberRepository.addManager(known.get().id(), memberId);
                 log.info(
                         "Guardian {} already at station {}, linked to member {}",
                         known.get().id(),
                         stationId,
-                        entry.memberId());
+                        memberId);
                 continue;
             }
 
@@ -1260,7 +1268,7 @@ public class WaitingListService {
                         : accountInviteService.resolveOrCreate(
                                 stationId, address, guardian.firstname(), guardian.lastname(), setupMail);
             } catch (AccountInviteService.EmailInUseException e) {
-                log.warn("Guardian of member {} was not taken on: {} is somebody else's", entry.memberId(), address);
+                log.warn("Guardian of member {} was not taken on: {} is somebody else's", memberId, address);
                 continue;
             }
 
@@ -1270,13 +1278,29 @@ public class WaitingListService {
             loginRole.ifPresent(role -> stationMemberRepository.grantPermission(member.id(), role.id()));
             guardianRole.ifPresent(role -> stationMemberRepository.grantPermission(member.id(), role.id()));
 
-            stationMemberRepository.addManager(member.id(), entry.memberId());
-            log.info(
-                    "Guardian {} joined station {} and answers for member {}",
-                    member.id(),
-                    stationId,
-                    entry.memberId());
+            stationMemberRepository.addManager(member.id(), memberId);
+            log.info("Guardian {} joined station {} and answers for member {}", member.id(), stationId, memberId);
         }
+    }
+
+    /**
+     * Refuses a list whose groups are not the station's, or do not take the people the list puts in
+     * them: somebody on trial joins the testing group, a member the join group. Refused where the list
+     * is saved, so the manager hears of it rather than a family on the list later.
+     */
+    private void requireGroupsFit(int stationId, @Nullable Integer testingGroupId, @Nullable Integer joinGroupId) {
+        groupMemberships.requireAdmits(
+                stationId,
+                testingGroupId,
+                StationUserType.TRIAL,
+                WaitingListRefusal.WAITING_LIST_TESTING_GROUP_NOT_HERE,
+                WaitingListRefusal.WAITING_LIST_TESTING_GROUP_WRONG_USER_TYPE);
+        groupMemberships.requireAdmits(
+                stationId,
+                joinGroupId,
+                StationUserType.MEMBER,
+                WaitingListRefusal.WAITING_LIST_JOIN_GROUP_NOT_HERE,
+                WaitingListRefusal.WAITING_LIST_JOIN_GROUP_WRONG_USER_TYPE);
     }
 
     private Integer stationIdForList(int listId) {
@@ -1285,5 +1309,13 @@ public class WaitingListService {
 
     private String resolveStationName(int stationId) {
         return stationRepository.findById(stationId).map(Station::name).orElse("");
+    }
+
+    @Override
+    public List<ScheduledTask> scheduledTasks() {
+        return List.of(new ScheduledTask(
+                "waiting-list-confirmation-check",
+                Schedule.fixedRate(Duration.ofHours(1), Duration.ofHours(24)),
+                this::checkAllExpiredConfirmations));
     }
 }

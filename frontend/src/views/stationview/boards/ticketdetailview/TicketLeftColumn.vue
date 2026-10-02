@@ -13,20 +13,20 @@ import TicketTitleEditor from './TicketTitleEditor.vue'
 import TicketDescriptionEditor from './TicketDescriptionEditor.vue'
 import TicketAddMenu from './TicketAddMenu.vue'
 import TicketKbLinksSection from './TicketKbLinksSection.vue'
+import type { AnyBoard } from '@/api/boards'
+import type { CommentSource } from '@/api/comments'
 import type {
-    Board, BoardLane, BoardTicket, BoardChecklistItem, BoardTicketLink,
-    BoardTicketTransition, BoardTicketHistoryEntry, BoardComment,
-    BoardWeblink, BoardTicketAttachment, BoardTicketKbLink, BoardLabel,
-} from '@/api/boards'
-import type { MemberCompletion } from '@/api/stationMembers'
+    BoardChecklistItem, BoardLabel, BoardLane, BoardTicket, BoardTicketAttachment, BoardTicketHistoryResponse,
+    BoardTicketKbLink, BoardTicketLink, BoardTicketTransitionResponse, BoardWeblink, MemberCompletion, TicketSummary,
+} from '@/api/generated/schema'
 import type {PriorityOption, KbSearchResult} from './types'
 
 
 
 defineProps<{
-    board: Board
+    board: AnyBoard
     ticket: BoardTicket
-    allTickets: BoardTicket[]
+    allTickets: TicketSummary[]
     lanes: BoardLane[]
     members: MemberCompletion[]
     allLabels: BoardLabel[]
@@ -36,13 +36,12 @@ defineProps<{
     links: BoardTicketLink[]
     weblinks: BoardWeblink[]
     attachments: BoardTicketAttachment[]
-    transitions: BoardTicketTransition[]
-    history: BoardTicketHistoryEntry[]
-    comments: BoardComment[]
+    transitions: BoardTicketTransitionResponse[]
+    history: BoardTicketHistoryResponse[]
+    commentSource: CommentSource
     kbLinks: BoardTicketKbLink[]
     kbSearchResults: KbSearchResult[]
     canEdit: boolean
-    federated: boolean
     partnerUid?: string
 }>()
 
@@ -63,9 +62,6 @@ const emit = defineEmits<{
     removeChecklistItem: [id: number]
     removeAllChecklistItems: []
     reorderChecklist: [from: number, to: number]
-    createComment: [parentId: number | null, content: string]
-    updateComment: [commentId: number, content: string]
-    deleteComment: [commentId: number]
     uploadFiles: [files: File[]]
     kbSearch: []
     addKbLink: [id: number]
@@ -150,17 +146,12 @@ function onFilesSelect(files: File[]) {
             @remove="emit('removeKbLink', $event)"
         />
         <TicketActivity
-            :comments="comments"
+            :comment-source="commentSource"
             :transitions="transitions"
             :history="history"
             :lanes="lanes"
             :labels="allLabels"
-            :members="members"
             :readonly="!canEdit"
-            :federated="federated"
-            @create-comment="(parentId, content) => emit('createComment', parentId, content)"
-            @update-comment="(id, content) => emit('updateComment', id, content)"
-            @delete-comment="emit('deleteComment', $event)"
         />
     </div>
 </template>

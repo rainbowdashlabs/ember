@@ -7,32 +7,24 @@ package dev.chojo.ember.feature.members.service;
 
 import dev.chojo.ember.feature.members.entity.UserSettings;
 import dev.chojo.ember.feature.members.repository.UserSettingsRepository;
-import dev.chojo.ember.feature.notifications.entity.NotificationSetting;
-import dev.chojo.ember.feature.notifications.entity.NotificationType;
-import dev.chojo.ember.feature.notifications.repository.NotificationSettingsRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Map;
-
 /**
- * Service for managing per-member user settings including notification preferences
- * and email notification toggles.
+ * Service for managing per-member user settings: the mail switch and the look of the app. The
+ * choices per notification type belong to the notifications and are kept there.
  */
 @Singleton
 public class UserSettingsService {
     private static final Logger log = LoggerFactory.getLogger(UserSettingsService.class);
 
     private final UserSettingsRepository settingsRepository;
-    private final NotificationSettingsRepository notificationSettingsRepository;
 
     @Inject
-    public UserSettingsService(
-            UserSettingsRepository settingsRepository, NotificationSettingsRepository notificationSettingsRepository) {
+    public UserSettingsService(UserSettingsRepository settingsRepository) {
         this.settingsRepository = settingsRepository;
-        this.notificationSettingsRepository = notificationSettingsRepository;
     }
 
     public UserSettings getSettings(int memberId) {
@@ -51,14 +43,5 @@ public class UserSettingsService {
     public UserSettings updateTheme(int memberId, String theme, String darkMode, String feel) {
         log.info("User theme updated: member={}, theme={}, darkMode={}, feel={}", memberId, theme, darkMode, feel);
         return settingsRepository.updateTheme(memberId, theme, darkMode, feel);
-    }
-
-    public Map<NotificationType, NotificationSetting> getNotificationSettings(int memberId) {
-        return notificationSettingsRepository.findByMemberAsMap(memberId);
-    }
-
-    public void updateNotificationSettings(int memberId, Map<NotificationType, NotificationSetting> settings) {
-        notificationSettingsRepository.upsertAll(memberId, settings);
-        log.info("Notification settings updated: member={}, count={}", memberId, settings.size());
     }
 }

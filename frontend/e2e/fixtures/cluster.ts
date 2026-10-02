@@ -5,6 +5,7 @@
  */
 import type {APIRequestContext, Browser, Page} from '@playwright/test'
 import {apiHeaders} from './auth'
+import {browserContextWith, demoSignIn, sessionHeaders} from './session'
 
 /**
  * A cluster of the story's own, with a station under it and somebody who runs that station.
@@ -93,6 +94,10 @@ export async function ownCluster(
  * and a story that wants to look at it as a station has to do both. Only an instance administrator can,
  * which is also what makes it honest: every step is a call somebody makes in the product.
  *
+ * The manager is a brand new person, named by an address nobody has, since being made a manager
+ * rewrites what an account may do and every seeded account is somebody another story acts as. The
+ * assistant is walked the way it walks itself: its one required step, and then finishing.
+ *
  * @param page    an instance administrator's page
  * @param browser to open the manager's own context with
  * @param request for the demo login the manager needs
@@ -110,21 +115,13 @@ export async function stationUnder(
     if (!made.ok()) throw new Error(`Creating a station answered ${made.status()}`)
     const station = await made.json()
 
-    // A brand new person rather than a spare seeded one: being made a station's manager rewrites what an
-    // account may do, and every seeded account is one some other story is acting as. Naming an address
-    // nobody has creates it, which is the same path an invitation takes.
     const managerEmail = `wache-${name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}@e2e.ember`
     const assigned = await page.request.put(`/api/v1/stations/${station.uid}`,
         {headers: await apiHeaders(page), data: {name, managerEmail}})
     if (!assigned.ok()) throw new Error(`Assigning a manager answered ${assigned.status()}`)
 
-    // A station the cluster has just made has not been set up, and its manager is sent into the assistant
-    // before anything else. The story is not about the assistant, so it is walked the way the assistant
-    // walks it: the one required step it has, and then finishing.
-    const login = await request.post('/api/v1/demo/login', {data: {email: managerEmail}})
-    if (!login.ok()) throw new Error(`Demo login for ${managerEmail} answered ${login.status()}`)
-    const token = (await login.json()).token
-    const asManager = {Authorization: `Bearer ${token}`, 'X-Station-Id': station.uid}
+    const session = await demoSignIn(request, managerEmail)
+    const asManager = sessionHeaders(session, station.uid)
 
     const located = await request.put('/api/v1/station/location', {
         headers: asManager,
@@ -137,13 +134,7 @@ export async function stationUnder(
     const setupDone = await request.post('/api/v1/station/setup/complete', {headers: asManager})
     if (!setupDone.ok()) throw new Error(`Finishing the setup answered ${setupDone.status()}`)
 
-    const context = await browser.newContext()
-    await context.addInitScript(([sessionToken, stationId]) => {
-        window.localStorage.setItem('session_token', sessionToken)
-        window.localStorage.setItem('station_id', stationId)
-        window.localStorage.setItem('storage_consent', 'accepted')
-        window.localStorage.setItem('onboarding_tour_completed', 'true')
-    }, [token, station.uid])
+    const context = await browserContextWith(browser, session, station.uid, true)
 
     return {uid: station.uid, name, page: await context.newPage()}
 }

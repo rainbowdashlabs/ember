@@ -3,28 +3,17 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {computed, readonly, ref} from 'vue'
+import {computed, readonly} from 'vue'
 import {onboarding} from '@/api'
 import {
     OnboardingLevel,
     OnboardingTaskState,
     type OnboardingLevelName,
-    type OnboardingStatus,
     type OnboardingTaskStateName,
-    type OnboardingTaskView,
 } from '@/api/onboarding'
+import type {OnboardingStatus, OnboardingTaskView} from '@/api/generated/schema'
 import {flowFor} from '@/util/onboardingFlows'
-import {
-    activeLevel,
-    activeStep,
-    activeTaskId,
-    activeTaskKey,
-    clearActiveTask,
-    guideDismissed,
-    onboardingStatus,
-} from '@/util/onboardingState'
-
-const loading = ref(false)
+import {clearActiveTask, onboardingState} from '@/util/onboardingState'
 
 /**
  * The tasks Ember still asks of the reader, and the one being walked through right now.
@@ -33,6 +22,9 @@ const loading = ref(false)
  * itself, so a task comes back when the thing behind it is undone, and reloading is what shows it.
  */
 export function useOnboardingTasks() {
+    const loading = useState('useOnboardingTasks.loading', () => false)
+    const state = onboardingState()
+    const {activeLevel, activeStep, activeTaskId, activeTaskKey, guideDismissed, onboardingStatus} = state
 
     const memberTasks = computed(() => onboardingStatus.value.MEMBER?.tasks ?? [])
     const stationTasks = computed(() => onboardingStatus.value.STATION?.tasks ?? [])
@@ -111,7 +103,12 @@ export function useOnboardingTasks() {
     }
 
     function stop() {
-        clearActiveTask()
+        clearActiveTask(state)
+    }
+
+    /** Brings back the guide the reader waved away, on the task it was walking. */
+    function reopenGuide() {
+        guideDismissed.value = false
     }
 
     return {
@@ -121,7 +118,11 @@ export function useOnboardingTasks() {
         stationTasks,
         instanceTasks,
         activeTaskId: readonly(activeTaskId),
+        activeTaskKey: readonly(activeTaskKey),
         activeLevel: readonly(activeLevel),
+        activeStep: readonly(activeStep),
+        guideDismissed: readonly(guideDismissed),
+        reopenGuide,
         openOf,
         load,
         confirm,

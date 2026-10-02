@@ -5,16 +5,18 @@
  */
 package dev.chojo.ember.feature.cluster.service;
 
+import dev.chojo.ember.api.refusal.ClusterRefusal;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.entity.ClusterStationGroup;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.cluster.repository.ClusterStationGroupRepository;
+import dev.chojo.ember.feature.members.util.GroupNames;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.NotFoundResponse;
+import dev.chojo.ember.util.sql.Transactions;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,10 +60,14 @@ public class ClusterStationGroupService {
      * @param name      what it is called
      * @return the group
      */
-    public ClusterStationGroup create(int clusterId, String name) {
+    public ClusterStationGroup create(int clusterId, @Nullable String name) {
         requireCluster(clusterId);
-        String trimmed = requireName(name);
-        requireNameFree(clusterId, trimmed, null);
+        String trimmed = GroupNames.require(
+                name,
+                null,
+                namesOfOtherGroups(clusterId, null),
+                ClusterRefusal.CLUSTER_STATION_GROUP_NEEDS_A_NAME,
+                ClusterRefusal.CLUSTER_STATION_GROUP_NAME_TAKEN);
         ClusterStationGroup group = groupRepository.create(clusterId, trimmed);
         log.info("Cluster {} filed a station group '{}'", clusterId, trimmed);
         return group;
@@ -72,10 +78,14 @@ public class ClusterStationGroupService {
      * @param groupId   the group
      * @param name      what it is called now
      */
-    public void rename(int clusterId, int groupId, String name) {
-        requireOwnGroup(clusterId, groupId);
-        String trimmed = requireName(name);
-        requireNameFree(clusterId, trimmed, groupId);
+    public void rename(int clusterId, int groupId, @Nullable String name) {
+        ClusterStationGroup group = requireOwnGroup(clusterId, groupId);
+        String trimmed = GroupNames.require(
+                name,
+                group.name(),
+                namesOfOtherGroups(clusterId, groupId),
+                ClusterRefusal.CLUSTER_STATION_GROUP_NEEDS_A_NAME,
+                ClusterRefusal.CLUSTER_STATION_GROUP_NAME_TAKEN);
         groupRepository.rename(groupId, trimmed);
         log.info("Cluster {} renamed station group {} to '{}'", clusterId, groupId, trimmed);
     }
@@ -98,23 +108,19 @@ public class ClusterStationGroupService {
         requireOwnGroup(clusterId, groupId);
         int questions = groupRepository.countFieldsUsing(groupId);
         if (questions > 0) {
-            throw new BadRequestResponse(
-                    "%d question(s) are asked of this group. Point them somewhere else first.".formatted(questions));
+            throw ClusterRefusal.CLUSTER_STATION_GROUP_STILL_ASKED_QUESTIONS.raise();
         }
         int denials = clusterRepository.countDenialsUsingGroup(groupId);
         if (denials > 0) {
-            throw new BadRequestResponse(
-                    "%d module(s) are switched off for this group. Switch them back on first.".formatted(denials));
+            throw ClusterRefusal.CLUSTER_STATION_GROUP_STILL_HAS_MODULES_OFF.raise();
         }
         int tags = groupRepository.countTagsUsing(groupId);
         if (tags > 0) {
-            throw new BadRequestResponse(
-                    "%d tag(s) are recommended to this group. Point them somewhere else first.".formatted(tags));
+            throw ClusterRefusal.CLUSTER_STATION_GROUP_STILL_RECOMMENDED_TAGS.raise();
         }
         int requirements = groupRepository.countRequirementsUsing(groupId);
         if (requirements > 0) {
-            throw new BadRequestResponse("%d stock requirement(s) count at this group. Point them somewhere else first."
-                    .formatted(requirements));
+            throw ClusterRefusal.CLUSTER_STATION_GROUP_STILL_COUNTS_REQUIREMENTS.raise();
         }
         groupRepository.delete(groupId);
         log.info("Cluster {} removed station group {}", clusterId, groupId);
@@ -153,18 +159,19 @@ public class ClusterStationGroupService {
 
         List<Integer> stationIds = new ArrayList<>();
         for (UUID uid : stationUids) {
-            Station station =
-                    stationRepository.findByUid(uid).orElseThrow(() -> new BadRequestResponse("No such station"));
-            if (station.clusterId() == null || station.clusterId() != clusterId) {
-                throw new BadRequestResponse("That station does not belong to this association");
-            }
+            Station station = stationRepository
+                    .findByUid(uid)
+                    .orElseThrow(ClusterRefusal.CLUSTER_STATION_GROUP_STATION_GONE::raise);
             if (station.id() == cluster.homeStationId()) {
-                throw new BadRequestResponse("The association's own store is not one of its stations");
+                throw ClusterRefusal.CLUSTER_STATION_GROUP_TAKES_NO_HOME_STATION.raise();
+            }
+            if (station.clusterId() == null || station.clusterId() != clusterId) {
+                throw ClusterRefusal.CLUSTER_STATION_GROUP_STATION_NOT_IN_CLUSTER.raise();
             }
             stationIds.add(station.id());
         }
 
-        groupRepository.setStations(groupId, stationIds);
+        Transactions.run(() -> groupRepository.setStations(groupId, stationIds));
         log.info("Cluster {} filed {} station(s) under group {}", clusterId, stationIds.size(), groupId);
     }
 
@@ -178,26 +185,22 @@ public class ClusterStationGroupService {
     }
 
     private Cluster requireCluster(int clusterId) {
-        return clusterRepository.findById(clusterId).orElseThrow(() -> new NotFoundResponse("No such cluster"));
+        return clusterRepository
+                .findById(clusterId)
+                .orElseThrow(ClusterRefusal.CLUSTER_STATION_GROUP_CLUSTER_GONE::raise);
     }
 
-    private void requireOwnGroup(int clusterId, int groupId) {
-        boolean own = groupRepository
+    private ClusterStationGroup requireOwnGroup(int clusterId, int groupId) {
+        return groupRepository
                 .findById(groupId)
                 .filter(group -> group.clusterId() == clusterId)
-                .isPresent();
-        if (!own) throw new NotFoundResponse("No such station group");
+                .orElseThrow(ClusterRefusal.CLUSTER_STATION_GROUP_NOT_HERE::raise);
     }
 
-    private static String requireName(String name) {
-        if (name == null || name.isBlank()) throw new BadRequestResponse("A group needs a name");
-        return name.trim();
-    }
-
-    private void requireNameFree(int clusterId, String name, Integer exceptGroupId) {
-        boolean taken = groupRepository.findByCluster(clusterId).stream()
+    private List<String> namesOfOtherGroups(int clusterId, @Nullable Integer exceptGroupId) {
+        return groupRepository.findByCluster(clusterId).stream()
                 .filter(group -> exceptGroupId == null || group.id() != exceptGroupId)
-                .anyMatch(group -> group.name().equalsIgnoreCase(name));
-        if (taken) throw new BadRequestResponse("This association already files a group under that name");
+                .map(ClusterStationGroup::name)
+                .toList();
     }
 }

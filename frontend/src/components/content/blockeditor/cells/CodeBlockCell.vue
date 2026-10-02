@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import type {CodeBlockConfig} from '@/api/pageManage'
+import type {CodeBlockConfig} from '@/api/generated/schema'
 
 defineProps<{
     config: CodeBlockConfig

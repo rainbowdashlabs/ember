@@ -5,12 +5,15 @@
  */
 package dev.chojo.ember.util;
 
+import org.jspecify.annotations.Nullable;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.Map;
+import java.util.Objects;
 
 public final class TypstCompiler {
     private static final String TYPST_BIN = System.getenv().getOrDefault("TYPST_BIN", "typst");
@@ -30,7 +33,7 @@ public final class TypstCompiler {
             Files.writeString(typFile, source);
             for (var entry : resources.entrySet()) {
                 Path resFile = tempDir.resolve(entry.getKey());
-                Files.createDirectories(resFile.getParent());
+                FilePaths.createParentDirectories(resFile);
                 Files.write(resFile, entry.getValue());
             }
             return runTypst(tempDir, typFile, pdfFile);
@@ -39,7 +42,7 @@ public final class TypstCompiler {
         }
     }
 
-    public static byte[] compileTemplate(Map<String, Object> data, String templateName, StationLogo logo)
+    public static byte[] compileTemplate(Map<String, Object> data, String templateName, @Nullable StationLogo logo)
             throws IOException, InterruptedException {
         return compileTemplate(data, templateName, logo, Map.of());
     }
@@ -50,7 +53,7 @@ public final class TypstCompiler {
      * {@code data.json} - a Typst markup fragment, say - reaches the document.
      */
     public static byte[] compileTemplate(
-            Map<String, Object> data, String templateName, StationLogo logo, Map<String, String> resources)
+            Map<String, Object> data, String templateName, @Nullable StationLogo logo, Map<String, String> resources)
             throws IOException, InterruptedException {
         return compileTemplate(data, templateName, logo, resources, Map.of());
     }
@@ -62,7 +65,7 @@ public final class TypstCompiler {
     public static byte[] compileTemplate(
             Map<String, Object> data,
             String templateName,
-            StationLogo logo,
+            @Nullable StationLogo logo,
             Map<String, String> resources,
             Map<String, byte[]> files)
             throws IOException, InterruptedException {
@@ -70,8 +73,9 @@ public final class TypstCompiler {
         try {
             Path templateSource = Path.of("templates", "typst", templateName);
             Path templateFile = tempDir.resolve(templateName);
-            Files.createDirectories(templateFile.getParent());
-            Path templateDir = templateFile.getParent();
+            FilePaths.createParentDirectories(templateFile);
+            Path templateDir = Objects.requireNonNull(
+                    templateFile.getParent(), "the template is resolved inside the temporary directory");
 
             if (logo != null) {
                 String ext = logoExtension(logo.contentType());
@@ -96,7 +100,7 @@ public final class TypstCompiler {
         }
     }
 
-    public static String logoExtension(String contentType) {
+    private static String logoExtension(String contentType) {
         return switch (contentType) {
             case "image/jpeg" -> "jpg";
             case "image/svg+xml" -> "svg";

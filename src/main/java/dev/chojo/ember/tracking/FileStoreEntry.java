@@ -6,6 +6,7 @@
 package dev.chojo.ember.tracking;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Tracking entry for a filesystem-stored data location (e.g. {@code data/kb-files/}).
@@ -21,9 +22,9 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record FileStoreEntry(
         String path,
-        String linkedTable,
-        String linkColumn,
-        String feature,
+        @Nullable String linkedTable,
+        @Nullable String linkColumn,
+        @Nullable String feature,
         TransferContext stationTransfer,
         GdprExportContext gdprExport,
         GdprDeletionContext gdprDeletion) {}

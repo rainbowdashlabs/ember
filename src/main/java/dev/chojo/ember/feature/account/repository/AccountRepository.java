@@ -6,12 +6,12 @@
 package dev.chojo.ember.feature.account.repository;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import de.chojo.sadu.queries.api.results.writing.insertion.InsertionResult;
 import dev.chojo.ember.api.auth.InstanceUserType;
 import dev.chojo.ember.auth.TokenHasher;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.entity.AccountCredential;
-import dev.chojo.ember.feature.account.entity.AccountExternalAuth;
 import dev.chojo.ember.feature.account.entity.AccountSession;
 import dev.chojo.ember.feature.account.entity.AccountToken;
 import dev.chojo.ember.feature.account.entity.TokenType;
@@ -21,8 +21,10 @@ import dev.chojo.ember.util.sql.SqlSupport;
 import dev.chojo.ember.util.sql.WhereBuilder;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
@@ -44,7 +46,6 @@ public class AccountRepository {
             "id, uid, email, username, first_name, last_name, email_verified, instance_user_type, full_name, creating_station_id, setup_completed_at";
     private static final String CONSENT_COLUMNS =
             "id, account_id, consent_version, privacy_version, tos_version, ip_address, country, user_agent, consented_at";
-    private static final String EXTERNAL_AUTH_COLUMNS = "id, account_id, provider, external_id";
     private static final String TOKEN_COLUMNS =
             "id, account_id, token_hash, token_type, metadata, expires_at, created_at, confirmed_at";
     private static final String SESSION_COLUMNS =
@@ -65,6 +66,20 @@ public class AccountRepository {
      */
     public Optional<Account> findById(int id) {
         return SqlSupport.findById("account", ACCOUNT_COLUMNS, id, Account.map());
+    }
+
+    /**
+     * Several accounts read in one statement, for work that would otherwise look them up one by one.
+     *
+     * @param ids the account identifiers
+     * @return the accounts that exist, in no particular order
+     */
+    public List<Account> findByIds(Collection<Integer> ids) {
+        if (ids.isEmpty()) return List.of();
+        return query("SELECT %s FROM account WHERE id = ANY(:ids::INT[]);", ACCOUNT_COLUMNS)
+                .single(call().bind("ids", List.copyOf(ids), PostgreSqlTypes.INTEGER))
+                .map(Account.map())
+                .all();
     }
 
     /**
@@ -126,7 +141,7 @@ public class AccountRepository {
      * @param username         the name, as typed
      * @param exceptAccountId  the account the name may already belong to, or null to ask about anybody
      */
-    public boolean usernameTaken(String username, Integer exceptAccountId) {
+    public boolean usernameTaken(String username, @Nullable Integer exceptAccountId) {
         return query("""
                 SELECT 1
                 FROM account
@@ -143,7 +158,7 @@ public class AccountRepository {
      *
      * @param username the name, or null to leave the address as the only way in
      */
-    public boolean updateUsername(int accountId, String username) {
+    public boolean updateUsername(int accountId, @Nullable String username) {
         return query("UPDATE account SET username = :username WHERE id = :id;")
                 .single(call().bind("id", accountId).bind("username", username))
                 .update()
@@ -171,7 +186,7 @@ public class AccountRepository {
      * @param limit  the maximum number of rows to return
      * @return matching picker rows
      */
-    public List<PickerAccount> searchForPicker(String search, int limit) {
+    public List<PickerAccount> searchForPicker(@Nullable String search, int limit) {
         boolean hasSearch = search != null && !search.isBlank();
         String order = hasSearch ? "display_name" : "id DESC";
         var where = WhereBuilder.create().like("""
@@ -225,7 +240,7 @@ public class AccountRepository {
      * @param lastName  the last name
      * @return the created account
      */
-    public Account create(String email, String firstName, String lastName) {
+    public Account create(@Nullable String email, String firstName, String lastName) {
         return create(email, firstName, lastName, null);
     }
 
@@ -238,7 +253,8 @@ public class AccountRepository {
      * @param creatingStationId  the station that initiated the creation, or {@code null}
      * @return the created account
      */
-    public Account create(String email, String firstName, String lastName, Integer creatingStationId) {
+    public Account create(
+            @Nullable String email, String firstName, String lastName, @Nullable Integer creatingStationId) {
         return SqlSupport.insertReturning(
                 """
                 INSERT
@@ -264,7 +280,7 @@ public class AccountRepository {
      * @param emailVerified whether the email should be marked as already verified
      * @return the created account
      */
-    public Account create(String email, String firstName, String lastName, boolean emailVerified) {
+    public Account create(@Nullable String email, String firstName, String lastName, boolean emailVerified) {
         return create(email, firstName, lastName, emailVerified, null);
     }
 
@@ -279,7 +295,11 @@ public class AccountRepository {
      * @return the created account
      */
     public Account create(
-            String email, String firstName, String lastName, boolean emailVerified, Integer creatingStationId) {
+            @Nullable String email,
+            String firstName,
+            String lastName,
+            boolean emailVerified,
+            @Nullable Integer creatingStationId) {
         return SqlSupport.insertReturning(
                 """
                 INSERT
@@ -358,17 +378,6 @@ public class AccountRepository {
                 .single(call().bind("uid", uid, UUID_STRING).bind("id", id))
                 .update();
     }
-
-    /**
-     * Checks whether an account is an instance administrator.
-     */
-    public boolean isAdministrator(int accountId) {
-        return SqlSupport.exists(
-                "SELECT 1 FROM account WHERE id = :id AND instance_user_type = 'ADMINISTRATOR';",
-                call().bind("id", accountId));
-    }
-
-    // -- Instance User Type --
 
     /**
      * Checks whether any account in the system is an administrator.
@@ -458,8 +467,6 @@ public class AccountRepository {
     public boolean delete(int id) {
         return SqlSupport.deleteById("account", id);
     }
-
-    // -- Credentials --
 
     /**
      * Finds the password credential for an account.
@@ -603,71 +610,6 @@ public class AccountRepository {
                 .changed();
     }
 
-    // -- External Auth --
-
-    /**
-     * Retrieves all external authentication links for an account.
-     *
-     * @param accountId the account identifier
-     * @return list of external auth records
-     */
-    public List<AccountExternalAuth> findExternalAuths(int accountId) {
-        return query("SELECT %s FROM account_external_auth WHERE account_id = :id;", EXTERNAL_AUTH_COLUMNS)
-                .single(call().bind("id", accountId))
-                .map(AccountExternalAuth.map())
-                .all();
-    }
-
-    /**
-     * Finds an external authentication record by provider and external ID.
-     *
-     * @param provider   the provider name
-     * @param externalId the external user identifier
-     * @return the external auth record, or empty if not found
-     */
-    public Optional<AccountExternalAuth> findExternalAuth(String provider, String externalId) {
-        return query("""
-                SELECT %s
-                FROM account_external_auth
-                WHERE provider = :provider
-                  AND external_id = :external_id;""", EXTERNAL_AUTH_COLUMNS)
-                .single(call().bind("provider", provider).bind("external_id", externalId))
-                .map(AccountExternalAuth.map())
-                .first();
-    }
-
-    /**
-     * Creates a new external authentication link for an account.
-     *
-     * @param accountId  the account identifier
-     * @param provider   the provider name
-     * @param externalId the external user identifier
-     */
-    public void createExternalAuth(int accountId, String provider, String externalId) {
-        query("""
-                INSERT
-                INTO
-                    account_external_auth(account_id, provider, external_id)
-                VALUES
-                    (:account_id, :provider, :external_id);""")
-                .single(call().bind("account_id", accountId)
-                        .bind("provider", provider)
-                        .bind("external_id", externalId))
-                .insert();
-    }
-
-    /**
-     * Deletes an external authentication record by its identifier.
-     *
-     * @param id the external auth record identifier
-     * @return {@code true} if the record was deleted
-     */
-    public boolean deleteExternalAuth(int id) {
-        return SqlSupport.deleteById("account_external_auth", id);
-    }
-
-    // -- Tokens --
-
     /**
      * Finds a token by its token string.
      *
@@ -740,7 +682,7 @@ public class AccountRepository {
      * @return the insertion result
      */
     public InsertionResult createToken(
-            int accountId, String token, TokenType tokenType, String metadata, Instant expiresAt) {
+            int accountId, String token, TokenType tokenType, @Nullable String metadata, Instant expiresAt) {
         return query("""
                 INSERT
                         INTO
@@ -793,8 +735,6 @@ public class AccountRepository {
                 .delete()
                 .changed();
     }
-
-    // -- Sessions --
 
     /**
      * Deletes every recovery / verification token for an account. Used on a successful
@@ -854,7 +794,8 @@ public class AccountRepository {
      * @param userAgent the client's user agent string
      * @param location  the client's location (e.g. country code)
      */
-    public void createSession(int accountId, String token, Instant expiresAt, String userAgent, String location) {
+    public void createSession(
+            int accountId, String token, Instant expiresAt, @Nullable String userAgent, @Nullable String location) {
         createSession(accountId, token, expiresAt, userAgent, location, null, null);
     }
 
@@ -938,7 +879,7 @@ public class AccountRepository {
      * trusted device, and a mark it carries for life saying it may never vouch for anybody else.
      */
     public void createVouchedSession(
-            int accountId, String token, Instant expiresAt, String userAgent, String location) {
+            int accountId, String token, Instant expiresAt, @Nullable String userAgent, @Nullable String location) {
         query("""
                 INSERT
                 INTO
@@ -962,10 +903,10 @@ public class AccountRepository {
             int accountId,
             String token,
             Instant expiresAt,
-            String userAgent,
-            String location,
-            Instant twoFactorVerifiedAt,
-            Integer deviceTrustId) {
+            @Nullable String userAgent,
+            @Nullable String location,
+            @Nullable Instant twoFactorVerifiedAt,
+            @Nullable Integer deviceTrustId) {
         return createSession(
                 accountId, token, expiresAt, userAgent, location, twoFactorVerifiedAt, deviceTrustId, false);
     }
@@ -979,10 +920,10 @@ public class AccountRepository {
             int accountId,
             String token,
             Instant expiresAt,
-            String userAgent,
-            String location,
-            Instant twoFactorVerifiedAt,
-            Integer deviceTrustId,
+            @Nullable String userAgent,
+            @Nullable String location,
+            @Nullable Instant twoFactorVerifiedAt,
+            @Nullable Integer deviceTrustId,
             boolean trustedDevice) {
         return query("""
                 INSERT
@@ -1023,10 +964,10 @@ public class AccountRepository {
             int accountId,
             String token,
             Instant expiresAt,
-            String userAgent,
-            String location,
-            Instant twoFactorVerifiedAt,
-            Integer deviceTrustId,
+            @Nullable String userAgent,
+            @Nullable String location,
+            @Nullable Instant twoFactorVerifiedAt,
+            @Nullable Integer deviceTrustId,
             boolean trustedDevice) {
         return query("""
                 INSERT
@@ -1060,25 +1001,63 @@ public class AccountRepository {
     /**
      * Updates the last-used timestamp, user agent, and location of a session.
      *
+     * <p>This runs on every authenticated request, so the row is only written when it would say
+     * something new: the last use is at least a minute old, or the user agent or location changed.
+     * The session list therefore stays accurate to the minute without a write per request.
+     *
      * @param token     the session token
      * @param userAgent the current user agent string
      * @param location  the current location, or {@code null} to keep the existing value
-     * @return {@code true} if the session was updated
+     * @return {@code true} if the session row was written
      */
-    public boolean touchSession(String token, String userAgent, String location) {
+    public boolean touchSession(String token, @Nullable String userAgent, @Nullable String location) {
         return query("""
                 UPDATE account_session
                 SET
                     last_used_at = now(),
                     user_agent   = :user_agent,
                     location     = coalesce(:location, location)
-                WHERE token_hash = :token_hash;
+                WHERE token_hash = :token_hash
+                  AND (last_used_at < now() - INTERVAL '1 minute'
+                    OR user_agent IS DISTINCT FROM :user_agent
+                    OR location IS DISTINCT FROM coalesce(:location, location));
                 """)
                 .single(call().bind("user_agent", userAgent)
                         .bind("location", location)
                         .bind("token_hash", tokenHasher.hash(token)))
                 .update()
                 .changed();
+    }
+
+    /**
+     * Pushes back the expiry of a session that has used up more than half of its lifetime, which is
+     * how a session in use stays alive without the browser ever asking for a new token.
+     *
+     * <p>The lifetime is the one the session was signed in with: the long one for a machine somebody
+     * vouched for, the short one otherwise. A session with more than half of it still ahead is left
+     * alone, so this writes about twice per lifetime rather than on every request. An expired session
+     * is never brought back.
+     *
+     * @param token          the session token
+     * @param shortMinutes   the lifetime of a session on a machine nobody vouched for
+     * @param trustedMinutes the lifetime of a session on a vouched-for machine
+     * @return the new expiry, or empty when the session was not due, not live or not there
+     */
+    public Optional<Instant> renewSession(String token, int shortMinutes, int trustedMinutes) {
+        return query("""
+                UPDATE account_session
+                SET expires_at = now() + make_interval(
+                        mins => CASE WHEN trusted_device THEN :trusted_minutes ELSE :short_minutes END)
+                WHERE token_hash = :token_hash
+                  AND expires_at > now()
+                  AND expires_at < now() + make_interval(
+                        mins => CASE WHEN trusted_device THEN :trusted_minutes ELSE :short_minutes END / 2)
+                RETURNING expires_at;""")
+                .single(call().bind("token_hash", tokenHasher.hash(token))
+                        .bind("short_minutes", shortMinutes)
+                        .bind("trusted_minutes", trustedMinutes))
+                .map(row -> row.get("expires_at", INSTANT_TIMESTAMP))
+                .first();
     }
 
     /**
@@ -1216,8 +1195,6 @@ public class AccountRepository {
                 .changed();
     }
 
-    // -- GDPR Consent --
-
     /**
      * Records a GDPR consent entry for an account with version information and client metadata.
      *
@@ -1235,8 +1212,8 @@ public class AccountRepository {
             String privacyVersion,
             String tosVersion,
             String ipAddress,
-            String country,
-            String userAgent) {
+            @Nullable String country,
+            @Nullable String userAgent) {
         query("""
                 INSERT
                         INTO
@@ -1269,23 +1246,6 @@ public class AccountRepository {
                 .single(call().bind("account_id", accountId))
                 .map(GdprConsent.map())
                 .first();
-    }
-
-    /**
-     * Retrieves all GDPR consent records for an account, ordered by most recent first.
-     *
-     * @param accountId the account identifier
-     * @return list of consent records
-     */
-    public List<GdprConsent> findAllConsents(int accountId) {
-        return query("""
-                SELECT %s
-                FROM gdpr_consent
-                WHERE account_id = :account_id
-                ORDER BY consented_at DESC;""", CONSENT_COLUMNS)
-                .single(call().bind("account_id", accountId))
-                .map(GdprConsent.map())
-                .all();
     }
 
     /**

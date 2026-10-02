@@ -7,16 +7,17 @@
 import { useI18n } from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import RestrictionPicker from '@/components/input/RestrictionPicker.vue'
-import { type RestrictionSelection } from '@/components/input/restriction'
+import type { RestrictionSelection } from '@/api/types'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import type { MemberGroup, StationMember, UserTag } from '@/api/types'
+import type { MemberGroup, UserTag } from '@/api/generated/schema'
+import type { MemberLike } from '@/components/input/select/memberOption'
 
 const { t } = useI18n()
 
 defineProps<{
   groups: MemberGroup[]
   tags: UserTag[]
-  members: StationMember[]
+  members: MemberLike[]
 }>()
 
 const restriction = defineModel<RestrictionSelection>({ required: true })
@@ -27,10 +28,10 @@ const restriction = defineModel<RestrictionSelection>({ required: true })
     <div class="space-y-4">
       <SubHeader>{{ t('forms.restrictions.title') }}</SubHeader>
       <RestrictionPicker
+        v-model="restriction"
         :groups="groups"
         :tags="tags"
         :members="members"
-        v-model="restriction"
         show-members
       />
     </div>

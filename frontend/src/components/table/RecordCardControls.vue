@@ -29,12 +29,8 @@ const filterable = computed(() => props.table.visibleColumns.filter(column => pr
 
 const sortKey = computed({
   get: () => props.table.sortKey ?? '',
-  set: (key: string | number | null | undefined) => { props.table.sortKey = key ? String(key) : null },
+  set: (key: string | number | null | undefined) => props.table.sortBy(key ? String(key) : null),
 })
-
-function flipDirection() {
-  props.table.sortDirection = props.table.sortDirection === 'asc' ? 'desc' : 'asc'
-}
 </script>
 
 <template>
@@ -47,7 +43,7 @@ function flipDirection() {
         :icon="['fas', table.sortDirection === 'asc' ? 'sort-up' : 'sort-down']"
         :label="t('tableFilter.direction')"
         class="text-(--text-muted)"
-        @click="flipDirection"
+        @click="table.flipSortDirection()"
     />
     <ActionsMenu
         v-if="filterable.length > 0"

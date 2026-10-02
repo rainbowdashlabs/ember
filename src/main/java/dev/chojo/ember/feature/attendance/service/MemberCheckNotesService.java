@@ -18,13 +18,14 @@ import dev.chojo.ember.feature.inventory.service.InventoryService;
 import dev.chojo.ember.feature.inventory.service.ItemMovementService;
 import dev.chojo.ember.feature.lostandfound.repository.LostAndFoundRepository;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
-import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.repository.ProfileFieldRepository;
 import dev.chojo.ember.feature.members.service.ProfileFieldScopes;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -170,9 +171,10 @@ public class MemberCheckNotesService {
 
     /** The size written on a piece, where its inventory keeps sizes at all. */
     private Optional<String> sizeOf(InventoryItem item) {
-        return item.sizeId() == null
+        Integer sizeId = item.sizeId();
+        return sizeId == null
                 ? Optional.empty()
-                : inventoryService.findSizeById(item.sizeId()).map(InventorySize::label);
+                : inventoryService.findSizeById(sizeId).map(InventorySize::label);
     }
 
     /**
@@ -203,7 +205,7 @@ public class MemberCheckNotesService {
      */
     private Map<Integer, Integer> birthdays(int stationId, Set<ProfileFieldScope> readableScopes) {
         var field = profileFieldRepository.findReadableBy(stationId, readableScopes).stream()
-                .filter(candidate -> candidate.fieldType() == ProfileFieldType.BIRTH_DATE)
+                .filter(candidate -> candidate.fieldType() == FieldType.BIRTH_DATE)
                 .findFirst()
                 .orElse(null);
         if (field == null) return Map.of();
@@ -225,7 +227,7 @@ public class MemberCheckNotesService {
      * <p>A profile answer is whatever somebody typed, so an unreadable one is no birthday rather than
      * a failure: a malformed date must not stop the rest of the sheet being answered.
      */
-    static Integer daysSinceBirthday(String stored, LocalDate today) {
+    static @Nullable Integer daysSinceBirthday(String stored, LocalDate today) {
         if (stored == null || stored.isBlank()) return null;
         MonthDay born;
         try {
@@ -257,7 +259,10 @@ public class MemberCheckNotesService {
      * @param birthdayDaysAgo how many days ago their birthday fell, zero for today, null for none
      */
     public record MemberNotes(
-            int memberId, List<SwapNote> swaps, List<FoundNote> foundItems, Integer birthdayDaysAgo) {}
+            int memberId,
+            List<SwapNote> swaps,
+            List<FoundNote> foundItems,
+            @Nullable Integer birthdayDaysAgo) {}
 
     /**
      * One movement of this member's, as somebody standing in front of them needs it.
@@ -283,14 +288,14 @@ public class MemberCheckNotesService {
     public record SwapNote(
             int movementId,
             MovementPurpose purpose,
-            Integer stepId,
+            @Nullable Integer stepId,
             String stepLabel,
-            StepActor stepActor,
+            @Nullable StepActor stepActor,
             boolean handOverNext,
-            Integer replacementItemId,
+            @Nullable Integer replacementItemId,
             String inventoryName,
             String itemName,
-            String itemSize) {}
+            @Nullable String itemSize) {}
 
     /**
      * @param itemId      the found item

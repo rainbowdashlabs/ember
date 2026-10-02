@@ -5,6 +5,7 @@
  */
 <script setup lang="ts">
 import {computed, ref} from 'vue'
+import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
@@ -17,6 +18,8 @@ import InstallProxySettings from './installview/InstallProxySettings.vue'
 import InstallStorage from './installview/InstallStorage.vue'
 import InstallCommand from './installview/InstallCommand.vue'
 import {install} from '@/api'
+
+const {t} = useI18n()
 
 /**
  * Clicking an installation together.
@@ -102,7 +105,7 @@ async function generate() {
     code.value = preset.code
     validForHours.value = preset.validForHours
   } catch {
-    error.value = 'Der Code konnte nicht erzeugt werden. Versuche es noch einmal.'
+    error.value = t('install.generateFailed')
   } finally {
     saving.value = false
   }
@@ -110,8 +113,8 @@ async function generate() {
 </script>
 
 <template>
-  <ViewContent subtitle="Klicke die Installation zusammen und nimm den Code mit auf den Server."
-               title="Ember installieren">
+  <ViewContent :subtitle="t('install.subtitle')"
+               :title="t('install.title')">
     <div class="mx-auto w-full max-w-3xl space-y-4">
       <InstallReachability
           v-model:host="host"
@@ -144,18 +147,13 @@ async function generate() {
           v-model:trusted-proxies="trustedProxies"/>
 
       <NeutralContainer class="space-y-3">
-        <SectionHeader>Befehl erzeugen</SectionHeader>
-        <MutedText size="sm" tag="p">
-          Das Passwort der Datenbank ist nie Teil eines Codes. Danach fragt der Installer auf dem
-          Rechner, auf dem es auch bleibt.
-        </MutedText>
+        <SectionHeader>{{ t('install.generateTitle') }}</SectionHeader>
+        <MutedText size="sm" tag="p">{{ t('install.passwordNote') }}</MutedText>
         <FailureAlert :message="error"/>
         <PrimaryButton :disabled="saving || !ready" :icon="['fas', 'code']" @click="generate">
-          {{ saving ? 'Einen Moment...' : 'Code erzeugen' }}
+          {{ t(saving ? 'install.generating' : 'install.generate') }}
         </PrimaryButton>
-        <MutedText v-if="!ready" size="sm" tag="p">
-          Für Traefik wird ein Hostname gebraucht.
-        </MutedText>
+        <MutedText v-if="!ready" size="sm" tag="p">{{ t('install.hostRequired') }}</MutedText>
       </NeutralContainer>
 
       <InstallCommand v-if="code" :code="code" :options="options" :valid-for-hours="validForHours"/>

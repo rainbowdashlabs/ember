@@ -5,18 +5,23 @@
  */
 package dev.chojo.ember.feature.traffic.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.TrafficRefusal;
 import dev.chojo.ember.feature.traffic.entity.AuthBucket;
-import dev.chojo.ember.feature.traffic.repository.StationTrafficRepository;
-import dev.chojo.ember.feature.traffic.route.AdminTrafficRoutes.HourlyTrafficResponse;
-import dev.chojo.ember.feature.traffic.route.AdminTrafficRoutes.HourlyTrafficRow;
+import dev.chojo.ember.feature.traffic.service.TrafficReportService;
+import dev.chojo.ember.feature.traffic.service.TrafficReportService.HourlyTrafficResponse;
 import io.javalin.http.Context;
+import io.javalin.openapi.HttpMethod;
+import io.javalin.openapi.OpenApi;
+import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiParam;
+import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 
@@ -31,32 +36,32 @@ import java.time.Instant;
 @Singleton
 public class StationTrafficRoutes implements Routes {
 
-    private final StationTrafficRepository repository;
+    private final TrafficReportService traffic;
 
     @Inject
-    public StationTrafficRoutes(StationTrafficRepository repository) {
-        this.repository = repository;
+    public StationTrafficRoutes(TrafficReportService traffic) {
+        this.traffic = traffic;
     }
 
     private static Instant parseInstant(Context ctx, String paramName) {
         String raw = ctx.queryParam(paramName);
         if (raw == null || raw.isBlank()) {
-            throw Refusal.STATION_TRAFFIC_SPAN_MISSING.raise(paramName);
+            throw TrafficRefusal.STATION_TRAFFIC_SPAN_MISSING.raise(paramName);
         }
         try {
             return Instant.parse(raw);
         } catch (Exception e) {
-            throw Refusal.STATION_TRAFFIC_SPAN_NOT_A_TIME.raise(paramName);
+            throw TrafficRefusal.STATION_TRAFFIC_SPAN_NOT_A_TIME.raise(paramName);
         }
     }
 
-    private static AuthBucket parseOptionalAuth(Context ctx) {
+    private static @Nullable AuthBucket parseOptionalAuth(Context ctx) {
         String raw = ctx.queryParam("auth");
         if (raw == null || raw.isBlank()) return null;
         try {
             return AuthBucket.valueOf(raw);
         } catch (IllegalArgumentException e) {
-            throw Refusal.STATION_TRAFFIC_KIND_UNKNOWN.raise();
+            throw TrafficRefusal.STATION_TRAFFIC_KIND_UNKNOWN.raise();
         }
     }
 
@@ -65,20 +70,24 @@ public class StationTrafficRoutes implements Routes {
         routes.get(prefix + "/station/traffic/hourly", this::hourly, StationPermission.STATION_ADMINISTRATOR);
     }
 
+    @OpenApi(
+            path = "/api/v1/station/traffic/hourly",
+            methods = HttpMethod.GET,
+            summary = "Hourly traffic of the caller's station",
+            tags = {"Monitoring"},
+            queryParams = {
+                @OpenApiParam(name = "from", type = Instant.class, required = true),
+                @OpenApiParam(name = "to", type = Instant.class, required = true),
+                @OpenApiParam(name = "auth", type = AuthBucket.class)
+            },
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = HourlyTrafficResponse.class)))
     private void hourly(Context ctx) {
-        var session = UserSession.from(ctx);
-        if (session.stationId() == null) {
-            throw Refusal.NO_STATION_CHOSEN_FOR_TRAFFIC.raise();
-        }
+        var session = StationSession.from(ctx);
         Instant from = parseInstant(ctx, "from");
         Instant to = parseInstant(ctx, "to");
         if (to.isBefore(from)) {
-            throw Refusal.STATION_TRAFFIC_SPAN_ENDS_BEFORE_IT_STARTS.raise();
+            throw TrafficRefusal.STATION_TRAFFIC_SPAN_ENDS_BEFORE_IT_STARTS.raise();
         }
-        AuthBucket auth = parseOptionalAuth(ctx);
-
-        var rows = repository.findHourly(from, to, session.stationId(), auth);
-        ctx.json(new HourlyTrafficResponse(
-                rows.stream().map(HourlyTrafficRow::from).toList()));
+        ctx.json(traffic.hourly(from, to, session.stationId(), parseOptionalAuth(ctx)));
     }
 }

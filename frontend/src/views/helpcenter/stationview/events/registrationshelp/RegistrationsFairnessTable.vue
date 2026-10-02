@@ -11,7 +11,7 @@ import ButtonRow from '@/components/button/ButtonRow.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
-import type {MemberIdentity} from '@/api/types'
+import type {MemberIdentity} from '@/api/generated/schema'
 
 const {t} = useI18n()
 </script>
@@ -25,7 +25,7 @@ const {t} = useI18n()
         <th class="p-2 text-center">{{ t('eventsRegistrations.acceptedCol') }}</th>
         <th class="p-2 text-center">{{ t('eventsRegistrations.deniedCol') }}</th>
         <th class="p-2 text-center">{{ t('eventsRegistrations.date') }}</th>
-        <th class="p-2"></th>
+        <th class="p-2"/>
       </tr>
     </thead>
     <tbody>

@@ -25,6 +25,10 @@ public class MailSettings {
         return host;
     }
 
+    public void host(String host) {
+        this.host = host;
+    }
+
     /**
      * Get the port of the mail service.
      *

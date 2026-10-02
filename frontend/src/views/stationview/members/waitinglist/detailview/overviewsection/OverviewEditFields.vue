@@ -13,8 +13,8 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import FormulaInput from '@/components/input/FormulaInput.vue'
 import OverviewAgeFields from './OverviewAgeFields.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import type { WaitingListField } from '@/api/waitingList'
-import type { MemberGroup } from '@/api/types'
+import type { MemberGroup, WaitingListField } from '@/api/generated/schema'
+import { fieldTypeLabel } from '@/api/fieldTypes'
 
 const name = defineModel<string>('name', { required: true })
 const description = defineModel<string>('description', { required: true })
@@ -33,7 +33,7 @@ const props = defineProps<{
 
 const { t } = useI18n()
 
-const fieldInfos = computed(() => props.fields.map(f => ({ name: f.name, type: f.fieldType })))
+const fieldInfos = computed(() => props.fields.map(f => ({ name: f.name, type: fieldTypeLabel(t, f.fieldType) })))
 </script>
 
 <template>

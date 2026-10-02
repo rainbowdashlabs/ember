@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import type {QuizAttemptDetail, QuizQuestion, QuizTestAnswer} from '@/api/quiz'
+import type {QuizAttemptDetail, QuizQuestion, QuizTestAnswer} from '@/api/generated/schema'
 import QuestionEvaluationCard from './QuestionEvaluationCard.vue'
 
 const props = defineProps<{
@@ -17,10 +17,10 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'toggle-gap', answerId: number, gapIndex: number, questionId: number): void
-  (e: 'mark-correct', answerId: number, maxPoints: number): void
-  (e: 'mark-wrong', answerId: number, maxPoints: number): void
-  (e: 'update-points', answerId: number, maxPoints: number, value: number | undefined): void
+  'toggle-gap': [answerId: number, gapIndex: number, questionId: number]
+  'mark-correct': [answerId: number, maxPoints: number]
+  'mark-wrong': [answerId: number, maxPoints: number]
+  'update-points': [answerId: number, maxPoints: number, value: number | undefined]
 }>()
 </script>
 

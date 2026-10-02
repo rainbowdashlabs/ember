@@ -14,15 +14,8 @@ import PageEditorHeader from './pageeditorview/PageEditorHeader.vue'
 import MetadataPanel from './pageeditorview/MetadataPanel.vue'
 import ContentBlockEditor from '@/components/content/ContentBlockEditor.vue'
 import type {RowEditData} from '@/components/content/blockeditor/EditorRow.vue'
-import {
-    getPage,
-    savePage,
-    listPages,
-    type StationPage,
-    type SavePageRequest,
-    type SaveRowRequest,
-    type SaveCellRequest,
-} from '@/api/pageManage'
+import {getPage, savePage, listPages} from '@/api/pageManage'
+import type {BlockCellRequest, BlockRowRequest, SavePageRequest, StationPage} from '@/api/generated/schema'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {describeFailure} from '@/util/failure'
@@ -38,7 +31,6 @@ const allPages = ref<StationPage[]>([])
 const preview = ref(false)
 const hasUnsavedChanges = ref(false)
 
-// Editable fields
 const title = ref('')
 const slug = ref('')
 const parentId = ref<number | null>(null)
@@ -49,7 +41,7 @@ const stationUid = computed(() => sessionInfo.value?.stationId ?? '')
 const pageId = computed(() => Number(route.params.id))
 
 /** Held so that a save can tell the editor its draft is no longer a rescue worth keeping. */
-const editor = ref<{draftSaved: () => void} | null>(null)
+const editor = ref<InstanceType<typeof ContentBlockEditor> | null>(null)
 
 /**
  * The page's own title at the head of the editor, because "Seite bearbeiten" stands above every one
@@ -110,9 +102,9 @@ function togglePreview() {
 async function save() {
     failure.value = null
     try {
-        const saveRows: SaveRowRequest[] = rows.value.map((r, ri) => ({
+        const saveRows: BlockRowRequest[] = rows.value.map((r, ri) => ({
             sortOrder: ri,
-            cells: r.cells.map((c, ci): SaveCellRequest => ({
+            cells: r.cells.map((c, ci): BlockCellRequest => ({
                 sortOrder: ci,
                 widthPercent: c.widthPercent,
                 contentType: c.contentType,

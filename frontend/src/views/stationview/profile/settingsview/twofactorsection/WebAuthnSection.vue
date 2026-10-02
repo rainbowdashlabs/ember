@@ -6,7 +6,8 @@
 <script lang="ts" setup>
 import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
-import {removeFactor, renameFactor, webauthnRegisterBegin, webauthnRegisterFinish, type FactorInfo} from '@/api/twoFactor'
+import {removeFactor, renameFactor, webauthnRegisterBegin, webauthnRegisterFinish} from '@/api/twoFactor'
+import type {FactorInfo} from '@/api/generated/schema'
 import {createWebAuthnCredential, isWebAuthnSupported} from '@/util/webauthn'
 import {formatDate} from '@/util/format'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
@@ -20,7 +21,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import Modal from '@/components/feedback/Modal.vue'
-import {apiErrorStatus, errorMessage} from '@/util/apiError'
+import {errorMessage} from '@/util/apiError'
 import {describeFailure, FailureKind, type Failure} from '@/util/failure'
 
 const props = defineProps<{
@@ -83,8 +84,6 @@ async function confirmEnrollment() {
   enrolling.value = true
   failure.value = null
   try {
-    // First enrolment answers the step-up prompt like everything else on this screen; the
-    // password field this form used to carry is gone with the backend rule that needed it.
     const begin = await webauthnRegisterBegin()
     const credentialJson = await createWebAuthnCredential(begin.optionsJson)
     const result = await webauthnRegisterFinish(begin.challengeToken, credentialJson, newLabel.value.trim())

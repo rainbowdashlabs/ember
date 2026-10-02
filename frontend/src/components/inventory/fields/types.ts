@@ -3,7 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {FieldConfig, FieldTypeName} from '@/api/inventoryFields'
+import type {FieldTypeName} from '@/api/fieldTypes'
+import type {FieldConfig} from '@/api/generated/schema'
 
 /**
  * In-flight edit state for a single inventory field definition.

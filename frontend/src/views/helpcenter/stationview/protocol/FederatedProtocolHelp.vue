@@ -27,11 +27,10 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.federatedProtocol.howToStep1') }}</p>
       <p>{{ t('helpCenter.federatedProtocol.howToStep2') }}</p>
 
-      <!-- Dummy: shared protocol with sections -->
       <NeutralContainer class="mt-4 space-y-3">
         <div class="flex items-center justify-between gap-4">
           <div class="flex items-center gap-2 flex-wrap">
-            <span class="font-medium">Leistungsabzeichen Bronze</span>
+            <span class="font-medium">{{ t('helpCenter.sample.protocol.bronzeBadge') }}</span>
             <StationBadge station-name="Wache Nordstadt"/>
           </div>
           <PrimaryButton compact disabled>
@@ -40,14 +39,14 @@ const {t} = useI18n()
           </PrimaryButton>
         </div>
         <div>
-          <SubHeader class="!mb-1">Knoten und Stiche</SubHeader>
+          <SubHeader class="!mb-1">{{ t('helpCenter.sample.protocol.knots') }}</SubHeader>
           <ul class="space-y-1 text-sm">
             <li class="flex items-center justify-between gap-4">
-              <span>Mastwurf</span>
+              <span>{{ t('helpCenter.sample.protocol.clove') }}</span>
               <span class="text-(--text-muted)">5</span>
             </li>
             <li class="flex items-center justify-between gap-4">
-              <span>Schotenstich</span>
+              <span>{{ t('helpCenter.sample.protocol.sheetBend') }}</span>
               <span class="text-(--text-muted)">5</span>
             </li>
           </ul>

@@ -6,10 +6,10 @@
 package dev.chojo.ember.feature.news.service;
 
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.NewsRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
-import dev.chojo.ember.event.events.MentionedInComment;
 import dev.chojo.ember.feature.account.entity.Account;
-import dev.chojo.ember.feature.comment.service.CommentMentions;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -32,21 +32,10 @@ class NewsServiceTest extends RepositoryTestBase {
     private static Account account;
     private static StationMember member;
     private static int newsId;
-    private static int commentId;
 
     @BeforeAll
     static void setup() {
-        service = new NewsService(
-                newsRepo,
-                contentBlocks(),
-                noCellDescriptions(),
-                stationRepo,
-                restrictionService,
-                new DomainEventBus(Set.of()),
-                stationMemberRepo,
-                memberLookupService,
-                accountRepo,
-                silentCommentMentions());
+        service = newNewsService(new DomainEventBus(Set.of()));
         station = stationRepo.create("NewsStation");
         account = accountRepo.create("news-svc@test.com", "News", "Author");
         member = stationMemberRepo.create(station.id(), account.id());
@@ -124,33 +113,10 @@ class NewsServiceTest extends RepositoryTestBase {
     }
 
     @Test
-    @Order(20)
-    void createComment() {
-        var authorIdentity = stationMemberRepo.resolveIdentity(member.id());
-        var comment =
-                service.createComment(station.id(), newsId, null, authorIdentity, "News Author", "Great article!");
-        assertNotNull(comment);
-        commentId = comment.id();
-    }
-
-    @Test
-    @Order(21)
-    void findComments() {
-        var comments = service.findComments(newsId);
-        assertTrue(comments.stream().anyMatch(c -> c.id() == commentId));
-    }
-
-    @Test
     @Order(4)
     void findVisibleForMember() {
-        var list = service.findVisibleForMember(station.id(), member.id(), 0, 100);
+        var list = service.findVisibleForMember(station.id(), member.id(), false, 0, 100);
         assertTrue(list.stream().anyMatch(n -> n.id() == newsId));
-    }
-
-    @Test
-    @Order(5)
-    void countComments() {
-        assertEquals(0, service.countComments(newsId));
     }
 
     @Test
@@ -161,103 +127,8 @@ class NewsServiceTest extends RepositoryTestBase {
     }
 
     @Test
-    @Order(21)
-    void findCommentById() {
-        var comment = service.findCommentById(commentId);
-        assertTrue(comment.isPresent());
-        assertEquals("Great article!", comment.get().content());
-    }
-
-    @Test
-    @Order(22)
-    void updateComment() {
-        assertTrue(service.updateComment(commentId, "Updated comment!"));
-        var comment = service.findCommentById(commentId);
-        assertTrue(comment.isPresent());
-        assertEquals("Updated comment!", comment.get().content());
-    }
-
-    @Test
-    @Order(23)
-    void createReply() {
-        var authorIdentity = stationMemberRepo.resolveIdentity(member.id());
-        var reply = service.createComment(
-                station.id(), newsId, commentId, authorIdentity, "News Author", "This is a reply");
-        assertNotNull(reply);
-        assertEquals(commentId, reply.parentId());
-    }
-
-    @Test
-    @Order(24)
-    void countCommentsAfterCreation() {
-        assertTrue(service.countComments(newsId) >= 2);
-    }
-
-    @Test
-    @Order(25)
-    void deleteNonExistentComment() {
-        assertFalse(service.deleteComment(station.id(), -999));
-    }
-
-    @Test
-    @Order(26)
-    void deleteCommentWithChildrenSoftDeletes() {
-        // Comment has a child reply, so it should be soft-deleted (not removed)
-        assertTrue(service.deleteComment(station.id(), commentId));
-        var deleted = service.findCommentById(commentId);
-        assertTrue(deleted.isPresent());
-        assertTrue(deleted.get().deleted());
-        assertEquals("", deleted.get().content());
-    }
-
-    @Test
-    @Order(27)
-    void createCommentWithMention() {
-        var authorIdentity = stationMemberRepo.resolveIdentity(member.id());
-        var mentionContent = "Hello @[member/" + member.uid() + ":News Author]!";
-        var comment = service.createComment(station.id(), newsId, null, authorIdentity, "News Author", mentionContent);
-        assertNotNull(comment);
-        assertEquals(mentionContent, comment.content());
-    }
-
-    @Test
-    @Order(27)
-    void createCommentWithLegacyMention() {
-        var authorIdentity = stationMemberRepo.resolveIdentity(member.id());
-        var mentionContent = "Hello @[999:Other Member]!";
-        var comment = service.createComment(station.id(), newsId, null, authorIdentity, "News Author", mentionContent);
-        assertNotNull(comment);
-    }
-
-    @Test
-    @Order(27)
-    void createCommentWithBulkMention() {
-        var authorIdentity = stationMemberRepo.resolveIdentity(member.id());
-        var mentionContent = "Attention @[GROUP:TestGroup:1]!";
-        var comment = service.createComment(station.id(), newsId, null, authorIdentity, "News Author", mentionContent);
-        assertNotNull(comment);
-    }
-
-    @Test
-    @Order(27)
-    void createCommentWithLongContent() {
-        var authorIdentity = stationMemberRepo.resolveIdentity(member.id());
-        var longContent = "A".repeat(150);
-        var comment = service.createComment(station.id(), newsId, null, authorIdentity, "News Author", longContent);
-        assertNotNull(comment);
-    }
-
-    @Test
-    @Order(27)
-    void createCommentWithNullAuthor() {
-        var comment = service.createComment(station.id(), newsId, null, null, "System", "System message");
-        assertNotNull(comment);
-    }
-
-    @Test
     @Order(28)
     void recordAndListViewers() {
-        // Idempotent: two calls only produce one row.
         service.recordView(newsId, member.id());
         service.recordView(newsId, member.id());
 
@@ -265,14 +136,13 @@ class NewsServiceTest extends RepositoryTestBase {
         assertEquals(1, summary.seen().size(), "the only member should appear in the seen list");
         assertNotNull(summary.seen().getFirst().seenAt());
         assertEquals(member.uid(), summary.seen().getFirst().member().memberUid());
-        // The only eligible member has now seen the news, so unseen is empty.
         assertEquals(0, summary.unseen().size());
     }
 
+    /** Builds on the view {@link #recordAndListViewers()} recorded. */
     @Test
     @Order(29)
     void countViewsAndHasViewed() {
-        // Order 28 (recordAndListViewers) already recorded a view for member.
         assertEquals(1, service.countViews(newsId));
         assertTrue(service.hasViewed(newsId, member.id()));
         assertFalse(service.hasViewed(newsId, -42));
@@ -305,9 +175,9 @@ class NewsServiceTest extends RepositoryTestBase {
         try {
             assertTrue(entry.systemEntry());
             assertNull(entry.author());
-            assertTrue(service.isVisibleForMember(entry.id(), member.id()));
+            assertTrue(service.isVisibleForMember(entry.id(), member.id(), false));
             assertTrue(
-                    service.findVisibleForMember(station.id(), member.id(), 0, 50).stream()
+                    service.findVisibleForMember(station.id(), member.id(), false, 0, 50).stream()
                             .anyMatch(n -> n.id() == entry.id()),
                     "the station reads it alongside its own");
             assertTrue(
@@ -329,45 +199,10 @@ class NewsServiceTest extends RepositoryTestBase {
                 service.createSystem("Nur Betreuer", "Für die Leitung.", List.of(StationUserType.MANAGER), true, false);
         try {
             assertFalse(
-                    service.isVisibleForMember(entry.id(), member.id()),
+                    service.isVisibleForMember(entry.id(), member.id(), false),
                     "a member who is not of that type does not read it");
         } finally {
             service.delete(entry.id());
-        }
-    }
-
-    /**
-     * Under a system entry every station talks at once, and a station is shown its own part of the
-     * conversation while the instance reads the whole of it.
-     */
-    @Test
-    @Order(42)
-    void commentsUnderASystemEntryAreSeparatedByStation() {
-        var otherStation = stationRepo.create("Other System Station");
-        var otherAccount = accountRepo.create("other-system@test.com", "Other", "Commenter");
-        var otherMember = stationMemberRepo.create(otherStation.id(), otherAccount.id());
-        var entry = service.createSystem("Frage", "Was denn?", List.of(), true, false);
-        try {
-            service.createComment(
-                    station.id(), entry.id(), null, stationMemberRepo.resolveIdentity(member.id()), "Hier", "Von uns");
-            service.createComment(
-                    otherStation.id(),
-                    entry.id(),
-                    null,
-                    stationMemberRepo.resolveIdentity(otherMember.id()),
-                    "Dort",
-                    "Von denen");
-
-            assertEquals(2, service.findComments(entry.id()).size(), "the instance reads every station's");
-            assertEquals(
-                    1,
-                    service.findCommentsForStation(entry.id(), stationRepo.resolveUid(station.id()))
-                            .size(),
-                    "a station reads only its own");
-        } finally {
-            service.delete(entry.id());
-            stationRepo.delete(otherStation.id());
-            accountRepo.delete(otherAccount.id());
         }
     }
 
@@ -379,22 +214,12 @@ class NewsServiceTest extends RepositoryTestBase {
     @Order(43)
     void askingForANotificationTellsEveryStation() {
         var published = new java.util.ArrayList<Object>();
-        var notifyingService = new NewsService(
-                newsRepo,
-                contentBlocks(),
-                noCellDescriptions(),
-                stationRepo,
-                restrictionService,
-                new DomainEventBus(Set.of()) {
-                    @Override
-                    public void publish(dev.chojo.ember.event.DomainEvent event) {
-                        published.add(event);
-                    }
-                },
-                stationMemberRepo,
-                memberLookupService,
-                accountRepo,
-                silentCommentMentions());
+        var notifyingService = newNewsService(new DomainEventBus(Set.of()) {
+            @Override
+            public void publish(dev.chojo.ember.event.DomainEvent event) {
+                published.add(event);
+            }
+        });
         var quiet = notifyingService.createSystem("Leise", "Nichts.", List.of(), true, false);
         int afterQuiet = published.size();
         var loud = notifyingService.createSystem("Laut", "Etwas.", List.of(), true, true);
@@ -408,61 +233,29 @@ class NewsServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * Editing a comment tells whoever the edit newly mentions, and nobody the comment already
-     * mentioned. An edit of a comment that is not there changes and announces nothing.
+     * An entry is read by whoever it is addressed to, and a missing entry and one kept from the
+     * member are refused alike.
      */
     @Test
     @Order(44)
-    void editingACommentAnnouncesOnlyTheMentionsItAdds() {
-        var published = new java.util.ArrayList<dev.chojo.ember.event.DomainEvent>();
-        var recordingBus = new DomainEventBus(Set.of()) {
-            @Override
-            public void publish(dev.chojo.ember.event.DomainEvent event) {
-                published.add(event);
-            }
-        };
-        var mentioningService = new NewsService(
-                newsRepo,
-                contentBlocks(),
-                noCellDescriptions(),
-                stationRepo,
-                restrictionService,
-                recordingBus,
-                stationMemberRepo,
-                memberLookupService,
-                accountRepo,
-                new CommentMentions(memberLookupService, recordingBus));
-        var mentionedAccount = accountRepo.create("news-mentioned@test.com", "Mia", "Mentioned");
-        var mentioned = stationMemberRepo.create(station.id(), mentionedAccount.id());
-        var authorIdentity = stationMemberRepo.resolveIdentity(member.id());
-        var news = mentioningService.create(
-                station.id(), "Edited mentions", "Body", authorIdentity, List.of(), List.of(), List.of(), List.of());
-        var mention = "@[" + station.uid() + "/" + mentioned.uid() + ":Mia]";
+    void anEntryIsReadableOnlyByItsAudience() {
+        var open = service.createSystem("Offen", "Für alle.", List.of(), true, false);
+        var kept =
+                service.createSystem("Nur Betreuer", "Für die Leitung.", List.of(StationUserType.MANAGER), true, false);
+        var reader = stationSession(member);
         try {
-            var comment = mentioningService.createComment(
-                    station.id(), news.id(), null, authorIdentity, "News Author", "See you");
-            published.clear();
-
-            assertTrue(mentioningService.updateOwnComment(
-                    station.id(), comment.id(), "News Author", "See you " + mention));
-            var told = published.stream()
-                    .filter(MentionedInComment.class::isInstance)
-                    .map(MentionedInComment.class::cast)
-                    .toList();
-            assertEquals(1, told.size());
-            assertEquals(mentioned.id(), told.getFirst().mentionedMemberId());
-            assertEquals("Edited mentions", told.getFirst().entityTitle());
-            assertEquals(comment.id(), told.getFirst().commentId());
-
-            published.clear();
-            assertTrue(mentioningService.updateOwnComment(
-                    station.id(), comment.id(), "News Author", "See you soon " + mention));
-            assertTrue(published.stream().noneMatch(MentionedInComment.class::isInstance));
-
-            assertFalse(mentioningService.updateOwnComment(station.id(), 999999, "News Author", mention));
+            assertEquals(open.id(), service.requireReadable(reader, open.id()).id());
+            assertEquals(
+                    NewsRefusal.NEWS_NOT_HERE_OR_NOT_YOURS,
+                    assertThrows(RefusalResponse.class, () -> service.requireReadable(reader, kept.id()))
+                            .refusal());
+            assertEquals(
+                    NewsRefusal.NEWS_NOT_HERE_OR_NOT_YOURS,
+                    assertThrows(RefusalResponse.class, () -> service.requireReadable(reader, -1))
+                            .refusal());
         } finally {
-            mentioningService.delete(news.id());
-            accountRepo.delete(mentionedAccount.id());
+            service.delete(open.id());
+            service.delete(kept.id());
         }
     }
 }

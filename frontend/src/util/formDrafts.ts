@@ -4,7 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {getItem, setItem} from '@/api/storage'
-import type {AnswerValue} from '@/util/formAnswers'
+import type {FormAnswerValue} from '@/api/generated/schema'
+import {withoutKey} from '@/util/record'
 
 /** Where every half-filled public form lives, as one value, so the disclosure names one key. */
 const STORAGE_KEY = 'form_drafts'
@@ -20,7 +21,7 @@ const MAX_DRAFTS = 10
 
 /** What a reader filled in of a public form so far, and when. */
 export interface FormDraft {
-    answers: Record<number, AnswerValue>
+    answers: Record<number, FormAnswerValue>
     /** The pages visited so far, the page to continue on last. */
     path: string[]
     savedAt: number
@@ -78,6 +79,5 @@ export function saveFormDraft(key: string, draft: Omit<FormDraft, 'savedAt'>): v
 export function clearFormDraft(key: string): void {
     const store = pruned(read(), Date.now())
     if (!(key in store)) return
-    delete store[key]
-    write(store)
+    write(withoutKey(store, key))
 }

@@ -5,11 +5,13 @@
  */
 package dev.chojo.ember.feature.account.service;
 
+import dev.chojo.ember.api.refusal.MemberRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
-import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.regex.Pattern;
 
@@ -44,19 +46,19 @@ public class LoginNameService {
      * @param username  the name as it was typed, which may be null or blank for none
      * @param accountId the account it is meant for, which may already carry it
      * @return the trimmed name, or null to leave the address as the only way in
-     * @throws BadRequestResponse when the name is malformed or already somebody else's
+     * @throws RefusalResponse when the name is malformed or already somebody else's
      */
-    public String validated(String username, Integer accountId) {
+    public @Nullable String validated(@Nullable String username, @Nullable Integer accountId) {
         if (username == null || username.isBlank()) return null;
         String name = username.trim();
         if (name.length() < MIN_LENGTH || name.length() > MAX_LENGTH) {
-            throw new BadRequestResponse("A username is between 3 and 32 characters long");
+            throw MemberRefusal.USERNAME_LENGTH_NOT_TAKEN.raise();
         }
         if (!ALLOWED.matcher(name).matches()) {
-            throw new BadRequestResponse("A username may only hold letters, digits, dots, dashes and underscores");
+            throw MemberRefusal.USERNAME_CHARACTERS_NOT_TAKEN.raise();
         }
         if (accountRepository.usernameTaken(name, accountId)) {
-            throw new BadRequestResponse("This username already belongs to another account");
+            throw MemberRefusal.USERNAME_TAKEN.raise();
         }
         return name;
     }
@@ -67,12 +69,12 @@ public class LoginNameService {
      * <p>An account with no address of its own is reached by its name and by nothing else, so taking
      * the name away would lock it out without saying so. Give it an address first.
      *
-     * @throws BadRequestResponse when the name is malformed, taken, or the only way into the account
+     * @throws RefusalResponse when the name is malformed, taken, or the only way into the account
      */
-    public String validatedFor(Account account, String username) {
+    public @Nullable String validatedFor(Account account, @Nullable String username) {
         String name = validated(username, account.id());
         if (name == null && account.username() != null && !account.hasRealEmail()) {
-            throw new BadRequestResponse("This account signs in with its username; set an email address first");
+            throw MemberRefusal.USERNAME_IS_THE_ONLY_WAY_IN.raise();
         }
         return name;
     }

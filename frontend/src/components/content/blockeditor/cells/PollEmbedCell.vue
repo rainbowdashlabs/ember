@@ -5,7 +5,7 @@
  */
 <script lang="ts" setup>
 import PublicFormCell from '../PublicFormCell.vue'
-import type {PollEmbedConfig} from '@/api/pageManage'
+import type {PollEmbedConfig} from '@/api/generated/schema'
 
 defineProps<{
     config: PollEmbedConfig

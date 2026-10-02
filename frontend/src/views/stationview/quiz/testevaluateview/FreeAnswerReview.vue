@@ -8,7 +8,8 @@ import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import IconButton from '@/components/button/IconButton.vue'
-import {QuizQuestionTypes, type QuizQuestion, type QuizTestAnswer} from '@/api/quiz'
+import {QuizQuestionTypes} from '@/api/quiz'
+import type {QuizQuestion, QuizTestAnswer} from '@/api/generated/schema'
 
 const props = defineProps<{
   question: QuizQuestion
@@ -16,8 +17,8 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'mark-correct', answerId: number, maxPoints: number): void
-  (e: 'mark-wrong', answerId: number, maxPoints: number): void
+  'mark-correct': [answerId: number, maxPoints: number]
+  'mark-wrong': [answerId: number, maxPoints: number]
 }>()
 
 const {t} = useI18n()
@@ -53,7 +54,7 @@ const showSampleAnswers = computed(() =>
       </p>
     </div>
     <div v-if="showSampleAnswers">
-      <label class="text-xs font-semibold text-success block mb-1">{{ t('quiz.evaluate.sampleAnswers') }}</label>
+      <span class="text-xs font-semibold text-success block mb-1">{{ t('quiz.evaluate.sampleAnswers') }}</span>
       <p class="text-sm px-3 py-2 rounded border border-success/30 bg-success/10">
         {{ sampleAnswers || '-' }}
       </p>

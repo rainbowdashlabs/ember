@@ -11,7 +11,7 @@ import {useStations} from '@/composables/useStations'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 
-const props = withDefaults(defineProps<{
+withDefaults(defineProps<{
   variant?: 'primary' | 'secondary'
   iconOnly?: boolean
 }>(), {

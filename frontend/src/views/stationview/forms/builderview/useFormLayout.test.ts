@@ -5,7 +5,7 @@
  */
 import {describe, expect, it} from 'vitest'
 import {useFormLayout} from './useFormLayout'
-import type {FormLayout} from '@/api/forms'
+import type {FormLayout} from '@/api/generated/schema'
 
 const next = {kind: 'NEXT' as const}
 
@@ -14,7 +14,8 @@ function stored(): FormLayout {
         ({id: position + 1, formId: 1, key, position, title: '', description: '', after})
     const question = (id: number, pageKey: string) => ({
         id, formId: 1, position: id, pageKey, formQuestionType: 'TEXT' as const, title: `Frage ${id}`,
-        description: '', required: false, shuffle: false, config: {longAnswer: false},
+        description: '', required: false, shuffle: false, config: {questionType: 'TEXT' as const, longAnswer: false},
+        branch: null,
     })
     return {
         pages: [page('a', 0, {kind: 'PAGE', page: 'c'}), page('b', 1), page('c', 2)],
@@ -33,8 +34,8 @@ describe('useFormLayout', () => {
 
         const request = layout.toRequest()
 
-        expect(request.pages.map(page => page.key)).toEqual(['a', 'b', 'c'])
-        expect(request.questions.map(question => [question.id, question.pageKey])).toEqual([[1, 'a'], [2, 'b'], [3, 'c']])
+        expect(request.pages?.map(page => page.key)).toEqual(['a', 'b', 'c'])
+        expect(request.questions?.map(question => [question.id, question.pageKey])).toEqual([[1, 'a'], [2, 'b'], [3, 'c']])
     })
 
     it('keeps the questions of a removed page on the page above', () => {
@@ -59,7 +60,7 @@ describe('useFormLayout', () => {
 
         const deciding = layout.pages.value[0]!.questions.filter(question => question.branch)
         expect(deciding).toHaveLength(1)
-        expect(layout.toRequest().questions.filter(question => question.branch)).toHaveLength(1)
+        expect(layout.toRequest().questions?.filter(question => question.branch)).toHaveLength(1)
     })
 
     it('gives a new question an id after every unsaved one the pages hold', () => {
@@ -83,7 +84,7 @@ describe('useFormLayout', () => {
         layout.movePage(1, 1)
 
         expect(layout.pages.value.map(page => page.key)).toEqual(['b', 'c', 'a'])
-        expect(layout.pages.value[2]!.after).toEqual({kind: 'NEXT', page: null})
+        expect(layout.pages.value[2]!.after).toEqual({kind: 'NEXT'})
     })
 
     it('marks a page no path leads to', () => {
@@ -105,7 +106,7 @@ describe('useFormLayout', () => {
         choice.branch![option] = {kind: 'PAGE', page: 'b'}
         choice.branch!.gone = {kind: 'SUBMIT'}
 
-        const saved = layout.toRequest().questions.find(question => question.id === undefined)
+        const saved = layout.toRequest().questions?.find(question => question.id === undefined)
         expect(saved?.branch).toEqual({[option]: {kind: 'PAGE', page: 'b'}})
         expect(layout.reachable.value.has('b')).toBe(true)
 

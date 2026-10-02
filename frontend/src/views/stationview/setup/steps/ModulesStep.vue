@@ -8,49 +8,41 @@ import {onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import SetupLayout from '@/views/stationview/setup/SetupLayout.vue'
-import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
+import StationModuleToggle from '@/components/modules/StationModuleToggle.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import {stationManage} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {useSetupStatus} from '@/composables/useSetupStatus'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {goToNextStep} from '@/views/stationview/setup/steps'
+import {STATION_MODULE_OPTIONS} from '@/data/stationModules'
+import {StationModules} from '@/api/types'
+import type {StationModule} from '@/api/generated/schema'
 
 const {t} = useI18n()
 const router = useRouter()
 const {load: reloadSession} = useSession()
 const {reload} = useSetupStatus()
 
-const allModules = [
-  {key: 'INVENTORY', label: 'moduleInventory'},
-  {key: 'NEWS', label: 'moduleNews'},
-  {key: 'EVENTS', label: 'moduleEvents'},
-  {key: 'ATTENDANCE', label: 'moduleAttendance'},
-  {key: 'FORMS', label: 'moduleForms'},
-  {key: 'LOST_AND_FOUND', label: 'moduleLostAndFound'},
-  {key: 'WAITING_LIST', label: 'moduleWaitingList'},
-  {key: 'QUIZ', label: 'moduleQuiz'},
-  {key: 'TEST_PROTOCOL', label: 'moduleTestProtocol'},
-  {key: 'KNOWLEDGE_BASE', label: 'moduleKnowledgeBase'},
-  {key: 'BOARDS', label: 'moduleBoards'},
-  {key: 'PROCEDURES', label: 'moduleProcedures'},
-]
-const disabled = ref<Set<string>>(new Set(['INVENTORY', 'ATTENDANCE', 'FORMS', 'LOST_AND_FOUND', 'WAITING_LIST', 'QUIZ', 'TEST_PROTOCOL', 'BOARDS', 'PROCEDURES']))
+const disabled = ref<Set<StationModule>>(new Set([
+  StationModules.INVENTORY, StationModules.ATTENDANCE, StationModules.FORMS, StationModules.LOST_AND_FOUND,
+  StationModules.WAITING_LIST, StationModules.QUIZ, StationModules.TEST_PROTOCOL, StationModules.BOARDS,
+  StationModules.PROCEDURES,
+]))
 const loading = ref(true)
 
 onMounted(async () => {
-  try {
-    const res = await stationManage.getDisabledModules()
+  await stationManage.getDisabledModules().then(res => {
     disabled.value = new Set(res.disabledModules)
-  } catch { /* ignore */ }
+  }).catch(() => {})
   loading.value = false
 })
 
-function isEnabled(key: string): boolean {
+function isEnabled(key: StationModule): boolean {
   return !disabled.value.has(key)
 }
 
-function toggle(key: string) {
+function toggle(key: StationModule) {
   const next = new Set(disabled.value)
   if (next.has(key)) next.delete(key)
   else next.add(key)
@@ -70,10 +62,13 @@ const {running: saving, failure, run: save} = useAsyncAction(async () => {
     <FailureAlert :failure="failure"/>
     <p v-if="loading" class="text-sm text-(--text-muted)">{{ t('common.loading') }}</p>
     <div v-else class="space-y-3">
-      <div v-for="mod in allModules" :key="mod.key" class="flex items-center gap-3">
-        <ToggleInput :model-value="isEnabled(mod.key)" @update:model-value="toggle(mod.key)"/>
-        <span class="text-sm font-medium">{{ t(`stationManage.${mod.label}`) }}</span>
-      </div>
+      <StationModuleToggle
+          v-for="mod in STATION_MODULE_OPTIONS"
+          :key="mod.value"
+          :module="mod"
+          :model-value="isEnabled(mod.value)"
+          @update:model-value="toggle(mod.value)"
+      />
     </div>
   </SetupLayout>
 </template>

@@ -11,6 +11,7 @@ commonmark = "0.30.0"
 spotless = { id = "com.diffplug.spotless", version = "8.10.2" }
 idea = { id = "org.jetbrains.gradle.plugin.idea-ext", version = "1.4.1" }
 pitest = { id = "info.solidsoft.pitest", version = "1.19.0" }
+spotbugs = { id = "com.github.spotbugs", version = "6.5.12" }
 
 [libraries]
 # Database
@@ -30,9 +31,8 @@ logback-classic = { group = "ch.qos.logback", name = "logback-classic", version.
 
 # Api
 javalin-core = { group = "io.javalin", name = "javalin", version.ref = "javalin" }
-javalin-openapi-annotation = { group = "io.javalin.community.openapi", name = "openapi-annotation-processor", version.ref = "javalin" }
 javalin-openapi-swagger = { group = "io.javalin.community.openapi", name = "javalin-swagger-plugin", version.ref = "javalin" }
-javalin-openapi-openapi = { group = "io.javalin.community.openapi", name = "javalin-openapi-plugin", version.ref = "javalin" }
+javalin-testtools = { group = "io.javalin", name = "javalin-testtools", version.ref = "javalin" }
 
 # Configuration
 ocular = { group = "dev.chojo", name = "ocular", version = "2.2.1" }
@@ -62,13 +62,15 @@ guice = { group = "com.google.inject", name = "guice", version = "7.0.0" }
 
 # Security
 bcrypt = { group = "at.favre.lib", name = "bcrypt", version = "0.10.2" }
-totp = { group = "dev.samstevens.totp", name = "totp", version = "1.7.1" }
+java-otp = { group = "com.eatthepath", name = "java-otp", version = "1.0.0" }
+commons-codec = { group = "commons-codec", name = "commons-codec", version = "1.19.0" }
 zxing-core = { group = "com.google.zxing", name = "core", version = "3.5.4" }
 zxing-javase = { group = "com.google.zxing", name = "javase", version = "3.5.4" }
 webauthn-server = { group = "com.yubico", name = "webauthn-server-core", version = "2.9.0" }
 
 # Annotations
 jspecify = { group = "org.jspecify", name = "jspecify", version = "1.0.1" }
+spotbugs-annotations = { group = "com.github.spotbugs", name = "spotbugs-annotations", version = "4.10.4" }
 caffeine = { group = "com.github.ben-manes.caffeine", name = "caffeine", version = "3.2.4" }
 
 # mailing
@@ -140,8 +142,7 @@ junit = [
 ]
 javalin = [
     "javalin-core",
-    "javalin-openapi-swagger",
-    "javalin-openapi-openapi"
+    "javalin-openapi-swagger"
 ]
 config = [
     "ocular",

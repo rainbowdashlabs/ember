@@ -11,8 +11,12 @@ import InfoBadge from '@/components/badge/InfoBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import type { QuizQuestion } from '@/api/quiz'
+import type { QuizQuestion } from '@/api/generated/schema'
 
+/**
+ * A question of the catalogue, folded, on a wide screen. Its text opens the editor when pressed,
+ * which is a pointer's shortcut to the edit button beside it.
+ */
 defineProps<{
   question: QuizQuestion
   selected: boolean
@@ -33,7 +37,7 @@ const { t } = useI18n()
     <div class="flex items-center gap-2 shrink-0" @click.stop>
       <CheckboxInput :model-value="selected" @update:model-value="emit('toggleSelect')"/>
     </div>
-    <div class="flex-1 min-w-0 space-y-0.5 cursor-pointer" @click="emit('edit')">
+    <div class="flex-1 min-w-0 space-y-0.5 cursor-pointer" role="presentation" @click="emit('edit')">
       <div class="flex items-center gap-1.5 flex-wrap">
         <InfoBadge>{{ t(`quiz.questionTypes.${question.quizQuestionType}`) }}</InfoBadge>
         <SecondaryBadge>{{ categoryName }}</SecondaryBadge>

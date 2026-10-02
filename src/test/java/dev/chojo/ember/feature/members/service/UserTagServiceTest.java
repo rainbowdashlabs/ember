@@ -105,20 +105,16 @@ class UserTagServiceTest extends RepositoryTestBase {
     @Test
     @Order(40)
     void convertToGroup() {
-        // Create a fresh tag with the member in it
         var tag2 = service.create(station.id(), "ToBeGroup");
         service.setMembers(tag2.id(), List.of(member.id()));
 
         service.convertToGroup(tag2.id());
 
-        // Tag should be gone
         assertTrue(service.findById(tag2.id()).isEmpty());
 
-        // Group should exist with the same name
         var groups = memberGroupRepo.findByStation(station.id());
         assertTrue(groups.stream().anyMatch(g -> "ToBeGroup".equals(g.name())));
 
-        // Cleanup
         groups.stream()
                 .filter(g -> "ToBeGroup".equals(g.name()))
                 .findFirst()

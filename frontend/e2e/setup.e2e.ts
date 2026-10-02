@@ -73,8 +73,6 @@ test.describe('Setup assistant', () => {
         const page = await setupStationPage(browser, request)
         const group = `Gruppe-${Date.now()}`
 
-        // The name is typed into a line of its own and added to the list; the step then saves the
-        // list it holds.
         await page.goto('/station/setup/groups')
         await page.getByPlaceholder('Name der Gruppe').first().fill(group)
         await page.getByRole('button', {name: 'Zeile hinzufügen'}).click()
@@ -103,24 +101,22 @@ test.describe('Setup assistant', () => {
     /**
      * The whole assistant, from the welcome to the end. Last of these stories on purpose: a station
      * that reaches the end is past its setup, and the assistant is then closed to it.
+     *
+     * The assistant's address forwards to whichever step is open, so the walk starts once it has. Each
+     * step is started, saved or skipped; only what a step insists on is answered, which is the address
+     * with its pin on the map, saved on its own because the step reads what was saved. An optional
+     * step keeps its save off until something is written and is skipped instead, by a button or, on
+     * the step that hands over to another page, a link. The bound only ends a step that never moves.
      */
     test('the assistant is walked to the end and the station is set up', async ({browser, request}) => {
         const page = await setupStationPage(browser, request)
 
-        // The assistant's own address forwards to whichever step is open, so the walk starts once
-        // that has happened rather than on the forwarding page itself.
         await page.goto('/station/setup')
         await page.waitForURL(/\/station\/setup\/\w/)
 
-        // Every step either gets started, saves and moves on, or is skipped. What a step insists on
-        // is answered; the rest is left as it is, which is what a station in a hurry would do.
-        // Twelve steps, and a couple of them take two presses - the bound is only there so a step
-        // that refuses to move on ends the story rather than the run.
         for (let step = 0; step < 30; step += 1) {
             if (page.url().includes('/station/setup/finish')) break
 
-            // The address step is the one that insists: every field of it, plus a pin on the map,
-            // which is what the two coordinate fields are.
             const address: [RegExp, string][] = [
                 [/Hauptstraße 1/, 'Musterweg 1'],
                 [/80331/, '80331'],
@@ -135,21 +131,15 @@ test.describe('Setup assistant', () => {
             const country = page.locator('select:has(option:text-is("– bitte wählen –"))')
             if (await country.count() > 0) await country.first().selectOption({index: 1})
 
-            // The location has a save of its own, and the step reads what was saved rather than
-            // what stands in the fields - so it is pressed before moving on.
             const sectionSave = page.getByRole('button', {name: 'Speichern', exact: true})
             if (await sectionSave.count() > 0) await sectionSave.first().click()
 
             const before = page.url()
             const start = page.getByRole('button', {name: 'Loslegen'})
             const save = page.getByRole('button', {name: 'Speichern und weiter'})
-            // Most steps offer skipping as a button; the one that hands over to another page offers
-            // it as a link.
             const skip = page.getByRole('button', {name: 'Überspringen'})
                 .or(page.getByRole('link', {name: 'Überspringen'}))
 
-            // An optional step keeps its save switched off until something is written into it, and
-            // is left behind rather than filled in.
             const canSave = await save.count() > 0 && await save.first().isEnabled()
 
             if (await start.count() > 0) await start.first().click()
@@ -168,9 +158,8 @@ test.describe('Setup assistant', () => {
         await page.getByRole('button', {name: 'Zum Dashboard'}).click()
         await expect(page).toHaveURL(/\/station\/dashboard\/overview/)
 
-        // And from now on the assistant is closed to this station like to any other.
         await page.goto('/station/setup')
-        await expect(page).toHaveURL(/\/station\/dashboard\/overview/)
+        await expect(page, 'the assistant is closed to this station from now on').toHaveURL(/\/station\/dashboard\/overview/)
 
         await page.context().close()
     })

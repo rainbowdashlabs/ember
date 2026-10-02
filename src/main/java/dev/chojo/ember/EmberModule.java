@@ -8,6 +8,7 @@ package dev.chojo.ember;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.google.inject.TypeLiteral;
+import com.google.inject.multibindings.MapBinder;
 import com.google.inject.multibindings.Multibinder;
 import de.chojo.sadu.core.updater.SqlVersion;
 import de.chojo.sadu.datasource.DataSourceCreator;
@@ -40,59 +41,18 @@ import dev.chojo.ember.conf.file.elements.Updates;
 import dev.chojo.ember.conf.file.elements.WebAuthnSettings;
 import dev.chojo.ember.db.ProfileFieldMergeBackup;
 import dev.chojo.ember.event.DomainEventHandler;
-import dev.chojo.ember.event.handlers.BoardTicketChangedHandler;
-import dev.chojo.ember.event.handlers.BulkMentionedInCommentHandler;
-import dev.chojo.ember.event.handlers.ClusterApplicationResolvedHandler;
-import dev.chojo.ember.event.handlers.ClusterApplicationSubmittedHandler;
-import dev.chojo.ember.event.handlers.ClusterApplicationWithdrawnHandler;
-import dev.chojo.ember.event.handlers.ClusterEventShareHandler;
-import dev.chojo.ember.event.handlers.ClusterFieldValueChangedHandler;
-import dev.chojo.ember.event.handlers.ClusterGovernanceHandler;
-import dev.chojo.ember.event.handlers.ClusterItemIssuedHandler;
-import dev.chojo.ember.event.handlers.ClusterItemLostHandler;
-import dev.chojo.ember.event.handlers.ClusterMemberRoleChangedHandler;
-import dev.chojo.ember.event.handlers.ClusterNewsShareHandler;
-import dev.chojo.ember.event.handlers.ClusterQuotaChangedHandler;
-import dev.chojo.ember.event.handlers.ClusterStationReleasedHandler;
-import dev.chojo.ember.event.handlers.CommentCreatedHandler;
-import dev.chojo.ember.event.handlers.CommentDeletedHandler;
-import dev.chojo.ember.event.handlers.EventCancelledHandler;
-import dev.chojo.ember.event.handlers.EventCreatedHandler;
-import dev.chojo.ember.event.handlers.EventDeletedHandler;
-import dev.chojo.ember.event.handlers.EventRegistrationStatusHandler;
-import dev.chojo.ember.event.handlers.EventsBatchCreatedHandler;
-import dev.chojo.ember.event.handlers.FormDeletedHandler;
-import dev.chojo.ember.event.handlers.FormPublishedHandler;
-import dev.chojo.ember.event.handlers.LendingMessageSentHandler;
-import dev.chojo.ember.event.handlers.LendingRequestedHandler;
-import dev.chojo.ember.event.handlers.LendingStatusChangedHandler;
-import dev.chojo.ember.event.handlers.MembersAddedToGroupHandler;
-import dev.chojo.ember.event.handlers.MentionedInCommentHandler;
-import dev.chojo.ember.event.handlers.MovementAdvancedHandler;
-import dev.chojo.ember.event.handlers.MovementCancelledHandler;
-import dev.chojo.ember.event.handlers.MovementDeclinedHandler;
-import dev.chojo.ember.event.handlers.MovementStartedHandler;
-import dev.chojo.ember.event.handlers.NewsCreatedHandler;
-import dev.chojo.ember.event.handlers.NewsDeletedHandler;
-import dev.chojo.ember.event.handlers.ProcedureAssignedHandler;
-import dev.chojo.ember.event.handlers.ProcedureItemCheckedHandler;
-import dev.chojo.ember.event.handlers.ProcedureReopenedHandler;
-import dev.chojo.ember.event.handlers.ProcedureResolvedHandler;
-import dev.chojo.ember.event.handlers.ProcurementCreatedHandler;
-import dev.chojo.ember.event.handlers.ProcurementFulfilledHandler;
-import dev.chojo.ember.event.handlers.RegistrationDeadlineExpiredHandler;
-import dev.chojo.ember.event.handlers.StorageWarningHandler;
-import dev.chojo.ember.event.handlers.WaitlistInvitationAnsweredHandler;
-import dev.chojo.ember.event.handlers.WaitlistPublicRegistrationHandler;
 import dev.chojo.ember.feature.account.route.AccountDataRoutes;
 import dev.chojo.ember.feature.account.route.AccountSessionRoutes;
 import dev.chojo.ember.feature.account.route.AuthRoutes;
 import dev.chojo.ember.feature.account.route.AvatarRoutes;
 import dev.chojo.ember.feature.account.route.SessionRoutes;
 import dev.chojo.ember.feature.account.service.AuthCleanupSweeper;
+import dev.chojo.ember.feature.attendance.handler.EventAnswerRecordedHandler;
 import dev.chojo.ember.feature.attendance.route.AttendanceRoutes;
 import dev.chojo.ember.feature.beacon.route.BeaconAdminRoutes;
 import dev.chojo.ember.feature.beacon.route.BeaconIntakeRoutes;
+import dev.chojo.ember.feature.beacon.service.BeaconMetricsService;
+import dev.chojo.ember.feature.board.handler.BoardTicketChangedHandler;
 import dev.chojo.ember.feature.board.route.BoardRoutes;
 import dev.chojo.ember.feature.board.route.BoardTicketAttachmentRoutes;
 import dev.chojo.ember.feature.board.route.BoardTicketDetailRoutes;
@@ -105,10 +65,36 @@ import dev.chojo.ember.feature.board.route.RemoteBoardTicketDetailRoutes;
 import dev.chojo.ember.feature.board.route.RemoteBoardTicketLinkRoutes;
 import dev.chojo.ember.feature.board.route.RemoteBoardTicketRoutes;
 import dev.chojo.ember.feature.board.route.RemoteBoardWebhookRoutes;
+import dev.chojo.ember.feature.board.service.BoardFeedDetails;
+import dev.chojo.ember.feature.board.service.DueDateReminderChecker;
+import dev.chojo.ember.feature.board.service.FederatedBoardDiscoveryService;
+import dev.chojo.ember.feature.board.service.FederatedBoardNotificationService;
+import dev.chojo.ember.feature.board.service.FederatedBoardStructureProxy;
+import dev.chojo.ember.feature.board.service.FederatedTicketDetailProxy;
+import dev.chojo.ember.feature.board.service.FederatedTicketProxy;
+import dev.chojo.ember.feature.board.service.TicketCommentTarget;
 import dev.chojo.ember.feature.checklist.route.ChecklistRoutes;
 import dev.chojo.ember.feature.cluster.ClusterModule;
+import dev.chojo.ember.feature.cluster.handler.ClusterApplicationResolvedHandler;
+import dev.chojo.ember.feature.cluster.handler.ClusterApplicationSubmittedHandler;
+import dev.chojo.ember.feature.cluster.handler.ClusterApplicationWithdrawnHandler;
+import dev.chojo.ember.feature.cluster.handler.ClusterEventShareHandler;
+import dev.chojo.ember.feature.cluster.handler.ClusterFieldValueChangedHandler;
+import dev.chojo.ember.feature.cluster.handler.ClusterGovernanceHandler;
+import dev.chojo.ember.feature.cluster.handler.ClusterMemberRoleChangedHandler;
+import dev.chojo.ember.feature.cluster.handler.ClusterNewsShareHandler;
+import dev.chojo.ember.feature.cluster.handler.ClusterQuotaChangedHandler;
+import dev.chojo.ember.feature.cluster.handler.ClusterStationReleasedHandler;
+import dev.chojo.ember.feature.cluster.service.AssociationProfileFields;
+import dev.chojo.ember.feature.comment.entity.CommentEntityType;
+import dev.chojo.ember.feature.comment.handler.BulkMentionedInCommentHandler;
+import dev.chojo.ember.feature.comment.handler.CommentCreatedHandler;
+import dev.chojo.ember.feature.comment.handler.CommentDeletedHandler;
+import dev.chojo.ember.feature.comment.handler.MentionedInCommentHandler;
 import dev.chojo.ember.feature.comment.route.EventCommentRoutes;
 import dev.chojo.ember.feature.comment.route.NoteRoutes;
+import dev.chojo.ember.feature.comment.service.CommentFeedDetails;
+import dev.chojo.ember.feature.comment.service.CommentTarget;
 import dev.chojo.ember.feature.content.service.BlockReferences;
 import dev.chojo.ember.feature.content.service.CellDescriptions;
 import dev.chojo.ember.feature.discovery.route.AdminDiscoveryRoutes;
@@ -120,7 +106,16 @@ import dev.chojo.ember.feature.discovery.service.FederationPartnerSeeder;
 import dev.chojo.ember.feature.documents.route.DocumentRoutes;
 import dev.chojo.ember.feature.equipment.route.EquipmentBrowseRoutes;
 import dev.chojo.ember.feature.equipment.route.EquipmentNeedRoutes;
+import dev.chojo.ember.feature.events.handler.EventCancelledHandler;
+import dev.chojo.ember.feature.events.handler.EventChangedHandler;
+import dev.chojo.ember.feature.events.handler.EventCreatedHandler;
+import dev.chojo.ember.feature.events.handler.EventDateRestoredHandler;
+import dev.chojo.ember.feature.events.handler.EventDeletedHandler;
+import dev.chojo.ember.feature.events.handler.EventRegistrationStatusHandler;
+import dev.chojo.ember.feature.events.handler.EventsBatchCreatedHandler;
+import dev.chojo.ember.feature.events.handler.RegistrationDeadlineExpiredHandler;
 import dev.chojo.ember.feature.events.route.EventAttachmentRoutes;
+import dev.chojo.ember.feature.events.route.EventCancellationRoutes;
 import dev.chojo.ember.feature.events.route.EventEmbedRoutes;
 import dev.chojo.ember.feature.events.route.EventRegistrationRoutes;
 import dev.chojo.ember.feature.events.route.EventRoutes;
@@ -131,9 +126,17 @@ import dev.chojo.ember.feature.events.route.FederatedEventRoutes;
 import dev.chojo.ember.feature.events.route.PublicEventRoutes;
 import dev.chojo.ember.feature.events.route.RemoteEventRoutes;
 import dev.chojo.ember.feature.events.service.EventBlockReferences;
+import dev.chojo.ember.feature.events.service.EventCommentTarget;
+import dev.chojo.ember.feature.events.service.EventFederationService;
+import dev.chojo.ember.feature.events.service.EventFeedDetails;
 import dev.chojo.ember.feature.events.service.EventReminderChecker;
 import dev.chojo.ember.feature.events.service.EventThresholdChecker;
+import dev.chojo.ember.feature.events.service.FieldRegistrationSweeper;
+import dev.chojo.ember.feature.events.service.RegistrationDeadlineChecker;
 import dev.chojo.ember.feature.events.service.SettledRefusalSweeper;
+import dev.chojo.ember.feature.federation.handler.LendingMessageSentHandler;
+import dev.chojo.ember.feature.federation.handler.LendingRequestedHandler;
+import dev.chojo.ember.feature.federation.handler.LendingStatusChangedHandler;
 import dev.chojo.ember.feature.federation.route.FederatedLendingRoutes;
 import dev.chojo.ember.feature.federation.route.FederationRoutes;
 import dev.chojo.ember.feature.federation.route.InventoryShareRoutes;
@@ -141,14 +144,32 @@ import dev.chojo.ember.feature.federation.route.LendingRoutes;
 import dev.chojo.ember.feature.federation.route.RemoteFederationRoutes;
 import dev.chojo.ember.feature.federation.route.RemoteLendingRoutes;
 import dev.chojo.ember.feature.federation.service.FederationVersionBroadcaster;
+import dev.chojo.ember.feature.federation.service.LendingFeedDetails;
+import dev.chojo.ember.feature.federation.service.LendingService;
+import dev.chojo.ember.feature.federation.transport.FederationServer;
+import dev.chojo.ember.feature.federation.transport.FederationTransport;
+import dev.chojo.ember.feature.federation.transport.RoutingFederationTransport;
+import dev.chojo.ember.feature.feed.render.FeedDetailsContributor;
 import dev.chojo.ember.feature.feed.route.FeedMetricsRoutes;
 import dev.chojo.ember.feature.feed.route.FeedTokenRoutes;
 import dev.chojo.ember.feature.feed.route.StationFeedUseRoutes;
 import dev.chojo.ember.feature.feed.route.UserFeedRoutes;
 import dev.chojo.ember.feature.feed.service.FeedMetricsService;
+import dev.chojo.ember.feature.form.handler.FormDeletedHandler;
+import dev.chojo.ember.feature.form.handler.FormPublishedHandler;
 import dev.chojo.ember.feature.form.route.FormRoutes;
 import dev.chojo.ember.feature.form.route.PublicFormRoutes;
+import dev.chojo.ember.feature.form.service.FormFeedDetails;
 import dev.chojo.ember.feature.insights.route.StationInsightsRoutes;
+import dev.chojo.ember.feature.insights.service.PageHitRecorder;
+import dev.chojo.ember.feature.inventory.handler.ClusterItemIssuedHandler;
+import dev.chojo.ember.feature.inventory.handler.ClusterItemLostHandler;
+import dev.chojo.ember.feature.inventory.handler.MovementAdvancedHandler;
+import dev.chojo.ember.feature.inventory.handler.MovementCancelledHandler;
+import dev.chojo.ember.feature.inventory.handler.MovementDeclinedHandler;
+import dev.chojo.ember.feature.inventory.handler.MovementStartedHandler;
+import dev.chojo.ember.feature.inventory.handler.ProcurementCreatedHandler;
+import dev.chojo.ember.feature.inventory.handler.ProcurementFulfilledHandler;
 import dev.chojo.ember.feature.inventory.route.FederatedInventoryTagRoutes;
 import dev.chojo.ember.feature.inventory.route.InventoryArtRoutes;
 import dev.chojo.ember.feature.inventory.route.InventoryCheckRoutes;
@@ -162,6 +183,8 @@ import dev.chojo.ember.feature.inventory.route.ProcurementRoutes;
 import dev.chojo.ember.feature.inventory.route.RemoteInventoryTagRoutes;
 import dev.chojo.ember.feature.inventory.route.SelfCheckReviewRoutes;
 import dev.chojo.ember.feature.inventory.route.SelfCheckRoutes;
+import dev.chojo.ember.feature.inventory.service.FederatedItemTagService;
+import dev.chojo.ember.feature.inventory.service.InventoryFeedDetails;
 import dev.chojo.ember.feature.knowledgebase.route.FederatedKnowledgeBaseRoutes;
 import dev.chojo.ember.feature.knowledgebase.route.KbFavouriteRoutes;
 import dev.chojo.ember.feature.knowledgebase.route.KnowledgeBaseAccessRoutes;
@@ -170,19 +193,28 @@ import dev.chojo.ember.feature.knowledgebase.route.KnowledgeBaseRoutes;
 import dev.chojo.ember.feature.knowledgebase.route.KnowledgeBaseTagRoutes;
 import dev.chojo.ember.feature.knowledgebase.route.PublicKnowledgeBaseRoutes;
 import dev.chojo.ember.feature.knowledgebase.route.RemoteKnowledgeBaseRoutes;
+import dev.chojo.ember.feature.knowledgebase.service.KbCommentTarget;
 import dev.chojo.ember.feature.knowledgebase.service.KbTrashPurger;
+import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseFederationService;
 import dev.chojo.ember.feature.legal.route.ConsentRoutes;
 import dev.chojo.ember.feature.lostandfound.route.LostAndFoundRoutes;
+import dev.chojo.ember.feature.lostandfound.service.LostAndFoundFeedDetails;
 import dev.chojo.ember.feature.mail.route.MailWebhookRoutes;
+import dev.chojo.ember.feature.mail.service.EmailService;
+import dev.chojo.ember.feature.mail.service.MailWebhookService;
 import dev.chojo.ember.feature.mailimport.route.MailImportRoutes;
 import dev.chojo.ember.feature.mailimport.service.MailFilingService;
+import dev.chojo.ember.feature.mailimport.service.MailImportPoller;
 import dev.chojo.ember.feature.mailimport.service.StationMemberNaming;
 import dev.chojo.ember.feature.maps.route.AdminMapsRoutes;
 import dev.chojo.ember.feature.maps.route.PublicMapsRoutes;
 import dev.chojo.ember.feature.media.route.MediaRoutes;
 import dev.chojo.ember.feature.media.route.PublicMediaRoutes;
+import dev.chojo.ember.feature.members.entity.FieldOrigin;
+import dev.chojo.ember.feature.members.handler.MembersAddedToGroupHandler;
 import dev.chojo.ember.feature.members.route.ManagedMemberRoutes;
 import dev.chojo.ember.feature.members.route.MemberGroupRoutes;
+import dev.chojo.ember.feature.members.route.MemberGroupSetRoutes;
 import dev.chojo.ember.feature.members.route.MemberImportRoutes;
 import dev.chojo.ember.feature.members.route.MemberRoutes;
 import dev.chojo.ember.feature.members.route.MemberTableRoutes;
@@ -195,14 +227,24 @@ import dev.chojo.ember.feature.members.route.StationMemberRoutes;
 import dev.chojo.ember.feature.members.route.TransferRoutes;
 import dev.chojo.ember.feature.members.route.UserSettingsRoutes;
 import dev.chojo.ember.feature.members.route.UserTagRoutes;
-import dev.chojo.ember.feature.members.service.ExpiryReminderChecker;
+import dev.chojo.ember.feature.members.service.ExpiryReminderService;
 import dev.chojo.ember.feature.members.service.ManagedLoginNoticeSweeper;
+import dev.chojo.ember.feature.members.service.MemberFeedDetails;
+import dev.chojo.ember.feature.members.service.ProfileFieldOwner;
+import dev.chojo.ember.feature.members.service.StationMemberEligibility;
+import dev.chojo.ember.feature.members.service.StationProfileFields;
+import dev.chojo.ember.feature.news.handler.NewsCreatedHandler;
+import dev.chojo.ember.feature.news.handler.NewsDeletedHandler;
 import dev.chojo.ember.feature.news.route.AdminNewsRoutes;
 import dev.chojo.ember.feature.news.route.FederatedNewsRoutes;
 import dev.chojo.ember.feature.news.route.NewsRoutes;
 import dev.chojo.ember.feature.news.route.RemoteNewsRoutes;
 import dev.chojo.ember.feature.news.service.NewsBlockReferences;
+import dev.chojo.ember.feature.news.service.NewsCommentTarget;
+import dev.chojo.ember.feature.news.service.NewsFederationService;
+import dev.chojo.ember.feature.news.service.NewsFeedDetails;
 import dev.chojo.ember.feature.notifications.route.NotificationRoutes;
+import dev.chojo.ember.feature.notifications.service.NotificationDigest;
 import dev.chojo.ember.feature.onboarding.route.OnboardingRoutes;
 import dev.chojo.ember.feature.page.route.PageRoutes;
 import dev.chojo.ember.feature.page.route.PublicPageRoutes;
@@ -210,10 +252,18 @@ import dev.chojo.ember.feature.page.route.SharedPageRoutes;
 import dev.chojo.ember.feature.page.service.StationPageAddressing;
 import dev.chojo.ember.feature.passkey.route.PasskeyAdminRoutes;
 import dev.chojo.ember.feature.passkey.route.PasskeyRoutes;
+import dev.chojo.ember.feature.procedure.handler.ProcedureAssignedHandler;
+import dev.chojo.ember.feature.procedure.handler.ProcedureItemCheckedHandler;
+import dev.chojo.ember.feature.procedure.handler.ProcedureReopenedHandler;
+import dev.chojo.ember.feature.procedure.handler.ProcedureResolvedHandler;
 import dev.chojo.ember.feature.procedure.route.ProcedureRoutes;
+import dev.chojo.ember.feature.procedure.service.ProcedureFeedDetails;
 import dev.chojo.ember.feature.protocol.route.FederatedTestProtocolRoutes;
 import dev.chojo.ember.feature.protocol.route.RemoteTestProtocolRoutes;
 import dev.chojo.ember.feature.protocol.route.TestProtocolRoutes;
+import dev.chojo.ember.feature.protocol.service.TestProtocolService;
+import dev.chojo.ember.feature.question.MemberEligibility;
+import dev.chojo.ember.feature.quiz.route.AccountAiCredentialRoutes;
 import dev.chojo.ember.feature.quiz.route.AiRoutes;
 import dev.chojo.ember.feature.quiz.route.FederatedQuizRoutes;
 import dev.chojo.ember.feature.quiz.route.PublicQuizRoutes;
@@ -222,20 +272,25 @@ import dev.chojo.ember.feature.quiz.route.QuizCatalogRoutes;
 import dev.chojo.ember.feature.quiz.route.QuizQuestionRoutes;
 import dev.chojo.ember.feature.quiz.route.QuizTestRoutes;
 import dev.chojo.ember.feature.quiz.route.RemoteQuizRoutes;
+import dev.chojo.ember.feature.quiz.service.QuizFederationService;
 import dev.chojo.ember.feature.station.route.DiscoveryRoutes;
+import dev.chojo.ember.feature.station.route.FirstStationRoutes;
 import dev.chojo.ember.feature.station.route.PublicStationRoutes;
 import dev.chojo.ember.feature.station.route.SetupRoutes;
 import dev.chojo.ember.feature.station.route.StationApplicationRoutes;
 import dev.chojo.ember.feature.station.route.StationManageRoutes;
 import dev.chojo.ember.feature.station.route.StationRoutes;
+import dev.chojo.ember.feature.station.service.TransferTimeoutWatchdog;
 import dev.chojo.ember.feature.station.transfer.AccountCredentialTableImporter;
 import dev.chojo.ember.feature.station.transfer.AccountTableImporter;
 import dev.chojo.ember.feature.station.transfer.DisabledModuleTableImporter;
 import dev.chojo.ember.feature.station.transfer.StationTableImporter;
 import dev.chojo.ember.feature.station.transfer.TableImporter;
 import dev.chojo.ember.feature.statistics.route.StatisticsRoutes;
+import dev.chojo.ember.feature.storage.handler.StorageWarningHandler;
 import dev.chojo.ember.feature.storage.route.StationStorageBackendRoutes;
 import dev.chojo.ember.feature.storage.route.StorageRoutes;
+import dev.chojo.ember.feature.storage.service.StorageFeedDetails;
 import dev.chojo.ember.feature.storage.service.StorageReconciliationService;
 import dev.chojo.ember.feature.storage.transfer.StationTransferAssetRoutes;
 import dev.chojo.ember.feature.system.route.AdminMonitoringCountRoutes;
@@ -244,14 +299,20 @@ import dev.chojo.ember.feature.system.route.ApiStatusRoutes;
 import dev.chojo.ember.feature.system.route.ChangelogRoutes;
 import dev.chojo.ember.feature.system.route.DataRoutes;
 import dev.chojo.ember.feature.system.route.DataTrackingRoutes;
+import dev.chojo.ember.feature.system.route.DemoRoutes;
+import dev.chojo.ember.feature.system.route.DevRoutes;
 import dev.chojo.ember.feature.system.route.InstallRoutes;
 import dev.chojo.ember.feature.system.route.ProblemReportRoutes;
 import dev.chojo.ember.feature.system.route.ProblemRoutes;
+import dev.chojo.ember.feature.system.route.PublicConfigRoutes;
 import dev.chojo.ember.feature.system.route.RequirementsRoutes;
 import dev.chojo.ember.feature.system.route.SidebarCountRoutes;
 import dev.chojo.ember.feature.system.route.SitemapRoutes;
+import dev.chojo.ember.feature.system.route.TaskStatusRoutes;
 import dev.chojo.ember.feature.system.route.UpdateRoutes;
 import dev.chojo.ember.feature.system.route.UtilRoutes;
+import dev.chojo.ember.feature.system.service.ApiRequestLogger;
+import dev.chojo.ember.feature.system.service.ApplicationLogWriter;
 import dev.chojo.ember.feature.system.service.DemoAttendanceSeeder;
 import dev.chojo.ember.feature.system.service.DemoAvatarSeeder;
 import dev.chojo.ember.feature.system.service.DemoBoardSeeder;
@@ -276,6 +337,7 @@ import dev.chojo.ember.feature.system.service.DemoProtocolSeeder;
 import dev.chojo.ember.feature.system.service.DemoQuizSeeder;
 import dev.chojo.ember.feature.system.service.DemoSeeder;
 import dev.chojo.ember.feature.system.service.DemoSelfCheckSeeder;
+import dev.chojo.ember.feature.system.service.DemoService;
 import dev.chojo.ember.feature.system.service.DemoSessionSeeder;
 import dev.chojo.ember.feature.system.service.DemoSettingsSeeder;
 import dev.chojo.ember.feature.system.service.DemoSetupSeeder;
@@ -284,8 +346,10 @@ import dev.chojo.ember.feature.system.service.DemoTwoFactorSeeder;
 import dev.chojo.ember.feature.system.service.DemoVideoSeeder;
 import dev.chojo.ember.feature.system.service.DemoWaitingListSeeder;
 import dev.chojo.ember.feature.system.service.ProblemReportSweeper;
+import dev.chojo.ember.feature.system.service.UpdateCheckService;
 import dev.chojo.ember.feature.traffic.route.AdminTrafficRoutes;
 import dev.chojo.ember.feature.traffic.route.StationTrafficRoutes;
+import dev.chojo.ember.feature.traffic.service.StationTrafficRecorder;
 import dev.chojo.ember.feature.twofactor.route.StepUpRoutes;
 import dev.chojo.ember.feature.twofactor.route.TwoFactorAdminRoutes;
 import dev.chojo.ember.feature.twofactor.route.TwoFactorRoutes;
@@ -293,7 +357,13 @@ import dev.chojo.ember.feature.twofactor.service.RelyingParties;
 import dev.chojo.ember.feature.twofactor.service.SecondFactorCredentialStore;
 import dev.chojo.ember.feature.twofactor.service.WebAuthnCredentialStore;
 import dev.chojo.ember.feature.twofactor.service.WebAuthnRelyingPartyFactory;
+import dev.chojo.ember.feature.waitinglist.handler.WaitlistInvitationAnsweredHandler;
+import dev.chojo.ember.feature.waitinglist.handler.WaitlistPublicRegistrationHandler;
 import dev.chojo.ember.feature.waitinglist.route.WaitingListRoutes;
+import dev.chojo.ember.feature.waitinglist.service.WaitingListFeedDetails;
+import dev.chojo.ember.feature.waitinglist.service.WaitingListService;
+import dev.chojo.ember.lifecycle.ShutdownFlush;
+import dev.chojo.ember.lifecycle.TaskSource;
 import dev.chojo.ember.util.sql.Transactions;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -342,6 +412,7 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(AvatarRoutes.class);
         routesBinder.addBinding().to(AccountDataRoutes.class);
         routesBinder.addBinding().to(StationRoutes.class);
+        routesBinder.addBinding().to(FirstStationRoutes.class);
         routesBinder.addBinding().to(StationMemberRoutes.class);
         routesBinder.addBinding().to(StationMemberInviteRoutes.class);
         routesBinder.addBinding().to(AttendanceRoutes.class);
@@ -352,12 +423,14 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(MailImportRoutes.class);
         routesBinder.addBinding().to(AdminMonitoringCountRoutes.class);
         bind(MailFilingService.MemberNaming.class).to(StationMemberNaming.class);
+        bind(MemberEligibility.class).to(StationMemberEligibility.class);
         bind(CellDescriptions.PageAddressing.class).to(StationPageAddressing.class);
         Multibinder<BlockReferences> blockReferencesBinder = Multibinder.newSetBinder(binder(), BlockReferences.class);
         blockReferencesBinder.addBinding().to(NewsBlockReferences.class);
         blockReferencesBinder.addBinding().to(EventBlockReferences.class);
         routesBinder.addBinding().to(ProfileFieldChangeRoutes.class);
         routesBinder.addBinding().to(MemberGroupRoutes.class);
+        routesBinder.addBinding().to(MemberGroupSetRoutes.class);
         routesBinder.addBinding().to(RegistrationCodeRoutes.class);
         routesBinder.addBinding().to(StationManageRoutes.class);
         routesBinder.addBinding().to(SetupRoutes.class);
@@ -368,6 +441,7 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(EventEmbedRoutes.class);
         routesBinder.addBinding().to(EventRegistrationRoutes.class);
         routesBinder.addBinding().to(EventSharingRoutes.class);
+        routesBinder.addBinding().to(EventCancellationRoutes.class);
         routesBinder.addBinding().to(EventRoutes.class);
         routesBinder.addBinding().to(FederatedEventRoutes.class);
         routesBinder.addBinding().to(RemoteEventRoutes.class);
@@ -417,7 +491,11 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(BeaconAdminRoutes.class);
         routesBinder.addBinding().to(ProblemReportRoutes.class);
         routesBinder.addBinding().to(ApiStatusRoutes.class);
+        routesBinder.addBinding().to(DemoRoutes.class);
+        routesBinder.addBinding().to(DevRoutes.class);
+        routesBinder.addBinding().to(PublicConfigRoutes.class);
         routesBinder.addBinding().to(UpdateRoutes.class);
+        routesBinder.addBinding().to(TaskStatusRoutes.class);
         routesBinder.addBinding().to(ChangelogRoutes.class);
         routesBinder.addBinding().to(WaitingListRoutes.class);
         routesBinder.addBinding().to(QuizCatalogRoutes.class);
@@ -428,6 +506,7 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(RemoteQuizRoutes.class);
         routesBinder.addBinding().to(PublicQuizRoutes.class);
         routesBinder.addBinding().to(AiRoutes.class);
+        routesBinder.addBinding().to(AccountAiCredentialRoutes.class);
         routesBinder.addBinding().to(KnowledgeBaseRoutes.class);
         routesBinder.addBinding().to(KnowledgeBaseAccessRoutes.class);
         routesBinder.addBinding().to(KnowledgeBaseTagRoutes.class);
@@ -527,11 +606,23 @@ public class EmberModule extends AbstractModule {
         demoSeederBinder.addBinding().to(DemoTwoFactorSeeder.class);
         demoSeederBinder.addBinding().to(DemoVideoSeeder.class);
 
-        // Domain event handlers
+        MapBinder<CommentEntityType, CommentTarget> commentTargets =
+                MapBinder.newMapBinder(binder(), CommentEntityType.class, CommentTarget.class);
+        commentTargets.addBinding(CommentEntityType.EVENT).to(EventCommentTarget.class);
+        commentTargets.addBinding(CommentEntityType.KB).to(KbCommentTarget.class);
+        commentTargets.addBinding(CommentEntityType.NEWS).to(NewsCommentTarget.class);
+        commentTargets.addBinding(CommentEntityType.BOARD_TICKET).to(TicketCommentTarget.class);
+
+        MapBinder<FieldOrigin, ProfileFieldOwner> profileFieldOwners =
+                MapBinder.newMapBinder(binder(), FieldOrigin.class, ProfileFieldOwner.class);
+        profileFieldOwners.addBinding(FieldOrigin.STATION).to(StationProfileFields.class);
+        profileFieldOwners.addBinding(FieldOrigin.CLUSTER).to(AssociationProfileFields.class);
+
         Multibinder<DomainEventHandler<?>> eventBinder = Multibinder.newSetBinder(binder(), new TypeLiteral<>() {});
         eventBinder.addBinding().to(EventCreatedHandler.class);
         eventBinder.addBinding().to(EventsBatchCreatedHandler.class);
         eventBinder.addBinding().to(EventDeletedHandler.class);
+        eventBinder.addBinding().to(EventChangedHandler.class);
         eventBinder.addBinding().to(EventRegistrationStatusHandler.class);
         eventBinder.addBinding().to(NewsCreatedHandler.class);
         eventBinder.addBinding().to(ClusterNewsShareHandler.class);
@@ -566,6 +657,8 @@ public class EmberModule extends AbstractModule {
         eventBinder.addBinding().to(BulkMentionedInCommentHandler.class);
         eventBinder.addBinding().to(BoardTicketChangedHandler.class);
         eventBinder.addBinding().to(EventCancelledHandler.class);
+        eventBinder.addBinding().to(EventDateRestoredHandler.class);
+        eventBinder.addBinding().to(EventAnswerRecordedHandler.class);
         eventBinder.addBinding().to(ProcedureAssignedHandler.class);
         eventBinder.addBinding().to(ProcedureResolvedHandler.class);
         eventBinder.addBinding().to(ProcedureReopenedHandler.class);
@@ -574,23 +667,75 @@ public class EmberModule extends AbstractModule {
         eventBinder.addBinding().to(WaitlistInvitationAnsweredHandler.class);
         eventBinder.addBinding().to(StorageWarningHandler.class);
 
-        // Eager singletons - started on boot
-        bind(EventThresholdChecker.class).asEagerSingleton();
-        bind(EventReminderChecker.class).asEagerSingleton();
-        bind(ExpiryReminderChecker.class).asEagerSingleton();
-        bind(StorageReconciliationService.class).asEagerSingleton();
-        bind(ManagedLoginNoticeSweeper.class).asEagerSingleton();
-        bind(AuthCleanupSweeper.class).asEagerSingleton();
-        bind(ProblemReportSweeper.class).asEagerSingleton();
-        bind(SettledRefusalSweeper.class).asEagerSingleton();
-        bind(KbTrashPurger.class).asEagerSingleton();
-        bind(FederationVersionBroadcaster.class).asEagerSingleton();
-        bind(FeedMetricsService.class).asEagerSingleton();
-        // Discovery chain
-        bind(FederationPartnerSeeder.class).asEagerSingleton();
-        bind(DiscoveryPingScheduler.class).asEagerSingleton();
-        bind(DiscoveryStationRefreshScheduler.class).asEagerSingleton();
-        bind(DiscoveryMaintenanceScheduler.class).asEagerSingleton();
+        bind(FederationTransport.class).to(RoutingFederationTransport.class);
+        Multibinder<FederationServer> federationServers = Multibinder.newSetBinder(binder(), FederationServer.class);
+        federationServers.addBinding().to(FederatedItemTagService.class);
+        federationServers.addBinding().to(QuizFederationService.class);
+        federationServers.addBinding().to(TestProtocolService.class);
+        federationServers.addBinding().to(NewsFederationService.class);
+        federationServers.addBinding().to(LendingService.class);
+        federationServers.addBinding().to(EventFederationService.class);
+        federationServers.addBinding().to(KnowledgeBaseFederationService.class);
+        federationServers.addBinding().to(FederatedBoardDiscoveryService.class);
+        federationServers.addBinding().to(FederatedBoardStructureProxy.class);
+        federationServers.addBinding().to(FederatedTicketProxy.class);
+        federationServers.addBinding().to(FederatedTicketDetailProxy.class);
+        federationServers.addBinding().to(FederatedBoardNotificationService.class);
+
+        Multibinder<FeedDetailsContributor> feedDetailsBinder =
+                Multibinder.newSetBinder(binder(), FeedDetailsContributor.class);
+        feedDetailsBinder.addBinding().to(NewsFeedDetails.class);
+        feedDetailsBinder.addBinding().to(CommentFeedDetails.class);
+        feedDetailsBinder.addBinding().to(EventFeedDetails.class);
+        feedDetailsBinder.addBinding().to(MemberFeedDetails.class);
+        feedDetailsBinder.addBinding().to(InventoryFeedDetails.class);
+        feedDetailsBinder.addBinding().to(LostAndFoundFeedDetails.class);
+        feedDetailsBinder.addBinding().to(LendingFeedDetails.class);
+        feedDetailsBinder.addBinding().to(BoardFeedDetails.class);
+        feedDetailsBinder.addBinding().to(StorageFeedDetails.class);
+        feedDetailsBinder.addBinding().to(WaitingListFeedDetails.class);
+        feedDetailsBinder.addBinding().to(FormFeedDetails.class);
+        feedDetailsBinder.addBinding().to(ProcedureFeedDetails.class);
+
+        Multibinder<TaskSource> taskSources = Multibinder.newSetBinder(binder(), TaskSource.class);
+        taskSources.addBinding().to(PageHitRecorder.class);
+        taskSources.addBinding().to(StationTrafficRecorder.class);
+        taskSources.addBinding().to(ApiRequestLogger.class);
+        taskSources.addBinding().to(ApplicationLogWriter.class);
+        taskSources.addBinding().to(RegistrationDeadlineChecker.class);
+        taskSources.addBinding().to(EventReminderChecker.class);
+        taskSources.addBinding().to(EventThresholdChecker.class);
+        taskSources.addBinding().to(FieldRegistrationSweeper.class);
+        taskSources.addBinding().to(SettledRefusalSweeper.class);
+        taskSources.addBinding().to(DueDateReminderChecker.class);
+        taskSources.addBinding().to(ExpiryReminderService.class);
+        taskSources.addBinding().to(ManagedLoginNoticeSweeper.class);
+        taskSources.addBinding().to(WaitingListService.class);
+        taskSources.addBinding().to(EmailService.class);
+        taskSources.addBinding().to(MailWebhookService.class);
+        taskSources.addBinding().to(NotificationDigest.class);
+        taskSources.addBinding().to(MailImportPoller.class);
+        taskSources.addBinding().to(AuthCleanupSweeper.class);
+        taskSources.addBinding().to(ProblemReportSweeper.class);
+        taskSources.addBinding().to(UpdateCheckService.class);
+        taskSources.addBinding().to(DemoService.class);
+        taskSources.addBinding().to(FederationPartnerSeeder.class);
+        taskSources.addBinding().to(DiscoveryPingScheduler.class);
+        taskSources.addBinding().to(DiscoveryStationRefreshScheduler.class);
+        taskSources.addBinding().to(DiscoveryMaintenanceScheduler.class);
+        taskSources.addBinding().to(FederationVersionBroadcaster.class);
+        taskSources.addBinding().to(BeaconMetricsService.class);
+        taskSources.addBinding().to(StorageReconciliationService.class);
+        taskSources.addBinding().to(KbTrashPurger.class);
+        taskSources.addBinding().to(TransferTimeoutWatchdog.class);
+        taskSources.addBinding().to(FeedMetricsService.class);
+
+        Multibinder<ShutdownFlush> flushes = Multibinder.newSetBinder(binder(), ShutdownFlush.class);
+        flushes.addBinding().to(PageHitRecorder.class);
+        flushes.addBinding().to(StationTrafficRecorder.class);
+        flushes.addBinding().to(ApiRequestLogger.class);
+        flushes.addBinding().to(FeedMetricsService.class);
+        flushes.addBinding().to(ApplicationLogWriter.class);
     }
 
     @Provides
@@ -778,22 +923,24 @@ public class EmberModule extends AbstractModule {
         return left.compareTo(right) <= 0 ? left : right;
     }
 
+    /**
+     * Migrates the schema and installs the thread-scoped query configuration as the default.
+     *
+     * <p>The migration is skipped only in full demo mode, which drops and migrates the schema on every
+     * start anyway; everywhere else it must run before services whose constructors already query it.
+     * Before 1.60 merges duplicate profile fields, their answers and definitions are copied to the data
+     * volume, not to a table, because a table would travel with a station export. The configuration is
+     * thread-scoped so that services grouping writes with {@code Transactions.run} reach their
+     * repositories inside the same transaction.
+     */
     @Provides
     @Singleton
     QueryConfiguration queryConfiguration(DataSource dataSource, Database database, Demo demo)
             throws SQLException, IOException {
-        // Skip the up-front migration only in full demo mode, where DemoService.resetAndSeed()
-        // drops the schema and re-runs the migration on every start. In every other mode -
-        // production, plain dev (DEMO_DEV=true without DEMO_ENABLED), and a fresh database under
-        // either - the schema must be in place before Guice provisions services whose
-        // constructors already query it.
         if (!demo.enabled()) {
             SqlUpdater.builder(dataSource, PostgreSql.get())
                     .setReplacements(new QueryReplacement("ember_schema", database.schema()))
                     .setSchemas(database.schema())
-                    // 1.60 merges profile fields that ask the same question, which discards answers
-                    // and definitions. The copy goes to the data volume rather than to a table,
-                    // because a table beside the live ones travels with a station export.
                     .preUpdateHook(
                             new SqlVersion(1, 60),
                             connection -> ProfileFieldMergeBackup.writeTo(connection, database.schema()))
@@ -805,8 +952,6 @@ public class EmberModule extends AbstractModule {
                 .setThrowExceptions(true)
                 .setRowMapperRegistry(new RowMapperRegistry().register(PostgresqlMapper.getDefaultMapper()))
                 .build();
-        // Thread-scoped, so a service that groups writes with Transactions.run reaches the
-        // repositories it calls. Outside such a block this is the plain configuration.
         var scoped = Transactions.threadScoped(config);
         QueryConfiguration.setDefault(scoped);
         return scoped;

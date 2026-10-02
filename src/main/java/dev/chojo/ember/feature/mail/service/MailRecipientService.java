@@ -54,8 +54,14 @@ public class MailRecipientService {
      * Everybody a mail about this account goes to, which is empty when nobody can be reached.
      */
     public List<Recipient> forAccount(int accountId) {
-        Account account = accountRepository.findById(accountId).orElse(null);
-        if (account == null) return List.of();
+        return accountRepository.findById(accountId).map(this::forAccount).orElse(List.of());
+    }
+
+    /**
+     * The same, for an account already read, so a caller that read many at once asks nothing more
+     * for any of them who has an address of their own.
+     */
+    public List<Recipient> forAccount(Account account) {
         if (account.hasRealEmail()) {
             return List.of(new Recipient(account.email(), NameParts.of(account).greeting(), false));
         }
@@ -73,9 +79,10 @@ public class MailRecipientService {
         var byAddress = new LinkedHashMap<String, Recipient>();
         for (var membership : memberRepository.findByAccount(account.id())) {
             for (var manager : memberRepository.findManagers(membership.id())) {
-                if (manager.accountId() == null) continue;
+                Integer managerAccountId = manager.accountId();
+                if (managerAccountId == null) continue;
                 accountRepository
-                        .findById(manager.accountId())
+                        .findById(managerAccountId)
                         .filter(Account::hasRealEmail)
                         .ifPresent(guardian -> byAddress.putIfAbsent(
                                 guardian.email().toLowerCase(Locale.ROOT),

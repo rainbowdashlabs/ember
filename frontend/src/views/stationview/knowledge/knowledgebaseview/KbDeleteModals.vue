@@ -6,15 +6,11 @@
 <script setup lang="ts">
 import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
-import Modal from '@/components/feedback/Modal.vue'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import ButtonRow from '@/components/button/ButtonRow.vue'
-import DeleteButton from '@/components/button/DeleteButton.vue'
-import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import {knowledgeBase} from '@/api'
-import type {DeleteImpact, KbFileSummary, KbFolder} from '@/api/knowledgeBase'
+import type {DeleteImpact, KbFileSummary, KbFolder} from '@/api/generated/schema'
 
 /**
  * Asking before a delete, and saying what it really costs.
@@ -70,46 +66,30 @@ watch(showFile, open => {
 </script>
 
 <template>
-    <Modal v-model="showFolder">
-        <SubHeader class="mb-3">{{ t('kb.deleteFolder') }}</SubHeader>
-        <MutedText tag="p" class="mb-2">{{ t('kb.deleteFolderConfirm') }}</MutedText>
-        <MutedText v-if="impact && impact.files > 0" tag="p" size="sm" class="mb-2">
+    <ConfirmDeleteModal
+        v-model="showFolder"
+        :title="t('kb.deleteFolder')"
+        :message="t('kb.deleteFolderConfirm')"
+        @confirm="emit('confirmFolder')"
+    >
+        <MutedText v-if="impact && impact.files > 0" tag="p" size="sm">
             {{ t('kb.bulkDeleteHint', {folders: impact.folders, files: impact.files}) }}
         </MutedText>
-        <Alert
-            v-if="impact && impact.embeddedOn.length > 0"
-            variant="info"
-            class="mb-3"
-            data-testid="kb-delete-embedded"
-        >
+        <Alert v-if="impact && impact.embeddedOn.length > 0" variant="info" data-testid="kb-delete-embedded">
             {{ embeddedMessage }}
         </Alert>
-        <MutedText tag="p" size="sm" class="mb-4">{{ t('kb.deleteRecoverable') }}</MutedText>
-        <ButtonRow pair align="end">
-            <SecondaryButton @click="showFolder = false">{{ t('common.cancel') }}</SecondaryButton>
-            <DeleteButton :label="t('common.delete')" @click="emit('confirmFolder')">
-                {{ t('common.delete') }}
-            </DeleteButton>
-        </ButtonRow>
-    </Modal>
+        <MutedText tag="p" size="sm">{{ t('kb.deleteRecoverable') }}</MutedText>
+    </ConfirmDeleteModal>
 
-    <Modal v-model="showFile">
-        <SubHeader class="mb-3">{{ t('kb.deleteFile') }}</SubHeader>
-        <MutedText tag="p" class="mb-2">{{ t('kb.deleteFileConfirm') }}</MutedText>
-        <Alert
-            v-if="impact && impact.embeddedOn.length > 0"
-            variant="info"
-            class="mb-3"
-            data-testid="kb-delete-embedded"
-        >
+    <ConfirmDeleteModal
+        v-model="showFile"
+        :title="t('kb.deleteFile')"
+        :message="t('kb.deleteFileConfirm')"
+        @confirm="emit('confirmFile')"
+    >
+        <Alert v-if="impact && impact.embeddedOn.length > 0" variant="info" data-testid="kb-delete-embedded">
             {{ embeddedMessage }}
         </Alert>
-        <MutedText tag="p" size="sm" class="mb-4">{{ t('kb.deleteRecoverable') }}</MutedText>
-        <ButtonRow pair align="end">
-            <SecondaryButton @click="showFile = false">{{ t('common.cancel') }}</SecondaryButton>
-            <DeleteButton :label="t('common.delete')" @click="emit('confirmFile')">
-                {{ t('common.delete') }}
-            </DeleteButton>
-        </ButtonRow>
-    </Modal>
+        <MutedText tag="p" size="sm">{{ t('kb.deleteRecoverable') }}</MutedText>
+    </ConfirmDeleteModal>
 </template>

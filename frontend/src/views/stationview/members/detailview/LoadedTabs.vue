@@ -15,35 +15,41 @@ import PermissionsTab from './PermissionsTab.vue'
 import MemberRelationsPanel from '../relations/MemberRelationsPanel.vue'
 import InventoryTab from './InventoryTab.vue'
 import MemberDocumentsPanel from '@/components/documents/MemberDocumentsPanel.vue'
-import type { ProfileFieldChange } from '@/api/profileFieldChanges'
-import type { ProfileField } from '@/api/profileFields'
-import type { StationMember, PermissionGrant, MemberGroup, UserTag } from '@/api/types'
-import type { MemberRequirements, MyInventoryItem } from '@/api/inventory'
+import type { ChangeEntry } from '@/api/profileFieldChanges'
+import type { ProfileQuestion } from '@/api/profileFields'
+import type {
+  MemberGroup,
+  MemberRequirements,
+  MemberWithName,
+  MyInventoryItem,
+  Permission,
+  UserTag,
+} from '@/api/generated/schema'
 
 defineProps<{
-  member: StationMember
+  member: MemberWithName
   memberId: number
   currentMemberId: number
   tabs: { key: string; label: string }[]
-  applicableFields: ProfileField[]
-  changes: ProfileFieldChange[]
+  applicableFields: ProfileQuestion[]
+  changes: ChangeEntry[]
   showChangeHistory: boolean
   getFieldValue: (fieldId: number) => unknown
   memberUserType: string
-  memberPermissions: PermissionGrant[]
+  memberPermissions: Permission[]
   memberGroupList: MemberGroup[]
   memberTagList: UserTag[]
   showGuardians: boolean
   showManaged: boolean
-  managers: StationMember[]
-  managedMembers: StationMember[]
-  availableManagers: StationMember[]
-  availableManaged: StationMember[]
-  allMembers: StationMember[]
-  fields: ProfileField[]
+  managers: MemberWithName[]
+  managedMembers: MemberWithName[]
+  availableManagers: MemberWithName[]
+  availableManaged: MemberWithName[]
+  allMembers: MemberWithName[]
+  fields: ProfileQuestion[]
   canEdit: boolean
-  memberDisplayName: (m: StationMember) => string
-  getManagerFields: (id: number) => ProfileField[]
+  memberDisplayName: (m: MemberWithName) => string
+  getManagerFields: (id: number) => ProfileQuestion[]
   getManagerFieldValue: (mgrId: number, fieldId: number) => unknown
   memberInventory: MyInventoryItem[]
   memberRequirements: MemberRequirements
@@ -52,18 +58,18 @@ defineProps<{
 }>()
 
 defineEmits<{
-  (e: 'reload-changes'): void
-  (e: 'link-manager', id: number): void
-  (e: 'remove-manager', id: number): void
-  (e: 'create-manager', data: { firstName: string; lastName: string; email: string }): void
-  (e: 'link-managed', id: number): void
-  (e: 'remove-managed', id: number): void
-  (e: 'assign-item'): void
-  (e: 'hand-out', itemId: number): void
-  (e: 'hand-out-new', inventoryId: number, sizeId: number | null): void
-  (e: 'request-exchange', item: MyInventoryItem): void
-  (e: 'unassign', item: MyInventoryItem): void
-  (e: 'reassign', item: MyInventoryItem): void
+  'reload-changes': []
+  'link-manager': [id: number]
+  'remove-manager': [id: number]
+  'create-manager': [data: { firstName: string; lastName: string; email: string }]
+  'link-managed': [id: number]
+  'remove-managed': [id: number]
+  'assign-item': []
+  'hand-out': [itemId: number]
+  'hand-out-new': [inventoryId: number, sizeId: number | null]
+  'request-exchange': [item: MyInventoryItem]
+  unassign: [item: MyInventoryItem]
+  reassign: [item: MyInventoryItem]
 }>()
 
 const activeTab = ref('profile')

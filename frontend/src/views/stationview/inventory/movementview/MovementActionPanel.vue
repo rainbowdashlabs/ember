@@ -14,8 +14,8 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import ItemSearchPicker from '@/components/input/search/ItemSearchPicker.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import ItemChipSize from '@/components/inventory/ItemChipSize.vue'
-import {ItemOwner, type InventorySize, type InventoryTypeName, type ItemOwnerName} from '@/api/inventory'
-import type {MovementStep, NewItemRequest} from '@/api/movements'
+import {ItemOwner, type InventoryTypeName, type ItemOwnerName} from '@/api/inventory'
+import type {InventorySize, MovementStepResponse, NewItemRequest} from '@/api/generated/schema'
 import {StationPermission} from '@/api/types'
 import {useSession} from '@/composables/useSession'
 
@@ -29,7 +29,7 @@ const {hasPermission} = useSession()
 const mayPick = computed(() => hasPermission(StationPermission.INVENTORY_READ))
 
 const props = defineProps<{
-  step: MovementStep
+  step: MovementStepResponse
   /** Whether the viewer may override a party that has not answered. */
   canForce: boolean
   /**

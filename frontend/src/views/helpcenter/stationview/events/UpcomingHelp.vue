@@ -48,7 +48,6 @@ const activeView = ref('')
 
     <HelpRoleToggle v-model="activeView" :perspectives="perspectives"/>
 
-    <!-- Dummy: Filter bar -->
     <HelpSection :title="t('helpCenter.eventsUpcoming.filterTitle')">
       <p>{{ t('helpCenter.eventsUpcoming.filterText') }}</p>
       <NeutralContainer class="flex flex-wrap items-center gap-3 mt-3">
@@ -65,16 +64,15 @@ const activeView = ref('')
       </NeutralContainer>
     </HelpSection>
 
-    <!-- Dummy: Today's events -->
     <HelpSection :title="t('eventsUpcoming.today')">
       <SectionHeader>{{ t('eventsUpcoming.today') }}</SectionHeader>
       <div class="grid gap-3 sm:grid-cols-2">
         <PrimaryContainer class="space-y-2">
           <div class="flex items-center justify-between">
-            <span class="font-semibold">Übungsabend</span>
+            <span class="font-semibold">{{ t('helpCenter.sample.events.practiceEvening') }}</span>
             <span class="text-sm">18:00 – 20:00</span>
           </div>
-          <p class="text-sm text-(--text-muted)">Regulärer Übungsabend</p>
+          <p class="text-sm text-(--text-muted)">{{ t('helpCenter.sample.events.regularPracticeEvening') }}</p>
         </PrimaryContainer>
       </div>
     </HelpSection>
@@ -87,15 +85,14 @@ const activeView = ref('')
       <p>{{ t('helpCenter.eventsUpcoming.statusDeclined') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Upcoming event with registration -->
     <HelpSection :title="t('eventsUpcoming.upcoming')">
       <SectionHeader>{{ t('eventsUpcoming.upcoming') }}</SectionHeader>
       <div class="space-y-2">
         <NeutralContainer class="space-y-2">
           <div class="flex items-center justify-between flex-wrap gap-2">
             <div>
-              <span class="font-medium">Wettkampf Vorbereitung</span>
-              <MutedText size="sm" class="ml-2">Samstag, 25.05.2026</MutedText>
+              <span class="font-medium">{{ t('helpCenter.sample.events.competitionPrep') }}</span>
+              <MutedText size="sm" class="ml-2">{{ t('helpCenter.sample.events.saturday') }}</MutedText>
               <MutedText class="ml-2">14:00 – 17:00</MutedText>
             </div>
             <div class="flex items-center gap-2 text-xs">
@@ -115,8 +112,8 @@ const activeView = ref('')
         <NeutralContainer class="space-y-2">
           <div class="flex items-center justify-between flex-wrap gap-2">
             <div>
-              <span class="font-medium">Übungsabend</span>
-              <MutedText size="sm" class="ml-2">Dienstag, 19.05.2026</MutedText>
+              <span class="font-medium">{{ t('helpCenter.sample.events.practiceEvening') }}</span>
+              <MutedText size="sm" class="ml-2">{{ t('helpCenter.sample.events.tuesday') }}</MutedText>
               <MutedText class="ml-2">18:00 – 20:00</MutedText>
             </div>
           </div>
@@ -127,7 +124,6 @@ const activeView = ref('')
       </div>
     </HelpSection>
 
-    <!-- Federated events -->
     <HelpSection :title="t('helpCenter.eventsUpcoming.federatedTitle')">
       <p>{{ t('helpCenter.eventsUpcoming.federatedText') }}</p>
     </HelpSection>

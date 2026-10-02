@@ -25,10 +25,12 @@ import dev.chojo.ember.feature.storage.repository.ClusterStationStorageRepositor
 import dev.chojo.ember.feature.storage.repository.ClusterStorageConfigRepository;
 import dev.chojo.ember.feature.storage.repository.StationStorageConfigRepository;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -81,7 +83,19 @@ class StorageMigrationServiceTest extends RepositoryTestBase {
         cipher = new CredentialCipher(Base64.getEncoder().encodeToString(new byte[32]));
     }
 
+    private StorageMigrationService.MigrationResult moveOwn(int stationId, StationStorageBackendConfig config) {
+        return migrationService.moveStation(stationId, new StorageMigrationService.Destination.Own(config));
+    }
+
+    private StorageMigrationService.MigrationResult moveHome(int stationId) {
+        return migrationService.moveStation(stationId, new StorageMigrationService.Destination.InstanceDefault());
+    }
+
     private static StationStorageBackendConfig targetConfig() {
+        return targetConfig("sk");
+    }
+
+    private static StationStorageBackendConfig targetConfig(String secretKey) {
         return new StationStorageBackendConfig.S3Variant(
                 "https://s3.example.invalid",
                 "eu-central-1",
@@ -89,7 +103,12 @@ class StorageMigrationServiceTest extends RepositoryTestBase {
                 true,
                 Optional.empty(),
                 "/",
-                cipher.encrypt("{\"accessKey\":\"ak\",\"secretKey\":\"sk\"}"));
+                cipher.encrypt("{\"accessKey\":\"ak\",\"secretKey\":\"" + secretKey + "\"}"));
+    }
+
+    private static String secretOf(StationStorageBackendConfig config) {
+        var s3 = assertInstanceOf(StationStorageBackendConfig.S3Variant.class, config);
+        return cipher.decryptToString(s3.credentials());
     }
 
     private static void setField(Class<?> clazz, Object target, String fieldName, Object value) throws Exception {
@@ -116,8 +135,7 @@ class StorageMigrationServiceTest extends RepositoryTestBase {
         Storage storage = new Storage();
         setField(Storage.class, storage, "backend", new StorageBackendSettings());
 
-        factory = new SwappableFactory(storage, sourceBackend, cipher);
-        factory.stationTarget = targetBackend;
+        factory = new SwappableFactory(storage, sourceBackend, cipher, targetRoot);
         factory.instanceBackend = sourceBackend;
         resolver = new StorageBackendResolver(factory, storageConfigRepo, new ClusterStationStorageRepository());
         storageService = new StorageService(resolver, sourceBackend);
@@ -157,7 +175,7 @@ class StorageMigrationServiceTest extends RepositoryTestBase {
         byte[] payload = "page-file-payload".getBytes(StandardCharsets.UTF_8);
         String fullKey = storeOnSource(station, "doc.txt", payload);
 
-        var result = migrationService.migrate(station.id(), targetConfig());
+        var result = moveOwn(station.id(), targetConfig());
 
         assertEquals(1, result.totalKeys());
         assertEquals(1, result.copied());
@@ -183,7 +201,7 @@ class StorageMigrationServiceTest extends RepositoryTestBase {
         targetBackend.store(
                 fullKey, new ByteArrayInputStream(payload), payload.length, ObjectMetadata.of("text/plain"));
 
-        var result = migrationService.migrate(station.id(), targetConfig());
+        var result = moveOwn(station.id(), targetConfig());
 
         assertEquals(1, result.totalKeys());
         assertEquals(0, result.copied(), "matching keys must not be re-copied");
@@ -204,7 +222,7 @@ class StorageMigrationServiceTest extends RepositoryTestBase {
         byte[] stale = "stale-copy".getBytes(StandardCharsets.UTF_8);
         targetBackend.store(fullKey, new ByteArrayInputStream(stale), stale.length, ObjectMetadata.of("text/plain"));
 
-        var result = migrationService.migrate(station.id(), targetConfig());
+        var result = moveOwn(station.id(), targetConfig());
 
         assertEquals(1, result.copied());
         assertEquals(0, result.skipped());
@@ -226,7 +244,7 @@ class StorageMigrationServiceTest extends RepositoryTestBase {
         storageService.store(
                 scope, StorageCategory.BOARD_ATTACHMENTS, "c.txt", "c".getBytes(StandardCharsets.UTF_8), "text/plain");
 
-        var result = migrationService.migrate(station.id(), targetConfig());
+        var result = moveOwn(station.id(), targetConfig());
 
         assertEquals(3, result.totalKeys());
         assertEquals(3, result.copied());
@@ -240,13 +258,66 @@ class StorageMigrationServiceTest extends RepositoryTestBase {
     }
 
     /**
+     * Applying the storage a station already stands on, with nothing changed but its password, names the
+     * same place through a freshly built backend. Nothing is copied and nothing is deleted, since the
+     * "source" keys are the very files the station keeps, and the new credentials are saved.
+     */
+    @Test
+    void reapplyingTheSameDestinationKeepsTheFilesAndSavesTheNewCredentials() {
+        Station station = newStation("Station Migration Same Place");
+        byte[] payload = "stays-where-it-is".getBytes(StandardCharsets.UTF_8);
+        String fullKey = storeOnSource(station, "doc.txt", payload);
+        moveOwn(station.id(), targetConfig());
+
+        var result = moveOwn(station.id(), targetConfig("rotated"));
+
+        assertTrue(targetBackend.exists(fullKey), "the station's file survives");
+        assertArrayEquals(payload, read(targetBackend, fullKey));
+        assertEquals(0, result.totalKeys(), "the same place carries nothing");
+        assertEquals(0, result.deleted(), "and deletes nothing");
+        assertTrue(
+                secretOf(storageConfigRepo.findOne(station.id()).orElseThrow().config())
+                        .contains("rotated"),
+                "the new credentials are saved");
+        assertFalse(locks.isLocked(station.id()));
+    }
+
+    /**
+     * A station on its own storage choosing its association's storage that names the same place moves
+     * onto the association's version without losing a file.
+     */
+    @Test
+    void movingOntoTheAssociationsStorageAtTheSamePlaceKeepsTheFiles() {
+        Station station = newStation("Station Migration Same Place Cluster");
+        var cluster = clusterService.create("Kreisverband Gleicher Ort " + station.id(), null);
+        var version = clusterConfigRepo.insertCurrent(cluster.id(), targetConfig("association"));
+        byte[] payload = "same-bucket".getBytes(StandardCharsets.UTF_8);
+        String fullKey = storeOnSource(station, "doc.txt", payload);
+        moveOwn(station.id(), targetConfig());
+
+        var result = migrationService.moveStation(
+                station.id(),
+                new StorageMigrationService.Destination.Cluster(
+                        cluster.id(), version.id(), targetConfig("association")));
+
+        assertTrue(targetBackend.exists(fullKey), "the station's file survives");
+        assertArrayEquals(payload, read(targetBackend, fullKey));
+        assertEquals(0, result.deleted());
+        assertEquals(
+                version.id(),
+                placements.findByStation(station.id()).orElseThrow().configId());
+
+        clusterService.delete(cluster.id());
+    }
+
+    /**
      * A station with nothing stored migrates cleanly and simply flips the override row.
      */
     @Test
     void migratingAnEmptyStationOnlyFlipsTheRow() {
         Station station = newStation("Station Migration Empty");
 
-        var result = migrationService.migrate(station.id(), targetConfig());
+        var result = moveOwn(station.id(), targetConfig());
 
         assertEquals(0, result.totalKeys());
         assertEquals(0, result.deleted());
@@ -303,8 +374,7 @@ class StorageMigrationServiceTest extends RepositoryTestBase {
         Station station = newStation("Station Migration Locked");
         assertTrue(locks.tryAcquire(station.id()));
         try {
-            var error = assertThrows(
-                    MigrationException.class, () -> migrationService.migrate(station.id(), targetConfig()));
+            var error = assertThrows(MigrationException.class, () -> moveOwn(station.id(), targetConfig()));
             assertTrue(error.getMessage().contains("already in flight"));
         } finally {
             locks.release(station.id());
@@ -319,7 +389,7 @@ class StorageMigrationServiceTest extends RepositoryTestBase {
     void anUnresolvableStationFailsAndReleasesTheLock() {
         int unknownId = 987654321;
 
-        assertThrows(MigrationException.class, () -> migrationService.migrate(unknownId, targetConfig()));
+        assertThrows(MigrationException.class, () -> moveOwn(unknownId, targetConfig()));
 
         assertFalse(locks.isLocked(unknownId), "the lock must be released before the exception propagates");
     }
@@ -339,8 +409,7 @@ class StorageMigrationServiceTest extends RepositoryTestBase {
             }
         };
 
-        var error =
-                assertThrows(MigrationException.class, () -> migrationService.migrate(station.id(), targetConfig()));
+        var error = assertThrows(MigrationException.class, () -> moveOwn(station.id(), targetConfig()));
 
         assertTrue(error.getMessage().contains("no route to host"));
         assertTrue(sourceBackend.exists(fullKey), "source bytes must be untouched after a failed probe");
@@ -363,8 +432,7 @@ class StorageMigrationServiceTest extends RepositoryTestBase {
             }
         };
 
-        var error =
-                assertThrows(MigrationException.class, () -> migrationService.migrate(station.id(), targetConfig()));
+        var error = assertThrows(MigrationException.class, () -> moveOwn(station.id(), targetConfig()));
 
         assertTrue(error.getMessage().contains("Sample verification failed"));
         assertTrue(sourceBackend.exists(fullKey), "the source must survive a failed verification");
@@ -387,7 +455,7 @@ class StorageMigrationServiceTest extends RepositoryTestBase {
             }
         };
 
-        var result = migrationService.migrate(station.id(), targetConfig());
+        var result = moveOwn(station.id(), targetConfig());
 
         assertEquals(1, result.copied());
         assertEquals(0, result.deleted(), "keys that could not be deleted are not counted");
@@ -401,7 +469,7 @@ class StorageMigrationServiceTest extends RepositoryTestBase {
     void migratingBackWithoutAnOverrideIsANoOp() {
         Station station = newStation("Station Migration No Override");
 
-        var result = migrationService.migrateToInstanceDefault(station.id());
+        var result = moveHome(station.id());
 
         assertEquals(0, result.totalKeys());
         assertEquals(0, result.copied());
@@ -418,10 +486,10 @@ class StorageMigrationServiceTest extends RepositoryTestBase {
         Station station = newStation("Station Migration Round Trip");
         byte[] payload = "round-trip".getBytes(StandardCharsets.UTF_8);
         String fullKey = storeOnSource(station, "doc.txt", payload);
-        migrationService.migrate(station.id(), targetConfig());
+        moveOwn(station.id(), targetConfig());
         assertFalse(sourceBackend.exists(fullKey));
 
-        var result = migrationService.migrateToInstanceDefault(station.id());
+        var result = moveHome(station.id());
 
         assertEquals(1, result.totalKeys());
         assertEquals(1, result.copied());
@@ -433,6 +501,46 @@ class StorageMigrationServiceTest extends RepositoryTestBase {
     }
 
     /**
+     * The way home copies onto the backend every other station of the instance stands on. Closing it
+     * afterwards, as a target built for the move would be, stopped a remote instance default for good
+     * and every later storage call of the instance failed until a restart.
+     */
+    @Test
+    void movingAStationBackLeavesTheInstanceDefaultOpen() {
+        var instanceDefault = Mockito.spy(sourceBackend);
+        factory.instanceBackend = instanceDefault;
+        Station station = newStation("Station Migration Keeps Default Open");
+        storeOnSource(station, "doc.txt", "home".getBytes(StandardCharsets.UTF_8));
+        moveOwn(station.id(), targetConfig());
+
+        moveHome(station.id());
+
+        Mockito.verify(instanceDefault, Mockito.never()).close();
+    }
+
+    /**
+     * The station's own backend is taken out of the resolver when the station moves away from it, but
+     * the move still deletes the station's bytes from it afterwards; it is closed only once that is
+     * done, rather than under the move by the resolver.
+     */
+    @Test
+    void theBackendAStationLeavesIsClosedOnlyAfterItsBytesAreDeleted() {
+        var own = Mockito.spy(targetBackend);
+        factory.stationTarget = own;
+        Station station = newStation("Station Migration Closes After Delete");
+        String fullKey = storeOnSource(station, "doc.txt", "leaving".getBytes(StandardCharsets.UTF_8));
+        moveOwn(station.id(), targetConfig());
+        Mockito.clearInvocations(own);
+
+        var result = moveHome(station.id());
+
+        assertEquals(1, result.deleted());
+        var order = Mockito.inOrder(own);
+        order.verify(own).delete(fullKey);
+        order.verify(own).close();
+    }
+
+    /**
      * Re-running the way home skips keys the instance default already holds with the same bytes.
      */
     @Test
@@ -440,11 +548,11 @@ class StorageMigrationServiceTest extends RepositoryTestBase {
         Station station = newStation("Station Migration Back Skip");
         byte[] payload = "already-home".getBytes(StandardCharsets.UTF_8);
         String fullKey = storeOnSource(station, "doc.txt", payload);
-        migrationService.migrate(station.id(), targetConfig());
+        moveOwn(station.id(), targetConfig());
         sourceBackend.store(
                 fullKey, new ByteArrayInputStream(payload), payload.length, ObjectMetadata.of("text/plain"));
 
-        var result = migrationService.migrateToInstanceDefault(station.id());
+        var result = moveHome(station.id());
 
         assertEquals(1, result.totalKeys());
         assertEquals(0, result.copied());
@@ -460,7 +568,7 @@ class StorageMigrationServiceTest extends RepositoryTestBase {
         Station station = newStation("Station Migration Back Locked");
         assertTrue(locks.tryAcquire(station.id()));
         try {
-            assertThrows(MigrationException.class, () -> migrationService.migrateToInstanceDefault(station.id()));
+            assertThrows(MigrationException.class, () -> moveHome(station.id()));
         } finally {
             locks.release(station.id());
         }
@@ -474,7 +582,7 @@ class StorageMigrationServiceTest extends RepositoryTestBase {
     void migratingBackAnUnresolvableStationFailsAndReleasesTheLock() {
         int unknownId = 987654322;
 
-        assertThrows(MigrationException.class, () -> migrationService.migrateToInstanceDefault(unknownId));
+        assertThrows(MigrationException.class, () -> moveHome(unknownId));
 
         assertFalse(locks.isLocked(unknownId));
     }
@@ -487,7 +595,7 @@ class StorageMigrationServiceTest extends RepositoryTestBase {
     void migratingBackAbortsWhenTheInstanceDefaultIsUnhealthy() {
         Station station = newStation("Station Migration Back Bad Probe");
         storeOnSource(station, "doc.txt", "stay".getBytes(StandardCharsets.UTF_8));
-        migrationService.migrate(station.id(), targetConfig());
+        moveOwn(station.id(), targetConfig());
         factory.instanceBackend = new LocalStorageBackend(sourceRoot) {
             @Override
             public HealthStatus probe() {
@@ -495,8 +603,7 @@ class StorageMigrationServiceTest extends RepositoryTestBase {
             }
         };
 
-        var error =
-                assertThrows(MigrationException.class, () -> migrationService.migrateToInstanceDefault(station.id()));
+        var error = assertThrows(MigrationException.class, () -> moveHome(station.id()));
 
         assertTrue(error.getMessage().contains("disk full"));
         assertTrue(storageConfigRepo.findOne(station.id()).isPresent(), "the override row must survive");
@@ -518,8 +625,7 @@ class StorageMigrationServiceTest extends RepositoryTestBase {
             }
         };
 
-        var error =
-                assertThrows(MigrationException.class, () -> migrationService.migrate(station.id(), targetConfig()));
+        var error = assertThrows(MigrationException.class, () -> moveOwn(station.id(), targetConfig()));
 
         assertTrue(error.getMessage().contains("Migration failed"));
         assertInstanceOf(StorageException.class, error.getCause());
@@ -530,18 +636,25 @@ class StorageMigrationServiceTest extends RepositoryTestBase {
      * Factory stand-in that lets a test point the station-override backend and the instance
      * default at arbitrary local roots (or at deliberately misbehaving wrappers) without needing
      * a real S3 / SMB / SFTP endpoint behind the encrypted config row.
+     *
+     * <p>Like the real factory, every station build is a fresh backend on the station root, unless a test
+     * pins one instance through {@code stationTarget}.
      */
     private static final class SwappableFactory extends StorageBackendFactory {
-        private StorageBackend stationTarget;
+        private final Path stationRoot;
+        private @Nullable StorageBackend stationTarget;
         private StorageBackend instanceBackend;
 
-        private SwappableFactory(Storage storage, LocalStorageBackend local, CredentialCipher cipher) {
+        private SwappableFactory(
+                Storage storage, LocalStorageBackend local, CredentialCipher cipher, Path stationRoot) {
             super(storage, local, cipher);
+            this.stationRoot = stationRoot;
+            this.instanceBackend = local;
         }
 
         @Override
         public StorageBackend buildForStation(StationStorageBackendConfig config) {
-            return stationTarget;
+            return stationTarget != null ? stationTarget : new LocalStorageBackend(stationRoot);
         }
 
         @Override

@@ -6,13 +6,24 @@
 import { computed, ref, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { procedures, stationMembers } from '@/api'
-import type { ProcedureTemplate, TemplateDetail } from '@/api/procedures'
-import type { MemberCompletion } from '@/api/stationMembers'
-import type { EditableItem } from '@/views/stationview/procedure/procedurecreateview/types'
+import type { MemberCompletion, ProcedureItemRequest, ProcedureTemplate, ProcedureTemplateDetail } from '@/api/generated/schema'
+import type { StepDependency } from '@/api/procedures'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { describeFailure } from '@/util/failure'
 import { dateToInstant, instantToDate } from '@/util/format'
 import { moveWithin } from '@/util/reorder'
+
+/** A checklist item as the form edits it, known by a temporary id until the procedure is saved. */
+export interface EditableItem {
+    id?: number
+    tempId: number
+    title: string
+    description: string
+    isPublic: boolean
+    userAssigned: boolean
+    position: number
+    dependsOn: number[]
+}
 
 /**
  * The editable form behind creating and editing a procedure, including its checklist items and
@@ -47,7 +58,7 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
 
   const templates = ref<ProcedureTemplate[]>([])
   const selectedTemplateId = ref<number | null>(null)
-  const templateDetail = ref<TemplateDetail | null>(null)
+  const templateDetail = ref<ProcedureTemplateDetail | null>(null)
 
   const members = ref<MemberCompletion[]>([])
   const selectedAssigneeIds = ref<number[]>([])
@@ -64,7 +75,7 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
    */
   function toEditableItems(
     source: {id: number; title: string; description?: string | null; isPublic: boolean; userAssigned: boolean; position: number}[],
-    dependencies: [number, number][],
+    dependencies: number[][],
     keepIds: boolean,
   ): EditableItem[] {
     const realToTemp = new Map<number, number>()
@@ -82,9 +93,9 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
         dependsOn: [],
       }
     })
-    for (const [itemId, dependsOnId] of dependencies) {
+    for (const {itemId, dependsOnItemId} of procedures.dependencyEntries(dependencies)) {
       const itemTempId = realToTemp.get(itemId)
-      const depTempId = realToTemp.get(dependsOnId)
+      const depTempId = realToTemp.get(dependsOnItemId)
       if (itemTempId == null || depTempId == null) continue
       editable.find(i => i.tempId === itemTempId)?.dependsOn.push(depTempId)
     }
@@ -182,7 +193,12 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
     items.value = moveWithin(items.value, fromIndex, toIndex)
   }
 
-  function itemPayload(item: EditableItem, position: number) {
+  /** Puts an item in place of the one at the given index, as its card hands it back. */
+  function updateItem(index: number, item: EditableItem) {
+    items.value = items.value.map((current, i) => (i === index ? item : current))
+  }
+
+  function itemPayload(item: EditableItem, position: number): ProcedureItemRequest {
     return {
       title: item.title,
       description: item.description || undefined,
@@ -193,7 +209,7 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
   }
 
   function buildDependencies(tempToReal: Map<number, number>) {
-    const deps: { itemId: number; dependsOnItemId: number }[] = []
+    const deps: StepDependency[] = []
     for (const item of items.value) {
       const realId = tempToReal.get(item.tempId)
       if (!realId) continue
@@ -213,8 +229,11 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
     for (const id of toRemove) await procedures.removeAssignee(pid, id)
   }
 
+  /**
+   * Saves the steps and returns the real id of each new one by its temporary id. A row nobody wrote
+   * a title into never became a step, so it is dropped rather than saved.
+   */
   async function syncItems(pid: number): Promise<Map<number, number>> {
-    // A row nobody wrote a title into never became a step, so it is not saved as one.
     items.value = items.value.filter(item => item.title.trim())
     const keptIds = new Set(items.value.filter(i => i.id).map(i => i.id!))
     for (const oldId of existingItemIds.value) {
@@ -287,6 +306,7 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
     addItem,
     removeItem,
     reorderItems,
+    updateItem,
     submit,
   }
 }

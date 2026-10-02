@@ -12,12 +12,14 @@ import dev.chojo.ember.feature.inventory.entity.CheckResult;
 import dev.chojo.ember.feature.inventory.entity.InventoryCheck;
 import dev.chojo.ember.feature.inventory.entity.InventoryCheckItem;
 import dev.chojo.ember.feature.inventory.entity.InventoryCheckLock;
+import dev.chojo.ember.feature.inventory.entity.InventoryCheckScope;
 import dev.chojo.ember.feature.inventory.entity.ItemCheckHistoryEntry;
 import dev.chojo.ember.feature.inventory.entity.ItemLastCheck;
+import dev.chojo.ember.feature.inventory.entity.MemberCheckSummary;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
-import java.time.Instant;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -59,7 +61,7 @@ public class InventoryCheckRepository {
      * @param reportedBy who reported it, where that is somebody else, or {@code null}
      * @return the created check
      */
-    public InventoryCheck createCheck(int stationId, int memberId, int checkedBy, Integer reportedBy) {
+    public InventoryCheck createCheck(int stationId, int memberId, int checkedBy, @Nullable Integer reportedBy) {
         return SqlSupport.insertReturning(
                 """
                 INSERT INTO inventory_check(station_id, member_id, checked_by, scope, reported_by)
@@ -215,7 +217,7 @@ public class InventoryCheckRepository {
     /**
      * The first and last name of one member, empty where there is nobody to name.
      */
-    private String[] nameOf(Integer memberId) {
+    private String[] nameOf(@Nullable Integer memberId) {
         if (memberId == null) return new String[] {"", ""};
         return query("""
                 SELECT a.first_name, a.last_name FROM station_member sm
@@ -238,7 +240,7 @@ public class InventoryCheckRepository {
      * @return the created check item
      */
     public InventoryCheckItem createCheckItem(
-            int checkId, Integer itemId, Integer inventoryId, CheckResult result, String note) {
+            int checkId, @Nullable Integer itemId, @Nullable Integer inventoryId, CheckResult result, String note) {
         return SqlSupport.insertReturning(
                 """
                 INSERT INTO inventory_check_item(check_id, item_id, inventory_id, result, note)
@@ -334,7 +336,7 @@ public class InventoryCheckRepository {
                             checkerName,
                             reporterName,
                             row.getString("container_name"),
-                            row.getString("scope"),
+                            row.getEnum("scope", InventoryCheckScope.class),
                             note == null ? "" : note);
                 })
                 .all();
@@ -461,32 +463,4 @@ public class InventoryCheckRepository {
                 .map(row -> row.getInt("id"))
                 .first();
     }
-
-    /**
-     * Summary of a member's inventory check status, including lock information and roles.
-     *
-     * @param memberId         the member ID
-     * @param firstName        the member's first name
-     * @param lastName         the member's last name
-     * @param lastCheckedAt    when the member was last checked, or {@code null} if never
-     * @param checkerFirstName the first name of the person who last checked
-     * @param checkerLastName  the last name of the person who last checked
-     * @param locked           whether the member is currently locked for checking
-     * @param lockedBy         the member who holds the lock, or {@code null}
-     * @param lockerFirstName  the locker's first name
-     * @param lockerLastName   the locker's last name
-     * @param userType         the member's user type
-     */
-    public record MemberCheckSummary(
-            int memberId,
-            String firstName,
-            String lastName,
-            Instant lastCheckedAt,
-            String checkerFirstName,
-            String checkerLastName,
-            boolean locked,
-            Integer lockedBy,
-            String lockerFirstName,
-            String lockerLastName,
-            StationUserType userType) {}
 }

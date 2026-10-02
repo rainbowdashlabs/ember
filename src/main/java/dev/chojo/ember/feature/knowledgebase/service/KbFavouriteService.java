@@ -6,15 +6,17 @@
 package dev.chojo.ember.feature.knowledgebase.service;
 
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.KnowledgeBaseRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFavourite;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFavouriteTarget;
 import dev.chojo.ember.feature.knowledgebase.repository.KbFavouriteRepository;
 import dev.chojo.ember.feature.knowledgebase.service.KbAccessService.MemberAccess;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseFederationService.PartnerEntry;
 import dev.chojo.ember.feature.station.repository.StationRepository;
-import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,32 +70,34 @@ public class KbFavouriteService {
     /**
      * Marks a file or folder of this station.
      *
-     * @throws NotFoundResponse when the entry is not this station's or the reader may not read it,
+     * @throws RefusalResponse when the entry is not this station's or the reader may not read it,
      *     which is the same answer the wiki gives for either
      */
     public KbFavourite markLocal(int stationId, MemberAccess access, KbFavouriteTarget target, int entryId) {
         if (target.isPartner() || !isOwnReadable(stationId, access, target, entryId)) {
-            throw new NotFoundResponse();
+            throw KnowledgeBaseRefusal.KB_FAVOURITE_ENTRY_NOT_HERE_OR_NOT_YOURS.raise();
         }
         repository.addLocal(access.memberId(), target, entryId);
         log.debug("Member {} marked KB {} {} as a favourite", access.memberId(), target, entryId);
-        return repository.findLocal(access.memberId(), target, entryId).orElseThrow(NotFoundResponse::new);
+        return repository
+                .findLocal(access.memberId(), target, entryId)
+                .orElseThrow(KnowledgeBaseRefusal.KB_FAVOURITE_NOT_READ_BACK_AFTER_MARKING::raise);
     }
 
     /**
      * Marks a partner's file or folder, after asking the partner about it. The partner's answer is
      * both the check that it is shared with this station and where the kept name comes from.
      *
-     * @throws NotFoundResponse when the partner does not share the entry with this station
+     * @throws RefusalResponse when the partner does not share the entry with this station
      */
     public KbFavourite markPartner(
             int stationId,
             int memberId,
-            StationUserType readerUserType,
+            @Nullable StationUserType readerUserType,
             KbFavouriteTarget target,
             UUID partnerStationUid,
             int entryId) {
-        if (!target.isPartner()) throw new NotFoundResponse();
+        if (!target.isPartner()) throw KnowledgeBaseRefusal.KB_FAVOURITE_TARGET_NOT_AT_A_PARTNER.raise();
         PartnerEntry entry = target == KbFavouriteTarget.PARTNER_FILE
                 ? federation.describePartnerFile(stationId, partnerStationUid, entryId)
                 : federation.describePartnerFolder(stationId, partnerStationUid, entryId, readerUserType);
@@ -102,7 +106,7 @@ public class KbFavouriteService {
         log.debug("Member {} marked partner {} {} of {} as a favourite", memberId, target, entryId, partnerStationUid);
         return repository
                 .findPartner(memberId, target, partnerStationUid, entryId)
-                .orElseThrow(NotFoundResponse::new);
+                .orElseThrow(KnowledgeBaseRefusal.KB_PARTNER_FAVOURITE_NOT_READ_BACK_AFTER_MARKING::raise);
     }
 
     /**
@@ -137,11 +141,13 @@ public class KbFavouriteService {
      */
     public void carryOverToCopy(int memberId, int copiedFileId) {
         var copy = knowledgeBase.findFile(copiedFileId).orElse(null);
-        if (copy == null || copy.sourceFileId() == null || copy.sourceStationId() == null) return;
-        UUID sourceStation = stationRepository.resolveUid(copy.sourceStationId());
+        Integer sourceFileId = copy == null ? null : copy.sourceFileId();
+        Integer sourceStationId = copy == null ? null : copy.sourceStationId();
+        if (sourceFileId == null || sourceStationId == null) return;
+        UUID sourceStation = stationRepository.resolveUid(sourceStationId);
         if (sourceStation == null) return;
         boolean marked = repository
-                .findPartner(memberId, KbFavouriteTarget.PARTNER_FILE, sourceStation, copy.sourceFileId())
+                .findPartner(memberId, KbFavouriteTarget.PARTNER_FILE, sourceStation, sourceFileId)
                 .isPresent();
         if (marked) repository.addLocal(memberId, KbFavouriteTarget.FILE, copiedFileId);
     }

@@ -13,9 +13,14 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import { useConfirmAction } from '@/composables/useConfirmAction'
-import type { CheckItemResult, CheckResult, CorrectItemRequest, MemberCheckState } from '@/api/inventoryCheck'
-import type { RequiredInventoryItem } from '@/api/inventory'
-import type { InventoryItem } from '@/api/inventory'
+import type {
+  CheckItemResult,
+  CheckResult,
+  CorrectItemRequest,
+  InventoryItem,
+  MemberCheckState,
+  RequiredInventoryItem,
+} from '@/api/generated/schema'
 import { inventoryCheck, movements } from '@/api'
 import { MovementPurpose } from '@/api/movements'
 import { useConfigPanel } from '@/composables/useConfigPanel'
@@ -328,7 +333,7 @@ async function cancel() {
         :empty-slot-count="check.emptySlotCount"
         :size-label="check.sizeLabel"
         :item-label="check.itemLabel"
-        :movement-step="check.movementStep"
+        :movement-of="check.movementOf"
         @start-check-mode="startCheckMode"
         @mark-all-confirmed="check.markAllConfirmed"
         @cancel="cancel"

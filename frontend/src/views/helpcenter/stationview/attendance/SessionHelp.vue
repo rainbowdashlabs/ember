@@ -31,7 +31,6 @@ const {t} = useI18n()
 
 <template>
   <HelpArticle :title="t('helpCenter.attendanceSession.title')" :subtitle="t('helpCenter.attendanceSession.subtitle')">
-    <!-- Dummy: Toolbar at the top (matching real view position), with its menu drawn open -->
     <HelpSection :title="t('helpCenter.attendanceSession.toolbarTitle')">
       <p>{{ t('helpCenter.attendanceSession.toolbarText') }}</p>
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
@@ -54,7 +53,6 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.attendanceSession.openEventText') }}</p>
     </HelpSection>
 
-    <!-- Session header editing -->
     <HelpSection :title="t('helpCenter.attendanceSession.headerTitle')">
       <p>{{ t('helpCenter.attendanceSession.headerText') }}</p>
     </HelpSection>
@@ -72,7 +70,6 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.attendanceSession.statusOpen') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Summary badges -->
     <HelpSection :title="t('helpCenter.attendanceSession.summaryTitle')">
       <div class="flex gap-3 text-sm flex-wrap">
         <SecondaryBadge>2 {{ t('attendanceSession.unconfirmed') }}</SecondaryBadge>
@@ -82,10 +79,9 @@ const {t} = useI18n()
       </div>
     </HelpSection>
 
-    <!-- Dummy: Attendance entries with check-in/check-out -->
     <HelpSection :title="t('helpCenter.attendanceSession.memberEntryTitle')">
       <p>{{ t('helpCenter.attendanceSession.memberEntryText') }}</p>
-      <SubHeader>Anfänger</SubHeader>
+      <SubHeader>{{ t('helpCenter.sample.groups.beginners') }}</SubHeader>
       <div class="space-y-1">
         <MemberAttendanceRow name="Max Mustermann" status="present" check-in="18:00" check-out="20:15"/>
         <MemberAttendanceRow name="Erika Muster" status="absent"/>
@@ -117,12 +113,11 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.attendanceSession.checkModeText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Check mode -->
     <HelpSection :title="t('helpCenter.attendanceSession.checkModeExampleTitle')">
       <NeutralContainer class="space-y-4">
         <SectionHeader>{{ t('attendanceSession.checkMode') }}</SectionHeader>
         <div class="text-center space-y-4 py-4">
-          <p class="text-2xl font-bold">Anna Schmidt</p>
+          <p class="text-2xl font-bold">{{ t('helpCenter.sample.people.annaSchmidt') }}</p>
           <p class="text-sm text-(--text-muted)">1 / 2</p>
           <ButtonRow align="center">
             <SuccessButton :icon="['fas', 'check']" disabled>
@@ -139,7 +134,6 @@ const {t} = useI18n()
       </NeutralContainer>
     </HelpSection>
 
-    <!-- Custom template fields -->
     <HelpSection :title="t('helpCenter.attendanceSession.fieldsTitle')">
       <p>{{ t('helpCenter.attendanceSession.fieldsText') }}</p>
     </HelpSection>

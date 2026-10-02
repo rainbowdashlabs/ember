@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {ref, watchEffect} from 'vue'
+import {ref, useId, watchEffect} from 'vue'
 
 const model = defineModel<boolean>({ default: false })
 
@@ -12,7 +12,11 @@ const props = defineProps<{
   disabled?: boolean
   /** The browser's mixed state, for a box standing for partly selected children. Display only. */
   indeterminate?: boolean
+  /** What a label's `for` names. Every box carries one, generated where the caller gives none. */
+  id?: string
 }>()
+
+const generatedId = useId()
 
 const el = ref<HTMLInputElement | null>(null)
 
@@ -23,6 +27,7 @@ watchEffect(() => {
 
 <template>
   <input
+    :id="id ?? generatedId"
     ref="el"
     v-model="model"
     type="checkbox"

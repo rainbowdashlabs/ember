@@ -28,7 +28,8 @@ import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {procedures} from '@/api'
 import {StationPermission} from '@/api/types'
-import {ProcedureStatus, type ProcedureDetail, type ProcedureItem} from '@/api/procedures'
+import {ProcedureStatus} from '@/api/procedures'
+import type {ProcedureDetail, ProcedureItem} from '@/api/generated/schema'
 import {formatDate, formatDateTime} from '@/util/format'
 import {reportCaughtError} from '@/util/devErrorReporter'
 
@@ -80,21 +81,24 @@ const progress = computed(() => {
   return {checked, total, percent: total > 0 ? Math.round((checked / total) * 100) : 0}
 })
 
+/** The dependencies of the procedure, one entry per step and the step it waits for. */
+const dependencies = computed(() => procedures.dependencyEntries(detail.value?.dependencies ?? []))
+
 function getDependencyNames(item: ProcedureItem): string[] {
   if (!detail.value) return []
-  return detail.value.dependencies
-      .filter(d => d[0] === item.id)
-      .map(d => detail.value!.items.find(i => i.id === d[1]))
+  return dependencies.value
+      .filter(d => d.itemId === item.id)
+      .map(d => detail.value!.items.find(i => i.id === d.dependsOnItemId))
       .filter(i => i && !i.checked)
       .map(i => i!.title)
 }
 
 function isDependencyMet(item: ProcedureItem): boolean {
   if (!detail.value) return true
-  const deps = detail.value.dependencies.filter(d => d[0] === item.id)
+  const deps = dependencies.value.filter(d => d.itemId === item.id)
   if (deps.length === 0) return true
   return deps.every(d => {
-    const depItem = detail.value!.items.find(i => i.id === d[1])
+    const depItem = detail.value!.items.find(i => i.id === d.dependsOnItemId)
     return depItem?.checked ?? false
   })
 }
@@ -102,7 +106,7 @@ function isDependencyMet(item: ProcedureItem): boolean {
 const sortedItems = computed(() => {
   if (!detail.value) return []
   const items = [...detail.value.items]
-  const deps = detail.value.dependencies
+  const deps = dependencies.value
   const result: ProcedureItem[] = []
   const placed = new Set<number>()
   const remaining = new Set(items.map(i => i.id))
@@ -111,7 +115,7 @@ const sortedItems = computed(() => {
     let added = false
     for (const item of items) {
       if (!remaining.has(item.id)) continue
-      const itemDeps = deps.filter(d => d[0] === item.id).map(d => d[1])
+      const itemDeps = deps.filter(d => d.itemId === item.id).map(d => d.dependsOnItemId)
       if (itemDeps.every(d => placed.has(d) || !remaining.has(d))) {
         result.push(item)
         placed.add(item.id)
@@ -170,7 +174,7 @@ async function toggleItem(item: ProcedureItem) {
 async function updateNote(item: ProcedureItem, note: string) {
   failure.value = null
   try {
-    await procedures.patchItem(procedureId.value, item.id, {note: note || undefined})
+    await procedures.patchItem(procedureId.value, item.id, {note})
   } catch (e) {
     failure.value = describeFailure(e, t)
   }
@@ -212,7 +216,6 @@ watch(loaded, (v) => {
     <FailureAlert :failure="failure" class="mb-4"/>
 
     <template v-if="detail && !loading">
-      <!-- Header -->
       <div class="flex items-start justify-between mb-4 gap-4">
         <div class="flex-1 min-w-0">
           <div class="flex items-center gap-2 mb-1 flex-wrap">
@@ -254,7 +257,6 @@ watch(loaded, (v) => {
         </ButtonRow>
       </div>
 
-      <!-- Assignees -->
       <NeutralContainer v-if="detail.assignees.length > 0" class="mb-4">
         <SubHeader class="mb-2">{{ t('procedures.assignees') }}</SubHeader>
         <div class="flex flex-wrap gap-2">
@@ -262,7 +264,6 @@ watch(loaded, (v) => {
         </div>
       </NeutralContainer>
 
-      <!-- Progress bar -->
       <NeutralContainer class="mb-4">
         <div class="flex items-center gap-3">
           <span class="text-sm font-medium">{{ t('procedures.progress') }}</span>
@@ -273,7 +274,6 @@ watch(loaded, (v) => {
         </div>
       </NeutralContainer>
 
-      <!-- Checklist items -->
       <SubHeader class="mb-3">{{ t('procedures.items') }}</SubHeader>
 
       <div class="space-y-2">
@@ -295,7 +295,6 @@ watch(loaded, (v) => {
       </div>
     </template>
 
-    <!-- Resolve/Reopen Modal -->
     <Modal v-model="showResolveModal">
       <SubHeader class="mb-3">
         {{ detail?.procedure.status === ProcedureStatus.OPEN ? t('procedures.resolve') : t('procedures.reopen') }}

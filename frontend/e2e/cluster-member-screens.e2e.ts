@@ -27,11 +27,9 @@ test.describe('Cluster member screens', () => {
         await page.goto('/cluster/members')
         await expect(page.getByTestId('app-shell')).toBeVisible()
 
-        // The table's own rows, not a hand rolled stack.
         await expect(page.getByTestId('member-row').first()).toBeVisible({timeout: 15000})
 
-        // Narrowing to one station is offered, because more than one is in view.
-        await expect(page.locator('select').first()).toBeVisible()
+        await expect(page.locator('select').first(), 'narrowing to one station is offered').toBeVisible()
         await page.context().close()
     })
 
@@ -137,8 +135,8 @@ test.describe('Cluster member screens', () => {
         await page.goto('/cluster/members')
         await expect(page.getByTestId('member-row').first()).toBeVisible({timeout: 15000})
 
-        // Groups and tags belong to one station and are never a column here.
-        await expect(page.getByRole('columnheader', {name: /Gruppen/i})).toHaveCount(0)
+        await expect(page.getByRole('columnheader', {name: /Gruppen/i}), 'groups and tags belong to one station')
+            .toHaveCount(0)
         await expect(page.getByRole('columnheader', {name: /Tags/i})).toHaveCount(0)
         await page.context().close()
     })
@@ -158,8 +156,7 @@ test.describe('Cluster member screens', () => {
 
         await expect(page.getByTestId('roster-row').first()).toBeVisible({timeout: 15000})
 
-        // Adding is behind a button, so no email box is sitting on the page.
-        await expect(page.getByPlaceholder(/@/)).toHaveCount(0)
+        await expect(page.getByPlaceholder(/@/), 'adding is behind a button').toHaveCount(0)
         await page.context().close()
     })
 
@@ -265,7 +262,6 @@ test.describe('Cluster member screens', () => {
         await page.getByTestId('cluster-member-create').click()
         await expect(page.getByTestId('cluster-member-create-modal')).toBeVisible()
 
-        // The station first, because that is the question the association cannot answer for somebody
         const options = page.getByTestId('cluster-member-create-station').locator('option')
         const stationUid = await options.nth(1).getAttribute('value')
         expect(stationUid, 'the association has a station to take somebody on at').toBeTruthy()
@@ -299,7 +295,6 @@ test.describe('Cluster member screens', () => {
         await expect(page.getByTestId('member-row').first()).toBeVisible({timeout: 15000})
 
         await page.getByTestId('members-export').click()
-        // Every row on screen, which is what an association exports rather than one station's worth
         await page.getByTestId('member-select-all').click()
         await page.getByTestId('members-export-continue').click()
 
@@ -316,7 +311,8 @@ test.describe('Cluster member screens', () => {
      *
      * The member screen showed the questions and nothing else, so a document filed at the station was
      * invisible from the association. Reading and adding is the whole of it: the document belongs to
-     * the station that holds the person, so labelling and removing stay there.
+     * the station that holds the person, so labelling and removing stay there. The panel is the
+     * station's own, so the document opens the same way and names who filed it.
      */
     test('the association files a document about somebody at one of its stations', async ({browser, request}) => {
         const account = await clusterAccountWith(request, 'CLUSTER_MEMBER_MANAGER')
@@ -331,24 +327,28 @@ test.describe('Cluster member screens', () => {
         const panel = page.getByTestId('cluster-member-documents')
         await expect(panel).toBeVisible({timeout: 15000})
 
-        await page.getByTestId('cluster-member-document-upload').click()
-        await page.getByTestId('cluster-member-document-file').locator('input[type=file]').setInputFiles({
+        await panel.getByRole('button', {name: 'Hochladen'}).click()
+        const upload = page.getByRole('dialog')
+        await upload.locator('input[type="file"]').setInputFiles({
             name: 'nachweis.txt',
             mimeType: 'text/plain',
             buffer: Buffer.from('Ein Nachweis, vom Verband abgelegt.'),
         })
 
         const title = `Nachweis ${Date.now()}`
-        await page.getByTestId('cluster-member-document-name').fill(title)
-        await page.getByTestId('cluster-member-document-save').click()
+        await upload.getByPlaceholder('Wie das Dokument heißen soll').fill(title)
+        await upload.getByRole('button', {name: 'Hochladen'}).click()
 
-        // It comes back from the server on the next read, not from what the form still holds
-        const filed = panel.getByTestId('cluster-member-document').filter({hasText: title})
-        await expect(filed).toBeVisible({timeout: 15000})
+        const filed = panel.getByTestId('document-tile').filter({hasText: title})
+        await expect(filed, 'the document comes back from the server').toBeVisible({timeout: 15000})
 
-        // And the bytes come back too, which is the half of it the list cannot show
+        await filed.click()
+        const opened = page.getByRole('dialog')
+        await expect(opened.getByText('Ein Nachweis, vom Verband abgelegt.')).toBeVisible()
+        await expect(opened.getByTestId('document-uploader'), 'the manager is named as who filed it').toBeVisible()
+
         const download = page.waitForEvent('download')
-        await filed.getByTestId('cluster-member-document-download').click()
+        await opened.getByRole('button', {name: 'Herunterladen'}).click()
         expect((await download).suggestedFilename()).toBe('nachweis.txt')
 
         await page.context().close()

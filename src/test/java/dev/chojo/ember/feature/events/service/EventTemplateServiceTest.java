@@ -6,18 +6,19 @@
 package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.EventRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
-import dev.chojo.ember.feature.attendance.entity.AttendanceFieldType;
-import dev.chojo.ember.feature.events.entity.EventFieldConfig;
-import dev.chojo.ember.feature.events.entity.EventFieldType;
-import dev.chojo.ember.feature.events.entity.EventTemplateFieldData;
+import dev.chojo.ember.feature.attendance.service.AttendanceTemplateGuards;
+import dev.chojo.ember.feature.events.entity.AppointmentTemplateFieldDraft;
+import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventTemplateRepository;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
@@ -40,7 +41,8 @@ class EventTemplateServiceTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         var repository = new EventTemplateRepository();
-        service = new EventTemplateService(repository, attendanceRepo);
+        service = new EventTemplateService(
+                repository, attendanceRepo, memberEligibility, new AttendanceTemplateGuards(attendanceRepo));
         restrictions = new EventTemplateRestrictionService(repository, restrictionService);
         station = stationRepo.create("EventTemplateServiceStation");
     }
@@ -108,17 +110,17 @@ class EventTemplateServiceTest extends RepositoryTestBase {
     @Order(10)
     void replaceAndFindFields() {
         var fields = List.of(
-                new EventTemplateFieldData(
+                new AppointmentTemplateFieldDraft(
                         "Location",
-                        EventFieldType.STRING,
-                        EventFieldConfig.parse("{}"),
+                        FieldType.TEXT,
+                        EventQuestionSettings.parse("{}"),
                         0,
                         true,
                         false,
                         null,
                         "Gerätehaus"),
-                new EventTemplateFieldData(
-                        "Notes", EventFieldType.STRING, EventFieldConfig.parse("{}"), 1, false, true, null, null));
+                new AppointmentTemplateFieldDraft(
+                        "Notes", FieldType.TEXT, EventQuestionSettings.parse("{}"), 1, false, true, null, null));
         service.replaceFields(templateId, fields);
 
         var found = service.findFields(templateId);
@@ -140,19 +142,29 @@ class EventTemplateServiceTest extends RepositoryTestBase {
     void replaceFieldsClearsOld() {
         service.replaceFields(
                 templateId,
-                List.of(new EventTemplateFieldData(
-                        "OnlyField",
-                        EventFieldType.STRING,
-                        EventFieldConfig.parse("{}"),
-                        0,
-                        false,
-                        false,
-                        null,
-                        null)));
+                List.of(new AppointmentTemplateFieldDraft(
+                        "OnlyField", FieldType.TEXT, EventQuestionSettings.parse("{}"), 0, false, false, null, null)));
 
         var found = service.findFields(templateId);
         assertEquals(1, found.size());
         assertEquals("OnlyField", found.getFirst().name());
+    }
+
+    /** An age counts itself from a profile, so a template does not take one and keeps its fields. */
+    @Test
+    @Order(12)
+    void aTypeAnAppointmentDoesNotOfferIsRefused() {
+        var before = service.findFields(templateId);
+
+        var refused = assertThrows(
+                RefusalResponse.class,
+                () -> service.replaceFields(
+                        templateId,
+                        List.of(new AppointmentTemplateFieldDraft(
+                                "Alter", FieldType.AGE, EventQuestionSettings.empty(), 0, false, false, null, null))));
+
+        assertEquals(EventRefusal.TEMPLATE_FIELD_TYPE_NOT_OFFERED, refused.refusal());
+        assertEquals(before, service.findFields(templateId), "nothing was written");
     }
 
     /**
@@ -168,31 +180,31 @@ class EventTemplateServiceTest extends RepositoryTestBase {
     void aTieToAnotherSheetIsNotKept() {
         var ours = attendanceRepo.createTemplate(station.id(), "Unser Bogen");
         attendanceRepo.createTemplateField(
-                ours.id(), "Ausbilder", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 0);
+                ours.id(), "Ausbilder", FieldType.TEXT, AttendanceFieldConfig.parse("{}"), 0);
         int mine = attendanceRepo.findTemplateFields(ours.id()).getFirst().id();
 
         var theirs = attendanceRepo.createTemplate(station.id(), "Fremder Bogen");
         attendanceRepo.createTemplateField(
-                theirs.id(), "Ausbilder", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 0);
+                theirs.id(), "Ausbilder", FieldType.TEXT, AttendanceFieldConfig.parse("{}"), 0);
         int foreign = attendanceRepo.findTemplateFields(theirs.id()).getFirst().id();
 
         service.update(templateId, "Bogenprobe", null, null, null, null, null, null, null, null, ours.id(), null);
         service.replaceFields(
                 templateId,
                 List.of(
-                        new EventTemplateFieldData(
+                        new AppointmentTemplateFieldDraft(
                                 "Eigene",
-                                EventFieldType.STRING,
-                                EventFieldConfig.parse("{}"),
+                                FieldType.TEXT,
+                                EventQuestionSettings.parse("{}"),
                                 0,
                                 false,
                                 false,
                                 mine,
                                 null),
-                        new EventTemplateFieldData(
+                        new AppointmentTemplateFieldDraft(
                                 "Fremde",
-                                EventFieldType.STRING,
-                                EventFieldConfig.parse("{}"),
+                                FieldType.TEXT,
+                                EventQuestionSettings.parse("{}"),
                                 1,
                                 false,
                                 false,
@@ -216,8 +228,8 @@ class EventTemplateServiceTest extends RepositoryTestBase {
                         .attendanceFieldId(),
                 "and the one into somebody else's sheet is not");
 
-        attendanceRepo.deleteTemplate(ours.id());
-        attendanceRepo.deleteTemplate(theirs.id());
+        attendanceRepo.archiveTemplate(ours.id());
+        attendanceRepo.archiveTemplate(theirs.id());
     }
 
     @Test
@@ -401,19 +413,19 @@ class EventTemplateServiceTest extends RepositoryTestBase {
     @Test
     @Order(40)
     void aStartingValueTheFieldWouldRefuseIsRefused() {
-        var choice = EventFieldConfig.parse("{\"options\":[\"rot\",\"blau\"]}");
+        var choice = EventQuestionSettings.parse("{\"options\":[\"rot\",\"blau\"]}");
 
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> service.replaceFields(
                         templateId,
-                        List.of(new EventTemplateFieldData(
-                                "Farbe", EventFieldType.ENUM, choice, 0, true, false, null, "gelb"))));
+                        List.of(new AppointmentTemplateFieldDraft(
+                                "Farbe", FieldType.CHOICE, choice, 0, true, false, null, "gelb"))));
 
         service.replaceFields(
                 templateId,
-                List.of(new EventTemplateFieldData(
-                        "Farbe", EventFieldType.ENUM, choice, 0, true, false, null, "blau")));
+                List.of(new AppointmentTemplateFieldDraft(
+                        "Farbe", FieldType.CHOICE, choice, 0, true, false, null, "blau")));
         assertEquals("blau", service.findFields(templateId).getFirst().defaultValue());
     }
 

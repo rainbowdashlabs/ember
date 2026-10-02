@@ -123,8 +123,6 @@ class QuizTestRepositoryTest extends RepositoryTestBase {
         assertEquals(0, quizTestRepo.countAttempts(testId));
     }
 
-    // -- Sections --
-
     @Test
     @Order(10)
     void createSection() {
@@ -166,8 +164,6 @@ class QuizTestRepositoryTest extends RepositoryTestBase {
         assertTrue(quizTestRepo.findSources(sectionId).isEmpty());
     }
 
-    // -- Frozen Questions --
-
     @Test
     @Order(20)
     void frozenQuestions() {
@@ -192,8 +188,6 @@ class QuizTestRepositoryTest extends RepositoryTestBase {
         quizTestRepo.deleteFrozenQuestions(testId);
         assertTrue(quizTestRepo.findFrozenQuestions(testId).isEmpty());
     }
-
-    // -- Attempts --
 
     @Test
     @Order(30)
@@ -230,8 +224,6 @@ class QuizTestRepositoryTest extends RepositoryTestBase {
         assertTrue(quizTestRepo.gradeAttempt(attempt.id(), 8.0, member.id()));
     }
 
-    // -- Attempt Questions --
-
     @Test
     @Order(40)
     void attemptQuestions() {
@@ -240,8 +232,6 @@ class QuizTestRepositoryTest extends RepositoryTestBase {
         var qs = quizTestRepo.findAttemptQuestions(attempt.id());
         assertFalse(qs.isEmpty());
     }
-
-    // -- Answers --
 
     @Test
     @Order(50)
@@ -268,8 +258,6 @@ class QuizTestRepositoryTest extends RepositoryTestBase {
         }
     }
 
-    // -- Member Access --
-
     @Test
     @Order(60)
     void memberAccess() {
@@ -280,22 +268,16 @@ class QuizTestRepositoryTest extends RepositoryTestBase {
         assertFalse(quizTestRepo.hasMemberAccess(testId, member.id()));
     }
 
-    // -- findByStationForMember --
-
     @Test
     @Order(61)
     void findByStationForMember() {
-        var tests = quizTestRepo.findByStationForMember(station.id(), member.id());
-        // Member is station member, manager bypass applies - expect the test to be visible
+        var tests = quizTestRepo.findByStationForMember(station.id(), member.id(), false);
         assertNotNull(tests);
     }
-
-    // -- deleteSource (individual) --
 
     @Test
     @Order(62)
     void deleteSource() {
-        // create a fresh section and source, then delete the source by ID
         var sec = quizTestRepo.createSection(testId, "TmpSection", "", 99);
         var src = quizTestRepo.createSource(sec.id(), catalogId, null, 1);
         assertNotNull(src);
@@ -304,28 +286,21 @@ class QuizTestRepositoryTest extends RepositoryTestBase {
         quizTestRepo.deleteSection(sec.id());
     }
 
-    // -- upsertAnswer --
-
     @Test
     @Order(63)
     void upsertAnswer() {
         var attempt = quizTestRepo.findAttempt(testId, member.id()).orElseThrow();
-        // upsertAnswer inserts with ON CONFLICT on id - first call inserts
         var answer = new QuizAnswerValue.TrueFalse(false);
         assertDoesNotThrow(() -> quizTestRepo.upsertAnswer(attempt.id(), questionId, null, answer, 0));
         var answers = quizTestRepo.findAnswers(attempt.id());
         assertFalse(answers.isEmpty());
     }
 
-    // -- Section delete --
-
     @Test
     @Order(70)
     void deleteSection() {
         assertTrue(quizTestRepo.deleteSection(sectionId));
     }
-
-    // -- Cleanup --
 
     @Test
     @Order(99)

@@ -9,9 +9,9 @@ import { useI18n } from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
-import TrainingQuestionCard from './TrainingQuestionCard.vue'
+import TrainingQuestionCard from '@/components/quiz/TrainingQuestionCard.vue'
 import ReportQuestionModal from './ReportQuestionModal.vue'
-import type { QuizQuestion } from '@/api/quiz'
+import type { QuizQuestion } from '@/api/generated/schema'
 
 const userTfAnswer = defineModel<boolean | null>('userTfAnswer', {required: true})
 const userAnswer = defineModel<string>('userAnswer', {required: true})
@@ -56,11 +56,11 @@ const showReport = ref(false)
   </div>
 
   <TrainingQuestionCard
+    v-model:user-answer="userAnswer"
+    v-model:user-tf-answer="userTfAnswer"
     :question="currentQuestion"
     :show-answer="showAnswer"
-    v-model:user-answer="userAnswer"
     :user-mc-selections="userMcSelections"
-    v-model:user-tf-answer="userTfAnswer"
     :user-order-items="userOrderItems"
     :user-connect-pairs="userConnectPairs"
     :user-fill-gaps="userFillGaps"

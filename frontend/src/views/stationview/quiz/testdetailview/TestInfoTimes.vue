@@ -7,7 +7,8 @@
 import { useI18n } from 'vue-i18n'
 import DateTimeInput from '@/components/input/datetime/DateTimeInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import {QuizTestStatus, type QuizTestDetail} from '@/api/quiz'
+import {QuizTestStatus} from '@/api/quiz'
+import type {QuizTestDetail} from '@/api/generated/schema'
 import { formatDateTime } from '@/util/format'
 import MutedText from '@/components/typography/MutedText.vue'
 

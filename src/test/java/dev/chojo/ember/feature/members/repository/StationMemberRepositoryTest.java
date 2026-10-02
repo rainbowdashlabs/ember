@@ -65,6 +65,18 @@ class StationMemberRepositoryTest extends RepositoryTestBase {
         assertTrue(stationMemberRepo.findById(memberId1).isPresent());
     }
 
+    /** Several members are read in one go, and an id that resolves to nobody is simply left out. */
+    @Test
+    @Order(2)
+    void findByIds() {
+        var found = stationMemberRepo.findByIds(List.of(memberId1, memberId2, 99999)).stream()
+                .map(StationMember::id)
+                .toList();
+        assertEquals(2, found.size());
+        assertTrue(found.containsAll(List.of(memberId1, memberId2)));
+        assertTrue(stationMemberRepo.findByIds(List.of()).isEmpty());
+    }
+
     @Test
     @Order(3)
     void findByStationAndAccount() {
@@ -87,8 +99,6 @@ class StationMemberRepositoryTest extends RepositoryTestBase {
         assertFalse(stationMemberRepo.findByAccount(account1.id()).isEmpty());
     }
 
-    // -- Permissions --
-
     @Test
     @Order(9)
     void findAllPermissions() {
@@ -107,18 +117,11 @@ class StationMemberRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(10)
     void grantAndFindPermissions() {
-        // Permission ID 1 = 'LOGIN' (seeded)
-        stationMemberRepo.grantPermission(memberId1, 1);
+        int seededLoginPermissionId = 1;
+        stationMemberRepo.grantPermission(memberId1, seededLoginPermissionId);
         List<Permission> permissions = stationMemberRepo.findPermissions(memberId1);
         assertEquals(1, permissions.size());
         assertEquals(StationPermission.LOGIN, permissions.getFirst().permission());
-    }
-
-    @Test
-    @Order(11)
-    void hasLoginPermission() {
-        assertTrue(stationMemberRepo.hasLoginPermission(account1.id()));
-        assertFalse(stationMemberRepo.hasLoginPermission(account2.id()));
     }
 
     @Test
@@ -127,8 +130,6 @@ class StationMemberRepositoryTest extends RepositoryTestBase {
         assertTrue(stationMemberRepo.revokePermission(memberId1, 1));
         assertTrue(stationMemberRepo.findPermissions(memberId1).isEmpty());
     }
-
-    // -- Manager Relations --
 
     @Test
     @Order(20)
@@ -141,6 +142,27 @@ class StationMemberRepositoryTest extends RepositoryTestBase {
         var managers = stationMemberRepo.findManagers(memberId2);
         assertEquals(1, managers.size());
         assertEquals(memberId1, managers.getFirst().id());
+    }
+
+    @Test
+    @Order(19)
+    void aGuardianWhoLeftIsNoLongerFoundAsOne() {
+        var elsewhere = stationRepo.create("Guardian Leaving Station");
+        var ward = stationMemberRepo.create(
+                elsewhere.id(),
+                accountRepo.create("member-ward@test.com", "Member", "Ward").id());
+        var leaving = stationMemberRepo.create(
+                elsewhere.id(),
+                accountRepo
+                        .create("member-leaving@test.com", "Member", "Leaving")
+                        .id());
+        stationMemberRepo.addManager(leaving.id(), ward.id());
+        assertEquals(1, stationMemberRepo.findManagers(ward.id()).size());
+
+        stationMemberRepo.setFormer(leaving.id(), true);
+
+        assertTrue(stationMemberRepo.findManagers(ward.id()).isEmpty());
+        stationRepo.delete(elsewhere.id());
     }
 
     @Test
@@ -159,8 +181,6 @@ class StationMemberRepositoryTest extends RepositoryTestBase {
                 completions.stream().allMatch(c -> c.name() != null && !c.name().isBlank()));
     }
 
-    // -- Additional coverage --
-
     @Test
     @Order(30)
     void findByUid() {
@@ -169,7 +189,6 @@ class StationMemberRepositoryTest extends RepositoryTestBase {
         assertTrue(found.isPresent());
         assertEquals(memberId1, found.get().id());
 
-        // non-existent UID returns empty
         assertTrue(stationMemberRepo.findByUid(station.id(), UUID.randomUUID()).isEmpty());
     }
 
@@ -236,6 +255,47 @@ class StationMemberRepositoryTest extends RepositoryTestBase {
                         .findMembersWithPermission(station.id(), StationPermission.LOST_AND_FOUND_MANAGER)
                         .stream()
                         .anyMatch(m -> m.id() == memberId1));
+    }
+
+    /**
+     * A station manager holds every management right through their user type alone, and a
+     * feature looking for the people who look after it finds them without any grant written down.
+     */
+    @Test
+    @Order(34)
+    void findMembersWithPermissionFindsAManagerByUserType() {
+        stationMemberRepo.setUserType(memberId1, StationUserType.MANAGER);
+        try {
+            assertTrue(
+                    stationMemberRepo.findMembersWithPermission(station.id(), StationPermission.EVENT_MANAGER).stream()
+                            .anyMatch(m -> m.id() == memberId1));
+        } finally {
+            stationMemberRepo.setUserType(memberId1, StationUserType.MEMBER);
+        }
+        assertFalse(stationMemberRepo.findMembersWithPermission(station.id(), StationPermission.EVENT_MANAGER).stream()
+                .anyMatch(m -> m.id() == memberId1));
+    }
+
+    /**
+     * A right the station hands to everybody of a user type counts for each member of that type.
+     */
+    @Test
+    @Order(34)
+    void findMembersWithPermissionFindsAStationGrantForTheUserType() {
+        int eventManager = stationMemberRepo
+                .findPermissionByName(StationPermission.EVENT_MANAGER)
+                .orElseThrow()
+                .id();
+        stationMemberRepo.setUserType(memberId1, StationUserType.TEAM);
+        stationMemberRepo.setUserTypePermissions(station.id(), StationUserType.TEAM, List.of(eventManager));
+        try {
+            assertTrue(
+                    stationMemberRepo.findMembersWithPermission(station.id(), StationPermission.EVENT_MANAGER).stream()
+                            .anyMatch(m -> m.id() == memberId1));
+        } finally {
+            stationMemberRepo.setUserTypePermissions(station.id(), StationUserType.TEAM, List.of());
+            stationMemberRepo.setUserType(memberId1, StationUserType.MEMBER);
+        }
     }
 
     @Test
@@ -313,7 +373,6 @@ class StationMemberRepositoryTest extends RepositoryTestBase {
         assertFalse(perms.isEmpty());
         assertTrue(perms.stream().anyMatch(p -> p.permission() == StationPermission.LOGIN));
 
-        // Clear
         stationMemberRepo.setUserTypePermissions(station.id(), StationUserType.GUARDIAN, List.of());
         var cleared = stationMemberRepo.findUserTypePermissions(station.id(), StationUserType.GUARDIAN);
         assertTrue(cleared.isEmpty());

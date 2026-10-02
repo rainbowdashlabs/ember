@@ -9,25 +9,22 @@ import {useI18n} from 'vue-i18n'
 import EntitySearchPicker from './EntitySearchPicker.vue'
 import ScanButton from '@/components/scanner/ScanButton.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import ItemChip, {type ItemChipSource} from '@/components/inventory/ItemChip.vue'
+import ItemChip from '@/components/inventory/ItemChip.vue'
 import {normaliseScannedPayload} from '@/components/scanner/useBarcodeScanner'
-import {containerPathFor} from '@/util/containerPath'
-import {glyphFor} from '@/util/glyph'
-import {inventory, inventoryArts, inventoryContainers, movements, stationMembers} from '@/api'
-import {MovementState} from '@/api/movements'
-import type {InventoryArt} from '@/api/inventoryArts'
-import {
-  InventoryTypes,
-  ItemOwner,
-  type Inventory,
-  type InventoryItem,
-  type InventorySize,
-  type InventoryTypeName,
-  type ItemOwnerName,
-} from '@/api/inventory'
-import type {StationMember} from '@/api/types'
-import type {InventoryContainer} from '@/api/inventoryContainers'
+import type {InventoryTypeName, ItemOwnerName} from '@/api/inventory'
+import type {InventoryItem} from '@/api/generated/schema'
+import {passesItemFilters} from './itemsearch/itemFilters'
+import {ITEM_SEARCH_LIMIT, queryTokens, scoreItemText} from './itemsearch/itemRanking'
+import {useItemCatalog} from './itemsearch/useItemCatalog'
+import {activeLocale} from '@/util/locale'
 
+/**
+ * Picking one piece of gear, by searching for it or by scanning its code.
+ *
+ * <p>The picker holds nothing of its own: what it knows about the gear and how it words a piece come
+ * from `useItemCatalog`, which pieces it may offer from `itemFilters`, and the order of a search from
+ * `itemRanking`. What stays here is the wiring between them and the search field.
+ */
 const model = defineModel<number | null>()
 
 const props = defineProps<{
@@ -64,241 +61,43 @@ const emit = defineEmits<{
 
 const {t} = useI18n()
 
-const items = ref<InventoryItem[]>([])
-const arts = ref<InventoryArt[]>([])
-const containers = ref<InventoryContainer[]>([])
-const members = ref<StationMember[]>([])
-const inventories = ref<Inventory[]>([])
-const sizes = ref<InventorySize[]>([])
-const ready = ref(false)
+const catalog = useItemCatalog(() => props.wantedSizeId, () => props.excludeSpokenFor)
+const {items, ready, itemById, searchText, displayName, chipOf, stateBadge, subtitle} = catalog
+
 const scanError = ref('')
 
-/** The pieces an open movement has already promised somebody, which nobody else may be given. */
-const spokenFor = ref<Set<number>>(new Set())
-
-const artById = computed(() => new Map(arts.value.map(a => [a.id, a])))
-const containerById = computed(() => new Map(containers.value.map(c => [c.id, c])))
-const memberById = computed(() => new Map(members.value.map(m => [m.id, m])))
-const inventoryById = computed(() => new Map(inventories.value.map(i => [i.id, i])))
-const sizeById = computed(() => new Map(sizes.value.map(s => [s.id, s])))
-const itemById = computed(() => new Map(items.value.map(i => [i.id, i])))
-
-function pathFor(containerId: number | null | undefined): string {
-  return containerPathFor(containerById.value, containerId)
-}
-
-function inventoryName(id: number): string {
-  return inventoryById.value.get(id)?.name ?? t('inventory.itemPicker.unknownInventory', {id})
-}
-
-function memberName(id: number | null | undefined): string {
-  if (id == null) return ''
-  const m = memberById.value.get(id)
-  return m?.name?.trim() || t('inventory.itemPicker.unknownMember', {id})
-}
-
-function sizeLabel(item: InventoryItem): string {
-  if (!item.sizeId) return ''
-  return sizeById.value.get(item.sizeId)?.label ?? ''
-}
-
-function displayName(item: InventoryItem): string {
-  const base = (item.name ?? '').trim() || item.internalId || `#${item.id}`
-  const size = sizeLabel(item)
-  return size ? `${base} · ${size}` : base
-}
-
-type ItemState = 'member' | 'storage' | 'lost' | 'free'
-
-function itemState(item: InventoryItem): ItemState {
-  if (item.lostAt) return 'lost'
-  if (item.assignedTo != null) return 'member'
-  if (item.containerId != null) return 'storage'
-  return 'free'
-}
-
-function locationLabel(item: InventoryItem): string {
-  switch (itemState(item)) {
-    case 'lost': return t('inventory.itemPicker.lost')
-    case 'member': return t('inventory.itemPicker.heldBy', {name: memberName(item.assignedTo)})
-    case 'storage': {
-      const path = pathFor(item.containerId)
-      return path ? t('inventory.itemPicker.storedAt', {path}) : t('inventory.itemPicker.unassigned')
-    }
-    default: return t('inventory.itemPicker.unassigned')
-  }
-}
-
-/**
- * What the piece is, rather than where it is.
- *
- * <p>Where it is was what the icon used to say, which made a helmet and a jacket with the same member
- * look alike. That answer is the badge's now, and the picture says what the thing is.
- */
-function glyphOf(item: InventoryItem) {
-  const art = item.artId != null ? artById.value.get(item.artId) : undefined
-  const inv = inventoryById.value.get(item.inventoryId)
-  return glyphFor({
-    artIcon: art?.icon,
-    artColor: art?.color,
-    inventoryIcon: inv?.icon,
-    inventoryColor: inv?.color,
-    homogeneous: inv?.homogeneous,
-  })
-}
-
-function hasWantedSize(item: InventoryItem): boolean {
-  return props.wantedSizeId != null && item.sizeId === props.wantedSizeId
-}
-
-/** Pieces of the size asked for come before the rest, which is the piece a reader is looking for. */
-function byWantedSize(a: InventoryItem, b: InventoryItem): number {
-  return Number(hasWantedSize(b)) - Number(hasWantedSize(a))
-}
-
-function chipOf(item: InventoryItem): ItemChipSource {
-  return {
-    glyph: glyphOf(item),
-    name: (item.name ?? '').trim() || item.internalId || `#${item.id}`,
-    internalId: item.internalId,
-    sizeName: sizeLabel(item),
-    sizeWanted: hasWantedSize(item),
-    inventoryName: inventoryName(item.inventoryId),
-    location: locationLabel(item),
-  }
-}
-
-function stateBadge(item: InventoryItem): {text: string; variant: 'success' | 'info' | 'error' | 'neutral' | 'warning'} {
-  switch (itemState(item)) {
-    case 'member': return {text: t('inventory.itemPicker.badgeMember'), variant: 'info'}
-    case 'storage': return {text: t('inventory.itemPicker.badgeStorage'), variant: 'success'}
-    case 'lost': return {text: t('inventory.itemPicker.badgeLost'), variant: 'error'}
-    default: return {text: t('inventory.itemPicker.badgeFree'), variant: 'neutral'}
-  }
-}
-
-function subtitle(item: InventoryItem): string {
-  const parts: string[] = []
-  if (item.internalId) parts.push(item.internalId)
-  parts.push(inventoryName(item.inventoryId))
-  parts.push(locationLabel(item))
-  return parts.join(' · ')
-}
-
-/**
- * Whose gear a piece is, read off the piece rather than off its inventory.
- *
- * <p>A mixed inventory holds both, so the inventory cannot answer for its pieces; each piece says for
- * itself. A piece that says nothing is the station's, which is what an inventory of the station's own
- * gear writes.
- */
-function ownedByTheSameParty(item: InventoryItem): boolean {
-  if (props.ownerKind == null) return true
-  const kind = item.ownerKind ?? ItemOwner.STATION
-  if (kind !== props.ownerKind) return false
-  if (props.ownerKind !== ItemOwner.CLUSTER) return true
-  return props.ownerClusterId == null || item.ownerClusterId === props.ownerClusterId
-}
-
-/**
- * Whether the piece sits on the same sort of shelf as the movement is about.
- *
- * <p>A shelf that holds both sorts fits either way round, and where the wanted sort is not said the
- * shelf is nobody's business.
- */
-function onTheSameKindOfShelf(item: InventoryItem): boolean {
-  if (props.inventoryType == null) return true
-  const type = inventoryById.value.get(item.inventoryId)?.inventoryType
-  if (type == null) return false
-  return type === props.inventoryType || type === InventoryTypes.MIXED || props.inventoryType === InventoryTypes.MIXED
-}
-
 function passesFilters(item: InventoryItem): boolean {
-  if (props.inventoryId != null && item.inventoryId !== props.inventoryId) return false
-  if (!onTheSameKindOfShelf(item)) return false
-  if (props.excludeAssigned && item.assignedTo != null) return false
-  if (props.excludeLost && item.lostAt) return false
-  if (props.excludeContainerless && item.containerId == null && item.assignedTo == null) return false
-  if (props.excludeSpokenFor && spokenFor.value.has(item.id)) return false
-  return ownedByTheSameParty(item)
+  return passesItemFilters(item, props, {
+    inventoryTypeOf: id => catalog.inventoryById.value.get(id)?.inventoryType,
+    spokenFor: catalog.spokenFor.value,
+  })
 }
 
 const filtered = computed(() => items.value.filter(passesFilters))
 
-interface SearchIndex {
-  id: string
-  name: string
-  size: string
-  inventory: string
-  location: string
+/** Pieces of the size asked for come before the rest, which is the piece a reader is looking for. */
+function byWantedSize(a: InventoryItem, b: InventoryItem): number {
+  return Number(catalog.hasWantedSize(b)) - Number(catalog.hasWantedSize(a))
 }
 
-const searchIndex = computed(() => {
-  const map = new Map<number, SearchIndex>()
-  for (const item of items.value) {
-    map.set(item.id, {
-      id: (item.internalId ?? '').toLowerCase(),
-      name: (item.name ?? '').toLowerCase(),
-      size: sizeLabel(item).toLowerCase(),
-      inventory: inventoryName(item.inventoryId).toLowerCase(),
-      location: locationLabel(item).toLowerCase(),
-    })
-  }
-  return map
-})
-
-function escapeRegex(s: string): string {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-}
-
-function scoreToken(idx: SearchIndex, token: string): number {
-  if (idx.id === token) return 200
-  if (idx.id.startsWith(token)) return 150
-  if (idx.name.startsWith(token)) return 100
-  if (idx.size === token) return 90
-  if (new RegExp(`\\b${escapeRegex(token)}`).test(idx.name)) return 85
-  if (idx.id.includes(token)) return 70
-  if (idx.name.includes(token)) return 60
-  if (idx.size.includes(token)) return 50
-  if (idx.inventory.includes(token)) return 30
-  if (idx.location.includes(token)) return 20
-  return -1
-}
-
-function scoreItem(item: InventoryItem, tokens: string[]): number {
-  const idx = searchIndex.value.get(item.id)
-  if (!idx) return -1
-  let total = 0
-  for (const t of tokens) {
-    const s = scoreToken(idx, t)
-    if (s < 0) return -1
-    total += s
-  }
-  return total
+function byName(a: InventoryItem, b: InventoryItem): number {
+  return displayName(a).localeCompare(displayName(b), activeLocale())
 }
 
 async function searchFn(query: string): Promise<InventoryItem[]> {
   if (!ready.value) return []
-  const tokens = query.toLowerCase().split(/\s+/).filter(Boolean)
+  const tokens = queryTokens(query)
   if (tokens.length === 0) {
-    return filtered.value
-        .slice()
-        .sort((a, b) => byWantedSize(a, b) || displayName(a).localeCompare(displayName(b), 'de'))
-        .slice(0, 25)
+    return filtered.value.slice().sort((a, b) => byWantedSize(a, b) || byName(a, b)).slice(0, ITEM_SEARCH_LIMIT)
   }
   const scored: Array<[InventoryItem, number]> = []
   for (const item of filtered.value) {
-    const s = scoreItem(item, tokens)
-    if (s < 0) continue
-    scored.push([item, s])
+    const text = searchText.value.get(item.id)
+    const score = text ? scoreItemText(text, tokens) : -1
+    if (score >= 0) scored.push([item, score])
   }
-  scored.sort((a, b) => {
-    const fit = byWantedSize(a[0], b[0])
-    if (fit !== 0) return fit
-    if (a[1] !== b[1]) return b[1] - a[1]
-    return displayName(a[0]).localeCompare(displayName(b[0]), 'de')
-  })
-  return scored.slice(0, 25).map(p => p[0])
+  scored.sort(([a, scoreA], [b, scoreB]) => byWantedSize(a, b) || scoreB - scoreA || byName(a, b))
+  return scored.slice(0, ITEM_SEARCH_LIMIT).map(([item]) => item)
 }
 
 const innerModel = computed<string | null>({
@@ -312,51 +111,6 @@ const selectedDisplay = computed(() => {
   if (model.value == null) return null
   return selectedItem.value ? displayName(selectedItem.value) : `#${model.value}`
 })
-
-/**
- * The pieces open movements have already named, which are free on the shelf and promised all the same.
- *
- * <p>Asked for only where the caller wants them left out: every other picker would be paying for a
- * list it does not read. A failure here leaves the set empty rather than the picker: the engine
- * refuses a promised piece anyway, so the worst of it is a refusal after the press instead of before.
- */
-async function promisedPieces(): Promise<Set<number>> {
-  try {
-    const open = await movements.listMovements()
-    return new Set(open
-        .filter(movement => movement.state === MovementState.OPEN && movement.incomingItemId != null)
-        .map(movement => movement.incomingItemId as number))
-  } catch {
-    return new Set()
-  }
-}
-
-async function load() {
-  ready.value = false
-  try {
-    const [is, cs, ms, invs, szs] = await Promise.all([
-      inventory.listAllItems(),
-      inventoryContainers.listContainers(),
-      stationMembers.listMembers(),
-      inventory.listInventories(),
-      inventory.listAllSizes(),
-    ])
-    items.value = is
-    containers.value = cs
-    members.value = ms
-    inventories.value = invs
-    sizes.value = szs
-    // Only a drawer of different things has kinds, and only a kind can overrule its inventory's picture.
-    const collections = invs.filter(inv => !inv.homogeneous)
-    const kinds = await Promise.all(collections.map(inv => inventoryArts.listArts(inv.id)))
-    arts.value = kinds.flat()
-    if (props.excludeSpokenFor) spokenFor.value = await promisedPieces()
-  } catch {
-    items.value = []
-  } finally {
-    ready.value = true
-  }
-}
 
 function pickItem(item: InventoryItem) {
   model.value = item.id
@@ -376,7 +130,7 @@ function onScan(value: string) {
   if (!match) scanError.value = t('inventory.itemPicker.scanNotFound', {scan: term})
 }
 
-onMounted(load)
+onMounted(catalog.load)
 watch(() => model.value, val => { if (val == null) scanError.value = '' })
 </script>
 

@@ -7,18 +7,22 @@ package dev.chojo.ember.feature.storage.transfer;
 
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.conf.file.elements.Api;
-import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.service.AvatarService;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationPartnerTransferFixupService;
-import dev.chojo.ember.feature.media.service.ImageVariantService;
+import dev.chojo.ember.feature.media.entity.MediaContent;
+import dev.chojo.ember.feature.media.image.ImageProfile;
+import dev.chojo.ember.feature.media.service.ImageVariants;
 import dev.chojo.ember.feature.media.service.MediaStorageService;
-import dev.chojo.ember.feature.media.service.MediaVariantService;
 import dev.chojo.ember.feature.members.route.TransferRoutes;
+import dev.chojo.ember.feature.quiz.repository.AccountAiCredentialRepository;
+import dev.chojo.ember.feature.quiz.repository.AiProviderRepository;
+import dev.chojo.ember.feature.quiz.service.AiCredentialService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.service.StationExportService;
 import dev.chojo.ember.feature.station.service.StationImportService;
+import dev.chojo.ember.feature.station.service.StationTransferService;
 import dev.chojo.ember.feature.station.transfer.AccountCredentialTableImporter;
 import dev.chojo.ember.feature.station.transfer.AccountTableImporter;
 import dev.chojo.ember.feature.station.transfer.DisabledModuleTableImporter;
@@ -33,10 +37,13 @@ import dev.chojo.ember.feature.storage.entity.StationStorageBackendConfig;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.entity.StorageScope;
 import dev.chojo.ember.feature.storage.repository.StationStorageConfigRepository;
+import dev.chojo.ember.feature.storage.service.StationTransferFileService;
 import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.feature.storage.service.TransferBackendDescriptorService;
+import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import dev.chojo.ember.util.TestRemoteUrlValidator;
+import dev.chojo.ember.util.TestStationKeys;
 import dev.chojo.ember.util.WebpEncoder;
 import io.javalin.Javalin;
 import org.junit.jupiter.api.AfterAll;
@@ -88,7 +95,7 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
     private static StorageService storageService;
     private static AvatarService avatarService;
     private static MediaStorageService mediaStorageService;
-    private static MediaVariantService mediaVariantService;
+    private static ImageVariants images;
     private static StationStorageConfigRepository configRepo;
     private static CredentialCipher credentialCipher;
 
@@ -104,19 +111,18 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
         LocalStorageBackend sharedBackend = new LocalStorageBackend(sharedDataRoot);
         StorageBackendResolver resolver = new StorageBackendResolver(sharedBackend);
         storageService = new StorageService(resolver, sharedBackend);
-        var imageVariantService = new ImageVariantService(storageService);
-        avatarService = new AvatarService(imageVariantService);
+        images = new ImageVariants(storageService);
+        avatarService = new AvatarService(images);
         mediaStorageService = new MediaStorageService(storageService, stationRepo, sharedBackend);
-        mediaVariantService = new MediaVariantService(mediaStorageService, new Storage());
 
         configRepo = new StationStorageConfigRepository();
         credentialCipher = new CredentialCipher(Base64.getEncoder().encodeToString(new byte[32]));
         var backendImporter = new TransferBackendImporter(configRepo, credentialCipher, resolver);
         var descriptorService = new TransferBackendDescriptorService(configRepo, credentialCipher);
 
-        exportService = new StationExportService(stationRepo, new Api());
-        var fileImporter = new TransferFileImporter(
-                storageService, avatarService, imageVariantService, mediaStorageService, mediaVariantService);
+        exportService = new StationExportService(
+                stationRepo, TestStationKeys.transfer(), TestStationKeys.aiKeyTransfer(), new Api());
+        var fileImporter = new TransferFileImporter(storageService, avatarService, images, mediaStorageService);
         var stationImporter = new StationTableImporter(stationRepo);
         importService = new StationImportService(
                 stationRepo,
@@ -124,8 +130,11 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
                 new Api(),
                 backendImporter,
                 fileImporter,
-                new FederationPartnerTransferFixupService(new FederationRepository(), null, stationRepo),
+                new FederationPartnerTransferFixupService(new FederationRepository(), null),
+                TestStationKeys.transfer(),
+                TestStationKeys.aiKeyTransfer(),
                 TestRemoteUrlValidator.permissive(),
+                TestRemoteUrlValidator.permissiveOutbound(),
                 stationImporter,
                 Set.of(
                         stationImporter,
@@ -133,15 +142,21 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
                         new AccountCredentialTableImporter(accountRepo, passkeyModeService),
                         new DisabledModuleTableImporter(stationRepo)),
                 accountRepo,
-                org.mockito.Mockito.mock(dev.chojo.ember.feature.account.service.AuthService.class));
+                org.mockito.Mockito.mock(dev.chojo.ember.feature.account.service.AuthService.class),
+                new TaskScheduler());
 
         var transferRoutes = new TransferRoutes(
                 exportService,
                 importService,
-                stationRepo,
-                new FederationPartnerTransferFixupService(new FederationRepository(), null, stationRepo));
+                new StationTransferService(
+                        stationRepo,
+                        exportService,
+                        new FederationPartnerTransferFixupService(new FederationRepository(), null)));
         var assetRoutes = new StationTransferAssetRoutes(
-                exportService, descriptorService, stationRepo, storageService, avatarService);
+                exportService,
+                descriptorService,
+                new StationTransferFileService(stationRepo, storageService),
+                avatarService);
 
         server = Javalin.create(config -> {
             for (Routes r : new Routes[] {assetRoutes, transferRoutes}) {
@@ -177,7 +192,7 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
         waitForImport(importResult.stationId());
 
         int destinationId = importResult.stationId();
-        var carried = mediaStorageService.read(destinationId, contentHash);
+        var carried = libraryOriginal(destinationId, contentHash);
         assertTrue(carried.isPresent(), "destination should carry the file");
         assertArrayEquals(fileBytes, carried.get().data(), "bytes round-trip unchanged");
 
@@ -266,7 +281,27 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
     }
 
     /**
-     * The backend descriptor endpoint is one-shot per token: a second call answers 429 so the
+     * The station's AI keys come along: the destination holds one working key per provider, with
+     * the model that went with it, and the copied table row does not add a second one.
+     */
+    @Test
+    void aiKeysTravelWithTheStation() throws Exception {
+        var credentials = new AiCredentialService(
+                new AccountAiCredentialRepository(), new AiProviderRepository(), TestStationKeys.cipher());
+        Station source = stationRepo.create("Source AI");
+        credentials.saveStationKey(source.id(), "openai", "sk-travelling", "gpt-4o");
+
+        String token = rawToken(exportService.createTransferToken(source.id()));
+        var importResult = importService.startRemoteImport(baseUrl, token);
+        waitForImport(importResult.stationId());
+
+        assertEquals(
+                List.of(new AiCredentialService.StationKey("openai", "gpt-4o", "sk-travelling")),
+                credentials.stationKeys(importResult.stationId()));
+    }
+
+    /**
+     * The backend descriptor endpoint is one-shot per token: a second call answers 410 so the
      * destination cannot reuse the token to harvest plaintext credentials repeatedly.
      */
     @Test
@@ -280,7 +315,7 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
         assertEquals(200, first.statusCode());
 
         var second = client.send(HttpRequest.newBuilder(uri).GET().build(), HttpResponse.BodyHandlers.ofString());
-        assertEquals(429, second.statusCode());
+        assertEquals(410, second.statusCode());
     }
 
     /**
@@ -314,7 +349,8 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
         byte[] png = pngBytes(800, 600);
         String contentHash = MediaStorageService.hash(png);
         mediaStorageService.store(source.id(), contentHash, png, "image/png");
-        mediaVariantService.generateVariants(source.id(), contentHash, png, "image/png");
+        var at = mediaStorageService.locate(source.id(), contentHash);
+        images.addSizes(at.scope(), at.category(), at.key(), png, "image/png");
 
         var sourceScope = new StorageScope.Station(source.id(), source.uid());
         List<String> sourceKeys = storageService.listKeys(sourceScope, StorageCategory.MEDIA_FILES, "");
@@ -322,7 +358,7 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
                 sourceKeys.stream().anyMatch(k -> k.endsWith("/w128.webp")),
                 "source must have actually generated WebP variants (test precondition)");
 
-        List<String> filtered = StationTransferAssetRoutes.originalsOnly(StorageCategory.MEDIA_FILES, sourceKeys);
+        List<String> filtered = StationTransferFileService.originalsOnly(StorageCategory.MEDIA_FILES, sourceKeys);
         assertEquals(List.of(contentHash + "/orig.png"), filtered, "wire payload must be the original only");
 
         String token = rawToken(exportService.createTransferToken(source.id()));
@@ -330,7 +366,7 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
         waitForImport(importResult.stationId());
 
         int destinationId = importResult.stationId();
-        var carried = mediaStorageService.read(destinationId, contentHash);
+        var carried = libraryOriginal(destinationId, contentHash);
         assertTrue(carried.isPresent(), "destination should carry the original");
         assertEquals("image/png", carried.get().contentType());
 
@@ -348,6 +384,11 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
 
     private static String rawToken(String encoded) {
         return StationExportService.parseToken(encoded).orElseThrow().token();
+    }
+
+    private static Optional<MediaContent> libraryOriginal(int stationId, String contentHash) {
+        var at = mediaStorageService.locate(stationId, contentHash);
+        return images.read(ImageProfile.LIBRARY, at.scope(), at.category(), at.key(), 0);
     }
 
     private static byte[] pngBytes(int width, int height) throws IOException {

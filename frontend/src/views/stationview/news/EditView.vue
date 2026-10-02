@@ -13,15 +13,18 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import {StationPermission, type MemberGroup, type StationMember, type UserTag} from '@/api/types'
-import type { PartnerResponse } from '@/api/federation'
+import {StationPermission} from '@/api/types'
+import type {
+    BlockCellRequest, BlockRowRequest, ContentRow, MemberCompletion, MemberGroup, PartnerResponse, UserTag,
+} from '@/api/generated/schema'
+import { ShareScope } from '@/api/lending'
+import { userTypesOf } from '@/util/stationUserTypes'
 import { news, memberGroups, userTags, federation, events, stationMembers } from '@/api'
 import { buildAnnouncementDraft, type AnnouncementDraft } from './editview/announcementPrefill'
 import AnnouncementNotice from './editview/AnnouncementNotice.vue'
 import ContentPanel from './editview/ContentPanel.vue'
 import {ContentMode, type ContentModeName} from '@/api/news'
 import type {RowEditData} from '@/components/content/blockeditor/EditorRow.vue'
-import type {PageRow, SaveRowRequest, SaveCellRequest} from '@/api/pageManage'
 import {markdownAsSingleBlock} from '@/util/blockSwitch'
 import AttachmentsPanel from './editview/AttachmentsPanel.vue'
 import EditActions from './editview/EditActions.vue'
@@ -69,16 +72,15 @@ const selectedTagIds = ref<number[]>([])
 const selectedMemberIds = ref<number[]>([])
 const groups = ref<MemberGroup[]>([])
 const tags = ref<UserTag[]>([])
-const members = ref<StationMember[]>([])
+const members = ref<MemberCompletion[]>([])
 
 const publicBlog = ref(false)
 const contentMode = ref<ContentModeName>(ContentMode.SIMPLE)
 const rows = ref<RowEditData[]>([])
 
-// Federation sharing
 const federationShared = ref(false)
-const federationScope = ref('ALL_PARTNERS')
-const federationVisibilityRole = ref('MEMBER')
+const federationScope = ref<string>(ShareScope.ALL_PARTNERS)
+const federationVisibilityRole = ref<string>(news.NewsVisibilityRole.MEMBER)
 const federationPartnerIds = ref<number[]>([])
 const partners = ref<PartnerResponse[]>([])
 
@@ -89,7 +91,7 @@ const {attachments, load: loadAttachments, add: addAttachment, remove: removeAtt
  * The saved shape of a block tree turned into the shape the editor works on. Ids of zero mark rows
  * and cells that do not exist yet, which is how the save path tells new from moved.
  */
-function toEditRows(saved: PageRow[]): RowEditData[] {
+function toEditRows(saved: ContentRow[]): RowEditData[] {
     return [...saved]
         .sort((a, b) => a.sortOrder - b.sortOrder)
         .map(r => ({
@@ -108,10 +110,10 @@ function toEditRows(saved: PageRow[]): RowEditData[] {
         }))
 }
 
-function toSaveRows(): SaveRowRequest[] {
+function toSaveRows(): BlockRowRequest[] {
     return rows.value.map((r, ri) => ({
         sortOrder: ri,
-        cells: r.cells.map((c, ci): SaveCellRequest => ({
+        cells: r.cells.map((c, ci): BlockCellRequest => ({
             sortOrder: ci,
             widthPercent: c.widthPercent,
             contentType: c.contentType,
@@ -203,7 +205,7 @@ async function loadAnnouncement(eventId: number) {
     memberIds: view?.memberIds ?? [],
     mode: 'AND' as const,
   }
-  const names = new Map(members.value.map(m => [m.id, m.name ?? m.email ?? `#${m.id}`]))
+  const names = new Map(members.value.map(m => [m.id, m.name || `#${m.id}`]))
   const draft = buildAnnouncementDraft(
       {event, eventUid, date: announcedDate.value, fields, timezone: sessionInfo.value?.stationTimezone},
       audience,
@@ -233,7 +235,7 @@ const { loading, failure, reload } = useAsyncLoader(async () => {
   ])
   groups.value = groupList
   tags.value = tagList
-  members.value = memberList.map(m => ({id: m.id, stationId: '', accountId: 0, name: m.name}))
+  members.value = memberList
   if (canFederateNews()) {
     partners.value = (await federation.listPartners()).filter(p => p.partner.status === 'ACTIVE')
   }
@@ -255,8 +257,8 @@ const { loading, failure, reload } = useAsyncLoader(async () => {
       const fedShare = await news.getFederationShare(newsId.value)
       federationShared.value = fedShare.shared
       if (fedShare.shared) {
-        federationScope.value = fedShare.scope ?? 'ALL_PARTNERS'
-        federationVisibilityRole.value = fedShare.visibilityRole ?? 'MEMBER'
+        federationScope.value = fedShare.scope ?? ShareScope.ALL_PARTNERS
+        federationVisibilityRole.value = fedShare.visibilityRole ?? news.NewsVisibilityRole.MEMBER
         federationPartnerIds.value = fedShare.partnerIds ?? []
       }
     }
@@ -295,7 +297,7 @@ async function save() {
     const data = {
       title: title.value,
       contentMarkdown: contentMarkdown.value,
-      userTypes: selectedUserTypes.value,
+      userTypes: userTypesOf(selectedUserTypes.value),
       groupIds: selectedGroupIds.value,
       tagIds: selectedTagIds.value,
       memberIds: selectedMemberIds.value,
@@ -322,8 +324,9 @@ async function save() {
 
     if (canFederateNews()) {
       if (federationShared.value) {
-        const pIds = federationScope.value === 'SPECIFIC_PARTNERS' ? federationPartnerIds.value : undefined
-        await news.setFederationShare(savedId, federationScope.value, federationVisibilityRole.value, pIds)
+        const scope = federationScope.value === ShareScope.SPECIFIC ? ShareScope.SPECIFIC : ShareScope.ALL_PARTNERS
+        const pIds = scope === ShareScope.SPECIFIC ? federationPartnerIds.value : undefined
+        await news.setFederationShare(savedId, scope, news.visibilityRoleOf(federationVisibilityRole.value), pIds)
       } else {
         await news.removeFederationShare(savedId).catch(() => {})
       }

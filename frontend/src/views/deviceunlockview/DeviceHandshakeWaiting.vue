@@ -7,7 +7,7 @@
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import MutedText from '@/components/typography/MutedText.vue'
-import type {DeviceRequest} from '@/api/passkeys'
+import type {DeviceRequestResponse} from '@/api/generated/schema'
 
 /**
  * What the asking device shows while it waits.
@@ -20,7 +20,7 @@ import type {DeviceRequest} from '@/api/passkeys'
 const {t} = useI18n()
 
 const props = defineProps<{
-  request: DeviceRequest
+  request: DeviceRequestResponse
   wantsSignIn: boolean
   /** Set while the server has asked this device to slow down, so the wait can say why. */
   throttled?: boolean

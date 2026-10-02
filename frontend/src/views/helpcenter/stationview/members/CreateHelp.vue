@@ -28,7 +28,6 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.membersCreate.roleTeam') }}</p>
     </HelpSection>
 
-    <!-- Dummy: PermissionGrant selection cards -->
     <NeutralContainer class="space-y-2">
       <SectionHeader>{{ t('membersCreate.stepRole') }}</SectionHeader>
       <div class="grid gap-3 sm:grid-cols-3">
@@ -61,6 +60,7 @@ const {t} = useI18n()
 
     <HelpSection :title="t('helpCenter.membersCreate.step4')">
       <p>{{ t('helpCenter.membersCreate.step4Text') }}</p>
+      <p>{{ t('helpCenter.membersCreate.step4Rules') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.membersCreate.step5')">
@@ -71,7 +71,6 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.membersCreate.step6Text') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Link to import -->
     <HelpSection :title="t('helpCenter.membersCreate.importTitle')">
       <NeutralContainer class="flex items-center justify-between">
         <p class="text-sm">{{ t('memberImport.linkFromCreate') }}</p>

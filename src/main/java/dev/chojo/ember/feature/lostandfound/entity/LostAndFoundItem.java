@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.lostandfound.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -29,7 +30,7 @@ public record LostAndFoundItem(
         int stationId,
         String description,
         LocalDate foundAt,
-        Integer claimedBy,
+        @Nullable Integer claimedBy,
         Instant claimedAt,
         int createdBy,
         Instant createdAt) {

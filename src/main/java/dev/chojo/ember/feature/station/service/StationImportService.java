@@ -5,12 +5,16 @@
  */
 package dev.chojo.ember.feature.station.service;
 
+import dev.chojo.ember.api.refusal.StationRefusal;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.cluster.entity.StationKind;
 import dev.chojo.ember.feature.federation.service.FederationPartnerTransferFixupService;
+import dev.chojo.ember.feature.federation.service.OutboundHttp;
 import dev.chojo.ember.feature.federation.service.RemoteUrlValidator;
+import dev.chojo.ember.feature.federation.service.StationKeyTransfer;
+import dev.chojo.ember.feature.quiz.service.StationAiKeyTransfer;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.transfer.ImportProgress;
@@ -22,16 +26,17 @@ import dev.chojo.ember.feature.station.transfer.TransferSourceClient;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.entity.StorageScope;
 import dev.chojo.ember.feature.storage.transfer.TransferBackendImporter;
+import dev.chojo.ember.lifecycle.SerialLane;
+import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.tracking.DataTracking;
 import dev.chojo.ember.tracking.DataTrackingLoader;
 import dev.chojo.ember.tracking.OutputShape;
 import dev.chojo.ember.tracking.engine.GenericTableImporter;
 import dev.chojo.ember.tracking.engine.GenericTableImporter.IdRemapper;
 import dev.chojo.ember.tracking.engine.TableOrder;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,8 +47,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -77,7 +80,10 @@ public class StationImportService {
     private final TransferBackendImporter backendImporter;
     private final TransferFileImporter fileImporter;
     private final FederationPartnerTransferFixupService federationFixup;
+    private final StationKeyTransfer keyTransfer;
+    private final StationAiKeyTransfer aiKeyTransfer;
     private final RemoteUrlValidator urlValidator;
+    private final OutboundHttp outbound;
     private final StationTableImporter stationImporter;
     private final Map<String, TableImporter> importers;
     private final GenericTableImporter engine;
@@ -85,11 +91,7 @@ public class StationImportService {
     private final DataTracking tracking;
 
     private final ConcurrentHashMap<Integer, ImportProgress> activeImports = new ConcurrentHashMap<>();
-    private final ExecutorService importExecutor = Executors.newSingleThreadExecutor(r -> {
-        var t = new Thread(r, "station-import");
-        t.setDaemon(true);
-        return t;
-    });
+    private final SerialLane importLane;
 
     @Inject
     public StationImportService(
@@ -99,11 +101,16 @@ public class StationImportService {
             TransferBackendImporter backendImporter,
             TransferFileImporter fileImporter,
             FederationPartnerTransferFixupService federationFixup,
+            StationKeyTransfer keyTransfer,
+            StationAiKeyTransfer aiKeyTransfer,
             RemoteUrlValidator urlValidator,
+            OutboundHttp outbound,
             StationTableImporter stationImporter,
             Set<TableImporter> importers,
             AccountRepository accountRepository,
-            AuthService authService) {
+            AuthService authService,
+            TaskScheduler scheduler) {
+        this.importLane = scheduler.lane("station-import");
         this.accountRepository = accountRepository;
         this.authService = authService;
         this.stationRepository = stationRepository;
@@ -112,7 +119,10 @@ public class StationImportService {
         this.backendImporter = backendImporter;
         this.fileImporter = fileImporter;
         this.federationFixup = federationFixup;
+        this.keyTransfer = keyTransfer;
+        this.aiKeyTransfer = aiKeyTransfer;
         this.urlValidator = urlValidator;
+        this.outbound = outbound;
         this.stationImporter = stationImporter;
         this.importers = importers.stream().collect(Collectors.toMap(TableImporter::table, Function.identity()));
         DataTracking t;
@@ -133,7 +143,8 @@ public class StationImportService {
      * {@code station} wire entry (the int-id column is otherwise dropped when the settings are
      * applied).
      */
-    private static void seedStationRemap(IdRemapper idMap, Map<String, Object> stationData, int targetStationId) {
+    private static void seedStationRemap(
+            IdRemapper idMap, @Nullable Map<String, Object> stationData, int targetStationId) {
         if (stationData == null) return;
         Integer sourceId = asInteger(stationData.get("id"));
         if (sourceId != null) idMap.put("station", sourceId, targetStationId);
@@ -163,19 +174,19 @@ public class StationImportService {
      * applied (timezone, locale, themes, public toggles); all other TRACKED tables are inserted
      * alongside the station's existing data.
      *
+     * <p>A cluster's home station is refused: it holds what its cluster owns, and a merge would hand
+     * that cluster content nobody gave it.
+     *
      * @param targetStationId the station to merge into
      * @param bundle          the whole bundle, keyed by table name
      */
     public void importStationInto(int targetStationId, Map<String, Object> bundle) {
-        // A cluster's home station holds what its cluster owns; merging a foreign station into it would hand
-        // that cluster content nobody gave it
         stationRepository.findById(targetStationId).ifPresent(station -> {
             if (station.stationKind() == StationKind.CLUSTER_HOME) {
-                throw new BadRequestResponse("A cluster's home station cannot be imported into");
+                throw StationRefusal.STATION_IMPORT_INTO_CLUSTER_HOME.raise();
             }
             if (station.clusterId() != null) {
-                throw new BadRequestResponse(
-                        "A station that belongs to a cluster cannot be overwritten from an archive.");
+                throw StationRefusal.STATION_IMPORT_INTO_CLUSTER_MEMBER.raise();
             }
         });
         Map<String, Object> stationData = asMap(bundle.get("station"));
@@ -204,7 +215,7 @@ public class StationImportService {
      * @param stationUid the destination station UUID
      * @return the progress, or {@code null}
      */
-    public ImportProgress getProgressByUid(UUID stationUid) {
+    public @Nullable ImportProgress getProgressByUid(UUID stationUid) {
         for (var progress : activeImports.values()) {
             if (stationUid.equals(progress.stationUid())) return progress;
         }
@@ -224,24 +235,27 @@ public class StationImportService {
     public ImportResult startRemoteImport(String sourceUrl, String token) {
         String baseUrl = normalizeSource(sourceUrl);
         log.info("start remote-import-as-new-station from source {}", baseUrl);
-        var client = new TransferSourceClient(baseUrl, token, api.baseUrl());
+        var client = new TransferSourceClient(baseUrl, token, api.baseUrl(), outbound);
         verifyRemoteSchemaHash(client, baseUrl);
 
-        Map<String, Object> stationData = fetchStationEntry(client);
+        Map<String, Object> stationPage = fetchStationPage(client);
+        Map<String, Object> stationData = asMap(stationPage.get("station"));
         if (stationData == null) {
-            throw new BadRequestResponse("Remote station table missing 'station' field");
+            throw StationRefusal.STATION_IMPORT_SOURCE_HAS_NO_STATION.raise();
         }
 
         String stationName = asString(stationData.get("name"), "Imported Station");
         Station station = stationRepository.create(stationName);
         int stationId = station.id();
         stationImporter.applyFields(stationId, stationData);
+        keyTransfer.adopt(stationId, stationPage, stationData, token);
+        aiKeyTransfer.adopt(stationId, stationPage, token);
 
         UUID currentUid =
                 stationRepository.findById(stationId).map(Station::uid).orElse(station.uid());
         var progress = new ImportProgress(stationId, currentUid, stationName, buildPhases(), baseUrl, token);
         activeImports.put(stationId, progress);
-        importExecutor.submit(() -> runRemoteImport(stationId, stationData, client, progress));
+        importLane.submit(() -> runRemoteImport(stationId, stationData, client, progress));
         return new ImportResult(stationId, stationName, 0);
     }
 
@@ -255,18 +269,22 @@ public class StationImportService {
     public void startRemoteImportInto(int stationId, String sourceUrl, String token) {
         String baseUrl = normalizeSource(sourceUrl);
         log.info("start remote-import-into-station {} from source {}", stationId, baseUrl);
-        var client = new TransferSourceClient(baseUrl, token, api.baseUrl());
+        var client = new TransferSourceClient(baseUrl, token, api.baseUrl(), outbound);
         verifyRemoteSchemaHash(client, baseUrl);
 
-        Map<String, Object> stationData = fetchStationEntry(client);
-        if (stationData != null) stationImporter.applyFields(stationId, stationData);
+        Map<String, Object> stationPage = fetchStationPage(client);
+        Map<String, Object> stationData = asMap(stationPage.get("station"));
+        if (stationData != null) {
+            stationImporter.applyFields(stationId, stationData);
+            keyTransfer.adopt(stationId, stationPage, stationData, token);
+        }
+        aiKeyTransfer.adopt(stationId, stationPage, token);
 
-        Station target = stationRepository
-                .findById(stationId)
-                .orElseThrow(() -> new BadRequestResponse("Target station not found"));
+        Station target =
+                stationRepository.findById(stationId).orElseThrow(StationRefusal.STATION_IMPORT_TARGET_NOT_HERE::raise);
         var progress = new ImportProgress(stationId, target.uid(), target.name(), buildPhases(), baseUrl, token);
         activeImports.put(stationId, progress);
-        importExecutor.submit(() -> runRemoteImport(stationId, stationData, client, progress));
+        importLane.submit(() -> runRemoteImport(stationId, stationData, client, progress));
     }
 
     /**
@@ -281,10 +299,10 @@ public class StationImportService {
     public ImportResult retryFailedImport(UUID stationUid) {
         ImportProgress failed = getProgressByUid(stationUid);
         if (failed == null) {
-            throw new NotFoundResponse("No import progress for that station");
+            throw StationRefusal.STATION_IMPORT_NOTHING_TO_RETRY.raise();
         }
         if (failed.status() != ImportProgress.Status.FAILED) {
-            throw new BadRequestResponse("Import is not in FAILED state");
+            throw StationRefusal.STATION_IMPORT_NOT_FAILED.raise();
         }
         try {
             stationRepository.delete(failed.stationId());
@@ -304,16 +322,16 @@ public class StationImportService {
     private String normalizeSource(String sourceUrl) {
         String baseUrl = sourceUrl.replaceAll("/+$", "");
         if (!urlValidator.isAllowed(baseUrl)) {
-            throw new BadRequestResponse(RemoteUrlValidator.rejectReason());
+            throw StationRefusal.STATION_IMPORT_SOURCE_NOT_PUBLIC.raise();
         }
         return baseUrl;
     }
 
-    private Map<String, Object> fetchStationEntry(TransferSourceClient client) {
-        return asMap(client.fetchPage("station", 0, PAGE_SIZE).get("station"));
+    private Map<String, Object> fetchStationPage(TransferSourceClient client) {
+        return client.fetchPage("station", 0, PAGE_SIZE);
     }
 
-    private StationImportContext newContext(int stationId, Map<String, Object> stationData) {
+    private StationImportContext newContext(int stationId, @Nullable Map<String, Object> stationData) {
         var idMap = new IdRemapper();
         seedStationRemap(idMap, stationData, stationId);
         return new StationImportContext(stationId, idMap);
@@ -329,21 +347,15 @@ public class StationImportService {
         try {
             remoteHash = client.fetchSchemaHash();
         } catch (TransferSourceClient.TransferSourceException e) {
-            throw new BadRequestResponse(e.getMessage());
+            log.warn("The import source at {} could not be read: {}", baseUrl, e.getMessage());
+            throw StationRefusal.STATION_IMPORT_SOURCE_NOT_READ.raise();
         }
         if (remoteHash == null || remoteHash.isBlank()) {
-            throw new BadRequestResponse("""
-                    Cannot import: remote instance did not provide a schemaHash.
-                    Upgrade the source instance to a version that supports schema parity checks.""");
+            throw StationRefusal.STATION_IMPORT_SOURCE_TOO_OLD.raise();
         }
         if (!remoteHash.equals(localHash)) {
-            throw new BadRequestResponse("""
-                    Cannot import station bundle: schema hash mismatch.
-                      Source schema: %s
-                      This instance: %s
-                    Both instances must be on the same DB schema version.
-                    Update the importing instance to match, or re-export from a matching instance.
-                    """.formatted(remoteHash, localHash));
+            log.warn("Import source {} has schema {}, this instance {}", baseUrl, remoteHash, localHash);
+            throw StationRefusal.STATION_IMPORT_SCHEMA_DIFFERS.raise();
         }
         log.info("schema hash verified against source at {}", baseUrl);
     }

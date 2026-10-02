@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {useI18n} from 'vue-i18n'
 import ImprintView from '~/views/ImprintView.vue'
 import {useCanonical} from '~/composables/useCanonical'
 
@@ -14,11 +15,13 @@ definePageMeta({
 
 useCanonical('/imprint')
 
+const {t} = useI18n()
+
 useHead({
-  title: 'Impressum',
+  title: t('pageHead.imprint.title'),
   meta: [
-    {name: 'description', content: 'Impressum und rechtliche Informationen zu Ember.'},
-    {property: 'og:title', content: 'Impressum - Ember'},
+    {name: 'description', content: t('pageHead.imprint.description')},
+    {property: 'og:title', content: t('pageHead.imprint.socialTitle')},
     {property: 'og:type', content: 'website'},
   ],
 })

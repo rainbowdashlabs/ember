@@ -7,6 +7,8 @@ package dev.chojo.ember.feature.inventory.service;
 
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.InventoryRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.inventory.entity.CheckItemRequest;
 import dev.chojo.ember.feature.inventory.entity.CheckResult;
@@ -16,7 +18,6 @@ import dev.chojo.ember.feature.inventory.entity.MovementPurpose;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.ConflictResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
@@ -53,7 +54,8 @@ class InventoryCheckServiceTest extends RepositoryTestBase {
                 containerService,
                 itemCustodyService,
                 inventoryService,
-                selfCheckRepo);
+                selfCheckRepo,
+                itemMovementService);
         station = stationRepo.create("CheckSvcStation");
         checkerAccount = accountRepo.create("checker-svc@test.com", "Check", "Er");
         targetAccount = accountRepo.create("target-svc@test.com", "Target", "Member");
@@ -105,7 +107,6 @@ class InventoryCheckServiceTest extends RepositoryTestBase {
         assertNotNull(state);
         assertFalse(state.assigned().isEmpty());
 
-        // Verify lock
         var overview = service.getCheckOverview(station.id());
         var locked = overview.stream()
                 .filter(s -> s.memberId() == target.id())
@@ -118,7 +119,6 @@ class InventoryCheckServiceTest extends RepositoryTestBase {
     @Test
     @Order(11)
     void startCheckOnLockedMemberReturnsStateForSameChecker() {
-        // Same checker can resume
         var state = service.startCheck(station.id(), target.id(), checker.id());
         assertNotNull(state);
     }
@@ -163,7 +163,6 @@ class InventoryCheckServiceTest extends RepositoryTestBase {
     @Test
     @Order(40)
     void completeCheck() {
-        // Start a check first
         service.startCheck(station.id(), target.id(), checker.id());
 
         var results = List.of(new CheckItemRequest(itemId, inventoryId, CheckResult.CONFIRMED, "OK"));
@@ -171,7 +170,6 @@ class InventoryCheckServiceTest extends RepositoryTestBase {
         assertNotNull(check);
         assertEquals(target.id(), check.memberId());
 
-        // Lock should be released after complete
         var overview = service.getCheckOverview(station.id());
         var unlocked = overview.stream()
                 .filter(s -> s.memberId() == target.id())
@@ -203,11 +201,9 @@ class InventoryCheckServiceTest extends RepositoryTestBase {
         var results = List.of(new CheckItemRequest(itemId, inventoryId, CheckResult.LOST, "Lost it"));
         service.completeCheck(station.id(), target.id(), checker.id(), results);
 
-        // Item should be marked as lost
         var item = inventoryRepo.findItemById(itemId);
         assertTrue(item.isPresent());
         assertNotNull(item.get().lostAt());
-        // Restore
         itemCustodyService.markFound(itemId);
     }
 
@@ -216,7 +212,6 @@ class InventoryCheckServiceTest extends RepositoryTestBase {
     void completeCheckWithMissingItemId() {
         service.startCheck(station.id(), target.id(), checker.id());
 
-        // Check result with null itemId and null inventoryId
         var results = List.of(new CheckItemRequest(null, inventoryId, CheckResult.NOT_IN_POSSESSION, ""));
         var check = service.completeCheck(station.id(), target.id(), checker.id(), results);
         assertNotNull(check);
@@ -225,7 +220,6 @@ class InventoryCheckServiceTest extends RepositoryTestBase {
     @Test
     @Order(60)
     void getRequiredItems() {
-        // Create a requirement for MEMBER user type
         var req = inventoryRepo.createRequirement(inventoryId, StationUserType.MEMBER, 0, null, 2);
 
         var required = service.getRequiredItems(station.id(), target.id());
@@ -309,7 +303,6 @@ class InventoryCheckServiceTest extends RepositoryTestBase {
     @Test
     @Order(61)
     void getRequiredItemsEmpty() {
-        // No requirements - should be empty
         var required = service.getRequiredItems(station.id(), target.id());
         assertTrue(required.isEmpty());
     }
@@ -317,15 +310,14 @@ class InventoryCheckServiceTest extends RepositoryTestBase {
     @Test
     @Order(70)
     void startCheckConflict() {
-        // checker locks target
         service.startCheck(station.id(), target.id(), checker.id());
 
-        // Create a third member to act as a different checker
         var otherAccount = accountRepo.create("other-checker-svc@test.com", "Other", "Checker");
         var otherMember = stationMemberRepo.create(station.id(), otherAccount.id());
 
-        // Different checker should get ConflictResponse
-        assertThrows(ConflictResponse.class, () -> service.startCheck(station.id(), target.id(), otherMember.id()));
+        var locked = assertThrows(
+                RefusalResponse.class, () -> service.startCheck(station.id(), target.id(), otherMember.id()));
+        assertEquals(InventoryRefusal.INVENTORY_CHECK_MEMBER_ALREADY_LOCKED, locked.refusal());
 
         service.cancelCheck(target.id(), checker.id());
         stationMemberRepo.delete(otherMember.id());
@@ -336,7 +328,6 @@ class InventoryCheckServiceTest extends RepositoryTestBase {
     @Order(71)
     void cancelCheckWrongLockerDoesNothing() {
         service.startCheck(station.id(), target.id(), checker.id());
-        // Try to cancel with wrong locker - should not release
         service.cancelCheck(target.id(), target.id());
         var overview = service.getCheckOverview(station.id());
         var locked = overview.stream()
@@ -351,38 +342,31 @@ class InventoryCheckServiceTest extends RepositoryTestBase {
     @Order(72)
     void nextMemberTeamOnly() {
         var next = service.nextMember(station.id(), checker.id(), true);
-        // Result may be empty or present depending on team composition - just verify no exception
         assertNotNull(next);
     }
 
     @Test
     @Order(73)
     void lastCheckDetailWithNullItemId() {
-        // Create a check with a null itemId (no specific item assigned)
         service.startCheck(station.id(), target.id(), checker.id());
-        // Use a result with null itemId and non-null inventoryId - tests the else branch in lastCheckDetail
         var results = List.of(new CheckItemRequest(null, inventoryId, CheckResult.NOT_IN_POSSESSION, "missing"));
         service.completeCheck(station.id(), target.id(), checker.id(), results);
 
         var detail = service.lastCheckDetail(target.id());
         assertTrue(detail.isPresent());
-        // The item with null itemId should have null itemName
         assertTrue(detail.get().items().stream().anyMatch(i -> i.itemId() == null));
     }
 
     @Test
     @Order(74)
     void cancelCheckWhenNoLockDoesNothing() {
-        // Make sure target is not locked
-        service.cancelCheck(target.id(), checker.id()); // Ensure unlocked first
-        // Cancel when no lock exists - should not throw
+        service.cancelCheck(target.id(), checker.id());
         assertDoesNotThrow(() -> service.cancelCheck(target.id(), checker.id()));
     }
 
     @Test
     @Order(75)
     void getRequiredItemsWithGroupRequirement() {
-        // Create a group and add member to it, then create a requirement for that group
         var group = memberGroupRepo.create(station.id(), "CheckGroup");
         memberGroupRepo.addMember(group.id(), target.id());
 

@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.entity.ThemeFeel;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -36,7 +37,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 public class StationRepository {
 
     private static final String STATION_COLUMNS =
-            "id, uid, name, timezone, locale, owner_member_id, default_theme, allow_user_theme, custom_theme_colors, default_feel, allow_user_feel, public_kb_mode, federation_private_key, discovery_visibility, discovery_description, discovery_show_kb, public_calendar_enabled, landing_page_id, public_pages_enabled, public_slug, public_waitlist_enabled, public_blog_enabled, address_line, postal_code, city, country, latitude, longitude, setup_completed_at, station_kind, cluster_id, loss_note_required, pdf_hides_instance_url, nicknames_enabled";
+            "id, uid, name, timezone, locale, owner_member_id, default_theme, allow_user_theme, custom_theme_colors, default_feel, allow_user_feel, public_kb_mode, discovery_visibility, discovery_description, discovery_show_kb, public_calendar_enabled, landing_page_id, public_pages_enabled, public_slug, public_waitlist_enabled, public_blog_enabled, address_line, postal_code, city, country, latitude, longitude, setup_completed_at, station_kind, cluster_id, loss_note_required, pdf_hides_instance_url, nicknames_enabled";
 
     private final Cache<Integer, UUID> uidCache = Caffeine.newBuilder()
             .expireAfterAccess(5, TimeUnit.MINUTES)
@@ -53,13 +54,28 @@ public class StationRepository {
 
     /**
      * Resolves an internal station ID to its external UUID. Cached.
+     *
+     * @return the UUID, or {@code null} when there is no such station
      */
-    public UUID resolveUid(int stationId) {
+    public @Nullable UUID resolveUid(int stationId) {
         return uidCache.get(stationId, id -> query("SELECT uid FROM station WHERE id = :id;")
                 .single(call().bind("id", id))
                 .map(row -> row.get("uid", StandardValueConverter.UUID_STRING))
                 .first()
                 .orElse(null));
+    }
+
+    /**
+     * Resolves the external UUID of a station the caller already knows exists, such as the station a
+     * stored row belongs to.
+     *
+     * @return the UUID
+     * @throws IllegalStateException when there is no such station
+     */
+    public UUID requireUid(int stationId) {
+        UUID uid = resolveUid(stationId);
+        if (uid == null) throw new IllegalStateException("No station with id " + stationId);
+        return uid;
     }
 
     /**
@@ -164,7 +180,7 @@ public class StationRepository {
     /**
      * Updates the public slug for a station.
      */
-    public void updatePublicSlug(int id, String slug) {
+    public void updatePublicSlug(int id, @Nullable String slug) {
         query("UPDATE station SET public_slug = :slug WHERE id = :id;")
                 .single(call().bind("slug", slug).bind("id", id))
                 .update()
@@ -204,6 +220,42 @@ public class StationRepository {
     }
 
     /**
+     * Creates a new station that starts with the given discovery visibility. The variants without one
+     * leave the station unlisted, which is what an imported or transferred station needs until its own
+     * setting has been applied.
+     *
+     * @param name       the station name
+     * @param visibility where the station is listed from the start
+     * @return the created station
+     */
+    public Station create(String name, DiscoveryVisibility visibility) {
+        return SqlSupport.insertReturning(
+                "INSERT INTO station(name, discovery_visibility) VALUES(:name, :visibility) RETURNING %s;",
+                call().bind("name", name).bind("visibility", visibility), Station.map(), STATION_COLUMNS);
+    }
+
+    /**
+     * {@link #create(String, DiscoveryVisibility)} with a fixed identifier.
+     *
+     * @param name       the station name
+     * @param uid        the station's identifier
+     * @param visibility where the station is listed from the start
+     * @return the created station
+     */
+    public Station create(String name, UUID uid, DiscoveryVisibility visibility) {
+        return SqlSupport.insertReturning(
+                """
+                INSERT INTO station(name, uid, discovery_visibility)
+                VALUES(:name, :uid::UUID, :visibility)
+                RETURNING %s;""",
+                call().bind("name", name)
+                        .bind("uid", uid, StandardValueConverter.UUID_STRING)
+                        .bind("visibility", visibility),
+                Station.map(),
+                STATION_COLUMNS);
+    }
+
+    /**
      * Marks a station as the shell a cluster owns. It stays a real station row: what changes is that nobody
      * joins it and the user-facing listings leave it out.
      *
@@ -227,7 +279,7 @@ public class StationRepository {
      * @param clusterId the cluster it now answers to, or {@code null} to release it
      * @return {@code true} if a row was updated
      */
-    public boolean setCluster(int id, Integer clusterId) {
+    public boolean setCluster(int id, @Nullable Integer clusterId) {
         return query("UPDATE station SET cluster_id = :cluster_id WHERE id = :id;")
                 .single(call().bind("cluster_id", clusterId).bind("id", id))
                 .update()
@@ -372,25 +424,18 @@ public class StationRepository {
                 .changed();
     }
 
-    public boolean updateFederationPrivateKey(int id, String privateKey) {
-        return query("UPDATE station SET federation_private_key = :key WHERE id = :id;")
-                .single(call().bind("key", privateKey).bind("id", id))
-                .update()
-                .changed();
-    }
-
     /**
      * Writes the opt-in geolocation block. All fields nullable; clearing them removes the
      * station from the discovery map and lending-distance results.
      */
     public void updateLocation(
             int id,
-            String addressLine,
-            String postalCode,
-            String city,
-            String country,
-            BigDecimal latitude,
-            BigDecimal longitude) {
+            @Nullable String addressLine,
+            @Nullable String postalCode,
+            @Nullable String city,
+            @Nullable String country,
+            @Nullable BigDecimal latitude,
+            @Nullable BigDecimal longitude) {
         query("""
                 UPDATE station
                 SET address_line = :address_line,
@@ -521,6 +566,21 @@ public class StationRepository {
      * @param stationId the station ID
      * @return the timestamp at which an administrator marked setup complete, or empty if still pending
      */
+    /**
+     * Whether a manager has saved the station's discovery settings at least once, and so decided how
+     * it is listed rather than living with the setting it started with.
+     *
+     * @param stationId the station ID
+     * @return {@code true} once the settings have been saved
+     */
+    public boolean isDiscoveryReviewed(int stationId) {
+        return query("SELECT discovery_reviewed_at IS NOT NULL AS reviewed FROM station WHERE id = :id;")
+                .single(call().bind("id", stationId))
+                .map(row -> row.getBoolean("reviewed"))
+                .first()
+                .orElse(false);
+    }
+
     public Optional<Instant> findSetupCompletedAt(int stationId) {
         return query("SELECT setup_completed_at FROM station WHERE id = :id;")
                 .single(call().bind("id", stationId))
@@ -641,7 +701,8 @@ public class StationRepository {
                 SET
                     discovery_visibility  = :visibility,
                     discovery_description = :description,
-                    discovery_show_kb     = :show_kb
+                    discovery_show_kb     = :show_kb,
+                    discovery_reviewed_at = now()
                 WHERE id = :id;""")
                 .single(call().bind("id", id)
                         .bind("visibility", visibility)

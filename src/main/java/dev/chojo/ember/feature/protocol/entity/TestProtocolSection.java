@@ -6,15 +6,16 @@
 package dev.chojo.ember.feature.protocol.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import org.jspecify.annotations.Nullable;
 
 public record TestProtocolSection(
         int id,
         int protocolId,
-        Integer parentId,
+        @Nullable Integer parentId,
         String name,
         String description,
-        Integer maxPoints,
-        Integer passThreshold,
+        @Nullable Integer maxPoints,
+        @Nullable Integer passThreshold,
         int position) {
 
     public static RowMapping<TestProtocolSection> map() {

@@ -28,7 +28,6 @@ const { t } = useI18n()
       <p>{{ t('helpCenter.quiz.catalogListHowText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Catalog list -->
     <div class="space-y-3">
       <div class="flex items-center justify-between">
         <SubHeader>{{ t('quiz.catalogs.title') }}</SubHeader>
@@ -40,8 +39,8 @@ const { t } = useI18n()
       <NeutralContainer>
         <div class="flex items-center justify-between">
           <div class="space-y-1">
-            <span class="font-medium">Brandschutz Grundlagen</span>
-            <p class="text-xs text-(--text-muted)">Alles rund um den Brandschutz</p>
+            <span class="font-medium">{{ t('helpCenter.sample.quiz.fireBasics') }}</span>
+            <p class="text-xs text-(--text-muted)">{{ t('helpCenter.sample.quiz.fireBasicsText') }}</p>
           </div>
           <div class="flex items-center gap-2">
             <InfoBadge>12 {{ t('quiz.questions.title') }}</InfoBadge>
@@ -53,8 +52,8 @@ const { t } = useI18n()
       <NeutralContainer>
         <div class="flex items-center justify-between">
           <div class="space-y-1">
-            <span class="font-medium">Erste Hilfe</span>
-            <p class="text-xs text-(--text-muted)">Erste-Hilfe-Wissen abfragen</p>
+            <span class="font-medium">{{ t('helpCenter.sample.quiz.firstAid') }}</span>
+            <p class="text-xs text-(--text-muted)">{{ t('helpCenter.sample.quiz.firstAidText') }}</p>
           </div>
           <div class="flex items-center gap-2">
             <InfoBadge>8 {{ t('quiz.questions.title') }}</InfoBadge>

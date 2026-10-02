@@ -7,10 +7,10 @@ package dev.chojo.ember.feature.inventory.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import dev.chojo.ember.util.Json;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
-import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
 
 import static org.slf4j.LoggerFactory.getLogger;
 
@@ -29,10 +29,7 @@ public sealed interface ContainerHistoryDetails
     /**
      * Shared Jackson mapper for the history detail variants.
      */
-    ObjectMapper MAPPER = JsonMapper.builder()
-            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
-            .disable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
-            .build();
+    ObjectMapper MAPPER = Json.LENIENT;
 
     /**
      * Logger for unparsable legacy payloads.
@@ -46,7 +43,7 @@ public sealed interface ContainerHistoryDetails
      * @param json      raw JSONB string, may be null or blank
      * @return the parsed details, or {@code null} when absent or unreadable
      */
-    static ContainerHistoryDetails parse(ContainerEventKind eventKind, String json) {
+    static @Nullable ContainerHistoryDetails parse(@Nullable ContainerEventKind eventKind, @Nullable String json) {
         if (eventKind == null || json == null || json.isBlank()) return null;
         try {
             return MAPPER.readValue(json, eventKind.detailsClass());
@@ -80,7 +77,7 @@ public sealed interface ContainerHistoryDetails
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     @JsonIgnoreProperties(ignoreUnknown = true)
-    record Created(String name, Integer parentId) implements ContainerHistoryDetails {
+    record Created(String name, @Nullable Integer parentId) implements ContainerHistoryDetails {
         @Override
         public ContainerEventKind eventKind() {
             return ContainerEventKind.CREATED;
@@ -109,7 +106,7 @@ public sealed interface ContainerHistoryDetails
      * @param to   the new parent id, or {@code null} when it became a root
      */
     @JsonIgnoreProperties(ignoreUnknown = true)
-    record Moved(Integer from, Integer to) implements ContainerHistoryDetails {
+    record Moved(@Nullable Integer from, @Nullable Integer to) implements ContainerHistoryDetails {
         @Override
         public ContainerEventKind eventKind() {
             return ContainerEventKind.MOVED;

@@ -7,7 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import MutedText from '@/components/typography/MutedText.vue'
 import IconButton from '@/components/button/IconButton.vue'
-import type {PasskeyEntry} from '@/api/passkeys'
+import type {PasskeyEntryResponse} from '@/api/generated/schema'
 import {providerName} from '@/util/aaguid'
 import {formatDate} from '@/util/format'
 
@@ -18,20 +18,20 @@ import {formatDate} from '@/util/format'
  */
 const {t} = useI18n()
 
-defineProps<{passkeys: PasskeyEntry[]}>()
+defineProps<{passkeys: PasskeyEntryResponse[]}>()
 
 const emit = defineEmits<{
-  (e: 'rename', entry: PasskeyEntry): void
-  (e: 'remove', entry: PasskeyEntry): void
+  rename: [entry: PasskeyEntryResponse]
+  remove: [entry: PasskeyEntryResponse]
 }>()
 
 const A_MONTH = 1000 * 60 * 60 * 24 * 30
 
-function provider(entry: PasskeyEntry): string | null {
+function provider(entry: PasskeyEntryResponse): string | null {
   return providerName(entry.aaguid)
 }
 
-function staleUnused(entry: PasskeyEntry): boolean {
+function staleUnused(entry: PasskeyEntryResponse): boolean {
   return !entry.lastUsedAt && Date.now() - new Date(entry.createdAt).getTime() > A_MONTH
 }
 </script>

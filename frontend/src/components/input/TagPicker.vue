@@ -8,6 +8,7 @@ import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import TextInput from '@/components/input/text/TextInput.vue'
 import IconButton from '@/components/button/IconButton.vue'
+import PillBadge from '@/components/badge/PillBadge.vue'
 import DropdownMenuItem from '@/components/button/DropdownMenuItem.vue'
 
 /**
@@ -65,10 +66,10 @@ function hideSoon() {
 <template>
   <div class="space-y-2">
     <div v-if="model.length > 0" class="flex flex-wrap gap-1">
-      <span
+      <PillBadge
           v-for="tag in model"
           :key="tag"
-          class="inline-flex items-center gap-1 rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary"
+          class="gap-1 border border-primary/20 bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary"
       >
         {{ tag }}
         <IconButton
@@ -78,7 +79,7 @@ function hideSoon() {
             class="!p-0 text-[10px] hover:text-error"
             @click="remove(tag)"
         />
-      </span>
+      </PillBadge>
     </div>
     <div v-if="!props.disabled" class="relative">
       <form @submit.prevent="add()">

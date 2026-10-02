@@ -34,6 +34,14 @@ class QuestionValuesTest {
     }
 
     @Test
+    void nothingIsSaidInEverySpellingOfNothing() {
+        assertEquals("", QuestionValues.said(null));
+        assertEquals("", QuestionValues.said("null"));
+        assertEquals("", QuestionValues.said("\"\""));
+        assertEquals("15", QuestionValues.said("\"15\""));
+    }
+
+    @Test
     void parseGarbageStaysEmpty() {
         assertTrue(QuestionValues.memberIds("abc").isEmpty());
         assertTrue(QuestionValues.memberIds("[a,b]").isEmpty());

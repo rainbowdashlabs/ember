@@ -26,7 +26,7 @@ import GearIconPicker from '@/components/input/select/GearIconPicker.vue'
 import GearGlyph from '@/components/inventory/GearGlyph.vue'
 import {glyphFor} from '@/util/glyph'
 import {inventoryArts} from '@/api'
-import type {ArtStock, InventoryArt} from '@/api/inventoryArts'
+import type {ArtStock, InventoryArt} from '@/api/generated/schema'
 import {isLendableInventory, type InventoryTypeName} from '@/api/inventory'
 import {useConfirmDelete} from '@/composables/useConfirmDelete'
 import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
@@ -213,7 +213,7 @@ watch(() => props.inventoryId, load, {immediate: true})
         <SaveButton :disabled="!artName.trim()" :action="saveArt"/>
       </div>
       <template v-if="editingArt">
-        <hr class="border-(--bg-accent)">
+        <hr class="border-(--bg-accent)"/>
         <InventoryFieldsPanel :inventory-id="props.inventoryId" :art-id="editingArt.id"/>
       </template>
       <p v-else class="text-sm text-(--text-muted)">{{ t('inventory.art.fieldsAfterSave') }}</p>

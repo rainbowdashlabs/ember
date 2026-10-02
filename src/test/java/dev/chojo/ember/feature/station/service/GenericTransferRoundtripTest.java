@@ -14,8 +14,10 @@ import dev.chojo.ember.feature.station.transfer.AccountCredentialTableImporter;
 import dev.chojo.ember.feature.station.transfer.AccountTableImporter;
 import dev.chojo.ember.feature.station.transfer.DisabledModuleTableImporter;
 import dev.chojo.ember.feature.station.transfer.StationTableImporter;
+import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import dev.chojo.ember.util.TestRemoteUrlValidator;
+import dev.chojo.ember.util.TestStationKeys;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -46,7 +48,8 @@ class GenericTransferRoundtripTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        exportService = new StationExportService(stationRepo, new Api());
+        exportService = new StationExportService(
+                stationRepo, TestStationKeys.transfer(), TestStationKeys.aiKeyTransfer(), new Api());
         var stationImporter = new StationTableImporter(stationRepo);
         importService = new StationImportService(
                 stationRepo,
@@ -54,8 +57,11 @@ class GenericTransferRoundtripTest extends RepositoryTestBase {
                 new Api(),
                 null,
                 null,
-                new FederationPartnerTransferFixupService(new FederationRepository(), null, stationRepo),
+                new FederationPartnerTransferFixupService(new FederationRepository(), null),
+                TestStationKeys.transfer(),
+                TestStationKeys.aiKeyTransfer(),
                 TestRemoteUrlValidator.permissive(),
+                TestRemoteUrlValidator.permissiveOutbound(),
                 stationImporter,
                 Set.of(
                         stationImporter,
@@ -63,12 +69,16 @@ class GenericTransferRoundtripTest extends RepositoryTestBase {
                         new AccountCredentialTableImporter(accountRepo, passkeyModeService),
                         new DisabledModuleTableImporter(stationRepo)),
                 accountRepo,
-                org.mockito.Mockito.mock(dev.chojo.ember.feature.account.service.AuthService.class));
+                org.mockito.Mockito.mock(dev.chojo.ember.feature.account.service.AuthService.class),
+                new TaskScheduler());
     }
 
+    /**
+     * Deletes the source before the import to simulate a transfer between instances, where the source
+     * rows never shadow the imported ones.
+     */
     @Test
     void roundtripCreatesNewStationWithEquivalentData() {
-        // -- Source side --
         var sourceStation = stationRepo.create("Source Station");
         stationRepo.updateLocale(sourceStation.id(), "de-DE");
         stationRepo.updateTimezone(sourceStation.id(), "Europe/Berlin");
@@ -81,61 +91,52 @@ class GenericTransferRoundtripTest extends RepositoryTestBase {
         memberGroupRepo.create(sourceStation.id(), "Veterans");
         int sourceMemberId = sourceMember.id();
 
-        // -- Export full bundle --
         Map<String, Object> bundle = collectBundle(sourceStation.id());
 
-        // -- Simulate cross-instance transfer by removing the source-side artefacts before the import.
-        // In real use the source lives on a different instance so its rows don't shadow the import.
-        stationRepo.delete(sourceStation.id()); // cascades station_member, member_group, etc.
-        accountRepo.delete(sourceAccount.id()); // cascades account_credential
+        stationRepo.delete(sourceStation.id());
+        accountRepo.delete(sourceAccount.id());
 
-        // -- Import into a fresh target station --
         var result = importService.importStation(bundle);
 
-        // -- Verify --
         var targetStation = stationRepo.findById(result.stationId()).orElseThrow();
         assertEquals("Source Station", targetStation.name());
         assertEquals("de-DE", targetStation.locale());
         assertEquals("Europe/Berlin", targetStation.timezone());
 
-        // Disabled modules round-trip via FLAT shape
-        assertTrue(stationRepo.findDisabledModules(result.stationId()).contains(StationModule.LOST_AND_FOUND));
+        assertTrue(
+                stationRepo.findDisabledModules(result.stationId()).contains(StationModule.LOST_AND_FOUND),
+                "disabled modules round-trip in the flat shape");
 
-        // Account match-by-email: a brand-new account on the target should now exist with the
-        // source's password hash and force_password_change=TRUE.
         var targetAccount = accountRepo.findByEmail("roundtrip-new@example.com").orElseThrow();
         assertEquals("Anna", targetAccount.firstName());
         var cred = accountRepo.findCredential(targetAccount.id()).orElseThrow();
         assertEquals("$bcrypt$source-hash", cred.passwordHash());
         assertTrue(cred.forcePasswordChange(), "newly created accounts must reset password on first login");
 
-        // station_member linked via account_email lookup → resolved to the target account id.
         var targetMembers = stationMemberRepo.findByStation(result.stationId());
         assertFalse(targetMembers.isEmpty());
-        assertTrue(targetMembers.stream().anyMatch(m -> m.accountId() == targetAccount.id()));
+        assertTrue(
+                targetMembers.stream().anyMatch(m -> m.accountId() == targetAccount.id()),
+                "the member resolves to the target account by email");
 
-        // Member groups were re-inserted with new ids
         var targetGroups = memberGroupRepo.findByStation(result.stationId());
         assertEquals(2, targetGroups.size());
         assertTrue(targetGroups.stream().anyMatch(g -> "Trainers".equals(g.name())));
 
-        // Sanity: source member's id ≠ target member's id (PK was remapped).
         var targetMemberWithSourceAccount = targetMembers.stream()
                 .filter(m -> m.accountId() == targetAccount.id())
                 .findFirst()
                 .orElseThrow();
-        assertNotEquals(sourceMemberId, targetMemberWithSourceAccount.id());
+        assertNotEquals(sourceMemberId, targetMemberWithSourceAccount.id(), "the member id is remapped");
     }
 
+    /** Builds the bundle by hand, since only the import path is under test here. */
     @Test
     void existingTargetAccountIsLinkedWithoutOverwriting() {
-        // Pre-create an account on the target with a known password hash.
         String email = "roundtrip-existing@example.com";
         Account preExisting = accountRepo.create(email, "Bea", "Berger", true);
         accountRepo.createCredential(preExisting.id(), "$bcrypt$target-hash");
 
-        // Build a synthetic bundle by hand - the import path is what we want to exercise; we don't
-        // need a real source station for this assertion.
         Map<String, Object> bundle = new LinkedHashMap<>();
         bundle.put(
                 "account",
@@ -149,23 +150,21 @@ class GenericTransferRoundtripTest extends RepositoryTestBase {
 
         importService.importStation(bundle);
 
-        // The pre-existing account's credential must NOT be overwritten.
         var cred = accountRepo.findCredential(preExisting.id()).orElseThrow();
         assertEquals("$bcrypt$target-hash", cred.passwordHash(), "existing target credential must not be replaced");
         assertFalse(cred.forcePasswordChange(), "existing target accounts keep their password-change flag");
 
-        // The first name on the existing account must also be untouched.
         var targetAccount = accountRepo.findByEmail(email).orElseThrow();
-        assertEquals("Bea", targetAccount.firstName());
+        assertEquals("Bea", targetAccount.firstName(), "the existing account's name stays untouched");
     }
 
+    /**
+     * Shares its first name with an account already in the shared test database. The flattened foreign
+     * key lookup matches by UID first; the name fallback once linked the wrong same-named account and lost
+     * the row to the unique station and account constraint.
+     */
     @Test
     void blankEmailApplicantTransfersWithMemberAndWaitlistEntry() {
-        // Use the same first name as another already-imported account (Tim Berger lives on the
-        // shared test database from prior test data). The importer must still resolve the right
-        // account because the FK-flattened lookup now matches by UID first - first-name / last-
-        // name fallback was the production bug that mis-linked to the wrong same-named account
-        // and lost the row to the UNIQUE(station_id, account_id) constraint.
         var sourceStation = stationRepo.create("Blank-Email Source");
         Account blankAccount = accountRepo.create(null, "Tim", "Bauer", true);
         var sourceMember = stationMemberRepo.create(sourceStation.id(), blankAccount.id());

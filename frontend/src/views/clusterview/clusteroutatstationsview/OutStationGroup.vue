@@ -10,13 +10,13 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import RecordTable from '@/components/table/RecordTable.vue'
-import type {ClusterItem} from '@/api/clusterInventory'
+import type {ClusterItemResponse} from '@/api/generated/schema'
 import type {OutItemTableApi} from './useOutItemTable'
 
 /** The pieces one station holds, as its part of the table of everything that is out. */
 defineProps<{
   station: string
-  items: readonly ClusterItem[]
+  items: readonly ClusterItemResponse[]
   table: OutItemTableApi
 }>()
 

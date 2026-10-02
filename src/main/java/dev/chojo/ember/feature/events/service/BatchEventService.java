@@ -5,15 +5,17 @@
  */
 package dev.chojo.ember.feature.events.service;
 
+import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.EventsBatchCreated;
 import dev.chojo.ember.feature.events.entity.BatchFieldEntry;
 import dev.chojo.ember.feature.events.entity.BatchRequest;
 import dev.chojo.ember.feature.events.entity.BatchRow;
+import dev.chojo.ember.feature.events.entity.EventFieldDraft;
 import dev.chojo.ember.feature.events.entity.IntervalConfig;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventBreakRepository;
-import dev.chojo.ember.feature.events.repository.EventFieldRepository;
+import dev.chojo.ember.feature.question.FieldTypes;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -26,6 +28,7 @@ import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 @Singleton
 public class BatchEventService {
@@ -51,17 +54,24 @@ public class BatchEventService {
         this.eventBus = eventBus;
     }
 
+    /**
+     * Creates one event per row. Each is created without its own announcement, and one aggregate
+     * announcement covers the whole batch, so members get a single notification.
+     *
+     * @param stationId the station the events belong to
+     * @param request   the rows and what they share
+     * @return the events created
+     */
     public List<StationEvent> createBatch(int stationId, BatchRequest request) {
+        request.rows().forEach(row -> nameOf(row, request));
         var fieldDefs = resolveFieldDefs(request);
         var created = new ArrayList<StationEvent>();
 
         for (var row : request.rows()) {
             Instant startTime = row.startTime();
             Instant endTime = row.endTime();
-            String eventName = row.name() != null ? row.name() : request.name();
+            String eventName = nameOf(row, request);
 
-            // Use createWithoutEvent to suppress per-row EventCreated fan-out - we emit one
-            // aggregate EventsBatchCreated below so users get a single notification.
             var event = crudService.createWithoutEvent(
                     stationId,
                     eventName,
@@ -71,9 +81,9 @@ public class BatchEventService {
                     startTime,
                     endTime,
                     request.templateId(),
-                    request.requiresRegistration() != null && request.requiresRegistration(),
+                    Boolean.TRUE.equals(request.requiresRegistration()),
                     request.registrationDeadline(),
-                    request.requiresConfirmation() != null && request.requiresConfirmation(),
+                    Boolean.TRUE.equals(request.requiresConfirmation()),
                     request.categoryId(),
                     null,
                     null,
@@ -88,11 +98,11 @@ public class BatchEventService {
             }
 
             var fieldEntries = fieldDefs.stream()
-                    .map(def -> new EventFieldRepository.FieldEntry(
+                    .map(def -> new EventFieldDraft(
                             def.name(),
                             def.fieldType(),
                             def.config(),
-                            row.fieldValues() != null ? row.fieldValues().getOrDefault(def.name(), "") : "",
+                            row.fieldValues().getOrDefault(def.name(), ""),
                             def.overview(),
                             def.attendanceFieldId(),
                             false))
@@ -130,8 +140,28 @@ public class BatchEventService {
         return rows;
     }
 
+    /**
+     * The name a row's appointment is given: its own, or the batch's where it has none. Every row is
+     * asked before the first appointment is written, so a nameless row refuses the whole batch
+     * rather than leaving half of it behind.
+     */
+    private static String nameOf(BatchRow row, BatchRequest request) {
+        String name = Objects.requireNonNullElse(row.name(), Objects.requireNonNullElse(request.name(), ""));
+        if (name.isBlank()) throw EventRefusal.EVENT_NEEDS_A_NAME.raise();
+        return name;
+    }
+
+    /**
+     * The fields every appointment of the batch asks.
+     *
+     * @throws io.javalin.http.HttpResponseException for a type an appointment does not offer
+     */
     private List<BatchFieldEntry> resolveFieldDefs(BatchRequest request) {
-        return request.inlineFields() != null ? request.inlineFields() : List.of();
+        var fields = Objects.requireNonNullElse(request.inlineFields(), List.<BatchFieldEntry>of());
+        if (fields.stream().anyMatch(field -> !FieldTypes.APPOINTMENT.contains(field.fieldType()))) {
+            throw EventRefusal.BATCH_FIELD_TYPE_NOT_OFFERED.raise();
+        }
+        return fields;
     }
 
     private List<LocalDate> expandInterval(IntervalConfig interval) {

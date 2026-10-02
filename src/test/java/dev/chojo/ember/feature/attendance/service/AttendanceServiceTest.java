@@ -6,29 +6,34 @@
 package dev.chojo.ember.feature.attendance.service;
 
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.AttendanceRefusal;
+import dev.chojo.ember.api.refusal.EventRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.conf.file.elements.Attendance;
+import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
-import dev.chojo.ember.feature.attendance.entity.AttendanceFieldType;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldValueEntry;
 import dev.chojo.ember.feature.attendance.entity.AttendanceSession;
 import dev.chojo.ember.feature.attendance.entity.SessionAudience;
-import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
-import dev.chojo.ember.feature.attendance.repository.AttendanceRepository.TemplateGroup;
-import dev.chojo.ember.feature.events.entity.EventFieldConfig;
+import dev.chojo.ember.feature.attendance.entity.TemplateGroup;
+import dev.chojo.ember.feature.attendance.handler.EventAnswerRecordedHandler;
+import dev.chojo.ember.feature.events.entity.CancellationCause;
 import dev.chojo.ember.feature.events.entity.EventFieldDefault;
-import dev.chojo.ember.feature.events.entity.EventFieldType;
+import dev.chojo.ember.feature.events.entity.EventFieldDraft;
+import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
-import dev.chojo.ember.feature.events.repository.EventFieldRepository;
+import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
+import dev.chojo.ember.feature.events.service.EventRegistrationService;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
@@ -43,6 +48,8 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
@@ -70,7 +77,11 @@ class AttendanceServiceTest extends RepositoryTestBase {
                 stationMemberRepo,
                 memberGroupRepo,
                 new Attendance(),
-                stationRepo);
+                stationRepo,
+                eventDateCancellationRepo,
+                new AttendanceAudienceService(attendanceRepo),
+                memberEligibility,
+                new AttendanceTemplateGuards(attendanceRepo));
         station = stationRepo.create("AttendanceSvc Station");
         account = accountRepo.create("attend-svc@test.com", "Attend", "User");
         member = stationMemberRepo.create(station.id(), account.id());
@@ -81,8 +92,6 @@ class AttendanceServiceTest extends RepositoryTestBase {
         stationRepo.delete(station.id());
         accountRepo.delete(account.id());
     }
-
-    // -- Templates --
 
     @Test
     @Order(1)
@@ -122,13 +131,11 @@ class AttendanceServiceTest extends RepositoryTestBase {
         assertTrue(service.updateTemplate(99999, "X").isEmpty());
     }
 
-    // -- Template Fields --
-
     @Test
     @Order(10)
     void createTemplateField() {
         var fields = service.createTemplateField(
-                templateId, "Location", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 1);
+                templateId, "Location", FieldType.TEXT, AttendanceFieldConfig.parse("{}"), 1);
         assertFalse(fields.isEmpty());
         assertEquals("Location", fields.getFirst().name());
     }
@@ -146,7 +153,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
         var fields = service.findTemplateFields(templateId);
         int fieldId = fields.getFirst().id();
         var result = service.updateTemplateField(
-                templateId, fieldId, "Room", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 1);
+                templateId, fieldId, "Room", FieldType.TEXT, AttendanceFieldConfig.parse("{}"), 1);
         assertTrue(result.isPresent());
         assertEquals("Room", result.get().getFirst().name());
     }
@@ -155,41 +162,52 @@ class AttendanceServiceTest extends RepositoryTestBase {
     @Order(13)
     void updateTemplateFieldNonExistent() {
         assertTrue(service.updateTemplateField(
-                        templateId, 99999, "X", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 1)
+                        templateId, 99999, "X", FieldType.TEXT, AttendanceFieldConfig.parse("{}"), 1)
                 .isEmpty());
     }
 
     @Test
     @Order(14)
-    void deleteTemplateField() {
+    void archiveTemplateField() {
         var fields = service.findTemplateFields(templateId);
         int fieldId = fields.getFirst().id();
-        var result = service.deleteTemplateField(templateId, fieldId);
+        var result = service.archiveTemplateField(templateId, fieldId);
         assertTrue(result.isPresent());
         assertTrue(result.get().isEmpty());
     }
 
     @Test
     @Order(15)
-    void deleteTemplateFieldNonExistent() {
-        assertTrue(service.deleteTemplateField(templateId, 99999).isEmpty());
+    void archiveTemplateFieldNonExistent() {
+        assertTrue(service.archiveTemplateField(templateId, 99999).isEmpty());
     }
 
-    // -- Template Groups --
+    /** A place belongs to an appointment, so a sheet does not take one and writes nothing. */
+    @Test
+    @Order(16)
+    void createTemplateFieldRefusesATypeTheSheetDoesNotOffer() {
+        int before = service.findTemplateFields(templateId).size();
+
+        var refused = assertThrows(
+                RefusalResponse.class,
+                () -> service.createTemplateField(
+                        templateId, "Treffpunkt", FieldType.LOCATION, AttendanceFieldConfig.parse("{}"), 1));
+
+        assertEquals(AttendanceRefusal.ATTENDANCE_FIELD_TYPE_NOT_OFFERED, refused.refusal());
+        assertEquals(before, service.findTemplateFields(templateId).size());
+    }
 
     @Test
     @Order(16)
     void setAndFindTemplateGroups() {
         var group = memberGroupRepo.create(station.id(), "Svc Group A");
-        service.setTemplateGroups(templateId, List.of(new AttendanceRepository.TemplateGroup(group.id(), 1)));
+        service.setTemplateGroups(templateId, List.of(new TemplateGroup(group.id(), 1)));
         var groups = service.findTemplateGroups(templateId);
         assertEquals(1, groups.size());
         assertEquals(group.id(), groups.getFirst().groupId());
         service.setTemplateGroups(templateId, List.of());
         memberGroupRepo.delete(group.id());
     }
-
-    // -- Sessions --
 
     /** A sheet whose hours are whatever its times say, which is every sheet but the counted ones. */
     private AttendanceSession openSheet(int templateId, Instant start, Instant end, Integer eventId, String title) {
@@ -260,14 +278,10 @@ class AttendanceServiceTest extends RepositoryTestBase {
                 .isEmpty());
     }
 
-    // -- Session Fields --
-
     @Test
     @Order(26)
     void setAndFindSessionFields() {
-        // Create a template field first
-        service.createTemplateField(
-                templateId, "Notes", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 1);
+        service.createTemplateField(templateId, "Notes", FieldType.TEXT, AttendanceFieldConfig.parse("{}"), 1);
         int fieldId = service.findTemplateFields(templateId).getFirst().id();
 
         var fields =
@@ -278,11 +292,8 @@ class AttendanceServiceTest extends RepositoryTestBase {
         var found = service.findSessionFields(sessionId);
         assertFalse(found.isEmpty());
 
-        // Cleanup template field
-        service.deleteTemplateField(templateId, fieldId);
+        service.archiveTemplateField(templateId, fieldId);
     }
-
-    // -- Entries --
 
     @Test
     @Order(30)
@@ -344,7 +355,6 @@ class AttendanceServiceTest extends RepositoryTestBase {
     @Test
     @Order(36)
     void syncFromEvent() {
-        // No event linked - should just return existing entries
         var entries = service.syncFromEvent(sessionId);
         assertNotNull(entries);
     }
@@ -362,8 +372,6 @@ class AttendanceServiceTest extends RepositoryTestBase {
         assertTrue(service.deleteEntry(entryId));
         assertTrue(service.findEntries(sessionId).isEmpty());
     }
-
-    // -- Absences --
 
     @Test
     @Order(40)
@@ -406,7 +414,6 @@ class AttendanceServiceTest extends RepositoryTestBase {
     @Test
     @Order(45)
     void createEntryWhileAbsent() {
-        // Member is absent - new entry should be DECLINED
         var entries = service.createEntry(sessionId, member.id(), AttendanceEntry.EntrySource.EXPECTED);
         assertFalse(entries.isEmpty());
         assertEquals(
@@ -421,14 +428,9 @@ class AttendanceServiceTest extends RepositoryTestBase {
         assertTrue(service.findAbsenceById(absenceId).isEmpty());
     }
 
-    // -- Cleanup --
-
-    // -- Session with event --
-
     @Test
     @Order(50)
     void createSessionWithEvent() {
-        // Create an event to link
         var event = eventRepo.create(
                 station.id(),
                 "Attend Event",
@@ -447,7 +449,6 @@ class AttendanceServiceTest extends RepositoryTestBase {
                 null,
                 null);
 
-        // Create session linked to event - should inherit event name and times
         var session = openSheet(templateId, null, null, event.id(), null);
         assertNotNull(session);
         assertEquals("Attend Event", session.title());
@@ -455,7 +456,6 @@ class AttendanceServiceTest extends RepositoryTestBase {
         assertNotNull(session.endTime());
         assertEquals(event.id(), session.eventId());
 
-        // Creating again with same eventId should return existing session
         var existing = openSheet(templateId, null, null, event.id(), null);
         assertEquals(session.id(), existing.id());
 
@@ -501,6 +501,40 @@ class AttendanceServiceTest extends RepositoryTestBase {
         assertEquals(Duration.ofHours(2), Duration.between(session.startTime(), session.endTime()));
 
         service.deleteSession(session.id());
+        eventRepo.delete(weekly.id());
+    }
+
+    /** No sheet is taken for a date that was called off; the next date of the series takes one. */
+    @Test
+    @Order(51)
+    void noSheetIsTakenForACancelledDate() {
+        LocalDate wednesday = LocalDate.of(2027, 3, 3);
+        var weekly = eventRepo.create(
+                station.id(),
+                "Abgesagte Übung",
+                "desc",
+                StationEvent.EventType.RECURRING,
+                3,
+                Instant.parse("2027-01-06T18:00:00Z"),
+                Instant.parse("2027-01-06T20:00:00Z"),
+                null,
+                false,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null);
+        eventDateCancellationRepo.cancel(weekly.id(), wednesday, CancellationCause.MANUAL, null, null);
+
+        var refused = assertThrows(
+                RefusalResponse.class,
+                () -> service.createSession(templateId, null, null, weekly.id(), null, null, null, wednesday));
+        assertEquals(EventRefusal.ATTENDANCE_DAY_CANCELLED, refused.refusal());
+        var next = service.createSession(templateId, null, null, weekly.id(), null, null, null, wednesday.plusWeeks(1));
+
+        service.deleteSession(next.id());
         eventRepo.delete(weekly.id());
     }
 
@@ -678,7 +712,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
         Instant start = Instant.now();
 
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> openSheet(templateId, start, start.minus(1, ChronoUnit.HOURS), null, "Rückwärts"));
     }
 
@@ -688,7 +722,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
         Instant start = Instant.now();
 
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> openSheet(templateId, start, start.plus(40, ChronoUnit.DAYS), null, "Zu lang"));
     }
 
@@ -711,20 +745,17 @@ class AttendanceServiceTest extends RepositoryTestBase {
         Instant start = Instant.now();
         Instant end = start.plus(4, ChronoUnit.HOURS);
 
+        assertThrows(RefusalResponse.class, () -> service.createSession(templateId, start, end, null, "Negativ", -1));
         assertThrows(
-                BadRequestResponse.class, () -> service.createSession(templateId, start, end, null, "Negativ", -1));
-        assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> service.createSession(templateId, start, end, null, "Zu viel", 60 * 24 * 40));
     }
 
     @Test
     @Order(51)
     void createSessionWithNoTitleFallsBack() {
-        // No event, no title - should fall back to template name
         var session = openSheet(templateId, Instant.now(), Instant.now().plus(1, ChronoUnit.HOURS), null, null);
         assertNotNull(session);
-        // Title should be template name since no title provided
         assertNotNull(session.title());
         service.deleteSession(session.id());
     }
@@ -792,7 +823,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
         assertEquals(AttendanceEntry.AttendanceStatus.UNCONFIRMED, forInvited.status());
 
         service.deleteSession(session.id());
-        service.deleteTemplate(expectingTemplate.id());
+        service.archiveTemplate(expectingTemplate.id());
         eventRepo.delete(event.id());
         stationMemberRepo.delete(outsider.id());
         accountRepo.delete(outsiderAccount.id());
@@ -806,8 +837,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
     @Order(54)
     void syncTakesTheAnswersOfTheEventIntoTheSheet() {
         var sheet = service.createTemplate(station.id(), "Antwort Vorlage");
-        service.createTemplateField(
-                sheet.id(), "Thema", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 1);
+        service.createTemplateField(sheet.id(), "Thema", FieldType.TEXT, AttendanceFieldConfig.parse("{}"), 1);
         int sheetFieldId = service.findTemplateFields(sheet.id()).getFirst().id();
 
         var event = eventRepo.create(
@@ -836,10 +866,10 @@ class AttendanceServiceTest extends RepositoryTestBase {
 
         eventFieldRepo.replaceFields(
                 event.id(),
-                List.of(new EventFieldRepository.FieldEntry(
+                List.of(new EventFieldDraft(
                         "Thema",
-                        EventFieldType.STRING,
-                        EventFieldConfig.parse("{}"),
+                        FieldType.TEXT,
+                        EventQuestionSettings.empty(),
                         "Leiterprobe",
                         false,
                         sheetFieldId,
@@ -856,7 +886,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
 
         service.deleteSession(session.id());
         eventRepo.delete(event.id());
-        service.deleteTemplate(sheet.id());
+        service.archiveTemplate(sheet.id());
     }
 
     /**
@@ -869,8 +899,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
     @Order(54)
     void anAnswerThatLooksLikeANumberStillReachesTheSheet() {
         var sheet = service.createTemplate(station.id(), "Datum Vorlage");
-        service.createTemplateField(
-                sheet.id(), "Datum", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 1);
+        service.createTemplateField(sheet.id(), "Datum", FieldType.TEXT, AttendanceFieldConfig.parse("{}"), 1);
         int sheetFieldId = service.findTemplateFields(sheet.id()).getFirst().id();
 
         var event = eventRepo.create(
@@ -892,10 +921,10 @@ class AttendanceServiceTest extends RepositoryTestBase {
                 null);
         eventFieldRepo.replaceFields(
                 event.id(),
-                List.of(new EventFieldRepository.FieldEntry(
+                List.of(new EventFieldDraft(
                         "Datum",
-                        EventFieldType.STRING,
-                        EventFieldConfig.parse("{}"),
+                        FieldType.TEXT,
+                        EventQuestionSettings.empty(),
                         "2026-08-31",
                         false,
                         sheetFieldId,
@@ -912,7 +941,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
 
         service.deleteSession(session.id());
         eventRepo.delete(event.id());
-        service.deleteTemplate(sheet.id());
+        service.archiveTemplate(sheet.id());
     }
 
     /**
@@ -939,14 +968,13 @@ class AttendanceServiceTest extends RepositoryTestBase {
                         && entry.status() == AttendanceEntry.AttendanceStatus.UNCONFIRMED));
 
         service.deleteSession(session.id());
-        service.deleteTemplate(lateTemplate.id());
+        service.archiveTemplate(lateTemplate.id());
         memberGroupRepo.delete(lateGroup.id());
     }
 
     @Test
     @Order(53)
     void syncFromEventNoSession() {
-        // Sync on non-existent session
         var entries = service.syncFromEvent(99999);
         assertNotNull(entries);
     }
@@ -954,7 +982,6 @@ class AttendanceServiceTest extends RepositoryTestBase {
     @Test
     @Order(54)
     void createEntryNotAbsentNotDeclined() {
-        // No absence, no declined event - should be UNCONFIRMED
         var newSession = openSheet(templateId, Instant.now(), Instant.now().plus(1, ChronoUnit.HOURS), null, "Fresh");
         var entries = service.createEntry(newSession.id(), member.id(), AttendanceEntry.EntrySource.EXPECTED);
         assertFalse(entries.isEmpty());
@@ -1006,7 +1033,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
                         e.memberId() == member2.id() && e.status() == AttendanceEntry.AttendanceStatus.UNCONFIRMED));
 
         service.deleteSession(session.id());
-        service.deleteTemplate(template.id());
+        service.archiveTemplate(template.id());
         memberGroupRepo.delete(group.id());
         eventRepo.delete(event.id());
         stationMemberRepo.delete(member2.id());
@@ -1089,7 +1116,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
                         e -> e.memberId() == member3.id() && e.status() == AttendanceEntry.AttendanceStatus.DECLINED));
 
         service.deleteSession(session.id());
-        service.deleteTemplate(template.id());
+        service.archiveTemplate(template.id());
         memberGroupRepo.delete(group.id());
         eventRepo.delete(event.id());
         stationMemberRepo.delete(member3.id());
@@ -1129,13 +1156,15 @@ class AttendanceServiceTest extends RepositoryTestBase {
 
         var session = openSheet(template.id(), null, null, event.id(), null);
         var entries = service.syncFromEvent(session.id());
-        // Away for the day, so the sheet settles them rather than counting on the sign-up
-        assertTrue(entries.stream()
-                .anyMatch(e -> e.memberId() == member.id() && e.status() != AttendanceEntry.AttendanceStatus.PRESENT));
+        assertTrue(
+                entries.stream()
+                        .anyMatch(e ->
+                                e.memberId() == member.id() && e.status() != AttendanceEntry.AttendanceStatus.PRESENT),
+                "an absence outweighs the sign-up");
 
         service.deleteAbsence(absence.id());
         service.deleteSession(session.id());
-        service.deleteTemplate(template.id());
+        service.archiveTemplate(template.id());
         memberGroupRepo.delete(group.id());
         eventRepo.delete(event.id());
     }
@@ -1143,7 +1172,6 @@ class AttendanceServiceTest extends RepositoryTestBase {
     @Test
     @Order(58)
     void syncFromEventUpgradesExistingEntryToPresent() {
-        // Create event, session, and pre-add a member with UNCONFIRMED status
         var account4 = accountRepo.create("attend-svc4@test.com", "Attend4", "User");
         var member4 = stationMemberRepo.create(station.id(), account4.id());
 
@@ -1165,35 +1193,27 @@ class AttendanceServiceTest extends RepositoryTestBase {
                 null,
                 null);
 
-        // Create a template field with autoAttend config
         var autoAttendTemplate = service.createTemplate(station.id(), "AutoAttend Template");
         var fieldJson = "{\"autoAttend\":true}";
         service.createTemplateField(
-                autoAttendTemplate.id(),
-                "Members",
-                AttendanceFieldType.MEMBER,
-                AttendanceFieldConfig.parse(fieldJson),
-                1);
+                autoAttendTemplate.id(), "Members", FieldType.MEMBER, AttendanceFieldConfig.parse(fieldJson), 1);
         var fields = service.findTemplateFields(autoAttendTemplate.id());
         int fieldId = fields.getFirst().id();
 
         var session = openSheet(autoAttendTemplate.id(), null, null, event.id(), "Upgrade Session");
 
-        // Pre-add member4 with UNCONFIRMED status
         service.createEntry(session.id(), member4.id(), AttendanceEntry.EntrySource.EXPECTED);
 
-        // Now set the session field value with member4's id (JSON array format)
         service.setSessionFields(
                 session.id(), List.of(new AttendanceFieldValueEntry(fieldId, "[" + member4.id() + "]")));
 
         var entries = service.syncFromEvent(session.id());
-        // member4 should have been upgraded to PRESENT
         assertTrue(entries.stream()
                 .anyMatch(e -> e.memberId() == member4.id() && e.status() == AttendanceEntry.AttendanceStatus.PRESENT));
 
         service.deleteSession(session.id());
         eventRepo.delete(event.id());
-        service.deleteTemplate(autoAttendTemplate.id());
+        service.archiveTemplate(autoAttendTemplate.id());
         stationMemberRepo.delete(member4.id());
         accountRepo.delete(account4.id());
     }
@@ -1201,7 +1221,6 @@ class AttendanceServiceTest extends RepositoryTestBase {
     @Test
     @Order(59)
     void syncFromEventAbsenceUpdatesExistingPresent() {
-        // member starts PRESENT but is absent - sync should downgrade to ABSENT
         var account5 = accountRepo.create("attend-svc5@test.com", "Attend5", "User");
         var member5 = stationMemberRepo.create(station.id(), account5.id());
 
@@ -1225,7 +1244,6 @@ class AttendanceServiceTest extends RepositoryTestBase {
 
         var session = openSheet(templateId, null, null, event.id(), null);
 
-        // Create entry as PRESENT
         service.createEntry(session.id(), member5.id(), AttendanceEntry.EntrySource.EXPECTED);
         service.updateEntryStatus(
                 service.findEntries(session.id()).stream()
@@ -1235,7 +1253,6 @@ class AttendanceServiceTest extends RepositoryTestBase {
                         .id(),
                 AttendanceEntry.AttendanceStatus.PRESENT);
 
-        // Create absence
         var absence = service.createAbsence(
                 member5.id(), LocalDate.now().minusDays(1), LocalDate.now().plusDays(1), "Ill", null);
 
@@ -1274,25 +1291,22 @@ class AttendanceServiceTest extends RepositoryTestBase {
                 null,
                 null);
 
-        // Create a template with a field
         var fieldTemplate = service.createTemplate(station.id(), "Field Default Template");
         var fields = service.createTemplateField(
-                fieldTemplate.id(), "Location", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 1);
+                fieldTemplate.id(), "Location", FieldType.TEXT, AttendanceFieldConfig.parse("{}"), 1);
         int attendanceFieldId = fields.getFirst().id();
 
-        // Create event field linked to attendance field - value must be valid JSON
         eventFieldRepo.create(
                 event.id(),
                 "Location",
-                EventFieldType.STRING,
-                EventFieldConfig.parse("{}"),
+                FieldType.TEXT,
+                EventQuestionSettings.empty(),
                 "\"Conference Room A\"",
                 0,
                 false,
                 attendanceFieldId,
                 false);
 
-        // Create session - should auto-populate from event field
         var session = openSheet(fieldTemplate.id(), null, null, event.id(), null);
         assertNotNull(session);
 
@@ -1300,11 +1314,10 @@ class AttendanceServiceTest extends RepositoryTestBase {
         assertTrue(sessionFields.stream()
                 .anyMatch(f -> f.fieldId() == attendanceFieldId && "\"Conference Room A\"".equals(f.value())));
 
-        // Cleanup
         eventFieldRepo.deleteByEvent(event.id());
         service.deleteSession(session.id());
         eventRepo.delete(event.id());
-        service.deleteTemplate(fieldTemplate.id());
+        service.archiveTemplate(fieldTemplate.id());
         stationMemberRepo.delete(member6.id());
         accountRepo.delete(account6.id());
     }
@@ -1312,7 +1325,6 @@ class AttendanceServiceTest extends RepositoryTestBase {
     @Test
     @Order(60)
     void createEntryDeclinedViaEvent() {
-        // Create event, register member with DECLINED status, then create entry
         var account7 = accountRepo.create("attend-svc7@test.com", "Attend7", "User");
         var member7 = stationMemberRepo.create(station.id(), account7.id());
 
@@ -1338,7 +1350,6 @@ class AttendanceServiceTest extends RepositoryTestBase {
 
         var session = openSheet(templateId, null, null, event.id(), null);
 
-        // Create entry - should be DECLINED because member7 declined the event
         var entries = service.createEntry(session.id(), member7.id(), AttendanceEntry.EntrySource.EXPECTED);
         assertTrue(entries.stream()
                 .anyMatch(
@@ -1353,15 +1364,10 @@ class AttendanceServiceTest extends RepositoryTestBase {
     @Test
     @Order(61)
     void parseMemberIdsFromFieldValueFormats() {
-        // Test parseMemberIdsFromFieldValue via syncFromEvent with various formats
         var autoAttendTemplate2 = service.createTemplate(station.id(), "ParseTest Template");
         var fieldJson = "{\"autoAttend\":true}";
         service.createTemplateField(
-                autoAttendTemplate2.id(),
-                "Members",
-                AttendanceFieldType.MEMBER,
-                AttendanceFieldConfig.parse(fieldJson),
-                1);
+                autoAttendTemplate2.id(), "Members", FieldType.MEMBER, AttendanceFieldConfig.parse(fieldJson), 1);
         var fields2 = service.findTemplateFields(autoAttendTemplate2.id());
         int fieldId2 = fields2.getFirst().id();
 
@@ -1371,7 +1377,6 @@ class AttendanceServiceTest extends RepositoryTestBase {
         var session = openSheet(
                 autoAttendTemplate2.id(), Instant.now(), Instant.now().plus(1, ChronoUnit.HOURS), null, "ParseTest");
 
-        // Single number format (quoted string)
         service.setSessionFields(
                 session.id(), List.of(new AttendanceFieldValueEntry(fieldId2, "\"" + member8.id() + "\"")));
         var entries = service.syncFromEvent(session.id());
@@ -1379,7 +1384,6 @@ class AttendanceServiceTest extends RepositoryTestBase {
 
         service.deleteSession(session.id());
 
-        // Test with JSON array format with quoted numbers
         var session2 = openSheet(
                 autoAttendTemplate2.id(), Instant.now(), Instant.now().plus(1, ChronoUnit.HOURS), null, "ParseTest2");
 
@@ -1389,7 +1393,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
         assertTrue(entries2.stream().anyMatch(e -> e.memberId() == member8.id()));
 
         service.deleteSession(session2.id());
-        service.deleteTemplate(autoAttendTemplate2.id());
+        service.archiveTemplate(autoAttendTemplate2.id());
         stationMemberRepo.delete(member8.id());
         accountRepo.delete(account8.id());
     }
@@ -1397,11 +1401,10 @@ class AttendanceServiceTest extends RepositoryTestBase {
     @Test
     @Order(62)
     void createSessionWithDefaultFieldValues() {
-        // Template field with a default value - session creation should auto-populate
         var defaultTemplate = service.createTemplate(station.id(), "Default Value Template");
         var fieldJson = "{\"defaultValue\":\"Room 101\"}";
         service.createTemplateField(
-                defaultTemplate.id(), "Room", AttendanceFieldType.STRING, AttendanceFieldConfig.parse(fieldJson), 1);
+                defaultTemplate.id(), "Room", FieldType.TEXT, AttendanceFieldConfig.parse(fieldJson), 1);
         var templateFields = service.findTemplateFields(defaultTemplate.id());
 
         var session = openSheet(
@@ -1409,17 +1412,15 @@ class AttendanceServiceTest extends RepositoryTestBase {
         assertNotNull(session);
 
         var sessionFields = service.findSessionFields(session.id());
-        // The default value should be applied
         assertFalse(sessionFields.isEmpty());
 
         service.deleteSession(session.id());
-        service.deleteTemplate(defaultTemplate.id());
+        service.archiveTemplate(defaultTemplate.id());
     }
 
     @Test
     @Order(63)
     void createSessionWithEventFieldDefaultSources() {
-        // Test EVENT_NAME, EVENT_DESCRIPTION, EVENT_START_TIME, EVENT_END_TIME sources
         var event = eventRepo.create(
                 station.id(),
                 "SourceDefaults Event",
@@ -1440,24 +1441,24 @@ class AttendanceServiceTest extends RepositoryTestBase {
 
         var fieldTemplate = service.createTemplate(station.id(), "Source Defaults Template");
         var nameField = service.createTemplateField(
-                fieldTemplate.id(), "EventName", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 1);
+                fieldTemplate.id(), "EventName", FieldType.TEXT, AttendanceFieldConfig.parse("{}"), 1);
         int nameFieldId = nameField.getFirst().id();
         var descField = service.createTemplateField(
-                fieldTemplate.id(), "EventDesc", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 2);
+                fieldTemplate.id(), "EventDesc", FieldType.TEXT, AttendanceFieldConfig.parse("{}"), 2);
         int descFieldId = descField.stream()
                 .filter(f -> "EventDesc".equals(f.name()))
                 .findFirst()
                 .orElseThrow()
                 .id();
         var startField = service.createTemplateField(
-                fieldTemplate.id(), "EventStart", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 3);
+                fieldTemplate.id(), "EventStart", FieldType.TEXT, AttendanceFieldConfig.parse("{}"), 3);
         int startFieldId = startField.stream()
                 .filter(f -> "EventStart".equals(f.name()))
                 .findFirst()
                 .orElseThrow()
                 .id();
         var endField = service.createTemplateField(
-                fieldTemplate.id(), "EventEnd", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 4);
+                fieldTemplate.id(), "EventEnd", FieldType.TEXT, AttendanceFieldConfig.parse("{}"), 4);
         int endFieldId = endField.stream()
                 .filter(f -> "EventEnd".equals(f.name()))
                 .findFirst()
@@ -1490,18 +1491,17 @@ class AttendanceServiceTest extends RepositoryTestBase {
         service.deleteSession(session.id());
         eventFieldDefaultRepo.replaceForEvent(event.id(), List.of());
         eventRepo.delete(event.id());
-        service.deleteTemplate(fieldTemplate.id());
+        service.archiveTemplate(fieldTemplate.id());
     }
 
     @Test
     @Order(64)
     void createSessionWithGroupAutoPopulation() {
-        // Template with a group - members should be auto-populated
         var group = memberGroupRepo.create(station.id(), "Auto Pop Group");
         memberGroupRepo.addMember(group.id(), member.id());
 
         var autoTemplate = service.createTemplate(station.id(), "Group Auto Template");
-        service.setTemplateGroups(autoTemplate.id(), List.of(new AttendanceRepository.TemplateGroup(group.id(), 1)));
+        service.setTemplateGroups(autoTemplate.id(), List.of(new TemplateGroup(group.id(), 1)));
 
         var session = openSheet(
                 autoTemplate.id(), Instant.now(), Instant.now().plus(1, ChronoUnit.HOURS), null, "Group Session");
@@ -1510,7 +1510,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
 
         service.deleteSession(session.id());
         service.setTemplateGroups(autoTemplate.id(), List.of());
-        service.deleteTemplate(autoTemplate.id());
+        service.archiveTemplate(autoTemplate.id());
         memberGroupRepo.removeMember(group.id(), member.id());
         memberGroupRepo.delete(group.id());
     }
@@ -1557,7 +1557,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
                         e -> e.memberId() == member9.id() && e.status() == AttendanceEntry.AttendanceStatus.DECLINED));
 
         service.deleteSession(session.id());
-        service.deleteTemplate(template.id());
+        service.archiveTemplate(template.id());
         memberGroupRepo.delete(group.id());
         eventRepo.delete(event.id());
         stationMemberRepo.delete(member9.id());
@@ -1620,7 +1620,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
                         .status());
 
         service.deleteSession(session.id());
-        service.deleteTemplate(template.id());
+        service.archiveTemplate(template.id());
         memberGroupRepo.delete(group.id());
         eventRepo.delete(event.id());
         stationMemberRepo.delete(coming.id());
@@ -1670,11 +1670,385 @@ class AttendanceServiceTest extends RepositoryTestBase {
                         .status());
 
         service.deleteSession(session.id());
-        service.deleteTemplate(template.id());
+        service.archiveTemplate(template.id());
         memberGroupRepo.delete(group.id());
         eventRepo.delete(event.id());
         stationMemberRepo.delete(quiet.id());
         accountRepo.delete(quietAccount.id());
+    }
+
+    /**
+     * A no given to an occasion that asked nobody to answer still arrives on the sheet the moment it
+     * is opened, the same as filling it in from the appointment later writes it.
+     */
+    @Test
+    @Order(65)
+    void aSheetOpenedForAnOccasionWithoutRegistrationArrivesWithItsDeclines() {
+        var declinerAccount = accountRepo.create("attend-optional-no@test.com", "Sagt", "Ab");
+        var decliner = stationMemberRepo.create(station.id(), declinerAccount.id());
+        var withdrawerAccount = accountRepo.create("attend-optional-back@test.com", "Zieht", "Zurück");
+        var withdrawer = stationMemberRepo.create(station.id(), withdrawerAccount.id());
+
+        var group = memberGroupRepo.create(station.id(), "Absagen ohne Pflicht");
+        memberGroupRepo.addMember(group.id(), decliner.id());
+        memberGroupRepo.addMember(group.id(), withdrawer.id());
+        var template = service.createTemplate(station.id(), "Absagen ohne Pflicht Vorlage");
+        service.setTemplateGroups(template.id(), List.of(new TemplateGroup(group.id(), 0)));
+
+        var event = eventRepo.create(
+                station.id(),
+                "Freiwilliger Abend mit Absagen",
+                "",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                Instant.now().plus(13, ChronoUnit.DAYS),
+                Instant.now().plus(13, ChronoUnit.DAYS).plus(2, ChronoUnit.HOURS),
+                template.id(),
+                false,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null);
+        eventRegistrationRepo.create(event.id(), decliner.id(), dayOf(event), RegistrationStatus.DECLINED, null);
+        eventRegistrationRepo.create(event.id(), withdrawer.id(), dayOf(event), RegistrationStatus.WITHDRAWN, null);
+
+        var session = openSheet(template.id(), null, null, event.id(), null);
+        try {
+            var entries = service.findEntries(session.id());
+            assertEquals(AttendanceEntry.AttendanceStatus.DECLINED, statusOf(entries, decliner.id()));
+            assertEquals(AttendanceEntry.AttendanceStatus.DECLINED, statusOf(entries, withdrawer.id()));
+            assertEquals(entries, service.syncFromEvent(session.id()), "filling it in later changes nothing");
+        } finally {
+            service.deleteSession(session.id());
+            service.archiveTemplate(template.id());
+            memberGroupRepo.delete(group.id());
+            eventRepo.delete(event.id());
+            stationMemberRepo.delete(decliner.id());
+            stationMemberRepo.delete(withdrawer.id());
+            accountRepo.delete(declinerAccount.id());
+            accountRepo.delete(withdrawerAccount.id());
+        }
+    }
+
+    /**
+     * A no given to one date of a repeating occasion that asked nobody to answer arrives on the sheet
+     * opened for that date, and on no other.
+     */
+    @Test
+    @Order(65)
+    void aSheetOpenedForADateOfARepeatingOccasionWithoutRegistrationArrivesWithItsDeclines() {
+        var declinerAccount = accountRepo.create("attend-series-no@test.com", "Serie", "Absage");
+        var decliner = stationMemberRepo.create(station.id(), declinerAccount.id());
+
+        var group = memberGroupRepo.create(station.id(), "Serie ohne Pflicht");
+        memberGroupRepo.addMember(group.id(), decliner.id());
+        var template = service.createTemplate(station.id(), "Serie ohne Pflicht Vorlage");
+        service.setTemplateGroups(template.id(), List.of(new TemplateGroup(group.id(), 0)));
+
+        Instant configuredLongAgo = Instant.parse("2024-09-05T18:00:00Z");
+        var weekly = eventRepo.create(
+                station.id(),
+                "Wöchentlicher Abend ohne Anmeldung",
+                "",
+                StationEvent.EventType.RECURRING,
+                4,
+                configuredLongAgo,
+                configuredLongAgo.plus(2, ChronoUnit.HOURS),
+                template.id(),
+                false,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null);
+        var zone = StationFormat.timezoneOf(stationRepo.findById(station.id()).orElseThrow());
+        LocalDate declined = LocalDate.now(zone).with(java.time.temporal.TemporalAdjusters.next(DayOfWeek.THURSDAY));
+        LocalDate weekAfter = declined.plusWeeks(1);
+        eventRegistrationRepo.create(weekly.id(), decliner.id(), declined, RegistrationStatus.DECLINED, null);
+
+        var sheet = service.createSession(template.id(), null, null, weekly.id(), null, null, null, declined);
+        var nextSheet = service.createSession(template.id(), null, null, weekly.id(), null, null, null, weekAfter);
+        try {
+            assertEquals(
+                    AttendanceEntry.AttendanceStatus.DECLINED,
+                    statusOf(service.findEntries(sheet.id()), decliner.id()));
+            assertEquals(
+                    AttendanceEntry.AttendanceStatus.UNCONFIRMED,
+                    statusOf(service.findEntries(nextSheet.id()), decliner.id()));
+        } finally {
+            service.deleteSession(sheet.id());
+            service.deleteSession(nextSheet.id());
+            service.archiveTemplate(template.id());
+            memberGroupRepo.delete(group.id());
+            eventRepo.delete(weekly.id());
+            stationMemberRepo.delete(decliner.id());
+            accountRepo.delete(declinerAccount.id());
+        }
+    }
+
+    /**
+     * A no given after the sheet was opened, by the member or by somebody answering for them, stands
+     * on it at once and not only once somebody fills the sheet in again.
+     */
+    @Test
+    @Order(65)
+    void aDeclineGivenAfterTheSheetWasOpenedReachesIt() {
+        var audience = newAudience("later-no", 3);
+        var event = occasionWithoutRegistration("Abend mit späten Absagen", audience.templateId(), 14);
+        var session = openSheet(audience.templateId(), null, null, event.id(), null);
+        try {
+            var registrations = answering();
+            registrations.decline(event.id(), audience.member(0).id(), dayOf(event), null);
+            registrations.decline(
+                    event.id(),
+                    audience.member(1).id(),
+                    dayOf(event),
+                    audience.member(2).id());
+
+            var entries = service.findEntries(session.id());
+            assertEquals(
+                    AttendanceEntry.AttendanceStatus.DECLINED,
+                    statusOf(entries, audience.member(0).id()));
+            assertEquals(
+                    AttendanceEntry.AttendanceStatus.DECLINED,
+                    statusOf(entries, audience.member(1).id()));
+            assertEquals(
+                    AttendanceEntry.AttendanceStatus.UNCONFIRMED,
+                    statusOf(entries, audience.member(2).id()));
+        } finally {
+            service.deleteSession(session.id());
+            eventRepo.delete(event.id());
+            remove(audience);
+        }
+    }
+
+    /** Giving back a place after the sheet was opened declines the row the same way a no does. */
+    @Test
+    @Order(65)
+    void aWithdrawalGivenAfterTheSheetWasOpenedReachesIt() {
+        var audience = newAudience("later-back", 1);
+        var event = occasionWithoutRegistration("Abend mit Rückzug", audience.templateId(), 15);
+        var session = openSheet(audience.templateId(), null, null, event.id(), null);
+        try {
+            var registrations = answering();
+            var place = registrations.register(event.id(), audience.member(0).id(), dayOf(event), true, null);
+            assertEquals(
+                    AttendanceEntry.AttendanceStatus.UNCONFIRMED,
+                    statusOf(
+                            service.findEntries(session.id()),
+                            audience.member(0).id()),
+                    "a yes leaves the row to be checked");
+
+            registrations.withdraw(place.id());
+
+            assertEquals(
+                    AttendanceEntry.AttendanceStatus.DECLINED,
+                    statusOf(
+                            service.findEntries(session.id()),
+                            audience.member(0).id()));
+        } finally {
+            service.deleteSession(session.id());
+            eventRepo.delete(event.id());
+            remove(audience);
+        }
+    }
+
+    /** A manager writing a no onto somebody's registration reaches the open sheet as well. */
+    @Test
+    @Order(65)
+    void aStatusChangedAfterTheSheetWasOpenedReachesIt() {
+        var audience = newAudience("later-status", 1);
+        var event = occasionWithoutRegistration("Abend mit geänderter Antwort", audience.templateId(), 16);
+        var session = openSheet(audience.templateId(), null, null, event.id(), null);
+        try {
+            var registrations = answering();
+            var place = registrations.register(event.id(), audience.member(0).id(), dayOf(event), false, null);
+
+            registrations.updateStatus(place.id(), RegistrationStatus.DECLINED);
+
+            assertEquals(
+                    AttendanceEntry.AttendanceStatus.DECLINED,
+                    statusOf(
+                            service.findEntries(session.id()),
+                            audience.member(0).id()));
+        } finally {
+            service.deleteSession(session.id());
+            eventRepo.delete(event.id());
+            remove(audience);
+        }
+    }
+
+    /** A mark somebody took on the sheet outlives a no given after it. */
+    @Test
+    @Order(65)
+    void aRowMarkedOnTheSheetOutlivesALaterDecline() {
+        var audience = newAudience("later-marked", 1);
+        var event = occasionWithoutRegistration("Abend mit gesetzter Marke", audience.templateId(), 17);
+        var session = openSheet(audience.templateId(), null, null, event.id(), null);
+        try {
+            var row = service.findEntries(session.id()).getFirst();
+            service.updateEntryStatus(row.id(), AttendanceEntry.AttendanceStatus.PRESENT);
+
+            answering().decline(event.id(), audience.member(0).id(), dayOf(event), null);
+
+            assertEquals(
+                    AttendanceEntry.AttendanceStatus.PRESENT,
+                    statusOf(
+                            service.findEntries(session.id()),
+                            audience.member(0).id()));
+        } finally {
+            service.deleteSession(session.id());
+            eventRepo.delete(event.id());
+            remove(audience);
+        }
+    }
+
+    /** A closed sheet stays as it was closed, whatever is answered afterwards. */
+    @Test
+    @Order(65)
+    void aClosedSheetIsLeftAloneByALaterDecline() {
+        var audience = newAudience("later-closed", 1);
+        var event = occasionWithoutRegistration("Abend mit geschlossener Liste", audience.templateId(), 18);
+        var session = openSheet(audience.templateId(), null, null, event.id(), null);
+        try {
+            service.lockSession(session.id());
+
+            answering().decline(event.id(), audience.member(0).id(), dayOf(event), null);
+
+            assertEquals(
+                    AttendanceEntry.AttendanceStatus.UNCONFIRMED,
+                    statusOf(
+                            service.findEntries(session.id()),
+                            audience.member(0).id()));
+        } finally {
+            service.deleteSession(session.id());
+            eventRepo.delete(event.id());
+            remove(audience);
+        }
+    }
+
+    /**
+     * A no given for one date of a repeating occasion reaches that date's sheet and leaves the sheet
+     * of another date alone.
+     */
+    @Test
+    @Order(65)
+    void aLaterDeclineReachesOnlyTheSheetOfItsOwnDate() {
+        var audience = newAudience("later-series", 1);
+        Instant configuredLongAgo = Instant.parse("2024-09-05T18:00:00Z");
+        var weekly = eventRepo.create(
+                station.id(),
+                "Wöchentlicher Abend mit späten Absagen",
+                "",
+                StationEvent.EventType.RECURRING,
+                4,
+                configuredLongAgo,
+                configuredLongAgo.plus(2, ChronoUnit.HOURS),
+                audience.templateId(),
+                false,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null);
+        var zone = StationFormat.timezoneOf(stationRepo.findById(station.id()).orElseThrow());
+        LocalDate thisWeek = LocalDate.now(zone).with(java.time.temporal.TemporalAdjusters.next(DayOfWeek.THURSDAY));
+        LocalDate nextWeek = thisWeek.plusWeeks(1);
+        var sheet = service.createSession(audience.templateId(), null, null, weekly.id(), null, null, null, thisWeek);
+        var nextSheet =
+                service.createSession(audience.templateId(), null, null, weekly.id(), null, null, null, nextWeek);
+        try {
+            answering().decline(weekly.id(), audience.member(0).id(), thisWeek, null);
+
+            assertEquals(
+                    AttendanceEntry.AttendanceStatus.DECLINED,
+                    statusOf(service.findEntries(sheet.id()), audience.member(0).id()));
+            assertEquals(
+                    AttendanceEntry.AttendanceStatus.UNCONFIRMED,
+                    statusOf(
+                            service.findEntries(nextSheet.id()),
+                            audience.member(0).id()));
+        } finally {
+            service.deleteSession(sheet.id());
+            service.deleteSession(nextSheet.id());
+            eventRepo.delete(weekly.id());
+            remove(audience);
+        }
+    }
+
+    /** A template whose one group holds new members, ready to open sheets from. */
+    private record Audience(int templateId, int groupId, List<Account> accounts, List<StationMember> members) {
+        StationMember member(int index) {
+            return members.get(index);
+        }
+    }
+
+    private Audience newAudience(String name, int size) {
+        var group = memberGroupRepo.create(station.id(), name + " Gruppe");
+        var accounts = new ArrayList<Account>();
+        var members = new ArrayList<StationMember>();
+        for (int index = 0; index < size; index++) {
+            var created = accountRepo.create("attend-" + name + "-" + index + "@test.com", "Mitglied", name);
+            var joined = stationMemberRepo.create(station.id(), created.id());
+            memberGroupRepo.addMember(group.id(), joined.id());
+            accounts.add(created);
+            members.add(joined);
+        }
+        var template = service.createTemplate(station.id(), name + " Vorlage");
+        service.setTemplateGroups(template.id(), List.of(new TemplateGroup(group.id(), 0)));
+        return new Audience(template.id(), group.id(), accounts, members);
+    }
+
+    private void remove(Audience audience) {
+        service.archiveTemplate(audience.templateId());
+        memberGroupRepo.delete(audience.groupId());
+        audience.members().forEach(joined -> stationMemberRepo.delete(joined.id()));
+        audience.accounts().forEach(created -> accountRepo.delete(created.id()));
+    }
+
+    private StationEvent occasionWithoutRegistration(String name, int templateId, int daysAhead) {
+        return eventRepo.create(
+                station.id(),
+                name,
+                "",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                Instant.now().plus(daysAhead, ChronoUnit.DAYS),
+                Instant.now().plus(daysAhead, ChronoUnit.DAYS).plus(2, ChronoUnit.HOURS),
+                templateId,
+                false,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null);
+    }
+
+    /** The registration service as the application wires it, telling open sheets about every answer. */
+    private static EventRegistrationService answering() {
+        return new EventRegistrationService(
+                eventRegistrationRepo,
+                new EventRegistrationFieldRepository(),
+                eventRepo,
+                new DomainEventBus(Set.of(new EventAnswerRecordedHandler(service))),
+                memberNameResolver);
+    }
+
+    private static AttendanceEntry.AttendanceStatus statusOf(List<AttendanceEntry> entries, int memberId) {
+        return entries.stream()
+                .filter(entry -> entry.memberId() == memberId)
+                .findFirst()
+                .orElseThrow()
+                .status();
     }
 
     /** An answer given for another day of a repeating occasion has nothing to say about this sheet. */
@@ -1720,7 +2094,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
                         .status());
 
         service.deleteSession(session.id());
-        service.deleteTemplate(template.id());
+        service.archiveTemplate(template.id());
         memberGroupRepo.delete(group.id());
         eventRepo.delete(event.id());
         stationMemberRepo.delete(otherDay.id());
@@ -1730,21 +2104,19 @@ class AttendanceServiceTest extends RepositoryTestBase {
     @Test
     @Order(66)
     void syncFromEventAutoAttendNewMember() {
-        // Member not already in session - autoAttend should add as PRESENT
         var account10 = accountRepo.create("attend-auto@test.com", "Auto", "New");
         var member10 = stationMemberRepo.create(station.id(), account10.id());
 
         var autoTemplate = service.createTemplate(station.id(), "AutoNew Template");
         var fieldJson = "{\"autoAttend\":true}";
         service.createTemplateField(
-                autoTemplate.id(), "Members", AttendanceFieldType.MEMBER, AttendanceFieldConfig.parse(fieldJson), 1);
+                autoTemplate.id(), "Members", FieldType.MEMBER, AttendanceFieldConfig.parse(fieldJson), 1);
         var fields = service.findTemplateFields(autoTemplate.id());
         int fieldId = fields.getFirst().id();
 
         var session = openSheet(
                 autoTemplate.id(), Instant.now(), Instant.now().plus(1, ChronoUnit.HOURS), null, "AutoNew Session");
 
-        // Set field value with member10's ID
         service.setSessionFields(
                 session.id(), List.of(new AttendanceFieldValueEntry(fieldId, "[" + member10.id() + "]")));
 
@@ -1754,7 +2126,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
                         e -> e.memberId() == member10.id() && e.status() == AttendanceEntry.AttendanceStatus.PRESENT));
 
         service.deleteSession(session.id());
-        service.deleteTemplate(autoTemplate.id());
+        service.archiveTemplate(autoTemplate.id());
         stationMemberRepo.delete(member10.id());
         accountRepo.delete(account10.id());
     }
@@ -1762,7 +2134,6 @@ class AttendanceServiceTest extends RepositoryTestBase {
     @Test
     @Order(66)
     void createSessionNoTimeFallsBackToNow() {
-        // No event, no title, no time provided - should use now()
         var session = openSheet(templateId, null, null, null, "No Time Session");
         assertNotNull(session);
         assertNotNull(session.startTime());
@@ -1812,7 +2183,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
         assertFalse(entered.contains(outsider.id()), "nobody either answer names is left off");
 
         service.deleteSession(session.id());
-        service.deleteTemplate(template.id());
+        service.archiveTemplate(template.id());
         memberGroupRepo.delete(group.id());
     }
 
@@ -1852,7 +2223,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
                 "whom a group names comes before whom only a type names");
 
         service.deleteSession(session.id());
-        service.deleteTemplate(template.id());
+        service.archiveTemplate(template.id());
         memberGroupRepo.delete(group.id());
     }
 
@@ -1879,7 +2250,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
                 "the template's own group still fills the sheet");
 
         service.deleteSession(session.id());
-        service.deleteTemplate(template.id());
+        service.archiveTemplate(template.id());
         memberGroupRepo.delete(group.id());
     }
 
@@ -1909,12 +2280,126 @@ class AttendanceServiceTest extends RepositoryTestBase {
         assertTrue(service.findEntries(session.id()).isEmpty(), "nobody of the other station is reached");
 
         service.deleteSession(session.id());
-        service.deleteTemplate(template.id());
+        service.archiveTemplate(template.id());
         stationRepo.delete(elsewhere.id());
         accountRepo.delete(foreignAccount.id());
     }
 
-    // -- Cleanup --
+    /**
+     * A template's user types add up with its groups the way a sheet's do: the members of its groups
+     * and everybody of its types, whether the sheet was told nothing or was not told anything at all.
+     */
+    @Test
+    @Order(64)
+    void aTemplatesUserTypesAddUpWithItsGroups() {
+        var group = memberGroupRepo.create(station.id(), "Vorlage mit Typen");
+        var inGroupAccount = accountRepo.create("attend-tpl-types-group@test.com", "Grup", "Pen");
+        var inGroup = stationMemberRepo.create(station.id(), inGroupAccount.id());
+        memberGroupRepo.addMember(group.id(), inGroup.id());
+        stationMemberRepo.setUserType(inGroup.id(), StationUserType.TRIAL);
+        var managerAccount = accountRepo.create("attend-tpl-types-manager@test.com", "Lei", "Tung");
+        var manager = stationMemberRepo.create(station.id(), managerAccount.id());
+        stationMemberRepo.setUserType(manager.id(), StationUserType.MANAGER);
+        var guardianAccount = accountRepo.create("attend-tpl-types-guardian@test.com", "Vor", "Mund");
+        var guardian = stationMemberRepo.create(station.id(), guardianAccount.id());
+        stationMemberRepo.setUserType(guardian.id(), StationUserType.GUARDIAN);
+
+        var template = service.createTemplate(station.id(), "Leitung und Gruppe");
+        service.setTemplateGroups(template.id(), List.of(new TemplateGroup(group.id(), 0)));
+        assertEquals(
+                Set.of(StationUserType.MANAGER),
+                service.setTemplateUserTypes(template.id(), List.of(StationUserType.MANAGER)));
+
+        for (var audience : Arrays.asList(null, new SessionAudience(Set.of(), List.of()))) {
+            var session = service.createSession(
+                    template.id(),
+                    Instant.now(),
+                    Instant.now().plus(2, ChronoUnit.HOURS),
+                    null,
+                    "Nach Vorlage",
+                    null,
+                    audience);
+            var entered = service.findEntries(session.id()).stream()
+                    .map(AttendanceEntry::memberId)
+                    .toList();
+            assertTrue(entered.contains(inGroup.id()), "the template's group is on the sheet");
+            assertTrue(entered.contains(manager.id()), "and so is everybody of the template's type");
+            assertFalse(entered.contains(guardian.id()), "nobody else is");
+            assertEquals(
+                    new SessionAudience(Set.of(StationUserType.MANAGER), List.of(group.id())),
+                    service.audienceOf(session),
+                    "a sheet told nothing follows its template");
+            service.deleteSession(session.id());
+        }
+
+        service.archiveTemplate(template.id());
+        memberGroupRepo.delete(group.id());
+        stationMemberRepo.setUserType(manager.id(), StationUserType.GUARDIAN);
+    }
+
+    /** Clearing a template's user types, or sending none at all, leaves it expecting nobody by type. */
+    @Test
+    @Order(65)
+    void aTemplateCanBeToldNoUserTypes() {
+        var template = service.createTemplate(station.id(), "Ohne Typen");
+        service.setTemplateUserTypes(template.id(), List.of(StationUserType.TEAM, StationUserType.TEAM));
+        assertEquals(Set.of(StationUserType.TEAM), service.findTemplateUserTypes(template.id()));
+
+        assertTrue(service.setTemplateUserTypes(template.id(), null).isEmpty());
+        assertTrue(service.findTemplateUserTypes(template.id()).isEmpty());
+
+        service.archiveTemplate(template.id());
+    }
+
+    /**
+     * A sheet started for somebody else than its template keeps that audience: filling it in again
+     * brings in whoever of its own audience joined since, and none of the template's people.
+     */
+    @Test
+    @Order(66)
+    void aSheetKeepsItsOwnAudienceWhenFilledInAgain() {
+        var templateGroup = memberGroupRepo.create(station.id(), "Nur Vorlage");
+        var templateOnlyAccount = accountRepo.create("attend-keep-template@test.com", "Vor", "Lage");
+        var templateOnly = stationMemberRepo.create(station.id(), templateOnlyAccount.id());
+        memberGroupRepo.addMember(templateGroup.id(), templateOnly.id());
+        stationMemberRepo.setUserType(templateOnly.id(), StationUserType.TRIAL);
+        var template = service.createTemplate(station.id(), "Vorlage mit eigener Gruppe");
+        service.setTemplateGroups(template.id(), List.of(new TemplateGroup(templateGroup.id(), 0)));
+        var chosenGroup = memberGroupRepo.create(station.id(), "Gewaehlt");
+        var foreignStation = stationRepo.create("AttendanceSvc Andere Wache");
+        var foreignGroup = memberGroupRepo.create(foreignStation.id(), "Andere Gruppe");
+
+        var chosen = new SessionAudience(Set.of(StationUserType.TEAM), List.of(chosenGroup.id(), foreignGroup.id()));
+        var session = service.createSession(
+                template.id(),
+                Instant.now(),
+                Instant.now().plus(2, ChronoUnit.HOURS),
+                null,
+                "Eigenes Publikum",
+                null,
+                chosen);
+        assertEquals(
+                new SessionAudience(Set.of(StationUserType.TEAM), List.of(chosenGroup.id())),
+                service.audienceOf(session),
+                "the sheet keeps what it was told, without another station's group");
+
+        var latecomerAccount = accountRepo.create("attend-keep-late@test.com", "Spae", "Ter");
+        var latecomer = stationMemberRepo.create(station.id(), latecomerAccount.id());
+        stationMemberRepo.setUserType(latecomer.id(), StationUserType.TEAM);
+
+        var entered = service.syncFromEvent(session.id()).stream()
+                .map(AttendanceEntry::memberId)
+                .toList();
+        assertTrue(entered.contains(latecomer.id()), "whoever of the sheet's type joined since is added");
+        assertFalse(entered.contains(templateOnly.id()), "the template's group stays off the sheet");
+
+        service.deleteSession(session.id());
+        service.archiveTemplate(template.id());
+        memberGroupRepo.delete(templateGroup.id());
+        memberGroupRepo.delete(chosenGroup.id());
+        stationRepo.delete(foreignStation.id());
+        stationMemberRepo.setUserType(latecomer.id(), StationUserType.GUARDIAN);
+    }
 
     @Test
     @Order(90)
@@ -1925,8 +2410,10 @@ class AttendanceServiceTest extends RepositoryTestBase {
 
     @Test
     @Order(99)
-    void deleteTemplate() {
-        assertTrue(service.deleteTemplate(templateId));
-        assertTrue(service.findTemplateById(templateId).isEmpty());
+    void archiveTemplate() {
+        assertTrue(service.archiveTemplate(templateId));
+        assertTrue(service.findActiveTemplateById(templateId).isEmpty());
+        assertTrue(service.findTemplateById(templateId).isPresent());
+        assertFalse(service.archiveTemplate(templateId));
     }
 }

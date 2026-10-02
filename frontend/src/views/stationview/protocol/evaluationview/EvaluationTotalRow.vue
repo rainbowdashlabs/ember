@@ -5,7 +5,7 @@
  */
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import type { EvaluationResponse } from '@/api/protocol'
+import type { EvaluationResponse } from '@/api/generated/schema'
 
 defineProps<{
   members: EvaluationResponse['members']

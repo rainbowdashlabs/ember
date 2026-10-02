@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {computed, type Ref} from 'vue'
-import type {StationFileFolder} from '@/api/media'
+import type {StationFileFolder} from '@/api/generated/schema'
 
 /** A folder enriched with its nested child folders, as consumed by the sidebar tree. */
 export interface FolderTreeNode extends StationFileFolder {

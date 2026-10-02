@@ -3,14 +3,16 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {parseFieldConfig, type ProfileField} from '@/api/profileFields'
-import {StationUserType, StationUserTypeLabels, type StationMember, type StationUserTypeName} from '@/api/types'
+import {parseFieldConfig} from '@/api/profileFields'
+import {FieldTypes} from '@/api/fieldTypes'
+import type {ProfileField, StationUserType as StationUserTypeName} from '@/api/generated/schema'
+import {StationUserType, StationUserTypeLabels} from '@/api/types'
 import {
     ColumnTypes, columnTypeOf, enumOptions,
     type CellValue, type ColumnOption, type TableColumn,
 } from '@/components/table/tableColumn'
 import {expirySettingsOf} from '@/util/expiry'
-import {memberDisplayName} from './useMemberData'
+import {memberDisplayName, type RosterMember} from './useMemberData'
 
 /** What the member columns need to know about the people beyond the people themselves. */
 export interface MemberColumnSources {
@@ -39,7 +41,7 @@ export function userTypeOptions(): ColumnOption[] {
 export const MEMBER_NAME_KEY = 'name'
 
 /** The member's name as the pinned first column of any table of members. */
-export function memberNameColumn(t: (key: string) => string): TableColumn<StationMember> {
+export function memberNameColumn<T extends Parameters<typeof memberDisplayName>[0]>(t: (key: string) => string): TableColumn<T> {
     return {key: MEMBER_NAME_KEY, label: t('membersList.colName'), type: ColumnTypes.TEXT, value: memberDisplayName, pinned: true}
 }
 
@@ -50,7 +52,7 @@ export function memberNameColumn(t: (key: string) => string): TableColumn<Statio
  * for the empty answers finds the people who left it open and not everybody who was never asked.
  * The key is the field's id, which is what saved filters have always named it by.
  */
-function fieldColumn(field: ProfileField, sources: MemberColumnSources): TableColumn<StationMember> {
+function fieldColumn(field: ProfileField, sources: MemberColumnSources): TableColumn<RosterMember> {
     const config = parseFieldConfig(field.config)
     const choices = config.options
     const options = Array.isArray(choices) ? choices.map(choice => ({value: String(choice), label: String(choice)})) : undefined
@@ -65,20 +67,25 @@ function fieldColumn(field: ProfileField, sources: MemberColumnSources): TableCo
     }
 }
 
+/** Whether a question is answered at all, which a heading or a spacer in the form never is. */
+export function holdsAnswer(field: Pick<ProfileField, 'fieldType'>): boolean {
+    return field.fieldType !== FieldTypes.SECTION && field.fieldType !== FieldTypes.SPACER
+}
+
 /**
  * The columns of the member list: the name, the kind of member, the address, on a station's own
- * list its groups and tags, and one per question the tab's people are asked.
+ * list its groups and tags, and one per question the tab's people are asked and can answer.
  */
-export function memberColumns(fields: readonly ProfileField[], sources: MemberColumnSources): TableColumn<StationMember>[] {
+export function memberColumns(fields: readonly ProfileField[], sources: MemberColumnSources): TableColumn<RosterMember>[] {
     const {t} = sources
     return [
         memberNameColumn(t),
         {key: 'userType', label: t('membersList.colRole'), type: ColumnTypes.ENUM, value: member => member.userType, options: userTypeOptions()},
         {key: 'email', label: t('membersList.colEmail'), type: ColumnTypes.TEXT, value: member => member.email},
         ...(sources.stationLocalColumns ? [
-            {key: 'groups', label: t('membersList.colGroups'), type: ColumnTypes.TEXT, value: (member: StationMember) => sources.groupsOf(member.id)},
-            {key: 'tags', label: t('membersList.colTags'), type: ColumnTypes.TEXT, value: (member: StationMember) => sources.tagsOf(member.id)},
+            {key: 'groups', label: t('membersList.colGroups'), type: ColumnTypes.TEXT, value: (member: RosterMember) => sources.groupsOf(member.id)},
+            {key: 'tags', label: t('membersList.colTags'), type: ColumnTypes.TEXT, value: (member: RosterMember) => sources.tagsOf(member.id)},
         ] : []),
-        ...fields.map(field => fieldColumn(field, sources)),
+        ...fields.filter(holdsAnswer).map(field => fieldColumn(field, sources)),
     ]
 }

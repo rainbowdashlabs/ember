@@ -8,10 +8,10 @@ import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import StatusBadge from './StatusBadge.vue'
-import type {DataTrackingSummary} from '@/api/dataTracking'
+import type {Summary} from '@/api/generated/schema'
 
 defineProps<{
-  summary: DataTrackingSummary
+  summary: Summary
 }>()
 
 const {t} = useI18n()

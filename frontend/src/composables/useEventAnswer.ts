@@ -8,13 +8,23 @@ import {useI18n} from 'vue-i18n'
 import {events} from '@/api'
 import {apiErrorStatus} from '@/util/apiError'
 import {showToast} from '@/util/toast'
-import type {EventRegistrationField, RegistrationFieldValue, StationEvent} from '@/api/events'
+import type {AnyEvent} from '@/api/events'
+import type {EventRegistrationFieldValue, EventRegistrationField} from '@/api/generated/schema'
 import {useSidebarCounts} from '@/composables/useSidebarCounts'
 import {describeFailure, type Failure} from '@/util/failure'
 import type {AnswerablePerson} from '@/util/eventAnswers'
 
 /** Everybody an answer can be given for, as the screens hold them. */
 type AnswerablePeople = AnswerablePerson[]
+
+/** An answer waiting on the reader: the appointment, the day, who it could be for and what it asks. */
+export interface AnswerPrompt {
+    event: AnyEvent
+    date: string
+    people: AnswerablePerson[]
+    fields: EventRegistrationField[]
+    attending: boolean
+}
 
 /**
  * Answering one appointment: signing up, refusing, and taking either back.
@@ -44,13 +54,7 @@ export function useEventAnswer(
      * people it is for, or what the appointment's questions are answered with. Cleared once the
      * dialog the screen renders for it is confirmed or dismissed.
      */
-    const answerPrompt = ref<{
-        event: StationEvent
-        date: string
-        people: AnswerablePerson[]
-        fields: EventRegistrationField[]
-        attending: boolean
-    } | null>(null)
+    const answerPrompt = ref<AnswerPrompt | null>(null)
 
     /**
      * Opens a gesture the reader has just made. The screen's failure belongs to that gesture and not to
@@ -111,10 +115,10 @@ export function useEventAnswer(
     }
 
     async function sendRegistration(
-        ev: StationEvent,
+        ev: AnyEvent,
         date: string,
         memberId: number,
-        fields?: RegistrationFieldValue[],
+        fields?: EventRegistrationFieldValue[],
     ) {
         registering.value = `${ev.id}-${date}-${memberId}`
         try {
@@ -133,7 +137,7 @@ export function useEventAnswer(
      * what the appointment's questions are answered with. One person and no questions is a single
      * press, because putting a dialog in front of the commonest answer of all only slows it down.
      */
-    async function registerFor(ev: StationEvent, date: string, people: AnswerablePeople) {
+    async function registerFor(ev: AnyEvent, date: string, people: AnswerablePeople) {
         if (people.length === 0) return
         beginAnswer()
         const fields = await events.listRegistrationFields(ev.id).catch(() => [])
@@ -151,7 +155,7 @@ export function useEventAnswer(
      * asked whether they are sure. Several open the dialog, where ticking the ones who are not coming
      * is the confirmation.
      */
-    async function declineFor(ev: StationEvent, date: string, people: AnswerablePeople) {
+    async function declineFor(ev: AnyEvent, date: string, people: AnswerablePeople) {
         if (people.length === 0) return
         beginAnswer()
         if (people.length === 1) {
@@ -167,7 +171,7 @@ export function useEventAnswer(
      * <p>All of them together are one gesture, so the first refusal is still readable after the rest
      * have gone through: a guardian answering for two children is told when only one of them landed.
      */
-    async function confirmAnswerPrompt(answers: { key: number; fields: RegistrationFieldValue[] }[]) {
+    async function confirmAnswerPrompt(answers: { key: number; fields: EventRegistrationFieldValue[] }[]) {
         const prompt = answerPrompt.value
         if (!prompt) return
         answerPrompt.value = null
@@ -185,7 +189,7 @@ export function useEventAnswer(
         answerPrompt.value = null
     }
 
-    async function sendDecline(ev: StationEvent, date: string, memberId: number) {
+    async function sendDecline(ev: AnyEvent, date: string, memberId: number) {
         await changeRegistration(() =>
             events.declineEvent(ev.id, {eventDate: date, memberId: memberIdParam(memberId)}))
     }

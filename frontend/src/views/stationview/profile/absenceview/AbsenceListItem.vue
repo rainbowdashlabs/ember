@@ -12,11 +12,11 @@ import InfoBadge from '@/components/badge/InfoBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import type {MemberAbsence} from '@/api/absences'
+import type {AbsenceResponse} from '@/api/generated/schema'
 import {formatDate, todayIsoDate} from '@/util/format'
 
 const props = defineProps<{
-  absence: MemberAbsence
+  absence: AbsenceResponse
 }>()
 
 const emit = defineEmits<{
@@ -25,14 +25,12 @@ const emit = defineEmits<{
 
 const {t} = useI18n()
 
-function isAbsenceActive(absence: MemberAbsence): boolean {
-  if (!absence.absentFrom || !absence.absentUntil) return false
+function isAbsenceActive(absence: AbsenceResponse): boolean {
   const today = todayIsoDate()
   return absence.absentFrom <= today && absence.absentUntil >= today
 }
 
-function isAbsenceUpcoming(absence: MemberAbsence): boolean {
-  if (!absence.absentFrom) return false
+function isAbsenceUpcoming(absence: AbsenceResponse): boolean {
   return absence.absentFrom > todayIsoDate()
 }
 

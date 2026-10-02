@@ -6,7 +6,8 @@
 <script setup lang="ts">
 import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
-import type {LogEntry} from '@/api/applicationLog'
+import type {LogEntry} from '@/api/generated/schema'
+import BareButton from '@/components/button/BareButton.vue'
 
 /**
  * One log line.
@@ -20,7 +21,7 @@ const props = defineProps<{
   entry: LogEntry
 }>()
 
-const {t} = useI18n()
+const {t, locale} = useI18n()
 
 const expanded = ref(false)
 
@@ -48,7 +49,7 @@ const LEVEL_TONES: Record<string, Tone> = {
 
 const tone = computed<Tone>(() => LEVEL_TONES[props.entry.level] ?? TRACE_TONE)
 
-const when = computed(() => new Date(props.entry.loggedAt).toLocaleString('de-DE'))
+const when = computed(() => new Date(props.entry.loggedAt).toLocaleString(locale.value))
 
 /** The last part of the logger name, which is what identifies it to a reader. */
 const shortLogger = computed(() => props.entry.logger.split('.').pop() ?? props.entry.logger)
@@ -63,16 +64,15 @@ const shortLogger = computed(() => props.entry.logger.split('.').pop() ?? props.
       <span>{{ when }}</span>
       <span :title="entry.logger">{{ shortLogger }}</span>
       <span class="font-mono">{{ entry.thread }}</span>
-      <button
+      <BareButton
           v-if="entry.throwable"
           class="flex items-center gap-1 rounded border border-error px-1.5 py-0.5 font-semibold text-error hover:bg-error/15"
-          type="button"
           @click="expanded = !expanded"
       >
         <font-awesome-icon :icon="['fas', 'triangle-exclamation']"/>
         {{ t('applicationLog.hasTrace') }}
         <font-awesome-icon :icon="['fas', expanded ? 'chevron-up' : 'chevron-down']"/>
-      </button>
+      </BareButton>
     </div>
     <div class="text-sm break-words whitespace-pre-wrap font-mono">{{ entry.message }}</div>
     <pre v-if="expanded && entry.throwable"

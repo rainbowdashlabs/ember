@@ -5,7 +5,7 @@
  */
 <script setup lang="ts">
 import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
-import {computed, onMounted, ref} from 'vue'
+import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
@@ -16,7 +16,7 @@ import ButtonRow from '@/components/button/ButtonRow.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
 import {normaliseScannedPayload} from '@/components/scanner/useBarcodeScanner'
 import {inventory, inventoryContainers} from '@/api'
-import type {ContainerDetail, ItemLastCheck, InventoryContainer} from '@/api/inventoryContainers'
+import type {ContainerDetail, ItemLastCheck, InventoryContainer} from '@/api/generated/schema'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useFlashMessage} from '@/composables/useFlashMessage'
 import WalkBreadcrumb from './checkcontainerwalkview/WalkBreadcrumb.vue'
@@ -29,7 +29,7 @@ import WalkScanPanel from './checkcontainerwalkview/WalkScanPanel.vue'
 import {useWalkPlan} from './checkcontainerwalkview/useWalkPlan'
 import {countWalkResults, toCheckItems} from './checkcontainerwalkview/walkResults'
 import type {ExpectedRow, ExtraRow} from './checkcontainerwalkview/types'
-import {describeFailure, type Failure} from '@/util/failure'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {reportCaughtError} from '@/util/devErrorReporter'
 
 const routes = useInventoryRoutes()
@@ -44,8 +44,6 @@ const allContainers = ref<InventoryContainer[]>([])
 const expectedRows = ref<ExpectedRow[]>([])
 const extraRows = ref<ExtraRow[]>([])
 const deep = ref(false)
-const loading = ref(true)
-const failure = ref<Failure | null>(null)
 const scanValue = ref('')
 const finishedCheck = ref<unknown | null>(null)
 const {message: scanFlash, flash: flashScan} = useFlashMessage()
@@ -83,29 +81,22 @@ const emptyRowsMessage = computed(() => hasWalk.value
 
 const counts = computed(() => countWalkResults(expectedRows.value, extraRows.value))
 
-async function load() {
-  loading.value = true
-  failure.value = null
-  try {
-    const [d, items, lastResults, all] = await Promise.all([
-      inventoryContainers.getContainer(containerId.value),
-      inventoryContainers.listExpectedItemsInContainer(containerId.value, deep.value),
-      inventoryContainers.listLastCheckResults(containerId.value, deep.value),
-      inventoryContainers.listContainers(),
-    ])
-    detail.value = d
-    allContainers.value = all
-    const lastByItem = new Map<number, ItemLastCheck>()
-    for (const r of lastResults) lastByItem.set(r.itemId, r)
-    expectedRows.value = items.map(i => ({item: i, result: 'PENDING', lastCheck: lastByItem.get(i.id)}))
-    extraRows.value = []
-    walkIdx.value = 0
-  } catch (e) {
-    failure.value = describeFailure(e, t)
-  } finally {
-    loading.value = false
-  }
-}
+const {loading, failure, reload: load} = useAsyncLoader(async (isCurrent) => {
+  const [d, items, lastResults, all] = await Promise.all([
+    inventoryContainers.getContainer(containerId.value),
+    inventoryContainers.listExpectedItemsInContainer(containerId.value, deep.value),
+    inventoryContainers.listLastCheckResults(containerId.value, deep.value),
+    inventoryContainers.listContainers(),
+  ])
+  if (!isCurrent()) return
+  detail.value = d
+  allContainers.value = all
+  const lastByItem = new Map<number, ItemLastCheck>()
+  for (const r of lastResults) lastByItem.set(r.itemId, r)
+  expectedRows.value = items.map(i => ({item: i, result: 'PENDING', lastCheck: lastByItem.get(i.id)}))
+  extraRows.value = []
+  walkIdx.value = 0
+})
 
 async function onCameraScan(value: string) {
   scanValue.value = normaliseScannedPayload(value)
@@ -184,8 +175,6 @@ function backToOverview() {
 }
 
 const isLast = computed(() => walkIdx.value >= walkOrder.value.length - 1)
-
-onMounted(load)
 </script>
 
 <template>

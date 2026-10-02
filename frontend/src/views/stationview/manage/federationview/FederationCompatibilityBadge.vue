@@ -8,7 +8,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
-import type { FederationContract, FederationPartner } from '@/api/federation'
+import type { FederationContract, FederationPartner } from '@/api/generated/schema'
 import { featureCompatible, partnerCompatibility } from '@/util/federationVersion'
 
 const { t } = useI18n()

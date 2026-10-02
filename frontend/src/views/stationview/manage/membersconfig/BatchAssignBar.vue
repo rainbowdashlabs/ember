@@ -7,8 +7,8 @@
 import {useI18n} from 'vue-i18n'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
-import type {AssignmentTarget} from '@/api/profileFields'
-import type {MemberGroup} from '@/api/types'
+import {scopeOf, type AssignmentTarget} from '@/api/profileFields'
+import type {MemberGroup} from '@/api/generated/schema'
 
 /**
  * Putting several questions to one audience at once.
@@ -33,7 +33,7 @@ const {t} = useI18n()
 function onPick(value: string) {
     if (!value) return
     const [kind, name] = value.split(':')
-    emit('assign', kind === 'GROUP' ? {groupId: Number(name)} : {role: name})
+    emit('assign', kind === 'GROUP' ? {groupId: Number(name)} : {role: scopeOf(name)})
 }
 </script>
 

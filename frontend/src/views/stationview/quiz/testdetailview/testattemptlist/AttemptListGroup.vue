@@ -11,15 +11,16 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
-import {QuizAttemptStatus, type QuizTestAttempt} from '@/api/quiz'
-import type {StationMember} from '@/api/types'
+import {QuizAttemptStatus} from '@/api/quiz'
+import type {QuizTestAttempt} from '@/api/generated/schema'
+import type {MemberLike} from '@/components/input/select/memberOption'
 import {formatDateTime} from '@/util/format'
 
 const props = defineProps<{
   title: string
   testId: number
   attempts: QuizTestAttempt[]
-  members: StationMember[]
+  members: MemberLike[]
   graded: boolean
   isMobile: boolean
 }>()

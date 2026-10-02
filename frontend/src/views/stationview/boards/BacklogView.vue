@@ -14,8 +14,7 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import { boards, stationMembers } from '@/api'
-import type { MemberCompletion } from '@/api/stationMembers'
-import type { Board, BoardTicket } from '@/api/boards'
+import type { Board, MemberCompletion, TicketSummary } from '@/api/generated/schema'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import TicketTable from './tickettable/TicketTable.vue'
 import { useTicketTable } from './tickettable/useTicketTable'
@@ -26,7 +25,7 @@ const router = useRouter()
 
 const boardKey = computed(() => route.params.boardKey as string)
 const board = ref<Board | null>(null)
-const tickets = ref<BoardTicket[]>([])
+const tickets = ref<TicketSummary[]>([])
 const members = ref<MemberCompletion[]>([])
 
 const {loading, failure} = useAsyncLoader(async () => {
@@ -67,7 +66,7 @@ const table = useTicketTable({
         <FailureAlert v-else-if="failure" :failure="failure"/>
         <template v-else-if="board">
             <div class="flex items-center gap-3 mb-6">
-                <IconButton :icon="['fas', 'chevron-left']" label="Back" @click="router.push(`/station/boards/${board.shortKey}`)" />
+                <IconButton :icon="['fas', 'chevron-left']" :label="t('common.back')" @click="router.push(`/station/boards/${board.shortKey}`)" />
                 <SectionHeader>{{ board.name }} - {{ t('boards.backlogTitle') }}</SectionHeader>
             </div>
 

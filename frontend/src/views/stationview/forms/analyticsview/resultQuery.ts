@@ -3,13 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {
-    ResultDimension,
-    ResultMatch,
-    type FormResultQuery,
-    type ResultFilter,
-    type ResultGrouping,
-} from '@/api/forms'
+import {ResultDimension, ResultMatch, type ResultFilterState, type ResultGroupingState} from '@/api/forms'
+import type {FormResultQuery} from '@/api/generated/schema'
 
 /** Where age brackets start unless the reader chooses: under 14, 14-17, 18-26, 27-39, 40-59, 60+. */
 export const DEFAULT_AGE_BOUNDS = [14, 18, 27, 40, 60]
@@ -18,7 +13,7 @@ export const DEFAULT_AGE_BOUNDS = [14, 18, 27, 40, 60]
 export const NO_VALUE_GROUP = 'none'
 
 /** A filter that lets everybody through. */
-export function emptyFilter(): ResultFilter {
+export function emptyFilter(): ResultFilterState {
     return {
         userTypes: [],
         groupIds: [],
@@ -32,7 +27,7 @@ export function emptyFilter(): ResultFilter {
 }
 
 /** Whether a filter restricts anything at all. */
-export function filterActive(filter: ResultFilter): boolean {
+export function filterActive(filter: ResultFilterState): boolean {
     return filter.userTypes.length > 0
         || filter.groupIds.length > 0
         || filter.tagIds.length > 0
@@ -42,12 +37,12 @@ export function filterActive(filter: ResultFilter): boolean {
 }
 
 /** A grouping by a dimension, with every group shown and the default brackets where they apply. */
-export function groupingBy(by: ResultGrouping['by'], fieldId: number | null = null): ResultGrouping {
+export function groupingBy(by: ResultGroupingState['by'], fieldId: number | null = null): ResultGroupingState {
     return {by, fieldId, only: [], bounds: by === ResultDimension.AGE ? [...DEFAULT_AGE_BOUNDS] : []}
 }
 
 /** What to ask the server for, or null when neither a filter nor a grouping is set. */
-export function toQuery(filter: ResultFilter, grouping: ResultGrouping | null): FormResultQuery | null {
+export function toQuery(filter: ResultFilterState, grouping: ResultGroupingState | null): FormResultQuery | null {
     const active = filterActive(filter)
     if (!active && !grouping) return null
     return {filter: active ? filter : null, groupBy: grouping}
@@ -62,15 +57,15 @@ export function parseBounds(text: string): number[] {
 }
 
 interface StoredView {
-    filter: ResultFilter
-    grouping: ResultGrouping | null
+    filter: ResultFilterState
+    grouping: ResultGroupingState | null
 }
 
 /**
  * The view as a value for the address bar, so a filtered and grouped view can be bookmarked or sent
  * on. Nothing is written for the plain view.
  */
-export function encodeView(filter: ResultFilter, grouping: ResultGrouping | null): string | undefined {
+export function encodeView(filter: ResultFilterState, grouping: ResultGroupingState | null): string | undefined {
     if (!toQuery(filter, grouping)) return undefined
     return JSON.stringify({filter, grouping} satisfies StoredView)
 }

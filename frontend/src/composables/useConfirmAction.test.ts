@@ -3,10 +3,11 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-// @vitest-environment happy-dom
+/** @vitest-environment happy-dom */
 import {mount} from '@vue/test-utils'
 import {defineComponent} from 'vue'
-import {afterEach, describe, expect, it} from 'vitest'
+import {afterEach, beforeAll, describe, expect, it} from 'vitest'
+import {followModifierKeys} from '@/util/modifierKeys'
 import {useConfirmAction} from './useConfirmAction'
 
 /** The composable reaches for the locale, so it is used from inside a component as the app does. */
@@ -31,6 +32,7 @@ function holdShift(held: boolean) {
 }
 
 describe('useConfirmAction', () => {
+  beforeAll(() => followModifierKeys())
   afterEach(() => holdShift(false))
 
   it('asks before acting', async () => {

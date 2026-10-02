@@ -14,7 +14,7 @@ import MarkdownEditor from '@/components/input/MarkdownEditor.vue'
 
 const model = defineModel<string>()
 
-const props = defineProps<{
+defineProps<{
     placeholder?: string
     title?: string
 }>()

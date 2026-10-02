@@ -6,9 +6,7 @@
 <script setup lang="ts">
 import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
-import type {Comment} from '@/api/comments'
-import type {MemberGroup} from '@/api/types'
-import type {MemberCompletion} from '@/api/stationMembers'
+import type {CommentResponse, MemberCompletion, MemberGroup, MemberIdentity, StationPermission} from '@/api/generated/schema'
 import MentionInput, {type SpecialMention} from '@/components/comment/MentionInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
@@ -19,19 +17,30 @@ import MutedText from '@/components/typography/MutedText.vue'
 import {useSession} from '@/composables/useSession'
 import {formatDateTime as formatDate} from '@/util/format'
 
+/**
+ * A thread of comments with its answers, and the fields to write, answer and correct them.
+ *
+ * <p>Only the author is offered to change a comment. Removing it is offered to the author and to
+ * whoever holds the `moderator` right, which is the right the server checks for the surface the
+ * thread sits on; without one, only authors see the button.
+ */
 const props = withDefaults(defineProps<{
-  comments: Comment[]
+  comments: CommentResponse[]
   members: MemberCompletion[]
   groups?: MemberGroup[]
   specialMentions?: SpecialMention[]
   parentId?: number | null
   depth?: number
   highlightId?: number | null
-  federated?: boolean
+  moderator?: StationPermission | null
   readonly?: boolean
 }>(), {
   groups: () => [],
   specialMentions: () => [],
+  parentId: null,
+  depth: 0,
+  highlightId: null,
+  moderator: null,
 })
 
 const emit = defineEmits<{
@@ -44,13 +53,25 @@ const {t} = useI18n()
 const {sessionInfo, hasPermission} = useSession()
 const currentStationId = computed(() => sessionInfo.value?.stationId ?? '')
 const currentMemberUid = computed(() => sessionInfo.value?.member?.uid ?? '')
-const isManager = computed(() => hasPermission('EVENT_MANAGER') || hasPermission('STATION_ADMINISTRATOR'))
+const moderates = computed(() => props.moderator !== null && hasPermission(props.moderator))
 
-function isOwnComment(comment: Comment): boolean {
+function isOwnComment(comment: CommentResponse): boolean {
   if (!comment.author) return false
   return comment.author.stationUid === currentStationId.value && comment.author.memberUid === currentMemberUid.value
 }
 
+function mayRemove(comment: CommentResponse): boolean {
+  return isOwnComment(comment) || moderates.value
+}
+
+/**
+ * The author as the name line shows them. A comment from a partner station can arrive with the name
+ * it was written under beside an identity this station cannot name, and that name then stands in.
+ */
+function authorOf(comment: CommentResponse): MemberIdentity | null {
+  if (!comment.author) return null
+  return {...comment.author, name: comment.author.name || comment.authorName || null}
+}
 
 const sortDesc = ref(true)
 const newComment = ref('')
@@ -71,8 +92,8 @@ function onNewCommentBlur() {
 }
 
 const rootComments = computed(() => {
-  const filtered = props.comments.filter(c => (c.parentId ?? null) === (props.parentId ?? null))
-  const isRoot = (props.depth ?? 0) === 0
+  const filtered = props.comments.filter(c => (c.parentId ?? null) === props.parentId)
+  const isRoot = props.depth === 0
   return filtered.sort((a, b) =>
       isRoot && sortDesc.value
           ? b.createdAt.localeCompare(a.createdAt)
@@ -85,15 +106,18 @@ const rootComments = computed(() => {
  * for a highlight that never appears.
  */
 const highlightIsMissing = computed(() =>
-    (props.depth ?? 0) === 0
+    props.depth === 0
     && props.highlightId != null
     && !props.comments.some(c => c.id === props.highlightId))
 
-function childrenOf(commentId: number): Comment[] {
+function childrenOf(commentId: number): CommentResponse[] {
   return props.comments.filter(c => c.parentId === commentId)
 }
 
 type MentionPart = { type: 'text'; value: string } | { type: 'mention'; name: string; bulk?: boolean }
+
+/** A mention of many at once, written type:name:id, e.g. {@code GROUP:Vorstand:5}. */
+const BULK_MENTION = /^(GROUP|EVENT|REGISTERED|DECLINED):([^:]+):\d+$/
 
 function resolveMentions(text: string): MentionPart[] {
   const parts: MentionPart[] = []
@@ -107,8 +131,7 @@ function resolveMentions(text: string): MentionPart[] {
     const inner = match[1] ?? ''
     const colonIdx = inner.indexOf(':')
     const slashIdx = inner.indexOf('/')
-    // Bulk mention: type:name:id (e.g. group:Vorstand:5)
-    const bulkName = inner.match(/^(GROUP|EVENT|REGISTERED|DECLINED):([^:]+):\d+$/)?.[2]
+    const bulkName = inner.match(BULK_MENTION)?.[2]
     if (bulkName) {
       parts.push({type: 'mention', name: bulkName, bulk: true})
     } else if (slashIdx >= 0 && colonIdx > slashIdx) {
@@ -148,7 +171,7 @@ function submitReply() {
   cancelReply()
 }
 
-function startEdit(comment: Comment) {
+function startEdit(comment: CommentResponse) {
   editingId.value = comment.id
   editContent.value = comment.content
 }
@@ -166,7 +189,7 @@ function submitEdit() {
 
 function postTopLevel() {
   if (!newComment.value.trim()) return
-  emit('create', props.parentId ?? null, newComment.value.trim())
+  emit('create', props.parentId, newComment.value.trim())
   newComment.value = ''
   newCommentExpanded.value = false
 }
@@ -175,9 +198,8 @@ const maxDepth = 6
 </script>
 
 <template>
-  <div :class="(depth ?? 0) > 0 ? 'ml-4 pl-3 border-l-2 border-(--border)' : ''">
-    <!-- Top-level new comment input (only at root depth, when not readonly) -->
-    <div v-if="(depth ?? 0) === 0 && !readonly" class="space-y-2 mb-4" @focusin="onNewCommentFocus" @focusout="onNewCommentBlur" @click="onNewCommentFocus">
+  <div :class="depth > 0 ? 'ml-4 pl-3 border-l-2 border-(--border)' : ''">
+    <div v-if="depth === 0 && !readonly" role="presentation" class="space-y-2 mb-4" @focusin="onNewCommentFocus" @focusout="onNewCommentBlur" @click="onNewCommentFocus">
       <MentionInput v-model="newComment" :members="members" :groups="groups" :special-mentions="specialMentions" :placeholder="t('comments.placeholder')" :expanded="newCommentExpanded"/>
       <MutedText v-if="newCommentExpanded" size="xs">{{ t('comments.mentionHint') }}</MutedText>
       <div v-if="newCommentExpanded" class="flex gap-2">
@@ -185,33 +207,31 @@ const maxDepth = 6
       </div>
     </div>
     <MutedText v-if="highlightIsMissing" size="xs" class="block mb-2">{{ t('comments.highlightMissing') }}</MutedText>
-    <div v-if="(depth ?? 0) === 0 && rootComments.length > 1" class="flex justify-end mb-2">
+    <div v-if="depth === 0 && rootComments.length > 1" class="flex justify-end mb-2">
       <SecondaryButton compact @click="sortDesc = !sortDesc">
         <font-awesome-icon :icon="['fas', sortDesc ? 'arrow-down-wide-short' : 'arrow-up-wide-short']" class="mr-1" />
         {{ sortDesc ? t('comments.newest') : t('comments.oldest') }}
       </SecondaryButton>
     </div>
-    <div v-for="comment in rootComments" :key="comment.id" :id="`comment-${comment.id}`"
+    <div v-for="comment in rootComments" :id="`comment-${comment.id}`" :key="comment.id"
          class="space-y-2 py-2 transition-colors duration-1000"
          :class="{'bg-primary/10 rounded-theme px-2 -mx-2': highlightId === comment.id}"
     >
-      <!-- Deleted comment placeholder -->
       <div v-if="comment.deleted" class="space-y-1">
         <div class="flex items-center gap-2">
           <MutedText size="xs">{{ formatDate(comment.createdAt) }}</MutedText>
         </div>
         <p class="text-sm italic text-(--text-muted)">{{ t('comments.deleted') }}</p>
       </div>
-      <!-- Comment content -->
       <div v-else-if="editingId !== comment.id" class="space-y-1">
         <div class="flex items-center gap-2">
-          <MemberName :identity="comment.author" class="text-sm font-medium"/>
+          <MemberName :identity="authorOf(comment)" class="text-sm font-medium"/>
           <MutedText size="xs">{{ formatDate(comment.createdAt) }}</MutedText>
           <MutedText v-if="comment.updatedAt" size="xs">({{ t('comments.edited') }})</MutedText>
         </div>
         <p class="text-sm whitespace-pre-wrap"><template v-for="(part, i) in resolveMentions(comment.content)" :key="i"><span v-if="part.type === 'mention'" class="font-semibold" :class="part.bulk ? 'text-secondary' : 'text-primary'">@{{ part.name }}</span><template v-else>{{ part.value }}</template></template></p>
         <div class="flex items-center gap-1">
-          <SecondaryButton v-if="(depth ?? 0) < maxDepth" compact @click="startReply(comment.id)">
+          <SecondaryButton v-if="depth < maxDepth" compact @click="startReply(comment.id)">
             {{ t('comments.reply') }}
           </SecondaryButton>
           <IconButton
@@ -222,7 +242,7 @@ const maxDepth = 6
             @click="startEdit(comment)"
           />
           <IconButton
-            v-if="federated ? isOwnComment(comment) : (isOwnComment(comment) || isManager)"
+            v-if="mayRemove(comment)"
             :icon="['fas', 'trash']"
             :label="t('comments.delete')"
             class="text-(--text-muted) hover:text-error"
@@ -231,7 +251,6 @@ const maxDepth = 6
         </div>
       </div>
 
-      <!-- Edit form -->
       <div v-else class="space-y-2">
         <MentionInput v-model="editContent" :members="members" :groups="groups" :special-mentions="specialMentions"/>
         <ButtonRow pair>
@@ -240,7 +259,6 @@ const maxDepth = 6
         </ButtonRow>
       </div>
 
-      <!-- Reply form -->
       <div v-if="replyingTo === comment.id" class="ml-4 space-y-2">
         <MentionInput v-model="replyContent" :members="members" :groups="groups" :special-mentions="specialMentions" :placeholder="t('comments.replyPlaceholder')"/>
         <ButtonRow pair>
@@ -249,7 +267,6 @@ const maxDepth = 6
         </ButtonRow>
       </div>
 
-      <!-- Recursive children -->
       <CommentThread
         v-if="childrenOf(comment.id).length > 0"
         :comments="comments"
@@ -257,9 +274,9 @@ const maxDepth = 6
         :groups="groups"
         :special-mentions="specialMentions"
         :parent-id="comment.id"
-        :depth="(depth ?? 0) + 1"
+        :depth="depth + 1"
         :highlight-id="highlightId"
-        :federated="federated"
+        :moderator="moderator"
         :readonly="readonly"
         @create="(p, c) => emit('create', p, c)"
         @update="(id, c) => emit('update', id, c)"

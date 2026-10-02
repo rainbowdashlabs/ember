@@ -9,7 +9,7 @@ import PageHeader from '@/components/typography/PageHeader.vue'
 import PageHeroIcon from '@/components/typography/PageHeroIcon.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import type {PasswordLinkStatus} from '@/api/auth'
+import type {TokenStatus} from '@/api/generated/schema'
 
 /**
  * What to say instead of a form nobody could submit.
@@ -20,7 +20,7 @@ import type {PasswordLinkStatus} from '@/api/auth'
  * is the reader themselves, who can ask for a new one on the spot.
  */
 defineProps<{
-  status: PasswordLinkStatus
+  status: TokenStatus
 }>()
 
 const {t} = useI18n()

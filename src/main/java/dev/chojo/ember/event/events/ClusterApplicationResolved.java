@@ -6,6 +6,7 @@
 package dev.chojo.ember.event.events;
 
 import dev.chojo.ember.event.DomainEvent;
+import org.jspecify.annotations.Nullable;
 
 /**
  * The cluster has answered a station's request to join.
@@ -18,5 +19,8 @@ import dev.chojo.ember.event.DomainEvent;
  * @param approved    whether it was let in
  * @param reason      what the cluster said when it refused, or {@code null} when it agreed
  */
-public record ClusterApplicationResolved(int stationId, String clusterName, boolean approved, String reason)
-        implements DomainEvent {}
+public record ClusterApplicationResolved(
+        int stationId,
+        String clusterName,
+        boolean approved,
+        @Nullable String reason) implements DomainEvent {}

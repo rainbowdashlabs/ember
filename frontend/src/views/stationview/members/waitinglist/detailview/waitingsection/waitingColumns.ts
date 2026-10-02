@@ -3,12 +3,9 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {
-    WaitingListEntryStatus,
-    WaitingListFieldTypes,
-    type WaitingListEntryWithScore,
-    type WaitingListField,
-} from '@/api/waitingList'
+import {WaitingListEntryStatus} from '@/api/waitingList'
+import {FieldTypes} from '@/api/fieldTypes'
+import type {WaitingListEntryWithScore, WaitingListField} from '@/api/generated/schema'
 import {ColumnTypes, columnTypeOf, toCellValue, type CellValue, type TableColumn} from '@/components/table/tableColumn'
 
 type Row = WaitingListEntryWithScore
@@ -67,7 +64,7 @@ function birthDateColumn(field: WaitingListField): TableColumn<Row> {
  */
 export function waitingColumns(sources: WaitingColumnSources): TableColumn<Row>[] {
     const {t, fields, visibleFieldIds} = sources
-    const birthDate = fields.find(field => field.fieldType === WaitingListFieldTypes.BIRTH_DATE)
+    const birthDate = fields.find(field => field.fieldType === FieldTypes.BIRTH_DATE)
     const statuses = [WaitingListEntryStatus.WAITING, WaitingListEntryStatus.INVITED]
     return [
         {key: 'firstname', label: t('waitingList.firstname'), type: ColumnTypes.TEXT, value: row => row.entry.firstname, pinned: true},

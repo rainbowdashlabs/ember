@@ -12,7 +12,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import QuotaFieldsInput from '@/views/adminview/adminstorageview/QuotaFieldsInput.vue'
-import type {ClusterStationRoom, QuotaDimensions} from '@/api/clusterStorage'
+import type {Dimensions, StationRoomResponse} from '@/api/generated/schema'
 import {QUOTA_FIELD_KEYS, emptyQuotaFields, fieldFromBytes, fieldToBytes, type QuotaFields} from '@/util/storage'
 
 /**
@@ -23,13 +23,13 @@ import {QUOTA_FIELD_KEYS, emptyQuotaFields, fieldFromBytes, fieldToBytes, type Q
  */
 const props = defineProps<{
   modelValue: boolean
-  station: ClusterStationRoom | null
+  station: StationRoomResponse | null
   busy: boolean
 }>()
 
 const emit = defineEmits<{
   'update:modelValue': [open: boolean]
-  save: [stationUid: string, room: QuotaDimensions]
+  save: [stationUid: string, room: Dimensions]
   handBack: [stationUid: string]
 }>()
 
@@ -37,7 +37,7 @@ const {t} = useI18n()
 
 const fields = ref<QuotaFields>(emptyQuotaFields())
 
-const DIMENSION_OF: Record<string, keyof QuotaDimensions> = {
+const DIMENSION_OF: Record<string, keyof Dimensions> = {
   total: 'totalBytes',
   kb: 'kbBytes',
   board: 'boardBytes',
@@ -71,7 +71,7 @@ function save() {
   <Modal :model-value="props.modelValue" @update:model-value="emit('update:modelValue', $event)">
     <SectionHeader>{{ t('clusterStorage.grantRoomTo', {name: props.station?.stationName ?? ''}) }}</SectionHeader>
     <p class="text-sm text-(--text-muted) mt-2 mb-3">{{ t('clusterStorage.emptyMeansDefaults') }}</p>
-    <QuotaFieldsInput :fields="fields"/>
+    <QuotaFieldsInput v-model:fields="fields"/>
     <div class="flex flex-col gap-2 mt-4 sm:flex-row sm:items-center sm:justify-between">
       <ButtonRow>
         <SecondaryButton :disabled="props.busy || !props.station"

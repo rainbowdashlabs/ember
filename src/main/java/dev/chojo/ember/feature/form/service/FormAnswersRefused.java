@@ -6,9 +6,9 @@
 package dev.chojo.ember.feature.form.service;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
-import io.javalin.openapi.OpenApiName;
+import dev.chojo.ember.api.refusal.Refusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -20,7 +20,7 @@ import java.util.List;
  * it stands on, with a code of its own, so the fill screen can open that page and mark the question.
  */
 public class FormAnswersRefused extends RefusalResponse {
-    private final transient List<Problem> problems;
+    private final transient List<AnswerProblem> problems;
 
     /**
      * Refuses answers for the given problems.
@@ -28,7 +28,7 @@ public class FormAnswersRefused extends RefusalResponse {
      * @param refusal  what refused the answers as a whole
      * @param problems what was wrong, one entry per question
      */
-    public FormAnswersRefused(Refusal refusal, List<Problem> problems) {
+    public FormAnswersRefused(Refusal refusal, List<AnswerProblem> problems) {
         super(refusal, refusal.message());
         this.problems = List.copyOf(problems);
     }
@@ -49,14 +49,14 @@ public class FormAnswersRefused extends RefusalResponse {
      *
      * @return the problems
      */
-    public List<Problem> problems() {
+    public List<AnswerProblem> problems() {
         return problems;
     }
 
     @Override
     public Object body() {
         var refusal = refusal();
-        return new Body(refusal.status().getMessage(), getMessage(), refusal.code(), problems);
+        return new AnswersRefusedBody(refusal.status().getMessage(), getMessage(), refusal.code(), problems);
     }
 
     /**
@@ -67,8 +67,7 @@ public class FormAnswersRefused extends RefusalResponse {
      * @param code       the code of what was wrong
      * @param message    what was wrong, in one sentence
      */
-    @OpenApiName("FormAnswerProblem")
-    public record Problem(int questionId, String pageKey, String code, String message) {
+    public record AnswerProblem(int questionId, @Nullable String pageKey, String code, String message) {
         /**
          * A problem named by a refusal.
          *
@@ -77,20 +76,29 @@ public class FormAnswersRefused extends RefusalResponse {
          * @param refusal    what was wrong
          * @return the problem
          */
-        public static Problem of(int questionId, String pageKey, Refusal refusal) {
-            return new Problem(questionId, pageKey, refusal.code(), refusal.message());
+        public static AnswerProblem of(int questionId, @Nullable String pageKey, Refusal refusal) {
+            return new AnswerProblem(questionId, pageKey, refusal.code(), refusal.message());
         }
     }
 
     /**
-     * The error body of refused answers: the usual error, and the problems one by one.
+     * The error body of a route that takes answers to a form: the usual error, and where the answers
+     * themselves were refused, the problems one by one.
+     *
+     * <p>A route describes one body per status, and its other refusals share the status with this one.
+     * Those leave {@code problems} out, which is why it is optional here although refused answers
+     * always carry it.
      *
      * @param error    the error category
      * @param message  what was refused as a whole
      * @param code     the code of the refusal as a whole
-     * @param problems what was wrong, one entry per question
+     * @param problems what was wrong, one entry per question, or {@code null} for a refusal of
+     *                 something else
      */
-    @OpenApiName("FormAnswersRefusedBody")
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    public record Body(String error, String message, String code, List<Problem> problems) {}
+    public record AnswersRefusedBody(
+            String error,
+            @Nullable String message,
+            @Nullable String code,
+            @Nullable List<AnswerProblem> problems) {}
 }

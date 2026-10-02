@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.inventory.repository;
 import dev.chojo.ember.feature.inventory.entity.Procurement;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.List;
@@ -36,7 +37,12 @@ public class ProcurementRepository {
      * @param notes       additional notes
      * @return the created procurement
      */
-    public Procurement create(int stationId, int inventoryId, Integer memberId, Integer sizeId, String notes) {
+    public Procurement create(
+            int stationId,
+            int inventoryId,
+            @Nullable Integer memberId,
+            @Nullable Integer sizeId,
+            @Nullable String notes) {
         return SqlSupport.insertReturning(
                 """
                 INSERT INTO equipment_procurement(station_id, inventory_id, member_id, size_id, notes)

@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.knowledgebase.entity.ConversionStatus;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -40,7 +41,7 @@ class KbPresentationServiceTest extends RepositoryTestBase {
                 stationRepo,
                 fileStorage,
                 new KbSearchService(knowledgeBaseRepo, stationRepo));
-        service = new KbPresentationService(knowledgeBaseRepo, fileStorage, contentService);
+        service = new KbPresentationService(knowledgeBaseRepo, fileStorage, contentService, new TaskScheduler());
         station = stationRepo.create("KbPresentationStation");
         account = accountRepo.create("kb-presentation@test.com", "Kb", "PresentationTester");
         member = stationMemberRepo.create(station.id(), account.id());

@@ -45,7 +45,7 @@ public final class LocalRouteServer implements AutoCloseable {
     public static LocalRouteServer serving(
             StationRepository stations, ClusterRepository clusters, UserSession session, Routes... routes) {
         var app = Javalin.create(config -> {
-                    config.jsonMapper(ApiServer.jacksonMapper(stations, clusters));
+                    config.jsonMapper(ApiJsonMapper.forApi(stations, clusters));
                     config.routes.before(ctx -> ctx.attribute(ApiServer.ATTR_SESSION, session));
                     for (var group : routes) {
                         group.register(config.routes, PREFIX);

@@ -5,8 +5,9 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
+import dev.chojo.ember.api.refusal.InventoryRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.inventory.entity.FieldConfig;
-import dev.chojo.ember.feature.inventory.entity.FieldType;
 import dev.chojo.ember.feature.inventory.entity.InventoryArt;
 import dev.chojo.ember.feature.inventory.entity.InventoryFieldDefinition;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
@@ -16,6 +17,8 @@ import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.inventory.repository.InventoryArtRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryFieldDefinitionRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
+import dev.chojo.ember.feature.question.FieldType;
+import dev.chojo.ember.feature.question.FieldTypes;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
@@ -261,8 +264,31 @@ class InventoryFieldDefinitionServiceTest {
     }
 
     @Test
+    void createRefusesATypeAnInventoryDoesNotOffer() {
+        var refused = assertThrows(
+                RefusalResponse.class, () -> service.create(1, "link", "Link", FieldType.URL, false, 0, null));
+        assertEquals(InventoryRefusal.INVENTORY_FIELD_TYPE_NOT_OFFERED, refused.refusal());
+        Mockito.verify(repository, Mockito.never())
+                .create(
+                        Mockito.anyInt(),
+                        Mockito.any(),
+                        Mockito.any(),
+                        Mockito.anyString(),
+                        Mockito.anyString(),
+                        Mockito.any(),
+                        Mockito.anyBoolean(),
+                        Mockito.anyInt(),
+                        Mockito.any());
+    }
+
+    @Test
+    void aTypeAnInventoryDoesNotOfferHasNoDefaultConfig() {
+        assertThrows(IllegalArgumentException.class, () -> service.defaultConfig(FieldType.URL));
+    }
+
+    @Test
     void defaultConfigsCoverEveryType() {
-        for (FieldType type : FieldType.values()) {
+        for (FieldType type : FieldTypes.INVENTORY) {
             FieldConfig cfg = service.defaultConfig(type);
             assertEquals(type, cfg.fieldType());
             String json = cfg.toJson();

@@ -6,17 +6,17 @@
 package dev.chojo.ember.feature.system.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.auth.StationFree;
-import dev.chojo.ember.conf.file.elements.Network;
+import dev.chojo.ember.api.refusal.InstallationRefusal;
+import dev.chojo.ember.api.refusal.SystemRefusal;
 import dev.chojo.ember.feature.system.service.InstallPresetService;
-import dev.chojo.ember.util.ClientIp;
 import io.javalin.http.Context;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
 import io.javalin.openapi.OpenApiParam;
+import io.javalin.openapi.OpenApiRequestBody;
 import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
@@ -34,12 +34,10 @@ import java.util.Map;
 public class InstallRoutes implements Routes {
 
     private final InstallPresetService presets;
-    private final Network network;
 
     @Inject
-    public InstallRoutes(InstallPresetService presets, Network network) {
+    public InstallRoutes(InstallPresetService presets) {
         this.presets = presets;
-        this.network = network;
     }
 
     @Override
@@ -53,14 +51,15 @@ public class InstallRoutes implements Routes {
             methods = HttpMethod.POST,
             summary = "Keep a set of installer answers and return the code that fetches them",
             tags = {"Install"},
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = PresetResponse.class)))
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = InstallPresetRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = InstallPresetResponse.class)))
     private void createPreset(Context ctx) {
-        var answers = ctx.bodyAsClass(PresetRequest.class);
+        var answers = ctx.bodyAsClass(InstallPresetRequest.class);
         if (answers.options() == null || answers.options().isEmpty()) {
-            throw Refusal.INSTALL_ANSWERS_MISSING.raise();
+            throw SystemRefusal.INSTALL_ANSWERS_MISSING.raise();
         }
         String code = presets.store(answers.options());
-        ctx.json(new PresetResponse(code, presets.lifetime().toHours()));
+        ctx.json(new InstallPresetResponse(code, presets.lifetime().toHours()));
     }
 
     /**
@@ -75,18 +74,23 @@ public class InstallRoutes implements Routes {
             methods = HttpMethod.GET,
             summary = "The installer answers behind a code, as shell assignments",
             tags = {"Install"},
-            responses = {@OpenApiResponse(status = "200"), @OpenApiResponse(status = "404")})
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(type = "text/plain")),
+                @OpenApiResponse(status = "404")
+            })
     @StationFree("the installer runs before any station exists; the code is the whole of the authorisation")
     private void readPreset(Context ctx) {
-        var retryAfter = presets.tryLookup(ClientIp.resolve(ctx, network).getHostAddress());
+        var retryAfter = presets.tryLookup(ctx.ip());
         if (retryAfter.isPresent()) {
-            ctx.status(Refusal.SETUP_TOO_OFTEN.status())
+            ctx.status(InstallationRefusal.SETUP_TOO_OFTEN.status())
                     .header("Retry-After", String.valueOf(retryAfter.get()))
                     .json(ErrorResponseWrapper.of(
-                            Refusal.SETUP_TOO_OFTEN, Refusal.SETUP_TOO_OFTEN.message(), retryAfter.get()));
+                            InstallationRefusal.SETUP_TOO_OFTEN,
+                            InstallationRefusal.SETUP_TOO_OFTEN.message(),
+                            retryAfter.get()));
             return;
         }
-        var options = presets.find(ctx.pathParam("code")).orElseThrow(Refusal.INSTALL_CODE_NOT_GOOD::raise);
+        var options = presets.find(ctx.pathParam("code")).orElseThrow(SystemRefusal.INSTALL_CODE_NOT_GOOD::raise);
         var body = new StringBuilder();
         options.forEach(
                 (key, value) -> body.append(key).append('=').append(value).append('\n'));
@@ -94,8 +98,8 @@ public class InstallRoutes implements Routes {
     }
 
     /** @param options the answers, of which only the ones the installer knows are kept */
-    public record PresetRequest(Map<String, String> options) {}
+    public record InstallPresetRequest(Map<String, String> options) {}
 
     /** @param validForHours how long the code lasts, so the page can say it */
-    public record PresetResponse(String code, long validForHours) {}
+    public record InstallPresetResponse(String code, long validForHours) {}
 }

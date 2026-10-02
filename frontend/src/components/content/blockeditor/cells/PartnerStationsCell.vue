@@ -6,7 +6,7 @@
 <script lang="ts" setup>
 import {onMounted, ref, watch} from 'vue'
 import * as publicPages from '@/api/publicPages'
-import type {PartnerStationsConfig} from '@/api/pageManage'
+import type {PartnerStationsConfig} from '@/api/generated/schema'
 
 const props = defineProps<{
     config: PartnerStationsConfig

@@ -8,6 +8,8 @@ package dev.chojo.ember.feature.knowledgebase.service;
 import dev.chojo.ember.conf.file.elements.KnowledgeBase;
 import org.junit.jupiter.api.Test;
 
+import java.time.Duration;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -25,6 +27,19 @@ class KbTrashPurgerTest {
         new KbTrashPurger(trashService, new KnowledgeBase()).purge();
 
         verify(trashService).sweepExpired(30, KbTrashPurger.MAX_PER_RUN);
+    }
+
+    @Test
+    void theTaskClearsTheTrashEveryHour() {
+        var trashService = mock(KbTrashService.class);
+        var task = new KbTrashPurger(trashService, new KnowledgeBase())
+                .scheduledTasks()
+                .getFirst();
+
+        task.work().run();
+
+        verify(trashService).sweepExpired(30, KbTrashPurger.MAX_PER_RUN);
+        assertEquals(Duration.ofHours(1), task.schedule().period());
     }
 
     @Test

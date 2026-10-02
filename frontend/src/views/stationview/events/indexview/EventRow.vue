@@ -11,11 +11,13 @@ import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import ColorBadge from '@/components/badge/ColorBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
+import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import MutedIcon from '@/components/display/MutedIcon.vue'
 import RowLink from '@/components/navigation/RowLink.vue'
-import EventFieldValue from '../eventshared/EventFieldValue.vue'
-import {isRecurringEvent, multiDayEndDate, type DatedEvent, type EventCategory, type EventField} from '@/api/events'
+import QuestionValueDisplay from '@/components/display/QuestionValueDisplay.vue'
+import {isRecurringEvent, multiDayEndDate} from '@/api/events'
+import type {AppointmentField, DatedEvent, EventCategory} from '@/api/generated/schema'
 import {eventTypeLabelKey} from '../eventshared/eventTypeLabel'
 import {formatDate, formatDaySpan, formatTime, toIsoDate, todayIsoDate, weekdayName} from '@/util/format'
 
@@ -36,7 +38,7 @@ const props = defineProps<{
   category?: EventCategory | null
   /** The attendance template it records against, empty where it records against none. */
   templateName: string
-  fields: EventField[]
+  fields: AppointmentField[]
 }>()
 
 const emit = defineEmits<{
@@ -105,13 +107,14 @@ const detailRoute = computed(() => {
           <font-awesome-icon :icon="['fas', 'rotate']" class="mr-1 h-3 w-3"/>
           {{ typeLabel }}
         </SecondaryBadge>
-        <span class="font-medium text-primary">{{ item.event.name }}</span>
+        <span class="font-medium text-primary" :class="{'line-through': item.cancellation}">{{ item.event.name }}</span>
+        <ErrorBadge v-if="item.cancellation" data-testid="event-entry-cancelled">{{ t('events.cancelled') }}</ErrorBadge>
         <MutedIcon v-if="item.event.restricted" :icon="['fas', 'lock']" class="ml-1"/>
         <span class="text-sm text-(--text-muted)">{{ when }}</span>
         <span v-if="dateNote" class="text-sm text-(--text-muted)">{{ dateNote }}</span>
         <span v-if="templateName" class="text-xs text-primary">{{ templateName }}</span>
         <span v-for="field in fields" :key="field.id" class="text-xs text-(--text-muted)">
-          {{ field.name }}: <EventFieldValue :field-type="field.fieldType" :value="field.value"/>
+          {{ field.name }}: <QuestionValueDisplay :field-type="field.fieldType" :value="field.value"/>
         </span>
       </div>
       <div class="flex items-center gap-2">

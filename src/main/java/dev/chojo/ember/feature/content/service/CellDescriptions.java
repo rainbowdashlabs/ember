@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.media.entity.StationFile;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ObjectNode;
 
@@ -62,7 +63,7 @@ public class CellDescriptions {
          * @param pageUid   the public uid of the page the card names
          * @return where that page is reached and what it is called, or empty where no page answers
          */
-        Optional<PageAddress> addressOf(Integer stationId, String pageUid);
+        Optional<PageAddress> addressOf(@Nullable Integer stationId, String pageUid);
     }
 
     /**
@@ -82,7 +83,7 @@ public class CellDescriptions {
      * @param rows      the rows as stored
      * @return the rows with blank picture texts filled from their files
      */
-    public List<ContentRow> describe(Integer stationId, List<ContentRow> rows) {
+    public List<ContentRow> describe(@Nullable Integer stationId, List<ContentRow> rows) {
         return rows.stream()
                 .map(row -> row.withCells(row.cells().stream()
                         .map(cell -> describe(stationId, cell))
@@ -98,7 +99,7 @@ public class CellDescriptions {
      * @param cell      the cell as stored
      * @return the cell with blank picture texts filled from their files
      */
-    public ContentCell describe(Integer stationId, ContentCell cell) {
+    public ContentCell describe(@Nullable Integer stationId, ContentCell cell) {
         return switch (cell.config()) {
             case CellConfig.ImageConfig image -> cell.withConfig(describedImage(stationId, cell.content(), image));
             case CellConfig.ImageGalleryConfig gallery -> cell.withConfig(describedGallery(stationId, gallery));
@@ -108,10 +109,11 @@ public class CellDescriptions {
         };
     }
 
-    private CellConfig.PageLinkConfig addressedLink(Integer stationId, CellConfig.PageLinkConfig link) {
-        if (link.pageUid() == null || link.pageUid().isBlank()) return link;
+    private CellConfig.PageLinkConfig addressedLink(@Nullable Integer stationId, CellConfig.PageLinkConfig link) {
+        String pageUid = link.pageUid();
+        if (pageUid == null || pageUid.isBlank()) return link;
         return pageAddressing
-                .addressOf(stationId, link.pageUid().trim())
+                .addressOf(stationId, pageUid.trim())
                 .map(address -> link.resolvedAs(address.title(), address.href()))
                 .orElse(link);
     }
@@ -124,7 +126,8 @@ public class CellDescriptions {
      * <p>Without this a picture in a nested row goes unnamed and a card in one points nowhere, both
      * of which read as the cell being at fault rather than the row it happens to sit in.
      */
-    private CellConfig.NestedRowsConfig describedNested(Integer stationId, CellConfig.NestedRowsConfig nested) {
+    private CellConfig.NestedRowsConfig describedNested(
+            @Nullable Integer stationId, CellConfig.NestedRowsConfig nested) {
         var rows = nested.rows();
         if (rows == null || !rows.isArray() || rows.isEmpty()) return nested;
         var describedRows = CellConfig.MAPPER.createArrayNode();
@@ -134,7 +137,7 @@ public class CellDescriptions {
         return new CellConfig.NestedRowsConfig(describedRows);
     }
 
-    private JsonNode describedNestedRow(Integer stationId, JsonNode row) {
+    private JsonNode describedNestedRow(@Nullable Integer stationId, JsonNode row) {
         var cells = row.path("cells");
         if (!cells.isArray() || cells.isEmpty()) return row;
         var describedCells = CellConfig.MAPPER.createArrayNode();
@@ -144,7 +147,7 @@ public class CellDescriptions {
         return ((ObjectNode) row.deepCopy()).set("cells", describedCells);
     }
 
-    private JsonNode describedNestedCell(Integer stationId, JsonNode cell) {
+    private JsonNode describedNestedCell(@Nullable Integer stationId, JsonNode cell) {
         CellContentType type;
         try {
             type = CellContentType.valueOf(cell.path("contentType").asString());
@@ -159,7 +162,8 @@ public class CellDescriptions {
         return ((ObjectNode) cell.deepCopy()).set("config", CellConfig.MAPPER.valueToTree(described.config()));
     }
 
-    private CellConfig.ImageConfig describedImage(Integer stationId, String imageHash, CellConfig.ImageConfig image) {
+    private CellConfig.ImageConfig describedImage(
+            @Nullable Integer stationId, String imageHash, CellConfig.ImageConfig image) {
         var file = fileFor(stationId, imageHash);
         if (file == null) return image;
         return new CellConfig.ImageConfig(
@@ -176,9 +180,11 @@ public class CellDescriptions {
                 image.borderColor());
     }
 
-    private CellConfig.ImageGalleryConfig describedGallery(Integer stationId, CellConfig.ImageGalleryConfig gallery) {
-        if (gallery.items() == null) return gallery;
-        var described = gallery.items().stream()
+    private CellConfig.ImageGalleryConfig describedGallery(
+            @Nullable Integer stationId, CellConfig.ImageGalleryConfig gallery) {
+        var items = gallery.items();
+        if (items == null) return gallery;
+        var described = items.stream()
                 .map(item -> {
                     var file = fileFor(stationId, item.imageHash());
                     if (file == null) return item;
@@ -192,12 +198,12 @@ public class CellDescriptions {
                 described, gallery.columns(), gallery.aspectMode(), gallery.maxItemHeightPx());
     }
 
-    private StationFile fileFor(Integer stationId, String imageHash) {
+    private @Nullable StationFile fileFor(@Nullable Integer stationId, @Nullable String imageHash) {
         if (imageHash == null || imageHash.isBlank()) return null;
         return mediaLibrary.findByHash(stationId, imageHash.trim()).orElse(null);
     }
 
-    private static String spokenFor(String ownWord, String fileWord) {
+    private static @Nullable String spokenFor(@Nullable String ownWord, @Nullable String fileWord) {
         return ownWord != null && !ownWord.isBlank() ? ownWord : fileWord;
     }
 }

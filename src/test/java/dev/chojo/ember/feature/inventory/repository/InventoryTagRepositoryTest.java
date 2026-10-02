@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import dev.chojo.ember.util.TestStationKeys;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -164,7 +165,7 @@ class InventoryTagRepositoryTest extends RepositoryTestBase {
     @Test
     void aPartnerSeesNothingUntilTheStationNamesWhatItOffers() {
         var federationRepo = new FederationRepository();
-        var federationService = new FederationService(federationRepo, stationRepo, new Api());
+        var federationService = new FederationService(federationRepo, stationRepo, TestStationKeys.store(), new Api());
         var keyPair = federationService.generateKeyPair();
         federationService.acceptInvite(
                 neighbour.id(), station.id(), federationService.encodePublicKey(keyPair), null, null);
@@ -215,7 +216,7 @@ class InventoryTagRepositoryTest extends RepositoryTestBase {
     @Test
     void aWordDoesNotReachGearTheStationDoesNotOwn() {
         var federationRepo = new FederationRepository();
-        var federationService = new FederationService(federationRepo, stationRepo, new Api());
+        var federationService = new FederationService(federationRepo, stationRepo, TestStationKeys.store(), new Api());
         var keyPair = federationService.generateKeyPair();
         federationService.acceptInvite(
                 neighbour.id(), station.id(), federationService.encodePublicKey(keyPair), null, null);

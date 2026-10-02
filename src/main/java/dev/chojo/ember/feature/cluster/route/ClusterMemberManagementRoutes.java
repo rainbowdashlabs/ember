@@ -6,27 +6,25 @@
 package dev.chojo.ember.feature.cluster.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.MemberIdentity;
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.FileResponse;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.ClusterPermission;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.ClusterRefusal;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.service.ClusterMemberManagementService;
+import dev.chojo.ember.feature.cluster.service.ClusterMemberSearchService;
+import dev.chojo.ember.feature.cluster.service.ClusterMemberSearchService.MemberPageResponse;
+import dev.chojo.ember.feature.cluster.service.ClusterMemberSearchService.Search;
 import dev.chojo.ember.feature.cluster.service.ClusterService;
+import dev.chojo.ember.feature.documents.service.DocumentCatalogService.MemberDocumentResponse;
 import dev.chojo.ember.feature.members.entity.FieldOrigin;
 import dev.chojo.ember.feature.members.entity.FieldValueEntry;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
-import dev.chojo.ember.feature.members.entity.UserTag;
-import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
-import dev.chojo.ember.feature.members.repository.StationMemberRepository;
-import dev.chojo.ember.feature.members.repository.UserTagRepository;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService;
 import dev.chojo.ember.feature.station.entity.Station;
-import dev.chojo.ember.util.SafeContentDisposition;
-import dev.chojo.ember.util.SafeInlineMime;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -38,15 +36,14 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.time.Instant;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -58,27 +55,27 @@ import static dev.chojo.ember.api.RouteSupport.pathInt;
  * <p>Everything here is guarded by {@code CLUSTER_MEMBER_MANAGER} on the way in and by the service's two
  * refusals on the way through: nobody edits their own membership from here, and nobody edits a station's
  * owner from here.
+ *
+ * <p>A change is signed by the acting person's own member row on the cluster's station, the only member
+ * row a person acting for a cluster has. Creating a member takes the station in the path, because a member
+ * belongs to one and the cluster is standing in for it.
  */
 @Singleton
 public class ClusterMemberManagementRoutes implements Routes {
     private static final Logger log = LoggerFactory.getLogger(ClusterMemberManagementRoutes.class);
-    private static final long MAX_UPLOAD_SIZE = 50L * 1024 * 1024;
 
     private final ClusterService clusterService;
     private final ClusterMemberManagementService managementService;
-    private final MemberGroupRepository memberGroupRepository;
-    private final UserTagRepository userTagRepository;
+    private final ClusterMemberSearchService memberSearch;
 
     @Inject
     public ClusterMemberManagementRoutes(
             ClusterService clusterService,
             ClusterMemberManagementService managementService,
-            MemberGroupRepository memberGroupRepository,
-            UserTagRepository userTagRepository) {
+            ClusterMemberSearchService memberSearch) {
         this.clusterService = clusterService;
         this.managementService = managementService;
-        this.memberGroupRepository = memberGroupRepository;
-        this.userTagRepository = userTagRepository;
+        this.memberSearch = memberSearch;
     }
 
     @Override
@@ -88,7 +85,6 @@ public class ClusterMemberManagementRoutes implements Routes {
                 prefix + "/cluster/members/manage/stations",
                 this::listStations,
                 ClusterPermission.CLUSTER_MEMBER_MANAGER);
-        // The station is in the path because a member belongs to one and the cluster is standing in for it
         routes.post(
                 prefix + "/cluster/members/manage/stations/{stationUid}/members",
                 this::createMember,
@@ -132,18 +128,10 @@ public class ClusterMemberManagementRoutes implements Routes {
             summary = "What is filed about one of the cluster's people",
             tags = {"Cluster"},
             responses =
-                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberDocumentSummary[].class)))
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberDocumentResponse[].class)))
     private void listDocuments(Context ctx) {
         Cluster cluster = requireActive(ctx);
-        ctx.json(managementService.documentsOf(cluster.id(), pathInt(ctx, "memberId")).stream()
-                .map(document -> new MemberDocumentSummary(
-                        document.id(),
-                        document.title(),
-                        document.fileName(),
-                        document.mimeType(),
-                        document.sizeBytes(),
-                        document.createdAt()))
-                .toList());
+        ctx.json(managementService.documentsOf(cluster.id(), pathInt(ctx, "memberId")));
     }
 
     @OpenApi(
@@ -153,42 +141,19 @@ public class ClusterMemberManagementRoutes implements Routes {
             summary = "File a document about one of the cluster's people",
             tags = {"Cluster"},
             responses = {
-                @OpenApiResponse(status = "201", content = @OpenApiContent(from = MemberDocumentSummary.class)),
+                @OpenApiResponse(status = "201", content = @OpenApiContent(from = MemberDocumentResponse.class)),
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void uploadDocument(Context ctx) {
         Cluster cluster = requireActive(ctx);
         UserSession session = UserSession.from(ctx);
-        var file = ctx.uploadedFile("file");
-        if (file == null) throw Refusal.CLUSTER_MEMBER_DOCUMENT_MISSING_FILE.raise();
-        if (file.size() > MAX_UPLOAD_SIZE) throw Refusal.CLUSTER_MEMBER_DOCUMENT_TOO_LARGE.raise();
-
-        String title = ctx.formParam("title");
-        if (isBlank(title)) title = file.filename();
-
-        byte[] data;
-        try (var in = file.content()) {
-            data = in.readAllBytes();
-        } catch (IOException e) {
-            throw Refusal.CLUSTER_MEMBER_DOCUMENT_UNREADABLE.raise();
-        }
         var filed = managementService.fileDocument(
                 cluster.id(),
                 pathInt(ctx, "memberId"),
-                title.strip(),
-                file.filename(),
-                file.contentType(),
-                data,
-                // The cluster member's own row on the cluster's station, which is the only one they have
-                session.member() != null ? session.member().id() : null);
-        ctx.status(HttpStatus.CREATED)
-                .json(new MemberDocumentSummary(
-                        filed.id(),
-                        filed.title(),
-                        filed.fileName(),
-                        filed.mimeType(),
-                        filed.sizeBytes(),
-                        filed.createdAt()));
+                ctx.formParam("title"),
+                ctx.uploadedFile("file"),
+                session.accountId());
+        ctx.status(HttpStatus.CREATED).json(managementService.view(filed));
     }
 
     @OpenApi(
@@ -201,13 +166,7 @@ public class ClusterMemberManagementRoutes implements Routes {
     private void documentContent(Context ctx) {
         Cluster cluster = requireActive(ctx);
         var document = managementService.requireDocumentOfCluster(cluster.id(), pathInt(ctx, "documentId"));
-        byte[] data = managementService.readDocument(document);
-        var disposition = SafeInlineMime.isInlineSafe(document.mimeType())
-                ? SafeContentDisposition.Disposition.INLINE
-                : SafeContentDisposition.Disposition.ATTACHMENT;
-        ctx.contentType(SafeInlineMime.safeContentType(document.mimeType()));
-        ctx.header("Content-Disposition", SafeContentDisposition.build(disposition, document.fileName()));
-        ctx.result(data);
+        FileResponse.send(ctx, document.mimeType(), document.fileName(), managementService.readDocument(document));
     }
 
     @OpenApi(
@@ -223,7 +182,7 @@ public class ClusterMemberManagementRoutes implements Routes {
         var profile = managementService.getMemberProfile(cluster.id(), pathInt(ctx, "memberId"));
         ctx.json(new MemberProfileResponse(
                 profile.member().id(),
-                profile.member().displayName(),
+                profile.name(),
                 profile.fields().stream()
                         .map(field -> new MemberProfileFieldResponse(
                                 field.id(),
@@ -234,7 +193,9 @@ public class ClusterMemberManagementRoutes implements Routes {
                                 field.position(),
                                 field.width(),
                                 field.readonly(),
-                                field.role() == null ? null : field.role().name(),
+                                Optional.ofNullable(field.role())
+                                        .map(Enum::name)
+                                        .orElse(null),
                                 field.origin().name(),
                                 field.readonlyAtStation()))
                         .toList(),
@@ -265,14 +226,7 @@ public class ClusterMemberManagementRoutes implements Routes {
             entries.add(new FieldValueEntry(value.fieldId(), value.value(), parseOrigin(value.origin())));
         }
 
-        // The change is signed by the cluster member's own row on the cluster's station, which is the only
-        // member row a person acting for a cluster has.
-        managementService.updateMemberProfile(
-                cluster.id(),
-                pathInt(ctx, "memberId"),
-                entries,
-                session.accountId(),
-                session.member() != null ? session.member().id() : 0);
+        managementService.updateMemberProfile(cluster.id(), pathInt(ctx, "memberId"), entries, session.accountId());
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -281,7 +235,7 @@ public class ClusterMemberManagementRoutes implements Routes {
         try {
             return FieldOrigin.valueOf(raw);
         } catch (IllegalArgumentException e) {
-            throw Refusal.CLUSTER_FIELD_ORIGIN_UNKNOWN.raise(raw);
+            throw ClusterRefusal.CLUSTER_FIELD_ORIGIN_UNKNOWN.raise(raw);
         }
     }
 
@@ -294,28 +248,15 @@ public class ClusterMemberManagementRoutes implements Routes {
     private void search(Context ctx) {
         Cluster cluster = requireActive(ctx);
         Integer stationId = resolveStationFilter(cluster, ctx.queryParam("stationUid"));
-        var page = managementService.search(
+        ctx.json(memberSearch.search(
                 cluster.id(),
-                ctx.queryParam("q"),
-                stationId,
-                parseUserType(ctx.queryParam("userType")),
-                Boolean.parseBoolean(ctx.queryParam("includeFormer")),
-                intParam(ctx.queryParam("page"), 0),
-                intParam(ctx.queryParam("size"), 50));
-
-        var ids = page.members().stream()
-                .map(StationMemberRepository.ClusterMemberRow::id)
-                .toList();
-        var colors = memberGroupRepository.findNameColors(ids);
-        var tags = userTagRepository.findDisplayTags(ids);
-
-        ctx.json(new MemberPageResponse(
-                page.members().stream()
-                        .map(row -> toResponse(row, colors.get(row.id()), tags.get(row.id())))
-                        .toList(),
-                page.total(),
-                page.page(),
-                page.size()));
+                new Search(
+                        ctx.queryParam("q"),
+                        stationId,
+                        parseUserType(ctx.queryParam("userType")),
+                        Boolean.parseBoolean(ctx.queryParam("includeFormer")),
+                        intParam(ctx.queryParam("page"), 0),
+                        intParam(ctx.queryParam("size"), 50))));
     }
 
     @OpenApi(
@@ -348,7 +289,7 @@ public class ClusterMemberManagementRoutes implements Routes {
         Cluster cluster = requireActive(ctx);
         var request = ctx.bodyAsClass(NewMemberRequest.class);
         if (isBlank(request.firstName()) || isBlank(request.lastName())) {
-            throw Refusal.CLUSTER_NEW_MEMBER_NEEDS_A_NAME.raise();
+            throw ClusterRefusal.CLUSTER_NEW_MEMBER_NEEDS_A_NAME.raise();
         }
         UUID stationUid = parseUid(ctx.pathParam("stationUid"));
         StationUserType userType = request.userType() != null ? request.userType() : StationUserType.MEMBER;
@@ -359,11 +300,11 @@ public class ClusterMemberManagementRoutes implements Routes {
             ctx.status(HttpStatus.CREATED).json(new NewMemberResponse(made.memberId(), made.accountId(), made.email()));
         } catch (StationMemberInviteService.ProvisionException e) {
             log.warn("A member could not be taken on at a station of a cluster", e);
-            throw Refusal.CLUSTER_MEMBER_ALREADY_TAKEN_ON.raise();
+            throw ClusterRefusal.CLUSTER_MEMBER_ALREADY_TAKEN_ON.raise();
         }
     }
 
-    private static boolean isBlank(String value) {
+    private static boolean isBlank(@Nullable String value) {
         return value == null || value.isBlank();
     }
 
@@ -371,7 +312,7 @@ public class ClusterMemberManagementRoutes implements Routes {
         try {
             return UUID.fromString(raw);
         } catch (IllegalArgumentException e) {
-            throw Refusal.CLUSTER_NEW_MEMBER_STATION_NOT_AN_IDENTITY.raise();
+            throw ClusterRefusal.CLUSTER_NEW_MEMBER_STATION_NOT_AN_IDENTITY.raise();
         }
     }
 
@@ -391,7 +332,7 @@ public class ClusterMemberManagementRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(StationUserTypeRequest.class);
         StationUserType userType = parseUserType(request.userType());
-        if (userType == null) throw Refusal.STATION_USER_TYPE_UNKNOWN_FROM_CLUSTER.raise(request.userType());
+        if (userType == null) throw ClusterRefusal.STATION_USER_TYPE_UNKNOWN_FROM_CLUSTER.raise(request.userType());
 
         managementService.setUserType(cluster.id(), pathInt(ctx, "memberId"), userType, session.accountId());
         ctx.status(HttpStatus.NO_CONTENT);
@@ -418,7 +359,7 @@ public class ClusterMemberManagementRoutes implements Routes {
             try {
                 permissions.add(StationPermission.valueOf(name));
             } catch (IllegalArgumentException e) {
-                throw Refusal.STATION_PERMISSION_UNKNOWN_FROM_CLUSTER.raise(name);
+                throw ClusterRefusal.STATION_PERMISSION_UNKNOWN_FROM_CLUSTER.raise(name);
             }
         }
         managementService.setPermissions(cluster.id(), pathInt(ctx, "memberId"), permissions, session.accountId());
@@ -445,30 +386,32 @@ public class ClusterMemberManagementRoutes implements Routes {
     private Cluster requireActive(Context ctx) {
         UserSession session = UserSession.from(ctx);
         Integer clusterId = session.clusterId();
-        if (clusterId == null) throw Refusal.NO_CLUSTER_CHOSEN_FOR_MEMBER_MANAGEMENT.raise();
-        return clusterService.findById(clusterId).orElseThrow(Refusal.CLUSTER_NOT_HERE_FOR_MEMBER_MANAGEMENT::raise);
+        if (clusterId == null) throw ClusterRefusal.NO_CLUSTER_CHOSEN_FOR_MEMBER_MANAGEMENT.raise();
+        return clusterService
+                .findById(clusterId)
+                .orElseThrow(ClusterRefusal.CLUSTER_NOT_HERE_FOR_MEMBER_MANAGEMENT::raise);
     }
 
     /**
      * Turns the station identity on the wire into the internal id, checked against this cluster so the
      * filter cannot be used to peer into somebody else's station.
      */
-    private Integer resolveStationFilter(Cluster cluster, String raw) {
+    private @Nullable Integer resolveStationFilter(Cluster cluster, @Nullable String raw) {
         if (raw == null || raw.isBlank()) return null;
         UUID uid;
         try {
             uid = UUID.fromString(raw);
         } catch (IllegalArgumentException e) {
-            throw Refusal.CLUSTER_MEMBER_FILTER_STATION_NOT_AN_IDENTITY.raise(raw);
+            throw ClusterRefusal.CLUSTER_MEMBER_FILTER_STATION_NOT_AN_IDENTITY.raise(raw);
         }
         return managementService.reachableStations(cluster.id()).stream()
                 .filter(station -> station.uid().equals(uid))
                 .map(Station::id)
                 .findFirst()
-                .orElseThrow(Refusal.STATION_NOT_IN_THIS_CLUSTER::raise);
+                .orElseThrow(ClusterRefusal.STATION_NOT_IN_THIS_CLUSTER::raise);
     }
 
-    private static int intParam(String raw, int fallback) {
+    private static int intParam(@Nullable String raw, int fallback) {
         if (raw == null || raw.isBlank()) return fallback;
         try {
             return Integer.parseInt(raw);
@@ -477,7 +420,7 @@ public class ClusterMemberManagementRoutes implements Routes {
         }
     }
 
-    private static StationUserType parseUserType(String raw) {
+    private static @Nullable StationUserType parseUserType(@Nullable String raw) {
         if (raw == null || raw.isBlank()) return null;
         try {
             return StationUserType.valueOf(raw);
@@ -486,66 +429,11 @@ public class ClusterMemberManagementRoutes implements Routes {
         }
     }
 
-    /**
-     * One row of the search, with the identity the row is drawn from.
-     *
-     * <p>The name travelled on the row all along and nothing read it: every list in Ember draws a person
-     * through their identity, which is what carries the avatar, the colour and the display tag as well.
-     * Assembling half of one in the browser would get the name back and none of the rest, so the server
-     * sends the whole thing.
-     */
-    private static ManagedMemberResponse toResponse(
-            StationMemberRepository.ClusterMemberRow row, String nameColor, UserTag tag) {
-        return new ManagedMemberResponse(
-                row.id(),
-                row.uid(),
-                row.stationUid(),
-                row.stationName(),
-                row.name(),
-                row.email(),
-                row.userType().name(),
-                row.joinDate(),
-                row.former(),
-                row.stationOwner(),
-                new MemberIdentity(
-                        row.stationUid(),
-                        row.uid(),
-                        row.name(),
-                        row.stationName(),
-                        nameColor,
-                        tag == null ? null : new MemberIdentity.DisplayTag(tag.name(), tag.color())),
-                row.stationNames());
-    }
-
     public record StationUserTypeRequest(String userType) {}
 
     public record StationPermissionsRequest(List<String> permissions) {}
 
     public record ManagedStationResponse(UUID uid, String name) {}
-
-    /**
-     * @param stationOwner whether they are their station's owner, which the cluster may not edit
-     * @param stationNames every station of this association the person belongs to, so a row can say so
-     *                     rather than naming only the membership it came from
-     */
-    public record ManagedMemberResponse(
-            int id,
-            UUID uid,
-            UUID stationUid,
-            String stationName,
-            String name,
-            String email,
-            String userType,
-            LocalDate joinDate,
-            boolean former,
-            boolean stationOwner,
-            MemberIdentity identity,
-            String stationNames) {}
-
-    /**
-     * @param total how many the search found altogether, not how many are on this page
-     */
-    public record MemberPageResponse(List<ManagedMemberResponse> members, int total, int page, int size) {}
 
     /**
      * @param origin           which table the question lives in, so the answer goes back to the right one
@@ -562,16 +450,17 @@ public class ClusterMemberManagementRoutes implements Routes {
             int id,
             String name,
             String fieldType,
-            ProfileFieldConfig config,
+            @Nullable ProfileFieldConfig config,
             boolean required,
             int position,
-            String width,
+            @Nullable String width,
             boolean readonly,
-            String role,
+            @Nullable String role,
             String origin,
             boolean readonlyAtStation) {}
 
-    public record MemberProfileValueResponse(int fieldId, String value, String origin) {}
+    public record MemberProfileValueResponse(
+            int fieldId, @Nullable String value, String origin) {}
 
     public record MemberProfileResponse(
             int memberId,
@@ -590,9 +479,6 @@ public class ClusterMemberManagementRoutes implements Routes {
      */
     public record NewMemberRequest(String firstName, String lastName, String email, StationUserType userType) {}
 
-    public record NewMemberResponse(int memberId, int accountId, String email) {}
-
-    /** One document filed about somebody, as the association's screen lists it. */
-    public record MemberDocumentSummary(
-            int id, String title, String fileName, String mimeType, long sizeBytes, Instant createdAt) {}
+    public record NewMemberResponse(
+            int memberId, int accountId, @Nullable String email) {}
 }

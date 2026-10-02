@@ -7,7 +7,7 @@ package dev.chojo.ember.tracking.engine;
 
 import dev.chojo.ember.tracking.DataTrackingLoader;
 import dev.chojo.ember.tracking.IdentityType;
-import dev.chojo.ember.tracking.Status;
+import dev.chojo.ember.tracking.TrackingStatus;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -49,7 +49,8 @@ class GdprIdentityShapeTest {
         for (var entry : tracking.tables().entrySet()) {
             var table = entry.getValue();
             var export = table.gdprExport();
-            if (export == null || export.status() != Status.TRACKED || export.identityColumns() == null) continue;
+            if (export == null || export.status() != TrackingStatus.TRACKED || export.identityColumns() == null)
+                continue;
             for (var identity : export.identityColumns()) {
                 var column = table.columns() == null
                         ? null

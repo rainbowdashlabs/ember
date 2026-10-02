@@ -10,6 +10,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonValue;
+import dev.chojo.ember.feature.question.FieldType;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -52,16 +53,23 @@ public record ItemFieldValues(@JsonValue Map<String, FieldValue> values) {
     /**
      * Typed value for a single custom-field entry. The {@code kind}
      * discriminator drives Jackson's polymorphic deserialization.
+     *
+     * <p>The kind is the shared field type name. A choice answered before the names were shared
+     * says {@code ENUM}, which is still read.
      */
     @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "kind")
     @JsonSubTypes({
-        @JsonSubTypes.Type(value = DateValue.class, name = "DATE"),
-        @JsonSubTypes.Type(value = EnumValue.class, name = "ENUM"),
-        @JsonSubTypes.Type(value = TextValue.class, name = "TEXT"),
-        @JsonSubTypes.Type(value = NumberValue.class, name = "NUMBER"),
-        @JsonSubTypes.Type(value = BooleanValue.class, name = "BOOLEAN")
+        @JsonSubTypes.Type(value = ItemDateValue.class, name = "DATE"),
+        @JsonSubTypes.Type(
+                value = ItemEnumValue.class,
+                name = "CHOICE",
+                names = {"ENUM", "CHOICE"}),
+        @JsonSubTypes.Type(value = ItemTextValue.class, name = "TEXT"),
+        @JsonSubTypes.Type(value = ItemNumberValue.class, name = "NUMBER"),
+        @JsonSubTypes.Type(value = ItemBooleanValue.class, name = "BOOLEAN")
     })
-    public sealed interface FieldValue permits DateValue, EnumValue, TextValue, NumberValue, BooleanValue {
+    public sealed interface FieldValue
+            permits ItemDateValue, ItemEnumValue, ItemTextValue, ItemNumberValue, ItemBooleanValue {
         /**
          * Returns the {@link FieldType} this value variant carries.
          */
@@ -73,11 +81,11 @@ public record ItemFieldValues(@JsonValue Map<String, FieldValue> values) {
          */
         default String asText() {
             return switch (this) {
-                case DateValue(var date) -> date == null ? "" : date.toString();
-                case EnumValue(var picked) -> picked == null ? "" : picked;
-                case TextValue(var text) -> text == null ? "" : text;
-                case NumberValue(var number) -> number == null ? "" : number.toPlainString();
-                case BooleanValue(var yes) -> String.valueOf(yes);
+                case ItemDateValue(var date) -> date == null ? "" : date.toString();
+                case ItemEnumValue(var picked) -> picked == null ? "" : picked;
+                case ItemTextValue(var text) -> text == null ? "" : text;
+                case ItemNumberValue(var number) -> number == null ? "" : number.toPlainString();
+                case ItemBooleanValue(var yes) -> String.valueOf(yes);
             };
         }
     }
@@ -88,7 +96,7 @@ public record ItemFieldValues(@JsonValue Map<String, FieldValue> values) {
      * @param value the date, never {@code null}
      */
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public record DateValue(LocalDate value) implements FieldValue {
+    public record ItemDateValue(LocalDate value) implements FieldValue {
         @Override
         public FieldType fieldType() {
             return FieldType.DATE;
@@ -96,15 +104,15 @@ public record ItemFieldValues(@JsonValue Map<String, FieldValue> values) {
     }
 
     /**
-     * Value variant for {@link FieldType#ENUM}.
+     * Value variant for {@link FieldType#CHOICE}.
      *
-     * @param value the picked enum option value
+     * @param value the picked option value
      */
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public record EnumValue(String value) implements FieldValue {
+    public record ItemEnumValue(String value) implements FieldValue {
         @Override
         public FieldType fieldType() {
-            return FieldType.ENUM;
+            return FieldType.CHOICE;
         }
     }
 
@@ -114,7 +122,7 @@ public record ItemFieldValues(@JsonValue Map<String, FieldValue> values) {
      * @param value the text payload, may be empty
      */
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public record TextValue(String value) implements FieldValue {
+    public record ItemTextValue(String value) implements FieldValue {
         @Override
         public FieldType fieldType() {
             return FieldType.TEXT;
@@ -127,7 +135,7 @@ public record ItemFieldValues(@JsonValue Map<String, FieldValue> values) {
      * @param value the numeric payload
      */
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public record NumberValue(BigDecimal value) implements FieldValue {
+    public record ItemNumberValue(BigDecimal value) implements FieldValue {
         @Override
         public FieldType fieldType() {
             return FieldType.NUMBER;
@@ -140,7 +148,7 @@ public record ItemFieldValues(@JsonValue Map<String, FieldValue> values) {
      * @param value the boolean payload
      */
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public record BooleanValue(boolean value) implements FieldValue {
+    public record ItemBooleanValue(boolean value) implements FieldValue {
         @Override
         public FieldType fieldType() {
             return FieldType.BOOLEAN;

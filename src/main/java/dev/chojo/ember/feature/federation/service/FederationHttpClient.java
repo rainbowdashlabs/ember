@@ -6,7 +6,7 @@
 package dev.chojo.ember.feature.federation.service;
 
 import dev.chojo.ember.api.FederationHeaders;
-import dev.chojo.ember.api.ForeignStationIdModule;
+import dev.chojo.ember.api.PublicIdModule;
 import dev.chojo.ember.feature.federation.contract.FederationContractBinder;
 import dev.chojo.ember.feature.federation.contract.FederationContractVersions;
 import dev.chojo.ember.feature.federation.contract.FederationRequest;
@@ -18,13 +18,12 @@ import io.javalin.http.HttpStatus;
 import jakarta.inject.Inject;
 import jakarta.inject.Provider;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.net.URI;
-import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpRequest.BodyPublisher;
 import java.net.http.HttpRequest.BodyPublishers;
@@ -37,13 +36,18 @@ import java.util.UUID;
 
 /**
  * HTTP client for cross-instance federation communication.
- * Calls remote federation endpoints and signs requests using {@link FederationSigningService}.
- * The remote host is determined per-partner from the {@code remote_host} field.
+ * Calls remote federation endpoints and signs requests as the calling station through
+ * {@link StationSigner}; callers name the station and never handle its key.
+ * The remote host is determined per-partner from the {@code remote_host} field, and every request
+ * goes out through {@link OutboundHttp}, which connects to the address it checked.
  * <p>
  * Every signed request binds the HTTP method, request path (with sorted query
  * string), the recipient station UUID, the timestamp and the body. A per-request
  * nonce is sent in the {@code X-Federation-Nonce} header so the receiver can
- * reject replays via {@link FederationReplayCache}.
+ * reject replays.
+ * <p>
+ * Every signed request gives the partner ten seconds to answer. A partner that accepts the
+ * connection and then stalls counts as a failed call instead of holding the caller forever.
  * <p>
  * All public methods accept and return typed objects. JSON serialization/deserialization
  * is handled internally - callers never deal with raw JSON strings.
@@ -51,56 +55,47 @@ import java.util.UUID;
  * The embedded {@link JsonMapper} intentionally disables
  * {@code FAIL_ON_UNKNOWN_PROPERTIES} so a federation peer running a newer protocol
  * version can add fields to a response without breaking older peers. The main API
- * mapper in {@code ApiServer.jacksonMapper()} keeps the strict default for
- * inbound client payloads. It also carries {@link ForeignStationIdModule}, which reads the
- * station ids a partner publishes as UUIDs without trying to resolve them locally.
+ * mapper in {@link dev.chojo.ember.api.ApiJsonMapper} keeps the strict default for
+ * inbound client payloads. It also carries {@link PublicIdModule#forPartnerResponses()}, which reads
+ * the station ids a partner publishes as UUIDs without trying to resolve them locally.
  */
 @Singleton
 public class FederationHttpClient {
     private static final Logger log = LoggerFactory.getLogger(FederationHttpClient.class);
     private static final Duration HANDSHAKE_TIMEOUT = Duration.ofSeconds(15);
+    private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(10);
 
-    private final HttpClient httpsClient;
-    private final HttpClient httpClient1;
-    private final FederationSigningService signingService;
+    private final OutboundHttp outbound;
+    private final StationSigner signer;
     private final StationRepository stationRepository;
-    private final RemoteUrlValidator urlValidator;
     private final Provider<FederationContractRefreshService> refreshService;
-    private final JsonMapper mapper;
+    private final JsonMapper mapper = OutboundHttp.lenientMapper(PublicIdModule.forPartnerResponses());
+    private final Duration requestTimeout;
 
     @Inject
     public FederationHttpClient(
-            FederationSigningService signingService,
+            StationSigner signer,
             StationRepository stationRepository,
-            RemoteUrlValidator urlValidator,
+            OutboundHttp outbound,
             Provider<FederationContractRefreshService> refreshService) {
-        this.signingService = signingService;
-        this.stationRepository = stationRepository;
-        this.urlValidator = urlValidator;
-        this.refreshService = refreshService;
-        this.httpsClient = HttpClient.newBuilder()
-                .version(HttpClient.Version.HTTP_2)
-                .connectTimeout(Duration.ofSeconds(10))
-                .build();
-        this.httpClient1 = HttpClient.newBuilder()
-                .version(HttpClient.Version.HTTP_1_1)
-                .connectTimeout(Duration.ofSeconds(10))
-                .build();
-        this.mapper = JsonMapper.builder()
-                .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
-                .disable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
-                .addModule(new ForeignStationIdModule())
-                .build();
+        this(signer, stationRepository, outbound, refreshService, REQUEST_TIMEOUT);
     }
 
     /**
-     * Picks the HTTP client to use for a given remote URL. HTTPS gets the HTTP/2-capable
-     * client; plain HTTP gets the HTTP/1.1 client so that Node-based dev fronts (e.g. a
-     * Nuxt dev server proxying the backend) don't hang on the JDK client's {@code Upgrade: h2c}
-     * preamble.
+     * Builds the client with its own limit on how long a signed request may wait for the partner's
+     * answer, so a test can stand in a stalled partner without waiting out the production limit.
      */
-    private HttpClient clientFor(String url) {
-        return url != null && url.startsWith("https://") ? httpsClient : httpClient1;
+    FederationHttpClient(
+            StationSigner signer,
+            StationRepository stationRepository,
+            OutboundHttp outbound,
+            Provider<FederationContractRefreshService> refreshService,
+            Duration requestTimeout) {
+        this.signer = signer;
+        this.stationRepository = stationRepository;
+        this.outbound = outbound;
+        this.refreshService = refreshService;
+        this.requestTimeout = requestTimeout;
     }
 
     /**
@@ -121,10 +116,6 @@ public class FederationHttpClient {
      */
     public HandshakeAttempt handshake(String remoteBaseUrl, RemoteFederationRoutes.HandshakeRequest body) {
         String url = apiUrl(remoteBaseUrl) + RemoteFederationRoutes.HANDSHAKE.path();
-        if (!urlValidator.isAllowed(url)) {
-            log.warn("Federation handshake URL rejected by the URL validator: {}", url);
-            return new HandshakeAttempt(HandshakeStatus.HOST_REFUSED, null);
-        }
         try {
             var request = HttpRequest.newBuilder()
                     .uri(URI.create(url))
@@ -132,8 +123,7 @@ public class FederationHttpClient {
                     .header("Content-Type", "application/json")
                     .POST(BodyPublishers.ofString(mapper.writeValueAsString(body)))
                     .build();
-            //noinspection resource
-            var response = clientFor(url).send(request, HttpResponse.BodyHandlers.ofString());
+            var response = outbound.send(request, HttpResponse.BodyHandlers.ofString());
             var status = handshakeStatus(response.statusCode());
             if (status != HandshakeStatus.ESTABLISHED) {
                 log.warn("Federation handshake with {} answered HTTP {}", remoteBaseUrl, response.statusCode());
@@ -141,6 +131,9 @@ public class FederationHttpClient {
             }
             return new HandshakeAttempt(
                     status, mapper.readValue(response.body(), RemoteFederationRoutes.HandshakeResponse.class));
+        } catch (RefusedDestinationException e) {
+            log.warn("Federation handshake URL {} refused: {}", url, e.getMessage());
+            return new HandshakeAttempt(HandshakeStatus.HOST_REFUSED, null);
         } catch (HttpTimeoutException e) {
             log.warn("Federation handshake with {} timed out", remoteBaseUrl, e);
             return new HandshakeAttempt(HandshakeStatus.TIMEOUT, null);
@@ -148,6 +141,16 @@ public class FederationHttpClient {
             log.warn("Federation handshake with {} failed", remoteBaseUrl, e);
             return new HandshakeAttempt(HandshakeStatus.UNREACHABLE, null);
         }
+    }
+
+    /**
+     * Whether a station can send signed requests at all, which it cannot before it has a key.
+     *
+     * @param stationId the station that would send
+     * @return true when it has a key to sign with
+     */
+    public boolean canSign(int stationId) {
+        return signer.canSign(stationId);
     }
 
     private static HandshakeStatus handshakeStatus(int statusCode) {
@@ -165,17 +168,15 @@ public class FederationHttpClient {
      * Performs a signed GET and deserializes the response as a single typed object.
      * Returns null on error or non-2xx status.
      */
-    public <T> T get(
+    public <T> @Nullable T get(
             String remoteHost,
             FederationRequest request,
             UUID partnerStationUid,
             int localStationId,
-            String localPrivateKeyBase64,
             Class<T> responseType) {
         request.requireResponseType(responseType);
         try {
-            var response = sendSigned(
-                    "GET", remoteHost, request, null, partnerStationUid, localStationId, localPrivateKeyBase64);
+            var response = sendSigned("GET", remoteHost, request, null, partnerStationUid, localStationId);
             if (response.statusCode() >= 200 && response.statusCode() < 300) {
                 return mapper.readValue(response.body(), responseType);
             }
@@ -187,8 +188,6 @@ public class FederationHttpClient {
         }
     }
 
-    // -- Generic typed methods --
-
     /**
      * Performs a signed GET and deserializes the response as a list of typed objects.
      * Returns an empty list on error or non-200 status.
@@ -198,12 +197,10 @@ public class FederationHttpClient {
             FederationRequest request,
             UUID partnerStationUid,
             int localStationId,
-            String localPrivateKeyBase64,
             Class<T> elementType) {
         request.requireResponseType(elementType);
         try {
-            var response = sendSigned(
-                    "GET", remoteHost, request, null, partnerStationUid, localStationId, localPrivateKeyBase64);
+            var response = sendSigned("GET", remoteHost, request, null, partnerStationUid, localStationId);
             if (response.statusCode() != 200) {
                 log.warn("Signed GET list {} failed: HTTP {}", request.path(), response.statusCode());
                 return List.of();
@@ -221,19 +218,17 @@ public class FederationHttpClient {
      * The request body is serialized to JSON internally.
      * Returns null on error or non-2xx status.
      */
-    public <T> T post(
+    public <T> @Nullable T post(
             String remoteHost,
             FederationRequest request,
             Object requestBody,
             UUID partnerStationUid,
             int localStationId,
-            String localPrivateKeyBase64,
             Class<T> responseType) {
         request.requireResponseType(responseType);
         try {
             String jsonBody = mapper.writeValueAsString(requestBody);
-            var response = sendSigned(
-                    "POST", remoteHost, request, jsonBody, partnerStationUid, localStationId, localPrivateKeyBase64);
+            var response = sendSigned("POST", remoteHost, request, jsonBody, partnerStationUid, localStationId);
             if (response.statusCode() >= 200 && response.statusCode() < 300) {
                 return mapper.readValue(response.body(), responseType);
             }
@@ -256,13 +251,11 @@ public class FederationHttpClient {
             Object requestBody,
             UUID partnerStationUid,
             int localStationId,
-            String localPrivateKeyBase64,
             Class<T> elementType) {
         request.requireResponseType(elementType);
         try {
             String jsonBody = mapper.writeValueAsString(requestBody);
-            var response = sendSigned(
-                    "POST", remoteHost, request, jsonBody, partnerStationUid, localStationId, localPrivateKeyBase64);
+            var response = sendSigned("POST", remoteHost, request, jsonBody, partnerStationUid, localStationId);
             if (response.statusCode() >= 200 && response.statusCode() < 300) {
                 var type = mapper.getTypeFactory().constructCollectionType(List.class, elementType);
                 return mapper.readValue(response.body(), type);
@@ -284,12 +277,10 @@ public class FederationHttpClient {
             FederationRequest request,
             Object requestBody,
             UUID partnerStationUid,
-            int localStationId,
-            String localPrivateKeyBase64) {
+            int localStationId) {
         try {
             String jsonBody = mapper.writeValueAsString(requestBody);
-            var response = sendSigned(
-                    "POST", remoteHost, request, jsonBody, partnerStationUid, localStationId, localPrivateKeyBase64);
+            var response = sendSigned("POST", remoteHost, request, jsonBody, partnerStationUid, localStationId);
             return response.statusCode() >= 200 && response.statusCode() < 300;
         } catch (Exception e) {
             log.error("Failed signed POST {} on {}", request.path(), remoteHost, e);
@@ -302,19 +293,17 @@ public class FederationHttpClient {
      * The request body is serialized to JSON internally.
      * Returns null on error or non-2xx status.
      */
-    public <T> T put(
+    public <T> @Nullable T put(
             String remoteHost,
             FederationRequest request,
             Object requestBody,
             UUID partnerStationUid,
             int localStationId,
-            String localPrivateKeyBase64,
             Class<T> responseType) {
         request.requireResponseType(responseType);
         try {
             String jsonBody = mapper.writeValueAsString(requestBody);
-            var response = sendSigned(
-                    "PUT", remoteHost, request, jsonBody, partnerStationUid, localStationId, localPrivateKeyBase64);
+            var response = sendSigned("PUT", remoteHost, request, jsonBody, partnerStationUid, localStationId);
             if (response.statusCode() >= 200 && response.statusCode() < 300) {
                 return mapper.readValue(response.body(), responseType);
             }
@@ -335,12 +324,10 @@ public class FederationHttpClient {
             FederationRequest request,
             Object requestBody,
             UUID partnerStationUid,
-            int localStationId,
-            String localPrivateKeyBase64) {
+            int localStationId) {
         try {
             String jsonBody = mapper.writeValueAsString(requestBody);
-            var response = sendSigned(
-                    "PUT", remoteHost, request, jsonBody, partnerStationUid, localStationId, localPrivateKeyBase64);
+            var response = sendSigned("PUT", remoteHost, request, jsonBody, partnerStationUid, localStationId);
             return response.statusCode() >= 200 && response.statusCode() < 300;
         } catch (Exception e) {
             log.error("Failed signed PUT {} on {}", request.path(), remoteHost, e);
@@ -351,15 +338,9 @@ public class FederationHttpClient {
     /**
      * Performs a signed DELETE without a request body, returning true on 2xx success.
      */
-    public boolean delete(
-            String remoteHost,
-            FederationRequest request,
-            UUID partnerStationUid,
-            int localStationId,
-            String localPrivateKeyBase64) {
+    public boolean delete(String remoteHost, FederationRequest request, UUID partnerStationUid, int localStationId) {
         try {
-            var response = sendSigned(
-                    "DELETE", remoteHost, request, "", partnerStationUid, localStationId, localPrivateKeyBase64);
+            var response = sendSigned("DELETE", remoteHost, request, "", partnerStationUid, localStationId);
             return response.statusCode() >= 200 && response.statusCode() < 300;
         } catch (Exception e) {
             log.error("Failed signed DELETE {} on {}", request.path(), remoteHost, e);
@@ -376,12 +357,10 @@ public class FederationHttpClient {
             FederationRequest request,
             Object requestBody,
             UUID partnerStationUid,
-            int localStationId,
-            String localPrivateKeyBase64) {
+            int localStationId) {
         try {
             String jsonBody = mapper.writeValueAsString(requestBody);
-            var response = sendSigned(
-                    "DELETE", remoteHost, request, jsonBody, partnerStationUid, localStationId, localPrivateKeyBase64);
+            var response = sendSigned("DELETE", remoteHost, request, jsonBody, partnerStationUid, localStationId);
             return response.statusCode() >= 200 && response.statusCode() < 300;
         } catch (Exception e) {
             log.error("Failed signed DELETE {} on {}", request.path(), remoteHost, e);
@@ -393,14 +372,11 @@ public class FederationHttpClient {
         return stationRepository.findById(stationId).map(Station::name).orElse("");
     }
 
-    // -- Internal HTTP primitives --
-
     /**
      * Converts a base URL like {@code https://ember.example.com} to the API prefix.
      */
     private String apiUrl(String remoteHost) {
-        String host = remoteHost.endsWith("/") ? remoteHost.substring(0, remoteHost.length() - 1) : remoteHost;
-        return host + "/api/v1";
+        return OutboundHttp.join(remoteHost, "/api/v1");
     }
 
     /**
@@ -412,28 +388,24 @@ public class FederationHttpClient {
             String method,
             String remoteHost,
             FederationRequest request,
-            String body,
+            @Nullable String body,
             UUID partnerStationUid,
-            int localStationId,
-            String localPrivateKeyBase64)
+            int localStationId)
             throws Exception {
         String url = apiUrl(remoteHost) + request.path();
-        if (!urlValidator.isAllowed(url)) {
-            throw new IllegalStateException("Federation URL rejected by RemoteUrlValidator: " + url);
-        }
         String timestampStr = Instant.now().toString();
         var uri = URI.create(url);
         String pathWithQuery = FederationSigningService.canonicalPathWithQuery(uri);
         String signedBody = body == null ? "" : body;
-        var privateKey = signingService.decodePrivateKey(localPrivateKeyBase64);
         String nonce = UUID.randomUUID().toString();
-        String signature = signingService.sign(
-                method, pathWithQuery, partnerStationUid, nonce, signedBody, timestampStr, privateKey);
-        String stationUid = stationRepository.resolveUid(localStationId).toString();
+        String signature = signer.signRequest(
+                localStationId, method, pathWithQuery, partnerStationUid, nonce, signedBody, timestampStr);
+        String stationUid = stationRepository.requireUid(localStationId).toString();
 
         var local = FederationContractVersions.current();
         var builder = HttpRequest.newBuilder()
                 .uri(uri)
+                .timeout(requestTimeout)
                 .header(FederationHeaders.HEADER_STATION_ID, stationUid)
                 .header(FederationHeaders.HEADER_STATION_NAME, resolveStationName(localStationId))
                 .header("X-Federation-Target-Station-Id", partnerStationUid.toString())
@@ -443,7 +415,7 @@ public class FederationHttpClient {
                 .header(FederationHeaders.HEADER_CORE, local.core());
         var surface = request.endpoint().surface();
         if (surface != FederationSurface.CORE) {
-            builder.header(FederationHeaders.HEADER_SURFACE, local.featureHash(surface.capability()));
+            builder.header(FederationHeaders.HEADER_SURFACE, local.featureHash(surface.requireCapability()));
         }
 
         BodyPublisher publisher = body == null ? BodyPublishers.noBody() : BodyPublishers.ofString(body);
@@ -452,8 +424,7 @@ public class FederationHttpClient {
         }
         builder.method(method, publisher);
 
-        //noinspection resource
-        var response = clientFor(url).send(builder.build(), HttpResponse.BodyHandlers.ofString());
+        var response = outbound.send(builder.build(), HttpResponse.BodyHandlers.ofString());
         if (response.statusCode() == HttpStatus.CONFLICT.getCode()) {
             handleContractMismatch(response.body(), localStationId, partnerStationUid);
         }
@@ -466,7 +437,8 @@ public class FederationHttpClient {
      * @param status   how it ended
      * @param response what the far side answered, only present once it is {@code ESTABLISHED}
      */
-    public record HandshakeAttempt(HandshakeStatus status, RemoteFederationRoutes.HandshakeResponse response) {}
+    public record HandshakeAttempt(
+            HandshakeStatus status, RemoteFederationRoutes.@Nullable HandshakeResponse response) {}
 
     /** How a handshake attempt ended, in terms a person entering a code can be told about. */
     public enum HandshakeStatus {

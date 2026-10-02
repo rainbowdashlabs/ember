@@ -6,7 +6,8 @@
 <script lang="ts" setup>
 import {ref} from 'vue'
 import {useI18n} from 'vue-i18n'
-import {beginTotpSetup, confirmTotpSetup, getTwoFactorStatus, regenerateBackupCodes, removeTotp, type TotpBeginResponse, type TwoFactorStatus} from '@/api/twoFactor'
+import {beginTotpSetup, confirmTotpSetup, getTwoFactorStatus, regenerateBackupCodes, removeTotp} from '@/api/twoFactor'
+import type {TotpBeginResponse, TwoFactorStatusResponse} from '@/api/generated/schema'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
@@ -28,7 +29,7 @@ import {describeFailure} from '@/util/failure'
 
 const {t} = useI18n()
 
-const {config: status, loading, failure, reload: loadStatus} = useConfigPanel<TwoFactorStatus | null>({
+const {config: status, loading, failure, reload: loadStatus} = useConfigPanel<TwoFactorStatusResponse | null>({
   initial: null,
   fetch: async () => {
     try { return await getTwoFactorStatus() } catch { return null }
@@ -73,11 +74,9 @@ async function confirmSetup() {
   confirmError.value = ''
   confirmLoading.value = true
   try {
-    // First enrolment answers the step-up prompt like everything else on this screen; the
-    // extra password field this form used to carry is gone with the rule that needed it.
     await confirmTotpSetup(setupData.value.secret, confirmCode.value, setupData.value.recoveryCodes)
     setupStep.value = 'backup-display'
-  } catch (e) {
+  } catch {
     confirmError.value = t('twoFactor.setup.invalidCode')
   } finally {
     confirmLoading.value = false
@@ -93,21 +92,19 @@ function finishSetup() {
 
 async function handleRemove() {
   removeLoading.value = true
-  try {
-    await removeTotp()
+  await removeTotp().then(async () => {
     showRemoveModal.value = false
     await loadStatus()
-  } catch { /* ignore */ }
+  }).catch(() => {})
   removeLoading.value = false
 }
 
 async function handleRegenerate() {
-  try {
-    const result = await regenerateBackupCodes()
+  await regenerateBackupCodes().then(async result => {
     regeneratedCodes.value = result.codes
     showRegenerateModal.value = true
     await loadStatus()
-  } catch { /* ignore */ }
+  }).catch(() => {})
 }
 </script>
 
@@ -125,7 +122,6 @@ async function handleRegenerate() {
 
       <FailureAlert :failure="failure"/>
 
-      <!-- Not enrolled: show setup -->
       <template v-if="!status.enrolled && setupStep === 'idle'">
         <MutedText tag="p" size="sm">{{ t('twoFactor.setup.description') }}</MutedText>
         <div class="flex flex-wrap gap-2">
@@ -137,12 +133,11 @@ async function handleRegenerate() {
         <WebAuthnSection :factors="status.factors" :available="status.webauthnAvailable" @updated="handleWebAuthnUpdated"/>
       </template>
 
-      <!-- QR code step -->
       <template v-if="setupStep === 'qr' && setupData">
         <NeutralContainer class="space-y-4">
           <SubHeader>{{ t('twoFactor.setup.scanQr') }}</SubHeader>
           <div class="flex justify-center">
-            <img :src="'data:image/png;base64,' + setupData.qrPng" alt="QR Code" class="w-48 h-48"/>
+            <img :src="'data:image/png;base64,' + setupData.qrPng" :alt="t('twoFactor.setup.qrAlt')" class="w-48 h-48"/>
           </div>
           <MutedText tag="p" size="sm" class="text-center break-all">{{ setupData.secret }}</MutedText>
 
@@ -156,7 +151,6 @@ async function handleRegenerate() {
         </NeutralContainer>
       </template>
 
-      <!-- Backup codes display -->
       <template v-if="setupStep === 'backup-display' && setupData">
         <NeutralContainer class="space-y-4">
           <SubHeader>{{ t('twoFactor.backup.title') }}</SubHeader>
@@ -168,7 +162,6 @@ async function handleRegenerate() {
         </NeutralContainer>
       </template>
 
-      <!-- Enrolled: show management -->
       <template v-if="status.enrolled && setupStep === 'idle'">
         <NeutralContainer v-if="status.factors.some(f => f.kind === 'TOTP')" class="space-y-3">
           <div class="flex items-center justify-between">
@@ -208,7 +201,6 @@ async function handleRegenerate() {
       </template>
     </template>
 
-    <!-- Remove TOTP modal -->
     <Modal v-model="showRemoveModal">
       <div class="space-y-4 p-4">
         <SubHeader>{{ t('twoFactor.remove.title') }}</SubHeader>
@@ -220,7 +212,6 @@ async function handleRegenerate() {
       </div>
     </Modal>
 
-    <!-- Regenerated backup codes modal -->
     <Modal v-model="showRegenerateModal">
       <div class="space-y-4 p-4">
         <SubHeader>{{ t('twoFactor.backup.title') }}</SubHeader>
@@ -232,7 +223,6 @@ async function handleRegenerate() {
       </div>
     </Modal>
 
-    <!-- Backup codes issued automatically after first WebAuthn enrollment -->
     <Modal v-model="showWebAuthnRecoveryCodes">
       <div class="space-y-4 p-4">
         <SubHeader>{{ t('twoFactor.backup.title') }}</SubHeader>

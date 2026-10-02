@@ -6,72 +6,59 @@
 package dev.chojo.ember.feature.quiz.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
-import dev.chojo.ember.feature.quiz.entity.QuestionConfig;
-import dev.chojo.ember.feature.quiz.entity.QuizCategory;
-import dev.chojo.ember.feature.quiz.entity.QuizQuestionType;
+import dev.chojo.ember.api.refusal.QuizRefusal;
 import dev.chojo.ember.feature.quiz.entity.StationAiProvider;
 import dev.chojo.ember.feature.quiz.service.AiService;
-import dev.chojo.ember.feature.quiz.service.QuizCatalogService;
-import dev.chojo.ember.feature.quiz.service.QuizQuestionService;
-import dev.chojo.ember.util.Json;
+import dev.chojo.ember.feature.quiz.service.AiService.ModelInfo;
+import dev.chojo.ember.feature.quiz.service.QuizGenerationService;
+import dev.chojo.ember.feature.quiz.service.QuizGenerationService.BatchGenerateRequest;
+import dev.chojo.ember.feature.quiz.service.QuizGenerationService.BatchResult;
+import dev.chojo.ember.feature.quiz.service.QuizGenerationService.GenerateQuestionsRequest;
+import dev.chojo.ember.feature.quiz.service.QuizGenerationService.GenerationPollResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
-import io.javalin.openapi.OpenApiName;
 import io.javalin.openapi.OpenApiParam;
 import io.javalin.openapi.OpenApiRequestBody;
 import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import tools.jackson.databind.ObjectMapper;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Objects;
+
+import static dev.chojo.ember.api.RouteSupport.pathInt;
 
 @SuppressWarnings("DefaultAnnotationParam")
 @Singleton
 public class AiRoutes implements Routes {
     private static final Logger log = LoggerFactory.getLogger(AiRoutes.class);
-    private static final ObjectMapper MAPPER = Json.MAPPER;
-    private final ConcurrentHashMap<String, GenerationJob> generationJobs = new ConcurrentHashMap<>();
 
     private final AiService aiService;
-    private final QuizCatalogService catalogService;
-    private final QuizQuestionService questionService;
+    private final QuizGenerationService generationService;
 
     @Inject
-    public AiRoutes(AiService aiService, QuizCatalogService catalogService, QuizQuestionService questionService) {
+    public AiRoutes(AiService aiService, QuizGenerationService generationService) {
         this.aiService = aiService;
-        this.catalogService = catalogService;
-        this.questionService = questionService;
+        this.generationService = generationService;
     }
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        // Settings
         routes.get(prefix + "/ai/settings", this::getSettings, StationPermission.TEST_CATALOG_EDIT);
         routes.put(prefix + "/ai/settings/prompt", this::savePrompt, StationPermission.TEST_CATALOG_EDIT);
-
-        // Provider management
         routes.put(prefix + "/ai/providers/{provider}", this::saveProvider, StationPermission.TEST_CATALOG_EDIT);
         routes.delete(prefix + "/ai/providers/{provider}", this::deleteProvider, StationPermission.TEST_CATALOG_EDIT);
-
-        // Model listing
         routes.post(prefix + "/ai/providers/{provider}/models", this::fetchModels, StationPermission.TEST_CATALOG_EDIT);
-
-        // Generation
         routes.post(prefix + "/ai/generate", this::generate, StationPermission.TEST_CATALOG_EDIT);
         routes.post(prefix + "/ai/generate-questions", this::generateQuestions, StationPermission.TEST_CATALOG_EDIT);
         routes.get(
@@ -85,14 +72,14 @@ public class AiRoutes implements Routes {
             methods = HttpMethod.GET,
             summary = "Get AI settings including providers and prompt",
             tags = {"Quiz AI"},
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = SettingsResponse.class)))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = AiSettingsResponse.class)))
     private void getSettings(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var providers = aiService.getProviders(session.stationId()).stream()
                 .map(StationAiProvider::withoutKey)
                 .toList();
         var prompt = aiService.getPrompt(session.stationId());
-        ctx.json(new SettingsResponse(providers, prompt, aiService.getDefaultPrompt()));
+        ctx.json(new AiSettingsResponse(providers, prompt, aiService.getDefaultPrompt()));
     }
 
     @OpenApi(
@@ -100,13 +87,13 @@ public class AiRoutes implements Routes {
             methods = HttpMethod.PUT,
             summary = "Save the AI generation prompt",
             tags = {"Quiz AI"},
-            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = PromptRequest.class)),
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = SuccessResponse.class)))
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = AiPromptRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = AiSuccessResponse.class)))
     private void savePrompt(Context ctx) {
-        var session = UserSession.from(ctx);
-        var req = ctx.bodyAsClass(PromptRequest.class);
-        aiService.setPrompt(session.stationId(), req.prompt() != null ? req.prompt() : "");
-        ctx.json(new SuccessResponse(true));
+        var session = StationSession.from(ctx);
+        var req = ctx.bodyAsClass(AiPromptRequest.class);
+        aiService.setPrompt(session.stationId(), Objects.requireNonNullElse(req.prompt(), ""));
+        ctx.json(new AiSuccessResponse(true));
     }
 
     @OpenApi(
@@ -115,20 +102,20 @@ public class AiRoutes implements Routes {
             summary = "Save an AI provider configuration",
             tags = {"Quiz AI"},
             pathParams = @OpenApiParam(name = "provider", type = String.class, required = true),
-            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ProviderRequest.class)),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = AiProviderRequest.class)),
             responses = {
-                @OpenApiResponse(status = "200", content = @OpenApiContent(from = SuccessResponse.class)),
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = AiSuccessResponse.class)),
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void saveProvider(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         String provider = ctx.pathParam("provider");
-        var req = ctx.bodyAsClass(ProviderRequest.class);
+        var req = ctx.bodyAsClass(AiProviderRequest.class);
         if (req.apiKey() == null || req.apiKey().isBlank()) {
-            throw Refusal.AI_PROVIDER_NEEDS_A_KEY.raise();
+            throw QuizRefusal.AI_PROVIDER_NEEDS_A_KEY.raise();
         }
         aiService.saveProvider(session.stationId(), provider, req.apiKey(), req.model());
-        ctx.json(new SuccessResponse(true));
+        ctx.json(new AiSuccessResponse(true));
     }
 
     @OpenApi(
@@ -139,7 +126,7 @@ public class AiRoutes implements Routes {
             pathParams = @OpenApiParam(name = "provider", type = String.class, required = true),
             responses = @OpenApiResponse(status = "204"))
     private void deleteProvider(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         String provider = ctx.pathParam("provider");
         aiService.deleteProvider(session.stationId(), provider);
         ctx.status(HttpStatus.NO_CONTENT);
@@ -153,22 +140,22 @@ public class AiRoutes implements Routes {
             pathParams = @OpenApiParam(name = "provider", type = String.class, required = true),
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = TransientKeyRequest.class)),
             responses = {
-                @OpenApiResponse(status = "200"),
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = ModelInfo[].class)),
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void fetchModels(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         String provider = ctx.pathParam("provider");
         var req = ctx.bodyAsClass(TransientKeyRequest.class);
         try {
-            var models = aiService.fetchModels(session.stationId(), provider, req.apiKey());
+            var models = aiService.fetchModels(session.stationId(), session.accountId(), provider, req.apiKey());
             ctx.json(models);
         } catch (IllegalArgumentException e) {
             log.warn("Invalid argument fetching AI models for provider {}", provider, e);
-            throw Refusal.AI_MODELS_NOT_LISTED_KEY_NOT_GOOD.raise();
+            throw QuizRefusal.AI_MODELS_NOT_LISTED_KEY_NOT_GOOD.raise();
         } catch (Exception e) {
             log.warn("Failed to fetch AI models for provider {}", provider, e);
-            throw Refusal.AI_MODELS_NOT_LISTED.raise();
+            throw QuizRefusal.AI_MODELS_NOT_LISTED.raise();
         }
     }
 
@@ -177,36 +164,36 @@ public class AiRoutes implements Routes {
             methods = HttpMethod.POST,
             summary = "Generate distractor answers for a question",
             tags = {"Quiz AI"},
-            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = GenerateRequest.class)),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = AiGenerateRequest.class)),
             responses = {
-                @OpenApiResponse(status = "200", content = @OpenApiContent(from = GenerateResponse.class)),
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = AiGenerateResponse.class)),
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void generate(Context ctx) {
-        var session = UserSession.from(ctx);
-        var req = ctx.bodyAsClass(GenerateRequest.class);
+        var session = StationSession.from(ctx);
+        var req = ctx.bodyAsClass(AiGenerateRequest.class);
         if (req.question() == null || req.question().isBlank()) {
-            throw Refusal.AI_GENERATION_NEEDS_A_QUESTION.raise();
+            throw QuizRefusal.AI_GENERATION_NEEDS_A_QUESTION.raise();
         }
         if (req.correctAnswer() == null || req.correctAnswer().isBlank()) {
-            throw Refusal.AI_GENERATION_NEEDS_THE_RIGHT_ANSWER.raise();
+            throw QuizRefusal.AI_GENERATION_NEEDS_THE_RIGHT_ANSWER.raise();
         }
         try {
             var results = aiService.generate(
                     session.stationId(),
-                    req.provider() != null ? req.provider() : "openai",
-                    req.apiKey(),
+                    session.accountId(),
+                    Objects.requireNonNullElse(req.provider(), "openai"),
                     req.model(),
                     req.question(),
                     req.correctAnswer(),
-                    req.count() != null ? req.count() : 3);
-            ctx.json(new GenerateResponse(results));
+                    Objects.requireNonNullElse(req.count(), 3));
+            ctx.json(new AiGenerateResponse(results));
         } catch (IllegalArgumentException e) {
             log.warn("Invalid argument during AI generation", e);
-            throw Refusal.AI_GENERATION_REFUSED.raise();
+            throw QuizRefusal.AI_GENERATION_REFUSED.raise();
         } catch (Exception e) {
             log.warn("AI generation failed", e);
-            throw Refusal.AI_GENERATION_FAILED.raise();
+            throw QuizRefusal.AI_GENERATION_FAILED.raise();
         }
     }
 
@@ -221,81 +208,10 @@ public class AiRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void generateQuestions(Context ctx) {
-        var session = UserSession.from(ctx);
-        var req = ctx.bodyAsClass(GenerateQuestionsRequest.class);
-        if (req.entries() == null || req.entries().isEmpty()) {
-            throw Refusal.AI_GENERATION_NEEDS_ENTRIES.raise();
-        }
-        String provider = req.provider() != null ? req.provider() : "openai";
-        var categories = catalogService.findCategories(session.stationId());
-        var categoryMap = new HashMap<Integer, QuizCategory>();
-        for (var cat : categories) categoryMap.put(cat.id(), cat);
-
-        // Collect existing question titles from the catalog to avoid duplicates
-        var existingTitles = new ArrayList<String>();
-        if (req.catalogId() != null) {
-            var existingQuestions = questionService.findQuestions(req.catalogId());
-            for (var q : existingQuestions) {
-                existingTitles.add(q.title());
-            }
-        }
-
-        // Start async generation
-        String jobId = UUID.randomUUID().toString();
-        var job = new GenerationJob(UserSession.from(ctx).stationId());
-        generationJobs.put(jobId, job);
-
-        Thread.startVirtualThread(() -> {
-            try {
-                for (var entry : req.entries()) {
-                    if (entry.quizQuestionType() == null || entry.count() == null || entry.count() < 1) continue;
-                    var type = entry.quizQuestionType();
-                    String catName = null;
-                    String catDesc = null;
-                    if (entry.categoryId() != null) {
-                        var cat = categoryMap.get(entry.categoryId());
-                        if (cat != null) {
-                            catName = cat.name();
-                            catDesc = cat.description();
-                        }
-                    }
-
-                    // Create one session per entry type - context accumulates across turns
-                    var chatSession = aiService.createQuestionSession(
-                            session.stationId(),
-                            provider,
-                            req.apiKey(),
-                            req.model(),
-                            type,
-                            req.userPrompt(),
-                            req.locale(),
-                            catName,
-                            catDesc,
-                            existingTitles);
-
-                    for (int i = 0; i < entry.count(); i++) {
-                        try {
-                            var generated = aiService.generateNextQuestion(chatSession, type);
-                            for (var q : generated) {
-                                job.addResult(
-                                        new GeneratedQuestionWithMeta(q.title(), q.config(), type, entry.categoryId()));
-                                existingTitles.add(q.title());
-                            }
-                        } catch (Exception e) {
-                            log.warn(
-                                    "AI generation failed for question {}/{}: {}",
-                                    i + 1,
-                                    entry.count(),
-                                    e.getMessage());
-                        }
-                    }
-                }
-            } finally {
-                job.setDone();
-            }
-        });
-
-        ctx.json(new JobIdResponse(jobId));
+        var session = StationSession.from(ctx);
+        var request = ctx.bodyAsClass(GenerateQuestionsRequest.class);
+        ctx.json(
+                new JobIdResponse(generationService.startQuestions(session.stationId(), session.accountId(), request)));
     }
 
     @OpenApi(
@@ -309,15 +225,7 @@ public class AiRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void pollGeneration(Context ctx) {
-        String jobId = ctx.pathParam("jobId");
-        var job = generationJobs.get(jobId);
-        if (job == null || job.stationId() != UserSession.from(ctx).stationId()) {
-            throw Refusal.AI_GENERATION_NOT_HERE.raise();
-        }
-        var results = job.drainResults();
-        boolean done = job.isDone();
-        if (done) generationJobs.remove(jobId);
-        ctx.json(new GenerationPollResponse(results, done));
+        ctx.json(generationService.poll(StationSession.from(ctx).stationId(), ctx.pathParam("jobId")));
     }
 
     @OpenApi(
@@ -329,143 +237,30 @@ public class AiRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = BatchGenerateRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BatchResult.class)))
     private void batchGenerate(Context ctx) {
-        var session = UserSession.from(ctx);
-        int catalogId = ctx.pathParamAsClass("catalogId", Integer.class).get();
-        var req = ctx.bodyAsClass(BatchGenerateRequest.class);
-        int targetTotal = req.targetTotalOptions() != null ? req.targetTotalOptions() : 5;
-        String provider = req.provider() != null ? req.provider() : "openai";
-
-        var questions = questionService.findQuestions(catalogId);
-        int generated = 0;
-        var errors = new ArrayList<String>();
-
-        for (var q : questions) {
-            try {
-                if (!(q.config()
-                        instanceof
-                        QuestionConfig.MultipleChoice(
-                                List<QuestionConfig.MultipleChoice.Option> options,
-                                double pointsPerCorrect))) continue;
-                if (options == null || options.isEmpty()) continue;
-                if (options.size() >= targetTotal) continue;
-
-                int need = targetTotal - options.size();
-                var correctParts = options.stream()
-                        .filter(QuestionConfig.MultipleChoice.Option::correct)
-                        .map(QuestionConfig.MultipleChoice.Option::text)
-                        .toList();
-                if (correctParts.isEmpty()) continue;
-
-                var newAnswers = aiService.generate(
-                        session.stationId(),
-                        provider,
-                        req.apiKey(),
-                        req.model(),
-                        q.title(),
-                        String.join(", ", correctParts),
-                        need);
-
-                var updatedOptions = new ArrayList<>(options);
-                for (var answer : newAnswers) {
-                    updatedOptions.add(new QuestionConfig.MultipleChoice.Option(answer, false));
-                }
-
-                var updatedMc = new QuestionConfig.MultipleChoice(updatedOptions, pointsPerCorrect);
-                String newConfig = MAPPER.writeValueAsString(updatedMc);
-                questionService.updateQuestion(
-                        q.id(),
-                        q.categoryId(),
-                        q.title(),
-                        q.description(),
-                        q.imageUrl(),
-                        q.points(),
-                        q.autoPoints(),
-                        newConfig,
-                        q.position());
-                generated++;
-            } catch (Exception e) {
-                errors.add(q.title() + ": " + e.getMessage());
-            }
-        }
-        ctx.json(new BatchResult(generated, errors));
+        var session = StationSession.from(ctx);
+        var request = ctx.bodyAsClass(BatchGenerateRequest.class);
+        ctx.json(generationService.fillDistractors(
+                session.stationId(), session.accountId(), pathInt(ctx, "catalogId"), request));
     }
 
-    // -- Records --
-
-    @OpenApiName("AiSuccessResponse")
-    public record SuccessResponse(boolean success) {}
+    public record AiSuccessResponse(boolean success) {}
 
     public record JobIdResponse(String jobId) {}
 
-    @OpenApiName("AiSettingsResponse")
-    public record SettingsResponse(List<StationAiProvider> providers, String prompt, String defaultPrompt) {}
+    public record AiSettingsResponse(List<StationAiProvider> providers, String prompt, String defaultPrompt) {}
 
-    public record PromptRequest(String prompt) {}
+    public record AiPromptRequest(@Nullable String prompt) {}
 
-    public record ProviderRequest(String apiKey, String model) {}
+    public record AiProviderRequest(String apiKey, @Nullable String model) {}
 
-    public record TransientKeyRequest(String apiKey) {}
+    public record TransientKeyRequest(@Nullable String apiKey) {}
 
-    public record GenerateRequest(
-            String provider, String apiKey, String model, String question, String correctAnswer, Integer count) {}
+    public record AiGenerateRequest(
+            @Nullable String provider,
+            @Nullable String model,
+            String question,
+            String correctAnswer,
+            @Nullable Integer count) {}
 
-    public record BatchGenerateRequest(String provider, String apiKey, String model, Integer targetTotalOptions) {}
-
-    public record GenerateResponse(List<String> answers) {}
-
-    public record GenerateQuestionsRequest(
-            String provider,
-            String apiKey,
-            String model,
-            String userPrompt,
-            String locale,
-            Integer catalogId,
-            List<GenerateEntry> entries) {}
-
-    public record GenerateEntry(QuizQuestionType quizQuestionType, Integer count, Integer categoryId) {}
-
-    public record GeneratedQuestionWithMeta(
-            String title, String config, QuizQuestionType quizQuestionType, Integer categoryId) {}
-
-    public record GenerationPollResponse(List<GeneratedQuestionWithMeta> questions, boolean done) {}
-
-    public record BatchResult(int generatedCount, List<String> errors) {}
-
-    private static class GenerationJob {
-        /**
-         * The station the job was started for. A job id is unguessable, but it is still a name in a
-         * map shared by the whole instance, and polling both reads the questions and clears the job,
-         * so whoever polls has to be from the station that asked for them.
-         */
-        private final int stationId;
-
-        private final List<GeneratedQuestionWithMeta> results = new ArrayList<>();
-        private volatile boolean done = false;
-
-        GenerationJob(int stationId) {
-            this.stationId = stationId;
-        }
-
-        int stationId() {
-            return stationId;
-        }
-
-        synchronized void addResult(GeneratedQuestionWithMeta result) {
-            results.add(result);
-        }
-
-        synchronized List<GeneratedQuestionWithMeta> drainResults() {
-            var drained = new ArrayList<>(results);
-            results.clear();
-            return drained;
-        }
-
-        void setDone() {
-            this.done = true;
-        }
-
-        boolean isDone() {
-            return done;
-        }
-    }
+    public record AiGenerateResponse(List<String> answers) {}
 }

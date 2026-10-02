@@ -7,7 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import EntitySearchPicker from './EntitySearchPicker.vue'
 import {knowledgeBase} from '@/api'
-import type {SearchResult} from '@/api/knowledgeBase'
+import type {SearchResultResponse} from '@/api/generated/schema'
 
 /**
  * Finds an article anywhere in this station's wiki.
@@ -24,7 +24,7 @@ import type {SearchResult} from '@/api/knowledgeBase'
  * not offered.
  */
 const emit = defineEmits<{
-    pick: [item: SearchResult]
+    pick: [item: SearchResultResponse]
 }>()
 
 const props = defineProps<{
@@ -35,7 +35,7 @@ const props = defineProps<{
 
 const {t} = useI18n()
 
-async function searchFn(query: string): Promise<SearchResult[]> {
+async function searchFn(query: string): Promise<SearchResultResponse[]> {
     const results = query.trim()
         ? await knowledgeBase.search(query, {federated: false})
         : await knowledgeBase.listRecentFiles(10)
@@ -45,9 +45,9 @@ async function searchFn(query: string): Promise<SearchResult[]> {
         .slice(0, 10)
 }
 
-const displayFn = (item: SearchResult) => item.file.name
-const subtitleFn = (item: SearchResult) => item.folderPath
-const keyFn = (item: SearchResult) => item.file.id
+const displayFn = (item: SearchResultResponse) => item.file.name
+const subtitleFn = (item: SearchResultResponse) => item.folderPath
+const keyFn = (item: SearchResultResponse) => item.file.id
 const iconFn = (): string[] => ['fas', 'file-lines']
 </script>
 
@@ -60,6 +60,6 @@ const iconFn = (): string[] => ['fas', 'file-lines']
         :icon-fn="iconFn"
         :placeholder="placeholder ?? t('kb.searchRelated')"
         :empty-label="t('kb.noFilesFound')"
-        @pick="(item: SearchResult) => emit('pick', item)"
+        @pick="(item: SearchResultResponse) => emit('pick', item)"
     />
 </template>

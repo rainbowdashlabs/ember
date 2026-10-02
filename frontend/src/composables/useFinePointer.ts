@@ -3,18 +3,9 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {onMounted, onUnmounted, readonly, ref} from 'vue'
-
-const QUERY = '(pointer: fine)'
-
-const finePointer = ref(false)
-
-let watchers = 0
-let media: MediaQueryList | null = null
-
-function apply(event: MediaQueryListEvent | MediaQueryList) {
-    finePointer.value = event.matches
-}
+import {useMediaQuery} from '@vueuse/core'
+import {computed} from 'vue'
+import {useHydrated} from '@/composables/useHydrated'
 
 /**
  * Whether the device points with something as precise as a mouse.
@@ -23,26 +14,12 @@ function apply(event: MediaQueryListEvent | MediaQueryList) {
  * down again, so a list that can only be dragged cannot be sorted on a phone. It asks about the pointer
  * rather than the width of the window, because a tablet is wide and still has no mouse.
  *
- * <p>It reads false until the component is mounted, so the server and the first client render agree, and
- * whatever is offered only for a mouse appears once the browser has said there is one.
+ * <p>It reads false on the server and while the browser takes up the page the server sent (see
+ * {@link useHydrated}), so whatever is offered only for a mouse appears once the browser has said
+ * there is one.
  */
 export function useFinePointer() {
-    onMounted(() => {
-        if (watchers === 0) {
-            media = window.matchMedia(QUERY)
-            media.addEventListener('change', apply)
-        }
-        watchers++
-        if (media) apply(media)
-    })
-
-    onUnmounted(() => {
-        watchers--
-        if (watchers === 0 && media) {
-            media.removeEventListener('change', apply)
-            media = null
-        }
-    })
-
-    return {finePointer: readonly(finePointer)}
+    const hydrated = useHydrated()
+    const fine = useMediaQuery('(pointer: fine)')
+    return {finePointer: computed(() => hydrated.value && fine.value)}
 }

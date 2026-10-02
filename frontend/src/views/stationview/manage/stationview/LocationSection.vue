@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {onMounted, ref} from 'vue'
+import {ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
@@ -19,6 +19,7 @@ import LocationPicker from '@/components/map/LocationPicker.vue'
 import GeolocateButton from '@/components/map/GeolocateButton.vue'
 import {stationManage} from '@/api'
 import {useAsyncAction} from '@/composables/useAsyncAction'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {describeFailure, FailureKind, type Failure} from '@/util/failure'
 
 const emit = defineEmits<{
@@ -35,8 +36,6 @@ const country = ref<string>('')
 const latitude = ref<number | null>(null)
 const longitude = ref<number | null>(null)
 const localError = ref('')
-
-const loading = ref(true)
 
 const picker = ref<InstanceType<typeof LocationPicker> | null>(null)
 
@@ -57,22 +56,20 @@ const countryOptions: {value: string; label: string}[] = [
   {value: 'NO', label: 'Norwegen'},
 ]
 
-async function load() {
-  loading.value = true
-  try {
-    const data = await stationManage.getStationLocation()
-    addressLine.value = data.addressLine ?? ''
-    postalCode.value = data.postalCode ?? ''
-    city.value = data.city ?? ''
-    country.value = data.country ?? ''
-    latitude.value = data.latitude ?? null
-    longitude.value = data.longitude ?? null
-  } catch (e) {
-    emit('error', describeFailure(e, t))
-  } finally {
-    loading.value = false
-  }
-}
+const {loading, failure: loadFailure} = useAsyncLoader(async (isCurrent) => {
+  const data = await stationManage.getStationLocation()
+  if (!isCurrent()) return
+  addressLine.value = data.addressLine ?? ''
+  postalCode.value = data.postalCode ?? ''
+  city.value = data.city ?? ''
+  country.value = data.country ?? ''
+  latitude.value = data.latitude ?? null
+  longitude.value = data.longitude ?? null
+})
+
+watch(loadFailure, (failure) => {
+  if (failure) emit('error', failure)
+})
 
 async function save() {
   localError.value = ''
@@ -132,8 +129,6 @@ function onGeolocateError(message: string) {
     reportable: false,
   })
 }
-
-onMounted(load)
 </script>
 
 <template>

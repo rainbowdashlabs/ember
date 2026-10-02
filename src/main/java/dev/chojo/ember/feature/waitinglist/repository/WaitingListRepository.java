@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.waitinglist.repository;
 
 import dev.chojo.ember.feature.legal.entity.ConsentProof;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.waitinglist.entity.GuardianInput;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingList;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListAnswer;
@@ -15,13 +16,12 @@ import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryStatus;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryValue;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListField;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldConfig;
-import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldType;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListInvitation;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListInvite;
 import dev.chojo.ember.feature.waitinglist.entity.WaitlistVerificationToken;
-import dev.chojo.ember.util.JsonUtil;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import tools.jackson.databind.JsonNode;
 
 import java.time.Instant;
@@ -90,8 +90,6 @@ public class WaitingListRepository {
             id, token, list_id, firstname, lastname, email, guardians, field_values, notes, \
             created_at, expires_at, consent_proof""";
 
-    // --- Waiting List CRUD ---
-
     public List<WaitingList> findAll() {
         return query("SELECT %s FROM waiting_list ORDER BY created_at DESC;", WAITING_LIST_COLUMNS)
                 .single(call())
@@ -116,15 +114,15 @@ public class WaitingListRepository {
             int stationId,
             String name,
             String description,
-            String scoringFormula,
+            @Nullable String scoringFormula,
             int confirmIntervalDays,
-            Integer testingGroupId,
-            Integer joinGroupId,
+            @Nullable Integer testingGroupId,
+            @Nullable Integer joinGroupId,
             int attendanceThreshold,
             boolean isPublic,
             boolean sendsMail,
-            Integer minAgeRegister,
-            Integer minAgeJoin) {
+            @Nullable Integer minAgeRegister,
+            @Nullable Integer minAgeJoin) {
         return insertReturning(
                 """
                 INSERT
@@ -158,15 +156,15 @@ public class WaitingListRepository {
             int id,
             String name,
             String description,
-            String scoringFormula,
+            @Nullable String scoringFormula,
             int confirmIntervalDays,
-            Integer testingGroupId,
-            Integer joinGroupId,
+            @Nullable Integer testingGroupId,
+            @Nullable Integer joinGroupId,
             int attendanceThreshold,
             boolean isPublic,
             boolean sendsMail,
-            Integer minAgeRegister,
-            Integer minAgeJoin) {
+            @Nullable Integer minAgeRegister,
+            @Nullable Integer minAgeJoin) {
         return query("""
                 UPDATE waiting_list
                 SET
@@ -212,8 +210,6 @@ public class WaitingListRepository {
         deleteById("waiting_list", id);
     }
 
-    // --- Fields ---
-
     public Optional<WaitingListField> findFieldById(int id) {
         return SqlSupport.findById("waiting_list_field", WAITING_LIST_FIELD_COLUMNS, id, WaitingListField.map());
     }
@@ -230,7 +226,7 @@ public class WaitingListRepository {
     public WaitingListField createField(
             int listId,
             String name,
-            WaitingListFieldType fieldType,
+            FieldType fieldType,
             WaitingListFieldConfig config,
             int position,
             boolean required,
@@ -254,7 +250,7 @@ public class WaitingListRepository {
     public Optional<WaitingListField> updateField(
             int fieldId,
             String name,
-            WaitingListFieldType fieldType,
+            FieldType fieldType,
             WaitingListFieldConfig config,
             int position,
             boolean required,
@@ -285,8 +281,6 @@ public class WaitingListRepository {
         deleteById("waiting_list_field", fieldId);
     }
 
-    // --- Invites ---
-
     public List<WaitingListInvite> findInvitesByList(int listId) {
         return query(
                         "SELECT %s FROM waiting_list_invite WHERE list_id = :list_id ORDER BY created_at DESC;",
@@ -296,7 +290,7 @@ public class WaitingListRepository {
                 .all();
     }
 
-    public WaitingListInvite createInvite(int listId, String code, int maxUses, Instant expiresAt) {
+    public WaitingListInvite createInvite(int listId, String code, int maxUses, @Nullable Instant expiresAt) {
         return insertReturning(
                 """
                 INSERT
@@ -330,8 +324,6 @@ public class WaitingListRepository {
     public void deleteInvite(int inviteId) {
         deleteById("waiting_list_invite", inviteId);
     }
-
-    // --- Entries ---
 
     public List<WaitingListEntry> findEntriesByList(int listId) {
         return query(
@@ -370,7 +362,7 @@ public class WaitingListRepository {
             String email,
             String accessToken,
             String notes,
-            ConsentProof consent) {
+            @Nullable ConsentProof consent) {
         return insertReturning(
                 """
                 INSERT
@@ -458,7 +450,7 @@ public class WaitingListRepository {
      * Writes the one appointment the current invitation names, or clears it when the invitation is
      * withdrawn. The date goes with the appointment, so an entry never carries half a reference.
      */
-    public void updateInvitation(int entryId, WaitingListInvitation invitation) {
+    public void updateInvitation(int entryId, @Nullable WaitingListInvitation invitation) {
         query("""
                 UPDATE waiting_list_entry
                 SET
@@ -550,8 +542,6 @@ public class WaitingListRepository {
                 call().bind("list_id", listId));
     }
 
-    // --- Entry Values ---
-
     public List<WaitingListEntryValue> findEntryValues(int entryId) {
         return query(
                         "SELECT %s FROM waiting_list_entry_value WHERE entry_id = :entry_id;",
@@ -568,8 +558,20 @@ public class WaitingListRepository {
                 ON CONFLICT (entry_id, field_id) DO UPDATE SET value = :value::JSONB;""")
                 .single(call().bind("entry_id", entryId)
                         .bind("field_id", fieldId)
-                        .bind("value", JsonUtil.toJson(value)))
+                        .bind("value", value == null ? "{}" : value.toString()))
                 .insert();
+    }
+
+    /**
+     * Removes what an entry held for one question, which is how a cleared answer is kept.
+     *
+     * @param entryId the entry
+     * @param fieldId the question
+     */
+    public void deleteEntryValue(int entryId, int fieldId) {
+        query("DELETE FROM waiting_list_entry_value WHERE entry_id = :entry_id AND field_id = :field_id;")
+                .single(call().bind("entry_id", entryId).bind("field_id", fieldId))
+                .delete();
     }
 
     public int countPendingEntries(int stationId) {
@@ -583,8 +585,6 @@ public class WaitingListRepository {
                 WHERE wl.station_id = :station_id
                   AND wle.status = 'WAITING';""", call().bind("station_id", stationId));
     }
-
-    // --- Guardians ---
 
     public List<WaitingListEntryGuardian> findGuardiansByEntry(int entryId) {
         return query(
@@ -637,8 +637,6 @@ public class WaitingListRepository {
                 .delete();
     }
 
-    // --- Public waitlist queries ---
-
     public List<WaitingList> findPublicByStation(int stationId) {
         return query(
                         "SELECT %s FROM waiting_list WHERE station_id = :station_id AND public = TRUE ORDER BY created_at DESC;",
@@ -675,7 +673,7 @@ public class WaitingListRepository {
             String accessToken,
             String notes,
             WaitingListEntryStatus status,
-            ConsentProof consent) {
+            @Nullable ConsentProof consent) {
         return insertReturning(
                 """
                 INSERT
@@ -697,8 +695,6 @@ public class WaitingListRepository {
                 WaitingListEntry.map(),
                 WAITING_LIST_ENTRY_COLUMNS);
     }
-
-    // --- Verification tokens ---
 
     public void createVerificationToken(
             String token,

@@ -124,7 +124,7 @@ async function submit() {
         v-if="step === 'basic'"
         v-model:name="name"
         v-model:type="type"
-        v-model:hasSizes="hasSizes"
+        v-model:has-sizes="hasSizes"
         v-model:homogeneous="homogeneous"
         v-model:icon="icon"
         v-model:color="color"

@@ -18,7 +18,8 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
-import {LendingStatus, type AvailableItemDetail, type EnrichedMessage, type LendingRequestDetail} from '@/api/lending'
+import {LendingStatus} from '@/api/lending'
+import type {AvailableItemDetail, EnrichedMessage, LendingRequestDetail} from '@/api/generated/schema'
 import * as lending from '@/api/lending'
 import {useSession} from '@/composables/useSession'
 import {useSidebarCounts} from '@/composables/useSidebarCounts'
@@ -209,10 +210,10 @@ function handleClose() {
           @toggle-item="toggleItem"
           @assign-and-lend="handleAssignAndLend"/>
       <LendingChat
+          v-model:new-message="newMessage"
           :detail="detail"
           :messages="messages"
           :sending="sending"
-          v-model:new-message="newMessage"
           @send="handleSendMessage"/>
     </template>
 

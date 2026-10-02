@@ -8,6 +8,8 @@ package dev.chojo.ember.feature.events.repository;
 import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.feature.content.entity.BlockAudience;
+import dev.chojo.ember.feature.events.entity.PickerEvent;
+import dev.chojo.ember.feature.events.entity.PickerMode;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionSql;
@@ -15,6 +17,7 @@ import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.util.sql.SqlSupport;
 import dev.chojo.ember.util.sql.WhereBuilder;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -37,7 +40,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 public class EventRepository {
 
     private static final String EVENT_COLUMNS =
-            "id, station_id, name, description, event_type, day_of_week, start_time, end_time, template_id, requires_registration, registration_deadline, requires_confirmation, category_id, restriction_mode, view_restriction_mode, \"public\", registration_limit, cancelled, cancelled_at, cancel_reason, min_registrations, threshold_date, threshold_notified, registration_close_days, repeat_until, repeat_count";
+            "id, station_id, name, description, event_type, day_of_week, start_time, end_time, template_id, requires_registration, registration_deadline, requires_confirmation, category_id, restriction_mode, view_restriction_mode, \"public\", registration_limit, cancelled, cancelled_at, cancel_reason, min_registrations, threshold_days, registration_close_days, repeat_until, repeat_count";
 
     /**
      * The lock the lists draw, and what decides whether an event is handed out at all: both stand
@@ -50,7 +53,9 @@ public class EventRepository {
     private static final String EVENT_RESTRICTED_COLUMN_BARE =
             RestrictionSql.restrictedFlag(RestrictionType.EVENT_VIEW, "id");
     private static final String EVENT_VISIBLE_FOR_MEMBER =
-            RestrictionSql.visibleFor(RestrictionType.EVENT_VIEW, "e.id", ":member_id");
+            RestrictionSql.visibleFor(RestrictionType.EVENT_VIEW, "e.id", ":member_id", ":is_manager");
+    private static final String EVENT_ADMITS_MEMBER_PREDICATE =
+            "AND " + RestrictionSql.admits(RestrictionType.EVENT_VIEW, "e.id", ":member_id");
     private static final String EVENT_UNRESTRICTED =
             "AND " + RestrictionSql.unrestricted(RestrictionType.EVENT_VIEW, "e.id");
     private static final String EVENT_ON_PUBLIC_CALENDAR = """
@@ -147,7 +152,7 @@ public class EventRepository {
      * {@code search} is a case-insensitive substring match on the event name.
      */
     public List<PickerEvent> searchForPicker(
-            int stationId, BlockAudience audience, String search, PickerMode mode, int limit) {
+            int stationId, BlockAudience audience, @Nullable String search, PickerMode mode, int limit) {
         String timePredicate =
                 switch (mode) {
                     case FUTURE -> "AND e.start_time > NOW()";
@@ -175,21 +180,24 @@ public class EventRepository {
     }
 
     /**
-     * Retrieves events for a station that the given member is allowed to see.
-     * Uses the DB restriction check function which resolves role inheritance, mode, and manager bypass.
+     * Retrieves events for a station that the given member is allowed to see: all of them for an
+     * event manager, otherwise those whose view restrictions take the member in.
      *
      * @param stationId the station ID
      * @param memberId  the requesting member ID
+     * @param manager   whether the member manages events, taken from their resolved permissions
      * @return the filtered list of station events
      */
-    public List<StationEvent> findByStationForMember(int stationId, int memberId) {
+    public List<StationEvent> findByStationForMember(int stationId, int memberId, boolean manager) {
         return query("""
                 SELECT %s, %s
                 FROM station_event e
                 WHERE e.station_id = :station_id
                   AND %s
                 ORDER BY e.event_type, e.name;""", SqlSupport.alias("e", EVENT_COLUMNS), EVENT_RESTRICTED_COLUMN, EVENT_VISIBLE_FOR_MEMBER)
-                .single(call().bind("station_id", stationId).bind("member_id", memberId))
+                .single(call().bind("station_id", stationId)
+                        .bind("member_id", memberId)
+                        .bind("is_manager", manager))
                 .map(StationEvent.map())
                 .all();
     }
@@ -197,11 +205,17 @@ public class EventRepository {
     /**
      * Retrieves a station's events narrowed by any combination of member visibility, category and
      * registration requirement. Absent filters widen the result rather than restricting it.
+     *
+     * @param restrictedTo the member whose view restrictions narrow the list, or {@code null} for
+     *                     the whole station, which is also what an event manager sees
      */
     public List<StationEvent> findFiltered(
-            int stationId, Integer memberId, Integer categoryId, Boolean requiresRegistration) {
+            int stationId,
+            @Nullable Integer restrictedTo,
+            @Nullable Integer categoryId,
+            @Nullable Boolean requiresRegistration) {
         var where = WhereBuilder.create()
-                .add("AND " + EVENT_VISIBLE_FOR_MEMBER, "member_id", memberId)
+                .add(EVENT_ADMITS_MEMBER_PREDICATE, "member_id", restrictedTo)
                 .add("AND e.category_id = :category_id", "category_id", categoryId)
                 .add(
                         "AND e.requires_registration = :requires_registration",
@@ -254,24 +268,24 @@ public class EventRepository {
     public StationEvent create(
             int stationId,
             String name,
-            String description,
+            @Nullable String description,
             StationEvent.EventType eventType,
-            Integer dayOfWeek,
+            @Nullable Integer dayOfWeek,
             Instant startTime,
             Instant endTime,
-            Integer templateId,
+            @Nullable Integer templateId,
             boolean requiresRegistration,
-            Instant registrationDeadline,
+            @Nullable Instant registrationDeadline,
             boolean requiresConfirmation,
-            Integer categoryId,
-            Integer registrationLimit,
-            Integer minRegistrations,
-            Instant thresholdDate,
-            Integer registrationCloseDays) {
+            @Nullable Integer categoryId,
+            @Nullable Integer registrationLimit,
+            @Nullable Integer minRegistrations,
+            @Nullable Integer thresholdDays,
+            @Nullable Integer registrationCloseDays) {
         return SqlSupport.insertReturning(
                 """
-                INSERT INTO station_event(station_id, name, description, event_type, day_of_week, start_time, end_time, template_id, requires_registration, registration_deadline, requires_confirmation, category_id, registration_limit, min_registrations, threshold_date, registration_close_days)
-                VALUES (:station_id, :name, :description, :event_type, :day_of_week, :start_time, :end_time, :template_id, :requires_registration, :registration_deadline, :requires_confirmation, :category_id, :registration_limit, :min_registrations, :threshold_date, :registration_close_days)
+                INSERT INTO station_event(station_id, name, description, event_type, day_of_week, start_time, end_time, template_id, requires_registration, registration_deadline, requires_confirmation, category_id, registration_limit, min_registrations, threshold_days, registration_close_days)
+                VALUES (:station_id, :name, :description, :event_type, :day_of_week, :start_time, :end_time, :template_id, :requires_registration, :registration_deadline, :requires_confirmation, :category_id, :registration_limit, :min_registrations, :threshold_days, :registration_close_days)
                 RETURNING %s, %s;""",
                 call().bind("station_id", stationId)
                         .bind("name", name)
@@ -287,7 +301,7 @@ public class EventRepository {
                         .bind("category_id", categoryId)
                         .bind("registration_limit", registrationLimit)
                         .bind("min_registrations", minRegistrations)
-                        .bind("threshold_date", thresholdDate, INSTANT_TIMESTAMP)
+                        .bind("threshold_days", thresholdDays)
                         .bind("registration_close_days", registrationCloseDays),
                 StationEvent.map(),
                 EVENT_COLUMNS,
@@ -314,21 +328,21 @@ public class EventRepository {
     public boolean update(
             int id,
             String name,
-            String description,
+            @Nullable String description,
             StationEvent.EventType eventType,
-            Integer dayOfWeek,
+            @Nullable Integer dayOfWeek,
             Instant startTime,
             Instant endTime,
-            Integer templateId,
+            @Nullable Integer templateId,
             boolean requiresRegistration,
-            Instant registrationDeadline,
+            @Nullable Instant registrationDeadline,
             boolean requiresConfirmation,
-            Integer categoryId,
-            Boolean isPublic,
-            Integer registrationLimit,
-            Integer minRegistrations,
-            Instant thresholdDate,
-            Integer registrationCloseDays) {
+            @Nullable Integer categoryId,
+            @Nullable Boolean isPublic,
+            @Nullable Integer registrationLimit,
+            @Nullable Integer minRegistrations,
+            @Nullable Integer thresholdDays,
+            @Nullable Integer registrationCloseDays) {
         return query("""
                 UPDATE station_event
                 SET
@@ -346,7 +360,7 @@ public class EventRepository {
                     public                  = :public,
                     registration_limit      = :registration_limit,
                     min_registrations       = :min_registrations,
-                    threshold_date          = :threshold_date,
+                    threshold_days          = :threshold_days,
                     registration_close_days = :registration_close_days,
                     updated_at              = now()
                 WHERE id = :id;""")
@@ -364,7 +378,7 @@ public class EventRepository {
                         .bind("public", isPublic)
                         .bind("registration_limit", registrationLimit)
                         .bind("min_registrations", minRegistrations)
-                        .bind("threshold_date", thresholdDate, INSTANT_TIMESTAMP)
+                        .bind("threshold_days", thresholdDays)
                         .bind("registration_close_days", registrationCloseDays)
                         .bind("id", id))
                 .update()
@@ -382,7 +396,7 @@ public class EventRepository {
      * @param count how many times it takes place in total, or null
      * @return true if a row was updated
      */
-    public boolean updateRepeatEnd(int id, LocalDate until, Integer count) {
+    public boolean updateRepeatEnd(int id, @Nullable LocalDate until, @Nullable Integer count) {
         return query("""
                 UPDATE station_event
                 SET repeat_until = :repeat_until,
@@ -465,7 +479,8 @@ public class EventRepository {
                   AND e.registration_deadline < now()
                   AND e.deadline_notified = FALSE
                   AND e.cancelled = FALSE
-                GROUP BY e.id, e.station_id, e.name;""")
+                  AND %s
+                GROUP BY e.id, e.station_id, e.name;""", CancellationSql.NO_DATE_CANCELLED)
                 .single(call())
                 .map(row -> new ExpiredDeadlineEvent(
                         row.getInt("event_id"),
@@ -497,13 +512,14 @@ public class EventRepository {
                 WHERE e.requires_registration
                   AND e.event_type = 'ONE_TIME'
                   AND e.cancelled = FALSE
+                  AND %s
                   AND e.registration_deadline IS NOT NULL
                   AND e.registration_deadline > now()
                   AND e.registration_deadline <= now() + make_interval(days => :days_before)
                   AND NOT EXISTS (SELECT 1
                                   FROM event_deadline_reminder_sent s
                                   WHERE s.event_id = e.id
-                                    AND s.days_before = :days_before);""")
+                                    AND s.days_before = :days_before);""", CancellationSql.NO_DATE_CANCELLED)
                 .single(call().bind("days_before", daysBefore))
                 .map(row -> new ClosingEvent(
                         row.getInt("event_id"),
@@ -544,6 +560,18 @@ public class EventRepository {
     }
 
     /**
+     * Marks an event as changed without changing anything on its row, for a change kept beside it,
+     * such as one of its dates being called off, that the calendar feeds have to pick up.
+     *
+     * @param eventId the event
+     */
+    public void touch(int eventId) {
+        query("UPDATE station_event SET updated_at = now() WHERE id = :id;")
+                .single(call().bind("id", eventId))
+                .update();
+    }
+
+    /**
      * Returns the most recent {@code updated_at} across all events of a station, or
      * {@link Instant#EPOCH} when the station has no events. Used to derive feed ETags so the
      * cached iCal feed picks up event mutations.
@@ -563,7 +591,7 @@ public class EventRepository {
      * @param reason optional cancellation reason
      * @return true if a row was updated
      */
-    public boolean cancelEvent(int id, String reason) {
+    public boolean cancelEvent(int id, @Nullable String reason) {
         return query("""
                 UPDATE station_event
                 SET cancelled = TRUE,
@@ -577,37 +605,25 @@ public class EventRepository {
     }
 
     /**
-     * Finds events that should be auto-cancelled because their threshold date has passed
-     * and they have not reached the minimum number of accepted registrations.
+     * Finds the events whose dates are called off when too few registrations were accepted for them
+     * in time: the ones with a minimum and a number of days before each date, whose series is not
+     * called off as a whole.
      *
-     * @return the list of events to auto-cancel
+     * <p>Which of their dates fall short is the calendar's and the registrations' question, asked per
+     * date by the caller.
+     *
+     * @return those events
      */
-    public List<StationEvent> findAutoCancel() {
+    public List<StationEvent> findThresholdCandidates() {
         return query("""
                 SELECT %s, %s
                 FROM station_event e
                 WHERE e.cancelled = FALSE
                   AND e.min_registrations IS NOT NULL
-                  AND e.threshold_date IS NOT NULL
-                  AND e.threshold_date <= now()
-                  AND (SELECT count(*) FROM event_registration er
-                       WHERE er.event_id = e.id AND er.status = 'ACCEPTED') < e.min_registrations;""", SqlSupport.alias("e", EVENT_COLUMNS), EVENT_RESTRICTED_COLUMN)
+                  AND e.threshold_days IS NOT NULL;""", SqlSupport.alias("e", EVENT_COLUMNS), EVENT_RESTRICTED_COLUMN)
                 .single(call())
                 .map(StationEvent.map())
                 .all();
-    }
-
-    /**
-     * Marks an event's threshold as notified, preventing duplicate warnings.
-     *
-     * @param eventId the event ID
-     * @return true if a row was updated
-     */
-    public boolean setThresholdNotified(int eventId) {
-        return query("UPDATE station_event SET threshold_notified = TRUE, updated_at = now() WHERE id = :id;")
-                .single(call().bind("id", eventId))
-                .update()
-                .changed();
     }
 
     /**
@@ -637,20 +653,6 @@ public class EventRepository {
                 "SELECT 1 FROM station_event WHERE station_id = :station_id LIMIT 1;",
                 call().bind("station_id", stationId));
     }
-
-    /**
-     * Time-window filter for the event picker.
-     */
-    public enum PickerMode {
-        FUTURE,
-        PAST,
-        ALL
-    }
-
-    /**
-     * Lightweight picker result row. Exposes only the public UUID - never the internal id.
-     */
-    public record PickerEvent(UUID eventUid, String name, Instant startTime, String categoryName) {}
 
     /**
      * A one-time event whose registration deadline has passed with pending registrations left.

@@ -3,21 +3,13 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {ref, type Ref} from 'vue'
+import type {Ref} from 'vue'
+import {browserRef, browserShallowRef} from '@/util/browserState'
 import client from '@/api/client'
+import type {PublicMapsConfig} from '@/api/generated/schema'
 
-export type MapTileProvider = 'OSM' | 'MAPBOX' | 'STADIA' | 'MAPTILER' | 'THUNDERFOREST' | 'CUSTOM'
-
-export interface PublicMapsConfig {
-    provider: MapTileProvider
-    urlTemplate: string
-    attribution: string
-    minZoom: number
-    maxZoom: number
-}
-
-const cache = ref<PublicMapsConfig | null>(null)
-let inFlight: Promise<PublicMapsConfig> | null = null
+const cache = browserRef<PublicMapsConfig | null>(null)
+const inFlight = browserShallowRef<Promise<PublicMapsConfig> | null>(null)
 
 /**
  * Fetches the instance-wide public maps config once per session and caches it. Multiple
@@ -30,17 +22,18 @@ export function useMapsConfig(): {
 } {
     async function load(): Promise<PublicMapsConfig> {
         if (cache.value) return cache.value
-        if (inFlight) return inFlight
-        inFlight = (async () => {
+        if (inFlight.value) return inFlight.value
+        const request = (async () => {
             try {
                 const res = await client.get<PublicMapsConfig>('/public/settings/maps')
                 cache.value = res.data
                 return res.data
             } finally {
-                inFlight = null
+                inFlight.value = null
             }
         })()
-        return inFlight
+        inFlight.value = request
+        return request
     }
 
     async function reload(): Promise<PublicMapsConfig> {

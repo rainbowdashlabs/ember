@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.federation.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import org.jspecify.annotations.Nullable;
 
 import java.time.LocalDate;
 
@@ -15,8 +16,8 @@ import java.time.LocalDate;
 public record InventoryBlock(
         int id,
         int stationId,
-        Integer inventoryId,
-        Integer itemId,
+        @Nullable Integer inventoryId,
+        @Nullable Integer itemId,
         LocalDate blockFrom,
         LocalDate blockTo,
         String reason) {

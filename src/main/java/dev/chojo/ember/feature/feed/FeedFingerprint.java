@@ -5,11 +5,9 @@
  */
 package dev.chojo.ember.feature.feed;
 
+import dev.chojo.ember.util.Sha256;
 import io.javalin.http.Context;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
@@ -34,26 +32,16 @@ public final class FeedFingerprint {
     /**
      * Computes a stable, quoted ETag and the corresponding {@code Last-Modified} instant for
      * the given input tuple. Strings are joined with {@code \0} so distinct fields cannot
-     * accidentally collide.
+     * accidentally collide. The first 16 hex characters of the hash are kept: collisions stay out of
+     * reach and the header stays short for readers that poll often.
      */
     public static Result compute(Instant lastModified, Object... parts) {
-        try {
-            var md = MessageDigest.getInstance("SHA-256");
-            for (Object p : parts) {
-                md.update(String.valueOf(p).getBytes(StandardCharsets.UTF_8));
-                md.update((byte) 0);
-            }
-            md.update(String.valueOf(lastModified.toEpochMilli()).getBytes(StandardCharsets.UTF_8));
-            byte[] digest = md.digest();
-            var sb = new StringBuilder("\"");
-            // First 16 hex chars are plenty - full SHA-256 collision risk is astronomically low,
-            // and short ETags keep request/response headers compact for chatty pollers.
-            for (int i = 0; i < 8; i++) sb.append(String.format("%02x", digest[i]));
-            sb.append("\"");
-            return new Result(sb.toString(), lastModified);
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 unavailable", e);
+        var input = new StringBuilder();
+        for (Object part : parts) {
+            input.append(part).append('\0');
         }
+        input.append(lastModified.toEpochMilli());
+        return new Result("\"" + Sha256.hexPrefix(input.toString(), 16) + "\"", lastModified);
     }
 
     /**

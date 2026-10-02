@@ -7,7 +7,12 @@ package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.cluster.entity.StationKind;
+import dev.chojo.ember.feature.events.entity.CancellationCause;
+import dev.chojo.ember.feature.events.entity.EventBreak;
+import dev.chojo.ember.feature.events.entity.EventDateCancellation;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.events.repository.EventBreakRepository;
+import dev.chojo.ember.feature.events.repository.EventDateCancellationRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventReminderRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
@@ -15,9 +20,11 @@ import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
+import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.notifications.entity.StationAudience;
+import dev.chojo.ember.feature.notifications.service.Notifier;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -26,18 +33,15 @@ import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.service.StationReadOnlyGuard;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
 
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
-import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
 
 class EventReminderCheckerTest {
@@ -45,11 +49,13 @@ class EventReminderCheckerTest {
     private EventReminderRepository reminderRepository;
     private EventRegistrationRepository registrationRepository;
     private StationMemberRepository stationMemberRepository;
-    private NotificationService notificationService;
+    private Notifier notifier;
     private MemberNameResolver memberNameResolver;
     private EventRestrictionService restrictionService;
     private StationReadOnlyGuard readOnlyGuard;
     private StationRepository stationRepository;
+    private EventBreakRepository breakRepository;
+    private EventDateCancellationRepository cancellationRepository;
 
     private static final int STATION_ID = 1;
     private static final ZoneId BERLIN = ZoneId.of("Europe/Berlin");
@@ -60,7 +66,7 @@ class EventReminderCheckerTest {
         reminderRepository = mock(EventReminderRepository.class);
         registrationRepository = mock(EventRegistrationRepository.class);
         stationMemberRepository = mock(StationMemberRepository.class);
-        notificationService = mock(NotificationService.class);
+        notifier = mock(Notifier.class);
         memberNameResolver = mock(MemberNameResolver.class);
         restrictionService = mock(EventRestrictionService.class);
         when(restrictionService.canRegister(anyInt(), anyInt(), any())).thenReturn(true);
@@ -68,6 +74,8 @@ class EventReminderCheckerTest {
         readOnlyGuard = mock(StationReadOnlyGuard.class);
         when(readOnlyGuard.isWritable(anyInt())).thenReturn(true);
         stationRepository = mock(StationRepository.class);
+        breakRepository = mock(EventBreakRepository.class);
+        cancellationRepository = mock(EventDateCancellationRepository.class);
     }
 
     /**
@@ -93,8 +101,27 @@ class EventReminderCheckerTest {
         invokeCheck();
 
         verify(reminderRepository).markSent(42, eventDate, 3);
-        verify(notificationService)
-                .notifyMembers(eq(List.of(10)), eq(NotificationType.EVENT_REMINDER), any(NotificationData.class));
+        verifyReminded(10);
+    }
+
+    /** Nobody is reminded of a date that was called off, and the reminder is not spent on it either. */
+    @Test
+    void aCancelledDateIsNotRemindedOf() {
+        when(stationRepository.findById(STATION_ID)).thenReturn(Optional.of(berlinStation()));
+        LocalDate eventDate = LocalDate.now(BERLIN).plusDays(3);
+        Instant eventStart = eventDate.atTime(18, 0).atZone(BERLIN).toInstant();
+
+        var event = oneTimeEvent(42, eventStart, false);
+        when(eventRepository.findEventsWithReminders()).thenReturn(List.of(event));
+        when(reminderRepository.findDays(42)).thenReturn(List.of(3));
+        when(cancellationRepository.findActiveByStation(STATION_ID))
+                .thenReturn(List.of(new EventDateCancellation(
+                        42, eventDate, CancellationCause.MANUAL, null, Instant.now(), null, null)));
+
+        invokeCheck();
+
+        verify(reminderRepository, never()).markSent(anyInt(), any(), anyInt());
+        verify(notifier, never()).notify(any(), eq(NotificationType.EVENT_REMINDER), any(), any());
     }
 
     private static Station berlinStation() {
@@ -111,7 +138,6 @@ class EventReminderCheckerTest {
                 ThemeFeel.ROUNDED,
                 false,
                 PublicKbMode.OFF,
-                null,
                 DiscoveryVisibility.NONE,
                 null,
                 false,
@@ -159,7 +185,6 @@ class EventReminderCheckerTest {
                 null,
                 null,
                 null,
-                false,
                 null,
                 null,
                 null);
@@ -190,7 +215,6 @@ class EventReminderCheckerTest {
                 null,
                 null,
                 null,
-                false,
                 null,
                 null,
                 null);
@@ -221,10 +245,19 @@ class EventReminderCheckerTest {
                 null,
                 null,
                 null,
-                false,
                 null,
                 null,
                 null);
+    }
+
+    /** Verifies that exactly these members were reminded of a date. */
+    private void verifyReminded(Integer... memberIds) {
+        verify(notifier)
+                .notify(
+                        eq(StationAudience.members(List.of(memberIds))),
+                        eq(NotificationType.EVENT_REMINDER),
+                        any(NotificationData.class),
+                        eq(Delivery.EVERY_TIME));
     }
 
     private StationMember member(int id) {
@@ -244,15 +277,16 @@ class EventReminderCheckerTest {
         when(eventRepository.findEventsWithReminders()).thenReturn(List.of());
         when(readOnlyGuard.isWritable(STATION_ID)).thenReturn(true);
         when(registrationRepository.findUnansweredMemberIds(7, STATION_ID)).thenReturn(List.of(10));
-        when(stationMemberRepository.findById(10)).thenReturn(Optional.of(member(10)));
-        when(stationMemberRepository.findManagers(10)).thenReturn(List.of(member(11)));
         when(memberNameResolver.called(10)).thenReturn("Kind");
 
         invokeCheck();
 
-        var audience = ArgumentCaptor.forClass(Collection.class);
-        verify(notificationService).notifyMembers(audience.capture(), eq(NotificationType.REGISTRATION_CLOSING), any());
-        assertTrue(audience.getValue().containsAll(List.of(10, 11)), "the member and their guardian both hear");
+        verify(notifier)
+                .notify(
+                        eq(StationAudience.household(List.of(10))),
+                        eq(NotificationType.REGISTRATION_CLOSING),
+                        any(NotificationData.class),
+                        eq(Delivery.EVERY_TIME));
         verify(reminderRepository).markDeadlineWarningSent(7, 3);
     }
 
@@ -275,7 +309,7 @@ class EventReminderCheckerTest {
 
         invokeCheck();
 
-        verify(notificationService, never()).notifyMembers(any(), eq(NotificationType.REGISTRATION_CLOSING), any());
+        verify(notifier, never()).notify(any(), eq(NotificationType.REGISTRATION_CLOSING), any(), any());
         verify(reminderRepository).markDeadlineWarningSent(7, 3);
     }
 
@@ -287,7 +321,7 @@ class EventReminderCheckerTest {
 
         invokeCheck();
 
-        verify(notificationService, never()).notifyMembers(any(), eq(NotificationType.REGISTRATION_CLOSING), any());
+        verify(notifier, never()).notify(any(), eq(NotificationType.REGISTRATION_CLOSING), any(), any());
     }
 
     @Test
@@ -303,21 +337,9 @@ class EventReminderCheckerTest {
         when(stationMemberRepository.findByStation(STATION_ID)).thenReturn(List.of(member(10), member(11)));
         when(registrationRepository.findNotAttendingMemberIds(42, eventDate)).thenReturn(List.of());
 
-        createCheckerWithoutScheduler();
+        invokeCheck();
 
-        // The check runs after 5 minutes delay via scheduler, so we invoke it indirectly via constructor.
-        // Instead, we test the logic by calling the method reflectively.
-        try {
-            var method = EventReminderChecker.class.getDeclaredMethod("check");
-            method.setAccessible(true);
-            var checker = createCheckerWithoutScheduler();
-            method.invoke(checker);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-
-        verify(notificationService)
-                .notifyMembers(eq(List.of(10, 11)), eq(NotificationType.EVENT_REMINDER), any(NotificationData.class));
+        verifyReminded(10, 11);
         verify(reminderRepository).markSent(42, eventDate, 3);
     }
 
@@ -334,7 +356,7 @@ class EventReminderCheckerTest {
 
         invokeCheck();
 
-        verify(notificationService, never()).notifyMembers(anyList(), any(), any());
+        verify(notifier, never()).notify(any(), any(), any(), any());
         verify(reminderRepository, never()).markSent(anyInt(), any(), anyInt());
     }
 
@@ -348,12 +370,11 @@ class EventReminderCheckerTest {
         when(eventRepository.findEventsWithReminders()).thenReturn(List.of(event));
         when(reminderRepository.findDays(42)).thenReturn(List.of(2));
         when(reminderRepository.isSent(42, eventDate, 2)).thenReturn(false);
-        when(registrationRepository.findRegisteredMemberIds(42)).thenReturn(List.of(20, 21));
+        when(registrationRepository.findRegisteredMemberIds(42, eventDate)).thenReturn(List.of(20, 21));
 
         invokeCheck();
 
-        verify(notificationService)
-                .notifyMembers(eq(List.of(20, 21)), eq(NotificationType.EVENT_REMINDER), any(NotificationData.class));
+        verifyReminded(20, 21);
         verify(stationMemberRepository, never()).findByStation(anyInt());
     }
 
@@ -367,11 +388,11 @@ class EventReminderCheckerTest {
         when(eventRepository.findEventsWithReminders()).thenReturn(List.of(event));
         when(reminderRepository.findDays(42)).thenReturn(List.of(1));
         when(reminderRepository.isSent(42, eventDate, 1)).thenReturn(false);
-        when(registrationRepository.findRegisteredMemberIds(42)).thenReturn(List.of());
+        when(registrationRepository.findRegisteredMemberIds(42, eventDate)).thenReturn(List.of());
 
         invokeCheck();
 
-        verify(notificationService, never()).notifyMembers(anyList(), any(), any());
+        verify(notifier, never()).notify(any(), any(), any(), any());
         verify(reminderRepository).markSent(42, eventDate, 1);
     }
 
@@ -389,8 +410,7 @@ class EventReminderCheckerTest {
 
         invokeCheck();
 
-        verify(notificationService)
-                .notifyMembers(eq(List.of(10)), eq(NotificationType.EVENT_REMINDER), any(NotificationData.class));
+        verifyReminded(10);
     }
 
     @Test
@@ -408,8 +428,7 @@ class EventReminderCheckerTest {
 
         invokeCheck();
 
-        verify(notificationService)
-                .notifyMembers(eq(List.of(10)), eq(NotificationType.EVENT_REMINDER), any(NotificationData.class));
+        verifyReminded(10);
     }
 
     @Test
@@ -418,7 +437,7 @@ class EventReminderCheckerTest {
 
         invokeCheck();
 
-        verify(notificationService, never()).notifyMembers(anyList(), any(), any());
+        verify(notifier, never()).notify(any(), any(), any(), any());
     }
 
     @Test
@@ -433,7 +452,7 @@ class EventReminderCheckerTest {
 
         invokeCheck();
 
-        verify(notificationService, never()).notifyMembers(anyList(), any(), any());
+        verify(notifier, never()).notify(any(), any(), any(), any());
     }
 
     @Test
@@ -462,7 +481,6 @@ class EventReminderCheckerTest {
                 null,
                 null,
                 null,
-                false,
                 null,
                 null,
                 null);
@@ -471,11 +489,35 @@ class EventReminderCheckerTest {
 
         invokeCheck();
 
-        verify(notificationService, never()).notifyMembers(anyList(), any(), any());
+        verify(notifier, never()).notify(any(), any(), any(), any());
     }
 
+    /**
+     * A day the station takes a break on is not an occurrence, so nobody is reminded of it.
+     *
+     * <p>The reminders used to read the repetition alone, and members were told to come to a drill
+     * the station had called off for the holidays.
+     */
     @Test
-    void checkHandlesNullDayOfWeekForRecurring() {
+    void nobodyIsRemindedOfADateABreakTakesOut() {
+        LocalDate today = LocalDate.now(ZoneOffset.UTC);
+        var event = recurringEvent(50, today.getDayOfWeek().getValue());
+        when(breakRepository.findByStation(STATION_ID))
+                .thenReturn(List.of(new EventBreak(1, STATION_ID, "Ferien", today, today)));
+        when(eventRepository.findEventsWithReminders()).thenReturn(List.of(event));
+        when(reminderRepository.findDays(50)).thenReturn(List.of(0));
+        when(stationMemberRepository.findByStation(STATION_ID)).thenReturn(List.of(member(10)));
+
+        invokeCheck();
+
+        verify(notifier, never()).notify(any(), any(), any(), any());
+        verify(reminderRepository, never()).markSent(anyInt(), any(), anyInt());
+    }
+
+    /** A weekly series that names no weekday repeats on the weekday of its start, as a calendar reads it. */
+    @Test
+    void aWeeklySeriesWithoutAWeekdayIsRemindedOnTheWeekdayOfItsStart() {
+        LocalDate today = LocalDate.now(ZoneOffset.UTC);
         var event = new StationEvent(
                 42,
                 STATION_ID,
@@ -500,29 +542,29 @@ class EventReminderCheckerTest {
                 null,
                 null,
                 null,
-                false,
                 null,
                 null,
                 null);
         when(eventRepository.findEventsWithReminders()).thenReturn(List.of(event));
-        when(reminderRepository.findDays(42)).thenReturn(List.of(1));
+        when(reminderRepository.findDays(42)).thenReturn(List.of(0));
+        when(stationMemberRepository.findByStation(STATION_ID)).thenReturn(List.of(member(10)));
+        when(registrationRepository.findNotAttendingMemberIds(42, today)).thenReturn(List.of());
 
         invokeCheck();
 
-        verify(notificationService, never()).notifyMembers(anyList(), any(), any());
+        verify(reminderRepository).markSent(42, today, 0);
     }
 
     @Test
     void checkHandlesMonthlyFirstEvent() {
         LocalDate today = LocalDate.now(ZoneOffset.UTC);
-        // Find a date within the first 7 days of this month matching today's DOW
         LocalDate firstOfMonth = today.withDayOfMonth(1);
         LocalDate target = firstOfMonth;
         while (target.getDayOfWeek().getValue() != today.getDayOfWeek().getValue()) {
             target = target.plusDays(1);
         }
-        // Only test if that target matches today (within first 7 days)
-        if (target.equals(today) && today.getDayOfMonth() <= 7) {
+        boolean todayIsTheFirstOfItsWeekdayThisMonth = target.equals(today) && today.getDayOfMonth() <= 7;
+        if (todayIsTheFirstOfItsWeekdayThisMonth) {
             var event = monthlyFirstEvent(60, today.getDayOfWeek().getValue());
             when(eventRepository.findEventsWithReminders()).thenReturn(List.of(event));
             when(reminderRepository.findDays(60)).thenReturn(List.of(0));
@@ -532,8 +574,7 @@ class EventReminderCheckerTest {
 
             invokeCheck();
 
-            verify(notificationService)
-                    .notifyMembers(eq(List.of(10)), eq(NotificationType.EVENT_REMINDER), any(NotificationData.class));
+            verifyReminded(10);
         }
     }
 
@@ -546,16 +587,18 @@ class EventReminderCheckerTest {
                     reminderRepository,
                     registrationRepository,
                     stationMemberRepository,
-                    notificationService,
+                    notifier,
                     memberNameResolver,
                     restrictionService,
                     readOnlyGuard,
-                    stationRepository);
+                    new OccurrenceCalendar(
+                            eventRepository, breakRepository, cancellationRepository, stationRepository));
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
 
+    /** Calls the check directly, since the scheduler only runs it after a five minute delay. */
     private void invokeCheck() {
         try {
             var checker = createCheckerWithoutScheduler();

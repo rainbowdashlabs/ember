@@ -5,17 +5,21 @@
  */
 package dev.chojo.ember.feature.knowledgebase.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.KnowledgeBaseRefusal;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFavourite;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFavouriteTarget;
 import dev.chojo.ember.feature.knowledgebase.service.KbAccessService;
 import dev.chojo.ember.feature.knowledgebase.service.KbFavouriteService;
-import dev.chojo.ember.feature.members.entity.StationMember;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
+import io.javalin.openapi.HttpMethod;
+import io.javalin.openapi.OpenApi;
+import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiRequestBody;
+import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -23,14 +27,12 @@ import jakarta.inject.Singleton;
 import java.util.UUID;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
-import static dev.chojo.ember.feature.knowledgebase.route.KbRouteAccess.accessOf;
-import static dev.chojo.ember.feature.knowledgebase.route.KbRouteAccess.readerUserType;
+import static dev.chojo.ember.feature.knowledgebase.service.KbGuards.accessOf;
 
 /**
  * The reader's own favourites in the wiki: listing them, marking something, and taking a mark off.
  *
- * <p>A favourite belongs to a member, so a session with station rights but no member row of its own
- * has none and can mark nothing.
+ * <p>A favourite belongs to a member, so only a member of the station has any.
  */
 @Singleton
 public class KbFavouriteRoutes implements Routes {
@@ -50,29 +52,31 @@ public class KbFavouriteRoutes implements Routes {
         routes.delete(prefix + "/kb/favourites/{id}", this::unmark, StationPermission.USER);
     }
 
-    private static StationMember requireMember(UserSession session) {
-        var member = session.member();
-        if (member == null) throw Refusal.KB_FAVOURITES_NEED_A_MEMBER.raise();
-        return member;
-    }
-
+    @OpenApi(
+            path = "/api/v1/kb/favourites",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = KbFavourite[].class)))
     private void list(Context ctx) {
-        requireMember(UserSession.from(ctx));
+        StationSession.from(ctx);
         ctx.json(favourites.list(accessOf(ctx, accessService)));
     }
 
+    @OpenApi(
+            path = "/api/v1/kb/favourites",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = MarkFavouriteRequest.class)),
+            responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = KbFavourite.class)))
     private void mark(Context ctx) {
-        var session = UserSession.from(ctx);
-        var member = requireMember(session);
+        var session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(MarkFavouriteRequest.class);
-        if (request.target() == null) throw Refusal.KB_FAVOURITE_NEEDS_A_TARGET.raise();
+        if (request.target() == null) throw KnowledgeBaseRefusal.KB_FAVOURITE_NEEDS_A_TARGET.raise();
         KbFavourite marked;
         if (request.target().isPartner()) {
-            if (request.partnerStationUid() == null) throw Refusal.KB_FAVOURITE_NEEDS_A_PARTNER.raise();
+            if (request.partnerStationUid() == null) throw KnowledgeBaseRefusal.KB_FAVOURITE_NEEDS_A_PARTNER.raise();
             marked = favourites.markPartner(
                     session.stationId(),
-                    member.id(),
-                    readerUserType(session),
+                    session.member().id(),
+                    session.userType(),
                     request.target(),
                     request.partnerStationUid(),
                     request.entryId());
@@ -83,9 +87,14 @@ public class KbFavouriteRoutes implements Routes {
         ctx.status(HttpStatus.CREATED).json(marked);
     }
 
+    @OpenApi(
+            path = "/api/v1/kb/favourites/{id}",
+            methods = HttpMethod.DELETE,
+            responses = @OpenApiResponse(status = "204"))
     private void unmark(Context ctx) {
-        var member = requireMember(UserSession.from(ctx));
-        if (!favourites.unmark(member.id(), pathInt(ctx, "id"))) throw Refusal.KB_FAVOURITE_NOT_HERE.raise();
+        var member = StationSession.from(ctx).member();
+        if (!favourites.unmark(member.id(), pathInt(ctx, "id")))
+            throw KnowledgeBaseRefusal.KB_FAVOURITE_NOT_HERE.raise();
         ctx.status(HttpStatus.NO_CONTENT);
     }
 

@@ -8,7 +8,7 @@ import {useI18n} from 'vue-i18n'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import type {LendingRequestDetail} from '@/api/lending'
+import type {LendingRequestDetail} from '@/api/generated/schema'
 
 defineProps<{
   detail: LendingRequestDetail
@@ -35,5 +35,5 @@ const {t} = useI18n()
       </tbody>
     </table>
   </NeutralContainer>
-  <MutedText tag="p" size="sm" v-else>{{ t('lending.noItems') }}</MutedText>
+  <MutedText v-else tag="p" size="sm">{{ t('lending.noItems') }}</MutedText>
 </template>

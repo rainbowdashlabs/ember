@@ -5,8 +5,9 @@
  */
 <script setup lang="ts">
 import SelectInput from '@/components/input/select/SelectInput.vue'
-import type {PublicFormQuestion} from '@/api/publicForms'
-import type {ChoiceAnswer, FormOption} from '@/api/forms'
+import {computed} from 'vue'
+import {QuestionTypes} from '@/api/forms'
+import type {ChoiceAnswer, Option, PublicFormQuestion} from '@/api/generated/schema'
 import {optionsOf} from '@/util/formOptions'
 
 const props = defineProps<{
@@ -19,12 +20,15 @@ const emit = defineEmits<{
   (e: 'toggle', optionKey: string): void
 }>()
 
-function options(): FormOption[] {
+function options(): Option[] {
   return optionsOf(props.question.config)
 }
 
+/** The question's settings as a choice question has them, which is the only kind this field draws. */
+const choice = computed(() => (props.question.config.questionType === QuestionTypes.CHOICE ? props.question.config : null))
+
 function isSelected(optionKey: string): boolean {
-  return props.answer?.selected?.includes(optionKey) ?? false
+  return props.answer.selected.includes(optionKey)
 }
 
 function onSelectChange(v: string | number | null | undefined) {
@@ -38,9 +42,9 @@ function onOptionClick(optionKey: string) {
 
 <template>
   <div class="space-y-1">
-    <template v-if="question.config.dropdown">
+    <template v-if="choice?.dropdown">
       <SelectInput
-          :model-value="answer?.selected?.[0] ?? ''"
+          :model-value="answer.selected[0] ?? ''"
           @update:model-value="onSelectChange">
         <option value="">--</option>
         <option v-for="opt in options()" :key="opt.key" :value="opt.key">
@@ -48,23 +52,28 @@ function onOptionClick(optionKey: string) {
         </option>
       </SelectInput>
     </template>
-    <template v-else>
+    <div v-else role="listbox" :aria-multiselectable="!!choice?.multiSelect" class="space-y-1">
       <div v-for="opt in options()"
            :key="opt.key"
+           role="option"
+           tabindex="0"
+           :aria-selected="isSelected(opt.key)"
            data-testid="choice-option"
            class="flex cursor-pointer items-center gap-2 rounded-lg border-2 px-4 py-3 text-sm font-medium transition-all"
            :class="isSelected(opt.key)
              ? 'border-primary bg-primary/10 text-primary'
              : 'border-bg-light-accent dark:border-bg-dark-accent text-(--text) hover:border-primary/50'"
-           @click="onOptionClick(opt.key)">
+           @click="onOptionClick(opt.key)"
+           @keydown.enter.prevent="onOptionClick(opt.key)"
+           @keydown.space.prevent="onOptionClick(opt.key)">
         <font-awesome-icon
             :icon="['fas', isSelected(opt.key)
-              ? (question.config.multiSelect ? 'square-check' : 'circle-dot')
-              : (question.config.multiSelect ? 'square' : 'circle')]"
+              ? (choice?.multiSelect ? 'square-check' : 'circle-dot')
+              : (choice?.multiSelect ? 'square' : 'circle')]"
             :class="isSelected(opt.key) ? 'text-primary' : 'text-(--text-muted)'"
             class="shrink-0"/>
         <span>{{ opt.label }}</span>
       </div>
-    </template>
+    </div>
   </div>
 </template>

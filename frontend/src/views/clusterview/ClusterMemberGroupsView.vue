@@ -4,28 +4,25 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, ref} from 'vue'
+import {computed, reactive, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
-import ViewContent from '@/components/layout/ViewContent.vue'
-import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
-import GroupListPanel from '@/views/stationview/members/groupsview/GroupListPanel.vue'
-import GroupDetailPanel from '@/views/stationview/members/groupsview/GroupDetailPanel.vue'
-import GroupFormModal from '@/views/stationview/members/groupsview/GroupFormModal.vue'
-import GroupDeleteModal from '@/views/stationview/members/groupsview/GroupDeleteModal.vue'
-import {useMemberAssignment} from '@/views/stationview/members/useMemberAssignment'
-import {memberDisplayName} from '@/views/stationview/members/listview/useMemberData'
+import GroupsScreen from '@/components/groups/GroupsScreen.vue'
 import {clusterMembers, data} from '@/api'
-import {clusterMemberIdentity, type ClusterMemberSummary} from '@/api/clusterMembers'
+import {clusterMemberIdentity} from '@/api/clusterMembers'
+import type {ClusterMemberResponse} from '@/api/generated/schema'
+import type {PermissionGrant} from '@/composables/usePermissionTree'
 import {ClusterPermission} from '@/api/clusters'
 import {useSession} from '@/composables/useSession'
-import {useGroupsConfig, type GroupsPort} from '@/composables/useGroupsConfig'
-import type {PermissionGrant} from '@/api/types'
+import type {GroupsCapabilities, GroupsPort} from '@/composables/useGroupsConfig'
 
 const {t} = useI18n()
 const {hasClusterPermission} = useSession()
 
-const editable = computed(() => hasClusterPermission(ClusterPermission.CLUSTER_MEMBER_MANAGER))
+/**
+ * Every write on this screen is the association administrator's, so only they are offered one. Followed
+ * rather than read once, because the session may still be on its way when the screen opens.
+ */
+const editable = computed(() => hasClusterPermission(ClusterPermission.CLUSTER_ADMINISTRATOR))
 
 /**
  * The association's permissions in the shape the shared picker speaks.
@@ -45,7 +42,7 @@ const nameById = computed(() => new Map(grants.value.map(g => [g.id, g.permissio
  * rather than members of a station, so the identity is built from the account here instead of arriving
  * from the server, and without it every row showed a blank name beside an empty avatar.
  */
-function drawable(member: ClusterMemberSummary) {
+function drawable(member: ClusterMemberResponse) {
   return {...member, identity: clusterMemberIdentity(member)}
 }
 
@@ -83,64 +80,18 @@ const port: GroupsPort = {
   },
 }
 
-const {
-  groups, allMembers, allRoles, selectedGroup, groupMembers, groupRoles, groupRoleIds,
-  groupLoading, loading, error, showGroupModal, editingGroup, groupName, groupColor,
-  groupSaving, groupSaveError, selectGroup, openCreateGroup, openEditGroup, saveGroup,
-  showDeleteModal, deleteTarget, requestDelete, confirmDelete,
-} = useGroupsConfig(port, {
-    hasColour: false,
-    canConvertToTag: false,
-    hasPermissions: true,
-    permissionScope: 'cluster',
-    holds: 'members',
+const capabilities: GroupsCapabilities = reactive({
+  hasColour: false,
+  canConvertToTag: false,
+  hasPermissions: true,
+  permissionScope: 'cluster' as const,
+  holds: 'members' as const,
+  canEdit: editable,
 })
-
-const sortedGroupMembers = computed(() =>
-    [...groupMembers.value].sort((a, b) => memberDisplayName(a).localeCompare(memberDisplayName(b)))
-)
-
-const {
-  availableMembers,
-  offeredUserTypes,
-  addMember: addMemberToGroup,
-  removeMember: removeMemberFromGroup,
-} = useMemberAssignment(
-    allMembers,
-    groupMembers,
-    async ids => {
-      await clusterMembers.updateGroup(selectedGroup.value!.id, {memberIds: ids})
-      const held = new Set(ids)
-      return allMembers.value.filter(m => held.has(m.id))
-    },
-    error,
-)
 </script>
 
 <template>
-  <ViewContent :subtitle="t('pages.cluster-member-groups.subtitle')" :title="t('pages.cluster-member-groups.title')">
-    <div class="space-y-6">
-      <Spinner v-if="loading" size="lg"/>
-      <Alert v-if="error || groupSaveError" variant="error">{{ error || groupSaveError }}</Alert>
-
-      <div v-if="!loading" class="grid gap-6 lg:grid-cols-2">
-        <GroupListPanel :groups="groups" :selected-group="selectedGroup" :can-convert-to-tag="false"
-                        @create="openCreateGroup" @select="selectGroup" @edit="openEditGroup"
-                        @delete="requestDelete"/>
-        <GroupDetailPanel v-if="selectedGroup" :selected-group="selectedGroup" :group-loading="groupLoading"
-                          :sorted-group-members="sortedGroupMembers" :available-members="availableMembers"
-                          :offered-user-types="offeredUserTypes"
-                          :group-roles="groupRoles" :all-roles="allRoles" v-model:group-role-ids="groupRoleIds"
-                          :can-edit-roles="editable" @add-member="addMemberToGroup"
-                          @remove-member="removeMemberFromGroup"/>
-        <div v-else class="flex items-center justify-center text-(--text-muted) py-12">
-          {{ t('memberGroups.selectHint') }}
-        </div>
-      </div>
-
-      <GroupFormModal v-model="showGroupModal" :is-edit="!!editingGroup" v-model:name="groupName"
-                      v-model:color="groupColor" :saving="groupSaving" @save="saveGroup"/>
-      <GroupDeleteModal v-model="showDeleteModal" :target="deleteTarget" @confirm="confirmDelete"/>
-    </div>
-  </ViewContent>
+  <GroupsScreen :title="t('pages.cluster-member-groups.title')" :subtitle="t('pages.cluster-member-groups.subtitle')"
+                :select-hint="t('memberGroups.selectHint')" :port="port" :capabilities="capabilities"
+                :can-edit-roles="editable"/>
 </template>

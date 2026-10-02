@@ -8,7 +8,8 @@ package dev.chojo.ember.feature.mailimport.service;
 import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
-import dev.chojo.ember.feature.documents.service.DocumentService;
+import dev.chojo.ember.feature.documents.entity.DocumentFilter;
+import dev.chojo.ember.feature.documents.service.DocumentIntake;
 import dev.chojo.ember.feature.mailimport.entity.MailImportOutcome;
 import dev.chojo.ember.feature.mailimport.entity.MailMailbox;
 import dev.chojo.ember.feature.mailimport.entity.MailRule;
@@ -20,7 +21,6 @@ import dev.chojo.ember.feature.mailimport.repository.MailMailboxRepository;
 import dev.chojo.ember.feature.mailimport.repository.MailOriginRepository;
 import dev.chojo.ember.feature.mailimport.service.MailboxReader.Attachment;
 import dev.chojo.ember.feature.mailimport.service.MailboxReader.Envelope;
-import dev.chojo.ember.feature.media.service.ImageVariantService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
 import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
@@ -66,12 +66,14 @@ class MailFilingServiceTest extends RepositoryTestBase {
 
     private static final Instant ARRIVED = Instant.parse("2026-09-10T08:15:00Z");
 
+    /** The whole store, hidden documents included. */
+    private static final DocumentFilter EVERYTHING = new DocumentFilter(List.of(), null, true, false, false);
+
     @BeforeAll
     static void setup() {
         var backend = new LocalStorageBackend(storageRoot);
         var storage = new StorageService(new StorageBackendResolver(backend), backend);
-        var documentService =
-                new DocumentService(memberDocumentRepo, storage, new ImageVariantService(storage), stationRepo);
+        var documentService = newDocumentService(storage);
         quotaService = new StorageQuotaService(storageUsageRepo, new Storage(), new DomainEventBus(Set.of()));
         originRepository = new MailOriginRepository();
         logRepository = new MailImportLogRepository();
@@ -82,7 +84,7 @@ class MailFilingServiceTest extends RepositoryTestBase {
                 documentService,
                 logRepository,
                 originRepository,
-                quotaService,
+                new DocumentIntake(quotaService),
                 stationId -> List.of(new SubjectMemberMatch.Candidate(memberId, "Anna Weber")));
         mailbox = new MailMailboxRepository()
                 .create(
@@ -118,6 +120,7 @@ class MailFilingServiceTest extends RepositoryTestBase {
                 .id();
     }
 
+    /** Ignores a file that will not delete, because a leftover temporary file is not worth failing a test over. */
     @AfterAll
     static void cleanup() throws IOException {
         stationRepo.delete(station.id());
@@ -128,7 +131,6 @@ class MailFilingServiceTest extends RepositoryTestBase {
                     try {
                         Files.deleteIfExists(path);
                     } catch (IOException ignored) {
-                        // A leftover temporary file is not worth failing a test over.
                     }
                 });
             }
@@ -194,11 +196,10 @@ class MailFilingServiceTest extends RepositoryTestBase {
                 "<msg@musterstadt.de>");
 
         assertEquals(MailImportOutcome.IMPORTED, outcome);
-        var filed =
-                memberDocumentRepo.findByStation(station.id(), List.of(), null, true, false, "simple", 10, 0).stream()
-                        .filter(document -> "Pruefbescheinigung Leiter".equals(document.title()))
-                        .findFirst()
-                        .orElseThrow();
+        var filed = memberDocumentRepo.findByStation(station.id(), EVERYTHING, "simple", 10, 0).stream()
+                .filter(document -> "Pruefbescheinigung Leiter".equals(document.title()))
+                .findFirst()
+                .orElseThrow();
         assertEquals("application/pdf", filed.mimeType());
         assertTrue(memberDocumentRepo.hasNoMembers(filed.id()), "nobody in particular, which is normal");
         assertEquals(
@@ -215,11 +216,10 @@ class MailFilingServiceTest extends RepositoryTestBase {
     @Test
     @Order(2)
     void aFiledDocumentSaysItArrivedByMail() {
-        var filed =
-                memberDocumentRepo.findByStation(station.id(), List.of(), null, true, false, "simple", 10, 0).stream()
-                        .filter(document -> "Pruefbescheinigung Leiter".equals(document.title()))
-                        .findFirst()
-                        .orElseThrow();
+        var filed = memberDocumentRepo.findByStation(station.id(), EVERYTHING, "simple", 10, 0).stream()
+                .filter(document -> "Pruefbescheinigung Leiter".equals(document.title()))
+                .findFirst()
+                .orElseThrow();
 
         var origin = originRepository.findByDocument(filed.id()).orElseThrow();
         assertEquals("post@musterstadt.de", origin.sender());
@@ -326,11 +326,10 @@ class MailFilingServiceTest extends RepositoryTestBase {
                 "<notasked@musterstadt.de>");
 
         assertEquals(MailImportOutcome.IMPORTED, outcome);
-        var filed =
-                memberDocumentRepo.findByStation(station.id(), List.of(), null, true, false, "simple", 20, 0).stream()
-                        .filter(document -> "Unterlagen Anna Weber".equals(document.title()))
-                        .findFirst()
-                        .orElseThrow();
+        var filed = memberDocumentRepo.findByStation(station.id(), EVERYTHING, "simple", 20, 0).stream()
+                .filter(document -> "Unterlagen Anna Weber".equals(document.title()))
+                .findFirst()
+                .orElseThrow();
         assertTrue(memberDocumentRepo.hasNoMembers(filed.id()));
     }
 
@@ -345,8 +344,8 @@ class MailFilingServiceTest extends RepositoryTestBase {
                 "<subject@musterstadt.de>");
 
         assertEquals(MailImportOutcome.IMPORTED, outcome);
-        var filed =
-                memberDocumentRepo.findByStation(station.id(), List.of(memberId), null, true, false, "simple", 20, 0);
+        var filed = memberDocumentRepo.findByStation(
+                station.id(), new DocumentFilter(List.of(memberId), null, true, false, false), "simple", 20, 0);
         assertTrue(filed.stream().anyMatch(document -> "Attest Anna Weber".equals(document.title())));
     }
 
@@ -373,7 +372,7 @@ class MailFilingServiceTest extends RepositoryTestBase {
                 attachment("Geraetepruefung.pdf", pdf("byname")),
                 "<byname@musterstadt.de>");
 
-        var filed = memberDocumentRepo.findByStation(station.id(), List.of(), null, true, false, "simple", 30, 0);
+        var filed = memberDocumentRepo.findByStation(station.id(), EVERYTHING, "simple", 30, 0);
         assertTrue(filed.stream().anyMatch(document -> "Geraetepruefung".equals(document.title())));
     }
 
@@ -388,7 +387,7 @@ class MailFilingServiceTest extends RepositoryTestBase {
                 new Attachment(null, "application/pdf", 20, true, pdf("noname")),
                 "<noname@musterstadt.de>");
 
-        var filed = memberDocumentRepo.findByStation(station.id(), List.of(), null, true, false, "simple", 40, 0);
+        var filed = memberDocumentRepo.findByStation(station.id(), EVERYTHING, "simple", 40, 0);
         assertTrue(filed.stream().anyMatch(document -> "anhang.pdf".equals(document.fileName())));
     }
 

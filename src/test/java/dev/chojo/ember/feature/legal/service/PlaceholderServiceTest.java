@@ -102,6 +102,10 @@ class PlaceholderServiceTest {
         assertTrue(service.values().isEmpty());
     }
 
+    /**
+     * The usages are sorted before comparing, because which language the scan reaches first is the
+     * file system's business and differs between machines.
+     */
     @Test
     void scanReportsEverySectionAPlaceholderAppearsIn() throws IOException {
         Path docs = tempDir.resolve("imprint");
@@ -121,8 +125,6 @@ class PlaceholderServiceTest {
                 .toList();
         assertEquals(List.of("de", "en"), locales);
 
-        // Sorted rather than taken in the order they were found: which language of a document the
-        // scan reaches first is the file system's business, and it differs between machines.
         List<String> sections = found.get("betreiber.name").stream()
                 .map(usage -> usage.section())
                 .sorted()

@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-// @vitest-environment happy-dom
+/** @vitest-environment happy-dom */
 import {describe, expect, it, vi} from 'vitest'
 import {DEFAULT_IMAGE_BUDGET, prepareImageUpload, scaledSize} from './imageUpload'
 

@@ -70,7 +70,7 @@ test.describe('Appointment equipment', () => {
 
             await page.goto(`/station/events/${eventId}/${dayOf(start)}`)
             await expect(page.getByTestId('app-shell')).toBeVisible()
-            await page.getByRole('button', {name: 'Ausrüstung'}).click()
+            await page.getByRole('tab', {name: 'Ausrüstung'}).click()
 
             await expect(page.getByTestId('equipment-empty')).toBeVisible()
 
@@ -87,7 +87,7 @@ test.describe('Appointment equipment', () => {
                 .toContainText('Eigene:')
 
             await page.reload()
-            await page.getByRole('button', {name: 'Ausrüstung'}).click()
+            await page.getByRole('tab', {name: 'Ausrüstung'}).click()
             await expect(page.getByTestId('equipment-need'), 'the line survives a reload').toHaveCount(1)
 
             await page.request.delete(`/api/v1/events/${eventId}`, {headers})
@@ -105,7 +105,7 @@ test.describe('Appointment equipment', () => {
 
             await page.goto(`/station/events/${eventId}/${dayOf(start)}`)
             await expect(page.getByTestId('app-shell')).toBeVisible()
-            await page.getByRole('button', {name: 'Ausrüstung'}).click()
+            await page.getByRole('tab', {name: 'Ausrüstung'}).click()
 
             await page.getByTestId('equipment-add').click()
             await page.getByTestId('equipment-line-kind').selectOption('art')
@@ -151,7 +151,7 @@ test.describe('Appointment equipment', () => {
 
             await page.goto(`/station/events/${ids[0]}/${dayOf(start)}`)
             await expect(page.getByTestId('app-shell')).toBeVisible()
-            await page.getByRole('button', {name: 'Ausrüstung'}).click()
+            await page.getByRole('tab', {name: 'Ausrüstung'}).click()
             await expect(page.getByTestId('equipment-need-overclaim'), 'the other appointment is named')
                 .toContainText(`Doppelt B ${stamp}`)
 
@@ -175,7 +175,7 @@ test.describe('Appointment equipment', () => {
 
         await page.goto(`/station/events/${eventId}/${dayOf(start)}`)
         await expect(page.getByTestId('app-shell')).toBeVisible()
-        await page.getByRole('button', {name: 'Ausrüstung'}).click()
+        await page.getByRole('tab', {name: 'Ausrüstung'}).click()
         await expect(page.getByTestId('equipment-need-missing')).toBeVisible()
 
         await page.getByTestId('equipment-borrow').click()

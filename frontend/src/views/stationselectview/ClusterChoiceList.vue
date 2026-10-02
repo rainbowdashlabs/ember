@@ -7,10 +7,10 @@
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import type {Cluster} from '@/api/clusters'
+import type {ClusterResponse} from '@/api/generated/schema'
 
 defineProps<{
-  clusters: readonly Cluster[]
+  clusters: readonly ClusterResponse[]
 }>()
 
 defineEmits<{

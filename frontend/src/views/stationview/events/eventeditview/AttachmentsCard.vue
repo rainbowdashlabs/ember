@@ -15,8 +15,7 @@ import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import {formatSize} from '@/util/format'
-import type {StationFile} from '@/api/media'
-import type {EventAttachment} from '@/api/events'
+import type {EventAttachment, StationFile} from '@/api/generated/schema'
 import type {Failure} from '@/util/failure'
 
 const attachments = defineModel<EventAttachment[]>('attachments', {required: true})

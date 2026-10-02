@@ -14,16 +14,20 @@ import dev.chojo.ember.feature.mailimport.entity.MailRuleAction;
 import dev.chojo.ember.feature.mailimport.repository.MailImportLogRepository;
 import dev.chojo.ember.feature.mailimport.repository.MailMailboxRepository;
 import dev.chojo.ember.feature.mailimport.repository.MailRuleRepository;
+import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
+import dev.chojo.ember.feature.notifications.entity.NotificationLinks;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.notifications.entity.StationAudience;
+import dev.chojo.ember.feature.notifications.service.Notifier;
 import dev.chojo.ember.feature.storage.credential.CredentialCipher;
 import dev.chojo.ember.feature.storage.service.StorageQuotaService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.mail.Message;
 import jakarta.mail.MessagingException;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,7 +64,7 @@ public class MailImportService {
     private final MailHostPolicy hostPolicy;
     private final DkimVerification dkim;
     private final MailImport settings;
-    private final NotificationService notificationService;
+    private final Notifier notifier;
 
     @Inject
     public MailImportService(
@@ -73,7 +77,7 @@ public class MailImportService {
             MailHostPolicy hostPolicy,
             DkimVerification dkim,
             MailImport settings,
-            NotificationService notificationService) {
+            Notifier notifier) {
         this.mailboxRepository = mailboxRepository;
         this.ruleRepository = ruleRepository;
         this.logRepository = logRepository;
@@ -83,7 +87,7 @@ public class MailImportService {
         this.hostPolicy = hostPolicy;
         this.dkim = dkim;
         this.settings = settings;
-        this.notificationService = notificationService;
+        this.notifier = notifier;
     }
 
     /**
@@ -160,13 +164,13 @@ public class MailImportService {
      */
     private void tellAboutSuspension(MailMailbox mailbox, String reason) {
         try {
-            notificationService.notifyMembersWithRole(
-                    mailbox.stationId(),
-                    StationPermission.STATION_MAIL.name(),
+            notifier.notify(
+                    StationAudience.holders(mailbox.stationId(), StationPermission.STATION_MAIL),
                     NotificationType.MAILBOX_SUSPENDED,
                     NotificationData.of(
                             new NotificationParams.MailboxSuspended(mailbox.name(), reason),
-                            new NotificationData.NotificationLink("station-mail-import", Map.of())));
+                            new NotificationData.NotificationLink("station-mail-import", Map.of())),
+                    Delivery.EVERY_TIME);
         } catch (Exception e) {
             log.warn("Could not say that mailbox {} was suspended", mailbox.id(), e);
         }
@@ -183,13 +187,12 @@ public class MailImportService {
         try {
             int unbound = logRepository.countUnboundSince(mailbox.stationId(), now.minus(Duration.ofDays(1)));
             if (unbound == 0) return;
-            notificationService.notifyMembersWithRole(
-                    mailbox.stationId(),
-                    StationPermission.DOCUMENT_READ.name(),
+            notifier.notify(
+                    StationAudience.holders(mailbox.stationId(), StationPermission.DOCUMENT_READ),
                     NotificationType.MAIL_IMPORT_UNBOUND,
                     NotificationData.of(
-                            new NotificationParams.MailImportUnbound(unbound),
-                            new NotificationData.NotificationLink("station-members-documents", Map.of())));
+                            new NotificationParams.MailImportUnbound(unbound), NotificationLinks.memberDocuments()),
+                    Delivery.EVERY_TIME);
         } catch (Exception e) {
             log.warn("Could not say what arrived unbound for station {}", mailbox.stationId(), e);
         }
@@ -324,7 +327,8 @@ public class MailImportService {
      *
      * <p>A message whose disposal fails is still a message that was imported, so this is written down and
      * not thrown: the alternative is a cycle that files a document and then reports the whole visit as a
-     * failure because a folder could not be made.
+     * failure because a folder could not be made. Doing nothing is a choice of its own, for a read-only
+     * account that cannot be asked to change anything.
      */
     private void applyAction(MailboxReader reader, MailRule rule, Message message) {
         try {
@@ -332,13 +336,12 @@ public class MailImportService {
                 case MARK_SEEN -> reader.markSeen(message);
                 case FLAG -> reader.flag(message);
                 case MOVE -> {
-                    if (rule.moveToFolder() != null && !rule.moveToFolder().isBlank()) {
-                        reader.moveTo(message, rule.moveToFolder());
+                    String folder = rule.moveToFolder();
+                    if (folder != null && !folder.isBlank()) {
+                        reader.moveTo(message, folder);
                     }
                 }
-                case NOTHING -> {
-                    // A read-only account cannot be asked to change anything, which is why this exists.
-                }
+                case NOTHING -> {}
             }
         } catch (Exception e) {
             log.warn("Rule {} could not do what it says with a message it took", rule.id(), e);
@@ -357,13 +360,13 @@ public class MailImportService {
      * <p>What a mailbox can demand instead is a signature, checked here rather than read off a header,
      * which is what {@link DkimVerification} is for.
      */
-    private static boolean failedItsOwnChecks(String authResult) {
+    private static boolean failedItsOwnChecks(@Nullable String authResult) {
         if (authResult == null) return false;
         String lower = authResult.toLowerCase(Locale.ROOT);
         return lower.contains(AUTH_FAILURE) || lower.contains(SPF_FAILURE);
     }
 
-    private static boolean nameFits(String fileName, String filter) {
+    private static boolean nameFits(@Nullable String fileName, @Nullable String filter) {
         if (filter == null || filter.isBlank()) return true;
         if (fileName == null) return false;
         return fileName.toLowerCase(Locale.ROOT).contains(filter.trim().toLowerCase(Locale.ROOT));

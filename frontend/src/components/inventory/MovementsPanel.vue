@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {computed, onMounted, ref, watch} from 'vue'
+import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
@@ -14,8 +14,10 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import {movements} from '@/api'
-import {MovementState, StepActor, type Movement} from '@/api/movements'
+import {MovementState, StepActor} from '@/api/movements'
+import type {MovementResponse} from '@/api/generated/schema'
 import {describeFailure, type Failure} from '@/util/failure'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 
 /**
  * The movements a member is part of, beside their gear.
@@ -43,7 +45,7 @@ const emit = defineEmits<{
 
 const {t} = useI18n()
 
-const open = ref<Movement[]>([])
+const open = ref<MovementResponse[]>([])
 const busy = ref(false)
 const actionFailure = ref<Failure | null>(null)
 
@@ -61,19 +63,13 @@ const waitingOnMe = computed(() =>
  * the one answer nobody can act on. After calling a movement off it was worse still: the piece
  * vanished from the screen and looked handed back.
  */
-const loadFailure = ref<Failure | null>(null)
-
-async function load() {
-  loadFailure.value = null
-  try {
-    const all = await movements.listMovements()
-    open.value = all
-        .filter(movement => movement.state === MovementState.OPEN)
-        .filter(movement => !watching.value || movement.memberId === props.memberId)
-  } catch (e) {
-    loadFailure.value = describeFailure(e, t)
-  }
-}
+const {failure: loadFailure, reload: load} = useAsyncLoader(async (isCurrent) => {
+  const all = await movements.listMovements()
+  if (!isCurrent()) return
+  open.value = all
+      .filter(movement => movement.state === MovementState.OPEN)
+      .filter(movement => !watching.value || movement.memberId === props.memberId)
+})
 
 watch(() => props.memberId, load)
 
@@ -84,7 +80,7 @@ watch(() => props.memberId, load)
  * not have to ask the station to undo it. Once they have handed it in, the button is gone: from that
  * moment the station is the one who can say what happens to it.
  */
-async function callOff(movement: Movement) {
+async function callOff(movement: MovementResponse) {
   busy.value = true
   actionFailure.value = null
   try {
@@ -114,7 +110,7 @@ async function catchUp() {
   }
 }
 
-async function confirm(movement: Movement) {
+async function confirm(movement: MovementResponse) {
   busy.value = true
   actionFailure.value = null
   try {
@@ -133,8 +129,6 @@ async function confirm(movement: Movement) {
   await catchUp()
   busy.value = false
 }
-
-onMounted(load)
 </script>
 
 <template>

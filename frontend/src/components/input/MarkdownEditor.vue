@@ -48,15 +48,12 @@ const stationUid = computed(() => props.mediaScope ?? sessionInfo.value?.station
 
 const turndown = createMarkdownTurndown()
 
-// --- Editor State ---
-
 const isUpdatingFromProp = ref(false)
 const isInTable = ref(false)
 const currentLinkUrl = ref('')
 const isOnLink = ref(false)
 const editorContainer = ref<HTMLElement | null>(null)
 
-// Dialog state
 const showLinkDialog = ref(false)
 const linkDialogPos = ref({ top: 0, left: 0 })
 const linkInitialText = ref('')
@@ -70,12 +67,16 @@ const pendingImageAlt = ref('')
 const showVideoDialog = ref(false)
 const videoDialogPos = ref({ top: 0, left: 0 })
 
-// --- Editor ---
-
+/**
+ * The editor and the extensions it runs with.
+ *
+ * <p>The starter kit's own link and underline are switched off because both are registered below
+ * with their own configuration, and two of either is a duplicate-extension warning. Tables are
+ * resizable, which keeps column widths in a colgroup; the stylesheet lays tables out fixed, the
+ * only layout under which a browser reads those widths rather than sizing columns by their content.
+ */
 const editor = useEditor({
   extensions: [
-    // StarterKit bundles Link and Underline; we register them explicitly with custom config,
-    // so disable the bundled versions to avoid the "duplicate extension names" warning.
     StarterKit.configure({ heading: { levels: [1, 2, 3] }, link: false, underline: false }),
     Underline,
     Link.configure({ openOnClick: false, autolink: true, HTMLAttributes: { class: 'text-[var(--primary)] underline cursor-text' } }),
@@ -115,8 +116,6 @@ function updateState(ed: { isActive: (n: string, a?: Record<string, unknown>) =>
   currentLinkUrl.value = (ed.getAttributes('link').href as string) ?? ''
 }
 
-// --- Content Sync ---
-
 async function setEditorContent(md: string) {
   if (!editor.value) return
   isUpdatingFromProp.value = true
@@ -137,8 +136,6 @@ watch(modelValue, async (md, oldMd) => {
 
 onBeforeUnmount(() => { editor.value?.destroy() })
 
-// --- Dialog Helpers ---
-
 function cursorPos() {
   if (!editor.value) return { top: 0, left: 0 }
   const { from } = editor.value.state.selection
@@ -152,7 +149,6 @@ function openLinkDialog() {
   if (!editor.value) return
   const { from, to } = editor.value.state.selection
   const existingHref = editor.value.getAttributes('link').href || ''
-  // Get full link text if on existing link
   let text = ''
   if (editor.value.isActive('link')) {
     const resolved = editor.value.state.doc.resolve(from)
@@ -288,13 +284,6 @@ function applyVideo(url: string) {
 <style>
 .markdown-editor-content .tiptap { outline: none; min-height: 280px; }
 .markdown-editor-content .tiptap p.is-editor-empty:first-child::before { content: attr(data-placeholder); float: left; color: var(--text-muted); pointer-events: none; height: 0; }
-/*
- * A resizable table carries its column widths in a colgroup, and a browser only reads those under
- * a fixed layout. Left on the default, it sized the columns by their contents instead: a cell came
- * out far wider than the words in it, which reads as enormous padding, and dragging an edge fought
- * the browser rather than moving anything. A minimum width on the cells fought the same fight and
- * belongs to the column, not to what happens to be typed into it.
- */
 .markdown-editor-content .tiptap table { border-collapse: collapse; table-layout: fixed; width: 100%; margin: 1em 0; }
 .markdown-editor-content .tiptap th, .markdown-editor-content .tiptap td { border: 1px solid var(--border); padding: 0.4em 0.6em; vertical-align: top; overflow-wrap: break-word; }
 .markdown-editor-content .tiptap th { font-weight: bold; background: var(--bg-accent); }

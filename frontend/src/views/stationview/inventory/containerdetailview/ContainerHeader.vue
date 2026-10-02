@@ -11,7 +11,7 @@ import PageHeader from '@/components/typography/PageHeader.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
-import type {ContainerDetail, InventoryContainerKind} from '@/api/inventoryContainers'
+import type {ContainerDetail, InventoryContainerKind} from '@/api/generated/schema'
 import type {Failure} from '@/util/failure'
 
 const routes = useInventoryRoutes()
@@ -58,8 +58,8 @@ const {t} = useI18n()
         {{ props.detail.container.name }}
       </PageHeader>
       <div class="flex gap-2">
-        <EditButton @click="emit('edit')" :label="t('common.edit')" />
-        <DeleteButton @click="emit('delete')" :label="t('common.delete')" />
+        <EditButton :label="t('common.edit')" @click="emit('edit')" />
+        <DeleteButton :label="t('common.delete')" @click="emit('delete')" />
       </div>
     </div>
 

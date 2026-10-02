@@ -5,7 +5,7 @@
  */
 import {computed, ref, watch} from 'vue'
 import {knowledgeBase} from '@/api'
-import type {KbTag} from '@/api/knowledgeBase'
+import type {KbTag} from '@/api/generated/schema'
 import {useKbTagFilter} from '@/composables/useKbTagFilter'
 import type {useKbBrowse} from './useKbBrowse'
 

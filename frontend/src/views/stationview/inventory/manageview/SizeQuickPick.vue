@@ -9,6 +9,7 @@ import {useI18n} from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import BareButton from '@/components/button/BareButton.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 
 /**
@@ -85,6 +86,12 @@ function stopDrag() {
   dragging.value = false
 }
 
+/** The keyboard's way to pick: one size per key press, with no drag carrying on from it. */
+function pressByKey(label: string) {
+  press(label)
+  stopDrag()
+}
+
 window.addEventListener('mouseup', stopDrag)
 onBeforeUnmount(() => window.removeEventListener('mouseup', stopDrag))
 
@@ -103,20 +110,23 @@ function confirm() {
     <MutedText size="sm" tag="p">{{ t('inventory.manage.quickSizesHint') }}</MutedText>
 
     <div v-for="row in ROWS" :key="row.key" class="flex flex-wrap gap-1">
-      <button
+      <BareButton
           v-for="label in row.labels"
           :key="label"
-          type="button"
           class="min-w-10 cursor-pointer rounded-md border px-2 py-1 text-xs select-none"
           :class="picked.has(label)
               ? 'border-primary bg-primary text-white'
               : 'border-(--border) hover:bg-(--bg-accent)'"
+          :aria-pressed="picked.has(label)"
           :data-testid="`size-box-${label}`"
           @mousedown.prevent="press(label)"
           @mouseenter="touch(label)"
+          @focus="touch(label)"
+          @keydown.enter.prevent="pressByKey(label)"
+          @keydown.space.prevent="pressByKey(label)"
       >
         {{ label }}
-      </button>
+      </BareButton>
     </div>
 
     <div class="flex items-center justify-between gap-2 pt-1">

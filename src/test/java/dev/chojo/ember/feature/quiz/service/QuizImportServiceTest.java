@@ -5,11 +5,12 @@
  */
 package dev.chojo.ember.feature.quiz.service;
 
+import dev.chojo.ember.api.refusal.QuizRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.quiz.entity.QuestionConfig;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestionType;
+import dev.chojo.ember.feature.quiz.service.QuizImportService.CsvDraftQuestion;
 import dev.chojo.ember.feature.quiz.service.QuizImportService.CsvMappings;
-import dev.chojo.ember.feature.quiz.service.QuizImportService.DraftQuestion;
-import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -49,7 +50,7 @@ class QuizImportServiceTest {
                 defaultType);
     }
 
-    private static QuestionConfig configOf(DraftQuestion draft) {
+    private static QuestionConfig configOf(CsvDraftQuestion draft) {
         return QuizQuestionType.valueOf(draft.question().quizQuestionType())
                 .readConfig(draft.question().config().toString())
                 .orElseThrow();
@@ -59,8 +60,6 @@ class QuizImportServiceTest {
         var draft = service.draft("Frage,Antwort\nTitel,%s\n".formatted(answer), mappings("Typ", type));
         return configOf(draft.questions().getFirst());
     }
-
-    // -- Rows --
 
     @Test
     void draftsRowsAndSkipsBlankQuestions() {
@@ -143,8 +142,6 @@ class QuizImportServiceTest {
         assertEquals("", question.description());
     }
 
-    // -- Types --
-
     @Test
     void fallsBackToTheDefaultTypeWhenNoTypeColumnIsMapped() {
         var draft = service.draft("Frage,Antwort\nA,wahr\n", mappings("Typ", QuizQuestionType.TRUE_FALSE));
@@ -216,23 +213,26 @@ class QuizImportServiceTest {
                 types);
     }
 
-    // -- Refusals --
-
     @Test
     void rejectsASheetWithoutTheQuestionColumn() {
-        assertThrows(BadRequestResponse.class, () -> service.draft("Titel,Antwort\nA,x\n", mappings("Typ", null)));
+        var refused =
+                assertThrows(RefusalResponse.class, () -> service.draft("Titel,Antwort\nA,x\n", mappings("Typ", null)));
+        assertEquals(QuizRefusal.QUIZ_IMPORT_QUESTION_COLUMN_MISSING, refused.refusal());
     }
 
     @Test
     void rejectsAnUnknownQuestionType() {
-        assertThrows(
-                BadRequestResponse.class,
+        var refused = assertThrows(
+                RefusalResponse.class,
                 () -> service.draft("Frage,Antwort,Typ\nA,x,Kreuzwortraetsel\n", mappings("Typ", null)));
+        assertEquals(QuizRefusal.QUIZ_IMPORT_QUESTION_TYPE_UNKNOWN, refused.refusal());
     }
 
     @Test
     void rejectsAnUnparsableSheet() {
-        assertThrows(BadRequestResponse.class, () -> service.draft("\"Frage,Antwort\nA,x\n", mappings("Typ", null)));
+        var refused = assertThrows(
+                RefusalResponse.class, () -> service.draft("\"Frage,Antwort\nA,x\n", mappings("Typ", null)));
+        assertEquals(QuizRefusal.QUIZ_IMPORT_SHEET_NOT_READ, refused.refusal());
     }
 
     @Test
@@ -241,8 +241,6 @@ class QuizImportServiceTest {
 
         assertEquals(1.0, draft.questions().getFirst().question().points());
     }
-
-    // -- Configs --
 
     @Test
     void marksTheFirstAnswerCorrectWhenNoColumnHoldsTheWrongOnes() {
@@ -395,8 +393,6 @@ class QuizImportServiceTest {
 
         assertEquals(2.5, config.pointsPerCorrect());
     }
-
-    // -- Separators --
 
     @Test
     void honoursCustomSeparators() {

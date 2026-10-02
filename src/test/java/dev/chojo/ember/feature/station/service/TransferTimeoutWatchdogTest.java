@@ -8,6 +8,9 @@ package dev.chojo.ember.feature.station.service;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import org.junit.jupiter.api.Test;
 
+import java.time.Duration;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -17,11 +20,23 @@ import static org.mockito.Mockito.when;
 /**
  * The watchdog's constructor performs the one-shot startup cleanup: every in-flight transfer
  * is treated as failed (via {@link StationExportService#abortAllInFlightTransfers()}) and any
- * orphan account left behind by a half-finished transfer is swept. The fixed-delay scheduler
- * is registered for the idle-timeout sweep but only fires on a 60-second cadence - the test
- * does not exercise the timer thread.
+ * orphan account left behind by a half-finished transfer is swept. The idle-timeout sweep is a
+ * scheduled task on a 60-second cadence, driven here directly.
  */
 class TransferTimeoutWatchdogTest {
+
+    @Test
+    void theTaskSweepsEveryMinute() {
+        var exportService = mock(StationExportService.class);
+        var task = new TransferTimeoutWatchdog(exportService, mock(StationRepository.class))
+                .scheduledTasks()
+                .getFirst();
+
+        task.work().run();
+
+        verify(exportService).expireStaleTransfers(5);
+        assertEquals(Duration.ofMinutes(1), task.schedule().period());
+    }
 
     @Test
     void constructorRunsStartupCleanup() {
@@ -77,7 +92,7 @@ class TransferTimeoutWatchdogTest {
         when(exportService.expireStaleTransfers(5)).thenThrow(new RuntimeException("db down"));
 
         var watchdog = new TransferTimeoutWatchdog(exportService, stationRepository);
-        watchdog.sweepStaleTransfers(); // must not throw
+        watchdog.sweepStaleTransfers();
 
         verify(exportService).expireStaleTransfers(5);
     }

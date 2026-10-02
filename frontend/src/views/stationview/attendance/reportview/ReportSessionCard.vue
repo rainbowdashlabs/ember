@@ -8,7 +8,7 @@ import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import ReportSessionTable from './ReportSessionTable.vue'
-import type {SessionData} from '@/api/attendance'
+import type {SessionData} from '@/api/generated/schema'
 import {formatDate, formatTime} from '@/util/format'
 
 /**

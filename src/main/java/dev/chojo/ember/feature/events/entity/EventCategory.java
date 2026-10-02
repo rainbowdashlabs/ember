@@ -6,9 +6,16 @@
 package dev.chojo.ember.feature.events.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import org.jspecify.annotations.Nullable;
 
 public record EventCategory(
-        int id, int stationId, String name, int position, Integer maxShownEvents, boolean isPublic, String color) {
+        int id,
+        int stationId,
+        String name,
+        int position,
+        @Nullable Integer maxShownEvents,
+        boolean isPublic,
+        @Nullable String color) {
 
     public static RowMapping<EventCategory> map() {
         return row -> new EventCategory(

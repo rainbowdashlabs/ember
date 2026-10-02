@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-// @vitest-environment happy-dom
+/** @vitest-environment happy-dom */
 import {describe, expect, it} from 'vitest'
 import {
     buildDateTree,
@@ -15,7 +15,7 @@ import {
     toggleTreeToken,
 } from './dateFilter'
 
-const TODAY = new Date(2026, 8, 7) // 2026-09-07
+const TODAY = new Date('2026-09-07T00:00:00')
 
 function tokensOf(...entries: string[]) {
     return splitDateTokens(new Set(entries))
@@ -103,16 +103,16 @@ describe('matchesDateFilter', () => {
 
     it('bounds the current age with an inclusive floor and an exclusive ceiling', () => {
         const tokens = tokensOf('age-now-min:10', 'age-now-below:14')
-        expect(matchesDateFilter('2016-09-07', tokens, TODAY)).toBe(true)  // turns 10 today
-        expect(matchesDateFilter('2016-09-08', tokens, TODAY)).toBe(false) // still 9
-        expect(matchesDateFilter('2012-09-08', tokens, TODAY)).toBe(true)  // still 13
-        expect(matchesDateFilter('2012-09-07', tokens, TODAY)).toBe(false) // turned 14 today
+        expect(matchesDateFilter('2016-09-07', tokens, TODAY), 'turns 10 today').toBe(true)
+        expect(matchesDateFilter('2016-09-08', tokens, TODAY), 'still 9').toBe(false)
+        expect(matchesDateFilter('2012-09-08', tokens, TODAY), 'still 13').toBe(true)
+        expect(matchesDateFilter('2012-09-07', tokens, TODAY), 'turned 14 today').toBe(false)
     })
 
     it('takes the calendar age on December 31', () => {
         const tokens = tokensOf('age-eoy-min:10')
-        expect(matchesDateFilter('2016-12-31', tokens, TODAY)).toBe(true)  // 10 at year end
-        expect(matchesDateFilter('2017-01-01', tokens, TODAY)).toBe(false) // 9 at year end
+        expect(matchesDateFilter('2016-12-31', tokens, TODAY), '10 at year end').toBe(true)
+        expect(matchesDateFilter('2017-01-01', tokens, TODAY), '9 at year end').toBe(false)
     })
 
     it('rejects an unreadable date where an age bound stands', () => {

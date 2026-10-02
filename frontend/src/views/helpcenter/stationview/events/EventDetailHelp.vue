@@ -23,9 +23,19 @@ import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import DetailLabel from '@/components/typography/DetailLabel.vue'
+import EventCancellationBanner from '@/views/stationview/events/eventdetailview/EventCancellationBanner.vue'
 import {StationPermission} from '@/api/types'
+import {CancellationCauses} from '@/api/events'
+import type {CancellationNotice} from '@/api/generated/schema'
 
 const {t} = useI18n()
+
+const sampleCancellation: CancellationNotice = {
+  date: '2026-05-25',
+  cause: CancellationCauses.THRESHOLD,
+  reason: null,
+  cancelledAt: null,
+}
 </script>
 
 <template>
@@ -35,7 +45,6 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.eventDetail.memberAccess') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Event detail view -->
     <HelpSection :title="t('helpCenter.eventDetail.answeringTitle')">
       <p>{{ t('helpCenter.eventDetail.answeringText') }}</p>
     </HelpSection>
@@ -53,10 +62,9 @@ const {t} = useI18n()
     </HelpSection>
 
     <HelpSection :title="t('events.general')">
-      <!-- Event header -->
       <div class="flex items-center justify-between flex-wrap gap-3">
         <div class="flex items-center gap-3">
-          <SectionHeader>Wettkampf Vorbereitung</SectionHeader>
+          <SectionHeader>{{ t('helpCenter.sample.events.competitionPrep') }}</SectionHeader>
           <SecondaryBadge>{{ t('events.typeOneTime') }}</SecondaryBadge>
         </div>
         <ButtonRow>
@@ -66,36 +74,35 @@ const {t} = useI18n()
           </HelpPermissionGuard>
           <ActionsMenu :label="t('common.actions')" test-id="help-event-actions">
             <DropdownMenuItem :icon="['fas', 'bullhorn']">{{ t('events.announceAsNews') }}</DropdownMenuItem>
-            <DropdownMenuItem :icon="['fas', 'ban']" destructive>{{ t('events.cancelEvent') }}</DropdownMenuItem>
+            <DropdownMenuItem :icon="['fas', 'ban']" destructive>{{ t('events.cancelDate') }}</DropdownMenuItem>
+            <DropdownMenuItem :icon="['fas', 'calendar-xmark']" destructive>{{ t('events.cancelSeries') }}</DropdownMenuItem>
           </ActionsMenu>
         </ButtonRow>
       </div>
 
-      <!-- Date/time/category info -->
       <NeutralContainer class="space-y-3 mt-3">
         <SubHeader>{{ t('events.general') }}</SubHeader>
         <div class="grid gap-4 sm:grid-cols-2">
           <div class="sm:col-span-2">
             <DetailLabel>{{ t('events.description') }}</DetailLabel>
-            <p class="text-sm mt-1">Vorbereitung auf den Kreiswettkampf. Bitte pünktlich erscheinen.</p>
+            <p class="text-sm mt-1">{{ t('helpCenter.sample.events.competitionPrepText') }}</p>
           </div>
           <div>
             <DetailLabel>{{ t('events.category') }}</DetailLabel>
-            <p class="text-sm">Wettkampf</p>
+            <p class="text-sm">{{ t('helpCenter.sample.events.competition') }}</p>
           </div>
           <div>
             <DetailLabel>{{ t('events.startTime') }}</DetailLabel>
-            <p class="text-sm">Montag, 25.05.2026, 14:00</p>
+            <p class="text-sm">{{ t('helpCenter.sample.events.mondayStart') }}</p>
           </div>
           <div>
             <DetailLabel>{{ t('events.endTime') }}</DetailLabel>
-            <p class="text-sm">Montag, 25.05.2026, 17:00</p>
+            <p class="text-sm">{{ t('helpCenter.sample.events.mondayEnd') }}</p>
           </div>
         </div>
       </NeutralContainer>
     </HelpSection>
 
-    <!-- Registration section -->
     <HelpSection :title="t('helpCenter.eventDetail.registrationTitle')">
       <NeutralContainer class="space-y-3">
         <div class="flex items-center gap-2 flex-wrap">
@@ -113,7 +120,6 @@ const {t} = useI18n()
       </NeutralContainer>
     </HelpSection>
 
-    <!-- Registrations list -->
     <HelpPermissionGuard :permissions="[StationPermission.EVENT_REGISTRATION]" :label="t('helpCenter.permissionLabel.eventManage')">
       <HelpSection :title="t('eventDetail.registrations')">
         <NeutralContainer class="space-y-2">
@@ -125,15 +131,15 @@ const {t} = useI18n()
           <div class="space-y-1 text-sm">
             <div class="flex items-center gap-2">
               <SuccessBadge>{{ t('eventsUpcoming.statusAccepted') }}</SuccessBadge>
-              <span>Max Mustermann</span>
+              <span>{{ t('helpCenter.sample.people.maxMustermann') }}</span>
             </div>
             <div class="flex items-center gap-2">
               <SuccessBadge>{{ t('eventsUpcoming.statusAccepted') }}</SuccessBadge>
-              <span>Lisa Schmidt</span>
+              <span>{{ t('helpCenter.sample.people.lisaSchmidt') }}</span>
             </div>
             <div class="flex items-center gap-2">
               <InfoBadge>{{ t('eventsUpcoming.statusPending') }}</InfoBadge>
-              <span>Tom Müller</span>
+              <span>{{ t('helpCenter.sample.people.tomMueller') }}</span>
             </div>
           </div>
         </NeutralContainer>
@@ -172,6 +178,10 @@ const {t} = useI18n()
     <HelpPermissionGuard :permissions="[StationPermission.EVENT_EDIT]" :label="t('helpCenter.permissionLabel.eventEdit')">
       <HelpSection :title="t('helpCenter.eventDetail.cancelTitle')">
         <p>{{ t('helpCenter.eventDetail.cancelText') }}</p>
+        <p>{{ t('helpCenter.eventDetail.cancelSeriesText') }}</p>
+        <p>{{ t('helpCenter.eventDetail.restoreText') }}</p>
+        <p>{{ t('helpCenter.eventDetail.cancelAutomaticText') }}</p>
+        <EventCancellationBanner class="mt-3" :cancellation="sampleCancellation" :series-cancelled="false"/>
       </HelpSection>
     </HelpPermissionGuard>
 

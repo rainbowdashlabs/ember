@@ -11,9 +11,15 @@ import SuccessButton from '@/components/button/SuccessButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import type {WaitingListEntryWithScore, WaitingListField} from '@/api/waitingList'
+import type {WaitingListEntryWithScore, WaitingListField} from '@/api/generated/schema'
 import {formatDate} from '@/util/format'
+import {entryFullName} from './entryFullName'
 
+/**
+ * The entries still waiting for an answer, each folded. A header opens its entry wherever it is
+ * pressed, which is a pointer's convenience; the name is the control a keyboard and a screen reader
+ * reach, beside the buttons that answer it.
+ */
 const props = defineProps<{
   entries: WaitingListEntryWithScore[]
   fields: WaitingListField[]
@@ -28,10 +34,6 @@ const emit = defineEmits<{
 const {t} = useI18n()
 const expandedId = ref<number | null>(null)
 
-function fullName(item: WaitingListEntryWithScore): string {
-  const e = item.entry
-  return e.lastname ? `${e.firstname} ${e.lastname}` : e.firstname
-}
 
 function fieldName(fieldId: number): string {
   return props.fields.find(f => f.id === fieldId)?.name ?? `#${fieldId}`
@@ -51,10 +53,17 @@ function toggle(id: number) {
     <SubHeader>{{ t('waitingList.sectionPending') }}</SubHeader>
     <div class="space-y-2">
       <NeutralContainer v-for="item in entries" :key="item.entry.id" class="p-3">
-        <div class="flex items-center justify-between cursor-pointer" @click="toggle(item.entry.id)">
-          <div class="flex items-center gap-2 flex-1 min-w-0">
+        <div class="flex items-center justify-between cursor-pointer" role="presentation" @click="toggle(item.entry.id)">
+          <div
+              class="flex items-center gap-2 flex-1 min-w-0"
+              role="button"
+              tabindex="0"
+              :aria-expanded="expandedId === item.entry.id"
+              @keydown.enter.prevent="toggle(item.entry.id)"
+              @keydown.space.prevent="toggle(item.entry.id)"
+          >
             <font-awesome-icon :icon="['fas', expandedId === item.entry.id ? 'chevron-down' : 'chevron-right']" class="h-3 w-3 text-(--text-muted) shrink-0"/>
-            <span class="font-medium text-sm">{{ fullName(item) }}</span>
+            <span class="font-medium text-sm">{{ entryFullName(item) }}</span>
             <span v-if="item.entry.email" class="text-xs text-(--text-muted) truncate">{{ item.entry.email }}</span>
             <InfoBadge class="shrink-0">{{ t('waitingList.status_PENDING') }}</InfoBadge>
           </div>

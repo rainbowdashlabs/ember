@@ -7,11 +7,18 @@ import { computed, ref, watch, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useSession } from '@/composables/useSession'
 import { PALETTE_ROUTES, type PaletteRouteEntry } from '@/data/paletteRoutes'
-import { StationModules, StationPermission, type MemberIdentity } from '@/api/types'
-import { listCompletions, type MemberCompletion } from '@/api/stationMembers'
-import { search as searchKb, type SearchResult as KbSearchResult } from '@/api/knowledgeBase'
-import { listUpcomingOccurrences, type UpcomingEventOccurrence } from '@/api/events'
-import { listInventories, type Inventory } from '@/api/inventory'
+import { StationModules, StationPermission } from '@/api/types'
+import type { PersonIdentity } from '@/util/personIdentity'
+import { listCompletions } from '@/api/stationMembers'
+import { search as searchKb } from '@/api/knowledgeBase'
+import { listUpcomingOccurrences } from '@/api/events'
+import type {
+  Inventory,
+  MemberCompletion,
+  SearchResultResponse as KbSearchResult,
+  UpcomingEventOccurrence,
+} from '@/api/generated/schema'
+import { listInventories } from '@/api/inventory'
 import { matchesWords } from '@/util/listSearch'
 
 const MAX_PER_SECTION = 8
@@ -23,7 +30,7 @@ export interface PaletteResult {
   label: string
   sublabel?: string
   icon: string
-  identity?: MemberIdentity
+  identity?: PersonIdentity
   to: { name?: string; path?: string; params?: Record<string, string | number> }
 }
 
@@ -60,11 +67,14 @@ export function useQuickSearchResults(query: Ref<string>, scope: Ref<string>) {
   /** Whether the inventories of this opening are in hand, so a lost request is asked for again. */
   let inventoriesLoaded = false
 
+  /**
+   * Whether the reader may reach an entry. An association's pages answer to what it granted, which
+   * has nothing to do with any station's rights.
+   */
   function entryAllowed(entry: PaletteRouteEntry): boolean {
     if (entry.scope !== scope.value) return false
     if (entry.module && !isModuleEnabled(entry.module)) return false
     if (entry.scope === 'cluster') {
-      // An association's pages answer to what it granted, which has nothing to do with any station
       if (entry.clusterPermission && !hasClusterPermission(entry.clusterPermission)) return false
       if (entry.clusterAnyPermission && !entry.clusterAnyPermission.some(p => hasClusterPermission(p))) return false
       return true
@@ -141,7 +151,7 @@ export function useQuickSearchResults(query: Ref<string>, scope: Ref<string>) {
     if (!inStation.value) return []
     return eventResults.value.slice(0, MAX_PER_SECTION).map(({event, date}) => ({
       kind: 'event' as const,
-      label: event.name ?? `#${event.id}`,
+      label: event.name,
       sublabel: date,
       icon: 'calendar-days',
       to: {name: 'event-detail', params: {id: event.id}},

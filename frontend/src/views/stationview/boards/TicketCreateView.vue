@@ -19,8 +19,8 @@ import type { DraftWeblink } from './ticketcreateview/TicketWeblinksDraft.vue'
 import type { DraftLink, TicketOption } from './ticketcreateview/TicketLinksDraft.vue'
 import { describeFailure, type Failure } from '@/util/failure'
 import { boards } from '@/api'
-import type { MemberCompletion } from '@/api/stationMembers'
-import {LinkType, TicketPriority, type Board, type BoardLabel, type BoardLane, type LinkTypeName, type TicketPriorityName} from '@/api/boards'
+import type { Board, BoardLabel, BoardLane, MemberCompletion } from '@/api/generated/schema'
+import {LinkType, TicketPriority, type LinkTypeName, type TicketPriorityName} from '@/api/boards'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { useAsyncAction } from '@/composables/useAsyncAction'
 
@@ -265,7 +265,7 @@ const pageSubtitle = computed(() => board.value?.name || t('pages.ticket-create.
         <FailureAlert v-else-if="loadFailure && !board" :failure="loadFailure"/>
         <template v-else-if="board">
             <div class="flex items-center gap-3 mb-6">
-                <IconButton :icon="['fas', 'chevron-left']" label="Back" @click="goBack" />
+                <IconButton :icon="['fas', 'chevron-left']" :label="t('common.back')" @click="goBack" />
                 <SectionHeader>{{ t('boards.createTicket') }}</SectionHeader>
                 <span class="text-xs font-mono text-(--text-muted) bg-(--bg-accent) px-1.5 py-0.5 rounded">{{ board.shortKey }}</span>
             </div>
@@ -273,14 +273,14 @@ const pageSubtitle = computed(() => board.value?.name || t('pages.ticket-create.
                 <TicketCreateMainColumn
                     v-model:title="title"
                     v-model:description="description"
-                    :checklist-items="checklistItems"
                     v-model:new-checklist-title="newChecklistTitle"
-                    :weblinks="weblinks"
                     v-model:new-weblink-url="newWeblinkUrl"
                     v-model:new-weblink-title="newWeblinkTitle"
-                    :ticket-links="ticketLinks"
                     v-model:new-link-ticket-id="newLinkTicketId"
                     v-model:new-link-type="newLinkType"
+                    :checklist-items="checklistItems"
+                    :weblinks="weblinks"
+                    :ticket-links="ticketLinks"
                     :all-tickets="allTickets"
                     :short-key="board.shortKey"
                     @add-checklist="addChecklistItem"

@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.storage.repository.StationStorageConfigRepository
 import dev.chojo.ember.feature.storage.transfer.TransferBackendDescriptor;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Builds the {@link TransferBackendDescriptor} that the source sends to the destination over
@@ -32,7 +33,7 @@ public class TransferBackendDescriptorService {
         this.credentialCipher = credentialCipher;
     }
 
-    private static String emptyToNull(String s) {
+    private static @Nullable String emptyToNull(String s) {
         return s == null || s.isBlank() ? null : s;
     }
 

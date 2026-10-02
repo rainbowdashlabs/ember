@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.conf.file.elements;
 
+import dev.chojo.ember.feature.mail.entity.SmtpEncryption;
 import dev.chojo.ember.feature.station.entity.MailProviderType;
 
 /**
@@ -19,7 +20,19 @@ public class MailProviderEntry {
     private MailProviderType provider = MailProviderType.NONE;
     private String host = "";
     private int port = 587;
+
+    /**
+     * How the connection to the relay is secured. Empty in a file written before the choice had
+     * three values, in which case {@link #ssl} still says what was meant.
+     */
+    private SmtpEncryption encryption = null;
+
+    /**
+     * The flag {@link #encryption} replaced, still read so an instance that has not been saved since
+     * keeps sending. Written alongside so the file stays readable by the release before.
+     */
     private boolean ssl = false;
+
     private String user = "";
     private String password = "";
     private String apiKey = "";
@@ -49,7 +62,7 @@ public class MailProviderEntry {
             MailProviderType provider,
             String host,
             int port,
-            boolean ssl,
+            SmtpEncryption encryption,
             String user,
             String password,
             String apiKey,
@@ -60,7 +73,8 @@ public class MailProviderEntry {
         this.provider = provider;
         this.host = host;
         this.port = port;
-        this.ssl = ssl;
+        this.encryption = encryption;
+        this.ssl = encryption == SmtpEncryption.IMPLICIT_TLS;
         this.user = user;
         this.password = password;
         this.apiKey = apiKey;
@@ -82,8 +96,12 @@ public class MailProviderEntry {
         return port;
     }
 
-    public boolean ssl() {
-        return ssl;
+    /**
+     * How the connection to the relay is secured, read from the old flag where the file predates
+     * the choice.
+     */
+    public SmtpEncryption encryption() {
+        return encryption != null ? encryption : SmtpEncryption.fromLegacySsl(ssl);
     }
 
     public String user() {

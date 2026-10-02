@@ -3,9 +3,9 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {getMemberNewsTeaser, getPublicNewsTeaser, type NewsTeaser} from '@/api/news'
-import type {BlockAudience} from '@/api/pageManage'
-import {sessionInfo} from '@/util/sessionState'
+import {getMemberNewsTeaser, getPublicNewsTeaser} from '@/api/news'
+import type {BlockAudience, NewsTeaser} from '@/api/generated/schema'
+import {useSession} from '@/composables/useSession'
 
 /** Where a news block found its entry, which decides where its link goes. */
 export type EmbeddedNewsSource = {kind: 'PUBLIC', stationUid: string} | {kind: 'MEMBER'}
@@ -37,6 +37,7 @@ export async function findEmbeddedNews(
     newsUid: string,
     audience: BlockAudience,
 ): Promise<FoundNews | null> {
+    const {sessionInfo} = useSession()
     const asMember = audience === 'MEMBERS' && sessionInfo.value?.stationId === stationUid
     try {
         if (asMember) return {...(await getMemberNewsTeaser(newsUid)), source: {kind: 'MEMBER'}}

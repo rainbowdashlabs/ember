@@ -16,7 +16,8 @@ import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SizeBadge from '@/components/badge/SizeBadge.vue'
-import type {InventorySize, NamedPiece} from '@/api/inventory'
+import type {NamedPiece} from '@/api/inventory'
+import type {InventorySize} from '@/api/generated/schema'
 import type {Failure} from '@/util/failure'
 
 const modelValue = defineModel<boolean>({required: true})
@@ -63,7 +64,7 @@ const ready = computed(() => {
   <Modal v-model="modelValue">
     <div class="space-y-3">
       <SubHeader>{{ t('profile.requestExchange') }}</SubHeader>
-      <p class="text-sm" v-if="item">
+      <p v-if="item" class="text-sm">
         {{ item.inventoryName }} - {{ item.name }}
         <SizeBadge>{{ item.sizeName ?? t('common.unisize') }}</SizeBadge>
       </p>

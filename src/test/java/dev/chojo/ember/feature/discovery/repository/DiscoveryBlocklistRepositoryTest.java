@@ -26,8 +26,9 @@ class DiscoveryBlocklistRepositoryTest extends RepositoryTestBase {
         discoveryBlocklistRepo.add(BlocklistKind.BASE_URL, "https://shifty.example", "initial");
         discoveryBlocklistRepo.add(BlocklistKind.PUBLIC_KEY, "https://shifty.example", "updated");
         assertTrue(discoveryBlocklistRepo.contains(BlocklistKind.PUBLIC_KEY, "https://shifty.example"));
-        // The entry survives but its kind has been updated.
-        assertFalse(discoveryBlocklistRepo.contains(BlocklistKind.BASE_URL, "https://shifty.example"));
+        assertFalse(
+                discoveryBlocklistRepo.contains(BlocklistKind.BASE_URL, "https://shifty.example"),
+                "the entry survives with its kind updated");
     }
 
     @Test

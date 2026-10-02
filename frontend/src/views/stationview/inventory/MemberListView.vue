@@ -17,14 +17,12 @@ import MemberListBody from './memberlistview/MemberListBody.vue'
 import MemberListFilters from './memberlistview/MemberListFilters.vue'
 import SearchInput from '@/components/input/text/SearchInput.vue'
 import { inventory, stationMembers, memberGroups, userTags } from '@/api'
-import type { Inventory, InventoryItem } from '@/api/inventory'
-import type { MemberGroup, StationMember, UserTag } from '@/api/types'
+import type { Inventory, InventoryItem, MemberGroup, MemberWithName, UserTag } from '@/api/generated/schema'
 import { useMemberFilter } from '@/composables/useMemberFilter'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { useDataTable } from '@/composables/useDataTable'
 import { useInventoryMemberExport } from './memberlistview/useInventoryMemberExport'
 import { inventoryIdOfColumn, inventoryMemberColumns, NAME_KEY } from './memberlistview/inventoryMemberColumns'
-import { memberDisplayName } from '@/views/stationview/members/listview/useMemberData'
 import { itemLabel, type ItemLabelParts } from './memberlistview/itemLabel'
 import { getItem, setItem } from '@/api/storage'
 
@@ -33,7 +31,7 @@ const routes = useInventoryRoutes()
 const { t } = useI18n()
 const router = useRouter()
 
-const members = ref<StationMember[]>([])
+const members = ref<MemberWithName[]>([])
 const inventories = ref<Inventory[]>([])
 const allItems = ref<InventoryItem[]>([])
 const sizeMap = ref<Map<number, string>>(new Map())
@@ -90,7 +88,7 @@ function formatItemLabel(item: InventoryItem): string {
   return itemLabel(item, parts.value)
 }
 
-const table = useDataTable<StationMember>({
+const table = useDataTable<MemberWithName>({
   id: 'inventory-members',
   rows: candidates,
   columns: computed(() => inventoryMemberColumns({
@@ -107,8 +105,6 @@ const table = useDataTable<StationMember>({
 const visibleInventoryIds = computed(() => new Set(table.visibleColumns
   .map(column => inventoryIdOfColumn(column.key))
   .filter((id): id is number => id !== null)))
-
-const displayedInventories = computed(() => inventories.value.filter(inv => visibleInventoryIds.value.has(inv.id)))
 
 const {loading, failure} = useAsyncLoader(async () => {
   const [mems, invs, grps, tgs] = await Promise.all([
@@ -185,12 +181,8 @@ const {
   runExport,
 } = useInventoryMemberExport(
   () => table.rows,
-  displayedInventories,
   visibleInventoryIds,
   {showName, showInternalId, showSize},
-  memberDisplayName,
-  memberInventoryItems,
-  formatItemLabel,
 )
 
 const showExportFormat = ref(false)
@@ -225,7 +217,7 @@ function goToMember(memberId: number) {
       <FailureAlert :failure="failure ?? exportFailure"/>
 
       <AsyncSection :loading="loading">
-        <SearchInput v-model="table.search" :placeholder="t('membersList.filter')" autofocus />
+        <SearchInput v-model="table.search" :placeholder="t('membersList.filter')" />
 
         <MemberListFilters
           v-model:show-empty="showEmpty"

@@ -9,6 +9,7 @@ import dev.chojo.ember.feature.cluster.entity.ClusterInventoryTag;
 import dev.chojo.ember.feature.inventory.entity.InventoryTag;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.Optional;
@@ -77,7 +78,7 @@ public class ClusterInventoryTagRepository {
      * Finds the association's recommendation matching a word, compared in its merged form and
      * within the same group of stations, which is what the uniqueness of the row rests on.
      */
-    public Optional<ClusterInventoryTag> findByName(int clusterId, Integer stationGroupId, String name) {
+    public Optional<ClusterInventoryTag> findByName(int clusterId, @Nullable Integer stationGroupId, String name) {
         return query("""
                 SELECT %s
                 FROM cluster_inventory_tag
@@ -94,7 +95,8 @@ public class ClusterInventoryTagRepository {
     /**
      * Writes a recommendation down, placing it after the association's existing ones.
      */
-    public ClusterInventoryTag create(int clusterId, String name, String color, Integer stationGroupId) {
+    public ClusterInventoryTag create(
+            int clusterId, String name, @Nullable String color, @Nullable Integer stationGroupId) {
         return SqlSupport.insertReturning(
                 """
                 INSERT INTO cluster_inventory_tag(cluster_id, name, color, position, station_group_id)
@@ -113,7 +115,7 @@ public class ClusterInventoryTagRepository {
     /**
      * Changes a recommendation's word, colour, place and the group of stations it is meant for.
      */
-    public boolean update(int id, String name, String color, int position, Integer stationGroupId) {
+    public boolean update(int id, String name, @Nullable String color, int position, @Nullable Integer stationGroupId) {
         return query("""
                 UPDATE cluster_inventory_tag
                 SET name             = :name,

@@ -14,7 +14,8 @@ import LendingShareModal from '@/components/lending/LendingShareModal.vue'
 import {useLendingShare} from '@/composables/useLendingShare'
 import {useSession} from '@/composables/useSession'
 import * as lending from '@/api/lending'
-import type {ShareSetting, ShareTarget} from '@/api/lending'
+import type {ShareTarget} from '@/api/lending'
+import type {ShareSetting} from '@/api/generated/schema'
 
 /**
  * What this inventory or this item is offered as, on the screen the gear itself lives on.

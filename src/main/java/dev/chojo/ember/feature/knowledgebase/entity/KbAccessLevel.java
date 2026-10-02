@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.knowledgebase.entity;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * What a member may do with a knowledge-base folder or file, from nothing to everything.
  *
@@ -45,7 +47,7 @@ public enum KbAccessLevel {
     /**
      * The stronger of two levels.
      */
-    public static KbAccessLevel max(KbAccessLevel first, KbAccessLevel second) {
+    public static KbAccessLevel max(@Nullable KbAccessLevel first, KbAccessLevel second) {
         if (first == null) return second;
         if (second == null) return first;
         return first.compareTo(second) >= 0 ? first : second;

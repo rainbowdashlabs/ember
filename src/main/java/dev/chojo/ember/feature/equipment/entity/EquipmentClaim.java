@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.equipment.entity;
 
 import dev.chojo.ember.feature.inventory.entity.ResolvedTarget;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -34,10 +35,10 @@ import java.time.LocalDate;
  */
 public record EquipmentClaim(
         ClaimOrigin origin,
-        ResolvedTarget target,
+        @Nullable ResolvedTarget target,
         String label,
-        Integer eventId,
-        LocalDate eventDate,
+        @Nullable Integer eventId,
+        @Nullable LocalDate eventDate,
         int quantity,
         Instant from,
         Instant to,

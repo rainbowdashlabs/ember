@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.form.service;
 
 import dev.chojo.ember.api.MemberIdentity;
+import dev.chojo.ember.api.refusal.FormRefusal;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.entity.FormAnswer;
@@ -18,9 +19,9 @@ import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
-import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.LinkedHashSet;
@@ -37,7 +38,7 @@ import java.util.stream.Collectors;
  * to the analytics shape land in both surfaces.
  *
  * <p>Permission and form-purpose gating remain the responsibility of the calling route - this
- * helper just turns an already-authorised form id into a {@link FormAnalyticsDto} or response
+ * helper just turns an already-authorised form id into a {@link FormAnalytics} or response
  * list.
  */
 @Singleton
@@ -70,7 +71,7 @@ public class FormAnalyticsAssembler {
      * group, and - for forms marked as required - the list of eligible members who have not yet
      * submitted a response.
      */
-    public FormAnalyticsDto buildAnalytics(int formId) {
+    public FormAnalytics buildAnalytics(int formId) {
         return buildAnalytics(formId, null);
     }
 
@@ -86,8 +87,8 @@ public class FormAnalyticsAssembler {
      *               as one group
      * @return the analytics
      */
-    public FormAnalyticsDto buildAnalytics(int formId, FormResultQuery query) {
-        var form = formService.findById(formId).orElseThrow(NotFoundResponse::new);
+    public FormAnalytics buildAnalytics(int formId, @Nullable FormResultQuery query) {
+        var form = formService.findById(formId).orElseThrow(FormRefusal.FORM_NOT_HERE_FOR_ANALYTICS::raise);
         var questions = formService.findQuestions(formId);
         var answers = formService.findAllAnswersForForm(formId);
         var responses = formService.findResponses(formId);
@@ -112,17 +113,17 @@ public class FormAnalyticsAssembler {
         }
 
         var groups = buckets.stream()
-                .map(bucket -> new ResultGroupDto(
+                .map(bucket -> new FormResultGroup(
                         bucket.key(),
                         bucket.label(),
                         bucket.ids().size(),
                         FormResultTally.tally(questions, answers, responses, bucket.ids())))
                 .toList();
-        return new FormAnalyticsDto(
+        return new FormAnalytics(
                 formId,
                 counted.size(),
                 List.copyOf(counted),
-                questions.stream().map(QuestionInfoDto::of).toList(),
+                questions.stream().map(FormQuestionInfo::of).toList(),
                 groups,
                 FormResultGrouping.overlaps(grouping),
                 buildMissingResponses(form, filter));
@@ -135,7 +136,7 @@ public class FormAnalyticsAssembler {
      * station's own members are not the people being asked. Listing them as missing would name
      * everybody as owing an answer to something never put to them.
      */
-    private List<MemberIdentity> buildMissingResponses(Form form, FormResultQuery.Filter filter) {
+    private List<MemberIdentity> buildMissingResponses(Form form, FormResultQuery.@Nullable ResultFilter filter) {
         if (form.purpose() != FormPurpose.INTERNAL) return List.of();
         if (!form.forced()) return List.of();
         var missing = stationMemberRepository.findByStation(form.stationId()).stream()
@@ -162,7 +163,7 @@ public class FormAnalyticsAssembler {
     /**
      * All responses for a form, mapped to the listing DTO shape.
      */
-    public List<FormResponseEntryDto> listResponses(int formId) {
+    public List<FormResponseEntry> listResponses(int formId) {
         return formService.findResponses(formId).stream().map(this::toEntry).toList();
     }
 
@@ -170,16 +171,16 @@ public class FormAnalyticsAssembler {
      * Detail view for a single response: metadata + all answers. The route is responsible for
      * checking that the {@code responseId} actually belongs to the form being queried.
      */
-    public ResponseDetailDto getResponseDetail(int formId, int responseId) {
+    public FormResponseDetail getResponseDetail(int formId, int responseId) {
         var answers = formService.findAnswers(responseId);
         var response = formService.findResponses(formId).stream()
                 .filter(r -> r.id() == responseId)
                 .findFirst()
-                .orElseThrow(NotFoundResponse::new);
-        return new ResponseDetailDto(toEntry(response), answers);
+                .orElseThrow(FormRefusal.FORM_RESPONSE_NOT_HERE::raise);
+        return new FormResponseDetail(toEntry(response), answers);
     }
 
-    private FormResponseEntryDto toEntry(FormResponse r) {
+    private FormResponseEntry toEntry(FormResponse r) {
         Integer memberId = r.memberId();
         Integer submittedBy = r.submittedBy();
         String submittedByName = memberId != null && submittedBy != null && !submittedBy.equals(memberId)
@@ -191,11 +192,14 @@ public class FormAnalyticsAssembler {
                         .findById(memberId)
                         .map(m -> memberIdentityFactory.local(m.stationId(), memberId))
                         .orElse(null);
-        MemberIdentity acknowledgedByIdentity = Optional.ofNullable(r.acknowledgedBy())
-                .flatMap(stationMemberRepository::findById)
-                .map(m -> memberIdentityFactory.local(m.stationId(), r.acknowledgedBy()))
-                .orElse(null);
-        return new FormResponseEntryDto(
+        Integer acknowledgedBy = r.acknowledgedBy();
+        MemberIdentity acknowledgedByIdentity = acknowledgedBy == null
+                ? null
+                : stationMemberRepository
+                        .findById(acknowledgedBy)
+                        .map(m -> memberIdentityFactory.local(m.stationId(), acknowledgedBy))
+                        .orElse(null);
+        return new FormResponseEntry(
                 r.id(),
                 r.formId(),
                 memberId,
@@ -212,7 +216,7 @@ public class FormAnalyticsAssembler {
     private String resolveMemberName(int memberId) {
         return stationMemberRepository
                 .findById(memberId)
-                .flatMap(m -> accountRepository.findById(m.accountId()))
+                .flatMap(m -> Optional.ofNullable(m.accountId()).flatMap(accountRepository::findById))
                 .map(a -> NameParts.of(a).called())
                 .orElse(null);
     }
@@ -230,22 +234,23 @@ public class FormAnalyticsAssembler {
      * {@code groupsOverlap} says a respondent can count in more than one group, as with groups and
      * tags, so the groups can add up to more responses than {@code totalResponses}.
      */
-    public record FormAnalyticsDto(
+    public record FormAnalytics(
             int formId,
             int totalResponses,
             List<Integer> responseIds,
-            List<QuestionInfoDto> questions,
-            List<ResultGroupDto> groups,
+            List<FormQuestionInfo> questions,
+            List<FormResultGroup> groups,
             boolean groupsOverlap,
             List<MemberIdentity> missingResponses) {}
 
     /**
      * A question as the results view needs to know it: what it asks and how it is set up.
      */
-    public record QuestionInfoDto(
+    public record FormQuestionInfo(
             int questionId, FormQuestionType questionType, String title, FormQuestionConfig config) {
-        static QuestionInfoDto of(FormQuestion question) {
-            return new QuestionInfoDto(question.id(), question.formQuestionType(), question.title(), question.config());
+        static FormQuestionInfo of(FormQuestion question) {
+            return new FormQuestionInfo(
+                    question.id(), question.formQuestionType(), question.title(), question.config());
         }
     }
 
@@ -257,8 +262,8 @@ public class FormAnalyticsAssembler {
      * @param responseCount how many responses belong to the group
      * @param tallies       the counted answers, one per question in question order
      */
-    public record ResultGroupDto(
-            String key, String label, int responseCount, List<FormResultTally.QuestionTally> tallies) {}
+    public record FormResultGroup(
+            String key, String label, int responseCount, List<FormResultTally.FormQuestionTally> tallies) {}
 
     /**
      * Listing entry for a single form response. {@code memberId} and {@code submittedBy} are
@@ -270,21 +275,22 @@ public class FormAnalyticsAssembler {
      * {@link MemberIdentity} of the acknowledger so the frontend can render it via the standard
      * {@code MemberName} component.
      */
-    public record FormResponseEntryDto(
+    public record FormResponseEntry(
             int id,
             int formId,
-            Integer memberId,
-            Integer submittedBy,
-            String submittedByName,
-            MemberIdentity memberIdentity,
+            @Nullable Integer memberId,
+            @Nullable Integer submittedBy,
+            @Nullable String submittedByName,
+            @Nullable MemberIdentity memberIdentity,
             Instant submittedAt,
             Instant updatedAt,
-            Instant acknowledgedAt,
-            Integer acknowledgedBy,
-            MemberIdentity acknowledgedByIdentity) {}
+            @Nullable Instant acknowledgedAt,
+            @Nullable Integer acknowledgedBy,
+            @Nullable MemberIdentity acknowledgedByIdentity) {}
 
     /**
-     * Detail view: response metadata + all answers in submission order.
+     * Detail view: response metadata + all answers in submission order. The response is
+     * {@code null} where the member has not answered yet.
      */
-    public record ResponseDetailDto(FormResponseEntryDto response, List<FormAnswer> answers) {}
+    public record FormResponseDetail(@Nullable FormResponseEntry response, List<FormAnswer> answers) {}
 }

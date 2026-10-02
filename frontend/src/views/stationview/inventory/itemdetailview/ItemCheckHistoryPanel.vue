@@ -11,7 +11,7 @@ import EmptyState from '@/components/feedback/EmptyState.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
-import type {ItemCheckHistoryEntry} from '@/api/inventoryContainers'
+import type {ItemCheckHistoryEntry} from '@/api/generated/schema'
 import {formatDateTime} from '@/util/format'
 
 defineProps<{

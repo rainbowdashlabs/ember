@@ -36,8 +36,9 @@ class LeakyBucketTest {
     @Test
     void refillIsContinuous() {
         var clock = new ControllableClock(Instant.parse("2026-06-12T10:00:00Z"));
-        // 2 capacity, 60/min → 1 token / sec.
-        var bucket = new LeakyBucket(2, 60, Duration.ofMinutes(10), clock);
+        int capacity = 2;
+        int oneTokenPerSecond = 60;
+        var bucket = new LeakyBucket(capacity, oneTokenPerSecond, Duration.ofMinutes(10), clock);
         assertTrue(bucket.tryAcquire("k").isEmpty());
         assertTrue(bucket.tryAcquire("k").isEmpty());
         assertTrue(bucket.tryAcquire("k").isPresent());
@@ -47,7 +48,6 @@ class LeakyBucketTest {
         assertTrue(bucket.tryAcquire("k").isPresent());
 
         clock.advanceSeconds(10);
-        // Capacity cap is honoured - only 2 tokens are available, not 10.
         assertTrue(bucket.tryAcquire("k").isEmpty());
         assertTrue(bucket.tryAcquire("k").isEmpty());
         assertTrue(bucket.tryAcquire("k").isPresent(), "Cannot exceed capacity even after a long idle");
@@ -56,7 +56,8 @@ class LeakyBucketTest {
     @Test
     void retryAfterCommunicatesPositiveSeconds() {
         var clock = new ControllableClock(Instant.parse("2026-06-12T10:00:00Z"));
-        var bucket = new LeakyBucket(1, 6, Duration.ofMinutes(10), clock); // refill every 10s
+        int oneTokenEveryTenSeconds = 6;
+        var bucket = new LeakyBucket(1, oneTokenEveryTenSeconds, Duration.ofMinutes(10), clock);
         assertTrue(bucket.tryAcquire("k").isEmpty());
         var retry = bucket.tryAcquire("k");
         assertTrue(retry.isPresent());
@@ -69,11 +70,8 @@ class LeakyBucketTest {
         var bucket = new LeakyBucket(1, 60, Duration.ofMinutes(10), Clock.fixed(Instant.EPOCH, ZoneOffset.UTC));
         assertTrue(bucket.tryAcquire("a").isEmpty());
         assertTrue(bucket.tryAcquire("a").isPresent());
-        // "b" still has its single slot.
-        assertTrue(bucket.tryAcquire("b").isEmpty());
+        assertTrue(bucket.tryAcquire("b").isEmpty(), "another key keeps its own slot");
     }
-
-    // -- helper --
 
     private static final class ControllableClock extends Clock {
         private final AtomicReference<Instant> now;

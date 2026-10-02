@@ -15,8 +15,6 @@ import dev.chojo.ember.feature.twofactor.entity.StepUpProof;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorEvent;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorKind;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import dev.samstevens.totp.code.DefaultCodeGenerator;
-import dev.samstevens.totp.code.HashingAlgorithm;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -27,6 +25,9 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 class TwoFactorServiceTest extends RepositoryTestBase {
 
@@ -81,18 +82,16 @@ class TwoFactorServiceTest extends RepositoryTestBase {
         assertNotNull(enrollment.qrPng());
         assertEquals(10, enrollment.recoveryCodes().size());
 
-        // Wrong code rejected, factor not yet created
         assertFalse(service.confirmTotpEnrollment(
                 accountId, enrollment.secret(), "000000", enrollment.recoveryCodes(), "ua", "DE"));
         assertFalse(service.isEnrolled(accountId));
 
-        // Generate a real code via the service's own algorithm and confirm
         String code = generateCurrentTotp(enrollment.secret());
         assertTrue(service.confirmTotpEnrollment(
                 accountId, enrollment.secret(), code, enrollment.recoveryCodes(), "ua", "DE"));
         assertTrue(service.isEnrolled(accountId));
         assertEquals(10, service.countUnusedBackupCodes(accountId));
-        assertEquals(2, service.getActiveFactors(accountId).size()); // TOTP + BACKUP_CODES
+        assertEquals(2, service.getActiveFactors(accountId).size(), "TOTP and backup codes");
     }
 
     @Test
@@ -103,11 +102,56 @@ class TwoFactorServiceTest extends RepositoryTestBase {
         assertTrue(service.confirmTotpEnrollment(
                 accountId, enrollment.secret(), enrollCode, enrollment.recoveryCodes(), "ua", null));
 
-        String loginCode = generateCurrentTotp(enrollment.secret());
+        String loginCode = nextTotp(enrollment.secret());
         assertTrue(service.verifyTotp(accountId, loginCode), "first use of a fresh code should succeed");
         assertFalse(
                 service.verifyTotp(accountId, loginCode),
                 "the same code must be rejected as a replay within its window");
+    }
+
+    /**
+     * The code that confirmed the enrolment is spent: whoever saw it typed in cannot sign in or
+     * step up with it while it is still within its window.
+     */
+    @Test
+    void theEnrolmentCodeCannotBeUsedToSignIn() {
+        int accountId = newAccount();
+        var enrollment = service.beginTotpEnrollment(accountId, "enrol-replay@test.com");
+        String enrollCode = generateCurrentTotp(enrollment.secret());
+        assertTrue(service.confirmTotpEnrollment(
+                accountId, enrollment.secret(), enrollCode, enrollment.recoveryCodes(), "ua", null));
+
+        assertFalse(service.verifyTotp(accountId, enrollCode), "the enrolment code must not pass a sign-in");
+        assertTrue(service.verifyTotp(accountId, nextTotp(enrollment.secret())), "the next code still passes");
+    }
+
+    /**
+     * Enrolment and sign-in check a code the same way, so a code one of them accepts the other
+     * accepts too.
+     */
+    @Test
+    void enrolmentAndSignInShareOneCheck() throws Exception {
+        var settings = new TwoFactorSettings();
+        setField(settings, "enabled", true);
+        setField(settings, "secretKey", validKey());
+        TotpService totp = spy(new TotpService(settings, new Demo()));
+        var shared = new TwoFactorService(
+                twoFactorRepo,
+                totp,
+                new BackupCodeService(settings),
+                new TwoFactorAuditService(twoFactorRepo),
+                accountRepo,
+                new MailLocaleService(accountRepo, new ApplicationSettingRepository()),
+                mock(EmailService.class));
+        int accountId = newAccount();
+        var enrollment = shared.beginTotpEnrollment(accountId, "shared@test.com");
+        String code = generateCurrentTotp(enrollment.secret());
+
+        assertTrue(shared.confirmTotpEnrollment(
+                accountId, enrollment.secret(), code, enrollment.recoveryCodes(), "ua", null));
+        assertFalse(shared.verifyTotp(accountId, code), "the enrolment spent the code");
+
+        verify(totp, times(2)).matchStep(enrollment.secret(), code);
     }
 
     @Test
@@ -118,15 +162,11 @@ class TwoFactorServiceTest extends RepositoryTestBase {
         assertTrue(service.confirmTotpEnrollment(
                 accountId, enrollment.secret(), firstCode, enrollment.recoveryCodes(), "ua", null));
 
-        // verifyTotp with a valid code succeeds
-        assertTrue(service.verifyTotp(accountId, generateCurrentTotp(enrollment.secret())));
-        // wrong code fails
+        assertTrue(service.verifyTotp(accountId, nextTotp(enrollment.secret())));
         assertFalse(service.verifyTotp(accountId, "000000"));
 
-        // verifyTotp on account without TOTP returns false
         assertFalse(service.verifyTotp(newAccount(), "123456"));
 
-        // Backup code verify: a valid code passes once, then fails
         String backup = enrollment.recoveryCodes().getFirst();
         var result = service.verifyBackupCode(accountId, backup, "203.0.113.1");
         assertTrue(result.valid());
@@ -134,12 +174,10 @@ class TwoFactorServiceTest extends RepositoryTestBase {
         var second = service.verifyBackupCode(accountId, backup, "203.0.113.1");
         assertFalse(second.valid());
 
-        // Backup code verify on an account without any backup codes
         var none = service.verifyBackupCode(newAccount(), "ABCD-1234-EFGH", "203.0.113.1");
         assertFalse(none.valid());
         assertEquals(0, none.remainingCodes());
 
-        // regenerateBackupCodes wipes the old set and creates fresh ones
         var fresh = service.regenerateBackupCodes(accountId, "ua", "DE");
         assertEquals(10, fresh.size());
         assertEquals(10, service.countUnusedBackupCodes(accountId));
@@ -170,9 +208,8 @@ class TwoFactorServiceTest extends RepositoryTestBase {
         assertFalse(service.renameFactor(accountId, totpFactorId, ""), "blank label rejected");
         assertFalse(service.renameFactor(accountId, 99_999, "X"), "missing factor rejected");
 
-        // removeFactor for TOTP also wipes backup codes (last primary factor)
         assertTrue(service.removeFactor(accountId, totpFactorId, "ua", null));
-        assertFalse(service.isEnrolled(accountId));
+        assertFalse(service.isEnrolled(accountId), "removing the last primary factor also wipes the backup codes");
         assertFalse(service.removeFactor(accountId, totpFactorId, "ua", null), "already removed");
     }
 
@@ -201,12 +238,11 @@ class TwoFactorServiceTest extends RepositoryTestBase {
     @Test
     void issueInitialBackupCodesIfMissing() {
         int accountId = newAccount();
-        // First call seeds a fresh set of 10 codes
         var initial = service.issueInitialBackupCodesIfMissing(accountId, "ua", null);
         assertEquals(10, initial.size());
-        // Second call is a no-op because the factor already exists
         assertTrue(
-                service.issueInitialBackupCodesIfMissing(accountId, "ua", null).isEmpty());
+                service.issueInitialBackupCodesIfMissing(accountId, "ua", null).isEmpty(),
+                "a second call is a no-op once the factor exists");
     }
 
     @Test
@@ -228,14 +264,11 @@ class TwoFactorServiceTest extends RepositoryTestBase {
         assertFalse(service.isEnrolled(accountId));
         assertTrue(accountRepo.findSession("reset-bearer").isEmpty());
         assertEquals(0, twoFactorRepo.findActiveTrustedDevices(accountId).size());
-        // Audit row exists
         assertTrue(twoFactorRepo.findAuditLog(accountId, 5, 0).stream()
                 .anyMatch(e -> e.event() == TwoFactorEvent.ADMIN_RESET));
 
         assertFalse(service.resetAccount2FA(999_999, null, "ua", null), "unknown account is a no-op");
     }
-
-    // -- The three predicates: enrolled, mandate-satisfying, and the proofs set --
 
     private int createWebAuthnFactor(int accountId, boolean signIn, boolean secondFactor) {
         var factor = twoFactorRepo.createFactor(accountId, TwoFactorKind.WEBAUTHN, signIn ? "Passkey" : "Key");
@@ -391,18 +424,18 @@ class TwoFactorServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * Generates a TOTP code for the given Base32 secret using the {@link TotpService}'s own
-     * verifier configuration. We need this so {@code confirmTotpEnrollment} sees a code
-     * that the verifier accepts in the same thread.
+     * The code an authenticator app shows right now for this Base32 secret, so
+     * {@code confirmTotpEnrollment} and {@code verifyTotp} see a code a real app would produce.
      */
     private String generateCurrentTotp(String secret) {
-        try {
-            var algorithm = HashingAlgorithm.SHA1;
-            var codeGenerator = new DefaultCodeGenerator(algorithm, 6);
-            long timeBucket = Instant.now().getEpochSecond() / 30;
-            return codeGenerator.generate(secret, timeBucket);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        return TotpCodes.current(secret);
+    }
+
+    /**
+     * The code an authenticator app shows in the next period, which the drift window accepts, for
+     * a check that follows a code already spent in this one.
+     */
+    private String nextTotp(String secret) {
+        return TotpCodes.at(secret, Instant.now().getEpochSecond() + 30);
     }
 }

@@ -11,11 +11,11 @@ import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
-import type {DiscoveryPeer} from '@/api/discovery'
+import type {PeerResponse} from '@/api/generated/schema'
 import {formatDateTime} from '@/util/format'
 
 defineProps<{
-  peer: DiscoveryPeer
+  peer: PeerResponse
   sourceLabel: string
   inFlight: boolean
 }>()

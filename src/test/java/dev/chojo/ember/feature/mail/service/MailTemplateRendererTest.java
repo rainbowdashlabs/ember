@@ -66,7 +66,6 @@ class MailTemplateRendererTest {
     @ParameterizedTest(name = "{0}/{1}")
     @MethodSource("allTemplates")
     void renders(String locale, String name) {
-        // Pass a mutable copy so the renderer can add its own keys (e.g. lang).
         var vars = new HashMap<>(VARS);
         String rendered = renderer.render(name, locale, vars);
         assertFalse(rendered.isBlank(), "rendered output is empty");
@@ -74,7 +73,6 @@ class MailTemplateRendererTest {
         assertTrue(
                 rendered.contains("Ember") || rendered.contains("Test Station"),
                 "shared layout did not render senderName or stationName");
-        // Confirm no unsubstituted {{var}} placeholders remain.
         assertFalse(
                 rendered.matches("(?s).*\\{\\{\\s*\\w+\\s*}}.*"),
                 "rendered output still contains unsubstituted placeholders");
@@ -93,7 +91,7 @@ class MailTemplateRendererTest {
     void renderHonoursRawFilterForLogoHtml() {
         var vars = new HashMap<>(VARS);
         vars.put("logoHtml", "<img src=\"https://example.test/logo.png\">");
-        String rendered = renderer.render("station-notification.html", "en", vars);
+        String rendered = renderer.render("notification-digest.html", "en", vars);
         assertTrue(
                 rendered.contains("<img src=\"https://example.test/logo.png\">"),
                 "logoHtml should be rendered raw via the {{ ... | raw }} filter");
@@ -101,9 +99,8 @@ class MailTemplateRendererTest {
 
     @Test
     void renderFallsBackToEnglishWhenLocaleMissing() {
-        // en/email-change.html exists but de/ does not - should fall back to en.
         var vars = new HashMap<>(VARS);
-        String rendered = renderer.render("email-change.html", "de", vars);
+        String rendered = renderer.render("station-delete.html", "de", vars);
         assertTrue(rendered.contains("Confirm"), "expected English fallback content");
     }
 }

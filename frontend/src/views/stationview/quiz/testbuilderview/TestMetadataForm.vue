@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import { useId } from 'vue'
 import { useI18n } from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
@@ -23,6 +24,7 @@ const timeLimitEnabled = defineModel<boolean>('timeLimitEnabled', { required: tr
 const timeLimit = defineModel<number | undefined>('timeLimit')
 
 const { t } = useI18n()
+const timeLimitId = useId()
 </script>
 
 <template>
@@ -58,8 +60,8 @@ const { t } = useI18n()
       </div>
 
       <div v-if="timeLimitEnabled" class="flex items-center gap-2">
-        <label class="text-sm text-(--text-muted)">{{ t('quiz.tests.timeLimitMinutes') }}</label>
-        <NumberInput v-model="timeLimit" class="w-24" />
+        <label :for="timeLimitId" class="text-sm text-(--text-muted)">{{ t('quiz.tests.timeLimitMinutes') }}</label>
+        <NumberInput :id="timeLimitId" v-model="timeLimit" class="w-24" />
       </div>
     </div>
   </NeutralContainer>

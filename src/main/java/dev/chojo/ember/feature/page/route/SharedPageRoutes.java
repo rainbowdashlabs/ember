@@ -6,26 +6,26 @@
 package dev.chojo.ember.feature.page.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.auth.StationFree;
+import dev.chojo.ember.api.refusal.PageRefusal;
 import dev.chojo.ember.feature.insights.service.PageHitRecorder;
 import dev.chojo.ember.feature.page.entity.StationPage;
 import dev.chojo.ember.feature.page.service.PageService;
+import dev.chojo.ember.feature.page.service.PublicSiteService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationFormat;
-import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.service.StationLogoService;
 import io.javalin.http.Context;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
-import io.javalin.openapi.OpenApiName;
 import io.javalin.openapi.OpenApiParam;
 import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 /**
  * A page reached by its link and by nothing else.
@@ -47,14 +47,13 @@ import jakarta.inject.Singleton;
 @Singleton
 public class SharedPageRoutes implements Routes {
     private final PageService pageService;
-    private final StationRepository stationRepository;
+    private final PublicSiteService site;
     private final StationLogoService logoService;
 
     @Inject
-    public SharedPageRoutes(
-            PageService pageService, StationRepository stationRepository, StationLogoService logoService) {
+    public SharedPageRoutes(PageService pageService, PublicSiteService site, StationLogoService logoService) {
         this.pageService = pageService;
-        this.stationRepository = stationRepository;
+        this.site = site;
         this.logoService = logoService;
     }
 
@@ -77,8 +76,8 @@ public class SharedPageRoutes implements Routes {
     @StationFree("the link is the authorisation, and which station the page belongs to is the answer rather than"
             + " part of the question: the reader holds a token and nothing else")
     private void getSharedPage(Context ctx) {
-        var page = pageService.getSharedPage(ctx.pathParam("token")).orElseThrow(Refusal.PAGE_LINK_UNKNOWN::raise);
-        var station = openStationOf(page);
+        var page = pageService.getSharedPage(ctx.pathParam("token")).orElseThrow(PageRefusal.PAGE_LINK_UNKNOWN::raise);
+        var station = site.sharedPageStation(page);
 
         ctx.attribute(PageHitRecorder.ATTR_PAGE_HIT_PAGE_ID, page.id());
         ctx.json(new SharedPage(brandOf(station), page, pageService.getPagePath(page), ownAddressLive(page, station)));
@@ -104,21 +103,8 @@ public class SharedPageRoutes implements Routes {
             })
     @StationFree("the same link, answering only the name and colours of the station it leads to")
     private void getBrand(Context ctx) {
-        var page = pageService.getSharedPage(ctx.pathParam("token")).orElseThrow(Refusal.PAGE_LINK_UNKNOWN::raise);
-        ctx.json(brandOf(openStationOf(page)));
-    }
-
-    /**
-     * The station the page belongs to, where it is still letting anybody outside in.
-     *
-     * <p>Answered as a page nobody knows rather than as a station that has closed, because the
-     * reader holds a link and is owed nothing about which of the two it was.
-     */
-    private Station openStationOf(StationPage page) {
-        return stationRepository
-                .findById(page.stationId())
-                .filter(Station::publicPagesEnabled)
-                .orElseThrow(Refusal.PAGE_LINK_UNKNOWN::raise);
+        var page = pageService.getSharedPage(ctx.pathParam("token")).orElseThrow(PageRefusal.PAGE_LINK_UNKNOWN::raise);
+        ctx.json(brandOf(site.sharedPageStation(page)));
     }
 
     /**
@@ -149,7 +135,6 @@ public class SharedPageRoutes implements Routes {
                 StationFormat.timezoneNameOf(station));
     }
 
-    @OpenApiName("SharedPage")
     public record SharedPage(SharedBrand station, StationPage page, String path, boolean ownAddressLive) {}
 
     /**
@@ -160,14 +145,13 @@ public class SharedPageRoutes implements Routes {
      * date put on whichever clock wrote it comes out differently in the two copies. The station's own
      * clock is the one both can be told to use.
      */
-    @OpenApiName("SharedPageBrand")
     public record SharedBrand(
             String stationUid,
-            String publicSlug,
+            @Nullable String publicSlug,
             String name,
             boolean hasLogo,
-            String defaultTheme,
-            String defaultFeel,
-            String customThemeColors,
+            @Nullable String defaultTheme,
+            @Nullable String defaultFeel,
+            @Nullable String customThemeColors,
             String timezone) {}
 }

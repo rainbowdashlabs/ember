@@ -3,36 +3,50 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-// @vitest-environment happy-dom
+/** @vitest-environment happy-dom */
 import {describe, expect, it} from 'vitest'
-import {EventFieldTypes, RegistrationStatus, type EventRegistrationEntry, type EventRegistrationField} from '@/api/events'
+import {RegistrationStatus, type RegistrationStatusName} from '@/api/events'
+import {FieldTypes} from '@/api/fieldTypes'
+import type {EventRegistrationField, RegistrationResponse} from '@/api/generated/schema'
 import {answerTotals, localAnswers, membersToRegister, rowsOnDate} from './eventAnswers'
+
+const SETTINGS = {required: false, managersOnly: false, selfRegistration: false, perDate: false}
 
 const MEALS: EventRegistrationField = {
   id: 1,
+  eventId: 7,
+  position: 0,
   name: 'Ernährung',
-  fieldType: EventFieldTypes.ENUM,
-  config: {options: ['Mischkost', 'Vegetarisch'], required: true},
+  fieldType: FieldTypes.CHOICE,
+  config: {...SETTINGS, options: ['Mischkost', 'Vegetarisch'], required: true},
   overview: true,
 }
 
 const GUESTS: EventRegistrationField = {
   id: 2,
+  eventId: 7,
+  position: 1,
   name: 'Begleitung',
-  fieldType: EventFieldTypes.NUMBER,
-  config: {},
+  fieldType: FieldTypes.NUMBER,
+  config: SETTINGS,
   overview: true,
 }
 
-function registration(id: number, status: string, answers: Record<number, string>): EventRegistrationEntry {
+function registration(id: number, status: RegistrationStatusName, answers: Record<number, string>): RegistrationResponse {
   return {
     id,
     eventId: 13,
     memberId: id,
     memberName: `Mitglied ${id}`,
+    memberIdentity: null,
     eventDate: '2026-09-01',
     status,
     createdAt: '2026-08-01T10:00:00Z',
+    createdByName: null,
+    eventName: null,
+    answersMissing: false,
+    fromField: false,
+    fieldName: null,
     fields: Object.entries(answers).map(([fieldId, value]) => ({fieldId: Number(fieldId), value})),
   }
 }
@@ -75,7 +89,9 @@ describe('answerTotals', () => {
   })
 
   it('has no total to show for free text', () => {
-    const text: EventRegistrationField = {...MEALS, id: 3, name: 'Hinweis', fieldType: EventFieldTypes.STRING, config: {}}
+    const text: EventRegistrationField = {
+      ...MEALS, id: 3, name: 'Hinweis', fieldType: FieldTypes.TEXT, config: SETTINGS,
+    }
 
     const totals = answerTotals([text], [registration(1, RegistrationStatus.ACCEPTED, {3: 'Bitte früher'})])
 
@@ -89,7 +105,7 @@ function member(id: number) {
 }
 
 /** One member's registration on one date of a repeating appointment. */
-function onDate(id: number, memberId: number, eventDate: string, status: string): EventRegistrationEntry {
+function onDate(id: number, memberId: number, eventDate: string, status: RegistrationStatusName): RegistrationResponse {
   return {...registration(id, status, {}), memberId, eventDate}
 }
 
@@ -102,7 +118,7 @@ describe('rowsOnDate', () => {
     onDate(3, 8, FIRST, RegistrationStatus.PENDING),
     onDate(4, 8, SECOND, RegistrationStatus.PENDING),
   ]
-  const dateOf = (row: EventRegistrationEntry) => row.eventDate
+  const dateOf = (row: RegistrationResponse) => row.eventDate
 
   /**
    * A repeating appointment's list carries every date. Read as one, a place given back on one date

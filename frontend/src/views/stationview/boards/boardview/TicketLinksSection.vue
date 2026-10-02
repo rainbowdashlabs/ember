@@ -11,13 +11,20 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import UserAvatar from '@/components/avatar/UserAvatar.vue'
+import ImageLightbox from '@/components/display/ImageLightbox.vue'
 import { boards } from '@/api'
-import {LinkType, type BoardLane, type BoardTicket, type BoardTicketAttachment, type BoardTicketLink, type BoardWeblink, type LinkTypeName} from '@/api/boards'
-import type { MemberCompletion } from '@/api/stationMembers'
+import {LinkType, type LinkTypeName} from '@/api/boards'
+import type {BoardLane, BoardTicketAttachment, BoardTicketLink, BoardWeblink, MemberCompletion, TicketSummary} from '@/api/generated/schema'
 import { useBoardApi } from '@/composables/useBoardApi'
 import { useAttachmentPreview } from '@/views/stationview/boards/boardview/useAttachmentPreview'
 import { formatSize } from '@/util/format'
 
+/**
+ * The links, web links and attachments of a ticket.
+ *
+ * <p>An attachment tile opens its file on a click as a convenience. The preview and download buttons
+ * on the tile are what a keyboard reaches, so the tile itself is not a control of its own.
+ */
 const props = defineProps<{
     boardKey: string
     ticketNumber: number
@@ -25,7 +32,7 @@ const props = defineProps<{
     links: BoardTicketLink[]
     weblinks: BoardWeblink[]
     attachments: BoardTicketAttachment[]
-    allTickets: BoardTicket[]
+    allTickets: TicketSummary[]
     lanes: BoardLane[]
     members: MemberCompletion[]
     priorityOptions: { value: string; label: string; icon: string[]; color?: string }[]
@@ -84,7 +91,7 @@ function onSearchKeydown(e: KeyboardEvent) {
 }
 
 const groupedLinks = computed(() => {
-    const groups: Record<string, { link: BoardTicketLink; linkedTicket: BoardTicket | undefined }[]> = {}
+    const groups: Record<string, { link: BoardTicketLink; linkedTicket: TicketSummary | undefined }[]> = {}
     for (const link of props.links) {
         const linkedId = link.linkedTicketId === props.ticketNumber ? link.ticketId : link.linkedTicketId
         const linkedTicket = props.allTickets.find(t => t.id === linkedId)
@@ -120,14 +127,12 @@ async function removeAttachment(id: number) { await boards.deleteAttachment(prop
 
 const {
     srcFor,
-    overlayRef: previewOverlayRef,
     url: previewUrl,
     name: previewName,
     csv: previewCsv,
     shown: showPreview,
     index: previewIndex,
     isImage,
-    isPdf,
     canPreview,
     fileIcon,
     open: openPreview,
@@ -141,12 +146,13 @@ const {
     computed(() => props.attachments),
 )
 
+const previewIsPdf = computed(() => previewName.value.toLowerCase().endsWith('.pdf'))
+
 const hasAnyContent = computed(() => props.links.length > 0 || props.weblinks.length > 0 || props.attachments.length > 0 || showAddLink.value || showAddWeblink.value)
 </script>
 
 <template>
     <div v-if="hasAnyContent" class="space-y-4">
-        <!-- Linked tickets -->
         <div v-if="links.length > 0 || showAddLink">
             <div class="flex items-center justify-between mb-2">
                 <SubHeader class="text-sm">{{ t('boards.linkedTickets') }}</SubHeader>
@@ -164,7 +170,7 @@ const hasAnyContent = computed(() => props.links.length > 0 || props.weblinks.le
                             <span v-if="linkedTicket" class="text-xs text-(--text-muted)">{{ laneName(linkedTicket.laneId) }}</span>
                             <UserAvatar v-if="linkedTicket?.assignee" :identity="linkedTicket.assignee" :name="members.find(m => m.memberUid === linkedTicket.assignee?.memberUid)?.name" size="sm" />
                             <font-awesome-icon v-if="linkedTicket" :icon="priorityOptions.find(o => o.value === linkedTicket.priority)?.icon ?? ['fas', 'equals']" :class="priorityOptions.find(o => o.value === linkedTicket.priority)?.color" class="text-xs" />
-                            <IconButton v-if="!readonly" :icon="['fas', 'xmark']" label="Remove" class="opacity-0 group-hover:opacity-100 text-xs" @click="removeLink(linkedTicket?.id ?? 0, linkedTicket?.ticketNumber ?? 0)" />
+                            <IconButton v-if="!readonly" :icon="['fas', 'xmark']" :label="t('common.remove')" class="opacity-0 group-hover:opacity-100 text-xs" @click="removeLink(linkedTicket?.id ?? 0, linkedTicket?.ticketNumber ?? 0)" />
                         </div>
                     </div>
                 </div>
@@ -181,10 +187,14 @@ const hasAnyContent = computed(() => props.links.length > 0 || props.weblinks.le
                             <option :value="LinkType.CAUSED_BY">{{ t('boards.linkCausedBy') }}</option>
                         </SelectInput>
                     </div>
-                    <IconButton :icon="['fas', 'xmark']" label="Cancel" class="text-(--text-muted)" @click="showAddLink = false; linkSearchQuery = ''" />
+                    <IconButton :icon="['fas', 'xmark']" :label="t('common.cancel')" class="text-(--text-muted)" @click="showAddLink = false; linkSearchQuery = ''" />
                 </div>
-                <div v-if="linkSearchResults.length > 0" class="border border-(--border) rounded-theme divide-y divide-(--border)">
-                    <div v-for="(result, i) in linkSearchResults" :key="result.id" class="px-3 py-1.5 text-sm cursor-pointer flex items-center gap-2" :class="i === selectedIndex ? 'bg-primary/10' : 'hover:bg-primary/5'" @click="addLink(result.id, result.ticketNumber)" @mouseenter="selectedIndex = i">
+                <div v-if="linkSearchResults.length > 0" class="border border-(--border) rounded-theme divide-y divide-(--border)" role="listbox">
+                    <div v-for="(result, i) in linkSearchResults" :key="result.id" class="px-3 py-1.5 text-sm cursor-pointer flex items-center gap-2"
+                         :class="i === selectedIndex ? 'bg-primary/10' : 'hover:bg-primary/5'"
+                         role="option" tabindex="-1" :aria-selected="i === selectedIndex"
+                         @click="addLink(result.id, result.ticketNumber)" @keydown.enter.prevent="addLink(result.id, result.ticketNumber)"
+                         @mouseenter="selectedIndex = i" @focus="selectedIndex = i">
                         <span class="font-mono text-(--text-muted)">{{ shortKey }}-{{ result.ticketNumber }}</span>
                         <span class="truncate">{{ result.title }}</span>
                     </div>
@@ -192,88 +202,63 @@ const hasAnyContent = computed(() => props.links.length > 0 || props.weblinks.le
             </div>
         </div>
 
-        <!-- Weblinks -->
         <div v-if="weblinks.length > 0 || showAddWeblink">
             <SubHeader class="text-sm mb-2">{{ t('boards.weblinks') }}</SubHeader>
             <div class="space-y-1">
                 <div v-for="wl in weblinks" :key="wl.id" class="flex items-center gap-2 text-sm group">
                     <font-awesome-icon :icon="['fas', 'globe']" class="text-(--text-muted) text-xs" />
                     <a :href="wl.url" target="_blank" rel="noopener" class="text-(--accent) hover:underline truncate flex-1">{{ wl.title || wl.url }}</a>
-                    <IconButton v-if="!readonly" :icon="['fas', 'xmark']" label="Remove" class="opacity-0 group-hover:opacity-100 text-xs" @click="removeWeblink(wl.id)" />
+                    <IconButton v-if="!readonly" :icon="['fas', 'xmark']" :label="t('common.remove')" class="opacity-0 group-hover:opacity-100 text-xs" @click="removeWeblink(wl.id)" />
                 </div>
             </div>
             <div v-if="showAddWeblink" class="flex gap-2 mt-2">
                 <TextInput v-model="newWeblinkUrl" placeholder="https://..." class="flex-1" />
                 <TextInput v-model="newWeblinkTitle" :placeholder="t('boards.weblinkTitle')" class="w-32" />
-                <IconButton :icon="['fas', 'check']" label="Add" @click="handleAddWeblink" />
-                <IconButton :icon="['fas', 'xmark']" label="Cancel" class="text-(--text-muted)" @click="showAddWeblink = false" />
+                <IconButton :icon="['fas', 'check']" :label="t('common.add')" @click="handleAddWeblink" />
+                <IconButton :icon="['fas', 'xmark']" :label="t('common.cancel')" class="text-(--text-muted)" @click="showAddWeblink = false" />
             </div>
         </div>
 
-        <!-- Attachments (tile grid) -->
         <div v-if="attachments.length > 0">
             <div class="flex items-center justify-between mb-2">
                 <SubHeader class="text-sm">{{ t('boards.attachments') }}</SubHeader>
                 <IconButton v-if="!readonly" :icon="['fas', 'plus']" :label="t('boards.addAttachment')" class="text-(--text-muted) text-xs" @click="emit('addFile')" />
             </div>
             <div class="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                <div v-for="att in attachments" :key="att.id" class="relative group rounded-lg border border-(--border) overflow-hidden bg-(--bg-accent) cursor-pointer" style="aspect-ratio: 3/4" @click="canPreview(att) ? openPreview(att) : handleDownload(att)">
-                    <!-- Image thumbnail -->
+                <div v-for="att in attachments" :key="att.id" class="relative group rounded-lg border border-(--border) overflow-hidden bg-(--bg-accent) cursor-pointer" style="aspect-ratio: 3/4"
+                     role="presentation"
+                     @click="canPreview(att) ? openPreview(att) : handleDownload(att)">
                     <img v-if="isImage(att) && srcFor(att.id)" :src="srcFor(att.id) ?? undefined" :alt="att.originalName" class="w-full h-full object-contain" />
-                    <!-- File type icon fallback -->
                     <div v-else class="w-full h-full flex items-center justify-center">
                         <font-awesome-icon :icon="fileIcon(att)" class="text-3xl text-(--text-muted)" />
                     </div>
-                    <!-- Filename overlay (top) -->
                     <div class="absolute top-0 left-0 right-0 bg-black/50 px-2 py-1">
                         <p class="text-[0.65rem] text-white truncate">{{ att.originalName }}</p>
                     </div>
-                    <!-- Action bar (bottom) -->
-                    <div class="absolute bottom-0 left-0 right-0 bg-black/50 px-1 py-0.5 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div class="absolute bottom-0 left-0 right-0 bg-black/50 px-1 py-0.5 flex items-center justify-between opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
                         <span class="text-[0.55rem] text-white/80">{{ formatSize(att.sizeBytes) }}</span>
                         <div class="flex gap-1" @click.stop>
-                            <IconButton v-if="canPreview(att)" :icon="['fas', 'eye']" label="Preview" class="text-white text-xs" @click="openPreview(att)" />
-                            <IconButton :icon="['fas', 'download']" label="Download" class="text-white text-xs" @click="handleDownload(att)" />
-                            <IconButton v-if="!readonly" :icon="['fas', 'trash']" label="Remove" class="text-white text-xs" @click="removeAttachment(att.id)" />
+                            <IconButton v-if="canPreview(att)" :icon="['fas', 'eye']" :label="t('common.preview')" class="text-white text-xs" @click="openPreview(att)" />
+                            <IconButton :icon="['fas', 'download']" :label="t('common.download')" class="text-white text-xs" @click="handleDownload(att)" />
+                            <IconButton v-if="!readonly" :icon="['fas', 'trash']" :label="t('common.remove')" class="text-white text-xs" @click="removeAttachment(att.id)" />
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Preview overlay (fullscreen) -->
-        <Teleport to="body">
-            <div v-if="showPreview" class="fixed inset-0 z-50 flex items-center justify-center" @keydown.left="previewPrev" @keydown.right="previewNext" @keydown.escape="showPreview = false" tabindex="0" ref="previewOverlayRef">
-                <div class="absolute inset-0 bg-black/60" @click="showPreview = false" />
-                <!-- Left nav -->
-                <div v-if="previewIndex > 0" class="absolute left-2 z-20 top-1/2 -translate-y-1/2">
-                    <IconButton :icon="['fas', 'chevron-left']" label="Previous" class="text-white text-2xl bg-black/40 rounded-full p-3 hover:bg-black/60" @click="previewPrev" />
+        <ImageLightbox v-model:open="showPreview" :src="previewIsPdf ? null : previewUrl" :alt="previewName" :caption="previewName"
+                       :position="{index: previewIndex, count: attachments.length}" downloadable
+                       @previous="previewPrev" @next="previewNext" @download="downloadCurrent">
+            <template v-if="previewIsPdf || previewCsv" #default>
+                <iframe v-if="previewUrl && previewIsPdf" :src="previewUrl" :title="previewName" class="w-[90vw] h-[80vh] rounded bg-(--bg)" />
+                <div v-else-if="previewCsv" class="overflow-auto max-h-[80vh] max-w-[90vw] rounded-theme bg-(--bg)">
+                    <table class="w-full text-xs border-collapse">
+                        <thead v-if="previewCsv.length > 0"><tr class="border-b border-(--border)"><th v-for="(cell, ci) in previewCsv[0]" :key="ci" class="px-2 py-1 text-left font-semibold bg-(--bg-accent) sticky top-0">{{ cell }}</th></tr></thead>
+                        <tbody><tr v-for="(row, ri) in previewCsv.slice(1)" :key="ri" class="border-b border-(--border) last:border-0"><td v-for="(cell, ci) in row" :key="ci" class="px-2 py-1 whitespace-nowrap">{{ cell }}</td></tr></tbody>
+                    </table>
                 </div>
-                <!-- Right nav -->
-                <div v-if="previewIndex < attachments.length - 1" class="absolute right-2 z-20 top-1/2 -translate-y-1/2">
-                    <IconButton :icon="['fas', 'chevron-right']" label="Next" class="text-white text-2xl bg-black/40 rounded-full p-3 hover:bg-black/60" @click="previewNext" />
-                </div>
-                <div class="relative z-10 flex flex-col max-w-[90vw] max-h-[90vh] rounded-theme border border-(--border) bg-(--bg) shadow-xl overflow-hidden">
-                    <!-- Header -->
-                    <div class="flex items-center gap-2 px-4 py-2 border-b border-(--border) shrink-0">
-                        <span class="text-sm font-medium flex-1 truncate">{{ previewName }}</span>
-                        <span class="text-xs text-(--text-muted)">{{ previewIndex + 1 }}/{{ attachments.length }}</span>
-                        <IconButton :icon="['fas', 'download']" label="Download" class="text-(--text-muted)" @click="downloadCurrent" />
-                        <IconButton :icon="['fas', 'xmark']" label="Close" class="text-(--text-muted)" @click="showPreview = false" />
-                    </div>
-                    <!-- Content -->
-                    <div class="flex-1 overflow-auto p-4 flex items-center justify-center">
-                        <img v-if="previewUrl && !previewName.toLowerCase().endsWith('.pdf')" :src="previewUrl" :alt="previewName" class="max-w-full max-h-[80vh] rounded" />
-                        <iframe v-else-if="previewUrl && previewName.toLowerCase().endsWith('.pdf')" :src="previewUrl" class="w-full h-[80vh] rounded" style="min-width: 60vw" />
-                        <div v-else-if="previewCsv" class="overflow-auto max-h-[80vh] w-full">
-                            <table class="w-full text-xs border-collapse">
-                                <thead v-if="previewCsv.length > 0"><tr class="border-b border-(--border)"><th v-for="(cell, ci) in previewCsv[0]" :key="ci" class="px-2 py-1 text-left font-semibold bg-(--bg-accent) sticky top-0">{{ cell }}</th></tr></thead>
-                                <tbody><tr v-for="(row, ri) in previewCsv.slice(1)" :key="ri" class="border-b border-(--border) last:border-0"><td v-for="(cell, ci) in row" :key="ci" class="px-2 py-1 whitespace-nowrap">{{ cell }}</td></tr></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </Teleport>
+            </template>
+        </ImageLightbox>
     </div>
 </template>

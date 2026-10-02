@@ -11,10 +11,13 @@ import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
-import DummyDateRangePanel from '@/views/helpcenter/stationview/inventory/lendingblockscreatehelp/DummyDateRangePanel.vue'
-import DummyScopePicker from '@/views/helpcenter/stationview/inventory/lendingblockscreatehelp/DummyScopePicker.vue'
+import BlockDateRangeSection from '@/views/stationview/inventory/lendingblockscreateview/BlockDateRangeSection.vue'
+import BlockScopeSection from '@/views/stationview/inventory/lendingblockscreateview/BlockScopeSection.vue'
+import {availableInventories, blockEntries, blockPeriod} from './lendingblockscreatehelp/fixtures'
 
 const {t} = useI18n()
+
+const entries = blockEntries()
 </script>
 
 <template>
@@ -31,12 +34,12 @@ const {t} = useI18n()
 
     <HelpSection :title="t('helpCenter.lendingBlocksCreate.dateTitle')">
       <p>{{ t('helpCenter.lendingBlocksCreate.dateText') }}</p>
-      <DummyDateRangePanel/>
+      <BlockDateRangeSection :block-from="blockPeriod.from" :block-to="blockPeriod.to" :reason="blockPeriod.reason"/>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.lendingBlocksCreate.scopeTitle')">
       <p>{{ t('helpCenter.lendingBlocksCreate.scopeText') }}</p>
-      <DummyScopePicker/>
+      <BlockScopeSection add-inventory-id="" :entries="entries" :available-inventories="availableInventories"/>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.lendingBlocksCreate.actionsTitle')">

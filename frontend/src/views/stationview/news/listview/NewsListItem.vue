@@ -10,8 +10,7 @@ import RowLink from '@/components/navigation/RowLink.vue'
 import NewsListItemHeader from './NewsListItemHeader.vue'
 import NewsListItemComments from './NewsListItemComments.vue'
 import {useNewsRoutes} from '@/composables/useNewsRoutes'
-import type {NewsEntry} from '@/api/news'
-import type {MemberIdentity} from '@/api/types'
+import type {MemberIdentity, NewsResponse} from '@/api/generated/schema'
 import NewsExcerpt from '../newsshared/NewsExcerpt.vue'
 
 const props = defineProps<{
@@ -21,17 +20,17 @@ const props = defineProps<{
   contentHtml?: string
   author?: MemberIdentity | null
   authorName?: string
-  publishedAt?: string
+  publishedAt?: string | null
   restricted?: boolean
   publicBlog?: boolean
   stationName?: string
   stationUid?: string
   commentCount: number
-  localEntry?: NewsEntry
+  localEntry?: NewsResponse
   canEditNews: boolean
   commentsOpen: boolean
   setViewBadgeRef: (el: unknown, newsId: number) => void
-  onRequestDelete: (entry: NewsEntry) => void
+  onRequestDelete: (entry: NewsResponse) => void
 }>()
 
 const emit = defineEmits<{
@@ -50,8 +49,8 @@ const entryPage = computed(() => props.kind === 'federated'
     <RowLink :to="entryPage">
       <div class="space-y-3">
         <NewsListItemHeader
-          :kind="kind"
           :id="id"
+          :kind="kind"
           :title="title"
           :author="author"
           :author-name="authorName"

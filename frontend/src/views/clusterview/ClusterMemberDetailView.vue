@@ -16,13 +16,15 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ProfileFieldsLayout, {type LaidOutField} from '@/components/profilefields/ProfileFieldsLayout.vue'
-import MemberDocumentsPanel from './clustermemberdetailview/MemberDocumentsPanel.vue'
+import MemberDocumentsPanel from '@/components/documents/MemberDocumentsPanel.vue'
 import {clusterMembers} from '@/api'
-import type {ManagedMemberProfile, ManagedProfileValue} from '@/api/clusterMembers'
+import {associationDocumentSource} from '@/api/clusterMembers'
 import {ClusterPermission} from '@/api/clusters'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useSession} from '@/composables/useSession'
+import {useProfileAnswers} from '@/composables/useProfileAnswers'
+import {associationManagerAnswers, associationSnapshot} from '@/composables/profileAnswerPorts'
 
 /**
  * One person at one of the association's stations, and everything asked of them.
@@ -39,13 +41,17 @@ const {hasClusterPermission} = useSession()
 const memberId = computed(() => Number(route.params.id))
 const editable = computed(() => hasClusterPermission(ClusterPermission.CLUSTER_MEMBER_MANAGER))
 
-const profile = ref<ManagedMemberProfile | null>(null)
-const edited = ref<Map<number, string>>(new Map())
+const name = ref('')
+const loaded = ref(false)
+const answers = useProfileAnswers(associationManagerAnswers)
+const {fields, dirty, valueOf} = answers
 const saved = ref(false)
 
 const {loading, failure, reload} = useAsyncLoader(async () => {
-  profile.value = await clusterMembers.getManagedMemberProfile(memberId.value)
-  edited.value = new Map()
+  const profile = await clusterMembers.getManagedMemberProfile(memberId.value)
+  answers.apply(associationSnapshot(profile))
+  name.value = profile.name
+  loaded.value = true
   saved.value = false
 })
 
@@ -54,65 +60,21 @@ const {loading, failure, reload} = useAsyncLoader(async () => {
  * is what the tab, the history and a bookmark carry. The plain word stands until the profile has
  * arrived, and where it could not be fetched at all; the line underneath says what the page is for.
  */
-const pageTitle = computed(() => profile.value?.name || t('pages.cluster-member-detail.title'))
-
-const fields = computed<LaidOutField[]>(() => (profile.value?.fields ?? []).map(f => ({
-  id: f.id,
-  name: f.name,
-  fieldType: f.fieldType,
-  config: f.config,
-  position: f.position,
-  scope: f.scope,
-})))
-
-/** Which table a question lives in, kept beside the laid out field rather than inside it. */
-const originOf = computed(() => new Map((profile.value?.fields ?? []).map(f => [f.id, f.origin])))
-
-const storedValues = computed(() => new Map((profile.value?.values ?? []).map(v => [v.fieldId, v.value])))
-
-/**
- * An answer travels as JSON and is shown as itself.
- *
- * <p>A stored answer is JSON text, so a name arrives wrapped in quotation marks. Handing that
- * straight to the form would put the quotation marks in front of the reader, which is what happened
- * until a story looked at the screen rather than at the database.
- */
-function decode(raw: string | undefined): string {
-  if (raw === undefined || raw === '') return ''
-  try {
-    const parsed: unknown = JSON.parse(raw)
-    return parsed === null ? '' : String(parsed)
-  } catch {
-    return raw
-  }
-}
-
-function valueOf(field: LaidOutField): string {
-  const pending = edited.value.get(field.id)
-  if (pending !== undefined) return pending
-  return decode(storedValues.value.get(field.id))
-}
+const pageTitle = computed(() => name.value || t('pages.cluster-member-detail.title'))
 
 function onUpdate(field: LaidOutField, value: string) {
-  edited.value = new Map([...edited.value, [field.id, value]])
+  answers.update(field, value)
   saved.value = false
 }
 
 /**
- * Stores the answers, which go back out the way they came in, as JSON, since that is what both
- * tables behind this hold.
+ * Stores the answers, each with the table its question lives in.
  *
  * <p>Fetching the profile again afterwards answers for itself, in the alert the loader owns, so a
  * profile that could not be read back is never reported as answers that were refused.
  */
 const {running: saving, failure: saveFailure, run: save} = useAsyncAction(async () => {
-  const values: ManagedProfileValue[] = [...edited.value.entries()].map(([fieldId, value]) => ({
-    fieldId,
-    value: JSON.stringify(value),
-    origin: originOf.value.get(fieldId) ?? 'STATION',
-  }))
-  if (values.length === 0) return
-  await clusterMembers.setManagedMemberProfile(memberId.value, values)
+  await answers.save(memberId.value)
   await reload()
   saved.value = true
 })
@@ -126,7 +88,7 @@ const {running: saving, failure: saveFailure, run: save} = useAsyncAction(async 
       <FailureAlert :failure="saveFailure"/>
       <Alert v-if="saved" variant="success">{{ t('clusterMemberDetail.saved') }}</Alert>
 
-      <NeutralContainer v-if="!loading && profile" class="space-y-4">
+      <NeutralContainer v-if="!loading && loaded" class="space-y-4">
         <div class="flex items-center justify-between gap-3">
           <SectionHeader>{{ t('clusterMemberDetail.fieldsTitle') }}</SectionHeader>
           <SecondaryBadge>{{ t('clusterMemberDetail.fieldCount', {count: fields.length}) }}</SecondaryBadge>
@@ -138,12 +100,20 @@ const {running: saving, failure: saveFailure, run: save} = useAsyncAction(async 
           <ProfileFieldsLayout :fields="fields" :get-value="valueOf" can-edit-readonly @update="onUpdate"/>
         </fieldset>
 
-        <PrimaryButton v-if="editable" :disabled="saving || edited.size === 0" @click="save">
+        <PrimaryButton v-if="editable" :disabled="saving || !dirty" @click="save">
           {{ saving ? t('common.loading') : t('common.save') }}
         </PrimaryButton>
       </NeutralContainer>
 
-      <MemberDocumentsPanel v-if="!loading && profile" :can-upload="editable" :member-id="memberId"/>
+      <MemberDocumentsPanel
+          v-if="!loading && loaded"
+          :member-id="memberId"
+          :source="associationDocumentSource"
+          :hint="t('clusterMemberDetail.documentsHint')"
+          :can-upload="editable"
+          :can-edit="false"
+          data-testid="cluster-member-documents"
+      />
     </div>
   </ViewContent>
 </template>

@@ -9,6 +9,7 @@ import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import MutedText from '@/components/typography/MutedText.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
@@ -16,49 +17,56 @@ import DocumentGrid from './DocumentGrid.vue'
 import DocumentModal from './DocumentModal.vue'
 import DocumentUploadModal from './DocumentUploadModal.vue'
 import {documents as documentsApi} from '@/api'
-import type {DocumentUpload, StationDocument} from '@/api/documents'
-import type {StationMember} from '@/api/types'
+import {stationDocumentSource, type DocumentUpload, type MemberDocumentSource} from '@/api/documents'
+import type {MemberDocumentResponse} from '@/api/generated/schema'
+import type {MemberLike} from '@/components/input/select/memberOption'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {describeFailure, type Failure} from '@/util/failure'
 
 /**
- * The documents of one member, on their own profile as well as on the profile a manager opens.
+ * The documents of one member, on their own profile, on the profile a manager opens, and on the
+ * association's page of the person.
  *
- * <p>Which of the two it is decides nothing here: what a reader may do is handed in, because the
- * answer comes from their rights and from whose profile it is, and both are known above.
+ * <p>Which of these it is decides nothing here: what a reader may do is handed in, because the answer
+ * comes from their rights and from whose profile it is, and both are known above. Where the documents
+ * are reached is the source: the station's own store, or the same store through the association.
  */
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   memberId: number
+  /** Where the documents are read and added. */
+  source?: MemberDocumentSource
   /** Whose paperwork this is, where it is not the reader's own. Their own needs no name on it. */
   title?: string
+  /** A sentence under the heading, saying what this reader may do with the documents. */
+  hint?: string
   /** Whether the reader may put documents on this profile. */
   canUpload?: boolean
   /** Whether the reader may bind, tag and remove, which follows from the right to edit members. */
   canEdit?: boolean
-  allMembers?: StationMember[]
-}>()
+  allMembers?: MemberLike[]
+}>(), {
+  source: () => stationDocumentSource,
+  title: undefined,
+  hint: undefined,
+  canUpload: false,
+  canEdit: false,
+  allMembers: undefined,
+})
 
 const {t} = useI18n()
 
-const documents = ref<StationDocument[]>([])
+const documents = ref<MemberDocumentResponse[]>([])
 const search = ref('')
 const allTags = ref<string[]>([])
-const loading = ref(false)
-const loadFailure = ref<Failure | null>(null)
 const actionFailure = ref<Failure | null>(null)
 const showUpload = ref(false)
 const showDocument = ref(false)
-const opened = ref<StationDocument | null>(null)
+const opened = ref<MemberDocumentResponse | null>(null)
 
-async function reload() {
-  loading.value = true
-  loadFailure.value = null
-  try {
-    documents.value = await documentsApi.listForMember(props.memberId)
-  } catch (e) {
-    loadFailure.value = describeFailure(e, t)
-  }
-  loading.value = false
-}
+const {loading, failure: loadFailure, reload} = useAsyncLoader(async (isCurrent) => {
+  const found = await props.source.listOf(props.memberId)
+  if (isCurrent()) documents.value = found
+}, {autoLoad: false})
 
 /**
  * Fetching the list again after something was done to it, which is not part of doing it.
@@ -100,7 +108,7 @@ const shown = computed(() => {
 async function upload(upload: DocumentUpload) {
   actionFailure.value = null
   try {
-    await documentsApi.uploadForMember(props.memberId, upload)
+    await props.source.upload(props.memberId, upload)
   } catch (e) {
     actionFailure.value = describeFailure(e, t)
     return
@@ -109,7 +117,7 @@ async function upload(upload: DocumentUpload) {
   await catchUp()
 }
 
-function open(document: StationDocument) {
+function open(document: MemberDocumentResponse) {
   opened.value = document
   showDocument.value = true
 }
@@ -146,17 +154,26 @@ async function act(action: Promise<unknown>) {
       </div>
     </div>
 
+    <MutedText v-if="props.hint" size="sm" tag="p">{{ props.hint }}</MutedText>
+
     <FailureAlert :failure="actionFailure ?? loadFailure"/>
     <Spinner v-if="loading" size="md"/>
-    <DocumentGrid v-else :documents="shown" @open="open"/>
+    <DocumentGrid v-else :documents="shown" :thumbnail-url="props.source.thumbnailUrl" @open="open"/>
 
-    <DocumentUploadModal v-model="showUpload" :can-hide="props.canEdit" :all-tags="allTags" @upload="upload"/>
+    <DocumentUploadModal
+        v-model="showUpload"
+        :can-hide="props.canEdit"
+        :can-label="props.canEdit"
+        :all-tags="allTags"
+        @upload="upload"
+    />
     <DocumentModal
         v-model="showDocument"
         :document="opened"
         :all-members="props.allMembers"
         :all-tags="allTags"
         :can-edit="props.canEdit"
+        :content-url="props.source.contentUrl"
         @members="(id, members) => act(documentsApi.setMembers(id, members))"
         @tags="(id, tags) => act(documentsApi.setTags(id, tags))"
         @remove="document => act(documentsApi.remove(document.id))"

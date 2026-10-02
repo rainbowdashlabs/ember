@@ -3,8 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {AllEventRestrictions, RestrictionAudience} from '@/api/events'
-import type {MemberGroup, StationUserTypeName, UserTag} from '@/api/types'
+import type {AllEventRestrictions} from '@/api/events'
+import type {MemberGroup, RestrictionAudience, UserTag} from '@/api/generated/schema'
 import {StationUserTypeLabels} from '@/api/types'
 
 /** The slice of vue-i18n's translate this module needs: plain, interpolated and pluralised. */
@@ -59,15 +59,14 @@ export function registrationAudienceNote(
     const or = t('eventsUpcoming.audienceOr')
     const parts: string[] = []
     const typeLabels = register.userTypes
-        .map(ut => StationUserTypeLabels[ut as StationUserTypeName] ?? ut)
+        .map(ut => StationUserTypeLabels[ut])
     if (typeLabels.length > 0) parts.push(typeLabels.join(or))
     const groupNames = register.groupIds.map(id => groups.find(g => g.id === id)?.name ?? `#${id}`)
     if (groupNames.length > 0) parts.push(groupNames.join(or))
     const tagNames = register.tagIds.map(id => tags.find(tag => tag.id === id)?.name ?? `#${id}`)
     if (tagNames.length > 0) parts.push(tagNames.join(or))
 
-    const mode = entry.register.mode ?? 'AND'
-    let audience = parts.join(mode === 'OR' ? or : t('eventsUpcoming.audienceAnd'))
+    let audience = parts.join(entry.register.mode === 'OR' ? or : t('eventsUpcoming.audienceAnd'))
     if (register.memberIds.length > 0) {
         const members = register.memberIds.length === 1
             ? t('eventsUpcoming.audienceMemberOne')

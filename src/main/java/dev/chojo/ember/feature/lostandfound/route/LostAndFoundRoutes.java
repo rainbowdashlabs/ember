@@ -6,18 +6,16 @@
 package dev.chojo.ember.feature.lostandfound.route;
 
 import dev.chojo.ember.api.MessageResponse;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.LostAndFoundRefusal;
 import dev.chojo.ember.conf.file.elements.Api;
-import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.lostandfound.entity.LostAndFoundItem;
 import dev.chojo.ember.feature.lostandfound.service.LostAndFoundImageService;
 import dev.chojo.ember.feature.lostandfound.service.LostAndFoundService;
-import dev.chojo.ember.feature.members.entity.NameParts;
-import dev.chojo.ember.feature.members.repository.StationMemberRepository;
-import dev.chojo.ember.feature.members.service.StationMemberService;
+import dev.chojo.ember.feature.members.service.GuardianPolicy;
+import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -29,6 +27,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,8 +35,8 @@ import java.io.IOException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
@@ -54,24 +53,21 @@ public class LostAndFoundRoutes implements Routes {
     private static final Set<String> ALLOWED_IMAGE_TYPES = Set.of("image/png", "image/jpeg", "image/webp");
 
     private final LostAndFoundService lostAndFoundService;
-    private final StationMemberService memberService;
-    private final StationMemberRepository stationMemberRepository;
-    private final AccountRepository accountRepository;
+    private final GuardianPolicy guardians;
+    private final MemberNameResolver names;
     private final LostAndFoundImageService imageService;
     private final Api apiConfig;
 
     @Inject
     public LostAndFoundRoutes(
             LostAndFoundService lostAndFoundService,
-            StationMemberService memberService,
-            StationMemberRepository stationMemberRepository,
-            AccountRepository accountRepository,
+            GuardianPolicy guardians,
+            MemberNameResolver names,
             LostAndFoundImageService imageService,
             Api apiConfig) {
         this.lostAndFoundService = lostAndFoundService;
-        this.memberService = memberService;
-        this.stationMemberRepository = stationMemberRepository;
-        this.accountRepository = accountRepository;
+        this.guardians = guardians;
+        this.names = names;
         this.imageService = imageService;
         this.apiConfig = apiConfig;
     }
@@ -100,7 +96,7 @@ public class LostAndFoundRoutes implements Routes {
                             status = "200",
                             content = @OpenApiContent(from = LostAndFoundItemResponse[].class)))
     private void list(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         boolean isManager = session.hasPermission(StationPermission.LOST_AND_FOUND_MANAGE);
         var items = isManager
                 ? lostAndFoundService.findByStation(session.stationId())
@@ -117,7 +113,7 @@ public class LostAndFoundRoutes implements Routes {
             responses =
                     @OpenApiResponse(status = "201", content = @OpenApiContent(from = LostAndFoundItemResponse.class)))
     private void create(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(CreateItemRequest.class);
         LocalDate foundAt = parseFoundAt(request.foundAt());
         var item = lostAndFoundService.create(
@@ -149,7 +145,7 @@ public class LostAndFoundRoutes implements Routes {
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "200"))
     private void getImage(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         int size = ctx.queryParamAsClass("size", Integer.class).getOrDefault(0);
         imageService
@@ -161,7 +157,7 @@ public class LostAndFoundRoutes implements Routes {
                             ctx.result(img.data());
                         },
                         () -> {
-                            throw Refusal.LOST_ITEM_PICTURE_NOT_HERE.raise();
+                            throw LostAndFoundRefusal.LOST_ITEM_PICTURE_NOT_HERE.raise();
                         });
     }
 
@@ -173,26 +169,27 @@ public class LostAndFoundRoutes implements Routes {
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)))
     private void uploadImage(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         requireOwnedItem(ctx, id);
         var file = ctx.uploadedFile("image");
         if (file == null) {
-            throw Refusal.LOST_ITEM_UPLOAD_MISSING_FILE.raise();
+            throw LostAndFoundRefusal.LOST_ITEM_UPLOAD_MISSING_FILE.raise();
         }
-        if (!ALLOWED_IMAGE_TYPES.contains(file.contentType())) {
-            throw Refusal.LOST_ITEM_PICTURE_KIND_NOT_TAKEN.raise();
+        String contentType = file.contentType();
+        if (contentType == null || !ALLOWED_IMAGE_TYPES.contains(contentType)) {
+            throw LostAndFoundRefusal.LOST_ITEM_PICTURE_KIND_NOT_TAKEN.raise();
         }
         try (var content = file.content()) {
             byte[] data = content.readAllBytes();
-            imageService.store(session.stationId(), id, data, file.contentType(), apiConfig.maxImageSizeBytes());
+            imageService.store(session.stationId(), id, data, contentType, apiConfig.maxImageSizeBytes());
             ctx.json(new MessageResponse("Image uploaded"));
         } catch (IllegalArgumentException e) {
             log.warn("Invalid argument storing lost-and-found image for item {}", id, e);
-            throw Refusal.LOST_ITEM_PICTURE_NOT_TAKEN.raise();
+            throw LostAndFoundRefusal.LOST_ITEM_PICTURE_NOT_TAKEN.raise();
         } catch (IOException e) {
             log.error("Failed to process lost-and-found image for item {}", id, e);
-            throw Refusal.LOST_ITEM_PICTURE_NOT_PROCESSED.raise();
+            throw LostAndFoundRefusal.LOST_ITEM_PICTURE_NOT_PROCESSED.raise();
         }
     }
 
@@ -205,21 +202,20 @@ public class LostAndFoundRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ClaimRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)))
     private void claim(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         requireOwnedItem(ctx, id);
         var request = ctx.bodyAsClass(ClaimRequest.class);
 
-        int claimMemberId = request.memberId() != null
-                ? request.memberId()
-                : session.member().id();
+        Integer named = request.memberId();
+        int claimMemberId = named != null ? named : session.member().id();
         if (!maySpeakFor(session, claimMemberId)) {
-            throw Refusal.LOST_ITEM_CLAIM_NOT_YOURS_TO_MAKE.raise();
+            throw LostAndFoundRefusal.LOST_ITEM_CLAIM_NOT_YOURS_TO_MAKE.raise();
         }
 
         String claimerName = resolveMemberName(claimMemberId);
         if (!lostAndFoundService.claim(id, claimMemberId, session.stationId(), claimerName)) {
-            throw Refusal.LOST_ITEM_ALREADY_CLAIMED.raise();
+            throw LostAndFoundRefusal.LOST_ITEM_ALREADY_CLAIMED.raise();
         }
         ctx.json(new MessageResponse("Item claimed"));
     }
@@ -234,18 +230,19 @@ public class LostAndFoundRoutes implements Routes {
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)))
     private void release(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         var item = requireOwnedItem(ctx, id);
-        if (item.claimedBy() == null) {
-            throw Refusal.LOST_ITEM_NOT_CLAIMED_TO_RELEASE.raise();
+        Integer claimedBy = item.claimedBy();
+        if (claimedBy == null) {
+            throw LostAndFoundRefusal.LOST_ITEM_NOT_CLAIMED_TO_RELEASE.raise();
         }
         boolean isManager = session.hasPermission(StationPermission.LOST_AND_FOUND_MANAGE);
-        if (!isManager && !maySpeakFor(session, item.claimedBy())) {
-            throw Refusal.LOST_ITEM_CLAIM_NOT_YOURS_TO_RELEASE.raise();
+        if (!isManager && !maySpeakFor(session, claimedBy)) {
+            throw LostAndFoundRefusal.LOST_ITEM_CLAIM_NOT_YOURS_TO_RELEASE.raise();
         }
         if (!lostAndFoundService.release(id)) {
-            throw Refusal.LOST_ITEM_CLAIM_ALREADY_GONE.raise();
+            throw LostAndFoundRefusal.LOST_ITEM_CLAIM_ALREADY_GONE.raise();
         }
         ctx.json(new MessageResponse("Claim released"));
     }
@@ -258,11 +255,11 @@ public class LostAndFoundRoutes implements Routes {
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "204"))
     private void provided(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         var item = requireOwnedItem(ctx, id);
         if (item.claimedBy() == null) {
-            throw Refusal.LOST_ITEM_NOT_CLAIMED_TO_HAND_OVER.raise();
+            throw LostAndFoundRefusal.LOST_ITEM_NOT_CLAIMED_TO_HAND_OVER.raise();
         }
         lostAndFoundService.delete(session.stationId(), id);
         ctx.status(HttpStatus.NO_CONTENT);
@@ -276,7 +273,7 @@ public class LostAndFoundRoutes implements Routes {
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "204"))
     private void delete(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         requireOwnedItem(ctx, id);
         lostAndFoundService.delete(session.stationId(), id);
@@ -291,21 +288,12 @@ public class LostAndFoundRoutes implements Routes {
         return requireOwnedOrNotFound(ctx, id, lostAndFoundService::findById, LostAndFoundItem::stationId);
     }
 
-    /**
-     * Everybody the caller may act as: themselves, and anybody in their care.
-     */
-    private List<Integer> speaksFor(UserSession session) {
-        var members = new ArrayList<Integer>();
-        members.add(session.member().id());
-        memberService.findManaged(session.member().id()).forEach(m -> members.add(m.id()));
-        return members;
+    private List<Integer> speaksFor(StationSession session) {
+        return guardians.household(session.user());
     }
 
-    /**
-     * Whether the caller may act as the given member: themselves, or somebody in their care.
-     */
-    private boolean maySpeakFor(UserSession session, int memberId) {
-        return speaksFor(session).contains(memberId);
+    private boolean maySpeakFor(StationSession session, int memberId) {
+        return guardians.mayActFor(session.user(), memberId);
     }
 
     /**
@@ -319,27 +307,17 @@ public class LostAndFoundRoutes implements Routes {
         try {
             return LocalDate.parse(foundAt);
         } catch (DateTimeParseException e) {
-            throw Refusal.LOST_ITEM_FOUND_DATE_NOT_A_DATE.raise(foundAt);
+            throw LostAndFoundRefusal.LOST_ITEM_FOUND_DATE_NOT_A_DATE.raise(foundAt);
         }
     }
 
     private String resolveMemberName(int memberId) {
-        return stationMemberRepository
-                .findById(memberId)
-                .map(m -> {
-                    if (m.accountId() != null) {
-                        return accountRepository
-                                .findById(m.accountId())
-                                .map(a -> NameParts.of(a).called())
-                                .orElse(m.displayName());
-                    }
-                    return m.displayName();
-                })
-                .orElse("?");
+        return Objects.requireNonNullElse(names.called(memberId), "?");
     }
 
     private LostAndFoundItemResponse toResponse(LostAndFoundItem item) {
-        String claimedByName = item.claimedBy() != null ? resolveMemberName(item.claimedBy()) : null;
+        Integer claimedBy = item.claimedBy();
+        String claimedByName = claimedBy != null ? resolveMemberName(claimedBy) : null;
         boolean hasImage = imageService.exists(item.stationId(), item.id());
         return new LostAndFoundItemResponse(
                 item.id(),
@@ -371,12 +349,12 @@ public class LostAndFoundRoutes implements Routes {
     public record LostAndFoundItemResponse(
             int id,
             int stationId,
-            String description,
+            @Nullable String description,
             String foundAt,
             boolean hasImage,
-            Integer claimedBy,
-            String claimedByName,
-            Instant claimedAt,
+            @Nullable Integer claimedBy,
+            @Nullable String claimedByName,
+            @Nullable Instant claimedAt,
             int createdBy,
             Instant createdAt) {}
 
@@ -386,12 +364,12 @@ public class LostAndFoundRoutes implements Routes {
      * @param description a description of the found item
      * @param foundAt     the date the item was found (ISO format, defaults to today if null)
      */
-    public record CreateItemRequest(String description, String foundAt) {}
+    public record CreateItemRequest(@Nullable String description, String foundAt) {}
 
     /**
      * Request body for claiming a lost and found item.
      *
      * @param memberId the member ID to claim on behalf of (null to claim for the current user)
      */
-    public record ClaimRequest(Integer memberId) {}
+    public record ClaimRequest(@Nullable Integer memberId) {}
 }

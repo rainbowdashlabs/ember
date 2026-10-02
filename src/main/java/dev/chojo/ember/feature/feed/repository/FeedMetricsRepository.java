@@ -5,12 +5,12 @@
  */
 package dev.chojo.ember.feature.feed.repository;
 
+import dev.chojo.ember.feature.feed.entity.FeedMetricDaily;
+import dev.chojo.ember.feature.feed.entity.FeedUserAgentStat;
+import dev.chojo.ember.util.Sha256;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -39,26 +39,12 @@ public class FeedMetricsRepository {
      */
     private static final int UA_MAX_LENGTH = 512;
 
-    // -- daily histogram --
-
-    private static String shortHash(String ua) {
-        try {
-            var md = MessageDigest.getInstance("SHA-256");
-            byte[] digest = md.digest(ua.getBytes(StandardCharsets.UTF_8));
-            var sb = new StringBuilder(16);
-            for (int i = 0; i < 8; i++) sb.append(String.format("%02x", digest[i]));
-            return sb.toString();
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 unavailable", e);
-        }
-    }
-
     /**
      * Upserts a single feed render into the daily aggregate. {@code durationMs} is bucketed
-     * into the fixed histogram bins on the table.
+     * into the fixed histogram bins on the table. The bins are bound as {@code bucket_a} to
+     * {@code bucket_e} because named parameters may not contain digits.
      */
     public void recordRender(String type, int status, long durationMs, long entries) {
-        // SADU named parameters reject digits, so we use word-only names.
         query("""
                 INSERT INTO feed_metric_daily(day, type, status, count, total_duration_ms, total_entries,
                                               bucket_lt_50, bucket_lt_200, bucket_lt_1000, bucket_lt_5000, bucket_gte_5000)
@@ -114,8 +100,6 @@ public class FeedMetricsRepository {
                 .all();
     }
 
-    // -- user-agent aggregate --
-
     /**
      * Drops daily aggregates older than the configured retention.
      */
@@ -131,10 +115,10 @@ public class FeedMetricsRepository {
      * treat exceptions as non-fatal because feed rendering must never fail because of a
      * telemetry write.
      */
-    public void recordRequest(String userAgent) {
+    public void recordRequest(@Nullable String userAgent) {
         if (userAgent == null || userAgent.isBlank()) return;
         String truncated = userAgent.length() > UA_MAX_LENGTH ? userAgent.substring(0, UA_MAX_LENGTH) : userAgent;
-        String hash = shortHash(truncated);
+        String hash = Sha256.hexPrefix(truncated, 16);
         query("""
                 INSERT INTO feed_user_agent_stat(ua_hash, ua_string, request_count, first_seen, last_seen)
                 VALUES (:ua_hash, :ua_string, 1, now(), now())
@@ -187,26 +171,4 @@ public class FeedMetricsRepository {
                 .delete()
                 .rows();
     }
-
-    /**
-     * Aggregated per-user-agent statistics row.
-     */
-    public record FeedUserAgentStat(
-            String uaHash, String uaString, long requestCount, Instant firstSeen, Instant lastSeen) {}
-
-    /**
-     * Daily feed render histogram and totals per {@code (type, status)}.
-     */
-    public record FeedMetricDaily(
-            LocalDate day,
-            String type,
-            int status,
-            long count,
-            long totalDurationMs,
-            long totalEntries,
-            long bucketLt50,
-            long bucketLt200,
-            long bucketLt1000,
-            long bucketLt5000,
-            long bucketGte5000) {}
 }

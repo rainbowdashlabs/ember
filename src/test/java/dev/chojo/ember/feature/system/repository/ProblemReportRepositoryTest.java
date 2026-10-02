@@ -97,7 +97,6 @@ class ProblemReportRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(4)
     void acknowledgeAll() {
-        // Create another report
         problemReportRepo.create(station.id(), null, "Anon", "Another issue", null, null, null, null, null, null);
         int count = problemReportRepo.acknowledgeAll();
         assertTrue(count >= 1);

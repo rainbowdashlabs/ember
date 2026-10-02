@@ -9,11 +9,12 @@ import {useI18n} from 'vue-i18n'
 import Spinner from '@/components/feedback/Spinner.vue'
 import SingleFieldModal from '@/components/feedback/SingleFieldModal.vue'
 import FileListPanel from './FileListPanel.vue'
-import DeleteFileModal from './DeleteFileModal.vue'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import LoadTemplateModal from './LoadTemplateModal.vue'
 import ImportDocumentModal from './ImportDocumentModal.vue'
 import {adminSettings} from '@/api'
-import type {LegalFile, LegalTemplate} from '@/api/adminSettings'
+import type {LegalFileEntry, TemplateSection} from '@/api/generated/schema'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {describeFailure, type Failure} from '@/util/failure'
 
 const {t} = useI18n()
@@ -29,8 +30,7 @@ const emit = defineEmits<{
   saved: []
 }>()
 
-const files = ref<LegalFile[]>([])
-const loading = ref(false)
+const files = ref<LegalFileEntry[]>([])
 const showPreview = ref(false)
 
 const showAddFileModal = ref(false)
@@ -46,18 +46,22 @@ const fileToDeleteName = computed(() => {
   return file?.displayName || file?.filename || ''
 })
 
-async function load() {
-  loading.value = true
-  showPreview.value = false
+const {loading, failure, reload: fetchFiles} = useAsyncLoader(async (isCurrent) => {
+  let result: LegalFileEntry[]
   try {
-    const result = await adminSettings.getLegalFiles(props.type, props.locale)
-    files.value = Array.isArray(result) ? result : []
+    result = await adminSettings.getLegalFiles(props.type, props.locale)
   } catch (e) {
-    files.value = []
-    emit('error', describeFailure(e, t))
-  } finally {
-    loading.value = false
+    if (isCurrent()) files.value = []
+    throw e
   }
+  if (isCurrent()) files.value = Array.isArray(result) ? result : []
+}, {autoLoad: false})
+
+/** Reads the files of this document again and hands a failure to the page, which shows it. */
+async function load() {
+  showPreview.value = false
+  await fetchFiles()
+  if (failure.value) emit('error', failure.value)
 }
 
 async function saveAll() {
@@ -75,16 +79,22 @@ function addFile() {
   if (!name) return
   showAddFileModal.value = false
   newFileName.value = ''
-  files.value = [...files.value, {filename: '', displayName: name, content: '', enabled: true}]
+  files.value = [...files.value, {filename: '', displayName: name, content: '', enabled: true, generated: false}]
 }
 
-function applyTemplates(templates: LegalTemplate[]) {
+function applyTemplates(templates: TemplateSection[]) {
   const next = [...files.value]
   for (const template of templates) {
     const index = next.findIndex(file => file.displayName === template.displayName)
     const existing = next[index]
     if (existing) next[index] = {...existing, content: template.content}
-    else next.push({filename: '', displayName: template.displayName, content: template.content, enabled: true})
+    else next.push({
+      filename: '',
+      displayName: template.displayName,
+      content: template.content,
+      enabled: true,
+      generated: false,
+    })
   }
   files.value = next
 }
@@ -93,7 +103,7 @@ function applyTemplates(templates: LegalTemplate[]) {
  * An imported document replaces what is in the editor: it is a whole document, not a section to
  * merge in. Nothing is written until the editor is saved.
  */
-function applyImport(imported: LegalFile[]) {
+function applyImport(imported: LegalFileEntry[]) {
   files.value = imported
 }
 
@@ -137,9 +147,10 @@ defineExpose({reload: load})
         :confirm-label="t('adminSettings.legal.addFile')"
         @confirm="addFile"
     />
-    <DeleteFileModal
-        v-model:show="showDeleteFileModal"
-        :display-name="fileToDeleteName"
+    <ConfirmDeleteModal
+        v-model="showDeleteFileModal"
+        :title="t('adminSettings.legal.deleteFileTitle')"
+        :message="t('adminSettings.legal.deleteFileConfirm', {name: fileToDeleteName})"
         @confirm="deleteFile"
     />
     <LoadTemplateModal

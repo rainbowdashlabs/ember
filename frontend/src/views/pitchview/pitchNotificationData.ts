@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {UserSettings} from '@/api/userSettings'
+import type {SettingsResponse} from '@/api/generated/schema'
 
 /**
  * The notification settings a demonstration shows. They go to the application's own settings
@@ -13,10 +13,11 @@ function toggle(app: boolean, email: boolean, feed: boolean) {
     return {app, email, feed}
 }
 
-export const NOTIFICATION_SETTINGS: UserSettings = {
+export const NOTIFICATION_SETTINGS: SettingsResponse = {
     emailEnabled: true,
     theme: 'ember',
     darkMode: 'system',
+    feel: 'ROUNDED',
     mailConfigured: true,
     mailProviderName: 'Postmark',
     mailProviderUrl: 'https://postmarkapp.com/privacy-policy',
@@ -26,7 +27,7 @@ export const NOTIFICATION_SETTINGS: UserSettings = {
         COMMENT_MENTION: toggle(true, true, true),
         NEW_EVENT: toggle(true, true, true),
         EVENT_REGISTRATION_STATUS: toggle(true, true, false),
-        EXCHANGE_STATUS_CHANGE: toggle(true, false, false),
+        MOVEMENT_ADVANCED: toggle(true, false, false),
         MEMBER_ADDED_TO_GROUP: toggle(true, false, false),
         PROFILE_FIELD_CHANGED: toggle(true, false, false),
         PROCUREMENT_REQUESTED: toggle(false, false, false),

@@ -15,25 +15,25 @@ import MailboxTestReport from './MailboxTestReport.vue'
 import MailRuleList from './MailRuleList.vue'
 import {mailImport} from '@/api'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
-import type {Mailbox, MailboxTestResult} from '@/api/mailImport'
+import type {MailboxResponse, TestResult} from '@/api/generated/schema'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {describeFailure, type Failure} from '@/util/failure'
 
 /** One mailbox: how it is doing, what it is set to, and the rules under it. */
 const props = defineProps<{
-  mailbox: Mailbox
+  mailbox: MailboxResponse
   supportedTypes: string[]
 }>()
 
 const emit = defineEmits<{
-  edit: [mailbox: Mailbox]
+  edit: [mailbox: MailboxResponse]
   changed: []
   error: [failure: Failure]
 }>()
 
 const {t} = useI18n()
 
-const testResult = ref<MailboxTestResult | null>(null)
+const testResult = ref<TestResult | null>(null)
 const cycleSummary = ref('')
 
 /**

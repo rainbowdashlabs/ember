@@ -8,40 +8,39 @@ package dev.chojo.ember.feature.insights.service;
 import dev.chojo.ember.conf.file.elements.Metrics;
 import dev.chojo.ember.feature.insights.entity.PageHitBucket;
 import dev.chojo.ember.feature.insights.repository.PageHitRepository;
+import dev.chojo.ember.lifecycle.Schedule;
+import dev.chojo.ember.lifecycle.ScheduledTask;
+import dev.chojo.ember.lifecycle.ShutdownFlush;
+import dev.chojo.ember.lifecycle.TaskSource;
+import dev.chojo.ember.util.HourlyCounters;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * In-memory accumulator and async flusher for per-public-page hit counters. Records one
- * hit per request to a public page route, dimensioned by {@code (hour, pageId, country,
- * refererDomain, isBot)}, and flushes to {@code page_hit_hourly} on a fixed cadence.
+ * In-memory accumulator for per-public-page hit counters. Records one hit per request to a public
+ * page route, dimensioned by {@code (hour, pageId, country, refererDomain, isBot)}, and writes them to
+ * {@code page_hit_hourly}.
  *
- * <p>Mirrors the design of {@code StationTrafficRecorder}: non-blocking on the request
- * path (only a {@link ConcurrentHashMap} lookup and an {@link AtomicLong} increment), with
- * the DB upsert on a single-threaded scheduler so request latency is never affected.
+ * <p>Non-blocking on the request path: {@link #record} only touches the {@link HourlyCounters}. The
+ * periodic flush writes the hours that are over, so an hour's referers are collapsed once; the shutdown
+ * flush writes the current hour as well, which the adding upsert makes safe, so a restart loses no hits.
  *
- * <p>Long-tail referer collapse: at flush time, before upserting, the
- * recorder checks how often the bucket's referer domain has appeared for the page in the
- * last week; domains that haven't crossed the threshold collapse to {@code other} so the
- * referer dimension stays bounded.
+ * <p>Long-tail referer collapse: before writing, the recorder checks how often the bucket's referer
+ * domain has appeared for the page in the last week; domains that haven't crossed the threshold collapse
+ * to {@code other} so the referer dimension stays bounded.
  */
 @Singleton
-public class PageHitRecorder {
+public class PageHitRecorder implements ShutdownFlush, TaskSource {
 
     /**
      * Context attribute key carrying the resolved {@code station_page.id} for a successful
@@ -53,45 +52,33 @@ public class PageHitRecorder {
     public static final String ATTR_PAGE_HIT_PAGE_ID = "pageHitPageId";
 
     private static final Logger log = LoggerFactory.getLogger(PageHitRecorder.class);
-    private static final long PRUNE_INTERVAL_HOURS = 6;
+    private static final Duration PRUNE_INTERVAL = Duration.ofHours(6);
     private static final String OTHER = "other";
     private static final long LONG_TAIL_WINDOW_DAYS = 7;
     private static final long LONG_TAIL_MIN_HITS = 5;
 
-    private final ConcurrentHashMap<BucketKey, AtomicLong> buckets = new ConcurrentHashMap<>();
-    private final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor(r -> {
-        var t = new Thread(r, "page-hit-recorder");
-        t.setDaemon(true);
-        return t;
-    });
+    private final HourlyCounters<PageKey> counters;
     private final PageHitRepository repository;
     private final Metrics metrics;
+    private final Clock clock;
 
     @Inject
     public PageHitRecorder(PageHitRepository repository, Metrics metrics) {
-        this.repository = repository;
-        this.metrics = metrics;
+        this(repository, metrics, Clock.systemUTC());
     }
 
-    private static String normalizeCountry(String country) {
+    PageHitRecorder(PageHitRepository repository, Metrics metrics, Clock clock) {
+        this.repository = repository;
+        this.metrics = metrics;
+        this.clock = clock;
+        this.counters = new HourlyCounters<>("page hits", 1, clock);
+    }
+
+    private static String normalizeCountry(@Nullable String country) {
         if (country == null || country.isBlank()) return "XX";
         String trimmed = country.trim();
         if (trimmed.length() != 2) return "XX";
         return trimmed.toUpperCase(Locale.ROOT);
-    }
-
-    /**
-     * Schedules the flush and prune tasks. Idempotent - call once at boot from
-     * {@code ApiServer}.
-     */
-    public void start() {
-        if (!metrics.webStatsEnabled()) {
-            log.info("Web stats recording disabled by config; recorder will accept calls but never flush.");
-            return;
-        }
-        long flushSeconds = Math.max(1, metrics.webStatsFlushIntervalSeconds());
-        executor.scheduleAtFixedRate(this::flush, flushSeconds, flushSeconds, TimeUnit.SECONDS);
-        executor.scheduleAtFixedRate(this::prune, 1, PRUNE_INTERVAL_HOURS, TimeUnit.HOURS);
     }
 
     /**
@@ -100,41 +87,32 @@ public class PageHitRecorder {
      * blank values fall back to {@code XX}. {@code refererDomain} is taken verbatim - the
      * caller is expected to have reduced it via {@code RefererDomainExtractor}.
      */
-    public void record(int pageId, String country, String refererDomain, boolean isBot) {
+    public void record(int pageId, @Nullable String country, String refererDomain, boolean isBot) {
         if (!metrics.webStatsEnabled()) return;
         String normalizedCountry = normalizeCountry(country);
         String normalizedReferer = refererDomain == null || refererDomain.isBlank() ? "direct" : refererDomain;
-        var key = new BucketKey(currentHour(), pageId, normalizedCountry, normalizedReferer, isBot);
-        buckets.computeIfAbsent(key, _ -> new AtomicLong()).incrementAndGet();
+        counters.add(new PageKey(pageId, normalizedCountry, normalizedReferer, isBot), 1);
     }
 
     /**
-     * Persists every bucket whose hour is strictly older than the current one, then drops
-     * those entries from the in-memory map. Current-hour buckets stay in memory so further
-     * hits in the same hour keep aggregating without an UPSERT per call.
-     *
-     * <p>Visible for tests / forced flush.
+     * Writes every bucket whose hour is over. Current-hour buckets stay in memory so further hits in
+     * the same hour keep aggregating without an upsert per call.
      */
     public void flush() {
-        Instant currentHour = currentHour();
-        var toFlush = new ArrayList<Map.Entry<BucketKey, AtomicLong>>();
-        for (var entry : buckets.entrySet()) {
-            if (!entry.getKey().hour.equals(currentHour)) {
-                toFlush.add(entry);
-            }
-        }
-        Instant longTailSince = Instant.now().minus(LONG_TAIL_WINDOW_DAYS, ChronoUnit.DAYS);
-        for (var entry : toFlush) {
-            BucketKey key = entry.getKey();
-            long hits = entry.getValue().get();
-            String referer = collapseLongTail(key.pageId, key.refererDomain, longTailSince);
-            try {
-                repository.upsert(new PageHitBucket(key.hour, key.pageId, key.country, referer, key.isBot, hits));
-                buckets.remove(key, entry.getValue());
-            } catch (Exception e) {
-                log.warn("Failed to flush page-hit bucket {} - will retry on next tick", key, e);
-            }
-        }
+        write(false);
+    }
+
+    @Override
+    public String name() {
+        return "page hits";
+    }
+
+    /**
+     * Writes everything counted, the current hour included.
+     */
+    @Override
+    public void flushAll() {
+        write(true);
     }
 
     /**
@@ -142,25 +120,24 @@ public class PageHitRecorder {
      * and operational metrics.
      */
     public int bufferedBucketCount() {
-        return buckets.size();
+        return counters.size();
     }
 
     /**
      * Returns a defensive snapshot of every bucket currently buffered.
      */
     public List<PageHitBucket> snapshot() {
-        var out = new ArrayList<PageHitBucket>(buckets.size());
-        for (var entry : buckets.entrySet()) {
-            BucketKey key = entry.getKey();
-            out.add(new PageHitBucket(
-                    key.hour,
-                    key.pageId,
-                    key.country,
-                    key.refererDomain,
-                    key.isBot,
-                    entry.getValue().get()));
-        }
-        return out;
+        return counters.snapshot().stream()
+                .map(bucket -> bucket.key().toBucket(bucket.hour(), bucket.totals()[0]))
+                .toList();
+    }
+
+    private void write(boolean includeCurrentHour) {
+        Instant longTailSince = clock.instant().minus(LONG_TAIL_WINDOW_DAYS, ChronoUnit.DAYS);
+        counters.flush(includeCurrentHour, (hour, key, delta) -> {
+            String referer = collapseLongTail(key.pageId(), key.refererDomain(), longTailSince);
+            repository.upsert(new PageHitBucket(hour, key.pageId(), key.country(), referer, key.isBot(), delta[0]));
+        });
     }
 
     private String collapseLongTail(int pageId, String refererDomain, Instant since) {
@@ -176,10 +153,10 @@ public class PageHitRecorder {
         return refererDomain;
     }
 
-    private void prune() {
+    void prune() {
         try {
             int days = Math.max(1, metrics.webStatsRetentionDays());
-            Instant cutoff = Instant.now().minus(Duration.ofDays(days));
+            Instant cutoff = clock.instant().minus(Duration.ofDays(days));
             int removed = repository.pruneBefore(cutoff);
             if (removed > 0) {
                 log.info("Pruned {} expired page-hit buckets older than {} days", removed, days);
@@ -189,9 +166,21 @@ public class PageHitRecorder {
         }
     }
 
-    private Instant currentHour() {
-        return Instant.now().truncatedTo(ChronoUnit.HOURS);
+    private record PageKey(int pageId, String country, String refererDomain, boolean isBot) {
+        private PageHitBucket toBucket(Instant hour, long hits) {
+            return new PageHitBucket(hour, pageId, country, refererDomain, isBot, hits);
+        }
     }
 
-    private record BucketKey(Instant hour, int pageId, String country, String refererDomain, boolean isBot) {}
+    @Override
+    public List<ScheduledTask> scheduledTasks() {
+        var flushInterval = Duration.ofSeconds(Math.max(1, metrics.webStatsFlushIntervalSeconds()));
+        return List.of(
+                new ScheduledTask("page-hit-flush", Schedule.fixedRate(flushInterval, flushInterval), () -> {
+                    if (metrics.webStatsEnabled()) flush();
+                }),
+                new ScheduledTask("page-hit-prune", Schedule.fixedRate(Duration.ofHours(1), PRUNE_INTERVAL), () -> {
+                    if (metrics.webStatsEnabled()) prune();
+                }));
+    }
 }

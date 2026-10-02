@@ -5,7 +5,7 @@
  */
 <script setup lang="ts">
 import ContainerTreeNode from '@/views/stationview/inventory/storageview/ContainerTreeNode.vue'
-import type {InventoryContainer, InventoryContainerKind} from '@/api/inventoryContainers'
+import type {InventoryContainer, InventoryContainerKind} from '@/api/generated/schema'
 
 defineProps<{
   roots: InventoryContainer[]

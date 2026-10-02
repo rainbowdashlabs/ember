@@ -78,7 +78,6 @@ class NotificationSettingsRepositoryTest extends RepositoryTestBase {
     @Order(5)
     void isAppEnabled() {
         assertFalse(notificationSettingsRepo.isAppEnabled(member.id(), NotificationType.NEW_NEWS));
-        // Default for unconfigured type
         assertTrue(notificationSettingsRepo.isAppEnabled(member.id(), NotificationType.NEW_EVENT));
     }
 
@@ -86,7 +85,6 @@ class NotificationSettingsRepositoryTest extends RepositoryTestBase {
     @Order(6)
     void isEmailEnabled() {
         assertFalse(notificationSettingsRepo.isEmailEnabled(member.id(), NotificationType.NEW_NEWS));
-        // Default for unconfigured type
         assertFalse(notificationSettingsRepo.isEmailEnabled(member.id(), NotificationType.NEW_EVENT));
     }
 

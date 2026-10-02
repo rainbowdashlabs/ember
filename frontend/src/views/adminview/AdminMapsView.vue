@@ -9,11 +9,9 @@ import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
-import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import DeleteButton from '@/components/button/DeleteButton.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Modal from '@/components/feedback/Modal.vue'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import TilesPanel from './adminmapsview/TilesPanel.vue'
 import PreviewPanel from './adminmapsview/PreviewPanel.vue'
 import GeocodingPanel from './adminmapsview/GeocodingPanel.vue'
@@ -25,9 +23,10 @@ import {useFlashMessage} from '@/composables/useFlashMessage'
 import {describeFailure} from '@/util/failure'
 import type {
   AdminMapsConfig,
+  CacheStats,
   MapsGeocodingConfig,
   MapsTilesConfig,
-} from '@/api/maps'
+} from '@/api/generated/schema'
 
 const {t} = useI18n()
 const {reload: reloadMapsConfig} = useMapsConfig()
@@ -48,7 +47,7 @@ const geocoding = ref<MapsGeocodingConfig>({
   contactEmail: '',
 })
 const tileCacheMaxMb = ref(500)
-const cacheStats = ref<maps.TileCacheStats | null>(null)
+const cacheStats = ref<CacheStats | null>(null)
 const showPurgeModal = ref(false)
 
 const {loading, failure} = useAsyncLoader(async () => {
@@ -121,12 +120,11 @@ async function purgeCache() {
       </template>
     </div>
 
-    <Modal v-model="showPurgeModal" :title="t('adminMaps.cachePurge')">
-      <p>{{ t('adminMaps.cachePurgeConfirm') }}</p>
-      <template #footer>
-        <SecondaryButton @click="showPurgeModal = false">{{ t('common.cancel') }}</SecondaryButton>
-        <DeleteButton @click="purgeCache">{{ t('adminMaps.cachePurge') }}</DeleteButton>
-      </template>
-    </Modal>
+    <ConfirmDeleteModal
+        v-model="showPurgeModal"
+        :message="t('adminMaps.cachePurgeConfirm')"
+        :confirm-label="t('adminMaps.cachePurge')"
+        @confirm="purgeCache"
+    />
   </ViewContent>
 </template>

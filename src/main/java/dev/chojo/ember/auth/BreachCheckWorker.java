@@ -8,6 +8,7 @@ package dev.chojo.ember.auth;
 import dev.chojo.ember.conf.file.elements.Auth;
 import dev.chojo.ember.conf.file.elements.HibpSettings;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.lifecycle.TaskScheduler;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -15,8 +16,7 @@ import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.Executor;
 
 /**
  * Asynchronous post-login HIBP breach check. After a successful password
@@ -42,18 +42,19 @@ public class BreachCheckWorker {
     private final HibpClient hibpClient;
     private final AccountRepository accountRepository;
     private final HibpSettings config;
-    private final ExecutorService executor;
+    private final Executor executor;
 
     @Inject
-    public BreachCheckWorker(HibpClient hibpClient, AccountRepository accountRepository, Auth authConfig) {
-        this(hibpClient, accountRepository, authConfig.hibp(), Executors.newVirtualThreadPerTaskExecutor());
+    public BreachCheckWorker(
+            HibpClient hibpClient, AccountRepository accountRepository, Auth authConfig, TaskScheduler scheduler) {
+        this(hibpClient, accountRepository, authConfig.hibp(), scheduler.executor());
     }
 
     /**
      * Visible-for-testing constructor that lets tests substitute a synchronous executor.
      */
     public BreachCheckWorker(
-            HibpClient hibpClient, AccountRepository accountRepository, HibpSettings config, ExecutorService executor) {
+            HibpClient hibpClient, AccountRepository accountRepository, HibpSettings config, Executor executor) {
         this.hibpClient = hibpClient;
         this.accountRepository = accountRepository;
         this.config = config;
@@ -70,7 +71,7 @@ public class BreachCheckWorker {
             return;
         }
         try {
-            executor.submit(() -> runCheck(accountId, plaintext));
+            executor.execute(() -> runCheck(accountId, plaintext));
         } catch (Exception e) {
             log.warn("Failed to submit breach check for account {}: {}", accountId, e.getMessage());
         }

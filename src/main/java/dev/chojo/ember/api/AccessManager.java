@@ -9,6 +9,7 @@ import dev.chojo.ember.api.auth.ClusterPermission;
 import dev.chojo.ember.api.auth.InstancePermission;
 import dev.chojo.ember.api.auth.InstanceUserType;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.auth.signing.MemoryReplayStore;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.entity.AccountSession;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
@@ -20,7 +21,6 @@ import dev.chojo.ember.feature.federation.contract.FederationSurface;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationContractRefreshService;
-import dev.chojo.ember.feature.federation.service.FederationReplayCache;
 import dev.chojo.ember.feature.federation.service.FederationSigningService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
@@ -30,9 +30,11 @@ import dev.chojo.ember.feature.station.repository.StationRepository;
 import io.javalin.http.Context;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.EnumSet;
@@ -49,11 +51,17 @@ import java.util.UUID;
 public class AccessManager {
     private static final Logger log = LoggerFactory.getLogger(AccessManager.class);
 
+    /**
+     * How long a federation nonce is remembered: twice the timestamp drift the signature check
+     * accepts, so no request that could still pass it is forgotten.
+     */
+    private static final Duration NONCE_WINDOW = Duration.ofMinutes(10);
+
     private final AccountRepository accountRepository;
     private final StationMemberRepository stationMemberRepository;
     private final FederationRepository federationRepository;
     private final FederationSigningService signingService;
-    private final FederationReplayCache replayCache;
+    private final MemoryReplayStore replayStore;
     private final StationRepository stationRepository;
     private final ClusterRepository clusterRepository;
     private final FederationContractRefreshService contractRefreshService;
@@ -65,7 +73,7 @@ public class AccessManager {
             StationMemberRepository stationMemberRepository,
             FederationRepository federationRepository,
             FederationSigningService signingService,
-            FederationReplayCache replayCache,
+            MemoryReplayStore replayStore,
             StationRepository stationRepository,
             ClusterRepository clusterRepository,
             FederationContractRefreshService contractRefreshService,
@@ -75,7 +83,7 @@ public class AccessManager {
         this.stationMemberRepository = stationMemberRepository;
         this.federationRepository = federationRepository;
         this.signingService = signingService;
-        this.replayCache = replayCache;
+        this.replayStore = replayStore;
         this.stationRepository = stationRepository;
         this.clusterRepository = clusterRepository;
         this.contractRefreshService = contractRefreshService;
@@ -93,7 +101,7 @@ public class AccessManager {
         return session;
     }
 
-    public Optional<UserSession> resolveUserSession(String token, Station station) {
+    public Optional<UserSession> resolveUserSession(String token, @Nullable Station station) {
         return resolveUserSession(token, station, null);
     }
 
@@ -108,7 +116,8 @@ public class AccessManager {
      * @param cluster the cluster the request named, or {@code null}
      * @return the session, or empty when the token is no good
      */
-    public Optional<UserSession> resolveUserSession(String token, Station station, Cluster cluster) {
+    public Optional<UserSession> resolveUserSession(
+            String token, @Nullable Station station, @Nullable Cluster cluster) {
         Optional<AccountSession> sessionOpt = resolveSession(token);
         if (sessionOpt.isEmpty()) {
             return Optional.empty();
@@ -125,7 +134,6 @@ public class AccessManager {
         Integer stationId = station != null ? station.id() : null;
         UUID stationUid = station != null ? station.uid() : null;
 
-        // Resolve instance-level permissions
         Set<InstancePermission> instancePermissions = resolveInstancePermissions(account);
 
         if (stationId != null) {
@@ -178,13 +186,14 @@ public class AccessManager {
      * permissions at all, rather than an error: the request is answered by whatever route roles apply, and
      * every cluster route asks for a permission they will not have.
      */
-    private UserSession withCluster(UserSession session, Cluster cluster, int accountId) {
+    private UserSession withCluster(UserSession session, @Nullable Cluster cluster, int accountId) {
         if (cluster == null) return session;
         var memberOpt = clusterRepository.findMember(cluster.id(), accountId);
         Set<ClusterPermission> permissions = memberOpt
                 .map(this::resolveExpandedClusterPermissions)
                 .orElseGet(() -> EnumSet.noneOf(ClusterPermission.class));
-        boolean atOwnStation = session.stationId() != null && session.stationId() == cluster.homeStationId();
+        Integer stationId = session.stationId();
+        boolean atOwnStation = stationId != null && stationId == cluster.homeStationId();
         return new UserSession(
                 session.account(),
                 session.sessionId(),
@@ -331,7 +340,8 @@ public class AccessManager {
             return Optional.empty();
         }
 
-        if (p.partnerPublicKey() == null || p.partnerPublicKey().isBlank()) {
+        String partnerPublicKey = p.partnerPublicKey();
+        if (partnerPublicKey == null || partnerPublicKey.isBlank()) {
             log.warn("Federation partner {} has no public key configured", p.id());
             return Optional.empty();
         }
@@ -347,7 +357,7 @@ public class AccessManager {
             return Optional.empty();
         }
 
-        var publicKey = signingService.decodePublicKey(p.partnerPublicKey());
+        var publicKey = signingService.decodePublicKey(partnerPublicKey);
         String pathWithQuery = FederationSigningService.canonicalPathWithQuery(ctx.path(), ctx.queryString());
         boolean valid = signingService.verify(
                 ctx.method().name(),
@@ -363,7 +373,8 @@ public class AccessManager {
             return Optional.empty();
         }
 
-        if (!replayCache.checkAndRemember(p.id(), nonce)) {
+        if (!replayStore.firstSighting(
+                "federation:" + p.id(), nonce.toString(), Instant.now().plus(NONCE_WINDOW))) {
             log.warn("Replayed federation nonce {} from partner {} (station {})", nonce, p.id(), remoteStationUid);
             return Optional.empty();
         }
@@ -393,7 +404,7 @@ public class AccessManager {
         if (remoteSurface == null || stored == null) return false;
         return FederationContractCatalog.surfaceOfRequestPath(ctx.method(), ctx.path())
                 .filter(surface -> surface != FederationSurface.CORE)
-                .map(surface -> !remoteSurface.equals(stored.featureHash(surface.capability())))
+                .map(surface -> !remoteSurface.equals(stored.featureHash(surface.requireCapability())))
                 .orElse(false);
     }
 

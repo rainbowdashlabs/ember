@@ -5,6 +5,10 @@
  */
 package dev.chojo.ember.feature.quiz.entity;
 
+import org.jspecify.annotations.Nullable;
+
+import java.util.Objects;
+
 /**
  * Everything needed to create a quiz question. Replaces the ten-positional-argument
  * call shape that made bare {@code true}/{@code null} arguments unreadable at the call
@@ -24,11 +28,11 @@ package dev.chojo.ember.feature.quiz.entity;
  */
 public record CreateQuestionCommand(
         int catalogId,
-        Integer categoryId,
+        @Nullable Integer categoryId,
         QuizQuestionType questionType,
         String title,
         String description,
-        String imageUrl,
+        @Nullable String imageUrl,
         double points,
         boolean autoPoints,
         QuestionConfig config,
@@ -57,9 +61,9 @@ public record CreateQuestionCommand(
         private final int catalogId;
         private final QuizQuestionType questionType;
         private final String title;
-        private Integer categoryId;
+        private @Nullable Integer categoryId;
         private String description = "";
-        private String imageUrl;
+        private @Nullable String imageUrl;
         private double points = 1;
         private boolean autoPoints = true;
         private QuestionConfig config = new QuestionConfig.Unknown();
@@ -71,33 +75,33 @@ public record CreateQuestionCommand(
             this.title = title;
         }
 
-        public Builder category(Integer categoryId) {
+        public Builder category(@Nullable Integer categoryId) {
             this.categoryId = categoryId;
             return this;
         }
 
-        public Builder description(String description) {
-            this.description = description != null ? description : "";
+        public Builder description(@Nullable String description) {
+            this.description = Objects.requireNonNullElse(description, "");
             return this;
         }
 
-        public Builder imageUrl(String imageUrl) {
+        public Builder imageUrl(@Nullable String imageUrl) {
             this.imageUrl = imageUrl;
             return this;
         }
 
-        public Builder points(Double points) {
+        public Builder points(@Nullable Double points) {
             this.points = points != null ? points : 1;
             return this;
         }
 
-        public Builder autoPoints(Boolean autoPoints) {
+        public Builder autoPoints(@Nullable Boolean autoPoints) {
             this.autoPoints = autoPoints == null || autoPoints;
             return this;
         }
 
-        public Builder config(QuestionConfig config) {
-            this.config = config != null ? config : new QuestionConfig.Unknown();
+        public Builder config(@Nullable QuestionConfig config) {
+            this.config = Objects.requireNonNullElseGet(config, QuestionConfig.Unknown::new);
             return this;
         }
 
@@ -105,11 +109,11 @@ public record CreateQuestionCommand(
          * Sets the config from a raw JSON payload, parsed against the question type.
          * Convenience for the import and API paths that receive the config as text.
          */
-        public Builder configJson(String configJson) {
-            return config(questionType.parseConfig(configJson != null ? configJson : "{}"));
+        public Builder configJson(@Nullable String configJson) {
+            return config(questionType.parseConfig(Objects.requireNonNullElse(configJson, "{}")));
         }
 
-        public Builder position(Integer position) {
+        public Builder position(@Nullable Integer position) {
             this.position = position != null ? position : 0;
             return this;
         }

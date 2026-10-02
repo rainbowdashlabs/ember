@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.passkey.service;
 
+import dev.chojo.ember.api.refusal.PasskeyRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.PasskeySettings;
 import dev.chojo.ember.feature.passkey.repository.PasskeyRepository;
@@ -222,5 +224,19 @@ class PasskeyAccountServiceTest extends RepositoryTestBase {
                         .isEmpty(),
                 "asking with the password makes the passkey count as a second factor");
         assertTrue(service.setAskWithPassword(accountId, false));
+    }
+
+    @Test
+    void theAccountAndItsPasswordAreReadForTheSecurityScreen() throws Exception {
+        var service = serviceInMode("PREFERRED");
+        int accountId = newAccount("reads-" + UUID.randomUUID() + "@test.com");
+
+        assertTrue(service.credential(accountId).isEmpty(), "no password yet");
+        accountRepo.createCredential(accountId, "hash");
+        assertTrue(service.credential(accountId).isPresent());
+        assertEquals(accountId, service.account(accountId).id());
+
+        var refused = assertThrows(RefusalResponse.class, () -> service.account(Integer.MAX_VALUE));
+        assertEquals(PasskeyRefusal.ACCOUNT_NOT_HERE_ON_PASSKEY_CREATION, refused.refusal());
     }
 }

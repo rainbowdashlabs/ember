@@ -9,11 +9,8 @@ import java.io.IOException;
 import java.io.InputStream;
 
 /**
- * Streaming read result from a {@link StorageBackend}. The carried {@link #body()} is the
- * raw protocol response stream (no intermediate buffer); the caller is expected to either
- * pipe it straight into a Javalin response or fully drain it. The {@code AutoCloseable}
- * contract closes the underlying stream, which on remote backends releases the connection
- * back to the pool.
+ * An object opened by {@link StorageBackend#read}, streamed straight from the protocol. Closing it
+ * gives the connection back to the pool, so every caller has to.
  */
 public record StoredStream(InputStream body, long contentLength, ObjectMetadata metadata) implements AutoCloseable {
 

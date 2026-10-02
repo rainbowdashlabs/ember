@@ -5,8 +5,6 @@
  */
 package dev.chojo.ember.feature.page.entity;
 
-import io.javalin.openapi.OpenApiName;
-
 /**
  * Who reaches a station page.
  *
@@ -19,7 +17,6 @@ import io.javalin.openapi.OpenApiName;
  * sitemap want {@link #listed()}, while the editor's picker and a wiki delete's warning want
  * {@link #reachable()}, since a page nobody can find is still a page somebody outside can open.
  */
-@OpenApiName("PageVisibility")
 public enum PageVisibility {
     /** Nobody outside the station. */
     DRAFT,

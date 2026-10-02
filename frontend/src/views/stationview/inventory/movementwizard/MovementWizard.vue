@@ -12,7 +12,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import WizardStep from './WizardStep.vue'
 import WizardFooter from './WizardFooter.vue'
-import {useMovementWizard, type WizardPrefill} from './useMovementWizard'
+import {provideMovementWizard, useMovementWizard, type WizardPrefill} from './useMovementWizard'
 import {describeFailure, type Failure} from '@/util/failure'
 
 /**
@@ -40,6 +40,7 @@ const model = defineModel<boolean>({required: true})
 const {t} = useI18n()
 
 const wizard = useMovementWizard(() => props.prefill ?? {})
+provideMovementWizard(wizard)
 const failure = ref<Failure | null>(null)
 
 const isLast = computed(() => wizard.step.value === 'preview')
@@ -100,7 +101,7 @@ async function start() {
 
       <FailureAlert :failure="failure"/>
 
-      <WizardStep :wizard="wizard"/>
+      <WizardStep/>
 
       <WizardFooter
           class="mt-auto"

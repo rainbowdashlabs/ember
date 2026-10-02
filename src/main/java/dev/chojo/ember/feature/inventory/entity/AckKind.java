@@ -29,5 +29,11 @@ public enum AckKind {
      * mandatory reason, and reads as a correction rather than as a step, because a record that
      * cannot tell the two apart is worth less than one that admits the difference.
      */
-    CORRECTED
+    CORRECTED,
+    /**
+     * The member's receipt of a piece, confirmed for them the moment the movement reached it, because
+     * the chain says that receipt is not waited for. Recorded in the member's name and marked as automatic,
+     * so the history never reads it as something the member pressed.
+     */
+    AUTO_CONFIRMED
 }

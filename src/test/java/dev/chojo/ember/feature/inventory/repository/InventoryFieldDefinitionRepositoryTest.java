@@ -7,13 +7,13 @@ package dev.chojo.ember.feature.inventory.repository;
 
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.inventory.entity.FieldConfig;
-import dev.chojo.ember.feature.inventory.entity.FieldType;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryFieldDefinition;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.ItemFieldValues;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
@@ -59,7 +59,7 @@ class InventoryFieldDefinitionRepositoryTest extends RepositoryTestBase {
         FieldConfig.EnumConfig enumConfig = new FieldConfig.EnumConfig(List.of(
                 new FieldConfig.EnumConfig.EnumOption("a", "A"), new FieldConfig.EnumConfig.EnumOption("b", "B")));
         InventoryFieldDefinition condition = fieldDefinitionRepo.create(
-                inventory.id(), "condition", "Condition", FieldType.ENUM, false, 20, enumConfig);
+                inventory.id(), "condition", "Condition", FieldType.CHOICE, false, 20, enumConfig);
 
         List<InventoryFieldDefinition> all = fieldDefinitionRepo.findByInventory(inventory.id());
         assertEquals(2, all.size());
@@ -77,7 +77,7 @@ class InventoryFieldDefinitionRepositoryTest extends RepositoryTestBase {
 
         assertFalse(fieldDefinitionRepo.fieldHasAnyValue(inventory.id(), "weight"));
         LinkedHashMap<String, ItemFieldValues.FieldValue> values = new LinkedHashMap<>();
-        values.put("weight", new ItemFieldValues.NumberValue(BigDecimal.valueOf(12)));
+        values.put("weight", new ItemFieldValues.ItemNumberValue(BigDecimal.valueOf(12)));
         InventoryItemMetadata metadata = new InventoryItemMetadata(new ItemFieldValues(values));
         InventoryItem item = inventoryRepo.createItem(inventory.id(), "WI-1", "Weighted", null, metadata);
         assertTrue(fieldDefinitionRepo.fieldHasAnyValue(inventory.id(), "weight"));

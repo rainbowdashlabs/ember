@@ -11,9 +11,9 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import AudienceRow from './audiences/AudienceRow.vue'
 import AddAudience from './audiences/AddAudience.vue'
-import type {ProfileField, AssignmentRequest, AssignmentTarget} from '@/api/profileFields'
+import type {EditableField, AssignmentTarget} from '@/api/profileFields'
+import type {AssignmentRequest, MemberGroup} from '@/api/generated/schema'
 import type {Audience} from '@/composables/useFieldsConfig'
-import type {MemberGroup} from '@/api/types'
 
 /**
  * Who the selected question is put to, and how it is put to each of them.
@@ -23,16 +23,16 @@ import type {MemberGroup} from '@/api/types'
  * answer it and whether they may write to it at all.
  */
 defineProps<{
-  field: ProfileField | null
+  field: EditableField | null
   audiences: Audience[]
   unaskedRoles: readonly string[]
   unaskedGroups: MemberGroup[]
 }>()
 
 const emit = defineEmits<{
-  (e: 'add', target: AssignmentTarget): void
-  (e: 'remove', target: AssignmentTarget): void
-  (e: 'set', audience: Audience, patch: Partial<AssignmentRequest>): void
+  add: [target: AssignmentTarget]
+  remove: [target: AssignmentTarget]
+  set: [audience: Audience, patch: Partial<AssignmentRequest>]
 }>()
 
 const {t} = useI18n()

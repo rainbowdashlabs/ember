@@ -9,7 +9,10 @@ import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import HelpList from '@/components/helpcenter/HelpList.vue'
-import DummyBoardsOverview from '@/views/helpcenter/stationview/boards/federatedboardshelp/DummyBoardsOverview.vue'
+import MutedText from '@/components/typography/MutedText.vue'
+import Alert from '@/components/feedback/Alert.vue'
+import FederatedBoardStationGroup from '@/views/stationview/federation/federatedboardsview/FederatedBoardStationGroup.vue'
+import {demoIsBookmarked, demoPartnerStations} from '@/views/helpcenter/stationview/boards/federatedboardshelp/fixtures'
 
 const {t} = useI18n()
 </script>
@@ -39,7 +42,17 @@ const {t} = useI18n()
         </HelpSection>
 
         <HelpSection :title="t('helpCenter.federatedBoards.exampleTitle')">
-            <DummyBoardsOverview />
+            <MutedText size="sm" class="mb-4">{{ t('boards.federatedBoardsDesc') }}</MutedText>
+            <Alert variant="info" class="mb-4">{{ t('boards.bookmarkHint') }}</Alert>
+            <div class="space-y-6">
+                <FederatedBoardStationGroup
+                    v-for="station in demoPartnerStations"
+                    :key="station.stationName"
+                    :station-name="station.stationName"
+                    :station-boards="station.boards"
+                    :is-bookmarked="demoIsBookmarked"
+                />
+            </div>
         </HelpSection>
 
         <HelpSection :title="t('helpCenter.federatedBoards.restrictionsTitle')">

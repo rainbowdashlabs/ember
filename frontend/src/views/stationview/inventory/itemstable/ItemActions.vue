@@ -7,7 +7,7 @@
 import { useI18n } from 'vue-i18n'
 import ActionsMenu from '@/components/button/ActionsMenu.vue'
 import DropdownMenuItem from '@/components/button/DropdownMenuItem.vue'
-import type { InventoryItem } from '@/api/inventory'
+import type { InventoryItem } from '@/api/generated/schema'
 import type { InventoryItemActionEmits } from '../itemEmits'
 
 withDefaults(defineProps<{

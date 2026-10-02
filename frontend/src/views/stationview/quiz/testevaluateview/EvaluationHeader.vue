@@ -7,7 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
-import type {QuizAttemptDetail} from '@/api/quiz'
+import type {QuizAttemptDetail} from '@/api/generated/schema'
 
 const props = defineProps<{
   attempt: QuizAttemptDetail

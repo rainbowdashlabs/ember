@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.system.service;
 
 import dev.chojo.ember.feature.board.service.BoardService;
 import dev.chojo.ember.feature.board.service.BoardTicketService;
+import dev.chojo.ember.feature.events.entity.CancellationCause;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.federation.entity.LendingRequest;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
@@ -14,17 +15,20 @@ import dev.chojo.ember.feature.federation.service.LendingService;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.ExpiryReminderKind;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationLinks;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
-import dev.chojo.ember.feature.notifications.repository.NotificationRepository;
+import dev.chojo.ember.feature.notifications.entity.StationAudience;
+import dev.chojo.ember.feature.notifications.service.Notifier;
 import dev.chojo.ember.feature.procedure.entity.Procedure;
 import dev.chojo.ember.feature.procedure.entity.ProcedureStatus;
 import dev.chojo.ember.feature.procedure.service.ProcedureService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,7 +52,7 @@ import java.util.Map;
 public class DemoNotificationSeeder implements DemoPerStationSeeder {
     private static final Logger log = LoggerFactory.getLogger(DemoNotificationSeeder.class);
 
-    private final NotificationRepository notificationRepository;
+    private final Notifier notifier;
     private final InventoryRepository inventoryRepository;
     private final BoardService boardService;
     private final BoardTicketService boardTicketService;
@@ -58,7 +62,7 @@ public class DemoNotificationSeeder implements DemoPerStationSeeder {
 
     @Inject
     public DemoNotificationSeeder(
-            NotificationRepository notificationRepository,
+            Notifier notifier,
             InventoryRepository inventoryRepository,
             BoardService boardService,
             BoardTicketService boardTicketService,
@@ -66,7 +70,7 @@ public class DemoNotificationSeeder implements DemoPerStationSeeder {
             LendingService lendingService,
             DemoClock clock) {
         this.clock = clock;
-        this.notificationRepository = notificationRepository;
+        this.notifier = notifier;
         this.inventoryRepository = inventoryRepository;
         this.boardService = boardService;
         this.boardTicketService = boardTicketService;
@@ -128,15 +132,14 @@ public class DemoNotificationSeeder implements DemoPerStationSeeder {
                         .findFirst()
                         .orElse(null));
 
+        var lostAndFoundItem = station.lostAndFoundItem();
         var showcase = new ShowcaseContext(
                 station.news().firstNewsId(),
                 station.events().stadtfestId(),
                 station.events().evUebung().id(),
                 nextMonday.toString(),
                 null,
-                station.lostAndFoundItem() == null
-                        ? null
-                        : station.lostAndFoundItem().id(),
+                lostAndFoundItem == null ? null : lostAndFoundItem.id(),
                 lendingRequestId,
                 boardId,
                 boardKey,
@@ -145,7 +148,6 @@ public class DemoNotificationSeeder implements DemoPerStationSeeder {
                 procedureId,
                 inventoryId,
                 null,
-                stationId,
                 today);
         seedShowcase(station.adminMember(), station.members().anfaenger(), showcase);
         log.info("Demo: Created showcase notification for every NotificationType");
@@ -167,12 +169,18 @@ public class DemoNotificationSeeder implements DemoPerStationSeeder {
         log.info("Demo: Seeded showcase notification for every NotificationType");
     }
 
+    /** Writes one showcase notification to one member, the way every sender writes one. */
+    private void tell(int memberId, NotificationType type, NotificationData data) {
+        notifier.notify(StationAudience.member(memberId), type, data, Delivery.EVERY_TIME);
+    }
+
     private void seedNewsCategory(int memberId, ShowcaseContext ctx) {
-        var newsLink = ctx.newsId() != null
-                ? new NotificationData.NotificationLink("news-detail", Map.of("id", ctx.newsId()))
+        Integer newsId = ctx.newsId();
+        var newsLink = newsId != null
+                ? new NotificationData.NotificationLink("news-detail", Map.of("id", newsId))
                 : new NotificationData.NotificationLink("news-list");
 
-        notificationRepository.create(
+        tell(
                 memberId,
                 NotificationType.NEW_NEWS,
                 NotificationData.of(
@@ -182,7 +190,7 @@ public class DemoNotificationSeeder implements DemoPerStationSeeder {
                                 "Ab nächster Woche rotieren wir Dienstag und Donnerstag - der vollständige Plan steht im Beitrag."),
                         newsLink));
 
-        notificationRepository.create(
+        tell(
                 memberId,
                 NotificationType.NEWS_COMMENT,
                 NotificationData.of(
@@ -192,7 +200,7 @@ public class DemoNotificationSeeder implements DemoPerStationSeeder {
                                 "Ich bin am Dienstag etwas später dran, geht das in Ordnung?"),
                         newsLink));
 
-        notificationRepository.create(
+        tell(
                 memberId,
                 NotificationType.COMMENT_MENTION,
                 NotificationData.of(
@@ -215,7 +223,7 @@ public class DemoNotificationSeeder implements DemoPerStationSeeder {
                         "event-detail-date", Map.of("id", recurring, "date", recurringDate))
                 : oneTimeLink;
 
-        notificationRepository.create(
+        tell(
                 memberId,
                 NotificationType.NEW_EVENT,
                 NotificationData.of(
@@ -224,7 +232,7 @@ public class DemoNotificationSeeder implements DemoPerStationSeeder {
                                 "Übung für alle Altersgruppen - Treffpunkt am Marktplatz, bitte rechtzeitig erscheinen."),
                         oneTimeLink));
 
-        notificationRepository.create(
+        tell(
                 memberId,
                 NotificationType.NEW_EVENTS_BATCH,
                 NotificationData.of(
@@ -234,7 +242,7 @@ public class DemoNotificationSeeder implements DemoPerStationSeeder {
                                 ctx.today().plusDays(7)),
                         new NotificationData.NotificationLink("events-upcoming")));
 
-        notificationRepository.create(
+        tell(
                 memberId,
                 NotificationType.EVENT_REGISTRATION_STATUS,
                 NotificationData.of(
@@ -245,14 +253,26 @@ public class DemoNotificationSeeder implements DemoPerStationSeeder {
                                 "Übung für alle Altersgruppen"),
                         oneTimeLink));
 
-        notificationRepository.create(
+        tell(
                 memberId,
                 NotificationType.EVENT_CANCELLED,
                 NotificationData.of(
-                        new NotificationParams.EventCancelled("Offenes Training", "Schneesturm angekündigt"),
+                        new NotificationParams.EventCancelled(
+                                "Offenes Training",
+                                "Schneesturm angekündigt",
+                                ctx.today().plusDays(3),
+                                CancellationCause.MANUAL),
                         oneTimeLink));
 
-        notificationRepository.create(
+        tell(
+                memberId,
+                NotificationType.EVENT_DATE_RESTORED,
+                NotificationData.of(
+                        new NotificationParams.EventDateRestored(
+                                "Offenes Training", ctx.today().plusDays(1)),
+                        recurringLink));
+
+        tell(
                 memberId,
                 NotificationType.EVENT_REMINDER,
                 NotificationData.of(
@@ -260,7 +280,7 @@ public class DemoNotificationSeeder implements DemoPerStationSeeder {
                                 "Offenes Training", 1, ctx.today().plusDays(1)),
                         recurringLink));
 
-        notificationRepository.create(
+        tell(
                 memberId,
                 NotificationType.REGISTRATION_DEADLINE_EXPIRED,
                 NotificationData.of(
@@ -268,34 +288,35 @@ public class DemoNotificationSeeder implements DemoPerStationSeeder {
     }
 
     private void seedInventoryCategory(int memberId, ShowcaseContext ctx) {
-        var exchangeLink = ctx.inventoryId() != null
-                ? new NotificationData.NotificationLink("inventory-movements", Map.of("id", ctx.inventoryId()))
+        Integer inventoryId = ctx.inventoryId();
+        var exchangeLink = inventoryId != null
+                ? new NotificationData.NotificationLink("inventory-movements", Map.of("id", inventoryId))
                 : new NotificationData.NotificationLink("inventory-movements");
-        var procurementLink = ctx.inventoryId() != null
-                ? new NotificationData.NotificationLink("inventory-procurement", Map.of("id", ctx.inventoryId()))
+        var procurementLink = inventoryId != null
+                ? new NotificationData.NotificationLink("inventory-procurement", Map.of("id", inventoryId))
                 : new NotificationData.NotificationLink("inventory-procurement");
 
-        notificationRepository.create(
+        tell(
                 memberId,
                 NotificationType.MOVEMENT_RAISED,
                 NotificationData.of(
                         new NotificationParams.MovementRaised("Tim Berger", "Blouson Größe 152", "Zu klein geworden"),
                         exchangeLink));
 
-        notificationRepository.create(
+        tell(
                 memberId,
                 NotificationType.MOVEMENT_ADVANCED,
                 NotificationData.of(
                         new NotificationParams.MovementMoved("Ersatz ausgegeben", "Blouson Größe 152", null),
                         exchangeLink));
 
-        notificationRepository.create(
+        tell(
                 memberId,
                 NotificationType.PROCUREMENT_REQUESTED,
                 NotificationData.of(
                         new NotificationParams.ProcurementRequested("Handschuhe Größe 6"), procurementLink));
 
-        notificationRepository.create(
+        tell(
                 memberId,
                 NotificationType.PROCUREMENT_FULFILLED,
                 NotificationData.of(
@@ -303,21 +324,21 @@ public class DemoNotificationSeeder implements DemoPerStationSeeder {
     }
 
     private void seedSocialCategory(int memberId, int otherMemberId, ShowcaseContext ctx) {
-        notificationRepository.create(
+        tell(
                 memberId,
                 NotificationType.MEMBER_ADDED_TO_GROUP,
                 NotificationData.of(
                         new NotificationParams.MemberAddedToGroup("Wettkampfteam", "Alice Müller"),
                         new NotificationData.NotificationLink("dashboard-overview")));
 
-        notificationRepository.create(
+        tell(
                 memberId,
                 NotificationType.PROFILE_FIELD_CHANGED,
                 NotificationData.of(
                         new NotificationParams.ProfileFieldChanged("Lukas Frank", "Allergien"),
                         new NotificationData.NotificationLink("members-detail", Map.of("id", otherMemberId))));
 
-        notificationRepository.create(
+        tell(
                 memberId,
                 NotificationType.EXPIRY_REMINDER,
                 NotificationData.of(
@@ -331,10 +352,10 @@ public class DemoNotificationSeeder implements DemoPerStationSeeder {
                                 null),
                         NotificationLinks.ownProfile()));
 
-        var formLink = ctx.formId() != null
-                ? new NotificationData.NotificationLink("form-detail", Map.of("id", ctx.formId()))
-                : new NotificationData.NotificationLink("forms");
-        notificationRepository.create(
+        Integer formId = ctx.formId();
+        var formLink =
+                formId != null ? NotificationLinks.form(formId) : new NotificationData.NotificationLink("forms-list");
+        tell(
                 memberId,
                 NotificationType.NEW_FORM,
                 NotificationData.of(
@@ -344,25 +365,25 @@ public class DemoNotificationSeeder implements DemoPerStationSeeder {
         var lostLink = lostId != null
                 ? new NotificationData.NotificationLink("lost-and-found", Map.of("id", lostId))
                 : new NotificationData.NotificationLink("lost-and-found");
-        notificationRepository.create(
+        tell(
                 memberId,
                 NotificationType.LOST_AND_FOUND_NEW,
                 NotificationData.of(
                         new NotificationParams.LostAndFoundNew("Blaue Jacke Größe M, im Geräteraum gefunden"),
                         lostLink));
-        notificationRepository.create(
+        tell(
                 memberId,
                 NotificationType.LOST_AND_FOUND_CLAIMED,
                 NotificationData.of(
                         new NotificationParams.LostAndFoundClaimed("Frieda Vogel", "Blaue Jacke Größe M"), lostLink));
 
-        notificationRepository.create(
+        tell(
                 memberId,
                 NotificationType.WAITLIST_NEW_ENTRY,
                 NotificationData.of(
                         new NotificationParams.WaitlistNewEntry("Lena Schmidt", "Anfänger-Gruppe"),
                         new NotificationData.NotificationLink("dashboard-overview")));
-        notificationRepository.create(
+        tell(
                 memberId,
                 NotificationType.WAITLIST_PUBLIC_REGISTRATION,
                 NotificationData.of(
@@ -371,23 +392,24 @@ public class DemoNotificationSeeder implements DemoPerStationSeeder {
     }
 
     private void seedLendingCategory(int memberId, ShowcaseContext ctx) {
-        var lendingLink = ctx.lendingRequestId() != null
-                ? new NotificationData.NotificationLink("lending-request", Map.of("id", ctx.lendingRequestId()))
+        Integer lendingRequestId = ctx.lendingRequestId();
+        var lendingLink = lendingRequestId != null
+                ? NotificationLinks.lendingRequest(lendingRequestId)
                 : new NotificationData.NotificationLink("dashboard-overview");
 
-        notificationRepository.create(
+        tell(
                 memberId,
                 NotificationType.LENDING_NEW_REQUEST,
                 NotificationData.of(
                         new NotificationParams.LendingNewRequest("FF Musterstadt-Süd", "2 Handfunkgeräte"),
                         lendingLink));
-        notificationRepository.create(
+        tell(
                 memberId,
                 NotificationType.LENDING_STATUS_CHANGE,
                 NotificationData.of(
                         new NotificationParams.LendingStatusChange("FF Musterstadt-Süd", LendingStatus.APPROVED),
                         lendingLink));
-        notificationRepository.create(
+        tell(
                 memberId,
                 NotificationType.LENDING_NEW_MESSAGE,
                 NotificationData.of(
@@ -404,7 +426,7 @@ public class DemoNotificationSeeder implements DemoPerStationSeeder {
                                 "ticketNumber", ctx.boardTicketNumber(),
                                 "ticketId", boardTicketId))
                 : new NotificationData.NotificationLink("dashboard-overview");
-        notificationRepository.create(
+        tell(
                 memberId,
                 NotificationType.BOARD_TICKET_UPDATE,
                 NotificationData.of(
@@ -418,23 +440,23 @@ public class DemoNotificationSeeder implements DemoPerStationSeeder {
         var procedureLink = procedureId != null
                 ? new NotificationData.NotificationLink("procedure-detail", Map.of("id", procedureId))
                 : new NotificationData.NotificationLink("procedure-list");
-        notificationRepository.create(
+        tell(
                 memberId,
                 NotificationType.PROCEDURE_ASSIGNED,
                 NotificationData.of(
                         new NotificationParams.ProcedureAssigned("Quartals-Fahrzeugcheck", "Alice Müller"),
                         procedureLink));
-        notificationRepository.create(
+        tell(
                 memberId,
                 NotificationType.PROCEDURE_RESOLVED,
                 NotificationData.of(
                         new NotificationParams.ProcedureResolvedParams("Quartals-Fahrzeugcheck"), procedureLink));
-        notificationRepository.create(
+        tell(
                 memberId,
                 NotificationType.PROCEDURE_REOPENED,
                 NotificationData.of(
                         new NotificationParams.ProcedureReopenedParams("Quartals-Fahrzeugcheck"), procedureLink));
-        notificationRepository.create(
+        tell(
                 memberId,
                 NotificationType.PROCEDURE_ITEM_CHECKED,
                 NotificationData.of(
@@ -444,34 +466,31 @@ public class DemoNotificationSeeder implements DemoPerStationSeeder {
     }
 
     private void seedMiscCategory(int memberId, int otherMemberId, ShowcaseContext ctx) {
-        Integer storageStationId = ctx.stationIdForStorage();
-        var storageLink = storageStationId != null
-                ? new NotificationData.NotificationLink("station-settings", Map.of("stationId", storageStationId))
-                : new NotificationData.NotificationLink("station-settings");
-        notificationRepository.create(
+        tell(
                 memberId,
                 NotificationType.STORAGE_WARNING,
-                NotificationData.of(new NotificationParams.StorageWarning(91, "9.1 GiB", "10 GiB"), storageLink));
+                NotificationData.of(
+                        new NotificationParams.StorageWarning(91, "9.1 GiB", "10 GiB"),
+                        NotificationLinks.stationStorage()));
     }
 
     /**
      * The seeded records the showcase links to, and the station's today its dates are counted from.
      */
     public record ShowcaseContext(
-            Integer newsId,
-            Integer oneTimeEventId,
-            Integer recurringEventId,
-            String recurringEventDate,
-            Integer formId,
-            Integer lostAndFoundItemId,
-            Integer lendingRequestId,
-            Integer boardId,
-            String boardKey,
-            Integer boardTicketId,
-            Integer boardTicketNumber,
-            Integer procedureId,
-            Integer inventoryId,
-            Integer waitlistChildId,
-            Integer stationIdForStorage,
+            @Nullable Integer newsId,
+            @Nullable Integer oneTimeEventId,
+            @Nullable Integer recurringEventId,
+            @Nullable String recurringEventDate,
+            @Nullable Integer formId,
+            @Nullable Integer lostAndFoundItemId,
+            @Nullable Integer lendingRequestId,
+            @Nullable Integer boardId,
+            @Nullable String boardKey,
+            @Nullable Integer boardTicketId,
+            @Nullable Integer boardTicketNumber,
+            @Nullable Integer procedureId,
+            @Nullable Integer inventoryId,
+            @Nullable Integer waitlistChildId,
             LocalDate today) {}
 }

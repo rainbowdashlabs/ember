@@ -16,8 +16,8 @@ import {useMemberPick} from '@/composables/useMemberPick'
 import type {MemberOption} from '@/components/input/select/memberOption'
 import IntakeTable from './IntakeTable.vue'
 import type {IntakeLine} from './intakeLines'
-import {ItemOwner, type InventorySize, type ItemOwnerName} from '@/api/inventory'
-import type {InventoryFieldDefinition} from '@/api/inventoryFields'
+import {ItemOwner, type ItemOwnerName} from '@/api/inventory'
+import type {InventoryFieldDefinition, InventorySize} from '@/api/generated/schema'
 import type {Failure} from '@/util/failure'
 
 /**
@@ -44,9 +44,9 @@ defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'applyToEmpty'): void
-  (e: 'add', memberId: number): void
-  (e: 'save'): void
+  applyToEmpty: []
+  add: [memberId: number]
+  save: []
 }>()
 
 const {t} = useI18n()

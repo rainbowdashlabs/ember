@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.waitinglist.entity;
 
 import de.chojo.sadu.mapper.wrapper.Row;
+import org.jspecify.annotations.Nullable;
 
 import java.sql.SQLException;
 import java.time.Instant;
@@ -26,7 +27,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 public record WaitingListInvitationAnswer(WaitingListAnswer answer, Instant answeredAt, String note) {
 
     /** Reads the answer off an entry row, or {@code null} when the invitation is unanswered. */
-    public static WaitingListInvitationAnswer from(Row row) throws SQLException {
+    public static @Nullable WaitingListInvitationAnswer from(Row row) throws SQLException {
         var answer = row.getString("invitation_answer");
         if (answer == null) return null;
         return new WaitingListInvitationAnswer(

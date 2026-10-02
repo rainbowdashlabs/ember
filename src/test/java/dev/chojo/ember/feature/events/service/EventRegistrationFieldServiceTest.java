@@ -5,20 +5,22 @@
  */
 package dev.chojo.ember.feature.events.service;
 
+import dev.chojo.ember.api.refusal.EventRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
-import dev.chojo.ember.feature.events.entity.EventFieldType;
-import dev.chojo.ember.feature.events.entity.EventRegistrationFieldConfig;
+import dev.chojo.ember.feature.attendance.service.AttendanceTemplateGuards;
+import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
+import dev.chojo.ember.feature.events.entity.RegistrationFieldDraft;
 import dev.chojo.ember.feature.events.entity.RegistrationFieldValue;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
-import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository.FieldEntry;
 import dev.chojo.ember.feature.events.repository.EventTemplateRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
@@ -43,6 +45,7 @@ class EventRegistrationFieldServiceTest extends RepositoryTestBase {
     private static EventRegistrationFieldService service;
     private static EventRegistrationFieldRepository repository;
     private static EventTemplateRepository templateRepository;
+    private static EventTemplateService templates;
     private static EventCrudService crudService;
     private static EventRegistrationService registrationService;
     private static Station station;
@@ -57,7 +60,9 @@ class EventRegistrationFieldServiceTest extends RepositoryTestBase {
         registrationService = services.registration();
         repository = new EventRegistrationFieldRepository();
         templateRepository = new EventTemplateRepository();
-        service = new EventRegistrationFieldService(repository);
+        templates = new EventTemplateService(
+                templateRepository, attendanceRepo, memberEligibility, new AttendanceTemplateGuards(attendanceRepo));
+        service = new EventRegistrationFieldService(repository, memberEligibility);
 
         station = stationRepo.create("RegFieldStation");
         account = accountRepo.create("reg-field@test.com", "Reg", "Tester");
@@ -93,17 +98,29 @@ class EventRegistrationFieldServiceTest extends RepositoryTestBase {
         service.replaceFields(
                 event.id(),
                 List.of(
-                        new FieldEntry(
+                        draft(
                                 "Shirtgröße",
-                                EventFieldType.ENUM,
-                                new EventRegistrationFieldConfig(
-                                        true, "M", List.of("S", "M", "L"), null, null, null, null, null, false),
+                                FieldType.CHOICE,
+                                registrant(true, "M", List.of("S", "M", "L"), null, null, false),
                                 true),
-                        new FieldEntry(
-                                "Begleitpersonen",
-                                EventFieldType.NUMBER,
-                                new EventRegistrationFieldConfig(false, "0", null, 0, 5, null, null, null, false),
-                                true)));
+                        draft("Begleitpersonen", FieldType.NUMBER, registrant(false, "0", null, 0, 5, false), true)));
+    }
+
+    private static RegistrationFieldDraft draft(
+            String name, FieldType type, EventQuestionSettings config, boolean overview) {
+        return new RegistrationFieldDraft(name, type, config, overview);
+    }
+
+    /** The settings of a question a registrant answers, with nothing an organiser would set. */
+    private static EventQuestionSettings registrant(
+            boolean required,
+            String defaultValue,
+            List<String> options,
+            Integer min,
+            Integer max,
+            boolean managersOnly) {
+        return new EventQuestionSettings(
+                options, null, null, null, null, false, false, required, defaultValue, min, max, managersOnly);
     }
 
     private static int fieldId(String name) {
@@ -164,12 +181,8 @@ class EventRegistrationFieldServiceTest extends RepositoryTestBase {
     void requiredQuestionWithoutDefaultIsRefused() {
         service.replaceFields(
                 event.id(),
-                List.of(new FieldEntry(
-                        "Startnummer",
-                        EventFieldType.STRING,
-                        new EventRegistrationFieldConfig(true, null, null, null, null, null, null, null, false),
-                        true)));
-        assertThrows(BadRequestResponse.class, () -> service.resolveAnswers(event.id(), Map.of()));
+                List.of(draft("Startnummer", FieldType.TEXT, registrant(true, null, null, null, null, false), true)));
+        assertThrows(RefusalResponse.class, () -> service.resolveAnswers(event.id(), Map.of()));
         seedFields();
     }
 
@@ -177,23 +190,22 @@ class EventRegistrationFieldServiceTest extends RepositoryTestBase {
     @Order(5)
     void valueOutsideOptionsIsRefused() {
         assertThrows(
-                BadRequestResponse.class,
-                () -> service.resolveAnswers(event.id(), Map.of(fieldId("Shirtgröße"), "XXXL")));
+                RefusalResponse.class, () -> service.resolveAnswers(event.id(), Map.of(fieldId("Shirtgröße"), "XXXL")));
     }
 
     @Test
     @Order(6)
     void numberOutsideRangeIsRefused() {
         int guests = fieldId("Begleitpersonen");
-        assertThrows(BadRequestResponse.class, () -> service.resolveAnswers(event.id(), Map.of(guests, "9")));
-        assertThrows(BadRequestResponse.class, () -> service.resolveAnswers(event.id(), Map.of(guests, "-1")));
-        assertThrows(BadRequestResponse.class, () -> service.resolveAnswers(event.id(), Map.of(guests, "drei")));
+        assertThrows(RefusalResponse.class, () -> service.resolveAnswers(event.id(), Map.of(guests, "9")));
+        assertThrows(RefusalResponse.class, () -> service.resolveAnswers(event.id(), Map.of(guests, "-1")));
+        assertThrows(RefusalResponse.class, () -> service.resolveAnswers(event.id(), Map.of(guests, "drei")));
     }
 
     @Test
     @Order(7)
     void unknownQuestionIsRefused() {
-        assertThrows(BadRequestResponse.class, () -> service.resolveAnswers(event.id(), Map.of(-1, "x")));
+        assertThrows(RefusalResponse.class, () -> service.resolveAnswers(event.id(), Map.of(-1, "x")));
     }
 
     @Test
@@ -274,23 +286,18 @@ class EventRegistrationFieldServiceTest extends RepositoryTestBase {
         service.replaceFields(
                 event.id(),
                 List.of(
-                        new FieldEntry(
+                        draft(
                                 "Shirtgröße",
-                                EventFieldType.ENUM,
-                                new EventRegistrationFieldConfig(
-                                        true, "M", List.of("S", "M", "L"), null, null, null, null, null, false),
+                                FieldType.CHOICE,
+                                registrant(true, "M", List.of("S", "M", "L"), null, null, false),
                                 true),
-                        new FieldEntry(
-                                "Startnummer",
-                                EventFieldType.STRING,
-                                new EventRegistrationFieldConfig(true, null, null, null, null, null, null, null, true),
-                                true)));
+                        draft("Startnummer", FieldType.TEXT, registrant(true, null, null, null, null, true), true)));
 
         assertEquals(2, service.findByEvent(event.id()).size(), "every question is asked of whoever registers");
 
         int startNumber = fieldId("Startnummer");
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> service.resolveAnswers(event.id(), Map.of()),
                 "a required question is required whoever may read its answer");
         assertEquals(
@@ -316,17 +323,12 @@ class EventRegistrationFieldServiceTest extends RepositoryTestBase {
         service.replaceFields(
                 event.id(),
                 List.of(
-                        new FieldEntry(
+                        draft(
                                 "Shirtgröße",
-                                EventFieldType.ENUM,
-                                new EventRegistrationFieldConfig(
-                                        true, "M", List.of("S", "M", "L"), null, null, null, null, null, false),
+                                FieldType.CHOICE,
+                                registrant(true, "M", List.of("S", "M", "L"), null, null, false),
                                 true),
-                        new FieldEntry(
-                                "Startnummer",
-                                EventFieldType.STRING,
-                                new EventRegistrationFieldConfig(true, null, null, null, null, null, null, null, true),
-                                true)));
+                        draft("Startnummer", FieldType.TEXT, registrant(true, null, null, null, null, true), true)));
         int size = fieldId("Shirtgröße");
         int startNumber = fieldId("Startnummer");
         LocalDate day = LocalDate.now().plusMonths(4).withDayOfMonth(7);
@@ -399,11 +401,7 @@ class EventRegistrationFieldServiceTest extends RepositoryTestBase {
 
         service.replaceFields(
                 event.id(),
-                List.of(new FieldEntry(
-                        "Verpflegung",
-                        EventFieldType.STRING,
-                        new EventRegistrationFieldConfig(true, null, null, null, null, null, null, null, false),
-                        true)));
+                List.of(draft("Verpflegung", FieldType.TEXT, registrant(true, null, null, null, null, false), true)));
 
         assertEquals(
                 RegistrationStatus.ACCEPTED,
@@ -429,23 +427,13 @@ class EventRegistrationFieldServiceTest extends RepositoryTestBase {
         service.replaceFields(
                 event.id(),
                 List.of(
-                        new FieldEntry(
-                                "Begleitpersonen",
-                                EventFieldType.NUMBER,
-                                new EventRegistrationFieldConfig(false, "0", null, 0, 9, null, null, null, false),
-                                true),
-                        new FieldEntry(
+                        draft("Begleitpersonen", FieldType.NUMBER, registrant(false, "0", null, 0, 9, false), true),
+                        draft(
                                 "Shirtgröße",
-                                EventFieldType.ENUM,
-                                new EventRegistrationFieldConfig(
-                                        true, "M", List.of("S", "M", "L", "XL"), null, null, null, null, null, false),
+                                FieldType.CHOICE,
+                                registrant(true, "M", List.of("S", "M", "L", "XL"), null, null, false),
                                 true),
-                        new FieldEntry(
-                                "Verpflegung",
-                                EventFieldType.STRING,
-                                new EventRegistrationFieldConfig(
-                                        false, null, null, null, null, null, null, null, false),
-                                true)));
+                        draft("Verpflegung", FieldType.TEXT, registrant(false, null, null, null, null, false), true)));
 
         var carried = service.findValues(registration.id()).stream()
                 .collect(Collectors.toMap(RegistrationFieldValue::fieldId, RegistrationFieldValue::value));
@@ -455,11 +443,7 @@ class EventRegistrationFieldServiceTest extends RepositoryTestBase {
 
         service.replaceFields(
                 event.id(),
-                List.of(new FieldEntry(
-                        "Verpflegung",
-                        EventFieldType.STRING,
-                        new EventRegistrationFieldConfig(false, null, null, null, null, null, null, null, false),
-                        true)));
+                List.of(draft("Verpflegung", FieldType.TEXT, registrant(false, null, null, null, null, false), true)));
         assertTrue(service.findValues(registration.id()).isEmpty(), "a question that is gone takes its answers");
 
         registrationService.withdraw(registration.id());
@@ -470,13 +454,12 @@ class EventRegistrationFieldServiceTest extends RepositoryTestBase {
     @Order(11)
     void templateQuestionsAreCopiedIndependently() {
         var template = templateRepository.create(station.id(), "Marathon-Vorlage");
-        service.replaceTemplateFields(
+        templates.replaceRegistrationFields(
                 template.id(),
-                List.of(new FieldEntry(
+                List.of(draft(
                         "Shirtgröße",
-                        EventFieldType.ENUM,
-                        new EventRegistrationFieldConfig(
-                                true, "M", List.of("S", "M", "L"), null, null, null, null, null, false),
+                        FieldType.CHOICE,
+                        registrant(true, "M", List.of("S", "M", "L"), null, null, false),
                         true)));
 
         var created = crudService.create(
@@ -496,16 +479,72 @@ class EventRegistrationFieldServiceTest extends RepositoryTestBase {
                 null,
                 null,
                 null);
-        service.copyTemplateFields(template.id(), created.id());
+        templates.copyInto(templates.requireOwn(station.id(), template.id()), created.id());
 
         var copied = service.findByEvent(created.id());
         assertEquals(1, copied.size());
         assertEquals("Shirtgröße", copied.get(0).name());
+        assertEquals(FieldType.CHOICE, copied.get(0).fieldType());
+        assertEquals(List.of("S", "M", "L"), copied.get(0).config().options());
 
-        service.replaceTemplateFields(template.id(), List.of());
+        templates.replaceRegistrationFields(template.id(), List.of());
         assertEquals(1, service.findByEvent(created.id()).size());
 
         crudService.delete(created.id());
         templateRepository.delete(template.id());
+    }
+
+    @Test
+    @Order(12)
+    void anotherStationsTemplateIsNotHandedOut() {
+        var elsewhere = stationRepo.create("RegFieldElsewhere");
+        var foreign = templateRepository.create(elsewhere.id(), "Fremde Vorlage");
+        try {
+            var foreignRefusal =
+                    assertThrows(RefusalResponse.class, () -> templates.requireOwn(station.id(), foreign.id()));
+            var goneRefusal = assertThrows(RefusalResponse.class, () -> templates.requireOwn(station.id(), -1));
+            assertEquals(EventRefusal.EVENT_TEMPLATE_TO_APPLY_NOT_HERE, foreignRefusal.refusal());
+            assertEquals(goneRefusal.refusal(), foreignRefusal.refusal(), "the two read alike");
+        } finally {
+            stationRepo.delete(elsewhere.id());
+        }
+    }
+
+    @Test
+    @Order(13)
+    void aNewQuestionOfAKindTheFormDoesNotOfferIsRefused() {
+        var refusal = assertThrows(
+                RefusalResponse.class,
+                () -> service.replaceFields(
+                        event.id(),
+                        List.of(draft("Treffpunkt", FieldType.LOCATION, EventQuestionSettings.empty(), true))));
+        assertEquals(EventRefusal.REGISTRATION_QUESTION_TYPE_NOT_OFFERED, refusal.refusal());
+        assertEquals(2, service.findByEvent(event.id()).size(), "nothing was written");
+    }
+
+    @Test
+    @Order(14)
+    void aQuestionAlreadyAskedKeepsItsKindOnTheNextSave() {
+        repository.create(event.id(), "Treffpunkt", FieldType.LOCATION, EventQuestionSettings.empty(), 2, false);
+        var asked = service.findByEvent(event.id()).stream()
+                .map(field -> new RegistrationFieldDraft(field.name(), field.fieldType(), field.config(), true))
+                .toList();
+
+        service.replaceFields(event.id(), asked);
+
+        assertEquals(3, service.findByEvent(event.id()).size());
+        seedFields();
+    }
+
+    @Test
+    @Order(15)
+    void aYesIsStoredAsTrueHoweverItWasSent() {
+        service.replaceFields(
+                event.id(), List.of(draft("Helm", FieldType.BOOLEAN, EventQuestionSettings.empty(), true)));
+
+        assertEquals(
+                "true",
+                service.resolveAnswers(event.id(), Map.of(fieldId("Helm"), "1")).get(fieldId("Helm")));
+        seedFields();
     }
 }

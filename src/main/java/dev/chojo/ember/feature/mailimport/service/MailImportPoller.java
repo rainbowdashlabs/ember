@@ -9,6 +9,9 @@ import dev.chojo.ember.conf.file.elements.MailImport;
 import dev.chojo.ember.feature.mailimport.entity.MailMailbox;
 import dev.chojo.ember.feature.mailimport.repository.MailImportLogRepository;
 import dev.chojo.ember.feature.mailimport.repository.MailMailboxRepository;
+import dev.chojo.ember.lifecycle.Schedule;
+import dev.chojo.ember.lifecycle.ScheduledTask;
+import dev.chojo.ember.lifecycle.TaskSource;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -16,22 +19,21 @@ import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.util.List;
 
 /**
- * The one thread that visits the mailboxes.
+ * The one task that visits the mailboxes.
  *
- * <p>One thread walking them in turn is enough for what this does, and it is the shape that keeps a
+ * <p>One run walking them in turn is enough for what this does, and it is the shape that keeps a
  * misconfigured mailbox from becoming a fleet of threads holding connections open to a provider that is
  * already unhappy. What makes it safe is not the thread count but the timeouts: without a bound on
  * connecting and reading, one host that neither fails nor answers would hold every other station's
  * import for as long as its socket took to give up.
  */
 @Singleton
-public class MailImportPoller {
+public class MailImportPoller implements TaskSource {
     private static final Logger log = LoggerFactory.getLogger(MailImportPoller.class);
-    private static final int TICK_MINUTES = 1;
+    private static final Duration TICK = Duration.ofMinutes(1);
 
     private final MailMailboxRepository mailboxRepository;
     private final MailImportLogRepository logRepository;
@@ -48,32 +50,6 @@ public class MailImportPoller {
         this.logRepository = logRepository;
         this.importService = importService;
         this.settings = settings;
-    }
-
-    /**
-     * Starts the walk, unless the operator has switched the whole thing off.
-     *
-     * <p>The tick is a minute and the interval is a quarter of an hour, because the tick does not decide
-     * anything: it asks each mailbox whether it is due. Ticking often and visiting rarely is what lets a
-     * newly added mailbox be read within the minute without anybody being allowed to poll a provider that
-     * often.
-     */
-    public void start() {
-        if (!settings.enabled()) {
-            log.info("Reading mail for documents is switched off for this instance");
-            return;
-        }
-        var executor = Executors.newSingleThreadScheduledExecutor(runnable -> {
-            var thread = new Thread(runnable, "mail-import");
-            thread.setDaemon(true);
-            return thread;
-        });
-        executor.scheduleWithFixedDelay(this::tick, TICK_MINUTES, TICK_MINUTES, TimeUnit.MINUTES);
-        executor.scheduleWithFixedDelay(this::prune, 1, 24 * 60L, TimeUnit.MINUTES);
-        log.info(
-                "Reading mail for documents every {} minutes at the soonest, {} attachments a cycle",
-                settings.minimumIntervalMinutes(),
-                settings.maxAttachmentsPerCycle());
     }
 
     /**
@@ -114,5 +90,30 @@ public class MailImportPoller {
         } catch (Exception e) {
             log.warn("The import log could not be pruned", e);
         }
+    }
+
+    /**
+     * The walk every minute and the log pruning once a day, both only while the import is switched on. The
+     * tick decides nothing but asks each mailbox whether it is due, so a new mailbox is read within the minute
+     * while no provider is polled that often. Logs once whether the import is on.
+     */
+    @Override
+    public List<ScheduledTask> scheduledTasks() {
+        if (settings.enabled()) {
+            log.info(
+                    "Reading mail for documents every {} minutes at the soonest, {} attachments a cycle",
+                    settings.minimumIntervalMinutes(),
+                    settings.maxAttachmentsPerCycle());
+        } else {
+            log.info("Reading mail for documents is switched off for this instance");
+        }
+        return List.of(
+                new ScheduledTask("mail-import", Schedule.fixedDelay(TICK, TICK), () -> {
+                    if (settings.enabled()) tick();
+                }),
+                new ScheduledTask(
+                        "mail-import-prune", Schedule.fixedDelay(Duration.ofMinutes(1), Duration.ofDays(1)), () -> {
+                            if (settings.enabled()) prune();
+                        }));
     }
 }

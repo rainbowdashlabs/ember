@@ -4,14 +4,17 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
+import type {ClusterMail, ClusterRequest, ClusterResponse, components} from './generated/schema'
+
+type Schemas = components['schemas']
+
+export type ClusterUserTypeName = Schemas['ClusterUserType']
 
 /** What a cluster member carries by default. */
 export const ClusterUserType = {
     CLUSTER_USER: 'CLUSTER_USER',
     CLUSTER_ADMIN: 'CLUSTER_ADMIN',
-} as const
-
-export type ClusterUserTypeName = (typeof ClusterUserType)[keyof typeof ClusterUserType]
+} as const satisfies Record<ClusterUserTypeName, ClusterUserTypeName>
 
 /**
  * What a cluster member may do. The mirror of the station's permissions, and separate from them: a cluster
@@ -50,54 +53,42 @@ export const ClusterPermission = {
 
 export type ClusterPermissionName = (typeof ClusterPermission)[keyof typeof ClusterPermission]
 
-export interface Cluster {
-    uid: string
-    name: string
-    description?: string | null
-    /** The station shell the cluster owns, as its station identity. */
-    homeStationId: string
-    autoFederate: boolean
-    themeLocked: boolean
-    colorsLocked: boolean
-    feelLocked: boolean
-    logoLocked: boolean
-    storagePoolBytes?: number | null
-    /** Whether the cluster keeps its gear here, which is what lets its own steps appear in a movement. */
-    usesInventory?: boolean
-}
-
-export interface ClusterRequest {
-    name: string
-    description?: string | null
-    /** Leave undefined to keep the setting as it is. */
-    autoFederate?: boolean
-}
-
 /** The clusters the signed-in account may act for. */
-export async function listMine(): Promise<Cluster[]> {
-    const res = await client.get<Cluster[]>('/clusters')
+export async function listMine(): Promise<ClusterResponse[]> {
+    const res = await client.get<ClusterResponse[]>('/clusters')
     return res.data
 }
 
 /** Every cluster on the instance, for an administrator. */
-export async function listAll(): Promise<Cluster[]> {
-    const res = await client.get<Cluster[]>('/clusters/all')
+export async function listAll(): Promise<ClusterResponse[]> {
+    const res = await client.get<ClusterResponse[]>('/clusters/all')
     return res.data
 }
 
 /** The cluster the request is acting for, named by the header. */
-export async function getActive(): Promise<Cluster> {
-    const res = await client.get<Cluster>('/cluster')
+export async function getActive(): Promise<ClusterResponse> {
+    const res = await client.get<ClusterResponse>('/cluster')
     return res.data
 }
 
-export async function createCluster(data: ClusterRequest): Promise<Cluster> {
-    const res = await client.post<Cluster>('/clusters', data)
+export async function createCluster(data: ClusterRequest): Promise<ClusterResponse> {
+    const res = await client.post<ClusterResponse>('/clusters', data)
     return res.data
 }
 
-export async function updateActive(data: ClusterRequest): Promise<Cluster> {
-    const res = await client.put<Cluster>('/cluster', data)
+export async function updateActive(data: ClusterRequest): Promise<ClusterResponse> {
+    const res = await client.put<ClusterResponse>('/cluster', data)
+    return res.data
+}
+
+/** Whether the caller gets the association's notifications by mail, and whether mail can be sent at all. */
+export async function getMailSettings(): Promise<ClusterMail> {
+    const res = await client.get<ClusterMail>('/cluster/notifications/settings')
+    return res.data
+}
+
+export async function updateMailSettings(emailEnabled: boolean): Promise<ClusterMail> {
+    const res = await client.put<ClusterMail>('/cluster/notifications/settings', {emailEnabled})
     return res.data
 }
 

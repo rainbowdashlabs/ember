@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {computed, onMounted, ref, watch} from 'vue'
+import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
@@ -30,8 +30,9 @@ import {
   type MailProvider,
 } from '@/api/mailProviders'
 import {StationPermission} from '@/api/types'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useSession} from '@/composables/useSession'
-import {describeFailure, type Failure} from '@/util/failure'
+import {describeFailure} from '@/util/failure'
 
 const {t} = useI18n()
 const {hasPermission, loaded, sessionInfo} = useSession()
@@ -43,33 +44,27 @@ watch(loaded, (isLoaded) => {
   }
 }, {immediate: true})
 
-const failure = ref<Failure | null>(null)
 const success = ref('')
-
-/** Records what went wrong, keeping this screen's wording where it names what was being done. */
-function handleFailure(e: unknown, message?: string) {
-  const described = describeFailure(e, t)
-  failure.value = message ? {...described, message} : described
-  success.value = ''
-}
-
-function handleSuccess(msg: string) { success.value = msg; failure.value = null }
-
 const providers = ref<MailProvider[]>([])
 const signingSecretSet = ref(false)
 /** Whether the list on screen is the stored one. Nothing may be saved before it is. */
 const providersLoaded = ref(false)
 
-onMounted(async () => {
-  try {
-    const [entries, webhook] = await Promise.all([getStationProviders(), getStationWebhook()])
-    providers.value = entries
-    signingSecretSet.value = webhook.signingSecretSet
-    providersLoaded.value = true
-  } catch (e) {
-    handleFailure(e, t('mailChain.loadFailed'))
-  }
-})
+const {failure} = useAsyncLoader(async (isCurrent) => {
+  const [entries, webhook] = await Promise.all([getStationProviders(), getStationWebhook()])
+  if (!isCurrent()) return
+  providers.value = entries
+  signingSecretSet.value = webhook.signingSecretSet
+  providersLoaded.value = true
+}, {errorMessageKey: 'mailChain.loadFailed'})
+
+/** Records what went wrong. */
+function handleFailure(e: unknown) {
+  failure.value = describeFailure(e, t)
+  success.value = ''
+}
+
+function handleSuccess(msg: string) { success.value = msg; failure.value = null }
 
 async function saveSigningSecret(secret: string) {
   const webhook = await saveStationSigningSecret(secret)

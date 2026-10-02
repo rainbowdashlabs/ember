@@ -5,7 +5,7 @@
  */
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
-import type {MemberCheckSummary} from '@/api/inventoryCheck'
+import type {EnrichedCheckSummary} from '@/api/generated/schema'
 import MemberName from '@/components/avatar/MemberName.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import RecordTable from '@/components/table/RecordTable.vue'
@@ -19,13 +19,13 @@ import {useMemberCheckTable} from './useMemberCheckTable'
  * or continues a check. Every column sorts and filters from its header.
  */
 const props = defineProps<{
-  members: MemberCheckSummary[]
+  members: EnrichedCheckSummary[]
   currentMemberId: number | undefined
 }>()
 
 const emit = defineEmits<{
   (e: 'start-check', memberId: number): void
-  (e: 'view-last-check', member: MemberCheckSummary): void
+  (e: 'view-last-check', member: EnrichedCheckSummary): void
 }>()
 
 const {t} = useI18n()

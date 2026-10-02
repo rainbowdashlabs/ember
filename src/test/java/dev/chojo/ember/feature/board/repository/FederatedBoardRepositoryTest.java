@@ -12,11 +12,11 @@ import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.board.entity.AccessData;
 import dev.chojo.ember.feature.board.entity.Board;
-import dev.chojo.ember.feature.board.entity.BoardComment;
 import dev.chojo.ember.feature.board.entity.BoardLane;
 import dev.chojo.ember.feature.board.entity.BoardShareMode;
 import dev.chojo.ember.feature.board.entity.BoardTicket;
 import dev.chojo.ember.feature.board.entity.TicketPriority;
+import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -79,9 +79,13 @@ class FederatedBoardRepositoryTest extends RepositoryTestBase {
                 memberIdentityFactory.local(owningStation.id(), member.id()));
         int ticketId = ticket.id();
 
-        BoardComment comment = boardTicketRepo.createComment(
-                ticketId, null, memberIdentityFactory.local(owningStation.id(), member.id()), "Fed comment");
-        int commentId = comment.id();
+        commentRepo.create(
+                CommentEntityType.BOARD_TICKET,
+                ticketId,
+                null,
+                null,
+                memberIdentityFactory.local(owningStation.id(), member.id()),
+                "Fed comment");
 
         partnerId = Query.query(
                         "INSERT INTO federation_partner(station_id, partner_station_id, status) VALUES (:s, :p::uuid, 'ACTIVE') RETURNING id;")
@@ -100,8 +104,6 @@ class FederatedBoardRepositoryTest extends RepositoryTestBase {
         stationRepo.delete(partnerStation.id());
         accountRepo.delete(account.id());
     }
-
-    // -- Share CRUD --
 
     @Test
     @Order(1)
@@ -127,8 +129,6 @@ class FederatedBoardRepositoryTest extends RepositoryTestBase {
         var share = federatedBoardRepo.findShare(-999);
         assertFalse(share.isPresent());
     }
-
-    // -- Share Targets --
 
     @Test
     @Order(10)
@@ -197,8 +197,6 @@ class FederatedBoardRepositoryTest extends RepositoryTestBase {
         assertFalse(share.isPresent());
     }
 
-    // -- Federated Edit Roles --
-
     @Test
     @Order(20)
     void setFederatedEditUserTypes() {
@@ -238,10 +236,6 @@ class FederatedBoardRepositoryTest extends RepositoryTestBase {
     void hasFederatedEditUserTypesWhenNone() {
         assertFalse(federatedBoardRepo.hasFederatedEditUserTypes(-999));
     }
-
-    // Satellite table tests removed - identity is now inline in board_ticket columns
-
-    // -- Bookmarks --
 
     @Test
     @Order(70)
@@ -328,8 +322,6 @@ class FederatedBoardRepositoryTest extends RepositoryTestBase {
         assertTrue(bookmarks.isEmpty());
     }
 
-    // -- Local View Overrides --
-
     @Test
     @Order(80)
     void setLocalViewOverride() {
@@ -374,8 +366,6 @@ class FederatedBoardRepositoryTest extends RepositoryTestBase {
         assertFalse(
                 federatedBoardRepo.hasLocalViewOverride(-999, UUID.fromString("99999999-9999-9999-9999-999999999999")));
     }
-
-    // -- Local Edit Overrides --
 
     @Test
     @Order(85)

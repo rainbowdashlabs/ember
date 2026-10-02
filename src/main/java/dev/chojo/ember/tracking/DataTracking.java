@@ -6,6 +6,7 @@
 package dev.chojo.ember.tracking;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.Map;
@@ -23,10 +24,15 @@ import java.util.Map;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record DataTracking(
         int version,
-        String schemaHash,
+        @Nullable String schemaHash,
         Instant generatedAt,
         Map<String, TableEntry> tables,
-        Map<String, FileStoreEntry> fileStores) {
+        @Nullable Map<String, FileStoreEntry> fileStores) {
+
+    public DataTracking {
+        tables = tables == null ? Map.of() : tables;
+        fileStores = fileStores == null ? Map.of() : fileStores;
+    }
 
     public static final int CURRENT_VERSION = 1;
     public static final String RESOURCE_PATH = "/data_tracking.json";

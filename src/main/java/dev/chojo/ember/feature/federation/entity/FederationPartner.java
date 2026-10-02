@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.federation.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -17,15 +18,15 @@ public record FederationPartner(
         int id,
         int stationId,
         UUID partnerStationId,
-        String inviteCode,
-        String publicKey,
-        String partnerPublicKey,
+        @Nullable String inviteCode,
+        @Nullable String publicKey,
+        @Nullable String partnerPublicKey,
         FederationStatus status,
-        FederationContract federationContract,
+        @Nullable FederationContract federationContract,
         Instant createdAt,
         Instant updatedAt,
-        String remoteHost,
-        String partnerStationName,
+        @Nullable String remoteHost,
+        @Nullable String partnerStationName,
         boolean clusterManaged,
         boolean clusterHome) {
 
@@ -89,10 +90,21 @@ public record FederationPartner(
     }
 
     /**
+     * The host of a partner on another instance, for the callers that only ever talk to one.
+     *
+     * @return the host
+     * @throws IllegalStateException for a partner on this instance, which has none
+     */
+    public String requireRemoteHost() {
+        if (remoteHost == null) throw new IllegalStateException("Partner " + id + " is on this instance");
+        return remoteHost;
+    }
+
+    /**
      * The core hash of the partner's last presented contract vector, or {@code null}
      * while the vector is unknown.
      */
-    public String coreHash() {
+    public @Nullable String coreHash() {
         return federationContract != null ? federationContract.core() : null;
     }
 

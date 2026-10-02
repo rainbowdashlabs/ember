@@ -8,7 +8,7 @@ import type { RouteLocationRaw } from 'vue-router'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import RowLink from '@/components/navigation/RowLink.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import type { WaitingListWithCount } from '@/api/waitingList'
+import type { WaitingListWithCount } from '@/api/generated/schema'
 import { formatDate } from '@/util/format'
 
 const props = withDefaults(defineProps<{

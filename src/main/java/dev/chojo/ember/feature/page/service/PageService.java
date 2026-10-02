@@ -5,26 +5,34 @@
  */
 package dev.chojo.ember.feature.page.service;
 
+import dev.chojo.ember.api.refusal.PageRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.service.AvatarService;
 import dev.chojo.ember.feature.content.entity.CellConfig;
 import dev.chojo.ember.feature.content.entity.CellContentType;
 import dev.chojo.ember.feature.content.entity.ContentCell;
 import dev.chojo.ember.feature.content.service.CellDescriptions;
 import dev.chojo.ember.feature.content.service.ContentBlockService;
+import dev.chojo.ember.feature.form.entity.Form;
+import dev.chojo.ember.feature.form.entity.FormVisibility;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.page.entity.PageUsingForm;
 import dev.chojo.ember.feature.page.entity.PageVisibility;
+import dev.chojo.ember.feature.page.entity.PickerPage;
 import dev.chojo.ember.feature.page.entity.StationPage;
 import dev.chojo.ember.feature.page.repository.PageRepository;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.util.HtmlSanitizer.Policy;
 import dev.chojo.ember.util.Markdown;
-import dev.chojo.ember.util.ShareTokens;
-import io.javalin.http.BadRequestResponse;
+import dev.chojo.ember.util.RandomTokens;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tools.jackson.databind.JsonNode;
 
 import java.text.Normalizer;
 import java.util.ArrayList;
@@ -33,6 +41,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 @Singleton
@@ -46,7 +55,6 @@ public class PageService {
     private final CellDescriptions descriptions;
     private final StationMemberRepository stationMemberRepository;
     private final AvatarService avatarService;
-    private final ShareTokens shareTokens;
     private final StationRepository stationRepository;
 
     @Inject
@@ -57,7 +65,6 @@ public class PageService {
             CellDescriptions descriptions,
             StationMemberRepository stationMemberRepository,
             AvatarService avatarService,
-            ShareTokens shareTokens,
             StationRepository stationRepository) {
         this.pageRepository = pageRepository;
         this.blocks = blocks;
@@ -65,24 +72,18 @@ public class PageService {
         this.descriptions = descriptions;
         this.stationMemberRepository = stationMemberRepository;
         this.avatarService = avatarService;
-        this.shareTokens = shareTokens;
         this.stationRepository = stationRepository;
     }
-
-    // --- Page CRUD ---
 
     static String toSlug(String input) {
         if (input == null) return "";
         String normalized = Normalizer.normalize(input.toLowerCase(Locale.ROOT), Normalizer.Form.NFD);
-        // Remove diacritics
-        String ascii = normalized.replaceAll("\\p{InCombiningDiacriticalMarks}+", "");
-        // Replace non-alphanumeric with hyphens
-        String slug = ascii.replaceAll("[^a-z0-9]+", "-");
-        // Trim leading/trailing hyphens
-        return slug.replaceAll("^-+|-+$", "");
+        String withoutDiacritics = normalized.replaceAll("\\p{InCombiningDiacriticalMarks}+", "");
+        String hyphenated = withoutDiacritics.replaceAll("[^a-z0-9]+", "-");
+        return hyphenated.replaceAll("^-+|-+$", "");
     }
 
-    public StationPage create(int stationId, String title, Integer parentId, int createdBy) {
+    public StationPage create(int stationId, String title, @Nullable Integer parentId, int createdBy) {
         if (parentId != null) {
             validateDepth(parentId, 1);
             refuseUnlistedParent(parentId);
@@ -102,7 +103,7 @@ public class PageService {
     private void refuseUnlistedParent(int parentId) {
         pageRepository.findById(parentId).ifPresent(parent -> {
             if (parent.visibility() == PageVisibility.UNLISTED) {
-                throw new BadRequestResponse("A page reached by its link alone cannot hold pages under it");
+                throw PageRefusal.PAGE_UNDER_A_LINK_ONLY_PAGE.raise();
             }
         });
     }
@@ -116,8 +117,9 @@ public class PageService {
      * was given one by the upgrade, so a page without one is a page nothing has been written into.
      */
     private StationPage loadBlocks(StationPage page) {
-        if (page.containerId() == null) return page;
-        return page.withRows(blocks.loadRows(page.containerId()));
+        Integer containerId = page.containerId();
+        if (containerId == null) return page;
+        return page.withRows(blocks.loadRows(containerId));
     }
 
     public Optional<StationPage> getPageRendered(int pageId) {
@@ -129,9 +131,10 @@ public class PageService {
      * so a client holding only {@code ogImageId} cannot build the image URL.
      */
     private StationPage resolveOgImageHash(StationPage page) {
-        if (page.ogImageId() == null) return page;
+        Integer ogImageId = page.ogImageId();
+        if (ogImageId == null) return page;
         return mediaLibrary
-                .findFile(page.ogImageId())
+                .findFile(ogImageId)
                 .map(file -> page.withOgImageHash(file.contentHash()))
                 .orElse(page);
     }
@@ -145,8 +148,26 @@ public class PageService {
      * title + slug + updatedAt) for the pages of the supplied station that somebody outside can
      * open, with optional case-insensitive title-substring filter.
      */
-    public List<PageRepository.PickerPage> searchPagePicker(int stationId, String search, int limit) {
+    public List<PickerPage> searchPagePicker(int stationId, @Nullable String search, int limit) {
         return pageRepository.searchForPicker(stationId, search, limit);
+    }
+
+    /**
+     * The pages that put a form on themselves, where closing the form to its link has just stopped
+     * it working on them.
+     *
+     * <p>An editor may well mean to take the form off the public site, and the cells are theirs to
+     * tidy. What they cannot do is notice by themselves, because the pages go on rendering with a
+     * form on them that nobody can answer. A form that is still listed, or was never published,
+     * strands nothing.
+     *
+     * @param form       the form as it was before the change
+     * @param visibility how far it reaches now
+     */
+    public List<PageUsingForm> pagesStrandedBy(Form form, FormVisibility visibility) {
+        if (visibility != FormVisibility.UNLISTED || form.publicUid() == null) return List.of();
+        return pageRepository.findPagesEmbedding(
+                form.stationId(), form.publicUid().toString());
     }
 
     /**
@@ -221,9 +242,9 @@ public class PageService {
             int pageId,
             String title,
             String slug,
-            Integer parentId,
-            String metaDescription,
-            Integer ogImageId,
+            @Nullable Integer parentId,
+            @Nullable String metaDescription,
+            @Nullable Integer ogImageId,
             List<ContentBlockService.RowData> rows) {
         var page = pageRepository.findById(pageId).orElse(null);
         if (page == null) return false;
@@ -233,7 +254,7 @@ public class PageService {
             refuseUnlistedParent(parentId);
         }
         if (parentId != null && page.visibility() == PageVisibility.UNLISTED) {
-            throw new BadRequestResponse("A page reached by its link alone does not sit under another");
+            throw PageRefusal.PAGE_LINK_ONLY_UNDER_ANOTHER.raise();
         }
 
         if (pageRepository.slugExists(page.stationId(), slug, pageId)) {
@@ -261,17 +282,17 @@ public class PageService {
      * @param pageId     the page
      * @param visibility what it becomes
      * @return whether anything changed
-     * @throws BadRequestResponse where the page still has children and is leaving the tree
+     * @throws RefusalResponse where the page still has children and is leaving the tree
      */
     public boolean setVisibility(int pageId, PageVisibility visibility) {
         var page = pageRepository.findById(pageId).orElse(null);
         if (page == null) return false;
         if (visibility == PageVisibility.UNLISTED && pageRepository.hasChildren(pageId)) {
-            throw new BadRequestResponse("A page with pages under it cannot be reached by a link alone");
+            throw PageRefusal.PAGE_WITH_CHILDREN_NOT_LINK_ONLY.raise();
         }
 
         boolean minting = visibility == PageVisibility.UNLISTED;
-        boolean changed = pageRepository.setVisibility(pageId, visibility, minting ? shareTokens.mint() : null);
+        boolean changed = pageRepository.setVisibility(pageId, visibility, minting ? RandomTokens.urlSafe(32) : null);
         if (!changed) return false;
         log.info("Page {} visibility set to {}", pageId, visibility);
 
@@ -314,16 +335,16 @@ public class PageService {
      * @param expected the link the caller was shown, so two administrators cannot take it in turns
      *                 to end each other's without being told
      * @return the new link, or empty where the page has since been given a different one
-     * @throws BadRequestResponse where nobody outside the station could open the page anyway, so a
-     *                            link to it would be one that leads nowhere
+     * @throws RefusalResponse where nobody outside the station could open the page anyway, so a
+     *                         link to it would be one that leads nowhere
      */
     public Optional<String> replaceShareToken(int pageId, String expected) {
         var page = pageRepository.findById(pageId).orElse(null);
         if (page == null) return Optional.empty();
         if (!page.visibility().reachable()) {
-            throw new BadRequestResponse("A page nobody outside can open is not reached by a link either");
+            throw PageRefusal.PAGE_LINK_NOT_FOR_A_CLOSED_PAGE.raise();
         }
-        String replacement = shareTokens.mint();
+        String replacement = RandomTokens.urlSafe(32);
         if (!pageRepository.replaceShareToken(pageId, expected, replacement)) return Optional.empty();
         log.info("Page {} share link replaced", pageId);
         return Optional.of(replacement);
@@ -355,12 +376,15 @@ public class PageService {
                 .map(this::resolveOgImageHash);
     }
 
+    /**
+     * Deletes a page and its blocks, which the database does not remove along with it: the page
+     * points at its container, not the other way round.
+     */
     public boolean deletePage(int pageId) {
         var page = pageRepository.findById(pageId).orElse(null);
         if (page == null) return false;
         boolean deleted = pageRepository.delete(pageId);
         if (deleted) {
-            // The container is the owned side, so nothing cleans it up for us.
             blocks.delete(page.containerId());
             log.info("Page {} deleted from station {}", pageId, page.stationId());
         } else {
@@ -377,7 +401,8 @@ public class PageService {
                 source.stationId(), source.title() + " (Copy)", newSlug, source.parentId(), createdBy);
         var container = blocks.create(source.stationId());
         pageRepository.setContainer(copy.id(), container.id());
-        if (source.containerId() != null) blocks.copyInto(source.containerId(), container.id());
+        Integer sourceContainerId = source.containerId();
+        if (sourceContainerId != null) blocks.copyInto(sourceContainerId, container.id());
 
         log.info(
                 "Page {} duplicated from page {} in station {} by member {}",
@@ -388,25 +413,23 @@ public class PageService {
         return pageRepository.findById(copy.id()).map(this::loadBlocks).orElseThrow();
     }
 
-    public void setLandingPage(int stationId, Integer pageId) {
+    public void setLandingPage(int stationId, @Nullable Integer pageId) {
         if (pageId != null) {
             var page =
                     pageRepository.findById(pageId).orElseThrow(() -> new IllegalArgumentException("Page not found"));
             if (page.stationId() != stationId) {
-                throw new BadRequestResponse("Page does not belong to station");
+                throw PageRefusal.LANDING_PAGE_ELSEWHERE.raise();
             }
             if (!page.visibility().listed()) {
-                throw new BadRequestResponse("A landing page has to be public");
+                throw PageRefusal.LANDING_PAGE_NOT_PUBLIC.raise();
             }
             if (page.parentId() != null) {
-                throw new BadRequestResponse("Landing page cannot be a subpage");
+                throw PageRefusal.LANDING_PAGE_UNDER_ANOTHER.raise();
             }
         }
         pageRepository.setLandingPage(stationId, pageId);
         log.info("Landing page for station {} set to page {}", stationId, pageId);
     }
-
-    // --- Landing page ---
 
     public Optional<StationPage> getLandingPage(int stationId) {
         return pageRepository
@@ -460,8 +483,6 @@ public class PageService {
         throw new IllegalStateException("Could not generate unique slug");
     }
 
-    // --- Markdown rendering ---
-
     private StationPage renderMarkdownCells(StationPage page) {
         int stationId = page.stationId();
         var renderedRows = page.rows().stream()
@@ -472,9 +493,55 @@ public class PageService {
         return page.withRows(renderedRows);
     }
 
+    /**
+     * Expands a member-list cell as the editor holds it to the members it shows, the same way the
+     * public render does, so the editor preview and the published page stay in lockstep.
+     *
+     * <p>A sort order the cell does not know falls back to the default, and entries of the
+     * descriptions and the order that are not text are left out, so a half-edited cell still
+     * previews.
+     *
+     * @param cell the cell's source, sort order, member descriptions and member order
+     */
+    public List<CellConfig.ResolvedMember> resolveMemberList(int stationId, JsonNode cell) {
+        CellConfig.MemberListSortBy sortBy = null;
+        if (cell.path("sortBy").isString()) {
+            try {
+                sortBy = CellConfig.MemberListSortBy.valueOf(cell.path("sortBy").asString());
+            } catch (IllegalArgumentException unknown) {
+                log.debug(
+                        "A member list asked for an unknown order {}",
+                        cell.path("sortBy").asString());
+            }
+        }
+        var memberDescriptions = new HashMap<String, String>();
+        var descriptionsNode = cell.path("memberDescriptions");
+        if (descriptionsNode.isObject()) {
+            for (var entry : descriptionsNode.properties()) {
+                if (entry.getValue().isString())
+                    memberDescriptions.put(entry.getKey(), entry.getValue().asString());
+            }
+        }
+        var memberOrder = new ArrayList<String>();
+        var orderNode = cell.path("memberOrder");
+        if (orderNode.isArray()) {
+            for (var node : orderNode) {
+                if (node.isString()) memberOrder.add(node.asString());
+            }
+        }
+        return MemberListResolver.resolve(
+                stationMemberRepository,
+                avatarService,
+                stationId,
+                cell.path("source"),
+                sortBy,
+                memberDescriptions,
+                memberOrder);
+    }
+
     private ContentCell renderCell(int stationId, ContentCell cell) {
         if (cell.contentType() == CellContentType.MARKDOWN) {
-            return cell.withContent(Markdown.toHtml(cell.content()));
+            return cell.withContent(Markdown.toHtml(cell.content(), Policy.RICH));
         }
         if (cell.contentType() == CellContentType.MEMBER_LIST_SPOTLIGHT
                 && cell.config() instanceof CellConfig.MemberListConfig officers) {
@@ -499,8 +566,6 @@ public class PageService {
         return descriptions.describe(stationId, cell);
     }
 
-    // --- Internal helpers ---
-
     private int maxChildDepth(int pageId) {
         var children =
                 pageRepository
@@ -509,7 +574,7 @@ public class PageService {
                                 .map(StationPage::stationId)
                                 .orElse(0))
                         .stream()
-                        .filter(p -> pageId == (p.parentId() != null ? p.parentId() : 0))
+                        .filter(p -> Objects.equals(p.parentId(), pageId))
                         .toList();
 
         if (children.isEmpty()) return 0;
@@ -517,9 +582,9 @@ public class PageService {
     }
 
     private void validateDepth(int parentId, int additionalLevels) {
-        int currentDepth = pageRepository.depth(parentId) + 1; // parent is already at some depth
-        if (currentDepth + additionalLevels > MAX_DEPTH) {
-            throw new BadRequestResponse("Page hierarchy exceeds maximum depth of " + MAX_DEPTH);
+        int depthBelowParent = pageRepository.depth(parentId) + 1;
+        if (depthBelowParent + additionalLevels > MAX_DEPTH) {
+            throw PageRefusal.PAGE_TREE_TOO_DEEP.raise();
         }
     }
 }

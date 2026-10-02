@@ -5,7 +5,7 @@
  */
 import {computed, ref, type Ref} from 'vue'
 import {useI18n} from 'vue-i18n'
-import type {DataTracking, TableEntry} from '@/api/dataTracking'
+import type {DataTracking, TableEntry} from '@/api/generated/schema'
 import {useDataTable} from '@/composables/useDataTable'
 import {TRACKING_CONTEXTS, trackingColumns} from './trackingColumns'
 import {searchTextOf, trackingRowsOf, type TrackingRow} from './trackingRow'

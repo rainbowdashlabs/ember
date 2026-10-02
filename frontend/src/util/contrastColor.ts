@@ -162,14 +162,24 @@ export function compositeOver(color: Rgba, backdrop: Rgb): Rgb {
     ]
 }
 
+const WHITE: Rgb = [255, 255, 255]
+const NEAR_BLACK: Rgb = [26, 26, 26]
+const WHITE_HEX = '#ffffff'
+const NEAR_BLACK_HEX = '#1a1a1a'
+
+function toHex(rgb: Rgb): string {
+    return '#' + rgb.map(c => Math.round(Math.max(0, Math.min(255, c))).toString(16).padStart(2, '0')).join('')
+}
+
 /**
- * Returns either `#1a1a1a` (near-black) or `#ffffff` depending on which gives better contrast
- * against the given 0..255 sRGB background. Threshold chosen to match the visual feel of
- * {@link BaseBadge}; do not tweak in isolation.
+ * Returns either `#1a1a1a` (near-black) or `#ffffff` for letters on a background measured from the
+ * page. Threshold chosen to match the visual feel of {@link BaseBadge}; do not tweak in isolation.
+ * It leans to white earlier than {@link contrastTextColor}, which picks by the WCAG ratio and paints
+ * the theme's own colours.
  */
 export function contrastingTextColor(r: number, g: number, b: number): string {
     const lum = relativeLuminance(r, g, b)
-    return lum > 0.4 ? '#1a1a1a' : '#ffffff'
+    return lum > 0.4 ? NEAR_BLACK_HEX : WHITE_HEX
 }
 
 /**
@@ -180,4 +190,35 @@ export function contrastingTextColorForHex(hex: string): string | null {
     const rgb = parseHexColor(hex)
     if (!rgb) return null
     return contrastingTextColor(rgb[0], rgb[1], rgb[2])
+}
+
+/**
+ * White or near-black for letters on a hex background, whichever has the higher WCAG contrast
+ * ratio. This is the rule every theme colour and every label colour is painted with. A colour that
+ * cannot be read gets near-black.
+ */
+export function contrastTextColor(bgHex: string): string {
+    const background = parseHexColor(bgHex)
+    if (!background) return NEAR_BLACK_HEX
+    return contrastRatio(background, WHITE) >= contrastRatio(background, NEAR_BLACK) ? WHITE_HEX : NEAR_BLACK_HEX
+}
+
+/**
+ * Darkens or lightens a colour until it meets the minimum contrast ratio against a background.
+ * Used to keep badge and label colours readable on the page background.
+ */
+export function ensureContrast(fgHex: string, bgHex: string, minRatio: number = 4.5): string {
+    const foreground = parseHexColor(fgHex)
+    const background = parseHexColor(bgHex)
+    if (!foreground || !background || contrastRatio(foreground, background) >= minRatio) return fgHex
+
+    const shouldDarken = relativeLuminance(...background) > 0.5
+    for (let step = 1; step <= 30; step++) {
+        const adjusted = toHex(shouldDarken
+            ? foreground.map(c => c * (1 - step * 0.03)) as Rgb
+            : foreground.map(c => c + (255 - c) * step * 0.05) as Rgb)
+        const parsed = parseHexColor(adjusted)!
+        if (contrastRatio(parsed, background) >= minRatio) return adjusted
+    }
+    return shouldDarken ? NEAR_BLACK_HEX : WHITE_HEX
 }

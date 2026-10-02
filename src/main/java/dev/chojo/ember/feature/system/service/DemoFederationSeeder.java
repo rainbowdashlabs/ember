@@ -11,6 +11,9 @@ import dev.chojo.ember.auth.PasswordHasher;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.comment.entity.CommentEntityType;
+import dev.chojo.ember.feature.comment.entity.CommentWriter;
+import dev.chojo.ember.feature.comment.entity.NewComment;
 import dev.chojo.ember.feature.comment.service.CommentService;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
@@ -21,10 +24,10 @@ import dev.chojo.ember.feature.federation.entity.CapabilityType;
 import dev.chojo.ember.feature.federation.entity.Direction;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.service.FederationService;
-import dev.chojo.ember.feature.knowledgebase.service.KbCommentService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseFederationService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
 import dev.chojo.ember.feature.members.entity.NameParts;
+import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberLookupService;
@@ -41,6 +44,7 @@ import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,7 +66,6 @@ public class DemoFederationSeeder implements DemoSeeder {
     private final StationRepository stationRepository;
     private final FederationService federationService;
     private final KnowledgeBaseService kbService;
-    private final KbCommentService kbCommentService;
     private final KnowledgeBaseFederationService kbFederationService;
     private final QuizService quizService;
     private final TestProtocolService protocolService;
@@ -87,7 +90,6 @@ public class DemoFederationSeeder implements DemoSeeder {
             StationRepository stationRepository,
             FederationService federationService,
             KnowledgeBaseService kbService,
-            KbCommentService kbCommentService,
             KnowledgeBaseFederationService kbFederationService,
             QuizService quizService,
             TestProtocolService protocolService,
@@ -110,7 +112,6 @@ public class DemoFederationSeeder implements DemoSeeder {
         this.stationRepository = stationRepository;
         this.federationService = federationService;
         this.kbService = kbService;
-        this.kbCommentService = kbCommentService;
         this.kbFederationService = kbFederationService;
         this.quizService = quizService;
         this.protocolService = protocolService;
@@ -131,7 +132,27 @@ public class DemoFederationSeeder implements DemoSeeder {
     }
 
     /**
-     * Returns the next upcoming occurrence date of a recurring event. For weekly events we
+     * The name a member goes by, from their account, or "Admin" for a member without one.
+     */
+    private String calledName(StationMember member) {
+        Integer accountId = member.accountId();
+        if (accountId == null) return "Admin";
+        return accountRepository
+                .findById(accountId)
+                .map(a -> NameParts.of(a).called())
+                .orElse("Admin");
+    }
+
+    /**
+     * Writes a demo comment, telling whoever a comment written there tells.
+     */
+    private void seedComment(CommentEntityType type, int targetId, CommentWriter writer, NewComment comment) {
+        commentService.target(type, targetId).ifPresent(target -> commentService.createOn(target, writer, comment));
+    }
+
+    /**
+     * Returns the next upcoming occurrence date of a recurring event, which a comment on such an event is
+     * scoped to (a one-off event's comments carry no date). For weekly events we
      * walk forward to the next matching {@code day_of_week}; for non-weekly recurrences we
      * fall back to the event's anchor start time so the demo data still gets a sensible
      * date attached to the comment.
@@ -140,8 +161,9 @@ public class DemoFederationSeeder implements DemoSeeder {
         ZoneId zone = StationFormat.timezoneOf(
                 stationRepository.findById(event.stationId()).orElse(null));
         var today = LocalDate.now(zone);
-        if (event.eventType() == StationEvent.EventType.RECURRING && event.dayOfWeek() != null) {
-            DayOfWeek target = DayOfWeek.of(event.dayOfWeek());
+        Integer dayOfWeek = event.dayOfWeek();
+        if (event.eventType() == StationEvent.EventType.RECURRING && dayOfWeek != null) {
+            DayOfWeek target = DayOfWeek.of(dayOfWeek);
             int delta = (target.getValue() - today.getDayOfWeek().getValue() + 7) % 7;
             return today.plusDays(delta == 0 ? 7 : delta);
         }
@@ -153,12 +175,14 @@ public class DemoFederationSeeder implements DemoSeeder {
         return MODULES;
     }
 
+    /**
+     * Every full station gets the partner, so federation can be seen at a station inside an association as well
+     * as at one outside it. The partner's shared content is seeded once, with the first station, because it is
+     * the partner's content and not a station's.
+     */
     @Override
     public void seed(DemoRunContext run) {
         var primary = run.primaryStation();
-        // Every full station gets the partner, so what federation does can be seen at a station inside an
-        // association as well as at one outside it. The content the partner shares is seeded once, with the
-        // first station, because it is the partner's content and not a station's
         List<Integer> alsoFederated = run.stations().stream()
                 .filter(station -> station != primary)
                 .map(DemoStationContext::stationId)
@@ -170,6 +194,12 @@ public class DemoFederationSeeder implements DemoSeeder {
     /**
      * Seeds a partner station, federates it with the primary station, and shares content.
      *
+     * <p>The partner is marked as set up, since a station that has not finished the setup assistant sends its
+     * manager straight back into it, and it gets an owner, since only an owned station can ask a cluster for a
+     * place. Further stations are federated under the key the partner already uses: a second key pair would
+     * replace the first and break the pairing. Partner member names are cached in both directions, so a viewer
+     * on either station sees the remote member's name rather than the station's.
+     *
      * @param primaryStationId the primary station ID
      * @param createdBy        the member ID creating the data
      * @param alsoFederated    further stations to federate with the same partner, sharing no content of
@@ -177,18 +207,14 @@ public class DemoFederationSeeder implements DemoSeeder {
      * @return the seed result with partner station and member IDs
      */
     public SeedResult seed(int primaryStationId, int createdBy, List<Integer> alsoFederated) {
-        // Opt primary station into discovery
         stationRepository.updateDiscoverySettings(
                 primaryStationId,
                 DiscoveryVisibility.PUBLIC,
                 "Unsere Jugendfeuerwehr - Ausbildung, Technik und Gemeinschaft",
                 true);
 
-        // Create a second station
         var partnerStation = stationRepository.create("JF Partnerwache", DemoUids.station("jf-partnerwache"));
         stationRepository.updatePublicSlug(partnerStation.id(), "jf-partnerwache");
-        // A station that has not finished the setup assistant sends its manager straight back into
-        // it, so a seeded partner nobody ever set up is a station nobody can look around.
         stationRepository.markSetupComplete(partnerStation.id());
         log.info("Demo: Created partner station '{}' (id={})", partnerStation.name(), partnerStation.id());
         stationRepository.updateDiscoverySettings(
@@ -197,7 +223,6 @@ public class DemoFederationSeeder implements DemoSeeder {
                 "Partnerwache für gemeinsame Übungen und Ausbildung",
                 false);
 
-        // Create a manager account on the partner station
         var partnerAccount = accountRepository.create("partner@demo.ember", "Partner", "Manager", true);
         accountRepository.setUid(partnerAccount.id(), DemoUids.account("partner@demo.ember"));
         accountRepository.createCredential(partnerAccount.id(), passwordHasher.hash("demo"));
@@ -212,12 +237,9 @@ public class DemoFederationSeeder implements DemoSeeder {
         stationMemberRepository.setUserType(partnerMember.id(), StationUserType.MANAGER);
         stationMemberRepository.grantPermission(partnerMember.id(), managerRole.id());
         stationMemberRepository.grantPermission(partnerMember.id(), loginRole.id());
-        // Somebody has to own a station before it can ask a cluster for a place, and running it is not the
-        // same thing as owning it
         stationRepository.setOwner(partnerStation.id(), partnerMember.id());
         log.info("Demo: Created partner manager account partner@demo.ember");
 
-        // Create team members on the partner station
         var memberRole = stationMemberRepository
                 .findPermissionByName(StationPermission.USER)
                 .orElseThrow();
@@ -270,7 +292,6 @@ public class DemoFederationSeeder implements DemoSeeder {
 
         log.info("Demo: Created 5 additional members on partner station");
 
-        // Create a KB entry on the partner station
         kbService.createMarkdownFile(
                 partnerStation.id(),
                 null,
@@ -292,7 +313,6 @@ public class DemoFederationSeeder implements DemoSeeder {
                         """,
                 partnerMember.id());
 
-        // Create a KB folder with files on the partner station
         var partnerFolder = kbService.createFolder(
                 partnerStation.id(),
                 null,
@@ -338,21 +358,12 @@ public class DemoFederationSeeder implements DemoSeeder {
                         """,
                 partnerMember.id());
 
-        // Federate the two stations
-        // When federationForceHttp is set, register partners as remote (same host, exercising HTTP path)
-        String remoteHost = demoConfig.federationForceHttp() ? "http://localhost:" + apiConfig.port() : null;
+        String remoteHost = forcedRemoteHost();
 
-        var initiatingKeyPair = federationService.generateKeyPair();
-        stationRepository.updateFederationPrivateKey(
-                partnerStation.id(), federationService.encodePrivateKey(initiatingKeyPair));
+        String initiatingPublicKey = federationService.ensureStationKey(partnerStation.id());
         var partner = federationService.acceptInvite(
-                primaryStationId,
-                partnerStation.id(),
-                federationService.encodePublicKey(initiatingKeyPair),
-                remoteHost,
-                remoteHost);
+                primaryStationId, partnerStation.id(), initiatingPublicKey, remoteHost, remoteHost);
 
-        // Share the partner station's KB with the primary station (files + folders)
         var kbFiles = kbService.findFiles(partnerStation.id(), null);
         for (var file : kbFiles) {
             federationService.createKbShare(partnerStation.id(), file.id(), null, ShareScope.ALL_PARTNERS);
@@ -362,13 +373,11 @@ public class DemoFederationSeeder implements DemoSeeder {
             federationService.createKbShare(partnerStation.id(), null, folder.id(), ShareScope.ALL_PARTNERS);
         }
 
-        // Share the primary station's KB with the partner station
         var primaryKbFiles = kbService.findFiles(primaryStationId, null);
         for (var file : primaryKbFiles) {
             federationService.createKbShare(primaryStationId, file.id(), null, ShareScope.ALL_PARTNERS);
         }
 
-        // Create and share a quiz catalog on the partner station
         var partnerCatalog = quizService.createCatalog(
                 partnerStation.id(), "Grundwissen Feuerwehr", "Quiz zur Grundausbildung der Partnerwache", true);
         var partnerCategory = quizService.createCategory(partnerStation.id(), "Allgemein", "Allgemeine Fragen", 0);
@@ -378,9 +387,12 @@ public class DemoFederationSeeder implements DemoSeeder {
                 .description("Die vier Grundaufgaben der Feuerwehr")
                 .config(new QuestionConfig.MultipleChoice(
                         List.of(
-                                new QuestionConfig.MultipleChoice.Option("Retten, Löschen, Bergen, Schützen", true),
-                                new QuestionConfig.MultipleChoice.Option("Räumen, Löschen, Bauen, Sichern", false),
-                                new QuestionConfig.MultipleChoice.Option("Retten, Leiten, Bergen, Senden", false)),
+                                new QuestionConfig.MultipleChoice.ChoiceOption(
+                                        "Retten, Löschen, Bergen, Schützen", true),
+                                new QuestionConfig.MultipleChoice.ChoiceOption(
+                                        "Räumen, Löschen, Bauen, Sichern", false),
+                                new QuestionConfig.MultipleChoice.ChoiceOption(
+                                        "Retten, Leiten, Bergen, Senden", false)),
                         1))
                 .build());
         quizService.createQuestion(CreateQuestionCommand.builder(
@@ -392,7 +404,6 @@ public class DemoFederationSeeder implements DemoSeeder {
                 .build());
         federationService.createQuizShare(partnerStation.id(), partnerCatalog.id(), ShareScope.ALL_PARTNERS);
 
-        // Create and share a test protocol on the partner station
         var partnerProtocol = protocolService.createProtocol(
                 partnerStation.id(), "Grundausbildung Prüfung", "Prüfungsbogen der Partnerwache", 70);
         var protoSection = protocolService.createSection(
@@ -403,24 +414,16 @@ public class DemoFederationSeeder implements DemoSeeder {
         protocolService.createItem(protoSection.id(), "Dienstgrade", "Dienstgrade der Feuerwehr", 5, 3);
         federationService.createProtocolShare(partnerStation.id(), partnerProtocol.id(), ShareScope.ALL_PARTNERS);
 
-        // Enable federation capabilities
         enableCapabilities(partner.id());
 
-        // The other full stations get the same partner, with the key it is already federated under: a
-        // second key pair here would replace the first station's and break the pairing it already has
         for (int stationId : alsoFederated) {
             var alsoPartner = federationService.acceptInvite(
-                    stationId,
-                    partnerStation.id(),
-                    federationService.encodePublicKey(initiatingKeyPair),
-                    remoteHost,
-                    remoteHost);
+                    stationId, partnerStation.id(), initiatingPublicKey, remoteHost, remoteHost);
             enableCapabilities(alsoPartner.id());
             log.info("Demo: Federated station {} with the partner station as well", stationId);
         }
 
-        // Create a public event on the partner station (visible via federation)
-        var eventCategory = categoryService.create(partnerStation.id(), "Gemeinsame Übung", 0, "#3694ff");
+        var eventCategory = categoryService.create(partnerStation.id(), "Gemeinsame Übung", 0, null, false, "#3694ff");
         var partnerDays = clock.of(partnerStation);
         LocalDate partnerToday = partnerDays.today();
         Instant nextSatStart = partnerDays.at(
@@ -445,13 +448,9 @@ public class DemoFederationSeeder implements DemoSeeder {
                 null);
         eventFederationService.setShare(fedEvent.id(), ShareScope.ALL_PARTNERS, List.of());
 
-        // -- Share news with partner --
         var partnerMember1Uid = UUID.fromString("00000000-0000-0000-0000-000000000001");
         var partnerMember2Uid = UUID.fromString("00000000-0000-0000-0000-000000000002");
 
-        // Cache display names for federated partner members from BOTH partner directions so
-        // a viewer on either station resolves the remote member's real name instead of falling
-        // back to the station name.
         var primaryPartner = federationService.findPartners(primaryStationId).stream()
                 .filter(p -> p.partnerStationId()
                         .equals(stationRepository
@@ -466,7 +465,6 @@ public class DemoFederationSeeder implements DemoSeeder {
         }
 
         var primaryNews = newsService.findByStation(primaryStationId, 0, 10);
-        // news1 = "Willkommen..." (most recent last in DESC order, so reverse lookup)
         var news1 = primaryNews.stream()
                 .filter(n -> n.title().startsWith("Willkommen"))
                 .findFirst()
@@ -477,33 +475,24 @@ public class DemoFederationSeeder implements DemoSeeder {
                 .orElse(null);
 
         if (news1 != null) {
-            // Share news1 with all partners, visibility MEMBER
             newsFederationService.setShare(news1.id(), ShareScope.ALL_PARTNERS, NewsVisibilityRole.MEMBER, List.of());
-            // Federated comment from partner member on news1
             var nc1 = newsFederationService.createRemoteComment(
-                    primaryStationId,
                     news1.id(),
                     partner.id(),
                     partnerMember1Uid,
                     "Max Feuermann",
                     null,
                     "Toll, dass es jetzt so eine Plattform gibt! Wir nutzen das bei uns auch seit Kurzem.");
-            // Reply from local admin
-            newsService.createComment(
-                    primaryStationId,
+            seedComment(
+                    CommentEntityType.NEWS,
                     news1.id(),
-                    nc1.id(),
-                    stationMemberRepository.resolveIdentity(createdBy),
-                    "Admin",
-                    "Freut uns! Vielleicht können wir mal Erfahrungen austauschen.");
+                    CommentWriter.local(memberIdentityFactory.local(primaryStationId, createdBy), "Admin"),
+                    new NewComment(nc1.id(), null, "Freut uns! Vielleicht können wir mal Erfahrungen austauschen."));
         }
         if (news2 != null) {
-            // Share news2 with specific partner, visibility TEAM
             newsFederationService.setShare(
                     news2.id(), ShareScope.SPECIFIC, NewsVisibilityRole.TEAM, List.of(partner.id()));
-            // Federated comment from partner member on news2
             newsFederationService.createRemoteComment(
-                    primaryStationId,
                     news2.id(),
                     partner.id(),
                     partnerMember2Uid,
@@ -511,7 +500,6 @@ public class DemoFederationSeeder implements DemoSeeder {
                     null,
                     "Dürfen wir auch ein Team zum Kreiswettbewerb schicken? Wäre super!");
         }
-        // Create a news post on the PARTNER station and share it back
         var partnerNews = newsService.create(
                 partnerStation.id(),
                 "Neue Drehleiter für die Partnerwache",
@@ -530,73 +518,54 @@ public class DemoFederationSeeder implements DemoSeeder {
                 List.of(),
                 List.of());
         newsFederationService.setShare(partnerNews.id(), ShareScope.ALL_PARTNERS, NewsVisibilityRole.MEMBER, List.of());
-        // Find the reverse partner record (partner station's view of the primary station)
         var reversePartner = federationService.findPartners(partnerStation.id()).stream()
                 .filter(p -> p.stationId() == partnerStation.id())
                 .findFirst()
                 .orElse(null);
         if (reversePartner != null) {
-            // Comment from primary station admin on partner's news (stored on partner station)
             var primaryAdmin = stationMemberRepository.findById(createdBy).orElseThrow();
-            String primaryAdminName = accountRepository
-                    .findById(primaryAdmin.accountId())
-                    .map(a -> NameParts.of(a).called())
-                    .orElse("Admin");
+            String primaryAdminName = calledName(primaryAdmin);
             var pnc1 = newsFederationService.createRemoteComment(
-                    partnerStation.id(),
                     partnerNews.id(),
                     reversePartner.id(),
                     primaryAdmin.uid(),
                     primaryAdminName,
                     null,
                     "Glückwunsch! Können wir die bei der Übung auch mal testen?");
-            // Reply from partner station
-            newsService.createComment(
-                    partnerStation.id(),
+            seedComment(
+                    CommentEntityType.NEWS,
                     partnerNews.id(),
-                    pnc1.id(),
-                    stationMemberRepository.resolveIdentity(partnerMember.id()),
-                    "Partner Manager",
-                    "Natürlich, das lässt sich einrichten!");
+                    CommentWriter.local(
+                            memberIdentityFactory.local(partnerStation.id(), partnerMember.id()), "Partner Manager"),
+                    new NewComment(pnc1.id(), null, "Natürlich, das lässt sich einrichten!"));
         }
 
         log.info("Demo: Shared news with partner and added federated comments");
 
-        // -- Event comments (local + federated) --
         var primaryEvents = crudService.findByStation(primaryStationId);
         primaryEvents.stream()
                 .filter(e -> "Übung".equals(e.name()) && e.eventType() == StationEvent.EventType.RECURRING)
                 .findFirst()
                 .ifPresent(evUebung -> {
-                    // Recurring-event comments are scoped to a specific occurrence; pin the
-                    // demo comment to the next upcoming occurrence so the date shows the
-                    // feature in the UI.
                     LocalDate nextOccurrence = nextOccurrenceOf(evUebung);
-                    commentService.create(
-                            primaryStationId,
+                    seedComment(
+                            CommentEntityType.EVENT,
                             evUebung.id(),
-                            null,
-                            memberIdentityFactory.local(primaryStationId, createdBy),
-                            "Admin",
-                            "Nächste Woche üben wir den Löschangriff - bitte Sportkleidung mitbringen!",
-                            evUebung.name(),
-                            nextOccurrence);
+                            CommentWriter.local(memberIdentityFactory.local(primaryStationId, createdBy), "Admin"),
+                            new NewComment(
+                                    null,
+                                    nextOccurrence,
+                                    "Nächste Woche üben wir den Löschangriff - bitte Sportkleidung mitbringen!"));
                 });
 
-        // Federated comments on the shared event "Gemeinsame Großübung" (event lives on partner station)
         var primaryAdmin = stationMemberRepository.findById(createdBy).orElseThrow();
-        String primaryAdminName = accountRepository
-                .findById(primaryAdmin.accountId())
-                .map(a -> NameParts.of(a).called())
-                .orElse("Admin");
+        String primaryAdminName = calledName(primaryAdmin);
 
-        // Find reverse partner (partner station's view of primary station)
         var reversePartnerForEvents = federationService.findPartners(partnerStation.id()).stream()
                 .filter(p -> p.stationId() == partnerStation.id())
                 .findFirst()
                 .orElse(null);
         if (reversePartnerForEvents != null) {
-            // fedEvent is a one-off federation demo event - null eventDate (whole-event).
             var fc1 = eventFederationService.createRemoteComment(
                     reversePartnerForEvents,
                     fedEvent.id(),
@@ -605,16 +574,15 @@ public class DemoFederationSeeder implements DemoSeeder {
                     null,
                     "Wir kommen mit 6 Leuten! Brauchen wir eigene Schläuche?",
                     null);
-            // Local reply from partner station member
-            commentService.create(
-                    partnerStation.id(),
+            seedComment(
+                    CommentEntityType.EVENT,
                     fedEvent.id(),
-                    fc1.id(),
-                    memberIdentityFactory.local(partnerStation.id(), partnerMember.id()),
-                    "Partner Manager",
-                    "Nein, wir haben genug Material da. Einfach nur Schutzkleidung mitbringen.",
-                    fedEvent.name(),
-                    null);
+                    CommentWriter.local(
+                            memberIdentityFactory.local(partnerStation.id(), partnerMember.id()), "Partner Manager"),
+                    new NewComment(
+                            fc1.id(),
+                            null,
+                            "Nein, wir haben genug Material da. Einfach nur Schutzkleidung mitbringen."));
             eventFederationService.createRemoteComment(
                     reversePartnerForEvents,
                     fedEvent.id(),
@@ -626,17 +594,17 @@ public class DemoFederationSeeder implements DemoSeeder {
         }
         log.info("Demo: Added event comments (local + federated)");
 
-        // -- KB comments (local + federated) --
         var primaryKbFilesForComments = kbService.findFiles(primaryStationId, null);
         if (!primaryKbFilesForComments.isEmpty()) {
             var kbFile = primaryKbFilesForComments.getFirst();
-            // Local comment on a KB file
-            kbCommentService.createComment(
-                    primaryStationId, kbFile.id(), null, createdBy, "Admin", "Sehr hilfreich, danke!");
+            seedComment(
+                    CommentEntityType.KB,
+                    kbFile.id(),
+                    CommentWriter.local(memberIdentityFactory.local(primaryStationId, createdBy), "Admin"),
+                    new NewComment(null, null, "Sehr hilfreich, danke!"));
         }
         var partnerKbFiles = kbService.findFiles(partnerStation.id(), null);
         if (!partnerKbFiles.isEmpty() && reversePartnerForEvents != null) {
-            // Federated comment from primary station admin on partner's shared KB file
             var sharedKbFile = partnerKbFiles.getFirst();
             var kc1 = kbFederationService.createRemoteComment(
                     sharedKbFile.id(),
@@ -645,20 +613,17 @@ public class DemoFederationSeeder implements DemoSeeder {
                     primaryAdminName,
                     null,
                     "Können wir den Ausbildungsleitfaden auch als PDF bekommen?");
-            // Reply from the partner station member (local on partner station)
-            kbCommentService.createComment(
-                    partnerStation.id(),
+            seedComment(
+                    CommentEntityType.KB,
                     sharedKbFile.id(),
-                    kc1.id(),
-                    partnerMember.id(),
-                    "Partner Manager",
-                    "Klar, ich lade diese Woche eine PDF-Version hoch.");
+                    CommentWriter.local(
+                            memberIdentityFactory.local(partnerStation.id(), partnerMember.id()), "Partner Manager"),
+                    new NewComment(kc1.id(), null, "Klar, ich lade diese Woche eine PDF-Version hoch."));
         }
         log.info("Demo: Added KB comments (local + federated)");
 
         log.info("Demo: Federated station {} with partner station {}", primaryStationId, partnerStation.id());
 
-        // === Third station (not federated) ===
         var thirdStation = stationRepository.create("JF Nachbarstadt", DemoUids.station("jf-nachbarstadt"));
         stationRepository.updatePublicSlug(thirdStation.id(), "jf-nachbarstadt");
         stationRepository.markSetupComplete(thirdStation.id());
@@ -714,6 +679,14 @@ public class DemoFederationSeeder implements DemoSeeder {
      * @param thirdMemberId    its member, who also owns it
      */
     public record SeedResult(int partnerStationId, int partnerMemberId, int thirdStationId, int thirdMemberId) {}
+
+    /**
+     * The address partners are registered under when the demo forces federation over HTTP: this very instance,
+     * so the remote path is exercised without a second host. Otherwise none, and partners stay local.
+     */
+    private @Nullable String forcedRemoteHost() {
+        return demoConfig.federationForceHttp() ? "http://localhost:" + apiConfig.port() : null;
+    }
 
     /** Everything the demo's federations may do, in both directions, because a demo showing less shows less. */
     private void enableCapabilities(int partnerId) {

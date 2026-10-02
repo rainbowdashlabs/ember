@@ -7,19 +7,16 @@ import {keepInstallOffer, markInstalled, type InstallOffer} from '@/util/install
 
 /**
  * Registers the service worker that makes Ember installable, and catches the browser's offer to
- * install it.
+ * install it. A worker that fails to register costs nothing but installability, so the failure is
+ * ignored.
  *
- * The offer is made once, unasked, and is lost unless it is caught and held: preventing the
- * browser's own banner is what keeps it available for the moment the reader is actually asked,
- * which is where the first steps talk about keeping Ember to hand. A browser that never makes the
- * offer needs nothing here, and gets nothing.
+ * The offer is made once, unasked, and is lost unless it is caught and held, so the browser's own
+ * banner is prevented and the offer kept for the moment the reader is actually asked.
  */
 export default defineNuxtPlugin(() => {
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('/sw.js').catch(() => {
-                // Nothing is lost when this fails: without a worker Ember simply is not installable.
-            })
+            navigator.serviceWorker.register('/sw.js').catch(() => {})
         })
     }
 

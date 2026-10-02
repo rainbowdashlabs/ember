@@ -6,9 +6,9 @@
 package dev.chojo.ember.feature.members.service;
 
 import dev.chojo.ember.api.MemberIdentity;
-import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.cluster.entity.StationKind;
@@ -19,14 +19,15 @@ import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.util.PermissionValidation;
 import dev.chojo.ember.feature.station.repository.StationRepository;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.ForbiddenResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
+import java.time.LocalDate;
+import java.util.Arrays;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -70,7 +71,7 @@ public class StationMemberService {
         return memberRepository.findById(id);
     }
 
-    public UUID resolveUid(int memberId) {
+    public @Nullable UUID resolveUid(int memberId) {
         return lookupService.resolveUid(memberId);
     }
 
@@ -130,16 +131,15 @@ public class StationMemberService {
      * than the one it was filed for. That is the one outcome this area must not produce.
      *
      * <p>So deletion follows the same rule as marking somebody former. Documents bound only to the
-     * departing member go, unless they are marked to be kept for the record. Documents that never had
-     * a member are untouched, because they were never about anybody.
+     * departing member go. One marked to be kept for the record cannot stay with a member who is gone,
+     * so it keeps their name instead, which keeps it their paperwork. Documents that never had a member
+     * are untouched, because they were never about anybody.
      */
     public boolean delete(int id) {
-        documentService.releaseMember(id);
+        documentService.memberLeaves(id, DocumentService.Leaving.DELETED);
         log.info("Member deleted: member={}", id);
         return memberRepository.delete(id);
     }
-
-    // -- Permissions --
 
     public List<Permission> findPermissions(int memberId) {
         return memberRepository.findPermissions(memberId);
@@ -166,7 +166,7 @@ public class StationMemberService {
             int memberId,
             List<Integer> desiredPermissionIds,
             Set<StationPermission> callerPermissions,
-            Integer callerMemberId) {
+            @Nullable Integer callerMemberId) {
         List<Permission> allPermissions = memberRepository.findAllPermissions();
         List<Permission> currentPermissions = memberRepository.findPermissions(memberId);
         var currentIds = currentPermissions.stream().map(Permission::id).toList();
@@ -174,7 +174,7 @@ public class StationMemberService {
         if (callerMemberId != null && callerMemberId == memberId) {
             for (Permission existing : currentPermissions) {
                 if (!desiredPermissionIds.contains(existing.id())) {
-                    throw new ForbiddenResponse("You cannot remove your own permissions");
+                    throw MemberRefusal.MEMBER_OWN_PERMISSION_NOT_REMOVABLE.raise();
                 }
             }
         }
@@ -182,14 +182,14 @@ public class StationMemberService {
         var target = memberRepository.findById(memberId).orElse(null);
         if (target != null) {
             var station = stationRepository.findById(target.stationId()).orElse(null);
-            if (station != null && station.ownerMemberId() != null && station.ownerMemberId() == memberId) {
+            if (station != null && station.isOwnedBy(memberId)) {
                 var adminPerm = allPermissions.stream()
                         .filter(p -> p.permission() == StationPermission.STATION_ADMINISTRATOR)
                         .findFirst();
                 if (adminPerm.isPresent()
                         && currentIds.contains(adminPerm.get().id())
                         && !desiredPermissionIds.contains(adminPerm.get().id())) {
-                    throw new ForbiddenResponse("The station owner must keep the Station Administrator permission");
+                    throw MemberRefusal.MEMBER_OWNER_KEEPS_ADMINISTRATION.raise();
                 }
             }
         }
@@ -197,7 +197,6 @@ public class StationMemberService {
         PermissionValidation.validatePermissionChanges(
                 currentPermissions, desiredPermissionIds, allPermissions, callerPermissions);
 
-        // Check if LOGIN permission is being added - requires account with email
         var loginPerm = allPermissions.stream()
                 .filter(p -> p.permission() == StationPermission.LOGIN)
                 .findFirst();
@@ -206,10 +205,11 @@ public class StationMemberService {
                 && !currentIds.contains(loginPerm.get().id());
 
         var member = memberRepository.findById(memberId).orElse(null);
-        if (addingLogin && member != null && member.accountId() != null) {
-            var account = accountRepository.findById(member.accountId()).orElse(null);
+        Integer accountId = member == null ? null : member.accountId();
+        if (addingLogin && accountId != null) {
+            var account = accountRepository.findById(accountId).orElse(null);
             if (account == null || account.email() == null) {
-                throw new BadRequestResponse("Cannot grant LOGIN permission: account has no email address");
+                throw MemberRefusal.MEMBER_SIGN_IN_NEEDS_AN_ADDRESS.raise();
             }
         }
 
@@ -224,11 +224,10 @@ public class StationMemberService {
             }
         }
 
-        // If LOGIN was just granted and the account has no credentials, send onboarding email
-        if (addingLogin && authService != null && member != null && member.accountId() != null) {
-            var credential = accountRepository.findCredential(member.accountId());
+        if (addingLogin && authService != null && accountId != null) {
+            var credential = accountRepository.findCredential(accountId);
             if (credential.isEmpty()) {
-                authService.sendPasswordSetup(member.accountId());
+                authService.sendPasswordSetup(accountId);
             }
         }
 
@@ -236,31 +235,52 @@ public class StationMemberService {
         return memberRepository.findPermissions(memberId);
     }
 
-    // -- User Type --
-
-    public boolean setUserType(int memberId, StationUserType userType) {
-        log.info("User type changed for member {}: {}", memberId, userType);
-        return memberRepository.setUserType(memberId, userType);
+    public void setJoinDate(int memberId, LocalDate joinDate) {
+        memberRepository.setJoinDate(memberId, joinDate);
     }
 
-    // -- Manager relations --
-
-    public List<StationMember> findManaged(int managerId) {
-        return memberRepository.findManaged(managerId);
+    public List<StationMember> findFormerByStation(int stationId) {
+        return memberRepository.findFormerByStation(stationId);
     }
 
     /**
-     * The members a session speaks for: its own member and, for a guardian, everybody they look
-     * after. Empty where the session carries no member.
+     * The permissions a station grants a user type on top of what the type carries by itself.
      */
-    public List<Integer> findSpokenForIds(UserSession session) {
-        if (session.member() == null) return List.of();
-        var ids = new ArrayList<Integer>();
-        ids.add(session.member().id());
-        if (session.hasPermission(StationPermission.MEMBER_GUARDIAN)) {
-            findManaged(session.member().id()).forEach(managed -> ids.add(managed.id()));
-        }
-        return ids;
+    public List<Permission> findUserTypePermissions(int stationId, StationUserType userType) {
+        return memberRepository.findUserTypePermissions(stationId, userType);
+    }
+
+    /**
+     * Replaces the permissions a station grants a user type on top of what the type carries.
+     *
+     * @return the permissions granted now
+     */
+    public List<Permission> setUserTypePermissions(
+            int stationId, StationUserType userType, List<Integer> permissionIds) {
+        memberRepository.setUserTypePermissions(stationId, userType, permissionIds);
+        return memberRepository.findUserTypePermissions(stationId, userType);
+    }
+
+    /**
+     * Everything a user type may do at a station: what the type carries by itself, what the
+     * station grants it on top, and everything those permissions include.
+     *
+     * @return the permission names, sorted
+     */
+    public List<String> effectiveUserTypePermissions(int stationId, StationUserType userType) {
+        Set<StationPermission> permissions = EnumSet.noneOf(StationPermission.class);
+        permissions.addAll(Arrays.asList(userType.defaultPermissions()));
+        memberRepository.findUserTypePermissions(stationId, userType).stream()
+                .map(Permission::permission)
+                .forEach(permissions::add);
+        return StationPermission.expand(permissions).stream()
+                .map(Enum::name)
+                .sorted()
+                .toList();
+    }
+
+    public List<StationMember> findManaged(int managerId) {
+        return memberRepository.findManaged(managerId);
     }
 
     public List<StationMember> findManagers(int managedId) {
@@ -317,9 +337,10 @@ public class StationMemberService {
      * adults who manage themselves, so allowing a guardian relationship there is rejected.
      */
     private void requireManageableType(int memberId) {
-        var member = memberRepository.findById(memberId).orElseThrow(() -> new BadRequestResponse("Member not found"));
+        var member =
+                memberRepository.findById(memberId).orElseThrow(MemberRefusal.MEMBER_NOT_HERE_FOR_GUARDIANS::raise);
         if (member.userType() != StationUserType.MEMBER && member.userType() != StationUserType.TRIAL) {
-            throw new BadRequestResponse("Guardians can only be assigned to members of type MEMBER or TRIAL");
+            throw MemberRefusal.MEMBER_TYPE_TAKES_NO_GUARDIANS.raise();
         }
     }
 }

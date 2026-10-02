@@ -6,17 +6,15 @@
 package dev.chojo.ember.feature.system.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.InstancePermission;
 import dev.chojo.ember.api.auth.StationPermission;
-import dev.chojo.ember.feature.beacon.service.BeaconReportService;
 import dev.chojo.ember.feature.members.entity.NameParts;
+import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.system.entity.ProblemReport;
-import dev.chojo.ember.feature.system.repository.ProblemReportRepository;
-import dev.chojo.ember.feature.system.service.ProblemReportScreenshotService;
-import dev.chojo.ember.feature.system.service.UpdateCheckService;
+import dev.chojo.ember.feature.system.service.ProblemReportService;
+import dev.chojo.ember.feature.system.service.ProblemReportService.ReportRequest;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -31,21 +29,11 @@ import jakarta.inject.Singleton;
 
 @Singleton
 public class ProblemReportRoutes implements Routes {
-    private final ProblemReportRepository repository;
-    private final BeaconReportService beacon;
-    private final UpdateCheckService updates;
-    private final ProblemReportScreenshotService screenshots;
+    private final ProblemReportService reports;
 
     @Inject
-    public ProblemReportRoutes(
-            ProblemReportRepository repository,
-            BeaconReportService beacon,
-            UpdateCheckService updates,
-            ProblemReportScreenshotService screenshots) {
-        this.repository = repository;
-        this.beacon = beacon;
-        this.updates = updates;
-        this.screenshots = screenshots;
+    public ProblemReportRoutes(ProblemReportService reports) {
+        this.reports = reports;
     }
 
     @Override
@@ -70,61 +58,20 @@ public class ProblemReportRoutes implements Routes {
             methods = HttpMethod.POST,
             summary = "Submit a problem report",
             tags = {"Problem Reports"},
-            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = CreateReportRequest.class)),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ReportRequest.class)),
             responses = {
                 @OpenApiResponse(status = "201", content = @OpenApiContent(from = ProblemReport.class)),
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void create(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        var request = ctx.bodyAsClass(CreateReportRequest.class);
-        if (request.message() == null || request.message().isBlank()) {
-            throw Refusal.PROBLEM_REPORT_NEEDS_A_MESSAGE.raise();
-        }
-        Integer memberId = session.member() != null ? session.member().id() : null;
-        // Kept before the report is written, so a picture that cannot be stored fails the whole
-        // report rather than leaving one that claims a picture nobody can fetch.
-        var picture = screenshots.store(request.screenshot(), memberId);
-        var report = repository.create(
-                session.stationId(),
+        Integer memberId = session.memberOpt().map(StationMember::id).orElse(null);
+        var report = reports.submit(
+                session.requireStationId(),
                 memberId,
                 NameParts.of(session.account()).called(),
-                request.message(),
-                request.pageUrl(),
-                request.userRoles(),
-                request.recentRequests(),
-                request.browserInfo(),
-                request.screenSize(),
-                picture.orElse(null));
-        if (beacon.goesByItself(report)) forward(report, report.screenshotFileId(), false);
+                ctx.bodyAsClass(ReportRequest.class));
         ctx.status(HttpStatus.CREATED).json(report);
-    }
-
-    /**
-     * Passes a report to a beacon, with the picture it is to go with.
-     *
-     * <p>The picture goes first and the report second, which is the service's business; what is
-     * decided here is which picture, because whoever reviewed it may have covered more of it and may
-     * have decided it should not go at all. A report and its picture go together or the picture does
-     * not go: nothing adds one to a report that has already left.
-     *
-     * @param pictureFileId the picture to send with it, or null to send the report on its own
-     * @param temporary     whether that picture was made for this delivery alone and is to be let go
-     *                      of once it has gone, which is what a covered copy is
-     */
-    private void forward(ProblemReport report, Integer pictureFileId, boolean temporary) {
-        byte[] bytes = null;
-        String type = null;
-        if (pictureFileId != null) {
-            var picture = screenshots.read(pictureFileId);
-            if (picture.isPresent()) {
-                bytes = picture.get().data();
-                type = picture.get().contentType();
-            }
-        }
-        beacon.sendReportNow(report, updates.currentVersion(), bytes, type);
-        repository.markForwarded(report.id());
-        if (temporary) screenshots.forget(pictureFileId);
     }
 
     @OpenApi(
@@ -135,8 +82,7 @@ public class ProblemReportRoutes implements Routes {
             queryParams = @OpenApiParam(name = "includeAcknowledged", type = Boolean.class),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ProblemReport[].class)))
     private void list(Context ctx) {
-        boolean includeAcknowledged = "true".equals(ctx.queryParam("includeAcknowledged"));
-        ctx.json(repository.findAll(includeAcknowledged));
+        ctx.json(reports.list("true".equals(ctx.queryParam("includeAcknowledged"))));
     }
 
     @OpenApi(
@@ -147,8 +93,7 @@ public class ProblemReportRoutes implements Routes {
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "204"))
     private void acknowledge(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
-        repository.acknowledge(id);
+        reports.acknowledge(ctx.pathParamAsClass("id", Integer.class).get());
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -160,8 +105,7 @@ public class ProblemReportRoutes implements Routes {
             responses =
                     @OpenApiResponse(status = "200", content = @OpenApiContent(from = AcknowledgeAllResponse.class)))
     private void acknowledgeAll(Context ctx) {
-        int count = repository.acknowledgeAll();
-        ctx.json(new AcknowledgeAllResponse(count));
+        ctx.json(new AcknowledgeAllResponse(reports.acknowledgeAll()));
     }
 
     @OpenApi(
@@ -175,16 +119,11 @@ public class ProblemReportRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void screenshot(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
-        var report = repository.findById(id).orElseThrow(Refusal.PROBLEM_REPORT_NOT_HERE::raise);
-        if (!report.hasScreenshot()) throw Refusal.PROBLEM_REPORT_HAS_NO_PICTURE.raise();
-        var picture =
-                screenshots.read(report.screenshotFileId()).orElseThrow(Refusal.PROBLEM_REPORT_PICTURE_NOT_HERE::raise);
+        var picture = reports.picture(ctx.pathParamAsClass("id", Integer.class).get());
         ctx.contentType(picture.contentType()).result(picture.data());
     }
 
-    /**
-     * /** Deletes the report and the picture with it, because the picture has nowhere else to belong. */
+    /** Deletes the report and the picture with it. */
     @OpenApi(
             path = "/api/v1/admin/problem-reports/{id}",
             methods = HttpMethod.DELETE,
@@ -193,27 +132,9 @@ public class ProblemReportRoutes implements Routes {
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "204"))
     private void delete(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
-        var report = repository.findById(id).orElse(null);
-        repository.delete(id);
-        if (report != null) screenshots.forget(report.screenshotFileId());
+        reports.delete(ctx.pathParamAsClass("id", Integer.class).get());
         ctx.status(HttpStatus.NO_CONTENT);
     }
-
-    /**
-     * A report as the dialog sends it.
-     *
-     * @param screenshot the picture of the page as base64, already covered where the reporter covered
-     *     it, or null where they attached none. Never taken without being asked for.
-     */
-    public record CreateReportRequest(
-            String message,
-            String pageUrl,
-            String userRoles,
-            String recentRequests,
-            String browserInfo,
-            String screenSize,
-            String screenshot) {}
 
     public record AcknowledgeAllResponse(int acknowledged) {}
 }

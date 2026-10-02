@@ -4,26 +4,22 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
-import type {GdprExportContext, TrackingStatusName} from '@/api/dataTracking'
-import MultiSelectDropdown from '@/components/input/select/MultiSelectDropdown.vue'
+import type {GdprExportContext} from '@/api/generated/schema'
+import type {TrackingStatusName} from '@/api/dataTracking'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import StatusBadge from './StatusBadge.vue'
 import StatusReasonFields from './StatusReasonFields.vue'
+import IgnoredColumnsField from './IgnoredColumnsField.vue'
 
-const props = defineProps<{
-  exportCtx: GdprExportContext
+defineProps<{
   statuses: TrackingStatusName[]
   columnOptions: { value: string; label: string; group?: string }[]
 }>()
 
-const {t} = useI18n()
+const exportCtx = defineModel<GdprExportContext>('exportCtx', {required: true})
 
-const ignoredColumns = computed({
-  get: () => props.exportCtx.ignoredColumns ?? [],
-  set: (v: string[]) => { props.exportCtx.ignoredColumns = [...v] },
-})
+const {t} = useI18n()
 </script>
 
 <template>
@@ -38,17 +34,7 @@ const ignoredColumns = computed({
           v-model:reason="exportCtx.reason"
           :statuses="statuses"
       />
-      <div>
-        <label class="block text-xs text-(--text-muted) mb-1">
-          {{ t('adminDataTracking.detail.ignoredColumns') }}
-        </label>
-        <MultiSelectDropdown
-            v-model="ignoredColumns"
-            :options="columnOptions"
-            :placeholder="t('adminDataTracking.detail.ignoredColumnsPlaceholder')"
-            searchable
-        />
-      </div>
+      <IgnoredColumnsField v-model:ignored="exportCtx.ignoredColumns" :column-options="columnOptions"/>
       <div v-if="exportCtx.identityColumns?.length">
         <span class="text-xs text-(--text-muted)">{{ t('adminDataTracking.detail.identityColumns') }}:</span>
         <ul class="text-xs font-mono mt-1 space-y-0.5">

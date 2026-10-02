@@ -5,16 +5,24 @@
  */
 package dev.chojo.ember.feature.news.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.NewsRefusal;
+import dev.chojo.ember.feature.comment.route.CommentResponse;
 import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.news.service.NewsFederationService;
 import dev.chojo.ember.feature.news.service.NewsFederationService.FederatedCommentAuthor;
+import dev.chojo.ember.feature.news.service.NewsFederationService.FederatedNewsData;
+import dev.chojo.ember.feature.news.service.NewsFederationService.FederatedNewsItem;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
+import io.javalin.openapi.HttpMethod;
+import io.javalin.openapi.OpenApi;
+import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiRequestBody;
+import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -63,27 +71,44 @@ public class FederatedNewsRoutes implements Routes {
                 StationPermission.LOGIN);
     }
 
+    @OpenApi(
+            path = "/api/v1/federated/news",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FederatedNewsItem[].class)))
     private void federatedListNews(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(newsFederationService.browseFederatedNews(session.stationId()));
     }
 
+    @OpenApi(
+            path = "/api/v1/federated/{stationuid}/news/{newsId}",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FederatedNewsData.class)))
     private void federatedGetNews(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var stationUid = pathUuid(ctx, "stationuid");
         int newsId = pathInt(ctx, "newsId");
         ctx.json(newsFederationService.getFederatedNews(session.stationId(), stationUid, newsId));
     }
 
+    @OpenApi(
+            path = "/api/v1/federated/{stationuid}/news/{newsId}/comments",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = CommentResponse[].class)))
     private void federatedListComments(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var stationUid = pathUuid(ctx, "stationuid");
         int newsId = pathInt(ctx, "newsId");
         ctx.json(newsFederationService.listFederatedComments(session.stationId(), stationUid, newsId));
     }
 
+    @OpenApi(
+            path = "/api/v1/federated/{stationuid}/news/{newsId}/comments",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = NewsRoutes.CommentRequest.class)),
+            responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = CommentResponse.class)))
     private void federatedCreateComment(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var stationUid = pathUuid(ctx, "stationuid");
         int newsId = pathInt(ctx, "newsId");
         var req = requireContent(ctx);
@@ -92,8 +117,13 @@ public class FederatedNewsRoutes implements Routes {
         ctx.status(HttpStatus.CREATED).json(comment);
     }
 
+    @OpenApi(
+            path = "/api/v1/federated/{stationuid}/news/comments/{commentId}",
+            methods = HttpMethod.PUT,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = NewsRoutes.CommentRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = CommentResponse.class)))
     private void federatedUpdateComment(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var stationUid = pathUuid(ctx, "stationuid");
         int commentId = pathInt(ctx, "commentId");
         var req = requireContent(ctx);
@@ -101,8 +131,12 @@ public class FederatedNewsRoutes implements Routes {
                 session.stationId(), stationUid, commentId, author(session), req.content()));
     }
 
+    @OpenApi(
+            path = "/api/v1/federated/{stationuid}/news/comments/{commentId}",
+            methods = HttpMethod.DELETE,
+            responses = @OpenApiResponse(status = "204"))
     private void federatedDeleteComment(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var stationUid = pathUuid(ctx, "stationuid");
         int commentId = pathInt(ctx, "commentId");
         newsFederationService.deleteFederatedComment(session.stationId(), stationUid, commentId, author(session));
@@ -112,15 +146,15 @@ public class FederatedNewsRoutes implements Routes {
     private NewsRoutes.CommentRequest requireContent(Context ctx) {
         var req = ctx.bodyAsClass(NewsRoutes.CommentRequest.class);
         if (req.content() == null || req.content().isBlank()) {
-            throw Refusal.FEDERATED_NEWS_COMMENT_NEEDS_TEXT.raise();
+            throw NewsRefusal.FEDERATED_NEWS_COMMENT_NEEDS_TEXT.raise();
         }
         return req;
     }
 
-    private FederatedCommentAuthor author(UserSession session) {
+    private FederatedCommentAuthor author(StationSession session) {
         return new FederatedCommentAuthor(
                 memberIdentityFactory.fromMemberId(session.member().id()),
                 session.member().uid(),
-                NameParts.of(session.account()).called());
+                NameParts.of(session.user().account()).called());
     }
 }

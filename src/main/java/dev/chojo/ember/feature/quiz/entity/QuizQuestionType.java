@@ -5,17 +5,14 @@
  */
 package dev.chojo.ember.feature.quiz.entity;
 
-import io.javalin.openapi.OpenApiName;
+import dev.chojo.ember.util.Json;
 import org.slf4j.Logger;
-import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
 
 import java.util.Optional;
 
 import static org.slf4j.LoggerFactory.getLogger;
 
-@OpenApiName("QuizQuestionType")
 public enum QuizQuestionType {
     MULTIPLE_CHOICE("multiple_choice", QuestionConfig.MultipleChoice.class, QuizAnswerValue.MultipleChoice.class),
     FILL_IN_THE_BLANK("fill_blank", QuestionConfig.FillInTheBlank.class, QuizAnswerValue.FillInTheBlank.class),
@@ -27,10 +24,7 @@ public enum QuizQuestionType {
     ENUMERATION("enumeration", QuestionConfig.Enumeration.class, QuizAnswerValue.Enumeration.class);
 
     private static final Logger log = getLogger(QuizQuestionType.class);
-    private static final ObjectMapper MAPPER = JsonMapper.builder()
-            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
-            .disable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
-            .build();
+    private static final ObjectMapper MAPPER = Json.LENIENT;
 
     private final String promptFile;
     private final Class<? extends QuestionConfig> configClass;
@@ -47,6 +41,13 @@ public enum QuizQuestionType {
 
     public String promptFile() {
         return promptFile;
+    }
+
+    /**
+     * Returns the {@link QuestionConfig} variant the config of questions of this type is read into.
+     */
+    public Class<? extends QuestionConfig> configClass() {
+        return configClass;
     }
 
     /**

@@ -13,7 +13,7 @@ import EmptyState from '@/components/feedback/EmptyState.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import PagesList from './PagesList.vue'
 import CreatePageModal from './CreatePageModal.vue'
-import type {StationPage} from '@/api/pageManage'
+import type {StationPage} from '@/api/generated/schema'
 import type {Failure} from '@/util/failure'
 
 interface FlatPageEntry {
@@ -39,16 +39,16 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'open-create'): void
-  (e: 'confirm-create'): void
-  (e: 'reorder', fromIndex: number, toIndex: number): void
-  (e: 'edit', page: StationPage): void
-  (e: 'duplicate', page: StationPage): void
-  (e: 'change-visibility', page: StationPage): void
-  (e: 'share-link', page: StationPage): void
-  (e: 'set-landing', page: StationPage): void
-  (e: 'request-delete', page: StationPage): void
-  (e: 'confirm-delete'): void
+  'open-create': []
+  'confirm-create': []
+  reorder: [fromIndex: number, toIndex: number]
+  edit: [page: StationPage]
+  duplicate: [page: StationPage]
+  'change-visibility': [page: StationPage]
+  'share-link': [page: StationPage]
+  'set-landing': [page: StationPage]
+  'request-delete': [page: StationPage]
+  'confirm-delete': []
 }>()
 
 const {t} = useI18n()

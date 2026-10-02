@@ -9,8 +9,8 @@ import {useI18n} from 'vue-i18n'
 import Alert from '@/components/feedback/Alert.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import GroupedQuestionResult from './GroupedQuestionResult.vue'
-import type {FormQuestionInfo, FormResultGroup} from '@/api/forms'
-import {darkThemeActive as isDark} from '@/util/themeState'
+import type {FormQuestionInfo, FormResultGroup} from '@/api/generated/schema'
+import {useThemePaint} from '@/composables/useThemePaint'
 import {chartTextColor} from '@/util/chartLayout'
 import type {GroupSeries} from './groupedChart'
 
@@ -29,6 +29,7 @@ const props = defineProps<{
 }>()
 
 const {t} = useI18n()
+const {dark: isDark} = useThemePaint()
 
 const asTable = ref(false)
 const textColor = computed(() => chartTextColor(isDark.value))

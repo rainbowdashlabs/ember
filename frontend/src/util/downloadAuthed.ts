@@ -22,8 +22,8 @@ export function parseContentDispositionFilename(header?: string | null): string 
 /**
  * Fetches a file from an authenticated endpoint and hands it to the reader.
  *
- * <p>The request goes through the shared axios client, so the {@code Authorization} and
- * {@code X-Station-Id} headers are applied for it. What happens to the bytes afterwards is
+ * <p>The request goes through the shared axios client, so it carries the session cookie and the
+ * {@code X-Station-Id} header. What happens to the bytes afterwards is
  * {@link presentDocument}'s to decide: saved at a desk, and in the hand opened where there is a
  * viewer for them.
  *

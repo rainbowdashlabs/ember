@@ -37,14 +37,11 @@ class TwoFactorPolicyServiceTest extends RepositoryTestBase {
     @Test
     void policiesRoundTrip() {
         var station = stationRepo.create("policy-svc-" + UUID.randomUUID());
-        // Instance scope
         var instance = service.setInstancePolicy(StationUserType.MEMBER, true, (short) 7, null);
         assertEquals(1, service.listInstancePolicies().size());
-        // Idempotent upsert returns the same row id
         var instance2 = service.setInstancePolicy(StationUserType.MEMBER, false, (short) 3, null);
-        assertEquals(instance.id(), instance2.id());
+        assertEquals(instance.id(), instance2.id(), "an upsert keeps the row id");
 
-        // Station scope
         var stationPolicy = service.setStationPolicy(station.id(), StationUserType.MANAGER, true, (short) 5, null);
         assertEquals(1, service.listStationPolicies(station.id()).size());
         assertTrue(service.deletePolicy(stationPolicy.id()));
@@ -78,7 +75,8 @@ class TwoFactorPolicyServiceTest extends RepositoryTestBase {
         var station = stationRepo.create("policy-wildcard-" + UUID.randomUUID());
         var account = accountRepo.create("w-" + UUID.randomUUID() + "@test.com", "Wild", "Card", true);
         stationMemberRepo.create(station.id(), account.id());
-        var wildcard = twoFactorRepo.upsertPolicy(TwoFactorPolicy.Scope.INSTANCE, null, null, true, (short) 7, null);
+        var wildcard =
+                twoFactorRepo.upsertPolicy(TwoFactorPolicy.PolicyScope.INSTANCE, null, null, true, (short) 7, null);
 
         var status = service.listStationMemberStatus(station.id());
         assertTrue(status.getFirst().mandated(), "wildcard policy applies to every user type");
@@ -87,8 +85,6 @@ class TwoFactorPolicyServiceTest extends RepositoryTestBase {
 
     @Test
     void mandateDerivationFromPolicyAndElevatedPermission() {
-        // Set up: station with 3 members - plain member, station admin (elevated permission),
-        // and a member matched by a station-scoped policy on MEMBER.
         var station = stationRepo.create("policy-mand-" + UUID.randomUUID());
 
         var plainAccount = accountRepo.create("p-" + UUID.randomUUID() + "@test.com", "Plain", "Member", true);
@@ -96,7 +92,6 @@ class TwoFactorPolicyServiceTest extends RepositoryTestBase {
 
         var adminAccount = accountRepo.create("a-" + UUID.randomUUID() + "@test.com", "Admin", "Member", true);
         var admin = stationMemberRepo.create(station.id(), adminAccount.id());
-        // Grant STATION_ADMINISTRATOR directly so the mandate derivation picks it up.
         var permId = stationMemberRepo
                 .findPermissionByName(StationPermission.STATION_ADMINISTRATOR)
                 .orElseThrow()

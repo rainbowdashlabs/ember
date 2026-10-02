@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.inventory.repository;
 
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.federation.entity.LendingRequestItem;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
 import dev.chojo.ember.feature.federation.repository.LendingRepository;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
@@ -21,6 +22,7 @@ import org.junit.jupiter.api.TestMethodOrder;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -52,7 +54,6 @@ class LendingRepositoryTest extends RepositoryTestBase {
         memberA = stationMemberRepo.create(stationA.id(), account.id());
         memberB = stationMemberRepo.create(stationB.id(), account.id());
 
-        // Create inventory on station A for lent-out tests
         var inv = inventoryRepo.create(stationA.id(), "LendRepoInventory", InventoryType.INTERNAL, false);
         inventoryIdA = inv.id();
         var item = inventoryRepo.createItem(inventoryIdA, "LEND-001", "Lend Item", null, null);
@@ -65,8 +66,6 @@ class LendingRepositoryTest extends RepositoryTestBase {
         stationRepo.delete(stationB.id());
         accountRepo.delete(account.id());
     }
-
-    // -- Lending Requests --
 
     @Test
     @Order(1)
@@ -97,16 +96,12 @@ class LendingRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(3)
     void findRequestsByStation() {
-        // Should find the request from stationB's perspective (requesting)
         var fromB = lendingRepo.findRequestsByStation(stationB.uid());
         assertTrue(fromB.stream().anyMatch(r -> r.id() == requestId));
 
-        // Should also find it from stationA's perspective (owning)
         var fromA = lendingRepo.findRequestsByStation(stationA.uid());
         assertTrue(fromA.stream().anyMatch(r -> r.id() == requestId));
     }
-
-    // -- Request Items --
 
     @Test
     @Order(10)
@@ -137,8 +132,6 @@ class LendingRepositoryTest extends RepositoryTestBase {
         assertEquals(List.of(itemIdA), lendingRepo.findAssignedItems(requestItemId));
     }
 
-    // -- Status Transitions --
-
     @Test
     @Order(20)
     void updateRequestStatus() {
@@ -158,8 +151,6 @@ class LendingRepositoryTest extends RepositoryTestBase {
         var closed = lendingRepo.findRequestById(requestId).orElseThrow();
         assertEquals(LendingStatus.CLOSED, closed.status());
     }
-
-    // -- Messages --
 
     @Test
     @Order(30)
@@ -193,7 +184,6 @@ class LendingRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(33)
     void findLocalMessages() {
-        // Add another message from A
         lendingRepo.createMessage(requestId, stationA.uid(), memberA.id(), "Another from A", false);
 
         var localA = lendingRepo.findLocalMessages(requestId, stationA.uid());
@@ -204,8 +194,6 @@ class LendingRepositoryTest extends RepositoryTestBase {
         assertFalse(localB.isEmpty());
         assertTrue(localB.stream().allMatch(m -> stationB.uid().equals(m.senderStationUid())));
     }
-
-    // -- Blocks --
 
     @Test
     @Order(40)
@@ -233,7 +221,6 @@ class LendingRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(42)
     void isBlockedStationWide() {
-        // Station-wide block (no inventory or item) should block everything
         assertTrue(lendingRepo.isBlocked(
                 stationA.id(),
                 inventoryIdA,
@@ -247,7 +234,6 @@ class LendingRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(43)
     void isBlockedInventoryLevel() {
-        // Delete station-wide block and create inventory-level block
         lendingRepo.deleteBlock(blockId, stationA.id());
         var invBlock = lendingRepo.createBlock(
                 stationA.id(),
@@ -263,7 +249,6 @@ class LendingRepositoryTest extends RepositoryTestBase {
                 itemIdA,
                 LocalDate.now(),
                 LocalDate.now().plusDays(1)));
-        // Different inventory should not be blocked
         assertFalse(lendingRepo.isBlocked(
                 stationA.id(),
                 inventoryIdA + 999,
@@ -291,7 +276,6 @@ class LendingRepositoryTest extends RepositoryTestBase {
                 itemIdA,
                 LocalDate.now(),
                 LocalDate.now().plusDays(1)));
-        // Different item should not be blocked
         assertFalse(lendingRepo.isBlocked(
                 stationA.id(),
                 inventoryIdA,
@@ -327,12 +311,9 @@ class LendingRepositoryTest extends RepositoryTestBase {
         assertTrue(lendingRepo.deleteBlock(block.id(), stationA.id()));
     }
 
-    // -- Lent Out Items --
-
     @Test
     @Order(50)
     void findLentOutByInventory() {
-        // Create a new request with LENT status
         var dateFrom = LocalDate.now();
         var dateTo = LocalDate.now().plusDays(7);
         var request = lendingRepo.createRequest(
@@ -350,7 +331,37 @@ class LendingRepositoryTest extends RepositoryTestBase {
     @Order(51)
     void countActionableRequests() {
         int count = lendingRepo.countActionableRequests(stationA.uid());
-        // Returns count of REQUESTED/APPROVED-but-pending requests for this station; at least 0
         assertTrue(count >= 0);
+    }
+
+    /**
+     * A copy of a request from a station on another instance: found by the identity both copies
+     * carry, its lines named in the lending station's words, and gone again when it could not be
+     * delivered.
+     */
+    @Test
+    @Order(60)
+    void aRequestCopyIsFoundByItsSharedIdentity() {
+        UUID uid = UUID.randomUUID();
+        UUID elsewhere = UUID.randomUUID();
+        var copy = lendingRepo.createRequest(
+                uid, stationA.uid(), elsewhere, LocalDate.now(), null, null, null, null, "Übung");
+        assertEquals(uid, copy.uid());
+        assertNull(copy.createdBy());
+        assertEquals(copy.id(), lendingRepo.findRequestByUid(uid).orElseThrow().id());
+        assertTrue(lendingRepo.findRequestByUid(UUID.randomUUID()).isEmpty());
+
+        lendingRepo.addRequestItem(copy.id(), null, null, null, 2, null);
+        lendingRepo.addRequestItem(copy.id(), null, null, null, 1, null);
+        lendingRepo.labelItems(copy.id(), List.of("Funkgeräte", "Zelt", "ignored"));
+        assertEquals(
+                List.of("Funkgeräte", "Zelt"),
+                lendingRepo.findItemsByRequest(copy.id()).stream()
+                        .map(LendingRequestItem::label)
+                        .toList());
+
+        assertTrue(lendingRepo.deleteRequest(uid));
+        assertFalse(lendingRepo.deleteRequest(uid));
+        assertTrue(lendingRepo.findRequestByUid(uid).isEmpty());
     }
 }

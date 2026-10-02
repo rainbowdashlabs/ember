@@ -140,6 +140,9 @@ class InstanceStorageMigrationServiceTest extends RepositoryTestBase {
 
         assertArrayEquals(alphaBytes, readKey(targetBackend, alpha.uid().toString(), "alpha.txt"));
         assertArrayEquals(betaBytes, readKey(targetBackend, beta.uid().toString(), "beta.txt"));
+        assertFalse(
+                sourceBackend.exists(mediaKey(alpha.uid().toString(), "alpha.txt")), "a real move clears the source");
+        assertFalse(sourceBackend.exists(mediaKey(beta.uid().toString(), "beta.txt")));
     }
 
     /**
@@ -309,27 +312,27 @@ class InstanceStorageMigrationServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * Migrating onto the backend that is already the instance default would delete the very bytes
-     * it just "copied"; preparation refuses instead.
+     * Applying the storage the instance already stands on, say with only new credentials, builds a fresh
+     * backend for the same place. Its keys are the instance's own files, so nothing is copied and nothing
+     * is deleted, even when the old files are not to be kept.
      */
     @Test
-    void migratingOntoTheCurrentInstanceDefaultIsRefused() throws Exception {
-        Storage sameRoot = new Storage();
-        setField(Storage.class, sameRoot, "backend", new StorageBackendSettings());
-        var cipher = new CredentialCipher(Base64.getEncoder().encodeToString(new byte[32]));
-        var sameRootFactory = new SwappableFactory(sameRoot, sourceBackend, cipher);
-        var service = new InstanceStorageMigrationService(
-                stationRepo,
-                accountRepo,
-                storageConfigRepo,
-                new ClusterStationStorageRepository(),
-                sameRootFactory,
-                locks,
-                readOnly);
+    void reapplyingTheCurrentInstanceStorageKeepsTheFiles() {
+        Station station = stationRepo.create("Same Place Station");
+        byte[] payload = "stays-put".getBytes(StandardCharsets.UTF_8);
+        storageService.store(
+                new StorageScope.Station(station.id(), station.uid()),
+                StorageCategory.MEDIA_FILES,
+                "doc.txt",
+                payload,
+                "text/plain");
 
-        var error = assertThrows(MigrationException.class, () -> service.prepare(new StorageBackendSettings()));
+        var result = migrationService.commit(migrationService.prepare(newLocalSettings(sourceRoot.toString())), false);
 
-        assertTrue(error.getMessage().contains("current instance default"));
+        assertTrue(sourceBackend.exists(mediaKey(station.uid().toString(), "doc.txt")), "the file survives");
+        assertArrayEquals(payload, readKey(sourceBackend, station.uid().toString(), "doc.txt"));
+        assertEquals(0, result.totalKeys(), "the same place carries nothing");
+        assertEquals(0, result.deleted(), "and deletes nothing");
         assertFalse(readOnly.isLocked());
         assertFalse(locks.isInstanceLocked());
     }
@@ -492,9 +495,12 @@ class InstanceStorageMigrationServiceTest extends RepositoryTestBase {
         field.set(target, value);
     }
 
+    private static String mediaKey(String stationUid, String key) {
+        return "station/" + stationUid + "/" + StorageCategory.MEDIA_FILES.prefix() + "/" + key;
+    }
+
     private static byte[] readKey(LocalStorageBackend backend, String stationUid, String key) {
-        String fullKey = "station/" + stationUid + "/" + StorageCategory.MEDIA_FILES.prefix() + "/" + key;
-        try (var stream = backend.read(fullKey).orElseThrow()) {
+        try (var stream = backend.read(mediaKey(stationUid, key)).orElseThrow()) {
             return stream.body().readAllBytes();
         } catch (IOException e) {
             throw new RuntimeException(e);

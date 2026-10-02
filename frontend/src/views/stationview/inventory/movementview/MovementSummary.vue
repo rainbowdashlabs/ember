@@ -7,13 +7,13 @@
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import MovementPieces from './MovementPieces.vue'
 import MovementFacts from './MovementFacts.vue'
-import type {Movement} from '@/api/movements'
+import type {MovementResponse} from '@/api/generated/schema'
 
 /**
  * What a movement is about, above the chain it walks: the two pieces and their owner first, then
  * what was written down about it.
  */
-const props = defineProps<{movement: Movement}>()
+const props = defineProps<{movement: MovementResponse}>()
 </script>
 
 <template>

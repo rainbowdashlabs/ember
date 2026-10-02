@@ -8,8 +8,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import FormPageIntro from './FormPageIntro.vue'
 import QuestionHeading from './QuestionHeading.vue'
 import PublicQuestionFields from './PublicQuestionFields.vue'
-import type {PublicFormPage, PublicFormQuestion} from '@/api/publicForms'
-import type {AnswerValue} from '@/util/formAnswers'
+import type {FormAnswerValue, PublicFormPage, PublicFormQuestion} from '@/api/generated/schema'
 import type {useFormWalk} from '@/composables/useFormWalk'
 
 /**
@@ -20,15 +19,15 @@ import type {useFormWalk} from '@/composables/useFormWalk'
  */
 defineProps<{
   walk: ReturnType<typeof useFormWalk<PublicFormPage, PublicFormQuestion>>
-  answers: Record<number, AnswerValue>
+  answers: Record<number, FormAnswerValue>
   /** Whether each question stands on a card of its own. */
   framed?: boolean
 }>()
 
 const emit = defineEmits<{
-  (e: 'update-text', question: PublicFormQuestion, text: string): void
-  (e: 'update-date', question: PublicFormQuestion, date: string): void
-  (e: 'toggle-choice', question: PublicFormQuestion, optionKey: string): void
+  'update-text': [question: PublicFormQuestion, text: string]
+  'update-date': [question: PublicFormQuestion, date: string]
+  'toggle-choice': [question: PublicFormQuestion, optionKey: string]
 }>()
 </script>
 

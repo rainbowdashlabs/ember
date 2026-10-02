@@ -7,12 +7,13 @@ package dev.chojo.ember.feature.procedure.entity;
 
 import de.chojo.sadu.mapper.annotation.MappingProvider;
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import org.jspecify.annotations.Nullable;
 
 public record ProcedureTemplateItem(
         int id,
         int templateId,
         String title,
-        String description,
+        @Nullable String description,
         boolean isPublic,
         boolean userAssigned,
         int position) {

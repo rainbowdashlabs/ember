@@ -8,6 +8,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { THEMES } from '@/theme/themes'
 import { useTheme } from '@/composables/useTheme'
+import BareButton from '@/components/button/BareButton.vue'
 
 const { t } = useI18n()
 const { activeTheme, customThemeColors, setTheme } = useTheme()
@@ -31,7 +32,7 @@ const themeEntries = computed(() => {
 
 <template>
     <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-        <button
+        <BareButton
             v-for="entry in themeEntries"
             :key="entry.key"
             class="flex flex-col items-center gap-2 rounded-theme border-2 p-3 transition-all duration-150
@@ -60,6 +61,6 @@ const themeEntries = computed(() => {
                 />
             </div>
             <span class="text-sm font-medium text-[var(--text)]">{{ entry.label }}</span>
-        </button>
+        </BareButton>
     </div>
 </template>

@@ -9,20 +9,18 @@ import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import ButtonRow from '@/components/button/ButtonRow.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
-import type {InventoryDetail, InventoryItem} from '@/api/inventory'
-import type {InventoryArt, ItemNameCount} from '@/api/inventoryArts'
+import type {InventoryArt, InventoryDetail, InventoryItem, ItemNameCount} from '@/api/generated/schema'
 import {inventory, inventoryArts} from '@/api'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
 import TidyNamesTable from './tidyartsview/TidyNamesTable.vue'
 import TidyArtTarget from './tidyartsview/TidyArtTarget.vue'
+import TidyActions from './tidyartsview/TidyActions.vue'
 
 /**
  * Tidying the names written on the pieces into kinds.
@@ -92,12 +90,15 @@ const effectiveName = computed(() => {
 
 const canTidy = computed(() => selectedPieces.value > 0 && effectiveName.value !== '')
 
+/**
+ * Ticks or unticks a name. The commonest ticked name is the likeliest right spelling, so it is
+ * offered as the target while none is chosen, rather than imposed.
+ */
 function toggleName(name: string) {
   const next = new Set(selectedNames.value)
   if (next.has(name)) next.delete(name)
   else next.add(name)
   selectedNames.value = next
-  // The commonest ticked name is the likeliest right spelling, so it is offered rather than imposed.
   if (!targetArtId.value && !targetName.value && next.size > 0) {
     targetName.value = names.value.find(row => next.has(row.name))?.name ?? ''
   }
@@ -162,25 +163,20 @@ const {running: assigning, failure: assignFailure, run: runAssign} = useAsyncAct
             <TidyNamesTable :names="names" :selected="selectedNames" @toggle="toggleName"/>
 
             <TidyArtTarget
-                v-model:artId="targetArtId"
+                v-model:art-id="targetArtId"
                 v-model:name="targetName"
                 :arts="arts"
             />
 
-            <div class="space-y-2">
-              <p class="text-sm">{{ t('inventory.art.willRename', {count: selectedPieces, name: effectiveName}) }}</p>
-              <ButtonRow>
-                <PrimaryButton :disabled="!canTidy || merging" :icon="['fas', 'broom']"
-                               data-testid="tidy-merge" @click="runMerge()">
-                  {{ t('inventory.art.mergeSubmit') }}
-                </PrimaryButton>
-                <SecondaryButton :disabled="!canTidy || assigning" :icon="['fas', 'tags']"
-                                 data-testid="tidy-assign" @click="runAssign()">
-                  {{ t('inventory.art.assignSubmit') }}
-                </SecondaryButton>
-              </ButtonRow>
-              <p class="text-xs text-(--text-muted)">{{ t('inventory.art.assignHint') }}</p>
-            </div>
+            <TidyActions
+                :pieces="selectedPieces"
+                :name="effectiveName"
+                :can-tidy="canTidy"
+                :merging="merging"
+                :assigning="assigning"
+                @merge="runMerge()"
+                @assign="runAssign()"
+            />
           </template>
         </div>
       </AsyncSection>

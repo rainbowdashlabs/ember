@@ -6,11 +6,10 @@
 package dev.chojo.ember.feature.station.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.auth.InstancePermission;
+import dev.chojo.ember.api.refusal.StationRefusal;
 import dev.chojo.ember.feature.station.entity.Station;
-import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.service.StationService;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
@@ -23,6 +22,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,12 +36,10 @@ public class StationRoutes implements Routes {
     private static final Logger log = LoggerFactory.getLogger(StationRoutes.class);
 
     private final StationService stationService;
-    private final StationRepository stationRepository;
 
     @Inject
-    public StationRoutes(StationService stationService, StationRepository stationRepository) {
+    public StationRoutes(StationService stationService) {
         this.stationService = stationService;
-        this.stationRepository = stationRepository;
     }
 
     private static boolean isBlank(String s) {
@@ -62,7 +60,7 @@ public class StationRoutes implements Routes {
             methods = HttpMethod.GET,
             summary = "List all stations",
             tags = {"Stations"},
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Station[].class)))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = StationDetail[].class)))
     private void list(Context ctx) {
         ctx.json(stationService.findAll().stream().map(this::toDetail).toList());
     }
@@ -80,7 +78,7 @@ public class StationRoutes implements Routes {
     private void create(Context ctx) {
         var request = ctx.bodyAsClass(StationRequest.class);
         if (isBlank(request.name())) {
-            throw Refusal.STATION_NEEDS_A_NAME.raise();
+            throw StationRefusal.STATION_NEEDS_A_NAME.raise();
         }
         Station station;
         if (!isBlank(request.managerEmail())) {
@@ -96,7 +94,7 @@ public class StationRoutes implements Routes {
             methods = HttpMethod.GET,
             summary = "Get a station by ID with manager info",
             tags = {"Stations"},
-            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            pathParams = @OpenApiParam(name = "id", type = UUID.class, required = true),
             responses = {
                 @OpenApiResponse(status = "200", content = @OpenApiContent(from = StationDetail.class)),
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
@@ -111,7 +109,7 @@ public class StationRoutes implements Routes {
             methods = HttpMethod.PUT,
             summary = "Update a station with optional manager",
             tags = {"Stations"},
-            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            pathParams = @OpenApiParam(name = "id", type = UUID.class, required = true),
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = StationRequest.class)),
             responses = {
                 @OpenApiResponse(status = "200", content = @OpenApiContent(from = StationDetail.class)),
@@ -122,17 +120,17 @@ public class StationRoutes implements Routes {
         int id = station.id();
         var request = ctx.bodyAsClass(StationRequest.class);
         if (isBlank(request.name())) {
-            throw Refusal.STATION_NEEDS_A_NAME_ON_UPDATE.raise();
+            throw StationRefusal.STATION_NEEDS_A_NAME_ON_UPDATE.raise();
         }
         if (!isBlank(request.managerEmail())) {
             stationService
                     .updateWithManager(id, request.name(), request.managerEmail())
                     .ifPresentOrElse(s -> ctx.json(toDetail(s)), () -> {
-                        throw Refusal.STATION_NOT_HERE_ON_MANAGER_UPDATE.raise();
+                        throw StationRefusal.STATION_NOT_HERE_ON_MANAGER_UPDATE.raise();
                     });
         } else {
             stationService.update(id, request.name()).ifPresentOrElse(s -> ctx.json(toDetail(s)), () -> {
-                throw Refusal.STATION_NOT_HERE_ON_UPDATE.raise();
+                throw StationRefusal.STATION_NOT_HERE_ON_UPDATE.raise();
             });
         }
     }
@@ -142,7 +140,7 @@ public class StationRoutes implements Routes {
             methods = HttpMethod.DELETE,
             summary = "Delete a station",
             tags = {"Stations"},
-            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            pathParams = @OpenApiParam(name = "id", type = UUID.class, required = true),
             responses = {
                 @OpenApiResponse(status = "204"),
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
@@ -150,10 +148,9 @@ public class StationRoutes implements Routes {
     private void delete(Context ctx) {
         var station = resolveStation(ctx);
         if (stationService.delete(station.id())) {
-            stationRepository.invalidateUidCache(station.id());
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
-            throw Refusal.STATION_NOT_DELETED.raise();
+            throw StationRefusal.STATION_NOT_DELETED.raise();
         }
     }
 
@@ -161,10 +158,10 @@ public class StationRoutes implements Routes {
         String idParam = ctx.pathParam("id");
         try {
             UUID uid = UUID.fromString(idParam);
-            return stationService.findByUid(uid).orElseThrow(Refusal.STATION_NOT_HERE_BY_NAME::raise);
+            return stationService.findByUid(uid).orElseThrow(StationRefusal.STATION_NOT_HERE_BY_NAME::raise);
         } catch (IllegalArgumentException e) {
             log.warn("Invalid station UUID: {}", idParam, e);
-            throw Refusal.STATION_NAME_NOT_READABLE.raise();
+            throw StationRefusal.STATION_NAME_NOT_READABLE.raise();
         }
     }
 
@@ -191,15 +188,16 @@ public class StationRoutes implements Routes {
      * @param name    the station name
      * @param manager the manager details, or {@code null} if no manager is assigned
      */
-    public record StationDetail(String id, String name, ManagerDetail manager) {}
+    public record StationDetail(
+            String id, String name, @Nullable ManagerDetail manager) {}
 
     /**
      * Manager information included in station detail responses.
      *
-     * @param email        the manager's email address
+     * @param email        the manager's email address, or {@code null} for an account without one
      * @param firstName    the manager's first name
      * @param lastName     the manager's last name
      * @param accountReady whether the manager's account is fully set up
      */
-    public record ManagerDetail(String email, String firstName, String lastName, boolean accountReady) {}
+    public record ManagerDetail(@Nullable String email, String firstName, String lastName, boolean accountReady) {}
 }

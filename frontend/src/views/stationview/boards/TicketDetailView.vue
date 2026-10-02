@@ -16,8 +16,8 @@ import Modal from '@/components/feedback/Modal.vue'
 import TicketHeaderBar from './ticketdetailview/TicketHeaderBar.vue'
 import TicketBody from './ticketdetailview/TicketBody.vue'
 import { knowledgeBase, boards } from '@/api'
-import type { MemberCompletion } from '@/api/stationMembers'
-import {TicketPriority, type Board, type BoardChecklistItem, type BoardComment, type BoardField, type BoardLabel, type BoardLane, type BoardTicket, type BoardTicketAttachment, type BoardTicketHistoryEntry, type BoardTicketKbLink, type BoardTicketLink, type BoardTicketTransition, type BoardWeblink, type TicketPriorityName} from '@/api/boards'
+import {rawFieldValue, TicketPriority, type AnyBoard, type BoardFieldRaw, type BoardFieldTypeName, type TicketPriorityName, type TypedBoardField} from '@/api/boards'
+import type {BoardChecklistItem, BoardLabel, BoardLane, BoardTicket, BoardTicketAttachment, BoardTicketHistoryResponse, BoardTicketKbLink, BoardTicketLink, BoardTicketTransitionResponse, BoardWeblink, MemberCompletion, TicketSummary} from '@/api/generated/schema'
 import { useSession } from '@/composables/useSession'
 import { useBoardApi } from '@/composables/useBoardApi'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
@@ -26,6 +26,7 @@ import { useConfirmDelete } from '@/composables/useConfirmDelete'
 import { moveWithin } from '@/util/reorder'
 import { describeFailure, type Failure } from '@/util/failure'
 import { priorityColor, priorityIcon, priorityOptions } from '@/util/ticketPriority'
+import { withoutKey } from '@/util/record'
 import type { PriorityOption } from './ticketdetailview/types'
 
 const { t } = useI18n()
@@ -36,7 +37,7 @@ const api = useBoardApi()
 const boardKey = api.boardKey
 const ticketNumber = api.ticketNumber
 
-const board = ref<Board | null>(null)
+const board = ref<AnyBoard | null>(null)
 const ticket = ref<BoardTicket | null>(null)
 const lanes = ref<BoardLane[]>([])
 const members = ref<MemberCompletion[]>([])
@@ -64,8 +65,8 @@ const dueDate = ref('')
 const checklist = ref<BoardChecklistItem[]>([])
 const newChecklistTitle = ref('')
 const links = ref<BoardTicketLink[]>([])
-const transitions = ref<BoardTicketTransition[]>([])
-const ticketHistory = ref<BoardTicketHistoryEntry[]>([])
+const transitions = ref<BoardTicketTransitionResponse[]>([])
+const ticketHistory = ref<BoardTicketHistoryResponse[]>([])
 const kbLinks = ref<BoardTicketKbLink[]>([])
 const showKbSearch = ref(false)
 const kbSearchQuery = ref('')
@@ -76,7 +77,7 @@ interface KbSearchResult {
 }
 
 const kbSearchResults = ref<KbSearchResult[]>([])
-const comments = ref<BoardComment[]>([])
+const commentSource = computed(() => api.commentSource())
 const weblinks = ref<BoardWeblink[]>([])
 const attachments = ref<BoardTicketAttachment[]>([])
 
@@ -90,13 +91,13 @@ const priorityChoices = computed<PriorityOption[]>(() => priorityOptions(t).reve
 }))
 const isWatching = ref(false)
 
-const allTickets = ref<BoardTicket[]>([])
-const boardFields = ref<BoardField[]>([])
-const fieldValues = ref<Record<number, unknown>>({})
+const allTickets = ref<TicketSummary[]>([])
+const boardFields = ref<TypedBoardField[]>([])
+const fieldValues = ref<Record<number, BoardFieldRaw | null>>({})
 const allLabels = ref<BoardLabel[]>([])
 const ticketLabels = ref<BoardLabel[]>([])
 
-const {loading, failure: loadFailure, reload} = useAsyncLoader(async () => {
+const {loading, failure: loadFailure, reload} = useAsyncLoader(async (isCurrent) => {
     const [boardResult, tk, l, m, am, bf] = await Promise.all([
         api.getBoard(),
         api.getTicket(),
@@ -105,7 +106,8 @@ const {loading, failure: loadFailure, reload} = useAsyncLoader(async () => {
         api.getAssignableMembers(),
         api.getFields(),
     ])
-    board.value = boardResult.board as Board
+    if (!isCurrent()) return
+    board.value = boardResult.board
     ticket.value = tk
     lanes.value = l
     members.value = m
@@ -132,12 +134,11 @@ const {loading, failure: loadFailure, reload} = useAsyncLoader(async () => {
  * change having worked while the screen stayed behind.
  */
 async function loadDetails() {
-        const [cl, li, tr, hi, co, wl, at, fv] = await Promise.all([
+        const [cl, li, tr, hi, wl, at, fv] = await Promise.all([
             api.getChecklist(),
             api.getLinks(),
             api.getTransitions(),
             api.getHistory(),
-            api.getComments(),
             api.getWeblinks(),
             api.getAttachments(),
             api.getFieldValues(),
@@ -146,10 +147,9 @@ async function loadDetails() {
         links.value = li
         transitions.value = tr
         ticketHistory.value = hi
-        comments.value = co
         weblinks.value = wl
         attachments.value = at
-        fieldValues.value = Object.fromEntries(fv.map(v => [v.fieldId, !v.value ? null : v.fieldType === 'LANE_ASSIGNEE' ? (v.value.memberId ?? null) : (v.value.value ?? null)]))
+        fieldValues.value = Object.fromEntries(fv.map(v => [v.fieldId, rawFieldValue(v)]))
         ticketLabels.value = await api.getTicketLabels()
         kbLinks.value = await api.getKbLinks()
 }
@@ -157,8 +157,8 @@ async function loadDetails() {
 /**
  * What the reader's last action ran into, which every one of these used to throw away.
  *
- * <p>A checklist item that was not added, a comment that was not posted and a lane the ticket would
- * not move to all looked exactly like nothing having happened: no word, no mark, nothing. The reader
+ * <p>A checklist item that was not added and a lane the ticket would not move to both looked
+ * exactly like nothing having happened: no word, no mark, nothing. The reader
  * pressed again, and where the write had in fact gone through and only the refresh had failed, the
  * ticket then carried it twice.
  */
@@ -217,16 +217,12 @@ async function toggleChecklistItem(item: BoardChecklistItem) { await act(() => a
 async function reorderChecklist(fromIndex: number, toIndex: number) { const items = moveWithin(checklist.value, fromIndex, toIndex); checklist.value = items; await act(() => api.reorderChecklist({ orderedIds: items.map(i => i.id) }), () => Promise.resolve()) }
 async function removeAllChecklistItems() { const items = [...checklist.value]; await act(async () => { for (const item of items) { await api.deleteChecklistItem(item.id) } }, async () => { showChecklist.value = false; await loadDetails() }) }
 async function removeChecklistItem(itemId: number) { await act(() => api.deleteChecklistItem(itemId)) }
-async function createComment(parentId: number | null, content: string) { await act(() => api.createComment({ parentId, content })) }
-async function updateComment(commentId: number, content: string) { await act(() => api.updateComment(commentId, { content })) }
 
-async function saveFieldValue(fieldId: number, fieldType: boards.BoardFieldTypeName, value: unknown) {
-    const empty = value === null || value === undefined || value === ''
+async function saveFieldValue(fieldId: number, fieldType: BoardFieldTypeName, value: BoardFieldRaw | null) {
     await act(
-        () => (empty ? api.deleteFieldValue(fieldId) : api.setFieldValue(fieldId, fieldType, value)),
+        () => (value === null || value === '' ? api.deleteFieldValue(fieldId) : api.setFieldValue(fieldId, fieldType, value)),
         () => {
-            if (empty) delete fieldValues.value[fieldId]
-            else fieldValues.value[fieldId] = value
+            fieldValues.value = value === null || value === '' ? withoutKey(fieldValues.value, fieldId) : {...fieldValues.value, [fieldId]: value}
             return Promise.resolve()
         },
     )
@@ -295,8 +291,6 @@ async function toggleWatch() {
     )
 }
 
-async function deleteCommentFn(commentId: number) { await act(() => api.deleteComment(commentId)) }
-
 const checklistVisible = computed(() => checklist.value.length > 0 || showChecklist.value || newChecklistTitle.value !== '')
 
 watch(ticketNumber, reload)
@@ -331,9 +325,9 @@ watch(ticketNumber, reload)
                 :all-labels="allLabels" :ticket-labels="ticketLabels" :board-fields="boardFields"
                 :priority-options="priorityChoices" :checklist="checklist" :checklist-visible="checklistVisible"
                 :links="links" :weblinks="weblinks" :attachments="attachments" :transitions="transitions"
-                :history="ticketHistory" :comments="comments" :kb-links="kbLinks"
+                :history="ticketHistory" :comment-source="commentSource" :kb-links="kbLinks"
                 :kb-search-results="kbSearchResults" :can-edit="canEdit"
-                :federated="api.isFederated.value" :partner-uid="api.partnerUid.value" :failure="actionFailure ?? saveFailure ?? loadFailure"
+                :partner-uid="api.partnerUid.value" :failure="actionFailure ?? saveFailure ?? loadFailure"
                 @save-ticket="saveTicket" @reload-details="refreshDetails"
                 @show-checklist="showChecklist = true"
                 @add-checklist-item="addChecklistItem"
@@ -341,15 +335,14 @@ watch(ticketNumber, reload)
                 @remove-checklist-item="removeChecklistItem"
                 @remove-all-checklist-items="removeAllChecklistItems"
                 @reorder-checklist="reorderChecklist"
-                @create-comment="createComment" @update-comment="updateComment"
-                @delete-comment="deleteCommentFn" @upload-files="handleFileUpload"
+                @upload-files="handleFileUpload"
                 @kb-search="onKbSearch" @add-kb-link="addKbLinkFn" @remove-kb-link="removeKbLinkFn"
                 @move-to="moveTo" @toggle-label="toggleLabel" @create-label="createAndAddLabel"
                 @save-field="saveFieldValue"
             />
             <Modal v-model="showDeleteModal">
                 <SubHeader class="mb-4">{{ t('common.delete') }}</SubHeader>
-                <p class="mb-4">Soll dieses Ticket wirklich gelöscht werden?</p>
+                <p class="mb-4">{{ t('boards.deleteTicketConfirm') }}</p>
                 <div class="flex justify-end gap-2">
                     <DeleteButton @click="confirmDeleteTicket">{{ t('common.delete') }}</DeleteButton>
                 </div>

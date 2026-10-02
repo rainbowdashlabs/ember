@@ -39,10 +39,10 @@ function updateGuardian(index: number, key: keyof GuardianInput, value: string |
         <DeleteButton v-if="guardians.length > 1" @click="emit('remove', i)"/>
       </div>
       <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-        <TextInput :model-value="g.firstname" @update:model-value="updateGuardian(i, 'firstname', $event)" :placeholder="t('waitingList.firstnamePlaceholder')"/>
-        <TextInput :model-value="g.lastname" @update:model-value="updateGuardian(i, 'lastname', $event)" :placeholder="t('waitingList.lastnamePlaceholder')"/>
-        <TextInput :model-value="g.email" @update:model-value="updateGuardian(i, 'email', $event)" :placeholder="t('waitingList.guardianEmailPlaceholder')"/>
-        <TextInput :model-value="g.phone" @update:model-value="updateGuardian(i, 'phone', $event)" :placeholder="t('waitingList.guardianPhonePlaceholder')"/>
+        <TextInput :model-value="g.firstname" :placeholder="t('waitingList.firstnamePlaceholder')" @update:model-value="updateGuardian(i, 'firstname', $event)"/>
+        <TextInput :model-value="g.lastname" :placeholder="t('waitingList.lastnamePlaceholder')" @update:model-value="updateGuardian(i, 'lastname', $event)"/>
+        <TextInput :model-value="g.email" :placeholder="t('waitingList.guardianEmailPlaceholder')" @update:model-value="updateGuardian(i, 'email', $event)"/>
+        <TextInput :model-value="g.phone" :placeholder="t('waitingList.guardianPhonePlaceholder')" @update:model-value="updateGuardian(i, 'phone', $event)"/>
       </div>
     </NeutralContainer>
     <SecondaryButton :icon="['fas', 'plus']" @click="emit('add')">{{ t('waitingList.addGuardian') }}

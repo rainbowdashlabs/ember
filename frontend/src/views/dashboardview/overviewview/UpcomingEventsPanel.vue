@@ -14,34 +14,34 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import DashboardEventTile from './upcomingeventspanel/DashboardEventTile.vue'
 import EventAnswerDialog from '@/views/stationview/events/eventshared/EventAnswerDialog.vue'
 import SignOffConfirm from '@/views/stationview/events/eventshared/eventregistrationactions/SignOffConfirm.vue'
-import {
-  EventTypes,
-  isRecurringEvent,
-  type EventBreak,
-  type EventCategory,
-  type EventRegistrationEntry,
-  type StationEvent,
-} from '@/api/events'
-import type {StationMember} from '@/api/types'
+import {EventTypes, isQuarterMonthOf, isRecurringEvent} from '@/api/events'
+import type {
+  EventBreak,
+  EventCategory,
+  EventSummary,
+  FeedStatusResponse,
+  ManagedMember,
+  RegistrationResponse,
+} from '@/api/generated/schema'
 import {events, managedMembers as managedMembersApi} from '@/api'
 import {describeFailure, type Failure} from '@/util/failure'
-import {getFeedStatus, type FeedStatusResponse} from '@/api/feedToken'
+import {getFeedStatus} from '@/api/feedToken'
 import {useConfirmAction} from '@/composables/useConfirmAction'
 import {useSession} from '@/composables/useSession'
-import {formatDate, formatTime, toIsoDate, todayIsoDate, weekdayName} from '@/util/format'
+import {toIsoDate, todayIsoDate, weekdayName} from '@/util/format'
 import {answerableMembers, isStandingAnswer} from '@/util/eventAnswers'
 
 const {t} = useI18n()
 const router = useRouter()
 const {sessionInfo, isGuardian} = useSession()
 
-const allEvents = ref<StationEvent[]>([])
+const allEvents = ref<EventSummary[]>([])
 const categories = ref<EventCategory[]>([])
 const eventBreaks = ref<EventBreak[]>([])
 const eligibleMembers = ref<Record<number, number[]>>({})
 const feedStatus = ref<FeedStatusResponse | null>(null)
-const myRegistrations = ref<EventRegistrationEntry[]>([])
-const managed = ref<StationMember[]>([])
+const myRegistrations = ref<RegistrationResponse[]>([])
+const managed = ref<ManagedMember[]>([])
 const declining = ref<UpcomingEvent | null>(null)
 const decliningBusy = ref(false)
 const declineFailure = ref<Failure | null>(null)
@@ -60,13 +60,13 @@ const feedCtaMessage = computed(() => {
 /** The category an event was put in, absent where it was put in none. */
 const categoriesById = computed(() => new Map(categories.value.map(cat => [cat.id, cat])))
 
-function categoryOf(ev: StationEvent): EventCategory | undefined {
+function categoryOf(ev: EventSummary): EventCategory | undefined {
   return ev.categoryId != null ? categoriesById.value.get(ev.categoryId) : undefined
 }
 
 
 interface UpcomingEvent {
-  event: StationEvent
+  event: EventSummary
   date: string
   dayLabel: string
 }
@@ -116,7 +116,7 @@ const upcomingEvents = computed((): UpcomingEvent[] => {
       } else if (ev.eventType === EventTypes.MONTHLY_FIRST) {
         if (dayOfMonth <= 7) upcoming.push({event: ev, date: dateStr, dayLabel: weekdayName(dow)})
       } else if (ev.eventType === EventTypes.QUARTERLY) {
-        if (dayOfMonth <= 7 && (month % 3 === 0)) upcoming.push({event: ev, date: dateStr, dayLabel: weekdayName(dow)})
+        if (dayOfMonth <= 7 && isQuarterMonthOf(ev, date.getUTCFullYear(), month)) upcoming.push({event: ev, date: dateStr, dayLabel: weekdayName(dow)})
       } else if (ev.eventType === EventTypes.YEARLY && ev.startTime) {
         const refDate = new Date(ev.startTime)
         if (refDate.getMonth() === month && refDate.getDate() === dayOfMonth) {
@@ -131,16 +131,15 @@ const upcomingEvents = computed((): UpcomingEvent[] => {
 })
 
 async function loadData() {
-  try {
-    const [ev, cats, br, elig, fs, regs, mine] = await Promise.all([
-      events.listEvents(),
-      events.listCategories().catch(() => []),
-      events.listBreaks().catch(() => []),
-      events.listEligibleMembers().catch(() => ({})),
-      getFeedStatus().catch(() => null),
-      events.listMyRegistrations().catch(() => []),
-      isGuardian() ? managedMembersApi.listManaged().catch(() => []) : Promise.resolve([]),
-    ])
+  await Promise.all([
+    events.listEvents(),
+    events.listCategories().catch(() => []),
+    events.listBreaks().catch(() => []),
+    events.listEligibleMembers().catch(() => ({})),
+    getFeedStatus().catch(() => null),
+    events.listMyRegistrations().catch(() => []),
+    isGuardian() ? managedMembersApi.listManaged().catch(() => []) : Promise.resolve([]),
+  ]).then(([ev, cats, br, elig, fs, regs, mine]) => {
     allEvents.value = ev
     categories.value = cats
     eventBreaks.value = br
@@ -148,7 +147,7 @@ async function loadData() {
     feedStatus.value = fs
     myRegistrations.value = regs
     managed.value = mine
-  } catch { /* ignore */ }
+  }).catch(() => {})
 }
 
 /** The dialog is open exactly while an appointment is waiting to be refused for somebody. */

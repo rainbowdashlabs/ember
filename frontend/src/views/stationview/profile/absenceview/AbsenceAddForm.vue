@@ -14,11 +14,11 @@ import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import type {StationMember} from '@/api/types'
+import type {ManagedMember} from '@/api/generated/schema'
 
 const props = defineProps<{
   currentMemberId: number
-  managedMembers: StationMember[]
+  managedMembers: ManagedMember[]
   saving: boolean
 }>()
 
@@ -97,7 +97,7 @@ function submit() {
             size="md"
             @toggle="toggleMember(m.id)"
         >
-          {{ m.name ?? m.email }}
+          {{ m.name || m.email }}
         </SelectionToggleButton>
       </div>
     </div>

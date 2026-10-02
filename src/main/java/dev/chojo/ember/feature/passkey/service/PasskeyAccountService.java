@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.passkey.service;
 
+import dev.chojo.ember.api.refusal.PasskeyRefusal;
 import dev.chojo.ember.conf.file.elements.PasskeySettings;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.entity.AccountCredential;
@@ -17,6 +18,7 @@ import dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository;
 import dev.chojo.ember.feature.twofactor.service.TwoFactorAuditService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,6 +63,22 @@ public class PasskeyAccountService {
         return passkeyRepository.listForAccount(accountId);
     }
 
+    /**
+     * The password the account holds, or empty where it holds none.
+     */
+    public Optional<AccountCredential> credential(int accountId) {
+        return accountRepository.findCredential(accountId);
+    }
+
+    /**
+     * The account a passkey is being made for, which a new passkey is named after.
+     */
+    public Account account(int accountId) {
+        return accountRepository
+                .findById(accountId)
+                .orElseThrow(PasskeyRefusal.ACCOUNT_NOT_HERE_ON_PASSKEY_CREATION::raise);
+    }
+
     public boolean rename(int accountId, int factorId, String label) {
         if (passkeyRepository.findForAccount(accountId, factorId).isEmpty()) return false;
         if (label == null || label.isBlank() || label.length() > 64) return false;
@@ -74,7 +92,7 @@ public class PasskeyAccountService {
      * nothing to switch on, so the removal is refused instead; a valve that opens onto
      * nothing is worse than a locked door, because it looks like it worked.
      */
-    public RemovalOutcome remove(int accountId, int factorId, String userAgent, String country) {
+    public RemovalOutcome remove(int accountId, int factorId, @Nullable String userAgent, @Nullable String country) {
         Optional<PasskeyListEntry> entry = passkeyRepository.findForAccount(accountId, factorId);
         if (entry.isEmpty()) return RemovalOutcome.NOT_FOUND;
 
@@ -99,11 +117,13 @@ public class PasskeyAccountService {
     }
 
     /**
-     * Switches password sign-in off or back on. Switching off is guarded server side by
-     * everything D6 and the review demand: the instance mode, a reachable address for the way
-     * back, and at least one passkey that has completed a sign-in ceremony.
+     * Switches password sign-in off or back on. Switching off is guarded server side by the
+     * instance mode, a reachable address for the way back, and at least one passkey that has
+     * completed a sign-in ceremony. The way back in without a passkey is a mail, so an address that
+     * cannot receive one is no way back.
      */
-    public SwitchOutcome setPasswordLogin(int accountId, boolean enabled, String userAgent, String country) {
+    public SwitchOutcome setPasswordLogin(
+            int accountId, boolean enabled, @Nullable String userAgent, @Nullable String country) {
         Optional<AccountCredential> credential = accountRepository.findCredential(accountId);
         if (credential.isEmpty()) return SwitchOutcome.NO_PASSWORD;
 
@@ -120,8 +140,6 @@ public class PasskeyAccountService {
         boolean reachable =
                 accountRepository.findById(accountId).map(Account::hasRealEmail).orElse(false);
         if (!reachable) {
-            // The way back in for a member without a passkey is a mail. An address that cannot
-            // receive one is no way back, so the switch is never offered to that account.
             return SwitchOutcome.NO_REACHABLE_ADDRESS;
         }
         if (!passkeyRepository.hasTriedSignInPasskey(accountId)) {

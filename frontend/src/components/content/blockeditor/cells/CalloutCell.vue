@@ -5,7 +5,8 @@
  */
 <script lang="ts" setup>
 import {computed} from 'vue'
-import {CalloutVariant, type CalloutConfig} from '@/api/pageManage'
+import {CalloutVariant} from '@/api/pageManage'
+import type {CalloutConfig} from '@/api/generated/schema'
 import {renderMarkdown} from '@/util/markdown'
 
 const props = defineProps<{

@@ -67,9 +67,8 @@ test.describe('Onboarding tasks', () => {
 
         await page.getByTestId(`onboarding-task-${TASK}`).getByRole('button', {name: 'Los geht’s'}).click()
 
-        // The navigation is in the page at every width, so before this the ring was drawn at the
-        // place the closed drawer says it occupies, which is past the left edge of the window.
-        await expect(page.getByText('Das liegt im Menü')).toBeVisible()
+        await expect(page.getByText('Das liegt im Menü'), 'the ring is not drawn past the edge where the closed drawer sits')
+            .toBeVisible()
 
         await page.getByRole('button', {name: 'Menü öffnen'}).click()
 

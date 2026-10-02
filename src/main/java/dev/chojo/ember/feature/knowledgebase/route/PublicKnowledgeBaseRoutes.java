@@ -6,12 +6,14 @@
 package dev.chojo.ember.feature.knowledgebase.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.api.refusal.KnowledgeBaseRefusal;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFolder;
+import dev.chojo.ember.feature.knowledgebase.entity.KbTag;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
+import dev.chojo.ember.feature.knowledgebase.route.KnowledgeBaseRoutes.MarkdownHtmlResponse;
 import dev.chojo.ember.feature.knowledgebase.service.KbAccessService;
 import dev.chojo.ember.feature.knowledgebase.service.KbContentService;
 import dev.chojo.ember.feature.knowledgebase.service.KbFilePictureService;
@@ -24,7 +26,6 @@ import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.entity.StationModule;
-import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.service.StationService;
 import dev.chojo.ember.util.SafeContentDisposition;
 import io.javalin.http.Context;
@@ -37,11 +38,13 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
@@ -61,7 +64,6 @@ public class PublicKnowledgeBaseRoutes implements Routes {
     private final KbAccessService accessService;
     private final KbTagService tagService;
     private final StationService stationService;
-    private final StationRepository stationRepository;
     private final KbIconService iconService;
     private final KbImageService imageService;
     private final KbFilePictureService pictureService;
@@ -75,7 +77,6 @@ public class PublicKnowledgeBaseRoutes implements Routes {
             KbAccessService accessService,
             KbTagService tagService,
             StationService stationService,
-            StationRepository stationRepository,
             KbIconService iconService,
             KbImageService imageService,
             KbFilePictureService pictureService,
@@ -86,7 +87,6 @@ public class PublicKnowledgeBaseRoutes implements Routes {
         this.accessService = accessService;
         this.tagService = tagService;
         this.stationService = stationService;
-        this.stationRepository = stationRepository;
         this.iconService = iconService;
         this.imageService = imageService;
         this.pictureService = pictureService;
@@ -117,21 +117,23 @@ public class PublicKnowledgeBaseRoutes implements Routes {
             uid = UUID.fromString(uidParam);
         } catch (IllegalArgumentException e) {
             log.warn("Invalid station UUID for public KB: {}", uidParam, e);
-            throw Refusal.PUBLIC_KB_ADDRESS_NOT_A_STATION.raise();
+            throw KnowledgeBaseRefusal.PUBLIC_KB_ADDRESS_NOT_A_STATION.raise();
         }
-        var station = stationRepository.findByUid(uid).orElseThrow(Refusal.STATION_NOT_HERE_BEHIND_PUBLIC_KB::raise);
+        var station = stationService
+                .findByUid(uid)
+                .orElseThrow(KnowledgeBaseRefusal.STATION_NOT_HERE_BEHIND_PUBLIC_KB::raise);
         if (station.publicKbMode() == PublicKbMode.OFF) {
-            throw Refusal.PUBLIC_KB_SWITCHED_OFF.raise();
+            throw KnowledgeBaseRefusal.PUBLIC_KB_SWITCHED_OFF.raise();
         }
         if (stationService.findDisabledModules(station.id()).contains(StationModule.KNOWLEDGE_BASE)) {
-            throw Refusal.PUBLIC_KB_SWITCHED_OFF.raise();
+            throw KnowledgeBaseRefusal.PUBLIC_KB_SWITCHED_OFF.raise();
         }
         return station;
     }
 
-    private void requirePubliclyVisible(Station station, Integer folderId, Integer fileId) {
+    private void requirePubliclyVisible(Station station, @Nullable Integer folderId, @Nullable Integer fileId) {
         if (!accessService.isPubliclyVisible(station.publicKbMode(), folderId, fileId)) {
-            throw Refusal.PUBLIC_KB_ENTRY_NOT_HERE.raise();
+            throw KnowledgeBaseRefusal.PUBLIC_KB_ENTRY_NOT_HERE.raise();
         }
     }
 
@@ -153,8 +155,8 @@ public class PublicKnowledgeBaseRoutes implements Routes {
     private PublicFile resolvePublicFile(Context ctx) {
         var station = resolveStation(ctx);
         int id = pathInt(ctx, "id");
-        var file = kbService.findFile(id).orElseThrow(Refusal.PUBLIC_KB_ENTRY_NOT_HERE::raise);
-        if (file.stationId() != station.id()) throw Refusal.PUBLIC_KB_ENTRY_NOT_HERE.raise();
+        var file = kbService.findFile(id).orElseThrow(KnowledgeBaseRefusal.PUBLIC_KB_ENTRY_NOT_HERE::raise);
+        if (file.stationId() != station.id()) throw KnowledgeBaseRefusal.PUBLIC_KB_ENTRY_NOT_HERE.raise();
         requirePubliclyVisible(station, null, id);
         return new PublicFile(station, file);
     }
@@ -166,7 +168,7 @@ public class PublicKnowledgeBaseRoutes implements Routes {
             tags = {"Public Knowledge Base"},
             pathParams = @OpenApiParam(name = "stationUid", type = String.class, required = true),
             responses = {
-                @OpenApiResponse(status = "200"),
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = PublicKbInfo.class)),
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void getInfo(Context ctx) {
@@ -246,8 +248,8 @@ public class PublicKnowledgeBaseRoutes implements Routes {
                 var content = contentService.getMarkdownContent(id).orElse("");
                 ctx.contentType("text/plain").result(content);
             }
-            case YOUTUBE -> ctx.json(new YoutubeContentResponse(file.youtubeUrl() != null ? file.youtubeUrl() : ""));
-            case LINK -> ctx.json(new LinkContentResponse(file.linkUrl() != null ? file.linkUrl() : ""));
+            case YOUTUBE -> ctx.json(new YoutubeContentResponse(Objects.requireNonNullElse(file.youtubeUrl(), "")));
+            case LINK -> ctx.json(new LinkContentResponse(Objects.requireNonNullElse(file.linkUrl(), "")));
             case PDF, IMAGE, OTHER -> {
                 var contentType = contentService.getFileContentType(id);
                 var content = contentService.getFileContent(id);
@@ -256,7 +258,7 @@ public class PublicKnowledgeBaseRoutes implements Routes {
                     ctx.header("Cache-Control", "public, max-age=300");
                     ctx.result(content.get());
                 } else {
-                    throw Refusal.PUBLIC_KB_FILE_CONTENT_NOT_HERE.raise();
+                    throw KnowledgeBaseRefusal.PUBLIC_KB_FILE_CONTENT_NOT_HERE.raise();
                 }
             }
         }
@@ -289,7 +291,7 @@ public class PublicKnowledgeBaseRoutes implements Routes {
         int size = ctx.queryParamAsClass("size", Integer.class).getOrDefault(256);
         var picture = pictureService
                 .read(file.stationId(), file.id(), file.mimeType(), size)
-                .orElseThrow(Refusal.PUBLIC_KB_ARTICLE_PICTURE_NOT_HERE::raise);
+                .orElseThrow(KnowledgeBaseRefusal.PUBLIC_KB_ARTICLE_PICTURE_NOT_HERE::raise);
         ctx.contentType(picture.contentType());
         ctx.header("Cache-Control", "public, max-age=300");
         ctx.result(picture.data());
@@ -305,23 +307,27 @@ public class PublicKnowledgeBaseRoutes implements Routes {
                 @OpenApiParam(name = "id", type = Integer.class, required = true)
             },
             responses = {
-                @OpenApiResponse(status = "200"),
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = MarkdownHtmlResponse.class)),
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void getMarkdownHtml(Context ctx) {
         var file = resolvePublicFile(ctx).file();
-        if (file.fileType() != KbFileType.MARKDOWN) throw Refusal.PUBLIC_KB_NOT_A_WRITTEN_ARTICLE.raise();
+        if (file.fileType() != KbFileType.MARKDOWN) throw KnowledgeBaseRefusal.PUBLIC_KB_NOT_A_WRITTEN_ARTICLE.raise();
 
         var markdown = contentService.getMarkdownContent(file.id()).orElse("");
         var html = contentService.renderMarkdown(markdown);
         ctx.json(new MarkdownHtmlResponse(html, markdown));
     }
 
+    @OpenApi(
+            path = "/api/v1/public/kb/{stationUid}/files/{id}/pdf",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200"))
     private void getFilePdf(Context ctx) {
         var published = resolvePublicFile(ctx);
         var file = published.file();
         if (!KbPdfExportService.isExportable(file.fileType())) {
-            throw Refusal.PUBLIC_KB_NOT_A_PDF_TO_MAKE.raise();
+            throw KnowledgeBaseRefusal.PUBLIC_KB_NOT_A_PDF_TO_MAKE.raise();
         }
         try {
             byte[] pdf = pdfExportService.renderPublic(file, published.station());
@@ -332,10 +338,10 @@ public class PublicKnowledgeBaseRoutes implements Routes {
             ctx.result(pdf);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw Refusal.PUBLIC_KB_PDF_STOPPED.raise();
+            throw KnowledgeBaseRefusal.PUBLIC_KB_PDF_STOPPED.raise();
         } catch (IOException e) {
             log.warn("Failed to render public file {} as PDF", file.id(), e);
-            throw Refusal.PUBLIC_KB_PDF_NOT_MADE.raise();
+            throw KnowledgeBaseRefusal.PUBLIC_KB_PDF_NOT_MADE.raise();
         }
     }
 
@@ -346,7 +352,7 @@ public class PublicKnowledgeBaseRoutes implements Routes {
             tags = {"Public Knowledge Base"},
             pathParams = @OpenApiParam(name = "stationUid", type = String.class, required = true),
             queryParams = @OpenApiParam(name = "q", type = String.class, required = true),
-            responses = @OpenApiResponse(status = "200"))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = SearchResultItem[].class)))
     private void search(Context ctx) {
         var station = resolveStation(ctx);
         String query = ctx.queryParam("q");
@@ -421,13 +427,13 @@ public class PublicKnowledgeBaseRoutes implements Routes {
             summary = "List tags in the public knowledge base",
             tags = {"Public Knowledge Base"},
             pathParams = @OpenApiParam(name = "stationUid", type = String.class, required = true),
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = String[].class)))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = KbTag[].class)))
     private void listTags(Context ctx) {
         var station = resolveStation(ctx);
         ctx.json(tagService.findTagsByStation(station.id()));
     }
 
-    public record PublicBrowseResponse(KbFolder currentFolder, List<KbFolder> folders, List<KbFile> files) {}
+    public record PublicBrowseResponse(@Nullable KbFolder currentFolder, List<KbFolder> folders, List<KbFile> files) {}
 
     /**
      * What a public wiki says about the station behind it.
@@ -442,8 +448,6 @@ public class PublicKnowledgeBaseRoutes implements Routes {
     public record YoutubeContentResponse(String youtubeUrl) {}
 
     public record LinkContentResponse(String linkUrl) {}
-
-    public record MarkdownHtmlResponse(String html, String markdown) {}
 
     public record SearchResultItem(KbFile file, String snippet) {}
 }

@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {APIRequestContext, Page} from '@playwright/test'
+import type {Page} from '@playwright/test'
 import {test, expect, apiHeaders} from './fixtures/auth'
 
 /**
@@ -79,7 +79,8 @@ test.describe('Item custody', () => {
      * ITM-11 - Handing out and taking back stays one action.
      *
      * Handing somebody a helmet across a table does not open a request, and nothing appears in any queue
-     * because nothing was asked of anybody.
+     * because nothing was asked of anybody. Only the movements of this story's own store are counted,
+     * since every other story writes to the station's list at the same time.
      */
     test('handing gear over and back opens no request', async ({managerPage: page}) => {
         const headers = await apiHeaders(page)
@@ -94,8 +95,6 @@ test.describe('Item custody', () => {
             {headers, data: {memberId: null, memberName: null}})
         expect((await item(page, headers, made.id)).custody).toBe('WITH_OWNER')
 
-        // Only the movements about this story's own store: the station's whole list is being written to
-        // by every other story at the same time, and counting it counts them
         const after = await page.request.get('/api/v1/movements', {headers}).then(r => r.json())
         const asked = (Array.isArray(after) ? after : after.movements ?? [])
             .filter((movement: {inventoryId: number | null}) => movement.inventoryId === inventoryId)
@@ -123,7 +122,6 @@ test.describe('Item custody', () => {
         expect(made.ok()).toBeTruthy()
         const piece = await made.json()
 
-        // A chain that parks it in the post and waits there
         const flow = await page.request.post('/api/v1/movement-flows',
             {headers, data: {name: `Unterwegs ${Date.now()}`, purpose: 'RETURN'}})
         const flowId = (await flow.json()).id

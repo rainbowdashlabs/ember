@@ -11,14 +11,14 @@ import ButtonRow from '@/components/button/ButtonRow.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
-import type {ProfileFieldChange} from '@/api/profileFieldChanges'
+import type {ChangeEntry} from '@/api/profileFieldChanges'
 import ChangeValueDiff from '../../changesview/ChangeValueDiff.vue'
 import AcknowledgementList from '../../changesview/AcknowledgementList.vue'
 
 const {t} = useI18n()
 
 const props = defineProps<{
-  change: ProfileFieldChange
+  change: ChangeEntry
   acknowledgedByMe: boolean
   acknowledging: boolean
   commentOpen: boolean
@@ -27,9 +27,9 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'acknowledge'): void
-  (e: 'toggle-comment'): void
-  (e: 'update:commentValue', v: string): void
+  acknowledge: []
+  'toggle-comment': []
+  'update:commentValue': [v: string]
 }>()
 
 function updateComment(v: string | undefined) {

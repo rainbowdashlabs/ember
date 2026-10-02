@@ -10,7 +10,7 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import BorrowedGearTable from './borrowedgearview/BorrowedGearTable.vue'
-import type {BorrowedItem} from '@/api/inventory'
+import type {BorrowedItemResponse} from '@/api/generated/schema'
 import {inventory} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
@@ -18,7 +18,7 @@ import {useAsyncLoader} from '@/composables/useAsyncLoader'
 const {t} = useI18n()
 const {loaded} = useSession()
 
-const rows = ref<BorrowedItem[]>([])
+const rows = ref<BorrowedItemResponse[]>([])
 
 const {loading, failure, reload} = useAsyncLoader(
     async () => {

@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {InventoryContainer} from '@/api/inventoryContainers'
+import type {InventoryContainer} from '@/api/generated/schema'
 
 /**
  * Builds the human-readable location path ("Room / Cabinet / Drawer") for the

@@ -5,11 +5,12 @@
  */
 package dev.chojo.ember.feature.station.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.auth.InstancePermission;
+import dev.chojo.ember.api.refusal.StationRefusal;
+import dev.chojo.ember.feature.station.entity.StationApplication;
 import dev.chojo.ember.feature.station.service.StationApplicationService;
-import dev.chojo.ember.feature.system.repository.ApplicationSettingRepository;
+import dev.chojo.ember.feature.system.service.InstanceSettingsService;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -33,13 +34,13 @@ public class StationApplicationRoutes implements Routes {
     private static final Logger log = LoggerFactory.getLogger(StationApplicationRoutes.class);
 
     private final StationApplicationService applicationService;
-    private final ApplicationSettingRepository settingRepository;
+    private final InstanceSettingsService instanceSettings;
 
     @Inject
     public StationApplicationRoutes(
-            StationApplicationService applicationService, ApplicationSettingRepository settingRepository) {
+            StationApplicationService applicationService, InstanceSettingsService instanceSettings) {
         this.applicationService = applicationService;
-        this.settingRepository = settingRepository;
+        this.instanceSettings = instanceSettings;
     }
 
     private static boolean isBlank(String s) {
@@ -48,11 +49,9 @@ public class StationApplicationRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        // Public endpoints (no auth required)
         routes.post(prefix + "/station-applications", this::submit);
         routes.post(prefix + "/station-applications/verify", this::verify);
 
-        // Admin endpoints
         routes.get(prefix + "/admin/station-applications", this::list, InstancePermission.ADMINISTRATOR);
         routes.get(prefix + "/admin/station-applications/{id}", this::get, InstancePermission.ADMINISTRATOR);
         routes.post(prefix + "/admin/station-applications/{id}/accept", this::accept, InstancePermission.ADMINISTRATOR);
@@ -65,17 +64,20 @@ public class StationApplicationRoutes implements Routes {
             summary = "Submit a station application",
             tags = {"Station Applications"},
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ApplicationRequest.class)),
-            responses = {@OpenApiResponse(status = "201"), @OpenApiResponse(status = "400")})
+            responses = {
+                @OpenApiResponse(status = "201", content = @OpenApiContent(from = StationApplication.class)),
+                @OpenApiResponse(status = "400")
+            })
     private void submit(Context ctx) {
-        if (!settingRepository.getBoolean("station_registration_enabled", true)) {
-            throw Refusal.STATION_REGISTRATION_SWITCHED_OFF.raise();
+        if (!instanceSettings.stationRegistrationEnabled()) {
+            throw StationRefusal.STATION_REGISTRATION_SWITCHED_OFF.raise();
         }
         var request = ctx.bodyAsClass(ApplicationRequest.class);
         if (isBlank(request.firstName())
                 || isBlank(request.lastName())
                 || isBlank(request.email())
                 || isBlank(request.stationName())) {
-            throw Refusal.STATION_APPLICATION_NEEDS_EVERY_FIELD.raise();
+            throw StationRefusal.STATION_APPLICATION_NEEDS_EVERY_FIELD.raise();
         }
         var application = applicationService.submit(
                 request.firstName(),
@@ -96,12 +98,12 @@ public class StationApplicationRoutes implements Routes {
     private void verify(Context ctx) {
         var request = ctx.bodyAsClass(VerifyRequest.class);
         if (isBlank(request.token())) {
-            throw Refusal.STATION_APPLICATION_LINK_CARRIES_NOTHING.raise();
+            throw StationRefusal.STATION_APPLICATION_LINK_CARRIES_NOTHING.raise();
         }
         if (applicationService.verify(request.token())) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
-            throw Refusal.STATION_APPLICATION_LINK_UNKNOWN.raise();
+            throw StationRefusal.STATION_APPLICATION_LINK_UNKNOWN.raise();
         }
     }
 
@@ -110,7 +112,7 @@ public class StationApplicationRoutes implements Routes {
             methods = HttpMethod.GET,
             summary = "List all station applications",
             tags = {"Station Applications"},
-            responses = @OpenApiResponse(status = "200"))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = StationApplication[].class)))
     private void list(Context ctx) {
         ctx.json(applicationService.findAll());
     }
@@ -121,11 +123,14 @@ public class StationApplicationRoutes implements Routes {
             summary = "Get a station application by ID",
             tags = {"Station Applications"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
-            responses = {@OpenApiResponse(status = "200"), @OpenApiResponse(status = "404")})
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = StationApplication.class)),
+                @OpenApiResponse(status = "404")
+            })
     private void get(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         applicationService.findById(id).ifPresentOrElse(ctx::json, () -> {
-            throw Refusal.STATION_APPLICATION_NOT_HERE.raise();
+            throw StationRefusal.STATION_APPLICATION_NOT_HERE.raise();
         });
     }
 
@@ -136,7 +141,7 @@ public class StationApplicationRoutes implements Routes {
             tags = {"Station Applications"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             responses = {
-                @OpenApiResponse(status = "200"),
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = StationApplication.class)),
                 @OpenApiResponse(status = "400"),
                 @OpenApiResponse(status = "404")
             })
@@ -147,10 +152,10 @@ public class StationApplicationRoutes implements Routes {
             ctx.json(result);
         } catch (IllegalArgumentException e) {
             log.warn("Station application not found for accept, id={}", id, e);
-            throw Refusal.STATION_APPLICATION_NOT_HERE_ON_ACCEPTANCE.raise();
+            throw StationRefusal.STATION_APPLICATION_NOT_HERE_ON_ACCEPTANCE.raise();
         } catch (IllegalStateException e) {
             log.warn("Invalid state when accepting station application id={}", id, e);
-            throw Refusal.STATION_APPLICATION_NOT_ACCEPTED.raise();
+            throw StationRefusal.STATION_APPLICATION_NOT_ACCEPTED.raise();
         }
     }
 
@@ -162,7 +167,7 @@ public class StationApplicationRoutes implements Routes {
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = DenyRequest.class)),
             responses = {
-                @OpenApiResponse(status = "200"),
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = StationApplication.class)),
                 @OpenApiResponse(status = "400"),
                 @OpenApiResponse(status = "404")
             })
@@ -174,10 +179,10 @@ public class StationApplicationRoutes implements Routes {
             ctx.json(result);
         } catch (IllegalArgumentException e) {
             log.warn("Station application not found for deny, id={}", id, e);
-            throw Refusal.STATION_APPLICATION_NOT_HERE_ON_DENIAL.raise();
+            throw StationRefusal.STATION_APPLICATION_NOT_HERE_ON_DENIAL.raise();
         } catch (IllegalStateException e) {
             log.warn("Invalid state when denying station application id={}", id, e);
-            throw Refusal.STATION_APPLICATION_NOT_DENIED.raise();
+            throw StationRefusal.STATION_APPLICATION_NOT_DENIED.raise();
         }
     }
 

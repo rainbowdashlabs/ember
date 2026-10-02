@@ -5,7 +5,7 @@
  */
 <script setup lang="ts">
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import type {QuizQuestion, QuizTestAnswer} from '@/api/quiz'
+import type {QuizQuestion, QuizTestAnswer} from '@/api/generated/schema'
 import QuestionHeader from './QuestionHeader.vue'
 import AnswerReviewSwitch from './AnswerReviewSwitch.vue'
 import PointsField from './PointsField.vue'
@@ -20,10 +20,10 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'toggle-gap', answerId: number, gapIndex: number, questionId: number): void
-  (e: 'mark-correct', answerId: number, maxPoints: number): void
-  (e: 'mark-wrong', answerId: number, maxPoints: number): void
-  (e: 'update-points', answerId: number, maxPoints: number, value: number | undefined): void
+  'toggle-gap': [answerId: number, gapIndex: number, questionId: number]
+  'mark-correct': [answerId: number, maxPoints: number]
+  'mark-wrong': [answerId: number, maxPoints: number]
+  'update-points': [answerId: number, maxPoints: number, value: number | undefined]
 }>()
 </script>
 

@@ -8,7 +8,9 @@ import {useI18n} from 'vue-i18n'
 import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
-import DummyMemberInventory from '@/views/helpcenter/stationview/inventory/memberinventoryhelp/DummyMemberInventory.vue'
+import MemberInventoryHeader from '@/views/stationview/inventory/memberinventoryview/MemberInventoryHeader.vue'
+import MemberInventoryGroups from '@/views/stationview/inventory/memberinventoryview/MemberInventoryGroups.vue'
+import {groups, items, member} from './memberinventoryhelp/fixtures'
 
 const {t} = useI18n()
 </script>
@@ -17,9 +19,11 @@ const {t} = useI18n()
   <HelpArticle :title="t('helpCenter.inventoryMember.title')" :subtitle="t('helpCenter.inventoryMember.subtitle')">
     <HelpSection :title="t('helpCenter.inventoryMember.whatShown')">
       <p>{{ t('helpCenter.inventoryMember.whatShownText') }}</p>
+      <div class="space-y-6">
+        <MemberInventoryHeader :member="member"/>
+        <MemberInventoryGroups :groups="groups" :items="items" show-exchange-button/>
+      </div>
     </HelpSection>
-
-    <DummyMemberInventory/>
 
     <HelpTip>{{ t('helpCenter.inventoryMember.tip') }}</HelpTip>
   </HelpArticle>

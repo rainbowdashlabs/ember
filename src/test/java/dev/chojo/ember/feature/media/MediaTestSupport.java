@@ -10,10 +10,10 @@ import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.content.repository.ContentContainerRepository;
 import dev.chojo.ember.feature.media.repository.MediaFileRepository;
 import dev.chojo.ember.feature.media.repository.MediaMetaRepository;
+import dev.chojo.ember.feature.media.service.ImageVariants;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import dev.chojo.ember.feature.media.service.MediaReferenceRegistry;
 import dev.chojo.ember.feature.media.service.MediaStorageService;
-import dev.chojo.ember.feature.media.service.MediaVariantService;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
 import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
@@ -31,13 +31,19 @@ public final class MediaTestSupport {
 
     private MediaTestSupport() {}
 
+    /**
+     * A media library storing into the given backend.
+     *
+     * @param backend the local backend the files go to, kept outside the working directory by the caller
+     * @return the library
+     */
     public static MediaLibraryService library(
+            LocalStorageBackend backend,
             StationRepository stationRepository,
             ContentContainerRepository containers,
             MediaFileRepository fileRepository,
             MediaMetaRepository metaRepository,
             StorageUsageRepository usageRepository) {
-        var backend = new LocalStorageBackend();
         var storageService = new StorageService(new StorageBackendResolver(backend), backend);
         var storageConfig = new Storage();
         var storage = new MediaStorageService(storageService, stationRepository, backend);
@@ -45,7 +51,7 @@ public final class MediaTestSupport {
                 fileRepository,
                 metaRepository,
                 storage,
-                new MediaVariantService(storage, storageConfig),
+                new ImageVariants(storageService),
                 new MediaReferenceRegistry(containers),
                 new StorageQuotaService(usageRepository, storageConfig, new DomainEventBus(Set.of())));
     }

@@ -5,7 +5,7 @@
  */
 import type {Ref} from 'vue'
 import {knowledgeBase} from '@/api'
-import type {KbFile} from '@/api/knowledgeBase'
+import type {KbFile} from '@/api/generated/schema'
 import {downloadAuthed} from '@/util/downloadAuthed'
 
 /**

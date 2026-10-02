@@ -9,18 +9,18 @@ import type {RouteLocationRaw} from 'vue-router'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import TodayEventCard from './TodayEventCard.vue'
-import type {EventField, StationEvent} from '@/api/events'
+import type {AppointmentField, EventSummary} from '@/api/generated/schema'
 
 defineProps<{
-  events: StationEvent[]
-  overviewFields: Record<number, EventField[]>
+  events: EventSummary[]
+  overviewFields: Record<number, AppointmentField[]>
   canManageAttendance: boolean
-  detailRoute: (event: StationEvent) => RouteLocationRaw
+  detailRoute: (event: EventSummary) => RouteLocationRaw
   formatTime: (iso?: string) => string
 }>()
 
 const emit = defineEmits<{
-  attendance: [event: StationEvent]
+  attendance: [event: EventSummary]
 }>()
 
 const {t} = useI18n()

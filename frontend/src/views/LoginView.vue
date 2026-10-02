@@ -13,8 +13,10 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import PageHeader from '@/components/typography/PageHeader.vue'
 import PageHeroIcon from '@/components/typography/PageHeroIcon.vue'
 import {auth, passkeys, adminSettings} from '@/api'
-import {StorageDeniedError, type LoginResponse} from '@/api/auth'
-import {acceptStorage, getItem} from '@/api/storage'
+import {StorageDeniedError} from '@/api/auth'
+import type {DemoAccount, LoginResponse} from '@/api/generated/schema'
+import {acceptStorage} from '@/api/storage'
+import {hasSessionCookie} from '@/api/sessionCookie'
 import {
   getWebAuthnCredential,
   getWebAuthnCredentialConditional,
@@ -27,7 +29,7 @@ import type {PasskeyModeName} from '@/api/adminSettings'
 import {useStations} from '@/composables/useStations'
 import {useCluster} from '@/composables/useCluster'
 import {useAsyncAction} from '@/composables/useAsyncAction'
-import {useDemoAccounts, type DemoAccount} from '@/composables/useDemoAccounts'
+import {useDemoAccounts} from '@/composables/useDemoAccounts'
 import {useLoginConsent} from '@/composables/useLoginConsent'
 import DemoLogin from '@/views/loginview/DemoLogin.vue'
 import ConsentGate from '@/views/loginview/ConsentGate.vue'
@@ -87,11 +89,9 @@ const passkeyAvailable = computed(() =>
 let conditionalAbort: AbortController | null = null
 
 onMounted(async () => {
-  if (getItem('session_token')) {
-    // Honor any pending deep link the router guard parked on /login - the user is already
-    // authed and we don't want a fresh tab refresh to lose their target.
-    const redirectPath = route.query.redirect as string | undefined
-    navigateTo(redirectPath?.startsWith('/') ? redirectPath : '/station/dashboard/overview')
+  if (hasSessionCookie()) {
+    const parkedDeepLink = route.query.redirect as string | undefined
+    navigateTo(parkedDeepLink?.startsWith('/') ? parkedDeepLink : '/station/dashboard/overview')
     return
   }
 
@@ -99,36 +99,46 @@ onMounted(async () => {
   adminSettings.isRegistrationEnabled().then(v => registrationEnabled.value = v).catch(() => {})
 
   await demo.load()
-  // A demo instance stores nothing worth consenting to, so the gate is skipped there.
-  if (isDemo.value) {
-    acceptStorage()
-    consent.value = 'accepted'
-  }
+  skipConsentOnDemo()
+  offerPasskeys()
+})
 
-  // Asked on every instance: the server already answers OFF where passkeys cannot honestly be
-  // offered (the public demo among them), and a dev demo runs them like any other instance.
+/** A demo instance stores nothing worth consenting to, so the storage gate is skipped there. */
+function skipConsentOnDemo() {
+  if (!isDemo.value) return
+  acceptStorage()
+  consent.value = 'accepted'
+}
+
+/**
+ * Asks for the passkey mode on every instance: the server already answers OFF where passkeys cannot
+ * honestly be offered (the public demo among them), and a dev demo runs them like any other instance.
+ */
+function offerPasskeys() {
   passkeys.publicPasskeyMode().then(mode => {
     passkeyMode.value = mode
     if (passkeyAvailable.value) void startConditionalPasskey()
   }).catch(() => {})
-})
+}
 
 /**
  * Starts the browser's own passkey autofill: the member clicks the username field and their
  * name is offered. Silent on every failure, because this path was never asked for out loud;
- * the button and the password form are always there.
+ * the button and the password form are always there, whether the request was aborted by a password
+ * submit, dismissed, or unsupported after all.
  */
 async function startConditionalPasskey() {
   if (!(await isConditionalMediationAvailable())) return
   conditionalAbort = new AbortController()
-  try {
-    const begin = await passkeys.passkeySignInBegin()
-    const credentialJson = await getWebAuthnCredentialConditional(begin.optionsJson, conditionalAbort.signal)
-    const result = await passkeys.passkeySignInFinish(begin.challengeToken, credentialJson, trustedDevice.value)
-    await completeSignIn(result)
-  } catch {
-    // Aborted by a password submit, dismissed, or unsupported after all: the form stands.
-  }
+  await signInByAutofill(conditionalAbort.signal).catch(() => {})
+}
+
+/** Runs one passkey sign-in through the browser's autofill, until the signal aborts it. */
+async function signInByAutofill(signal: AbortSignal) {
+  const begin = await passkeys.passkeySignInBegin()
+  const credentialJson = await getWebAuthnCredentialConditional(begin.optionsJson, signal)
+  const result = await passkeys.passkeySignInFinish(begin.challengeToken, credentialJson, trustedDevice.value)
+  await completeSignIn(result)
 }
 
 /** What every successful sign-in does once a session (or its precondition) came back. */
@@ -218,6 +228,7 @@ const {running: passkeySigningIn, error: passkeyError, run: handlePasskeyLogin} 
 }})
 
 const {running: demoLoggingIn, error: demoError, run: loginAsDemo} = useAsyncAction(async (account: DemoAccount) => {
+  if (!account.email) return
   await auth.demoLogin(account.email)
   await resolveStationAndRedirect()
 })
@@ -238,7 +249,6 @@ const error = computed(() => loginError.value || demoError.value || passkeyError
         <Spinner size="lg"/>
       </div>
 
-      <!-- A server that did not answer is worth saying so, rather than quietly offering the wrong form. -->
       <FailureAlert v-if="unreachable" :failure="unreachable"/>
 
       <DemoLogin v-if="isDemo && !demoLoading"
@@ -262,9 +272,9 @@ const error = computed(() => loginError.value || demoError.value || passkeyError
         <LegalModal v-model="showTos" :title="t('storageConsent.tosTitle')"
                     :loading="tosLoading" :html="tosHtml"/>
 
-        <LoginForm v-if="consent === 'accepted'" class="mx-auto w-full max-w-xs"
-                   v-model:identifier="identifier" v-model:password="password"
-                   v-model:trustedDevice="trustedDevice"
+        <LoginForm v-if="consent === 'accepted'" v-model:identifier="identifier"
+                   v-model:password="password" v-model:trusted-device="trustedDevice"
+                   class="mx-auto w-full max-w-xs"
                    :error="error" :loading="loading"
                    :registration-enabled="registrationEnabled"
                    :passkey-available="passkeyAvailable"

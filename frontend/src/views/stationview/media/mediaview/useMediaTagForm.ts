@@ -5,7 +5,8 @@
  */
 import {ref, type Ref} from 'vue'
 import {useConfirmAction} from '@/composables/useConfirmAction'
-import {createMediaTag, deleteMediaTag, updateMediaTag, type StationFileTag} from '@/api/media'
+import {createMediaTag, deleteMediaTag, updateMediaTag} from '@/api/media'
+import type {StationFileTag} from '@/api/generated/schema'
 
 /**
  * Create / rename / delete flow for file tags, including the modal state the tag dialog binds to.

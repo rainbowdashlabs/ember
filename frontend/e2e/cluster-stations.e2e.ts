@@ -3,7 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {MADE_BY_A_STORY} from './fixtures/cluster'
+import {MADE_BY_A_STORY, stationUnder} from './fixtures/cluster'
+import {demoSignIn, sessionHeaders} from './fixtures/session'
 import {
     test,
     expect,
@@ -58,8 +59,8 @@ test.describe('Cluster stations', () => {
         await page.goto('/cluster/stations')
         await expect(page.getByTestId('app-shell')).toBeVisible()
 
-        // A name is typed, not chosen: there is no list of the instance's stations to pick from
-        await expect(page.getByPlaceholder('z.B. Löschzug Nord')).toBeVisible()
+        await expect(page.getByPlaceholder('z.B. Löschzug Nord'), 'a name is typed, not picked from a list')
+            .toBeVisible()
         await expect(page.getByText('JF Partnerwache')).toHaveCount(0)
     })
 
@@ -85,12 +86,12 @@ test.describe('Cluster stations', () => {
      *
      * The station asks and takes it back itself, and the cluster's pending list is empty again. It runs
      * before the two stories that answer an application, because it puts the one waiting request back the
-     * way it found it.
+     * way it found it. A withdrawn request leaves the pending half rather than vanishing, so the empty
+     * state is not what the story asks about.
      */
     test('an owner withdraws an application before it is answered', async ({adminPage: page, request}) => {
         await page.goto('/cross-station')
         const cluster = await enterCluster(page)
-        const headers = await apiHeaders(page)
 
         await page.goto('/cluster/applications')
         await expect(page.getByTestId('app-shell')).toBeVisible()
@@ -98,16 +99,14 @@ test.describe('Cluster stations', () => {
 
         const applicant = await withdrawAsTheWaitingOwner(request, cluster.uid)
 
-        // Gone from the pending half rather than gone altogether: a request that was taken back is still
-        // something the cluster can see happened, which is why the empty state is not what this asks about.
         await page.reload()
-        await expect(page.getByRole('button', {name: 'Ablehnen'})).toHaveCount(0)
+        await expect(page.getByRole('button', {name: 'Ablehnen'}), 'gone from the pending half').toHaveCount(0)
         await expect(page.getByRole('button', {name: 'Aufnehmen'})).toHaveCount(0)
 
-        // And it is the station's to ask again, which is what makes a withdrawal different from a refusal
         await applicant()
         await page.reload()
-        await expect(page.getByRole('button', {name: 'Ablehnen'}).first()).toBeVisible()
+        await expect(page.getByRole('button', {name: 'Ablehnen'}).first(), 'unlike a refused one, the station may ask again')
+            .toBeVisible()
     })
 
     /**
@@ -122,7 +121,7 @@ test.describe('Cluster stations', () => {
 
         const refused = await page.request.delete(`/api/v1/clusters/${cluster.uid}`, {headers})
         expect(refused.ok()).toBeFalsy()
-        expect(await refused.text()).toContain('station')
+        expect((await refused.json()).code, 'refused while stations still belong to it').toBe('CU-123')
 
         await page.goto('/admin/clusters')
         await expect(page.getByText(cluster.name)).toBeVisible()
@@ -134,8 +133,11 @@ test.describe('Cluster stations', () => {
      * Released on a station the story makes for the purpose. Letting go of a seeded member station would
      * take the subject of every other cluster story away with it, and what this is about is the release
      * rather than which station it happened to.
+     *
+     * The station side is read by the person who runs the station, because what a station answers to is
+     * its own members' business and nobody else's.
      */
-    test('the cluster releases a station', async ({adminPage: page}) => {
+    test('the cluster releases a station', async ({adminPage: page, browser, request}) => {
         await page.goto('/cross-station')
         await enterCluster(page)
         const headers = await apiHeaders(page)
@@ -143,9 +145,7 @@ test.describe('Cluster stations', () => {
         const withCluster = {...headers, 'X-Cluster-Id': cluster.uid}
 
         const name = `${MADE_BY_A_STORY}Löschzug Abgang ${test.info().workerIndex}-${Date.now()}`
-        const made = await page.request.post('/api/v1/cluster/stations', {headers: withCluster, data: {name}})
-        expect(made.ok()).toBeTruthy()
-        const station = await made.json()
+        const station = await stationUnder(page, browser, request, withCluster, name)
 
         await page.goto('/cluster/stations')
         await expect(page.getByText(name)).toBeVisible()
@@ -156,11 +156,12 @@ test.describe('Cluster stations', () => {
         await page.reload()
         await expect(page.getByText(name)).toHaveCount(0)
 
-        // And the station itself no longer answers to anybody, which is the half the station side sees
-        const after = await page.request.get('/api/v1/station/cluster',
-            {headers: {...headers, 'X-Station-Id': station.uid}})
-        expect(after.ok()).toBeTruthy()
+        const after = await station.page.request.get('/api/v1/station/cluster',
+            {headers: await apiHeaders(station.page)})
+        expect(after.ok(), `the station's manager reads its cluster (${after.status()})`).toBeTruthy()
         expect((await after.json()).clusterUid).toBeFalsy()
+
+        await station.page.context().close()
     })
 
     /**
@@ -186,9 +187,9 @@ test.describe('Cluster stations', () => {
             await dialog.getByPlaceholder('Warum wird die Anfrage abgelehnt?').fill('Im nächsten Jahr gerne')
             await dialog.getByRole('button', {name: 'Ablehnen'}).click()
 
-            // The refusal and its reason stay readable; what goes is the request waiting to be answered
-            await expect(page.getByRole('button', {name: 'Aufnehmen'})).toHaveCount(0)
-            await expect(page.getByText('Im nächsten Jahr gerne')).toBeVisible()
+            await expect(page.getByRole('button', {name: 'Aufnehmen'}), 'the request no longer waits to be answered')
+                .toHaveCount(0)
+            await expect(page.getByText('Im nächsten Jahr gerne'), 'the refusal and its reason stay readable').toBeVisible()
         })
 
     /**
@@ -239,10 +240,9 @@ async function applyAsSomeStandaloneOwner(
             if (!account.permissions.includes('STATION_ADMINISTRATOR')
                 && !account.permissions.includes('STATION_MANAGER')) continue
 
-            const login = await request.post('/api/v1/demo/login', {data: {email: account.email}})
-            if (!login.ok()) continue
-            const {token} = await login.json()
-            const headers = {Authorization: `Bearer ${token}`, 'X-Station-Id': group.stationId ?? ''}
+            const session = await demoSignIn(request, account.email).catch(() => null)
+            if (!session) continue
+            const headers = sessionHeaders(session, group.stationId)
 
             const applied = await request.post('/api/v1/station/cluster/applications', {
                 headers,
@@ -271,10 +271,9 @@ async function withdrawAsTheWaitingOwner(
             if (!account.permissions.includes('STATION_ADMINISTRATOR')
                 && !account.permissions.includes('STATION_MANAGER')) continue
 
-            const login = await request.post('/api/v1/demo/login', {data: {email: account.email}})
-            if (!login.ok()) continue
-            const {token} = await login.json()
-            const headers = {Authorization: `Bearer ${token}`, 'X-Station-Id': group.stationId ?? ''}
+            const session = await demoSignIn(request, account.email).catch(() => null)
+            if (!session) continue
+            const headers = sessionHeaders(session, group.stationId)
 
             const mine = await request.get('/api/v1/station/cluster', {headers})
             if (!mine.ok()) continue

@@ -18,8 +18,19 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import RepeatEndField from '@/views/stationview/events/eventshared/RepeatEndField.vue'
+import RegistrationFieldsEditor from '@/views/stationview/events/eventshared/RegistrationFieldsEditor.vue'
+import {emptySettings} from '@/views/stationview/events/eventshared/eventQuestions'
+import type {RegistrationFieldDefinition} from '@/api/generated/schema'
 
 const {t} = useI18n()
+
+/** A shirt size asked of everyone, in the editor that writes it. */
+const SHIRT_SIZE: RegistrationFieldDefinition[] = [{
+  name: 'Shirtgröße',
+  fieldType: 'CHOICE',
+  config: {...emptySettings(), options: ['S', 'M', 'L', 'XL'], required: true, defaultValue: 'M'},
+  overview: true,
+}]
 </script>
 
 <template>
@@ -35,13 +46,12 @@ const {t} = useI18n()
           <SectionHeader>{{ t('events.editEvent') }}</SectionHeader>
           <SelectInput model-value="" class="w-48 text-sm" disabled>
             <option value="" disabled>{{ t('eventTemplates.loadTemplate') }}</option>
-            <option value="1">Standard-Übung</option>
+            <option value="1">{{ t('helpCenter.sample.events.standardPractice') }}</option>
           </SelectInput>
         </div>
       </NeutralContainer>
     </HelpSection>
 
-    <!-- Dummy: Form sections -->
     <HelpSection :title="t('helpCenter.eventEdit.generalTitle')">
       <p>{{ t('helpCenter.eventEdit.generalText') }}</p>
       <NeutralContainer class="space-y-4 mt-3">
@@ -105,32 +115,30 @@ const {t} = useI18n()
       </NeutralContainer>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.eventEdit.minimumTitle')">
+      <p>{{ t('helpCenter.eventEdit.minimumText') }}</p>
+      <p>{{ t('helpCenter.eventEdit.minimumSeriesText') }}</p>
+      <NeutralContainer class="mt-3">
+        <div class="grid gap-4 sm:grid-cols-2">
+          <div class="space-y-1">
+            <FieldLabel>{{ t('events.minRegistrations') }}</FieldLabel>
+            <NumberInput :model-value="6" disabled/>
+          </div>
+          <div class="space-y-1">
+            <FieldLabel>{{ t('events.thresholdDays') }}</FieldLabel>
+            <NumberInput :model-value="3" disabled/>
+            <p class="text-xs text-(--text-muted)">{{ t('events.thresholdDaysHint') }}</p>
+          </div>
+        </div>
+      </NeutralContainer>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.eventEdit.registrationFieldsTitle')">
       <p>{{ t('helpCenter.eventEdit.registrationFieldsText') }}</p>
       <p>{{ t('helpCenter.eventEdit.registrationFieldsDefaults') }}</p>
       <p>{{ t('helpCenter.eventEdit.registrationFieldsOverview') }}</p>
 
-      <!-- Dummy: a shirt size question -->
-      <NeutralContainer class="space-y-3 mt-3">
-        <div class="grid gap-4 sm:grid-cols-2">
-          <div class="space-y-1">
-            <FieldLabel>{{ t('events.registrationFields.fieldName') }}</FieldLabel>
-            <TextInput model-value="Shirtgröße" disabled/>
-          </div>
-          <div class="space-y-1">
-            <FieldLabel>{{ t('events.registrationFields.defaultValue') }}</FieldLabel>
-            <TextInput model-value="M" disabled/>
-          </div>
-        </div>
-        <div class="flex items-center gap-2">
-          <ToggleInput :model-value="true"/>
-          <span class="text-sm">{{ t('events.registrationFields.required') }}</span>
-        </div>
-        <div class="flex items-center gap-2">
-          <ToggleInput :model-value="true"/>
-          <span class="text-sm">{{ t('events.registrationFields.overview') }}</span>
-        </div>
-      </NeutralContainer>
+      <RegistrationFieldsEditor :model-value="SHIRT_SIZE" class="mt-3"/>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.eventEdit.remindersTitle')">

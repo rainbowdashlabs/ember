@@ -5,8 +5,11 @@
  */
 package dev.chojo.ember.feature.quiz.service;
 
+import dev.chojo.ember.api.refusal.QuizRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.federation.FederationTestContracts;
+import dev.chojo.ember.feature.federation.FederationTestTransport;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationEntityResolver;
@@ -16,8 +19,11 @@ import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.quiz.entity.CatalogMetadata;
 import dev.chojo.ember.feature.quiz.entity.QuizCatalog;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestionType;
+import dev.chojo.ember.feature.quiz.route.RemoteQuizRoutes;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import dev.chojo.ember.util.TestStationKeys;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
@@ -39,6 +45,7 @@ class QuizFederationServiceTest extends RepositoryTestBase {
     private static FederationRepository federationRepo;
     private static FederationService federationService;
     private static FederationHttpClient httpClient;
+    private static FederationTestTransport transport;
     private static Station station;
     private static Station localPartner;
     private static Station remotePartner;
@@ -46,8 +53,10 @@ class QuizFederationServiceTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         federationRepo = new FederationRepository();
-        federationService = new FederationService(federationRepo, stationRepo, new Api());
+        federationService = new FederationService(federationRepo, stationRepo, TestStationKeys.store(), new Api());
         httpClient = mock(FederationHttpClient.class);
+        when(httpClient.canSign(anyInt())).thenReturn(true);
+        transport = new FederationTestTransport(httpClient, federationRepo, stationRepo);
         questionService = new QuizQuestionService(quizCatalogRepo);
         catalogService = new QuizCatalogService(quizCatalogRepo);
         service = new QuizFederationService(
@@ -55,10 +64,11 @@ class QuizFederationServiceTest extends RepositoryTestBase {
                 questionService,
                 federationService,
                 federationRepo,
-                httpClient,
                 stationRepo,
-                new FederationFanout(),
-                new FederationEntityResolver(federationRepo, stationRepo, httpClient));
+                new FederationFanout(new TaskScheduler()),
+                new FederationEntityResolver(federationRepo),
+                transport.transport());
+        transport.serve(service);
 
         station = stationRepo.create("QuizFedStation");
         localPartner = stationRepo.create("QuizFedStationLocal");
@@ -141,12 +151,24 @@ class QuizFederationServiceTest extends RepositoryTestBase {
                 false,
                 "{\"correctAnswer\":true}",
                 0);
+        var share = federationRepo.createQuizShare(localPartner.id(), catalog.id(), ShareScope.ALL_PARTNERS);
 
         var result = service.getFederatedQuizCatalog(station.id(), localPartner.uid(), catalog.id());
         assertNotNull(result.catalog());
         assertNotNull(result.categories());
         assertEquals(1, result.questions().size());
+        var asking = federationRepo
+                .findPartnerByStationAndRemoteUid(station.id(), localPartner.uid())
+                .orElseThrow();
+        transport.assertParity(
+                asking,
+                RemoteQuizRoutes.GET_CATALOG.at(catalog.id()),
+                null,
+                RemoteQuizRoutes.RemoteCatalogDetail.class);
+        transport.assertParity(
+                asking, RemoteQuizRoutes.BROWSE_CATALOGS.at(), null, RemoteQuizRoutes.RemoteCatalogSummary.class);
 
+        federationRepo.deleteQuizShare(share.id(), localPartner.id());
         quizCatalogRepo.deleteQuestion(question.id());
         quizCatalogRepo.delete(catalog.id());
     }
@@ -156,9 +178,49 @@ class QuizFederationServiceTest extends RepositoryTestBase {
     void getFederatedQuizCatalogRejectsForeignCatalog() {
         var catalog =
                 quizCatalogRepo.create(station.id(), "LocalOnly", "Not on the partner", false, CatalogMetadata.none());
-        assertThrows(
-                Exception.class, () -> service.getFederatedQuizCatalog(station.id(), localPartner.uid(), catalog.id()));
+        var share = federationRepo.createQuizShare(station.id(), catalog.id(), ShareScope.ALL_PARTNERS);
+        var refused = assertThrows(
+                RefusalResponse.class,
+                () -> service.getFederatedQuizCatalog(station.id(), localPartner.uid(), catalog.id()));
+        assertEquals(QuizRefusal.REMOTE_QUIZ_CATALOG_NOT_SHARED, refused.refusal());
+        federationRepo.deleteQuizShare(share.id(), station.id());
         quizCatalogRepo.delete(catalog.id());
+    }
+
+    /**
+     * A partner on this instance used to read any catalog of the station it is paired with, shared
+     * or not, while a partner on another instance was refused. Both are refused now.
+     */
+    @Test
+    @Order(12)
+    void anUnsharedCatalogOfAPartnerHereIsRefusedLikeOneElsewhere() {
+        var catalog =
+                quizCatalogRepo.create(localPartner.id(), "NotShared", "Never shared", false, CatalogMetadata.none());
+        var refused = assertThrows(
+                RefusalResponse.class,
+                () -> service.getFederatedQuizCatalog(station.id(), localPartner.uid(), catalog.id()));
+        assertEquals(QuizRefusal.REMOTE_QUIZ_CATALOG_NOT_SHARED, refused.refusal());
+        quizCatalogRepo.delete(catalog.id());
+    }
+
+    /**
+     * A share that names another station's catalog shows nothing, which only the partner on
+     * another instance used to be protected by.
+     */
+    @Test
+    @Order(13)
+    void aShareNamingAnotherStationsCatalogShowsNothing() {
+        var foreign =
+                quizCatalogRepo.create(station.id(), "Foreign", "Owned by the asker", false, CatalogMetadata.none());
+        var share = federationRepo.createQuizShare(localPartner.id(), foreign.id(), ShareScope.ALL_PARTNERS);
+
+        assertTrue(service.browseSharedQuiz(station.id()).stream().noneMatch(item -> item.id() == foreign.id()));
+        assertThrows(
+                RefusalResponse.class,
+                () -> service.getFederatedQuizCatalog(station.id(), localPartner.uid(), foreign.id()));
+
+        federationRepo.deleteQuizShare(share.id(), localPartner.id());
+        quizCatalogRepo.delete(foreign.id());
     }
 
     @Test
@@ -234,9 +296,9 @@ class QuizFederationServiceTest extends RepositoryTestBase {
                         pathIs("/remote/quiz/catalogs"),
                         any(),
                         eq(station.id()),
-                        any(),
-                        eq(QuizFederationService.RemoteQuizCatalog.class)))
-                .thenReturn(List.of(new QuizFederationService.RemoteQuizCatalog(99, "RemoteCatalog", "remote desc")));
+                        eq(RemoteQuizRoutes.RemoteCatalogSummary.class)))
+                .thenReturn(List.of(
+                        new RemoteQuizRoutes.RemoteCatalogSummary(99, "RemoteCatalog", "remote desc", "2026-01-01")));
 
         var items = service.browseSharedQuiz(station.id());
         assertTrue(items.stream().anyMatch(i -> i.name().equals("RemoteCatalog")));
@@ -252,7 +314,7 @@ class QuizFederationServiceTest extends RepositoryTestBase {
     @Test
     @Order(31)
     void getFederatedQuizCatalogFromRemotePartner() {
-        var remoteResult = new QuizFederationService.FederatedCatalogDetail(
+        var remoteResult = new RemoteQuizRoutes.RemoteCatalogDetail(
                 new QuizCatalog(88, 0, "RemoteCatalog", "desc", false, false, CatalogMetadata.none(), null, null),
                 List.of(),
                 List.of());
@@ -261,7 +323,6 @@ class QuizFederationServiceTest extends RepositoryTestBase {
                         pathIs("/remote/quiz/catalogs/88"),
                         any(),
                         eq(station.id()),
-                        any(),
                         any()))
                 .thenReturn(remoteResult);
 
@@ -278,23 +339,5 @@ class QuizFederationServiceTest extends RepositoryTestBase {
         assertEquals("A description", item.description());
         assertEquals(7, item.sourceStationId());
         assertEquals(3, item.partnerId());
-    }
-
-    @Test
-    @Order(41)
-    void fetchSharedQuizCatalogsDelegatesToTheHttpClient() {
-        when(httpClient.getList(
-                        eq("https://elsewhere.example.com"),
-                        pathIs("/remote/quiz/catalogs"),
-                        any(),
-                        eq(station.id()),
-                        any(),
-                        eq(QuizFederationService.RemoteQuizCatalog.class)))
-                .thenReturn(List.of(new QuizFederationService.RemoteQuizCatalog(7, "Elsewhere", "desc")));
-
-        var catalogs = service.fetchSharedQuizCatalogs(
-                "https://elsewhere.example.com", remotePartner.uid(), station.id(), "key");
-        assertEquals(1, catalogs.size());
-        assertEquals("Elsewhere", catalogs.getFirst().name());
     }
 }

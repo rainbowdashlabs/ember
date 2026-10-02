@@ -5,6 +5,9 @@
  */
 package dev.chojo.ember.feature.federation.service;
 
+import dev.chojo.ember.api.refusal.FederationRefusal;
+import dev.chojo.ember.api.refusal.Refusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.federation.entity.CapabilityType;
 import dev.chojo.ember.feature.federation.entity.Direction;
@@ -16,12 +19,12 @@ import dev.chojo.ember.feature.federation.repository.InventoryShareRepository;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.NotFoundResponse;
+import dev.chojo.ember.util.TestStationKeys;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.function.Executable;
 
 import java.util.List;
 import java.util.Map;
@@ -62,7 +65,7 @@ class InventoryShareServiceTest extends RepositoryTestBase {
     static void setup() {
         shareRepo = new InventoryShareRepository();
         federationRepo = new FederationRepository();
-        federationService = new FederationService(federationRepo, stationRepo, new Api());
+        federationService = new FederationService(federationRepo, stationRepo, TestStationKeys.store(), new Api());
         service = new InventoryShareService(shareRepo, federationService, inventoryRepo, artRepo);
 
         owner = stationRepo.create("ShareSvcOwner");
@@ -269,26 +272,30 @@ class InventoryShareServiceTest extends RepositoryTestBase {
 
     @Test
     void aStationMayOnlyShareItsOwnGear() {
-        assertThrows(
-                NotFoundResponse.class,
+        assertRefused(
+                FederationRefusal.SHARE_INVENTORY_NOT_HERE,
                 () -> service.setInventoryShare(
                         owner.id(), foreignInventoryId, ShareScope.ALL_PARTNERS, ShareGrant.GRANT, List.of()));
-        assertThrows(
-                NotFoundResponse.class,
+        assertRefused(
+                FederationRefusal.SHARE_INVENTORY_NOT_HERE,
                 () -> service.setArtShare(
                         owner.id(), foreignArtId, ShareScope.ALL_PARTNERS, ShareGrant.GRANT, List.of()));
-        assertThrows(
-                NotFoundResponse.class,
+        assertRefused(
+                FederationRefusal.SHARE_INVENTORY_NOT_HERE,
                 () -> service.setItemShare(
                         owner.id(), foreignItemId, ShareScope.ALL_PARTNERS, ShareGrant.GRANT, List.of()));
-        assertThrows(
-                NotFoundResponse.class,
+        assertRefused(
+                FederationRefusal.SHARE_ITEM_NOT_HERE,
                 () -> service.setItemShare(
                         owner.id(), Integer.MAX_VALUE, ShareScope.ALL_PARTNERS, ShareGrant.GRANT, List.of()));
-        assertThrows(
-                NotFoundResponse.class,
+        assertRefused(
+                FederationRefusal.SHARE_ITEM_KIND_NOT_HERE,
                 () -> service.setArtShare(
                         owner.id(), Integer.MAX_VALUE, ShareScope.ALL_PARTNERS, ShareGrant.GRANT, List.of()));
+    }
+
+    private static void assertRefused(Refusal expected, Executable call) {
+        assertEquals(expected, assertThrows(RefusalResponse.class, call).refusal());
     }
 
     /**
@@ -299,16 +306,16 @@ class InventoryShareServiceTest extends RepositoryTestBase {
      */
     @Test
     void anExternalInventoryCannotBeOffered() {
-        assertThrows(
-                BadRequestResponse.class,
+        assertRefused(
+                FederationRefusal.SHARE_INVENTORY_NOT_THE_STATIONS,
                 () -> service.setInventoryShare(
                         owner.id(), externalId, ShareScope.ALL_PARTNERS, ShareGrant.GRANT, List.of()));
-        assertThrows(
-                BadRequestResponse.class,
+        assertRefused(
+                FederationRefusal.SHARE_INVENTORY_NOT_THE_STATIONS,
                 () -> service.setArtShare(
                         owner.id(), externalArtId, ShareScope.ALL_PARTNERS, ShareGrant.GRANT, List.of()));
-        assertThrows(
-                BadRequestResponse.class,
+        assertRefused(
+                FederationRefusal.SHARE_INVENTORY_NOT_THE_STATIONS,
                 () -> service.setItemShare(
                         owner.id(), externalItemId, ShareScope.ALL_PARTNERS, ShareGrant.WITHHOLD, List.of()));
         assertTrue(service.findForInventory(owner.id(), externalId).isEmpty());

@@ -11,9 +11,8 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
-import type {StationMember} from '@/api/types'
 import {absences, managedMembers as managedMembersApi} from '@/api'
-import type {MemberAbsence} from '@/api/absences'
+import type {AbsenceResponse, ManagedMember} from '@/api/generated/schema'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useAsyncAction} from '@/composables/useAsyncAction'
@@ -23,8 +22,8 @@ import AbsenceListItem from './absenceview/AbsenceListItem.vue'
 const {t} = useI18n()
 const {sessionInfo, loaded, isGuardian} = useSession()
 
-const myAbsences = ref<MemberAbsence[]>([])
-const managedMembers = ref<StationMember[]>([])
+const myAbsences = ref<AbsenceResponse[]>([])
+const managedMembers = ref<ManagedMember[]>([])
 const success = ref('')
 
 const showAddAbsence = ref(false)
@@ -35,14 +34,7 @@ const {loading, failure, reload} = useAsyncLoader(async () => {
   if (!loaded.value) return
   myAbsences.value = await absences.listMyAbsences()
   if (isGuardian()) {
-    const managed = await managedMembersApi.listManaged()
-    managedMembers.value = managed.map(m => ({
-      id: m.id,
-      stationId: m.stationId,
-      accountId: m.accountId,
-      name: m.name,
-      email: m.email,
-    }))
+    managedMembers.value = await managedMembersApi.listManaged()
   }
 })
 

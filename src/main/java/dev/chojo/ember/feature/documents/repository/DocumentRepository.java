@@ -8,8 +8,11 @@ package dev.chojo.ember.feature.documents.repository;
 import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import de.chojo.sadu.queries.api.call.Call;
 import dev.chojo.ember.feature.documents.entity.Document;
+import dev.chojo.ember.feature.documents.entity.DocumentFilter;
 import dev.chojo.ember.feature.documents.entity.DocumentTag;
+import dev.chojo.ember.feature.documents.entity.Uploader;
 import dev.chojo.ember.util.sql.FullTextSearch;
+import dev.chojo.ember.util.sql.MemberNameSql;
 import dev.chojo.ember.util.sql.WhereBuilder;
 import jakarta.inject.Singleton;
 
@@ -26,16 +29,19 @@ import static dev.chojo.ember.util.sql.SqlSupport.count;
 @Singleton
 public class DocumentRepository {
 
-    private static final String COLUMNS =
-            "id, station_id, title, file_name, mime_type, size_bytes, hidden, keep_on_archive, has_thumbnail, uploaded_by, created_at";
+    private static final String COLUMNS = """
+            id, station_id, title, file_name, mime_type, size_bytes, hidden, keep_on_archive, has_thumbnail,
+            uploaded_by, uploader_account_id, created_at""";
 
     /** The same columns for the join that reads a member's documents. */
-    private static final String JOINED_COLUMNS =
-            "d.id, d.station_id, d.title, d.file_name, d.mime_type, d.size_bytes, d.hidden, d.keep_on_archive, d.has_thumbnail, d.uploaded_by, d.created_at";
+    private static final String JOINED_COLUMNS = """
+            d.id, d.station_id, d.title, d.file_name, d.mime_type, d.size_bytes, d.hidden, d.keep_on_archive,
+            d.has_thumbnail, d.uploaded_by, d.uploader_account_id, d.created_at""";
 
     /**
      * Writes a document and binds it to the members it concerns.
      *
+     * @param uploader  who put it in
      * @param memberIds the members it belongs to, at least one
      * @return the document as it was written
      */
@@ -47,13 +53,13 @@ public class DocumentRepository {
             long sizeBytes,
             boolean hidden,
             boolean keepOnArchive,
-            Integer uploadedBy,
+            Uploader uploader,
             List<Integer> memberIds) {
         var document = query("""
                         INSERT INTO member_document(station_id, title, file_name, mime_type, size_bytes, hidden,
-                                                    keep_on_archive, uploaded_by)
+                                                    keep_on_archive, uploaded_by, uploader_account_id)
                         VALUES (:station_id, :title, :file_name, :mime_type, :size_bytes, :hidden,
-                                :keep_on_archive, :uploaded_by)
+                                :keep_on_archive, :uploaded_by, :uploader_account_id)
                         RETURNING %s;""", COLUMNS)
                 .single(call().bind("station_id", stationId)
                         .bind("title", title)
@@ -62,7 +68,8 @@ public class DocumentRepository {
                         .bind("size_bytes", sizeBytes)
                         .bind("hidden", hidden)
                         .bind("keep_on_archive", keepOnArchive)
-                        .bind("uploaded_by", uploadedBy))
+                        .bind("uploaded_by", uploader.memberId())
+                        .bind("uploader_account_id", uploader.accountId()))
                 .map(Document.map())
                 .first()
                 .orElseThrow();
@@ -88,10 +95,11 @@ public class DocumentRepository {
      * Gives a document exactly the members named, letting go of the ones left out.
      *
      * <p>Setting rather than adding, because whom a document concerns is a decision that is taken
-     * back as often as it is taken: somebody added by mistake has to be removable.
+     * back as often as it is taken: somebody added by mistake has to be removable. The names of members
+     * who were deleted stay, since nobody can be bound to the document in their place.
      */
     public void setMembers(int documentId, List<Integer> memberIds) {
-        query("DELETE FROM member_document_member WHERE document_id = :document_id;")
+        query("DELETE FROM member_document_member WHERE document_id = :document_id AND member_id IS NOT NULL;")
                 .single(call().bind("document_id", documentId))
                 .delete();
         bind(documentId, memberIds);
@@ -197,83 +205,71 @@ public class DocumentRepository {
 
     /**
      * A page of the station's documents, newest first, narrowed by whatever the reader asked for.
-     *
-     * @param memberIds     only documents bound to one of these members, or empty for all of them
-     * @param search        words to look for in the title and in what the documents say, or null
-     * @param includeHidden whether the ones kept from their own members are listed too
      */
-    public List<Document> findByStation(
-            int stationId,
-            List<Integer> memberIds,
-            String search,
-            boolean includeHidden,
-            boolean unboundOnly,
-            String tsConfig,
-            int limit,
-            int offset) {
-        var where = WhereBuilder.create()
-                .addIf(!includeHidden, "AND NOT d.hidden")
-                .addIf(
-                        unboundOnly,
-                        "AND NOT EXISTS (SELECT 1 FROM member_document_member m2" + " WHERE m2.document_id = d.id)")
-                .addIf(
-                        !memberIds.isEmpty(),
-                        "AND EXISTS (SELECT 1 FROM member_document_member m"
-                                + " WHERE m.document_id = d.id AND m.member_id = ANY (:member_ids))")
-                .addIf(
-                        search != null,
-                        "AND (d.title ILIKE :like OR EXISTS ("
-                                + "SELECT 1 FROM member_document_search s"
-                                + " WHERE s.document_id = d.id AND s.search_text @@ "
-                                + FullTextSearch.prefixQuery(tsConfig, "tsquery") + "))");
+    public List<Document> findByStation(int stationId, DocumentFilter filter, String tsConfig, int limit, int offset) {
         return query("""
                         SELECT %s
                         FROM member_document d
                         WHERE d.station_id = :station_id
                           %s
                         ORDER BY d.created_at DESC
-                        LIMIT :limit OFFSET :offset;""", JOINED_COLUMNS, where.fragment())
-                .single(bindFilters(call().bind("station_id", stationId), memberIds, search)
+                        LIMIT :limit OFFSET :offset;""", JOINED_COLUMNS, where(filter, tsConfig))
+                .single(bindFilter(call().bind("station_id", stationId), filter)
                         .bind("limit", limit)
                         .bind("offset", offset))
                 .map(Document.map())
                 .all();
     }
 
-    /** How many documents the same filters match, so the pages can be counted. */
-    public int countByStation(
-            int stationId,
-            List<Integer> memberIds,
-            String search,
-            boolean includeHidden,
-            boolean unboundOnly,
-            String tsConfig) {
-        var where = WhereBuilder.create()
-                .addIf(!includeHidden, "AND NOT d.hidden")
-                .addIf(
-                        unboundOnly,
-                        "AND NOT EXISTS (SELECT 1 FROM member_document_member m2" + " WHERE m2.document_id = d.id)")
-                .addIf(
-                        !memberIds.isEmpty(),
-                        "AND EXISTS (SELECT 1 FROM member_document_member m"
-                                + " WHERE m.document_id = d.id AND m.member_id = ANY (:member_ids))")
-                .addIf(
-                        search != null,
-                        "AND (d.title ILIKE :like OR EXISTS ("
-                                + "SELECT 1 FROM member_document_search s"
-                                + " WHERE s.document_id = d.id AND s.search_text @@ "
-                                + FullTextSearch.prefixQuery(tsConfig, "tsquery") + "))");
-        return count(
-                """
+    /** How many documents the same filter matches, so the pages can be counted. */
+    public int countByStation(int stationId, DocumentFilter filter, String tsConfig) {
+        return count("""
                 SELECT count(*) AS count
                 FROM member_document d
                 WHERE d.station_id = :station_id
-                  %s;""".formatted(where.fragment()), bindFilters(call().bind("station_id", stationId), memberIds, search));
+                  %s;""".formatted(where(filter, tsConfig)), bindFilter(call().bind("station_id", stationId), filter));
     }
 
-    /** The values the two filters above need, bound only when the filter is there to use them. */
-    private static Call bindFilters(Call call, List<Integer> memberIds, String search) {
-        if (!memberIds.isEmpty()) call = call.bind("member_ids", memberIds, PostgreSqlTypes.INTEGER);
+    /** Every document the filter matches, by id, so a reader can act on all of them rather than a page. */
+    public List<Integer> idsByStation(int stationId, DocumentFilter filter, String tsConfig) {
+        return query("""
+                        SELECT d.id
+                        FROM member_document d
+                        WHERE d.station_id = :station_id
+                          %s
+                        ORDER BY d.created_at DESC;""", where(filter, tsConfig))
+                .single(bindFilter(call().bind("station_id", stationId), filter))
+                .map(row -> row.getInt("id"))
+                .all();
+    }
+
+    /** The conditions a filter puts on the store, in the order a reader reads the filters. */
+    private static String where(DocumentFilter filter, String tsConfig) {
+        return WhereBuilder.create()
+                .addIf(!filter.includeHidden(), "AND NOT d.hidden")
+                .addIf(filter.unboundOnly(), """
+                        AND NOT EXISTS (SELECT 1 FROM member_document_member m2 WHERE m2.document_id = d.id)""")
+                .addIf(filter.departedOnly(), """
+                        AND EXISTS (SELECT 1 FROM member_document_member gone WHERE gone.document_id = d.id)
+                        AND NOT EXISTS (SELECT 1
+                                        FROM member_document_member here
+                                        JOIN station_member sm ON sm.id = here.member_id
+                                        WHERE here.document_id = d.id
+                                          AND NOT sm.former)""")
+                .addIf(!filter.memberIds().isEmpty(), """
+                        AND EXISTS (SELECT 1 FROM member_document_member m
+                                    WHERE m.document_id = d.id AND m.member_id = ANY (:member_ids))""")
+                .addIf(filter.search() != null, """
+                        AND (d.title ILIKE :like OR EXISTS (SELECT 1 FROM member_document_search s
+                                                            WHERE s.document_id = d.id
+                                                              AND s.search_text @@ %s))""".formatted(FullTextSearch.prefixQuery(tsConfig, "tsquery")))
+                .fragment();
+    }
+
+    /** The values the filter needs, bound only where a condition is there to use them. */
+    private static Call bindFilter(Call call, DocumentFilter filter) {
+        if (!filter.memberIds().isEmpty()) call = call.bind("member_ids", filter.memberIds(), PostgreSqlTypes.INTEGER);
+        String search = filter.search();
         if (search != null) {
             call = call.bind("tsquery", FullTextSearch.prefixTerms(search)).bind("like", "%" + search + "%");
         }
@@ -336,10 +332,42 @@ public class DocumentRepository {
 
     /** The members a document is bound to. */
     public List<Integer> membersOf(int documentId) {
-        return query("SELECT member_id FROM member_document_member WHERE document_id = :document_id;")
+        return query("""
+                SELECT member_id FROM member_document_member
+                WHERE document_id = :document_id AND member_id IS NOT NULL;""")
                 .single(call().bind("document_id", documentId))
                 .map(row -> row.getInt("member_id"))
                 .all();
+    }
+
+    /** The names of the members who were deleted while the document was kept for them, by name. */
+    public List<String> departedOf(int documentId) {
+        return query("""
+                SELECT departed_name FROM member_document_member
+                WHERE document_id = :document_id AND member_id IS NULL
+                ORDER BY departed_name;""")
+                .single(call().bind("document_id", documentId))
+                .map(row -> row.getString("departed_name"))
+                .all();
+    }
+
+    /**
+     * The name of whoever put the document in: the member at the station, or the account of the
+     * association manager who filed it.
+     *
+     * @return the name, or empty where nobody put it in or they are gone
+     */
+    public Optional<String> uploaderNameOf(int documentId) {
+        return query("""
+                SELECT coalesce(%s, %s) AS name
+                FROM member_document d
+                LEFT JOIN station_member sm ON sm.id = d.uploaded_by
+                LEFT JOIN account a ON a.id = sm.account_id
+                LEFT JOIN account manager ON manager.id = d.uploader_account_id
+                WHERE d.id = :id;""", MemberNameSql.ofMemberOrNull("sm", "a"), MemberNameSql.ofAccount("manager"))
+                .single(call().bind("id", documentId))
+                .map(row -> row.getString("name"))
+                .first();
     }
 
     /** Whether the document is one of the member's own. */
@@ -384,8 +412,37 @@ public class DocumentRepository {
     }
 
     /**
-     * Whether nobody is bound to the document any more. Asked only of documents a member was just
-     * taken off: one that never had a member is the station's own and belongs to nobody by design.
+     * Turns the member's links on documents kept for the record into their name, before the member is
+     * deleted and the links would go with them.
+     *
+     * <p>A kept document that lost its last link would name nobody, and a document naming nobody is the
+     * station's own paperwork, readable far more widely than what was filed about one person. The name
+     * keeps it what it was: somebody's paperwork, with somebody to say whose.
+     *
+     * @param memberId the member about to be deleted
+     * @return how many links became a name
+     */
+    public int keepDepartedName(int memberId) {
+        return query("""
+                UPDATE member_document_member m
+                SET member_id     = NULL,
+                    departed_name = %s
+                FROM member_document d,
+                     station_member sm
+                     LEFT JOIN account a ON a.id = sm.account_id
+                WHERE m.member_id = :member_id
+                  AND d.id = m.document_id
+                  AND d.keep_on_archive
+                  AND sm.id = m.member_id;""", MemberNameSql.ofMember("sm", "a"))
+                .single(call().bind("member_id", memberId))
+                .update()
+                .rows();
+    }
+
+    /**
+     * Whether nobody is bound to the document any more, neither a member nor the name of one who was
+     * deleted. Such a document is the station's own paperwork; one that lost its last member as they
+     * left has nobody left to keep it for.
      */
     public boolean hasNoMembers(int documentId) {
         return query("SELECT 1 FROM member_document_member WHERE document_id = :document_id;")

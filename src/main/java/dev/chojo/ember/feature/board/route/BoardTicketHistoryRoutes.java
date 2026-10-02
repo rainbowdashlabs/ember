@@ -6,11 +6,10 @@
 package dev.chojo.ember.feature.board.route;
 
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
-import dev.chojo.ember.feature.board.entity.BoardTicketHistory;
+import dev.chojo.ember.feature.board.entity.BoardActivityEntry;
 import dev.chojo.ember.feature.board.entity.BoardTicketHistoryResponse;
-import dev.chojo.ember.feature.board.entity.BoardTicketTransition;
 import dev.chojo.ember.feature.board.entity.BoardTicketTransitionResponse;
 import dev.chojo.ember.feature.board.service.BoardTicketService;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
@@ -62,9 +61,11 @@ public class BoardTicketHistoryRoutes implements Routes {
                 @OpenApiParam(name = "ticketNumber", type = Integer.class, required = true)
             },
             responses =
-                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = BoardTicketTransition[].class)))
+                    @OpenApiResponse(
+                            status = "200",
+                            content = @OpenApiContent(from = BoardTicketTransitionResponse[].class)))
     private void getTransitions(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(ticketService.findTransitions(guards.viewableTicketId(ctx, session)).stream()
                 .map(transition -> {
                     var resolved = memberNameResolver.resolveDisplay(transition.actor());
@@ -82,9 +83,12 @@ public class BoardTicketHistoryRoutes implements Routes {
                 @OpenApiParam(name = "boardKey", type = String.class, required = true),
                 @OpenApiParam(name = "ticketNumber", type = Integer.class, required = true)
             },
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BoardTicketHistory[].class)))
+            responses =
+                    @OpenApiResponse(
+                            status = "200",
+                            content = @OpenApiContent(from = BoardTicketHistoryResponse[].class)))
     private void getHistory(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(ticketService.findHistory(guards.viewableTicketId(ctx, session)).stream()
                 .map(entry -> {
                     var resolved = memberNameResolver.resolveDisplay(entry.actor());
@@ -102,9 +106,9 @@ public class BoardTicketHistoryRoutes implements Routes {
                 @OpenApiParam(name = "boardKey", type = String.class, required = true),
                 @OpenApiParam(name = "ticketNumber", type = Integer.class, required = true)
             },
-            responses = @OpenApiResponse(status = "200"))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BoardActivityEntry[].class)))
     private void getActivity(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(ticketService.findActivity(guards.viewableTicketId(ctx, session)));
     }
 }

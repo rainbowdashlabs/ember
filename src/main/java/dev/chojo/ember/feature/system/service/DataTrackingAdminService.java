@@ -5,16 +5,17 @@
  */
 package dev.chojo.ember.feature.system.service;
 
+import dev.chojo.ember.api.refusal.SystemRefusal;
 import dev.chojo.ember.tracking.ColumnEntry;
 import dev.chojo.ember.tracking.DataTracking;
 import dev.chojo.ember.tracking.DataTrackingLoader;
 import dev.chojo.ember.tracking.GdprDeletionContext;
 import dev.chojo.ember.tracking.GdprExportContext;
-import dev.chojo.ember.tracking.Status;
 import dev.chojo.ember.tracking.TableEntry;
+import dev.chojo.ember.tracking.TrackingStatus;
 import dev.chojo.ember.tracking.TransferContext;
-import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,11 +55,11 @@ public class DataTrackingAdminService {
     }
 
     /**
-     * Loads the tracking file from disk every call so concurrent edits remain visible.
+     * Loads the tracking file from disk every call so concurrent edits remain visible, or the
+     * classpath copy when the source tree is not available.
      */
     public DataTracking load() throws IOException {
         if (Files.exists(trackingPath)) return DataTrackingLoader.load(trackingPath);
-        // Fall back to the classpath copy when the source tree isn't available (rare in dev).
         return DataTrackingLoader.loadFromClasspath();
     }
 
@@ -67,40 +68,36 @@ public class DataTrackingAdminService {
      */
     public Summary summarize() throws IOException {
         var tracking = load();
-        int totalTables = tracking.tables() == null ? 0 : tracking.tables().size();
+        int totalTables = tracking.tables().size();
         int transferTracked = 0, transferIgnored = 0, transferUnverified = 0;
         int gdprExportTracked = 0, gdprExportIgnored = 0, gdprExportUnverified = 0;
         int gdprDeletionTracked = 0, gdprDeletionIgnored = 0, gdprDeletionUnverified = 0;
         int totalColumns = 0, verifiedColumns = 0;
-        if (tracking.tables() != null) {
-            for (var t : tracking.tables().values()) {
-                if (t.stationTransfer() != null) {
-                    switch (t.stationTransfer().status()) {
-                        case TRACKED -> transferTracked++;
-                        case IGNORED -> transferIgnored++;
-                        case UNVERIFIED -> transferUnverified++;
-                    }
+        for (var t : tracking.tables().values()) {
+            if (t.stationTransfer() != null) {
+                switch (t.stationTransfer().status()) {
+                    case TRACKED -> transferTracked++;
+                    case IGNORED -> transferIgnored++;
+                    case UNVERIFIED -> transferUnverified++;
                 }
-                if (t.gdprExport() != null) {
-                    switch (t.gdprExport().status()) {
-                        case TRACKED -> gdprExportTracked++;
-                        case IGNORED -> gdprExportIgnored++;
-                        case UNVERIFIED -> gdprExportUnverified++;
-                    }
+            }
+            if (t.gdprExport() != null) {
+                switch (t.gdprExport().status()) {
+                    case TRACKED -> gdprExportTracked++;
+                    case IGNORED -> gdprExportIgnored++;
+                    case UNVERIFIED -> gdprExportUnverified++;
                 }
-                if (t.gdprDeletion() != null) {
-                    switch (t.gdprDeletion().status()) {
-                        case TRACKED -> gdprDeletionTracked++;
-                        case IGNORED -> gdprDeletionIgnored++;
-                        case UNVERIFIED -> gdprDeletionUnverified++;
-                    }
+            }
+            if (t.gdprDeletion() != null) {
+                switch (t.gdprDeletion().status()) {
+                    case TRACKED -> gdprDeletionTracked++;
+                    case IGNORED -> gdprDeletionIgnored++;
+                    case UNVERIFIED -> gdprDeletionUnverified++;
                 }
-                if (t.columns() != null) {
-                    for (var c : t.columns()) {
-                        totalColumns++;
-                        if (c.verified()) verifiedColumns++;
-                    }
-                }
+            }
+            for (var c : t.columns()) {
+                totalColumns++;
+                if (c.verified()) verifiedColumns++;
             }
         }
         return new Summary(
@@ -114,15 +111,14 @@ public class DataTrackingAdminService {
 
     /**
      * Replaces a table entry in the tracking file. The new entry must have the same column list
-     * (only verification flags, statuses, rationales, ignoredColumns, etc. may change).
+     * (only verification flags, statuses, rationales, ignoredColumns, etc. may change). Column
+     * descriptions mirror the live schema and are kept verbatim.
      */
     public TableEntry updateTable(String tableName, TableUpdate update) throws IOException {
         var tracking = load();
-        var existing = tracking.tables() == null ? null : tracking.tables().get(tableName);
-        if (existing == null) throw new BadRequestResponse("Unknown table: " + tableName);
+        var existing = tracking.tables().get(tableName);
+        if (existing == null) throw SystemRefusal.TRACKED_TABLE_NOT_HERE_TO_UPDATE.raise(tableName);
 
-        // Build the new column list - only the verified flags can change here. Descriptions are
-        // mirrored from the live schema and preserved verbatim.
         List<ColumnEntry> newColumns = new ArrayList<>();
         Map<String, Boolean> verifiedOverrides = update.columnVerified();
         for (var col : existing.columns()) {
@@ -132,35 +128,25 @@ public class DataTrackingAdminService {
             newColumns.add(new ColumnEntry(col.name(), col.type(), col.nullable(), v, col.description()));
         }
 
-        TransferContext newTransfer = update.stationTransfer() != null
+        TransferContext transfer = update.stationTransfer();
+        TransferContext newTransfer = transfer != null
                 ? new TransferContext(
-                        update.stationTransfer().status(),
-                        update.stationTransfer().reason(),
-                        update.stationTransfer().ignoredColumns() == null
-                                ? List.of()
-                                : List.copyOf(update.stationTransfer().ignoredColumns()),
-                        update.stationTransfer().rationale())
+                        transfer.status(), transfer.reason(), copyOf(transfer.ignoredColumns()), transfer.rationale())
                 : existing.stationTransfer();
 
-        GdprExportContext newGdprExport = update.gdprExport() != null
+        GdprExportContext gdprExport = update.gdprExport();
+        GdprExportContext newGdprExport = gdprExport != null
                 ? new GdprExportContext(
-                        update.gdprExport().status(),
-                        update.gdprExport().reason(),
-                        update.gdprExport().identityColumns() == null
-                                ? List.of()
-                                : List.copyOf(update.gdprExport().identityColumns()),
-                        update.gdprExport().ignoredColumns() == null
-                                ? List.of()
-                                : List.copyOf(update.gdprExport().ignoredColumns()))
+                        gdprExport.status(),
+                        gdprExport.reason(),
+                        copyOf(gdprExport.identityColumns()),
+                        copyOf(gdprExport.ignoredColumns()))
                 : existing.gdprExport();
 
-        GdprDeletionContext newGdprDeletion = update.gdprDeletion() != null
+        GdprDeletionContext gdprDeletion = update.gdprDeletion();
+        GdprDeletionContext newGdprDeletion = gdprDeletion != null
                 ? new GdprDeletionContext(
-                        update.gdprDeletion().status(),
-                        update.gdprDeletion().reason(),
-                        update.gdprDeletion().strategies() == null
-                                ? List.of()
-                                : List.copyOf(update.gdprDeletion().strategies()))
+                        gdprDeletion.status(), gdprDeletion.reason(), copyOf(gdprDeletion.strategies()))
                 : existing.gdprDeletion();
 
         TableEntry updated = new TableEntry(
@@ -193,8 +179,8 @@ public class DataTrackingAdminService {
      */
     public TableEntry verifyAllColumns(String tableName) throws IOException {
         var tracking = load();
-        var existing = tracking.tables() == null ? null : tracking.tables().get(tableName);
-        if (existing == null) throw new BadRequestResponse("Unknown table: " + tableName);
+        var existing = tracking.tables().get(tableName);
+        if (existing == null) throw SystemRefusal.TRACKED_TABLE_NOT_HERE_TO_VERIFY.raise(tableName);
 
         Map<String, Boolean> overrides = new LinkedHashMap<>();
         for (var c : existing.columns()) overrides.put(c.name(), true);
@@ -205,7 +191,18 @@ public class DataTrackingAdminService {
     }
 
     /**
-     * Counts per {@link Status} for one tracking dimension. Tracked + Ignored + Unverified = total.
+     * An unmodifiable copy of a list an update may leave out, which stays left out.
+     *
+     * @param list the list from the update, or {@code null} when it was not sent
+     * @param <T>  the element type
+     * @return the copy, or {@code null} when there was no list
+     */
+    private static <T> @Nullable List<T> copyOf(@Nullable List<T> list) {
+        return list == null ? null : List.copyOf(list);
+    }
+
+    /**
+     * Counts per {@link TrackingStatus} for one tracking dimension. Tracked + Ignored + Unverified = total.
      */
     public record StatusCounts(int tracked, int ignored, int unverified) {}
 
@@ -225,9 +222,9 @@ public class DataTrackingAdminService {
      * existing entry; the column list itself can't be changed (only verification flags).
      */
     public record TableUpdate(
-            String feature,
-            Map<String, Boolean> columnVerified,
-            TransferContext stationTransfer,
-            GdprExportContext gdprExport,
-            GdprDeletionContext gdprDeletion) {}
+            @Nullable String feature,
+            @Nullable Map<String, Boolean> columnVerified,
+            @Nullable TransferContext stationTransfer,
+            @Nullable GdprExportContext gdprExport,
+            @Nullable GdprDeletionContext gdprDeletion) {}
 }

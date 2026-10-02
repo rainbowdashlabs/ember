@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.members.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 
@@ -22,7 +23,12 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * @param acknowledgedByName the display name of the acknowledging member
  */
 public record ProfileFieldChangeAcknowledgement(
-        int id, int changeId, int acknowledgedBy, Instant acknowledgedAt, String comment, String acknowledgedByName) {
+        int id,
+        int changeId,
+        int acknowledgedBy,
+        Instant acknowledgedAt,
+        @Nullable String comment,
+        String acknowledgedByName) {
     /**
      * Creates a row mapping for database result set conversion.
      */

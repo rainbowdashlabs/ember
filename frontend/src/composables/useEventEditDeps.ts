@@ -5,9 +5,14 @@
  */
 import {ref, type Ref} from 'vue'
 import {attendance, events, memberGroups as memberGroupsApi, stationMembers, userTags as userTagsApi} from '@/api'
-import type { AttendanceTemplate } from '@/api/attendance'
-import type {EventCategory, RegistrationCount} from '@/api/events'
-import type { MemberGroup, StationMember, UserTag } from '@/api/types'
+import type {
+    AttendanceTemplate,
+    EventCategory,
+    MemberGroup,
+    MemberWithName,
+    RegistrationCount,
+    UserTag,
+} from '@/api/generated/schema'
 import {useAsyncLoader} from './useAsyncLoader'
 
 export interface UseEventEditDepsOptions {
@@ -25,7 +30,7 @@ export interface EventEditDeps {
     groups: Ref<MemberGroup[]>
     tags: Ref<UserTag[]>
     /** Empty unless `withMembers: true` was passed. */
-    members: Ref<StationMember[]>
+    members: Ref<MemberWithName[]>
     /** Empty unless `withCounts: true` was passed. */
     registrationCounts: Ref<RegistrationCount[]>
     loading: Ref<boolean>
@@ -45,7 +50,7 @@ export function useEventEditDeps(options: UseEventEditDepsOptions = {}): EventEd
     const templates = ref<AttendanceTemplate[]>([])
     const groups = ref<MemberGroup[]>([])
     const tags = ref<UserTag[]>([])
-    const members = ref<StationMember[]>([])
+    const members = ref<MemberWithName[]>([])
     const registrationCounts = ref<RegistrationCount[]>([])
 
     const {loading, error, reload} = useAsyncLoader(async () => {
@@ -56,19 +61,19 @@ export function useEventEditDeps(options: UseEventEditDepsOptions = {}): EventEd
             userTagsApi.listTags().catch(() => [] as UserTag[]),
         ] as const
         const tasks: Promise<unknown>[] = [...core]
-        if (options.withMembers) tasks.push(stationMembers.listMembers().catch(() => [] as StationMember[]))
+        if (options.withMembers) tasks.push(stationMembers.listMembers().catch(() => [] as MemberWithName[]))
         if (options.withCounts) tasks.push(events.listRegistrationCounts().catch(() => [] as RegistrationCount[]))
         const results = await Promise.all(tasks)
         categories.value = results[0] as EventCategory[]
         templates.value = results[1] as AttendanceTemplate[]
         groups.value = results[2] as MemberGroup[]
         tags.value = results[3] as UserTag[]
-        let idx = 4
+        const optional = results.slice(4)
         if (options.withMembers) {
-            members.value = results[idx++] as StationMember[]
+            members.value = optional.shift() as MemberWithName[]
         }
         if (options.withCounts) {
-            registrationCounts.value = results[idx++] as RegistrationCount[]
+            registrationCounts.value = optional.shift() as RegistrationCount[]
         }
     }, {autoLoad: options.autoLoad})
 

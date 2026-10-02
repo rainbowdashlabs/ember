@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.form.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.FormRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.form.entity.FormPurpose;
@@ -16,7 +16,6 @@ import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.members.service.UserTagService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import dev.chojo.ember.util.ShareTokens;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -43,8 +42,7 @@ class FormCompletionTest extends RepositoryTestBase {
                 mock(MemberGroupService.class),
                 mock(UserTagService.class),
                 restrictionService,
-                new DomainEventBus(Set.of()),
-                new ShareTokens());
+                new DomainEventBus(Set.of()));
         station = stationRepo.create("FormCompletionStation");
         account = accountRepo.create("form-completion@test.com", "Form", "Done");
         member = stationMemberRepo.create(station.id(), account.id());
@@ -90,7 +88,7 @@ class FormCompletionTest extends RepositoryTestBase {
         service.setCompletion(form, null, "http://example.org", null);
         for (var link : new String[] {"javascript:alert(1)", "//evil.example", "example.org"}) {
             var refused = assertThrows(RefusalResponse.class, () -> service.setCompletion(form, null, link, null));
-            assertEquals(Refusal.FORM_COMPLETION_LINK_NOT_A_LINK, refused.refusal());
+            assertEquals(FormRefusal.FORM_COMPLETION_LINK_NOT_A_LINK, refused.refusal());
         }
     }
 

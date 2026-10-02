@@ -8,7 +8,8 @@ import {useI18n} from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
-import {QuizTestStatus, type QuizTest} from '@/api/quiz'
+import {QuizTestStatus} from '@/api/quiz'
+import type {QuizTest} from '@/api/generated/schema'
 
 /** What can be done with a test sheet from the list, which is the same on a phone and on a desktop. */
 const props = defineProps<{

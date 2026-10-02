@@ -12,15 +12,16 @@ import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.ProfileField;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
-import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.entity.UserTag;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
+import dev.chojo.ember.feature.members.repository.MemberGroupSetRepository;
 import dev.chojo.ember.feature.members.repository.ProfileFieldChangeRepository;
 import dev.chojo.ember.feature.members.repository.ProfileFieldRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.repository.UserTagRepository;
 import dev.chojo.ember.feature.members.service.MemberLookupService;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -48,6 +49,7 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
     private final StationMemberRepository stationMemberRepository;
     private final MemberLookupService memberLookupService;
     private final MemberGroupRepository memberGroupRepository;
+    private final MemberGroupSetRepository memberGroupSetRepository;
     private final ProfileFieldRepository profileFieldRepository;
     private final ProfileFieldChangeRepository profileFieldChangeRepository;
     private final UserTagRepository userTagRepository;
@@ -59,6 +61,7 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
             StationMemberRepository stationMemberRepository,
             MemberLookupService memberLookupService,
             MemberGroupRepository memberGroupRepository,
+            MemberGroupSetRepository memberGroupSetRepository,
             ProfileFieldRepository profileFieldRepository,
             ProfileFieldChangeRepository profileFieldChangeRepository,
             UserTagRepository userTagRepository,
@@ -67,6 +70,7 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
         this.stationMemberRepository = stationMemberRepository;
         this.memberLookupService = memberLookupService;
         this.memberGroupRepository = memberGroupRepository;
+        this.memberGroupSetRepository = memberGroupSetRepository;
         this.profileFieldRepository = profileFieldRepository;
         this.profileFieldChangeRepository = profileFieldChangeRepository;
         this.userTagRepository = userTagRepository;
@@ -86,6 +90,16 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
         stationRepository.setOwner(station.stationId(), members.head().id());
     }
 
+    /**
+     * Seeds the groups, profile fields, team, guardians and kids of one station, with each guardian
+     * managing the kids who share their last name.
+     *
+     * <p>Max Mustermann is the station administrator. Michael Wagner may read the members but not
+     * manage them, because reading and notes are separate rights and a team where everyone holds the
+     * whole bundle never shows the difference. The date of birth is one question put to four audiences:
+     * only member management writes it by default, and the two audiences that may are told so on their
+     * own row. The first guardian and the first beginner are left with incomplete profiles.
+     */
     public SeedResult seed(int stationId, String passwordHash, DemoStationProfile profile, Random rng) {
         var loginRole = stationMemberRepository
                 .findPermissionByName(StationPermission.LOGIN)
@@ -109,55 +123,55 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
                 .findPermissionByName(StationPermission.MEMBER_READ)
                 .orElseThrow();
 
-        // -- Groups --
         var groupBetreuer = memberGroupRepository.create(stationId, "Betreuer");
         var groupEltern = memberGroupRepository.create(stationId, "Eltern");
         var groupAnfaenger = memberGroupRepository.create(stationId, "Anfänger");
         var groupFortgeschritten = memberGroupRepository.create(stationId, "Fortgeschritten");
+        var levels = memberGroupSetRepository.create(stationId, "Ausbildungsstufen");
+        memberGroupRepository.assignSet(groupAnfaenger.id(), levels.id());
+        memberGroupRepository.assignSet(groupFortgeschritten.id(), levels.id());
+        memberGroupRepository.replaceUserTypes(
+                groupBetreuer.id(), List.of(StationUserType.TEAM, StationUserType.MANAGER));
 
-        // -- Profile fields put to the team (Betreuer) --
-        var fieldJuleica = askOf(stationId, "JuLeiCa", ProfileFieldType.BOOLEAN, "{}", ProfileFieldScope.TEAM, 0);
+        var fieldJuleica = askOf(stationId, "JuLeiCa", FieldType.BOOLEAN, "{}", ProfileFieldScope.TEAM, 0);
         var fieldJuleicaAblauf = askOf(
                 stationId,
                 "JuLeiCa Ablaufdatum",
-                ProfileFieldType.EXPIRY_DATE,
+                FieldType.EXPIRY_DATE,
                 "{\"warnFromDays\":90,\"reminderDays\":[90,30],\"remindManagement\":true}",
                 ProfileFieldScope.TEAM,
                 1);
-        var fieldFuehrerschein =
-                askOf(stationId, "Führerschein", ProfileFieldType.BOOLEAN, "{}", ProfileFieldScope.TEAM, 2);
+        var fieldFuehrerschein = askOf(stationId, "Führerschein", FieldType.BOOLEAN, "{}", ProfileFieldScope.TEAM, 2);
         var fieldFuehrerscheinAblauf = askOf(
                 stationId,
                 "Führerschein Ablaufdatum",
-                ProfileFieldType.EXPIRY_DATE,
+                FieldType.EXPIRY_DATE,
                 "{\"warnFromDays\":60,\"reminderDays\":[60,14]}",
                 ProfileFieldScope.TEAM,
                 3);
 
-        // -- Profile fields put to the guardians (Eltern) --
         var fieldTelefon = askOf(
                 stationId,
                 "Mobilnummer",
-                ProfileFieldType.TEXT,
+                FieldType.TEXT,
                 "{\"overview\":true}",
                 true,
                 ProfileFieldScope.GUARDIAN,
                 0,
                 false);
-        var fieldFestnetz = askOf(stationId, "Festnetz", ProfileFieldType.TEXT, "{}", ProfileFieldScope.GUARDIAN, 1);
+        var fieldFestnetz = askOf(stationId, "Festnetz", FieldType.TEXT, "{}", ProfileFieldScope.GUARDIAN, 1);
         var fieldNewsletter = askOf(
                 stationId,
                 "Newsletter per Mail",
-                ProfileFieldType.BOOLEAN,
+                FieldType.BOOLEAN,
                 "{\"defaultValue\":true}",
                 ProfileFieldScope.GUARDIAN,
                 2);
 
-        // -- Profile fields put to the kids --
         var fieldPersonalnummer = askOf(
                 stationId,
                 "Personalnummer",
-                ProfileFieldType.TEXT,
+                FieldType.TEXT,
                 "{\"overview\":true}",
                 false,
                 ProfileFieldScope.MEMBER,
@@ -166,21 +180,17 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
         var fieldGeschlecht = askOf(
                 stationId,
                 "Geschlecht",
-                ProfileFieldType.ENUM,
+                FieldType.CHOICE,
                 "{\"overview\":true,\"options\":[\"männlich\",\"weiblich\",\"divers\"]}",
                 false,
                 ProfileFieldScope.MEMBER,
                 1,
                 true);
 
-        // One question, four audiences. The date of birth is asked of every kind of member here, and
-        // is one definition with one answer rather than one copy per kind. The question says only the
-        // member management writes it, and the two audiences that may are told so on their own row:
-        // the default and the exception, which is what the two halves of the model are for.
         var fieldGeburtstag = askOf(
                 stationId,
                 "Geburtstag",
-                ProfileFieldType.BIRTH_DATE,
+                FieldType.BIRTH_DATE,
                 "{\"overview\":true}",
                 true,
                 ProfileFieldScope.MEMBER,
@@ -193,25 +203,18 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
         var fieldAllergien = askOf(
                 stationId,
                 "Allergien",
-                ProfileFieldType.TEXT,
+                FieldType.TEXT,
                 "{\"overview\":true,\"notifyOnChange\":true}",
                 ProfileFieldScope.MEMBER,
                 3);
-        var fieldLeistungsspange = askOf(
-                stationId, "Leistungsspange", ProfileFieldType.BOOLEAN, "{}", false, ProfileFieldScope.MEMBER, 4, true);
+        var fieldLeistungsspange =
+                askOf(stationId, "Leistungsspange", FieldType.BOOLEAN, "{}", false, ProfileFieldScope.MEMBER, 4, true);
         var fieldLeistungsspangeDatum = askOf(
-                stationId,
-                "Leistungsspange Datum",
-                ProfileFieldType.DATE,
-                "{}",
-                false,
-                ProfileFieldScope.MEMBER,
-                5,
-                true);
+                stationId, "Leistungsspange Datum", FieldType.DATE, "{}", false, ProfileFieldScope.MEMBER, 5, true);
         var fieldJugendflamme = askOf(
                 stationId,
                 "Jugendflamme",
-                ProfileFieldType.ENUM,
+                FieldType.CHOICE,
                 "{\"options\":[\"%s\",\"%s\",\"%s\",\"%s\"]}"
                         .formatted(
                                 NO_JUGENDFLAMME,
@@ -222,11 +225,9 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
                 ProfileFieldScope.MEMBER,
                 6,
                 true);
-        var fieldJugendflammeDatum = askOf(
-                stationId, "Jugendflamme Datum", ProfileFieldType.DATE, "{}", false, ProfileFieldScope.MEMBER, 7, true);
+        var fieldJugendflammeDatum =
+                askOf(stationId, "Jugendflamme Datum", FieldType.DATE, "{}", false, ProfileFieldScope.MEMBER, 7, true);
 
-        // -- Users --
-        // Betreuer (team role, in Betreuer group)
         record DemoUser(String firstName, String lastName) {}
         var betreuerData = List.of(
                 new DemoUser("Max", "Mustermann"),
@@ -235,7 +236,6 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
                 new DemoUser("Lisa", "Weber"),
                 new DemoUser("Michael", "Wagner"));
 
-        // Families: parent + kids sharing the same last name
         record Family(
                 String parentFirstName,
                 String lastName,
@@ -253,13 +253,10 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
                 new Family("Helmut", "Lang", List.of("Leon"), List.of("Andreas")),
                 new Family("Gerda", "Scholz", List.of(), List.of("Melanie", "Patrick")));
 
-        // Build user lists from families
         var elternData = new ArrayList<DemoUser>();
         var anfaengerData = new ArrayList<DemoUser>();
         var fortgeschrittenData = new ArrayList<DemoUser>();
-        // Track which kids belong to which parent index for manager assignment
-        // Indices are into allKids = anfaengerMembers ++ fortgeschrittenMembers
-        var familyKidIndices = new ArrayList<List<Integer>>(); // per family: indices into allKids
+        var allKidsIndicesPerFamily = new ArrayList<List<Integer>>();
         int anfaengerCounter = 0;
         int fortgeschrittenCounter = 0;
         int totalAnfaenger =
@@ -275,7 +272,7 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
                 fortgeschrittenData.add(new DemoUser(kidName, family.lastName()));
                 kidIndices.add(totalAnfaenger + fortgeschrittenCounter++);
             }
-            familyKidIndices.add(kidIndices);
+            allKidsIndicesPerFamily.add(kidIndices);
         }
 
         var betreuerMembers = new ArrayList<StationMember>();
@@ -287,9 +284,6 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
                 .findPermissionByName(StationPermission.STATION_ADMINISTRATOR)
                 .orElseThrow();
 
-        // Create Betreuer (TEAM -- not MEMBER). Max Mustermann is the station administrator
-        // (replaces the former instance-admin-as-station-member setup), every other Betreuer
-        // keeps the attendance / event / member management bundle.
         for (var u : betreuerData) {
             var m = createTeamMember(u.firstName(), u.lastName(), passwordHash, stationId, profile, loginRole.id());
             if (u.lastName().equals("Mustermann")) {
@@ -297,9 +291,6 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
                 stationMemberRepository.grantPermission(m.id(), stationAdminRole.id());
                 stationMemberRepository.setNickname(m.id(), "Maxe", m.id());
             } else if (u.lastName().equals("Wagner")) {
-                // One helper who may look at the members but not at what is written about them:
-                // reading and notes are separate rights, and an instance where every Betreuer holds
-                // the whole bundle never shows the difference.
                 stationMemberRepository.grantPermission(m.id(), attendanceMgmt.id());
                 stationMemberRepository.grantPermission(m.id(), eventMgmt.id());
                 stationMemberRepository.grantPermission(m.id(), memberRead.id());
@@ -311,7 +302,6 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
             memberGroupRepository.addMember(groupBetreuer.id(), m.id());
             betreuerMembers.add(m);
 
-            // Profile data
             boolean hasJuleica = rng.nextBoolean();
             profileFieldRepository.setValue(m.id(), fieldJuleica.id(), BooleanNode.valueOf(hasJuleica));
             if (hasJuleica) {
@@ -330,7 +320,6 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
                     text(LocalDate.now().plusYears(rng.nextInt(5) + 1).toString()));
         }
 
-        // Create Eltern (member managers -- GUARDIAN role, not MEMBER)
         boolean firstEltern = true;
         for (var u : elternData) {
             var m = createGuardian(
@@ -344,7 +333,6 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
             memberGroupRepository.addMember(groupEltern.id(), m.id());
             elternMembers.add(m);
 
-            // Profile data -- skip Mobilnummer for first member manager (incomplete profile)
             if (!firstEltern) {
                 profileFieldRepository.setValue(
                         m.id(), fieldTelefon.id(), text("0151 " + (10000000 + rng.nextInt(90000000))));
@@ -355,7 +343,6 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
             profileFieldRepository.setValue(m.id(), fieldNewsletter.id(), BooleanNode.valueOf(rng.nextBoolean()));
         }
 
-        // Create Anfaenger
         int personalNr = 100000 + rng.nextInt(900000);
         boolean firstAnfaenger = true;
         for (var u : anfaengerData) {
@@ -364,10 +351,8 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
             memberGroupRepository.addMember(groupAnfaenger.id(), m.id());
             anfaengerMembers.add(m);
 
-            // Personalnummer
             profileFieldRepository.setValue(m.id(), fieldPersonalnummer.id(), text(String.valueOf(personalNr++)));
 
-            // Geburtstag -- skip first Anfaenger (incomplete profile)
             if (!firstAnfaenger) {
                 profileFieldRepository.setValue(
                         m.id(),
@@ -379,7 +364,6 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
             }
             firstAnfaenger = false;
 
-            // Geschlecht
             profileFieldRepository.setValue(
                     m.id(), fieldGeschlecht.id(), text(rng.nextBoolean() ? "männlich" : "weiblich"));
 
@@ -393,17 +377,14 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
             }
         }
 
-        // Create Fortgeschritten
         for (var u : fortgeschrittenData) {
             var m = createUser(
                     u.firstName(), u.lastName(), passwordHash, stationId, profile, loginRole.id(), memberRole.id());
             memberGroupRepository.addMember(groupFortgeschritten.id(), m.id());
             fortgeschrittenMembers.add(m);
 
-            // Personalnummer
             profileFieldRepository.setValue(m.id(), fieldPersonalnummer.id(), text(String.valueOf(personalNr++)));
 
-            // Geburtstag
             profileFieldRepository.setValue(
                     m.id(),
                     fieldGeburtstag.id(),
@@ -412,7 +393,6 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
                             .minusDays(rng.nextInt(365))
                             .toString()));
 
-            // Geschlecht
             profileFieldRepository.setValue(
                     m.id(), fieldGeschlecht.id(), text(rng.nextBoolean() ? "männlich" : "weiblich"));
 
@@ -438,7 +418,6 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
             }
         }
 
-        // -- Former members --
         var formerMember1 =
                 createUser("Max", "Altmann", passwordHash, stationId, profile, loginRole.id(), memberRole.id());
         memberGroupRepository.addMember(groupAnfaenger.id(), formerMember1.id());
@@ -452,9 +431,7 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
         var formerMember3 = createTeamMember("Tom", "Richter", passwordHash, stationId, profile, loginRole.id());
         stationMemberRepository.setFormer(formerMember3.id(), true);
 
-        // -- Profile field changes (unacknowledged) --
         if (anfaengerMembers.size() >= 3) {
-            // Simulate phone number changes
             profileFieldChangeRepository.create(
                     fieldTelefon.id(),
                     anfaengerMembers.get(0).id(),
@@ -469,7 +446,6 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
                     "\"0163 55667788\"",
                     anfaengerMembers.get(1).id(),
                     true);
-            // Simulate allergy field change
             profileFieldChangeRepository.create(
                     fieldAllergien.id(),
                     anfaengerMembers.get(2).id(),
@@ -479,10 +455,8 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
                     true);
         }
 
-        // -- Past profile field changes (acknowledged) --
         if (anfaengerMembers.size() >= 5 && !betreuerMembers.isEmpty()) {
             int bId = betreuerMembers.getFirst().id();
-            // Phone number changes
             var c1 = profileFieldChangeRepository.create(
                     fieldTelefon.id(),
                     anfaengerMembers.get(3).id(),
@@ -499,7 +473,6 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
                     anfaengerMembers.get(4).id(),
                     true);
             profileFieldChangeRepository.acknowledge(c2.id(), bId, "Nummer geprüft");
-            // Allergy changes
             var c3 = profileFieldChangeRepository.create(
                     fieldAllergien.id(),
                     anfaengerMembers.get(3).id(),
@@ -516,7 +489,6 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
                     anfaengerMembers.get(4).id(),
                     true);
             profileFieldChangeRepository.acknowledge(c4.id(), bId, "Mit Eltern abgestimmt");
-            // Birthday correction
             profileFieldChangeRepository.create(
                     fieldGeburtstag.id(),
                     anfaengerMembers.get(3).id(),
@@ -524,7 +496,6 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
                     "\"2014-05-11\"",
                     betreuerMembers.getFirst().id(),
                     true);
-            // Non-acknowledged changes that don't require ack
             profileFieldChangeRepository.create(
                     fieldTelefon.id(),
                     fortgeschrittenMembers.getFirst().id(),
@@ -534,12 +505,11 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
                     false);
         }
 
-        // -- Manager assignments: each Eltern manages their own kids (same last name) --
         var allKids = new ArrayList<>(anfaengerMembers);
         allKids.addAll(fortgeschrittenMembers);
         for (int fi = 0; fi < families.size(); fi++) {
             var elternMember = elternMembers.get(fi);
-            for (int kidIndex : familyKidIndices.get(fi)) {
+            for (int kidIndex : allKidsIndicesPerFamily.get(fi)) {
                 if (kidIndex < allKids.size()) {
                     stationMemberRepository.addManager(
                             elternMember.id(), allKids.get(kidIndex).id());
@@ -547,21 +517,17 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
             }
         }
 
-        // -- User Tags --
         var tagWettkampf = userTagRepository.create(stationId, "Wettkampfgruppe");
         var tagErsthelfer = userTagRepository.create(stationId, "Ersthelfer");
-        // Add some Fortgeschritten to Wettkampfgruppe
         for (int i = 0; i < 6 && i < fortgeschrittenMembers.size(); i++) {
             userTagRepository.addMember(
                     tagWettkampf.id(), fortgeschrittenMembers.get(i).id());
         }
-        // Add some Betreuer as Ersthelfer
         for (int i = 0; i < 3 && i < betreuerMembers.size(); i++) {
             userTagRepository.addMember(
                     tagErsthelfer.id(), betreuerMembers.get(i).id());
         }
 
-        // JFW tag -- visible badge for all Betreuer (managers)
         var tagJfw = userTagRepository.create(stationId, "JFW");
         userTagRepository.update(tagJfw.id(), "JFW", "#FF6421", true, 10);
         for (var m : betreuerMembers) {
@@ -695,7 +661,7 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
      * @return the definition, so a caller can assign it to somebody else as well
      */
     private ProfileField askOf(
-            int stationId, String name, ProfileFieldType type, String config, ProfileFieldScope role, int position) {
+            int stationId, String name, FieldType type, String config, ProfileFieldScope role, int position) {
         return askOf(stationId, name, type, config, false, role, position, false);
     }
 
@@ -708,7 +674,7 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
     private ProfileField askOf(
             int stationId,
             String name,
-            ProfileFieldType type,
+            FieldType type,
             String config,
             boolean required,
             ProfileFieldScope role,

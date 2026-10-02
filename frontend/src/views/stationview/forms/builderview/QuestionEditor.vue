@@ -25,8 +25,7 @@ import QuestionMenu from './questionmenu/QuestionMenu.vue'
  * default and only refines the question, so it sits behind the menu in the corner, and whatever of it
  * differs from its default shows as a chip under the title.
  */
-const props = defineProps<{
-  question: QuestionDraft
+defineProps<{
   /** The number the question is shown with, counted across every page. */
   number: number
   first: boolean
@@ -34,6 +33,8 @@ const props = defineProps<{
   /** The other pages it could be moved to, empty for a form of one page. */
   otherPages: PageChoice[]
 }>()
+
+const question = defineModel<QuestionDraft>('question', {required: true})
 
 const emit = defineEmits<{
   move: [direction: -1 | 1]
@@ -44,7 +45,7 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 
-const describing = ref(!!props.question.description)
+const describing = ref(!!question.value.description)
 const menu = ref<InstanceType<typeof QuestionMenu> | null>(null)
 </script>
 
@@ -52,7 +53,7 @@ const menu = ref<InstanceType<typeof QuestionMenu> | null>(null)
   <NeutralContainer>
     <div class="space-y-3" data-testid="question-tile">
       <QuestionHeader :question-type="question.questionType" :number="number">
-        <QuestionMenu ref="menu" :question="question" :first="first" :last="last" :other-pages="otherPages"
+        <QuestionMenu ref="menu" v-model:question="question" :first="first" :last="last" :other-pages="otherPages"
                       :describing="describing" @describe="describing = true"
                       @move="direction => emit('move', direction)" @remove="emit('remove')"
                       @move-to-page="pageIndex => emit('moveToPage', pageIndex)" @duplicate="emit('duplicate')"/>
@@ -62,7 +63,7 @@ const menu = ref<InstanceType<typeof QuestionMenu> | null>(null)
       <TextInput v-if="describing" v-model="question.description" :placeholder="t('forms.questionDescription')" />
       <QuestionChips :question="question" @open="menu?.show($event)"/>
 
-      <QuestionContent :question="question"/>
+      <QuestionContent v-model:question="question"/>
 
       <FieldLabel inline>
         <ToggleInput v-model="question.required" />

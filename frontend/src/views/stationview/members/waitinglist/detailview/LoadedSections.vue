@@ -11,12 +11,12 @@ import TestingSection from './TestingSection.vue'
 import FinishedSection from './FinishedSection.vue'
 import InvitesSection from './InvitesSection.vue'
 import type {
+  MemberGroup,
   WaitingList,
   WaitingListEntryWithScore,
   WaitingListField,
   WaitingListInvite,
-} from '@/api/waitingList'
-import type {MemberGroup} from '@/api/types'
+} from '@/api/generated/schema'
 import type {Failure} from '@/util/failure'
 
 export interface EntryGroups {

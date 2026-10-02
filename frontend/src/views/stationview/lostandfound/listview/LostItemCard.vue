@@ -13,11 +13,11 @@ import ButtonRow from '@/components/button/ButtonRow.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import EnlargeableImage from '@/components/button/EnlargeableImage.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
-import type {LostAndFoundItem} from '@/api/lostAndFound'
+import type {LostAndFoundItemResponse} from '@/api/generated/schema'
 import {formatDate} from '@/util/format'
 
 const props = defineProps<{
-  item: LostAndFoundItem
+  item: LostAndFoundItemResponse
   imageSrc?: string
   myMemberId?: number
   /** The members in the reader's care, so a claim made for one of them still reads as theirs. */
@@ -27,11 +27,11 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'claim', itemId: number): void
-  (e: 'release', itemId: number): void
-  (e: 'provided', itemId: number): void
-  (e: 'delete', itemId: number): void
-  (e: 'addImage', itemId: number): void
+  claim: [itemId: number]
+  release: [itemId: number]
+  provided: [itemId: number]
+  delete: [itemId: number]
+  addImage: [itemId: number]
 }>()
 
 const {t} = useI18n()

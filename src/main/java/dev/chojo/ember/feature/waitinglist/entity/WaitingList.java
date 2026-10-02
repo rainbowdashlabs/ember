@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.waitinglist.entity;
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.util.Json;
+import org.jspecify.annotations.Nullable;
 import tools.jackson.core.type.TypeReference;
 
 import java.time.Instant;
@@ -29,18 +30,18 @@ public record WaitingList(
         int stationId,
         String name,
         String description,
-        String scoringFormula,
+        @Nullable String scoringFormula,
         int confirmIntervalDays,
         Instant createdAt,
         List<Integer> visibleFields,
-        Integer testingGroupId,
-        Integer joinGroupId,
+        @Nullable Integer testingGroupId,
+        @Nullable Integer joinGroupId,
         StationUserType joinUserType,
         int attendanceThreshold,
         boolean isPublic,
         boolean sendsMail,
-        Integer minAgeRegister,
-        Integer minAgeJoin) {
+        @Nullable Integer minAgeRegister,
+        @Nullable Integer minAgeJoin) {
 
     public static RowMapping<WaitingList> map() {
         return row -> new WaitingList(

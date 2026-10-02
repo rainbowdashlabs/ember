@@ -14,8 +14,8 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
-import {StationPermission, type StationMember} from '@/api/types'
-import { STATION_MEMBER_SOURCE } from './listview/useMemberData'
+import {StationPermission} from '@/api/types'
+import { STATION_MEMBER_SOURCE, type RosterMember } from './listview/useMemberData'
 import { useAsyncAction } from '@/composables/useAsyncAction'
 import { useSession } from '@/composables/useSession'
 import { useMemberListConfig, type MemberListPort } from './listview/useMemberListConfig'
@@ -36,7 +36,7 @@ const port: MemberListPort = {
 
 const config = useMemberListConfig(port)
 
-const resendTarget = ref<StationMember | null>(null)
+const resendTarget = ref<RosterMember | null>(null)
 const resendSuccess = ref('')
 
 const {
@@ -51,7 +51,7 @@ const {
   resendTarget.value = null
 })
 
-function openResendSetup(member: StationMember) {
+function openResendSetup(member: RosterMember) {
   resendTarget.value = member
   clearResendError()
 }
@@ -79,7 +79,14 @@ function openResendSetup(member: StationMember) {
 
     <Alert v-if="resendSuccess" variant="success" class="mt-4">
       {{ resendSuccess }}
-      <a class="ml-2 underline cursor-pointer" @click="resendSuccess = ''">{{ t('common.close') }}</a>
+      <a
+          class="ml-2 underline cursor-pointer"
+          role="button"
+          tabindex="0"
+          @click="resendSuccess = ''"
+          @keydown.enter.prevent="resendSuccess = ''"
+          @keydown.space.prevent="resendSuccess = ''"
+      >{{ t('common.close') }}</a>
     </Alert>
   </ViewContent>
 </template>

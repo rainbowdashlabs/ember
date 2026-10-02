@@ -43,9 +43,10 @@ public class KbAuthorNameService {
                     if (member.displayName() != null && !member.displayName().isBlank()) {
                         return member.displayName();
                     }
-                    if (member.accountId() != null) {
+                    Integer accountId = member.accountId();
+                    if (accountId != null) {
                         return accountRepository
-                                .findById(member.accountId())
+                                .findById(accountId)
                                 .map(Account::fullName)
                                 .orElse(UNKNOWN);
                     }

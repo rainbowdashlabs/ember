@@ -6,12 +6,12 @@
 package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventAttachmentRepository;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -148,7 +148,7 @@ class EventAttachmentServiceTest extends RepositoryTestBase {
                 .id();
 
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> service.attach(event.id(), station.id(), theirFile, null, false),
                 "an attachment is a reference into this station's own library");
 
@@ -236,7 +236,7 @@ class EventAttachmentServiceTest extends RepositoryTestBase {
      */
     @Test
     void aFileTooLargeToTravelIsRefusedByWhatTheRowSays() {
-        assertThrows(BadRequestResponse.class, () -> EventAttachmentService.requireSizeToTravel(4096, 2048));
+        assertThrows(RefusalResponse.class, () -> EventAttachmentService.requireSizeToTravel(4096, 2048));
         assertDoesNotThrow(() -> EventAttachmentService.requireSizeToTravel(2048, 2048));
     }
 

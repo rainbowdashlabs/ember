@@ -21,7 +21,7 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import DateInput from '@/components/input/datetime/DateInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import RestrictionPicker from '@/components/input/RestrictionPicker.vue'
-import {type RestrictionSelection, emptyRestriction} from '@/components/input/restriction'
+import {emptyRestriction} from '@/components/input/restriction'
 import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
 import {fromMember} from '@/components/input/select/memberOption'
 import SubHeader from '@/components/typography/SubHeader.vue'
@@ -30,8 +30,9 @@ import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { describeFailure } from '@/util/failure'
 import { protocol, stationMembers, memberGroups, userTags } from '@/api'
-import type { TestProtocol, TestProtocolRun } from '@/api/protocol'
-import {StationPermission, type MemberGroup, type StationMember, type UserTag} from '@/api/types'
+import type { MemberGroup, MemberWithName, TestProtocol, TestProtocolRun, UserTag } from '@/api/generated/schema'
+import { RunStatus } from '@/api/protocol'
+import {StationPermission, type RestrictionSelection} from '@/api/types'
 import { formatDate, todayIsoDate } from '@/util/format'
 
 const { t } = useI18n()
@@ -41,7 +42,7 @@ const canCreateRun = computed(() => hasPermission(StationPermission.PROTOCOL_CRE
 
 const runs = ref<TestProtocolRun[]>([])
 const protocols = ref<TestProtocol[]>([])
-const members = ref<StationMember[]>([])
+const members = ref<MemberWithName[]>([])
 const allGroups = ref<MemberGroup[]>([])
 const allTags = ref<UserTag[]>([])
 
@@ -132,7 +133,7 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
               <div class="font-medium">{{ run.name }}</div>
               <div class="text-sm text-[var(--text-muted)]">{{ protocolName(run.protocolId) }}, {{ formatDate(run.testDate) }}</div>
             </div>
-            <SuccessBadge v-if="run.status === 'CLOSED'">{{ t('protocol.closed') }}</SuccessBadge>
+            <SuccessBadge v-if="run.status === RunStatus.CLOSED">{{ t('protocol.closed') }}</SuccessBadge>
             <PrimaryBadge v-else>{{ t('protocol.open') }}</PrimaryBadge>
           </NeutralContainer>
         </RowLink>
@@ -141,7 +142,7 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
 
     <Modal v-model="showCreateModal" @update:model-value="v => { if (!v) resetCreateModal() }">
       <SubHeader class="mb-3">{{ t('protocol.createRun') }}</SubHeader>
-      <form @submit.prevent="handleCreate" class="space-y-3">
+      <form class="space-y-3" @submit.prevent="handleCreate">
         <div>
           <FieldLabel class="mb-1">{{ t('protocol.selectProtocol') }}</FieldLabel>
           <SelectInput v-model="newProtocolId" class="w-full">
@@ -155,9 +156,9 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
         <div>
           <FieldLabel class="mb-1">{{ t('protocol.selectByRestriction') }}</FieldLabel>
           <RestrictionPicker
+            v-model="restriction"
             :groups="allGroups"
             :tags="allTags"
-            v-model="restriction"
             :show-mode="false"
           />
         </div>

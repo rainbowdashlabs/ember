@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
+import dev.chojo.ember.api.refusal.InventoryRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
@@ -75,6 +77,37 @@ class ProcurementServiceTest extends RepositoryTestBase {
         assertEquals(member.id(), proc.memberId());
         assertNull(proc.fulfilledAt());
         procurementId = proc.id();
+    }
+
+    @Test
+    @Order(1)
+    void anOrderForAnInventoryThatIsNotThereIsRefused() {
+        var refused = assertThrows(
+                RefusalResponse.class, () -> service.create(station.id(), Integer.MAX_VALUE, member.id(), null, ""));
+
+        assertEquals(InventoryRefusal.INVENTORY_NOT_HERE_ON_PROCUREMENT, refused.refusal());
+    }
+
+    /**
+     * An order is placed against an inventory of the station placing it. Naming another station's
+     * inventory would put an order, and on fulfilment a new item, into a store the caller does not
+     * run, so it is answered as though the inventory were not there.
+     */
+    @Test
+    @Order(1)
+    void anOrderForAnotherStationsInventoryIsRefused() {
+        var other = stationRepo.create("Procurement Other " + System.nanoTime());
+        var foreign = inventoryRepo.create(other.id(), "Boots", InventoryType.INTERNAL, false);
+        try {
+            var refused = assertThrows(
+                    RefusalResponse.class, () -> service.create(station.id(), foreign.id(), member.id(), null, ""));
+
+            assertEquals(InventoryRefusal.INVENTORY_NOT_HERE_ON_PROCUREMENT, refused.refusal());
+            assertTrue(service.findByStation(other.id()).isEmpty());
+        } finally {
+            inventoryRepo.delete(foreign.id());
+            stationRepo.delete(other.id());
+        }
     }
 
     @Test

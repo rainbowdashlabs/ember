@@ -3,23 +3,36 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {describe, expect, it} from 'vitest'
+import {afterEach, describe, expect, it} from 'vitest'
+import {DOMWrapper, flushPromises} from '@vue/test-utils'
 import {mountSuspended} from '@nuxt/test-utils/runtime'
 import ExportSheetModal from './ExportSheetModal.vue'
 import type {SheetOptions} from '@/api/attendance'
 
 const SESSION_TITLE = 'Dienstabend'
 
+const mounted: { unmount(): void }[] = []
+
+afterEach(() => mounted.splice(0).forEach(wrapper => wrapper.unmount()))
+
+/**
+ * Opens the dialog the way a reader does, closed first and then open, since it fills itself in
+ * as it opens.
+ */
 async function open(showsInstanceUrl = true) {
-    // The dialog teleports its content to the body, which a mounted wrapper cannot reach into.
     const wrapper = await mountSuspended(ExportSheetModal, {
-        props: {modelValue: true, sessionTitle: SESSION_TITLE, showsInstanceUrl, exporting: false},
-        global: {stubs: {teleport: true}},
+        props: {modelValue: false, sessionTitle: SESSION_TITLE, showsInstanceUrl, exporting: false},
+        attachTo: document.body,
     })
-    // The dialog fills itself in when it opens, which is what the story is about.
-    await wrapper.setProps({modelValue: false})
+    mounted.push(wrapper)
     await wrapper.setProps({modelValue: true})
+    await flushPromises()
     return wrapper
+}
+
+/** The dialog's content lands at the end of the body, outside what the mounted wrapper holds. */
+function page() {
+    return new DOMWrapper(document.body)
 }
 
 function asked(wrapper: Awaited<ReturnType<typeof open>>): SheetOptions {
@@ -28,8 +41,8 @@ function asked(wrapper: Awaited<ReturnType<typeof open>>): SheetOptions {
     return events![0]![0] as SheetOptions
 }
 
-async function submit(wrapper: Awaited<ReturnType<typeof open>>) {
-    await wrapper.get('[data-testid="export-submit"]').trigger('click')
+async function submit() {
+    await page().get('[data-testid="export-submit"]').trigger('click')
 }
 
 /**
@@ -43,7 +56,7 @@ describe('ExportSheetModal', () => {
     it('asks for the sheet as it always was when nothing is touched', async () => {
         const wrapper = await open()
 
-        await submit(wrapper)
+        await submit()
 
         const options = asked(wrapper)
         expect(options.signature).toBe(false)
@@ -54,18 +67,18 @@ describe('ExportSheetModal', () => {
     it('starts from what the station settled on for the address', async () => {
         const hidden = await open(false)
 
-        await submit(hidden)
+        await submit()
 
         expect(asked(hidden).instanceUrl).toBe(false)
     })
 
     it('carries a sheet to sign, a heading of its own and room for people nobody expected', async () => {
         const wrapper = await open()
-        await wrapper.get('[data-testid="export-signature-toggle"] [role="switch"]').trigger('click')
-        await wrapper.get('input[type="text"]').setValue('Jahreshauptversammlung')
-        await wrapper.get('input[type="number"]').setValue(5)
+        await page().get('[data-testid="export-signature-toggle"] [role="switch"]').trigger('click')
+        await page().get('input[type="text"]').setValue('Jahreshauptversammlung')
+        await page().get('input[type="number"]').setValue(5)
 
-        await submit(wrapper)
+        await submit()
 
         const options = asked(wrapper)
         expect(options.signature).toBe(true)
@@ -75,9 +88,9 @@ describe('ExportSheetModal', () => {
 
     it('sends an empty heading as one, so the sheet is headed by hand', async () => {
         const wrapper = await open()
-        await wrapper.get('input[type="text"]').setValue('')
+        await page().get('input[type="text"]').setValue('')
 
-        await submit(wrapper)
+        await submit()
 
         expect(asked(wrapper).title).toBe('')
     })

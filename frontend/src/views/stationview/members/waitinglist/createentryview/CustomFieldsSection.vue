@@ -6,11 +6,10 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import FieldLabel from '@/components/typography/FieldLabel.vue'
-import type { WaitingListField } from '@/api/waitingList'
-import CustomFieldInput from './CustomFieldInput.vue'
+import WaitingListAnswerInput from '@/components/waitinglist/WaitingListAnswerInput.vue'
+import type { WaitingListField } from '@/api/generated/schema'
 
-const props = defineProps<{
+defineProps<{
   fields: WaitingListField[]
   values: Record<number, string>
 }>()
@@ -25,13 +24,12 @@ const { t } = useI18n()
 <template>
   <template v-if="fields.length > 0">
     <SubHeader>{{ t('waitingList.customFields') }}</SubHeader>
-    <div v-for="field in fields" :key="field.id" class="space-y-1">
-      <FieldLabel>{{ field.name }}{{ field.required ? ' *' : '' }}</FieldLabel>
-      <CustomFieldInput
-        :field="field"
-        :value="values[field.id] ?? ''"
-        @update="(v) => emit('update', field.id, v)"
-      />
-    </div>
+    <WaitingListAnswerInput
+      v-for="field in fields"
+      :key="field.id"
+      :field="field"
+      :model-value="values[field.id] ?? ''"
+      @update:model-value="(v) => emit('update', field.id, v)"
+    />
   </template>
 </template>

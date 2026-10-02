@@ -37,7 +37,6 @@ const {t} = useI18n()
             </HelpList>
         </HelpSection>
 
-        <!-- Dummy: Create modal -->
         <HelpSection :title="t('helpCenter.boardManage.createModalTitle')">
             <NeutralContainer class="space-y-4 max-w-md">
                 <SubHeader>{{ t('boards.createBoard') }}</SubHeader>
@@ -71,7 +70,6 @@ const {t} = useI18n()
             <p>{{ t('helpCenter.boardManage.deleteText') }}</p>
             <p>{{ t('helpCenter.boardManage.deleteWarning') }}</p>
 
-            <!-- Dummy: Delete confirmation -->
             <NeutralContainer class="space-y-4 max-w-md mt-3">
                 <SubHeader>{{ t('boards.deleteBoard') }}</SubHeader>
                 <p class="text-sm">{{ t('boards.deleteBoardConfirm') }}</p>

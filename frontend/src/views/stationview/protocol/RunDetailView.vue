@@ -24,8 +24,8 @@ import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { describeFailure } from '@/util/failure'
 import { protocol, stationMembers } from '@/api'
-import type { TestProtocolRun, RunMemberWithProgress } from '@/api/protocol'
-import type { StationMember } from '@/api/types'
+import type { MemberWithName, TestProtocolRun, RunMemberWithProgress } from '@/api/generated/schema'
+import { RunStatus } from '@/api/protocol'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import { formatDate } from '@/util/format'
 
@@ -38,7 +38,7 @@ const { canManageProtocol, canTestProtocol, loaded } = useSession()
 const runId = computed(() => Number(route.params.id))
 const run = ref<TestProtocolRun | null>(null)
 const runMembers = ref<RunMemberWithProgress[]>([])
-const memberMap = ref<Map<number, StationMember>>(new Map())
+const memberMap = ref<Map<number, MemberWithName>>(new Map())
 const filterIncomplete = ref(false)
 
 const {loading, failure, reload: loadData} = useAsyncLoader(async () => {
@@ -109,10 +109,10 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
         <font-awesome-icon :icon="['fas', 'chevron-left']" />
       </SecondaryButton>
       <SectionHeader>{{ run?.name ?? '' }}</SectionHeader>
-      <SuccessBadge v-if="run?.status === 'CLOSED'">{{ t('protocol.closed') }}</SuccessBadge>
+      <SuccessBadge v-if="run?.status === RunStatus.CLOSED">{{ t('protocol.closed') }}</SuccessBadge>
       <PrimaryBadge v-else-if="run">{{ t('protocol.open') }}</PrimaryBadge>
       <ButtonRow align="end" class="sm:ml-auto">
-        <PrimaryButton v-if="run?.status === 'OPEN' && canManageProtocol()" @click="handleClose">
+        <PrimaryButton v-if="run?.status === RunStatus.OPEN && canManageProtocol()" @click="handleClose">
           {{ t('protocol.closeRun') }}
         </PrimaryButton>
         <SecondaryButton @click="router.push({ name: 'protocol-evaluation', params: { id: runId } })">
@@ -150,7 +150,7 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
           <ErrorBadge v-else-if="rm.member.lockedBy">{{ t('protocol.locked') }}</ErrorBadge>
           <SecondaryBadge v-else>{{ t('protocol.pending') }}</SecondaryBadge>
           <PrimaryButton
-            v-if="run.status === 'OPEN' && canTestProtocol() && !rm.member.completed"
+            v-if="run.status === RunStatus.OPEN && canTestProtocol() && !rm.member.completed"
             class="!text-sm !py-1 !px-3"
             @click="startGrading(rm.member.memberId)"
           >

@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.attendance.service;
 
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.AttendanceRefusal;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
@@ -13,22 +14,23 @@ import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
 import dev.chojo.ember.feature.attendance.entity.AttendanceReportPreset;
 import dev.chojo.ember.feature.attendance.entity.AttendanceSession;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
+import dev.chojo.ember.feature.media.entity.MediaContent;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
-import dev.chojo.ember.feature.station.repository.StationRepository.StationLogo;
+import dev.chojo.ember.feature.station.service.StationLogoService;
 import dev.chojo.ember.util.CsvWriter;
 import dev.chojo.ember.util.DocumentName;
 import dev.chojo.ember.util.DocumentPeriod;
 import dev.chojo.ember.util.DocumentWord;
 import dev.chojo.ember.util.ExportedDocument;
 import dev.chojo.ember.util.TypstCompiler;
-import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
 import java.io.IOException;
@@ -69,6 +71,7 @@ public class AttendanceReportService {
     private final StationRepository stationRepository;
     private final MemberGroupRepository memberGroupRepository;
     private final Api apiConfig;
+    private final StationLogoService logoService;
 
     @Inject
     public AttendanceReportService(
@@ -77,16 +80,16 @@ public class AttendanceReportService {
             AccountRepository accountRepository,
             StationRepository stationRepository,
             MemberGroupRepository memberGroupRepository,
-            Api apiConfig) {
+            Api apiConfig,
+            StationLogoService logoService) {
         this.attendanceRepository = attendanceRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.accountRepository = accountRepository;
         this.stationRepository = stationRepository;
         this.memberGroupRepository = memberGroupRepository;
         this.apiConfig = apiConfig;
+        this.logoService = logoService;
     }
-
-    // -- Records for API responses --
 
     /**
      * Retrieves all report presets for a station.
@@ -101,7 +104,8 @@ public class AttendanceReportService {
      * <p>A missing list counts as an empty one, but a preset needs at least one user type or at
      * least one group: a filter that selects nobody is not worth saving.
      *
-     * @throws BadRequestResponse when the preset selects neither, or a list carries an empty entry
+     * @throws dev.chojo.ember.api.refusal.RefusalResponse when the preset selects neither, or a list carries
+     *                                             an empty entry
      */
     public AttendanceReportPreset createPreset(
             int stationId,
@@ -113,7 +117,7 @@ public class AttendanceReportService {
         var types = presetSelection(userTypes);
         var groups = presetSelection(groupIds);
         if (types.isEmpty() && groups.isEmpty()) {
-            throw new BadRequestResponse("userTypes or groupIds is required");
+            throw AttendanceRefusal.ATTENDANCE_REPORT_PRESET_SELECTS_NOBODY.raise();
         }
         var preset = attendanceRepository.createPreset(stationId, name, types, groups, period, rounding);
         log.info("Created attendance report preset {} for station {}", preset.id(), stationId);
@@ -135,7 +139,7 @@ public class AttendanceReportService {
     private static <T> List<T> presetSelection(List<T> selection) {
         if (selection == null) return List.of();
         if (selection.stream().anyMatch(Objects::isNull)) {
-            throw new BadRequestResponse("A preset selection cannot contain an empty entry");
+            throw AttendanceRefusal.ATTENDANCE_REPORT_PRESET_EMPTY_ENTRY.raise();
         }
         return selection.stream().distinct().toList();
     }
@@ -169,7 +173,7 @@ public class AttendanceReportService {
         }
         for (var ut : userTypes) {
             rawIdSet.addAll(attendanceRepository.findMemberIdsByUserType(stationId, ut));
-            filterLabels.add(ut.name());
+            filterLabels.add(DocumentWord.forUserType(ut.name(), locale.getLanguage()));
         }
         String filterLabel = String.join(", ", filterLabels);
         var memberIds = Set.copyOf(rawIdSet);
@@ -180,7 +184,6 @@ public class AttendanceReportService {
         var memberSessionCount = new LinkedHashMap<Integer, Integer>();
         var memberPresentCount = new LinkedHashMap<Integer, Integer>();
 
-        // Monthly tracking
         var monthlyHours = new LinkedHashMap<YearMonth, Map<Integer, Double>>();
         var monthlySessions = new LinkedHashMap<YearMonth, Map<Integer, Integer>>();
         var monthlyPresent = new LinkedHashMap<YearMonth, Map<Integer, Integer>>();
@@ -190,7 +193,6 @@ public class AttendanceReportService {
 
         for (var session : sessions) {
             var allEntries = attendanceRepository.findEntries(session.id());
-            // Total session counts: how many expected members, and how many of those are present
             var expectedEntries = allEntries.stream()
                     .filter(e -> e.source() == AttendanceEntry.EntrySource.EXPECTED)
                     .toList();
@@ -198,19 +200,18 @@ public class AttendanceReportService {
             int presentCount = (int) expectedEntries.stream()
                     .filter(e -> e.status() == AttendanceEntry.AttendanceStatus.PRESENT)
                     .count();
-            // Entries for the report: only PRESENT members matching the role/group filter
-            var filteredEntries = allEntries.stream()
+            var presentEntriesInFilter = allEntries.stream()
                     .filter(e -> memberIds.contains(e.memberId()))
                     .filter(e -> e.status() == AttendanceEntry.AttendanceStatus.PRESENT)
                     .toList();
-            if (filteredEntries.isEmpty()) continue;
+            if (presentEntriesInFilter.isEmpty()) continue;
 
             YearMonth ym = session.startTime() != null
                     ? YearMonth.from(session.startTime().atZone(zone))
                     : null;
 
             var entryDataList = new ArrayList<SessionMemberEntry>();
-            for (var entry : filteredEntries) {
+            for (var entry : presentEntriesInFilter) {
                 String name = resolveMemberName(entry.memberId(), memberNames);
                 Instant checkIn = entry.shownCheckIn(session.startTime());
                 Instant checkOut = entry.shownCheckOut(session.endTime());
@@ -245,9 +246,10 @@ public class AttendanceReportService {
                 }
             }
 
+            Integer countedMinutes = session.countedMinutes();
             var sessionData = new SessionData(
                     session.id(),
-                    session.title() != null ? session.title() : "",
+                    Objects.requireNonNullElse(session.title(), ""),
                     session.startTime() != null
                             ? session.startTime().atZone(zone).toLocalDate()
                             : null,
@@ -258,7 +260,7 @@ public class AttendanceReportService {
                     session.endTime() != null ? session.endTime().atZone(zone).toLocalTime() : null,
                     expectedCount,
                     presentCount,
-                    session.countedMinutes() != null ? session.countedMinutes() / 60.0 : null,
+                    countedMinutes != null ? countedMinutes / 60.0 : null,
                     entryDataList);
             sessionDataList.add(sessionData);
             if (ym != null) {
@@ -280,7 +282,6 @@ public class AttendanceReportService {
         }
         memberSummaries.sort((a, b) -> a.name().compareToIgnoreCase(b.name()));
 
-        // Build monthly summaries
         var monthlySummaryList = new ArrayList<MonthSummary>();
         for (var ym : monthlyHours.keySet()) {
             var monthMembers = new ArrayList<MemberSummary>();
@@ -354,7 +355,7 @@ public class AttendanceReportService {
         data.put("hasLogo", false);
 
         try {
-            var logo = stationRepository.findLogo(stationId);
+            var logo = logoService.original(stationId);
             String locale = StationFormat.languageOf(station);
             String templateName = locale + "/"
                     + ("year".equals(period) ? "attendance-report-year.typ" : "attendance-report-period.typ");
@@ -431,8 +432,6 @@ public class AttendanceReportService {
                 DocumentPeriod.of(period, from, zone, locale));
     }
 
-    // -- Presets --
-
     /**
      * What one entry adds to the hours, rounded the way the report was asked for.
      *
@@ -442,7 +441,11 @@ public class AttendanceReportService {
      * that was added up.
      */
     private double computeHours(
-            AttendanceEntry entry, Instant checkIn, Instant checkOut, String rounding, AttendanceSession session) {
+            AttendanceEntry entry,
+            @Nullable Instant checkIn,
+            @Nullable Instant checkOut,
+            String rounding,
+            AttendanceSession session) {
         if (entry.status() != AttendanceEntry.AttendanceStatus.PRESENT || checkIn == null || checkOut == null) return 0;
         double hours = session.countedHours(checkIn, checkOut);
         return switch (rounding) {
@@ -507,21 +510,19 @@ public class AttendanceReportService {
         return map;
     }
 
-    // -- Report Building --
-
     private String resolveMemberName(int memberId, Map<Integer, String> cache) {
         return cache.computeIfAbsent(memberId, id -> {
             var member = stationMemberRepository.findById(id);
             if (member.isEmpty()) return "#" + id;
-            var account = accountRepository.findById(member.get().accountId());
+            Integer accountId = member.get().accountId();
+            if (accountId == null) return "#" + id;
+            var account = accountRepository.findById(accountId);
             if (account.isEmpty()) return "#" + id;
             Account acc = account.get();
             String name = NameParts.of(acc).official();
             return name.isEmpty() ? acc.email() : name;
         });
     }
-
-    // -- PDF Export --
 
     private Locale resolveLocale(int stationId) {
         return StationFormat.localeOf(stationRepository.findById(stationId).orElse(null));
@@ -531,7 +532,7 @@ public class AttendanceReportService {
         return StationFormat.timezoneOf(stationRepository.findById(stationId).orElse(null));
     }
 
-    private byte[] renderPdf(Map<String, Object> data, String templateName, StationLogo logo)
+    private byte[] renderPdf(Map<String, Object> data, String templateName, MediaContent logo)
             throws IOException, InterruptedException {
         return TypstCompiler.compileTemplate(
                 data,
@@ -569,7 +570,7 @@ public class AttendanceReportService {
             LocalTime endTime,
             int expectedCount,
             int presentCount,
-            Double countedHours,
+            @Nullable Double countedHours,
             List<SessionMemberEntry> entries) {}
 
     /**
@@ -582,8 +583,8 @@ public class AttendanceReportService {
             int memberId,
             String name,
             AttendanceEntry.AttendanceStatus status,
-            LocalDateTime checkIn,
-            LocalDateTime checkOut,
+            @Nullable LocalDateTime checkIn,
+            @Nullable LocalDateTime checkOut,
             double hours) {}
 
     /**

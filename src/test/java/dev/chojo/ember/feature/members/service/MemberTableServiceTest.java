@@ -16,12 +16,13 @@ import dev.chojo.ember.feature.members.entity.MemberTablePeople;
 import dev.chojo.ember.feature.members.entity.MemberTableQuestion;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
-import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import tools.jackson.databind.node.BooleanNode;
 import tools.jackson.databind.node.StringNode;
 
 import java.time.LocalDate;
@@ -56,19 +57,13 @@ class MemberTableServiceTest extends RepositoryTestBase {
         member = stationMemberRepo.create(station.id(), account.id());
 
         var open = profileFieldRepo.create(
-                station.id(), "Schuhgröße", ProfileFieldType.TEXT, ProfileFieldConfig.parse("{}"), false, false, null);
+                station.id(), "Schuhgröße", FieldType.TEXT, ProfileFieldConfig.parse("{}"), false, false, null);
         profileFieldRepo.assignToRole(open.id(), ProfileFieldScope.MEMBER, 0, null, null, null);
         profileFieldRepo.setValue(member.id(), open.id(), StringNode.valueOf("43"));
         openFieldId = open.id();
 
         var team = profileFieldRepo.create(
-                station.id(),
-                "Ausweisnummer",
-                ProfileFieldType.TEXT,
-                ProfileFieldConfig.parse("{}"),
-                false,
-                false,
-                null);
+                station.id(), "Ausweisnummer", FieldType.TEXT, ProfileFieldConfig.parse("{}"), false, false, null);
         profileFieldRepo.assignToRole(team.id(), ProfileFieldScope.TEAM, 0, null, null, null);
         profileFieldRepo.setValue(member.id(), team.id(), StringNode.valueOf("A-4711"));
         teamFieldId = team.id();
@@ -243,7 +238,7 @@ class MemberTableServiceTest extends RepositoryTestBase {
                 new MemberTablePeople(List.of(member.id()), Map.of(member.id(), Map.of(4711, "43")), Map.of()),
                 List.of(MemberTableColumn.registrationField(4711)),
                 Set.of(StationPermission.USER),
-                Map.of(4711, new MemberTableQuestion("Schuhgröße", MemberTableCellType.NUMBER)));
+                Map.of(4711, new MemberTableQuestion("Schuhgröße", FieldType.NUMBER)));
         assertEquals("Schuhgröße", withAppointment.columns().getFirst().label());
         assertEquals(
                 MemberTableCellType.NUMBER, withAppointment.columns().getFirst().type());
@@ -267,7 +262,7 @@ class MemberTableServiceTest extends RepositoryTestBase {
     @Test
     void aDateReadsAsADate() {
         var dateField = profileFieldRepo.create(
-                station.id(), "Eintritt", ProfileFieldType.DATE, ProfileFieldConfig.parse("{}"), false, false, null);
+                station.id(), "Eintritt", FieldType.DATE, ProfileFieldConfig.parse("{}"), false, false, null);
         profileFieldRepo.assignToRole(dateField.id(), ProfileFieldScope.MEMBER, 0, null, null, null);
         profileFieldRepo.setValue(member.id(), dateField.id(), StringNode.valueOf("2026-03-09"));
 
@@ -285,18 +280,12 @@ class MemberTableServiceTest extends RepositoryTestBase {
     @Test
     void aYesOrNoReadsAsAWord() {
         var flag = profileFieldRepo.create(
-                station.id(),
-                "Führerschein",
-                ProfileFieldType.BOOLEAN,
-                ProfileFieldConfig.parse("{}"),
-                false,
-                false,
-                null);
+                station.id(), "Führerschein", FieldType.BOOLEAN, ProfileFieldConfig.parse("{}"), false, false, null);
         profileFieldRepo.assignToRole(flag.id(), ProfileFieldScope.MEMBER, 0, null, null, null);
         profileFieldRepo.setValue(member.id(), flag.id(), StringNode.valueOf("true"));
 
         var unanswered = profileFieldRepo.create(
-                station.id(), "Anhänger", ProfileFieldType.BOOLEAN, ProfileFieldConfig.parse("{}"), false, false, null);
+                station.id(), "Anhänger", FieldType.BOOLEAN, ProfileFieldConfig.parse("{}"), false, false, null);
         profileFieldRepo.assignToRole(unanswered.id(), ProfileFieldScope.MEMBER, 0, null, null, null);
 
         var table = service.build(
@@ -311,6 +300,69 @@ class MemberTableServiceTest extends RepositoryTestBase {
         assertEquals("", values.get(1), "a question nobody answered says nothing, rather than no");
     }
 
+    /** A yes kept in any of its stored shapes is a yes, and a no is a no rather than whatever is not yes. */
+    @Test
+    void everyStoredShapeOfYesReadsAsYes() {
+        var flag = profileFieldRepo.create(
+                station.id(), "Atemschutz", FieldType.BOOLEAN, ProfileFieldConfig.parse("{}"), false, false, null);
+        profileFieldRepo.assignToRole(flag.id(), ProfileFieldScope.MEMBER, 0, null, null, null);
+        var column = List.of(MemberTableColumn.profileField(flag.id()));
+
+        var printed = new java.util.ArrayList<String>();
+        for (var stored :
+                List.of(BooleanNode.TRUE, StringNode.valueOf("1"), StringNode.valueOf("true"), BooleanNode.FALSE)) {
+            profileFieldRepo.setValue(member.id(), flag.id(), stored);
+            printed.add(service.build(station, thisMember(), column, Set.of(StationPermission.USER), Map.of())
+                    .rows()
+                    .getFirst()
+                    .values()
+                    .getFirst());
+        }
+
+        assertEquals(List.of("Ja", "Ja", "Ja", "Nein"), printed);
+    }
+
+    /** A station that reads English gets its yes in English, on screen and in every export of the table. */
+    @Test
+    void aYesFollowsTheStationsLanguage() {
+        var english = stationRepo.create("EnglishTableStation");
+        stationRepo.updateLocale(english.id(), "en");
+        var someone = stationMemberRepo.create(
+                english.id(),
+                accountRepo.create("english-table@test.com", "Eve", "English").id());
+        var flag = profileFieldRepo.create(
+                english.id(), "Driving licence", FieldType.BOOLEAN, ProfileFieldConfig.parse("{}"), false, false, null);
+        profileFieldRepo.assignToRole(flag.id(), ProfileFieldScope.MEMBER, 0, null, null, null);
+        profileFieldRepo.setValue(someone.id(), flag.id(), BooleanNode.TRUE);
+
+        var table = service.build(
+                stationRepo.findById(english.id()).orElseThrow(),
+                MemberTablePeople.of(List.of(someone.id())),
+                List.of(MemberTableColumn.profileField(flag.id())),
+                Set.of(StationPermission.USER),
+                Map.of());
+
+        assertEquals("Yes", table.rows().getFirst().values().getFirst());
+        stationRepo.delete(english.id());
+    }
+
+    /** A registration answer naming members prints their names, and one naming nobody known prints the number. */
+    @Test
+    void aRegistrationAnswerNamingMembersReadsByName() {
+        var table = service.build(
+                station,
+                new MemberTablePeople(
+                        List.of(member.id()),
+                        Map.of(member.id(), Map.of(4712, "[" + member.id() + ",987654]")),
+                        Map.of()),
+                List.of(MemberTableColumn.registrationField(4712)),
+                Set.of(StationPermission.USER),
+                Map.of(4712, new MemberTableQuestion("Fahrer", FieldType.MEMBER_LIST)));
+
+        var cell = table.rows().getFirst().values().getFirst();
+        assertTrue(cell.contains("Toni") && cell.endsWith(", 987654"), cell);
+    }
+
     /**
      * An answer that is not the shape its question expects is printed as it stands.
      *
@@ -320,7 +372,7 @@ class MemberTableServiceTest extends RepositoryTestBase {
     @Test
     void ananswerOfTheWrongShapeIsPrintedAsItIs() {
         var date = profileFieldRepo.create(
-                station.id(), "Seit wann", ProfileFieldType.DATE, ProfileFieldConfig.parse("{}"), false, false, null);
+                station.id(), "Seit wann", FieldType.DATE, ProfileFieldConfig.parse("{}"), false, false, null);
         profileFieldRepo.assignToRole(date.id(), ProfileFieldScope.MEMBER, 0, null, null, null);
         profileFieldRepo.setValue(member.id(), date.id(), StringNode.valueOf("schon lange"));
 
@@ -338,13 +390,7 @@ class MemberTableServiceTest extends RepositoryTestBase {
     @Test
     void anAgeCountingFromNothingIsEmpty() {
         var age = profileFieldRepo.create(
-                station.id(),
-                "Alter ohne Quelle",
-                ProfileFieldType.AGE,
-                ProfileFieldConfig.parse("{}"),
-                false,
-                false,
-                null);
+                station.id(), "Alter ohne Quelle", FieldType.AGE, ProfileFieldConfig.parse("{}"), false, false, null);
         profileFieldRepo.assignToRole(age.id(), ProfileFieldScope.MEMBER, 0, null, null, null);
 
         var table = service.build(
@@ -367,20 +413,14 @@ class MemberTableServiceTest extends RepositoryTestBase {
     @Test
     void anAgeIsCountedFromTheDayBehindIt() {
         var born = profileFieldRepo.create(
-                station.id(),
-                "Geburtstag",
-                ProfileFieldType.BIRTH_DATE,
-                ProfileFieldConfig.parse("{}"),
-                false,
-                false,
-                null);
+                station.id(), "Geburtstag", FieldType.BIRTH_DATE, ProfileFieldConfig.parse("{}"), false, false, null);
         profileFieldRepo.assignToRole(born.id(), ProfileFieldScope.MEMBER, 0, null, null, null);
         profileFieldRepo.setValue(member.id(), born.id(), StringNode.valueOf("2000-01-01"));
 
         var age = profileFieldRepo.create(
                 station.id(),
                 "Alter",
-                ProfileFieldType.AGE,
+                FieldType.AGE,
                 ProfileFieldConfig.parse("{\"sourceFieldId\":" + born.id() + "}"),
                 false,
                 false,
@@ -404,7 +444,7 @@ class MemberTableServiceTest extends RepositoryTestBase {
         var firstAid = profileFieldRepo.create(
                 station.id(),
                 "Erste Hilfe gültig bis",
-                ProfileFieldType.EXPIRY_DATE,
+                FieldType.EXPIRY_DATE,
                 ProfileFieldConfig.parse("{}"),
                 false,
                 false,

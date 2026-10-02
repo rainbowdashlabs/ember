@@ -8,6 +8,7 @@ import {computed, onBeforeUnmount, ref, shallowRef, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SearchInput from '@/components/input/text/SearchInput.vue'
 import IconButton from '@/components/button/IconButton.vue'
+import PillBadge from '@/components/badge/PillBadge.vue'
 import DropdownMenuItem from '@/components/button/DropdownMenuItem.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 
@@ -65,6 +66,7 @@ const loading = ref(false)
 const open = ref(false)
 const rootRef = ref<HTMLElement | null>(null)
 const panelRef = ref<HTMLElement | null>(null)
+/** Which result the keyboard stands on, back at the top whenever the query changes the list. */
 const highlight = ref(0)
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -119,7 +121,6 @@ async function onFocus() {
 
 watch(query, q => {
     if (!open.value || hasSelection.value) return
-    // The list underneath is about to change, so where the highlight stood means nothing.
     highlight.value = 0
     scheduleSearch(q)
 })
@@ -185,7 +186,6 @@ defineExpose({highlightedItem: highlighted})
 
 <template>
     <div ref="rootRef" class="relative w-full">
-        <!-- A reference is set: show the picked label as a chip with an X to clear. -->
         <div
             v-if="hasSelection"
             class="flex items-center gap-2 px-3 py-2 rounded-theme border border-(--border) bg-bg-light dark:bg-bg-dark"
@@ -203,8 +203,7 @@ defineExpose({highlightedItem: highlighted})
             />
         </div>
 
-        <!-- No reference set: search input + dropdown of typeahead results. -->
-        <div v-else @focusin="onFocus" @click="onFocus">
+        <div v-else role="presentation" @focusin="onFocus" @click="onFocus">
             <SearchInput
                 v-model="query"
                 :placeholder="placeholder"
@@ -221,8 +220,8 @@ defineExpose({highlightedItem: highlighted})
 
             <div
                 v-if="open"
-                ref="panelRef"
                 :id="panelId"
+                ref="panelRef"
                 role="listbox"
                 class="absolute left-0 right-0 top-full mt-1 z-20 max-h-72 overflow-y-auto rounded-theme border border-(--border) bg-(--bg) shadow-lg py-1"
             >
@@ -234,8 +233,8 @@ defineExpose({highlightedItem: highlighted})
                 </p>
                 <div
                     v-for="item in results"
-                    :key="keyFn ? keyFn(item) : displayFn(item)"
                     :id="rowId(item)"
+                    :key="keyFn ? keyFn(item) : displayFn(item)"
                     :data-row-index="canSelect(item) ? selectable.indexOf(item) : undefined"
                     :title="isSelectableFn && !isSelectableFn(item) ? (notSelectableHint ?? '') : undefined"
                     :class="[
@@ -265,17 +264,17 @@ defineExpose({highlightedItem: highlighted})
                                 >{{ subtitleFn(item) }}</span>
                             </span>
                         </slot>
-                        <span
+                        <PillBadge
                             v-if="badgeFn && badgeFn(item)"
                             :class="[
-                                'shrink-0 rounded-full px-2 py-0.5 text-xs font-medium',
+                                'shrink-0 px-2 py-0.5 text-xs font-medium',
                                 badgeFn(item)?.variant === 'success' ? 'bg-success/15 text-success' : '',
                                 badgeFn(item)?.variant === 'info' ? 'bg-secondary/20 text-secondary-accent dark:text-secondary' : '',
                                 badgeFn(item)?.variant === 'error' ? 'bg-error/15 text-error' : '',
                                 badgeFn(item)?.variant === 'warning' ? 'bg-warning/15 text-warning' : '',
                                 badgeFn(item)?.variant === 'neutral' ? 'bg-(--bg-accent) text-(--text-muted)' : '',
                             ]"
-                        >{{ badgeFn(item)?.text }}</span>
+                        >{{ badgeFn(item)?.text }}</PillBadge>
                     </DropdownMenuItem>
                 </div>
                 <slot v-if="!loading && results.length > 0" name="footer"/>

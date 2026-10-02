@@ -5,11 +5,11 @@
  */
 package dev.chojo.ember.feature.notifications.entity;
 
-import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import dev.chojo.ember.util.Json;
+import org.jspecify.annotations.Nullable;
 import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -24,12 +24,10 @@ import java.util.Map;
  * @param link   optional link to a frontend route, or {@code null}
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
-public record NotificationData(NotificationParams params, NotificationLink link) {
+public record NotificationData(
+        @Nullable NotificationParams params, @Nullable NotificationLink link) {
 
-    private static final ObjectMapper MAPPER = JsonMapper.builder()
-            .changeDefaultVisibility(v -> v.withFieldVisibility(JsonAutoDetect.Visibility.ANY)
-                    .withGetterVisibility(JsonAutoDetect.Visibility.NONE))
-            .build();
+    private static final ObjectMapper MAPPER = Json.CONFIG_MAPPER;
 
     public static NotificationData of(NotificationParams params, NotificationLink link) {
         return new NotificationData(params, link);
@@ -105,7 +103,10 @@ public record NotificationData(NotificationParams params, NotificationLink link)
      * @param query       query parameters appended to the route, or {@code null} for none
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    public record NotificationLink(String route, Map<String, Object> routeParams, Map<String, Object> query) {
+    public record NotificationLink(
+            String route,
+            Map<String, Object> routeParams,
+            @Nullable Map<String, Object> query) {
         public NotificationLink(String route) {
             this(route, Map.of());
         }

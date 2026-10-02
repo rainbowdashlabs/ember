@@ -9,7 +9,7 @@ import IconButton from '@/components/button/IconButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedIcon from '@/components/display/MutedIcon.vue'
-import type { BoardTicketKbLink } from '@/api/boards'
+import type { BoardTicketKbLink } from '@/api/generated/schema'
 import type {KbSearchResult} from './types'
 
 
@@ -40,13 +40,22 @@ const { t } = useI18n()
                 <router-link :to="`/station/knowledge/${kl.kbFileId}`" class="text-primary hover:underline truncate flex-1">
                     <span v-if="kl.folderPath && kl.folderPath !== '/'" class="text-(--text-muted) text-xs">{{ kl.folderPath }} /&nbsp;</span>{{ kl.title }}
                 </router-link>
-                <IconButton v-if="!readonly" :icon="['fas', 'xmark']" label="Remove" class="sm:opacity-0 sm:group-hover:opacity-100 text-xs" @click="emit('remove', kl.id)" />
+                <IconButton v-if="!readonly" :icon="['fas', 'xmark']" :label="t('common.remove')" class="sm:opacity-0 sm:group-hover:opacity-100 text-xs" @click="emit('remove', kl.id)" />
             </div>
         </div>
         <div v-if="showSearch" class="space-y-1">
             <TextInput v-model="searchQuery" :placeholder="t('boards.searchKb')" class="text-sm" @update:model-value="emit('search')" />
             <div v-if="searchResults.length > 0" class="border border-(--border) rounded-theme divide-y divide-(--border)">
-                <div v-for="r in searchResults" :key="r.id" class="px-3 py-1.5 text-sm cursor-pointer hover:bg-primary/5 flex items-center gap-2" @click="emit('add', r.id)">
+                <div
+                    v-for="r in searchResults"
+                    :key="r.id"
+                    class="px-3 py-1.5 text-sm cursor-pointer hover:bg-primary/5 flex items-center gap-2"
+                    role="button"
+                    tabindex="0"
+                    @click="emit('add', r.id)"
+                    @keydown.enter.prevent="emit('add', r.id)"
+                    @keydown.space.prevent="emit('add', r.id)"
+                >
                     <MutedIcon :icon="['fas', 'book']" size="inline" class="shrink-0"/>
                     <div class="truncate"><span v-if="r.path && r.path !== '/'" class="text-(--text-muted) text-xs">{{ r.path }} /&nbsp;</span>{{ r.title }}</div>
                 </div>

@@ -9,12 +9,12 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SuccessContainer from '@/components/container/SuccessContainer.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
-import type {ProcedureItem} from '@/api/procedures'
+import type {ProcedureItem} from '@/api/generated/schema'
 import {formatDateTime} from '@/util/format'
 
 const {t} = useI18n()
 
-const props = defineProps<{
+defineProps<{
   item: ProcedureItem
   canEdit: boolean
   canCheck: boolean

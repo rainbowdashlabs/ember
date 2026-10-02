@@ -15,6 +15,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class BrowserStorageServiceTest {
@@ -50,6 +51,27 @@ class BrowserStorageServiceTest {
         for (var retention : BrowserStorageEntry.Retention.values()) {
             assertNotNull(text.retention().get(retention), "wording missing for retention " + retention);
         }
+        for (var kind : BrowserStorageEntry.Kind.values()) {
+            assertNotNull(text.kind().get(kind), "wording missing for kind " + kind);
+        }
+    }
+
+    @Test
+    void cookiesAreMarkedAsSuchAndNothingClaimsThereAreNone() {
+        String german = service.toMarkdown("de");
+        String english = service.toMarkdown("en");
+
+        assertTrue(german.contains("**`ember_session`** (Cookie) - "), german);
+        assertTrue(english.contains("**`ember_csrf`** (cookie) - "), english);
+        assertTrue(english.contains("**`station_id`** - "), "local storage carries no marker");
+        assertFalse(german.contains("keine Cookies"), german);
+        assertFalse(english.contains("no cookies"), english);
+    }
+
+    @Test
+    void anEntryWithoutAKindLivesInLocalStorage() {
+        var entry = new BrowserStorageEntry("key", null, BrowserStorageEntry.Necessity.COMFORT, null, null);
+        assertEquals(BrowserStorageEntry.Kind.LOCAL_STORAGE, entry.kind());
     }
 
     @Test
@@ -84,6 +106,11 @@ class BrowserStorageServiceTest {
     void anUnreadableCatalogRendersNothingRatherThanBreakingTheDocument() {
         assertEquals("", new BrowserStorageService((BrowserStorageCatalog) null).toMarkdown("de"));
         assertEquals("", new BrowserStorageService(new BrowserStorageCatalog(1, null, List.of())).toMarkdown("de"));
+    }
+
+    @Test
+    void aCatalogMissingFromTheClasspathIsNoCatalog() {
+        assertNull(BrowserStorageService.load("/no/such/catalog.json"));
     }
 
     @Test

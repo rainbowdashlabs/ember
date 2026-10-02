@@ -58,8 +58,6 @@ class FormRepositoryTest extends RepositoryTestBase {
         accountRepo.delete(account.id());
     }
 
-    // -- Forms --
-
     @Test
     @Order(1)
     void create() {
@@ -137,8 +135,6 @@ class FormRepositoryTest extends RepositoryTestBase {
                 Form.FormStatus.OPEN, formRepo.findById(formId).orElseThrow().status());
     }
 
-    // -- Questions --
-
     @Test
     @Order(10)
     void createQuestion() {
@@ -182,8 +178,6 @@ class FormRepositoryTest extends RepositoryTestBase {
         assertEquals("Full name?", questions.getFirst().title());
         assertEquals(1, questions.getFirst().position());
     }
-
-    // -- Responses --
 
     @Test
     @Order(20)
@@ -245,12 +239,10 @@ class FormRepositoryTest extends RepositoryTestBase {
         formRepo.deleteResponse(anonymous.id());
     }
 
-    // -- Answers --
-
     @Test
     @Order(30)
     void upsertAnswer() {
-        formRepo.upsertAnswer(responseId, questionId, new FormAnswerValue.Text("John Doe"));
+        formRepo.upsertAnswer(responseId, questionId, new FormAnswerValue.TextAnswer("John Doe"));
         var answers = formRepo.findAnswers(responseId);
         assertEquals(1, answers.size());
     }
@@ -267,12 +259,10 @@ class FormRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(32)
     void upsertAnswerOverwrite() {
-        formRepo.upsertAnswer(responseId, questionId, new FormAnswerValue.Text("Jane Doe"));
+        formRepo.upsertAnswer(responseId, questionId, new FormAnswerValue.TextAnswer("Jane Doe"));
         var answers = formRepo.findAnswers(responseId);
         assertEquals(1, answers.size());
     }
-
-    // -- Restrictions (now handled by RestrictionRepository) --
 
     @Test
     @Order(40)
@@ -284,13 +274,10 @@ class FormRepositoryTest extends RepositoryTestBase {
                         List.of(StationUserType.MEMBER, StationUserType.TEAM), List.of(), List.of(), List.of(), null));
         var restrictions = restrictionRepo.findRestrictions(RestrictionType.FORM, formId);
         assertEquals(2, restrictions.size());
-        // Clear
         restrictionRepo.setRestrictions(RestrictionType.FORM, formId, RestrictionSelection.empty());
         assertTrue(
                 restrictionRepo.findRestrictions(RestrictionType.FORM, formId).isEmpty());
     }
-
-    // -- Cleanup --
 
     @Test
     @Order(60)
@@ -319,7 +306,7 @@ class FormRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(62)
     void findByStationForMember() {
-        var forms = formRepo.findByStationForMember(station.id(), member.id());
+        var forms = formRepo.findByStationForMember(station.id(), member.id(), false);
         assertNotNull(forms);
     }
 
@@ -339,13 +326,13 @@ class FormRepositoryTest extends RepositoryTestBase {
                     false,
                     new FormQuestionConfig.Text(false));
             var response = formRepo.createResponse(separateForm.id(), member.id(), member.id());
-            formRepo.upsertAnswer(response.id(), question.id(), new FormAnswerValue.Text("Yes"));
+            formRepo.upsertAnswer(response.id(), question.id(), new FormAnswerValue.TextAnswer("Yes"));
             var stored = formRepo.findAnswersToQuestion(question.id());
             assertEquals(1, stored.size());
 
-            formRepo.updateAnswerValue(stored.getFirst().id(), new FormAnswerValue.Text("No"));
+            formRepo.updateAnswerValue(stored.getFirst().id(), new FormAnswerValue.TextAnswer("No"));
             assertEquals(
-                    new FormAnswerValue.Text("No"),
+                    new FormAnswerValue.TextAnswer("No"),
                     FormAnswerValue.parse(
                             FormQuestionType.TEXT,
                             formRepo.findAnswersToQuestion(question.id())

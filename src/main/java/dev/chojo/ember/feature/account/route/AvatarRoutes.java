@@ -7,16 +7,20 @@ package dev.chojo.ember.feature.account.route;
 
 import dev.chojo.ember.api.Failures;
 import dev.chojo.ember.api.MessageResponse;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationFree;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.account.service.AvatarAccessService;
 import dev.chojo.ember.feature.account.service.AvatarService;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
+import io.javalin.openapi.HttpMethod;
+import io.javalin.openapi.OpenApi;
+import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -62,6 +66,13 @@ public class AvatarRoutes implements Routes {
     /**
      * Retrieves the avatar for the current session's account. Returns 404 if no avatar is stored.
      */
+    @OpenApi(
+            path = "/api/v1/session/avatar",
+            methods = HttpMethod.GET,
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(type = "image/*")),
+                @OpenApiResponse(status = "204")
+            })
     private void getAvatar(Context ctx) {
         serveAvatar(ctx, avatarAccessService.ownAvatarUid(UserSession.from(ctx)));
     }
@@ -71,6 +82,13 @@ public class AvatarRoutes implements Routes {
      * 404 when the caller has no relationship to the target account (no shared station
      * membership, no federation partnership, no admin role).
      */
+    @OpenApi(
+            path = "/api/v1/accounts/{accountUid}/avatar",
+            methods = HttpMethod.GET,
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(type = "image/*")),
+                @OpenApiResponse(status = "204")
+            })
     @StationFree("an avatar belongs to an account, and who may see it is decided by AvatarAccessService")
     private void getAvatarByAccount(Context ctx) {
         UUID accountUid = pathUuid(ctx, "accountUid");
@@ -82,6 +100,13 @@ public class AvatarRoutes implements Routes {
      * the transition window while the frontend migrates to the account-keyed endpoint;
      * resolves the underlying account UUID and falls through to the same disk lookup.
      */
+    @OpenApi(
+            path = "/api/v1/members/{stationUid}/{memberUid}/avatar",
+            methods = HttpMethod.GET,
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(type = "image/*")),
+                @OpenApiResponse(status = "204")
+            })
     @StationFree("the same, reached by the member uid the frontend still uses in places")
     private void getAvatarByMember(Context ctx) {
         UUID stationUid = pathUuid(ctx, "stationUid");
@@ -96,7 +121,7 @@ public class AvatarRoutes implements Routes {
      */
     private void serveAvatar(Context ctx, Optional<UUID> accountUid) {
         if (accountUid.isEmpty()) {
-            throw Refusal.AVATAR_NOT_HERE.raise();
+            throw MemberRefusal.AVATAR_NOT_HERE.raise();
         }
         int size = ctx.queryParamAsClass("size", Integer.class).getOrDefault(0);
         avatarService
@@ -110,30 +135,36 @@ public class AvatarRoutes implements Routes {
                         () -> ctx.status(HttpStatus.NO_CONTENT));
     }
 
+    @OpenApi(
+            path = "/api/v1/session/avatar",
+            methods = HttpMethod.POST,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)))
     private void uploadAvatar(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var file = ctx.uploadedFile("avatar");
         if (file == null) {
-            throw Refusal.AVATAR_UPLOAD_MISSING_FILE.raise();
+            throw MemberRefusal.AVATAR_UPLOAD_MISSING_FILE.raise();
         }
-        if (!ALLOWED_AVATAR_TYPES.contains(file.contentType())) {
-            throw Refusal.AVATAR_NOT_A_PICTURE.raise("PNG, JPEG and WebP are accepted");
+        String contentType = file.contentType();
+        if (contentType == null || !ALLOWED_AVATAR_TYPES.contains(contentType)) {
+            throw MemberRefusal.AVATAR_NOT_A_PICTURE.raise("PNG, JPEG, WebP");
         }
         UUID accountUid = requireOwnAvatarUid(session);
         try (var content = file.content()) {
             byte[] data = content.readAllBytes();
-            avatarService.store(accountUid, data, file.contentType(), apiConfig.maxImageSizeBytes());
+            avatarService.store(accountUid, data, contentType, apiConfig.maxImageSizeBytes());
             ctx.json(new MessageResponse("Avatar updated"));
         } catch (IllegalArgumentException e) {
             throw Failures.readable(e.getMessage())
-                    .map(Refusal.AVATAR_NOT_SAVED::raise)
-                    .orElseGet(Refusal.AVATAR_NOT_SAVED::raise);
+                    .map(MemberRefusal.AVATAR_NOT_SAVED::raise)
+                    .orElseGet(MemberRefusal.AVATAR_NOT_SAVED::raise);
         } catch (IOException e) {
             log.error("Failed to process image", e);
-            throw Refusal.AVATAR_NOT_PROCESSED.raise();
+            throw MemberRefusal.AVATAR_NOT_PROCESSED.raise();
         }
     }
 
+    @OpenApi(path = "/api/v1/session/avatar", methods = HttpMethod.DELETE, responses = @OpenApiResponse(status = "204"))
     private void deleteAvatar(Context ctx) {
         avatarService.delete(requireOwnAvatarUid(UserSession.from(ctx)));
         ctx.status(HttpStatus.NO_CONTENT);
@@ -145,8 +176,8 @@ public class AvatarRoutes implements Routes {
      */
     private UUID requireOwnAvatarUid(UserSession session) {
         if (session.account() == null) {
-            throw Refusal.SESSION_HAS_NO_ACCOUNT.raise();
+            throw MemberRefusal.SESSION_HAS_NO_ACCOUNT.raise();
         }
-        return avatarAccessService.ownAvatarUid(session).orElseThrow(Refusal.SESSION_ACCOUNT_NOT_RESOLVED::raise);
+        return avatarAccessService.ownAvatarUid(session).orElseThrow(MemberRefusal.SESSION_ACCOUNT_NOT_RESOLVED::raise);
     }
 }

@@ -8,7 +8,7 @@ import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
-import type {ProfileFieldConfig} from '@/api/profileFields'
+import type {FieldSettings} from '@/api/profileFields'
 import {expirySettingsOf, ExpiryStates, readExpiry} from '@/util/expiry'
 
 /**
@@ -21,7 +21,7 @@ import {expirySettingsOf, ExpiryStates, readExpiry} from '@/util/expiry'
 const props = defineProps<{
   value: unknown
   /** The field's settings, which say how many days ahead a date counts as running out. */
-  config?: ProfileFieldConfig | null
+  config?: FieldSettings | null
 }>()
 
 const {t} = useI18n()

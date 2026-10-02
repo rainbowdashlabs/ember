@@ -6,10 +6,11 @@
 package dev.chojo.ember.feature.inventory.repository;
 
 import dev.chojo.ember.feature.inventory.entity.FieldConfig;
-import dev.chojo.ember.feature.inventory.entity.FieldType;
 import dev.chojo.ember.feature.inventory.entity.InventoryFieldDefinition;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.Optional;
@@ -122,8 +123,8 @@ public class InventoryFieldDefinitionRepository {
      */
     public InventoryFieldDefinition create(
             int inventoryId,
-            Integer artId,
-            Integer itemId,
+            @Nullable Integer artId,
+            @Nullable Integer itemId,
             String key,
             String label,
             FieldType fieldType,
@@ -135,7 +136,7 @@ public class InventoryFieldDefinitionRepository {
                 INSERT INTO inventory_field_definition(inventory_id, art_id, item_id, key, label, field_type,
                                                        required, sort_order, config)
                 VALUES(:inventory_id, :art_id, :item_id, :key, :label, :field_type,
-                       :required, :sort_order, :config::jsonb)
+                       :required, :sort_order, jsonb_set(:config::jsonb, '{kind}', to_jsonb(:field_type::TEXT)))
                 RETURNING %s, config::text AS config;""",
                 call().bind("inventory_id", inventoryId)
                         .bind("art_id", artId)
@@ -158,7 +159,8 @@ public class InventoryFieldDefinitionRepository {
     public boolean update(int id, String label, boolean required, int sortOrder, FieldConfig config) {
         return query("""
                 UPDATE inventory_field_definition
-                SET label = :label, required = :required, sort_order = :sort_order, config = :config::jsonb
+                SET label = :label, required = :required, sort_order = :sort_order,
+                    config = jsonb_set(:config::jsonb, '{kind}', to_jsonb(field_type))
                 WHERE id = :id;""")
                 .single(call().bind("label", label)
                         .bind("required", required)

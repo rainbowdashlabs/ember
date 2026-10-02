@@ -5,6 +5,7 @@
  */
 <script lang="ts" setup>
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
+import BareButton from '@/components/button/BareButton.vue'
 
 defineProps<{
   label: string
@@ -28,16 +29,15 @@ defineEmits<{
       class="flex items-center gap-1 rounded px-2 py-1 text-xs hover:bg-bg-light-accent/50 dark:hover:bg-bg-dark-accent/50"
       :style="{paddingLeft: `${depth * 1.25 + 0.5}rem`}"
   >
-    <button
+    <BareButton
         v-if="expandable"
-        type="button"
         class="w-4 shrink-0 text-(--text-muted) hover:text-primary"
         :aria-label="expandLabel"
         :aria-expanded="expanded"
         @click="$emit('expand')"
     >
       <font-awesome-icon :icon="['fas', expanded ? 'chevron-down' : 'chevron-right']" class="h-3 w-3"/>
-    </button>
+    </BareButton>
     <span v-else class="w-4 shrink-0"/>
     <label class="flex flex-1 cursor-pointer items-center gap-2">
       <CheckboxInput :model-value="checked" :indeterminate="indeterminate" @update:model-value="$emit('toggle')"/>

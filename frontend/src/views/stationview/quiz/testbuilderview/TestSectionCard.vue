@@ -12,7 +12,7 @@ import DeleteButton from '@/components/button/DeleteButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SectionLabel from '@/components/typography/SectionLabel.vue'
 import TestSectionSourceRow from './TestSectionSourceRow.vue'
-import type { QuizCatalog, QuizCategory } from '@/api/quiz'
+import type { QuizCatalog, QuizCategory } from '@/api/generated/schema'
 
 interface SourceDraft {
   key: string
@@ -29,12 +29,13 @@ interface SectionDraft {
 }
 
 const props = defineProps<{
-  section: SectionDraft
   index: number
   catalogs: QuizCatalog[]
   getCategoriesForCatalog: (catalogId: number | null) => QuizCategory[]
   onCatalogChange: (source: SourceDraft, value: string | undefined) => void
 }>()
+
+const section = defineModel<SectionDraft>('section', {required: true})
 
 const emit = defineEmits<{
   remove: []
@@ -55,18 +56,18 @@ const { t } = useI18n()
         <DeleteButton @click="emit('remove')" />
       </div>
 
-      <TextInput v-model="props.section.title" :placeholder="t('quiz.sections.titlePlaceholder')" />
-      <TextAreaInput v-model="props.section.description" :placeholder="t('quiz.sections.descriptionPlaceholder')" />
+      <TextInput v-model="section.title" :placeholder="t('quiz.sections.titlePlaceholder')" />
+      <TextAreaInput v-model="section.description" :placeholder="t('quiz.sections.descriptionPlaceholder')" />
 
       <div class="space-y-3">
-        <label class="text-xs text-(--text-muted) font-medium">{{ t('quiz.sections.sources') }}</label>
+        <p class="text-xs text-(--text-muted) font-medium">{{ t('quiz.sections.sources') }}</p>
 
         <TestSectionSourceRow
-            v-for="(source, srcIdx) in props.section.sources"
+            v-for="(source, srcIdx) in section.sources"
             :key="source.key"
-            :catalog-id="source.catalogId"
             v-model:category-id="source.categoryId"
             v-model:question-count="source.questionCount"
+            :catalog-id="source.catalogId"
             :catalogs="props.catalogs"
             :categories="props.getCategoriesForCatalog(source.catalogId)"
             @update:catalog-id="v => props.onCatalogChange(source, v !== null ? String(v) : undefined)"

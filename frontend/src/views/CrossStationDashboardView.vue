@@ -7,12 +7,13 @@
 import {onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute} from 'vue-router'
-import {getCrossStationDashboard, type CrossStationDashboard, type CrossStationNotification} from '@/api/session'
+import {getCrossStationDashboard} from '@/api/session'
+import type {CrossStationDashboard} from '@/api/generated/schema'
 import {useStations} from '@/composables/useStations'
 import {useCluster} from '@/composables/useCluster'
 import {useSession} from '@/composables/useSession'
 import {formatRelative} from '@/util/format'
-import {expiryReminderKey} from '@/util/expiry'
+import {notificationMessageKey} from '@/util/notificationMessageKey'
 import {usableRedirect} from '@/util/redirect'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
@@ -36,16 +37,15 @@ const loading = ref(true)
 onMounted(async () => {
   if (!sessionLoaded.value) void loadSession()
   await Promise.all([loadStations(), loadClusters()])
-  try {
-    dashboard.value = await getCrossStationDashboard()
-  } catch { /* ignore */ }
+  dashboard.value = await getCrossStationDashboard().catch(() => null)
   loading.value = false
 })
 
+/**
+ * The deep link to continue to, read from the route and failing that from the browser's own address,
+ * since during hydration the route can briefly lag behind it and a deep link must never drop silently.
+ */
 function resolveRedirect(): string | null {
-  // Prefer the route query (Vue Router state) but fall back to the raw window URL
-  // - during SSR hydration the route can briefly lag behind the browser bar, and
-  // we never want to drop a deep link silently.
   const fromRoute = typeof route.query.redirect === 'string' ? route.query.redirect : null
   if (usableRedirect(fromRoute)) return fromRoute
   if (typeof window !== 'undefined') {
@@ -158,7 +158,7 @@ function selectStation(stationId: string) {
           >
             <SecondaryBadge class="shrink-0 mt-0.5">{{ n.stationName }}</SecondaryBadge>
             <div class="flex-1 min-w-0">
-              <p class="text-sm">{{ t(n.type === 'EXPIRY_REMINDER' ? expiryReminderKey(n.params) : n.localeKey, n.params) }}</p>
+              <p class="text-sm">{{ t(notificationMessageKey(n.type, n.localeKey, n.params), n.params) }}</p>
               <span class="text-xs text-(--text-muted)">{{ formatRelative(n.createdAt) }}</span>
             </div>
           </NeutralContainer>

@@ -12,11 +12,11 @@ import ProfileTab from './ProfileTab.vue'
 import RelationsTab from './RelationsTab.vue'
 import NotesTab from './NotesTab.vue'
 import type {MemberEditData} from './types'
-import type {StationMember} from '@/api/types'
+import type {MemberWithName} from '@/api/generated/schema'
 import {relationsTabLabel} from '../relations/relationSides'
 
 const props = defineProps<{
-  member: StationMember
+  member: MemberWithName
   memberId: number
   data: MemberEditData
 }>()
@@ -45,8 +45,7 @@ const tabs = computed(() => [
       v-if="activeTab === 'profile'"
       :member="member"
       :member-id="memberId"
-      :fields="data.fields"
-      :initial-values="data.values"
+      :answers="data.answers"
   />
 
   <GeneralTab
@@ -55,6 +54,7 @@ const tabs = computed(() => [
       :member-id="memberId"
       :all-roles="data.allRoles"
       :all-groups="data.allGroups"
+      :all-sets="data.allSets"
       :all-tags="data.allTags"
       :initial-user-type="data.userType"
       :initial-role-ids="data.roleIds"

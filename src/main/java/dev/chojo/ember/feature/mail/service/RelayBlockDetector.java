@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.mail.service;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.Locale;
 import java.util.Set;
 
@@ -37,7 +39,7 @@ public final class RelayBlockDetector {
      *
      * @param detail what the receiving side gave as the reason, or null
      */
-    public static boolean blamesTheRelay(String detail) {
+    public static boolean blamesTheRelay(@Nullable String detail) {
         if (detail == null || detail.isBlank()) return false;
         String text = detail.toLowerCase(Locale.ROOT);
         return BLOCK_WORDS.stream().anyMatch(text::contains)

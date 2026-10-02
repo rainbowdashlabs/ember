@@ -7,7 +7,8 @@
 import {useI18n} from 'vue-i18n'
 import EmptyHint from '@/components/typography/EmptyHint.vue'
 import RecordTable from '@/components/table/RecordTable.vue'
-import {MailDeliveryStatus, type MailRecord} from '@/api/mailProviders'
+import {MailDeliveryStatus} from '@/api/mailProviders'
+import type {MailRecord} from '@/api/generated/schema'
 import type {DataTableApi} from '@/composables/useDataTable'
 import {isStuck, isTroubled} from './mailRecordColumns'
 

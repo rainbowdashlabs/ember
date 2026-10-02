@@ -7,8 +7,9 @@
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
+import BareButton from '@/components/button/BareButton.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import type {StationDocument} from '@/api/documents'
+import type {MemberDocumentResponse} from '@/api/generated/schema'
 import {formatDate, formatSize} from '@/util/format'
 import {fileKindIcon} from '@/util/fileKind'
 
@@ -17,13 +18,13 @@ import {fileKindIcon} from '@/util/fileKind'
  * words it was filed under.
  */
 const props = defineProps<{
-  document: StationDocument
+  document: MemberDocumentResponse
   /** The picture of it, already fetched, or null while there is none. */
   thumbnail?: string | null
 }>()
 
 const emit = defineEmits<{
-  open: [document: StationDocument]
+  open: [document: MemberDocumentResponse]
 }>()
 
 const {t} = useI18n()
@@ -32,8 +33,7 @@ const icon = computed(() => fileKindIcon(props.document.mimeType))
 </script>
 
 <template>
-  <button
-      type="button"
+  <BareButton
       data-testid="document-tile"
       class="text-left rounded-theme border border-bg-light-accent dark:border-bg-dark-accent overflow-hidden hover:border-primary transition-colors"
       @click="emit('open', props.document)"
@@ -53,7 +53,10 @@ const icon = computed(() => fileKindIcon(props.document.mimeType))
           <font-awesome-icon :icon="['fas', 'eye-slash']" class="mr-1"/>{{ t('documents.hidden') }}
         </span>
         <span v-if="props.document.keepOnArchive">{{ t('documents.kept') }}</span>
+        <span v-for="name in props.document.departedNames" :key="name" data-testid="document-departed">
+          {{ t('documents.deletedMember', {name}) }}
+        </span>
       </div>
     </div>
-  </button>
+  </BareButton>
 </template>

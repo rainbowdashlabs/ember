@@ -11,8 +11,8 @@ import MutedText from '@/components/typography/MutedText.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import HelpCenterHint from '@/components/help/HelpCenterHint.vue'
 import {stations, traffic} from '@/api'
-import type {AuthBucketName, HourlyTrafficRow} from '@/api/traffic'
-import type {Station} from '@/api/stations'
+import type {AuthBucketName} from '@/api/traffic'
+import type {HourlyTrafficRow} from '@/api/generated/schema'
 import TrafficTotals from './admintrafficview/TrafficTotals.vue'
 import TrafficWindowSelector from './admintrafficview/TrafficWindowSelector.vue'
 import TrafficChartCard from './admintrafficview/TrafficChartCard.vue'
@@ -27,7 +27,7 @@ const authFilter = ref<AuthBucketName | ''>('')
 const rows = ref<HourlyTrafficRow[]>([])
 const stationNames = ref<Map<string, string>>(new Map())
 
-const {loading, reload} = useAsyncLoader(async () => {
+const {loading, reload} = useAsyncLoader(async (isCurrent) => {
   const to = new Date()
   const from = new Date(to.getTime() - windowHours.value * 3600_000)
   const res = await traffic.getAdminHourly({
@@ -35,17 +35,15 @@ const {loading, reload} = useAsyncLoader(async () => {
     to: to.toISOString(),
     auth: authFilter.value === '' ? undefined : authFilter.value,
   })
+  if (!isCurrent()) return
   rows.value = res.rows
 }, {autoLoad: false})
 
 async function loadStationNames() {
   try {
-    const list: Station[] = await stations.listStations()
+    const list = await stations.listStations()
     const map = new Map<string, string>()
-    for (const s of list) {
-      const uid = String((s as unknown as {id: unknown}).id)
-      map.set(uid, s.name ?? uid)
-    }
+    for (const s of list) map.set(s.id, s.name)
     stationNames.value = map
   } catch {
     stationNames.value = new Map()

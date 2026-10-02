@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import dev.chojo.ember.util.TestStationKeys;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
@@ -32,17 +33,15 @@ class DiscoveryServiceTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         federationRepo = new FederationRepository();
-        federationService = new FederationService(federationRepo, stationRepo, new Api());
+        federationService = new FederationService(federationRepo, stationRepo, TestStationKeys.store(), new Api());
 
         stationA = stationRepo.create("DiscTestStationA");
         stationB = stationRepo.create("DiscTestStationB");
         stationC = stationRepo.create("DiscTestStationC");
 
-        // Set visibility
         stationRepo.updateDiscoverySettings(stationA.id(), DiscoveryVisibility.PUBLIC, "Station A description", true);
         stationRepo.updateDiscoverySettings(
                 stationB.id(), DiscoveryVisibility.INSTANCE, "Station B description", false);
-        // stationC stays NONE (default)
     }
 
     @AfterAll
@@ -115,7 +114,6 @@ class DiscoveryServiceTest extends RepositoryTestBase {
         var code = federationService.generateStationInvite(stationB.id(), stationB.uid());
         var parts = federationService.parsePairingCode(code).orElseThrow();
         assertTrue(federationService.consumeInviteToken(stationB.id(), parts.token()));
-        // Second consume should fail (token already used)
         assertFalse(federationService.consumeInviteToken(stationB.id(), parts.token()));
     }
 
@@ -157,7 +155,6 @@ class DiscoveryServiceTest extends RepositoryTestBase {
         var result = federationService.acceptPairRequest(request.id());
         assertNotNull(result);
 
-        // Both sides should have ACTIVE partners
         var partnersA = federationService.findPartners(stationA.id());
         assertTrue(partnersA.stream()
                 .anyMatch(p -> p.partnerStationId().equals(stationB.uid())

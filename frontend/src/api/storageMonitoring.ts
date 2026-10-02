@@ -5,21 +5,16 @@
  */
 import client from './client'
 import {createCrudResource} from './crud'
+import type {
+    AdminStationUsage,
+    components,
+    PresetRequest,
+    QuotaUpdateRequest,
+    StationUsageResponse,
+    StorageQuotaPreset,
+} from './generated/schema'
 
-export interface CategoryUsage {
-    category: string
-    totalBytes: number
-    fileCount: number
-}
-
-export interface StationUsageResponse {
-    categories: CategoryUsage[]
-    totalBytes: number
-    quotaBytes: number
-    quotaUsedPercent: number
-    categoryQuotas: Record<string, number>
-    usesOwnBackend: boolean
-}
+export type QuotaOriginName = components['schemas']['QuotaOrigin']
 
 /**
  * Whose word a resolved quota is on.
@@ -34,75 +29,23 @@ export const QuotaOrigin = {
     INSTANCE_OVERRIDE: 'INSTANCE_OVERRIDE',
     INSTANCE_DEFAULT: 'INSTANCE_DEFAULT',
     UNLIMITED: 'UNLIMITED',
-} as const
-
-export type QuotaOriginName = (typeof QuotaOrigin)[keyof typeof QuotaOrigin]
+} as const satisfies Record<QuotaOriginName, QuotaOriginName>
 
 /** Whether the number on a row was decided by an association rather than by the instance. */
 export function isClusterOrigin(origin?: QuotaOriginName | null): boolean {
     return origin === QuotaOrigin.CLUSTER_GRANT || origin === QuotaOrigin.CLUSTER_DEFAULT
 }
 
-export interface AdminStationUsage {
-    stationId: string
-    stationName: string
-    totalBytes: number
-    quotaBytes: number
-    quotaUsedPercent: number
-    categories: CategoryUsage[]
-    presetId: number | null
-    presetName: string | null
-    usesOwnBackend: boolean
-    /** Whose word the quota is on, which says whether an override set here would change anything. */
-    origin: QuotaOriginName
-}
-
-export interface StorageQuotaPreset {
-    id: number
-    name: string
-    total: number
-    kb: number
-    board: number
-    images: number
-    pages: number
-    perFile: number
-    perImage: number
-}
-
-export interface PresetRequest {
-    name: string
-    total: number
-    kb: number
-    board: number
-    images: number
-    pages: number
-    perFile: number
-    perImage: number
-}
-
-export interface QuotaUpdateRequest {
-    totalBytes: number | null
-    kbBytes: number | null
-    boardBytes: number | null
-    imagesBytes: number | null
-    pagesBytes: number | null
-    perFileBytes: number | null
-    perImageBytes: number | null
-}
-
-// Station-level usage
 export async function getStationUsage(): Promise<StationUsageResponse> {
     const {data} = await client.get<StationUsageResponse>('/storage/usage')
     return data
 }
 
-// Admin: all stations usage
 export async function getAdminUsage(): Promise<AdminStationUsage[]> {
     const {data} = await client.get<AdminStationUsage[]>('/admin/storage/usage')
     return data
 }
 
-// Admin: reconciliation
 export async function recalculateAll(): Promise<void> {
     await client.post('/admin/storage/recalculate')
 }
@@ -111,7 +54,6 @@ export async function recalculateStation(stationUid: string): Promise<void> {
     await client.post(`/admin/storage/recalculate/${stationUid}`)
 }
 
-// Admin: presets CRUD
 const presets = createCrudResource<StorageQuotaPreset, PresetRequest>('/admin/storage/presets')
 
 export const getPresets = presets.list
@@ -123,7 +65,6 @@ export async function applyPreset(id: number, stationUids: string[]): Promise<vo
     await client.post(`/admin/storage/presets/${id}/apply`, {stationUids})
 }
 
-// Admin: station quota management
 export async function updateStationQuotas(stationUid: string, quotas: QuotaUpdateRequest): Promise<void> {
     await client.put(`/admin/storage/stations/${stationUid}/quotas`, quotas)
 }
@@ -132,6 +73,9 @@ export async function resetStationQuotas(stationUid: string): Promise<void> {
     await client.delete(`/admin/storage/stations/${stationUid}/quotas`)
 }
 
+export type StorageCategoryName = components['schemas']['StorageCategory']
+
+/** What a stored file is kept as, which decides where it lives and whether it counts towards a quota. */
 export const StorageCategory = {
     MEDIA_FILES: 'MEDIA_FILES',
     INSTANCE_MEDIA_FILES: 'INSTANCE_MEDIA_FILES',
@@ -147,10 +91,9 @@ export const StorageCategory = {
     IMAGE_QUIZ_QUESTION: 'IMAGE_QUIZ_QUESTION',
     IMAGE_KB_ICON: 'IMAGE_KB_ICON',
     IMAGE_KB_IMAGE: 'IMAGE_KB_IMAGE',
+    IMAGE_KB_FILE_PICTURE: 'IMAGE_KB_FILE_PICTURE',
     DOCUMENT: 'DOCUMENT',
     DISCOVERY_KEY: 'DISCOVERY_KEY',
     MAP_TILE_CACHE: 'MAP_TILE_CACHE',
     DEMO_AVATAR: 'DEMO_AVATAR',
-} as const
-
-export type StorageCategoryName = (typeof StorageCategory)[keyof typeof StorageCategory]
+} as const satisfies Record<StorageCategoryName, StorageCategoryName>

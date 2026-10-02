@@ -3,7 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {QuestionTypes, type FormQuestionInfo, type FormQuestionTally, type FormResultGroup} from '@/api/forms'
+import {QuestionTypes} from '@/api/forms'
+import type {FormQuestionInfo, FormQuestionTally, FormResultGroup} from '@/api/generated/schema'
 import {optionsOf} from '@/util/formOptions'
 
 /**

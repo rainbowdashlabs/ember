@@ -5,38 +5,57 @@
  */
 package dev.chojo.ember.feature.events.entity;
 
+import dev.chojo.ember.feature.question.FieldType;
+import dev.chojo.ember.feature.question.FieldTypes;
+import dev.chojo.ember.feature.question.MemberConstraint;
 import org.junit.jupiter.api.Test;
+
+import java.util.Arrays;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class EventFieldTypeTest {
 
     @Test
-    void memberFieldDetection() {
-        for (var t : EventFieldType.values()) {
-            boolean expected = t.name().startsWith("MEMBER");
-            assertEquals(expected, t.isMemberField(), t.name());
+    void everyWireNameIsOneTypeAnAppointmentOffersAndBack() {
+        var shared = Arrays.stream(EventFieldType.values())
+                .map(EventFieldType::fieldType)
+                .collect(Collectors.toSet());
+
+        assertEquals(FieldTypes.APPOINTMENT, shared);
+        for (var type : EventFieldType.values()) {
+            assertEquals(type, EventFieldType.of(type.fieldType()), type.name());
         }
     }
 
     @Test
-    void listFieldDetection() {
-        for (var t : EventFieldType.values()) {
-            boolean expected = t.name().startsWith("MEMBER_LIST");
-            assertEquals(expected, t.isMemberListField(), t.name());
-        }
+    void theRenamedOnesMapOntoTheirSharedNames() {
+        assertEquals(FieldType.TEXT, EventFieldType.STRING.fieldType());
+        assertEquals(FieldType.LONG_TEXT, EventFieldType.TEXTAREA.fieldType());
+        assertEquals(FieldType.CHOICE, EventFieldType.ENUM.fieldType());
+        assertEquals(FieldType.LOCATION, EventFieldType.LOCATION.fieldType());
     }
 
     @Test
-    void constraintMapping() {
-        assertEquals(EventFieldType.MemberFieldConstraint.NONE, EventFieldType.MEMBER.constraint());
-        assertEquals(EventFieldType.MemberFieldConstraint.NONE, EventFieldType.MEMBER_LIST.constraint());
-        assertEquals(EventFieldType.MemberFieldConstraint.GROUP, EventFieldType.MEMBER_OF_GROUP.constraint());
-        assertEquals(EventFieldType.MemberFieldConstraint.GROUP, EventFieldType.MEMBER_LIST_OF_GROUP.constraint());
-        assertEquals(EventFieldType.MemberFieldConstraint.USER_TYPE, EventFieldType.MEMBER_OF_TYPE.constraint());
-        assertEquals(EventFieldType.MemberFieldConstraint.USER_TYPE, EventFieldType.MEMBER_LIST_OF_TYPE.constraint());
-        assertEquals(EventFieldType.MemberFieldConstraint.TAG, EventFieldType.MEMBER_OF_TAG.constraint());
-        assertEquals(EventFieldType.MemberFieldConstraint.TAG, EventFieldType.MEMBER_LIST_OF_TAG.constraint());
-        assertEquals(EventFieldType.MemberFieldConstraint.NONE, EventFieldType.STRING.constraint());
+    void aTypeNoAppointmentOffersHasNoWireName() {
+        assertThrows(IllegalArgumentException.class, () -> EventFieldType.of(FieldType.BIRTH_DATE));
+    }
+
+    @Test
+    void memberQuestionsKeepTheirNarrowing() {
+        for (var type : EventFieldType.values()) {
+            assertEquals(type.name().startsWith("MEMBER"), type.fieldType().namesMembers(), type.name());
+        }
+        assertEquals(
+                MemberConstraint.GROUP,
+                EventFieldType.MEMBER_LIST_OF_GROUP.fieldType().constraint());
+        assertEquals(
+                MemberConstraint.USER_TYPE,
+                EventFieldType.MEMBER_OF_TYPE.fieldType().constraint());
+        assertEquals(
+                MemberConstraint.TAG,
+                EventFieldType.MEMBER_LIST_OF_TAG.fieldType().constraint());
+        assertEquals(MemberConstraint.NONE, EventFieldType.MEMBER.fieldType().constraint());
     }
 }

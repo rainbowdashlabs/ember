@@ -8,7 +8,7 @@ import {ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import MediaBrowseModal from './MediaBrowseModal.vue'
-import type {StationFile} from '@/api/media'
+import type {StationFile} from '@/api/generated/schema'
 
 defineProps<{
     stationUid: string

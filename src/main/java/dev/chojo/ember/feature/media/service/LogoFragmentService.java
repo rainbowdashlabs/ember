@@ -5,10 +5,13 @@
  */
 package dev.chojo.ember.feature.media.service;
 
+import dev.chojo.ember.feature.media.entity.MediaContent;
+import dev.chojo.ember.feature.media.image.ImageProfile;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.entity.StorageScope;
 import dev.chojo.ember.feature.storage.entity.Variant;
 import dev.chojo.ember.feature.storage.service.StorageService;
+import dev.chojo.ember.util.Sha256;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -16,9 +19,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.HexFormat;
 import java.util.Optional;
 
 /**
@@ -36,21 +36,13 @@ public class LogoFragmentService {
     private static final Logger log = LoggerFactory.getLogger(LogoFragmentService.class);
     private static final Variant MARKER = new Variant(".source-hash");
 
-    private final ImageVariantService variants;
+    private final ImageVariants images;
     private final StorageService storage;
 
     @Inject
-    public LogoFragmentService(ImageVariantService variants, StorageService storage) {
-        this.variants = variants;
+    public LogoFragmentService(ImageVariants images, StorageService storage) {
+        this.images = images;
         this.storage = storage;
-    }
-
-    private static String sha256(byte[] data) {
-        try {
-            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(data));
-        } catch (NoSuchAlgorithmException e) {
-            throw new AssertionError("SHA-256 not available", e);
-        }
     }
 
     /**
@@ -58,22 +50,22 @@ public class LogoFragmentService {
      * {@code true} when the bytes were written, {@code false} when the stored marker matched.
      */
     public void storeIfChanged(String name, byte[] data, String declaredMime) throws IOException {
-        String sourceHash = sha256(data);
+        String sourceHash = Sha256.hex(data);
         if (storedMarker(name)
                 .map(stored -> stored.equalsIgnoreCase(sourceHash))
                 .orElse(false)) {
             return;
         }
-        variants.store(scope(), StorageCategory.IMAGE_LOGO_FRAGMENT, name, data, declaredMime, 0);
+        images.store(ImageProfile.ICON_SET, scope(), StorageCategory.IMAGE_LOGO_FRAGMENT, name, data, 0);
         writeMarker(name, sourceHash);
-        log.info("Logo fragment stored name={}", name);
+        log.info("Logo fragment stored name={} mime={}", name, declaredMime);
     }
 
     /**
      * Reads the requested fragment size, falling back to the original when missing.
      */
-    public Optional<ImageVariantService.ImageData> read(String name, int size) {
-        return variants.read(scope(), StorageCategory.IMAGE_LOGO_FRAGMENT, name, size);
+    public Optional<MediaContent> read(String name, int size) {
+        return images.read(ImageProfile.ICON_SET, scope(), StorageCategory.IMAGE_LOGO_FRAGMENT, name, size);
     }
 
     private Optional<String> storedMarker(String name) {

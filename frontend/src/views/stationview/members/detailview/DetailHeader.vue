@@ -20,8 +20,8 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'open-former-modal'): void
-  (e: 'open-delete-modal'): void
+  'open-former-modal': []
+  'open-delete-modal': []
 }>()
 
 const { t } = useI18n()
@@ -37,10 +37,10 @@ const { canManageMembers } = useSession()
       </SecondaryButton>
     </ButtonRow>
     <ButtonRow v-if="canEdit" align="end">
-      <ErrorButton :icon="['fas', 'user-slash']" v-if="canManageMembers() && !formerSuccess && !deleteSuccess" @click="emit('open-former-modal')">
+      <ErrorButton v-if="canManageMembers() && !formerSuccess && !deleteSuccess" :icon="['fas', 'user-slash']" @click="emit('open-former-modal')">
         {{ t('memberDetail.markFormer') }}
       </ErrorButton>
-      <ErrorButton :icon="['fas', 'trash']" v-if="canManageMembers() && !deleteSuccess && !formerSuccess" @click="emit('open-delete-modal')">
+      <ErrorButton v-if="canManageMembers() && !deleteSuccess && !formerSuccess" :icon="['fas', 'trash']" @click="emit('open-delete-modal')">
         {{ t('memberDetail.deleteData') }}
       </ErrorButton>
       <PrimaryButton :icon="['fas', 'pen']" @click="router.push({ name: 'members-edit', params: { id: props.memberId } })">

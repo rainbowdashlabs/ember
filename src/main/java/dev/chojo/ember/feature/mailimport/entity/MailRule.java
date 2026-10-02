@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.mailimport.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.List;
@@ -51,8 +52,8 @@ public record MailRule(
         String name,
         int position,
         boolean enabled,
-        String subjectFilter,
-        String attachmentNameFilter,
+        @Nullable String subjectFilter,
+        @Nullable String attachmentNameFilter,
         List<String> acceptedTypes,
         long minSizeBytes,
         boolean includeInline,
@@ -61,7 +62,7 @@ public record MailRule(
         boolean keepOnArchive,
         boolean readSubjectForMember,
         MailRuleAction action,
-        String moveToFolder,
+        @Nullable String moveToFolder,
         List<String> senderPatterns,
         List<String> tags,
         Instant createdAt) {

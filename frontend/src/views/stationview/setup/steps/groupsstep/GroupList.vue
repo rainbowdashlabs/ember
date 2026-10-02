@@ -12,7 +12,7 @@ import IconButton from '@/components/button/IconButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import type {MemberGroup} from '@/api/types'
+import type {MemberGroup} from '@/api/generated/schema'
 
 defineProps<{
   groups: MemberGroup[]
@@ -22,10 +22,10 @@ defineProps<{
 const draft = defineModel<string>('draft', {required: true})
 
 const emit = defineEmits<{
-  (e: 'select', id: number): void
-  (e: 'move', id: number, delta: -1 | 1): void
-  (e: 'remove', id: number): void
-  (e: 'add'): void
+  select: [id: number]
+  move: [id: number, delta: -1 | 1]
+  remove: [id: number]
+  add: []
 }>()
 
 const {t} = useI18n()

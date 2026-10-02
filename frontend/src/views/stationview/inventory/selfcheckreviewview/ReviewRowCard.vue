@@ -7,7 +7,7 @@
 import {computed} from 'vue'
 import ReviewRowSummary from './ReviewRowSummary.vue'
 import ReviewRowActions from './ReviewRowActions.vue'
-import type {SelfCheckReviewRow} from '@/api/selfChecks'
+import type {SelfCheckReviewRow} from '@/api/generated/schema'
 
 /**
  * One answer as the reviewer reads it, with what settling it would do beside it.

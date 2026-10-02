@@ -5,91 +5,13 @@
  */
 import client from './client'
 import {createScopedCrudResource} from './crud'
-
-export const FieldType = {
-    DATE: 'DATE',
-    ENUM: 'ENUM',
-    TEXT: 'TEXT',
-    NUMBER: 'NUMBER',
-    BOOLEAN: 'BOOLEAN',
-} as const
-export type FieldTypeName = (typeof FieldType)[keyof typeof FieldType]
-
-export interface EnumOption {
-    value: string
-    label: string
-}
-
-export interface DateFieldConfig {
-    kind: 'DATE'
-}
-
-export interface EnumFieldConfig {
-    kind: 'ENUM'
-    options: EnumOption[]
-}
-
-export interface TextFieldConfig {
-    kind: 'TEXT'
-    multiline: boolean
-    maxLength: number
-}
-
-export interface NumberFieldConfig {
-    kind: 'NUMBER'
-    min?: number | null
-    max?: number | null
-    step?: number | null
-    unit?: string
-}
-
-export interface BooleanFieldConfig {
-    kind: 'BOOLEAN'
-    trueLabel: string
-    falseLabel: string
-}
-
-export type FieldConfig =
-    | DateFieldConfig
-    | EnumFieldConfig
-    | TextFieldConfig
-    | NumberFieldConfig
-    | BooleanFieldConfig
-
-export interface InventoryFieldDefinition {
-    id: number
-    inventoryId: number
-    /** The kind this field describes, or null when it describes the whole inventory. */
-    artId?: number | null
-    /** The single piece this field describes, or null when it describes more than one. */
-    itemId?: number | null
-    key: string
-    label: string
-    fieldType: FieldTypeName
-    required: boolean
-    sortOrder: number
-    config: FieldConfig
-}
-
-export interface FieldDefinitionRequest {
-    /** The kind this field describes, or null for the whole inventory. At most one of the two. */
-    artId?: number | null
-    /** The single piece this field describes, or null. At most one of the two. */
-    itemId?: number | null
-    key: string
-    label: string
-    fieldType: FieldTypeName
-    required: boolean
-    sortOrder: number
-    config: FieldConfig
-}
-
-export interface FieldUpdateRequest {
-    label: string
-    required: boolean
-    sortOrder: number
-    config: FieldConfig
-}
+import {FieldTypes, type FieldTypeName} from './fieldTypes'
+import type {
+    FieldConfig,
+    FieldDefinitionRequest,
+    FieldUpdateRequest,
+    InventoryFieldDefinition,
+} from './generated/schema'
 
 const fields = createScopedCrudResource<
     InventoryFieldDefinition,
@@ -171,17 +93,18 @@ export function hasInvalidFieldValues(
     return defs.some(def => numberFieldViolation(def, values[def.key]) !== null)
 }
 
+/** The settings a field of an inventory starts with; a type an inventory does not offer starts as text. */
 export function defaultFieldConfig(type: FieldTypeName): FieldConfig {
     switch (type) {
-        case FieldType.DATE:
+        case FieldTypes.DATE:
             return {kind: 'DATE'}
-        case FieldType.ENUM:
-            return {kind: 'ENUM', options: []}
-        case FieldType.TEXT:
-            return {kind: 'TEXT', multiline: false, maxLength: 200}
-        case FieldType.NUMBER:
+        case FieldTypes.CHOICE:
+            return {kind: 'CHOICE', options: []}
+        case FieldTypes.NUMBER:
             return {kind: 'NUMBER', min: null, max: null, step: null, unit: ''}
-        case FieldType.BOOLEAN:
+        case FieldTypes.BOOLEAN:
             return {kind: 'BOOLEAN', trueLabel: 'Yes', falseLabel: 'No'}
+        default:
+            return {kind: 'TEXT', multiline: false, maxLength: 200}
     }
 }

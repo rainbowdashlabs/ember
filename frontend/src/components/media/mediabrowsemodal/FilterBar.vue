@@ -7,7 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import BaseButton from '@/components/button/BaseButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
-import type {StationFileFolder, StationFileTag} from '@/api/media'
+import type {StationFileFolder, StationFileTag} from '@/api/generated/schema'
 
 const activeFolder = defineModel<number | null>('activeFolder', {required: true})
 const activeTagFilter = defineModel<number | null>('activeTagFilter', {required: true})

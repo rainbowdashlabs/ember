@@ -8,13 +8,16 @@ package dev.chojo.ember.feature.lostandfound.service;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.lostandfound.entity.LostAndFoundItem;
 import dev.chojo.ember.feature.lostandfound.repository.LostAndFoundRepository;
+import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationData.NotificationLink;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.notifications.entity.StationAudience;
+import dev.chojo.ember.feature.notifications.service.Notifier;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,16 +34,14 @@ import java.util.Optional;
 public class LostAndFoundService {
     private static final Logger log = LoggerFactory.getLogger(LostAndFoundService.class);
     private final LostAndFoundRepository repository;
-    private final NotificationService notificationService;
+    private final Notifier notifier;
     private final LostAndFoundImageService imageService;
 
     @Inject
     public LostAndFoundService(
-            LostAndFoundRepository repository,
-            NotificationService notificationService,
-            LostAndFoundImageService imageService) {
+            LostAndFoundRepository repository, Notifier notifier, LostAndFoundImageService imageService) {
         this.repository = repository;
-        this.notificationService = notificationService;
+        this.notifier = notifier;
         this.imageService = imageService;
     }
 
@@ -94,15 +95,15 @@ public class LostAndFoundService {
      * @param createdBy   the member ID of the person reporting the item
      * @return the created item
      */
-    public LostAndFoundItem create(int stationId, String description, LocalDate foundAt, int createdBy) {
+    public LostAndFoundItem create(int stationId, @Nullable String description, LocalDate foundAt, int createdBy) {
         var item = repository.create(stationId, description, foundAt, createdBy);
-        notificationService.notifyStation(
-                stationId,
+        notifier.notify(
+                StationAudience.wholeStation(stationId).except(createdBy),
                 NotificationType.LOST_AND_FOUND_NEW,
                 NotificationData.of(
                         new NotificationParams.LostAndFoundNew(description != null ? description : ""),
                         linkTo(item.id())),
-                createdBy);
+                Delivery.EVERY_TIME);
         log.info("Created lost-and-found item {} at station {} by member {}", item.id(), stationId, createdBy);
         return item;
     }
@@ -122,13 +123,13 @@ public class LostAndFoundService {
         boolean success = repository.claim(id, claimedBy);
         if (success && item != null) {
             String desc = item.description() != null ? item.description() : "";
-            notificationService.notifyMembersWithRole(
-                    stationId,
-                    StationPermission.LOST_AND_FOUND_MANAGER.name(),
+            notifier.notify(
+                    StationAudience.holders(stationId, StationPermission.LOST_AND_FOUND_MANAGER)
+                            .except(claimedBy),
                     NotificationType.LOST_AND_FOUND_CLAIMED,
                     NotificationData.of(new NotificationParams.LostAndFoundClaimed(claimerName, desc), linkTo(id)),
-                    claimedBy);
-            notificationService.deleteByTypeAndLink(NotificationType.LOST_AND_FOUND_NEW, linkTo(id));
+                    Delivery.EVERY_TIME);
+            notifier.withdraw(NotificationType.LOST_AND_FOUND_NEW, linkTo(id));
             log.info("Claimed lost-and-found item {} by member {} at station {}", id, claimedBy, stationId);
         } else {
             log.warn("Failed to claim lost-and-found item {} by member {} at station {}", id, claimedBy, stationId);
@@ -146,7 +147,7 @@ public class LostAndFoundService {
     public boolean release(int id) {
         boolean released = repository.release(id);
         if (released) {
-            notificationService.deleteByTypeAndLink(NotificationType.LOST_AND_FOUND_CLAIMED, linkTo(id));
+            notifier.withdraw(NotificationType.LOST_AND_FOUND_CLAIMED, linkTo(id));
             log.info("Released the claim on lost-and-found item {}", id);
         } else {
             log.warn("Failed to release lost-and-found item {} (not found or unclaimed)", id);
@@ -167,8 +168,8 @@ public class LostAndFoundService {
         boolean deleted = repository.delete(id);
         if (deleted) {
             imageService.delete(stationId, id);
-            notificationService.deleteByTypeAndLink(NotificationType.LOST_AND_FOUND_NEW, linkTo(id));
-            notificationService.deleteByTypeAndLink(NotificationType.LOST_AND_FOUND_CLAIMED, linkTo(id));
+            notifier.withdraw(NotificationType.LOST_AND_FOUND_NEW, linkTo(id));
+            notifier.withdraw(NotificationType.LOST_AND_FOUND_CLAIMED, linkTo(id));
             log.info("Deleted lost-and-found item {}", id);
         } else {
             log.warn("Failed to delete lost-and-found item {} (not found)", id);

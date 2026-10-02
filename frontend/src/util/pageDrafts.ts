@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {getItem, setItem} from '@/api/storage'
+import {withoutKey} from '@/util/record'
 
 /** Where every draft lives, as one value, so the disclosure has one key to name rather than many. */
 const STORAGE_KEY = 'page_drafts'
@@ -95,6 +96,5 @@ export function readDraft<T>(key: string): PageDraft<T> | null {
 export function clearDraft(key: string): void {
     const store = pruned(read(), Date.now())
     if (!(key in store)) return
-    delete store[key]
-    write(store)
+    write(withoutKey(store, key))
 }

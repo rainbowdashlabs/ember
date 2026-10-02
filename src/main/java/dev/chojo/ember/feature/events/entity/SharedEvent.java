@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.events.entity;
 import org.jspecify.annotations.Nullable;
 
 import java.time.LocalDate;
+import java.util.Objects;
 
 /**
  * An appointment as one station shows it to another.
@@ -40,9 +41,9 @@ public record SharedEvent(
         return new SharedEvent(
                 event.id(),
                 event.name(),
-                event.description() != null ? event.description() : "",
+                Objects.requireNonNullElse(event.description(), ""),
                 event.eventType(),
-                event.dayOfWeek() != null ? event.dayOfWeek() : 0,
+                Objects.requireNonNullElse(event.dayOfWeek(), 0),
                 event.startTime() != null ? event.startTime().toString() : "",
                 event.endTime() != null ? event.endTime().toString() : "",
                 event.requiresRegistration(),

@@ -8,7 +8,7 @@ import {nextTick, onBeforeUnmount, onMounted, ref, watch} from 'vue'
 import type {LeafletMouseEvent, Map as LeafletMap, Marker} from 'leaflet'
 import {useI18n} from 'vue-i18n'
 import {useMapsConfig} from '@/composables/useMapsConfig'
-import {loadLeaflet} from '@/util/leaflet'
+import {addTileLayer, loadLeaflet} from '@/util/leaflet'
 import DecimalInput from '@/components/input/number/DecimalInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
@@ -30,8 +30,8 @@ const props = withDefaults(
 )
 
 const emit = defineEmits<{
-  (e: 'update:latitude', value: number | null): void
-  (e: 'update:longitude', value: number | null): void
+  'update:latitude': [value: number | null]
+  'update:longitude': [value: number | null]
 }>()
 
 const {t} = useI18n()
@@ -78,11 +78,7 @@ async function init() {
   const startZoom = props.latitude && props.longitude ? 13 : props.initialZoom
 
   mapInstance = L.map(mapEl.value, {center: [startLat, startLon], zoom: startZoom, scrollWheelZoom: true})
-  L.tileLayer(config.urlTemplate, {
-    minZoom: config.minZoom,
-    maxZoom: config.maxZoom,
-    attribution: config.attribution,
-  }).addTo(mapInstance)
+  addTileLayer(L, mapInstance, config)
 
   if (typeof props.latitude === 'number' && typeof props.longitude === 'number') {
     setOrMoveMarker(L, props.latitude, props.longitude, false)

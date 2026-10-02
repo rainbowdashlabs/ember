@@ -111,6 +111,38 @@ test.describe('Events', () => {
     })
 
     /**
+     * A comment under an appointment belongs to whoever wrote it: they write it, put it right and
+     * take it back, all from the appointment's own page, and a correction is marked as one.
+     */
+    test('an author writes, changes and removes their comment on an appointment', async ({managerPage: page}) => {
+        const appointment = await weeklyAppointment(page, `Kommentarprobe ${Date.now()}`)
+        const first = `Erster Gedanke ${Date.now()}`
+        const second = `Zweiter Gedanke ${Date.now()}`
+        try {
+            await page.goto(`/station/events/${appointment.id}/${appointment.dateAfterWeeks(0)}`)
+            await page.locator('[contenteditable="true"]').last().click()
+            await page.keyboard.type(first)
+            await page.getByRole('button', {name: 'Absenden'}).click()
+
+            const written = page.locator('[id^="comment-"]').filter({hasText: first})
+            await expect(written).toHaveCount(1)
+            const comment = page.locator(`#${await written.getAttribute('id')}`)
+            await comment.getByRole('button', {name: 'Bearbeiten', exact: true}).click()
+            await comment.locator('[contenteditable="true"]').click()
+            await page.keyboard.press('ControlOrMeta+A')
+            await page.keyboard.type(second)
+            await comment.getByRole('button', {name: 'Speichern', exact: true}).click()
+
+            await expect(comment).toContainText(second)
+            await expect(comment).toContainText('bearbeitet')
+            await comment.getByRole('button', {name: 'Löschen', exact: true}).click()
+            await expect(page.getByText(second)).toHaveCount(0)
+        } finally {
+            await appointment.remove()
+        }
+    })
+
+    /**
      * The list of what is coming up reads from the nearest date to the furthest. It used to hoist
      * every event running over several days to the front, which put one months away above
      * tomorrow's drill and made the whole list read as unsorted.
@@ -163,7 +195,7 @@ test.describe('Events', () => {
     test('an event shows who has registered', async ({managerPage: page}) => {
         await openEventWithRegistration(page)
 
-        await page.getByRole('button', {name: 'Anmeldungen'}).click()
+        await page.getByRole('tab', {name: 'Anmeldungen'}).click()
         await expect(page.getByText(/Meine Anmeldung|Anmeldungen/).first()).toBeVisible()
     })
 
@@ -184,7 +216,7 @@ test.describe('Events', () => {
 
         try {
             await page.goto(`/station/events/${appointment.id}/${appointment.dateAfterWeeks(1)}`)
-            await page.getByRole('button', {name: 'Anmeldungen'}).click()
+            await page.getByRole('tab', {name: 'Anmeldungen'}).click()
 
             const myAnswer = page.locator('[data-testid^="my-answer-"]').first()
             await expect(myAnswer).toHaveText('Noch keine Antwort', {timeout: 15000})
@@ -228,7 +260,7 @@ test.describe('Events', () => {
 
         try {
             await memberPage.goto(`/station/events/${eventId}`)
-            await memberPage.getByRole('button', {name: 'Anmeldungen'}).click()
+            await memberPage.getByRole('tab', {name: 'Anmeldungen'}).click()
 
             const myAnswer = memberPage.locator('[data-testid^="my-answer-"]').first()
             await memberPage.getByTestId('answer-household').click()
@@ -273,7 +305,7 @@ test.describe('Events', () => {
             const eventId = (await created.json()).id
 
             await memberPage.goto(`/station/events/${eventId}`)
-            await memberPage.getByRole('button', {name: 'Anmeldungen'}).click()
+            await memberPage.getByRole('tab', {name: 'Anmeldungen'}).click()
 
             const myAnswer = memberPage.locator('[data-testid^="my-answer-"]').first()
 
@@ -326,7 +358,7 @@ test.describe('Events', () => {
                 expect(withdrawn.ok(), `the member gave the place back (${await withdrawn.text()})`).toBeTruthy()
 
                 await managerPage.goto(`/station/events/${eventId}`)
-                await managerPage.getByRole('button', {name: 'Anmeldungen'}).click()
+                await managerPage.getByRole('tab', {name: 'Anmeldungen'}).click()
                 await pickMemberByName(managerPage.getByTestId('manual-register'), reader.account.email)
 
                 await expect.poll(async () => {
@@ -361,11 +393,11 @@ test.describe('Events', () => {
                 const myAnswer = memberPage.locator('[data-testid^="my-answer-"]').first()
 
                 await memberPage.goto(`/station/events/${appointment.id}/${signedUpFor}`)
-                await memberPage.getByRole('button', {name: 'Anmeldungen'}).click()
+                await memberPage.getByRole('tab', {name: 'Anmeldungen'}).click()
                 await expect(myAnswer, 'the date signed up for holds the place').toHaveText('Bestätigt', {timeout: 15000})
 
                 await memberPage.goto(`/station/events/${appointment.id}/${weekAfter}`)
-                await memberPage.getByRole('button', {name: 'Anmeldungen'}).click()
+                await memberPage.getByRole('tab', {name: 'Anmeldungen'}).click()
                 await expect(myAnswer, 'the week after is still open').toHaveText('Noch keine Antwort', {timeout: 15000})
             } finally {
                 await appointment.remove()
@@ -471,7 +503,7 @@ test.describe('Events', () => {
 
             const asked = await managerPage.request.put(`/api/v1/events/${eventId}/registration-fields`, {
                 headers: managerHeaders,
-                data: {fields: [{name: question, fieldType: 'STRING', config: {required: true}, overview: true}]},
+                data: {fields: [{name: question, fieldType: 'TEXT', config: {required: true}, overview: true}]},
             })
             expect(asked.ok(), `and the appointment gained a question afterwards (${await asked.text()})`).toBeTruthy()
 
@@ -491,8 +523,6 @@ test.describe('Events', () => {
                 'and the member was told once',
             ).toBeTruthy()
 
-            // The deadline goes by before they answer, which is the whole point: the question is
-            // younger than the deadline, so it cannot be the deadline that stops them.
             const closed = await managerPage.request.put(`/api/v1/events/${eventId}`, {
                 headers: managerHeaders,
                 data: {
@@ -533,6 +563,10 @@ test.describe('Events', () => {
      * An event can ask the people signing up for things - shirt size, who is coming along. The
      * story adds such a question to an event of its own and then signs up as a member, who is asked
      * it and whose answer stands next to their name for the organiser afterwards.
+     *
+     * The form keeps its save disabled until the event has a time, and registration, which the
+     * questions belong to, is off to begin with. Saving lands on the planner, so the event is opened
+     * from there.
      */
     test('a registration question is asked and its answer reaches the organiser', async ({managerPage, memberPage}) => {
         const event = `Termin-${Date.now()}`
@@ -542,14 +576,10 @@ test.describe('Events', () => {
         await managerPage.goto('/station/events/new')
         await managerPage.getByPlaceholder('Name des Termins').fill(event)
 
-        // An event without a time is not an event, and the form keeps its save disabled until it
-        // has one.
         const times = managerPage.locator('input[type="datetime-local"]')
         await times.first().fill('2026-12-01T18:00')
         if (await times.count() > 1) await times.nth(1).fill('2026-12-01T20:00')
 
-        // Registration is off to begin with, and the questions belong to it. The switch sits beside
-        // the words rather than under them.
         await managerPage.getByText('Anmeldung erforderlich')
             .locator('xpath=following-sibling::button').click()
         await managerPage.getByRole('button', {name: 'Frage hinzufügen'}).click()
@@ -557,15 +587,13 @@ test.describe('Events', () => {
 
         await managerPage.getByRole('button', {name: /Speichern|Erstellen/}).last().click()
 
-        // Saving lands back on the planner rather than on the event, so the story opens it from
-        // the list it now stands in.
         await managerPage.waitForURL(/\/station\/events$/)
         await managerPage.getByText(event).first().click()
         await managerPage.waitForURL(/\/station\/events\/(\d+)/)
         const id = managerPage.url().match(/events\/(\d+)/)?.[1]
 
         await memberPage.goto(`/station/events/${id}`)
-        await memberPage.getByRole('button', {name: 'Anmeldungen'}).click()
+        await memberPage.getByRole('tab', {name: 'Anmeldungen'}).click()
         await memberPage.getByRole('button', {name: 'Anmelden'}).first().click()
 
         await expect(memberPage.getByText(question).first()).toBeVisible()
@@ -573,7 +601,7 @@ test.describe('Events', () => {
         await memberPage.getByRole('button', {name: /Anmelden|Absenden|Speichern/}).last().click()
 
         await managerPage.goto(`/station/events/${id}`)
-        await managerPage.getByRole('button', {name: 'Anmeldungen'}).click()
+        await managerPage.getByRole('tab', {name: 'Anmeldungen'}).click()
         await expect(managerPage.getByText(answer).first()).toBeVisible()
     })
 
@@ -612,7 +640,6 @@ test.describe('Events', () => {
     test('a run of events is created in one go', async ({managerPage: page}) => {
         const name = `Serie-${Date.now()}`
 
-        // Three steps: what the events are called, when they fall, and a last look at the list.
         await page.goto('/station/events/batch')
         await page.getByRole('textbox').first().fill(name)
         await page.getByRole('button', {name: 'Weiter'}).click()
@@ -667,7 +694,7 @@ test.describe('Events', () => {
     test('the past appointments are a tab of their own', async ({managerPage: page}) => {
         await page.goto('/station/events')
 
-        await page.getByRole('button', {name: 'Vergangen'}).click()
+        await page.getByRole('tab', {name: 'Vergangen'}).click()
         await expect(page).toHaveURL(/tab=past/)
 
         await page.reload()

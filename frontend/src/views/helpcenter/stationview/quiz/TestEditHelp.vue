@@ -25,7 +25,6 @@ const { t } = useI18n()
       <p>{{ t('helpCenter.quizTestEdit.basicText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Basic test settings -->
     <NeutralContainer class="space-y-3">
       <TextInput model-value="Jugendflamme Stufe 1 - Theorieteil" disabled :placeholder="t('helpCenter.quizTestEdit.nameLabel')" />
       <div class="flex items-center gap-2 text-xs">
@@ -42,20 +41,19 @@ const { t } = useI18n()
       <p>{{ t('helpCenter.quizTestEdit.sectionsText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Section config -->
     <NeutralContainer>
       <div class="space-y-2 text-sm">
-        <div class="font-semibold">Abschnitt 1</div>
+        <div class="font-semibold">{{ t('helpCenter.sample.quiz.section', {number: 1}) }}</div>
         <div class="flex gap-4 text-xs text-[var(--text-muted)]">
-          <span>Katalog: Grundwissen</span>
-          <span>10 Fragen</span>
-          <span>Zufällig</span>
+          <span>{{ t('helpCenter.sample.quiz.catalog', {name: t('helpCenter.sample.quiz.basicKnowledge')}) }}</span>
+          <span>{{ t('helpCenter.sample.quiz.questionCount', {count: 10}) }}</span>
+          <span>{{ t('helpCenter.sample.quiz.random') }}</span>
         </div>
-        <div class="font-semibold mt-2">Abschnitt 2</div>
+        <div class="font-semibold mt-2">{{ t('helpCenter.sample.quiz.section', {number: 2}) }}</div>
         <div class="flex gap-4 text-xs text-[var(--text-muted)]">
-          <span>Katalog: Ausrüstung</span>
-          <span>5 Fragen</span>
-          <span>Zufällig</span>
+          <span>{{ t('helpCenter.sample.quiz.catalog', {name: t('helpCenter.sample.quiz.equipment')}) }}</span>
+          <span>{{ t('helpCenter.sample.quiz.questionCount', {count: 5}) }}</span>
+          <span>{{ t('helpCenter.sample.quiz.random') }}</span>
         </div>
       </div>
     </NeutralContainer>

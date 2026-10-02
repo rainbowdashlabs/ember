@@ -10,7 +10,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import RestrictionsField from '@/components/input/RestrictionsField.vue'
 import {toRestrictionSelection} from '@/components/input/restriction'
-import type {MemberGroup, UserTag} from '@/api/types'
+import type {MemberGroup, UserTag} from '@/api/generated/schema'
 
 defineProps<{
   allGroups: MemberGroup[]
@@ -36,9 +36,9 @@ const {t} = useI18n()
     <SubHeader>{{ t('quiz.tests.restrictions') }}</SubHeader>
     <NeutralContainer>
       <RestrictionsField
+          v-model="restriction"
           :groups="allGroups"
           :tags="allTags"
-          v-model="restriction"
       />
       <div v-if="restrictionsDirty" class="flex justify-end mt-3">
         <PrimaryButton @click="emit('save')">{{ t('common.save') }}</PrimaryButton>

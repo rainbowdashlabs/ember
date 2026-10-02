@@ -11,22 +11,22 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
-import type { InventoryItem, InventoryItemHistory } from '@/api/inventory'
-import type { StationMember } from '@/api/types'
+import type { HistoryResponse, InventoryItem } from '@/api/generated/schema'
+import type { MemberLike } from '@/components/input/select/memberOption'
 import { inventory } from '@/api'
 import { useConfigPanel } from '@/composables/useConfigPanel'
 import { formatDate } from '@/util/format'
 
 const props = defineProps<{
   item: InventoryItem | null
-  memberMap: Map<number, StationMember>
+  memberMap: Map<number, MemberLike>
 }>()
 
 const show = defineModel<boolean>({ default: false })
 
 const { t } = useI18n()
 
-const { config: entries, loading, reload: loadHistory } = useConfigPanel<InventoryItemHistory[]>({
+const { config: entries, loading, reload: loadHistory } = useConfigPanel<HistoryResponse[]>({
   initial: [],
   fetch: async () => props.item ? await inventory.getItemHistory(props.item.id) : [],
   immediate: false,

@@ -9,7 +9,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import SelfCheckEntryCard from './SelfCheckEntryCard.vue'
-import type {RequiredInventoryItem} from '@/api/inventory'
+import type {RequiredInventoryItem} from '@/api/generated/schema'
 import type {ExchangeCauseName, RaisedReport, SelfCheckDraft, SelfCheckEntry} from '@/composables/useSelfCheck'
 import type {SelfCheckAnswerName} from '@/api/selfChecks'
 

@@ -7,11 +7,11 @@
 import { useI18n } from 'vue-i18n'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
-import type { FederationTarget } from '@/api/boards'
-import { StationUserType, StationUserTypeLabels, type StationUserTypeName } from '@/api/types'
+import type { FederationTargetResponse, StationUserType as StationUserTypeName } from '@/api/generated/schema'
+import { StationUserType, StationUserTypeLabels } from '@/api/types'
 
 defineProps<{
-    targets: FederationTarget[]
+    targets: FederationTargetResponse[]
     partnerName: (id: number) => string
 }>()
 
@@ -23,11 +23,11 @@ const { t } = useI18n()
 
 type SelectValue = string | number | null | undefined
 
-function applyShareMode(target: FederationTarget, value: SelectValue) {
+function applyShareMode(target: FederationTargetResponse, value: SelectValue) {
     target.shareMode = value === 'FULL' ? 'FULL' : 'READ_ONLY'
 }
 
-function applyRequiredUserType(target: FederationTarget, value: SelectValue) {
+function applyRequiredUserType(target: FederationTargetResponse, value: SelectValue) {
     target.requiredUserType = (value ?? StationUserType.MEMBER) as StationUserTypeName
 }
 </script>

@@ -5,16 +5,17 @@
  */
 package dev.chojo.ember.feature.knowledgebase.service;
 
-import dev.chojo.ember.feature.federation.service.RemoteUrlValidator;
+import dev.chojo.ember.feature.federation.service.OutboundHttp;
+import dev.chojo.ember.feature.federation.service.RefusedDestinationException;
 import dev.chojo.ember.feature.knowledgebase.entity.UrlMetadata;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 import java.net.URLEncoder;
-import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
@@ -31,9 +32,10 @@ import java.util.regex.Pattern;
  *
  * <p>The address comes from whoever creates the entry and part of the answer is stored where they
  * can read it, so an unchecked lookup would let them reach whatever the server can reach and read
- * back what it found. Every address is therefore put to {@link RemoteUrlValidator} first, and
- * redirects are walked here rather than by the client, because a public address that redirects into
- * a private one would otherwise pass a check made only at the start.
+ * back what it found. Every request therefore goes through {@link OutboundHttp}, which refuses a
+ * non-public address and connects to the address it checked, and redirects are walked here rather
+ * than by the client, so every hop is checked the same way: a public address that redirects into a
+ * private one would otherwise pass a check made only at the start.
  */
 @Singleton
 public class KbLinkMetadataService {
@@ -48,37 +50,19 @@ public class KbLinkMetadataService {
     private static final int MAX_SCANNED_CHARACTERS = 10_000;
     private static final int MAX_REDIRECTS = 3;
 
-    private final HttpClient httpClient;
-    private final RemoteUrlValidator urlValidator;
+    private final OutboundHttp outbound;
 
     @Inject
-    public KbLinkMetadataService(RemoteUrlValidator urlValidator) {
-        this(
-                HttpClient.newBuilder()
-                        .connectTimeout(TIMEOUT)
-                        .followRedirects(HttpClient.Redirect.NEVER)
-                        .build(),
-                urlValidator);
+    public KbLinkMetadataService(OutboundHttp outbound) {
+        this.outbound = outbound;
     }
 
-    /**
-     * Builds the service on a caller-supplied client, so the lookups can be driven without
-     * reaching the network.
-     *
-     * @param httpClient   the client every lookup is sent through
-     * @param urlValidator decides which addresses may be reached at all
-     */
-    KbLinkMetadataService(HttpClient httpClient, RemoteUrlValidator urlValidator) {
-        this.httpClient = httpClient;
-        this.urlValidator = urlValidator;
-    }
-
-    private static String firstGroup(Pattern pattern, String body) {
+    private static @Nullable String firstGroup(Pattern pattern, String body) {
         var matcher = pattern.matcher(body);
         return matcher.find() ? matcher.group(1).trim() : null;
     }
 
-    private static String extractJsonString(String json, String key) {
+    private static @Nullable String extractJsonString(String json, String key) {
         return firstGroup(Pattern.compile("\"" + key + "\"\\s*:\\s*\"([^\"]+)\""), json);
     }
 
@@ -109,7 +93,7 @@ public class KbLinkMetadataService {
      * @param youtubeUrl the video to look up
      * @return the title and channel, or {@code null} when the video could not be looked up
      */
-    public String fetchYoutubeMetadata(String youtubeUrl) {
+    public @Nullable String fetchYoutubeMetadata(String youtubeUrl) {
         try {
             String body = get("https://www.youtube.com/oembed?url="
                     + URLEncoder.encode(youtubeUrl, StandardCharsets.UTF_8)
@@ -124,14 +108,16 @@ public class KbLinkMetadataService {
         }
     }
 
-    private String get(String url) throws Exception {
+    private @Nullable String get(String url) throws Exception {
         String target = url;
         for (int hop = 0; hop <= MAX_REDIRECTS; hop++) {
-            if (!urlValidator.isAllowed(target)) {
-                log.debug("Refusing to look up {}: not a public address", target);
+            HttpResponse<String> response;
+            try {
+                response = send(target);
+            } catch (RefusedDestinationException e) {
+                log.debug("Refusing to look up {}: {}", target, e.getMessage());
                 return null;
             }
-            HttpResponse<String> response = send(target);
             if (response.statusCode() == 200) return response.body();
 
             String location = redirect(response);
@@ -149,10 +135,10 @@ public class KbLinkMetadataService {
                 .header("User-Agent", "Mozilla/5.0 (compatible; EmberBot/1.0)")
                 .GET()
                 .build();
-        return httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        return outbound.send(request, HttpResponse.BodyHandlers.ofString());
     }
 
-    private static String redirect(HttpResponse<String> response) {
+    private static @Nullable String redirect(HttpResponse<String> response) {
         int status = response.statusCode();
         if (status < 300 || status > 399) return null;
         return response.headers().firstValue("location").orElse(null);

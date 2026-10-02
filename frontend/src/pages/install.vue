@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {useI18n} from 'vue-i18n'
 import InstallView from '~/views/InstallView.vue'
 
 definePageMeta({
@@ -11,10 +12,12 @@ definePageMeta({
   name: 'install',
 })
 
+const {t} = useI18n()
+
 useHead({
-  title: 'Ember installieren',
+  title: t('pageHead.install.title'),
   meta: [
-    {name: 'description', content: 'Eine Ember-Installation zusammenstellen und als ein Befehl ausführen.'},
+    {name: 'description', content: t('pageHead.install.description')},
   ],
 })
 </script>

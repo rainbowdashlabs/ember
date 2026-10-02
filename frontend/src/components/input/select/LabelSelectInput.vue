@@ -4,9 +4,13 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, nextTick, onBeforeUnmount, onMounted, ref, watch} from 'vue'
+import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
-import {contrastTextColor} from '@/theme/contrast'
+import DropdownPanel from './dropdown/DropdownPanel.vue'
+import DropdownListbox from './dropdown/DropdownListbox.vue'
+import DropdownOption from './dropdown/DropdownOption.vue'
+import DropdownSearch from './dropdown/DropdownSearch.vue'
+import LabelSelectTrigger from './labelselect/LabelSelectTrigger.vue'
 
 /**
  * The least a thing needs to be pickable here: an identifier and a word. A colour is optional, so
@@ -64,8 +68,9 @@ const {t} = useI18n()
 
 const search = ref('')
 const open = ref(false)
-const containerRef = ref<HTMLElement | null>(null)
-const searchInputRef = ref<HTMLInputElement | null>(null)
+
+/** A word to make, as the list tells it apart from every label, whose ids are numbers. */
+const CREATE = 'create'
 
 const placeholderText = computed(() => props.placeholder || t('labelSelect.placeholder'))
 const emptyMessage = computed(() => props.emptyText || t('labelSelect.empty'))
@@ -86,6 +91,8 @@ const canCreate = computed(() => {
 })
 
 const selectedIds = computed(() => new Set(props.selected.map(l => l.id)))
+
+const picked = computed(() => (props.single ? props.selected[0]?.id : props.selected.map(l => l.id)))
 
 function toggle(id: number) {
     emit('toggle', id)
@@ -111,89 +118,55 @@ function dropDraft(name: string) {
     )
 }
 
-function handleClickOutside(e: MouseEvent) {
-    if (containerRef.value && !containerRef.value.contains(e.target as Node)) open.value = false
+/** The list marks what is picked, but picking is handed to the parent rather than kept by the list. */
+function onPick(event: Event, id: number) {
+    event.preventDefault()
+    toggle(id)
+}
+
+function onCreate(event: Event) {
+    event.preventDefault()
+    createLabel()
 }
 
 watch(open, isOpen => {
-    if (isOpen) nextTick(() => searchInputRef.value?.focus())
+    if (!isOpen) search.value = ''
 })
-onMounted(() => document.addEventListener('click', handleClickOutside))
-onBeforeUnmount(() => document.removeEventListener('click', handleClickOutside))
 </script>
 
 <template>
-    <div ref="containerRef" class="relative">
-        <div
-            class="flex flex-wrap items-center gap-1 min-h-[2rem] px-2 py-1 rounded-theme bg-transparent cursor-pointer transition-colors hover:bg-[var(--bg-accent)]"
-            :class="{'opacity-50 pointer-events-none': disabled}"
-            data-testid="label-select"
-            @click.stop="open = !open"
-        >
-            <BaseBadge
-                v-for="label in selected"
-                :key="label.id"
-                :bg-class="label.color ? '' : 'bg-primary/15'"
-                class="inline-flex items-center gap-1"
-                :style="label.color ? {backgroundColor: label.color, color: contrastTextColor(label.color)} : undefined"
-            >
-                {{ label.name }}
-                <span class="opacity-70 cursor-pointer" @click.stop="toggle(label.id)">x</span>
-            </BaseBadge>
-            <BaseBadge
-                v-for="name in drafts"
-                :key="`draft-${name}`"
-                bg-class="bg-primary/15"
-                class="inline-flex items-center gap-1 border border-dashed border-(--border)"
-            >
-                {{ name }}
-                <span class="text-xs opacity-70">{{ t('labelSelect.draft') }}</span>
-                <span class="opacity-70 cursor-pointer" @click.stop="dropDraft(name)">x</span>
-            </BaseBadge>
-            <span v-if="selected.length === 0 && drafts.length === 0" class="text-sm text-(--text-muted)">
-                {{ placeholderText }}
-            </span>
-        </div>
-        <div
-            v-if="open"
-            class="absolute z-20 mt-1 w-full rounded-theme border border-[var(--border)] bg-[var(--bg)] shadow-lg overflow-hidden max-h-48 overflow-y-auto"
-        >
-            <div class="p-2 border-b border-[var(--border)]">
-                <input
-                    ref="searchInputRef"
-                    v-model="search"
-                    type="text"
-                    :placeholder="creatable ? t('labelSelect.searchOrCreate') : t('labelSelect.search')"
-                    class="w-full text-sm bg-transparent outline-none"
-                    @keydown.enter.prevent="canCreate ? createLabel() : undefined"
+    <div>
+        <DropdownPanel v-model:open="open" match-width panel-class="max-h-60">
+            <template #trigger>
+                <LabelSelectTrigger
+                    :selected="selected"
+                    :drafts="drafts"
+                    :disabled="disabled"
+                    :placeholder="placeholderText"
+                    @remove="toggle"
+                    @drop-draft="dropDraft"
                 />
-            </div>
-            <div
-                v-for="label in filtered"
-                :key="label.id"
-                class="px-3 py-1.5 text-sm cursor-pointer hover:bg-primary/5 flex items-center gap-2"
-                @click="toggle(label.id)"
-            >
-                <span v-if="label.color" class="w-3 h-3 rounded-full shrink-0" :style="{backgroundColor: label.color}"/>
-                <span class="flex-1">{{ label.name }}</span>
-                <font-awesome-icon
-                    v-if="selectedIds.has(label.id)"
-                    :icon="['fas', 'check']"
-                    class="text-xs text-primary"
-                />
-            </div>
-            <div
-                v-if="canCreate"
-                class="px-3 py-1.5 text-sm cursor-pointer hover:bg-primary/5 flex items-center gap-2 border-t border-[var(--border)]"
-                data-testid="label-select-create"
-                @click="createLabel"
-            >
-                <font-awesome-icon :icon="['fas', 'plus']" class="text-xs text-primary"/>
-                <span>{{ t('labelSelect.create', {name: typed}) }}</span>
-            </div>
-            <p v-else-if="filtered.length === 0" class="px-3 py-2 text-xs text-(--text-muted)">
-                {{ emptyMessage }}
-            </p>
-        </div>
+            </template>
+            <DropdownListbox :model-value="picked" :multiple="!single" :label="placeholderText">
+                <template #head>
+                    <DropdownSearch
+                        v-model="search"
+                        :placeholder="creatable ? t('labelSelect.searchOrCreate') : t('labelSelect.search')"
+                    />
+                </template>
+                <DropdownOption v-if="canCreate" :value="CREATE" data-testid="label-select-create" @select="onCreate">
+                    <font-awesome-icon :icon="['fas', 'plus']" class="text-xs text-primary"/>
+                    <span>{{ t('labelSelect.create', {name: typed}) }}</span>
+                </DropdownOption>
+                <DropdownOption v-for="label in filtered" :key="label.id" :value="label.id" @select="onPick($event, label.id)">
+                    <span v-if="label.color" class="w-3 h-3 rounded-full shrink-0" :style="{backgroundColor: label.color}"/>
+                    <span class="flex-1">{{ label.name }}</span>
+                    <font-awesome-icon v-if="selectedIds.has(label.id)" :icon="['fas', 'check']" class="text-xs text-primary"/>
+                </DropdownOption>
+                <p v-if="!canCreate && filtered.length === 0" class="px-3 py-2 text-xs text-(--text-muted)">
+                    {{ emptyMessage }}
+                </p>
+            </DropdownListbox>
+        </DropdownPanel>
     </div>
 </template>

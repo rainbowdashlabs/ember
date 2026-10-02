@@ -15,9 +15,14 @@ import ReportFilters from './reportview/ReportFilters.vue'
 import ReportPreview from './reportview/ReportPreview.vue'
 import ExportFormatModal from '@/components/documents/ExportFormatModal.vue'
 import type {ExportFormat, ExportSeparator} from '@/util/exportFormat'
-import {StationUserType, StationUserTypeLabels, type MemberGroup} from '@/api/types'
+import {StationUserType, StationUserTypeLabels} from '@/api/types'
 import {attendance, memberGroups} from '@/api'
-import type {ReportData, ReportPreset} from '@/api/attendance'
+import type {
+  AttendanceReportPreset,
+  MemberGroup,
+  ReportData,
+  StationUserType as StationUserTypeName,
+} from '@/api/generated/schema'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useAsyncAction} from '@/composables/useAsyncAction'
@@ -27,7 +32,7 @@ const {t} = useI18n()
 const {loaded} = useSession()
 
 const groups = ref<MemberGroup[]>([])
-const presets = ref<ReportPreset[]>([])
+const presets = ref<AttendanceReportPreset[]>([])
 const report = ref<ReportData | null>(null)
 
 const selectedUserTypes = ref<string[]>([])
@@ -197,13 +202,18 @@ function runChosenExport(format: ExportFormat, separator: ExportSeparator) {
   return runExport(format, separator)
 }
 
+/** Whether a picked value names a user type, which the shared picker hands over as plain text. */
+function isStationUserType(value: string): value is StationUserTypeName {
+  return Object.hasOwn(StationUserType, value)
+}
+
 async function savePreset() {
   if (!presetName.value || !canPreview.value) return
   actionFailure.value = null
   try {
     await attendance.createPreset({
       name: presetName.value,
-      userTypes: [...selectedUserTypes.value],
+      userTypes: selectedUserTypes.value.filter(isStationUserType),
       groupIds: selectedGroupIds.value.map(Number),
       period: selectedPeriod.value,
       rounding: selectedRounding.value,
@@ -221,7 +231,7 @@ async function savePreset() {
  * Restores the filter a preset was saved with. Groups deleted since are left out, and the point in
  * time is always the current one, because a saved filter is a question asked again about now.
  */
-function applyPreset(preset: ReportPreset) {
+function applyPreset(preset: AttendanceReportPreset) {
   const knownGroupIds = new Set(groupOptions.value.map(g => g.value))
   selectedUserTypes.value = [...preset.userTypes]
   selectedGroupIds.value = preset.groupIds.map(String).filter(id => knownGroupIds.has(id))

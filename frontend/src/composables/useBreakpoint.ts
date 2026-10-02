@@ -3,33 +3,25 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import { ref, onMounted, onUnmounted } from 'vue'
+import {breakpointsTailwind, useBreakpoints} from '@vueuse/core'
+import {computed} from 'vue'
+import {useHydrated} from '@/composables/useHydrated'
 
-const MD_BREAKPOINT = 768
-
-const isMobile = ref(typeof window !== 'undefined' ? window.innerWidth < MD_BREAKPOINT : false)
-
-let listenerCount = 0
-
-function updateBreakpoint() {
-    isMobile.value = window.innerWidth < MD_BREAKPOINT
-}
-
+/**
+ * Where the window stands against the Tailwind breakpoints the templates are written in: below `md`
+ * is a phone, `lg` and above is a desktop.
+ *
+ * <p>Both read false on the server, and in the browser until the page the server sent has been taken
+ * up (see {@link useHydrated}), so a phone gets its narrow layout as a change after hydration rather
+ * than as a disagreement with the server's markup.
+ */
 export function useBreakpoint() {
-    onMounted(() => {
-        if (listenerCount === 0) {
-            window.addEventListener('resize', updateBreakpoint)
-        }
-        listenerCount++
-        updateBreakpoint()
-    })
-
-    onUnmounted(() => {
-        listenerCount--
-        if (listenerCount === 0) {
-            window.removeEventListener('resize', updateBreakpoint)
-        }
-    })
-
-    return { isMobile }
+    const hydrated = useHydrated()
+    const breakpoints = useBreakpoints(breakpointsTailwind)
+    const phone = breakpoints.smaller('md')
+    const desktop = breakpoints.greaterOrEqual('lg')
+    return {
+        isMobile: computed(() => hydrated.value && phone.value),
+        isDesktop: computed(() => hydrated.value && desktop.value),
+    }
 }

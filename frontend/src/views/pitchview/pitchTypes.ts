@@ -3,28 +3,19 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {AttendanceEntry} from '@/api/attendance'
-import type {InventoryItem, InventorySize, RequiredInventoryItem} from '@/api/inventory'
-import type {InventoryContainer, InventoryContainerKind} from '@/api/inventoryContainers'
-import type {CheckResult} from '@/api/inventoryCheck'
+import type {
+    ActiveSession, AttendanceEntry, BoardLabel, BoardLane, CheckResult, CommentResponse, ContentRow, EvaluationResponse, Form,
+    FormAnswerValue, FormQuestion, FormQuestionInfo, FormResultGroup, InventoryContainer, InventoryContainerKind,
+    InventoryItem, InventorySize, MemberCompletion, MemberGroup, MemberIdentity, MemberWithName, MovementStanding, PartnerResponse,
+    ProcedureItem,
+    ProcedureTemplateItem, QuizCatalog, RequiredInventoryItem, SettingsResponse, StationPage, TestProtocolItem,
+    TestProtocolSection, TicketSummary, UserTag, WaitingList, WaitingListEntryWithScore, WaitingListField, WaitingListWithCount,
+} from '@/api/generated/schema'
 import type {CheckEntry} from '@/composables/useMemberCheck'
 import type {CheckRow} from '@/views/stationview/attendance/sessionview/useCheckMode'
-import type {EvaluationResponse, TestProtocolItem, TestProtocolSection} from '@/api/protocol'
-import type {Form, FormQuestion, FormQuestionInfo, FormResultGroup} from '@/api/forms'
-import type {PageRow, StationPage} from '@/api/pageManage'
-import type {UserSettings} from '@/api/userSettings'
-import type {ActiveSession} from '@/api/session'
-import type {
-    WaitingList, WaitingListEntryWithScore, WaitingListField, WaitingListWithCount,
-} from '@/api/waitingList'
-import type {ProcedureItem, ProcedureTemplateItem} from '@/api/procedures'
-import type {QuizCatalog} from '@/api/quiz'
+import type {MemberSection} from '@/views/stationview/attendance/sessionview/memberSections'
 import type {KbItem} from '@/views/stationview/knowledge/knowledgebaseview/useKbItems'
-import type {BoardLabel, BoardLane, BoardTicket} from '@/api/boards'
-import type {Comment} from '@/api/comments'
-import type {MemberCompletion} from '@/api/stationMembers'
-import type {MemberGroup, MemberIdentity, StationMember, UserTag} from '@/api/types'
-import type {PartnerResponse} from '@/api/federation'
+import type {MemberLike} from '@/components/input/select/memberOption'
 
 /** The accent a slide is drawn in. Maps onto the theme colours, not onto fixed hex values. */
 export type Accent = 'primary' | 'secondary' | 'success' | 'info' | 'error'
@@ -99,7 +90,7 @@ export interface PitchListRow {
 export interface PitchBoard {
     shortKey: string
     lanes: BoardLane[]
-    tickets: BoardTicket[]
+    tickets: TicketSummary[]
     labels?: Record<number, BoardLabel[]>
     members?: MemberCompletion[]
     archivedCount?: number
@@ -138,11 +129,11 @@ export interface PitchInventoryCheck {
     assignedItems: InventoryItem[]
     availableItems: InventoryItem[]
     emptySlotCount: number
-    itemResults: Map<number, CheckResult>
-    itemNotes: Map<number, string>
-    slotsNotInPossession: Set<string>
-    slotProcurements: Set<string>
-    slotSelections: Map<string, string>
+    itemResults: ReadonlyMap<number, CheckResult>
+    itemNotes: ReadonlyMap<number, string>
+    slotsNotInPossession: ReadonlySet<string>
+    slotProcurements: ReadonlySet<string>
+    slotSelections: ReadonlyMap<string, string>
     sizeLabel: (req: RequiredInventoryItem, sizeId?: number | null) => string
     itemLabel: (item: InventoryItem, req: RequiredInventoryItem) => string
 }
@@ -153,8 +144,8 @@ export interface PitchRapidCheck {
     availableForInventory: (inventoryId: number) => InventoryItem[]
     sizeLabel: (req: RequiredInventoryItem, sizeId?: number | null) => string
     itemLabel: (item: InventoryItem, req: RequiredInventoryItem) => string
-    itemNotes: Map<number, string>
-    movementStep: (itemId: number) => string | null
+    itemNotes: ReadonlyMap<number, string>
+    movementOf: (itemId: number) => MovementStanding | null
 }
 
 /** What the account shows about itself: its sessions, and its data export. */
@@ -165,7 +156,7 @@ export interface PitchTrust {
 
 /** The notification settings of one member, and the personal feeds they can subscribe to. */
 export interface PitchNotifications {
-    settings?: UserSettings
+    settings?: SettingsResponse
     feeds?: {
         icon: [string, string]
         title: string
@@ -199,7 +190,7 @@ export interface PitchTransfer {
 /** The pages of a station: the tree in the management, and the rows of the page itself. */
 export interface PitchPages {
     tree: {page: StationPage; depth: number}[]
-    rows: PageRow[]
+    rows: ContentRow[]
     landingPageId: number | null
 }
 
@@ -217,7 +208,7 @@ export interface PitchWaitlist {
 /** A form being filled in: its questions and the answers already given. */
 export interface PitchForm {
     questions: FormQuestion[]
-    answers: Record<number, Record<string, unknown>>
+    answers: Record<number, FormAnswerValue>
 }
 
 /** The evaluation of a form: the charts per question, and who has not answered yet. */
@@ -247,7 +238,7 @@ export interface PitchNews {
 export interface PitchNewsSettings {
     groups: MemberGroup[]
     tags: UserTag[]
-    members: StationMember[]
+    members: MemberLike[]
     selectedUserTypes: string[]
     selectedGroupIds: number[]
     selectedTagIds: number[]
@@ -279,8 +270,8 @@ export interface PitchProcedureTemplate {
 /** What the application's own attendance summary and member list need to draw a session. */
 export interface PitchAttendance {
     entries: AttendanceEntry[]
-    members: StationMember[]
-    sections: {group: MemberGroup | null; members: StationMember[]}[]
+    members: MemberWithName[]
+    sections: MemberSection[]
 }
 
 /** What the application's own grading panel needs: the section, its items, and what is ticked. */
@@ -288,7 +279,7 @@ export interface PitchGrading {
     section: TestProtocolSection
     childSections: TestProtocolSection[]
     sectionItems: (sectionId: number) => TestProtocolItem[]
-    checks: Map<number, boolean>
+    checks: ReadonlyMap<number, boolean>
     score: number
     maxPoints: number
     done: boolean
@@ -297,7 +288,7 @@ export interface PitchGrading {
 /** What the application's own evaluation table needs to draw a whole run. */
 export interface PitchEvaluation {
     evalData: EvaluationResponse
-    memberMap: Map<number, StationMember>
+    memberMap: ReadonlyMap<number, MemberWithName>
 }
 
 /** A section switch above the content, as the grading carries one per section of the sheet. */
@@ -360,7 +351,7 @@ export interface PitchScreen {
     hint?: string
     progress?: PitchProgress
     /** The catalogues the training offers, with the ones already picked. */
-    catalogs?: {items: QuizCatalog[]; selected: Set<number>}
+    catalogs?: {items: QuizCatalog[]; selected: ReadonlySet<number>}
     /** The line the grading keeps above the sheet: the label left, the score right. */
     total?: {label: string; value: string}
     /** The counter row an inventory carries above its items. */
@@ -368,7 +359,7 @@ export interface PitchScreen {
     storage?: PitchStorage
     board?: PitchBoard
     /** Rendered by the application's own comment thread, read-only. */
-    comments?: Comment[]
+    comments?: CommentResponse[]
     inventoryCheck?: PitchInventoryCheck
     rapidCheck?: PitchRapidCheck
     attendance?: PitchAttendance

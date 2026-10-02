@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.station.entity.ApplicationStatus;
+import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
 import dev.chojo.ember.feature.station.entity.StationApplication;
 import dev.chojo.ember.feature.station.repository.StationApplicationRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository;
@@ -134,27 +135,23 @@ public class StationApplicationService {
 
         applicationRepository.accept(id);
 
-        var station = stationRepository.create(application.stationName());
+        var station = stationRepository.create(application.stationName(), DiscoveryVisibility.NEW_STATION_DEFAULT);
 
         var account = accountRepository.create(
                 application.email(), application.firstName(), application.lastName(), true, station.id());
 
-        // Create station member
         var member = stationMemberRepository.create(station.id(), account.id());
 
-        // Assign manager role
         var managerRole = stationMemberRepository
                 .findPermissionByName(StationPermission.STATION_ADMINISTRATOR)
                 .orElseThrow(() -> new IllegalStateException("Manager role not found"));
         stationMemberRepository.grantPermission(member.id(), managerRole.id());
 
-        // Also assign login role
         var loginRole = stationMemberRepository
                 .findPermissionByName(StationPermission.LOGIN)
                 .orElseThrow(() -> new IllegalStateException("Login role not found"));
         stationMemberRepository.grantPermission(member.id(), loginRole.id());
 
-        // Send acceptance email and password setup email
         String token = UUID.randomUUID().toString();
         accountRepository.createToken(
                 account.id(),
@@ -183,7 +180,6 @@ public class StationApplicationService {
 
         applicationRepository.deny(id, reason);
 
-        // Send denial email
         emailService.sendApplicationDeniedEmail(
                 application.email(), application.firstName(), application.stationName(), reason, "de", null);
 

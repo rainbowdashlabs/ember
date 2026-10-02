@@ -3,22 +3,22 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-// @vitest-environment happy-dom
 import {mount} from '@vue/test-utils'
 import {defineComponent} from 'vue'
 import {describe, expect, it} from 'vitest'
-import {MovementPurpose, MovementState, StepActor, type Movement} from '@/api/movements'
+import {MovementPurpose, MovementState, StepActor} from '@/api/movements'
+import type {MovementResponse} from '@/api/generated/schema'
 import {useDataTable, type DataTableApi} from '@/composables/useDataTable'
 import {MovementColumn, useMovementColumns} from './movementColumns'
 
-function movement(id: number, fields: Partial<Movement>): Movement {
+function movement(id: number, fields: Partial<MovementResponse>): MovementResponse {
     return {
         id,
         purpose: MovementPurpose.ISSUE,
         state: MovementState.OPEN,
         createdAt: '2026-01-01T10:00:00Z',
         ...fields,
-    } as Movement
+    } as MovementResponse
 }
 
 const MOVEMENTS = [
@@ -27,20 +27,20 @@ const MOVEMENTS = [
     movement(3, {inventoryName: 'Helme', itemName: 'Helm 9', state: MovementState.DONE, reachedStepLabel: 'Ausgegeben'}),
 ]
 
-function queue(): DataTableApi<Movement> {
-    let api: DataTableApi<Movement> | null = null
+function queue(): DataTableApi<MovementResponse> {
+    let api: DataTableApi<MovementResponse> | null = null
     mount(defineComponent({
         setup() {
-            api = useDataTable<Movement>({
+            api = useDataTable<MovementResponse>({
                 id: 'movements-test', rows: MOVEMENTS, columns: useMovementColumns(() => MOVEMENTS), rowKey: m => m.id,
             })
             return () => null
         },
     }))
-    return api as unknown as DataTableApi<Movement>
+    return api as unknown as DataTableApi<MovementResponse>
 }
 
-function ids(table: DataTableApi<Movement>): number[] {
+function ids(table: DataTableApi<MovementResponse>): number[] {
     return table.rows.map(row => row.id).toSorted()
 }
 

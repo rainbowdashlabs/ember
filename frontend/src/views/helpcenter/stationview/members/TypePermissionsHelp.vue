@@ -12,6 +12,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import PermissionPicker from '@/components/input/PermissionPicker.vue'
+import type {Permission} from '@/api/generated/schema'
 
 const {t} = useI18n()
 
@@ -23,10 +24,10 @@ const USER_TYPES = [
   {label: t('helpCenter.typePermissions.typeManager'), desc: t('helpCenter.typePermissions.typeManagerDesc')},
 ] as const
 
-const dummyRoles = [
-  {id: 1, permission: 'ATTENDANCE_MANAGEMENT', label: 'Anwesenheitsverwaltung'},
-  {id: 2, permission: 'INVENTORY_READ', label: 'Inventar lesen'},
-  {id: 3, permission: 'EVENT_MANAGEMENT', label: 'Terminverwaltung'},
+const dummyRoles: Permission[] = [
+  {id: 1, permission: 'ATTENDANCE_MANAGER'},
+  {id: 2, permission: 'INVENTORY_READ'},
+  {id: 3, permission: 'EVENT_MANAGER'},
 ]
 const dummySelected = new Set([1])
 </script>
@@ -41,10 +42,8 @@ const dummySelected = new Set([1])
       <p>{{ t('helpCenter.typePermissions.howToText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Two-column grid matching the real view -->
     <HelpSection :title="t('helpCenter.typePermissions.exampleTitle')">
       <div class="grid gap-6 lg:grid-cols-2">
-        <!-- User type list -->
         <div class="space-y-4">
           <SectionHeader>{{ t('userTypePermissions.title') }}</SectionHeader>
           <MutedText size="sm">{{ t('userTypePermissions.description') }}</MutedText>
@@ -62,7 +61,6 @@ const dummySelected = new Set([1])
           </div>
         </div>
 
-        <!-- Permission picker -->
         <div class="space-y-4">
           <SectionHeader>{{ t('helpCenter.typePermissions.typeTeam') }}</SectionHeader>
           <PermissionPicker :model-value="dummySelected" :all-roles="dummyRoles"/>

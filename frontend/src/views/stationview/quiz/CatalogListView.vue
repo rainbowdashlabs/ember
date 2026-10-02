@@ -11,7 +11,7 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
-import type {QuizCatalog, SharedCatalogEntry} from '@/api/quiz'
+import type {QuizCatalog, SharedQuizCatalog} from '@/api/generated/schema'
 import { quiz, federation } from '@/api'
 import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
@@ -22,7 +22,7 @@ import {describeFailure} from '@/util/failure'
 import CatalogToolbar from './cataloglistview/CatalogToolbar.vue'
 import CatalogList from './cataloglistview/CatalogList.vue'
 import CreateCatalogModal from './cataloglistview/CreateCatalogModal.vue'
-import DeleteCatalogModal from './cataloglistview/DeleteCatalogModal.vue'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -30,7 +30,7 @@ const { loaded } = useSession()
 const { isMobile } = useBreakpoint()
 
 const catalogs = ref<QuizCatalog[]>([])
-const sharedCatalogs = ref<SharedCatalogEntry[]>([])
+const sharedCatalogs = ref<SharedQuizCatalog[]>([])
 
 const { loading, failure, reload: loadData } = useAsyncLoader(async () => {
   const response = await quiz.listCatalogs()
@@ -88,7 +88,6 @@ const createTrainingEnabled = ref(false)
 
 const {
   show: showDeleteModal,
-  target: catalogToDelete,
   requestDelete: confirmDelete,
   confirm: deleteCatalog,
 } = useConfirmDelete<QuizCatalog>({
@@ -193,8 +192,10 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
         @submit="createCatalog"
       />
 
-      <DeleteCatalogModal
+      <ConfirmDeleteModal
         v-model="showDeleteModal"
+        :title="t('quiz.catalogs.deleteCatalog')"
+        :message="t('quiz.catalogs.deleteConfirm')"
         @confirm="deleteCatalog"
       />
     </div>

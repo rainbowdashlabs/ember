@@ -15,7 +15,7 @@ import IconButton from '@/components/button/IconButton.vue'
 import ProblemCardHeader from '@/components/problem/ProblemCardHeader.vue'
 import ProblemCardDetails from '@/components/problem/ProblemCardDetails.vue'
 import ProblemStacktrace from '@/components/problem/ProblemStacktrace.vue'
-import type {BeaconFault} from '@/api/beacon'
+import type {BeaconFault} from '@/api/generated/schema'
 
 /**
  * One fault, read exactly like an entry of this instance's own error log, with the two things only a

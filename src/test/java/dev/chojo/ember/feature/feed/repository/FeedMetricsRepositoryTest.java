@@ -39,11 +39,11 @@ class FeedMetricsRepositoryTest extends RepositoryTestBase {
 
     @Test
     void durationLandsInTheExpectedHistogramBucket() {
-        feedMetricsRepo.recordRender("rss", 200, 10L, 1L); // <50
-        feedMetricsRepo.recordRender("rss", 200, 60L, 1L); // <200
-        feedMetricsRepo.recordRender("rss", 200, 600L, 1L); // <1000
-        feedMetricsRepo.recordRender("rss", 200, 1500L, 1L); // <5000
-        feedMetricsRepo.recordRender("rss", 200, 6000L, 1L); // gte 5000
+        feedMetricsRepo.recordRender("rss", 200, 10L, 1L);
+        feedMetricsRepo.recordRender("rss", 200, 60L, 1L);
+        feedMetricsRepo.recordRender("rss", 200, 600L, 1L);
+        feedMetricsRepo.recordRender("rss", 200, 1500L, 1L);
+        feedMetricsRepo.recordRender("rss", 200, 6000L, 1L);
 
         var row = feedMetricsRepo.findDailyMetrics(LocalDate.now()).getFirst();
         assertEquals(1L, row.bucketLt50());
@@ -85,7 +85,6 @@ class FeedMetricsRepositoryTest extends RepositoryTestBase {
 
     @Test
     void pruneRespectsRetentionWindow() {
-        // Insert a stale row directly so we can prune it.
         query(
                         "INSERT INTO feed_metric_daily(day, type, status, count, total_duration_ms, total_entries) VALUES (current_date - interval '100 days', 'ics', 200, 1, 10, 1);")
                 .single()

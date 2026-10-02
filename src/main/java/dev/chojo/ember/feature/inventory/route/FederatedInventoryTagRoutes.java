@@ -6,7 +6,7 @@
 package dev.chojo.ember.feature.inventory.route;
 
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.inventory.entity.TaggedItemSummary;
 import dev.chojo.ember.feature.inventory.service.FederatedItemTagService;
@@ -51,7 +51,7 @@ public class FederatedInventoryTagRoutes implements Routes {
             queryParams = @OpenApiParam(name = "tag", type = String.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = TaggedItemSummary[].class)))
     private void itemsByTag(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(service.findAcrossPartners(session.stationId(), ctx.queryParam("tag")));
     }
 }

@@ -11,8 +11,8 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import TicketCreateMetaFields from './TicketCreateMetaFields.vue'
-import type { TicketPriorityName, BoardLane, BoardLabel } from '@/api/boards'
-import type { MemberCompletion } from '@/api/stationMembers'
+import type { TicketPriorityName } from '@/api/boards'
+import type { BoardLabel, BoardLane, MemberCompletion } from '@/api/generated/schema'
 import type { Failure } from '@/util/failure'
 
 defineProps<{
@@ -35,10 +35,10 @@ const assignee = defineModel<string>('assignee', { required: true })
 const dueDate = defineModel<string>('dueDate', { required: true })
 
 const emit = defineEmits<{
-    (e: 'toggleLabel', id: number): void
-    (e: 'createLabel', name: string): void
-    (e: 'cancel'): void
-    (e: 'submit'): void
+    toggleLabel: [id: number]
+    createLabel: [name: string]
+    cancel: []
+    submit: []
 }>()
 
 const { t } = useI18n()

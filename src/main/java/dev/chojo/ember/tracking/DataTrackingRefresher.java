@@ -53,6 +53,11 @@ public final class DataTrackingRefresher {
     /**
      * Merges the live schema into {@code existing} without writing anything, returning what a refresh
      * would write together with its summary.
+     *
+     * <p>New tables and columns, and columns whose type or nullability changed, start unverified;
+     * unchanged columns and every table's context statuses keep what was verified. Descriptions are
+     * always refreshed from the live schema, since they take no part in verification. File stores
+     * cannot be discovered from the schema and are carried over as they are.
      */
     public Refreshed merge(DataTracking existing) throws SQLException {
         var schema = schemaReader.readTables();
@@ -70,8 +75,6 @@ public final class DataTrackingRefresher {
                     existing.tables() == null ? null : existing.tables().get(name);
 
             if (oldEntry == null) {
-                // New table - all UNVERIFIED, all columns unverified.
-                // Descriptions from PG flow through here unchanged; they don't affect verification.
                 var columns = rawTable.columns.stream()
                         .map(c -> new ColumnEntry(c.name(), c.type(), c.nullable(), false, c.description()))
                         .toList();
@@ -95,7 +98,6 @@ public final class DataTrackingRefresher {
                 continue;
             }
 
-            // Existing table - merge columns
             var oldByName = oldEntry.columns() == null
                     ? Map.<String, ColumnEntry>of()
                     : oldEntry.columns().stream()
@@ -105,19 +107,15 @@ public final class DataTrackingRefresher {
             for (var rawCol : rawTable.columns) {
                 ColumnEntry existingCol = oldByName.get(rawCol.name());
                 if (existingCol == null) {
-                    // New column - unverified
                     mergedColumns.add(new ColumnEntry(
                             rawCol.name(), rawCol.type(), rawCol.nullable(), false, rawCol.description()));
                     summary.columnsAdded.add(name + "." + rawCol.name());
                 } else if (!existingCol.type().equals(rawCol.type()) || existingCol.nullable() != rawCol.nullable()) {
-                    // Type or nullability changed - re-verify. Refresh the description too.
                     mergedColumns.add(new ColumnEntry(
                             rawCol.name(), rawCol.type(), rawCol.nullable(), false, rawCol.description()));
                     summary.columnsChanged.add(
                             name + "." + rawCol.name() + " (" + existingCol.type() + " → " + rawCol.type() + ")");
                 } else {
-                    // Unchanged column metadata - preserve the verified flag but refresh the description
-                    // from the live schema, since descriptions don't participate in verification.
                     mergedColumns.add(new ColumnEntry(
                             existingCol.name(),
                             existingCol.type(),
@@ -127,7 +125,6 @@ public final class DataTrackingRefresher {
                 }
             }
 
-            // Detect removed columns
             var currentNames =
                     rawTable.columns.stream().map(SchemaReader.RawColumn::name).toList();
             for (var oldCol : oldEntry.columns()) {
@@ -136,8 +133,6 @@ public final class DataTrackingRefresher {
                 }
             }
 
-            // Build merged entry - preserve all context statuses; refresh the table description from
-            // the live schema since descriptions don't affect verification.
             var merged = new TableEntry(
                     oldEntry.feature(),
                     oldEntry.scope(),
@@ -155,7 +150,6 @@ public final class DataTrackingRefresher {
             newTables.put(name, merged);
         }
 
-        // Detect removed tables
         if (existing.tables() != null) {
             for (var oldName : existing.tables().keySet()) {
                 if (!schema.containsKey(oldName)) {
@@ -164,9 +158,9 @@ public final class DataTrackingRefresher {
             }
         }
 
-        // Preserve fileStores as-is - fileStores aren't auto-discoverable
+        Map<String, FileStoreEntry> existingStores = existing.fileStores();
         Map<String, FileStoreEntry> fileStores =
-                existing.fileStores() == null ? new LinkedHashMap<>() : new LinkedHashMap<>(existing.fileStores());
+                existingStores == null ? new LinkedHashMap<>() : new LinkedHashMap<>(existingStores);
 
         String topHash = HashComputer.schemaHash(newTables);
 

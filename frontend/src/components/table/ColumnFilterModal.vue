@@ -86,7 +86,7 @@ function apply() {
         </FieldLabel>
         <DateFilterBody v-if="isDate" v-model="localSelected" :values="rawValues"
                         :birth-date="kind === 'birthDate'" :expiry-date="kind === 'expiryDate'"/>
-        <NumberFilterBody v-else v-model="localSelected"/>
+        <NumberFilterBody v-else v-model="localSelected" :choices="choices"/>
       </template>
 
       <template v-else>

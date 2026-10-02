@@ -7,7 +7,7 @@ package dev.chojo.ember.feature.question;
 
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
 import dev.chojo.ember.feature.events.entity.EventFieldConfig;
-import dev.chojo.ember.feature.events.entity.EventRegistrationFieldConfig;
+import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldConfig;
 import org.junit.jupiter.api.Test;
@@ -90,19 +90,20 @@ class QuestionConfigsTest {
 
     @Test
     void anAppointmentFieldReadsAndWritesWhatIsStored() {
-        var config = EventFieldConfig.parse(
+        var config = EventQuestionSettings.parse(
                 "{\"options\":[\"A\"],\"groupId\":4,\"userType\":\"MEMBER\",\"tagId\":9,\"selfRegistration\":true,\"width\":\"full\"}");
 
         assertEquals(List.of("A"), config.options());
         assertEquals(4, config.groupId());
         assertEquals(9, config.tagId());
         assertTrue(config.selfRegistration());
-        assertEquals(config, EventFieldConfig.parse(config.toJson()));
+        assertEquals(config, EventQuestionSettings.parse(config.toJson()));
+        assertEquals(config, EventFieldConfig.of(config).settings(), "the wire shape carries all of it");
     }
 
     @Test
     void aRegistrationQuestionReadsAndWritesWhatIsStored() {
-        var config = EventRegistrationFieldConfig.parse(
+        var config = EventQuestionSettings.parse(
                 "{\"required\":true,\"defaultValue\":\"2\",\"options\":null,\"min\":0,\"max\":5,\"managersOnly\":true}");
 
         assertTrue(config.required());
@@ -110,7 +111,8 @@ class QuestionConfigsTest {
         assertEquals(0, config.min());
         assertEquals(5, config.max());
         assertTrue(config.managersOnly());
-        assertEquals(config, EventRegistrationFieldConfig.parse(config.toJson()));
+        assertEquals(config, EventQuestionSettings.parse(config.toJson()));
+        assertEquals(config, config.registrants(), "the registrant part carries all of it");
     }
 
     /**
@@ -123,8 +125,7 @@ class QuestionConfigsTest {
             assertEquals(ProfileFieldConfig.empty(), ProfileFieldConfig.parse(said), said);
             assertEquals(AttendanceFieldConfig.parse("{}"), AttendanceFieldConfig.parse(said), said);
             assertEquals(WaitingListFieldConfig.EMPTY, WaitingListFieldConfig.parse(said), said);
-            assertEquals(EventFieldConfig.empty(), EventFieldConfig.parse(said), said);
-            assertEquals(EventRegistrationFieldConfig.empty(), EventRegistrationFieldConfig.parse(said), said);
+            assertEquals(EventQuestionSettings.empty(), EventQuestionSettings.parse(said), said);
         }
         assertEquals(ProfileFieldConfig.empty(), ProfileFieldConfig.parse(null));
     }
@@ -142,8 +143,7 @@ class QuestionConfigsTest {
         assertEquals(List.of("S"), choice.options());
         assertEquals("S", choice.defaultValue());
 
-        var bounded =
-                EventRegistrationFieldConfig.parse("{\"min\":1,\"max\":4}").settings();
+        var bounded = EventQuestionSettings.parse("{\"min\":1,\"max\":4}").settings();
         assertEquals(BigDecimal.ONE, bounded.min());
         assertEquals(BigDecimal.valueOf(4), bounded.max());
         assertFalse(bounded.required());

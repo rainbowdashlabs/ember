@@ -7,27 +7,37 @@ package dev.chojo.ember.feature.cluster.service;
 
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.ClusterRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.service.SetupMail;
 import dev.chojo.ember.feature.documents.entity.Document;
+import dev.chojo.ember.feature.documents.entity.Uploader;
 import dev.chojo.ember.feature.documents.repository.DocumentRepository;
+import dev.chojo.ember.feature.documents.service.DocumentCatalogService;
+import dev.chojo.ember.feature.documents.service.DocumentCatalogService.MemberDocumentResponse;
+import dev.chojo.ember.feature.documents.service.DocumentDoor;
 import dev.chojo.ember.feature.documents.service.DocumentService;
 import dev.chojo.ember.feature.members.entity.FieldValueEntry;
+import dev.chojo.ember.feature.members.entity.ProfileAuthor;
+import dev.chojo.ember.feature.members.entity.ProfileWriter;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.members.service.FormerMemberService;
+import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.members.service.ProfileFieldService;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService;
+import dev.chojo.ember.feature.members.service.UserTypeChangeService;
 import dev.chojo.ember.feature.station.entity.Station;
-import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.repository.StationRepository;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.ForbiddenResponse;
-import io.javalin.http.NotFoundResponse;
+import io.javalin.http.UploadedFile;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -58,8 +68,12 @@ public class ClusterMemberManagementService {
     private final StationRepository stationRepository;
     private final ProfileFieldService profileFieldService;
     private final StationMemberInviteService inviteService;
+    private final UserTypeChangeService userTypeChanges;
     private final DocumentRepository documentRepository;
     private final DocumentService documentService;
+    private final DocumentCatalogService documentCatalog;
+    private final FormerMemberService formerMembers;
+    private final MemberNameResolver names;
 
     @Inject
     public ClusterMemberManagementService(
@@ -67,14 +81,22 @@ public class ClusterMemberManagementService {
             StationRepository stationRepository,
             ProfileFieldService profileFieldService,
             StationMemberInviteService inviteService,
+            UserTypeChangeService userTypeChanges,
             DocumentRepository documentRepository,
-            DocumentService documentService) {
+            DocumentService documentService,
+            DocumentCatalogService documentCatalog,
+            FormerMemberService formerMembers,
+            MemberNameResolver names) {
+        this.formerMembers = formerMembers;
+        this.names = names;
         this.memberRepository = memberRepository;
         this.stationRepository = stationRepository;
         this.profileFieldService = profileFieldService;
         this.inviteService = inviteService;
+        this.userTypeChanges = userTypeChanges;
         this.documentRepository = documentRepository;
         this.documentService = documentService;
+        this.documentCatalog = documentCatalog;
     }
 
     /**
@@ -95,14 +117,14 @@ public class ClusterMemberManagementService {
      * @param email      their address, or {@code null} when they are not meant to sign in
      * @param userType   what they are at that station
      * @return the new membership
-     * @throws NotFoundResponse when the station does not answer to this cluster
+     * @throws RefusalResponse when the station does not answer to this cluster
      */
     public StationMemberInviteService.ProvisionedMember createMember(
             int clusterId, UUID stationUid, String firstName, String lastName, String email, StationUserType userType) {
         Station station = stationRepository
                 .findByUid(stationUid)
                 .filter(candidate -> candidate.clusterId() != null && candidate.clusterId() == clusterId)
-                .orElseThrow(() -> new NotFoundResponse("No such station"));
+                .orElseThrow(ClusterRefusal.CLUSTER_MANAGED_MEMBER_STATION_NOT_HERE::raise);
 
         String address = email != null && !email.isBlank() ? email.trim() : null;
 
@@ -117,66 +139,46 @@ public class ClusterMemberManagementService {
      *
      * <p>Everything about them, hidden ones included: somebody trusted with the people at every station is
      * trusted with what is filed about them, which is the same test the station applies to its own managers.
+     * A station that switched documents off has switched them off for the association too.
      *
      * @param clusterId the cluster acting
      * @param memberId  the member
      * @return what is filed about them
      */
-    public List<Document> documentsOf(int clusterId, int memberId) {
+    public List<MemberDocumentResponse> documentsOf(int clusterId, int memberId) {
         var member = requireMemberOfCluster(clusterId, memberId);
-        requireDocuments(member.stationId());
-        return documentRepository.findByMember(member.stationId(), memberId, true);
-    }
-
-    /**
-     * Refuses where the station keeps no documents.
-     *
-     * <p>The store belongs to the station, not to the cluster, so a station that has switched it off
-     * has switched it off for the cluster too. A cluster manager reaching past that would be filing
-     * into a store the station said it did not want.
-     */
-    private void requireDocuments(int stationId) {
-        if (stationRepository.findDisabledModules(stationId).contains(StationModule.DOCUMENTS)) {
-            throw new BadRequestResponse("This station keeps no documents");
-        }
+        return documentCatalog.forMember(member.stationId(), memberId, true, DocumentDoor.ASSOCIATION);
     }
 
     /**
      * Files a document about one of the cluster's people.
      *
      * <p>It belongs to the station that holds them rather than to the cluster, because that is where the
-     * person is and where it has to stay when the station leaves. Nothing about it says it came from here.
+     * person is and where it has to stay when the station leaves. It passes the station's intake like any
+     * other upload. The manager has no membership at that station, so their account is named as the
+     * uploader rather than a membership of theirs elsewhere, which would name a stranger on this station's
+     * paperwork.
      *
-     * @param clusterId  the cluster acting
-     * @param memberId   the member it is about
-     * @param title      what it is called
-     * @param fileName   the name it was uploaded under
-     * @param mimeType   what it is
-     * @param data       its bytes
-     * @param uploadedBy the cluster member filing it, or {@code null}
+     * @param clusterId      the cluster acting
+     * @param memberId       the member it is about
+     * @param title          what it is called, or {@code null} to call it after its file
+     * @param file           the uploaded file, or {@code null} where the request carried none
+     * @param actorAccountId the account of the manager filing it
      * @return the document as filed
      */
     public Document fileDocument(
-            int clusterId,
-            int memberId,
-            String title,
-            String fileName,
-            String mimeType,
-            byte[] data,
-            Integer uploadedBy) {
+            int clusterId, int memberId, @Nullable String title, @Nullable UploadedFile file, int actorAccountId) {
         StationMember member = requireMemberOfCluster(clusterId, memberId);
-        requireDocuments(member.stationId());
-        return documentService.store(
-                member.stationId(),
-                List.of(memberId),
-                title,
-                fileName,
-                mimeType,
-                data,
-                false,
-                false,
-                uploadedBy,
-                List.of());
+        var filing = new DocumentService.Filing(
+                List.of(memberId), title, false, false, Uploader.account(actorAccountId), List.of());
+        return documentService.file(member.stationId(), filing, file, DocumentDoor.ASSOCIATION);
+    }
+
+    /**
+     * A document as the association's screen shows it, the same way the station's does.
+     */
+    public MemberDocumentResponse view(Document document) {
+        return documentCatalog.view(document);
     }
 
     /**
@@ -187,17 +189,12 @@ public class ClusterMemberManagementService {
      * @return it, when the cluster has any business with it
      */
     public Document requireDocumentOfCluster(int clusterId, int documentId) {
-        Document document =
-                documentRepository.findById(documentId).orElseThrow(() -> new NotFoundResponse("No such document"));
-        boolean reachable = documentRepository.membersOf(documentId).stream().anyMatch(memberId -> {
-            try {
-                requireMemberOfCluster(clusterId, memberId);
-                return true;
-            } catch (NotFoundResponse e) {
-                return false;
-            }
-        });
-        if (!reachable) throw new NotFoundResponse("No such document");
+        Document document = documentRepository
+                .findById(documentId)
+                .orElseThrow(ClusterRefusal.CLUSTER_MANAGED_DOCUMENT_NOT_HERE::raise);
+        boolean reachable = documentRepository.membersOf(documentId).stream()
+                .anyMatch(memberId -> memberOfCluster(clusterId, memberId).isPresent());
+        if (!reachable) throw ClusterRefusal.CLUSTER_MANAGED_DOCUMENT_NOT_HERE.raise();
         return document;
     }
 
@@ -205,7 +202,9 @@ public class ClusterMemberManagementService {
      * The bytes of a document the cluster may read.
      */
     public byte[] readDocument(Document document) {
-        return documentService.read(document).orElseThrow(() -> new NotFoundResponse("No such document"));
+        return documentService
+                .open(document, DocumentDoor.ASSOCIATION)
+                .orElseThrow(ClusterRefusal.CLUSTER_MANAGED_DOCUMENT_FILE_NOT_HERE::raise);
     }
 
     /**
@@ -216,44 +215,51 @@ public class ClusterMemberManagementService {
      *
      * @param clusterId the cluster acting
      * @param memberId  the member
-     * @return the member, the questions and the answers
+     * @return the member by name, the questions and the answers
      */
     public MemberProfile getMemberProfile(int clusterId, int memberId) {
         StationMember member = requireMemberOfCluster(clusterId, memberId);
         return new MemberProfile(
-                member, profileFieldService.findApplicableFields(memberId), profileFieldService.findValues(memberId));
+                member,
+                names.identified(memberId),
+                profileFieldService.findApplicableFields(memberId),
+                profileFieldService.findValues(memberId));
     }
 
     /**
      * Records what a cluster manager answered for somebody.
      *
-     * <p>The same two guardrails as every other write here, and one more that is not this class's doing: a
-     * cluster field marked readable but not writable at the station is refused further down, whoever sends it.
-     * A cluster manager is not the station, so that refusal does not apply to them and their answer stands.
+     * <p>The same two guardrails as every other write here. The answers then pass the locks every profile
+     * write passes, as the association: only questions of the member's station or asked there by this
+     * association, only those put to the member, and the association's own lock against the station does
+     * not hold against the association. A cluster manager looks after the members, so a question only the
+     * member management writes is theirs to write too.
      *
      * @param clusterId      the cluster acting
      * @param memberId       the member
      * @param entries        the answers, each naming which table its question lives in
-     * @param actorAccountId the account behind the cluster manager, for the self-check
-     * @param changedBy      the member row to record as the author of the change
+     * @param actorAccountId the account behind the cluster manager, for the self-check and as the author of the
+     *                       change, recorded by their membership at the member's station where they have one
      */
-    public void updateMemberProfile(
-            int clusterId, int memberId, List<FieldValueEntry> entries, int actorAccountId, int changedBy) {
+    public void updateMemberProfile(int clusterId, int memberId, List<FieldValueEntry> entries, int actorAccountId) {
         StationMember member = requireMemberOfCluster(clusterId, memberId);
         requireNotSelf(member, actorAccountId);
         requireNotStationOwner(member);
 
-        profileFieldService.setValues(memberId, entries, changedBy, true);
+        profileFieldService.setValues(
+                memberId, entries, ProfileAuthor.account(actorAccountId), ProfileWriter.association());
         log.info("Cluster {} answered {} questions for member {}", clusterId, entries.size(), memberId);
     }
 
     /**
      * @param member the person
+     * @param name   who they are, from their account while they are a member and as kept once they left
      * @param fields what is asked of them, from their station and from the cluster together
      * @param values what they have answered
      */
     public record MemberProfile(
             StationMember member,
+            String name,
             List<ProfileFieldService.MergedField> fields,
             List<ProfileFieldService.MergedValue> values) {}
 
@@ -271,9 +277,9 @@ public class ClusterMemberManagementService {
      */
     public MemberPage search(
             int clusterId,
-            String query,
-            Integer stationId,
-            StationUserType userType,
+            @Nullable String query,
+            @Nullable Integer stationId,
+            @Nullable StationUserType userType,
             boolean includeFormer,
             int page,
             int size) {
@@ -288,7 +294,8 @@ public class ClusterMemberManagementService {
     }
 
     /**
-     * Changes what somebody is at their station.
+     * Changes what somebody is at their station. They leave the station's groups that do not take the
+     * new type, the same as when the station changes it.
      *
      * @param clusterId     the cluster acting
      * @param memberId      the member
@@ -300,12 +307,13 @@ public class ClusterMemberManagementService {
         requireNotSelf(member, actorAccountId);
         requireNotStationOwner(member);
 
-        memberRepository.setUserType(memberId, userType);
+        userTypeChanges.change(memberId, userType);
         log.info("Cluster {} set member {} to {}", clusterId, memberId, userType);
     }
 
     /**
-     * Replaces what somebody may do at their station.
+     * Replaces what somebody may do at their station, outright rather than by diffing: what a cluster
+     * manager sends is the whole answer.
      *
      * @param clusterId      the cluster acting
      * @param memberId       the member
@@ -317,7 +325,6 @@ public class ClusterMemberManagementService {
         requireNotSelf(member, actorAccountId);
         requireNotStationOwner(member);
 
-        // Replace outright rather than diffing: what a cluster manager sends is the whole answer
         memberRepository.revokeAllPermissions(memberId);
         for (StationPermission permission : permissions) {
             memberRepository
@@ -328,18 +335,28 @@ public class ClusterMemberManagementService {
     }
 
     /**
-     * Marks somebody as having left their station.
+     * Marks somebody as having left their station, the way the station itself does.
+     *
+     * <p>Archiving means the same whoever presses the button, so the station's whole leaving routine runs:
+     * their roles and with them the login, their guardians and wards, groups, tags, documents and the
+     * answers not kept for the record. Somebody the station could not archive, because they still hold
+     * equipment or a role that has to be handed on first, is not archived from here either.
      *
      * @param clusterId      the cluster acting
      * @param memberId       the member
      * @param actorAccountId the account behind the cluster manager, for the self-check
+     * @throws RefusalResponse {@link ClusterRefusal#CLUSTER_MANAGED_MEMBER_NOT_ARCHIVED} where the station could
+     *                         not archive them either
      */
     public void archive(int clusterId, int memberId, int actorAccountId) {
         StationMember member = requireMemberOfCluster(clusterId, memberId);
         requireNotSelf(member, actorAccountId);
         requireNotStationOwner(member);
+        if (formerMembers.canMarkFormer(memberId) != null) {
+            throw ClusterRefusal.CLUSTER_MANAGED_MEMBER_NOT_ARCHIVED.raise();
+        }
 
-        memberRepository.setFormer(memberId, true);
+        formerMembers.markFormer(memberId);
         log.info("Cluster {} archived member {}", clusterId, memberId);
     }
 
@@ -357,15 +374,21 @@ public class ClusterMemberManagementService {
      * The member, checked to actually belong to a station of this cluster.
      */
     private StationMember requireMemberOfCluster(int clusterId, int memberId) {
-        StationMember member =
-                memberRepository.findById(memberId).orElseThrow(() -> new NotFoundResponse("No such member"));
-        Station station = stationRepository
+        return memberOfCluster(clusterId, memberId).orElseThrow(ClusterRefusal.CLUSTER_MANAGED_MEMBER_NOT_HERE::raise);
+    }
+
+    /**
+     * The member, where they belong to a station of this cluster.
+     *
+     * @param clusterId the cluster
+     * @param memberId  the member
+     * @return the member, empty when they are gone or belong to a station outside the cluster
+     */
+    private Optional<StationMember> memberOfCluster(int clusterId, int memberId) {
+        return memberRepository.findById(memberId).filter(member -> stationRepository
                 .findById(member.stationId())
-                .orElseThrow(() -> new NotFoundResponse("No such member"));
-        if (station.clusterId() == null || station.clusterId() != clusterId) {
-            throw new NotFoundResponse("No such member");
-        }
-        return member;
+                .filter(station -> station.clusterId() != null && station.clusterId() == clusterId)
+                .isPresent());
     }
 
     /**
@@ -375,15 +398,16 @@ public class ClusterMemberManagementService {
      * station of the same cluster is still the same person, and that is exactly the hole this closes.
      */
     private static void requireNotSelf(StationMember member, int actorAccountId) {
-        if (member.accountId() != null && member.accountId() == actorAccountId) {
-            throw new ForbiddenResponse("You cannot edit your own membership from the cluster");
+        Integer accountId = member.accountId();
+        if (accountId != null && accountId == actorAccountId) {
+            throw ClusterRefusal.CLUSTER_MANAGED_MEMBER_IS_YOURSELF.raise();
         }
     }
 
     private void requireNotStationOwner(StationMember member) {
         stationRepository.findById(member.stationId()).ifPresent(station -> {
-            if (station.ownerMemberId() != null && station.ownerMemberId() == member.id()) {
-                throw new ForbiddenResponse("A station's owner cannot be edited from the cluster");
+            if (station.isOwnedBy(member.id())) {
+                throw ClusterRefusal.CLUSTER_MANAGED_MEMBER_OWNS_STATION.raise();
             }
         });
     }

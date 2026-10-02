@@ -11,9 +11,10 @@ import MutedText from '@/components/typography/MutedText.vue'
 import RadioInput from '@/components/input/toggle/RadioInput.vue'
 import RestrictionPicker from '@/components/input/RestrictionPicker.vue'
 import OccurrenceSearchPicker from '@/components/input/search/OccurrenceSearchPicker.vue'
-import type {RestrictionSelection} from '@/components/input/restriction'
-import type {ChecklistSourceRequest} from '@/api/checklists'
-import type {MemberGroup, StationMember, UserTag} from '@/api/types'
+import type {RestrictionSelection} from '@/api/types'
+import type {EventOccurrenceRef} from '@/api/events'
+import type {MemberGroup, UserTag} from '@/api/generated/schema'
+import type {MemberLike} from '@/components/input/select/memberOption'
 
 /**
  * Chooses what a list is made of: a description of people, or one date of an appointment.
@@ -24,12 +25,12 @@ import type {MemberGroup, StationMember, UserTag} from '@/api/types'
  */
 const follows = defineModel<'FILTER' | 'EVENT'>('follows', {required: true})
 const restriction = defineModel<RestrictionSelection>('restriction', {required: true})
-const occurrence = defineModel<ChecklistSourceRequest | null>('occurrence', {required: true})
+const occurrence = defineModel<EventOccurrenceRef | null>('occurrence', {required: true})
 
 defineProps<{
   groups: MemberGroup[]
   tags: UserTag[]
-  members: StationMember[]
+  members: MemberLike[]
   /** What the chip should read for an occurrence this list already follows. */
   selectedOccurrenceLabel?: string | null
 }>()

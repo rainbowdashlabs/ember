@@ -6,11 +6,13 @@
 package dev.chojo.ember.feature.media.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import org.jspecify.annotations.Nullable;
 
 /**
  * A label a station puts on its media files. Unique per station by name.
  */
-public record StationFileTag(int id, int stationId, String name, String color) {
+public record StationFileTag(
+        int id, int stationId, String name, @Nullable String color) {
 
     public static RowMapping<StationFileTag> map() {
         return row -> new StationFileTag(

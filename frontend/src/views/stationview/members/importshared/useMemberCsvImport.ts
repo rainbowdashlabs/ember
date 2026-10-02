@@ -7,13 +7,13 @@ import {computed, onMounted, ref, watch, type Ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import client from '@/api/client'
 import {memberGroups as memberGroupsApi, profileFields as profileFieldsApi} from '@/api'
-import type {ParsedCsv} from '@/api/util'
-import {parseFieldConfig, type ProfileField} from '@/api/profileFields'
-import type {MemberGroup} from '@/api/types'
+import {parseFieldConfig} from '@/api/profileFields'
+import {valueFields} from '@/components/profilefields/fieldLayout'
+import type {MemberGroup, ProfileField} from '@/api/generated/schema'
 import {useSession} from '@/composables/useSession'
-import {useCsvImport} from '@/composables/useCsvImport'
+import {useCsvImport, type ParsedCsv} from '@/composables/useCsvImport'
 import {useFieldAudiences} from '@/composables/useFieldAudiences'
-import {fieldTypeLabel} from '@/views/stationview/manage/membersconfig/fieldTypes'
+import {fieldTypeLabel, FieldTypes} from '@/api/fieldTypes'
 import {createColumnMapping, SKIP_TARGET, type ColumnMapping, type PreviewResult} from './memberImport'
 
 /** One answer a target allows: what is stored, and what the reader picks it by. */
@@ -130,7 +130,7 @@ export function useMemberCsvImport<TResult>(options: MemberCsvImportOptions) {
             result.push({value: `manager:${manager}:phone`, label: t('memberImport.managerPhone'), group: managerGroup})
             result.push({value: `manager:${manager}:email`, label: t('memberImport.managerEmail'), group: managerGroup})
         }
-        for (const field of fields.value) {
+        for (const field of valueFields(fields.value)) {
             const kind = field.fieldType ? ` (${fieldTypeLabel(t, field.fieldType)})` : ''
             result.push({value: `field:${field.id}`, label: `${field.name}${kind}`, group: scopeLabel(field)})
         }
@@ -154,7 +154,7 @@ export function useMemberCsvImport<TResult>(options: MemberCsvImportOptions) {
             const manager = parseInt(phoneDigit)
             if (manager >= 1 && manager <= managerCount.value) return `manager:${manager}:phone`
         }
-        const field = fields.value.find(candidate => candidate.name?.toLowerCase() === name)
+        const field = valueFields(fields.value).find(candidate => candidate.name?.toLowerCase() === name)
         return field ? `field:${field.id}` : SKIP_TARGET
     }
 
@@ -171,7 +171,7 @@ export function useMemberCsvImport<TResult>(options: MemberCsvImportOptions) {
         if (!mapping.target.startsWith('field:')) return false
         const fieldId = parseInt(mapping.target.substring(6))
         const field = fields.value.find(candidate => candidate.id === fieldId)
-        return field?.fieldType === 'BOOLEAN' || field?.fieldType === 'ENUM'
+        return field?.fieldType === FieldTypes.BOOLEAN || field?.fieldType === FieldTypes.CHOICE
     }
 
     /**
@@ -190,13 +190,13 @@ export function useMemberCsvImport<TResult>(options: MemberCsvImportOptions) {
         }
         if (!target.startsWith('field:')) return []
         const field = fields.value.find(candidate => candidate.id === parseInt(target.substring(6)))
-        if (field?.fieldType === 'BOOLEAN') {
+        if (field?.fieldType === FieldTypes.BOOLEAN) {
             return [
                 {value: 'true', label: t('memberImport.valueYes')},
                 {value: 'false', label: t('memberImport.valueNo')},
             ]
         }
-        if (field?.fieldType !== 'ENUM') return []
+        if (field?.fieldType !== FieldTypes.CHOICE) return []
         const options = parseFieldConfig(field.config).options
         return Array.isArray(options) ? options.map(option => ({value: String(option), label: String(option)})) : []
     }

@@ -20,5 +20,15 @@ public enum DiscoveryVisibility {
     /**
      * Visible to everyone (including cross-instance).
      */
-    PUBLIC
+    PUBLIC;
+
+    /**
+     * What a station somebody founds on this instance starts with: listed publicly, until it decides
+     * otherwise in its setup or its settings.
+     *
+     * <p>Only a newly founded station takes it. A station that arrives by import or transfer keeps the
+     * setting it carries, and a station that existed before keeps its own, since listing either would
+     * publish a station nobody agreed to publish.
+     */
+    public static final DiscoveryVisibility NEW_STATION_DEFAULT = PUBLIC;
 }

@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.attendance.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -34,11 +35,11 @@ public record AttendanceSession(
         Instant startTime,
         Instant endTime,
         Instant createdAt,
-        Integer eventId,
-        String title,
-        Instant unlockedUntil,
-        Instant lockedAt,
-        Integer countedMinutes) {
+        @Nullable Integer eventId,
+        @Nullable String title,
+        @Nullable Instant unlockedUntil,
+        @Nullable Instant lockedAt,
+        @Nullable Integer countedMinutes) {
 
     /**
      * Whether the sheet may still be written to at the given moment.

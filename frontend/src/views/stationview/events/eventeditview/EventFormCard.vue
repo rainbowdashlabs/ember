@@ -7,10 +7,16 @@
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import EventFormPanel from '../eventshared/EventFormPanel.vue'
 import EventReminderEditor from '../eventshared/EventReminderEditor.vue'
-import type {RestrictionSelection} from '@/components/input/restriction'
-import type {AttendanceTemplate, AttendanceTemplateField} from '@/api/attendance'
-import type {EventCategory, EventFieldEntry} from '@/api/events'
-import type {MemberGroup, StationMember, UserTag} from '@/api/types'
+import type {RestrictionSelection} from '@/api/types'
+import type {
+    AttendanceTemplate,
+    AttendanceTemplateField,
+    EventCategory,
+    EventFieldEntry,
+    MemberGroup,
+    UserTag,
+} from '@/api/generated/schema'
+import type {MemberLike} from '@/components/input/select/memberOption'
 
 defineProps<{
   categories: EventCategory[]
@@ -18,8 +24,8 @@ defineProps<{
   attendanceFields: AttendanceTemplateField[]
   groups: MemberGroup[]
   tags: UserTag[]
-  allMembers: StationMember[]
-  groupMembers: Map<number, StationMember[]>
+  allMembers: MemberLike[]
+  groupMembers: Map<number, MemberLike[]>
 }>()
 
 const name = defineModel<string>('name', {required: true})
@@ -38,8 +44,7 @@ const hasDeadline = defineModel<boolean>('hasDeadline', {required: true})
 const registrationDeadline = defineModel<string>('registrationDeadline', {required: true})
 const registrationLimit = defineModel<number | undefined>('registrationLimit')
 const minRegistrations = defineModel<number | undefined>('minRegistrations')
-const hasThreshold = defineModel<boolean>('hasThreshold', {required: true})
-const thresholdDate = defineModel<string>('thresholdDate', {required: true})
+const thresholdDays = defineModel<number | undefined>('thresholdDays')
 const registrationCloseDays = defineModel<number | undefined>('registrationCloseDays')
 const restriction = defineModel<RestrictionSelection>('restriction', {required: true})
 const viewRestriction = defineModel<RestrictionSelection>('viewRestriction', {required: true})
@@ -66,8 +71,7 @@ const reminders = defineModel<number[]>('reminders', {required: true})
         v-model:registration-deadline="registrationDeadline"
         v-model:registration-limit="registrationLimit"
         v-model:min-registrations="minRegistrations"
-        v-model:has-threshold="hasThreshold"
-        v-model:threshold-date="thresholdDate"
+        v-model:threshold-days="thresholdDays"
         v-model:registration-close-days="registrationCloseDays"
         v-model:restriction="restriction"
         v-model:view-restriction="viewRestriction"

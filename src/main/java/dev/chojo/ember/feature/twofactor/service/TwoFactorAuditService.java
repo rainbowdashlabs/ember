@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.twofactor.entity.TwoFactorKind;
 import dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,11 +30,11 @@ public class TwoFactorAuditService {
 
     public void record(
             int accountId,
-            Integer actorId,
+            @Nullable Integer actorId,
             TwoFactorEvent event,
-            TwoFactorKind factorKind,
-            String userAgent,
-            String country) {
+            @Nullable TwoFactorKind factorKind,
+            @Nullable String userAgent,
+            @Nullable String country) {
         repository.audit(accountId, actorId, event, factorKind, userAgent, country);
         log.info("2FA audit: account={}, event={}, kind={}, actor={}", accountId, event, factorKind, actorId);
     }

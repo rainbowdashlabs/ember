@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.waitinglist.entity;
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import dev.chojo.ember.feature.legal.entity.ConsentProof;
 import dev.chojo.ember.util.Json;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.JsonNode;
@@ -31,7 +32,7 @@ public record WaitlistVerificationToken(
         String notes,
         Instant createdAt,
         Instant expiresAt,
-        ConsentProof consent) {
+        @Nullable ConsentProof consent) {
 
     private static final Logger log = getLogger(WaitlistVerificationToken.class);
     private static final TypeReference<List<GuardianInput>> GUARDIAN_LIST = new TypeReference<>() {};

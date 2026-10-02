@@ -13,9 +13,8 @@ import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import {clusterMembers, data} from '@/api'
-import type {ClusterGroupSummary} from '@/api/clusterMembers'
-import type {PermissionGrant} from '@/api/types'
-import type {PermissionNode} from '@/api/data'
+import type {ClusterGroupResponse, PermissionNode} from '@/api/generated/schema'
+import type {PermissionGrant} from '@/composables/usePermissionTree'
 import {highestOf} from '@/api/data'
 
 const props = defineProps<{
@@ -33,7 +32,7 @@ const loading = ref(true)
 const saving = ref(false)
 const direct = ref<string[]>([])
 const groupIds = ref<number[]>([])
-const groups = ref<ClusterGroupSummary[]>([])
+const groups = ref<ClusterGroupResponse[]>([])
 const resolved = ref<string[]>([])
 const hierarchy = ref<PermissionNode[]>([])
 

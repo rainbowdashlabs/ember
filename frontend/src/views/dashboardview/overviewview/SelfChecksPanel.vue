@@ -10,7 +10,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import RowLink from '@/components/navigation/RowLink.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import {selfChecks} from '@/api'
-import type {SelfCheckSummary} from '@/api/selfChecks'
+import type {SelfCheckSummary} from '@/api/generated/schema'
 import {formatDate} from '@/util/format'
 
 /**

@@ -20,6 +20,7 @@ import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.storage.service.PdfCompressor;
 import dev.chojo.ember.feature.storage.service.PresentationCompressor;
+import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -62,7 +63,7 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
                 fileStorage,
                 contentService,
                 accessService,
-                new KbPresentationService(knowledgeBaseRepo, fileStorage, contentService),
+                new KbPresentationService(knowledgeBaseRepo, fileStorage, contentService, new TaskScheduler()),
                 linkMetadataService,
                 new PresentationCompressor(storageConfig),
                 new PdfCompressor(storageConfig),

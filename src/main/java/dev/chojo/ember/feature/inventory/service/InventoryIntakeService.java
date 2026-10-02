@@ -5,6 +5,10 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
+import dev.chojo.ember.api.refusal.InventoryRefusal;
+import dev.chojo.ember.api.refusal.Refusal;
+import dev.chojo.ember.api.refusal.RefusalDetail;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryIntakeRow;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
@@ -15,15 +19,16 @@ import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
-import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -78,13 +83,14 @@ public class InventoryIntakeService {
                     blankToNull(row.internalId()),
                     name,
                     row.sizeId(),
-                    row.metadata() != null ? row.metadata() : InventoryItemMetadata.empty(),
-                    row.ownerKind() != null ? row.ownerKind() : theUsualOwner,
+                    Objects.requireNonNullElse(row.metadata(), InventoryItemMetadata.empty()),
+                    Objects.requireNonNullElse(row.ownerKind(), theUsualOwner),
                     null);
+            Integer holder = row.memberId();
             written.add(
-                    row.memberId() != null
+                    holder != null
                             ? inventoryService
-                                    .assignItem(item.id(), row.memberId(), nameOf(row.memberId()))
+                                    .assignItem(item.id(), holder, nameOf(holder))
                                     .orElse(item)
                             : item);
         }
@@ -111,18 +117,18 @@ public class InventoryIntakeService {
             InventoryIntakeRow row = rows.get(line);
             int shown = line + 1;
             if (row.sizeId() != null && !sizes.contains(row.sizeId())) {
-                throw refusal(shown, "the size does not belong to this inventory");
+                throw refusal(InventoryRefusal.INTAKE_SIZE_NOT_IN_INVENTORY, shown, null);
             }
             if (row.memberId() != null && !members.contains(row.memberId())) {
-                throw refusal(shown, "the member does not belong to this station");
+                throw refusal(InventoryRefusal.INTAKE_MEMBER_NOT_AT_STATION, shown, null);
             }
             String number = blankToNull(row.internalId());
             if (number == null) continue;
             if (!numbers.add(number)) {
-                throw refusal(shown, "the number %s appears twice in this list".formatted(number));
+                throw refusal(InventoryRefusal.INTAKE_NUMBER_TWICE, shown, number);
             }
             if (inventoryRepository.findByInternalId(stationId, number).isPresent()) {
-                throw refusal(shown, "the number %s is already on another piece".formatted(number));
+                throw refusal(InventoryRefusal.INTAKE_NUMBER_TAKEN, shown, number);
             }
         }
     }
@@ -151,11 +157,12 @@ public class InventoryIntakeService {
                 .orElse("");
     }
 
-    private static BadRequestResponse refusal(int line, String why) {
-        return new BadRequestResponse("Line %d: %s".formatted(line, why));
+    private static RefusalResponse refusal(Refusal refusal, int line, @Nullable String number) {
+        return refusal.raise(
+                number == null ? RefusalDetail.count(line, RefusalDetail.CountUnit.LINE) : RefusalDetail.text(number));
     }
 
-    private static String blankToNull(String value) {
+    private static @Nullable String blankToNull(@Nullable String value) {
         return value == null || value.isBlank() ? null : value.trim();
     }
 }

@@ -7,6 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
+import BareButton from '@/components/button/BareButton.vue'
 
 /**
  * The number the other device is showing, picked out of six.
@@ -37,7 +38,7 @@ const emit = defineEmits<{
     <SectionHeader>{{ t('passkeys.approve.numberTitle') }}</SectionHeader>
     <MutedText tag="p" size="sm">{{ t('passkeys.approve.numberHint') }}</MutedText>
     <div class="grid grid-cols-3 gap-2">
-      <button
+      <BareButton
           v-for="choice in choices"
           :key="choice"
           class="rounded-theme border border-(--border) py-4 text-2xl font-bold transition
@@ -45,11 +46,10 @@ const emit = defineEmits<{
                  disabled:cursor-not-allowed disabled:opacity-50"
           :data-testid="`number-choice-${choice}`"
           :disabled="busy"
-          type="button"
           @click="emit('pick', choice)"
       >
         {{ choice }}
-      </button>
+      </BareButton>
     </div>
     <MutedText tag="p" size="sm">{{ t('passkeys.approve.numberWrongWarning') }}</MutedText>
   </div>

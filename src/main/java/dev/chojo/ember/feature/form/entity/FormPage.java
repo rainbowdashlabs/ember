@@ -6,7 +6,6 @@
 package dev.chojo.ember.feature.form.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
-import io.javalin.openapi.OpenApiName;
 
 /**
  * One page of a form. Every form has at least one, and every question stands on one of them.
@@ -20,7 +19,6 @@ import io.javalin.openapi.OpenApiName;
  * @param description optional text shown under the title
  * @param after       where the reader goes once the page is done, unless an answer on it decides
  */
-@OpenApiName("FormPage")
 public record FormPage(
         int id, int formId, String key, int position, String title, String description, PageTarget after) {
 

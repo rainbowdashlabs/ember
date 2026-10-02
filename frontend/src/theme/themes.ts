@@ -345,7 +345,6 @@ export const THEMES: Record<string, ThemeDefinition> = {
         },
         supportedFeels: [Feel.ROUNDED, Feel.CORNERS],
     },
-    // -- Accessibility: Color blindness optimized themes --
     cb_protanopia: {
         label: 'Protanopie (Rotschwäche)',
         colors: {

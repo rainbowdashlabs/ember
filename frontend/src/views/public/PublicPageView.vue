@@ -12,7 +12,8 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import {usePublicFailure} from '@/composables/usePublicFailure'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import {publicPageImageUrl} from '@/api/publicPages'
-import {CellContentType, type StationPage} from '@/api/pageManage'
+import {CellContentType} from '@/api/pageManage'
+import type {StationPage} from '@/api/generated/schema'
 import ContentRow from '@/components/content/ContentRow.vue'
 import {publicContentContext} from '@/util/contentContext'
 import {apiUrl} from '@/util/apiUrl'
@@ -26,7 +27,6 @@ const route = useRoute()
 const {station, stationUid, stationTimezone, canonicalPath} = usePublicStationAddress()
 const slug = computed((): string => {
   const param = route.params.slug
-  // Nuxt catch-all routes provide an array; vue-router provides a string
   return Array.isArray(param) ? param.join('/') : (param ?? '')
 })
 

@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.inventory.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import dev.chojo.ember.api.auth.StationUserType;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Defines how many items from a specific inventory are required for members with a given user type or group.
@@ -23,9 +24,9 @@ import dev.chojo.ember.api.auth.StationUserType;
 public record InventoryRequirement(
         int id,
         int inventoryId,
-        StationUserType userType,
+        @Nullable StationUserType userType,
         int groupId,
-        Integer stationGroupId,
+        @Nullable Integer stationGroupId,
         int quantity,
         int position) {
     /**

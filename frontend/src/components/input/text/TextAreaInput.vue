@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import {useId} from 'vue'
 import {BORDERED_INPUT_CLASSES} from '../inputClasses'
 
 const model = defineModel<string>()
@@ -12,11 +13,16 @@ defineProps<{
   placeholder?: string
   disabled?: boolean
   rows?: number
+  /** What a label's `for` names. Every field carries one, generated where the caller gives none. */
+  id?: string
 }>()
+
+const generatedId = useId()
 </script>
 
 <template>
   <textarea
+      :id="id ?? generatedId"
       v-model="model"
       :disabled="disabled"
       :placeholder="placeholder"

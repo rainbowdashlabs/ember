@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {test, expect, accountWith, demoAccounts, pageAsThrowaway} from './fixtures/auth'
+import {test, expect, pageAsThrowaway} from './fixtures/auth'
 import {cast} from './fixtures/cast'
 
 test.describe('Station monitoring', () => {
@@ -12,20 +12,19 @@ test.describe('Station monitoring', () => {
      *
      * The whole point of the page is that a subscription set up by one person becomes visible to
      * whoever runs the station, so the story walks both halves rather than reading the endpoint.
+     *
+     * The subscriber is cast rather than described, since a description read the address that stories
+     * rewrite. The section shows neither button while it is still asking, so the story waits for one;
+     * reading the empty page as "already set up" would pass without setting anything up.
      */
     test('a subscription set up in a profile shows up in the station list', async ({browser, request}) => {
         const administrator = (await cast()).administrator
-        // Cast, rather than "the first member who is not the administrator": that description is the
-        // same person in every worker, and it read the address, which stories rewrite.
         const subscriber = (await cast()).member
 
         const member = await pageAsThrowaway(browser, request, [], subscriber)
         await member.goto('/station/profile/settings/notifications')
         await expect(member.getByTestId('app-shell')).toBeVisible()
 
-        // The section renders neither branch while it is still asking whether a subscription exists,
-        // so the story waits for it to settle. Reading the empty page as "already set up" is how a
-        // story passes without ever having set anything up.
         const create = member.getByRole('button', {name: 'Feed-Token erstellen'})
         const regenerate = member.getByRole('button', {name: 'Neu generieren'})
         await expect(create.or(regenerate).first()).toBeVisible({timeout: 15000})

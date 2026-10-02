@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import { useId } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
@@ -27,6 +28,8 @@ defineEmits<{
 }>()
 
 const { t } = useI18n()
+const maxPointsId = useId()
+const passThresholdId = useId()
 </script>
 
 <template>
@@ -36,12 +39,12 @@ const { t } = useI18n()
       <TextInput v-model="name" :placeholder="t('protocol.sectionName')" required />
       <TextAreaInput v-model="description" :placeholder="t('protocol.description')" />
       <div>
-        <label class="block text-sm mb-1">{{ t('protocol.maxPoints') }}</label>
-        <NumberInput v-model="maxPoints" />
+        <label :for="maxPointsId" class="block text-sm mb-1">{{ t('protocol.maxPoints') }}</label>
+        <NumberInput :id="maxPointsId" v-model="maxPoints" />
       </div>
       <div>
-        <label class="block text-sm mb-1">{{ t('protocol.passThreshold') }}</label>
-        <NumberInput v-model="passThreshold" />
+        <label :for="passThresholdId" class="block text-sm mb-1">{{ t('protocol.passThreshold') }}</label>
+        <NumberInput :id="passThresholdId" v-model="passThreshold" />
       </div>
       <div class="flex gap-2 justify-end">
         <PrimaryButton type="submit">{{ t('common.save') }}</PrimaryButton>

@@ -14,7 +14,7 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import FlowDiagram from '@/components/movement/FlowDiagram.vue'
 import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
-import type {FlowPreview} from '@/api/movements'
+import type {FlowPreview} from '@/api/generated/schema'
 
 /**
  * What will happen, drawn before anything is written.

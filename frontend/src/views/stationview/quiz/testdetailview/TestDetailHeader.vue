@@ -15,9 +15,15 @@ import DropdownMenuItem from '@/components/button/DropdownMenuItem.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
-import {QuizTestStatus, type QuizTestDetail} from '@/api/quiz'
+import {QuizTestStatus} from '@/api/quiz'
+import type {QuizTestDetail} from '@/api/generated/schema'
 import { quiz } from '@/api'
 
+/**
+ * The head of a test with its actions. Taking a running test and starting a draft are the buttons
+ * that stay; the two exports look alike side by side and sit in the menu where their names can be
+ * read, and closing the test comes last and coloured.
+ */
 const props = defineProps<{
   test: QuizTestDetail['test']
   detail: QuizTestDetail | null
@@ -54,14 +60,8 @@ function edit() {
       <p v-if="test.description" class="text-sm text-(--text-muted)">{{ test.description }}</p>
       <p v-if="canReadResults && detail" class="text-sm text-(--text-muted)">{{ detail.attemptCount }} {{ t('quiz.attemptCount') }}</p>
     </div>
-    <!--
-      A test is opened to be written while it runs and to be started while it is a draft, so that
-      is the button that stays. The two exports look alike side by side and belong in a list where
-      their names can be read, and closing the test comes last and coloured: it is behind a
-      confirmation either way.
-    -->
     <ButtonRow align="end">
-      <PrimaryButton :icon="['fas', 'play']" v-if="test.status === QuizTestStatus.ACTIVE" @click="take">
+      <PrimaryButton v-if="test.status === QuizTestStatus.ACTIVE" :icon="['fas', 'play']" @click="take">
         {{ t('quiz.tests.takeTest') }}
       </PrimaryButton>
       <template v-if="canConfigure">

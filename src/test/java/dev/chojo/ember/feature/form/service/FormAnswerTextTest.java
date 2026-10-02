@@ -30,8 +30,9 @@ class FormAnswerTextTest {
 
         assertEquals(
                 "Essen, gone, Sonstige: Musik",
-                FormAnswerText.of(question, new FormAnswerValue.Choice(List.of("k-b", "gone"), "Musik"), "de"));
-        assertEquals("Other: Musik", FormAnswerText.of(question, new FormAnswerValue.Choice(null, "Musik"), "en"));
+                FormAnswerText.of(question, new FormAnswerValue.ChoiceAnswer(List.of("k-b", "gone"), "Musik"), "de"));
+        assertEquals(
+                "Other: Musik", FormAnswerText.of(question, new FormAnswerValue.ChoiceAnswer(null, "Musik"), "en"));
     }
 
     @Test
@@ -44,22 +45,22 @@ class FormAnswerTextTest {
 
         assertEquals(
                 "1. Essen, 2. Zelte",
-                FormAnswerText.of(ranking, new FormAnswerValue.Ranking(List.of("k-b", "k-a")), "de"));
-        assertEquals("Zelte: 4, Essen: 2", FormAnswerText.of(likert, new FormAnswerValue.Likert(ratings), "de"));
-        assertEquals("", FormAnswerText.of(ranking, new FormAnswerValue.Ranking(null), "de"));
-        assertEquals("", FormAnswerText.of(likert, new FormAnswerValue.Likert(null), "de"));
+                FormAnswerText.of(ranking, new FormAnswerValue.RankingAnswer(List.of("k-b", "k-a")), "de"));
+        assertEquals("Zelte: 4, Essen: 2", FormAnswerText.of(likert, new FormAnswerValue.LikertAnswer(ratings), "de"));
+        assertEquals("", FormAnswerText.of(ranking, new FormAnswerValue.RankingAnswer(null), "de"));
+        assertEquals("", FormAnswerText.of(likert, new FormAnswerValue.LikertAnswer(null), "de"));
     }
 
     @Test
     void writesPlainAnswersAsGivenAndNothingForNoAnswer() {
         var text = question(FormQuestionType.TEXT, new FormQuestionConfig.Text(false));
 
-        assertEquals("Ja", FormAnswerText.of(text, new FormAnswerValue.Text("Ja"), "de"));
-        assertEquals("", FormAnswerText.of(text, new FormAnswerValue.Text(null), "de"));
-        assertEquals("2026-10-01", FormAnswerText.of(text, new FormAnswerValue.DateValue("2026-10-01"), "de"));
-        assertEquals("", FormAnswerText.of(text, new FormAnswerValue.DateValue(null), "de"));
-        assertEquals("4", FormAnswerText.of(text, new FormAnswerValue.Rating(4), "de"));
-        assertEquals("", FormAnswerText.of(text, new FormAnswerValue.Rating(0), "de"));
+        assertEquals("Ja", FormAnswerText.of(text, new FormAnswerValue.TextAnswer("Ja"), "de"));
+        assertEquals("", FormAnswerText.of(text, new FormAnswerValue.TextAnswer(null), "de"));
+        assertEquals("2026-10-01", FormAnswerText.of(text, new FormAnswerValue.DateAnswer("2026-10-01"), "de"));
+        assertEquals("", FormAnswerText.of(text, new FormAnswerValue.DateAnswer(null), "de"));
+        assertEquals("4", FormAnswerText.of(text, new FormAnswerValue.RatingAnswer(4), "de"));
+        assertEquals("", FormAnswerText.of(text, new FormAnswerValue.RatingAnswer(0), "de"));
         assertEquals("", FormAnswerText.of(text, null, "de"));
     }
 

@@ -3,9 +3,9 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {ProcedureItem, ProcedureTemplateItem} from '@/api/procedures'
-import type {MemberIdentity} from '@/api/types'
+import type {MemberIdentity, ProcedureItem, ProcedureTemplateItem} from '@/api/generated/schema'
 import type {PitchProcedure, PitchProcedureTemplate} from './pitchTypes'
+import {pitchIdentity} from './pitchMembers'
 
 /**
  * The procedure a demonstration walks through: taking on a new member. The steps are handed to
@@ -26,8 +26,8 @@ function step(id: number, title: string, description: string,
 }
 
 const ASSIGNEES: MemberIdentity[] = [
-    {stationUid: 'wache', memberUid: 'm-clara', name: 'Clara Weiß'},
-    {stationUid: 'wache', memberUid: 'm-jonas', name: 'Jonas Behr'},
+    pitchIdentity('Clara Weiß', 'm-clara'),
+    pitchIdentity('Jonas Behr', 'm-jonas'),
 ]
 
 export const PROCEDURE_INTAKE: PitchProcedure = {

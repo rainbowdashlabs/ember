@@ -4,7 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {computed, ref} from 'vue'
-import {listMediaFolders, listMediaTags, listMediaFiles, listInstanceMediaFiles, type StationFileFolder, type StationFileListing, type StationFileTag} from '@/api/media'
+import {listMediaFolders, listMediaTags, listMediaFiles, listInstanceMediaFiles} from '@/api/media'
+import type {FileListing, StationFileFolder, StationFileTag} from '@/api/generated/schema'
 import {useSession} from '@/composables/useSession'
 import {StationPermission} from '@/api/types'
 
@@ -39,7 +40,7 @@ const CONTENT_PERMISSIONS = [
  */
 export function useMediaLibrary(instance = false) {
     const {hasPermission} = useSession()
-    const entries = ref<StationFileListing[]>([])
+    const entries = ref<FileListing[]>([])
     const folders = ref<StationFileFolder[]>([])
     const tags = ref<StationFileTag[]>([])
     const loading = ref(false)

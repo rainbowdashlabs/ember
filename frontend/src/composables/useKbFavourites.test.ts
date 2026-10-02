@@ -3,9 +3,10 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-// @vitest-environment happy-dom
+/** @vitest-environment happy-dom */
 import {beforeEach, describe, expect, it, vi} from 'vitest'
-import {KbFavouriteTarget, type KbFavourite} from '@/api/knowledgeBase'
+import {KbFavouriteTarget} from '@/api/knowledgeBase'
+import type {KbFavourite} from '@/api/generated/schema'
 import {favouriteKey, useKbFavourites} from './useKbFavourites'
 
 const listFavourites = vi.fn()
@@ -25,6 +26,7 @@ const PARTNER = '00000000-0000-4000-a000-0000000000f1'
 function favourite(overrides: Partial<KbFavourite>): KbFavourite {
     return {
         id: 1,
+        memberId: 3,
         target: KbFavouriteTarget.FILE,
         entryId: 7,
         partnerStationUid: null,

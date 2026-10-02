@@ -5,9 +5,8 @@
  */
 import {ref} from 'vue'
 import {clusterMembers} from '@/api'
-import type {ManagedMember} from '@/api/clusterMembers'
-import type {RichMember} from '@/api/stationMembers'
-import type {MemberDataSource} from '@/views/stationview/members/listview/useMemberData'
+import type {ManagedMemberResponse} from '@/api/generated/schema'
+import type {MemberDataSource, RosterMember} from '@/views/stationview/members/listview/useMemberData'
 
 /**
  * How many people the association's list will pull in before it stops asking.
@@ -32,15 +31,15 @@ const PAGE_SIZE = 200
  * an empty span beside an empty avatar on every line of the list, with the name sitting unread in the
  * field beside it.
  */
-function toRich(member: ManagedMember): RichMember {
+function toRich(member: ManagedMemberResponse): RosterMember {
     return {
         id: member.id,
-        stationId: 0,
+        stationId: member.stationUid,
         accountId: null,
         name: member.name,
         firstName: member.name,
         lastName: '',
-        email: member.email,
+        email: member.email ?? '',
         accountSetupPending: false,
         setupMailExpiresAt: null,
         mailReaches: 'SELF' as const,
@@ -64,13 +63,13 @@ function toRich(member: ManagedMember): RichMember {
  */
 export function useClusterMemberSource(includeFormer: () => boolean) {
     /** The search results as they came, keyed by member, for what the table cannot carry. */
-    const managed = ref<Map<number, ManagedMember>>(new Map())
+    const managed = ref<Map<number, ManagedMemberResponse>>(new Map())
     /** True when the last load stopped at the cap rather than at the end of the roll. */
     const overflowed = ref(false)
 
     const source: MemberDataSource = {
         load: async () => {
-            const collected: ManagedMember[] = []
+            const collected: ManagedMemberResponse[] = []
             overflowed.value = false
             for (let page = 0; ; page++) {
                 const result = await clusterMembers.searchManagedMembers({
@@ -86,9 +85,7 @@ export function useClusterMemberSource(includeFormer: () => boolean) {
                 }
             }
             managed.value = new Map(collected.map(m => [m.id, m]))
-            // No profile questions travel with the search, so none can be offered as a column. The
-            // association's own questions are asked of these people and belong here; the search would
-            // have to carry their answers first.
+            // TODO: offer the association's own questions as columns once the search carries their answers
             return {members: collected.map(toRich), fields: [], assignments: [], roles: []}
         },
     }

@@ -13,13 +13,13 @@ import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
 import {fromMember, userTypesOf} from '@/components/input/select/memberOption'
-import type {StationMember} from '@/api/types'
+import type {MemberLike} from '@/components/input/select/memberOption'
 
 const modelValue = defineModel<boolean>({required: true})
 const memberId = defineModel<string>('memberId', {required: true})
 
 const props = defineProps<{
-  members: StationMember[]
+  members: MemberLike[]
 }>()
 
 const emit = defineEmits<{

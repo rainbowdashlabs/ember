@@ -12,6 +12,7 @@ import dev.chojo.ember.tracking.DataTracking;
 import dev.chojo.ember.tracking.DataTrackingLoader;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,6 +21,7 @@ import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
@@ -50,7 +52,7 @@ public class StationTableImporter implements TableImporter {
         this.tracking = t;
     }
 
-    private static String columnType(List<ColumnEntry> cols, String name) {
+    private static @Nullable String columnType(List<ColumnEntry> cols, String name) {
         for (var c : cols) if (c.name().equals(name)) return c.type();
         return null;
     }
@@ -73,13 +75,11 @@ public class StationTableImporter implements TableImporter {
      * @param stationId   the destination station
      * @param stationData the station payload from the bundle, or {@code null} when absent
      */
-    public void applyFields(int stationId, Map<String, Object> stationData) {
+    public void applyFields(int stationId, @Nullable Map<String, Object> stationData) {
         if (stationData == null || stationData.isEmpty()) return;
         var entry = tracking.tables() == null ? null : tracking.tables().get("station");
         if (entry == null) return;
-        var ignored = entry.stationTransfer().ignoredColumns() == null
-                ? List.<String>of()
-                : entry.stationTransfer().ignoredColumns();
+        var ignored = Objects.requireNonNullElse(entry.stationTransfer().ignoredColumns(), List.<String>of());
 
         Map<String, Object> updates = collectUpdates(stationData, entry.columns(), ignored);
         if (updates.isEmpty()) return;

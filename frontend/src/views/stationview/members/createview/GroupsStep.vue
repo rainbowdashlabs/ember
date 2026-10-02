@@ -11,7 +11,7 @@ import ButtonRow from '@/components/button/ButtonRow.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
-import type {MemberGroup} from '@/api/types'
+import type {MemberGroup} from '@/api/generated/schema'
 
 const {t} = useI18n()
 
@@ -33,7 +33,7 @@ const emit = defineEmits<{
     <SectionHeader>{{ t('membersCreate.stepGroups') }}</SectionHeader>
     <p class="text-sm text-(--text-muted)">{{ t('membersCreate.stepGroupsHint') }}</p>
 
-    <EmptyState compact v-if="groups.length === 0">{{ t('membersCreate.noGroups') }}</EmptyState>
+    <EmptyState v-if="groups.length === 0" compact>{{ t('membersCreate.noGroups') }}</EmptyState>
 
     <div class="space-y-2">
       <div
@@ -41,7 +41,12 @@ const emit = defineEmits<{
           :key="group.id"
           :class="selectedIds.has(group.id) ? 'border-primary bg-primary/10 ring-2 ring-primary/30' : 'border-bg-light-accent dark:border-bg-dark-accent hover:border-primary'"
           class="flex items-center justify-between rounded-lg px-4 py-3 border cursor-pointer transition-colors"
+          role="checkbox"
+          tabindex="0"
+          :aria-checked="selectedIds.has(group.id)"
           @click="emit('toggle', group.id)"
+          @keydown.enter.prevent="emit('toggle', group.id)"
+          @keydown.space.prevent="emit('toggle', group.id)"
       >
         <span class="font-medium">{{ group.name }}</span>
         <font-awesome-icon v-if="selectedIds.has(group.id)" :icon="['fas', 'check']" class="text-primary"/>

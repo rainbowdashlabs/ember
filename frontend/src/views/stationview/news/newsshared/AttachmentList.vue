@@ -8,7 +8,7 @@ import {useI18n} from 'vue-i18n'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import {mediaFileUrl} from '@/api/media'
 import {formatSize} from '@/util/format'
-import type {NewsAttachment} from '@/api/news'
+import type {NewsAttachment} from '@/api/generated/schema'
 
 const props = defineProps<{
   attachments: NewsAttachment[]

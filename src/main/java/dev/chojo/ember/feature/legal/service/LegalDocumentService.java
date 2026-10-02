@@ -7,14 +7,12 @@ package dev.chojo.ember.feature.legal.service;
 
 import dev.chojo.ember.feature.legal.entity.LegalDocumentType;
 import dev.chojo.ember.feature.system.service.DataInitializer;
+import dev.chojo.ember.util.FilePaths;
 import dev.chojo.ember.util.HtmlSanitizer;
+import dev.chojo.ember.util.Markdown;
+import dev.chojo.ember.util.Sha256;
 import dev.chojo.ember.util.TextDiff;
-import org.commonmark.Extension;
-import org.commonmark.ext.autolink.AutolinkExtension;
-import org.commonmark.ext.gfm.tables.TablesExtension;
-import org.commonmark.ext.heading.anchor.HeadingAnchorExtension;
-import org.commonmark.parser.Parser;
-import org.commonmark.renderer.html.HtmlRenderer;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,11 +21,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HexFormat;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -58,8 +53,6 @@ public class LegalDocumentService {
     private static final String DEFAULT_PLACEHOLDER_FILE = "data/documents/placeholders.json";
     private static final Pattern ORDER_PREFIX = Pattern.compile("^_?(\\d+)-");
 
-    private final Parser parser;
-    private final HtmlRenderer renderer;
     private final BrowserStorageService browserStorage;
     private final PlaceholderService placeholders;
 
@@ -71,12 +64,7 @@ public class LegalDocumentService {
      * @param placeholderFile where the placeholder values are stored; falls back to
      *                        {@value #DEFAULT_PLACEHOLDER_FILE} when null or blank
      */
-    public LegalDocumentService(String placeholderFile) {
-        List<Extension> extensions =
-                List.of(TablesExtension.create(), HeadingAnchorExtension.create(), AutolinkExtension.create());
-        this.parser = Parser.builder().extensions(extensions).build();
-        this.renderer =
-                HtmlRenderer.builder().extensions(extensions).sanitizeUrls(true).build();
+    public LegalDocumentService(@Nullable String placeholderFile) {
         this.browserStorage = new BrowserStorageService();
         this.placeholders = new PlaceholderService(Path.of(
                 placeholderFile == null || placeholderFile.isBlank() ? DEFAULT_PLACEHOLDER_FILE : placeholderFile));
@@ -102,13 +90,13 @@ public class LegalDocumentService {
 
     /**
      * Initializes a document directory: checks for version changes, archives old content, generates diff.
+     * A directory without locale subdirectories is read flat.
      *
-     * @return true if the content changed since last startup
+     * @return true if the content changed since last startup, false on the very first one
      */
     public boolean initialize(Path baseDir) {
         String currentMarkdown = readMarkdownDirectory(baseDir, DEFAULT_LOCALE);
         if (currentMarkdown.isEmpty()) {
-            // Also try reading directly from base dir (flat layout without locale subdirs)
             currentMarkdown = readMarkdownDirectoryFlat(baseDir);
         }
         if (currentMarkdown.isEmpty()) {
@@ -127,7 +115,6 @@ public class LegalDocumentService {
             return false;
         }
 
-        // Content changed or first time
         try {
             Files.createDirectories(historyDir);
         } catch (IOException e) {
@@ -137,14 +124,12 @@ public class LegalDocumentService {
         if (previousHash != null) {
             log.info("Legal document changed: {} ({} -> {})", baseDir, previousHash, currentHash);
 
-            // Read the archived previous content for diff
             Path previousArchive = historyDir.resolve(previousHash + ".md");
             if (Files.exists(previousArchive)) {
                 try {
                     String previousMarkdown = Files.readString(previousArchive, StandardCharsets.UTF_8);
                     String diff = generateDiff(previousMarkdown, currentMarkdown);
 
-                    // Write diff file
                     Path diffFile = historyDir.resolve(previousHash + "_to_" + currentHash + ".diff");
                     Files.writeString(diffFile, diff, StandardCharsets.UTF_8);
                     log.info("Diff written to {}", diffFile);
@@ -156,7 +141,6 @@ public class LegalDocumentService {
             log.info("Legal document initialized: {} (version {})", baseDir, currentHash);
         }
 
-        // Archive current content
         try {
             Path archiveFile = historyDir.resolve(currentHash + ".md");
             Files.writeString(archiveFile, currentMarkdown, StandardCharsets.UTF_8);
@@ -164,10 +148,9 @@ public class LegalDocumentService {
             log.error("Failed to archive content", e);
         }
 
-        // Write version file
         writeVersionFile(versionFile, currentHash);
 
-        return previousHash != null; // Only report as "changed" if there was a previous version
+        return previousHash != null;
     }
 
     /**
@@ -181,7 +164,7 @@ public class LegalDocumentService {
         if (!Files.isDirectory(baseDir)) return;
         try (DirectoryStream<Path> locales = Files.newDirectoryStream(baseDir, Files::isDirectory)) {
             for (Path localeDir : locales) {
-                if (localeDir.getFileName().toString().equals("history")) continue;
+                if (FilePaths.nameOf(localeDir).equals("history")) continue;
                 ensureGeneratedSectionInLocale(localeDir);
             }
         } catch (IOException e) {
@@ -193,7 +176,7 @@ public class LegalDocumentService {
         int highestPrefix = 0;
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(localeDir, "*.md")) {
             for (Path entry : stream) {
-                String name = entry.getFileName().toString();
+                String name = FilePaths.nameOf(entry);
                 if (BrowserStorageService.isGeneratedSection(name)) return;
                 var matcher = ORDER_PREFIX.matcher(name);
                 if (matcher.find()) {
@@ -238,13 +221,12 @@ public class LegalDocumentService {
      * @param typeSlug the document type the bundled fallback is taken from
      * @return the rendered document with HTML, raw markdown, and version hash
      */
-    public RenderedDocument getDocument(Path baseDir, String locale, String typeSlug) {
+    public RenderedDocument getDocument(Path baseDir, String locale, @Nullable String typeSlug) {
         String markdown = readMarkdownDirectory(baseDir, locale);
         if (markdown.isEmpty()) {
             markdown = readMarkdownDirectoryFlat(baseDir);
         }
         if (markdown.isEmpty() && !DEFAULT_LOCALE.equals(locale)) {
-            // Fall back to default locale
             markdown = readMarkdownDirectory(baseDir, DEFAULT_LOCALE);
         }
         if (markdown.isEmpty()) {
@@ -261,7 +243,7 @@ public class LegalDocumentService {
             }
         }
         var numbered = LegalNumbering.apply(markdown, styleFor(typeSlug), paragraphSign(locale));
-        String html = renderMarkdown(numbered.markdown());
+        String html = Markdown.toHtml(numbered.markdown(), HtmlSanitizer.Policy.STRICT);
         String version = hash(markdown);
         if (!numbered.unresolved().isEmpty()) {
             log.warn("Legal document {} refers to sections that do not exist: {}", baseDir, numbered.unresolved());
@@ -277,7 +259,7 @@ public class LegalDocumentService {
      * the order has not changed. Every other document is left as it reads, and a reference into it
      * carries the section title instead of a number.
      */
-    private static LegalNumbering.Style styleFor(String typeSlug) {
+    private static LegalNumbering.Style styleFor(@Nullable String typeSlug) {
         return LegalDocumentType.TOS.slug().equals(typeSlug)
                 ? LegalNumbering.Style.PARAGRAPH
                 : LegalNumbering.Style.NONE;
@@ -295,7 +277,7 @@ public class LegalDocumentService {
      * Assembles the bundled document of a type the same way a directory of sections is assembled,
      * so the generated sections carry their generated content here too.
      */
-    private String readBundled(String typeSlug, String locale) {
+    private String readBundled(@Nullable String typeSlug, String locale) {
         if (typeSlug == null) return "";
         var sb = new StringBuilder();
         for (var section : DataInitializer.bundledDocument(typeSlug, locale)) {
@@ -313,7 +295,7 @@ public class LegalDocumentService {
      * The document type a directory stands for, taken from its name. Configuration may move the
      * directory, but not rename what it holds.
      */
-    private static String typeSlug(Path baseDir) {
+    private static @Nullable String typeSlug(Path baseDir) {
         Path name = baseDir.getFileName();
         return name == null ? null : name.toString();
     }
@@ -333,14 +315,13 @@ public class LegalDocumentService {
      * then falls back to generating the diff on-demand from archived markdown files.
      * This handles the case where multiple version changes occurred between user logins.
      */
-    public String getDiff(Path baseDir, String fromVersion, String toVersion) {
+    public @Nullable String getDiff(Path baseDir, String fromVersion, String toVersion) {
         if (fromVersion == null || toVersion == null || fromVersion.equals(toVersion)) {
             return null;
         }
 
         Path historyDir = baseDir.resolve("history");
 
-        // Try pre-computed diff first
         Path diffFile = historyDir.resolve(fromVersion + "_to_" + toVersion + ".diff");
         if (Files.exists(diffFile)) {
             try {
@@ -350,7 +331,6 @@ public class LegalDocumentService {
             }
         }
 
-        // Fall back to on-demand generation from archived markdown files
         Path fromArchive = historyDir.resolve(fromVersion + ".md");
         Path toArchive = historyDir.resolve(toVersion + ".md");
 
@@ -369,7 +349,6 @@ public class LegalDocumentService {
             String toMarkdown = Files.readString(toArchive, StandardCharsets.UTF_8);
             String diff = generateDiff(fromMarkdown, toMarkdown);
 
-            // Cache the generated diff for future requests
             try {
                 Files.writeString(diffFile, diff, StandardCharsets.UTF_8);
             } catch (IOException e) {
@@ -397,20 +376,7 @@ public class LegalDocumentService {
      * @return a 16-character hex string identifying the content version
      */
     String hash(String content) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hash = digest.digest(content.getBytes(StandardCharsets.UTF_8));
-            return HexFormat.of().formatHex(hash).substring(0, 16);
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    private String renderMarkdown(String markdown) {
-        if (markdown.isEmpty()) return "";
-        var document = parser.parse(markdown);
-        String html = renderer.render(document);
-        return HtmlSanitizer.sanitize(html, HtmlSanitizer.Policy.STRICT);
+        return Sha256.hexPrefix(content, 16);
     }
 
     /**
@@ -438,8 +404,7 @@ public class LegalDocumentService {
         List<Path> files = new ArrayList<>();
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(dir, "*.md")) {
             for (Path entry : stream) {
-                // Skip disabled files (prefixed with _)
-                if (entry.getFileName().toString().startsWith("_")) continue;
+                if (isSwitchedOff(entry)) continue;
                 files.add(entry);
             }
         } catch (IOException e) {
@@ -455,7 +420,7 @@ public class LegalDocumentService {
                 if (!sb.isEmpty()) {
                     sb.append("\n\n");
                 }
-                String name = file.getFileName().toString();
+                String name = FilePaths.nameOf(file);
                 if (BrowserStorageService.isGeneratedSection(name)) {
                     sb.append(browserStorage.toMarkdown(locale));
                 } else {
@@ -468,7 +433,12 @@ public class LegalDocumentService {
         return sb.toString();
     }
 
-    private String readVersionFile(Path versionFile) {
+    /** Whether a markdown file is switched off, which an underscore at the start of its name says. */
+    private static boolean isSwitchedOff(Path markdownFile) {
+        return FilePaths.nameOf(markdownFile).startsWith("_");
+    }
+
+    private @Nullable String readVersionFile(Path versionFile) {
         if (!Files.exists(versionFile)) {
             return null;
         }

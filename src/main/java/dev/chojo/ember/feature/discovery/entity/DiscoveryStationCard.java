@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.discovery.entity;
 
 import dev.chojo.ember.util.Json;
+import org.jspecify.annotations.Nullable;
 import tools.jackson.databind.JsonNode;
 
 import java.math.BigDecimal;
@@ -17,24 +18,68 @@ import java.util.List;
  * in the local cache.
  *
  * <p>Member counts are bucketed to avoid leaking precise size of small stations.
+ *
+ * <p>{@code publicSlug} is the readable address of the station's public page. A peer that predates it
+ * sends nothing, and a reader then addresses the page by {@code stationUid}, which the page accepts too.
  */
 public record DiscoveryStationCard(
         String stationUid,
         String name,
-        String slogan,
+        @Nullable String slogan,
         String logoUrl,
-        String country,
-        String region,
-        String city,
+        @Nullable String country,
+        @Nullable String region,
+        @Nullable String city,
         String contactUrl,
         List<String> tags,
         String memberCount,
         Instant publishedAt,
-        String addressLine,
-        BigDecimal latitude,
-        BigDecimal longitude,
-        String clusterUid,
-        String clusterName) {
+        @Nullable String addressLine,
+        @Nullable BigDecimal latitude,
+        @Nullable BigDecimal longitude,
+        @Nullable String clusterUid,
+        @Nullable String clusterName,
+        @Nullable String publicSlug) {
+
+    /**
+     * A card from a peer that predates the public address, which reads as "addressed by its identifier".
+     */
+    public DiscoveryStationCard(
+            String stationUid,
+            String name,
+            String slogan,
+            String logoUrl,
+            String country,
+            String region,
+            String city,
+            String contactUrl,
+            List<String> tags,
+            String memberCount,
+            Instant publishedAt,
+            String addressLine,
+            BigDecimal latitude,
+            BigDecimal longitude,
+            String clusterUid,
+            String clusterName) {
+        this(
+                stationUid,
+                name,
+                slogan,
+                logoUrl,
+                country,
+                region,
+                city,
+                contactUrl,
+                tags,
+                memberCount,
+                publishedAt,
+                addressLine,
+                latitude,
+                longitude,
+                clusterUid,
+                clusterName,
+                null);
+    }
 
     /**
      * A card from a peer that predates the cluster fields, which reads as "not in a cluster".
@@ -73,7 +118,15 @@ public record DiscoveryStationCard(
                 latitude,
                 longitude,
                 null,
+                null,
                 null);
+    }
+
+    /**
+     * The address of the station's public page: its readable name where it has one, its identifier otherwise.
+     */
+    public String publicAddress() {
+        return publicSlug != null && !publicSlug.isBlank() ? publicSlug : stationUid;
     }
 
     public static DiscoveryStationCard parse(String json) {

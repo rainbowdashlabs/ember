@@ -10,7 +10,7 @@ import MutedText from '@/components/typography/MutedText.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import {RELAY_PROVIDER_NAMES} from '@/util/mailProviders'
-import type {ProviderStanding} from '@/api/mailProviders'
+import type {ProviderStanding} from '@/api/generated/schema'
 
 /**
  * How one provider stands today: what it has sent against what it may, and how much post is

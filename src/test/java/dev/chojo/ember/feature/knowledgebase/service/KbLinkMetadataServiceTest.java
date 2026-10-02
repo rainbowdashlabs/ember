@@ -5,25 +5,35 @@
  */
 package dev.chojo.ember.feature.knowledgebase.service;
 
-import dev.chojo.ember.feature.federation.service.RemoteUrlValidator;
+import dev.chojo.ember.feature.federation.service.OutboundHttp;
+import dev.chojo.ember.feature.federation.service.RefusedDestinationException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
-import java.net.http.HttpClient;
+import java.net.URI;
 import java.net.http.HttpHeaders;
+import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.*;
 
 class KbLinkMetadataServiceTest {
-    private HttpClient httpClient;
-    private RemoteUrlValidator urlValidator;
+    private OutboundHttp httpClient;
     private KbLinkMetadataService service;
+
+    private static HttpRequest addressedTo(String url) {
+        return argThat(request -> request != null && request.uri().equals(URI.create(url)));
+    }
+
+    private static RefusedDestinationException refused() {
+        return new RefusedDestinationException(RefusedDestinationException.Reason.NOT_PUBLIC, "private");
+    }
 
     @SuppressWarnings("unchecked")
     private static HttpResponse<String> response(int status, String body) {
@@ -59,10 +69,8 @@ class KbLinkMetadataServiceTest {
 
     @BeforeEach
     void setup() {
-        httpClient = mock(HttpClient.class);
-        urlValidator = mock(RemoteUrlValidator.class);
-        when(urlValidator.isAllowed(any())).thenReturn(true);
-        service = new KbLinkMetadataService(httpClient, urlValidator);
+        httpClient = mock(OutboundHttp.class);
+        service = new KbLinkMetadataService(httpClient);
     }
 
     /**
@@ -170,41 +178,35 @@ class KbLinkMetadataServiceTest {
     }
 
     /**
-     * The default client is built without a caller supplying one, so the service is usable as an
-     * injected singleton.
-     */
-    @Test
-    void theDefaultClientIsBuiltWithoutACaller() {
-        assertNotNull(new KbLinkMetadataService(urlValidator));
-    }
-
-    /**
      * The address is the member's to choose and part of the answer is stored where they can read
-     * it, so an address the validator refuses is never reached at all.
+     * it, so an address the outbound gateway refuses yields nothing.
      */
     @Test
-    void anAddressTheValidatorRefusesIsNotFetched() throws Exception {
-        when(urlValidator.isAllowed("http://169.254.169.254/latest/meta-data")).thenReturn(false);
+    void anAddressTheGatewayRefusesYieldsNothing() throws Exception {
+        when(httpClient.<String>send(any(), any())).thenThrow(refused());
 
         var metadata = service.fetchUrlMetadata("http://169.254.169.254/latest/meta-data");
 
         assertNull(metadata.title());
-        verify(httpClient, never()).send(any(), any());
+        assertNull(metadata.description());
     }
 
     /**
      * A public page that redirects into private space would pass a check made only at the start,
-     * so every hop is checked and the walk stops where the validator says no.
+     * so every hop goes through the gateway again and the walk stops where it says no.
      */
     @Test
     void aRedirectIntoPrivateSpaceIsNotFollowed() throws Exception {
-        when(urlValidator.isAllowed("http://127.0.0.1:8080/secret")).thenReturn(false);
-        respondWith(redirectTo("http://127.0.0.1:8080/secret"));
+        var redirect = redirectTo("http://127.0.0.1:8080/secret");
+        when(httpClient.<String>send(addressedTo("https://public.example"), any()))
+                .thenReturn(redirect);
+        when(httpClient.<String>send(addressedTo("http://127.0.0.1:8080/secret"), any()))
+                .thenThrow(refused());
 
         var metadata = service.fetchUrlMetadata("https://public.example");
 
         assertNull(metadata.title());
-        verify(httpClient, times(1)).send(any(), any());
+        verify(httpClient, times(2)).send(any(), any());
     }
 
     @Test

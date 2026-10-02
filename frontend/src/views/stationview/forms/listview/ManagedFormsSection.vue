@@ -12,7 +12,7 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import ManagedFormTile from './ManagedFormTile.vue'
 import type { RouteLocationRaw } from 'vue-router'
-import type { Form } from '@/api/forms'
+import type { Form } from '@/api/generated/schema'
 import { byDate, byValue, useSortable } from '@/composables/useSortable'
 
 const props = defineProps<{
@@ -42,15 +42,15 @@ const {sortKey, direction, sorted: sortedForms} = useSortable<Form, FormSortKey>
 })
 
 const emit = defineEmits<{
-  (e: 'create'): void
-  (e: 'publish', form: Form): void
-  (e: 'close', form: Form): void
-  (e: 'edit', form: Form): void
-  (e: 'analytics', form: Form): void
-  (e: 'share', form: Form): void
-  (e: 'clear', form: Form): void
-  (e: 'duplicate', form: Form): void
-  (e: 'delete', form: Form): void
+  create: []
+  publish: [form: Form]
+  close: [form: Form]
+  edit: [form: Form]
+  analytics: [form: Form]
+  share: [form: Form]
+  clear: [form: Form]
+  duplicate: [form: Form]
+  delete: [form: Form]
 }>()
 
 const { t } = useI18n()
@@ -83,7 +83,7 @@ const { t } = useI18n()
       </div>
     </div>
 
-    <EmptyState compact v-if="forms.length === 0">{{ t('forms.noForms') }}</EmptyState>
+    <EmptyState v-if="forms.length === 0" compact>{{ t('forms.noForms') }}</EmptyState>
 
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       <ManagedFormTile

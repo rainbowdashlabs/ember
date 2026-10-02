@@ -5,18 +5,19 @@
  */
 import { ref, watch, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import {
-  multiDayEndDate,
-  type AllEventRestrictions,
-  type EventBreak,
-  type EventCategory,
-  type EventField,
-  type EventRegistrationEntry,
-  type RegistrationCount,
-  type StationEvent,
-  type UpcomingEventOccurrence,
-} from '@/api/events'
-import type { MemberGroup, StationMember, UserTag } from '@/api/types'
+import { multiDayEndDate, type AllEventRestrictions } from '@/api/events'
+import type {
+  EventBreak,
+  EventCategory,
+  AppointmentField,
+  EventSummary,
+  ManagedMember,
+  MemberGroup,
+  RegistrationCount,
+  RegistrationResponse,
+  UpcomingEventOccurrence,
+  UserTag,
+} from '@/api/generated/schema'
 import { events, managedMembers as managedMembersApi, memberGroups, userTags } from '@/api'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { useEventAnswer } from '@/composables/useEventAnswer'
@@ -43,14 +44,14 @@ import { describeFailure, saying } from '@/util/failure'
 export function useUpcomingEvents(currentMemberId: Ref<number>, isGuardian: () => boolean) {
   const { t } = useI18n()
 
-  const allEvents = ref<StationEvent[]>([])
+  const allEvents = ref<EventSummary[]>([])
   const eventBreaks = ref<EventBreak[]>([])
-  const todayEvents = ref<StationEvent[]>([])
-  const myRegistrations = ref<EventRegistrationEntry[]>([])
+  const todayEvents = ref<EventSummary[]>([])
+  const myRegistrations = ref<RegistrationResponse[]>([])
   const eligibleMembers = ref<Record<number, number[]>>({})
-  const managedMembers = ref<StationMember[]>([])
+  const managedMembers = ref<ManagedMember[]>([])
   const registrationCounts = ref<RegistrationCount[]>([])
-  const overviewFields = ref<Record<number, EventField[]>>({})
+  const overviewFields = ref<Record<number, AppointmentField[]>>({})
   const categories = ref<EventCategory[]>([])
   const restrictions = ref<AllEventRestrictions>({})
   const groups = ref<MemberGroup[]>([])
@@ -116,13 +117,7 @@ export function useUpcomingEvents(currentMemberId: Ref<number>, isGuardian: () =
     tags.value = tgs
 
     if (!isGuardian()) return
-    managedMembers.value = (await managedMembersApi.listManaged()).map(m => ({
-      id: m.id,
-      stationId: m.stationId,
-      accountId: m.accountId,
-      name: m.name,
-      email: m.email,
-    }))
+    managedMembers.value = await managedMembersApi.listManaged()
   }, {autoLoad: false})
 
   async function reloadRegistrations() {
@@ -147,7 +142,6 @@ export function useUpcomingEvents(currentMemberId: Ref<number>, isGuardian: () =
    * reads them as the answer to the filter they just set.
    */
   async function reloadOccurrences() {
-    if (loading.value) return
     try {
       await occurrences.load()
     } catch (e) {

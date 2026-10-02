@@ -4,13 +4,16 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, useId } from 'vue'
 import { nodeViewProps, NodeViewWrapper } from '@tiptap/vue-3'
 import AuthImage from '@/components/display/AuthImage.vue'
 import IconButton from '@/components/button/IconButton.vue'
+import { useI18n } from 'vue-i18n'
 import { isKbImageSrc } from '@/util/normalizeAuthSrc'
 
 const props = defineProps(nodeViewProps)
+
+const { t } = useI18n()
 
 const imgWidth = computed(() => props.node.attrs.width ? String(props.node.attrs.width) : '')
 
@@ -18,6 +21,8 @@ const imgStyle = computed(() => {
   if (props.node.attrs.width) return `width: ${props.node.attrs.width}px`
   return ''
 })
+
+const widthId = useId()
 
 const srcStr = computed(() => (props.node.attrs.src as string) ?? '')
 const isAuthSrc = computed(() => isKbImageSrc(srcStr.value))
@@ -48,11 +53,12 @@ function onWidthChange(e: Event) {
       draggable="false"
     />
     <div class="image-controls" @mousedown.stop>
-      <span class="text-xs text-[var(--text-muted)] mr-1">Breite:</span>
+      <label :for="widthId" class="text-xs text-[var(--text-muted)] mr-1">{{ t('markdownEditor.imageWidth') }}</label>
       <input
+        :id="widthId"
         type="number"
         :value="imgWidth"
-        placeholder="auto"
+        :placeholder="t('markdownEditor.imageWidthAuto')"
         class="w-16 px-1 py-0.5 text-xs rounded border border-[var(--border)] bg-[var(--bg)] text-[var(--text)] text-center"
         min="50"
         step="10"
@@ -62,7 +68,7 @@ function onWidthChange(e: Event) {
       <div class="w-px h-4 bg-[var(--border)] mx-1.5" />
       <IconButton
         :icon="['fas', 'trash']"
-        label="Bild entfernen"
+        :label="t('markdownEditor.removeImage')"
         class="hover:bg-red-100 dark:hover:bg-red-900/30 text-red-500 cursor-pointer"
         @click="deleteNode"
       >

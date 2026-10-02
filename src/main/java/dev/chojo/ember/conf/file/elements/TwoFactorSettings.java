@@ -75,6 +75,26 @@ public class TwoFactorSettings {
         return webauthn;
     }
 
+    public void enabled(boolean enabled) {
+        this.enabled = enabled;
+    }
+
+    public void secretKey(String secretKey) {
+        this.secretKey = secretKey;
+    }
+
+    public void stepUpFreshnessSeconds(int stepUpFreshnessSeconds) {
+        this.stepUpFreshnessSeconds = stepUpFreshnessSeconds;
+    }
+
+    public void trustedDeviceMaxDays(int trustedDeviceMaxDays) {
+        this.trustedDeviceMaxDays = trustedDeviceMaxDays;
+    }
+
+    public void enrollmentGraceDays(int enrollmentGraceDays) {
+        this.enrollmentGraceDays = enrollmentGraceDays;
+    }
+
     @Override
     public String toString() {
         return "TwoFactorSettings{enabled=" + enabled
@@ -111,6 +131,26 @@ public class TwoFactorSettings {
         public String issuer() {
             return issuer;
         }
+
+        public void digits(int digits) {
+            this.digits = digits;
+        }
+
+        public void periodSeconds(int periodSeconds) {
+            this.periodSeconds = periodSeconds;
+        }
+
+        public void algorithm(String algorithm) {
+            this.algorithm = algorithm;
+        }
+
+        public void driftWindow(int driftWindow) {
+            this.driftWindow = driftWindow;
+        }
+
+        public void issuer(String issuer) {
+            this.issuer = issuer;
+        }
     }
 
     @SuppressWarnings({"FieldCanBeLocal", "FieldMayBeFinal", "CanBeFinal"})
@@ -119,6 +159,10 @@ public class TwoFactorSettings {
 
         public int count() {
             return count;
+        }
+
+        public void count(int count) {
+            this.count = count;
         }
     }
 

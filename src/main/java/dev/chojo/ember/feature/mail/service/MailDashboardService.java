@@ -5,12 +5,14 @@
  */
 package dev.chojo.ember.feature.mail.service;
 
+import dev.chojo.ember.feature.mail.entity.EmailQueueStatus;
 import dev.chojo.ember.feature.mail.entity.MailDeliveryStatus;
 import dev.chojo.ember.feature.mail.repository.EmailQueueRepository;
 import dev.chojo.ember.feature.mail.repository.MailProviderBlockRepository;
 import dev.chojo.ember.feature.station.entity.MailProviderType;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -85,10 +87,10 @@ public class MailDashboardService {
             String recipient,
             String subject,
             Instant createdAt,
-            Instant sentAt,
-            String status,
+            @Nullable Instant sentAt,
+            EmailQueueStatus status,
             MailDeliveryStatus deliveryStatus,
-            String deliveryDetail,
+            @Nullable String deliveryDetail,
             int attempts,
             int providerPosition,
             boolean reachable) {}
@@ -114,7 +116,7 @@ public class MailDashboardService {
             int sent,
             int failed,
             int stuck,
-            Instant oldestPendingAt,
+            @Nullable Instant oldestPendingAt,
             List<ProviderStanding> providers,
             List<MailRecord> stuckMails,
             List<MailRecord> recent,
@@ -136,7 +138,7 @@ public class MailDashboardService {
      *
      * @param stationId the station whose post is meant, or null for the instance's
      */
-    public MailDashboard forOwner(Integer stationId) {
+    public MailDashboard forOwner(@Nullable Integer stationId) {
         var summary = queueRepository.summary(stationId);
         var chain = stationId == null ? chainService.forInstance() : chainService.forStation(stationId);
         var waiting = queueRepository.pendingByProvider(stationId);
@@ -211,8 +213,21 @@ public class MailDashboardService {
      * @param stationId the station whose post is meant, or null for the instance's
      * @param id        the one mail meant, or null for every stuck one
      */
-    public RequeuedMails requeueStuck(Integer stationId, Integer id) {
+    public RequeuedMails requeueStuck(@Nullable Integer stationId, @Nullable Integer id) {
         return new RequeuedMails(queueRepository.requeueStuck(stationId, id));
+    }
+
+    /**
+     * Lifts a block by hand, for when an operator knows the relay has been taken off the list and
+     * does not want to wait out the week.
+     *
+     * @param stationId the station whose post is meant, or null for the instance's
+     * @param provider  the provider the block was put on
+     * @param domain    the recipient domain it was put on, or null when none was named, which lifts nothing
+     */
+    public void liftBlock(@Nullable Integer stationId, MailProviderType provider, @Nullable String domain) {
+        if (domain == null) return;
+        blockRepository.lift(stationId, provider, domain);
     }
 
     /**

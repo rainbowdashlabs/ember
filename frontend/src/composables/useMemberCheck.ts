@@ -5,8 +5,14 @@
  */
 import { computed, ref, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { InventoryItem, RequiredInventoryItem } from '@/api/inventory'
-import type { CheckResult, CorrectItemRequest, MemberCheckState } from '@/api/inventoryCheck'
+import type {
+    CheckResult,
+    CorrectItemRequest,
+    InventoryItem,
+    MemberCheckState,
+    MovementStanding,
+    RequiredInventoryItem,
+} from '@/api/generated/schema'
 import { inventoryCheck, movements, procurement } from '@/api'
 import type { HandOutMode } from '@/components/inventory/HandOutChoice.vue'
 import { showToast } from '@/util/toast'
@@ -259,12 +265,12 @@ export function useMemberCheck(
   }
 
   /**
-   * The step a piece is standing on when something is already running on it, and null when nothing
-   * is. A piece can only be on one movement at a time, so this is what decides whether a swap is
-   * worth offering for it. The step itself can be empty where the flow it walked has been taken
-   * apart since, which says nothing about whether the movement is running.
+   * Where the movement already running on a piece stands, and null when nothing runs on it. A piece
+   * can only be on one movement at a time, so this is what decides whether a swap is worth offering
+   * for it. It is the movement's own standing, the last step that happened and whose turn it is, so
+   * the walk says what the movement list says and never names the step still being waited on.
    */
-  function movementStep(itemId: number): string | null {
+  function movementOf(itemId: number): MovementStanding | null {
     return state.value?.onTheMove?.[itemId] ?? null
   }
 
@@ -315,7 +321,7 @@ export function useMemberCheck(
     slotProcurements,
     sizeLabel,
     itemLabel,
-    movementStep,
+    movementOf,
     reset,
   }
 }

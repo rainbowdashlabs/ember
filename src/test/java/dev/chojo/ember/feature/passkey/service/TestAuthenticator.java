@@ -36,6 +36,10 @@ public final class TestAuthenticator {
 
     private static final String ORIGIN = "https://ember.test";
     private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final int FLAGS_PRESENT_ATTESTED_VERIFIED = 0x45;
+    private static final int FLAGS_PRESENT_ATTESTED = 0x41;
+    private static final int SIGNATURE_COUNTER_LENGTH = 4;
+    private static final int AAGUID_LENGTH = 16;
 
     private final KeyPair keyPair;
     private final byte[] credentialId = new byte[16];
@@ -84,7 +88,7 @@ public final class TestAuthenticator {
     }
 
     /** The same, without the user-verified flag: a reader who skipped the fingerprint. */
-    String register(String optionsJson, boolean userVerified) {
+    public String register(String optionsJson, boolean userVerified) {
         try {
             var options = MAPPER.readTree(optionsJson).path("publicKey");
             String challenge = options.path("challenge").asText();
@@ -94,22 +98,14 @@ public final class TestAuthenticator {
 
             var authData = new ByteArrayOutputStream();
             authData.write(MessageDigest.getInstance("SHA-256").digest(rpId.getBytes(StandardCharsets.UTF_8)));
-            authData.write(userVerified ? 0x45 : 0x41); // user present, attested data, verified or not
-            authData.write(new byte[4]); // signature counter
-            authData.write(new byte[16]); // aaguid
+            authData.write(userVerified ? FLAGS_PRESENT_ATTESTED_VERIFIED : FLAGS_PRESENT_ATTESTED);
+            authData.write(new byte[SIGNATURE_COUNTER_LENGTH]);
+            authData.write(new byte[AAGUID_LENGTH]);
             authData.write(new byte[] {0, (byte) credentialId.length});
             authData.write(credentialId);
             authData.write(buildCoseKey());
 
-            // Attestation object: {"fmt": "none", "attStmt": {}, "authData": bytes}
-            var attestation = new ByteArrayOutputStream();
-            attestation.write(0xA3);
-            cborText(attestation, "fmt");
-            cborText(attestation, "none");
-            cborText(attestation, "attStmt");
-            attestation.write(0xA0);
-            cborText(attestation, "authData");
-            cborBytes(attestation, authData.toByteArray());
+            var attestation = noneAttestation(authData.toByteArray());
 
             var b64 = Base64.getUrlEncoder().withoutPadding();
             String clientData = MAPPER.writeValueAsString(MAPPER.createObjectNode()
@@ -134,7 +130,12 @@ public final class TestAuthenticator {
      * Answers an assertion ceremony: authenticator data flagged user-verified, a counter one
      * higher than last time, and a real signature over what the relying party will verify.
      */
-    String sign(String requestJson) {
+    public String sign(String requestJson) {
+        return sign(requestJson, true);
+    }
+
+    /** The same, with the user-verified flag as given: an unverified answer is only user present. */
+    public String sign(String requestJson, boolean userVerified) {
         try {
             var options = MAPPER.readTree(requestJson).path("publicKey");
             String challenge = options.path("challenge").asText();
@@ -143,7 +144,7 @@ public final class TestAuthenticator {
             counter++;
             var authData = new ByteArrayOutputStream();
             authData.write(MessageDigest.getInstance("SHA-256").digest(rpId.getBytes(StandardCharsets.UTF_8)));
-            authData.write(0x05); // user present, user verified
+            authData.write(userVerified ? 0x05 : 0x01);
             authData.write(ByteBuffer.allocate(4).putInt(counter).array());
 
             String clientData = MAPPER.writeValueAsString(MAPPER.createObjectNode()
@@ -175,6 +176,19 @@ public final class TestAuthenticator {
         }
     }
 
+    /** Attestation object: {"fmt": "none", "attStmt": {}, "authData": bytes}. */
+    private static ByteArrayOutputStream noneAttestation(byte[] authData) throws IOException {
+        var attestation = new ByteArrayOutputStream();
+        attestation.write(0xA3);
+        cborText(attestation, "fmt");
+        cborText(attestation, "none");
+        cborText(attestation, "attStmt");
+        attestation.write(0xA0);
+        cborText(attestation, "authData");
+        cborBytes(attestation, authData);
+        return attestation;
+    }
+
     /** COSE key: {1: 2 (EC2), 3: -7 (ES256), -1: 1 (P-256), -2: x, -3: y}. */
     private byte[] buildCoseKey() throws IOException {
         var publicKey = (ECPublicKey) keyPair.getPublic();
@@ -193,12 +207,15 @@ public final class TestAuthenticator {
         return coseKey.toByteArray();
     }
 
-    /** One CBOR integer, covering the small values a COSE key needs. */
+    /**
+     * One CBOR integer, covering the small values a COSE key needs: every positive here is below 24 and
+     * every negative above -25, so each fits the initial byte.
+     */
     private static void cborInt(ByteArrayOutputStream out, int value) {
         if (value >= 0) {
-            out.write(value); // all our positives are below 24
+            out.write(value);
         } else {
-            out.write(0x20 | (-1 - value)); // all our negatives are above -25
+            out.write(0x20 | (-1 - value));
         }
     }
 
@@ -216,9 +233,10 @@ public final class TestAuthenticator {
         out.write(data);
     }
 
+    /** One short CBOR text string; every string here is under 24 bytes, so its length fits the initial byte. */
     private static void cborText(ByteArrayOutputStream out, String text) throws IOException {
         byte[] data = text.getBytes(StandardCharsets.UTF_8);
-        out.write(0x60 | data.length); // all our strings are short
+        out.write(0x60 | data.length);
         out.write(data);
     }
 

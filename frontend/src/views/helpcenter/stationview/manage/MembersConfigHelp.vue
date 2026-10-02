@@ -10,16 +10,29 @@ import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import TabBar from '@/components/navigation/TabBar.vue'
-import DummyFieldsPanel from './membersconfighelp/DummyFieldsPanel.vue'
-import DummyAudiencesPanel from './membersconfighelp/DummyAudiencesPanel.vue'
-import DummyTemplatesPanel from './membersconfighelp/DummyTemplatesPanel.vue'
-import DummyExpiryPanel from './membersconfighelp/DummyExpiryPanel.vue'
+import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
+import QuestionValueDisplay from '@/components/display/QuestionValueDisplay.vue'
+import FieldsPanel from '@/views/stationview/manage/membersconfig/FieldsPanel.vue'
+import AudiencesPanel from '@/views/stationview/manage/membersconfig/AudiencesPanel.vue'
+import TemplateButtons from '@/views/stationview/manage/membersconfig/TemplateButtons.vue'
+import ExpiryDateFields from '@/views/stationview/manage/membersconfig/fieldmodal/ExpiryDateFields.vue'
 import {STATION_ROLES} from '@/composables/useFieldsConfig'
+import {FieldTypes} from '@/api/fieldTypes'
+import {expirySettingsOf, type ExpirySettings} from '@/util/expiry'
+import {DEMO_AUDIENCE_COUNT, DEMO_FIELDS, demoAudiences, demoExpiryDates} from './fixtures'
 
 const {t} = useI18n()
 
 const activeTab = ref('MEMBER')
 const tabs = STATION_ROLES.map(role => ({key: role, label: t(`membersConfig.roles.${role}`)}))
+
+const selectedField = DEMO_FIELDS[1] ?? null
+const audiences = demoAudiences(t)
+const unaskedRoles = STATION_ROLES.filter(role => !audiences.some(audience => audience.target.role === role))
+const noneChecked = new Set<number>()
+const expirySettings = ref<ExpirySettings>(expirySettingsOf({warnFromDays: 90, reminderDays: [90, 30]}))
+const expiryDates = demoExpiryDates()
 </script>
 
 <template>
@@ -40,8 +53,9 @@ const tabs = STATION_ROLES.map(role => ({key: role, label: t(`membersConfig.role
     </HelpSection>
 
     <div class="grid gap-6 lg:grid-cols-2 items-start">
-      <DummyFieldsPanel/>
-      <DummyAudiencesPanel/>
+      <FieldsPanel :fields="DEMO_FIELDS" :selected-id="selectedField?.id ?? null" :audience-count="DEMO_AUDIENCE_COUNT"
+                   :checked-ids="noneChecked" :roles="STATION_ROLES" :groups="[]"/>
+      <AudiencesPanel :field="selectedField" :audiences="audiences" :unasked-roles="unaskedRoles" :unasked-groups="[]"/>
     </div>
 
     <HelpSection :title="t('helpCenter.membersConfig.audiencesTitle')">
@@ -58,7 +72,10 @@ const tabs = STATION_ROLES.map(role => ({key: role, label: t(`membersConfig.role
       <p>{{ t('helpCenter.membersConfig.templatesText') }}</p>
     </HelpSection>
 
-    <DummyTemplatesPanel/>
+    <NeutralContainer class="space-y-3">
+      <FieldLabel hint>{{ t('membersConfig.templates') }}</FieldLabel>
+      <TemplateButtons/>
+    </NeutralContainer>
 
     <HelpSection :title="t('helpCenter.membersConfig.optionsTitle')">
       <p>{{ t('helpCenter.membersConfig.optRequired') }}</p>
@@ -87,7 +104,15 @@ const tabs = STATION_ROLES.map(role => ({key: role, label: t(`membersConfig.role
       <p>{{ t('helpCenter.membersConfig.expiryFilter') }}</p>
     </HelpSection>
 
-    <DummyExpiryPanel/>
+    <NeutralContainer class="space-y-4">
+      <ExpiryDateFields v-model="expirySettings"/>
+      <div class="space-y-1">
+        <FieldLabel>{{ t('fieldTypes.label.EXPIRY_DATE') }}</FieldLabel>
+        <p v-for="date in expiryDates" :key="date" class="text-sm">
+          <QuestionValueDisplay :value="date" :field-type="FieldTypes.EXPIRY_DATE" :config="{warnFromDays: 90}"/>
+        </p>
+      </div>
+    </NeutralContainer>
 
     <HelpSection :title="t('helpCenter.membersConfig.layoutTitle')">
       <p>{{ t('helpCenter.membersConfig.layoutText') }}</p>

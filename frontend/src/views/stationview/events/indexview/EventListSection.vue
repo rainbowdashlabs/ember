@@ -10,8 +10,7 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import EventRow from './EventRow.vue'
 import type {PagedListView} from '@/composables/usePagedList'
-import type {AttendanceTemplate} from '@/api/attendance'
-import type {DatedEvent, EventCategory, EventField, StationEvent} from '@/api/events'
+import type {AttendanceTemplate, DatedEvent, EventCategory, AppointmentField, EventSummary} from '@/api/generated/schema'
 
 /**
  * One of the dashboard's lists, with the button that asks the server for the next page of it.
@@ -25,12 +24,12 @@ const props = defineProps<{
   isPast: boolean
   categories: EventCategory[]
   templates: AttendanceTemplate[]
-  overviewFields: Record<number, EventField[]>
+  overviewFields: Record<number, AppointmentField[]>
 }>()
 
 const emit = defineEmits<{
-  edit: [event: StationEvent]
-  remove: [event: StationEvent]
+  edit: [event: EventSummary]
+  remove: [event: EventSummary]
   loadMore: []
 }>()
 

@@ -12,8 +12,9 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import PublicConsentCheckbox from '@/components/public/PublicConsentCheckbox.vue'
 import WaitlistGuardiansSection from './WaitlistGuardiansSection.vue'
-import WaitlistCustomField from './WaitlistCustomField.vue'
-import type {GuardianInput, PublicWaitlistFormResponse, WaitingListField} from '@/api/waitingList'
+import WaitingListAnswerInput from '@/components/waitinglist/WaitingListAnswerInput.vue'
+import type {GuardianInput} from '@/api/waitingList'
+import type {PublicWaitlistFormResponse, WaitingListField} from '@/api/generated/schema'
 
 const props = defineProps<{
   form: PublicWaitlistFormResponse
@@ -79,12 +80,12 @@ function fieldValue(field: WaitingListField, values: Record<number, string>): st
     />
 
     <template v-if="form.fields.length > 0">
-      <WaitlistCustomField
+      <WaitingListAnswerInput
           v-for="field in form.fields"
           :key="field.id"
           :field="field"
-          :value="fieldValue(field, fieldValues)"
-          @update="emit('set-field', field, $event)"
+          :model-value="fieldValue(field, fieldValues)"
+          @update:model-value="emit('set-field', field, $event)"
       />
     </template>
 

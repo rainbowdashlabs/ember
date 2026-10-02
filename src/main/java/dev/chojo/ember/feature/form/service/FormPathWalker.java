@@ -5,11 +5,12 @@
  */
 package dev.chojo.ember.feature.form.service;
 
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.refusal.FormRefusal;
 import dev.chojo.ember.feature.form.entity.FormAnswerValue;
 import dev.chojo.ember.feature.form.entity.FormPage;
 import dev.chojo.ember.feature.form.entity.FormQuestion;
 import dev.chojo.ember.feature.form.entity.PageTarget;
+import dev.chojo.ember.feature.form.entity.QuestionBranch;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -45,7 +46,9 @@ public final class FormPathWalker {
      * @param problems what is wrong with the answers, one entry per question; empty where they can be taken
      */
     public record Walk(
-            List<String> path, Map<Integer, FormAnswerValue> answers, List<FormAnswersRefused.Problem> problems) {}
+            List<String> path,
+            Map<Integer, FormAnswerValue> answers,
+            List<FormAnswersRefused.AnswerProblem> problems) {}
 
     /**
      * Walks the pages with the given answers.
@@ -57,11 +60,12 @@ public final class FormPathWalker {
      */
     public static Walk walk(List<FormPage> pages, List<FormQuestion> questions, Map<Integer, FormAnswerValue> answers) {
         var given = nonEmpty(answers);
-        var problems = new ArrayList<FormAnswersRefused.Problem>();
+        var problems = new ArrayList<FormAnswersRefused.AnswerProblem>();
         var known = questions.stream().map(FormQuestion::id).collect(Collectors.toSet());
         for (var questionId : given.keySet()) {
             if (!known.contains(questionId)) {
-                problems.add(FormAnswersRefused.Problem.of(questionId, null, Refusal.ANSWER_TO_QUESTION_NOT_ON_FORM));
+                problems.add(FormAnswersRefused.AnswerProblem.of(
+                        questionId, null, FormRefusal.ANSWER_TO_QUESTION_NOT_ON_FORM));
             }
         }
         var path = path(pages, questions, given);
@@ -72,14 +76,14 @@ public final class FormPathWalker {
             var value = given.get(question.id());
             if (value == null) {
                 if (question.required()) {
-                    problems.add(FormAnswersRefused.Problem.of(
-                            question.id(), question.pageKey(), Refusal.QUESTION_NEEDS_AN_ANSWER));
+                    problems.add(FormAnswersRefused.AnswerProblem.of(
+                            question.id(), question.pageKey(), FormRefusal.QUESTION_NEEDS_AN_ANSWER));
                 }
                 continue;
             }
             if (!question.config().validate(value).isEmpty()) {
-                problems.add(FormAnswersRefused.Problem.of(
-                        question.id(), question.pageKey(), Refusal.ANSWER_DOES_NOT_FIT_QUESTION));
+                problems.add(FormAnswersRefused.AnswerProblem.of(
+                        question.id(), question.pageKey(), FormRefusal.ANSWER_DOES_NOT_FIT_QUESTION));
                 continue;
             }
             kept.put(question.id(), value);
@@ -114,16 +118,19 @@ public final class FormPathWalker {
      */
     private static PageTarget targetOf(
             FormPage page, List<FormQuestion> questions, Map<Integer, FormAnswerValue> answers) {
-        return questions.stream()
-                .filter(question -> page.key().equals(question.pageKey()) && question.branch() != null)
-                .findFirst()
-                .flatMap(question -> pickedOption(answers.get(question.id()))
-                        .map(key -> question.branch().targetOf(key)))
-                .orElseGet(() -> PageTarget.orNext(page.after()));
+        for (FormQuestion question : questions) {
+            QuestionBranch branch = question.branch();
+            if (page.key().equals(question.pageKey()) && branch != null) {
+                return pickedOption(answers.get(question.id()))
+                        .map(branch::targetOf)
+                        .orElseGet(() -> PageTarget.orNext(page.after()));
+            }
+        }
+        return PageTarget.orNext(page.after());
     }
 
     private static Optional<String> pickedOption(FormAnswerValue value) {
-        if (value instanceof FormAnswerValue.Choice(List<String> selected, var _)
+        if (value instanceof FormAnswerValue.ChoiceAnswer(List<String> selected, var _)
                 && selected != null
                 && selected.size() == 1) {
             return Optional.of(selected.getFirst());

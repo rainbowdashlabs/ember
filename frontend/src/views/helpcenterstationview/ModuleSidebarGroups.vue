@@ -108,8 +108,7 @@ const {t} = useI18n()
   </SidebarGroup>
 
   <SidebarGroup :icon="['fas', 'box-open']" :label="t('sidebar.lostAndFound')"
-                to="/helpcenter/station/lost-and-found" name="help-lost-and-found" @navigate="close">
-  </SidebarGroup>
+                to="/helpcenter/station/lost-and-found" name="help-lost-and-found" @navigate="close"/>
 
   <SidebarGroup :icon="['fas', 'list-check']" :label="t('sidebar.checklists')"
                 to="/helpcenter/station/checklist" name="help-checklist-list" @navigate="close">

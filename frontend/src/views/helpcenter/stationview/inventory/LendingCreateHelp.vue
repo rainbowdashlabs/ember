@@ -36,19 +36,16 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.inventoryLendingCreate.step4') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Selected inventory with station badge -->
     <HelpSection :title="t('helpCenter.inventoryLendingCreate.dummyTitle')">
       <NeutralContainer class="space-y-4">
-        <!-- Inventory header with station -->
         <NeutralContainer>
           <div class="flex items-center gap-2 flex-wrap">
-            <span class="font-medium text-lg">Rettungsringe</span>
+            <span class="font-medium text-lg">{{ t('helpCenter.sample.equipment.lifebuoys') }}</span>
             <StationBadge station-name="DLRG Musterstadt" />
           </div>
           <span class="text-sm text-(--text-muted)">5 {{ t('helpCenter.inventoryLendingCreate.dummyAvailable') }}</span>
         </NeutralContainer>
 
-        <!-- Date range -->
         <div class="grid sm:grid-cols-2 gap-4">
           <div class="flex flex-col gap-1">
             <FieldLabel>{{ t('helpCenter.inventoryLendingCreate.fieldFrom') }}</FieldLabel>
@@ -60,20 +57,17 @@ const {t} = useI18n()
           </div>
         </div>
 
-        <!-- Quantity -->
         <div class="flex flex-col gap-1">
           <FieldLabel>{{ t('helpCenter.inventoryLendingCreate.fieldQuantity') }}</FieldLabel>
           <NumberInput :model-value="3" disabled />
           <span class="text-xs text-(--text-muted)">{{ t('helpCenter.inventoryLendingCreate.maxQuantityHint') }}</span>
         </div>
 
-        <!-- Note -->
         <div class="flex flex-col gap-1">
           <FieldLabel>{{ t('helpCenter.inventoryLendingCreate.fieldNote') }}</FieldLabel>
           <TextAreaInput model-value="Wird für das Stadtfest benötigt." disabled :rows="3" />
         </div>
 
-        <!-- Action buttons -->
         <ButtonRow pair align="end">
           <SecondaryButton>{{ t('common.cancel') }}</SecondaryButton>
           <PrimaryButton :icon="['fas', 'paper-plane']">

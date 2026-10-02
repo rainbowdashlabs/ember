@@ -18,7 +18,7 @@ import {provideMemberRowExtras} from '@/views/stationview/members/listview/membe
 import CreateMemberModal from './clustermembermanagementview/CreateMemberModal.vue'
 import {useClusterMemberSource, MANAGED_MEMBER_CAP} from './clustermembersview/clusterMemberSource'
 import {clusterMembers} from '@/api'
-import type {ManagedStation} from '@/api/clusterMembers'
+import type {ManagedStationResponse} from '@/api/generated/schema'
 import {ClusterPermission} from '@/api/clusters'
 import {useSession} from '@/composables/useSession'
 
@@ -27,19 +27,18 @@ const {hasClusterPermission, sessionInfo} = useSession()
 
 const stationUid = ref('')
 const includeFormer = ref(false)
-const stations = ref<ManagedStation[]>([])
+const stations = ref<ManagedStationResponse[]>([])
 
 const {source, managed, overflowed} = useClusterMemberSource(() => includeFormer.value)
 
 /**
  * An association reads across its stations and reaches its own copies of the member screens. It
  * offers no column for a station's own groups or tags, because those belong to one station and most
- * of the list would have nothing under them.
+ * of the list would have nothing under them. There is no edit screen either: the association's
+ * detail screen lets what is asked of somebody be answered on the same page.
  */
 const port: MemberListPort = {
   source,
-  // One screen, not two: the association's copy shows what is asked of somebody and lets it be
-  // answered on the same page, so there is nothing a separate edit screen would add.
   routes: {detail: 'cluster-member-detail'},
   canExport: computed(() => hasClusterPermission(ClusterPermission.CLUSTER_MEMBER_EXPORT)),
   canEdit: computed(() => hasClusterPermission(ClusterPermission.CLUSTER_MEMBER_MANAGER)),

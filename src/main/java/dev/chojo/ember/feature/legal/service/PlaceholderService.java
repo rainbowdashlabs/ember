@@ -6,11 +6,11 @@
 package dev.chojo.ember.feature.legal.service;
 
 import dev.chojo.ember.feature.legal.entity.DocumentPlaceholder;
+import dev.chojo.ember.util.FilePaths;
+import dev.chojo.ember.util.Json;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tools.jackson.core.type.TypeReference;
-import tools.jackson.databind.DeserializationFeature;
-import tools.jackson.databind.SerializationFeature;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
@@ -49,10 +49,7 @@ public class PlaceholderService {
      */
     private static final Pattern PLACEHOLDER = Pattern.compile("\\{\\{\\s*([A-Za-z0-9_.\\-]+)\\s*}}");
 
-    private static final JsonMapper MAPPER = JsonMapper.builder()
-            .enable(SerializationFeature.INDENT_OUTPUT)
-            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
-            .build();
+    private static final JsonMapper MAPPER = Json.PRETTY;
 
     private final Path valueFile;
 
@@ -136,7 +133,7 @@ public class PlaceholderService {
             cleaned.put(name.trim(), value);
         });
         try {
-            if (valueFile.getParent() != null) Files.createDirectories(valueFile.getParent());
+            FilePaths.createParentDirectories(valueFile);
             Files.writeString(
                     valueFile, MAPPER.writeValueAsString(cleaned) + System.lineSeparator(), StandardCharsets.UTF_8);
             cached = cleaned;
@@ -159,7 +156,7 @@ public class PlaceholderService {
 
         try (DirectoryStream<Path> locales = Files.newDirectoryStream(baseDir, Files::isDirectory)) {
             for (Path localeDir : locales) {
-                String locale = localeDir.getFileName().toString();
+                String locale = FilePaths.nameOf(localeDir);
                 if (locale.equals("history")) continue;
                 scanLocale(localeDir, typeSlug, locale, found);
             }
@@ -181,7 +178,7 @@ public class PlaceholderService {
         Collections.sort(files);
 
         for (Path file : files) {
-            String name = file.getFileName().toString();
+            String name = FilePaths.nameOf(file);
             String section = name.replaceFirst("^_?\\d+-", "").replaceFirst("\\.md$", "");
             try {
                 for (String placeholder : namesIn(Files.readString(file, StandardCharsets.UTF_8))) {

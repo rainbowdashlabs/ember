@@ -20,6 +20,7 @@ import dev.chojo.ember.feature.restriction.RestrictionSql;
 import dev.chojo.ember.util.sql.SqlSupport;
 import dev.chojo.ember.util.sql.WhereBuilder;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -81,8 +82,8 @@ public class ChecklistRepository {
             String description,
             RestrictionMode mode,
             int createdBy,
-            Integer sourceEventId,
-            LocalDate sourceEventDate) {
+            @Nullable Integer sourceEventId,
+            @Nullable LocalDate sourceEventDate) {
         return insertReturning(
                 """
                 INSERT INTO
@@ -109,7 +110,7 @@ public class ChecklistRepository {
      * {@code sourceEventId} is {@code null}. The date is dropped along with the appointment, so a
      * list that has stopped following carries neither half of the reference.
      */
-    public void updateSourceEvent(int id, Integer sourceEventId, LocalDate sourceEventDate) {
+    public void updateSourceEvent(int id, @Nullable Integer sourceEventId, @Nullable LocalDate sourceEventDate) {
         query("""
                         UPDATE checklist
                            SET source_event_id = :source_event_id,
@@ -302,7 +303,7 @@ public class ChecklistRepository {
                 .first();
     }
 
-    public ChecklistCell upsertCell(int entryId, int columnId, boolean checked, String note, int updatedBy) {
+    public ChecklistCell upsertCell(int entryId, int columnId, boolean checked, @Nullable String note, int updatedBy) {
         return insertReturning(
                 """
                 INSERT INTO

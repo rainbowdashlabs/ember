@@ -6,9 +6,9 @@
 package dev.chojo.ember.feature.quiz.entity;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import tools.jackson.databind.DeserializationFeature;
+import dev.chojo.ember.util.Json;
+import org.jspecify.annotations.Nullable;
 import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
 
 import java.util.List;
 import java.util.Map;
@@ -25,10 +25,7 @@ public sealed interface QuizAnswerValue {
     /**
      * Shared Jackson mapper for the answer variants.
      */
-    ObjectMapper MAPPER = JsonMapper.builder()
-            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
-            .disable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
-            .build();
+    ObjectMapper MAPPER = Json.LENIENT;
 
     /**
      * Parses a submitted answer payload into the variant of the given question type.
@@ -38,7 +35,7 @@ public sealed interface QuizAnswerValue {
      * @return the parsed answer, or {@code null} for an absent payload
      * @throws IllegalArgumentException if the payload does not fit the question type
      */
-    static QuizAnswerValue parse(QuizQuestionType quizQuestionType, String json) {
+    static @Nullable QuizAnswerValue parse(QuizQuestionType quizQuestionType, @Nullable String json) {
         if (json == null || json.isBlank()) return null;
         try {
             return MAPPER.readValue(json, quizQuestionType.answerClass());

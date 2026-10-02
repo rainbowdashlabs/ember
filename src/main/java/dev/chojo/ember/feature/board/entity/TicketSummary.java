@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.board.entity;
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.api.MemberIdentity;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -25,9 +26,9 @@ public record TicketSummary(
         int laneId,
         int ticketNumber,
         String title,
-        MemberIdentity assignee,
+        @Nullable MemberIdentity assignee,
         TicketPriority priority,
-        LocalDate dueDate,
+        @Nullable LocalDate dueDate,
         int position,
         Instant laneEnteredAt,
         int checklistTotal,

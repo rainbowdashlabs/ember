@@ -7,6 +7,8 @@
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
+import MutedText from '@/components/typography/MutedText.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import Alert from '@/components/feedback/Alert.vue'
@@ -14,18 +16,15 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
 import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
 import {fromMember, userTypesOf} from '@/components/input/select/memberOption'
-import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import ItemSearchPicker from '@/components/input/search/ItemSearchPicker.vue'
 import HandOutChoice from '@/components/inventory/HandOutChoice.vue'
 import type {HandOutMode} from '@/components/inventory/HandOutChoice.vue'
 import MovementWizard from '@/views/stationview/inventory/movementwizard/MovementWizard.vue'
 import type {WizardPrefill} from '@/views/stationview/inventory/movementwizard/useMovementWizard'
 import {MovementPurpose} from '@/api/movements'
-import type {InventoryItem, MyInventoryItem} from '@/api/inventory'
-import type { StationMember } from '@/api/types'
+import type {InventoryItem, MemberWithName, MyInventoryItem} from '@/api/generated/schema'
 
 const { t } = useI18n()
 
@@ -35,9 +34,9 @@ const props = defineProps<{
   formerBlockReasons: string[]
   markingFormer: boolean
   deletingMember: boolean
-  allMembers: StationMember[]
+  allMembers: MemberWithName[]
   memberId: number
-  memberDisplayNameFn: (m: StationMember) => string
+  memberDisplayNameFn: (m: MemberWithName) => string
 }>()
 
 const emit = defineEmits<{
@@ -51,20 +50,16 @@ const emit = defineEmits<{
   exchangeStarted: []
 }>()
 
-// Former modal
 const showFormerModal = ref(false)
 
-// Delete modal
 const showDeleteModal = ref(false)
 const showDeleteConfirm = ref(false)
 
-// Assign modal
 const showAssignModal = ref(false)
 const pickedItemId = ref<number | null>(null)
 const assignScanError = ref('')
 const handOutMode = ref<HandOutMode>('NOW')
 
-// Reassign modal
 const showReassignModal = ref(false)
 const reassignItemRef = ref<MyInventoryItem | null>(null)
 const reassignTargetId = ref('')
@@ -143,7 +138,6 @@ defineExpose({
 </script>
 
 <template>
-  <!-- Former confirmation modal -->
   <Modal v-model="showFormerModal">
     <div class="space-y-4">
       <SubHeader>{{ t('memberDetail.markFormerTitle') }}</SubHeader>
@@ -169,22 +163,16 @@ defineExpose({
     </div>
   </Modal>
 
-  <!-- Delete member modal (first step) -->
-  <Modal v-model="showDeleteModal">
-    <div class="space-y-4">
-      <SubHeader>{{ t('memberDetail.deleteTitle') }}</SubHeader>
-      <p class="text-sm">{{ t('memberDetail.deleteText', { name: memberDisplayName }) }}</p>
-      <p class="text-xs text-(--text-muted)">{{ t('memberDetail.deleteHint') }}</p>
-      <ButtonRow pair align="end">
-        <SecondaryButton @click="showDeleteModal = false">{{ t('common.cancel') }}</SecondaryButton>
-        <ErrorButton @click="showDeleteModal = false; showDeleteConfirm = true">
-          {{ t('memberDetail.deleteConfirmAction') }}
-        </ErrorButton>
-      </ButtonRow>
-    </div>
-  </Modal>
+  <ConfirmDeleteModal
+      v-model="showDeleteModal"
+      :title="t('memberDetail.deleteTitle')"
+      :message="t('memberDetail.deleteText', { name: memberDisplayName })"
+      :confirm-label="t('memberDetail.deleteConfirmAction')"
+      @confirm="showDeleteModal = false; showDeleteConfirm = true"
+  >
+    <MutedText tag="p">{{ t('memberDetail.deleteHint') }}</MutedText>
+  </ConfirmDeleteModal>
 
-  <!-- Delete member modal (second confirmation) -->
   <Modal v-model="showDeleteConfirm">
     <div class="space-y-4">
       <SubHeader>{{ t('memberDetail.deleteConfirmTitle') }}</SubHeader>
@@ -198,7 +186,6 @@ defineExpose({
     </div>
   </Modal>
 
-  <!-- Assign item modal -->
   <Modal v-model="showAssignModal">
     <div class="space-y-4">
       <SubHeader>{{ t('memberDetail.assignItem') }}</SubHeader>
@@ -216,7 +203,6 @@ defineExpose({
     </div>
   </Modal>
 
-  <!-- Reassign item modal -->
   <Modal v-model="showReassignModal">
     <div class="space-y-4">
       <SubHeader>{{ t('memberDetail.reassignItem') }}</SubHeader>

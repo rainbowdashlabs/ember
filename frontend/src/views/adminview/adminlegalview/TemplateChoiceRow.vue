@@ -10,7 +10,7 @@ import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import MutedIconButton from '@/components/button/MutedIconButton.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
-import type {LegalTemplate} from '@/api/adminSettings'
+import type {TemplateSection} from '@/api/generated/schema'
 
 /**
  * One section on offer, described well enough to choose it.
@@ -21,7 +21,7 @@ import type {LegalTemplate} from '@/api/adminSettings'
  * loading it and finding out.
  */
 const props = defineProps<{
-  template: LegalTemplate
+  template: TemplateSection
   selected: boolean
   /** Whether a section of this name is already in the editor and would be replaced. */
   replaces: boolean

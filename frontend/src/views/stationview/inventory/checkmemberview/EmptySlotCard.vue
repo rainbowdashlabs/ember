@@ -9,16 +9,16 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import InfoButton from '@/components/button/InfoButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
-import type { InventoryItem, RequiredInventoryItem } from '@/api/inventory'
+import type { InventoryItem, RequiredInventoryItem } from '@/api/generated/schema'
 
-const props = defineProps<{
+defineProps<{
   req: RequiredInventoryItem
   slotIndex: number
   isNotInPossession: boolean
   /** Whether a procurement has already been noted for this slot during this check. */
   procurementNoted: boolean
   availableItems: InventoryItem[]
-  slotSelections: Map<string, string>
+  slotSelections: ReadonlyMap<string, string>
   itemLabel: (item: InventoryItem, req: RequiredInventoryItem) => string
   /** Which of the requirement's pieces this empty place is, counted off as 2/2 among them. */
   position?: number
@@ -57,7 +57,6 @@ const { t } = useI18n()
       </InfoButton>
     </div>
 
-    <!-- Assign existing unassigned item -->
     <div v-if="availableItems.length > 0" class="flex flex-col sm:flex-row gap-2">
       <SelectInput
         :model-value="slotSelections.get(`${req.inventoryId}-${slotIndex}`) ?? ''"
@@ -78,7 +77,6 @@ const { t } = useI18n()
       </PrimaryButton>
     </div>
 
-    <!-- Create new item on the fly -->
     <div class="flex flex-col sm:flex-row gap-2">
       <SelectInput
         v-if="req.hasSizes && req.sizes.length > 0"

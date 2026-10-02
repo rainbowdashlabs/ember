@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, nextTick, ref, watch} from 'vue'
+import {nextTick, ref, watch} from 'vue'
 import {useRouter} from 'vue-router'
 import {useI18n} from 'vue-i18n'
 import TextInput from '@/components/input/text/TextInput.vue'
@@ -89,10 +89,13 @@ function onKeydown(event: KeyboardEvent) {
 <template>
   <Teleport to="body">
     <Transition name="palette">
-      <div v-if="isOpen" data-testid="quick-search" class="fixed inset-0 z-50 flex flex-col sm:items-start sm:justify-center sm:pt-[10vh]" @keydown="onKeydown">
-        <div class="absolute inset-0 bg-black/50" @click="close"/>
+      <div v-if="isOpen" data-testid="quick-search" class="fixed inset-0 z-50 flex flex-col sm:items-start sm:justify-center sm:pt-[10vh]"
+           role="dialog" aria-modal="true" :aria-label="t('quickSearch.placeholder')">
+        <div class="absolute inset-0 bg-black/50" role="presentation" aria-hidden="true" @click="close"/>
         <div
             class="relative z-10 w-full flex flex-col h-[100dvh] sm:h-auto sm:max-h-[70vh] sm:max-w-2xl sm:mx-auto sm:rounded-theme border-(--border) bg-(--bg) sm:border shadow-xl"
+            role="presentation"
+            @keydown="onKeydown"
         >
           <div class="flex items-center gap-3 border-b border-(--border) px-4 py-3 shrink-0">
             <font-awesome-icon :icon="['fas', 'magnifying-glass']" class="h-4 w-4 text-(--text-muted)"/>
@@ -119,12 +122,13 @@ function onKeydown(event: KeyboardEvent) {
 
             <div v-for="(section, sIdx) in sections" :key="section.key" class="mb-2" :data-testid="`palette-section-${section.key}`">
               <p class="px-2 pt-2 text-xs font-semibold uppercase tracking-wide text-(--text-muted)">{{ section.title }}</p>
-              <RowLink v-for="(item, iIdx) in section.items" :key="`${section.key}-${iIdx}`" :to="item.to">
+              <RowLink v-for="(item, iIdx) in section.items" :key="`${section.key}-${iIdx}`" :to="item.to"
+                       @mouseenter="highlightedIndex = indexOfItem(sIdx, iIdx)"
+                       @focus="highlightedIndex = indexOfItem(sIdx, iIdx)"
+                       @click="onResultPress">
                 <div
                     data-testid="palette-result"
                     :class="['flex items-center gap-3 rounded-theme px-2 py-2 cursor-pointer transition-colors', indexOfItem(sIdx, iIdx) === highlightedIndex ? 'bg-primary/10 text-primary' : 'hover:bg-(--bg-accent)']"
-                    @mouseenter="highlightedIndex = indexOfItem(sIdx, iIdx)"
-                    @click="onResultPress"
                 >
                   <UserAvatar v-if="item.identity" :identity="item.identity" :name="item.label" size="sm"/>
                   <font-awesome-icon v-else :icon="['fas', item.icon]" class="h-4 w-4 shrink-0"/>

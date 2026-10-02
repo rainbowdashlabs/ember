@@ -18,7 +18,8 @@ import InfoBadge from '@/components/badge/InfoBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import {describeFailure, type Failure} from '@/util/failure'
-import {RegistrationStatus, type EventPartnerPlaces, type EventRegistrationEntry, type EventRegistrationField, type MemberRegistrationStats, type RegistrationFieldValue, type StationEvent} from '@/api/events'
+import {RegistrationStatus, type RegistrationStatusName} from '@/api/events'
+import type {EventRegistrationFieldValue, PartnerPlacesView, EventRegistrationField, RegistrationResponse, RegistrationStatsResponse, StationEvent} from '@/api/generated/schema'
 import {StationPermission} from '@/api/types'
 import {fromMember, type MemberOption} from '@/components/input/select/memberOption'
 import {events, stationMembers as stationMembersApi} from '@/api'
@@ -49,19 +50,19 @@ const props = defineProps<{
   currentMemberIds: number[]
 }>()
 
-const {t} = useI18n()
+const {t, locale} = useI18n()
 const {canManageEvents, hasPermission} = useSession()
 const {refresh: refreshSidebarCounts} = useSidebarCounts()
 
 const {loadedRegistrations, loadedFederatedRegs, registrations, federatedRegs} =
     useRegistrationsInView(() => props.event, () => props.effectiveDate)
-const registrationStats = ref<MemberRegistrationStats[]>([])
+const registrationStats = ref<RegistrationStatsResponse[]>([])
 
 /**
  * What each partner may do with this appointment. Read so the list can say which partners decide for
  * themselves rather than offering buttons the server would refuse.
  */
-const partnerPlaces = ref<EventPartnerPlaces[]>([])
+const partnerPlaces = ref<PartnerPlacesView[]>([])
 const allMembers = ref<MemberOption[]>([])
 const failure = ref<Failure | null>(null)
 const manualRegisterMemberId = ref('')
@@ -70,7 +71,7 @@ const registrationFields = ref<EventRegistrationField[]>([])
 const showFieldsModal = ref(false)
 const pendingRegistrationMemberId = ref<number | null>(null)
 
-interface StatusGroup { status: string; entries: EventRegistrationEntry[] }
+interface StatusGroup { status: string; entries: RegistrationResponse[] }
 
 const pendingRegistrations = computed(() => {
   const pending = registrations.value.filter(r => r.status === RegistrationStatus.PENDING)
@@ -82,7 +83,7 @@ const pendingRegistrations = computed(() => {
 })
 
 const nonPendingRegistrations = computed<StatusGroup[]>(() => {
-  const byStatus = new Map<string, EventRegistrationEntry[]>()
+  const byStatus = new Map<string, RegistrationResponse[]>()
   for (const reg of registrations.value) {
     if (reg.status === RegistrationStatus.PENDING) continue
     const list = byStatus.get(reg.status) ?? []
@@ -90,7 +91,7 @@ const nonPendingRegistrations = computed<StatusGroup[]>(() => {
     byStatus.set(reg.status, list)
   }
   for (const list of byStatus.values()) {
-    list.sort((a, b) => a.memberName.localeCompare(b.memberName, 'de'))
+    list.sort((a, b) => a.memberName.localeCompare(b.memberName, locale.value))
   }
   return [
     RegistrationStatus.ACCEPTED,
@@ -114,7 +115,7 @@ const signupMemberSet = useSignupMemberSet({
   currentMemberIds: () => props.currentMemberIds,
 })
 
-function getRegistrationForMember(memberId: number): EventRegistrationEntry | undefined {
+function getRegistrationForMember(memberId: number): RegistrationResponse | undefined {
   return registrations.value.find(r => r.memberId === memberId)
 }
 
@@ -123,7 +124,7 @@ function getRegistrationForMember(memberId: number): EventRegistrationEntry | un
  * about. A place given back is none, and saying otherwise left them looking at a state they could
  * not leave.
  */
-function standingRegistrationFor(memberId: number): EventRegistrationEntry | undefined {
+function standingRegistrationFor(memberId: number): RegistrationResponse | undefined {
   const registration = getRegistrationForMember(memberId)
   return registration && isStandingAnswer(registration) ? registration : undefined
 }
@@ -172,7 +173,7 @@ async function reloadAndRefresh() {
  * <p>The two are answered for separately. A decision the server took, followed by a refresh that
  * failed, used to say the decision had been refused, and whoever read that pressed the button again.
  */
-async function decide(id: number, status: string) {
+async function decide(id: number, status: RegistrationStatusName) {
   failure.value = null
   try {
     await events.updateRegistrationStatus(id, status)
@@ -184,7 +185,7 @@ async function decide(id: number, status: string) {
 }
 
 const {running: registering, failure: registrationFailure, run: runRegistration} = useAsyncAction(
-    async (kind: 'register' | 'decline', memberId: number, fields?: RegistrationFieldValue[]) => {
+    async (kind: 'register' | 'decline', memberId: number, fields?: EventRegistrationFieldValue[]) => {
       const request = {
         eventDate: props.effectiveDate ?? undefined,
         memberId: memberId !== props.currentMemberId ? memberId : undefined,
@@ -208,7 +209,7 @@ function registerMember(memberId: number) {
   showFieldsModal.value = true
 }
 
-async function confirmRegistrationFields(values: RegistrationFieldValue[]) {
+async function confirmRegistrationFields(values: EventRegistrationFieldValue[]) {
   const memberId = pendingRegistrationMemberId.value
   if (memberId == null) return
   showFieldsModal.value = false
@@ -330,7 +331,7 @@ async function confirmHouseholdAnswer(answers: PersonAnswer[]) {
   }
 }
 
-const editingRegistration = ref<EventRegistrationEntry | null>(null)
+const editingRegistration = ref<RegistrationResponse | null>(null)
 const showEditAnswers = ref(false)
 
 /**
@@ -347,7 +348,7 @@ function editAnswers(registrationId: number) {
 }
 
 const {running: savingAnswers, failure: answersFailure, run: saveAnswers} = useAsyncAction(
-    async (values: RegistrationFieldValue[]) => {
+    async (values: EventRegistrationFieldValue[]) => {
       const registration = editingRegistration.value
       if (!registration) return
       await events.updateRegistrationFieldValues(registration.id, values)
@@ -357,7 +358,7 @@ const {running: savingAnswers, failure: answersFailure, run: saveAnswers} = useA
     })
 
 /** A partner station's sign-up, answered. A refusal here used to go nowhere at all. */
-async function decideFederated(regId: number, status: string) {
+async function decideFederated(regId: number, status: RegistrationStatusName) {
   try {
     await events.updateFederationRegistrationStatus(regId, status)
   } catch (e) {
@@ -371,7 +372,7 @@ async function decideFederated(regId: number, status: string) {
  * Adding a member by hand asks the same questions. The answers belong to the registration, not to
  * whoever typed them, so a manager fills them in on the member's behalf.
  */
-async function manualRegister(values?: RegistrationFieldValue[]) {
+async function manualRegister(values?: EventRegistrationFieldValue[]) {
   if (!manualRegisterMemberId.value) return
   if (registrationFields.value.length > 0 && values === undefined) {
     pendingRegistrationMemberId.value = Number(manualRegisterMemberId.value)
@@ -419,9 +420,9 @@ onMounted(loadRegistrations)
       <div v-for="member in registrableMembers" :key="member.key" class="flex items-center gap-3 flex-wrap">
         <span v-if="hasManagedMembers" class="text-sm font-medium min-w-24">{{ member.name }}</span>
         <component
+            :is="standingRegistrationFor(member.key)!.status === RegistrationStatus.ACCEPTED ? SuccessBadge : standingRegistrationFor(member.key)!.status === RegistrationStatus.PENDING ? InfoBadge : ErrorBadge"
             v-if="standingRegistrationFor(member.key)"
-            :data-testid="`my-answer-${member.key}`"
-            :is="standingRegistrationFor(member.key)!.status === RegistrationStatus.ACCEPTED ? SuccessBadge : standingRegistrationFor(member.key)!.status === RegistrationStatus.PENDING ? InfoBadge : ErrorBadge">
+            :data-testid="`my-answer-${member.key}`">
           {{ statusLabel(standingRegistrationFor(member.key)!.status) }}
         </component>
         <SecondaryBadge v-else :data-testid="`my-answer-${member.key}`">{{ t('eventDetail.noAnswerYet') }}</SecondaryBadge>
@@ -441,6 +442,7 @@ onMounted(loadRegistrations)
     />
 
     <RegistrationsPanel
+        v-model:manual-register-member-id="manualRegisterMemberId"
         :event="event"
         :registrations="registrations"
         :pending-registrations="pendingRegistrations"
@@ -449,7 +451,6 @@ onMounted(loadRegistrations)
         :unregistered-members="unregisteredMembers"
         :registration-fields="registrationFields"
         :effective-date="effectiveDate"
-        v-model:manual-register-member-id="manualRegisterMemberId"
         @accept="id => decide(id, RegistrationStatus.ACCEPTED)"
         @deny="id => decide(id, RegistrationStatus.DENIED)"
         @edit-answers="editAnswers"
@@ -486,8 +487,8 @@ onMounted(loadRegistrations)
         v-if="canManageEvents()"
         :registrations="federatedRegs"
         :partner-places="partnerPlaces"
-        @accept="id => decideFederated(id, 'ACCEPTED')"
-        @deny="id => decideFederated(id, 'DENIED')"
+        @accept="id => decideFederated(id, RegistrationStatus.ACCEPTED)"
+        @deny="id => decideFederated(id, RegistrationStatus.DENIED)"
     />
   </div>
 </template>

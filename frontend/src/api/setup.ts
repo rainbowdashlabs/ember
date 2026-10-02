@@ -4,22 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-
-export interface SetupStep {
-    id: string
-    complete: boolean
-    applicable: boolean
-}
-
-export interface SetupStatus {
-    completedAt: string | null
-    requiredSteps: SetupStep[]
-    optionalSteps: SetupStep[]
-}
-
-export interface MissingStepsResponse {
-    missingSteps: string[]
-}
+import type {SetupStatus} from './generated/schema'
 
 export async function getStatus(): Promise<SetupStatus> {
     const res = await client.get<SetupStatus>('/station/setup/status')

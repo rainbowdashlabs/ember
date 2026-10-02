@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import {useId} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 
@@ -27,6 +28,7 @@ const keepOnArchive = defineModel<boolean>('keepOnArchive', {required: true})
 const props = withDefaults(defineProps<{calculated?: boolean}>(), {calculated: false})
 
 const {t} = useI18n()
+const labelId = useId()
 </script>
 
 <template>
@@ -34,36 +36,36 @@ const {t} = useI18n()
     <template v-if="!props.calculated">
       <div class="space-y-1">
         <div class="flex items-center justify-between">
-          <label class="text-sm font-medium">{{ t('membersConfig.fieldRequired') }}</label>
-          <ToggleInput v-model="required"/>
+          <span :id="`${labelId}-required`" class="text-sm font-medium">{{ t('membersConfig.fieldRequired') }}</span>
+          <ToggleInput v-model="required" :aria-labelledby="`${labelId}-required`"/>
         </div>
         <p class="text-xs text-(--text-muted)">{{ t('membersConfig.fieldRequiredHint') }}</p>
       </div>
       <div class="space-y-1">
         <div class="flex items-center justify-between">
-          <label class="text-sm font-medium">{{ t('membersConfig.fieldReadonly') }}</label>
-          <ToggleInput v-model="readonly"/>
+          <span :id="`${labelId}-readonly`" class="text-sm font-medium">{{ t('membersConfig.fieldReadonly') }}</span>
+          <ToggleInput v-model="readonly" :aria-labelledby="`${labelId}-readonly`"/>
         </div>
         <p class="text-xs text-(--text-muted)">{{ t('membersConfig.fieldReadonlyHint') }}</p>
       </div>
       <div class="space-y-1">
         <div class="flex items-center justify-between">
-          <label class="text-sm font-medium">{{ t('membersConfig.fieldNotifyOnChange') }}</label>
-          <ToggleInput v-model="notifyOnChange"/>
+          <span :id="`${labelId}-notify`" class="text-sm font-medium">{{ t('membersConfig.fieldNotifyOnChange') }}</span>
+          <ToggleInput v-model="notifyOnChange" :aria-labelledby="`${labelId}-notify`"/>
         </div>
         <p class="text-xs text-(--text-muted)">{{ t('membersConfig.fieldNotifyOnChangeHint') }}</p>
       </div>
     </template>
     <div class="flex items-center justify-between">
-      <label class="text-sm font-medium">{{ t('membersConfig.fieldOverview') }}</label>
-      <ToggleInput v-model="overview"/>
+      <span :id="`${labelId}-overview`" class="text-sm font-medium">{{ t('membersConfig.fieldOverview') }}</span>
+      <ToggleInput v-model="overview" :aria-labelledby="`${labelId}-overview`"/>
     </div>
     <div class="flex items-center justify-between">
       <div>
-        <label class="text-sm font-medium">{{ t('membersConfig.fieldKeepOnArchive') }}</label>
+        <span :id="`${labelId}-keep`" class="text-sm font-medium">{{ t('membersConfig.fieldKeepOnArchive') }}</span>
         <p class="text-xs text-(--text-muted)">{{ t('membersConfig.fieldKeepOnArchiveHint') }}</p>
       </div>
-      <ToggleInput v-model="keepOnArchive"/>
+      <ToggleInput v-model="keepOnArchive" :aria-labelledby="`${labelId}-keep`"/>
     </div>
   </div>
 </template>

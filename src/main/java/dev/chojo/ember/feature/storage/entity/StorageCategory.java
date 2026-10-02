@@ -5,44 +5,48 @@
  */
 package dev.chojo.ember.feature.storage.entity;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.List;
+import java.util.Optional;
 
 /**
- * Single source of truth for everything Ember stores on disk: scope kind, backend
- * resolvability, quota behaviour, accepted MIME types and per-category flags.
- *
- * <p>Entries are split conceptually into:
- * <ul>
- *   <li><b>Movable</b> - {@link #isLocalPinned()} returns {@code false}; the
- *       {@link dev.chojo.ember.feature.storage.backend.StorageBackendResolver resolver}
- *       may bind the category to any remote backend.</li>
- *   <li><b>Local-pinned</b> - {@link #isLocalPinned()} returns {@code true}; resolver always
- *       short-circuits to the local backend regardless of instance / station override.</li>
- * </ul>
- *
- * <p>{@code MIME_ANY} is the sentinel that disables MIME validation for categories that
- * accept arbitrary uploads (media files, KB files, board attachments).
+ * Everything Ember stores, with its scope kind, quota behaviour, accepted MIME types and flags. A
+ * movable category goes to whichever backend the instance or station chose; a local-pinned one always
+ * stays on the local backend.
  */
 public enum StorageCategory {
-    MEDIA_FILES("media/files", StorageScope.Kind.STATION, true, QuotaMode.ENFORCED, MimeLists.ANY, false, false, null),
+    MEDIA_FILES(
+            "media/files", StorageScope.Kind.STATION, true, QuotaMode.ENFORCED, MimeLists.ANY, false, Optional.empty()),
     /**
      * The library the instance holds, which every station is served from. Untracked because a
      * quota is a limit on what one station may keep, and this belongs to the instance running them.
      */
     INSTANCE_MEDIA_FILES(
-            "media/files", StorageScope.Kind.INSTANCE, true, QuotaMode.UNTRACKED, MimeLists.ANY, false, false, null),
+            "media/files",
+            StorageScope.Kind.INSTANCE,
+            true,
+            QuotaMode.UNTRACKED,
+            MimeLists.ANY,
+            false,
+            Optional.empty()),
     MEDIA_IMAGES(
             "media/images",
             StorageScope.Kind.STATION,
             true,
             QuotaMode.ENFORCED,
-            List.of("image/png", "image/jpeg", "image/webp", "image/gif"),
+            MimeLists.IMAGES,
             false,
-            false,
-            null),
-    KB_FILES("kb-files", StorageScope.Kind.STATION, true, QuotaMode.ENFORCED, MimeLists.ANY, false, false, null),
+            Optional.empty()),
+    KB_FILES("kb-files", StorageScope.Kind.STATION, true, QuotaMode.ENFORCED, MimeLists.ANY, false, Optional.empty()),
     MEMBER_DOCUMENTS(
-            "member-documents", StorageScope.Kind.STATION, true, QuotaMode.ENFORCED, MimeLists.ANY, false, false, null),
+            "member-documents",
+            StorageScope.Kind.STATION,
+            true,
+            QuotaMode.ENFORCED,
+            MimeLists.ANY,
+            false,
+            Optional.empty()),
     /**
      * Evidence attached to one movement, kept by the station that raised it and read by the owner it went to.
      */
@@ -53,8 +57,7 @@ public enum StorageCategory {
             QuotaMode.ENFORCED,
             MimeLists.ANY,
             false,
-            false,
-            null),
+            Optional.empty()),
     BOARD_ATTACHMENTS(
             "attachments/board",
             StorageScope.Kind.STATION,
@@ -62,71 +65,63 @@ public enum StorageCategory {
             QuotaMode.ENFORCED,
             MimeLists.ANY,
             false,
-            false,
-            null),
+            Optional.empty()),
     IMAGE_AVATAR(
             "images/avatars",
             StorageScope.Kind.ACCOUNT,
             true,
             QuotaMode.TRACKED,
-            List.of("image/png", "image/jpeg", "image/webp", "image/gif"),
+            MimeLists.IMAGES,
             false,
-            false,
-            null),
+            Optional.empty()),
     IMAGE_LOST_AND_FOUND(
             "images/lost-and-found",
             StorageScope.Kind.STATION,
             true,
             QuotaMode.ENFORCED,
-            List.of("image/png", "image/jpeg", "image/webp", "image/gif"),
+            MimeLists.IMAGES,
             false,
-            false,
-            null),
+            Optional.empty()),
     IMAGE_LOGO_FRAGMENT(
             "images/logo-fragments",
             StorageScope.Kind.INSTANCE,
             true,
             QuotaMode.UNTRACKED,
-            List.of("image/png", "image/jpeg", "image/webp", "image/gif"),
+            MimeLists.IMAGES,
             false,
-            false,
-            null),
+            Optional.empty()),
     IMAGE_STATION_LOGO(
             "images/logos",
             StorageScope.Kind.STATION,
             true,
             QuotaMode.UNTRACKED,
-            List.of("image/png", "image/jpeg", "image/webp", "image/gif"),
+            MimeLists.IMAGES,
             false,
-            false,
-            null),
+            Optional.empty()),
     IMAGE_QUIZ_QUESTION(
             "images/quiz-questions",
             StorageScope.Kind.STATION,
             true,
             QuotaMode.ENFORCED,
-            List.of("image/png", "image/jpeg", "image/webp", "image/gif"),
+            MimeLists.IMAGES,
             false,
-            false,
-            null),
+            Optional.empty()),
     IMAGE_KB_ICON(
             "images/kb-icons",
             StorageScope.Kind.STATION,
             true,
             QuotaMode.ENFORCED,
-            List.of("image/png", "image/jpeg", "image/webp", "image/gif"),
+            MimeLists.IMAGES,
             false,
-            false,
-            null),
+            Optional.empty()),
     IMAGE_KB_IMAGE(
             "images/kb-images",
             StorageScope.Kind.STATION,
             true,
             QuotaMode.ENFORCED,
-            List.of("image/png", "image/jpeg", "image/webp", "image/gif"),
+            MimeLists.IMAGES,
             false,
-            false,
-            null),
+            Optional.empty()),
     /**
      * The picture of a wiki file: the image scaled down, or a document's first page. Derived from
      * the file and made again whenever it is missing, so it is not charged to the station, which
@@ -137,10 +132,9 @@ public enum StorageCategory {
             StorageScope.Kind.STATION,
             true,
             QuotaMode.UNTRACKED,
-            List.of("image/png", "image/jpeg", "image/webp", "image/gif"),
+            MimeLists.IMAGES,
             false,
-            false,
-            null),
+            Optional.empty()),
     DOCUMENT(
             "documents",
             StorageScope.Kind.INSTANCE,
@@ -148,8 +142,7 @@ public enum StorageCategory {
             QuotaMode.UNTRACKED,
             List.of("text/markdown"),
             false,
-            false,
-            null),
+            Optional.empty()),
     DISCOVERY_KEY(
             "discovery",
             StorageScope.Kind.INSTANCE,
@@ -157,17 +150,15 @@ public enum StorageCategory {
             QuotaMode.UNTRACKED,
             List.of("application/octet-stream"),
             false,
-            false,
-            "0600"),
+            Optional.of("0600")),
     MAP_TILE_CACHE(
             "maps/tile-cache",
             StorageScope.Kind.INSTANCE,
             false,
             QuotaMode.UNTRACKED,
             List.of("image/png", "image/jpeg"),
-            false,
             true,
-            null),
+            Optional.empty()),
     DEMO_AVATAR(
             "demo-avatars",
             StorageScope.Kind.INSTANCE,
@@ -175,14 +166,9 @@ public enum StorageCategory {
             QuotaMode.UNTRACKED,
             List.of("image/png", "image/svg+xml"),
             false,
-            false,
-            null);
+            Optional.empty());
 
-    /**
-     * Sentinel value used in place of an actual MIME list to mark categories that accept any
-     * media type. {@link #acceptsMimeType(String)} short-circuits to {@code true} on this
-     * sentinel; callers iterating over the list should treat it as "no restriction".
-     */
+    /** Stands in for the MIME list of a category that accepts any type. */
     public static final List<String> MIME_ANY = MimeLists.ANY;
 
     private final String prefix;
@@ -190,9 +176,8 @@ public enum StorageCategory {
     private final boolean movable;
     private final QuotaMode quotaMode;
     private final List<String> acceptedMimeTypes;
-    private final boolean imageSet;
     private final boolean accessTimeLru;
-    private final String posixMode;
+    private final Optional<String> posixMode;
 
     StorageCategory(
             String prefix,
@@ -200,84 +185,52 @@ public enum StorageCategory {
             boolean movable,
             QuotaMode quotaMode,
             List<String> acceptedMimeTypes,
-            boolean imageSet,
             boolean accessTimeLru,
-            String posixMode) {
+            Optional<String> posixMode) {
         this.prefix = prefix;
         this.scopeKind = scopeKind;
         this.movable = movable;
         this.quotaMode = quotaMode;
         this.acceptedMimeTypes = acceptedMimeTypes;
-        this.imageSet = imageSet;
         this.accessTimeLru = accessTimeLru;
         this.posixMode = posixMode;
     }
 
-    /**
-     * Returns the path prefix this category contributes (without leading or trailing slash).
-     * E.g. {@code "media/files"} for {@link #MEDIA_FILES}.
-     */
+    /** The path segment of the category, such as {@code media/files}, without slashes at either end. */
     public String prefix() {
         return prefix;
     }
 
-    /**
-     * Returns the scope discriminator this category expects. Mismatches between this and a
-     * passed-in {@link StorageScope} are rejected by {@code StorageService} at runtime.
-     */
     public StorageScope.Kind scopeKind() {
         return scopeKind;
     }
 
-    /**
-     * Whether the resolver may bind this category to a non-local backend. {@code true} for
-     * movable categories (media files, attachments, …); {@code false} for local-pinned
-     * categories (documents, discovery key, tile cache, demo avatars).
-     */
     public boolean isMovable() {
         return movable;
     }
 
-    /**
-     * Inverse of {@link #isMovable()}.
-     */
     public boolean isLocalPinned() {
         return !movable;
     }
 
-    /**
-     * Quota tracking mode - {@code ENFORCED}, {@code TRACKED}, or {@code UNTRACKED}.
-     */
     public QuotaMode quotaMode() {
         return quotaMode;
     }
 
-    /**
-     * Whether bytes in this category count against and are checked against a station quota.
-     */
     public boolean enforcesQuota() {
         return quotaMode == QuotaMode.ENFORCED;
     }
 
-    /**
-     * Whether bytes in this category should be tracked in {@code storage_usage}.
-     */
     public boolean tracksUsage() {
         return quotaMode != QuotaMode.UNTRACKED;
     }
 
-    /**
-     * Immutable list of accepted MIME types. {@link #MIME_ANY} marks "no restriction".
-     */
     public List<String> acceptedMimeTypes() {
         return acceptedMimeTypes;
     }
 
-    /**
-     * Whether the supplied MIME type is allowed for this category. Returns {@code true} for
-     * {@link #MIME_ANY}; otherwise matches case-insensitively against the configured list.
-     */
-    public boolean acceptsMimeType(String mimeType) {
+    /** Whether a MIME type is accepted, compared without case; any is for {@link #MIME_ANY}. */
+    public boolean acceptsMimeType(@Nullable String mimeType) {
         if (acceptedMimeTypes == MIME_ANY) return true;
         if (mimeType == null) return false;
         String normalized = mimeType.toLowerCase().trim();
@@ -287,56 +240,31 @@ public enum StorageCategory {
         return false;
     }
 
-    /**
-     * Whether the producer emits the standard image variant set
-     * ({@code original, 1024, 512, 256, 128}) for uploads in this category.
-     */
-    public boolean isImageSet() {
-        return imageSet;
-    }
-
-    /**
-     * Whether the category requires access-time tracking. Only categories with this flag may
-     * resolve to backends that declare {@code BackendCapability.ACCESS_TIME_TRACKING}.
-     */
+    /** Whether reads record an access time, by which the category's least recently used entries go. */
     public boolean isAccessTimeLru() {
         return accessTimeLru;
     }
 
     /**
-     * Optional POSIX mode (e.g. {@code "0600"}) that {@link
-     * dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend LocalStorageBackend} applies
-     * after write. {@code null} means inherit the process umask. Remote backends ignore the
-     * flag; the resolver guarantees POSIX-mode categories are local-pinned.
+     * The octal POSIX mode such as {@code "0600"} the local backend applies after a write; empty keeps
+     * the process umask. Only local-pinned categories carry one.
      */
-    public String posixMode() {
+    public Optional<String> posixMode() {
         return posixMode;
     }
 
-    /**
-     * Quota tracking mode.
-     */
     public enum QuotaMode {
-        /**
-         * Counted in {@code storage_usage} and rejected past the per-station limit.
-         */
+        /** Counted in the usage and refused past the station's limit. */
         ENFORCED,
-        /**
-         * Counted in {@code storage_usage} but never rejected.
-         */
+        /** Counted in the usage but never refused. */
         TRACKED,
-        /**
-         * Not counted at all.
-         */
+        /** Not counted at all. */
         UNTRACKED
     }
 
-    /**
-     * Nested holder so the {@code MIME_ANY} sentinel can be referenced from enum-literal
-     * initializers without triggering Java's "illegal forward reference" check on
-     * {@code static final} fields declared after the literals.
-     */
+    /** Holds the shared lists, which the enum constants cannot reference as fields declared after them. */
     private static final class MimeLists {
         private static final List<String> ANY = List.of("*/*");
+        private static final List<String> IMAGES = List.of("image/png", "image/jpeg", "image/webp", "image/gif");
     }
 }

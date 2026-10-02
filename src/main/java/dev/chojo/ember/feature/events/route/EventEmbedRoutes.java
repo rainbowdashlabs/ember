@@ -6,10 +6,10 @@
 package dev.chojo.ember.feature.events.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.feature.content.entity.BlockAudience;
 import dev.chojo.ember.feature.events.entity.EventCategory;
 import dev.chojo.ember.feature.events.entity.StationEvent;
@@ -24,12 +24,14 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
+import static dev.chojo.ember.api.RouteSupport.pathUuid;
 
 /**
  * An event as a content block in a news or wiki article shows it to a member of its own station.
@@ -83,13 +85,13 @@ public class EventEmbedRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void reference(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var event = visibility.requireVisibleEvent(session, pathInt(ctx, "id"));
-        if (event.restricted()) throw Refusal.EVENT_BLOCK_REFERENCE_NOT_HERE.raise();
+        if (event.restricted()) throw EventRefusal.EVENT_BLOCK_REFERENCE_NOT_HERE.raise();
         var uid = crudService
                 .findPublicUidsByIds(event.stationId(), List.of(event.id()))
                 .get(event.id());
-        if (uid == null) throw Refusal.EVENT_BLOCK_REFERENCE_NOT_HERE.raise();
+        if (uid == null) throw EventRefusal.EVENT_BLOCK_REFERENCE_NOT_HERE.raise();
         ctx.json(new EmbedReference(uid));
     }
 
@@ -104,28 +106,18 @@ public class EventEmbedRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void get(Context ctx) {
-        var session = UserSession.from(ctx);
-        var uid = parseUid(ctx.pathParam("uid"));
+        var session = StationSession.from(ctx);
+        var uid = pathUuid(ctx, "uid");
         var event = crudService
                 .findOpenByUid(session.stationId(), BlockAudience.MEMBERS, uid)
-                .orElseThrow(Refusal.EVENT_BLOCK_APPOINTMENT_NOT_HERE::raise);
+                .orElseThrow(EventRefusal.EVENT_BLOCK_APPOINTMENT_NOT_HERE::raise);
         ctx.json(EmbeddedEvent.of(event, categoryName(event)));
     }
 
-    private static UUID parseUid(String raw) {
-        try {
-            return UUID.fromString(raw);
-        } catch (IllegalArgumentException e) {
-            throw Refusal.EVENT_BLOCK_APPOINTMENT_NOT_HERE.raise();
-        }
-    }
-
-    private String categoryName(StationEvent event) {
-        if (event.categoryId() == null) return null;
-        return categoryService
-                .findById(event.categoryId())
-                .map(EventCategory::name)
-                .orElse(null);
+    private @Nullable String categoryName(StationEvent event) {
+        Integer categoryId = event.categoryId();
+        if (categoryId == null) return null;
+        return categoryService.findById(categoryId).map(EventCategory::name).orElse(null);
     }
 
     /**
@@ -149,13 +141,13 @@ public class EventEmbedRoutes implements Routes {
     public record EmbeddedEvent(
             int id,
             String name,
-            String description,
+            @Nullable String description,
             Instant startTime,
             Instant endTime,
             boolean cancelled,
-            String categoryName) {
+            @Nullable String categoryName) {
 
-        static EmbeddedEvent of(StationEvent event, String categoryName) {
+        static EmbeddedEvent of(StationEvent event, @Nullable String categoryName) {
             return new EmbeddedEvent(
                     event.id(),
                     event.name(),

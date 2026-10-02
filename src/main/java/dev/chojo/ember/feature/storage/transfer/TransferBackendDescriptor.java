@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.storage.transfer;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Wire-shape returned by {@code GET /public/transfer/{token}/backend}. The destination uses it
@@ -70,7 +71,7 @@ public sealed interface TransferBackendDescriptor {
             String username,
             String knownHostsFingerprint,
             String basePath,
-            String password,
-            String privateKey)
+            @Nullable String password,
+            @Nullable String privateKey)
             implements TransferBackendDescriptor {}
 }

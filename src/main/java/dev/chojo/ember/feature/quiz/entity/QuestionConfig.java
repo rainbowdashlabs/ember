@@ -5,12 +5,17 @@
  */
 package dev.chojo.ember.feature.quiz.entity;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.List;
 
 /**
  * Typed question config records for Jackson deserialization.
  * Each record maps directly to the JSON config structure of its question type.
  * The config class is stored on {@link QuizQuestionType} for direct parsing.
+ *
+ * <p>A stored config is read leniently, so a list a config of an older version never carried
+ * comes back as null rather than empty.
  */
 public sealed interface QuestionConfig {
 
@@ -26,7 +31,7 @@ public sealed interface QuestionConfig {
         return gradableItemCount() * pointsPerCorrect();
     }
 
-    record MultipleChoice(List<Option> options, double pointsPerCorrect) implements QuestionConfig {
+    record MultipleChoice(@Nullable List<ChoiceOption> options, double pointsPerCorrect) implements QuestionConfig {
         @Override
         public double pointsPerCorrect() {
             return pointsPerCorrect > 0 ? pointsPerCorrect : 1;
@@ -36,13 +41,13 @@ public sealed interface QuestionConfig {
         public int gradableItemCount() {
             return options == null
                     ? 0
-                    : (int) options.stream().filter(Option::correct).count();
+                    : (int) options.stream().filter(ChoiceOption::correct).count();
         }
 
-        public record Option(String text, boolean correct) {}
+        public record ChoiceOption(String text, boolean correct) {}
     }
 
-    record Connect(List<Pair> pairs, double pointsPerCorrect) implements QuestionConfig {
+    record Connect(@Nullable List<Pair> pairs, double pointsPerCorrect) implements QuestionConfig {
         @Override
         public double pointsPerCorrect() {
             return pointsPerCorrect > 0 ? pointsPerCorrect : 1;
@@ -56,7 +61,7 @@ public sealed interface QuestionConfig {
         public record Pair(String left, String right) {}
     }
 
-    record Ordering(List<String> items, double pointsPerCorrect) implements QuestionConfig {
+    record Ordering(@Nullable List<String> items, double pointsPerCorrect) implements QuestionConfig {
         @Override
         public double pointsPerCorrect() {
             return pointsPerCorrect > 0 ? pointsPerCorrect : 1;
@@ -69,7 +74,11 @@ public sealed interface QuestionConfig {
     }
 
     record FillInTheBlank(
-            String text, List<String> answers, List<String> distractors, boolean useDropdown, double pointsPerCorrect)
+            @Nullable String text,
+            @Nullable List<String> answers,
+            @Nullable List<String> distractors,
+            boolean useDropdown,
+            double pointsPerCorrect)
             implements QuestionConfig {
         @Override
         public double pointsPerCorrect() {
@@ -82,7 +91,8 @@ public sealed interface QuestionConfig {
         }
     }
 
-    record Enumeration(List<String> answers, int requiredCount, boolean orderedRequired, double pointsPerCorrect)
+    record Enumeration(
+            @Nullable List<String> answers, int requiredCount, boolean orderedRequired, double pointsPerCorrect)
             implements QuestionConfig {
         @Override
         public double pointsPerCorrect() {
@@ -95,7 +105,7 @@ public sealed interface QuestionConfig {
         }
     }
 
-    record FreeAnswer(List<String> answers, int lines, double pointsPerCorrect) implements QuestionConfig {
+    record FreeAnswer(@Nullable List<String> answers, int lines, double pointsPerCorrect) implements QuestionConfig {
         @Override
         public double pointsPerCorrect() {
             return pointsPerCorrect > 0 ? pointsPerCorrect : 1;
@@ -109,7 +119,7 @@ public sealed interface QuestionConfig {
 
     record TrueFalse(boolean correctAnswer) implements QuestionConfig {}
 
-    record ImageText(String imageUrl, String answer) implements QuestionConfig {}
+    record ImageText(@Nullable String imageUrl, @Nullable String answer) implements QuestionConfig {}
 
     record Unknown() implements QuestionConfig {}
 }

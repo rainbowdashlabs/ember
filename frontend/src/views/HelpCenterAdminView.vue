@@ -94,8 +94,7 @@ watch(
       </SidebarGroup>
 
       <SidebarGroup :icon="['fas', 'mobile-screen']" :label="t('sidebar.twoFactor')"
-                    to="/helpcenter/admin/2fa" name="help-admin-two-factor" @navigate="close">
-      </SidebarGroup>
+                    to="/helpcenter/admin/2fa" name="help-admin-two-factor" @navigate="close"/>
 
       <SidebarGroup :icon="['fas', 'triangle-exclamation']" :label="t('sidebar.monitoring')" prefix="/helpcenter/admin/monitoring" group-key="monitoring">
         <SidebarLink :icon="['fas', 'hard-drive']" name="help-admin-storage"
@@ -117,6 +116,10 @@ watch(
         <SidebarLink :icon="['fas', 'rss']" name="help-admin-feed-metrics"
                      to="/helpcenter/admin/monitoring/feed-metrics" @navigate="close">
           {{ t('sidebar.feedMetrics') }}
+        </SidebarLink>
+        <SidebarLink :icon="['fas', 'list-check']" name="help-admin-tasks"
+                     to="/helpcenter/admin/monitoring/tasks" @navigate="close">
+          {{ t('sidebar.backgroundTasks') }}
         </SidebarLink>
         <SidebarLink :icon="['fas', 'tower-broadcast']" name="help-admin-traffic"
                      to="/helpcenter/admin/monitoring/traffic" @navigate="close">

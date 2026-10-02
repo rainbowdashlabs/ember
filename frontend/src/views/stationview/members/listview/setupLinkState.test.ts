@@ -3,25 +3,14 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-// @vitest-environment happy-dom
+/** @vitest-environment happy-dom */
 import {describe, expect, it} from 'vitest'
-import type {StationMember} from '@/api/types'
 import {SetupLink, setupLinkState} from './setupLinkState'
 
 const NOW = new Date('2026-09-01T12:00:00Z')
 
-function member(overrides: Partial<StationMember>): StationMember {
-  return {
-    id: 1,
-    stationId: 'station-1',
-    accountId: 1,
-    name: 'Test Person',
-    email: 'test@example.test',
-    accountSetupPending: true,
-    setupMailExpiresAt: null,
-    mailReaches: 'SELF',
-    ...overrides,
-  }
+function member(overrides: {accountSetupPending?: boolean; setupMailExpiresAt?: string | null}) {
+  return {accountSetupPending: true, setupMailExpiresAt: null, ...overrides}
 }
 
 describe('setupLinkState', () => {

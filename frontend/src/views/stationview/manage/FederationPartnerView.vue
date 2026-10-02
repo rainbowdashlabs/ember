@@ -25,7 +25,8 @@ import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import FederationCompatibilityBadge from './federationview/FederationCompatibilityBadge.vue'
 import { federation } from '@/api'
-import type { FederationContract, PartnerResponse, FederationCapability } from '@/api/federation'
+import { CapabilityDirection, CapabilityType, type CapabilityDirectionName, type CapabilityTypeName } from '@/api/federation'
+import type { FederationContract, PartnerResponse, FederationCapability } from '@/api/generated/schema'
 import Td from '@/components/table/Td.vue'
 import Th from '@/components/table/Th.vue'
 import MutedText from '@/components/typography/MutedText.vue'
@@ -67,18 +68,23 @@ const compatibility = computed(() =>
 
 interface CapRow {
   label: string
-  capability: string
+  capability: CapabilityTypeName
   importCap: FederationCapability | undefined
   exportCap: FederationCapability | undefined
 }
 
+const capabilityOrder: CapabilityTypeName[] = [
+  CapabilityType.KB_SHARE,
+  CapabilityType.QUIZ_SHARE,
+  CapabilityType.PROTOCOL_SHARE,
+  CapabilityType.EVENT_SHARE,
+  CapabilityType.BOARD_SHARE,
+  CapabilityType.NEWS_SHARE,
+  CapabilityType.INVENTORY_LEND,
+]
+
 const capRows = computed<CapRow[]>(() => {
-  const curated = ['KB_SHARE', 'QUIZ_SHARE', 'PROTOCOL_SHARE', 'EVENT_SHARE', 'BOARD_SHARE', 'NEWS_SHARE', 'INVENTORY_LEND']
-  const types = [
-    ...curated,
-    ...Object.keys(localContract.value?.features ?? {}).filter(type => !curated.includes(type)),
-  ]
-  const labels: Record<string, string> = {
+  const labels: Record<CapabilityTypeName, string> = {
     KB_SHARE: t('federation.cap.kb'),
     QUIZ_SHARE: t('federation.cap.quiz'),
     PROTOCOL_SHARE: t('federation.cap.protocol'),
@@ -87,11 +93,11 @@ const capRows = computed<CapRow[]>(() => {
     NEWS_SHARE: t('federation.cap.news'),
     INVENTORY_LEND: t('federation.cap.inventory'),
   }
-  return types.map(cap => ({
-    label: labels[cap] ?? cap,
+  return capabilityOrder.map(cap => ({
+    label: labels[cap],
     capability: cap,
-    importCap: capabilities.value.find(c => c.capability === cap && c.direction === 'IMPORT'),
-    exportCap: capabilities.value.find(c => c.capability === cap && c.direction === 'EXPORT'),
+    importCap: capabilities.value.find(c => c.capability === cap && c.direction === CapabilityDirection.IMPORT),
+    exportCap: capabilities.value.find(c => c.capability === cap && c.direction === CapabilityDirection.EXPORT),
   }))
 })
 
@@ -100,7 +106,7 @@ function record(e: unknown) {
   failure.value = describeFailure(e, t)
 }
 
-async function toggleCap(capability: string, direction: string, currentEnabled: boolean) {
+async function toggleCap(capability: CapabilityTypeName, direction: CapabilityDirectionName, currentEnabled: boolean) {
   try {
     capabilities.value = await federation.setCapabilities(partnerId.value, [
       { capability, direction, enabled: !currentEnabled },

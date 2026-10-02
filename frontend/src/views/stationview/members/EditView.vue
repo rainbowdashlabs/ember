@@ -16,12 +16,20 @@ import MemberEditTabs from './editview/MemberEditTabs.vue'
 import MemberAccessActions from './editview/MemberAccessActions.vue'
 import type {MemberEditData} from './editview/types'
 import {memberDisplayName} from './listview/useMemberData'
-import {StationPermission, StationUserType, type MemberGroup, type PermissionGrant, type StationMember, type UserTag} from '@/api/types'
-import {profileFields, stationMembers, memberGroups, userTags, inventory} from '@/api'
-import type {MyInventoryItem} from '@/api/inventory'
-import {decodeMergedValues, type MergedProfileField} from '@/util/profileFields'
+import {StationPermission, StationUserType} from '@/api/types'
+import type {
+  MemberGroup,
+  MemberGroupSet,
+  MemberWithName,
+  MyInventoryItem,
+  Permission,
+  UserTag,
+} from '@/api/generated/schema'
+import {profileFields, stationMembers, memberGroups, groupSets, userTags, inventory} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {useProfileAnswers} from '@/composables/useProfileAnswers'
+import {stationManagerAnswers} from '@/composables/profileAnswerPorts'
 
 const {t} = useI18n()
 const {hasPermission} = useSession()
@@ -30,12 +38,12 @@ const router = useRouter()
 
 const memberId = computed(() => Number(route.params.id))
 
-const member = ref<StationMember | null>(null)
-const fields = ref<MergedProfileField[]>([])
-const allRoles = ref<PermissionGrant[]>([])
+const member = ref<MemberWithName | null>(null)
+const answers = useProfileAnswers(stationManagerAnswers)
+const allRoles = ref<Permission[]>([])
 const allGroups = ref<MemberGroup[]>([])
+const allSets = ref<MemberGroupSet[]>([])
 const allTags = ref<UserTag[]>([])
-const editValues = ref<Map<string, string>>(new Map())
 const editRoleIds = ref<Set<number>>(new Set())
 const editGroupIds = ref<Set<number>>(new Set())
 const editTagIds = ref<Set<number>>(new Set())
@@ -45,13 +53,13 @@ const lockedPermissions = computed(() => new Map([...groupLockedPermissions.valu
 const editUserType = ref('')
 const memberInventory = ref<MyInventoryItem[]>([])
 
-const allMembers = ref<StationMember[]>([])
+const allMembers = ref<MemberWithName[]>([])
 
 const editData = computed<MemberEditData>(() => ({
-  fields: fields.value,
-  values: editValues.value,
+  answers,
   allRoles: allRoles.value,
   allGroups: allGroups.value,
+  allSets: allSets.value,
   allTags: allTags.value,
   allMembers: allMembers.value,
   userType: editUserType.value,
@@ -104,7 +112,7 @@ async function onGroupsChanged(groupIds: Set<number>) {
 async function onUserTypeChanged(userType: string) {
   editUserType.value = userType
   await loadTypePermissions(userType)
-  fields.value = await profileFields.getMemberFields(memberId.value)
+  answers.reask(await profileFields.getMemberFields(memberId.value))
 }
 
 /**
@@ -116,14 +124,15 @@ async function onUserTypeChanged(userType: string) {
  * be pressed, so a failed fetch quietly offered to retire somebody who still has the station's gear.
  */
 const {loading, failure} = useAsyncLoader(async () => {
-  const [allFields, allMembers_, roles, memberData, memberPermissions, profileValues, groups, tags, mGroups, mTags, items] = await Promise.all([
+  const [allFields, allMembers_, roles, memberData, memberPermissions, profileValues, groups, sets, tags, mGroups, mTags, items] = await Promise.all([
     profileFields.getMemberFields(memberId.value),
     stationMembers.listMembers(),
     stationMembers.listAllPermissions(),
     stationMembers.getMember(memberId.value),
     stationMembers.getPermissions(memberId.value),
-    profileFields.getMergedValues(memberId.value),
+    profileFields.getValues(memberId.value),
     memberGroups.listGroups(),
+    groupSets.listSets(),
     userTags.listTags(),
     memberGroups.getMemberGroups(memberId.value),
     userTags.getMemberTags(memberId.value),
@@ -132,10 +141,10 @@ const {loading, failure} = useAsyncLoader(async () => {
         : Promise.resolve([] as MyInventoryItem[]),
   ])
   memberInventory.value = items
-  fields.value = allFields
   allMembers.value = allMembers_
   allRoles.value = roles
   allGroups.value = groups
+  allSets.value = sets
   allTags.value = tags
   editGroupIds.value = new Set(mGroups.map(g => g.id))
   editTagIds.value = new Set(mTags.map(t => t.id))
@@ -144,7 +153,7 @@ const {loading, failure} = useAsyncLoader(async () => {
   editRoleIds.value = new Set(memberPermissions.map(r => r.id))
   await Promise.all([loadTypePermissions(editUserType.value), loadGroupPermissions(editGroupIds.value)])
 
-  editValues.value = decodeMergedValues(profileValues)
+  answers.apply({fields: allFields, values: profileValues})
 })
 
 function goBack() {

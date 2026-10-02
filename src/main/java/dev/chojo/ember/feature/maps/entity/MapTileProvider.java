@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.maps.entity;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * The tile provider the instance is currently configured against. Each variant carries the
  * canonical URL template and attribution that the backend falls back to when the operator
@@ -32,10 +34,10 @@ public enum MapTileProvider {
             "https://tile.thunderforest.com/atlas/{z}/{x}/{y}.png?apikey={k}",
             "© Thunderforest · © OpenStreetMap",
             true),
-    CUSTOM(null, null, false);
+    CUSTOM;
 
-    private final String defaultUrlTemplate;
-    private final String defaultAttribution;
+    private final @Nullable String defaultUrlTemplate;
+    private final @Nullable String defaultAttribution;
     private final boolean requiresApiKey;
 
     MapTileProvider(String defaultUrlTemplate, String defaultAttribution, boolean requiresApiKey) {
@@ -44,11 +46,20 @@ public enum MapTileProvider {
         this.requiresApiKey = requiresApiKey;
     }
 
-    public String defaultUrlTemplate() {
+    /** A provider the operator describes in full, with nothing to fall back to and no key it insists on. */
+    MapTileProvider() {
+        this.defaultUrlTemplate = null;
+        this.defaultAttribution = null;
+        this.requiresApiKey = false;
+    }
+
+    /** The template this provider serves tiles under, or {@code null} for {@link #CUSTOM}. */
+    public @Nullable String defaultUrlTemplate() {
         return defaultUrlTemplate;
     }
 
-    public String defaultAttribution() {
+    /** The credit this provider asks for, or {@code null} for {@link #CUSTOM}. */
+    public @Nullable String defaultAttribution() {
         return defaultAttribution;
     }
 

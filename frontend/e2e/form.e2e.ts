@@ -41,12 +41,10 @@ test.describe('Forms', () => {
     /**
      * The point of asking is reading the answers. The story opens the evaluation of a form that has
      * been answered and reads one answer in full - which is a different page from the totals, and
-     * the one somebody goes to when they want to know what a particular person wrote.
+     * the one somebody goes to when they want to know what a particular person wrote. The manager
+     * answers the form first, so the story does not depend on whoever ran before.
      */
     test('the answers to a form are read by whoever owns it', async ({managerPage: page}) => {
-        // The manager answers a form of the station and then reads that answer back, so the story
-        // depends on nothing but itself: a form nobody has answered has nothing to read, and which
-        // of the seeded forms carries an answer is up to whoever ran before.
         await page.goto('/station/forms')
         const id = await openOfferedForm(page)
 
@@ -56,13 +54,9 @@ test.describe('Forms', () => {
 
         await page.goto(`/station/forms/${id}/analytics`)
 
-        // The evaluation counts what came in and offers the answers one by one. The story holds it
-        // to both: a total that counts the answer just given, and the page that shows answers in
-        // full - which is a different page from the totals, and the one somebody opens when they
-        // want to know what a particular person wrote.
-        await expect(page.getByText(/Antworten gesamt: [1-9]/)).toBeVisible()
+        await expect(page.getByText(/Antworten gesamt: [1-9]/), 'the total counts the answer just given').toBeVisible()
 
-        await page.getByRole('button', {name: 'Einzelantworten'}).click()
+        await page.getByRole('tab', {name: 'Einzelantworten'}).click()
         await expect(page.getByText(/\d+ von \d+/)).toBeVisible()
     })
 

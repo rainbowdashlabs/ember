@@ -6,31 +6,32 @@
 package dev.chojo.ember.feature.twofactor.route;
 
 import dev.chojo.ember.api.MessageResponse;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.InstancePermission;
-import dev.chojo.ember.api.auth.InstanceUserType;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.auth.StepUpCategory;
-import dev.chojo.ember.feature.account.repository.AccountRepository;
-import dev.chojo.ember.feature.account.repository.AccountRepository.PickerAccount;
+import dev.chojo.ember.api.refusal.TwoFactorRefusal;
 import dev.chojo.ember.feature.members.entity.StationMember;
-import dev.chojo.ember.feature.members.repository.StationMemberRepository;
-import dev.chojo.ember.feature.twofactor.entity.TwoFactorAuditEntry;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorPolicy;
-import dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository;
+import dev.chojo.ember.feature.twofactor.service.TwoFactorAdminService;
 import dev.chojo.ember.feature.twofactor.service.TwoFactorPolicyService;
 import dev.chojo.ember.feature.twofactor.service.TwoFactorService;
 import io.javalin.http.Context;
+import io.javalin.openapi.HttpMethod;
+import io.javalin.openapi.OpenApi;
+import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiRequestBody;
+import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.UUID;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 
@@ -42,41 +43,20 @@ import static dev.chojo.ember.api.RouteSupport.pathInt;
 @Singleton
 public class TwoFactorAdminRoutes implements Routes {
     private final TwoFactorPolicyService policyService;
-    private final TwoFactorRepository repository;
     private final TwoFactorService twoFactorService;
-    private final AccountRepository accountRepository;
-    private final StationMemberRepository stationMemberRepository;
+    private final TwoFactorAdminService adminService;
 
     @Inject
     public TwoFactorAdminRoutes(
             TwoFactorPolicyService policyService,
-            TwoFactorRepository repository,
             TwoFactorService twoFactorService,
-            AccountRepository accountRepository,
-            StationMemberRepository stationMemberRepository) {
+            TwoFactorAdminService adminService) {
         this.policyService = policyService;
-        this.repository = repository;
         this.twoFactorService = twoFactorService;
-        this.accountRepository = accountRepository;
-        this.stationMemberRepository = stationMemberRepository;
+        this.adminService = adminService;
     }
 
-    private static AccountSearchResult toAccountDto(PickerAccount a) {
-        return new AccountSearchResult(a.id(), a.uid(), a.displayName(), a.firstName(), a.lastName(), a.email());
-    }
-
-    // -- Instance scope --
-
-    private static StationUserType parseUserType(String value) {
-        if (value == null || value.isBlank()) return null;
-        try {
-            return StationUserType.valueOf(value);
-        } catch (IllegalArgumentException e) {
-            throw Refusal.USER_TYPE_UNKNOWN_ON_POLICY.raise();
-        }
-    }
-
-    private static short clampGraceDays(Integer requested) {
+    private static short clampGraceDays(@Nullable Integer requested) {
         if (requested == null) return 7;
         int v = requested;
         if (v < 0) v = 0;
@@ -84,24 +64,17 @@ public class TwoFactorAdminRoutes implements Routes {
         return (short) v;
     }
 
-    private static int requireStation(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        return session.stationIdOpt().orElseThrow(Refusal.NO_STATION_CHOSEN_ON_POLICY::raise);
-    }
-
-    // -- Station scope --
-
-    private static Integer actorMemberId(Context ctx) {
+    private static @Nullable Integer actorMemberId(Context ctx) {
         UserSession session = UserSession.from(ctx);
         return session.memberOpt().map(StationMember::id).orElse(null);
     }
 
-    private static PolicyDto toDto(TwoFactorPolicy p) {
-        return new PolicyDto(
+    private static TwoFactorPolicyEntry toEntry(TwoFactorPolicy p) {
+        return new TwoFactorPolicyEntry(
                 p.id(),
-                p.scope().name(),
+                p.scope(),
                 p.stationId(),
-                p.userType() == null ? null : p.userType().name(),
+                p.userType(),
                 p.required(),
                 p.graceDays(),
                 p.createdBy(),
@@ -110,7 +83,6 @@ public class TwoFactorAdminRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        // Instance-admin: policies across every station.
         routes.get(prefix + "/admin/2fa/policies", this::listInstancePolicies, InstancePermission.ADMINISTRATOR);
         routes.put(
                 prefix + "/admin/2fa/policies",
@@ -130,7 +102,6 @@ public class TwoFactorAdminRoutes implements Routes {
                 InstancePermission.ADMINISTRATOR,
                 StepUpCategory.INSTANCE_CONFIG);
 
-        // Station-admin: policies for the caller's currently-selected station only.
         routes.get(
                 prefix + "/station/2fa/policies", this::listStationPolicies, StationPermission.STATION_ADMINISTRATOR);
         routes.put(
@@ -155,46 +126,66 @@ public class TwoFactorAdminRoutes implements Routes {
                 StepUpCategory.ACCOUNT_SECURITY);
     }
 
+    @OpenApi(
+            path = "/api/v1/admin/2fa/policies",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = PoliciesResponse.class)))
     private void listInstancePolicies(Context ctx) {
         var policies = policyService.listInstancePolicies();
         ctx.json(new PoliciesResponse(
-                policies.stream().map(TwoFactorAdminRoutes::toDto).toList()));
+                policies.stream().map(TwoFactorAdminRoutes::toEntry).toList()));
     }
 
+    @OpenApi(
+            path = "/api/v1/admin/2fa/policies",
+            methods = HttpMethod.PUT,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = UpsertPolicyRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = TwoFactorPolicyEntry.class)))
     private void upsertInstancePolicy(Context ctx) {
         var request = ctx.bodyAsClass(UpsertPolicyRequest.class);
-        StationUserType userType = parseUserType(request.userType());
         TwoFactorPolicy saved = policyService.setInstancePolicy(
-                userType, request.required(), clampGraceDays(request.graceDays()), actorMemberId(ctx));
-        ctx.json(toDto(saved));
+                request.userType(), request.required(), clampGraceDays(request.graceDays()), actorMemberId(ctx));
+        ctx.json(toEntry(saved));
     }
 
-    // -- Admin reset --
-
+    @OpenApi(
+            path = "/api/v1/admin/2fa/policies/{id}",
+            methods = HttpMethod.DELETE,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)))
     private void deleteInstancePolicy(Context ctx) {
         int id = pathInt(ctx, "id");
         if (!policyService.deletePolicy(id)) {
-            throw Refusal.POLICY_NOT_HERE.raise();
+            throw TwoFactorRefusal.POLICY_NOT_HERE.raise();
         }
         ctx.json(new MessageResponse("Policy removed"));
     }
 
+    @OpenApi(
+            path = "/api/v1/station/2fa/policies",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = PoliciesResponse.class)))
     private void listStationPolicies(Context ctx) {
-        int stationId = requireStation(ctx);
+        int stationId = StationSession.from(ctx).stationId();
         var policies = policyService.listStationPolicies(stationId);
         ctx.json(new PoliciesResponse(
-                policies.stream().map(TwoFactorAdminRoutes::toDto).toList()));
+                policies.stream().map(TwoFactorAdminRoutes::toEntry).toList()));
     }
 
-    // -- Account picker (instance-admin) --
-
+    @OpenApi(
+            path = "/api/v1/station/2fa/policies",
+            methods = HttpMethod.PUT,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = UpsertPolicyRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = TwoFactorPolicyEntry.class)))
     private void upsertStationPolicy(Context ctx) {
-        int stationId = requireStation(ctx);
+        StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(UpsertPolicyRequest.class);
-        StationUserType userType = parseUserType(request.userType());
         TwoFactorPolicy saved = policyService.setStationPolicy(
-                stationId, userType, request.required(), clampGraceDays(request.graceDays()), actorMemberId(ctx));
-        ctx.json(toDto(saved));
+                session.stationId(),
+                request.userType(),
+                request.required(),
+                clampGraceDays(request.graceDays()),
+                session.member().id());
+        ctx.json(toEntry(saved));
     }
 
     /**
@@ -204,180 +195,127 @@ public class TwoFactorAdminRoutes implements Routes {
      * administrator cannot reach a rule belonging to a station they do not administer by naming its
      * number.
      */
+    @OpenApi(
+            path = "/api/v1/station/2fa/policies/{id}",
+            methods = HttpMethod.DELETE,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)))
     private void deleteStationPolicy(Context ctx) {
-        int stationId = requireStation(ctx);
+        int stationId = StationSession.from(ctx).stationId();
         int id = pathInt(ctx, "id");
         var policies = policyService.listStationPolicies(stationId);
         if (policies.stream().noneMatch(p -> p.id() == id)) {
-            throw Refusal.POLICY_NOT_HERE_ON_STATION_DELETE.raise();
+            throw TwoFactorRefusal.POLICY_NOT_HERE_ON_STATION_DELETE.raise();
         }
         if (!policyService.deletePolicy(id)) {
-            throw Refusal.POLICY_NOT_HERE_ON_STATION_DELETE.raise();
+            throw TwoFactorRefusal.POLICY_NOT_HERE_ON_STATION_DELETE.raise();
         }
         ctx.json(new MessageResponse("Policy removed"));
     }
 
-    // -- Audit log --
-
+    @OpenApi(
+            path = "/api/v1/station/2fa/members",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberStatusResponse.class)))
     private void listMemberStatus(Context ctx) {
-        int stationId = requireStation(ctx);
-        var members = policyService.listStationMemberStatus(stationId).stream()
-                .map(m -> new MemberStatusDto(
-                        m.memberId(),
-                        m.accountId(),
-                        m.firstName(),
-                        m.lastName(),
-                        m.email(),
-                        m.userType().name(),
-                        m.enrolled(),
-                        m.mandated()))
-                .toList();
-        ctx.json(new MemberStatusResponse(members));
+        int stationId = StationSession.from(ctx).stationId();
+        ctx.json(new MemberStatusResponse(policyService.listStationMemberStatus(stationId)));
     }
 
-    // -- Helpers --
-
+    @OpenApi(
+            path = "/api/v1/station/2fa/user-types",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = UserTypesResponse.class)))
     private void listAssignableUserTypes(Context ctx) {
-        ctx.json(new UserTypesResponse(
-                policyService.assignableUserTypes().stream().map(Enum::name).toList()));
+        ctx.json(new UserTypesResponse(policyService.assignableUserTypes()));
     }
 
+    @OpenApi(
+            path = "/api/v1/admin/accounts/{id}/2fa/reset",
+            methods = HttpMethod.POST,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)))
     private void resetByInstanceAdmin(Context ctx) {
         int targetId = pathInt(ctx, "id");
         UserSession actor = UserSession.from(ctx);
         if (!twoFactorService.resetAccount2FA(
                 targetId, actor.accountId(), ctx.userAgent(), ctx.header("CF-IPCountry"))) {
-            throw Refusal.SECOND_FACTOR_NOT_RESET.raise();
+            throw TwoFactorRefusal.SECOND_FACTOR_NOT_RESET.raise();
         }
         ctx.json(new MessageResponse("2FA reset"));
     }
 
     /**
      * Clears a member's second factor on behalf of the station that looks after them.
-     *
-     * <p>The target has to be a member of the caller's own station and must not administer the
-     * instance: a station administrator may only act on people they actually manage, and an
-     * instance administrator is somebody only another instance administrator may reach.
      */
+    @OpenApi(
+            path = "/api/v1/station/accounts/{id}/2fa/reset",
+            methods = HttpMethod.POST,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)))
     private void resetByStationAdmin(Context ctx) {
         int targetId = pathInt(ctx, "id");
-        UserSession actor = UserSession.from(ctx);
-        int stationId = actor.stationIdOpt().orElseThrow(Refusal.NO_STATION_CHOSEN_ON_RESET::raise);
-
-        var membership = stationMemberRepository.findByStationAndAccount(stationId, targetId);
-        if (membership.isEmpty()) {
-            throw Refusal.MEMBER_NOT_YOURS_TO_RESET.raise();
-        }
-        var targetAccount = accountRepository.findById(targetId);
-        if (targetAccount.isEmpty()) {
-            throw Refusal.MEMBER_NOT_YOURS_TO_RESET.raise();
-        }
-        if (targetAccount.get().instanceUserType() == InstanceUserType.ADMINISTRATOR) {
-            throw Refusal.ADMIN_ONLY_RESET_BY_ADMIN.raise();
-        }
-
-        if (!twoFactorService.resetAccount2FA(
-                targetId, actor.accountId(), ctx.userAgent(), ctx.header("CF-IPCountry"))) {
-            throw Refusal.SECOND_FACTOR_NOT_RESET_ON_STATION.raise();
-        }
+        StationSession actor = StationSession.from(ctx);
+        adminService.resetForStation(
+                actor.stationId(), targetId, actor.accountId(), ctx.userAgent(), ctx.header("CF-IPCountry"));
         ctx.json(new MessageResponse("2FA reset"));
     }
 
+    @OpenApi(
+            path = "/api/v1/admin/accounts/search",
+            methods = HttpMethod.GET,
+            responses =
+                    @OpenApiResponse(
+                            status = "200",
+                            content = @OpenApiContent(from = TwoFactorAdminService.AccountSearchResult[].class)))
     private void searchAccounts(Context ctx) {
-        String q = ctx.queryParam("q");
-        String uidParam = ctx.queryParam("uid");
-        int requested = ctx.queryParamAsClass("limit", Integer.class).getOrDefault(20);
-        int limit = Math.clamp(requested, 1, 50);
-        if (uidParam != null && !uidParam.isBlank()) {
-            UUID lookup;
-            try {
-                lookup = UUID.fromString(uidParam);
-            } catch (IllegalArgumentException e) {
-                ctx.json(List.of());
-                return;
-            }
-            var result = accountRepository
-                    .findPickerByUid(lookup)
-                    .map(TwoFactorAdminRoutes::toAccountDto)
-                    .map(List::of)
-                    .orElseGet(List::of);
-            ctx.json(result);
-            return;
-        }
-        var results = accountRepository.searchForPicker(q, limit).stream()
-                .map(TwoFactorAdminRoutes::toAccountDto)
-                .toList();
-        ctx.json(results);
+        int limit = ctx.queryParamAsClass("limit", Integer.class).getOrDefault(20);
+        ctx.json(adminService.searchAccounts(ctx.queryParam("q"), ctx.queryParam("uid"), limit));
     }
 
+    @OpenApi(
+            path = "/api/v1/admin/2fa/audit",
+            methods = HttpMethod.GET,
+            responses =
+                    @OpenApiResponse(
+                            status = "200",
+                            content = @OpenApiContent(from = TwoFactorAdminService.AuditResponse.class)))
     private void listAudit(Context ctx) {
         int limit = ctx.queryParamAsClass("limit", Integer.class).getOrDefault(50);
         int offset = ctx.queryParamAsClass("offset", Integer.class).getOrDefault(0);
-        String accountIdParam = ctx.queryParam("accountId");
-        Integer accountId = accountIdParam == null ? null : Integer.parseInt(accountIdParam);
-        if (limit <= 0 || limit > 200) limit = 50;
-        if (offset < 0) offset = 0;
-        List<TwoFactorAuditEntry> entries;
-        if (accountId != null) {
-            entries = repository.findAuditLog(accountId, limit, offset);
-        } else {
-            entries = repository.findRecentAudit(limit, offset);
-        }
-        ctx.json(new AuditResponse(entries.stream()
-                .map(e -> new AuditEntryDto(
-                        e.id(),
-                        e.accountId(),
-                        e.actorId(),
-                        e.event().name(),
-                        e.factorKind() == null ? null : e.factorKind().name(),
-                        e.userAgent(),
-                        e.country(),
-                        e.createdAt()))
-                .toList()));
+        Integer accountId = ctx.queryParam("accountId") == null
+                ? null
+                : ctx.queryParamAsClass("accountId", Integer.class).get();
+        ctx.json(adminService.audit(accountId, limit, offset));
     }
 
-    // -- Request / response records --
-
-    public record PolicyDto(
+    /**
+     * One second-factor rule.
+     *
+     * @param scope     whether the rule holds for the whole instance or for one station
+     * @param stationId the station a station rule belongs to, absent on an instance rule
+     * @param userType  the member type the rule is for, absent where it is for every type
+     * @param createdBy the member who set it, absent where nobody did
+     */
+    public record TwoFactorPolicyEntry(
             int id,
-            String scope,
-            Integer stationId,
-            String userType,
+            TwoFactorPolicy.PolicyScope scope,
+            @Nullable Integer stationId,
+            @Nullable StationUserType userType,
             boolean required,
             short graceDays,
-            Integer createdBy,
+            @Nullable Integer createdBy,
             Instant createdAt) {}
 
-    public record PoliciesResponse(List<PolicyDto> policies) {}
+    public record PoliciesResponse(List<TwoFactorPolicyEntry> policies) {}
 
-    public record UpsertPolicyRequest(String userType, boolean required, Integer graceDays) {}
+    /**
+     * @param userType  the member type the rule is for, or {@code null} for every type
+     * @param graceDays the days before the rule is enforced, or {@code null} for the longest grace
+     */
+    public record UpsertPolicyRequest(
+            @Nullable StationUserType userType,
+            boolean required,
+            @Nullable Integer graceDays) {}
 
-    public record MemberStatusDto(
-            int memberId,
-            int accountId,
-            String firstName,
-            String lastName,
-            String email,
-            String userType,
-            boolean enrolled,
-            boolean mandated) {}
+    public record MemberStatusResponse(List<TwoFactorPolicyService.MemberStatus> members) {}
 
-    public record MemberStatusResponse(List<MemberStatusDto> members) {}
-
-    public record UserTypesResponse(List<String> userTypes) {}
-
-    public record AuditEntryDto(
-            int id,
-            int accountId,
-            Integer actorId,
-            String event,
-            String factorKind,
-            String userAgent,
-            String country,
-            Instant createdAt) {}
-
-    public record AuditResponse(List<AuditEntryDto> entries) {}
-
-    public record AccountSearchResult(
-            int id, UUID uid, String displayName, String firstName, String lastName, String email) {}
+    public record UserTypesResponse(List<StationUserType> userTypes) {}
 }

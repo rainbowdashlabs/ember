@@ -78,7 +78,8 @@ test.describe.configure({mode: 'serial'})
 test.describe('Guardian', () => {
     /**
      * The panel is where a parent does this, so the story goes through it rather than through the
-     * endpoint: filling the address in and saving it has to leave the address standing afterwards.
+     * endpoint: filling the address in and saving it has to leave the address standing afterwards. The
+     * child is picked by name rather than position, and the access panel's save is the first of two.
      */
     test('a guardian gives a managed member an address', async ({browser, request, managerPage}) => {
         const guardian = (await cast()).guardians.guardianSpec
@@ -86,14 +87,11 @@ test.describe('Guardian', () => {
         const page = await guardianPage(browser, request)
         const address = `${unique('kind').toLowerCase()}@example.test`
 
-        // The child is picked by name, because which of them the story may write to is not a matter
-        // of position.
         await page.goto('/station/profile/managed')
         await pickMemberByName(page, target.surname)
 
         await expect(page.getByText('Zugang')).toBeVisible()
         await page.getByPlaceholder('name@example.org').fill(address)
-        // The access panel comes before the profile fields, and both end in a save of their own.
         await page.getByRole('button', {name: 'Speichern'}).first().click()
 
         await expect(page.getByText('Adresse gespeichert.')).toBeVisible()
@@ -164,10 +162,10 @@ test.describe('Guardian', () => {
 
     /**
      * The part that matters most: everything above is scoped to the members in this guardian's
-     * care. A member they do not manage is refused, whichever of the three endpoints is asked.
+     * care. A member they do not manage is refused, whichever of the three endpoints is asked. The
+     * guardian gets a charge of their own, so that "outside their care" has something to be outside of.
      */
     test('a member the guardian does not manage is refused', async ({browser, request, managerPage}) => {
-        // A charge of its own, so that "outside their care" has something to be outside of.
         await ownCharge(managerPage, (await cast()).guardians.guardianSpec.memberId)
         const page = await guardianPage(browser, request)
         const mine = (await managedMembers(page)).map(member => member.id)
@@ -177,14 +175,9 @@ test.describe('Guardian', () => {
         const rows = managerPage.getByTestId('member-row')
         await expect(rows.first()).toBeVisible()
 
-        // Somebody outside their care: not one of the children they look after, whichever of them the
-        // seeder gave this guardian.
         const strangerId = await managerPage.evaluate(async managedIds => {
             const response = await fetch('/api/v1/station-members', {
-                headers: {
-                    Authorization: `Bearer ${window.localStorage.getItem('session_token')}`,
-                    'X-Station-Id': window.localStorage.getItem('station_id') ?? '',
-                },
+                headers: {'X-Station-Id': window.localStorage.getItem('station_id') ?? ''},
             })
             const members = await response.json()
             const stranger = (Array.isArray(members) ? members : members.content ?? [])
@@ -208,13 +201,12 @@ test.describe('Guardian', () => {
 
     /**
      * The profile changes of the station are not a guardian's to read. They see what happened to
-     * the members they look after, and the list stops there.
+     * the members they look after, and the list stops there. A guardian may look after more than one,
+     * so every change has to belong to one of them rather than to the first.
      */
     test('the profile changes a guardian sees stay within their own members', async ({browser, request, managerPage}) => {
         await ownCharge(managerPage, (await cast()).guardians.guardianSpec.memberId)
         const page = await guardianPage(browser, request)
-        // All of them: a guardian may look after more than one, and every change has to belong to
-        // one of those rather than to the first of them.
         const managed = (await managedMembers(page)).map(member => member.id)
 
         const response = await page.request.get(
@@ -239,6 +231,9 @@ test.describe('Guardian', () => {
      *
      * <p>Giving a place up, not refusing one. An event that has to be signed up for takes one answer,
      * and not signing up is already the no, so there is nothing to refuse until a place has been taken.
+     *
+     * <p>The event is searched for on the upcoming list rather than assumed to be on its first page,
+     * which every other story fills with appointments of its own, and its row is picked by the event.
      */
     test('a guardian gives up the place of part of the household in one dialog',
         async ({browser, request, managerPage}) => {
@@ -264,12 +259,12 @@ test.describe('Guardian', () => {
             const eventId = (await created.json()).id
 
             await page.goto(`/station/events/${eventId}`)
-            await page.getByRole('button', {name: 'Anmeldungen'}).click()
+            await page.getByRole('tab', {name: 'Anmeldungen'}).click()
 
             const gives = managed[0]!.id
 
-            // Nobody has a place yet, so there is nothing to give up
-            await expect(page.getByTestId('withdraw-household')).toHaveCount(0)
+            await expect(page.getByTestId('withdraw-household'), 'with no place taken there is nothing to give up')
+                .toHaveCount(0)
 
             await page.getByTestId('answer-household').click()
             const confirm = page.getByTestId('answer-confirm')
@@ -277,23 +272,15 @@ test.describe('Guardian', () => {
             await confirm.click()
             await expect(page.getByTestId(`my-answer-${gives}`)).toHaveText(/Bestätigt|Ausstehend/, {timeout: 15000})
 
-            // One of them gives their place back, which deletes it rather than refusing the event.
-            // The row is picked by the event, because the household answers several at once.
-            //
-            // The list holds one page of what is coming up, and every other story in the suite puts
-            // its own appointments there, so this one is searched for rather than assumed to be on
-            // the first page. Without that the row is simply past the tenth entry once the suite
-            // runs whole, which is why this passed alone and failed together.
             await page.goto('/station/events/upcoming')
             await page.getByPlaceholder('Titel, Beschreibung oder Feldinhalt...').fill(name)
             const row = page.locator(`[data-testid="upcoming-event"][data-event="${eventId}"]`)
             await expect(row).toHaveCount(1, {timeout: 15000})
             await row.getByTestId(`undo-answer-${gives}`).click()
-            // Giving a place up asks first, because the place is gone once it is given back.
             await page.getByTestId('confirm-sign-off').click()
 
             await page.goto(`/station/events/${eventId}`)
-            await page.getByRole('button', {name: 'Anmeldungen'}).click()
+            await page.getByRole('tab', {name: 'Anmeldungen'}).click()
             await expect(page.getByTestId(`my-answer-${gives}`), 'the place is gone, not turned into a refusal')
                 .toHaveText('Noch keine Antwort', {timeout: 15000})
 

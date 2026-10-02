@@ -18,7 +18,7 @@ import ErrorButton from '@/components/button/ErrorButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import {session as sessionApi} from '@/api'
-import type {ActiveSession} from '@/api/session'
+import type {ActiveSession} from '@/api/generated/schema'
 import SessionsSection from '@/views/stationview/profile/settingsview/SessionsSection.vue'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 
@@ -47,8 +47,6 @@ async function invalidateAll() {
   try {
     await sessionApi.invalidateAllSessions()
     showInvalidateAllModal.value = false
-    localStorage.removeItem('session_token')
-    localStorage.removeItem('session_expires_at')
     router.push({name: 'login'})
   } catch (e) {
     failure.value = describeFailure(e, t)

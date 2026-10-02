@@ -17,13 +17,13 @@ const { t } = useI18n()
       <th class="bg-[var(--bg-accent)] border border-[var(--border)] px-2 py-1.5 text-center min-w-12">{{ t('protocol.maxPts') }}</th>
       <th class="bg-[var(--bg-accent)] border border-[var(--border)] px-2 py-1.5 text-center min-w-12">{{ t('protocol.avg') }}</th>
       <th class="bg-[var(--bg-accent)] border border-[var(--border)] px-2 py-1.5 text-center min-w-20">
-        <div class="font-medium mb-1">Lena Mueller</div>
+        <div class="font-medium mb-1">{{ t('helpCenter.sample.people.lenaMuellerPlain') }}</div>
         <PrimaryButton class="!text-xs !py-0.5 !px-2" disabled>
           <font-awesome-icon :icon="['fas', 'file-pdf']" class="mr-1" /> PDF
         </PrimaryButton>
       </th>
       <th class="bg-[var(--bg-accent)] border border-[var(--border)] px-2 py-1.5 text-center min-w-20">
-        <div class="font-medium mb-1">Max Maier</div>
+        <div class="font-medium mb-1">{{ t('helpCenter.sample.people.maxMaier') }}</div>
         <PrimaryButton class="!text-xs !py-0.5 !px-2" disabled>
           <font-awesome-icon :icon="['fas', 'file-pdf']" class="mr-1" /> PDF
         </PrimaryButton>

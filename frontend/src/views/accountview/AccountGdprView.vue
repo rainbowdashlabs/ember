@@ -49,17 +49,14 @@ async function exportManagedMemberData(memberId: number) {
 
 const {running: deletingAccount, failure: deleteFailure, run: confirmDeleteAccount} = useAsyncAction(async () => {
   await sessionApi.deleteAccount()
-  localStorage.removeItem('session_token')
-  localStorage.removeItem('session_expires_at')
   router.push({name: 'login'})
 })
 
 onMounted(async () => {
   if (isGuardian()) {
-    try {
-      const managed = await managedMembersApi.listManaged()
-      managedMembers.value = managed.map(m => ({id: m.id, name: m.name}))
-    } catch { /* ignore */ }
+    await managedMembersApi.listManaged()
+      .then(managed => { managedMembers.value = managed.map(m => ({id: m.id, name: m.name})) })
+      .catch(() => {})
   }
 })
 </script>

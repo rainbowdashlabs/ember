@@ -74,7 +74,7 @@ onBeforeUnmount(revoke)
         {{ t('lostAndFound.takePhoto') }}
       </SecondaryButton>
     </ButtonRow>
-    <input ref="fileInputRef" type="file" accept="image/*" class="hidden" @change="pick"/>
-    <input ref="cameraInputRef" type="file" accept="image/*" capture="environment" class="hidden" @change="pick"/>
+    <input ref="fileInputRef" type="file" accept="image/*" class="hidden" aria-hidden="true" @change="pick"/>
+    <input ref="cameraInputRef" type="file" accept="image/*" capture="environment" class="hidden" aria-hidden="true" @change="pick"/>
   </div>
 </template>

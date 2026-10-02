@@ -19,7 +19,7 @@ import ButtonRow from '@/components/button/ButtonRow.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import {knowledgeBase} from '@/api'
-import type {KbTrashEntry} from '@/api/knowledgeBase'
+import type {TrashEntry} from '@/api/generated/schema'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {describeFailure, type Failure} from '@/util/failure'
 import {formatBytes} from '@/util/storage'
@@ -43,10 +43,10 @@ const emit = defineEmits<{
 
 const {t} = useI18n()
 
-const entries = ref<KbTrashEntry[]>([])
+const entries = ref<TrashEntry[]>([])
 const bytes = ref(0)
 const notice = ref('')
-const purging = ref<KbTrashEntry | null>(null)
+const purging = ref<TrashEntry | null>(null)
 const showEmpty = ref(false)
 const busy = ref(false)
 
@@ -73,11 +73,11 @@ async function catchUp() {
 
 const isEmpty = computed(() => !loading.value && entries.value.length === 0)
 
-function iconOf(entry: KbTrashEntry): string[] {
+function iconOf(entry: TrashEntry): string[] {
     return ['fas', entry.folder ? 'folder' : 'file-lines']
 }
 
-async function restore(entry: KbTrashEntry) {
+async function restore(entry: TrashEntry) {
     busy.value = true
     actionFailure.value = null
     try {

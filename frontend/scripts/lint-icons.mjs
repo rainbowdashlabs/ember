@@ -12,18 +12,14 @@
  */
 
 import {readFileSync} from 'fs'
-import {SRC, walk, rel, extractTemplate, RED, GREEN, YELLOW, RESET, BOLD, createReporter} from './lint-utils.mjs'
+import {SRC, walk, rel, extractTemplate, GREEN, RESET, BOLD, createReporter} from './lint-utils.mjs'
 import {join} from 'path'
 
 const reporter = createReporter()
 const PLUGIN_TS = join(SRC, 'plugins', 'fontawesome.ts')
 
-// ── Parse registered icons from the FontAwesome Nuxt plugin ─────────
-
 const pluginContent = readFileSync(PLUGIN_TS, 'utf-8')
 
-// Extract every library.add(...) call so the registration list may be
-// split across one-per-line statements (better for bundler tree-shaking).
 const libraryAddMatches = [...pluginContent.matchAll(/library\.add\(([^)]+)\)/g)]
 if (libraryAddMatches.length === 0) {
     console.error(`Could not find library.add() in ${rel(PLUGIN_TS)}`)
@@ -34,9 +30,8 @@ const registeredVarNames = new Set(
     libraryAddMatches.flatMap(m => m[1].split(',').map(s => s.trim()).filter(Boolean))
 )
 
-// Convert FA variable names to icon names: faChevronDown → chevron-down
+/** faChevronDown to chevron-down, which is how a file names it. */
 function faVarToIconName(varName) {
-    // Remove 'fa' prefix, then convert camelCase to kebab-case
     const withoutPrefix = varName.replace(/^fa/, '')
     return withoutPrefix
         .replace(/([A-Z])/g, '-$1')
@@ -44,16 +39,11 @@ function faVarToIconName(varName) {
         .replace(/^-/, '')
 }
 
-// Build set of registered icon names (kebab-case)
-const registeredIcons = new Map() // iconName → {prefix: 'fas'|'fab'}
+/** Every registered icon, keyed `prefix:icon-name`, mapped to the variable that registers it. */
+const registeredIcons = new Map()
 
-// Determine prefix from import source
-const solidImportMatch = pluginContent.match(/import\s*\{([^}]+)\}\s*from\s*'@fortawesome\/free-solid-svg-icons'/)
 const brandsImportMatch = pluginContent.match(/import\s*\{([^}]+)\}\s*from\s*'@fortawesome\/free-brands-svg-icons'/)
 
-const solidVars = solidImportMatch
-    ? new Set(solidImportMatch[1].split(',').map(s => s.trim()).filter(Boolean))
-    : new Set()
 const brandsVars = brandsImportMatch
     ? new Set(brandsImportMatch[1].split(',').map(s => s.trim()).filter(Boolean))
     : new Set()
@@ -63,8 +53,6 @@ for (const varName of registeredVarNames) {
     const prefix = brandsVars.has(varName) ? 'fab' : 'fas'
     registeredIcons.set(`${prefix}:${iconName}`, varName)
 }
-
-// ── Parse registered icons from the Phosphor plugin ─────────────────
 
 const PHOSPHOR_TS = join(SRC, 'plugins', 'phosphor.ts')
 const phosphorContent = readFileSync(PHOSPHOR_TS, 'utf-8')
@@ -102,8 +90,6 @@ function registrationHint(prefix, iconName) {
         : `Add fa${parts} to src/plugins/fontawesome.ts.`
 }
 
-// ── Check the gear catalogue, whose names never appear as a literal pair ────
-
 /**
  * The line a match sits on, counted from the start of the file.
  */
@@ -126,10 +112,8 @@ for (const match of gearContent.matchAll(/entry\('([^']+)'/g)) {
         `Gear icon '${stored}' is not registered. ${registrationHint(prefix, iconName)}`)
 }
 
-// ── Scan templates for icon usage ───────────────────────────────────
-
 const vueFiles = walk(SRC, '.vue')
-// Icon usage patterns: ['fas', 'icon-name'] or ['fab', 'icon-name']
+/** An icon named as a pair, such as `['fas', 'icon-name']`. */
 const iconRegex = /\['(fas|fab|ph)',\s*'([a-z0-9-]+)'\]/g
 
 for (const file of vueFiles) {
@@ -155,11 +139,8 @@ for (const file of vueFiles) {
     }
 }
 
-// ── Also check script sections for programmatic icon usage ──────────
-
 for (const file of vueFiles) {
     const content = readFileSync(file, 'utf-8')
-    // Check script section too (icons can be referenced in computed/methods)
     const scriptMatch = content.match(/<script[^>]*>([\s\S]*?)<\/script>/)
     if (!scriptMatch) continue
 
@@ -181,8 +162,6 @@ for (const file of vueFiles) {
         }
     }
 }
-
-// ── Output ──────────────────────────────────────────────────────────
 
 if (reporter.errors.length === 0) {
     console.log(`\n${GREEN}${BOLD}Icon lint passed.${RESET} All ${registeredIcons.size} registered icons are valid.\n`)

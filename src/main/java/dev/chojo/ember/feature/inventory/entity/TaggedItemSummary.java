@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.inventory.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
+import org.jspecify.annotations.Nullable;
 
 import java.util.UUID;
 
@@ -29,11 +30,11 @@ import java.util.UUID;
  */
 public record TaggedItemSummary(
         int itemId,
-        String internalId,
+        @Nullable String internalId,
         String name,
         int inventoryId,
         String inventoryName,
-        Integer artId,
+        @Nullable Integer artId,
         UUID stationUid,
         String stationName,
         String tagName,

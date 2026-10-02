@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.inventory.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 
@@ -43,24 +44,24 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 public record InventoryItem(
         int id,
         int inventoryId,
-        String internalId,
+        @Nullable String internalId,
         String name,
-        Integer sizeId,
-        Integer artId,
+        @Nullable Integer sizeId,
+        @Nullable Integer artId,
         InventoryItemMetadata metadata,
-        Integer assignedTo,
-        Instant lostAt,
-        String lostNote,
-        Integer lostNoteBy,
+        @Nullable Integer assignedTo,
+        @Nullable Instant lostAt,
+        @Nullable String lostNote,
+        @Nullable Integer lostNoteBy,
         ItemOwner ownerKind,
-        Integer ownerClusterId,
-        Integer ownerStationId,
-        Integer loanRequestItemId,
+        @Nullable Integer ownerClusterId,
+        @Nullable Integer ownerStationId,
+        @Nullable Integer loanRequestItemId,
         ItemCustody custody,
-        Integer custodyStationId,
-        Integer custodyPartnerStationId,
-        Integer custodyMovementId,
-        Integer containerId) {
+        @Nullable Integer custodyStationId,
+        @Nullable Integer custodyPartnerStationId,
+        @Nullable Integer custodyMovementId,
+        @Nullable Integer containerId) {
     /**
      * Creates a row mapping for database result set conversion.
      */

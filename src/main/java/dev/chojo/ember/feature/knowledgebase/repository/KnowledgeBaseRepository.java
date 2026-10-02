@@ -24,6 +24,7 @@ import dev.chojo.ember.util.sql.FullTextSearch;
 import dev.chojo.ember.util.sql.SqlSupport;
 import dev.chojo.ember.util.sql.WhereBuilder;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.sql.SQLException;
 import java.time.Instant;
@@ -93,7 +94,7 @@ public class KnowledgeBaseRepository {
      * chosen rather than left out - {@link WhereBuilder} drops null-valued predicates, which would
      * widen this to every folder in the station.
      */
-    public List<KbFolder> findFolders(int stationId, Integer parentId) {
+    public List<KbFolder> findFolders(int stationId, @Nullable Integer parentId) {
         var where = parentId == null
                 ? WhereBuilder.create().add("AND fo.parent_id IS NULL")
                 : WhereBuilder.create().add("AND fo.parent_id = :parent_id", "parent_id", parentId);
@@ -110,8 +111,6 @@ public class KnowledgeBaseRepository {
                 .map(KbFolder.map())
                 .all();
     }
-
-    // -- Files --
 
     public Optional<KbFolder> findFolderById(int id) {
         return query(
@@ -169,7 +168,8 @@ public class KnowledgeBaseRepository {
                 .first();
     }
 
-    public KbFolder createFolder(int stationId, Integer parentId, String name, String description, int createdBy) {
+    public KbFolder createFolder(
+            int stationId, @Nullable Integer parentId, String name, String description, int createdBy) {
         return SqlSupport.insertReturning(
                 """
                 INSERT INTO kb_folder AS fo(station_id, parent_id, name, description, created_by)
@@ -185,7 +185,7 @@ public class KnowledgeBaseRepository {
                 FOLDER_RESTRICTED);
     }
 
-    public boolean updateFolder(int id, String name, String description, String iconUrl, int position) {
+    public boolean updateFolder(int id, String name, String description, @Nullable String iconUrl, int position) {
         return query("""
                 UPDATE kb_folder
                         SET
@@ -223,7 +223,7 @@ public class KnowledgeBaseRepository {
      * @param newParentId the folder it should sit in, or {@code null} for the tree root
      * @return {@code true} when the folder existed
      */
-    public boolean moveFolder(int id, Integer newParentId) {
+    public boolean moveFolder(int id, @Nullable Integer newParentId) {
         return query("UPDATE kb_folder SET parent_id = :parent_id, updated_at = now() WHERE id = :id;")
                 .single(call().bind("id", id).bind("parent_id", newParentId))
                 .update()
@@ -271,7 +271,7 @@ public class KnowledgeBaseRepository {
      * @param excludeId the folder being moved, which does not collide with itself
      * @return {@code true} when the name is taken
      */
-    public boolean folderNameTaken(int stationId, Integer parentId, String name, int excludeId) {
+    public boolean folderNameTaken(int stationId, @Nullable Integer parentId, String name, int excludeId) {
         var where = parentId == null
                 ? WhereBuilder.create().add("AND parent_id IS NULL")
                 : WhereBuilder.create().add("AND parent_id = :parent_id", "parent_id", parentId);
@@ -294,7 +294,7 @@ public class KnowledgeBaseRepository {
      *
      * <p>Same null-means-{@code IS NULL} handling as {@link #findFolders(int, Integer)}.
      */
-    public List<KbFile> findFiles(int stationId, Integer folderId) {
+    public List<KbFile> findFiles(int stationId, @Nullable Integer folderId) {
         var where = folderId == null
                 ? WhereBuilder.create().add("AND f.folder_id IS NULL")
                 : WhereBuilder.create().add("AND f.folder_id = :folder_id", "folder_id", folderId);
@@ -337,13 +337,13 @@ public class KnowledgeBaseRepository {
 
     public KbFile createFile(
             int stationId,
-            Integer folderId,
+            @Nullable Integer folderId,
             String name,
             String description,
             KbFileType fileType,
-            String mimeType,
+            @Nullable String mimeType,
             long fileSize,
-            String youtubeUrl,
+            @Nullable String youtubeUrl,
             int createdBy) {
         return createFile(
                 stationId, folderId, name, description, fileType, mimeType, fileSize, youtubeUrl, null, createdBy);
@@ -351,14 +351,14 @@ public class KnowledgeBaseRepository {
 
     public KbFile createFile(
             int stationId,
-            Integer folderId,
+            @Nullable Integer folderId,
             String name,
             String description,
             KbFileType fileType,
-            String mimeType,
+            @Nullable String mimeType,
             long fileSize,
-            String youtubeUrl,
-            String linkUrl,
+            @Nullable String youtubeUrl,
+            @Nullable String linkUrl,
             int createdBy) {
         return SqlSupport.insertReturning(
                 """
@@ -380,9 +380,7 @@ public class KnowledgeBaseRepository {
                 FILE_RESTRICTED);
     }
 
-    // -- File Content --
-
-    public boolean updateFile(int id, String name, String description, String iconUrl, int position) {
+    public boolean updateFile(int id, String name, String description, @Nullable String iconUrl, int position) {
         return query("""
                 UPDATE kb_file
                 SET
@@ -408,7 +406,7 @@ public class KnowledgeBaseRepository {
      * @param newFolderId the folder it should sit in, or {@code null} for the tree root
      * @return {@code true} when the file existed
      */
-    public boolean moveFile(int id, Integer newFolderId) {
+    public boolean moveFile(int id, @Nullable Integer newFolderId) {
         return query("UPDATE kb_file SET folder_id = :folder_id, updated_at = now() WHERE id = :id;")
                 .single(call().bind("id", id).bind("folder_id", newFolderId))
                 .update()
@@ -456,8 +454,6 @@ public class KnowledgeBaseRepository {
                 .changed();
     }
 
-    // -- Version History (Markdown) --
-
     public boolean setSourceReference(int fileId, int sourceFileId, int sourceStationId) {
         return query(
                         "UPDATE kb_file SET source_file_id = :source_file_id, source_station_id = :source_station_id WHERE id = :id;")
@@ -502,8 +498,6 @@ public class KnowledgeBaseRepository {
                 .map(row -> row.getString("text_content"))
                 .first();
     }
-
-    // -- Search Index --
 
     public List<KbFileVersion> findVersions(int fileId) {
         return query(
@@ -638,9 +632,7 @@ public class KnowledgeBaseRepository {
                 .all();
     }
 
-    // -- Access Grants --
-
-    public List<KbAccessGrant> findRestrictions(Integer folderId, Integer fileId) {
+    public List<KbAccessGrant> findRestrictions(@Nullable Integer folderId, @Nullable Integer fileId) {
         if (folderId != null) {
             return query("SELECT %s FROM kb_access_grant WHERE folder_id = :folder_id;", RESTRICTION_COLUMNS)
                     .single(call().bind("folder_id", folderId))
@@ -754,7 +746,7 @@ public class KnowledgeBaseRepository {
      * @param fileId    the file at the end of the path, or {@code null} when resolving a folder
      * @return every grant row on any of those nodes
      */
-    public List<KbAccessGrant> findRestrictionsForPath(List<Integer> folderIds, Integer fileId) {
+    public List<KbAccessGrant> findRestrictionsForPath(List<Integer> folderIds, @Nullable Integer fileId) {
         if (folderIds.isEmpty() && fileId == null) return List.of();
         return query("""
                         SELECT %s
@@ -767,13 +759,13 @@ public class KnowledgeBaseRepository {
     }
 
     public KbAccessGrant addRestriction(
-            Integer folderId,
-            Integer fileId,
-            StationUserType userType,
-            Integer groupId,
-            Integer tagId,
-            Integer memberId,
-            KbAccessLevel level) {
+            @Nullable Integer folderId,
+            @Nullable Integer fileId,
+            @Nullable StationUserType userType,
+            @Nullable Integer groupId,
+            @Nullable Integer tagId,
+            @Nullable Integer memberId,
+            @Nullable KbAccessLevel level) {
         return SqlSupport.insertReturning(
                 """
                 INSERT
@@ -797,7 +789,7 @@ public class KnowledgeBaseRepository {
         return SqlSupport.deleteById("kb_access_grant", id);
     }
 
-    public void clearRestrictions(Integer folderId, Integer fileId) {
+    public void clearRestrictions(@Nullable Integer folderId, @Nullable Integer fileId) {
         if (folderId != null) {
             query("DELETE FROM kb_access_grant WHERE folder_id = :folder_id;")
                     .single(call().bind("folder_id", folderId))
@@ -808,8 +800,6 @@ public class KnowledgeBaseRepository {
                     .delete();
         }
     }
-
-    // -- Tags --
 
     public List<KbTag> findTagsByStation(int stationId) {
         return query("SELECT %s FROM kb_tag WHERE station_id = :station_id ORDER BY name;", TAG_COLUMNS)
@@ -831,7 +821,7 @@ public class KnowledgeBaseRepository {
                 RETURNING %s;""", call().bind("station_id", stationId).bind("name", name.toLowerCase()), KbTag.map(), TAG_COLUMNS);
     }
 
-    // Not yet exposed via routes - tag management UI not implemented
+    // TODO: expose tag deletion once tag management has a screen
     public boolean deleteTag(int id) {
         return SqlSupport.deleteById("kb_tag", id);
     }
@@ -963,8 +953,6 @@ public class KnowledgeBaseRepository {
         }
     }
 
-    // -- Related Files --
-
     public List<KbFile> findRelatedFiles(int fileId) {
         return query("""
                 SELECT
@@ -1037,9 +1025,7 @@ public class KnowledgeBaseRepository {
         }
     }
 
-    // -- Public Visibility --
-
-    public Optional<Boolean> findPublicVisibility(Integer folderId, Integer fileId) {
+    public Optional<Boolean> findPublicVisibility(@Nullable Integer folderId, @Nullable Integer fileId) {
         if (folderId != null) {
             return query("SELECT visible FROM kb_public_visibility WHERE folder_id = :folder_id;")
                     .single(call().bind("folder_id", folderId))
@@ -1055,7 +1041,7 @@ public class KnowledgeBaseRepository {
         return Optional.empty();
     }
 
-    public void setPublicVisibility(Integer folderId, Integer fileId, boolean visible) {
+    public void setPublicVisibility(@Nullable Integer folderId, @Nullable Integer fileId, boolean visible) {
         if (folderId != null) {
             query("""
                     INSERT
@@ -1076,7 +1062,7 @@ public class KnowledgeBaseRepository {
         }
     }
 
-    public void removePublicVisibility(Integer folderId, Integer fileId) {
+    public void removePublicVisibility(@Nullable Integer folderId, @Nullable Integer fileId) {
         if (folderId != null) {
             query("DELETE FROM kb_public_visibility WHERE folder_id = :folder_id;")
                     .single(call().bind("folder_id", folderId))
@@ -1088,8 +1074,6 @@ public class KnowledgeBaseRepository {
         }
     }
 
-    // -- Trash --
-
     /**
      * Puts one article in the trash on its own.
      *
@@ -1097,7 +1081,7 @@ public class KnowledgeBaseRepository {
      * @param memberId who deleted it, {@code null} when nobody in particular did
      * @return {@code true} when it was in use until now
      */
-    public boolean softDeleteFile(int id, Integer memberId) {
+    public boolean softDeleteFile(int id, @Nullable Integer memberId) {
         return query("""
                 UPDATE kb_file
                 SET deleted_at = now(), deleted_by = :member_id, deleted_with_folder = FALSE
@@ -1115,7 +1099,7 @@ public class KnowledgeBaseRepository {
      * @param memberId who deleted it, {@code null} when nobody in particular did
      * @return {@code true} when it was in use until now
      */
-    public boolean softDeleteFolder(int id, Integer memberId) {
+    public boolean softDeleteFolder(int id, @Nullable Integer memberId) {
         return query("""
                 UPDATE kb_folder
                 SET deleted_at = now(), deleted_by = :member_id, deleted_with_folder = FALSE
@@ -1136,7 +1120,7 @@ public class KnowledgeBaseRepository {
      * @param memberId who deleted it, {@code null} when nobody in particular did
      * @return the ids of the articles that went down with it
      */
-    public List<Integer> markSubtreeDeleted(int folderId, Integer memberId) {
+    public List<Integer> markSubtreeDeleted(int folderId, @Nullable Integer memberId) {
         return query("""
                 WITH RECURSIVE subtree AS (
                     SELECT id, 0 AS depth
@@ -1370,11 +1354,11 @@ public class KnowledgeBaseRepository {
      */
     public record TrashedFolder(
             int id,
-            Integer parentId,
+            @Nullable Integer parentId,
             String name,
             String description,
             Instant deletedAt,
-            Integer deletedBy,
+            @Nullable Integer deletedBy,
             boolean deletedWithFolder) {}
 
     /**
@@ -1385,13 +1369,13 @@ public class KnowledgeBaseRepository {
      */
     public record TrashedFile(
             int id,
-            Integer folderId,
+            @Nullable Integer folderId,
             String name,
             String description,
             KbFileType fileType,
             long fileSize,
             Instant deletedAt,
-            Integer deletedBy,
+            @Nullable Integer deletedBy,
             boolean deletedWithFolder) {}
 
     /**
@@ -1399,7 +1383,7 @@ public class KnowledgeBaseRepository {
      */
     public record TrashRef(boolean folder, int id) {}
 
-    public boolean hasRestrictions(Integer folderId, Integer fileId) {
+    public boolean hasRestrictions(@Nullable Integer folderId, @Nullable Integer fileId) {
         if (folderId != null) {
             return RestrictionSql.hasAny(
                     RestrictionType.KB_FOLDER.table(), RestrictionType.KB_FOLDER.fkColumn(), folderId);

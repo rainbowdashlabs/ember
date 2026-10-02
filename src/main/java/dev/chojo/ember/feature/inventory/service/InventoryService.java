@@ -6,6 +6,9 @@
 package dev.chojo.ember.feature.inventory.service;
 
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.InventoryRefusal;
+import dev.chojo.ember.api.refusal.Refusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.entity.ClusterStationGroup;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
@@ -24,14 +27,13 @@ import dev.chojo.ember.feature.inventory.entity.ItemFieldValues;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.inventory.entity.MemberInventoryEntry;
 import dev.chojo.ember.feature.inventory.entity.SwitchBlocker;
+import dev.chojo.ember.feature.inventory.entity.VisibleRequirement;
 import dev.chojo.ember.feature.inventory.repository.InventoryArtRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.question.QuestionCheck;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.ForbiddenResponse;
-import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -73,8 +75,6 @@ public class InventoryService {
         this.stationGroupRepository = stationGroupRepository;
     }
 
-    // -- Inventories --
-
     /**
      * Finds all inventories for a station.
      *
@@ -91,6 +91,17 @@ public class InventoryService {
 
     public List<InventoryItem> findAllItemsByStation(int stationId) {
         return inventoryRepository.findItemsByStation(stationId);
+    }
+
+    /**
+     * Whether a station holds a piece, which is what puts it on the station's lists whoever owns it.
+     *
+     * @param itemId    the item
+     * @param stationId the station asking
+     * @return true when the station holds it
+     */
+    public boolean isHeldBy(int itemId, int stationId) {
+        return inventoryRepository.isHeldBy(itemId, stationId);
     }
 
     public List<InventorySize> findAllSizesByStation(int stationId) {
@@ -269,11 +280,9 @@ public class InventoryService {
      * Everything live that would have to go before an inventory could change what kind of thing it
      * holds.
      *
-     * <p>Leaving the homogeneous half strands the three features that only make sense there, plus the
-     * size list, which belongs to that half and whose values the items are already carrying. Coming
-     * back the other way is blocked by the kinds the inventory has been given, for the mirror reason:
-     * the pieces are carrying those, and a kind cannot exist in an inventory of one thing in many
-     * copies.
+     * <p>Leaving the homogeneous half strands the features that only make sense there, plus the size
+     * list the items already carry. Going back is blocked by the kinds, which live only on the
+     * heterogeneous side and would leave every piece pointing at a level the inventory no longer has.
      *
      * @param inventory     the inventory as it stands
      * @param toHomogeneous the kind it is being asked to become
@@ -281,8 +290,6 @@ public class InventoryService {
      */
     public List<SwitchBlocker> blockersForSwitch(Inventory inventory, boolean toHomogeneous) {
         if (toHomogeneous) {
-            // The kinds are the one thing that lives only on the heterogeneous side. Going back with
-            // them still there would leave every piece pointing at a level the inventory no longer has.
             return inventoryRepository.findArtBlockers(inventory.id());
         }
         var blockers = new ArrayList<SwitchBlocker>();
@@ -331,16 +338,18 @@ public class InventoryService {
      * rather than the first: a request that reached here named a drawer of different things anyway.
      *
      * @param inventoryId the inventory the feature would point at
-     * @param what        the feature, named as the refusal should read
-     * @throws BadRequestResponse when the inventory holds a drawer of different things
+     * @param missing     what to refuse with where the inventory is gone
+     * @param collection  what to refuse with where it holds a drawer of different things, naming the
+     *                    feature
+     * @throws RefusalResponse when the inventory is gone or holds a drawer of different things
      */
-    public void requireHomogeneous(int inventoryId, String what) {
+    public void requireHomogeneous(int inventoryId, Refusal missing, Refusal collection) {
         boolean homogeneous = inventoryRepository
                 .findById(inventoryId)
                 .map(Inventory::homogeneous)
-                .orElseThrow(() -> new BadRequestResponse("That inventory does not exist"));
+                .orElseThrow(missing::raise);
         if (!homogeneous) {
-            throw new BadRequestResponse("This inventory is a collection, so " + what + " does not apply to it");
+            throw collection.raise();
         }
     }
 
@@ -354,7 +363,7 @@ public class InventoryService {
      *
      * @param id the inventory ID
      * @return {@code true} if deleted
-     * @throws BadRequestResponse when it is the borrowed shelf and it still holds something
+     * @throws RefusalResponse when it is the borrowed shelf and it still holds something
      */
     public boolean delete(int id) {
         requireEmptyIfBorrowed(id);
@@ -371,15 +380,16 @@ public class InventoryService {
      * station's own filed on it makes the answer wrong. Nothing reaches it except a handover.
      *
      * @param inventoryId the inventory something would be written into or moved onto
-     * @throws BadRequestResponse when it is the borrowed shelf
+     * @param refusal     what to refuse with, named for what was being done
+     * @throws RefusalResponse when it is the borrowed shelf
      */
-    private void requireNotTheBorrowedShelf(int inventoryId) {
+    private void requireNotTheBorrowedShelf(int inventoryId, Refusal refusal) {
         boolean borrowed = inventoryRepository
                 .findById(inventoryId)
                 .map(Inventory::borrowed)
                 .orElse(false);
         if (borrowed) {
-            throw new BadRequestResponse("This shelf only holds gear borrowed from a partner station");
+            throw refusal.raise();
         }
     }
 
@@ -388,10 +398,8 @@ public class InventoryService {
         if (inventory == null || !inventory.borrowed()) return;
         if (inventoryRepository.findItems(id).isEmpty()) return;
         log.info("Refused to delete the borrowed shelf of inventory {}: it still holds gear", id);
-        throw new BadRequestResponse("This shelf still holds gear belonging to somebody else");
+        throw InventoryRefusal.INVENTORY_BORROWED_SHELF_NOT_EMPTY.raise();
     }
-
-    // -- Sizes --
 
     /**
      * Creates a new size and returns all sizes for the inventory.
@@ -403,7 +411,10 @@ public class InventoryService {
      * @return the updated list of all sizes for the inventory
      */
     public List<InventorySize> createSize(int inventoryId, String label, int position, String note) {
-        requireHomogeneous(inventoryId, "a size list");
+        requireHomogeneous(
+                inventoryId,
+                InventoryRefusal.INVENTORY_NOT_HERE_FOR_SIZE,
+                InventoryRefusal.INVENTORY_SIZE_ON_A_COLLECTION);
         inventoryRepository.createSize(inventoryId, label, position, note);
         log.info("Created size (label='{}', position={}) in inventory {}", label, position, inventoryId);
         return inventoryRepository.findSizes(inventoryId);
@@ -444,8 +455,6 @@ public class InventoryService {
         log.warn("Delete of size {} did not change any row", sizeId);
         return Optional.empty();
     }
-
-    // -- Items --
 
     /**
      * Finds all items assigned to a member.
@@ -518,8 +527,12 @@ public class InventoryService {
      * @return the created item
      */
     public InventoryItem createItem(
-            int inventoryId, String internalId, String name, Integer sizeId, InventoryItemMetadata metadata) {
-        requireNotTheBorrowedShelf(inventoryId);
+            int inventoryId,
+            @Nullable String internalId,
+            String name,
+            @Nullable Integer sizeId,
+            @Nullable InventoryItemMetadata metadata) {
+        requireNotTheBorrowedShelf(inventoryId, InventoryRefusal.INVENTORY_BORROWED_SHELF_ON_CREATE);
         InventoryItem item = inventoryRepository.createItem(inventoryId, internalId, name, sizeId, metadata);
         log.info(
                 "Created item {} (name='{}', internalId='{}', sizeId={}) in inventory {}",
@@ -542,16 +555,16 @@ public class InventoryService {
      * @param ownerKind      who owns the item
      * @param ownerClusterId the owning body when it runs on this instance, or {@code null} when it does not
      * @return the created item
-     * @throws BadRequestResponse when the named body is not the one this station answers to
+     * @throws RefusalResponse when the named body is not the one this station answers to
      */
     public InventoryItem createItem(
             int inventoryId,
-            String internalId,
+            @Nullable String internalId,
             String name,
-            Integer sizeId,
-            InventoryItemMetadata metadata,
+            @Nullable Integer sizeId,
+            @Nullable InventoryItemMetadata metadata,
             ItemOwner ownerKind,
-            Integer ownerClusterId) {
+            @Nullable Integer ownerClusterId) {
         return createItem(inventoryId, internalId, name, sizeId, null, metadata, ownerKind, ownerClusterId);
     }
 
@@ -561,9 +574,8 @@ public class InventoryService {
      * <p>The kind sits beside the name and never replaces it: a piece may be called {@code Pager 01}
      * and be of the kind {@code Pager}, and both readings are wanted at once.
      *
-     * <p>The overload without a kind is the one the five automatic paths use, and their pieces have
-     * none. That is by design rather than a gap: stock-taking, hand-out, quick assign, check
-     * correction and procurement fulfilment all run with nobody present to say what a thing is.
+     * <p>The overload without a kind serves the automatic paths, which run with nobody present to say
+     * what a thing is. Gear belonging to a partner arrives by handover only and is never written here.
      *
      * @param inventoryId    the inventory ID
      * @param internalId     the internal identifier
@@ -574,29 +586,27 @@ public class InventoryService {
      * @param ownerKind      who owns the item
      * @param ownerClusterId the owning body when it runs on this instance, or {@code null}
      * @return the created item
-     * @throws BadRequestResponse when the named body is not the one this station answers to, or when
-     *                            the kind belongs to another inventory
+     * @throws RefusalResponse when the named body is not the one this station answers to, or when the
+     *                         kind belongs to another inventory
      */
     public InventoryItem createItem(
             int inventoryId,
-            String internalId,
+            @Nullable String internalId,
             String name,
-            Integer sizeId,
-            Integer artId,
-            InventoryItemMetadata metadata,
+            @Nullable Integer sizeId,
+            @Nullable Integer artId,
+            @Nullable InventoryItemMetadata metadata,
             ItemOwner ownerKind,
-            Integer ownerClusterId) {
-        // Gear belonging to a partner arrives by handover and by nothing else, so it is never
-        // written down here. The rows for it are the lending flow's to make and to take away again.
+            @Nullable Integer ownerClusterId) {
         if (ownerKind == ItemOwner.PARTNER_STATION) {
-            throw new BadRequestResponse("Gear belonging to a partner station arrives by handover, not by hand");
+            throw InventoryRefusal.INVENTORY_PARTNER_GEAR_BY_HAND.raise();
         }
-        requireNotTheBorrowedShelf(inventoryId);
+        requireNotTheBorrowedShelf(inventoryId, InventoryRefusal.INVENTORY_BORROWED_SHELF_ON_OWNED_CREATE);
         requireOwnerFits(inventoryId, ownerKind);
         Integer owner =
                 ownerKind == ItemOwner.CLUSTER && ownerClusterId == null ? clusterAbove(inventoryId) : ownerClusterId;
         requireOwningCluster(inventoryId, owner);
-        requireArtOfInventory(inventoryId, artId);
+        requireArtOfInventory(inventoryId, artId, InventoryRefusal.INVENTORY_ITEM_KIND_ELSEWHERE_ON_CREATE);
         InventoryItem item = inventoryRepository.createItem(
                 inventoryId, internalId, name, sizeId, artId, metadata, ownerKind, owner);
         log.info(
@@ -618,13 +628,13 @@ public class InventoryService {
      * <p>A kind belongs to exactly one inventory, so pairing a piece with a kind from another drawer
      * would describe nothing. No kind at all is always allowed and is the ordinary state.
      */
-    private void requireArtOfInventory(int inventoryId, Integer artId) {
+    private void requireArtOfInventory(int inventoryId, @Nullable Integer artId, Refusal elsewhere) {
         if (artId == null) return;
         boolean fits = artRepository
                 .findById(artId)
                 .map(art -> art.inventoryId() == inventoryId)
                 .orElse(false);
-        if (!fits) throw new BadRequestResponse("That kind belongs to another inventory");
+        if (!fits) throw elsewhere.raise();
     }
 
     /**
@@ -638,7 +648,7 @@ public class InventoryService {
      * @param inventoryId the inventory the gear goes into
      * @return the owning body, or {@code null} at a station that answers to nobody
      */
-    private Integer clusterAbove(int inventoryId) {
+    private @Nullable Integer clusterAbove(int inventoryId) {
         return inventoryRepository
                 .findById(inventoryId)
                 .flatMap(inv -> clusterRepository.findByStation(inv.stationId()))
@@ -657,13 +667,13 @@ public class InventoryService {
      *
      * @param inventoryId the inventory the item is going into
      * @param ownerKind   who would own it
-     * @throws BadRequestResponse when this inventory is not for gear of that owner
+     * @throws RefusalResponse when this inventory is not for gear of that owner
      */
     private void requireOwnerFits(int inventoryId, ItemOwner ownerKind) {
         var type = inventoryRepository
                 .findById(inventoryId)
                 .map(Inventory::inventoryType)
-                .orElseThrow(() -> new BadRequestResponse("That inventory does not exist"));
+                .orElseThrow(InventoryRefusal.INVENTORY_NOT_HERE_FOR_OWNER_CHECK::raise);
         boolean fits =
                 switch (type) {
                     case MIXED -> true;
@@ -671,8 +681,10 @@ public class InventoryService {
                     case EXTERNAL -> ownerKind == ItemOwner.CLUSTER;
                 };
         if (!fits) {
-            throw new BadRequestResponse("This inventory does not hold gear owned by the "
-                    + ownerKind.name().toLowerCase());
+            throw (ownerKind == ItemOwner.STATION
+                            ? InventoryRefusal.INVENTORY_HOLDS_NO_STATION_GEAR
+                            : InventoryRefusal.INVENTORY_HOLDS_NO_ASSOCIATION_GEAR)
+                    .raise();
         }
     }
 
@@ -694,32 +706,31 @@ public class InventoryService {
      * one the same association filed. A station writing its own requirement names none, and passes here
      * without a query.
      */
-    private void requireGroupOfTheOwningCluster(int inventoryId, Integer stationGroupId) {
+    private void requireGroupOfTheOwningCluster(int inventoryId, @Nullable Integer stationGroupId) {
         if (stationGroupId == null) return;
         int stationId = inventoryRepository
                 .findById(inventoryId)
                 .map(Inventory::stationId)
-                .orElseThrow(() -> new BadRequestResponse("That inventory does not exist"));
+                .orElseThrow(InventoryRefusal.INVENTORY_NOT_HERE_FOR_REQUIREMENT_GROUP::raise);
         int groupCluster = stationGroupRepository
                 .findById(stationGroupId)
                 .map(ClusterStationGroup::clusterId)
-                .orElseThrow(() -> new BadRequestResponse("That group of stations does not exist"));
+                .orElseThrow(InventoryRefusal.INVENTORY_REQUIREMENT_GROUP_NOT_HERE::raise);
         boolean itsOwnStore = clusterRepository
                 .findById(groupCluster)
                 .map(cluster -> cluster.homeStationId() == stationId)
                 .orElse(false);
         if (!itsOwnStore) {
-            throw new BadRequestResponse(
-                    "A requirement can only name a group of stations of the association that wrote it");
+            throw InventoryRefusal.INVENTORY_REQUIREMENT_GROUP_OF_ANOTHER_ASSOCIATION.raise();
         }
     }
 
-    private void requireOwningCluster(int inventoryId, Integer ownerClusterId) {
+    private void requireOwningCluster(int inventoryId, @Nullable Integer ownerClusterId) {
         if (ownerClusterId == null) return;
         int stationId = inventoryRepository
                 .findById(inventoryId)
                 .map(Inventory::stationId)
-                .orElseThrow(() -> new BadRequestResponse("That inventory does not exist"));
+                .orElseThrow(InventoryRefusal.INVENTORY_NOT_HERE_FOR_ASSOCIATION_CHECK::raise);
 
         boolean answersToIt = clusterRepository
                 .findByStation(stationId)
@@ -730,8 +741,7 @@ public class InventoryService {
                 .map(cluster -> cluster.homeStationId() == stationId)
                 .orElse(false);
         if (!answersToIt && !isItsOwnStore) {
-            throw new BadRequestResponse(
-                    "Gear can only be recorded as belonging to the association this station answers to");
+            throw InventoryRefusal.INVENTORY_GEAR_OF_ANOTHER_ASSOCIATION.raise();
         }
     }
 
@@ -748,11 +758,11 @@ public class InventoryService {
      */
     public Optional<InventoryItem> updateItem(
             int id,
-            String internalId,
+            @Nullable String internalId,
             String name,
-            Integer sizeId,
-            InventoryItemMetadata metadata,
-            Integer actingClusterId) {
+            @Nullable Integer sizeId,
+            @Nullable InventoryItemMetadata metadata,
+            @Nullable Integer actingClusterId) {
         Integer artId =
                 inventoryRepository.findItemById(id).map(InventoryItem::artId).orElse(null);
         return updateItem(id, internalId, name, sizeId, artId, metadata, actingClusterId);
@@ -780,19 +790,23 @@ public class InventoryService {
      */
     public Optional<InventoryItem> updateItem(
             int id,
-            String internalId,
+            @Nullable String internalId,
             String name,
-            Integer sizeId,
-            Integer artId,
-            InventoryItemMetadata metadata,
-            Integer actingClusterId) {
-        requireOwned(id, "described", actingClusterId);
+            @Nullable Integer sizeId,
+            @Nullable Integer artId,
+            @Nullable InventoryItemMetadata metadata,
+            @Nullable Integer actingClusterId) {
+        requireOwned(
+                id,
+                InventoryRefusal.INVENTORY_PARTNER_GEAR_NOT_YOURS_TO_DESCRIBE,
+                InventoryRefusal.INVENTORY_ASSOCIATION_GEAR_NOT_YOURS_TO_DESCRIBE,
+                actingClusterId);
         InventoryItem before = inventoryRepository.findItemById(id).orElse(null);
         if (before == null) {
             log.warn("Update of item {} did not find a row to change", id);
             return Optional.empty();
         }
-        requireArtOfInventory(before.inventoryId(), artId);
+        requireArtOfInventory(before.inventoryId(), artId, InventoryRefusal.INVENTORY_ITEM_KIND_ELSEWHERE_ON_CHANGE);
         requireAnswerable(asItWillBe(before, artId, metadata), metadata);
         InventoryItemMetadata kept = keepUndescribedValues(before, artId, metadata);
         if (inventoryRepository.updateItem(id, internalId, name, sizeId, artId, kept)) {
@@ -825,7 +839,7 @@ public class InventoryService {
      * measured is whether a choice is one of the ones written down and whether a measurement sits
      * between the bounds printed beside it, and both were saved happily.
      *
-     * @throws BadRequestResponse naming the field and what is wrong with the value
+     * @throws RefusalResponse naming the field and what is wrong with the value
      */
     private void requireAnswerable(InventoryItem item, InventoryItemMetadata metadata) {
         if (metadata == null || metadata.fields().values().isEmpty()) return;
@@ -837,7 +851,7 @@ public class InventoryService {
             QuestionCheck.answerIfGiven(
                             definition.question(), written.getValue().asText())
                     .ifPresent(problem -> {
-                        throw new BadRequestResponse(problem.message());
+                        throw InventoryRefusal.INVENTORY_ITEM_FIELD_VALUE_NOT_ACCEPTED.raise(problem.question());
                     });
         }
     }
@@ -901,20 +915,26 @@ public class InventoryService {
      * @param inventoryId     the inventory it moves into
      * @param actingClusterId the body the caller answers for, or {@code null} when they act as the station
      * @return the moved item, or empty if it was not found
-     * @throws BadRequestResponse when the target inventory belongs to another station
+     * @throws RefusalResponse when the target inventory belongs to another station
      */
-    public Optional<InventoryItem> moveItem(int itemId, int inventoryId, Integer actingClusterId) {
-        requireOwned(itemId, "moved", actingClusterId);
-        requireNotTheBorrowedShelf(inventoryId);
-        InventoryItem item = inventoryRepository.findItemById(itemId).orElseThrow(NotFoundResponse::new);
+    public Optional<InventoryItem> moveItem(int itemId, int inventoryId, @Nullable Integer actingClusterId) {
+        requireOwned(
+                itemId,
+                InventoryRefusal.INVENTORY_PARTNER_GEAR_NOT_YOURS_TO_MOVE,
+                InventoryRefusal.INVENTORY_ASSOCIATION_GEAR_NOT_YOURS_TO_MOVE,
+                actingClusterId);
+        requireNotTheBorrowedShelf(inventoryId, InventoryRefusal.INVENTORY_BORROWED_SHELF_ON_MOVE);
+        InventoryItem item = inventoryRepository
+                .findItemById(itemId)
+                .orElseThrow(InventoryRefusal.INVENTORY_ITEM_NOT_HERE_TO_MOVE::raise);
         Inventory target = inventoryRepository
                 .findById(inventoryId)
-                .orElseThrow(() -> new BadRequestResponse("That inventory does not exist"));
+                .orElseThrow(InventoryRefusal.INVENTORY_MOVE_TARGET_NOT_HERE::raise);
         Inventory source = inventoryRepository
                 .findById(item.inventoryId())
-                .orElseThrow(() -> new BadRequestResponse("That inventory does not exist"));
+                .orElseThrow(InventoryRefusal.INVENTORY_MOVE_SOURCE_NOT_HERE::raise);
         if (target.stationId() != source.stationId()) {
-            throw new BadRequestResponse("A piece can only be moved into an inventory of the same station");
+            throw InventoryRefusal.INVENTORY_MOVE_TO_ANOTHER_STATION.raise();
         }
         if (target.id() == source.id()) {
             return Optional.of(item);
@@ -933,10 +953,11 @@ public class InventoryService {
      * The size the item carries once it is in the new inventory: the one of the same name there, or
      * none at all.
      */
-    private Integer remappedSize(InventoryItem item, Inventory source, Inventory target) {
-        if (item.sizeId() == null || !target.hasSizes()) return null;
+    private @Nullable Integer remappedSize(InventoryItem item, Inventory source, Inventory target) {
+        Integer sizeId = item.sizeId();
+        if (sizeId == null || !target.hasSizes()) return null;
         String label = inventoryRepository.findSizes(source.id()).stream()
-                .filter(size -> size.id() == item.sizeId())
+                .filter(size -> size.id() == sizeId)
                 .map(InventorySize::label)
                 .findFirst()
                 .orElse(null);
@@ -958,7 +979,7 @@ public class InventoryService {
      * @param memberName the member's display name for history
      * @return the updated item, or empty if the item was not found
      */
-    public Optional<InventoryItem> assignItem(int itemId, Integer memberId, String memberName) {
+    public Optional<InventoryItem> assignItem(int itemId, @Nullable Integer memberId, @Nullable String memberName) {
         return memberId != null
                 ? custodyService.assignToMember(itemId, memberId, memberName)
                 : custodyService.takeBack(itemId);
@@ -987,8 +1008,9 @@ public class InventoryService {
      * @param actorName   who handed it over, for the history
      * @return the created piece
      */
-    public InventoryItem createAndHandOut(int inventoryId, Integer sizeId, int memberId, String actorName) {
-        Inventory inventory = findById(inventoryId).orElseThrow(() -> new NotFoundResponse("Inventory not found"));
+    public InventoryItem createAndHandOut(int inventoryId, @Nullable Integer sizeId, int memberId, String actorName) {
+        Inventory inventory =
+                findById(inventoryId).orElseThrow(InventoryRefusal.INVENTORY_NOT_HERE_TO_HAND_OUT_NEW::raise);
         ItemOwner owner = inventory.inventoryType() == InventoryType.EXTERNAL ? ItemOwner.CLUSTER : ItemOwner.STATION;
         InventoryItem item = createItem(inventoryId, null, inventory.name(), sizeId, null, owner, null);
         return assignItem(item.id(), memberId, actorName).orElse(item);
@@ -1002,7 +1024,7 @@ public class InventoryService {
      * @param noteBy who wrote that note, or {@code null}
      * @return the updated item, or empty if not found
      */
-    public Optional<InventoryItem> markLost(int id, String note, Integer noteBy) {
+    public Optional<InventoryItem> markLost(int id, @Nullable String note, @Nullable Integer noteBy) {
         return custodyService.markLost(id, note, noteBy);
     }
 
@@ -1023,8 +1045,12 @@ public class InventoryService {
      * @param actingClusterId the body the caller answers for, or {@code null} when they act as the station
      * @return {@code true} if deleted
      */
-    public boolean deleteItem(int id, Integer actingClusterId) {
-        requireOwned(id, "deleted", actingClusterId);
+    public boolean deleteItem(int id, @Nullable Integer actingClusterId) {
+        requireOwned(
+                id,
+                InventoryRefusal.INVENTORY_PARTNER_GEAR_NOT_YOURS_TO_DELETE,
+                InventoryRefusal.INVENTORY_ASSOCIATION_GEAR_NOT_YOURS_TO_DELETE,
+                actingClusterId);
         boolean deleted = inventoryRepository.deleteItem(id);
         if (deleted) log.info("Deleted item {}", id);
         else log.warn("Delete skipped: item {} not found", id);
@@ -1034,40 +1060,29 @@ public class InventoryService {
     /**
      * Refuses to let a station change gear it does not own.
      *
-     * <p>Holding something is not owning it. A station may hand a cluster's jacket to a member, put it on a
-     * shelf, check it and report it missing, because all of those are facts about where it is. What it may
-     * not do is rename it, resize it or delete it, because those are the owner's account of what the thing
-     * is, and the same row is what the owner reads.
-     *
-     * <p>The owner itself arrives here as a station request, because an association's gear sits on the station
-     * it owns and its screens act there. So the question is not "is this a station" but "is this the body the
-     * gear belongs to", which is what {@code actingClusterId} answers.
+     * <p>Holding is not owning: a station may move, check or report a cluster's gear, but renaming, resizing
+     * or deleting it is the owner's account of what it is. The owner arrives here as a station request, so
+     * {@code actingClusterId} says whether the caller is the body the gear belongs to. A borrowed piece is
+     * always its lender's. Gear of a body that does not use Ember stays editable, or a wrong record could
+     * never be put right.
      *
      * @param itemId          the item somebody wants to change
-     * @param verb            what they wanted to do, for the message
+     * @param partners        what to refuse with where the item is borrowed from a partner station
+     * @param associations    what to refuse with where the item belongs to the body above the station
      * @param actingClusterId the body the caller answers for, or {@code null} when they act as the station
-     * @throws ForbiddenResponse when the item belongs to a cluster that runs on this instance and is not this one
+     * @throws RefusalResponse when the item belongs to a cluster that runs on this instance and is not this one
      */
-    private void requireOwned(int itemId, String verb, Integer actingClusterId) {
+    private void requireOwned(int itemId, Refusal partners, Refusal associations, @Nullable Integer actingClusterId) {
         inventoryRepository.findItemById(itemId).ifPresent(item -> {
-            // A borrowed piece has an owner who is right there and reading the same thing from the other
-            // end. What it is stays theirs; where it is stays the borrower's, and none of those verbs is
-            // about where it is.
             if (item.borrowed()) {
-                throw new ForbiddenResponse(
-                        "This gear belongs to a partner station and can only be %s by them".formatted(verb));
+                throw partners.raise();
             }
-            // Only where the owner is actually here to do it themselves. Gear kept for a body that does not
-            // use Ember belongs to nobody who could ever correct a name, so refusing the station would leave
-            // the record wrong for good with no way to put it right.
-            if (item.ownerKind() != ItemOwner.CLUSTER || item.ownerClusterId() == null) return;
-            if (item.ownerClusterId().equals(actingClusterId)) return;
-            throw new ForbiddenResponse(
-                    "This gear belongs to the body above the station and can only be %s by them".formatted(verb));
+            Integer ownerClusterId = item.ownerClusterId();
+            if (item.ownerKind() != ItemOwner.CLUSTER || ownerClusterId == null) return;
+            if (ownerClusterId.equals(actingClusterId)) return;
+            throw associations.raise();
         });
     }
-
-    // -- History --
 
     /**
      * Finds the assignment history for an item.
@@ -1078,8 +1093,6 @@ public class InventoryService {
     public List<InventoryItemHistory> findHistory(int itemId) {
         return inventoryRepository.findHistory(itemId);
     }
-
-    // -- Requirements --
 
     /**
      * Finds all inventory requirements for a station.
@@ -1098,7 +1111,7 @@ public class InventoryService {
      * @param stationId the station reading them
      * @return its own and the cluster's, ordered by position
      */
-    public List<InventoryRepository.VisibleRequirement> findRequirementsVisibleAt(int stationId) {
+    public List<VisibleRequirement> findRequirementsVisibleAt(int stationId) {
         return inventoryRepository.findRequirementsVisibleAt(stationId);
     }
 
@@ -1129,8 +1142,15 @@ public class InventoryService {
      * @return the created requirement
      */
     public InventoryRequirement createRequirement(
-            int inventoryId, StationUserType userType, int groupId, Integer stationGroupId, int quantity) {
-        requireHomogeneous(inventoryId, "a requirement");
+            int inventoryId,
+            @Nullable StationUserType userType,
+            int groupId,
+            @Nullable Integer stationGroupId,
+            int quantity) {
+        requireHomogeneous(
+                inventoryId,
+                InventoryRefusal.INVENTORY_NOT_HERE_FOR_REQUIREMENT,
+                InventoryRefusal.INVENTORY_REQUIREMENT_ON_A_COLLECTION);
         requireGroupOfTheOwningCluster(inventoryId, stationGroupId);
         InventoryRequirement requirement =
                 inventoryRepository.createRequirement(inventoryId, userType, groupId, stationGroupId, quantity);

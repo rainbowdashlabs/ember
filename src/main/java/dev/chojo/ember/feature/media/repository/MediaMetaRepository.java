@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.media.entity.StationFileFolder;
 import dev.chojo.ember.feature.media.entity.StationFileTag;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -30,9 +31,7 @@ public class MediaMetaRepository {
     private static final String FOLDER_COLUMNS = "id, station_id, parent_id, name, sort_order, created_at";
     private static final String TAG_COLUMNS = "id, station_id, name, color";
 
-    // --- Folders ---
-
-    public StationFileFolder createFolder(int stationId, Integer parentId, String name, int sortOrder) {
+    public StationFileFolder createFolder(int stationId, @Nullable Integer parentId, String name, int sortOrder) {
         return SqlSupport.insertReturning(
                 """
                 INSERT INTO station_file_folder(station_id, parent_id, name, sort_order)
@@ -60,7 +59,7 @@ public class MediaMetaRepository {
                 .all();
     }
 
-    public boolean updateFolder(int folderId, Integer parentId, String name, int sortOrder) {
+    public boolean updateFolder(int folderId, @Nullable Integer parentId, String name, int sortOrder) {
         return query("""
                 UPDATE station_file_folder
                 SET parent_id = :parent_id, name = :name, sort_order = :sort_order
@@ -77,16 +76,14 @@ public class MediaMetaRepository {
         return SqlSupport.deleteById("station_file_folder", folderId);
     }
 
-    public boolean moveFileToFolder(int fileId, Integer folderId) {
+    public boolean moveFileToFolder(int fileId, @Nullable Integer folderId) {
         return query("UPDATE station_file SET folder_id = :folder_id WHERE id = :id;")
                 .single(call().bind("id", fileId).bind("folder_id", folderId))
                 .update()
                 .changed();
     }
 
-    // --- Tags ---
-
-    public StationFileTag createTag(int stationId, String name, String color) {
+    public StationFileTag createTag(int stationId, String name, @Nullable String color) {
         return SqlSupport.insertReturning(
                 """
                 INSERT INTO station_file_tag(station_id, name, color)
@@ -108,7 +105,7 @@ public class MediaMetaRepository {
                 .all();
     }
 
-    public boolean updateTag(int tagId, String name, String color) {
+    public boolean updateTag(int tagId, String name, @Nullable String color) {
         return query("UPDATE station_file_tag SET name = :name, color = :color WHERE id = :id;")
                 .single(call().bind("id", tagId).bind("name", name).bind("color", color))
                 .update()

@@ -14,9 +14,9 @@ defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'back'): void
-  (e: 'manage-fields'): void
-  (e: 'delete-list'): void
+  back: []
+  'manage-fields': []
+  'delete-list': []
 }>()
 
 const { t } = useI18n()

@@ -6,7 +6,7 @@
 <script lang="ts" setup>
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
-import type {PageLinkConfig} from '@/api/pageManage'
+import type {PageLinkConfig} from '@/api/generated/schema'
 
 /**
  * A card linking to another page of the station.

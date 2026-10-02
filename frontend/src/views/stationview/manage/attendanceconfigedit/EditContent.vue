@@ -11,28 +11,32 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import GroupsEditor from './GroupsEditor.vue'
+import UserTypesEditor from './UserTypesEditor.vue'
 import FieldsList from './FieldsList.vue'
-import type {AttendanceTemplateField, TemplateGroupEntry} from '@/api/attendance'
-import type {MemberGroup} from '@/api/types'
+import type {
+    AttendanceTemplateField, MemberGroup, StationUserType, TemplateGroupEntry,
+} from '@/api/generated/schema'
 
 const props = defineProps<{
   isEdit: boolean
   name: string
   fields: AttendanceTemplateField[]
   templateGroups: TemplateGroupEntry[]
+  templateUserTypes: StationUserType[]
   availableGroups: MemberGroup[]
   saveTemplate: () => Promise<void>
 }>()
 
 const emit = defineEmits<{
-  (e: 'update:name', value: string): void
-  (e: 'add-group', groupId: number): void
-  (e: 'remove-group', groupId: number): void
-  (e: 'reorder-groups', fromIndex: number, toIndex: number): void
-  (e: 'add-field'): void
-  (e: 'edit-field', field: AttendanceTemplateField): void
-  (e: 'delete-field', field: AttendanceTemplateField): void
-  (e: 'reorder-fields', fromIndex: number, toIndex: number): void
+  'update:name': [value: string]
+  'update-user-types': [userTypes: StationUserType[]]
+  'add-group': [groupId: number]
+  'remove-group': [groupId: number]
+  'reorder-groups': [fromIndex: number, toIndex: number]
+  'add-field': []
+  'edit-field': [field: AttendanceTemplateField]
+  'delete-field': [field: AttendanceTemplateField]
+  'reorder-fields': [fromIndex: number, toIndex: number]
 }>()
 
 const {t} = useI18n()
@@ -56,6 +60,12 @@ const {t} = useI18n()
         {{ props.isEdit ? t('attendanceConfig.save') : t('attendanceConfig.createSubmit') }}
       </SaveButton>
     </NeutralContainer>
+
+    <UserTypesEditor
+        v-if="props.isEdit"
+        :model-value="props.templateUserTypes"
+        @update:model-value="(types: StationUserType[]) => emit('update-user-types', types)"
+    />
 
     <GroupsEditor
         v-if="props.isEdit"

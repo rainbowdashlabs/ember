@@ -5,7 +5,8 @@
  */
 <script lang="ts" setup>
 import {computed, onBeforeUnmount, onMounted, ref, watch, type CSSProperties} from 'vue'
-import {ImageFit, type ImageConfig, type ImageFitName} from '@/api/pageManage'
+import {ImageFit, type ImageFitName} from '@/api/pageManage'
+import type {ImageConfig} from '@/api/generated/schema'
 import {mediaImageSrcset} from '@/api/media'
 
 const OBJECT_FIT_BY_IMAGE_FIT: Record<ImageFitName, CSSProperties['objectFit']> = {
@@ -108,7 +109,6 @@ const containerStyle = computed(() => {
         style.aspectRatio = `${aspect}`
         if (c.maxHeight != null && c.maxHeight > 0) {
             style.maxHeight = `${c.maxHeight}px`
-            // Cap width so max-height can actually shrink the box without breaking the aspect.
             style.width = `min(100%, ${c.maxHeight * aspect}px)`
         } else {
             style.width = '100%'
@@ -156,7 +156,7 @@ const responsiveSizes = computed(() => {
 
 /** Image style: uniform scale + translate when cropped, object-fit otherwise. */
 const imageStyle = computed<CSSProperties>(() => {
-    const {T, R, B, L} = cropPercents.value
+    const {T, R, L} = cropPercents.value
     if (hasCrop.value) {
         const scale = 100 / Math.max(1, 100 - L - R)
         return {

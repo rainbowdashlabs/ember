@@ -3,13 +3,21 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {computed, reactive, watch} from 'vue'
+import {computed, reactive, ref, watch} from 'vue'
 import {events} from '@/api'
-import {EventTypes, needsDayOfWeek, type EventField, type EventFieldEntry, type EventTemplateDetail, type StationEvent} from '@/api/events'
+import {EventTypes, needsDayOfWeek} from '@/api/events'
+import type {
+    AppointmentField,
+    EventFieldEntry,
+    EventRequest,
+    StationEvent,
+    TemplateDetailResponse,
+} from '@/api/generated/schema'
 import {toRestriction} from '@/components/input/restriction'
-import {createEventFormState} from './eventFormState'
+import {createEventFormState, eventTypeNamed} from './eventFormState'
 import {modelBindings} from './modelBindings'
 import {instantToLocalInput} from '@/util/format'
+import {asSaved} from '../eventshared/eventQuestions'
 
 /**
  * Owns the event editor form: its state, the mapping onto the editor body, and
@@ -19,6 +27,13 @@ export function useEventForm() {
   const state = reactive(createEventFormState())
 
   const {props, handlers} = modelBindings(state)
+
+  /**
+   * The appointment template last applied, which the server copies the registration questions from
+   * when the appointment is created. Kept apart from the form state, whose keys are the editor's
+   * props, and apart from `templateId`, which names the attendance sheet.
+   */
+  const appliedTemplateId = ref<number | null>(null)
 
   watch(() => state.startTime, (val) => {
     if (val && !state.endTime) {
@@ -43,8 +58,9 @@ export function useEventForm() {
    * taken on and then leaves the appointment without one makes whoever applied it set the same thing
    * again by hand, which is the one thing a template is for.
    */
-  function applyTemplate(detail: EventTemplateDetail) {
+  function applyTemplate(detail: TemplateDetailResponse) {
     const tpl = detail.template
+    appliedTemplateId.value = tpl.id
     if (tpl.title) state.name = tpl.title
     if (tpl.description) state.description = tpl.description
     if (tpl.categoryId) state.categoryId = String(tpl.categoryId)
@@ -59,12 +75,12 @@ export function useEventForm() {
     if (detail.fields.length > 0) {
       const newFields: EventFieldEntry[] = detail.fields.map(f => ({
         name: f.name,
-        fieldType: f.fieldType ?? 'STRING',
-        config: typeof f.config === 'string' ? (f.config ? JSON.parse(f.config) : {}) : (f.config ?? {}),
+        fieldType: f.fieldType,
+        config: f.config,
         value: f.defaultValue ?? '',
-        overview: f.overview ?? false,
-        attendanceFieldId: f.attendanceFieldId ?? null,
-        isPublic: f.isPublic ?? false,
+        overview: f.overview,
+        attendanceFieldId: f.attendanceFieldId,
+        isPublic: f.isPublic,
       }))
       state.fields = [...state.fields, ...newFields]
     }
@@ -73,15 +89,16 @@ export function useEventForm() {
     }
   }
 
-  function applyEventFields(fields: EventField[]) {
+  function applyEventFields(fields: AppointmentField[]) {
     state.fields = fields.map(f => ({
       id: f.id,
-      name: f.name ?? '',
-      fieldType: f.fieldType ?? 'STRING',
-      config: f.config ?? {},
-      value: f.value ?? '',
-      overview: f.overview ?? false,
-      attendanceFieldId: f.attendanceFieldId ?? null,
+      name: f.name,
+      fieldType: f.fieldType,
+      config: f.config,
+      value: f.value,
+      overview: f.overview,
+      attendanceFieldId: f.attendanceFieldId,
+      isPublic: f.isPublic,
     }))
   }
 
@@ -100,8 +117,7 @@ export function useEventForm() {
     state.requiresConfirmation = ev.requiresConfirmation ?? false
     state.registrationLimit = ev.registrationLimit ?? undefined
     state.minRegistrations = ev.minRegistrations ?? undefined
-    state.hasThreshold = !!ev.thresholdDate
-    state.thresholdDate = instantToLocalInput(ev.thresholdDate)
+    state.thresholdDays = ev.thresholdDays ?? undefined
     state.registrationCloseDays = ev.registrationCloseDays ?? undefined
     state.repeatUntil = ev.repeatUntil ?? ''
     state.repeatCount = ev.repeatCount ?? undefined
@@ -125,27 +141,27 @@ export function useEventForm() {
     } catch { state.reminders = [] }
   }
 
-  function buildPayload() {
+  function buildPayload(): EventRequest {
     return {
       name: state.name,
-      description: state.description || undefined,
-      eventType: state.eventType,
+      description: state.description || null,
+      eventType: eventTypeNamed(state.eventType) ?? EventTypes.ONE_TIME,
       dayOfWeek: needsDayOfWeek(state.eventType) ? Number(state.dayOfWeek) : null,
       startTime: state.startTime ? new Date(state.startTime).toISOString() : undefined,
       endTime: state.endTime ? new Date(state.endTime).toISOString() : undefined,
-      templateId: state.templateId ? Number(state.templateId) : undefined,
-      categoryId: state.categoryId ? Number(state.categoryId) : undefined,
+      templateId: state.templateId ? Number(state.templateId) : null,
+      eventTemplateId: appliedTemplateId.value,
+      categoryId: state.categoryId ? Number(state.categoryId) : null,
       requiresRegistration: state.requiresRegistration,
       registrationDeadline: state.hasDeadline && state.registrationDeadline
-          ? new Date(state.registrationDeadline).toISOString() : undefined,
+          ? new Date(state.registrationDeadline).toISOString() : null,
       requiresConfirmation: state.requiresConfirmation,
-      registrationLimit: state.registrationLimit ?? undefined,
-      minRegistrations: state.minRegistrations ?? undefined,
-      thresholdDate: state.hasThreshold && state.thresholdDate
-          ? new Date(state.thresholdDate).toISOString() : undefined,
+      registrationLimit: state.registrationLimit ?? null,
+      minRegistrations: state.minRegistrations ?? null,
+      thresholdDays: state.minRegistrations ? state.thresholdDays ?? null : null,
       restriction: state.restriction,
       viewRestriction: state.viewRestriction,
-      registrationCloseDays: state.registrationCloseDays ?? undefined,
+      registrationCloseDays: state.registrationCloseDays ?? null,
       repeatUntil: repeats() && state.repeatUntil ? state.repeatUntil : null,
       repeatCount: repeats() && !state.repeatUntil ? state.repeatCount ?? null : null,
     }
@@ -157,7 +173,7 @@ export function useEventForm() {
   }
 
   function namedFields(): EventFieldEntry[] {
-    return state.fields.filter(f => f.name.trim())
+    return state.fields.filter(f => f.name?.trim()).map(asSaved)
   }
 
   return {state, props, handlers, applyTemplate, loadEvent, buildPayload, namedFields, endsBeforeItStarts}

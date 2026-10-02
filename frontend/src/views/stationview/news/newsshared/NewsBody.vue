@@ -7,7 +7,7 @@
 import ProseContent from '@/components/display/ProseContent.vue'
 import ContentBlocks from '@/components/content/ContentBlocks.vue'
 import {ContentMode, type ContentModeName} from '@/api/news'
-import type {PageRow} from '@/api/pageManage'
+import type {ContentRow} from '@/api/generated/schema'
 import type {ContentRenderContext} from '@/util/contentContext'
 
 /**
@@ -19,7 +19,7 @@ import type {ContentRenderContext} from '@/util/contentContext'
  */
 defineProps<{
   mode: ContentModeName
-  rows: PageRow[]
+  rows: ContentRow[]
   html: string
   context: ContentRenderContext
 }>()

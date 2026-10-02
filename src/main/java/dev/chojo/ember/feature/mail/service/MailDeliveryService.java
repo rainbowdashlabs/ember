@@ -10,9 +10,11 @@ import dev.chojo.ember.feature.mail.repository.EmailQueueRepository;
 import dev.chojo.ember.feature.mail.repository.MailProviderBlockRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -45,7 +47,7 @@ public class MailDeliveryService {
      * One thing a provider has reported about one message.
      *
      * @param status        what became of the message
-     * @param recipient     the address the provider names
+     * @param recipient     the address the provider names, or null when it named none
      * @param subject       the subject the provider names, or null
      * @param correlationId the token we sent with the message and got back, or null when the
      *                      provider dropped it
@@ -54,11 +56,11 @@ public class MailDeliveryService {
      */
     public record DeliveryEvent(
             MailDeliveryStatus status,
-            String recipient,
-            String subject,
-            String correlationId,
-            String messageId,
-            String detail) {}
+            @Nullable String recipient,
+            @Nullable String subject,
+            @Nullable String correlationId,
+            @Nullable String messageId,
+            @Nullable String detail) {}
 
     /**
      * Records an event against the mail it belongs to.
@@ -71,7 +73,7 @@ public class MailDeliveryService {
      *                  did. A station may only be told about its own mail.
      * @return whether the event could be matched to a queued mail
      */
-    public boolean record(DeliveryEvent event, Integer stationId) {
+    public boolean record(DeliveryEvent event, @Nullable Integer stationId) {
         var mail = match(event, stationId);
         if (mail.isEmpty()) {
             log.warn(
@@ -90,7 +92,7 @@ public class MailDeliveryService {
                     id,
                     event.recipient(),
                     event.status(),
-                    event.detail() == null ? "no reason given" : event.detail());
+                    Objects.requireNonNullElse(event.detail(), "no reason given"));
             retry(mail.get(), event.status(), event.detail());
         }
         return true;
@@ -105,7 +107,8 @@ public class MailDeliveryService {
      * <ul>
      *   <li><b>Blocked</b> means the receiving side refused our relay, not our message. Trying the
      *       same relay again would be refused the same way, so the mail goes straight to the next
-     *       provider in the chain. This is the case a relay on somebody's block list produces.
+     *       provider in the chain. This is the case a relay on somebody's block list produces. A soft
+     *       bounce that names our own sending address as refused is a block under the wrong label.
      *   <li><b>A soft bounce or an error</b> may pass on its own (a full mailbox, a server having
      *       a bad minute), so the same provider keeps its remaining attempts before the chain moves
      *       on.
@@ -114,17 +117,16 @@ public class MailDeliveryService {
      * <p>When the chain has nothing left, the send loop finds no provider in turn and records the
      * mail as failed, which is where an operator sees it.
      */
-    private void retry(EmailQueueRepository.QueuedEmail mail, MailDeliveryStatus status, String blockReason) {
+    private void retry(EmailQueueRepository.QueuedEmail mail, MailDeliveryStatus status, @Nullable String blockReason) {
         if (!status.worthRetrying()) return;
-        var chain = mail.stationId() == null ? chainService.forInstance() : chainService.forStation(mail.stationId());
-        // A soft bounce that names our own sending address as the thing refused is a block wearing
-        // the wrong label: it will never pass, however often the same relay tries.
+        Integer stationId = mail.stationId();
+        var chain = stationId == null ? chainService.forInstance() : chainService.forStation(stationId);
         boolean relayRefused = status == MailDeliveryStatus.BLOCKED || RelayBlockDetector.blamesTheRelay(blockReason);
         if (relayRefused) {
             chainService
                     .at(chain, mail.providerPosition())
-                    .ifPresent(entry ->
-                            blockRepository.block(mail.stationId(), entry.provider(), mail.recipient(), blockReason));
+                    .ifPresent(
+                            entry -> blockRepository.block(stationId, entry.provider(), mail.recipient(), blockReason));
             queueRepository.advanceProvider(mail.id());
         } else {
             int allowed = chainService
@@ -145,19 +147,20 @@ public class MailDeliveryService {
      * <p>A report authorised by a station key is held to that station's own mail, so a station
      * cannot learn about, or interfere with, anybody else's.
      */
-    private Optional<EmailQueueRepository.QueuedEmail> match(DeliveryEvent event, Integer stationId) {
-        if (event.correlationId() != null && !event.correlationId().isBlank()) {
+    private Optional<EmailQueueRepository.QueuedEmail> match(DeliveryEvent event, @Nullable Integer stationId) {
+        String correlationId = event.correlationId();
+        if (correlationId != null && !correlationId.isBlank()) {
             try {
-                var byToken = queueRepository.findById(
-                        Integer.parseInt(event.correlationId().trim()));
+                var byToken = queueRepository.findById(Integer.parseInt(correlationId.trim()));
                 if (byToken.filter(mail -> permitted(mail, stationId)).isPresent()) return byToken;
             } catch (NumberFormatException e) {
-                log.debug("Delivery event carried a token that is not one of ours: {}", event.correlationId());
+                log.debug("Delivery event carried a token that is not one of ours: {}", correlationId);
             }
         }
-        if (event.recipient() == null || event.recipient().isBlank()) return Optional.empty();
+        String recipient = event.recipient();
+        if (recipient == null || recipient.isBlank()) return Optional.empty();
         return queueRepository
-                .findLatestFor(event.recipient(), event.subject(), stationId)
+                .findLatestFor(recipient, event.subject(), stationId)
                 .filter(mail -> permitted(mail, stationId));
     }
 
@@ -165,7 +168,7 @@ public class MailDeliveryService {
      * Whether the key that authorised this report may speak for this mail. The instance key may
      * speak for all of it; a station key only for what that station sent.
      */
-    private static boolean permitted(EmailQueueRepository.QueuedEmail mail, Integer stationId) {
+    private static boolean permitted(EmailQueueRepository.QueuedEmail mail, @Nullable Integer stationId) {
         return stationId == null || stationId.equals(mail.stationId());
     }
 }

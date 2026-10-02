@@ -51,13 +51,13 @@ test.describe('Cluster storage', () => {
      *
      * A tier is made on the association's screen and handed to two stations at once, and both rows then name
      * it and carry its numbers. The instance's tiers are a different set entirely: an association has to be
-     * able to express a step the instance never thought of.
+     * able to express a step the instance never thought of. The second station is named without the word
+     * the fixture's station carries, so the two rows can be told apart by name.
      */
     test('the association keeps its own tiers', async ({adminPage: page, browser, request}) => {
         const own = await ownCluster(page, browser, request, 'Stufenverband')
         await grantPool(page, own, 20 * GIB)
 
-        // Named without the word the fixture's station carries, so a row can be told from the other by name
         const second = await page.request.post('/api/v1/cluster/stations',
             {headers: own.headers, data: {name: `Löschzug ${own.name}`}})
         expect(second.ok()).toBeTruthy()
@@ -74,8 +74,6 @@ test.describe('Cluster storage', () => {
         await expect(tier).toBeVisible({timeout: 15000})
         await expect(tier).toContainText('2.0 GiB')
 
-        // Handed to two stations in one act, which is what the association does instead of typing the same
-        // seven numbers at every station it runs
         await tier.getByRole('button', {name: 'Anwenden'}).click()
         const applying = page.getByTestId('modal')
         await applying.locator('label').filter({hasText: own.stationName}).getByRole('switch').click()
@@ -107,13 +105,11 @@ test.describe('Cluster storage', () => {
         await page.getByTestId('quota-field-total').fill('5')
         await page.getByTestId('station-room-save').click()
 
-        // Named in bytes, which is what the association promised in, and it says how much is already gone
-        const refusal = page.getByText(/its pool is/i)
-        await expect(refusal).toBeVisible({timeout: 15000})
-        await expect(refusal).toContainText(String(1 * GIB))
+        const refusal = page.getByText('Das ist mehr Speicherplatz, als der Verbund noch vergeben kann')
+        await expect(refusal, 'the pool refuses the promise').toBeVisible({timeout: 15000})
+        await expect(refusal, 'and names what is still free of the pool').toContainText(/\(frei: \d+(\.\d)? [KMGT]?i?B von 1\.0 GiB\)/)
 
-        // Nothing was handed out, so the pool figure has not moved
-        await expect(page.getByTestId('cluster-pool-usage')).toContainText('0 B')
+        await expect(page.getByTestId('cluster-pool-usage'), 'nothing was handed out').toContainText('0 B')
     })
 
     /**
@@ -137,7 +133,6 @@ test.describe('Cluster storage', () => {
         await expect(row).toContainText('1.0 GiB')
         await expect(row).toContainText('Standard des Verbands')
 
-        // Granted to that one station, which is a different sentence about the same station
         await row.getByTestId('station-room-edit').click()
         await page.getByTestId('quota-field-total').fill('3')
         await page.getByTestId('station-room-save').click()
@@ -160,10 +155,9 @@ test.describe('Cluster storage', () => {
         await page.goto('/admin/monitoring/storage')
         await expect(page.getByTestId('app-shell')).toBeVisible()
 
-        // Nothing handed out yet, so the station still lives on what the instance says and the instance may
-        // still put it back there
         const row = stationRow(page, own.stationName)
-        await expect(row.getByTestId('station-room-reset')).toBeEnabled({timeout: 15000})
+        await expect(row.getByTestId('station-room-reset'), 'with nothing handed out the instance may still reset it')
+            .toBeEnabled({timeout: 15000})
 
         const granted = await page.request.put(`/api/v1/cluster/storage/stations/${own.stationUid}`,
             {headers: own.headers, data: {totalBytes: 3 * GIB}})
@@ -200,11 +194,11 @@ test.describe('Cluster storage', () => {
         await expect(page.getByTestId('cluster-pool-usage')).toContainText('0 B von 20.0 GiB', {timeout: 15000})
         await expect(stationRow(page, own.stationName)).toHaveCount(0)
 
-        // And at the instance the station reads as nobody else's business again
         await page.goto('/admin/monitoring/storage')
         await expect(page.getByTestId('app-shell')).toBeVisible()
         const row = stationRow(page, own.stationName)
-        await expect(row).toContainText('Standard', {timeout: 15000})
+        await expect(row, 'at the instance the station is nobody else\'s business again')
+            .toContainText('Standard', {timeout: 15000})
         await expect(row).not.toContainText('Vom Verband vergeben')
         await expect(row.getByTestId('station-room-reset')).toBeEnabled()
     })

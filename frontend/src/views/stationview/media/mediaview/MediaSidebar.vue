@@ -10,7 +10,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import BaseButton from '@/components/button/BaseButton.vue'
 import FolderNode from '@/components/media/FolderNode.vue'
-import type {StationFileFolder, StationFileTag} from '@/api/media'
+import type {StationFileFolder, StationFileTag} from '@/api/generated/schema'
 import type {FolderTreeNode} from './useMediaFolderTree'
 
 defineProps<{

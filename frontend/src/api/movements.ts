@@ -5,8 +5,28 @@
  */
 import client from './client'
 import {documentFrom, type DocumentFile} from '@/util/documentFile'
-import type {InventoryTypeName, ItemCustodyName, ItemOwnerName} from './inventory'
-import type {MemberIdentity} from './types'
+import type {
+    AcknowledgeStepRequest,
+    BindingRequest,
+    BindingResponse,
+    ChosenLanding,
+    components,
+    CorrectMovementRequest,
+    CreateMovementRequest,
+    FlowPreview,
+    FlowRequest,
+    FlowResponse,
+    MovementDetail,
+    MovementResponse,
+    RechainPlan,
+    RestorePlan,
+    StepRequest,
+    StepResponse,
+} from './generated/schema'
+
+type Schemas = components['schemas']
+
+export type MovementPurposeName = Schemas['MovementPurpose']
 
 /** What a movement of gear between two parties is for. */
 export const MovementPurpose = {
@@ -15,9 +35,9 @@ export const MovementPurpose = {
     EXCHANGE: 'EXCHANGE',
     /** A station asking the body above it for a piece it does not have. */
     REQUEST: 'REQUEST',
-} as const
+} as const satisfies Record<MovementPurposeName, MovementPurposeName>
 
-export type MovementPurposeName = (typeof MovementPurpose)[keyof typeof MovementPurpose]
+export type MovementStateName = Schemas['MovementState']
 
 /** Where a movement stands as a whole, as opposed to which step it is on. */
 export const MovementState = {
@@ -25,26 +45,26 @@ export const MovementState = {
     DONE: 'DONE',
     DECLINED: 'DECLINED',
     CANCELLED: 'CANCELLED',
-} as const
+} as const satisfies Record<MovementStateName, MovementStateName>
 
-export type MovementStateName = (typeof MovementState)[keyof typeof MovementState]
+export type StepActorName = Schemas['StepActor']
 
 /** The party a step belongs to. */
 export const StepActor = {
     MEMBER: 'MEMBER',
     STATION: 'STATION',
     OWNER: 'OWNER',
-} as const
+} as const satisfies Record<StepActorName, StepActorName>
 
-export type StepActorName = (typeof StepActor)[keyof typeof StepActor]
+export type StepSubjectName = Schemas['StepSubject']
 
 /** Which of a movement's two items a step is about. */
 export const StepSubject = {
     OUTGOING: 'OUTGOING',
     INCOMING: 'INCOMING',
-} as const
+} as const satisfies Record<StepSubjectName, StepSubjectName>
 
-export type StepSubjectName = (typeof StepSubject)[keyof typeof StepSubject]
+export type AckKindName = Schemas['AckKind']
 
 /** How a step came to be acknowledged, or that nobody did and it was set by hand. */
 export const AckKind = {
@@ -52,114 +72,19 @@ export const AckKind = {
     ASSERTED: 'ASSERTED',
     FORCED: 'FORCED',
     CORRECTED: 'CORRECTED',
-} as const
+    AUTO_CONFIRMED: 'AUTO_CONFIRMED',
+} as const satisfies Record<AckKindName, AckKindName>
 
-export type AckKindName = (typeof AckKind)[keyof typeof AckKind]
-
-export interface Movement {
-    id: number
-    purpose: MovementPurposeName
-    state: MovementStateName
-    memberId?: number | null
-    memberName?: string | null
-    memberIdentity?: MemberIdentity | null
-    inventoryId?: number | null
-    inventoryName?: string | null
-    /** Whose gear that inventory holds, which is the shelf a replacement may be taken off. */
-    inventoryType?: InventoryTypeName | null
-    /** The step being waited on, which is what pressing the row's button says has happened. */
-    currentStepLabel?: string | null
-    /** Where it stands: the last step whose words are already true, absent at the very beginning. */
-    reachedStepLabel?: string | null
-    currentStepActor?: StepActorName | null
-    /** Whether the owner of the gear can answer for itself here, which decides who names arrivals. */
-    ownerAnswersHere?: boolean
-    /** The association that owns the gear, by name, absent where the station owns it. */
-    ownerName?: string | null
-    /** That association's stable identity, which tells one body's gear from another's. */
-    ownerClusterId?: string | null
-    /** When it last moved, which is what says whether a row has gone quiet. */
-    updatedAt?: string | null
-    /** The size handed in and the size asked for, in words. */
-    oldSizeName?: string | null
-    newSizeName?: string | null
-    /** Whether the chain it walks is no longer the one its combination is bound to. */
-    belongsOnAnotherFlow?: boolean
-    /** What the piece that set out is called, so a list of movements says which of my things this is. */
-    itemName?: string | null
-    /** The piece that set out, so a row can be followed to the piece it is about. */
-    itemId?: number | null
-    /** Whether the member still holds it, which is what lets them call the movement off themselves. */
-    itemStillWithMember?: boolean
-    /** The size being replaced, and the one asked for, which a piece written down starts out as. */
-    oldSizeId?: number | null
-    newSizeId?: number | null
-    reason: string
-    createdAt: string
-    closedAt?: string | null
-    /** Why it was refused or taken back, which the reason it was started does not say. */
-    closeReason?: string | null
-    /** The end that is not the owner: a member, or the station's store. */
-    party?: MovementPartyName | null
-    /** Whose gear it is, which is what the owner's column of the chain is named after. */
-    ownerKind?: ItemOwnerName | null
-    /** Which of the two pieces the step it stands on is about, and where that step puts it. */
-    currentStepSubject?: StepSubjectName | null
-    currentStepCustody?: ItemCustodyName | null
-    /** Whether this viewer may acknowledge the step it stands on, which is what puts the button on a row. */
-    actionable?: boolean
-    /** The arriving piece: promised from the start on a planned hand-out, named halfway on an exchange. */
-    incomingItemId?: number | null
-    incomingItemName?: string | null
-    /** What is written on the piece the row is about. */
-    itemInternalId?: string | null
-    /** The size the row names: the one asked for where there is one, the one replaced otherwise. */
-    itemSizeName?: string | null
-    /** The picture the row is drawn with, resolved from the piece's kind and its inventory. */
-    icon?: string | null
-    color?: string | null
-}
-
-export interface MovementStep {
-    id: number
-    position: number
-    label: string
-    actor: StepActorName
-    subject: StepSubjectName
-    custodyAfter: ItemCustodyName
-    picksItem: boolean
-    archived: boolean
-    /** Whether the movement is standing on this step. */
-    current: boolean
-    /** How it was acknowledged, or null while it is still ahead. */
-    ackKind?: AckKindName | null
-    acknowledgedByName?: string | null
-    acknowledgedAt?: string | null
-    note?: string | null
-    /** Whether this viewer is the one who may press it. */
-    actionable: boolean
-}
-
-export interface MovementDetail {
-    movement: Movement
-    steps: MovementStep[]
-    /** Present when this movement was raised to report gear missing. */
-    lossReport?: LossReport | null
-}
+export type MovementPartyName = Schemas['MovementParty']
 
 /**
- * What a report that a piece of gear is gone carries.
- *
- * <p>Two notes with two authors, neither standing in for the other: the member said what happened to them,
- * and the manager said what the station is asking the owner for.
+ * The end of a movement that is not the owner. An issue that fills a shelf and one that dresses a
+ * member are different chains, and this is what tells them apart.
  */
-export interface LossReport {
-    managerNote?: string | null
-    memberNote?: string | null
-    memberNoteBy?: MemberIdentity | null
-    documentName?: string | null
-    documentType?: string | null
-}
+export const MovementParty = {
+    STORE: 'STORE',
+    MEMBER: 'MEMBER',
+} as const satisfies Record<MovementPartyName, MovementPartyName>
 
 /** The file attached to a report, fetched with the session so it can be handed to the reader. */
 export async function downloadDocument(movementId: number): Promise<DocumentFile> {
@@ -167,39 +92,8 @@ export async function downloadDocument(movementId: number): Promise<DocumentFile
     return documentFrom(res, 'Dokument')
 }
 
-export interface CreateMovementRequest {
-    purpose: MovementPurposeName
-    memberId?: number | null
-    outgoingItemId?: number | null
-    inventoryId?: number | null
-    oldSizeId?: number | null
-    newSizeId?: number | null
-    reason?: string
-    pickedItemId?: number | null
-    /**
-     * The self-check this was raised during, where it was raised during one. It waits for nothing
-     * either way: naming the task only records that it happened while the member was answering.
-     */
-    selfCheckId?: number | null
-}
-
-export interface AcknowledgeStepRequest {
-    stepId: number
-    note?: string
-    pickedItemId?: number | null
-    /** The arriving piece, where it has never been recorded here and there is nothing to pick. */
-    newItem?: NewItemRequest | null
-}
-
-/** A piece written down at the moment it arrives. Owner and inventory come from the movement. */
-export interface NewItemRequest {
-    internalId?: string
-    name: string
-    sizeId?: number | null
-}
-
-export async function listMovements(): Promise<Movement[]> {
-    const res = await client.get<Movement[]>('/movements')
+export async function listMovements(): Promise<MovementResponse[]> {
+    const res = await client.get<MovementResponse[]>('/movements')
     return res.data
 }
 
@@ -238,20 +132,9 @@ export async function acknowledgeStep(id: number, data: AcknowledgeStepRequest):
  * The movements standing at the member they are for, which is what a check with somebody in the room
  * reads: the piece is on them now, or the next step hands them one.
  */
-export async function listAtMember(): Promise<Movement[]> {
-    const res = await client.get<Movement[]>('/movements/at-member')
+export async function listAtMember(): Promise<MovementResponse[]> {
+    const res = await client.get<MovementResponse[]>('/movements/at-member')
     return res.data
-}
-
-/** What a correction is to make true of a movement's pieces, after which the chain follows. */
-export interface CorrectMovementRequest {
-    outgoing?: ItemCustodyName | null
-    incoming?: ItemCustodyName | null
-    /** Whether the arriving piece is unhooked, which is what putting a swap back before one was named means. */
-    detachArrival?: boolean
-    /** The state to close it in, or absent to leave it open on whichever step the corrected world has not reached. */
-    closeAs?: MovementStateName | null
-    reason: string
 }
 
 /**
@@ -272,8 +155,8 @@ export async function exportPdf(movementIds: number[], extraFieldIds: number[]):
 }
 
 /** Asks a member for every piece they hold, one chain per piece. */
-export async function returnEverything(memberId: number): Promise<Movement[]> {
-    const res = await client.post<Movement[]>('/movements/return-everything', {memberId})
+export async function returnEverything(memberId: number): Promise<MovementResponse[]> {
+    const res = await client.post<MovementResponse[]>('/movements/return-everything', {memberId})
     return res.data
 }
 
@@ -297,35 +180,6 @@ export async function deleteMovement(id: number): Promise<void> {
     await client.delete(`/movements/${id}`)
 }
 
-/** One step of the chain a movement would be moved onto, as that chain stands today. */
-export interface RechainStep {
-    index: number
-    label: string
-    actor: StepActorName
-    subject: StepSubjectName
-    custodyAfter: ItemCustodyName
-    picksItem: boolean
-}
-
-/** What moving a movement onto the chain it belongs on would do, read before it is done. */
-export interface RechainPlan {
-    movementId: number
-    /** The chain it walks now, and what that chain is called. */
-    currentFlowId: number | null
-    currentFlowName: string | null
-    /** The words of the step it stands on, or null where it stands on none. */
-    standingOn: string | null
-    /** The chain it belongs on. */
-    targetFlowId: number
-    targetFlowName: string | null
-    /** Whether the two are the same, in which case there is nothing to do. */
-    alreadyRight: boolean
-    steps: RechainStep[]
-    /** Where it would stand when exactly one step means what its own means, else null. */
-    suggestedIndex: number | null
-    certain: boolean
-}
-
 /**
  * The chain this movement belongs on, and where it would stand once it is there.
  *
@@ -346,82 +200,6 @@ export async function rechainPlan(id: number): Promise<RechainPlan> {
 export async function rechain(id: number, stepIndex: number | null): Promise<MovementDetail> {
     const res = await client.post<MovementDetail>(`/movements/${id}/rechain`, {stepIndex})
     return res.data
-}
-
-// -- Flows --
-
-export interface MovementFlowStep {
-    id: number
-    position: number
-    label: string
-    actor: StepActorName
-    subject: StepSubjectName
-    custodyAfter: ItemCustodyName
-    picksItem: boolean
-    archived: boolean
-}
-
-/**
- * What is wrong with a chain, named rather than worded.
- *
- * <p>The backend sends the rule that is broken and the frontend supplies the sentence, which is what
- * puts the fault in the reader's language. The same shape answers a refused change.
- */
-export interface FlowProblem {
-    code: string
-    /** What the fault is about where naming it helps, a step's label for instance. */
-    detail?: string | null
-}
-
-export interface MovementFlow {
-    id: number
-    name: string
-    purpose: MovementPurposeName
-    archived: boolean
-    /** Flows the body above the station owns are shown and named here, but not edited. */
-    ownedByCluster: boolean
-    /** What stops this chain from being walked, or null when nothing does. */
-    problem?: FlowProblem | null
-    steps: MovementFlowStep[]
-}
-
-export interface MovementFlowBinding {
-    inventoryId?: number | null
-    ownerKind: ItemOwnerName
-    purpose: MovementPurposeName
-    party: MovementPartyName
-    flowId: number
-}
-
-/**
- * The end of a movement that is not the owner. An issue that fills a shelf and one that dresses a
- * member are different chains, and this is what tells them apart.
- */
-export const MovementParty = {
-    STORE: 'STORE',
-    MEMBER: 'MEMBER',
-} as const
-
-export type MovementPartyName = (typeof MovementParty)[keyof typeof MovementParty]
-
-export interface FlowRequest {
-    name: string
-    purpose: MovementPurposeName
-}
-
-export interface StepRequest {
-    label: string
-    actor: StepActorName
-    subject: StepSubjectName
-    custodyAfter: ItemCustodyName
-    picksItem: boolean
-}
-
-/** The chain a movement with these ends would walk, and what it would be about. */
-export interface FlowPreview {
-    flow: MovementFlow
-    ownerKind: ItemOwnerName
-    party: MovementPartyName
 }
 
 /** What the wizard asks about before it starts anything. */
@@ -453,24 +231,33 @@ function isNotFound(error: unknown): boolean {
         && (error as {response?: {status?: number}}).response?.status === 404
 }
 
-export async function listFlows(): Promise<MovementFlow[]> {
-    const res = await client.get<MovementFlow[]>('/movement-flows')
+export async function listFlows(): Promise<FlowResponse[]> {
+    const res = await client.get<FlowResponse[]>('/movement-flows')
     return res.data
 }
 
 /** One chain as it now stands, which is how the editor picks up a change it did not get back whole. */
-export async function getFlow(id: number): Promise<MovementFlow> {
-    const res = await client.get<MovementFlow>(`/movement-flows/${id}`)
+export async function getFlow(id: number): Promise<FlowResponse> {
+    const res = await client.get<FlowResponse>(`/movement-flows/${id}`)
     return res.data
 }
 
-export async function createFlow(data: FlowRequest): Promise<MovementFlow> {
-    const res = await client.post<MovementFlow>('/movement-flows', data)
+export async function createFlow(data: FlowRequest): Promise<FlowResponse> {
+    const res = await client.post<FlowResponse>('/movement-flows', data)
     return res.data
 }
 
-export async function renameFlow(id: number, data: FlowRequest): Promise<MovementFlow> {
-    const res = await client.put<MovementFlow>(`/movement-flows/${id}`, data)
+export async function renameFlow(id: number, data: FlowRequest): Promise<FlowResponse> {
+    const res = await client.put<FlowResponse>(`/movement-flows/${id}`, data)
+    return res.data
+}
+
+/**
+ * Says whether a chain confirms the member's receipt of a piece for them as soon as a movement reaches it.
+ * Answers with the chain as it now stands.
+ */
+export async function setMemberReceipt(id: number, skipMemberReceipt: boolean): Promise<FlowResponse> {
+    const res = await client.put<FlowResponse>(`/movement-flows/${id}/member-receipt`, {skipMemberReceipt})
     return res.data
 }
 
@@ -480,66 +267,31 @@ export async function renameFlow(id: number, data: FlowRequest): Promise<Movemen
  * <p>Answers with the chain as it now stands, which is what every change to a chain does: the editor
  * replaces the one card that changed instead of fetching the page again.
  */
-export async function archiveFlow(id: number): Promise<MovementFlow> {
-    const res = await client.delete<MovementFlow>(`/movement-flows/${id}`)
+export async function archiveFlow(id: number): Promise<FlowResponse> {
+    const res = await client.delete<FlowResponse>(`/movement-flows/${id}`)
     return res.data
 }
 
-export async function addStep(flowId: number, data: StepRequest): Promise<MovementFlowStep> {
-    const res = await client.post<MovementFlowStep>(`/movement-flows/${flowId}/steps`, data)
+export async function addStep(flowId: number, data: StepRequest): Promise<StepResponse> {
+    const res = await client.post<StepResponse>(`/movement-flows/${flowId}/steps`, data)
     return res.data
 }
 
-export async function updateStep(stepId: number, data: StepRequest): Promise<MovementFlow> {
-    const res = await client.put<MovementFlow>(`/movement-flow-steps/${stepId}`, data)
+export async function updateStep(stepId: number, data: StepRequest): Promise<FlowResponse> {
+    const res = await client.put<FlowResponse>(`/movement-flow-steps/${stepId}`, data)
     return res.data
 }
 
 /** Retires a step. It stays readable for the movements that passed it. */
-export async function archiveStep(stepId: number): Promise<MovementFlow> {
-    const res = await client.delete<MovementFlow>(`/movement-flow-steps/${stepId}`)
+export async function archiveStep(stepId: number): Promise<FlowResponse> {
+    const res = await client.delete<FlowResponse>(`/movement-flow-steps/${stepId}`)
     return res.data
 }
 
 /** Puts the steps in the order they are to be walked, the whole order in one call. */
-export async function reorderSteps(flowId: number, stepIds: number[]): Promise<MovementFlow> {
-    const res = await client.put<MovementFlow>(`/movement-flows/${flowId}/step-order`, {stepIds})
+export async function reorderSteps(flowId: number, stepIds: number[]): Promise<FlowResponse> {
+    const res = await client.put<FlowResponse>(`/movement-flows/${flowId}/step-order`, {stepIds})
     return res.data
-}
-
-/** One step of the chain a restore would write, before any of it exists. */
-export interface RestorePlanStep {
-    index: number
-    label: string
-    actor: StepActorName
-    subject: StepSubjectName
-    custodyAfter: ItemCustodyName
-    picksItem: boolean
-}
-
-/** A movement still walking the chain, which the restore has to put somewhere. */
-export interface RestorePlanMovement {
-    /** The step the movements stand on, or null for the ones whose step has already gone. */
-    stepId: number | null
-    /** The words that step carries, or null in the same case. */
-    standingOn?: string | null
-    /** How many movements stand on it, since one answer moves all of them. */
-    movements: number
-    /** The step they would land on, or null when that is not certain and somebody has to choose. */
-    suggestedIndex: number | null
-    certain: boolean
-}
-
-/** What a restore would do, read before it is done. */
-export interface RestorePlan {
-    steps: RestorePlanStep[]
-    movements: RestorePlanMovement[]
-}
-
-/** Where one movement goes once the chain under it has been replaced. */
-export interface FlowStepMapping {
-    stepId: number | null
-    stepIndex: number
 }
 
 /**
@@ -562,16 +314,16 @@ export async function restorePlan(id: number): Promise<RestorePlan> {
  * <p>Every open movement on the chain is named in the mappings, including the ones the plan was
  * certain about, so what the reader saw is what is sent. An empty list is the chain nobody is on.
  */
-export async function restoreFlow(id: number, mappings: FlowStepMapping[]): Promise<MovementFlow> {
-    const res = await client.post<MovementFlow>(`/movement-flows/${id}/restore`, {mappings})
+export async function restoreFlow(id: number, mappings: ChosenLanding[]): Promise<FlowResponse> {
+    const res = await client.post<FlowResponse>(`/movement-flows/${id}/restore`, {mappings})
     return res.data
 }
 
-export async function listBindings(): Promise<MovementFlowBinding[]> {
-    const res = await client.get<MovementFlowBinding[]>('/movement-flow-bindings')
+export async function listBindings(): Promise<BindingResponse[]> {
+    const res = await client.get<BindingResponse[]>('/movement-flow-bindings')
     return res.data
 }
 
-export async function bindFlow(data: MovementFlowBinding): Promise<void> {
+export async function bindFlow(data: BindingRequest): Promise<void> {
     await client.put('/movement-flow-bindings', data)
 }

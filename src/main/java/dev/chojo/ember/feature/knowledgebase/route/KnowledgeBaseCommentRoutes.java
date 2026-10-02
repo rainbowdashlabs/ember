@@ -5,25 +5,36 @@
  */
 package dev.chojo.ember.feature.knowledgebase.route;
 
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
-import dev.chojo.ember.feature.knowledgebase.entity.KbComment;
-import dev.chojo.ember.feature.knowledgebase.repository.KbCommentRepository;
+import dev.chojo.ember.api.refusal.KnowledgeBaseRefusal;
+import dev.chojo.ember.feature.comment.entity.Comment;
+import dev.chojo.ember.feature.comment.entity.CommentEntityType;
+import dev.chojo.ember.feature.comment.entity.CommentFilter;
+import dev.chojo.ember.feature.comment.entity.CommentWriter;
+import dev.chojo.ember.feature.comment.entity.Moderation;
+import dev.chojo.ember.feature.comment.entity.NewComment;
+import dev.chojo.ember.feature.comment.route.CommentResponse;
+import dev.chojo.ember.feature.comment.route.CommentResponseMapper;
+import dev.chojo.ember.feature.comment.service.CommentService;
 import dev.chojo.ember.feature.knowledgebase.service.KbAuthorNameService;
-import dev.chojo.ember.feature.knowledgebase.service.KbCommentService;
-import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseFederationService;
-import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
+import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
+import io.javalin.openapi.HttpMethod;
+import io.javalin.openapi.OpenApi;
+import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiRequestBody;
+import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
-import static dev.chojo.ember.feature.knowledgebase.route.KbRouteAccess.requireOwnedFile;
 
 /**
  * Comments members of this station write on their own knowledge-base files.
@@ -31,31 +42,25 @@ import static dev.chojo.ember.feature.knowledgebase.route.KbRouteAccess.requireO
 @Singleton
 public class KnowledgeBaseCommentRoutes implements Routes {
 
-    private final KnowledgeBaseService service;
-    private final KbCommentService commentService;
+    private final CommentService commentService;
     private final KbAuthorNameService authorNameService;
-    private final KnowledgeBaseFederationService federationService;
-    private final KbCommentRepository commentRepository;
     private final MemberIdentityFactory memberIdentityFactory;
+    private final MemberNameResolver memberNameResolver;
 
     @Inject
     public KnowledgeBaseCommentRoutes(
-            KnowledgeBaseService service,
-            KbCommentService commentService,
+            CommentService commentService,
             KbAuthorNameService authorNameService,
-            KnowledgeBaseFederationService federationService,
-            KbCommentRepository commentRepository,
-            MemberIdentityFactory memberIdentityFactory) {
-        this.service = service;
+            MemberIdentityFactory memberIdentityFactory,
+            MemberNameResolver memberNameResolver) {
         this.commentService = commentService;
         this.authorNameService = authorNameService;
-        this.federationService = federationService;
-        this.commentRepository = commentRepository;
         this.memberIdentityFactory = memberIdentityFactory;
+        this.memberNameResolver = memberNameResolver;
     }
 
     private static String requireContent(String content) {
-        if (content == null || content.isBlank()) throw Refusal.KB_COMMENT_EMPTY.raise();
+        if (content == null || content.isBlank()) throw KnowledgeBaseRefusal.KB_COMMENT_EMPTY.raise();
         return content;
     }
 
@@ -67,57 +72,68 @@ public class KnowledgeBaseCommentRoutes implements Routes {
         routes.delete(prefix + "/kb/comments/{commentId}", this::deleteComment, StationPermission.LOGIN);
     }
 
+    @OpenApi(
+            path = "/api/v1/kb/files/{fileId}/comments",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = CommentResponse[].class)))
     private void listComments(Context ctx) {
         int fileId = pathInt(ctx, "fileId");
-        requireOwnedFile(ctx, service, fileId);
-        ctx.json(federationService.listComments(fileId));
+        commentService.requireReadable(StationSession.from(ctx), CommentEntityType.KB, fileId);
+        ctx.json(commentService.list(CommentEntityType.KB, fileId, CommentFilter.ALL).stream()
+                .map(this::toResponse)
+                .toList());
     }
 
+    @OpenApi(
+            path = "/api/v1/kb/files/{fileId}/comments",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = CreateKbCommentRequest.class)),
+            responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = CommentResponse.class)))
     private void createComment(Context ctx) {
         int fileId = pathInt(ctx, "fileId");
-        var session = UserSession.from(ctx);
-        requireOwnedFile(ctx, service, fileId);
+        var session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(CreateKbCommentRequest.class);
-        String content = requireContent(req.content());
-        String authorName = authorNameService.resolveMemberName(session.member().id());
-        var comment = commentService.createComment(
-                session.stationId(), fileId, req.parentId(), session.member().id(), authorName, content);
-        ctx.status(HttpStatus.CREATED).json(federationService.toCommentResponse(comment));
+        var comment = commentService.create(
+                session,
+                CommentEntityType.KB,
+                fileId,
+                writer(session),
+                new NewComment(req.parentId(), null, requireContent(req.content())));
+        ctx.status(HttpStatus.CREATED).json(toResponse(comment));
     }
 
+    @OpenApi(
+            path = "/api/v1/kb/comments/{commentId}",
+            methods = HttpMethod.PUT,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = UpdateKbCommentRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = CommentResponse.class)))
     private void updateComment(Context ctx) {
         int commentId = pathInt(ctx, "commentId");
-        var session = UserSession.from(ctx);
-        var comment = requireOwnedComment(ctx, commentId);
-        var memberIdentity = memberIdentityFactory.local(
-                session.stationId(), session.member().id());
-        if (comment.author() == null || !comment.author().sameMember(memberIdentity)) {
-            throw Refusal.KB_COMMENT_NOT_YOURS_TO_CHANGE.raise();
+        var session = StationSession.from(ctx);
+        var comment = requireOwnedComment(session, commentId);
+        if (!commentService.mayModify(session, actor(session), comment, Moderation.EDIT)) {
+            throw KnowledgeBaseRefusal.KB_COMMENT_NOT_YOURS_TO_CHANGE.raise();
         }
         var req = ctx.bodyAsClass(UpdateKbCommentRequest.class);
-        commentService.updateComment(
-                session.stationId(),
-                commentId,
-                session.member().id(),
-                authorNameService.resolveMemberName(session.member().id()),
-                requireContent(req.content()));
-        var updated =
-                commentRepository.findById(commentId).orElseThrow(Refusal.KB_COMMENT_NOT_HERE_AFTER_CHANGE::raise);
-        ctx.json(federationService.toCommentResponse(updated));
+        var updated = commentService
+                .update(comment, writer(session), requireContent(req.content()))
+                .orElseThrow(KnowledgeBaseRefusal.KB_COMMENT_NOT_HERE_AFTER_CHANGE::raise);
+        ctx.json(toResponse(updated));
     }
 
+    @OpenApi(
+            path = "/api/v1/kb/comments/{commentId}",
+            methods = HttpMethod.DELETE,
+            responses = @OpenApiResponse(status = "204"))
     private void deleteComment(Context ctx) {
         int commentId = pathInt(ctx, "commentId");
-        var session = UserSession.from(ctx);
-        var comment = requireOwnedComment(ctx, commentId);
-        var authorIdentity = memberIdentityFactory.local(
-                session.stationId(), session.member().id());
-        boolean isAuthor = comment.author() != null && comment.author().sameMember(authorIdentity);
-        if (!isAuthor && !session.hasPermission(StationPermission.KNOWLEDGE_MANAGER)) {
-            throw Refusal.KB_COMMENT_NOT_YOURS_TO_DELETE.raise();
+        var session = StationSession.from(ctx);
+        var comment = requireOwnedComment(session, commentId);
+        if (!commentService.mayModify(session, actor(session), comment, Moderation.DELETE)) {
+            throw KnowledgeBaseRefusal.KB_COMMENT_NOT_YOURS_TO_DELETE.raise();
         }
-        if (!commentService.deleteComment(session.stationId(), commentId)) {
-            throw Refusal.KB_COMMENT_NOT_DELETED.raise();
+        if (!commentService.delete(comment)) {
+            throw KnowledgeBaseRefusal.KB_COMMENT_NOT_DELETED.raise();
         }
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -126,13 +142,29 @@ public class KnowledgeBaseCommentRoutes implements Routes {
      * Loads a comment and asserts the caller's station owns the file it belongs to, returning the
      * comment. Answers 404 when the comment is absent or the file belongs to another station.
      */
-    private KbComment requireOwnedComment(Context ctx, int commentId) {
-        var comment = commentRepository.findById(commentId).orElseThrow(Refusal.KB_COMMENT_NOT_HERE::raise);
-        requireOwnedFile(ctx, service, comment.fileId());
+    private Comment requireOwnedComment(StationSession session, int commentId) {
+        var comment = commentService
+                .findById(CommentEntityType.KB, commentId)
+                .orElseThrow(KnowledgeBaseRefusal.KB_COMMENT_NOT_HERE::raise);
+        commentService.requireReadable(session, CommentEntityType.KB, comment.targetId());
         return comment;
     }
 
-    public record CreateKbCommentRequest(Integer parentId, String content) {}
+    private MemberIdentity actor(StationSession session) {
+        return memberIdentityFactory.local(session.stationId(), session.member().id());
+    }
+
+    private CommentWriter writer(StationSession session) {
+        return CommentWriter.local(
+                actor(session),
+                authorNameService.resolveMemberName(session.member().id()));
+    }
+
+    private CommentResponse toResponse(Comment comment) {
+        return CommentResponseMapper.fromKb(memberNameResolver, comment);
+    }
+
+    public record CreateKbCommentRequest(@Nullable Integer parentId, String content) {}
 
     public record UpdateKbCommentRequest(String content) {}
 }

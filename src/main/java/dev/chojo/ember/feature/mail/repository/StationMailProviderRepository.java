@@ -20,7 +20,7 @@ import static de.chojo.sadu.queries.api.query.Query.query;
 public class StationMailProviderRepository {
 
     private static final String COLUMNS =
-            "position, provider, smtp_host, smtp_port, smtp_ssl, smtp_user, smtp_password, api_key, sender_address, sender_name, attempts, daily_limit, provider_name, provider_url";
+            "position, provider, smtp_host, smtp_port, smtp_encryption, smtp_user, smtp_password, api_key, sender_address, sender_name, attempts, daily_limit, provider_name, provider_url";
 
     /**
      * The fallbacks of a station, in the order they are tried.
@@ -54,11 +54,11 @@ public class StationMailProviderRepository {
                 INSERT
                 INTO
                     station_mail_provider(
-                        station_id, position, provider, smtp_host, smtp_port, smtp_ssl, smtp_user,
+                        station_id, position, provider, smtp_host, smtp_port, smtp_encryption, smtp_user,
                         smtp_password, api_key, sender_address, sender_name, attempts, daily_limit,
                         provider_name, provider_url)
                 VALUES
-                    (:station_id, :position, :provider, :smtp_host, :smtp_port, :smtp_ssl, :smtp_user,
+                    (:station_id, :position, :provider, :smtp_host, :smtp_port, :smtp_encryption, :smtp_user,
                      :smtp_password, :api_key, :sender_address, :sender_name, :attempts, :daily_limit,
                      :provider_name, :provider_url);""")
                 .single(call().bind("station_id", stationId)
@@ -66,7 +66,7 @@ public class StationMailProviderRepository {
                         .bind("provider", entry.provider().name())
                         .bind("smtp_host", entry.smtpHost())
                         .bind("smtp_port", entry.smtpPort())
-                        .bind("smtp_ssl", entry.smtpSsl())
+                        .bind("smtp_encryption", entry.smtpEncryption().name())
                         .bind("smtp_user", entry.smtpUser())
                         .bind("smtp_password", entry.smtpPassword())
                         .bind("api_key", entry.apiKey())

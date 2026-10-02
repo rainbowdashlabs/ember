@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.inventory.entity;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * Request data for a single item check result.
  *
@@ -13,4 +15,5 @@ package dev.chojo.ember.feature.inventory.entity;
  * @param result      the check result
  * @param note        an optional note
  */
-public record CheckItemRequest(Integer itemId, Integer inventoryId, CheckResult result, String note) {}
+public record CheckItemRequest(
+        @Nullable Integer itemId, @Nullable Integer inventoryId, CheckResult result, String note) {}

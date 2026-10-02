@@ -5,27 +5,39 @@
  */
 package dev.chojo.ember.feature.board.entity;
 
+import dev.chojo.ember.feature.question.FieldType;
+
+/**
+ * The type of a board field as it is sent to partner stations a board is shared with. The station
+ * itself speaks of the shared {@link FieldType}.
+ *
+ * <p>The names are part of what a shared board's partners read, so they keep the spelling those
+ * partners know. Nothing but the wire reads them.
+ */
 public enum BoardFieldType {
-    STRING(BoardFieldValue.StringValue.class, BoardFieldConfig.Simple.class),
-    NUMBER(BoardFieldValue.NumberValue.class, BoardFieldConfig.Simple.class),
-    BOOLEAN(BoardFieldValue.BooleanValue.class, BoardFieldConfig.Simple.class),
-    ENUM(BoardFieldValue.EnumValue.class, BoardFieldConfig.Enum.class),
-    DATE(BoardFieldValue.DateValue.class, BoardFieldConfig.Simple.class),
-    LANE_ASSIGNEE(BoardFieldValue.LaneAssignee.class, BoardFieldConfig.LaneAssignee.class);
+    STRING,
+    NUMBER,
+    BOOLEAN,
+    ENUM,
+    DATE,
+    LANE_ASSIGNEE;
 
-    private final Class<? extends BoardFieldValue> valueClass;
-    private final Class<? extends BoardFieldConfig> configClass;
-
-    BoardFieldType(Class<? extends BoardFieldValue> valueClass, Class<? extends BoardFieldConfig> configClass) {
-        this.valueClass = valueClass;
-        this.configClass = configClass;
+    /** The shared type this name stands for. */
+    public FieldType fieldType() {
+        return switch (this) {
+            case STRING -> FieldType.TEXT;
+            case ENUM -> FieldType.CHOICE;
+            default -> FieldType.valueOf(name());
+        };
     }
 
-    public Class<? extends BoardFieldValue> valueClass() {
-        return valueClass;
-    }
-
-    public Class<? extends BoardFieldConfig> configClass() {
-        return configClass;
+    /**
+     * The wire spelling of a shared field type.
+     *
+     * @param type a type a board offers
+     * @throws IllegalArgumentException where a board does not offer the type
+     */
+    public static BoardFieldType of(FieldType type) {
+        return type.spelledAs(BoardFieldType.class, BoardFieldType::fieldType);
     }
 }

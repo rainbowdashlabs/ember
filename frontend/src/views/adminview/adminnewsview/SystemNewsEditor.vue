@@ -16,16 +16,16 @@ import ContentBlockEditor from '@/components/content/ContentBlockEditor.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
-import {StationUserType, StationUserTypeLabels, type StationUserTypeName} from '@/api/types'
+import {StationUserType, StationUserTypeLabels} from '@/api/types'
 import {ContentMode, type ContentModeName} from '@/api/news'
 import {INSTANCE_MEDIA_SCOPE} from '@/api/media'
 import {markdownAsSingleBlock} from '@/util/blockSwitch'
-import type {SystemNewsEntry} from '@/api/adminNews'
+import type {StationUserType as StationUserTypeName, SystemNewsResponse} from '@/api/generated/schema'
 import type {RowEditData} from '@/components/content/blockeditor/EditorRow.vue'
 
 const props = defineProps<{
   /** The entry being corrected, or null while a new one is being written. */
-  entry: SystemNewsEntry | null
+  entry: SystemNewsResponse | null
   saving: boolean
 }>()
 
@@ -46,6 +46,10 @@ const {t} = useI18n()
 const title = ref('')
 const contentMarkdown = ref('')
 const userTypes = ref<string[]>([])
+/**
+ * Whether saving notifies people. Off again for every entry opened: people were told when it went
+ * out, and a second notice for a fixed typo is what makes notifications worth ignoring.
+ */
 const notifyMembers = ref(false)
 const contentMode = ref<ContentModeName>(ContentMode.SIMPLE)
 const rows = ref<RowEditData[]>([])
@@ -67,8 +71,6 @@ watch(() => props.entry, entry => {
       config: cell.config as Record<string, unknown>,
     })),
   }))
-  // Correcting an entry does not notify again: people were told when it went out, and telling
-  // them a second time because a typo was fixed is what makes a notification worth ignoring.
   notifyMembers.value = false
 }, {immediate: true})
 
@@ -128,8 +130,6 @@ function label(userType: string): string {
     <div class="space-y-1">
       <FieldLabel>{{ t('adminNews.content') }}</FieldLabel>
       <template v-if="contentMode === ContentMode.RICH">
-        <!-- The instance's own library: a system notice is read in every station, so its pictures
-             cannot come out of one of them. -->
         <ContentBlockEditor
             v-model:rows="rows"
             :station-uid="INSTANCE_MEDIA_SCOPE"

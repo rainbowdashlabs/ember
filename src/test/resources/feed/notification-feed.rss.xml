@@ -1,0 +1,631 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:media="http://search.yahoo.com/mrss/" version="2.0">
+  <channel>
+    <title>Benachrichtigungen</title>
+    <link>https://ember.example.com/station/dashboard/overview?station=00000000-0000-0000-0000-00000000cafe</link>
+    <description>Alles, was passiert ist</description>
+    <language>de</language>
+    <dc:language>de</dc:language>
+    <item>
+      <title>Titel NEW_NEWS</title>
+      <link>https://ember.example.com/deep/news-detail</link>
+      <description>Nachricht &lt;NEW_NEWS&gt; &amp; mehr</description>
+      <content:encoded>&lt;div lang="de" dir="auto" style="font-family:system-ui,Segoe UI,Roboto,sans-serif;font-size:14px;line-height:1.5;color:#1c1c1c;max-width:640px"&gt;&lt;div style="display:inline-block;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:12px;font-weight:600"&gt;Kategorie NEW_NEWS&lt;/div&gt;&lt;h2 style="margin:8px 0 4px;font-size:16px"&gt;Nachricht &amp;lt;NEW_NEWS&amp;gt; &amp;amp; mehr&lt;/h2&gt;&lt;dl style="border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;background:#f9fafb;margin:8px 0"&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Von:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;Anna&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Vorschau:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;Erste&lt;br&gt;Zweite &amp;lt;b&amp;gt;&lt;/dd&gt;&lt;/dl&gt;&lt;p style="margin-top:16px"&gt;&lt;a href="https://ember.example.com/deep/news-detail" style="display:inline-block;padding:12px 16px;background:#3730a3;color:#fff;text-decoration:underline;border-radius:6px;min-height:44px;box-sizing:border-box"&gt;Öffnen&lt;/a&gt;&lt;/p&gt;&lt;/div&gt;</content:encoded>
+      <category>Kategorie NEW_NEWS</category>
+      <category domain="urn:ember:notification-type">NEW_NEWS</category>
+      <pubDate>Tue, 01 Sep 2026 08:15:01 GMT</pubDate>
+      <guid isPermaLink="false">urn:ember:notification:1</guid>
+      <dc:creator>Anna</dc:creator>
+      <dc:date>2026-09-01T08:15:01Z</dc:date>
+    </item>
+    <item>
+      <title>Titel NEWS_COMMENT</title>
+      <link>https://ember.example.com/deep/news-detail</link>
+      <description>Nachricht &lt;NEWS_COMMENT&gt; &amp; mehr</description>
+      <content:encoded>&lt;div lang="de" dir="auto" style="font-family:system-ui,Segoe UI,Roboto,sans-serif;font-size:14px;line-height:1.5;color:#1c1c1c;max-width:640px"&gt;&lt;div style="display:inline-block;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:12px;font-weight:600"&gt;Kategorie NEWS_COMMENT&lt;/div&gt;&lt;h2 style="margin:8px 0 4px;font-size:16px"&gt;Nachricht &amp;lt;NEWS_COMMENT&amp;gt; &amp;amp; mehr&lt;/h2&gt;&lt;dl style="border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;background:#f9fafb;margin:8px 0"&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Von:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;Ben&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;News:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;Dienstplan&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Vorschau:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;Gute Idee&lt;/dd&gt;&lt;/dl&gt;&lt;p style="margin-top:16px"&gt;&lt;a href="https://ember.example.com/deep/news-detail" style="display:inline-block;padding:12px 16px;background:#3730a3;color:#fff;text-decoration:underline;border-radius:6px;min-height:44px;box-sizing:border-box"&gt;Öffnen&lt;/a&gt;&lt;/p&gt;&lt;/div&gt;</content:encoded>
+      <category>Kategorie NEWS_COMMENT</category>
+      <category domain="urn:ember:notification-type">NEWS_COMMENT</category>
+      <pubDate>Tue, 01 Sep 2026 08:15:02 GMT</pubDate>
+      <guid isPermaLink="false">urn:ember:notification:2</guid>
+      <dc:creator>Ben</dc:creator>
+      <dc:date>2026-09-01T08:15:02Z</dc:date>
+    </item>
+    <item>
+      <title>Titel COMMENT_MENTION</title>
+      <link>https://ember.example.com/deep/kb-file</link>
+      <description>Nachricht &lt;COMMENT_MENTION&gt; &amp; mehr</description>
+      <content:encoded>&lt;div lang="de" dir="auto" style="font-family:system-ui,Segoe UI,Roboto,sans-serif;font-size:14px;line-height:1.5;color:#1c1c1c;max-width:640px"&gt;&lt;div style="display:inline-block;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:12px;font-weight:600"&gt;Kategorie COMMENT_MENTION&lt;/div&gt;&lt;h2 style="margin:8px 0 4px;font-size:16px"&gt;Nachricht &amp;lt;COMMENT_MENTION&amp;gt; &amp;amp; mehr&lt;/h2&gt;&lt;dl style="border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;background:#f9fafb;margin:8px 0"&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Von:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;Cleo&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Entity:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;Protokoll&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Vorschau:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;@du schau mal&lt;/dd&gt;&lt;/dl&gt;&lt;p style="margin-top:16px"&gt;&lt;a href="https://ember.example.com/deep/kb-file" style="display:inline-block;padding:12px 16px;background:#3730a3;color:#fff;text-decoration:underline;border-radius:6px;min-height:44px;box-sizing:border-box"&gt;Öffnen&lt;/a&gt;&lt;/p&gt;&lt;/div&gt;</content:encoded>
+      <category>Kategorie COMMENT_MENTION</category>
+      <category domain="urn:ember:notification-type">COMMENT_MENTION</category>
+      <pubDate>Tue, 01 Sep 2026 08:15:03 GMT</pubDate>
+      <guid isPermaLink="false">urn:ember:notification:3</guid>
+      <dc:creator>Cleo</dc:creator>
+      <dc:date>2026-09-01T08:15:03Z</dc:date>
+    </item>
+    <item>
+      <title>Titel NEW_EVENT</title>
+      <link>https://ember.example.com/deep/event-detail</link>
+      <description>Nachricht &lt;NEW_EVENT&gt; &amp; mehr</description>
+      <content:encoded>&lt;div lang="de" dir="auto" style="font-family:system-ui,Segoe UI,Roboto,sans-serif;font-size:14px;line-height:1.5;color:#1c1c1c;max-width:640px"&gt;&lt;div style="display:inline-block;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:12px;font-weight:600"&gt;Kategorie NEW_EVENT&lt;/div&gt;&lt;h2 style="margin:8px 0 4px;font-size:16px"&gt;Nachricht &amp;lt;NEW_EVENT&amp;gt; &amp;amp; mehr&lt;/h2&gt;&lt;dl style="border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;background:#f9fafb;margin:8px 0"&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Beschreibung:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;Konzertprobe&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Wann:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;19.09.2026, 09:00 – 14:00&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Treffpunkt:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;Marktplatz&lt;/dd&gt;&lt;/dl&gt;&lt;p style="margin-top:16px"&gt;&lt;a href="https://ember.example.com/deep/event-detail" style="display:inline-block;padding:12px 16px;background:#3730a3;color:#fff;text-decoration:underline;border-radius:6px;min-height:44px;box-sizing:border-box"&gt;Öffnen&lt;/a&gt;&lt;/p&gt;&lt;/div&gt;</content:encoded>
+      <category>Kategorie NEW_EVENT</category>
+      <category domain="urn:ember:notification-type">NEW_EVENT</category>
+      <pubDate>Tue, 01 Sep 2026 08:15:04 GMT</pubDate>
+      <guid isPermaLink="false">urn:ember:notification:4</guid>
+      <dc:date>2026-09-01T08:15:04Z</dc:date>
+    </item>
+    <item>
+      <title>Titel NEW_EVENTS_BATCH</title>
+      <link>https://ember.example.com/deep/events</link>
+      <description>Nachricht &lt;NEW_EVENTS_BATCH&gt; &amp; mehr</description>
+      <content:encoded>&lt;div lang="de" dir="auto" style="font-family:system-ui,Segoe UI,Roboto,sans-serif;font-size:14px;line-height:1.5;color:#1c1c1c;max-width:640px"&gt;&lt;div style="display:inline-block;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:12px;font-weight:600"&gt;Kategorie NEW_EVENTS_BATCH&lt;/div&gt;&lt;h2 style="margin:8px 0 4px;font-size:16px"&gt;Nachricht &amp;lt;NEW_EVENTS_BATCH&amp;gt; &amp;amp; mehr&lt;/h2&gt;&lt;dl style="border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;background:#f9fafb;margin:8px 0"&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Count:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;3&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;events:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;A, B, C&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Start:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;20.09.2026&lt;/dd&gt;&lt;/dl&gt;&lt;p style="margin-top:16px"&gt;&lt;a href="https://ember.example.com/deep/events" style="display:inline-block;padding:12px 16px;background:#3730a3;color:#fff;text-decoration:underline;border-radius:6px;min-height:44px;box-sizing:border-box"&gt;Öffnen&lt;/a&gt;&lt;/p&gt;&lt;/div&gt;</content:encoded>
+      <category>Kategorie NEW_EVENTS_BATCH</category>
+      <category domain="urn:ember:notification-type">NEW_EVENTS_BATCH</category>
+      <pubDate>Tue, 01 Sep 2026 08:15:05 GMT</pubDate>
+      <guid isPermaLink="false">urn:ember:notification:5</guid>
+      <dc:date>2026-09-01T08:15:05Z</dc:date>
+    </item>
+    <item>
+      <title>Titel EVENT_REGISTRATION_STATUS</title>
+      <link>https://ember.example.com/deep/event-detail</link>
+      <description>Nachricht &lt;EVENT_REGISTRATION_STATUS&gt; &amp; mehr</description>
+      <content:encoded>&lt;div lang="de" dir="auto" style="font-family:system-ui,Segoe UI,Roboto,sans-serif;font-size:14px;line-height:1.5;color:#1c1c1c;max-width:640px"&gt;&lt;div style="display:inline-block;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:12px;font-weight:600"&gt;Kategorie EVENT_REGISTRATION_STATUS&lt;/div&gt;&lt;h2 style="margin:8px 0 4px;font-size:16px"&gt;Nachricht &amp;lt;EVENT_REGISTRATION_STATUS&amp;gt; &amp;amp; mehr&lt;/h2&gt;&lt;dl style="border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;background:#f9fafb;margin:8px 0"&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Member:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;Tim&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Status:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;✓ ACCEPTED&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Termin:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;Probe&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Beschreibung:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;Mit Noten&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Start:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;19.09.26, 18:00&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;End:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;21.09.26, 12:00&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Recurrence:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;Wöchentlich&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Deadline:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;15.09.26, 22:00&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Limit:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;12&lt;/dd&gt;&lt;/dl&gt;&lt;p style="margin-top:16px"&gt;&lt;a href="https://ember.example.com/deep/event-detail" style="display:inline-block;padding:12px 16px;background:#3730a3;color:#fff;text-decoration:underline;border-radius:6px;min-height:44px;box-sizing:border-box"&gt;Öffnen&lt;/a&gt;&lt;/p&gt;&lt;/div&gt;</content:encoded>
+      <category>Kategorie EVENT_REGISTRATION_STATUS</category>
+      <category domain="urn:ember:notification-type">EVENT_REGISTRATION_STATUS</category>
+      <pubDate>Tue, 01 Sep 2026 08:15:06 GMT</pubDate>
+      <guid isPermaLink="false">urn:ember:notification:6</guid>
+      <dc:date>2026-09-01T08:15:06Z</dc:date>
+    </item>
+    <item>
+      <title>Titel EVENT_CANCELLED</title>
+      <link>https://ember.example.com/deep/event-detail</link>
+      <description>Nachricht &lt;EVENT_CANCELLED&gt; &amp; mehr</description>
+      <content:encoded>&lt;div lang="de" dir="auto" style="font-family:system-ui,Segoe UI,Roboto,sans-serif;font-size:14px;line-height:1.5;color:#1c1c1c;max-width:640px"&gt;&lt;div style="display:inline-block;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:12px;font-weight:600"&gt;Kategorie EVENT_CANCELLED&lt;/div&gt;&lt;h2 style="margin:8px 0 4px;font-size:16px"&gt;Nachricht &amp;lt;EVENT_CANCELLED&amp;gt; &amp;amp; mehr&lt;/h2&gt;&lt;dl style="border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;background:#f9fafb;margin:8px 0"&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Termin:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;Probe&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Grund:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;Wetter&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Wann:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;19.09.2026, 09:00 – 14:00&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Treffpunkt:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;Marktplatz&lt;/dd&gt;&lt;/dl&gt;&lt;p style="margin-top:16px"&gt;&lt;a href="https://ember.example.com/deep/event-detail" style="display:inline-block;padding:12px 16px;background:#3730a3;color:#fff;text-decoration:underline;border-radius:6px;min-height:44px;box-sizing:border-box"&gt;Öffnen&lt;/a&gt;&lt;/p&gt;&lt;/div&gt;</content:encoded>
+      <category>Kategorie EVENT_CANCELLED</category>
+      <category domain="urn:ember:notification-type">EVENT_CANCELLED</category>
+      <pubDate>Tue, 01 Sep 2026 08:15:07 GMT</pubDate>
+      <guid isPermaLink="false">urn:ember:notification:7</guid>
+      <dc:date>2026-09-01T08:15:07Z</dc:date>
+    </item>
+    <item>
+      <title>Titel EVENT_REMINDER</title>
+      <link>https://ember.example.com/deep/event-detail</link>
+      <description>Nachricht &lt;EVENT_REMINDER&gt; &amp; mehr</description>
+      <content:encoded>&lt;div lang="de" dir="auto" style="font-family:system-ui,Segoe UI,Roboto,sans-serif;font-size:14px;line-height:1.5;color:#1c1c1c;max-width:640px"&gt;&lt;div style="display:inline-block;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:12px;font-weight:600"&gt;Kategorie EVENT_REMINDER&lt;/div&gt;&lt;h2 style="margin:8px 0 4px;font-size:16px"&gt;Nachricht &amp;lt;EVENT_REMINDER&amp;gt; &amp;amp; mehr&lt;/h2&gt;&lt;dl style="border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;background:#f9fafb;margin:8px 0"&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Termin:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;Probe&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;eventDate:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;19.09.2026&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;daysBefore:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;3&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Start:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;19.09.26, 18:00&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;End:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;21.09.26, 12:00&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Recurrence:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;Wöchentlich&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Deadline:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;15.09.26, 22:00&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Limit:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;12&lt;/dd&gt;&lt;/dl&gt;&lt;p style="margin-top:16px"&gt;&lt;a href="https://ember.example.com/deep/event-detail" style="display:inline-block;padding:12px 16px;background:#3730a3;color:#fff;text-decoration:underline;border-radius:6px;min-height:44px;box-sizing:border-box"&gt;Öffnen&lt;/a&gt;&lt;/p&gt;&lt;/div&gt;</content:encoded>
+      <category>Kategorie EVENT_REMINDER</category>
+      <category domain="urn:ember:notification-type">EVENT_REMINDER</category>
+      <pubDate>Tue, 01 Sep 2026 08:15:08 GMT</pubDate>
+      <guid isPermaLink="false">urn:ember:notification:8</guid>
+      <dc:date>2026-09-01T08:15:08Z</dc:date>
+    </item>
+    <item>
+      <title>Titel REGISTRATION_CLOSING</title>
+      <link>https://ember.example.com/deep/event-detail</link>
+      <description>Nachricht &lt;REGISTRATION_CLOSING&gt; &amp; mehr</description>
+      <content:encoded>&lt;div lang="de" dir="auto" style="font-family:system-ui,Segoe UI,Roboto,sans-serif;font-size:14px;line-height:1.5;color:#1c1c1c;max-width:640px"&gt;&lt;div style="display:inline-block;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:12px;font-weight:600"&gt;Kategorie REGISTRATION_CLOSING&lt;/div&gt;&lt;h2 style="margin:8px 0 4px;font-size:16px"&gt;Nachricht &amp;lt;REGISTRATION_CLOSING&amp;gt; &amp;amp; mehr&lt;/h2&gt;&lt;dl style="border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;background:#f9fafb;margin:8px 0"&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Termin:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;Probe&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Member:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;Tim&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;daysBefore:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;2&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Wann:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;19.09.2026, 09:00 – 14:00&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Treffpunkt:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;Marktplatz&lt;/dd&gt;&lt;/dl&gt;&lt;p style="margin-top:16px"&gt;&lt;a href="https://ember.example.com/deep/event-detail" style="display:inline-block;padding:12px 16px;background:#3730a3;color:#fff;text-decoration:underline;border-radius:6px;min-height:44px;box-sizing:border-box"&gt;Öffnen&lt;/a&gt;&lt;/p&gt;&lt;/div&gt;</content:encoded>
+      <category>Kategorie REGISTRATION_CLOSING</category>
+      <category domain="urn:ember:notification-type">REGISTRATION_CLOSING</category>
+      <pubDate>Tue, 01 Sep 2026 08:15:09 GMT</pubDate>
+      <guid isPermaLink="false">urn:ember:notification:9</guid>
+      <dc:date>2026-09-01T08:15:09Z</dc:date>
+    </item>
+    <item>
+      <title>Titel REGISTRATION_ANSWER_MISSING</title>
+      <link>https://ember.example.com/deep/event-detail</link>
+      <description>Nachricht &lt;REGISTRATION_ANSWER_MISSING&gt; &amp; mehr</description>
+      <content:encoded>&lt;div lang="de" dir="auto" style="font-family:system-ui,Segoe UI,Roboto,sans-serif;font-size:14px;line-height:1.5;color:#1c1c1c;max-width:640px"&gt;&lt;div style="display:inline-block;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:12px;font-weight:600"&gt;Kategorie REGISTRATION_ANSWER_MISSING&lt;/div&gt;&lt;h2 style="margin:8px 0 4px;font-size:16px"&gt;Nachricht &amp;lt;REGISTRATION_ANSWER_MISSING&amp;gt; &amp;amp; mehr&lt;/h2&gt;&lt;dl style="border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;background:#f9fafb;margin:8px 0"&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Termin:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;Probe&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Member:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;Tim&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;eventDate:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;19.09.2026&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Wann:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;19.09.2026, 09:00 – 14:00&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Treffpunkt:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;Marktplatz&lt;/dd&gt;&lt;/dl&gt;&lt;p style="margin-top:16px"&gt;&lt;a href="https://ember.example.com/deep/event-detail" style="display:inline-block;padding:12px 16px;background:#3730a3;color:#fff;text-decoration:underline;border-radius:6px;min-height:44px;box-sizing:border-box"&gt;Öffnen&lt;/a&gt;&lt;/p&gt;&lt;/div&gt;</content:encoded>
+      <category>Kategorie REGISTRATION_ANSWER_MISSING</category>
+      <category domain="urn:ember:notification-type">REGISTRATION_ANSWER_MISSING</category>
+      <pubDate>Tue, 01 Sep 2026 08:15:10 GMT</pubDate>
+      <guid isPermaLink="false">urn:ember:notification:10</guid>
+      <dc:date>2026-09-01T08:15:10Z</dc:date>
+    </item>
+    <item>
+      <title>Titel EVENT_DATE_DROPPED</title>
+      <link>https://ember.example.com/deep/event-detail</link>
+      <description>Nachricht &lt;EVENT_DATE_DROPPED&gt; &amp; mehr</description>
+      <content:encoded>&lt;div lang="de" dir="auto" style="font-family:system-ui,Segoe UI,Roboto,sans-serif;font-size:14px;line-height:1.5;color:#1c1c1c;max-width:640px"&gt;&lt;div style="display:inline-block;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:12px;font-weight:600"&gt;Kategorie EVENT_DATE_DROPPED&lt;/div&gt;&lt;h2 style="margin:8px 0 4px;font-size:16px"&gt;Nachricht &amp;lt;EVENT_DATE_DROPPED&amp;gt; &amp;amp; mehr&lt;/h2&gt;&lt;dl style="border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;background:#f9fafb;margin:8px 0"&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Termin:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;Probe&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Member:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;Tim&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;eventDate:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;19.09.2026&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Next date:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;26.09.2026&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Start:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;19.09.26, 18:00&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;End:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;21.09.26, 12:00&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Recurrence:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;Wöchentlich&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Deadline:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;15.09.26, 22:00&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Limit:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;12&lt;/dd&gt;&lt;/dl&gt;&lt;p style="margin-top:16px"&gt;&lt;a href="https://ember.example.com/deep/event-detail" style="display:inline-block;padding:12px 16px;background:#3730a3;color:#fff;text-decoration:underline;border-radius:6px;min-height:44px;box-sizing:border-box"&gt;Öffnen&lt;/a&gt;&lt;/p&gt;&lt;/div&gt;</content:encoded>
+      <category>Kategorie EVENT_DATE_DROPPED</category>
+      <category domain="urn:ember:notification-type">EVENT_DATE_DROPPED</category>
+      <pubDate>Tue, 01 Sep 2026 08:15:11 GMT</pubDate>
+      <guid isPermaLink="false">urn:ember:notification:11</guid>
+      <dc:date>2026-09-01T08:15:11Z</dc:date>
+    </item>
+    <item>
+      <title>Titel EVENT_MOVED</title>
+      <link>https://ember.example.com/deep/event-detail</link>
+      <description>Nachricht &lt;EVENT_MOVED&gt; &amp; mehr</description>
+      <content:encoded>&lt;div lang="de" dir="auto" style="font-family:system-ui,Segoe UI,Roboto,sans-serif;font-size:14px;line-height:1.5;color:#1c1c1c;max-width:640px"&gt;&lt;div style="display:inline-block;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:12px;font-weight:600"&gt;Kategorie EVENT_MOVED&lt;/div&gt;&lt;h2 style="margin:8px 0 4px;font-size:16px"&gt;Nachricht &amp;lt;EVENT_MOVED&amp;gt; &amp;amp; mehr&lt;/h2&gt;&lt;dl style="border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;background:#f9fafb;margin:8px 0"&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Termin:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;Probe&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Member:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;Tim&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;eventDate:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;19.09.2026&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Wann:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;19.09.2026, 09:00 – 14:00&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Treffpunkt:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;Marktplatz&lt;/dd&gt;&lt;/dl&gt;&lt;p style="margin-top:16px"&gt;&lt;a href="https://ember.example.com/deep/event-detail" style="display:inline-block;padding:12px 16px;background:#3730a3;color:#fff;text-decoration:underline;border-radius:6px;min-height:44px;box-sizing:border-box"&gt;Öffnen&lt;/a&gt;&lt;/p&gt;&lt;/div&gt;</content:encoded>
+      <category>Kategorie EVENT_MOVED</category>
+      <category domain="urn:ember:notification-type">EVENT_MOVED</category>
+      <pubDate>Tue, 01 Sep 2026 08:15:12 GMT</pubDate>
+      <guid isPermaLink="false">urn:ember:notification:12</guid>
+      <dc:date>2026-09-01T08:15:12Z</dc:date>
+    </item>
+    <item>
+      <title>Titel EXPIRY_REMINDER</title>
+      <link>https://ember.example.com/deep/member-detail</link>
+      <description>Nachricht &lt;EXPIRY_REMINDER&gt; &amp; mehr</description>
+      <content:encoded>&lt;div lang="de" dir="auto" style="font-family:system-ui,Segoe UI,Roboto,sans-serif;font-size:14px;line-height:1.5;color:#1c1c1c;max-width:640px"&gt;&lt;div style="display:inline-block;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:12px;font-weight:600"&gt;Kategorie EXPIRY_REMINDER&lt;/div&gt;&lt;h2 style="margin:8px 0 4px;font-size:16px"&gt;Nachricht &amp;lt;EXPIRY_REMINDER&amp;gt; &amp;amp; mehr&lt;/h2&gt;&lt;dl style="border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;background:#f9fafb;margin:8px 0"&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Field:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;Führerschein&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Member:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;Tim&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Valid until:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;31.12.2026&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Members:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;Tim, Ben&lt;/dd&gt;&lt;/dl&gt;&lt;p style="margin-top:16px"&gt;&lt;a href="https://ember.example.com/deep/member-detail" style="display:inline-block;padding:12px 16px;background:#3730a3;color:#fff;text-decoration:underline;border-radius:6px;min-height:44px;box-sizing:border-box"&gt;Öffnen&lt;/a&gt;&lt;/p&gt;&lt;/div&gt;</content:encoded>
+      <category>Kategorie EXPIRY_REMINDER</category>
+      <category domain="urn:ember:notification-type">EXPIRY_REMINDER</category>
+      <pubDate>Tue, 01 Sep 2026 08:15:13 GMT</pubDate>
+      <guid isPermaLink="false">urn:ember:notification:13</guid>
+      <dc:date>2026-09-01T08:15:13Z</dc:date>
+    </item>
+    <item>
+      <title>Titel MOVEMENT_RAISED</title>
+      <link>https://ember.example.com/deep/inventory</link>
+      <description>Nachricht &lt;MOVEMENT_RAISED&gt; &amp; mehr</description>
+      <content:encoded>&lt;div lang="de" dir="auto" style="font-family:system-ui,Segoe UI,Roboto,sans-serif;font-size:14px;line-height:1.5;color:#1c1c1c;max-width:640px"&gt;&lt;div style="display:inline-block;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:12px;font-weight:600"&gt;Kategorie MOVEMENT_RAISED&lt;/div&gt;&lt;h2 style="margin:8px 0 4px;font-size:16px"&gt;Nachricht &amp;lt;MOVEMENT_RAISED&amp;gt; &amp;amp; mehr&lt;/h2&gt;&lt;dl style="border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;background:#f9fafb;margin:8px 0"&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Von:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;Tim&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Inventory:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;Schlauch 25m&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Grund:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;Kaputt&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Type:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;INTERNAL&lt;/dd&gt;&lt;/dl&gt;&lt;p style="margin-top:16px"&gt;&lt;a href="https://ember.example.com/deep/inventory" style="display:inline-block;padding:12px 16px;background:#3730a3;color:#fff;text-decoration:underline;border-radius:6px;min-height:44px;box-sizing:border-box"&gt;Öffnen&lt;/a&gt;&lt;/p&gt;&lt;/div&gt;</content:encoded>
+      <category>Kategorie MOVEMENT_RAISED</category>
+      <category domain="urn:ember:notification-type">MOVEMENT_RAISED</category>
+      <pubDate>Tue, 01 Sep 2026 08:15:14 GMT</pubDate>
+      <guid isPermaLink="false">urn:ember:notification:14</guid>
+      <dc:creator>Tim</dc:creator>
+      <dc:date>2026-09-01T08:15:14Z</dc:date>
+    </item>
+    <item>
+      <title>Titel MOVEMENT_ADVANCED</title>
+      <link>https://ember.example.com/deep/inventory</link>
+      <description>Nachricht &lt;MOVEMENT_ADVANCED&gt; &amp; mehr</description>
+      <content:encoded>&lt;div lang="de" dir="auto" style="font-family:system-ui,Segoe UI,Roboto,sans-serif;font-size:14px;line-height:1.5;color:#1c1c1c;max-width:640px"&gt;&lt;div style="display:inline-block;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:12px;font-weight:600"&gt;Kategorie MOVEMENT_ADVANCED&lt;/div&gt;&lt;h2 style="margin:8px 0 4px;font-size:16px"&gt;Nachricht &amp;lt;MOVEMENT_ADVANCED&amp;gt; &amp;amp; mehr&lt;/h2&gt;&lt;dl style="border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;background:#f9fafb;margin:8px 0"&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Status:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;Ausgegeben&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Inventory:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;Schlauch 25m&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Type:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;INTERNAL&lt;/dd&gt;&lt;/dl&gt;&lt;p style="margin-top:16px"&gt;&lt;a href="https://ember.example.com/deep/inventory" style="display:inline-block;padding:12px 16px;background:#3730a3;color:#fff;text-decoration:underline;border-radius:6px;min-height:44px;box-sizing:border-box"&gt;Öffnen&lt;/a&gt;&lt;/p&gt;&lt;/div&gt;</content:encoded>
+      <category>Kategorie MOVEMENT_ADVANCED</category>
+      <category domain="urn:ember:notification-type">MOVEMENT_ADVANCED</category>
+      <pubDate>Tue, 01 Sep 2026 08:15:15 GMT</pubDate>
+      <guid isPermaLink="false">urn:ember:notification:15</guid>
+      <dc:date>2026-09-01T08:15:15Z</dc:date>
+    </item>
+    <item>
+      <title>Titel MOVEMENT_DECLINED</title>
+      <link>https://ember.example.com/deep/inventory</link>
+      <description>Nachricht &lt;MOVEMENT_DECLINED&gt; &amp; mehr</description>
+      <content:encoded>&lt;div lang="de" dir="auto" style="font-family:system-ui,Segoe UI,Roboto,sans-serif;font-size:14px;line-height:1.5;color:#1c1c1c;max-width:640px"&gt;&lt;div style="display:inline-block;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:12px;font-weight:600"&gt;Kategorie MOVEMENT_DECLINED&lt;/div&gt;&lt;h2 style="margin:8px 0 4px;font-size:16px"&gt;Nachricht &amp;lt;MOVEMENT_DECLINED&amp;gt; &amp;amp; mehr&lt;/h2&gt;&lt;p style="margin-top:16px"&gt;&lt;a href="https://ember.example.com/deep/inventory" style="display:inline-block;padding:12px 16px;background:#3730a3;color:#fff;text-decoration:underline;border-radius:6px;min-height:44px;box-sizing:border-box"&gt;Öffnen&lt;/a&gt;&lt;/p&gt;&lt;/div&gt;</content:encoded>
+      <category>Kategorie MOVEMENT_DECLINED</category>
+      <category domain="urn:ember:notification-type">MOVEMENT_DECLINED</category>
+      <pubDate>Tue, 01 Sep 2026 08:15:16 GMT</pubDate>
+      <guid isPermaLink="false">urn:ember:notification:16</guid>
+      <dc:date>2026-09-01T08:15:16Z</dc:date>
+    </item>
+    <item>
+      <title>Titel MOVEMENT_CANCELLED</title>
+      <link>https://ember.example.com/deep/inventory</link>
+      <description>Nachricht &lt;MOVEMENT_CANCELLED&gt; &amp; mehr</description>
+      <content:encoded>&lt;div lang="de" dir="auto" style="font-family:system-ui,Segoe UI,Roboto,sans-serif;font-size:14px;line-height:1.5;color:#1c1c1c;max-width:640px"&gt;&lt;div style="display:inline-block;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:12px;font-weight:600"&gt;Kategorie MOVEMENT_CANCELLED&lt;/div&gt;&lt;h2 style="margin:8px 0 4px;font-size:16px"&gt;Nachricht &amp;lt;MOVEMENT_CANCELLED&amp;gt; &amp;amp; mehr&lt;/h2&gt;&lt;p style="margin-top:16px"&gt;&lt;a href="https://ember.example.com/deep/inventory" style="display:inline-block;padding:12px 16px;background:#3730a3;color:#fff;text-decoration:underline;border-radius:6px;min-height:44px;box-sizing:border-box"&gt;Öffnen&lt;/a&gt;&lt;/p&gt;&lt;/div&gt;</content:encoded>
+      <category>Kategorie MOVEMENT_CANCELLED</category>
+      <category domain="urn:ember:notification-type">MOVEMENT_CANCELLED</category>
+      <pubDate>Tue, 01 Sep 2026 08:15:17 GMT</pubDate>
+      <guid isPermaLink="false">urn:ember:notification:17</guid>
+      <dc:date>2026-09-01T08:15:17Z</dc:date>
+    </item>
+    <item>
+      <title>Titel LOST_AND_FOUND_NEW</title>
+      <link>https://ember.example.com/deep/lost-and-found</link>
+      <description>Nachricht &lt;LOST_AND_FOUND_NEW&gt; &amp; mehr</description>
+      <content:encoded>&lt;div lang="de" dir="auto" style="font-family:system-ui,Segoe UI,Roboto,sans-serif;font-size:14px;line-height:1.5;color:#1c1c1c;max-width:640px"&gt;&lt;div style="display:inline-block;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:12px;font-weight:600"&gt;Kategorie LOST_AND_FOUND_NEW&lt;/div&gt;&lt;h2 style="margin:8px 0 4px;font-size:16px"&gt;Nachricht &amp;lt;LOST_AND_FOUND_NEW&amp;gt; &amp;amp; mehr&lt;/h2&gt;&lt;dl style="border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;background:#f9fafb;margin:8px 0"&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Beschreibung:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;Blaue Jacke &amp;quot;groß&amp;quot;&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Found on:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;12.06.2026&lt;/dd&gt;&lt;/dl&gt;&lt;img src="https://ember.example.com/api/v1/public/feed/TOKEN/lost-and-found/17/image" alt="Blaue Jacke &amp;quot;groß&amp;quot;" style="margin-top:8px;max-width:100%;border-radius:8px"&gt;&lt;p style="margin-top:16px"&gt;&lt;a href="https://ember.example.com/deep/lost-and-found" style="display:inline-block;padding:12px 16px;background:#3730a3;color:#fff;text-decoration:underline;border-radius:6px;min-height:44px;box-sizing:border-box"&gt;Öffnen&lt;/a&gt;&lt;/p&gt;&lt;/div&gt;</content:encoded>
+      <category>Kategorie LOST_AND_FOUND_NEW</category>
+      <category domain="urn:ember:notification-type">LOST_AND_FOUND_NEW</category>
+      <guid isPermaLink="false">urn:ember:notification:18</guid>
+      <media:content medium="image" url="https://ember.example.com/api/v1/public/feed/TOKEN/lost-and-found/17/image" />
+    </item>
+    <item>
+      <title>Titel LOST_AND_FOUND_CLAIMED</title>
+      <link>https://ember.example.com/deep/lost-and-found</link>
+      <description>Nachricht &lt;LOST_AND_FOUND_CLAIMED&gt; &amp; mehr</description>
+      <content:encoded>&lt;div lang="de" dir="auto" style="font-family:system-ui,Segoe UI,Roboto,sans-serif;font-size:14px;line-height:1.5;color:#1c1c1c;max-width:640px"&gt;&lt;div style="display:inline-block;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:12px;font-weight:600"&gt;Kategorie LOST_AND_FOUND_CLAIMED&lt;/div&gt;&lt;h2 style="margin:8px 0 4px;font-size:16px"&gt;Nachricht &amp;lt;LOST_AND_FOUND_CLAIMED&amp;gt; &amp;amp; mehr&lt;/h2&gt;&lt;dl style="border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;background:#f9fafb;margin:8px 0"&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Von:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;Frieda&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Beschreibung:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;Blaue Jacke&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Found on:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;12.06.2026&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Claimed on:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;14.06.26, 12:30&lt;/dd&gt;&lt;/dl&gt;&lt;img src="https://ember.example.com/api/v1/public/feed/TOKEN/lost-and-found/17/image" alt="Blaue Jacke" style="margin-top:8px;max-width:100%;border-radius:8px"&gt;&lt;p style="margin-top:16px"&gt;&lt;a href="https://ember.example.com/deep/lost-and-found" style="display:inline-block;padding:12px 16px;background:#3730a3;color:#fff;text-decoration:underline;border-radius:6px;min-height:44px;box-sizing:border-box"&gt;Öffnen&lt;/a&gt;&lt;/p&gt;&lt;/div&gt;</content:encoded>
+      <category>Kategorie LOST_AND_FOUND_CLAIMED</category>
+      <category domain="urn:ember:notification-type">LOST_AND_FOUND_CLAIMED</category>
+      <guid isPermaLink="false">urn:ember:notification:19</guid>
+      <media:content medium="image" url="https://ember.example.com/api/v1/public/feed/TOKEN/lost-and-found/17/image" />
+    </item>
+    <item>
+      <title>Titel LENDING_NEW_REQUEST</title>
+      <link>https://ember.example.com/deep/lending-request</link>
+      <description>Nachricht &lt;LENDING_NEW_REQUEST&gt; &amp; mehr</description>
+      <content:encoded>&lt;div lang="de" dir="auto" style="font-family:system-ui,Segoe UI,Roboto,sans-serif;font-size:14px;line-height:1.5;color:#1c1c1c;max-width:640px"&gt;&lt;div style="display:inline-block;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:12px;font-weight:600"&gt;Kategorie LENDING_NEW_REQUEST&lt;/div&gt;&lt;h2 style="margin:8px 0 4px;font-size:16px"&gt;Nachricht &amp;lt;LENDING_NEW_REQUEST&amp;gt; &amp;amp; mehr&lt;/h2&gt;&lt;dl style="border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;background:#f9fafb;margin:8px 0"&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Station:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;FF Süd&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;itemSummary:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;2 Funkgeräte&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Needed:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;05.10.2026 – 07.10.2026&lt;/dd&gt;&lt;/dl&gt;&lt;p style="margin-top:16px"&gt;&lt;a href="https://ember.example.com/deep/lending-request" style="display:inline-block;padding:12px 16px;background:#3730a3;color:#fff;text-decoration:underline;border-radius:6px;min-height:44px;box-sizing:border-box"&gt;Öffnen&lt;/a&gt;&lt;/p&gt;&lt;/div&gt;</content:encoded>
+      <category>Kategorie LENDING_NEW_REQUEST</category>
+      <category domain="urn:ember:notification-type">LENDING_NEW_REQUEST</category>
+      <pubDate>Tue, 01 Sep 2026 08:15:20 GMT</pubDate>
+      <guid isPermaLink="false">urn:ember:notification:20</guid>
+      <dc:date>2026-09-01T08:15:20Z</dc:date>
+    </item>
+    <item>
+      <title>Titel LENDING_STATUS_CHANGE</title>
+      <link>https://ember.example.com/deep/lending-request</link>
+      <description>Nachricht &lt;LENDING_STATUS_CHANGE&gt; &amp; mehr</description>
+      <content:encoded>&lt;div lang="de" dir="auto" style="font-family:system-ui,Segoe UI,Roboto,sans-serif;font-size:14px;line-height:1.5;color:#1c1c1c;max-width:640px"&gt;&lt;div style="display:inline-block;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:12px;font-weight:600"&gt;Kategorie LENDING_STATUS_CHANGE&lt;/div&gt;&lt;h2 style="margin:8px 0 4px;font-size:16px"&gt;Nachricht &amp;lt;LENDING_STATUS_CHANGE&amp;gt; &amp;amp; mehr&lt;/h2&gt;&lt;dl style="border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;background:#f9fafb;margin:8px 0"&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Status:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;✓ APPROVED&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Station:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;FF Süd&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Needed:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;05.10.2026 – 07.10.2026&lt;/dd&gt;&lt;/dl&gt;&lt;p style="margin-top:16px"&gt;&lt;a href="https://ember.example.com/deep/lending-request" style="display:inline-block;padding:12px 16px;background:#3730a3;color:#fff;text-decoration:underline;border-radius:6px;min-height:44px;box-sizing:border-box"&gt;Öffnen&lt;/a&gt;&lt;/p&gt;&lt;/div&gt;</content:encoded>
+      <category>Kategorie LENDING_STATUS_CHANGE</category>
+      <category domain="urn:ember:notification-type">LENDING_STATUS_CHANGE</category>
+      <pubDate>Tue, 01 Sep 2026 08:15:21 GMT</pubDate>
+      <guid isPermaLink="false">urn:ember:notification:21</guid>
+      <dc:date>2026-09-01T08:15:21Z</dc:date>
+    </item>
+    <item>
+      <title>Titel LENDING_NEW_MESSAGE</title>
+      <link>https://ember.example.com/deep/lending-request</link>
+      <description>Nachricht &lt;LENDING_NEW_MESSAGE&gt; &amp; mehr</description>
+      <content:encoded>&lt;div lang="de" dir="auto" style="font-family:system-ui,Segoe UI,Roboto,sans-serif;font-size:14px;line-height:1.5;color:#1c1c1c;max-width:640px"&gt;&lt;div style="display:inline-block;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:12px;font-weight:600"&gt;Kategorie LENDING_NEW_MESSAGE&lt;/div&gt;&lt;h2 style="margin:8px 0 4px;font-size:16px"&gt;Nachricht &amp;lt;LENDING_NEW_MESSAGE&amp;gt; &amp;amp; mehr&lt;/h2&gt;&lt;dl style="border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;background:#f9fafb;margin:8px 0"&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Von:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;Dora&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Station:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;FF Süd&lt;/dd&gt;&lt;/dl&gt;&lt;p style="margin-top:16px"&gt;&lt;a href="https://ember.example.com/deep/lending-request" style="display:inline-block;padding:12px 16px;background:#3730a3;color:#fff;text-decoration:underline;border-radius:6px;min-height:44px;box-sizing:border-box"&gt;Öffnen&lt;/a&gt;&lt;/p&gt;&lt;/div&gt;</content:encoded>
+      <category>Kategorie LENDING_NEW_MESSAGE</category>
+      <category domain="urn:ember:notification-type">LENDING_NEW_MESSAGE</category>
+      <pubDate>Tue, 01 Sep 2026 08:15:22 GMT</pubDate>
+      <guid isPermaLink="false">urn:ember:notification:22</guid>
+      <dc:creator>Dora</dc:creator>
+      <dc:date>2026-09-01T08:15:22Z</dc:date>
+    </item>
+    <item>
+      <title>Titel BOARD_TICKET_UPDATE</title>
+      <link>https://ember.example.com/deep/ticket-detail</link>
+      <description>Nachricht &lt;BOARD_TICKET_UPDATE&gt; &amp; mehr</description>
+      <content:encoded>&lt;div lang="de" dir="auto" style="font-family:system-ui,Segoe UI,Roboto,sans-serif;font-size:14px;line-height:1.5;color:#1c1c1c;max-width:640px"&gt;&lt;div style="display:inline-block;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:12px;font-weight:600"&gt;Kategorie BOARD_TICKET_UPDATE&lt;/div&gt;&lt;h2 style="margin:8px 0 4px;font-size:16px"&gt;Nachricht &amp;lt;BOARD_TICKET_UPDATE&amp;gt; &amp;amp; mehr&lt;/h2&gt;&lt;dl style="border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;background:#f9fafb;margin:8px 0"&gt;&lt;dt style="color:#6b7280;display:inline"&gt;ticketKey:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;VOR-42&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;board:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;Vorstand&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Change:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;nach Erledigt&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Title:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;Neue Helme bestellen&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Assignee:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;Alice Müller&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Priority:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;HIGH&lt;/dd&gt;&lt;/dl&gt;&lt;p style="margin-top:16px"&gt;&lt;a href="https://ember.example.com/deep/ticket-detail" style="display:inline-block;padding:12px 16px;background:#3730a3;color:#fff;text-decoration:underline;border-radius:6px;min-height:44px;box-sizing:border-box"&gt;Öffnen&lt;/a&gt;&lt;/p&gt;&lt;/div&gt;</content:encoded>
+      <category>Kategorie BOARD_TICKET_UPDATE</category>
+      <category domain="urn:ember:notification-type">BOARD_TICKET_UPDATE</category>
+      <pubDate>Tue, 01 Sep 2026 08:15:23 GMT</pubDate>
+      <guid isPermaLink="false">urn:ember:notification:23</guid>
+      <dc:date>2026-09-01T08:15:23Z</dc:date>
+    </item>
+    <item>
+      <title>Titel STORAGE_WARNING</title>
+      <link>https://ember.example.com/deep/station-settings</link>
+      <description>Nachricht &lt;STORAGE_WARNING&gt; &amp; mehr</description>
+      <content:encoded>&lt;div lang="de" dir="auto" style="font-family:system-ui,Segoe UI,Roboto,sans-serif;font-size:14px;line-height:1.5;color:#1c1c1c;max-width:640px"&gt;&lt;div style="display:inline-block;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:12px;font-weight:600"&gt;Kategorie STORAGE_WARNING&lt;/div&gt;&lt;h2 style="margin:8px 0 4px;font-size:16px"&gt;Nachricht &amp;lt;STORAGE_WARNING&amp;gt; &amp;amp; mehr&lt;/h2&gt;&lt;dl style="border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;background:#f9fafb;margin:8px 0"&gt;&lt;dt style="color:#6b7280;display:inline"&gt;usedPercent:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;91%&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;used:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;9.1 GiB&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;quota:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;10 GiB&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Largest categories:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;• KB_FILES: 5.0 GiB&lt;br&gt;• IMAGE_AVATAR: 480.0 MiB&lt;/dd&gt;&lt;/dl&gt;&lt;p style="margin-top:16px"&gt;&lt;a href="https://ember.example.com/deep/station-settings" style="display:inline-block;padding:12px 16px;background:#3730a3;color:#fff;text-decoration:underline;border-radius:6px;min-height:44px;box-sizing:border-box"&gt;Öffnen&lt;/a&gt;&lt;/p&gt;&lt;/div&gt;</content:encoded>
+      <category>Kategorie STORAGE_WARNING</category>
+      <category domain="urn:ember:notification-type">STORAGE_WARNING</category>
+      <pubDate>Tue, 01 Sep 2026 08:15:24 GMT</pubDate>
+      <guid isPermaLink="false">urn:ember:notification:24</guid>
+      <dc:date>2026-09-01T08:15:24Z</dc:date>
+    </item>
+    <item>
+      <title>Titel REGISTRATION_DEADLINE_EXPIRED</title>
+      <link>https://ember.example.com/deep/event-detail</link>
+      <description>Nachricht &lt;REGISTRATION_DEADLINE_EXPIRED&gt; &amp; mehr</description>
+      <content:encoded>&lt;div lang="de" dir="auto" style="font-family:system-ui,Segoe UI,Roboto,sans-serif;font-size:14px;line-height:1.5;color:#1c1c1c;max-width:640px"&gt;&lt;div style="display:inline-block;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:12px;font-weight:600"&gt;Kategorie REGISTRATION_DEADLINE_EXPIRED&lt;/div&gt;&lt;h2 style="margin:8px 0 4px;font-size:16px"&gt;Nachricht &amp;lt;REGISTRATION_DEADLINE_EXPIRED&amp;gt; &amp;amp; mehr&lt;/h2&gt;&lt;dl style="border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;background:#f9fafb;margin:8px 0"&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Termin:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;Probe&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;pendingCount:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;4&lt;/dd&gt;&lt;/dl&gt;&lt;p style="margin-top:16px"&gt;&lt;a href="https://ember.example.com/deep/event-detail" style="display:inline-block;padding:12px 16px;background:#3730a3;color:#fff;text-decoration:underline;border-radius:6px;min-height:44px;box-sizing:border-box"&gt;Öffnen&lt;/a&gt;&lt;/p&gt;&lt;/div&gt;</content:encoded>
+      <category>Kategorie REGISTRATION_DEADLINE_EXPIRED</category>
+      <category domain="urn:ember:notification-type">REGISTRATION_DEADLINE_EXPIRED</category>
+      <pubDate>Tue, 01 Sep 2026 08:15:25 GMT</pubDate>
+      <guid isPermaLink="false">urn:ember:notification:25</guid>
+      <dc:date>2026-09-01T08:15:25Z</dc:date>
+    </item>
+    <item>
+      <title>Titel WAITLIST_NEW_ENTRY</title>
+      <link>https://ember.example.com/deep/waitlist</link>
+      <description>Nachricht &lt;WAITLIST_NEW_ENTRY&gt; &amp; mehr</description>
+      <content:encoded>&lt;div lang="de" dir="auto" style="font-family:system-ui,Segoe UI,Roboto,sans-serif;font-size:14px;line-height:1.5;color:#1c1c1c;max-width:640px"&gt;&lt;div style="display:inline-block;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:12px;font-weight:600"&gt;Kategorie WAITLIST_NEW_ENTRY&lt;/div&gt;&lt;h2 style="margin:8px 0 4px;font-size:16px"&gt;Nachricht &amp;lt;WAITLIST_NEW_ENTRY&amp;gt; &amp;amp; mehr&lt;/h2&gt;&lt;dl style="border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;background:#f9fafb;margin:8px 0"&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Child:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;Emil&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;List:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;Jugend&lt;/dd&gt;&lt;/dl&gt;&lt;p style="margin-top:16px"&gt;&lt;a href="https://ember.example.com/deep/waitlist" style="display:inline-block;padding:12px 16px;background:#3730a3;color:#fff;text-decoration:underline;border-radius:6px;min-height:44px;box-sizing:border-box"&gt;Öffnen&lt;/a&gt;&lt;/p&gt;&lt;/div&gt;</content:encoded>
+      <category>Kategorie WAITLIST_NEW_ENTRY</category>
+      <category domain="urn:ember:notification-type">WAITLIST_NEW_ENTRY</category>
+      <pubDate>Tue, 01 Sep 2026 08:15:26 GMT</pubDate>
+      <guid isPermaLink="false">urn:ember:notification:26</guid>
+      <dc:date>2026-09-01T08:15:26Z</dc:date>
+    </item>
+    <item>
+      <title>Titel WAITLIST_PUBLIC_REGISTRATION</title>
+      <link>https://ember.example.com/deep/waitlist</link>
+      <description>Nachricht &lt;WAITLIST_PUBLIC_REGISTRATION&gt; &amp; mehr</description>
+      <content:encoded>&lt;div lang="de" dir="auto" style="font-family:system-ui,Segoe UI,Roboto,sans-serif;font-size:14px;line-height:1.5;color:#1c1c1c;max-width:640px"&gt;&lt;div style="display:inline-block;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:12px;font-weight:600"&gt;Kategorie WAITLIST_PUBLIC_REGISTRATION&lt;/div&gt;&lt;h2 style="margin:8px 0 4px;font-size:16px"&gt;Nachricht &amp;lt;WAITLIST_PUBLIC_REGISTRATION&amp;gt; &amp;amp; mehr&lt;/h2&gt;&lt;dl style="border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;background:#f9fafb;margin:8px 0"&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Child:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;Emil&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;List:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;Jugend&lt;/dd&gt;&lt;/dl&gt;&lt;p style="margin-top:16px"&gt;&lt;a href="https://ember.example.com/deep/waitlist" style="display:inline-block;padding:12px 16px;background:#3730a3;color:#fff;text-decoration:underline;border-radius:6px;min-height:44px;box-sizing:border-box"&gt;Öffnen&lt;/a&gt;&lt;/p&gt;&lt;/div&gt;</content:encoded>
+      <category>Kategorie WAITLIST_PUBLIC_REGISTRATION</category>
+      <category domain="urn:ember:notification-type">WAITLIST_PUBLIC_REGISTRATION</category>
+      <pubDate>Tue, 01 Sep 2026 08:15:27 GMT</pubDate>
+      <guid isPermaLink="false">urn:ember:notification:27</guid>
+      <dc:date>2026-09-01T08:15:27Z</dc:date>
+    </item>
+    <item>
+      <title>Titel WAITLIST_INVITATION_ANSWERED</title>
+      <link>https://ember.example.com/deep/waitlist</link>
+      <description>Nachricht &lt;WAITLIST_INVITATION_ANSWERED&gt; &amp; mehr</description>
+      <content:encoded>&lt;div lang="de" dir="auto" style="font-family:system-ui,Segoe UI,Roboto,sans-serif;font-size:14px;line-height:1.5;color:#1c1c1c;max-width:640px"&gt;&lt;div style="display:inline-block;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:12px;font-weight:600"&gt;Kategorie WAITLIST_INVITATION_ANSWERED&lt;/div&gt;&lt;h2 style="margin:8px 0 4px;font-size:16px"&gt;Nachricht &amp;lt;WAITLIST_INVITATION_ANSWERED&amp;gt; &amp;amp; mehr&lt;/h2&gt;&lt;p style="margin-top:16px"&gt;&lt;a href="https://ember.example.com/deep/waitlist" style="display:inline-block;padding:12px 16px;background:#3730a3;color:#fff;text-decoration:underline;border-radius:6px;min-height:44px;box-sizing:border-box"&gt;Öffnen&lt;/a&gt;&lt;/p&gt;&lt;/div&gt;</content:encoded>
+      <category>Kategorie WAITLIST_INVITATION_ANSWERED</category>
+      <category domain="urn:ember:notification-type">WAITLIST_INVITATION_ANSWERED</category>
+      <pubDate>Tue, 01 Sep 2026 08:15:28 GMT</pubDate>
+      <guid isPermaLink="false">urn:ember:notification:28</guid>
+      <dc:date>2026-09-01T08:15:28Z</dc:date>
+    </item>
+    <item>
+      <title>Titel MEMBER_ADDED_TO_GROUP</title>
+      <link>https://ember.example.com/deep/groups</link>
+      <description>Nachricht &lt;MEMBER_ADDED_TO_GROUP&gt; &amp; mehr</description>
+      <content:encoded>&lt;div lang="de" dir="auto" style="font-family:system-ui,Segoe UI,Roboto,sans-serif;font-size:14px;line-height:1.5;color:#1c1c1c;max-width:640px"&gt;&lt;div style="display:inline-block;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:12px;font-weight:600"&gt;Kategorie MEMBER_ADDED_TO_GROUP&lt;/div&gt;&lt;h2 style="margin:8px 0 4px;font-size:16px"&gt;Nachricht &amp;lt;MEMBER_ADDED_TO_GROUP&amp;gt; &amp;amp; mehr&lt;/h2&gt;&lt;dl style="border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;background:#f9fafb;margin:8px 0"&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Group:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;Atemschutz&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Von:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;Fritz&lt;/dd&gt;&lt;/dl&gt;&lt;p style="margin-top:16px"&gt;&lt;a href="https://ember.example.com/deep/groups" style="display:inline-block;padding:12px 16px;background:#3730a3;color:#fff;text-decoration:underline;border-radius:6px;min-height:44px;box-sizing:border-box"&gt;Öffnen&lt;/a&gt;&lt;/p&gt;&lt;/div&gt;</content:encoded>
+      <category>Kategorie MEMBER_ADDED_TO_GROUP</category>
+      <category domain="urn:ember:notification-type">MEMBER_ADDED_TO_GROUP</category>
+      <pubDate>Tue, 01 Sep 2026 08:15:29 GMT</pubDate>
+      <guid isPermaLink="false">urn:ember:notification:29</guid>
+      <dc:date>2026-09-01T08:15:29Z</dc:date>
+    </item>
+    <item>
+      <title>Titel PROFILE_FIELD_CHANGED</title>
+      <link>https://ember.example.com/deep/member-detail</link>
+      <description>Nachricht &lt;PROFILE_FIELD_CHANGED&gt; &amp; mehr</description>
+      <content:encoded>&lt;div lang="de" dir="auto" style="font-family:system-ui,Segoe UI,Roboto,sans-serif;font-size:14px;line-height:1.5;color:#1c1c1c;max-width:640px"&gt;&lt;div style="display:inline-block;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:12px;font-weight:600"&gt;Kategorie PROFILE_FIELD_CHANGED&lt;/div&gt;&lt;h2 style="margin:8px 0 4px;font-size:16px"&gt;Nachricht &amp;lt;PROFILE_FIELD_CHANGED&amp;gt; &amp;amp; mehr&lt;/h2&gt;&lt;dl style="border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;background:#f9fafb;margin:8px 0"&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Member:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;Tim&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Field:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;Telefon&lt;/dd&gt;&lt;/dl&gt;&lt;p style="margin-top:16px"&gt;&lt;a href="https://ember.example.com/deep/member-detail" style="display:inline-block;padding:12px 16px;background:#3730a3;color:#fff;text-decoration:underline;border-radius:6px;min-height:44px;box-sizing:border-box"&gt;Öffnen&lt;/a&gt;&lt;/p&gt;&lt;/div&gt;</content:encoded>
+      <category>Kategorie PROFILE_FIELD_CHANGED</category>
+      <category domain="urn:ember:notification-type">PROFILE_FIELD_CHANGED</category>
+      <pubDate>Tue, 01 Sep 2026 08:15:30 GMT</pubDate>
+      <guid isPermaLink="false">urn:ember:notification:30</guid>
+      <dc:date>2026-09-01T08:15:30Z</dc:date>
+    </item>
+    <item>
+      <title>Titel PROCUREMENT_REQUESTED</title>
+      <link>https://ember.example.com/deep/inventory-procurement</link>
+      <description>Nachricht &lt;PROCUREMENT_REQUESTED&gt; &amp; mehr</description>
+      <content:encoded>&lt;div lang="de" dir="auto" style="font-family:system-ui,Segoe UI,Roboto,sans-serif;font-size:14px;line-height:1.5;color:#1c1c1c;max-width:640px"&gt;&lt;div style="display:inline-block;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:12px;font-weight:600"&gt;Kategorie PROCUREMENT_REQUESTED&lt;/div&gt;&lt;h2 style="margin:8px 0 4px;font-size:16px"&gt;Nachricht &amp;lt;PROCUREMENT_REQUESTED&amp;gt; &amp;amp; mehr&lt;/h2&gt;&lt;dl style="border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;background:#f9fafb;margin:8px 0"&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Inventory:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;Schlauch 25m&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Type:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;INTERNAL&lt;/dd&gt;&lt;/dl&gt;&lt;p style="margin-top:16px"&gt;&lt;a href="https://ember.example.com/deep/inventory-procurement" style="display:inline-block;padding:12px 16px;background:#3730a3;color:#fff;text-decoration:underline;border-radius:6px;min-height:44px;box-sizing:border-box"&gt;Öffnen&lt;/a&gt;&lt;/p&gt;&lt;/div&gt;</content:encoded>
+      <category>Kategorie PROCUREMENT_REQUESTED</category>
+      <category domain="urn:ember:notification-type">PROCUREMENT_REQUESTED</category>
+      <pubDate>Tue, 01 Sep 2026 08:15:31 GMT</pubDate>
+      <guid isPermaLink="false">urn:ember:notification:31</guid>
+      <dc:date>2026-09-01T08:15:31Z</dc:date>
+    </item>
+    <item>
+      <title>Titel PROCUREMENT_FULFILLED</title>
+      <link>https://ember.example.com/deep/inventory-procurement</link>
+      <description>Nachricht &lt;PROCUREMENT_FULFILLED&gt; &amp; mehr</description>
+      <content:encoded>&lt;div lang="de" dir="auto" style="font-family:system-ui,Segoe UI,Roboto,sans-serif;font-size:14px;line-height:1.5;color:#1c1c1c;max-width:640px"&gt;&lt;div style="display:inline-block;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:12px;font-weight:600"&gt;Kategorie PROCUREMENT_FULFILLED&lt;/div&gt;&lt;h2 style="margin:8px 0 4px;font-size:16px"&gt;Nachricht &amp;lt;PROCUREMENT_FULFILLED&amp;gt; &amp;amp; mehr&lt;/h2&gt;&lt;dl style="border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;background:#f9fafb;margin:8px 0"&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Inventory:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;Schlauch 25m&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Type:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;INTERNAL&lt;/dd&gt;&lt;/dl&gt;&lt;p style="margin-top:16px"&gt;&lt;a href="https://ember.example.com/deep/inventory-procurement" style="display:inline-block;padding:12px 16px;background:#3730a3;color:#fff;text-decoration:underline;border-radius:6px;min-height:44px;box-sizing:border-box"&gt;Öffnen&lt;/a&gt;&lt;/p&gt;&lt;/div&gt;</content:encoded>
+      <category>Kategorie PROCUREMENT_FULFILLED</category>
+      <category domain="urn:ember:notification-type">PROCUREMENT_FULFILLED</category>
+      <pubDate>Tue, 01 Sep 2026 08:15:32 GMT</pubDate>
+      <guid isPermaLink="false">urn:ember:notification:32</guid>
+      <dc:date>2026-09-01T08:15:32Z</dc:date>
+    </item>
+    <item>
+      <title>Titel NEW_FORM</title>
+      <link>https://ember.example.com/deep/form</link>
+      <description>Nachricht &lt;NEW_FORM&gt; &amp; mehr</description>
+      <content:encoded>&lt;div lang="de" dir="auto" style="font-family:system-ui,Segoe UI,Roboto,sans-serif;font-size:14px;line-height:1.5;color:#1c1c1c;max-width:640px"&gt;&lt;div style="display:inline-block;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:12px;font-weight:600"&gt;Kategorie NEW_FORM&lt;/div&gt;&lt;h2 style="margin:8px 0 4px;font-size:16px"&gt;Nachricht &amp;lt;NEW_FORM&amp;gt; &amp;amp; mehr&lt;/h2&gt;&lt;dl style="border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;background:#f9fafb;margin:8px 0"&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Title:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;Umfrage&lt;/dd&gt;&lt;/dl&gt;&lt;p style="margin-top:16px"&gt;&lt;a href="https://ember.example.com/deep/form" style="display:inline-block;padding:12px 16px;background:#3730a3;color:#fff;text-decoration:underline;border-radius:6px;min-height:44px;box-sizing:border-box"&gt;Öffnen&lt;/a&gt;&lt;/p&gt;&lt;/div&gt;</content:encoded>
+      <category>Kategorie NEW_FORM</category>
+      <category domain="urn:ember:notification-type">NEW_FORM</category>
+      <pubDate>Tue, 01 Sep 2026 08:15:33 GMT</pubDate>
+      <guid isPermaLink="false">urn:ember:notification:33</guid>
+      <dc:date>2026-09-01T08:15:33Z</dc:date>
+    </item>
+    <item>
+      <title>Titel PROCEDURE_ASSIGNED</title>
+      <link>https://ember.example.com/deep/procedure-detail</link>
+      <description>Nachricht &lt;PROCEDURE_ASSIGNED&gt; &amp; mehr</description>
+      <content:encoded>&lt;div lang="de" dir="auto" style="font-family:system-ui,Segoe UI,Roboto,sans-serif;font-size:14px;line-height:1.5;color:#1c1c1c;max-width:640px"&gt;&lt;div style="display:inline-block;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:12px;font-weight:600"&gt;Kategorie PROCEDURE_ASSIGNED&lt;/div&gt;&lt;h2 style="margin:8px 0 4px;font-size:16px"&gt;Nachricht &amp;lt;PROCEDURE_ASSIGNED&amp;gt; &amp;amp; mehr&lt;/h2&gt;&lt;dl style="border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;background:#f9fafb;margin:8px 0"&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Procedure:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;Fahrzeugcheck&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Von:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;Gerd&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Progress:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;1 von 2&lt;/dd&gt;&lt;/dl&gt;&lt;p style="margin-top:16px"&gt;&lt;a href="https://ember.example.com/deep/procedure-detail" style="display:inline-block;padding:12px 16px;background:#3730a3;color:#fff;text-decoration:underline;border-radius:6px;min-height:44px;box-sizing:border-box"&gt;Öffnen&lt;/a&gt;&lt;/p&gt;&lt;/div&gt;</content:encoded>
+      <category>Kategorie PROCEDURE_ASSIGNED</category>
+      <category domain="urn:ember:notification-type">PROCEDURE_ASSIGNED</category>
+      <pubDate>Tue, 01 Sep 2026 08:15:34 GMT</pubDate>
+      <guid isPermaLink="false">urn:ember:notification:34</guid>
+      <dc:creator>Gerd</dc:creator>
+      <dc:date>2026-09-01T08:15:34Z</dc:date>
+    </item>
+    <item>
+      <title>Titel PROCEDURE_RESOLVED</title>
+      <link>https://ember.example.com/deep/procedure-detail</link>
+      <description>Nachricht &lt;PROCEDURE_RESOLVED&gt; &amp; mehr</description>
+      <content:encoded>&lt;div lang="de" dir="auto" style="font-family:system-ui,Segoe UI,Roboto,sans-serif;font-size:14px;line-height:1.5;color:#1c1c1c;max-width:640px"&gt;&lt;div style="display:inline-block;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:12px;font-weight:600"&gt;Kategorie PROCEDURE_RESOLVED&lt;/div&gt;&lt;h2 style="margin:8px 0 4px;font-size:16px"&gt;Nachricht &amp;lt;PROCEDURE_RESOLVED&amp;gt; &amp;amp; mehr&lt;/h2&gt;&lt;dl style="border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;background:#f9fafb;margin:8px 0"&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Procedure:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;Fahrzeugcheck&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Progress:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;1 von 2&lt;/dd&gt;&lt;/dl&gt;&lt;p style="margin-top:16px"&gt;&lt;a href="https://ember.example.com/deep/procedure-detail" style="display:inline-block;padding:12px 16px;background:#3730a3;color:#fff;text-decoration:underline;border-radius:6px;min-height:44px;box-sizing:border-box"&gt;Öffnen&lt;/a&gt;&lt;/p&gt;&lt;/div&gt;</content:encoded>
+      <category>Kategorie PROCEDURE_RESOLVED</category>
+      <category domain="urn:ember:notification-type">PROCEDURE_RESOLVED</category>
+      <pubDate>Tue, 01 Sep 2026 08:15:35 GMT</pubDate>
+      <guid isPermaLink="false">urn:ember:notification:35</guid>
+      <dc:date>2026-09-01T08:15:35Z</dc:date>
+    </item>
+    <item>
+      <title>Titel PROCEDURE_REOPENED</title>
+      <link>https://ember.example.com/deep/procedure-detail</link>
+      <description>Nachricht &lt;PROCEDURE_REOPENED&gt; &amp; mehr</description>
+      <content:encoded>&lt;div lang="de" dir="auto" style="font-family:system-ui,Segoe UI,Roboto,sans-serif;font-size:14px;line-height:1.5;color:#1c1c1c;max-width:640px"&gt;&lt;div style="display:inline-block;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:12px;font-weight:600"&gt;Kategorie PROCEDURE_REOPENED&lt;/div&gt;&lt;h2 style="margin:8px 0 4px;font-size:16px"&gt;Nachricht &amp;lt;PROCEDURE_REOPENED&amp;gt; &amp;amp; mehr&lt;/h2&gt;&lt;dl style="border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;background:#f9fafb;margin:8px 0"&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Procedure:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;Fahrzeugcheck&lt;/dd&gt;&lt;/dl&gt;&lt;p style="margin-top:16px"&gt;&lt;a href="https://ember.example.com/deep/procedure-detail" style="display:inline-block;padding:12px 16px;background:#3730a3;color:#fff;text-decoration:underline;border-radius:6px;min-height:44px;box-sizing:border-box"&gt;Öffnen&lt;/a&gt;&lt;/p&gt;&lt;/div&gt;</content:encoded>
+      <category>Kategorie PROCEDURE_REOPENED</category>
+      <category domain="urn:ember:notification-type">PROCEDURE_REOPENED</category>
+      <pubDate>Tue, 01 Sep 2026 08:15:36 GMT</pubDate>
+      <guid isPermaLink="false">urn:ember:notification:36</guid>
+      <dc:date>2026-09-01T08:15:36Z</dc:date>
+    </item>
+    <item>
+      <title>Titel PROCEDURE_ITEM_CHECKED</title>
+      <link>https://ember.example.com/deep/procedure-detail</link>
+      <description>Nachricht &lt;PROCEDURE_ITEM_CHECKED&gt; &amp; mehr</description>
+      <content:encoded>&lt;div lang="de" dir="auto" style="font-family:system-ui,Segoe UI,Roboto,sans-serif;font-size:14px;line-height:1.5;color:#1c1c1c;max-width:640px"&gt;&lt;div style="display:inline-block;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:12px;font-weight:600"&gt;Kategorie PROCEDURE_ITEM_CHECKED&lt;/div&gt;&lt;h2 style="margin:8px 0 4px;font-size:16px"&gt;Nachricht &amp;lt;PROCEDURE_ITEM_CHECKED&amp;gt; &amp;amp; mehr&lt;/h2&gt;&lt;dl style="border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;background:#f9fafb;margin:8px 0"&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Procedure:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;Fahrzeugcheck&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;item:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;Reifen&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Von:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;Hanna&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Progress:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;1 von 2&lt;/dd&gt;&lt;/dl&gt;&lt;p style="margin-top:16px"&gt;&lt;a href="https://ember.example.com/deep/procedure-detail" style="display:inline-block;padding:12px 16px;background:#3730a3;color:#fff;text-decoration:underline;border-radius:6px;min-height:44px;box-sizing:border-box"&gt;Öffnen&lt;/a&gt;&lt;/p&gt;&lt;/div&gt;</content:encoded>
+      <category>Kategorie PROCEDURE_ITEM_CHECKED</category>
+      <category domain="urn:ember:notification-type">PROCEDURE_ITEM_CHECKED</category>
+      <pubDate>Tue, 01 Sep 2026 08:15:37 GMT</pubDate>
+      <guid isPermaLink="false">urn:ember:notification:37</guid>
+      <dc:creator>Hanna</dc:creator>
+      <dc:date>2026-09-01T08:15:37Z</dc:date>
+    </item>
+    <item>
+      <title>Titel SELF_CHECK_ASSIGNED</title>
+      <link>https://ember.example.com/deep/self-check</link>
+      <description>Nachricht &lt;SELF_CHECK_ASSIGNED&gt; &amp; mehr</description>
+      <content:encoded>&lt;div lang="de" dir="auto" style="font-family:system-ui,Segoe UI,Roboto,sans-serif;font-size:14px;line-height:1.5;color:#1c1c1c;max-width:640px"&gt;&lt;div style="display:inline-block;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:12px;font-weight:600"&gt;Kategorie SELF_CHECK_ASSIGNED&lt;/div&gt;&lt;h2 style="margin:8px 0 4px;font-size:16px"&gt;Nachricht &amp;lt;SELF_CHECK_ASSIGNED&amp;gt; &amp;amp; mehr&lt;/h2&gt;&lt;p style="margin-top:16px"&gt;&lt;a href="https://ember.example.com/deep/self-check" style="display:inline-block;padding:12px 16px;background:#3730a3;color:#fff;text-decoration:underline;border-radius:6px;min-height:44px;box-sizing:border-box"&gt;Öffnen&lt;/a&gt;&lt;/p&gt;&lt;/div&gt;</content:encoded>
+      <category>Kategorie SELF_CHECK_ASSIGNED</category>
+      <category domain="urn:ember:notification-type">SELF_CHECK_ASSIGNED</category>
+      <pubDate>Tue, 01 Sep 2026 08:15:38 GMT</pubDate>
+      <guid isPermaLink="false">urn:ember:notification:38</guid>
+      <dc:date>2026-09-01T08:15:38Z</dc:date>
+    </item>
+    <item>
+      <title>Titel SELF_CHECK_SUBMITTED</title>
+      <link>https://ember.example.com/deep/self-check</link>
+      <description>Nachricht &lt;SELF_CHECK_SUBMITTED&gt; &amp; mehr</description>
+      <content:encoded>&lt;div lang="de" dir="auto" style="font-family:system-ui,Segoe UI,Roboto,sans-serif;font-size:14px;line-height:1.5;color:#1c1c1c;max-width:640px"&gt;&lt;div style="display:inline-block;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:12px;font-weight:600"&gt;Kategorie SELF_CHECK_SUBMITTED&lt;/div&gt;&lt;h2 style="margin:8px 0 4px;font-size:16px"&gt;Nachricht &amp;lt;SELF_CHECK_SUBMITTED&amp;gt; &amp;amp; mehr&lt;/h2&gt;&lt;p style="margin-top:16px"&gt;&lt;a href="https://ember.example.com/deep/self-check" style="display:inline-block;padding:12px 16px;background:#3730a3;color:#fff;text-decoration:underline;border-radius:6px;min-height:44px;box-sizing:border-box"&gt;Öffnen&lt;/a&gt;&lt;/p&gt;&lt;/div&gt;</content:encoded>
+      <category>Kategorie SELF_CHECK_SUBMITTED</category>
+      <category domain="urn:ember:notification-type">SELF_CHECK_SUBMITTED</category>
+      <pubDate>Tue, 01 Sep 2026 08:15:39 GMT</pubDate>
+      <guid isPermaLink="false">urn:ember:notification:39</guid>
+      <dc:date>2026-09-01T08:15:39Z</dc:date>
+    </item>
+    <item>
+      <title>Titel SELF_CHECK_ROW_REFUSED</title>
+      <link>https://ember.example.com/deep/self-check</link>
+      <description>Nachricht &lt;SELF_CHECK_ROW_REFUSED&gt; &amp; mehr</description>
+      <content:encoded>&lt;div lang="de" dir="auto" style="font-family:system-ui,Segoe UI,Roboto,sans-serif;font-size:14px;line-height:1.5;color:#1c1c1c;max-width:640px"&gt;&lt;div style="display:inline-block;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:12px;font-weight:600"&gt;Kategorie SELF_CHECK_ROW_REFUSED&lt;/div&gt;&lt;h2 style="margin:8px 0 4px;font-size:16px"&gt;Nachricht &amp;lt;SELF_CHECK_ROW_REFUSED&amp;gt; &amp;amp; mehr&lt;/h2&gt;&lt;p style="margin-top:16px"&gt;&lt;a href="https://ember.example.com/deep/self-check" style="display:inline-block;padding:12px 16px;background:#3730a3;color:#fff;text-decoration:underline;border-radius:6px;min-height:44px;box-sizing:border-box"&gt;Öffnen&lt;/a&gt;&lt;/p&gt;&lt;/div&gt;</content:encoded>
+      <category>Kategorie SELF_CHECK_ROW_REFUSED</category>
+      <category domain="urn:ember:notification-type">SELF_CHECK_ROW_REFUSED</category>
+      <pubDate>Tue, 01 Sep 2026 08:15:40 GMT</pubDate>
+      <guid isPermaLink="false">urn:ember:notification:40</guid>
+      <dc:date>2026-09-01T08:15:40Z</dc:date>
+    </item>
+    <item>
+      <title>Titel MAILBOX_SUSPENDED</title>
+      <link>https://ember.example.com/deep/mail</link>
+      <description>Nachricht &lt;MAILBOX_SUSPENDED&gt; &amp; mehr</description>
+      <content:encoded>&lt;div lang="de" dir="auto" style="font-family:system-ui,Segoe UI,Roboto,sans-serif;font-size:14px;line-height:1.5;color:#1c1c1c;max-width:640px"&gt;&lt;div style="display:inline-block;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:12px;font-weight:600"&gt;Kategorie MAILBOX_SUSPENDED&lt;/div&gt;&lt;h2 style="margin:8px 0 4px;font-size:16px"&gt;Nachricht &amp;lt;MAILBOX_SUSPENDED&amp;gt; &amp;amp; mehr&lt;/h2&gt;&lt;p style="margin-top:16px"&gt;&lt;a href="https://ember.example.com/deep/mail" style="display:inline-block;padding:12px 16px;background:#3730a3;color:#fff;text-decoration:underline;border-radius:6px;min-height:44px;box-sizing:border-box"&gt;Öffnen&lt;/a&gt;&lt;/p&gt;&lt;/div&gt;</content:encoded>
+      <category>Kategorie MAILBOX_SUSPENDED</category>
+      <category domain="urn:ember:notification-type">MAILBOX_SUSPENDED</category>
+      <pubDate>Tue, 01 Sep 2026 08:15:41 GMT</pubDate>
+      <guid isPermaLink="false">urn:ember:notification:41</guid>
+      <dc:date>2026-09-01T08:15:41Z</dc:date>
+    </item>
+    <item>
+      <title>Titel MAIL_IMPORT_UNBOUND</title>
+      <link>https://ember.example.com/deep/mail</link>
+      <description>Nachricht &lt;MAIL_IMPORT_UNBOUND&gt; &amp; mehr</description>
+      <content:encoded>&lt;div lang="de" dir="auto" style="font-family:system-ui,Segoe UI,Roboto,sans-serif;font-size:14px;line-height:1.5;color:#1c1c1c;max-width:640px"&gt;&lt;div style="display:inline-block;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:12px;font-weight:600"&gt;Kategorie MAIL_IMPORT_UNBOUND&lt;/div&gt;&lt;h2 style="margin:8px 0 4px;font-size:16px"&gt;Nachricht &amp;lt;MAIL_IMPORT_UNBOUND&amp;gt; &amp;amp; mehr&lt;/h2&gt;&lt;p style="margin-top:16px"&gt;&lt;a href="https://ember.example.com/deep/mail" style="display:inline-block;padding:12px 16px;background:#3730a3;color:#fff;text-decoration:underline;border-radius:6px;min-height:44px;box-sizing:border-box"&gt;Öffnen&lt;/a&gt;&lt;/p&gt;&lt;/div&gt;</content:encoded>
+      <category>Kategorie MAIL_IMPORT_UNBOUND</category>
+      <category domain="urn:ember:notification-type">MAIL_IMPORT_UNBOUND</category>
+      <pubDate>Tue, 01 Sep 2026 08:15:42 GMT</pubDate>
+      <guid isPermaLink="false">urn:ember:notification:42</guid>
+      <dc:date>2026-09-01T08:15:42Z</dc:date>
+    </item>
+    <item>
+      <title>Titel CLUSTER_APPLICATION_SUBMITTED</title>
+      <link>https://ember.example.com/deep/cluster</link>
+      <description>Nachricht &lt;CLUSTER_APPLICATION_SUBMITTED&gt; &amp; mehr</description>
+      <content:encoded>&lt;div lang="de" dir="auto" style="font-family:system-ui,Segoe UI,Roboto,sans-serif;font-size:14px;line-height:1.5;color:#1c1c1c;max-width:640px"&gt;&lt;div style="display:inline-block;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:12px;font-weight:600"&gt;Kategorie CLUSTER_APPLICATION_SUBMITTED&lt;/div&gt;&lt;h2 style="margin:8px 0 4px;font-size:16px"&gt;Nachricht &amp;lt;CLUSTER_APPLICATION_SUBMITTED&amp;gt; &amp;amp; mehr&lt;/h2&gt;&lt;p style="margin-top:16px"&gt;&lt;a href="https://ember.example.com/deep/cluster" style="display:inline-block;padding:12px 16px;background:#3730a3;color:#fff;text-decoration:underline;border-radius:6px;min-height:44px;box-sizing:border-box"&gt;Öffnen&lt;/a&gt;&lt;/p&gt;&lt;/div&gt;</content:encoded>
+      <category>Kategorie CLUSTER_APPLICATION_SUBMITTED</category>
+      <category domain="urn:ember:notification-type">CLUSTER_APPLICATION_SUBMITTED</category>
+      <pubDate>Tue, 01 Sep 2026 08:15:43 GMT</pubDate>
+      <guid isPermaLink="false">urn:ember:notification:43</guid>
+      <dc:date>2026-09-01T08:15:43Z</dc:date>
+    </item>
+    <item>
+      <title>Titel CLUSTER_APPLICATION_APPROVED</title>
+      <link>https://ember.example.com/deep/cluster</link>
+      <description>Nachricht &lt;CLUSTER_APPLICATION_APPROVED&gt; &amp; mehr</description>
+      <content:encoded>&lt;div lang="de" dir="auto" style="font-family:system-ui,Segoe UI,Roboto,sans-serif;font-size:14px;line-height:1.5;color:#1c1c1c;max-width:640px"&gt;&lt;div style="display:inline-block;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:12px;font-weight:600"&gt;Kategorie CLUSTER_APPLICATION_APPROVED&lt;/div&gt;&lt;h2 style="margin:8px 0 4px;font-size:16px"&gt;Nachricht &amp;lt;CLUSTER_APPLICATION_APPROVED&amp;gt; &amp;amp; mehr&lt;/h2&gt;&lt;p style="margin-top:16px"&gt;&lt;a href="https://ember.example.com/deep/cluster" style="display:inline-block;padding:12px 16px;background:#3730a3;color:#fff;text-decoration:underline;border-radius:6px;min-height:44px;box-sizing:border-box"&gt;Öffnen&lt;/a&gt;&lt;/p&gt;&lt;/div&gt;</content:encoded>
+      <category>Kategorie CLUSTER_APPLICATION_APPROVED</category>
+      <category domain="urn:ember:notification-type">CLUSTER_APPLICATION_APPROVED</category>
+      <pubDate>Tue, 01 Sep 2026 08:15:44 GMT</pubDate>
+      <guid isPermaLink="false">urn:ember:notification:44</guid>
+      <dc:date>2026-09-01T08:15:44Z</dc:date>
+    </item>
+    <item>
+      <title>Titel CLUSTER_APPLICATION_DENIED</title>
+      <link>https://ember.example.com/deep/cluster</link>
+      <description>Nachricht &lt;CLUSTER_APPLICATION_DENIED&gt; &amp; mehr</description>
+      <content:encoded>&lt;div lang="de" dir="auto" style="font-family:system-ui,Segoe UI,Roboto,sans-serif;font-size:14px;line-height:1.5;color:#1c1c1c;max-width:640px"&gt;&lt;div style="display:inline-block;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:12px;font-weight:600"&gt;Kategorie CLUSTER_APPLICATION_DENIED&lt;/div&gt;&lt;h2 style="margin:8px 0 4px;font-size:16px"&gt;Nachricht &amp;lt;CLUSTER_APPLICATION_DENIED&amp;gt; &amp;amp; mehr&lt;/h2&gt;&lt;p style="margin-top:16px"&gt;&lt;a href="https://ember.example.com/deep/cluster" style="display:inline-block;padding:12px 16px;background:#3730a3;color:#fff;text-decoration:underline;border-radius:6px;min-height:44px;box-sizing:border-box"&gt;Öffnen&lt;/a&gt;&lt;/p&gt;&lt;/div&gt;</content:encoded>
+      <category>Kategorie CLUSTER_APPLICATION_DENIED</category>
+      <category domain="urn:ember:notification-type">CLUSTER_APPLICATION_DENIED</category>
+      <pubDate>Tue, 01 Sep 2026 08:15:45 GMT</pubDate>
+      <guid isPermaLink="false">urn:ember:notification:45</guid>
+      <dc:date>2026-09-01T08:15:45Z</dc:date>
+    </item>
+    <item>
+      <title>Titel CLUSTER_APPLICATION_WITHDRAWN</title>
+      <link>https://ember.example.com/deep/cluster</link>
+      <description>Nachricht &lt;CLUSTER_APPLICATION_WITHDRAWN&gt; &amp; mehr</description>
+      <content:encoded>&lt;div lang="de" dir="auto" style="font-family:system-ui,Segoe UI,Roboto,sans-serif;font-size:14px;line-height:1.5;color:#1c1c1c;max-width:640px"&gt;&lt;div style="display:inline-block;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:12px;font-weight:600"&gt;Kategorie CLUSTER_APPLICATION_WITHDRAWN&lt;/div&gt;&lt;h2 style="margin:8px 0 4px;font-size:16px"&gt;Nachricht &amp;lt;CLUSTER_APPLICATION_WITHDRAWN&amp;gt; &amp;amp; mehr&lt;/h2&gt;&lt;p style="margin-top:16px"&gt;&lt;a href="https://ember.example.com/deep/cluster" style="display:inline-block;padding:12px 16px;background:#3730a3;color:#fff;text-decoration:underline;border-radius:6px;min-height:44px;box-sizing:border-box"&gt;Öffnen&lt;/a&gt;&lt;/p&gt;&lt;/div&gt;</content:encoded>
+      <category>Kategorie CLUSTER_APPLICATION_WITHDRAWN</category>
+      <category domain="urn:ember:notification-type">CLUSTER_APPLICATION_WITHDRAWN</category>
+      <pubDate>Tue, 01 Sep 2026 08:15:46 GMT</pubDate>
+      <guid isPermaLink="false">urn:ember:notification:46</guid>
+      <dc:date>2026-09-01T08:15:46Z</dc:date>
+    </item>
+    <item>
+      <title>Titel CLUSTER_STATION_RELEASED</title>
+      <link>https://ember.example.com/deep/cluster</link>
+      <description>Nachricht &lt;CLUSTER_STATION_RELEASED&gt; &amp; mehr</description>
+      <content:encoded>&lt;div lang="de" dir="auto" style="font-family:system-ui,Segoe UI,Roboto,sans-serif;font-size:14px;line-height:1.5;color:#1c1c1c;max-width:640px"&gt;&lt;div style="display:inline-block;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:12px;font-weight:600"&gt;Kategorie CLUSTER_STATION_RELEASED&lt;/div&gt;&lt;h2 style="margin:8px 0 4px;font-size:16px"&gt;Nachricht &amp;lt;CLUSTER_STATION_RELEASED&amp;gt; &amp;amp; mehr&lt;/h2&gt;&lt;p style="margin-top:16px"&gt;&lt;a href="https://ember.example.com/deep/cluster" style="display:inline-block;padding:12px 16px;background:#3730a3;color:#fff;text-decoration:underline;border-radius:6px;min-height:44px;box-sizing:border-box"&gt;Öffnen&lt;/a&gt;&lt;/p&gt;&lt;/div&gt;</content:encoded>
+      <category>Kategorie CLUSTER_STATION_RELEASED</category>
+      <category domain="urn:ember:notification-type">CLUSTER_STATION_RELEASED</category>
+      <pubDate>Tue, 01 Sep 2026 08:15:47 GMT</pubDate>
+      <guid isPermaLink="false">urn:ember:notification:47</guid>
+      <dc:date>2026-09-01T08:15:47Z</dc:date>
+    </item>
+    <item>
+      <title>Titel CLUSTER_MODULE_DENIED</title>
+      <link>https://ember.example.com/deep/cluster</link>
+      <description>Nachricht &lt;CLUSTER_MODULE_DENIED&gt; &amp; mehr</description>
+      <content:encoded>&lt;div lang="de" dir="auto" style="font-family:system-ui,Segoe UI,Roboto,sans-serif;font-size:14px;line-height:1.5;color:#1c1c1c;max-width:640px"&gt;&lt;div style="display:inline-block;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:12px;font-weight:600"&gt;Kategorie CLUSTER_MODULE_DENIED&lt;/div&gt;&lt;h2 style="margin:8px 0 4px;font-size:16px"&gt;Nachricht &amp;lt;CLUSTER_MODULE_DENIED&amp;gt; &amp;amp; mehr&lt;/h2&gt;&lt;p style="margin-top:16px"&gt;&lt;a href="https://ember.example.com/deep/cluster" style="display:inline-block;padding:12px 16px;background:#3730a3;color:#fff;text-decoration:underline;border-radius:6px;min-height:44px;box-sizing:border-box"&gt;Öffnen&lt;/a&gt;&lt;/p&gt;&lt;/div&gt;</content:encoded>
+      <category>Kategorie CLUSTER_MODULE_DENIED</category>
+      <category domain="urn:ember:notification-type">CLUSTER_MODULE_DENIED</category>
+      <pubDate>Tue, 01 Sep 2026 08:15:48 GMT</pubDate>
+      <guid isPermaLink="false">urn:ember:notification:48</guid>
+      <dc:date>2026-09-01T08:15:48Z</dc:date>
+    </item>
+    <item>
+      <title>Titel CLUSTER_ITEM_ISSUED</title>
+      <link>https://ember.example.com/deep/cluster</link>
+      <description>Nachricht &lt;CLUSTER_ITEM_ISSUED&gt; &amp; mehr</description>
+      <content:encoded>&lt;div lang="de" dir="auto" style="font-family:system-ui,Segoe UI,Roboto,sans-serif;font-size:14px;line-height:1.5;color:#1c1c1c;max-width:640px"&gt;&lt;div style="display:inline-block;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:12px;font-weight:600"&gt;Kategorie CLUSTER_ITEM_ISSUED&lt;/div&gt;&lt;h2 style="margin:8px 0 4px;font-size:16px"&gt;Nachricht &amp;lt;CLUSTER_ITEM_ISSUED&amp;gt; &amp;amp; mehr&lt;/h2&gt;&lt;p style="margin-top:16px"&gt;&lt;a href="https://ember.example.com/deep/cluster" style="display:inline-block;padding:12px 16px;background:#3730a3;color:#fff;text-decoration:underline;border-radius:6px;min-height:44px;box-sizing:border-box"&gt;Öffnen&lt;/a&gt;&lt;/p&gt;&lt;/div&gt;</content:encoded>
+      <category>Kategorie CLUSTER_ITEM_ISSUED</category>
+      <category domain="urn:ember:notification-type">CLUSTER_ITEM_ISSUED</category>
+      <pubDate>Tue, 01 Sep 2026 08:15:49 GMT</pubDate>
+      <guid isPermaLink="false">urn:ember:notification:49</guid>
+      <dc:date>2026-09-01T08:15:49Z</dc:date>
+    </item>
+    <item>
+      <title>Titel CLUSTER_ITEM_LOST</title>
+      <link>https://ember.example.com/deep/cluster</link>
+      <description>Nachricht &lt;CLUSTER_ITEM_LOST&gt; &amp; mehr</description>
+      <content:encoded>&lt;div lang="de" dir="auto" style="font-family:system-ui,Segoe UI,Roboto,sans-serif;font-size:14px;line-height:1.5;color:#1c1c1c;max-width:640px"&gt;&lt;div style="display:inline-block;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:12px;font-weight:600"&gt;Kategorie CLUSTER_ITEM_LOST&lt;/div&gt;&lt;h2 style="margin:8px 0 4px;font-size:16px"&gt;Nachricht &amp;lt;CLUSTER_ITEM_LOST&amp;gt; &amp;amp; mehr&lt;/h2&gt;&lt;p style="margin-top:16px"&gt;&lt;a href="https://ember.example.com/deep/cluster" style="display:inline-block;padding:12px 16px;background:#3730a3;color:#fff;text-decoration:underline;border-radius:6px;min-height:44px;box-sizing:border-box"&gt;Öffnen&lt;/a&gt;&lt;/p&gt;&lt;/div&gt;</content:encoded>
+      <category>Kategorie CLUSTER_ITEM_LOST</category>
+      <category domain="urn:ember:notification-type">CLUSTER_ITEM_LOST</category>
+      <pubDate>Tue, 01 Sep 2026 08:15:50 GMT</pubDate>
+      <guid isPermaLink="false">urn:ember:notification:50</guid>
+      <dc:date>2026-09-01T08:15:50Z</dc:date>
+    </item>
+    <item>
+      <title>Titel CLUSTER_QUOTA_CHANGED</title>
+      <link>https://ember.example.com/deep/cluster</link>
+      <description>Nachricht &lt;CLUSTER_QUOTA_CHANGED&gt; &amp; mehr</description>
+      <content:encoded>&lt;div lang="de" dir="auto" style="font-family:system-ui,Segoe UI,Roboto,sans-serif;font-size:14px;line-height:1.5;color:#1c1c1c;max-width:640px"&gt;&lt;div style="display:inline-block;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:12px;font-weight:600"&gt;Kategorie CLUSTER_QUOTA_CHANGED&lt;/div&gt;&lt;h2 style="margin:8px 0 4px;font-size:16px"&gt;Nachricht &amp;lt;CLUSTER_QUOTA_CHANGED&amp;gt; &amp;amp; mehr&lt;/h2&gt;&lt;p style="margin-top:16px"&gt;&lt;a href="https://ember.example.com/deep/cluster" style="display:inline-block;padding:12px 16px;background:#3730a3;color:#fff;text-decoration:underline;border-radius:6px;min-height:44px;box-sizing:border-box"&gt;Öffnen&lt;/a&gt;&lt;/p&gt;&lt;/div&gt;</content:encoded>
+      <category>Kategorie CLUSTER_QUOTA_CHANGED</category>
+      <category domain="urn:ember:notification-type">CLUSTER_QUOTA_CHANGED</category>
+      <pubDate>Tue, 01 Sep 2026 08:15:51 GMT</pubDate>
+      <guid isPermaLink="false">urn:ember:notification:51</guid>
+      <dc:date>2026-09-01T08:15:51Z</dc:date>
+    </item>
+    <item>
+      <title>Titel CLUSTER_MEMBER_ROLE_CHANGED</title>
+      <link>https://ember.example.com/deep/cluster</link>
+      <description>Nachricht &lt;CLUSTER_MEMBER_ROLE_CHANGED&gt; &amp; mehr</description>
+      <content:encoded>&lt;div lang="de" dir="auto" style="font-family:system-ui,Segoe UI,Roboto,sans-serif;font-size:14px;line-height:1.5;color:#1c1c1c;max-width:640px"&gt;&lt;div style="display:inline-block;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:12px;font-weight:600"&gt;Kategorie CLUSTER_MEMBER_ROLE_CHANGED&lt;/div&gt;&lt;h2 style="margin:8px 0 4px;font-size:16px"&gt;Nachricht &amp;lt;CLUSTER_MEMBER_ROLE_CHANGED&amp;gt; &amp;amp; mehr&lt;/h2&gt;&lt;p style="margin-top:16px"&gt;&lt;a href="https://ember.example.com/deep/cluster" style="display:inline-block;padding:12px 16px;background:#3730a3;color:#fff;text-decoration:underline;border-radius:6px;min-height:44px;box-sizing:border-box"&gt;Öffnen&lt;/a&gt;&lt;/p&gt;&lt;/div&gt;</content:encoded>
+      <category>Kategorie CLUSTER_MEMBER_ROLE_CHANGED</category>
+      <category domain="urn:ember:notification-type">CLUSTER_MEMBER_ROLE_CHANGED</category>
+      <pubDate>Tue, 01 Sep 2026 08:15:52 GMT</pubDate>
+      <guid isPermaLink="false">urn:ember:notification:52</guid>
+      <dc:date>2026-09-01T08:15:52Z</dc:date>
+    </item>
+    <item>
+      <title>Titel CLUSTER_FIELD_VALUE_CHANGED</title>
+      <link>https://ember.example.com/deep/cluster</link>
+      <description>Nachricht &lt;CLUSTER_FIELD_VALUE_CHANGED&gt; &amp; mehr</description>
+      <content:encoded>&lt;div lang="de" dir="auto" style="font-family:system-ui,Segoe UI,Roboto,sans-serif;font-size:14px;line-height:1.5;color:#1c1c1c;max-width:640px"&gt;&lt;div style="display:inline-block;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:12px;font-weight:600"&gt;Kategorie CLUSTER_FIELD_VALUE_CHANGED&lt;/div&gt;&lt;h2 style="margin:8px 0 4px;font-size:16px"&gt;Nachricht &amp;lt;CLUSTER_FIELD_VALUE_CHANGED&amp;gt; &amp;amp; mehr&lt;/h2&gt;&lt;p style="margin-top:16px"&gt;&lt;a href="https://ember.example.com/deep/cluster" style="display:inline-block;padding:12px 16px;background:#3730a3;color:#fff;text-decoration:underline;border-radius:6px;min-height:44px;box-sizing:border-box"&gt;Öffnen&lt;/a&gt;&lt;/p&gt;&lt;/div&gt;</content:encoded>
+      <category>Kategorie CLUSTER_FIELD_VALUE_CHANGED</category>
+      <category domain="urn:ember:notification-type">CLUSTER_FIELD_VALUE_CHANGED</category>
+      <pubDate>Tue, 01 Sep 2026 08:15:53 GMT</pubDate>
+      <guid isPermaLink="false">urn:ember:notification:53</guid>
+      <dc:date>2026-09-01T08:15:53Z</dc:date>
+    </item>
+    <item>
+      <title>Titel NEW_EVENT</title>
+      <link>https://ember.example.com/station/dashboard/overview?station=00000000-0000-0000-0000-00000000cafe</link>
+      <description>Nachricht &lt;NEW_EVENT&gt; &amp; mehr</description>
+      <content:encoded>&lt;div lang="de" dir="auto" style="font-family:system-ui,Segoe UI,Roboto,sans-serif;font-size:14px;line-height:1.5;color:#1c1c1c;max-width:640px"&gt;&lt;div style="display:inline-block;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:12px;font-weight:600"&gt;Kategorie NEW_EVENT&lt;/div&gt;&lt;h2 style="margin:8px 0 4px;font-size:16px"&gt;Nachricht &amp;lt;NEW_EVENT&amp;gt; &amp;amp; mehr&lt;/h2&gt;&lt;p style="margin-top:16px"&gt;&lt;a href="https://ember.example.com/station/dashboard/overview?station=00000000-0000-0000-0000-00000000cafe" style="display:inline-block;padding:12px 16px;background:#3730a3;color:#fff;text-decoration:underline;border-radius:6px;min-height:44px;box-sizing:border-box"&gt;Öffnen&lt;/a&gt;&lt;/p&gt;&lt;/div&gt;</content:encoded>
+      <category>Kategorie NEW_EVENT</category>
+      <category domain="urn:ember:notification-type">NEW_EVENT</category>
+      <pubDate>Tue, 01 Sep 2026 08:15:54 GMT</pubDate>
+      <guid isPermaLink="false">urn:ember:notification:54</guid>
+      <dc:date>2026-09-01T08:15:54Z</dc:date>
+    </item>
+    <item>
+      <title>Titel EVENT_CANCELLED</title>
+      <link>https://ember.example.com/deep/event-detail</link>
+      <description>Nachricht &lt;EVENT_CANCELLED&gt; &amp; mehr</description>
+      <content:encoded>&lt;div lang="de" dir="auto" style="font-family:system-ui,Segoe UI,Roboto,sans-serif;font-size:14px;line-height:1.5;color:#1c1c1c;max-width:640px"&gt;&lt;div style="display:inline-block;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:12px;font-weight:600"&gt;Kategorie EVENT_CANCELLED&lt;/div&gt;&lt;h2 style="margin:8px 0 4px;font-size:16px"&gt;Nachricht &amp;lt;EVENT_CANCELLED&amp;gt; &amp;amp; mehr&lt;/h2&gt;&lt;dl style="border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;background:#f9fafb;margin:8px 0"&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Termin:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;Probe&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;eventDate:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;19.09.2026&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Start:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;19.09.26, 18:00&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;End:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;21.09.26, 12:00&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Recurrence:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;Wöchentlich&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Deadline:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;15.09.26, 22:00&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Limit:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;12&lt;/dd&gt;&lt;/dl&gt;&lt;p style="margin-top:16px"&gt;&lt;a href="https://ember.example.com/deep/event-detail" style="display:inline-block;padding:12px 16px;background:#3730a3;color:#fff;text-decoration:underline;border-radius:6px;min-height:44px;box-sizing:border-box"&gt;Öffnen&lt;/a&gt;&lt;/p&gt;&lt;/div&gt;</content:encoded>
+      <category>Kategorie EVENT_CANCELLED</category>
+      <category domain="urn:ember:notification-type">EVENT_CANCELLED</category>
+      <pubDate>Tue, 01 Sep 2026 08:15:55 GMT</pubDate>
+      <guid isPermaLink="false">urn:ember:notification:55</guid>
+      <dc:date>2026-09-01T08:15:55Z</dc:date>
+    </item>
+    <item>
+      <title>Titel EVENT_DATE_RESTORED</title>
+      <link>https://ember.example.com/deep/event-detail</link>
+      <description>Nachricht &lt;EVENT_DATE_RESTORED&gt; &amp; mehr</description>
+      <content:encoded>&lt;div lang="de" dir="auto" style="font-family:system-ui,Segoe UI,Roboto,sans-serif;font-size:14px;line-height:1.5;color:#1c1c1c;max-width:640px"&gt;&lt;div style="display:inline-block;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:12px;font-weight:600"&gt;Kategorie EVENT_DATE_RESTORED&lt;/div&gt;&lt;h2 style="margin:8px 0 4px;font-size:16px"&gt;Nachricht &amp;lt;EVENT_DATE_RESTORED&amp;gt; &amp;amp; mehr&lt;/h2&gt;&lt;dl style="border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;background:#f9fafb;margin:8px 0"&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Termin:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;Probe&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;eventDate:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;26.09.2026&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Start:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;19.09.26, 18:00&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;End:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;21.09.26, 12:00&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Recurrence:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;Wöchentlich&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Deadline:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;15.09.26, 22:00&lt;/dd&gt;&lt;br&gt;&lt;dt style="color:#6b7280;display:inline"&gt;Limit:&lt;/dt&gt; &lt;dd style="display:inline;margin:0 0 0 4px"&gt;12&lt;/dd&gt;&lt;/dl&gt;&lt;p style="margin-top:16px"&gt;&lt;a href="https://ember.example.com/deep/event-detail" style="display:inline-block;padding:12px 16px;background:#3730a3;color:#fff;text-decoration:underline;border-radius:6px;min-height:44px;box-sizing:border-box"&gt;Öffnen&lt;/a&gt;&lt;/p&gt;&lt;/div&gt;</content:encoded>
+      <category>Kategorie EVENT_DATE_RESTORED</category>
+      <category domain="urn:ember:notification-type">EVENT_DATE_RESTORED</category>
+      <pubDate>Tue, 01 Sep 2026 08:15:56 GMT</pubDate>
+      <guid isPermaLink="false">urn:ember:notification:56</guid>
+      <dc:date>2026-09-01T08:15:56Z</dc:date>
+    </item>
+  </channel>
+</rss>

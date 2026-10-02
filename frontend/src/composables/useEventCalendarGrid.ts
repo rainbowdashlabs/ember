@@ -4,7 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import { computed, ref, type Ref } from 'vue'
-import { EventTypes, isRecurringEvent, type EventBreak, type StationEvent } from '@/api/events'
+import { EventTypes, isQuarterMonthOf, isRecurringEvent } from '@/api/events'
+import type { EventBreak, EventSummary } from '@/api/generated/schema'
 import { toIsoDate } from '@/util/format'
 
 /**
@@ -16,7 +17,7 @@ export interface DayCell {
   iso: string
   isCurrentMonth: boolean
   isToday: boolean
-  events: {event: StationEvent; date: string}[]
+  events: {event: EventSummary; date: string}[]
 }
 
 /**
@@ -24,7 +25,7 @@ export interface DayCell {
  * is clamped to it and flagged so the view can render an open edge.
  */
 export interface MultiDayBar {
-  event: StationEvent
+  event: EventSummary
   startCol: number
   endCol: number
   lane: number
@@ -40,7 +41,7 @@ export interface Week {
 }
 
 export interface CalendarSource {
-  allEvents: StationEvent[]
+  allEvents: EventSummary[]
   eventBreaks: EventBreak[]
   selectedCategoryId: string
   searchQuery: string
@@ -73,7 +74,7 @@ export function useEventCalendarGrid(source: Ref<CalendarSource>) {
   const viewYear = ref(today.getFullYear())
   const viewMonth = ref(today.getMonth())
 
-  function matchesFilters(ev: StationEvent): boolean {
+  function matchesFilters(ev: EventSummary): boolean {
     const {selectedCategoryId, searchQuery} = source.value
     if (selectedCategoryId && ev.categoryId !== Number(selectedCategoryId)) return false
     if (!searchQuery) return true
@@ -88,7 +89,7 @@ export function useEventCalendarGrid(source: Ref<CalendarSource>) {
    * the server, which does not hand over what it hides, and an appointment somebody may see but not
    * answer belongs in the calendar as much as any other.
    */
-  function isVisible(ev: StationEvent): boolean {
+  function isVisible(ev: EventSummary): boolean {
     return matchesFilters(ev)
   }
 
@@ -98,7 +99,7 @@ export function useEventCalendarGrid(source: Ref<CalendarSource>) {
     )
   }
 
-  function eventDayDuration(ev: StationEvent): number {
+  function eventDayDuration(ev: EventSummary): number {
     if (!ev.startTime || !ev.endTime) return 0
     const startDay = toIsoDate(new Date(ev.startTime))
     const endDay = toIsoDate(new Date(ev.endTime))
@@ -108,7 +109,7 @@ export function useEventCalendarGrid(source: Ref<CalendarSource>) {
     )
   }
 
-  function recurringOccurrenceStartsOn(ev: StationEvent, date: Date): boolean {
+  function recurringOccurrenceStartsOn(ev: EventSummary, date: Date): boolean {
     if (!isRecurringEvent(ev.eventType)) return false
     const dow = date.getDay() === 0 ? 7 : date.getDay()
     if (!ev.dayOfWeek || ev.dayOfWeek !== dow) return false
@@ -116,7 +117,7 @@ export function useEventCalendarGrid(source: Ref<CalendarSource>) {
     const month = date.getMonth()
     if (ev.eventType === EventTypes.RECURRING) return true
     if (ev.eventType === EventTypes.MONTHLY_FIRST) return dayOfMonth <= 7
-    if (ev.eventType === EventTypes.QUARTERLY) return dayOfMonth <= 7 && month % 3 === 0
+    if (ev.eventType === EventTypes.QUARTERLY) return dayOfMonth <= 7 && isQuarterMonthOf(ev, date.getFullYear(), month)
     if (ev.eventType === EventTypes.YEARLY && ev.startTime) {
       const ref = new Date(ev.startTime)
       return ref.getMonth() === month && ref.getDate() === dayOfMonth
@@ -124,11 +125,11 @@ export function useEventCalendarGrid(source: Ref<CalendarSource>) {
     return false
   }
 
-  function singleDayEventsForDate(date: Date): {event: StationEvent; date: string}[] {
+  function singleDayEventsForDate(date: Date): {event: EventSummary; date: string}[] {
     const dateStr = toIsoDate(date)
     if (inBreak(dateStr)) return []
 
-    const result: {event: StationEvent; date: string}[] = []
+    const result: {event: EventSummary; date: string}[] = []
     for (const ev of source.value.allEvents) {
       if (!isVisible(ev) || eventDayDuration(ev) > 0) continue
 
@@ -148,7 +149,7 @@ export function useEventCalendarGrid(source: Ref<CalendarSource>) {
       weekDays: DayCell[],
       weekStart: string,
       weekEnd: string,
-      ev: StationEvent,
+      ev: EventSummary,
       startIso: string,
       endIso: string,
   ): MultiDayBar | null {
@@ -170,7 +171,7 @@ export function useEventCalendarGrid(source: Ref<CalendarSource>) {
     }
   }
 
-  function barStartDates(ev: StationEvent, weekStart: string, weekEnd: string, dur: number): string[] {
+  function barStartDates(ev: EventSummary, weekStart: string, weekEnd: string, dur: number): string[] {
     if (ev.eventType === EventTypes.ONE_TIME) {
       if (!ev.startTime) return []
       return [toIsoDate(new Date(ev.startTime))]

@@ -13,6 +13,10 @@ defineProps<{
   disabled?: boolean
 }>()
 
+/**
+ * The time cut to hours and minutes. The input asks for no seconds with a step of sixty, and the
+ * stylesheet hides the seconds segment in browsers that ignore that step.
+ */
 const shortModel = computed({
   get: () => model.value?.substring(0, 5) ?? '',
   set: (v: string | number) => {
@@ -32,7 +36,6 @@ const shortModel = computed({
 </template>
 
 <style scoped>
-/* Hide the seconds segment in browsers that ignore step=60 */
 .no-seconds::-webkit-datetime-edit-second-field,
 .no-seconds::-webkit-datetime-edit-millisecond-field {
   display: none;

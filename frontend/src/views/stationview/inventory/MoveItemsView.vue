@@ -14,7 +14,7 @@ import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
-import type {Inventory, InventoryDetail, InventoryItem} from '@/api/inventory'
+import type {Inventory, InventoryDetail, InventoryItem} from '@/api/generated/schema'
 import {inventory} from '@/api'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useAsyncAction} from '@/composables/useAsyncAction'
@@ -43,6 +43,10 @@ const items = ref<InventoryItem[]>([])
 const inventories = ref<Inventory[]>([])
 const selected = ref<Set<number>>(new Set())
 const targetId = ref('')
+/**
+ * How many pieces were moved, which stays legible after the list has emptied: the usual way a split
+ * ends is the last piece leaving, and the page should still say what just happened.
+ */
 const moved = ref(0)
 
 const {loading, failure} = useAsyncLoader(async () => {
@@ -128,11 +132,6 @@ const {running: moving, failure: moveFailure, run: runMove} = useAsyncAction(asy
           <MoveTargetPicker v-model="targetId" :targets="targets" @selected="onTargetSelected"/>
 
           <FailureAlert :failure="moveFailure"/>
-          <!--
-            What was moved has to stay legible after the list it came from has emptied, which is the
-            usual way a split ends: the last piece leaves and the page would otherwise say only that
-            there is nothing here, with no word about what just happened.
-          -->
           <Alert v-if="moved > 0" variant="success" data-testid="move-done">
             {{ t('inventory.move.moved', {count: moved}) }}
           </Alert>

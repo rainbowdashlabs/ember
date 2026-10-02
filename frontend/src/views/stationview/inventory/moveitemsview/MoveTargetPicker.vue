@@ -9,7 +9,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
-import type {Inventory} from '@/api/inventory'
+import type {Inventory} from '@/api/generated/schema'
 
 /**
  * Where the chosen pieces are going, with the sentence saying what survives the journey.

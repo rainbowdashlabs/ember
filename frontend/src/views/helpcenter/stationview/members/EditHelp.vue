@@ -17,7 +17,10 @@ import PermissionPicker from '@/components/input/PermissionPicker.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import {ref} from 'vue'
+import {computed, ref} from 'vue'
+import MemberGroupChips from '@/views/stationview/members/editview/MemberGroupChips.vue'
+import {StationUserType} from '@/api/types'
+import type {MemberGroup, MemberGroupSet, Permission} from '@/api/generated/schema'
 
 const {t} = useI18n()
 
@@ -30,11 +33,23 @@ const tabs = [
 ]
 
 const dummyUserType = ref('MEMBER')
-const dummyRoles = [
-  {id: 1, permission: 'ATTENDANCE_MANAGEMENT', label: 'Anwesenheitsverwaltung'},
-  {id: 2, permission: 'INVENTORY_READ', label: 'Inventar lesen'},
+const dummyRoles: Permission[] = [
+  {id: 1, permission: 'ATTENDANCE_MANAGER'},
+  {id: 2, permission: 'INVENTORY_READ'},
 ]
 const dummySelected = new Set([1])
+
+const dummySets = computed<MemberGroupSet[]>(() => [{id: 1, stationId: '', name: t('helpCenter.sample.groups.levels')}])
+const dummyGroups = computed<MemberGroup[]>(() => [
+  {id: 1, stationId: '', name: t('helpCenter.sample.groups.beginners'), color: null, position: 0, groupSetId: 1, userTypes: []},
+  {id: 2, stationId: '', name: t('helpCenter.sample.groups.advancedPlural'), color: null, position: 1, groupSetId: 1, userTypes: []},
+  {id: 3, stationId: '', name: t('helpCenter.sample.groups.competitionGroup'), color: null, position: 2, groupSetId: null, userTypes: []},
+  {
+    id: 4, stationId: '', name: t('helpCenter.sample.groups.supervisors'), color: null, position: 3, groupSetId: null,
+    userTypes: [StationUserType.TEAM, StationUserType.MANAGER],
+  },
+])
+const dummyGroupIds = new Set([1, 3])
 </script>
 
 <template>
@@ -43,14 +58,12 @@ const dummySelected = new Set([1])
       <p>{{ t('helpCenter.membersEdit.whatShownText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Back button + header -->
     <HelpSection :title="t('helpCenter.membersEdit.exampleTitle')">
       <SecondaryButton :icon="['fas', 'chevron-left']">
         {{ t('memberEdit.back') }}
       </SecondaryButton>
-      <SectionHeader class="mt-3">Max Mustermann</SectionHeader>
+      <SectionHeader class="mt-3">{{ t('helpCenter.sample.people.maxMustermann') }}</SectionHeader>
 
-      <!-- Dummy: Tab bar with correct 4 tabs -->
       <TabBar :model-value="activeTab" :tabs="tabs" class="mt-3"/>
     </HelpSection>
 
@@ -67,7 +80,6 @@ const dummySelected = new Set([1])
       <p>{{ t('helpCenter.membersEdit.permissionsText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Permissions tab content -->
     <HelpSection :title="t('helpCenter.membersEdit.permissionsExampleTitle')">
       <NeutralContainer class="space-y-4">
         <div class="space-y-2">
@@ -82,38 +94,41 @@ const dummySelected = new Set([1])
         </div>
 
         <div class="space-y-2">
-          <SubHeader>{{ t('memberEdit.permissions') }}</SubHeader>
-          <PermissionPicker :model-value="dummySelected" :all-roles="dummyRoles"/>
-        </div>
-
-        <div class="space-y-2">
-          <SubHeader>{{ t('memberGroups.title') }}</SubHeader>
-          <div class="flex flex-wrap gap-2">
-            <SecondaryBadge>Anfänger</SecondaryBadge>
-            <SecondaryBadge class="opacity-50">Fortgeschrittene</SecondaryBadge>
-          </div>
+          <SubHeader>{{ t('memberEdit.groups') }}</SubHeader>
+          <MemberGroupChips :groups="dummyGroups" :sets="dummySets" :selected="dummyGroupIds" :user-type="dummyUserType"/>
         </div>
 
         <div class="space-y-2">
           <SubHeader>{{ t('userTags.title') }}</SubHeader>
           <div class="flex flex-wrap gap-2">
-            <InfoBadge>Ersthelfer</InfoBadge>
-            <InfoBadge class="opacity-50">Fahrer</InfoBadge>
+            <InfoBadge>{{ t('helpCenter.sample.groups.firstAiders') }}</InfoBadge>
+            <InfoBadge class="opacity-50">{{ t('helpCenter.sample.groups.drivers') }}</InfoBadge>
           </div>
         </div>
+
+        <div class="space-y-2">
+          <SubHeader>{{ t('memberEdit.permissions') }}</SubHeader>
+          <PermissionPicker :model-value="dummySelected" :all-roles="dummyRoles"/>
+        </div>
       </NeutralContainer>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.membersEdit.groupsTitle')">
+      <p>{{ t('helpCenter.membersEdit.groupsText') }}</p>
+      <p>{{ t('helpCenter.membersEdit.groupSetText') }}</p>
+      <p>{{ t('helpCenter.membersEdit.groupBoundText') }}</p>
+      <p>{{ t('helpCenter.membersEdit.typeChangeText') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.membersEdit.relationsTitle')">
       <p>{{ t('helpCenter.membersEdit.relationsText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Relations tab content -->
     <HelpSection :title="t('helpCenter.membersEdit.relationsExampleTitle')">
       <NeutralContainer class="space-y-3">
         <SubHeader>{{ t('memberEdit.relations.guardians') }}</SubHeader>
         <div class="rounded-lg px-3 py-2 bg-bg-light-accent/30 dark:bg-bg-dark-accent/30 flex items-center justify-between">
-          <span class="text-sm font-medium">Petra Mustermann</span>
+          <span class="text-sm font-medium">{{ t('helpCenter.sample.people.petraMustermann') }}</span>
           <MutedText size="sm">petra@example.com</MutedText>
         </div>
         <SecondaryButton :icon="['fas', 'plus']">

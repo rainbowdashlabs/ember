@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.equipment.entity;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import dev.chojo.ember.feature.inventory.entity.LineTarget;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Duration;
 import java.time.LocalDate;
@@ -38,10 +39,10 @@ import java.time.LocalDate;
 public record EquipmentNeed(
         int id,
         int eventId,
-        LocalDate eventDate,
-        Integer itemId,
-        Integer artId,
-        Integer inventoryId,
+        @Nullable LocalDate eventDate,
+        @Nullable Integer itemId,
+        @Nullable Integer artId,
+        @Nullable Integer inventoryId,
         int quantity,
         int leadMinutes,
         int trailMinutes,

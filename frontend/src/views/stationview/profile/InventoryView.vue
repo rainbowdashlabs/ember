@@ -13,8 +13,7 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import {inventory, managedMembers} from '@/api'
 import {MovementPurpose} from '@/api/movements'
-import type {InventorySize, MyInventoryItem, MyRequirement} from '@/api/inventory'
-import type {ManagedMember} from '@/api/managedMembers'
+import type {ManagedMember, MyInventoryItem, MyRequirement} from '@/api/generated/schema'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useAsyncAction} from '@/composables/useAsyncAction'
@@ -61,7 +60,7 @@ const tabs = computed<Tab[]>(() => {
     list.push({id: String(currentMemberId.value), label: t('profile.myInventorySelf'), isOwn: true})
   }
   for (const m of managed.value) {
-    list.push({id: String(m.id), label: m.name || m.email, isOwn: false})
+    list.push({id: String(m.id), label: m.name || (m.email ?? ''), isOwn: false})
   }
   return list
 })

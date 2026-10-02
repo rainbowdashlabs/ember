@@ -9,10 +9,12 @@ import {useI18n} from 'vue-i18n'
 import EmptyHint from '@/components/typography/EmptyHint.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import TrainingQuestionCard from '@/views/stationview/quiz/trainingview/TrainingQuestionCard.vue'
+import TrainingQuestionCard from '@/components/quiz/TrainingQuestionCard.vue'
 import * as publicQuiz from '@/api/publicQuiz'
-import {QuizQuestionTypes, type QuizQuestion, type QuizQuestionTypeName} from '@/api/quiz'
+import {isQuizQuestionOf, QuizQuestionTypes} from '@/api/quiz'
+import type {PublicQuizQuestion, QuizQuestion} from '@/api/generated/schema'
 import {moveWithin} from '@/util/reorder'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 
 /**
  * Public {@code QUIZ_TEASER} renderer. Mirrors the in-app training experience: the visitor
@@ -30,9 +32,7 @@ const props = defineProps<{
 
 const {t} = useI18n()
 
-const question = ref<publicQuiz.PublicQuizQuestion | null>(null)
-const loading = ref(false)
-const error = ref(false)
+const question = ref<PublicQuizQuestion | null>(null)
 const showAnswer = ref(false)
 
 const userAnswer = ref('')
@@ -65,55 +65,27 @@ function resetUserInput() {
     connectRightOrder.value = []
 }
 
-function initQuestionState(q: publicQuiz.PublicQuizQuestion) {
-    const cfg = q.config ?? {}
-    if (q.questionType === QuizQuestionTypes.MULTIPLE_CHOICE) {
-        const opts = (cfg.options as unknown[]) ?? []
-        mcDisplayOrder.value = shuffle(opts.map((_, i) => i))
+function initQuestionState(q: QuizQuestion) {
+    if (isQuizQuestionOf(q, QuizQuestionTypes.MULTIPLE_CHOICE)) {
+        mcDisplayOrder.value = shuffle((q.config.options ?? []).map((_, i) => i))
     }
-    if (q.questionType === QuizQuestionTypes.ORDERING) {
-        const items = (cfg.items as string[]) ?? []
-        userOrderItems.value = shuffle(items.map((_, i) => i))
-    } else if (q.questionType === QuizQuestionTypes.CONNECT) {
+    if (isQuizQuestionOf(q, QuizQuestionTypes.ORDERING)) {
+        userOrderItems.value = shuffle((q.config.items ?? []).map((_, i) => i))
+    } else if (isQuizQuestionOf(q, QuizQuestionTypes.CONNECT)) {
         userConnectPairs.value = {}
-        const pairs = (cfg.pairs as {left: string; right: string}[]) ?? []
-        connectRightOrder.value = shuffle(pairs.map((_, i) => i))
+        connectRightOrder.value = shuffle((q.config.pairs ?? []).map((_, i) => i))
     }
 }
 
-async function loadQuestion() {
-    resetUserInput()
-    error.value = false
-    if (!props.stationUid || !props.catalogIds || props.catalogIds.length === 0) {
-        question.value = null
-        return
-    }
-    loading.value = true
-    try {
-        const next = await publicQuiz.getRandomPublicQuestion(props.stationUid, props.catalogIds)
-        question.value = next
-        initQuestionState(next)
-    } catch {
-        question.value = null
-        error.value = true
-    } finally {
-        loading.value = false
-    }
-}
-
-onMounted(loadQuestion)
-watch(() => [props.stationUid, JSON.stringify(props.catalogIds ?? [])], loadQuestion)
-
-const adaptedQuestion = computed<QuizQuestion | null>(() => {
-    const q = question.value
-    if (!q) return null
+/** The public question in the shape the training card draws, with nothing to score it by. */
+function asQuizQuestion(q: PublicQuizQuestion): QuizQuestion {
     return {
         id: q.id,
         catalogId: 0,
         categoryId: null,
-        quizQuestionType: q.questionType as QuizQuestionTypeName,
+        quizQuestionType: q.questionType,
         title: q.title,
-        description: q.description ?? '',
+        description: q.description,
         imageUrl: q.imageUrl,
         points: 0,
         autoPoints: false,
@@ -122,7 +94,34 @@ const adaptedQuestion = computed<QuizQuestion | null>(() => {
         createdAt: '',
         updatedAt: '',
     }
-})
+}
+
+const {loading, error, reload: fetchQuestion} = useAsyncLoader(async (isCurrent) => {
+    let next: PublicQuizQuestion
+    try {
+        next = await publicQuiz.getRandomPublicQuestion(props.stationUid as string, props.catalogIds as number[])
+    } catch (e) {
+        if (isCurrent()) question.value = null
+        throw e
+    }
+    if (!isCurrent()) return
+    question.value = next
+    initQuestionState(asQuizQuestion(next))
+}, {autoLoad: false})
+
+async function loadQuestion() {
+    resetUserInput()
+    if (!props.stationUid || !props.catalogIds || props.catalogIds.length === 0) {
+        question.value = null
+        return
+    }
+    await fetchQuestion()
+}
+
+onMounted(loadQuestion)
+watch(() => [props.stationUid, JSON.stringify(props.catalogIds ?? [])], loadQuestion)
+
+const adaptedQuestion = computed<QuizQuestion | null>(() => (question.value ? asQuizQuestion(question.value) : null))
 
 function toggleMcOption(idx: number) {
     if (showAnswer.value) return

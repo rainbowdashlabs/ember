@@ -9,6 +9,11 @@ import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.Federation;
 import org.junit.jupiter.api.Test;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -258,5 +263,67 @@ class RemoteUrlValidatorTest {
         assertTrue(permissive().isHostAllowed("127.0.0.1"));
         assertTrue(demoMode().isHostAllowed("10.0.0.1"));
         assertTrue(devMode().isHostAllowed("localhost"));
+    }
+
+    private static boolean isPublic(String address) throws Exception {
+        return RemoteUrlValidator.isPublic(InetAddress.getByName(address));
+    }
+
+    @Test
+    void reservedRangesAreNotPublicAtTheirEdges() throws Exception {
+        assertFalse(isPublic("100.64.0.0"));
+        assertFalse(isPublic("100.127.255.255"));
+        assertTrue(isPublic("100.128.0.1"));
+        assertTrue(isPublic("100.63.255.255"));
+        assertFalse(isPublic("172.31.255.255"));
+        assertTrue(isPublic("172.32.0.1"));
+        assertFalse(isPublic("198.19.255.255"));
+        assertFalse(isPublic("255.255.255.255"));
+        assertFalse(isPublic("fd12:3456::1"));
+        assertFalse(isPublic("2001:db8::1"));
+        assertFalse(isPublic("fe80::1"));
+        assertTrue(isPublic("8.8.8.8"));
+        assertTrue(isPublic("2606:4700:4700::1111"));
+    }
+
+    @Test
+    void ipv6FormsCarryingAPrivateIpv4AddressAreNotPublic() throws Exception {
+        assertFalse(isPublic("::ffff:192.168.1.1"));
+        assertFalse(isPublic("64:ff9b::a00:1"));
+        assertTrue(isPublic("64:ff9b::808:808"));
+        assertFalse(isPublic("::7f00:1"));
+    }
+
+    @Test
+    void aHostResolvingToAPrivateAddressIsRefusedWithoutAskingDnsTwice() throws Exception {
+        var lookups = new AtomicInteger();
+        OutboundHttp.HostResolver resolver = host -> {
+            lookups.incrementAndGet();
+            return new InetAddress[] {InetAddress.getByName("8.8.8.8"), InetAddress.getByName("192.168.0.10")};
+        };
+
+        var refusal = assertThrows(
+                RefusedDestinationException.class, () -> strict().publicAddresses("partner.example", resolver));
+
+        assertEquals(RefusedDestinationException.Reason.NOT_PUBLIC, refusal.reason());
+        assertEquals(1, lookups.get());
+    }
+
+    @Test
+    void aHostThatDoesNotResolveIsRefusedAsSuch() {
+        var refusal = assertThrows(
+                RefusedDestinationException.class, () -> strict().publicAddresses("nowhere.example", host -> {
+                    throw new UnknownHostException(host);
+                }));
+
+        assertEquals(RefusedDestinationException.Reason.UNRESOLVABLE, refusal.reason());
+    }
+
+    @Test
+    void aHostWithOnlyPublicAddressesIsReturnedAsResolved() throws Exception {
+        var addresses = strict().publicAddresses(
+                        "partner.example", host -> new InetAddress[] {InetAddress.getByName("1.1.1.1")});
+
+        assertEquals(List.of(InetAddress.getByName("1.1.1.1")), addresses);
     }
 }

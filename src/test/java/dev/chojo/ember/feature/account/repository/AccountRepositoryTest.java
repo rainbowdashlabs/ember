@@ -9,7 +9,6 @@ import dev.chojo.ember.api.auth.InstanceUserType;
 import dev.chojo.ember.auth.TokenHasher;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.entity.AccountCredential;
-import dev.chojo.ember.feature.account.entity.AccountExternalAuth;
 import dev.chojo.ember.feature.account.entity.AccountSession;
 import dev.chojo.ember.feature.account.entity.AccountToken;
 import dev.chojo.ember.feature.account.entity.TokenType;
@@ -23,6 +22,8 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
+import static de.chojo.sadu.queries.api.call.Call.call;
+import static de.chojo.sadu.queries.api.query.Query.query;
 import static org.junit.jupiter.api.Assertions.*;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
@@ -136,7 +137,6 @@ class AccountRepositoryTest extends RepositoryTestBase {
         assertEquals("updated@example.com", updated.email());
         assertEquals("Updated", updated.firstName());
         assertEquals("Name", updated.lastName());
-        // restore
         accountRepo.update(accountId, "test@example.com", "Test", "User");
     }
 
@@ -147,32 +147,31 @@ class AccountRepositoryTest extends RepositoryTestBase {
         assertTrue(accountRepo.findById(accountId).orElseThrow().emailVerified());
     }
 
-    // -- Instance User Type --
-
     @Test
     @Order(10)
     void setAndCheckInstanceUserType() {
         accountRepo.setInstanceUserType(accountId, InstanceUserType.ADMINISTRATOR);
-        assertTrue(accountRepo.isAdministrator(accountId));
+        assertEquals(
+                InstanceUserType.ADMINISTRATOR,
+                accountRepo.findById(accountId).orElseThrow().instanceUserType());
         assertTrue(accountRepo.anyAdministratorExists());
     }
 
     @Test
     @Order(11)
-    void isAdministratorFalseAfterReset() {
+    void instanceUserTypeResets() {
         accountRepo.setInstanceUserType(accountId, InstanceUserType.USER);
-        assertFalse(accountRepo.isAdministrator(accountId));
+        assertEquals(
+                InstanceUserType.USER,
+                accountRepo.findById(accountId).orElseThrow().instanceUserType());
     }
 
+    /** Only proves the query runs: accounts of other test classes may still be administrators. */
     @Test
     @Order(12)
     void anyAdministratorExistsCallable() {
-        // After resetting to USER - the method should still be callable.
-        // Other test class accounts may still have ADMINISTRATOR, so just verify it runs.
         var result = accountRepo.anyAdministratorExists();
     }
-
-    // -- Credentials --
 
     @Test
     @Order(20)
@@ -228,35 +227,6 @@ class AccountRepositoryTest extends RepositoryTestBase {
         assertTrue(accountRepo.findCredential(accountId).isEmpty());
     }
 
-    // -- External Auth --
-
-    @Test
-    @Order(30)
-    void createAndFindExternalAuth() {
-        accountRepo.createExternalAuth(accountId, "google", "ext123");
-        var auths = accountRepo.findExternalAuths(accountId);
-        assertEquals(1, auths.size());
-        assertEquals("google", auths.getFirst().provider());
-    }
-
-    @Test
-    @Order(31)
-    void findExternalAuthByProviderAndId() {
-        assertTrue(accountRepo.findExternalAuth("google", "ext123").isPresent());
-        assertTrue(accountRepo.findExternalAuth("google", "nonexistent").isEmpty());
-    }
-
-    @Test
-    @Order(32)
-    void deleteExternalAuth() {
-        AccountExternalAuth auth =
-                accountRepo.findExternalAuth("google", "ext123").orElseThrow();
-        assertTrue(accountRepo.deleteExternalAuth(auth.id()));
-        assertTrue(accountRepo.findExternalAuths(accountId).isEmpty());
-    }
-
-    // -- Tokens --
-
     @Test
     @Order(40)
     void createAndFindToken() {
@@ -309,8 +279,6 @@ class AccountRepositoryTest extends RepositoryTestBase {
         assertTrue(accountRepo.findToken("expired-tok").isEmpty());
     }
 
-    // -- Sessions --
-
     @Test
     @Order(50)
     void createAndFindSession() {
@@ -348,6 +316,86 @@ class AccountRepositoryTest extends RepositoryTestBase {
         assertTrue(accountRepo.touchSession("session-tok", "UpdatedAgent/2.0", null));
         AccountSession session = accountRepo.findSession("session-tok").orElseThrow();
         assertEquals("UpdatedAgent/2.0", session.userAgent());
+    }
+
+    @Test
+    @Order(52)
+    void touchSessionWritesOncePerMinute() {
+        accountRepo.createSession(accountId, "touch-tok", Instant.now().plus(1, ChronoUnit.HOURS), "Agent/1", "DE");
+
+        assertFalse(accountRepo.touchSession("touch-tok", "Agent/1", "DE"));
+        assertFalse(accountRepo.touchSession("touch-tok", "Agent/1", null));
+
+        backdateLastUse("touch-tok");
+        assertTrue(accountRepo.touchSession("touch-tok", "Agent/1", "DE"));
+        assertFalse(accountRepo.touchSession("touch-tok", "Agent/1", "DE"));
+
+        accountRepo.deleteSession("touch-tok");
+    }
+
+    @Test
+    @Order(52)
+    void touchSessionWritesAChangedUserAgentOrLocationAtOnce() {
+        accountRepo.createSession(accountId, "change-tok", Instant.now().plus(1, ChronoUnit.HOURS), "Agent/1", "DE");
+
+        assertTrue(accountRepo.touchSession("change-tok", "Agent/2", "DE"));
+        assertEquals(
+                "Agent/2", accountRepo.findSession("change-tok").orElseThrow().userAgent());
+
+        assertTrue(accountRepo.touchSession("change-tok", "Agent/2", "AT"));
+        assertEquals("AT", accountRepo.findSession("change-tok").orElseThrow().location());
+
+        accountRepo.deleteSession("change-tok");
+    }
+
+    @Test
+    @Order(52)
+    void renewSessionWaitsForHalfTheLifetime() {
+        accountRepo.createSession(accountId, "renew-fresh", Instant.now().plus(50, ChronoUnit.MINUTES), "ua", null);
+
+        assertTrue(accountRepo.renewSession("renew-fresh", 60, 600).isEmpty());
+
+        accountRepo.deleteSession("renew-fresh");
+    }
+
+    @Test
+    @Order(52)
+    void renewSessionExtendsByTheLifetimeItWasSignedInWith() {
+        accountRepo.createSession(accountId, "renew-short", Instant.now().plus(10, ChronoUnit.MINUTES), "ua", null);
+        accountRepo.createSession(
+                accountId, "renew-long", Instant.now().plus(10, ChronoUnit.MINUTES), "ua", null, null, null, true);
+
+        Instant shortExpiry = accountRepo.renewSession("renew-short", 60, 600).orElseThrow();
+        Instant longExpiry = accountRepo.renewSession("renew-long", 60, 600).orElseThrow();
+
+        assertTrue(shortExpiry.isAfter(Instant.now().plus(55, ChronoUnit.MINUTES)));
+        assertTrue(shortExpiry.isBefore(Instant.now().plus(65, ChronoUnit.MINUTES)));
+        assertTrue(longExpiry.isAfter(Instant.now().plus(595, ChronoUnit.MINUTES)));
+        assertEquals(
+                shortExpiry,
+                accountRepo.findSession("renew-short").orElseThrow().expiresAt());
+
+        accountRepo.deleteSession("renew-short");
+        accountRepo.deleteSession("renew-long");
+    }
+
+    @Test
+    @Order(52)
+    void renewSessionNeverRevivesAnExpiredOne() {
+        accountRepo.createSession(accountId, "renew-dead", Instant.now().minus(1, ChronoUnit.MINUTES), "ua", null);
+
+        assertTrue(accountRepo.renewSession("renew-dead", 60, 600).isEmpty());
+        assertTrue(accountRepo.renewSession("renew-unknown", 60, 600).isEmpty());
+
+        accountRepo.deleteSession("renew-dead");
+    }
+
+    private static void backdateLastUse(String token) {
+        query("UPDATE account_session SET last_used_at = now() - INTERVAL '2 minutes' WHERE token_hash = :token_hash;")
+                .single(call().bind(
+                                "token_hash",
+                                TokenHasher.forTesting("repository-test-pepper").hash(token)))
+                .update();
     }
 
     @Test
@@ -419,25 +467,20 @@ class AccountRepositoryTest extends RepositoryTestBase {
         assertTrue(accountRepo.findSession("expired-s").isEmpty());
     }
 
-    // -- GDPR Consent --
-
     @Test
     @Order(70)
-    void findAllConsentsEmpty() {
-        var consents = accountRepo.findAllConsents(accountId);
-        assertTrue(consents.isEmpty());
+    void findLatestConsentEmpty() {
+        assertTrue(accountRepo.findLatestConsent(accountId).isEmpty());
     }
 
     @Test
     @Order(71)
-    void recordAndFindAllConsents() {
+    void recordAndFindLatestConsent() {
         accountRepo.recordConsent(accountId, "1.0", "1.0", "1.0", "127.0.0.1", "DE", "TestAgent");
         accountRepo.recordConsent(accountId, "1.1", "1.1", "1.1", "127.0.0.1", "DE", "TestAgent");
-        var consents = accountRepo.findAllConsents(accountId);
-        assertEquals(2, consents.size());
+        assertEquals(
+                "1.1", accountRepo.findLatestConsent(accountId).orElseThrow().consentVersion());
     }
-
-    // -- Delete account --
 
     @Test
     @Order(99)

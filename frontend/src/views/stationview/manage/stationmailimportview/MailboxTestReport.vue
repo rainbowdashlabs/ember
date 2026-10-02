@@ -6,7 +6,7 @@
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
 import Alert from '@/components/feedback/Alert.vue'
-import type {MailboxTestResult} from '@/api/mailImport'
+import type {TestResult} from '@/api/generated/schema'
 
 /**
  * What a connection test came to.
@@ -15,7 +15,7 @@ import type {MailboxTestResult} from '@/api/mailImport'
  * a folder spelled the way the person says it rather than the way the provider does.
  */
 defineProps<{
-  result: MailboxTestResult
+  result: TestResult
   folder: string
 }>()
 

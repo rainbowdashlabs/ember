@@ -7,11 +7,14 @@ package dev.chojo.ember.feature.page.repository;
 
 import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
+import dev.chojo.ember.feature.page.entity.PageUsingForm;
 import dev.chojo.ember.feature.page.entity.PageVisibility;
+import dev.chojo.ember.feature.page.entity.PickerPage;
 import dev.chojo.ember.feature.page.entity.StationPage;
 import dev.chojo.ember.util.sql.SqlSupport;
 import dev.chojo.ember.util.sql.WhereBuilder;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.List;
@@ -28,9 +31,7 @@ public class PageRepository {
     private static final String STATION_PAGE_COLUMNS =
             "id, public_uid, station_id, parent_id, title, slug, visibility, sort_order, meta_description, og_image_id, container_id, created_by, created_at, updated_at";
 
-    // --- Page CRUD ---
-
-    public StationPage create(int stationId, String title, String slug, Integer parentId, int createdBy) {
+    public StationPage create(int stationId, String title, String slug, @Nullable Integer parentId, int createdBy) {
         return SqlSupport.insertReturning(
                 """
                 INSERT INTO station_page(station_id, title, slug, parent_id, created_by)
@@ -73,7 +74,7 @@ public class PageRepository {
      * chosen rather than left out - {@link WhereBuilder} drops null-valued predicates, which would
      * make this match a same-slug page at any depth.
      */
-    public Optional<StationPage> findBySlugAndParent(int stationId, String slug, Integer parentId) {
+    public Optional<StationPage> findBySlugAndParent(int stationId, String slug, @Nullable Integer parentId) {
         var where = parentId == null
                 ? WhereBuilder.create().add("AND parent_id IS NULL")
                 : WhereBuilder.create().add("AND parent_id = :parent_id", "parent_id", parentId);
@@ -135,9 +136,6 @@ public class PageRepository {
                 .all();
     }
 
-    /** One page holding a form, and how far that page itself reaches. */
-    public record PageUsingForm(int id, String title, PageVisibility visibility) {}
-
     /**
      * Whether the station has a page in its menu, without reading any of them.
      *
@@ -165,7 +163,7 @@ public class PageRepository {
      * <p>Reachable rather than listed: an editor links to a page that is only reachable by its own
      * link as readily as to one in the menu, and is warned about it where they do.
      */
-    public List<PickerPage> searchForPicker(int stationId, String search, int limit) {
+    public List<PickerPage> searchForPicker(int stationId, @Nullable String search, int limit) {
         var where = WhereBuilder.create().like("AND LOWER(title) LIKE :q", "q", search);
         return query("""
                 SELECT public_uid, title, slug, updated_at
@@ -185,7 +183,12 @@ public class PageRepository {
     }
 
     public boolean updateMeta(
-            int id, String title, String slug, Integer parentId, String metaDescription, Integer ogImageId) {
+            int id,
+            String title,
+            String slug,
+            @Nullable Integer parentId,
+            @Nullable String metaDescription,
+            @Nullable Integer ogImageId) {
         return query("""
                 UPDATE station_page
                 SET
@@ -221,7 +224,7 @@ public class PageRepository {
      * @param mintedToken a fresh token, used only where the page has none and is becoming unlisted
      * @return whether a row changed
      */
-    public boolean setVisibility(int id, PageVisibility visibility, String mintedToken) {
+    public boolean setVisibility(int id, PageVisibility visibility, @Nullable String mintedToken) {
         return query("""
                 UPDATE station_page
                 SET visibility  = :visibility,
@@ -321,13 +324,11 @@ public class PageRepository {
         return d;
     }
 
-    public void setLandingPage(int stationId, Integer pageId) {
+    public void setLandingPage(int stationId, @Nullable Integer pageId) {
         query("UPDATE station SET landing_page_id = :page_id WHERE id = :station_id;")
                 .single(call().bind("page_id", pageId).bind("station_id", stationId))
                 .update();
     }
-
-    // --- Landing page ---
 
     public Optional<Integer> getLandingPageId(int stationId) {
         return query("SELECT landing_page_id FROM station WHERE id = :id;")
@@ -379,10 +380,4 @@ public class PageRepository {
      * deleting the article under it is as visible a change as deleting one under a page in the menu.
      */
     public record EmbeddingPage(String title, boolean reachable) {}
-
-    /**
-     * Lightweight picker result row for the page picker. Exposes only the public UUID - never the
-     * internal integer id.
-     */
-    public record PickerPage(UUID pageUid, String title, String slug, Instant updatedAt) {}
 }

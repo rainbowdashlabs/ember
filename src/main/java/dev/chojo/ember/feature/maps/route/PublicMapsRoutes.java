@@ -5,17 +5,24 @@
  */
 package dev.chojo.ember.feature.maps.route;
 
-import dev.chojo.ember.api.Refusal;
+import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.auth.StationFree;
+import dev.chojo.ember.api.refusal.MapRefusal;
 import dev.chojo.ember.feature.maps.entity.MapTileProvider;
 import dev.chojo.ember.feature.maps.service.MapTileCacheService;
+import dev.chojo.ember.feature.maps.service.MapTileRateLimiter;
 import dev.chojo.ember.feature.maps.service.MapsConfigService;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
+import io.javalin.openapi.HttpMethod;
+import io.javalin.openapi.OpenApi;
+import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Anonymous-internet routes for the maps feature:
@@ -34,18 +41,21 @@ public class PublicMapsRoutes implements Routes {
 
     private final MapsConfigService configService;
     private final MapTileCacheService cacheService;
+    private final MapTileRateLimiter rateLimiter;
 
     @Inject
-    public PublicMapsRoutes(MapsConfigService configService, MapTileCacheService cacheService) {
+    public PublicMapsRoutes(
+            MapsConfigService configService, MapTileCacheService cacheService, MapTileRateLimiter rateLimiter) {
         this.configService = configService;
         this.cacheService = cacheService;
+        this.rateLimiter = rateLimiter;
     }
 
     private static int parseInt(String value, String fieldName) {
         try {
             return Integer.parseInt(value);
         } catch (NumberFormatException e) {
-            throw Refusal.PUBLIC_MAP_TILE_NUMBER_NOT_A_NUMBER.raise(fieldName);
+            throw MapRefusal.PUBLIC_MAP_TILE_NUMBER_NOT_A_NUMBER.raise(fieldName);
         }
     }
 
@@ -55,11 +65,16 @@ public class PublicMapsRoutes implements Routes {
         routes.get(prefix + "/public/maps/tiles/{z}/{x}/{y}", this::getTile);
     }
 
+    /**
+     * The map settings members read. Unless the operator set a custom provider, the tile URL points at
+     * this instance's own cache, so every tile request goes through it.
+     */
+    @OpenApi(
+            path = "/api/v1/public/settings/maps",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = PublicMapsConfig.class)))
     private void getConfig(Context ctx) {
         var tiles = configService.tilesConfig();
-        // We deliberately rewrite the URL template to point at this instance's own cache
-        // endpoint when the operator hasn't overridden it via the CUSTOM provider; that way
-        // every member tile request goes through our cache by default.
         String urlTemplate;
         if (tiles.provider() == MapTileProvider.CUSTOM) {
             urlTemplate = tiles.resolvedUrlTemplate();
@@ -71,8 +86,30 @@ public class PublicMapsRoutes implements Routes {
                 tiles.provider(), urlTemplate, tiles.resolvedAttribution(), tiles.minZoom(), tiles.maxZoom()));
     }
 
+    /**
+     * Serves one tile. Every tile the cache does not hold costs an upstream request on the
+     * operator's key, so each address is held to {@link MapTileRateLimiter}'s rate before anything
+     * else is looked at.
+     */
+    @OpenApi(
+            path = "/api/v1/public/maps/tiles/{z}/{x}/{y}",
+            methods = HttpMethod.GET,
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(type = "image/*")),
+                @OpenApiResponse(status = "429", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
     @StationFree("the parameters are map coordinates, not a row; the tile is the same for everyone")
     private void getTile(Context ctx) {
+        var retryAfter = rateLimiter.tryAcquire(ctx.ip());
+        if (retryAfter.isPresent()) {
+            ctx.status(MapRefusal.MAP_TILES_TOO_OFTEN.status())
+                    .header("Retry-After", String.valueOf(retryAfter.get()))
+                    .json(ErrorResponseWrapper.of(
+                            MapRefusal.MAP_TILES_TOO_OFTEN,
+                            MapRefusal.MAP_TILES_TOO_OFTEN.message(),
+                            retryAfter.get()));
+            return;
+        }
         int z = parseInt(ctx.pathParam("z"), "z");
         int x = parseInt(ctx.pathParam("x"), "x");
         int y = parseInt(ctx.pathParam("y"), "y");
@@ -92,5 +129,9 @@ public class PublicMapsRoutes implements Routes {
      * Public-facing tile config - never includes the API key. Frontend reads only this.
      */
     public record PublicMapsConfig(
-            MapTileProvider provider, String urlTemplate, String attribution, int minZoom, int maxZoom) {}
+            MapTileProvider provider,
+            @Nullable String urlTemplate,
+            @Nullable String attribution,
+            int minZoom,
+            int maxZoom) {}
 }

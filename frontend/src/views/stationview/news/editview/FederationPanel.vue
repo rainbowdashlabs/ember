@@ -10,7 +10,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import FederationSharePicker from '@/components/input/FederationSharePicker.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
-import type {PartnerResponse} from '@/api/federation'
+import type {PartnerResponse} from '@/api/generated/schema'
 
 const shared = defineModel<boolean>('shared', {required: true})
 const scope = defineModel<string>('scope', {required: true})

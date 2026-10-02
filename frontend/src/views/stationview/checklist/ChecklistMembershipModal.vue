@@ -14,13 +14,17 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import ChecklistMembershipEditor from './checklistmodals/ChecklistMembershipEditor.vue'
-import {toRestriction, type RestrictionSelection} from '@/components/input/restriction'
+import {toRestriction} from '@/components/input/restriction'
+import type {RestrictionSelection} from '@/api/types'
+import type {EventOccurrenceRef} from '@/api/events'
 import type {
-  ChecklistRestrictionDto,
-  ChecklistSourceOccurrence,
-  ChecklistSourceRequest,
-} from '@/api/checklists'
-import type {MemberGroup, StationMember, UserTag} from '@/api/types'
+  RestrictionResponse as ChecklistRestriction,
+  SourceOccurrenceResponse as ChecklistSourceOccurrence,
+  UpdateRequest as ChecklistUpdateRequest,
+  MemberGroup,
+  UserTag,
+} from '@/api/generated/schema'
+import type {MemberLike} from '@/components/input/select/memberOption'
 import {formatDate} from '@/util/format'
 import type {Failure} from '@/util/failure'
 
@@ -35,25 +39,25 @@ import type {Failure} from '@/util/failure'
 const visible = defineModel<boolean>({required: true})
 
 const props = defineProps<{
-  initialRestriction: ChecklistRestrictionDto
+  initialRestriction: ChecklistRestriction
   initialSource?: ChecklistSourceOccurrence | null
   groups: MemberGroup[]
   tags: UserTag[]
-  members: StationMember[]
+  members: MemberLike[]
   saving: boolean
   /** What the last save ran into, described, or nothing where nothing has. */
   failure?: Failure | null
 }>()
 
 const emit = defineEmits<{
-  (e: 'submit', payload: {restriction?: ChecklistRestrictionDto; source?: ChecklistSourceRequest}): void
+  (e: 'submit', payload: Pick<ChecklistUpdateRequest, 'restriction' | 'source'>): void
 }>()
 
 const {t} = useI18n()
 
 const follows = ref<'FILTER' | 'EVENT'>('FILTER')
 const restriction = ref<RestrictionSelection>(toRestriction(props.initialRestriction))
-const occurrence = ref<ChecklistSourceRequest | null>(null)
+const occurrence = ref<EventOccurrenceRef | null>(null)
 
 const initialLabel = computed(() => {
   const source = props.initialSource

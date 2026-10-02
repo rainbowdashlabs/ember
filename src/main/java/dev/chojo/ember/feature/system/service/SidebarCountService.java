@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.system.service;
 
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
@@ -15,18 +15,17 @@ import dev.chojo.ember.feature.inventory.service.ItemMovementService;
 import dev.chojo.ember.feature.lostandfound.repository.LostAndFoundRepository;
 import dev.chojo.ember.feature.members.repository.ProfileFieldChangeRepository;
 import dev.chojo.ember.feature.members.service.StationMemberService;
-import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.notifications.entity.Recipient;
+import dev.chojo.ember.feature.notifications.service.NotificationInbox;
 import dev.chojo.ember.feature.procedure.service.ProcedureService;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.waitinglist.repository.WaitingListRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
-import java.util.UUID;
-
 @Singleton
 public class SidebarCountService {
-    private final NotificationService notificationService;
+    private final NotificationInbox notificationInbox;
     private final RequirementsService requirementsService;
     private final ProfileFieldChangeRepository profileFieldChangeRepository;
     private final EventRegistrationRepository eventRegistrationRepository;
@@ -42,7 +41,7 @@ public class SidebarCountService {
 
     @Inject
     public SidebarCountService(
-            NotificationService notificationService,
+            NotificationInbox notificationInbox,
             RequirementsService requirementsService,
             ProfileFieldChangeRepository profileFieldChangeRepository,
             EventRegistrationRepository eventRegistrationRepository,
@@ -55,7 +54,7 @@ public class SidebarCountService {
             ItemMovementService movementService,
             ProcedureService procedureService,
             StationMemberService stationMemberService) {
-        this.notificationService = notificationService;
+        this.notificationInbox = notificationInbox;
         this.requirementsService = requirementsService;
         this.profileFieldChangeRepository = profileFieldChangeRepository;
         this.eventRegistrationRepository = eventRegistrationRepository;
@@ -70,12 +69,12 @@ public class SidebarCountService {
         this.stationMemberService = stationMemberService;
     }
 
-    public SidebarCounts getCounts(UserSession session) {
+    public SidebarCounts getCounts(StationSession session) {
         int stationId = session.stationId();
         int memberId = session.member().id();
-        var roles = session.permissions();
+        var roles = session.user().permissions();
 
-        int notifications = notificationService.countUnacknowledged(memberId);
+        int notifications = notificationInbox.countUnread(Recipient.stationMember(memberId));
 
         int requirements = requirementsService.countPending(
                 memberId, stationId, roles.stream().map(Enum::name).toList());
@@ -93,16 +92,15 @@ public class SidebarCountService {
         int lendingRequests = 0;
         if (roles.contains(StationPermission.INVENTORY_MANAGER)
                 && roles.contains(StationPermission.STATION_FEDERATION)) {
-            lendingRequests = lendingRepository.countActionableRequests(stationRepository.resolveUid(stationId));
+            lendingRequests = lendingRepository.countActionableRequests(stationRepository.requireUid(stationId));
         }
 
         int federationRequests = 0;
         if (roles.contains(StationPermission.STATION_FEDERATION)) {
-            UUID stationUid = stationRepository.resolveUid(stationId);
-            federationRequests = federationRepository.countPendingRequests(stationUid);
+            federationRequests = federationRepository.countPendingRequests(stationRepository.requireUid(stationId));
         }
 
-        // openEvents: TODO - complex query, return 0 for now
+        // TODO: count open events; the sidebar shows 0 until the query exists.
         int openEvents = 0;
 
         int waitingListEntries = 0;
@@ -115,17 +113,7 @@ public class SidebarCountService {
             lostAndFoundPending = lostAndFoundRepository.countClaimedNotProvided(stationId);
         }
 
-        // Guardians see the "my inventory" entry as soon as one of their managed members
-        // owns anything, even if the guardian themselves owns nothing.
-        int myInventoryCount = inventoryService.countItemsByMember(memberId);
-        if (myInventoryCount == 0 && roles.contains(StationPermission.MEMBER_GUARDIAN)) {
-            for (var managed : stationMemberService.findManaged(memberId)) {
-                if (inventoryService.countItemsByMember(managed.id()) > 0) {
-                    myInventoryCount = 1;
-                    break;
-                }
-            }
-        }
+        int myInventoryCount = myInventoryCount(memberId, roles.contains(StationPermission.MEMBER_GUARDIAN));
 
         int openMovements = 0;
         if (roles.contains(StationPermission.INVENTORY_EDIT)) {
@@ -136,7 +124,6 @@ public class SidebarCountService {
         if (roles.contains(StationPermission.PROCEDURE_EDIT)) {
             procedureCount = procedureService.countOpenByStation(stationId);
         } else {
-            // All users see count of their assigned procedures with available items
             procedureCount = procedureService.countOpenByAssigneeWithAvailableItems(stationId, memberId);
         }
 
@@ -153,6 +140,19 @@ public class SidebarCountService {
                 myInventoryCount,
                 openMovements,
                 procedureCount);
+    }
+
+    /**
+     * The member's own item count. A guardian who owns nothing still gets a non-zero count as soon as
+     * one of their managed members owns something, so the entry shows for them.
+     */
+    private int myInventoryCount(int memberId, boolean guardian) {
+        int own = inventoryService.countItemsByMember(memberId);
+        if (own > 0 || !guardian) return own;
+        for (var managed : stationMemberService.findManaged(memberId)) {
+            if (inventoryService.countItemsByMember(managed.id()) > 0) return 1;
+        }
+        return 0;
     }
 
     public record SidebarCounts(

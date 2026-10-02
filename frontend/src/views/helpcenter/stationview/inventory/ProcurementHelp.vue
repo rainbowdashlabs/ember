@@ -31,7 +31,6 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.inventoryProcurement.createNotes') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Procurement list -->
     <div class="space-y-3">
       <div class="flex items-center justify-between">
         <SectionHeader>{{ t('procurement.title') }}</SectionHeader>
@@ -44,12 +43,12 @@ const {t} = useI18n()
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <div class="space-y-1">
             <div class="flex items-center gap-2 flex-wrap">
-              <span class="font-medium">Helme</span>
+              <span class="font-medium">{{ t('helpCenter.sample.equipment.helmets') }}</span>
               <span class="text-sm text-(--text-muted)">(L)</span>
               <ErrorBadge>{{ t('procurement.open') }}</ErrorBadge>
             </div>
-            <div class="text-sm text-(--text-muted)">Max Mustermann, 10.05.2026</div>
-            <div class="text-sm">Alter Helm gerissen</div>
+            <div class="text-sm text-(--text-muted)">{{ t('helpCenter.sample.people.maxMustermann') }}, 10.05.2026</div>
+            <div class="text-sm">{{ t('helpCenter.sample.equipment.helmetTorn') }}</div>
           </div>
           <div class="flex items-center gap-2 shrink-0">
             <PrimaryButton :icon="['fas', 'check']">
@@ -64,11 +63,11 @@ const {t} = useI18n()
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <div class="space-y-1">
             <div class="flex items-center gap-2 flex-wrap">
-              <span class="font-medium">Jacken</span>
+              <span class="font-medium">{{ t('helpCenter.sample.equipment.jackets') }}</span>
               <span class="text-sm text-(--text-muted)">(M)</span>
               <SuccessBadge>{{ t('procurement.fulfilled') }}</SuccessBadge>
             </div>
-            <div class="text-sm text-(--text-muted)">Erika Musterfrau, 01.05.2026</div>
+            <div class="text-sm text-(--text-muted)">{{ t('helpCenter.sample.people.erikaMusterfrau') }}, 01.05.2026</div>
             <div class="text-xs text-(--text-muted)">{{ t('procurement.fulfilledAt') }}: 08.05.2026</div>
           </div>
           <div class="flex items-center gap-2 shrink-0">

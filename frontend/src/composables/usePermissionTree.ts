@@ -5,8 +5,7 @@
  */
 import { computed, onMounted, ref, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { PermissionNode } from '@/api/data'
-import type { PermissionGrant } from '@/api/types'
+import type {Permission, PermissionNode} from '@/api/generated/schema'
 import { data } from '@/api'
 
 export interface TreeNode {
@@ -22,6 +21,13 @@ export interface FlatItem {
 
 /** Which set of permissions a picker is drawing, and the one that sits above all of them. */
 export type PermissionScope = 'station' | 'cluster'
+
+/**
+ * One numbered grant as the picker draws it: a station's permission row as the server sends it, or
+ * an association's permission name, which its port numbers on the way out because the association's
+ * API speaks names only.
+ */
+export type PermissionGrant = Omit<Permission, 'permission'> & {permission: string}
 
 const ROOTS: Record<PermissionScope, string> = {
   station: 'STATION_ADMINISTRATOR',
@@ -63,6 +69,10 @@ export function usePermissionTree(
     loading.value = false
   })
 
+  /**
+   * The permissions as the picker shows them. The root grants every other permission, so it stands
+   * as a leaf toggle beside its children rather than as a header listing them again.
+   */
   const tree = computed<TreeNode[]>(() => {
     if (!hierarchy.value.length) return []
 
@@ -82,8 +92,6 @@ export function usePermissionTree(
         .map(n => ({...n, children: filterHidden(n.children)}))
     }
 
-    // STATION_ADMINISTRATOR transitively grants every other permission, so listing its
-    // descendants under the group header is just noise - keep the toggle but render it as a leaf.
     return filterHidden([{name: ROOT, children: []}, ...admin.children.map(buildNode)])
   })
 
@@ -166,7 +174,7 @@ export function usePermissionTree(
     return result
   }
 
-  // Children removed because a parent was enabled, kept so unchecking the parent restores them.
+  /** Children removed because a parent was enabled, kept so unchecking the parent restores them. */
   const collapsedChildren = ref<Map<string, Set<number>>>(new Map())
 
   function toggle(name: string, node: TreeNode) {

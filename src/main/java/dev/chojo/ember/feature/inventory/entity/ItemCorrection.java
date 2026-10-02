@@ -5,6 +5,10 @@
  */
 package dev.chojo.ember.feature.inventory.entity;
 
+import org.jspecify.annotations.Nullable;
+
+import java.util.Optional;
+
 /**
  * What a check found instead of what was written down.
  *
@@ -24,7 +28,7 @@ package dev.chojo.ember.feature.inventory.entity;
  */
 public record ItemCorrection(
         int inventoryId,
-        Integer oldItemId,
+        @Nullable Integer oldItemId,
         Integer pickedItemId,
         Integer sizeId,
         ItemOwner ownerKind,
@@ -40,11 +44,11 @@ public record ItemCorrection(
     }
 
     /**
-     * Whether the record had the member holding something at all.
+     * The piece the record had the member holding, where it had them holding anything at all.
      *
-     * @return {@code true} when a piece is being replaced
+     * @return the piece being replaced, or empty when there is none
      */
-    public boolean replacesAPiece() {
-        return oldItemId != null && oldItemId > 0;
+    public Optional<Integer> replacedPiece() {
+        return Optional.ofNullable(oldItemId).filter(id -> id > 0);
     }
 }

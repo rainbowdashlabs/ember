@@ -7,7 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import TextInput from '@/components/input/text/TextInput.vue'
 import QuestionOptionsEditor from '@/components/input/QuestionOptionsEditor.vue'
-import type {EnumFieldConfig, EnumOption} from '@/api/inventoryFields'
+import type {EnumConfig, EnumOption} from '@/api/generated/schema'
 import {harmonizeKey} from './harmonize'
 
 /**
@@ -18,14 +18,12 @@ import {harmonizeKey} from './harmonize'
  * jacke" leaves the pieces already carrying it where they are. The stored half follows the label
  * while nobody has typed one of their own, and stops following the moment somebody does.
  */
-const props = defineProps<{
-    config: EnumFieldConfig
-}>()
+const config = defineModel<EnumConfig>('config', {required: true})
 
 const {t} = useI18n()
 
 function setOptions(options: EnumOption[]) {
-    props.config.options.splice(0, props.config.options.length, ...options)
+    config.value = {...config.value, options}
 }
 
 /** The label as somebody typed it, with the stored value following along while it still may. */
@@ -35,7 +33,7 @@ function relabel(option: EnumOption, label: string): EnumOption {
 }
 
 function setValue(option: EnumOption, value: string) {
-    setOptions(props.config.options.map(candidate => (candidate === option ? {...candidate, value} : candidate)))
+    setOptions(config.value.options.map(candidate => (candidate === option ? {...candidate, value} : candidate)))
 }
 </script>
 
@@ -44,7 +42,7 @@ function setValue(option: EnumOption, value: string) {
         :add-label="t('inventory.fields.enum.add')"
         :blank="() => ({value: '', label: ''})"
         :label="t('inventory.fields.enum.options')"
-        :model-value="props.config.options"
+        :model-value="config.options"
         :text-of="(option: EnumOption) => option.label"
         :with-text="relabel"
         class="mt-3"

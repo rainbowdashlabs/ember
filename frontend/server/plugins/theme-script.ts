@@ -1,12 +1,11 @@
+import {Feel, type FeelValue, type ThemeColors} from '../../src/theme/themes'
 import {
-    Feel,
-    FEEL_RADIUS,
-    THEMES,
-    type FeelValue,
-    type ModeColors,
-    type ThemeColors,
-} from '../../src/theme/themes'
-import {contrastTextColor, ensureContrast} from '../../src/theme/contrast'
+    activeModeVariables,
+    backgroundVariables,
+    feelVariables,
+    resolveThemeColors,
+    variablesCss,
+} from '../../src/theme/palette'
 
 const THEME_SCRIPT = `<script>try{var m=localStorage.getItem('dark_mode')||localStorage.getItem('theme');if(m==='LIGHT'||m==='light'){document.documentElement.classList.add('light')}else if(m==='DARK'||m==='dark'){document.documentElement.classList.add('dark')}else{document.documentElement.classList.add(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light')}}catch(e){}</script>`
 
@@ -105,49 +104,11 @@ async function resolveThemeFrom(cacheKey: string, url: string): Promise<Resolved
     return resolved
 }
 
-function resolveColors(theme: string, customColors: ThemeColors | null): ThemeColors {
-    if (theme === 'custom' && customColors) return customColors
-    return THEMES[theme]?.colors ?? THEMES.ember.colors
-}
-
-function buildModeBlock(mode: ModeColors, pageBg: string): string {
-    return [
-        `--color-primary:${mode.primary}`,
-        `--color-primary-accent:${mode.primaryAccent}`,
-        `--color-secondary:${mode.secondary}`,
-        `--color-secondary-accent:${mode.secondaryAccent}`,
-        `--color-info:${mode.info}`,
-        `--color-info-accent:${mode.infoAccent}`,
-        `--color-success:${mode.success}`,
-        `--color-error:${mode.error}`,
-        `--color-primary-text:${contrastTextColor(mode.primary)}`,
-        `--color-primary-accent-text:${contrastTextColor(mode.primaryAccent)}`,
-        `--color-secondary-text:${contrastTextColor(mode.secondary)}`,
-        `--color-secondary-accent-text:${contrastTextColor(mode.secondaryAccent)}`,
-        `--color-info-text:${contrastTextColor(mode.info)}`,
-        `--color-info-accent-text:${contrastTextColor(mode.infoAccent)}`,
-        `--color-success-text:${contrastTextColor(mode.success)}`,
-        `--color-error-text:${contrastTextColor(mode.error)}`,
-        `--color-primary-badge:${ensureContrast(mode.primaryAccent, pageBg)}`,
-        `--color-secondary-badge:${ensureContrast(mode.secondaryAccent, pageBg)}`,
-        `--color-info-badge:${ensureContrast(mode.infoAccent, pageBg)}`,
-        `--color-success-badge:${ensureContrast(mode.success, pageBg)}`,
-        `--color-error-badge:${ensureContrast(mode.error, pageBg)}`,
-    ].join(';')
-}
-
 function buildStyle(theme: ResolvedTheme): string {
-    const colors = resolveColors(theme.theme, theme.customColors)
-    const radius = FEEL_RADIUS[theme.feel] ?? FEEL_RADIUS[Feel.ROUNDED]
-    const rootBlock = [
-        `--color-bg-light:${colors.bgLight}`,
-        `--color-bg-light-accent:${colors.bgLightAccent}`,
-        `--color-bg-dark:${colors.bgDark}`,
-        `--color-bg-dark-accent:${colors.bgDarkAccent}`,
-        `--radius-theme:${radius}`,
-    ].join(';')
-    const lightBlock = buildModeBlock(colors.light, colors.bgLight)
-    const darkBlock = buildModeBlock(colors.dark, colors.bgDark)
+    const colors = resolveThemeColors(theme.theme, theme.customColors)
+    const rootBlock = variablesCss({...backgroundVariables(colors), ...feelVariables(theme.feel)})
+    const lightBlock = variablesCss(activeModeVariables(colors, false))
+    const darkBlock = variablesCss(activeModeVariables(colors, true))
     return `<style data-ssr-theme>:root{${rootBlock}}.light{${lightBlock}}.dark{${darkBlock}}</style>`
 }
 

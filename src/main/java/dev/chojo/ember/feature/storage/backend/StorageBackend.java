@@ -7,90 +7,83 @@ package dev.chojo.ember.feature.storage.backend;
 
 import java.io.InputStream;
 import java.time.Instant;
-import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 
 /**
- * Pluggable byte-store contract. One concrete implementation per protocol
- * ({@code LocalStorageBackend}, {@code SmbStorageBackend}, {@code SftpStorageBackend},
- * {@code S3StorageBackend}). The backend never parses {@code fullKey} - the resolver and
- * {@code StorageService} own the path structure.
- *
- * <p>Streaming is the primary path: byte arrays only enter the picture when the producer
- * genuinely needs to buffer (image resize, gzip, hash) - and even there the buffered bytes
- * are handed to {@link #store(String, InputStream, long, ObjectMetadata)} as a wrapped
- * {@link java.io.ByteArrayInputStream}.
+ * A byte store, one implementation per protocol. Keys are full keys of the shape
+ * {@code <scope>/<category>/<key>[/<variant>]}; the backend never parses them.
  */
 public interface StorageBackend extends AutoCloseable {
 
-    /**
-     * Discriminator for the kind of backend implementation.
-     */
     StorageBackendType type();
 
     /**
-     * Persists {@code body} under {@code fullKey} along with the supplied metadata. The
-     * implementation is responsible for atomicity (temp-write then rename) and for
-     * round-tripping {@code metadata} so a later {@link #read(String)} sees the same record.
+     * Where this backend keeps its bytes, with nothing about how it signs in.
      *
-     * @param fullKey       assembled {@code <scope>/<category>/<key>[/<variant>]} key
-     * @param body          payload - fully drained and closed by the implementation
-     * @param contentLength byte count of the payload; required (no chunked transfer in V1)
-     * @param metadata      content type, sha-256, optional filename, optional encoding
-     * @throws StorageException on any failure to persist
+     * <p>Two backends with the same destination read and write the same objects, however separately they
+     * were built, so a move between them has nothing to carry and nothing to delete. Only what decides the
+     * place belongs in it: the kind of backend, the host or endpoint, the bucket or share and the path
+     * underneath. User names, domains, regions and addressing styles stay out, because a destination taken
+     * for another place when it is the same one would have a move delete the very files it kept.
+     *
+     * @return the destination, as a comparable string
+     */
+    String destination();
+
+    /**
+     * Whether this backend keeps its bytes where {@code other} does.
+     *
+     * @param other the backend to compare with
+     * @return true when both name the same place
+     */
+    default boolean sharesDestinationWith(StorageBackend other) {
+        return destination().equals(other.destination());
+    }
+
+    /**
+     * Stores a body with its metadata, atomically: a reader sees the old object or the new one.
+     *
+     * @param body          drained and closed by the backend
+     * @param contentLength the body's size in bytes
+     * @throws StorageException when the body could not be stored
      */
     void store(String fullKey, InputStream body, long contentLength, ObjectMetadata metadata);
 
     /**
-     * Replaces the metadata sidecar for an existing object without rewriting the body. Used by
-     * {@code StorageService} to seal the computed SHA-256 into the sidecar after the upload
-     * stream has been fully drained.
+     * Stores a body and seals the SHA-256 of what was written into its metadata.
+     *
+     * @return the metadata as stored, digest included
      */
+    default ObjectMetadata storeSealed(String fullKey, InputStream body, long contentLength, ObjectMetadata metadata) {
+        var digesting = new DigestingInputStream(body);
+        store(fullKey, digesting, contentLength, metadata);
+        ObjectMetadata sealed = metadata.withSha256(digesting.hexDigest());
+        updateMetadata(fullKey, sealed);
+        return sealed;
+    }
+
+    /** Replaces the metadata of an existing object without rewriting its bytes. */
     void updateMetadata(String fullKey, ObjectMetadata metadata);
 
     /**
-     * Opens a streaming read of {@code fullKey}. Returns {@link Optional#empty()} when the
-     * object does not exist; throws {@link StorageException} on read failures of objects
-     * known to exist (corrupted backend state, permission denied, mid-flight network drop).
+     * Opens an object for streaming; empty when it does not exist.
+     *
+     * @throws StorageException when an existing object cannot be read
      */
     Optional<StoredStream> read(String fullKey);
 
-    /**
-     * Removes the object and any sidecar metadata. No-op when the object does not exist.
-     * Throws {@link StorageException} only on hard errors.
-     */
+    /** Removes an object and its metadata; nothing happens when it does not exist. */
     void delete(String fullKey);
 
-    /**
-     * Whether the object exists under {@code fullKey}.
-     */
     boolean exists(String fullKey);
 
-    /**
-     * Lists every key whose name starts with {@code prefix}. Returned keys are full keys
-     * (same shape as the input to {@link #store}), not relative names. Required by image-
-     * variant cleanup, ticket-scoped attachment deletion, reconciliation, and migration.
-     */
+    /** Every full key starting with {@code prefix}, sorted. */
     List<String> listByPrefix(String prefix);
 
-    /**
-     * Sums object sizes under {@code prefix}. Default walks {@link #listByPrefix(String)}
-     * and queries each key; backends that can answer in one shot (S3 list-with-size) should
-     * override.
-     */
-    default long sumSizeByPrefix(String prefix) {
-        long total = 0;
-        for (String key : listByPrefix(prefix)) {
-            total += size(key).orElse(0L);
-        }
-        return total;
-    }
+    /** The total size of every object under {@code prefix}. */
+    long sumSizeByPrefix(String prefix);
 
-    /**
-     * Returns the on-backend size of {@code fullKey}, when known.
-     */
     default Optional<Long> size(String fullKey) {
         return read(fullKey).map(s -> {
             try (var ignored = s) {
@@ -101,40 +94,19 @@ public interface StorageBackend extends AutoCloseable {
         });
     }
 
-    /**
-     * Synchronous health check. The bootstrap probe and the runtime health monitor call this
-     * to decide whether the backend is usable; implementations write, read and delete a small
-     * marker under a reserved {@code _probe/} prefix.
-     */
+    /** Writes, reads and removes a marker under {@code _probe/}. */
     HealthStatus probe();
 
-    /**
-     * Set of optional features this backend supports.
-     */
-    default Set<BackendCapability> capabilities() {
-        return EnumSet.noneOf(BackendCapability.class);
-    }
-
-    /**
-     * Records a fresh access timestamp on {@code fullKey}. Implementations that do not
-     * declare {@link BackendCapability#ACCESS_TIME_TRACKING} throw
-     * {@link UnsupportedOperationException}.
-     */
+    /** Records a fresh access time; only the local backend keeps them. */
     default void touch(String fullKey) {
         throw new UnsupportedOperationException("touch not supported by " + type());
     }
 
-    /**
-     * Returns the last-access timestamp, when the backend records one.
-     */
     default Optional<Instant> lastAccessed(String fullKey) {
         return Optional.empty();
     }
 
-    /**
-     * Releases any I/O resources the backend is holding (SSH session, S3 client, SMB share).
-     * The local backend has nothing to close; remote backends release their connection pools.
-     */
+    /** Releases the connections the backend holds. */
     @Override
     default void close() {}
 }

@@ -6,10 +6,10 @@
 package dev.chojo.ember.feature.board.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.BoardRefusal;
 import dev.chojo.ember.feature.board.entity.BoardTicket;
 import dev.chojo.ember.feature.board.entity.TicketPriority;
 import dev.chojo.ember.feature.board.entity.TicketSummary;
@@ -19,13 +19,13 @@ import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
-import io.javalin.openapi.OpenApiName;
 import io.javalin.openapi.OpenApiParam;
 import io.javalin.openapi.OpenApiRequestBody;
 import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -72,7 +72,7 @@ public class BoardTicketRoutes implements Routes {
             queryParams = @OpenApiParam(name = "q", type = String.class),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = TicketSummary[].class)))
     private void searchTickets(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int boardId = guards.resolveBoardId(ctx, session.stationId());
         guards.requireViewAccess(boardId, session);
         String q = ctx.queryParam("q");
@@ -89,7 +89,7 @@ public class BoardTicketRoutes implements Routes {
             pathParams = @OpenApiParam(name = "boardKey", type = String.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = TicketSummary[].class)))
     private void listTickets(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int boardId = guards.resolveBoardId(ctx, session.stationId());
         guards.requireViewAccess(boardId, session);
         ctx.json(ticketService.findByBoard(boardId).stream()
@@ -109,11 +109,11 @@ public class BoardTicketRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void createTicket(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int boardId = guards.resolveBoardId(ctx, session.stationId());
         guards.requireEditAccess(boardId, session);
         var req = ctx.bodyAsClass(CreateTicketRequest.class);
-        if (req.title() == null || req.title().isBlank()) throw Refusal.TICKET_NEEDS_A_TITLE.raise();
+        if (req.title() == null || req.title().isBlank()) throw BoardRefusal.TICKET_NEEDS_A_TITLE.raise();
         var ticket = ticketService.createTicket(
                 boardId,
                 req.laneId(),
@@ -140,7 +140,7 @@ public class BoardTicketRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void getTicket(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         respondWithTicket(ctx, guards.viewableTicketId(ctx, session));
     }
 
@@ -159,7 +159,7 @@ public class BoardTicketRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void updateTicket(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int ticketId = guards.editableTicketId(ctx, session);
         var req = ctx.bodyAsClass(UpdateTicketRequest.class);
         ticketService.updateTicket(
@@ -187,12 +187,12 @@ public class BoardTicketRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void deleteTicket(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int ticketId = guards.editableTicketId(ctx, session);
         if (ticketService.deleteTicket(ticketId)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
-            throw Refusal.TICKET_NOT_DELETED.raise();
+            throw BoardRefusal.TICKET_NOT_DELETED.raise();
         }
     }
 
@@ -211,10 +211,10 @@ public class BoardTicketRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void moveTicket(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int ticketId = guards.editableTicketId(ctx, session);
         var req = ctx.bodyAsClass(MoveTicketRequest.class);
-        var ticket = ticketService.findById(ticketId).orElseThrow(Refusal.TICKET_NOT_HERE_ON_MOVE::raise);
+        var ticket = ticketService.findById(ticketId).orElseThrow(BoardRefusal.TICKET_NOT_HERE_ON_MOVE::raise);
         ticketService.moveTicket(ticketId, ticket.laneId(), req.toLaneId(), req.position(), guards.actor(session));
         respondWithTicket(ctx, ticketId);
     }
@@ -231,7 +231,7 @@ public class BoardTicketRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ReorderRequest.class)),
             responses = @OpenApiResponse(status = "200"))
     private void reorderTickets(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int boardId = guards.resolveBoardId(ctx, session.stationId());
         guards.requireEditAccess(boardId, session);
         var req = ctx.bodyAsClass(ReorderRequest.class);
@@ -248,15 +248,15 @@ public class BoardTicketRoutes implements Routes {
                 @OpenApiParam(name = "boardKey", type = String.class, required = true),
                 @OpenApiParam(name = "ticketNumber", type = Integer.class, required = true)
             },
-            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = AssignRequest.class)),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = BoardTicketAssignRequest.class)),
             responses = {
                 @OpenApiResponse(status = "200", content = @OpenApiContent(from = BoardTicket.class)),
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void assignTicket(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int ticketId = guards.editableTicketId(ctx, session);
-        var req = ctx.bodyAsClass(AssignRequest.class);
+        var req = ctx.bodyAsClass(BoardTicketAssignRequest.class);
         ticketService.assignTicket(
                 ticketId,
                 guards.member(session, req.assignedMemberId()),
@@ -269,25 +269,41 @@ public class BoardTicketRoutes implements Routes {
      */
     private void respondWithTicket(Context ctx, int ticketId) {
         ticketService.findById(ticketId).ifPresentOrElse(ctx::json, () -> {
-            throw Refusal.TICKET_NOT_HERE_AFTER_CHANGE.raise();
+            throw BoardRefusal.TICKET_NOT_HERE_AFTER_CHANGE.raise();
         });
     }
 
+    /**
+     * @param description      what the ticket is about, or {@code null} for nothing
+     * @param assignedMemberId who holds the ticket, or {@code null} for nobody
+     * @param dueDate          when it is due, or {@code null} for no date
+     */
     public record CreateTicketRequest(
             int laneId,
             String title,
-            String description,
-            Integer assignedMemberId,
+            @Nullable String description,
+            @Nullable Integer assignedMemberId,
             TicketPriority priority,
-            LocalDate dueDate) {}
+            @Nullable LocalDate dueDate) {}
 
+    /**
+     * @param description      what the ticket is about, or {@code null} for nothing
+     * @param assignedMemberId who holds the ticket, or {@code null} for nobody
+     * @param dueDate          when it is due, or {@code null} for no date
+     */
     public record UpdateTicketRequest(
-            String title, String description, Integer assignedMemberId, TicketPriority priority, LocalDate dueDate) {}
+            String title,
+            @Nullable String description,
+            @Nullable Integer assignedMemberId,
+            TicketPriority priority,
+            @Nullable LocalDate dueDate) {}
 
     public record MoveTicketRequest(int toLaneId, int position) {}
 
     public record ReorderRequest(int laneId, List<Integer> orderedIds) {}
 
-    @OpenApiName("BoardTicketAssignRequest")
-    public record AssignRequest(Integer assignedMemberId) {}
+    /**
+     * @param assignedMemberId who takes the ticket, or {@code null} to take it off whoever holds it
+     */
+    public record BoardTicketAssignRequest(@Nullable Integer assignedMemberId) {}
 }

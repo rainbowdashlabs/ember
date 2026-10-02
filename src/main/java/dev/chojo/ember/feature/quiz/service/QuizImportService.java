@@ -5,14 +5,15 @@
  */
 package dev.chojo.ember.feature.quiz.service;
 
-import dev.chojo.ember.feature.quiz.entity.CatalogTransfer.CategoryEntry;
-import dev.chojo.ember.feature.quiz.entity.CatalogTransfer.QuestionEntry;
+import dev.chojo.ember.api.refusal.QuizRefusal;
+import dev.chojo.ember.feature.quiz.entity.CatalogTransfer.CatalogTransferCategory;
+import dev.chojo.ember.feature.quiz.entity.CatalogTransfer.CatalogTransferQuestion;
 import dev.chojo.ember.feature.quiz.entity.QuestionConfig;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestionType;
 import dev.chojo.ember.util.CsvParser;
 import dev.chojo.ember.util.Json;
-import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,14 +51,15 @@ public class QuizImportService {
      *
      * @param csvContent the decoded sheet
      * @param mappings   which column carries which field, plus the parsing separators
-     * @throws BadRequestResponse when the sheet cannot be parsed, the question column is missing,
-     *                            or a row names a question type Ember does not know
+     * @throws dev.chojo.ember.api.refusal.RefusalResponse when the sheet cannot be parsed, the question
+     *                                             column is missing, or a row names a question type
+     *                                             Ember does not know
      */
     public CsvDraft draft(String csvContent, CsvMappings mappings) {
         var parsed = parse(csvContent, mappings.separatorChar());
         var columns = ColumnIndex.resolve(parsed.headers(), mappings);
         var categories = new CategoryKeys();
-        var questions = new ArrayList<DraftQuestion>();
+        var questions = new ArrayList<CsvDraftQuestion>();
 
         var rows = parsed.rows();
         for (int i = 0; i < rows.size(); i++) {
@@ -71,8 +73,8 @@ public class QuizImportService {
             var config =
                     buildConfig(type, answer, columns.cell(columns.distractors(), cells), separator, columns, cells);
 
-            questions.add(new DraftQuestion(
-                    new QuestionEntry(
+            questions.add(new CsvDraftQuestion(
+                    new CatalogTransferQuestion(
                             categories.keyOf(columns.cell(columns.category(), cells)),
                             type.name(),
                             title,
@@ -94,7 +96,7 @@ public class QuizImportService {
             return CsvParser.parse(csvContent, separator);
         } catch (IOException e) {
             log.warn("Failed to parse an uploaded sheet", e);
-            throw new BadRequestResponse("Failed to parse CSV");
+            throw QuizRefusal.QUIZ_IMPORT_SHEET_NOT_READ.raise();
         }
     }
 
@@ -139,7 +141,7 @@ public class QuizImportService {
             case "ORDERING", "REIHENFOLGE" -> QuizQuestionType.ORDERING;
             case "IMAGE_TEXT" -> QuizQuestionType.IMAGE_TEXT;
             case "ENUMERATION", "AUFZÄHLUNG", "AUFZAEHLUNG" -> QuizQuestionType.ENUMERATION;
-            default -> throw new BadRequestResponse("Invalid question type: " + type);
+            default -> throw QuizRefusal.QUIZ_IMPORT_QUESTION_TYPE_UNKNOWN.raise(type);
         };
     }
 
@@ -186,14 +188,14 @@ public class QuizImportService {
      * wrong ones after it, which is how these sheets were read before there was a second column.
      */
     private QuestionConfig multipleChoice(List<String> answers, List<String> distractors, double pointsPerCorrect) {
-        var options = new ArrayList<QuestionConfig.MultipleChoice.Option>();
+        var options = new ArrayList<QuestionConfig.MultipleChoice.ChoiceOption>();
         if (distractors.isEmpty()) {
             for (int i = 0; i < answers.size(); i++) {
-                options.add(new QuestionConfig.MultipleChoice.Option(answers.get(i), i == 0));
+                options.add(new QuestionConfig.MultipleChoice.ChoiceOption(answers.get(i), i == 0));
             }
         } else {
-            answers.forEach(text -> options.add(new QuestionConfig.MultipleChoice.Option(text, true)));
-            distractors.forEach(text -> options.add(new QuestionConfig.MultipleChoice.Option(text, false)));
+            answers.forEach(text -> options.add(new QuestionConfig.MultipleChoice.ChoiceOption(text, true)));
+            distractors.forEach(text -> options.add(new QuestionConfig.MultipleChoice.ChoiceOption(text, false)));
         }
         return new QuestionConfig.MultipleChoice(
                 options, pointsPerCorrect > 0 ? pointsPerCorrect : MULTIPLE_CHOICE_POINTS_PER_CORRECT);
@@ -221,7 +223,7 @@ public class QuizImportService {
                 .toList();
     }
 
-    private static String emptyToNull(String value) {
+    private static @Nullable String emptyToNull(String value) {
         return value.isEmpty() ? null : value;
     }
 
@@ -230,17 +232,17 @@ public class QuizImportService {
      * addresses it by, so a name repeated down the sheet becomes one category.
      */
     private static final class CategoryKeys {
-        private final LinkedHashMap<String, CategoryEntry> byName = new LinkedHashMap<>();
+        private final LinkedHashMap<String, CatalogTransferCategory> byName = new LinkedHashMap<>();
 
-        private String keyOf(String name) {
+        private @Nullable String keyOf(String name) {
             if (name.isEmpty()) return null;
             return byName.computeIfAbsent(
                             name.toLowerCase(Locale.ROOT),
-                            _ -> new CategoryEntry(slug(name, byName.size()), name, "", byName.size()))
+                            _ -> new CatalogTransferCategory(slug(name, byName.size()), name, "", byName.size()))
                     .key();
         }
 
-        private List<CategoryEntry> entries() {
+        private List<CatalogTransferCategory> entries() {
             return List.copyOf(byName.values());
         }
 
@@ -274,7 +276,7 @@ public class QuizImportService {
 
         private static ColumnIndex resolve(List<String> headers, CsvMappings mappings) {
             int question = headers.indexOf(mappings.questionColumn());
-            if (question < 0) throw new BadRequestResponse("Question column not found in CSV headers");
+            if (question < 0) throw QuizRefusal.QUIZ_IMPORT_QUESTION_COLUMN_MISSING.raise(mappings.questionColumn());
             return new ColumnIndex(
                     question,
                     headers.indexOf(mappings.answerColumn()),
@@ -347,7 +349,7 @@ public class QuizImportService {
      * @param categories the categories the sheet's category column introduced
      * @param questions  one draft per row that carried question text
      */
-    public record CsvDraft(List<CategoryEntry> categories, List<DraftQuestion> questions) {}
+    public record CsvDraft(List<CatalogTransferCategory> categories, List<CsvDraftQuestion> questions) {}
 
     /**
      * One drafted question, together with what it was read from. The wizard needs the untouched
@@ -358,5 +360,5 @@ public class QuizImportService {
      * @param rawAnswer       the answer cell exactly as the sheet had it
      * @param answerSeparator the separator it was split on
      */
-    public record DraftQuestion(QuestionEntry question, String rawAnswer, String answerSeparator) {}
+    public record CsvDraftQuestion(CatalogTransferQuestion question, String rawAnswer, String answerSeparator) {}
 }

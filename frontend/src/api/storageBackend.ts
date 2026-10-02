@@ -5,15 +5,30 @@
  */
 import client from './client'
 import {queryParams} from './crud'
+import type {
+    AuditEntryResponse,
+    BackendOverrideResponse,
+    BackendRequest,
+    BackendSummary,
+    components,
+    InstanceMigrateRequest,
+    InstanceMigrationStatusResponse,
+    MigrationResponse,
+    ProbeResult,
+} from './generated/schema'
+
+type Schemas = components['schemas']
+
+export type StorageBackendTypeName = Schemas['StorageBackendType']
 
 export const StorageBackendType = {
     LOCAL: 'LOCAL',
     S3: 'S3',
     SMB: 'SMB',
     SFTP: 'SFTP',
-} as const
+} as const satisfies Record<StorageBackendTypeName, StorageBackendTypeName>
 
-export type StorageBackendTypeName = (typeof StorageBackendType)[keyof typeof StorageBackendType]
+export type StorageAuditActionName = Schemas['StorageAuditAction']
 
 export const StorageAuditAction = {
     CREATED: 'CREATED',
@@ -29,68 +44,15 @@ export const StorageAuditAction = {
     INSTANCE_MIGRATION_STARTED: 'INSTANCE_MIGRATION_STARTED',
     INSTANCE_MIGRATION_COMPLETED: 'INSTANCE_MIGRATION_COMPLETED',
     INSTANCE_MIGRATION_FAILED: 'INSTANCE_MIGRATION_FAILED',
-} as const
+    POLICY_CHANGED: 'POLICY_CHANGED',
+} as const satisfies Record<StorageAuditActionName, StorageAuditActionName>
 
-export type StorageAuditActionName = (typeof StorageAuditAction)[keyof typeof StorageAuditAction]
+export type StorageAuditOutcomeName = Schemas['StorageAuditOutcome']
 
 export const StorageAuditOutcome = {
     OK: 'OK',
     FAILED: 'FAILED',
-} as const
-
-export type StorageAuditOutcomeName = (typeof StorageAuditOutcome)[keyof typeof StorageAuditOutcome]
-
-export interface ProbeResult {
-    healthy: boolean
-    error: string | null
-    checkedAt: string
-}
-
-export interface AuditEntry {
-    id: number
-    ts: string
-    actorAccountId: number | null
-    actorMemberId: number | null
-    systemActor: string | null
-    stationId: number | null
-    action: StorageAuditActionName
-    oldConfig: string | null
-    newConfig: string | null
-    outcome: StorageAuditOutcomeName
-    error: string | null
-}
-
-export interface S3Summary {
-    type: 'S3'
-    endpoint: string
-    region: string
-    bucket: string
-    pathStyle: boolean
-    sseAlgorithm: string
-    basePath: string
-}
-
-export interface SmbSummary {
-    type: 'SMB'
-    host: string
-    port: number
-    share: string
-    domain?: string
-    basePath: string
-    seal: boolean
-    dfs: boolean
-}
-
-export interface SftpSummary {
-    type: 'SFTP'
-    host: string
-    port: number
-    username: string
-    knownHostsPinned: boolean
-    basePath: string
-}
-
-export type BackendOverrideSummary = S3Summary | SmbSummary | SftpSummary
+} as const satisfies Record<StorageAuditOutcomeName, StorageAuditOutcomeName>
 
 /**
  * What is behind a station's files, on whose word, and what is still the station's to change.
@@ -98,132 +60,6 @@ export type BackendOverrideSummary = S3Summary | SmbSummary | SftpSummary
  * A station under an association may be standing on the association's storage and may have been put there
  * by somebody else, so the answer says who decided rather than only what was decided.
  */
-export interface BackendOverrideResponse {
-    instanceDefault: StorageBackendTypeName
-    override: BackendOverrideSummary | null
-    /** The association's storage its files were carried to, or null when they are not on it. */
-    clusterBackend: BackendOverrideSummary | null
-    /** The association the station answers to, or null when it answers to nobody. */
-    clusterName: string | null
-    /** Whether that association keeps storage its stations may move onto. */
-    clusterOffersStorage: boolean
-    /** Whether the association decides, which makes the station's own screen read-only. */
-    locked: boolean
-}
-
-export interface LocalRequest {
-    type: 'LOCAL'
-}
-
-/** Moves the station onto the current version of its association's storage. */
-export interface ClusterRequest {
-    type: 'CLUSTER'
-}
-
-export interface S3Request {
-    type: 'S3'
-    endpoint: string
-    region: string
-    bucket: string
-    pathStyle: boolean
-    sseAlgorithm: string
-    basePath: string
-    accessKey: string
-    secretKey: string
-}
-
-export interface SmbRequest {
-    type: 'SMB'
-    host: string
-    port: number
-    share: string
-    domain: string
-    basePath: string
-    seal: boolean
-    dfs: boolean
-    username: string
-    password: string
-}
-
-export interface SftpRequest {
-    type: 'SFTP'
-    host: string
-    port: number
-    username: string
-    knownHostsFingerprint: string
-    basePath: string
-    password: string
-    privateKey: string
-}
-
-export type StationBackendRequest = S3Request | SmbRequest | SftpRequest
-
-export type StationApplyRequest = LocalRequest | ClusterRequest | S3Request | SmbRequest | SftpRequest
-
-export interface InstanceBackendLocalRequest {
-    type: 'LOCAL'
-    root: string
-}
-
-export type InstanceBackendRequest = InstanceBackendLocalRequest | S3Request | SmbRequest | SftpRequest
-
-export interface InstanceLocalSummary {
-    type: 'LOCAL'
-    root: string
-}
-
-export interface InstanceSmbSummary {
-    type: 'SMB'
-    host: string
-    port: number
-    share: string
-    basePath: string
-    seal: boolean
-    dfs: boolean
-}
-
-export interface InstanceSftpSummary {
-    type: 'SFTP'
-    host: string
-    port: number
-    username: string
-    basePath: string
-    knownHostsPinned: boolean
-}
-
-export interface InstanceS3Summary {
-    type: 'S3'
-    endpoint: string
-    region: string
-    bucket: string
-    pathStyle: boolean
-    sseAlgorithm: string
-    basePath: string
-}
-
-export type InstanceBackendSummary =
-    | InstanceLocalSummary
-    | InstanceSmbSummary
-    | InstanceSftpSummary
-    | InstanceS3Summary
-
-export interface MigrationResultResponse {
-    totalKeys: number
-    copied: number
-    skipped: number
-    deleted: number
-    copiedBytes: number
-}
-
-export interface InstanceMigrationStatusResponse {
-    migrationInFlight: boolean
-}
-
-export interface InstanceMigrateRequest {
-    target: InstanceBackendRequest
-    keepSource: boolean
-}
-
 export async function getStationBackend(): Promise<BackendOverrideResponse> {
     const {data} = await client.get<BackendOverrideResponse>('/station/storage/backend')
     return data
@@ -234,25 +70,25 @@ export async function probeStationBackend(): Promise<ProbeResult> {
     return data
 }
 
-export async function probeStationBackendConfig(request: StationBackendRequest): Promise<ProbeResult> {
+export async function probeStationBackendConfig(request: BackendRequest): Promise<ProbeResult> {
     const {data} = await client.post<ProbeResult>('/station/storage/backend/probe-config', request)
     return data
 }
 
-export async function applyStationBackend(request: StationApplyRequest): Promise<MigrationResultResponse> {
-    const {data} = await client.post<MigrationResultResponse>('/station/storage/backend/apply', request)
+export async function applyStationBackend(request: BackendRequest): Promise<MigrationResponse> {
+    const {data} = await client.post<MigrationResponse>('/station/storage/backend/apply', request)
     return data
 }
 
-export async function getStationStorageAudit(before?: string, limit = 50): Promise<AuditEntry[]> {
-    const {data} = await client.get<AuditEntry[]>('/station/storage/audit', {
+export async function getStationStorageAudit(before?: string, limit = 50): Promise<AuditEntryResponse[]> {
+    const {data} = await client.get<AuditEntryResponse[]>('/station/storage/audit', {
         params: queryParams({limit, before: before || undefined}),
     })
     return data
 }
 
-export async function getInstanceBackend(): Promise<InstanceBackendSummary> {
-    const {data} = await client.get<InstanceBackendSummary>('/admin/storage/backend')
+export async function getInstanceBackend(): Promise<BackendSummary> {
+    const {data} = await client.get<BackendSummary>('/admin/storage/backend')
     return data
 }
 
@@ -261,13 +97,13 @@ export async function probeInstanceBackend(): Promise<ProbeResult> {
     return data
 }
 
-export async function probeInstanceBackendConfig(request: InstanceBackendRequest): Promise<ProbeResult> {
+export async function probeInstanceBackendConfig(request: BackendRequest): Promise<ProbeResult> {
     const {data} = await client.post<ProbeResult>('/admin/storage/backend/probe-config', request)
     return data
 }
 
-export async function applyInstanceBackend(request: InstanceMigrateRequest): Promise<MigrationResultResponse> {
-    const {data} = await client.post<MigrationResultResponse>('/admin/storage/backend/apply', request)
+export async function applyInstanceBackend(request: InstanceMigrateRequest): Promise<MigrationResponse> {
+    const {data} = await client.post<MigrationResponse>('/admin/storage/backend/apply', request)
     return data
 }
 
@@ -278,8 +114,8 @@ export async function getInstanceMigrationStatus(): Promise<InstanceMigrationSta
 
 export async function getInstanceStorageAudit(
     options: {before?: string; stationUid?: string; limit?: number} = {},
-): Promise<AuditEntry[]> {
-    const {data} = await client.get<AuditEntry[]>('/admin/storage/audit', {
+): Promise<AuditEntryResponse[]> {
+    const {data} = await client.get<AuditEntryResponse[]>('/admin/storage/audit', {
         params: queryParams({
             limit: options.limit ?? 50,
             before: options.before || undefined,

@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.form.entity;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * One question of a form as the editor saves it.
  *
@@ -20,12 +22,12 @@ package dev.chojo.ember.feature.form.entity;
  *                         question does not decide it
  */
 public record QuestionEntry(
-        Integer id,
-        String pageKey,
+        @Nullable Integer id,
+        @Nullable String pageKey,
         FormQuestionType formQuestionType,
         String title,
         String description,
         boolean required,
         boolean shuffle,
         FormQuestionConfig config,
-        QuestionBranch branch) {}
+        @Nullable QuestionBranch branch) {}

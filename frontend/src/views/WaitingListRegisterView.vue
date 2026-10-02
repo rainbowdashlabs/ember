@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
@@ -13,7 +13,8 @@ import PageHeroIcon from '@/components/typography/PageHeroIcon.vue'
 import InviteHeader from './waitinglistregisterview/InviteHeader.vue'
 import RegisterForm from './waitinglistregisterview/RegisterForm.vue'
 import RegisterSuccess from './waitinglistregisterview/RegisterSuccess.vue'
-import type { GuardianInput, WaitingListInviteInfo } from '@/api/waitingList'
+import type { GuardianInput } from '@/api/waitingList'
+import type { WaitingListInviteInfo } from '@/api/generated/schema'
 import { waitingList } from '@/api'
 import { useAsyncAction } from '@/composables/useAsyncAction'
 import { getFieldValue as readFieldValue, setFieldValue as writeFieldValue } from '@/util/profileFields'
@@ -26,7 +27,6 @@ const {
   data: inviteInfo,
   loading,
   failure: linkFailure,
-  load: loadInviteInfo,
 } = useLinkAccessedResource<WaitingListInviteInfo>(
     'code',
     () => t('waitingList.register.noCode'),
@@ -113,8 +113,6 @@ function submit() {
 }
 
 const statusLink = computed(() => `${window.location.origin}/waiting-list/status?token=${accessToken.value}`)
-
-onMounted(loadInviteInfo)
 </script>
 
 <template>
@@ -132,15 +130,15 @@ onMounted(loadInviteInfo)
       <template v-if="!loading && inviteInfo && !submitted">
         <InviteHeader :invite-info="inviteInfo" />
         <RegisterForm
-          :invite-info="inviteInfo"
           v-model:firstname="firstname"
           v-model:lastname="lastname"
-          :guardians="guardians"
           v-model:notes="notes"
           v-model:consent-accepted="consentAccepted"
           v-model:consent-version="consentVersion"
           v-model:privacy-version="privacyVersion"
           v-model:tos-version="tosVersion"
+          :invite-info="inviteInfo"
+          :guardians="guardians"
           :submitting="submitting"
           :field-value-of="getFieldValue"
           @add-guardian="addGuardian"

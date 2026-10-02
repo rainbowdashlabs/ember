@@ -4,7 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {nextTick, onBeforeUnmount, onMounted, ref, watch} from 'vue'
+import {useResizeObserver} from '@vueuse/core'
+import {nextTick, onMounted, ref, watch} from 'vue'
 import ProseContent from './ProseContent.vue'
 
 /**
@@ -38,16 +39,8 @@ function measure() {
   cut.value = !!element && element.scrollHeight > element.clientHeight + 1
 }
 
-let observer: ResizeObserver | null = null
-
-onMounted(() => {
-  measure()
-  if (typeof ResizeObserver === 'undefined' || !body.value) return
-  observer = new ResizeObserver(measure)
-  observer.observe(body.value)
-})
-
-onBeforeUnmount(() => observer?.disconnect())
+onMounted(measure)
+useResizeObserver(body, measure)
 
 watch(() => props.html, () => nextTick(measure))
 </script>

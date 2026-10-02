@@ -7,45 +7,46 @@ package dev.chojo.ember.feature.events.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.MessageResponse;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.EventRefusal;
+import dev.chojo.ember.feature.events.entity.AppointmentField;
 import dev.chojo.ember.feature.events.entity.EventBreak;
 import dev.chojo.ember.feature.events.entity.EventCategory;
-import dev.chojo.ember.feature.events.entity.EventField;
-import dev.chojo.ember.feature.events.entity.EventFieldConfig;
 import dev.chojo.ember.feature.events.entity.EventFieldDefault;
-import dev.chojo.ember.feature.events.entity.EventFieldType;
+import dev.chojo.ember.feature.events.entity.EventFieldDraft;
+import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.StationEvent;
-import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import dev.chojo.ember.feature.events.service.EventBreakService;
 import dev.chojo.ember.feature.events.service.EventCategoryService;
 import dev.chojo.ember.feature.events.service.EventCrudService;
-import dev.chojo.ember.feature.events.service.EventDateResolver;
 import dev.chojo.ember.feature.events.service.EventFieldDefaultService;
 import dev.chojo.ember.feature.events.service.EventFieldService;
+import dev.chojo.ember.feature.events.service.OccurrenceCalendar;
+import dev.chojo.ember.feature.question.FieldType;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
-import io.javalin.openapi.OpenApiName;
 import io.javalin.openapi.OpenApiParam;
 import io.javalin.openapi.OpenApiRequestBody;
 import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 import static dev.chojo.ember.api.RouteSupport.requireOwnedOrNotFound;
-import static dev.chojo.ember.feature.events.route.EventOwnership.requireOwnedEvent;
+import static dev.chojo.ember.feature.events.service.EventOwnership.requireOwnedEvent;
 
 /**
  * Local routes for the structures an event is filed under and described by: categories, break
@@ -63,7 +64,7 @@ public class EventStructureRoutes implements Routes {
     private final EventBreakService breakService;
     private final EventFieldDefaultService fieldDefaultService;
     private final EventFieldService eventFieldService;
-    private final EventDateResolver dateResolver;
+    private final OccurrenceCalendar occurrenceCalendar;
     private final EventVisibility visibility;
 
     @Inject
@@ -73,7 +74,7 @@ public class EventStructureRoutes implements Routes {
             EventBreakService breakService,
             EventFieldDefaultService fieldDefaultService,
             EventFieldService eventFieldService,
-            EventDateResolver dateResolver,
+            OccurrenceCalendar occurrenceCalendar,
             EventVisibility visibility) {
         this.crudService = crudService;
         this.visibility = visibility;
@@ -81,7 +82,7 @@ public class EventStructureRoutes implements Routes {
         this.breakService = breakService;
         this.fieldDefaultService = fieldDefaultService;
         this.eventFieldService = eventFieldService;
-        this.dateResolver = dateResolver;
+        this.occurrenceCalendar = occurrenceCalendar;
     }
 
     @Override
@@ -126,7 +127,7 @@ public class EventStructureRoutes implements Routes {
             tags = {"Events"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventCategory[].class)))
     private void listCategories(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(categoryService.findByStation(session.stationId()));
     }
 
@@ -141,11 +142,17 @@ public class EventStructureRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void createCategory(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(CategoryRequest.class);
-        if (req.name() == null || req.name().isBlank()) throw Refusal.EVENT_CATEGORY_NEEDS_A_NAME.raise();
+        if (req.name() == null || req.name().isBlank()) throw EventRefusal.EVENT_CATEGORY_NEEDS_A_NAME.raise();
         ctx.status(HttpStatus.CREATED)
-                .json(categoryService.create(session.stationId(), req.name(), req.position(), req.color()));
+                .json(categoryService.create(
+                        session.stationId(),
+                        req.name(),
+                        req.position(),
+                        req.maxShownEvents(),
+                        Boolean.TRUE.equals(req.isPublic()),
+                        req.color()));
     }
 
     @OpenApi(
@@ -156,7 +163,7 @@ public class EventStructureRoutes implements Routes {
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = CategoryRequest.class)),
             responses = {
-                @OpenApiResponse(status = "200"),
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)),
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void updateCategory(Context ctx) {
@@ -168,11 +175,28 @@ public class EventStructureRoutes implements Routes {
                 req.name(),
                 req.position(),
                 req.maxShownEvents(),
-                req.isPublic() != null && req.isPublic(),
+                Boolean.TRUE.equals(req.isPublic()),
                 req.color())) {
-            throw Refusal.EVENT_CATEGORY_NOT_CHANGED.raise();
+            throw EventRefusal.EVENT_CATEGORY_NOT_CHANGED.raise();
         }
         ctx.status(HttpStatus.OK).json(new MessageResponse("Updated"));
+    }
+
+    @OpenApi(
+            path = "/api/v1/events/categories/reorder",
+            methods = HttpMethod.PUT,
+            summary = "Reorder the event categories",
+            tags = {"Events"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ReorderCategoriesRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventCategory[].class)))
+    private void reorderCategories(Context ctx) {
+        var session = StationSession.from(ctx);
+        var req = ctx.bodyAsClass(ReorderCategoriesRequest.class);
+        for (int id : req.orderedIds()) {
+            requireOwnedOrNotFound(ctx, id, categoryService::findById, EventCategory::stationId);
+        }
+        categoryService.reorder(session.stationId(), req.orderedIds());
+        ctx.json(categoryService.findByStation(session.stationId()));
     }
 
     @OpenApi(
@@ -185,23 +209,13 @@ public class EventStructureRoutes implements Routes {
                 @OpenApiResponse(status = "204"),
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
-    private void reorderCategories(Context ctx) {
-        var session = UserSession.from(ctx);
-        var req = ctx.bodyAsClass(ReorderCategoriesRequest.class);
-        for (int id : req.orderedIds()) {
-            requireOwnedOrNotFound(ctx, id, categoryService::findById, EventCategory::stationId);
-        }
-        categoryService.reorder(session.stationId(), req.orderedIds());
-        ctx.json(categoryService.findByStation(session.stationId()));
-    }
-
     private void deleteCategory(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedOrNotFound(ctx, id, categoryService::findById, EventCategory::stationId);
         if (categoryService.delete(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
-            throw Refusal.EVENT_CATEGORY_NOT_DELETED.raise();
+            throw EventRefusal.EVENT_CATEGORY_NOT_DELETED.raise();
         }
     }
 
@@ -212,7 +226,7 @@ public class EventStructureRoutes implements Routes {
             tags = {"Events"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventBreak[].class)))
     private void listBreaks(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(breakService.findByStation(session.stationId()));
     }
 
@@ -227,9 +241,9 @@ public class EventStructureRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void createBreak(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(BreakRequest.class);
-        if (req.name() == null || req.name().isBlank()) throw Refusal.EVENT_BREAK_NEEDS_A_NAME.raise();
+        if (req.name() == null || req.name().isBlank()) throw EventRefusal.EVENT_BREAK_NEEDS_A_NAME.raise();
         ctx.status(HttpStatus.CREATED)
                 .json(breakService.create(session.stationId(), req.name(), req.startDate(), req.endDate()));
     }
@@ -250,7 +264,7 @@ public class EventStructureRoutes implements Routes {
         requireOwnedOrNotFound(ctx, id, breakService::findById, EventBreak::stationId);
         var req = ctx.bodyAsClass(BreakRequest.class);
         breakService.update(id, req.name(), req.startDate(), req.endDate()).ifPresentOrElse(ctx::json, () -> {
-            throw Refusal.EVENT_BREAK_NOT_CHANGED.raise();
+            throw EventRefusal.EVENT_BREAK_NOT_CHANGED.raise();
         });
     }
 
@@ -270,7 +284,7 @@ public class EventStructureRoutes implements Routes {
         if (breakService.delete(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
-            throw Refusal.EVENT_BREAK_NOT_DELETED.raise();
+            throw EventRefusal.EVENT_BREAK_NOT_DELETED.raise();
         }
     }
 
@@ -282,7 +296,7 @@ public class EventStructureRoutes implements Routes {
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventFieldDefault[].class)))
     private void getFieldDefaults(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         visibility.requireVisibleEvent(session, id);
         ctx.json(fieldDefaultService.findByEvent(id));
@@ -297,7 +311,7 @@ public class EventStructureRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = FieldDefaultEntry[].class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventFieldDefault[].class)))
     private void setFieldDefaults(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         requireOwnedEvent(crudService, id, session);
         var req = ctx.bodyAsClass(FieldDefaultEntry[].class);
@@ -315,9 +329,9 @@ public class EventStructureRoutes implements Routes {
             tags = {"Events"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             queryParams = @OpenApiParam(name = "date", type = String.class),
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventField[].class)))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = AppointmentField[].class)))
     private void getFields(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         visibility.requireVisibleEvent(session, id);
         ctx.json(eventFieldService.findByEvent(id, askedDate(ctx)));
@@ -331,13 +345,13 @@ public class EventStructureRoutes implements Routes {
      * one occurrence asks about that occurrence, because a question answered per date has no answer
      * anywhere else.
      */
-    private static LocalDate askedDate(Context ctx) {
+    private static @Nullable LocalDate askedDate(Context ctx) {
         String date = ctx.queryParam("date");
         if (date == null || date.isBlank()) return null;
         try {
             return LocalDate.parse(date);
         } catch (DateTimeParseException e) {
-            throw Refusal.EVENT_DAY_NOT_A_DATE.raise();
+            throw EventRefusal.EVENT_DAY_NOT_A_DATE.raise();
         }
     }
 
@@ -348,25 +362,17 @@ public class EventStructureRoutes implements Routes {
             tags = {"Events"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SetEventFieldsRequest.class)),
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventField[].class)))
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = AppointmentField[].class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
     private void setFields(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         requireOwnedEvent(crudService, id, session);
         var req = ctx.bodyAsClass(SetEventFieldsRequest.class);
         eventFieldService.replaceFields(
-                id,
-                req.fields().stream()
-                        .map(e -> new EventFieldRepository.FieldEntry(
-                                e.id(),
-                                e.name(),
-                                e.fieldType(),
-                                e.config(),
-                                e.value() != null ? e.value() : "",
-                                e.overview() != null && e.overview(),
-                                e.attendanceFieldId(),
-                                e.isPublic() != null && e.isPublic()))
-                        .toList());
+                id, req.fields().stream().map(EventFieldEntry::toDraft).toList());
         ctx.json(eventFieldService.findByEvent(id));
     }
 
@@ -381,16 +387,16 @@ public class EventStructureRoutes implements Routes {
             },
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = FieldDateValueRequest.class)),
             responses = {
-                @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventField.class)),
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = AppointmentField.class)),
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void setFieldValueOnDate(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int eventId = pathInt(ctx, "eventId");
         int fieldId = pathInt(ctx, "fieldId");
         requireOwnedEvent(crudService, eventId, session);
         var req = ctx.bodyAsClass(FieldDateValueRequest.class);
-        if (req.date() == null) throw Refusal.EVENT_FIELD_VALUE_NEEDS_A_DAY.raise();
+        if (req.date() == null) throw EventRefusal.EVENT_FIELD_VALUE_NEEDS_A_DAY.raise();
         ctx.json(eventFieldService.setValueOn(eventId, fieldId, req.date(), req.value()));
     }
 
@@ -404,9 +410,9 @@ public class EventStructureRoutes implements Routes {
                 @OpenApiParam(name = "fieldId", type = Integer.class, required = true)
             },
             queryParams = @OpenApiParam(name = "date", type = String.class),
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventField.class)))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = AppointmentField.class)))
     private void selfRegisterField(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int eventId = pathInt(ctx, "eventId");
         int fieldId = pathInt(ctx, "fieldId");
         visibility.requireVisibleEvent(session, eventId);
@@ -421,11 +427,19 @@ public class EventStructureRoutes implements Routes {
     /**
      * The questions marked for the overview, each answered for the occurrence its appointment is
      * drawn on, which for every list of appointments is the next one.
+     *
+     * <p>The answer maps each appointment's id to its questions, which an annotation cannot name.
      */
+    @OpenApi(
+            path = "/api/v1/events/overview-fields",
+            methods = HttpMethod.GET,
+            summary = "The overview questions of every event, by event",
+            tags = {"Events"},
+            responses = @OpenApiResponse(status = "200"))
     private void getOverviewFields(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         var events = crudService.findByStation(session.stationId());
-        var nextDates = dateResolver.nextDates(events);
+        var nextDates = occurrenceCalendar.datesInView(events);
         ctx.json(eventFieldService.findOverviewFieldsByEvents(
                 events.stream().map(StationEvent::id).toList(), nextDates));
     }
@@ -435,34 +449,52 @@ public class EventStructureRoutes implements Routes {
             methods = HttpMethod.GET,
             summary = "List distinct event field names used across all events",
             tags = {"Events"},
-            responses = @OpenApiResponse(status = "200"))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = String[].class)))
     private void listFieldNames(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(eventFieldService.findDistinctFieldNames(session.stationId()));
     }
 
-    public record CategoryRequest(String name, int position, Integer maxShownEvents, Boolean isPublic, String color) {}
+    public record CategoryRequest(
+            String name,
+            int position,
+            @Nullable Integer maxShownEvents,
+            @Nullable Boolean isPublic,
+            @Nullable String color) {}
 
     public record ReorderCategoriesRequest(List<Integer> orderedIds) {}
 
     public record BreakRequest(String name, LocalDate startDate, LocalDate endDate) {}
 
-    public record FieldDefaultEntry(int fieldId, String source, String value) {}
+    public record FieldDefaultEntry(
+            int fieldId, String source, @Nullable String value) {}
 
-    @OpenApiName("SetEventFieldsRequest")
     public record SetEventFieldsRequest(List<EventFieldEntry> fields) {}
 
-    @OpenApiName("FieldDateValueRequest")
     public record FieldDateValueRequest(LocalDate date, String value) {}
 
-    @OpenApiName("EventFieldEntry")
     public record EventFieldEntry(
-            Integer id,
+            @Nullable Integer id,
             String name,
-            EventFieldType fieldType,
-            EventFieldConfig config,
-            String value,
-            Boolean overview,
-            Integer attendanceFieldId,
-            Boolean isPublic) {}
+            @Nullable FieldType fieldType,
+            @Nullable EventQuestionSettings config,
+            @Nullable String value,
+            @Nullable Boolean overview,
+            @Nullable Integer attendanceFieldId,
+            @Nullable Boolean isPublic) {
+
+        /** The question as the server writes it; what is left out reads as a plain, empty line of text. */
+        EventFieldDraft toDraft() {
+            return new EventFieldDraft(
+                    id,
+                    name,
+                    Objects.requireNonNullElse(fieldType, FieldType.TEXT),
+                    Objects.requireNonNullElse(config, EventQuestionSettings.empty())
+                            .organisers(),
+                    Objects.requireNonNullElse(value, ""),
+                    Boolean.TRUE.equals(overview),
+                    attendanceFieldId,
+                    Boolean.TRUE.equals(isPublic));
+        }
+    }
 }

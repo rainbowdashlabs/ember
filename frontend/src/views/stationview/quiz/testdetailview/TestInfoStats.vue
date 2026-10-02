@@ -5,7 +5,7 @@
  */
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import type { QuizTestDetail } from '@/api/quiz'
+import type { QuizTestDetail } from '@/api/generated/schema'
 import MutedText from '@/components/typography/MutedText.vue'
 
 defineProps<{

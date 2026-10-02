@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.inventory.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Represents an inventory belonging to a station.
@@ -34,8 +35,8 @@ public record Inventory(
         boolean hasSizes,
         boolean homogeneous,
         boolean borrowed,
-        String icon,
-        String color) {
+        @Nullable String icon,
+        @Nullable String color) {
     /**
      * Creates a row mapping for database result set conversion.
      */

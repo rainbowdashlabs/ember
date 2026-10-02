@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.form.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import dev.chojo.ember.util.Json;
+import org.jspecify.annotations.Nullable;
 import tools.jackson.core.type.TypeReference;
 
 import java.time.Instant;
@@ -41,13 +42,13 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 public record FormResponse(
         int id,
         int formId,
-        Integer memberId,
-        Integer submittedBy,
+        @Nullable Integer memberId,
+        @Nullable Integer submittedBy,
         Instant submittedAt,
         Instant updatedAt,
-        byte[] submitterHash,
-        Instant acknowledgedAt,
-        Integer acknowledgedBy,
+        byte @Nullable [] submitterHash,
+        @Nullable Instant acknowledgedAt,
+        @Nullable Integer acknowledgedBy,
         List<String> path) {
     private static final TypeReference<List<String>> KEYS = new TypeReference<>() {};
 

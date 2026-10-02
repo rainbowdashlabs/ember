@@ -6,11 +6,11 @@
 package dev.chojo.ember.feature.inventory.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.RouteSupport;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.InventoryRefusal;
 import dev.chojo.ember.feature.inventory.entity.ArtStock;
 import dev.chojo.ember.feature.inventory.entity.Glyph;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
@@ -30,6 +30,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -75,16 +76,17 @@ public class InventoryArtRoutes implements Routes {
                 prefix + "/inventories/{inventoryId}/art-merges", this::mergeIntoArt, StationPermission.INVENTORY_EDIT);
     }
 
-    private Inventory ownedInventory(int inventoryId, UserSession session) {
-        Inventory inventory =
-                inventoryService.findById(inventoryId).orElseThrow(Refusal.INVENTORY_NOT_HERE_BEHIND_KIND::raise);
-        RouteSupport.requireSameStation(session, inventory.stationId());
+    private Inventory ownedInventory(int inventoryId, StationSession session) {
+        Inventory inventory = inventoryService
+                .findById(inventoryId)
+                .orElseThrow(InventoryRefusal.INVENTORY_NOT_HERE_BEHIND_KIND::raise);
+        RouteSupport.requireSameStation(session.user(), inventory.stationId());
         return inventory;
     }
 
     private void verifyArtInInventory(int inventoryId, int artId) {
         if (artService.findByInventory(inventoryId).stream().noneMatch(art -> art.id() == artId)) {
-            throw Refusal.ITEM_KIND_NOT_IN_INVENTORY.raise();
+            throw InventoryRefusal.ITEM_KIND_NOT_IN_INVENTORY.raise();
         }
     }
 
@@ -97,7 +99,7 @@ public class InventoryArtRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = InventoryArt[].class)))
     private void listArts(Context ctx) {
         int inventoryId = pathInt(ctx, "inventoryId");
-        ownedInventory(inventoryId, UserSession.from(ctx));
+        ownedInventory(inventoryId, StationSession.from(ctx));
         ctx.json(artService.findByInventory(inventoryId));
     }
 
@@ -114,7 +116,7 @@ public class InventoryArtRoutes implements Routes {
             })
     private void createArt(Context ctx) {
         int inventoryId = pathInt(ctx, "inventoryId");
-        ownedInventory(inventoryId, UserSession.from(ctx));
+        ownedInventory(inventoryId, StationSession.from(ctx));
         var body = ctx.bodyAsClass(ArtRequest.class);
         ctx.status(HttpStatus.CREATED)
                 .json(artService.create(
@@ -139,13 +141,13 @@ public class InventoryArtRoutes implements Routes {
     private void updateArt(Context ctx) {
         int inventoryId = pathInt(ctx, "inventoryId");
         int artId = pathInt(ctx, "artId");
-        ownedInventory(inventoryId, UserSession.from(ctx));
+        ownedInventory(inventoryId, StationSession.from(ctx));
         verifyArtInInventory(inventoryId, artId);
         var body = ctx.bodyAsClass(ArtRequest.class);
         artService
                 .update(artId, body.name(), body.note(), body.position(), Glyph.of(body.icon(), body.color()))
                 .ifPresentOrElse(ctx::json, () -> {
-                    throw Refusal.ITEM_KIND_NOT_CHANGED.raise();
+                    throw InventoryRefusal.ITEM_KIND_NOT_CHANGED.raise();
                 });
     }
 
@@ -165,12 +167,12 @@ public class InventoryArtRoutes implements Routes {
     private void deleteArt(Context ctx) {
         int inventoryId = pathInt(ctx, "inventoryId");
         int artId = pathInt(ctx, "artId");
-        ownedInventory(inventoryId, UserSession.from(ctx));
+        ownedInventory(inventoryId, StationSession.from(ctx));
         verifyArtInInventory(inventoryId, artId);
         if (artService.delete(artId)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
-            throw Refusal.ITEM_KIND_NOT_DELETED.raise();
+            throw InventoryRefusal.ITEM_KIND_NOT_DELETED.raise();
         }
     }
 
@@ -183,7 +185,7 @@ public class InventoryArtRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ArtStock[].class)))
     private void artStock(Context ctx) {
         int inventoryId = pathInt(ctx, "inventoryId");
-        ownedInventory(inventoryId, UserSession.from(ctx));
+        ownedInventory(inventoryId, StationSession.from(ctx));
         ctx.json(artService.stock(inventoryId));
     }
 
@@ -196,7 +198,7 @@ public class InventoryArtRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ItemNameCount[].class)))
     private void itemNames(Context ctx) {
         int inventoryId = pathInt(ctx, "inventoryId");
-        ownedInventory(inventoryId, UserSession.from(ctx));
+        ownedInventory(inventoryId, StationSession.from(ctx));
         ctx.json(artService.nameCounts(inventoryId));
     }
 
@@ -213,7 +215,7 @@ public class InventoryArtRoutes implements Routes {
     private void itemsOfArt(Context ctx) {
         int inventoryId = pathInt(ctx, "inventoryId");
         int artId = pathInt(ctx, "artId");
-        ownedInventory(inventoryId, UserSession.from(ctx));
+        ownedInventory(inventoryId, StationSession.from(ctx));
         verifyArtInInventory(inventoryId, artId);
         ctx.json(artService.findItems(artId));
     }
@@ -231,7 +233,7 @@ public class InventoryArtRoutes implements Routes {
             })
     private void assignArt(Context ctx) {
         int inventoryId = pathInt(ctx, "inventoryId");
-        ownedInventory(inventoryId, UserSession.from(ctx));
+        ownedInventory(inventoryId, StationSession.from(ctx));
         var body = ctx.bodyAsClass(ArtAssignRequest.class);
         ctx.json(new TidyResult(artService.assign(inventoryId, body.artId(), itemIds(body.itemIds()))));
     }
@@ -249,7 +251,7 @@ public class InventoryArtRoutes implements Routes {
             })
     private void mergeIntoArt(Context ctx) {
         int inventoryId = pathInt(ctx, "inventoryId");
-        ownedInventory(inventoryId, UserSession.from(ctx));
+        ownedInventory(inventoryId, StationSession.from(ctx));
         var body = ctx.bodyAsClass(ArtMergeRequest.class);
         ctx.json(new TidyResult(artService.merge(inventoryId, body.artId(), itemIds(body.itemIds()))));
     }
@@ -267,7 +269,12 @@ public class InventoryArtRoutes implements Routes {
      * @param icon     the FontAwesome name its pieces are drawn with, or {@code null} to follow the inventory
      * @param color    the colour that picture is drawn in as {@code #rrggbb}, or {@code null} to follow it too
      */
-    public record ArtRequest(String name, String note, int position, String icon, String color) {}
+    public record ArtRequest(
+            String name,
+            @Nullable String note,
+            int position,
+            @Nullable String icon,
+            @Nullable String color) {}
 
     /**
      * Request body for putting pieces under a kind without touching their names.
@@ -275,7 +282,7 @@ public class InventoryArtRoutes implements Routes {
      * @param artId   the kind, or {@code null} to take the kind away again
      * @param itemIds the pieces
      */
-    public record ArtAssignRequest(Integer artId, List<Integer> itemIds) {}
+    public record ArtAssignRequest(@Nullable Integer artId, List<Integer> itemIds) {}
 
     /**
      * Request body for the tidying merge, which rewrites the names of the pieces it moves.

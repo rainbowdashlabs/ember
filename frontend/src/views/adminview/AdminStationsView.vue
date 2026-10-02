@@ -10,7 +10,7 @@ import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
-import type {Station} from '@/api/stations'
+import type {StationDetail} from '@/api/generated/schema'
 import {stations, transfer} from '@/api'
 import StationsGrid from './adminstationsview/StationsGrid.vue'
 import StationImportModal from './adminstationsview/StationImportModal.vue'
@@ -22,7 +22,7 @@ import {useAsyncAction} from '@/composables/useAsyncAction'
 const {t} = useI18n()
 const router = useRouter()
 
-const {config: stationList, loading, failure: listFailure, reload: loadStations} = useConfigPanel<Station[]>({
+const {config: stationList, loading, failure: listFailure, reload: loadStations} = useConfigPanel<StationDetail[]>({
   initial: [],
   fetch: () => stations.listStations(),
 })
@@ -32,8 +32,8 @@ const {
   target: deleteTarget,
   requestDelete,
   confirm: confirmDelete,
-} = useConfirmDelete<Station>({
-  onDelete: s => stations.deleteStation(s.id.toString()),
+} = useConfirmDelete<StationDetail>({
+  onDelete: s => stations.deleteStation(s.id),
   onSuccess: () => loadStations(),
   failure: listFailure,
 })

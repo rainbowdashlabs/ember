@@ -7,40 +7,40 @@
 import TicketLeftColumn from './TicketLeftColumn.vue'
 import TicketRightColumn from './TicketRightColumn.vue'
 import type {
-    Board, BoardLane, BoardField, BoardLabel, BoardTicket, BoardChecklistItem,
-    BoardTicketLink, BoardTicketTransition, BoardTicketHistoryEntry, BoardComment,
-    BoardWeblink, BoardTicketAttachment, BoardTicketKbLink, TicketPriorityName,
-    BoardFieldTypeName,
+    AnyBoard, BoardFieldRaw, BoardFieldTypeName, TicketPriorityName, TypedBoardField,
 } from '@/api/boards'
-import type { MemberCompletion } from '@/api/stationMembers'
+import type { CommentSource } from '@/api/comments'
+import type {
+    BoardChecklistItem, BoardLabel, BoardLane, BoardTicket, BoardTicketAttachment, BoardTicketHistoryResponse,
+    BoardTicketKbLink, BoardTicketLink, BoardTicketTransitionResponse, BoardWeblink, MemberCompletion, TicketSummary,
+} from '@/api/generated/schema'
 import type {PriorityOption, KbSearchResult} from './types'
 import type { Failure } from '@/util/failure'
 
 
 
 defineProps<{
-    board: Board
+    board: AnyBoard
     ticket: BoardTicket
-    allTickets: BoardTicket[]
+    allTickets: TicketSummary[]
     lanes: BoardLane[]
     members: MemberCompletion[]
     assignableMembers: MemberCompletion[]
     allLabels: BoardLabel[]
     ticketLabels: BoardLabel[]
-    boardFields: BoardField[]
+    boardFields: TypedBoardField[]
     priorityOptions: PriorityOption[]
     checklist: BoardChecklistItem[]
     checklistVisible: boolean
     links: BoardTicketLink[]
     weblinks: BoardWeblink[]
     attachments: BoardTicketAttachment[]
-    transitions: BoardTicketTransition[]
-    history: BoardTicketHistoryEntry[]
-    comments: BoardComment[]
+    transitions: BoardTicketTransitionResponse[]
+    history: BoardTicketHistoryResponse[]
+    commentSource: CommentSource
     kbLinks: BoardTicketKbLink[]
     kbSearchResults: KbSearchResult[]
     canEdit: boolean
-    federated: boolean
     partnerUid?: string
     /** What the last action or load ran into, described, or nothing where nothing has. */
     failure: Failure | null
@@ -53,7 +53,7 @@ const kbSearchQuery = defineModel<string>('kbSearchQuery', { default: '' })
 const priority = defineModel<TicketPriorityName>('priority')
 const assignedMemberId = defineModel<string>('assignedMemberId', { default: '' })
 const dueDate = defineModel<string>('dueDate', { default: '' })
-const fieldValues = defineModel<Record<number, unknown>>('fieldValues', { default: () => ({}) })
+const fieldValues = defineModel<Record<number, BoardFieldRaw | null>>('fieldValues', { default: () => ({}) })
 const showAddLink = defineModel<boolean>('showAddLink', { required: true })
 const showAddWeblink = defineModel<boolean>('showAddWeblink', { required: true })
 const showKbSearch = defineModel<boolean>('showKbSearch', { required: true })
@@ -67,9 +67,6 @@ const emit = defineEmits<{
     removeChecklistItem: [id: number]
     removeAllChecklistItems: []
     reorderChecklist: [from: number, to: number]
-    createComment: [parentId: number | null, content: string]
-    updateComment: [commentId: number, content: string]
-    deleteComment: [commentId: number]
     uploadFiles: [files: File[]]
     kbSearch: []
     addKbLink: [id: number]
@@ -77,7 +74,7 @@ const emit = defineEmits<{
     moveTo: [laneId: number]
     toggleLabel: [id: number]
     createLabel: [name: string]
-    saveField: [fieldId: number, fieldType: BoardFieldTypeName, value: unknown]
+    saveField: [fieldId: number, fieldType: BoardFieldTypeName, value: BoardFieldRaw | null]
 }>()
 </script>
 
@@ -91,9 +88,9 @@ const emit = defineEmits<{
             :board="board" :ticket="ticket" :all-tickets="allTickets" :lanes="lanes" :members="members"
             :all-labels="allLabels" :priority-options="priorityOptions" :checklist="checklist"
             :checklist-visible="checklistVisible" :links="links" :weblinks="weblinks"
-            :attachments="attachments" :transitions="transitions" :history="history" :comments="comments"
+            :attachments="attachments" :transitions="transitions" :history="history" :comment-source="commentSource"
             :kb-links="kbLinks" :kb-search-results="kbSearchResults" :can-edit="canEdit"
-            :federated="federated" :partner-uid="partnerUid"
+            :partner-uid="partnerUid"
             @save-ticket="emit('saveTicket')" @reload-details="emit('reloadDetails')"
             @show-checklist="emit('showChecklist')"
             @add-checklist-item="emit('addChecklistItem')"
@@ -101,9 +98,6 @@ const emit = defineEmits<{
             @remove-checklist-item="emit('removeChecklistItem', $event)"
             @remove-all-checklist-items="emit('removeAllChecklistItems')"
             @reorder-checklist="(f, t) => emit('reorderChecklist', f, t)"
-            @create-comment="(p, c) => emit('createComment', p, c)"
-            @update-comment="(i, c) => emit('updateComment', i, c)"
-            @delete-comment="emit('deleteComment', $event)"
             @upload-files="emit('uploadFiles', $event)"
             @kb-search="emit('kbSearch')"
             @add-kb-link="emit('addKbLink', $event)"

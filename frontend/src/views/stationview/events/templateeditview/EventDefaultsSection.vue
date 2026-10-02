@@ -5,17 +5,14 @@
  */
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
-import TextInput from '@/components/input/text/TextInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import EventDefaultsGrid from './EventDefaultsGrid.vue'
-import type {AttendanceTemplate} from '@/api/attendance'
-import type {EventCategory} from '@/api/events'
+import type {AttendanceTemplate, EventCategory} from '@/api/generated/schema'
 
 const {t} = useI18n()
 

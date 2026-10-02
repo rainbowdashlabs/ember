@@ -5,13 +5,11 @@
  */
 package dev.chojo.ember.feature.feed.route;
 
-import dev.chojo.ember.api.MemberIdentity;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
-import dev.chojo.ember.feature.feed.repository.FeedTokenRepository;
-import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
+import dev.chojo.ember.feature.feed.service.FeedUseService;
+import dev.chojo.ember.feature.feed.service.FeedUseService.FeedUseResponse;
 import io.javalin.http.Context;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
@@ -21,26 +19,18 @@ import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
-import java.time.Instant;
-
 /**
- * What a station can see about the subscriptions its members keep.
- *
- * <p>A calendar that a phone fetches every hour and a subscription nobody has ever opened look the
- * same from the inside; the difference is in when it was last fetched, which is recorded already and
- * had nowhere to be read. Answers for the caller's own station only, and never with the token: it is
- * the whole key to one person's calendar.
+ * What a station can see about the subscriptions its members keep, for the caller's own station
+ * only.
  */
 @Singleton
 public class StationFeedUseRoutes implements Routes {
 
-    private final FeedTokenRepository feedTokenRepository;
-    private final MemberIdentityFactory memberIdentityFactory;
+    private final FeedUseService feedUse;
 
     @Inject
-    public StationFeedUseRoutes(FeedTokenRepository feedTokenRepository, MemberIdentityFactory memberIdentityFactory) {
-        this.feedTokenRepository = feedTokenRepository;
-        this.memberIdentityFactory = memberIdentityFactory;
+    public StationFeedUseRoutes(FeedUseService feedUse) {
+        this.feedUse = feedUse;
     }
 
     @Override
@@ -57,34 +47,6 @@ public class StationFeedUseRoutes implements Routes {
             tags = {"Monitoring"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FeedUseResponse[].class)))
     private void list(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        if (session.stationId() == null) {
-            throw Refusal.NO_STATION_CHOSEN_FOR_FEED_USE.raise();
-        }
-        int stationId = session.stationId();
-        ctx.json(feedTokenRepository.findUseByStation(stationId).stream()
-                .map(use -> new FeedUseResponse(
-                        use.memberId(),
-                        memberIdentityFactory.local(stationId, use.memberId()),
-                        use.createdAt(),
-                        use.icalPolledAt(),
-                        use.notificationPolledAt()))
-                .toList());
+        ctx.json(feedUse.forStation(StationSession.from(ctx).stationId()));
     }
-
-    /**
-     * One member's subscription as the monitoring page reads it.
-     *
-     * @param memberId             the member
-     * @param identity             their name and picture, resolved the way every list resolves them
-     * @param createdAt            when the subscription was set up
-     * @param icalPolledAt         when a calendar last fetched it, null where none ever has
-     * @param notificationPolledAt when a reader last fetched the notifications, null where none has
-     */
-    public record FeedUseResponse(
-            int memberId,
-            MemberIdentity identity,
-            Instant createdAt,
-            Instant icalPolledAt,
-            Instant notificationPolledAt) {}
 }

@@ -7,13 +7,14 @@
 import {onMounted, computed, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useSession} from '@/composables/useSession'
-import type {StationPermissionName} from '@/api/types'
+import type {StationPermission} from '@/api/generated/schema'
 import InfoContainer from '@/components/container/InfoContainer.vue'
+import BareButton from '@/components/button/BareButton.vue'
 
 export interface HelpPerspective {
   key: string
   label: string
-  permissions: StationPermissionName[]
+  permissions: StationPermission[]
 }
 
 const props = defineProps<{
@@ -60,7 +61,7 @@ const hint = computed(() => {
     {{ hint }}
   </InfoContainer>
   <div v-if="!isAuthenticated" class="flex flex-wrap gap-2">
-    <button
+    <BareButton
         v-for="p in perspectives"
         :key="p.key"
         :class="activeView === p.key
@@ -70,6 +71,6 @@ const hint = computed(() => {
         @click="activeView = p.key"
     >
       {{ p.label }}
-    </button>
+    </BareButton>
   </div>
 </template>

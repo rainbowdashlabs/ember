@@ -6,7 +6,7 @@
 package dev.chojo.ember.feature.knowledgebase.service;
 
 import dev.chojo.ember.conf.file.elements.Storage;
-import dev.chojo.ember.feature.media.service.ImageVariantService;
+import dev.chojo.ember.feature.media.service.ImageVariants;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
 import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
@@ -49,11 +49,11 @@ class KbFilePictureServiceTest {
     void setup() {
         var config = Mockito.mock(Storage.class);
         var stationRepo = Mockito.mock(StationRepository.class);
-        Mockito.when(stationRepo.resolveUid(STATION_ID)).thenReturn(STATION_UID);
+        Mockito.when(stationRepo.requireUid(STATION_ID)).thenReturn(STATION_UID);
         var backend = new LocalStorageBackend(tempDir);
         var storage = new StorageService(new StorageBackendResolver(backend), backend);
         files = Mockito.spy(new KbFileStorageService(storage, stationRepo, backend, new TextCompressionPolicy(config)));
-        pictures = new KbFilePictureService(new ImageVariantService(storage), files, stationRepo);
+        pictures = new KbFilePictureService(new ImageVariants(storage), files, stationRepo);
     }
 
     private static byte[] photo() throws IOException {

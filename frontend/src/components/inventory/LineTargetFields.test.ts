@@ -3,20 +3,34 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-// @vitest-environment happy-dom
+/** @vitest-environment happy-dom */
 import {describe, expect, it} from 'vitest'
 import {mount} from '@vue/test-utils'
 import LineTargetFields from './LineTargetFields.vue'
-import {ItemCustody, ItemOwner, type Inventory, type InventoryItem} from '@/api/inventory'
-import type {InventoryArt} from '@/api/inventoryArts'
+import {ItemCustody, ItemOwner} from '@/api/inventory'
+import type {Inventory, InventoryArt, InventoryItem} from '@/api/generated/schema'
 
-const DRAWER: Inventory = {id: 1, stationId: 's', name: 'Handfunkgeräte', hasSizes: false, homogeneous: false, borrowed: false}
-const SHELF: Inventory = {id: 2, stationId: 's', name: 'Jacken', hasSizes: true, homogeneous: true, borrowed: false}
+const DRAWER: Inventory = {
+  id: 1, stationId: 's', name: 'Handfunkgeräte', inventoryType: 'INTERNAL', hasSizes: false, homogeneous: false,
+  borrowed: false, icon: null, color: null,
+}
+const SHELF: Inventory = {
+  id: 2, stationId: 's', name: 'Jacken', inventoryType: 'INTERNAL', hasSizes: true, homogeneous: true,
+  borrowed: false, icon: null, color: null,
+}
 
-const BLUE: InventoryArt = {id: 7, inventoryId: 1, name: 'Funkgerät blau', note: '', position: 0, mergeKey: 'funkgerät blau'}
+const BLUE: InventoryArt = {
+  id: 7, inventoryId: 1, name: 'Funkgerät blau', note: '', position: 0, mergeKey: 'funkgerät blau', icon: null,
+  color: null,
+}
 
 function piece(id: number, patch: Partial<InventoryItem> = {}): InventoryItem {
-  return {id, inventoryId: 1, artId: 7, custody: ItemCustody.AT_STATION, ownerKind: ItemOwner.STATION, ...patch}
+  return {
+    id, inventoryId: 1, internalId: null, name: `Gerät ${id}`, sizeId: null, artId: 7, metadata: {fields: {}},
+    assignedTo: null, lostAt: null, lostNote: null, lostNoteBy: null, ownerKind: ItemOwner.STATION,
+    ownerClusterId: null, ownerStationId: null, loanRequestItemId: null, custody: ItemCustody.AT_STATION,
+    custodyStationId: null, custodyPartnerStationId: null, custodyMovementId: null, containerId: null, ...patch,
+  }
 }
 
 const ITEMS: InventoryItem[] = [

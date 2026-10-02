@@ -9,15 +9,18 @@ import dev.chojo.ember.feature.discovery.entity.PeerSource;
 import dev.chojo.ember.feature.discovery.protocol.DiscoveryInfoResponse;
 import dev.chojo.ember.feature.discovery.repository.DiscoveryPeerRepository;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
+import dev.chojo.ember.lifecycle.Schedule;
+import dev.chojo.ember.lifecycle.ScheduledTask;
+import dev.chojo.ember.lifecycle.TaskSource;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 /**
  * On startup (and on demand), walks active federation partners and inserts them into the
@@ -25,11 +28,10 @@ import java.util.concurrent.TimeUnit;
  * is learned by probing its {@code /public/discovery/info} endpoint - discovery and
  * federation use independent keys.
  *
- * <p>Triggered as an eager singleton with a startup delay so QueryConfiguration and Javalin
- * have time to come up first.
+ * <p>Runs once, two minutes after the scheduled tasks start, so the instance has settled first.
  */
 @Singleton
-public class FederationPartnerSeeder {
+public class FederationPartnerSeeder implements TaskSource {
     private static final Logger log = LoggerFactory.getLogger(FederationPartnerSeeder.class);
     private static final String INFO_PATH = "/api/v1/public/discovery/info";
 
@@ -45,13 +47,6 @@ public class FederationPartnerSeeder {
         this.federationRepository = federationRepository;
         this.peerRepository = peerRepository;
         this.httpClient = httpClient;
-
-        var scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
-            var t = new Thread(r, "discovery-fed-seeder");
-            t.setDaemon(true);
-            return t;
-        });
-        scheduler.schedule(this::seedFromFederationPartners, 2, TimeUnit.MINUTES);
     }
 
     /**
@@ -65,8 +60,9 @@ public class FederationPartnerSeeder {
             var partners = federationRepository.findAllActiveRemotePartners();
             Set<String> uniqueHosts = new HashSet<>();
             for (var partner : partners) {
-                if (partner.remoteHost() == null || !uniqueHosts.add(partner.remoteHost())) continue;
-                if (probeAndInsert(partner.remoteHost())) added++;
+                String host = partner.remoteHost();
+                if (host == null || !uniqueHosts.add(host)) continue;
+                if (probeAndInsert(host)) added++;
             }
             if (added > 0) {
                 log.info("Seeded {} discovery peer(s) from federation partners", added);
@@ -80,7 +76,8 @@ public class FederationPartnerSeeder {
     private boolean probeAndInsert(String baseUrl) {
         try {
             var info = httpClient.get(baseUrl, INFO_PATH, DiscoveryInfoResponse.class);
-            if (info == null || info.publicKey() == null) {
+            String publicKey = info == null ? null : info.publicKey();
+            if (info == null || publicKey == null) {
                 log.debug("Federation partner {} has no discovery info endpoint", baseUrl);
                 return false;
             }
@@ -88,13 +85,18 @@ public class FederationPartnerSeeder {
                 log.debug("Federation partner {} reports discoveryEnabled=false; skipping", baseUrl);
                 return false;
             }
-            // upsert is a no-op if we already know this public key.
-            boolean existed = peerRepository.findByPublicKey(info.publicKey()).isPresent();
-            peerRepository.upsert(info.publicKey(), info.baseUrl(), info.instanceId(), PeerSource.BOOTSTRAP, null);
+            boolean existed = peerRepository.findByPublicKey(publicKey).isPresent();
+            peerRepository.upsert(publicKey, info.baseUrl(), info.instanceId(), PeerSource.BOOTSTRAP, null);
             return !existed;
         } catch (Exception e) {
             log.debug("Probe of {} failed: {}", baseUrl, e.getMessage());
             return false;
         }
+    }
+
+    @Override
+    public List<ScheduledTask> scheduledTasks() {
+        return List.of(new ScheduledTask(
+                "discovery-partner-seed", Schedule.once(Duration.ofMinutes(2)), this::seedFromFederationPartners));
     }
 }

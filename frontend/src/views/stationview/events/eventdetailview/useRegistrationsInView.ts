@@ -4,7 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {computed, ref} from 'vue'
-import {isRecurringEvent, type EventRegistrationEntry, type FederatedEventRegistration, type StationEvent} from '@/api/events'
+import {isRecurringEvent} from '@/api/events'
+import type {EnrichedFederationRegistration, RegistrationResponse, StationEvent} from '@/api/generated/schema'
 import {rowsOnDate} from '@/util/eventAnswers'
 
 /**
@@ -18,8 +19,8 @@ import {rowsOnDate} from '@/util/eventAnswers'
  * @param effectiveDate the occurrence in view, or null where none is known
  */
 export function useRegistrationsInView(event: () => StationEvent, effectiveDate: () => string | null) {
-    const loadedRegistrations = ref<EventRegistrationEntry[]>([])
-    const loadedFederatedRegs = ref<FederatedEventRegistration[]>([])
+    const loadedRegistrations = ref<RegistrationResponse[]>([])
+    const loadedFederatedRegs = ref<EnrichedFederationRegistration[]>([])
 
     const dateInView = computed(() => (isRecurringEvent(event().eventType) ? effectiveDate() : null))
 

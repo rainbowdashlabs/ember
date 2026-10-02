@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.mail.service.mail;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * Abstraction for sending emails through different providers.
  */
@@ -56,7 +58,7 @@ public interface MailProvider {
      * @param correlationId our own identifier for this message, or null to send it untagged
      * @return the outcome of the send attempt
      */
-    SendResult send(String to, String subject, String htmlBody, String correlationId);
+    SendResult send(String to, String subject, String htmlBody, @Nullable String correlationId);
 
     /**
      * Outcome of a connection test.
@@ -64,7 +66,7 @@ public interface MailProvider {
      * @param error       human-readable error, or {@code null} when the connection succeeded
      * @param authFailure whether the server rejected the login credentials
      */
-    record TestResult(String error, boolean authFailure) {
+    record TestResult(@Nullable String error, boolean authFailure) {
 
         /**
          * Creates a successful result.

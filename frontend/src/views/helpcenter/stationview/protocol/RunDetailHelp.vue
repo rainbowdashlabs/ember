@@ -26,26 +26,25 @@ const { t } = useI18n()
       <p>{{ t('helpCenter.protocolRunDetail.membersText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Member progress table -->
     <NeutralContainer>
       <div class="space-y-2 text-sm">
-        <div class="font-semibold text-xs text-[var(--text-muted)] uppercase mb-1">Jugendflamme Stufe 1 - Frühjahr 2025</div>
+        <div class="font-semibold text-xs text-[var(--text-muted)] uppercase mb-1">{{ t('helpCenter.sample.protocol.runSpring') }}</div>
         <div class="flex items-center justify-between p-2 rounded border border-[var(--border)]">
-          <span class="font-medium">Lena Müller</span>
+          <span class="font-medium">{{ t('helpCenter.sample.people.lenaMueller') }}</span>
           <div class="flex items-center gap-2">
-            <span class="text-xs text-[var(--text-muted)]">32 / 34 P</span>
+            <span class="text-xs text-[var(--text-muted)]">{{ t('helpCenter.sample.protocol.pointsOfSpaced', {points: 32, total: 34}) }}</span>
             <SuccessBadge>{{ t('helpCenter.protocolRunDetail.statusPassed') }}</SuccessBadge>
           </div>
         </div>
         <div class="flex items-center justify-between p-2 rounded border border-[var(--border)]">
-          <span class="font-medium">Max Bauer</span>
+          <span class="font-medium">{{ t('helpCenter.sample.people.maxBauer') }}</span>
           <div class="flex items-center gap-2">
-            <span class="text-xs text-[var(--text-muted)]">18 / 34 P</span>
+            <span class="text-xs text-[var(--text-muted)]">{{ t('helpCenter.sample.protocol.pointsOfSpaced', {points: 18, total: 34}) }}</span>
             <ErrorBadge>{{ t('helpCenter.protocolRunDetail.statusFailed') }}</ErrorBadge>
           </div>
         </div>
         <div class="flex items-center justify-between p-2 rounded border border-[var(--border)]">
-          <span class="font-medium">Jonas Weber</span>
+          <span class="font-medium">{{ t('helpCenter.sample.people.jonasWeber') }}</span>
           <div class="flex items-center gap-2">
             <span class="text-xs text-[var(--text-muted)]">-</span>
             <InfoBadge>{{ t('helpCenter.protocolRunDetail.statusPending') }}</InfoBadge>

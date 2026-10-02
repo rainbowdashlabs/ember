@@ -7,6 +7,7 @@ import { ref, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { savedFilters as savedFiltersApi } from '@/api'
 import type { DataTableState } from '@/composables/useDataTable'
+import type { FilterTableType } from '@/api/generated/schema'
 import { describeFailure, type Failure } from '@/util/failure'
 
 export interface SavedFilterPreset {
@@ -17,7 +18,7 @@ export interface SavedFilterPreset {
   emptyFilters: string[]
 }
 
-const TABLE_TYPE = 'members'
+const TABLE_TYPE: FilterTableType = 'MEMBERS'
 
 /**
  * A saved filter as it was stored, read defensively: an older one may lack the empty filters.

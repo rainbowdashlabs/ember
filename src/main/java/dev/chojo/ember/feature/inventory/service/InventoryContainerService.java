@@ -18,6 +18,7 @@ import dev.chojo.ember.feature.inventory.repository.InventoryContainerRepository
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -124,7 +125,13 @@ public class InventoryContainerService {
      * key already exists for the station.
      */
     public InventoryContainerKind createKind(
-            int stationId, String key, String label, String icon, String color, int sortOrder, boolean enabled) {
+            int stationId,
+            String key,
+            String label,
+            String icon,
+            @Nullable String color,
+            int sortOrder,
+            boolean enabled) {
         if (key == null || key.isBlank()) {
             throw new IllegalArgumentException("Kind key is required");
         }
@@ -154,7 +161,7 @@ public class InventoryContainerService {
      * Updates an existing kind's mutable fields, the colour its icon is drawn in included.
      */
     public Optional<InventoryContainerKind> updateKind(
-            int id, String label, String icon, String color, int sortOrder, boolean enabled) {
+            int id, String label, String icon, @Nullable String color, int sortOrder, boolean enabled) {
         Optional<InventoryContainerKind> existing = kindRepository.findById(id);
         if (existing.isEmpty()) return Optional.empty();
         if (label == null || label.isBlank()) {
@@ -178,7 +185,7 @@ public class InventoryContainerService {
      * @param color the colour somebody picked, or {@code null}
      * @return the pair, with the box standing in for a missing shape
      */
-    private Glyph kindGlyph(String icon, String color) {
+    private Glyph kindGlyph(@Nullable String icon, @Nullable String color) {
         Glyph chosen = Glyph.of(icon, color).paintable();
         return chosen.icon() == null ? new Glyph("box", chosen.color()) : chosen;
     }
@@ -250,8 +257,9 @@ public class InventoryContainerService {
      * {@link ContainerPath#empty()} if the item is unlocated.
      */
     public ContainerPath pathOfItem(InventoryItem item) {
-        if (item == null || item.containerId() == null) return ContainerPath.empty();
-        return containerRepository.findPath(item.containerId());
+        Integer containerId = item == null ? null : item.containerId();
+        if (containerId == null) return ContainerPath.empty();
+        return containerRepository.findPath(containerId);
     }
 
     /**
@@ -291,12 +299,12 @@ public class InventoryContainerService {
      */
     public InventoryContainer create(
             int stationId,
-            Integer parentId,
-            String internalId,
+            @Nullable Integer parentId,
+            @Nullable String internalId,
             String name,
-            Integer kindId,
+            @Nullable Integer kindId,
             String description,
-            Integer createdBy) {
+            @Nullable Integer createdBy) {
         if (name == null || name.isBlank()) {
             throw new IllegalArgumentException("Container name is required");
         }
@@ -330,10 +338,10 @@ public class InventoryContainerService {
      */
     public Optional<InventoryContainer> update(
             int id,
-            Integer parentId,
-            String internalId,
+            @Nullable Integer parentId,
+            @Nullable String internalId,
             String name,
-            Integer kindId,
+            @Nullable Integer kindId,
             String description,
             Integer actorId) {
         Optional<InventoryContainer> existingOpt = containerRepository.findById(id);
@@ -402,7 +410,7 @@ public class InventoryContainerService {
      * member was holding the item, in which case putting it on a shelf is
      * handing it back at the same time.
      */
-    public boolean setItemContainer(int itemId, Integer containerId) {
+    public boolean setItemContainer(int itemId, @Nullable Integer containerId) {
         Optional<InventoryItem> itemOpt = inventoryRepository.findItemById(itemId);
         if (itemOpt.isEmpty()) {
             log.warn("setItemContainer skipped: item {} not found", itemId);
@@ -442,7 +450,7 @@ public class InventoryContainerService {
         return descendants.contains(candidateParentId);
     }
 
-    private void verifyParent(int stationId, Integer parentId) {
+    private void verifyParent(int stationId, @Nullable Integer parentId) {
         if (parentId == null) return;
         InventoryContainer parent = containerRepository
                 .findById(parentId)
@@ -452,7 +460,11 @@ public class InventoryContainerService {
         }
     }
 
-    private void verifyInternalId(int stationId, String internalId, Integer excludeContainerId, Integer excludeItemId) {
+    private void verifyInternalId(
+            int stationId,
+            @Nullable String internalId,
+            @Nullable Integer excludeContainerId,
+            @Nullable Integer excludeItemId) {
         if (internalId == null || internalId.isBlank()) return;
         if (containerRepository.internalIdExists(stationId, internalId, excludeContainerId)) {
             throw new IllegalArgumentException("Internal id already used by another container in this station");

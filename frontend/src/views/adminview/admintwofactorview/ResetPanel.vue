@@ -12,12 +12,10 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
-import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import ButtonRow from '@/components/button/ButtonRow.vue'
-import Modal from '@/components/feedback/Modal.vue'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import AccountSearchPicker from '@/components/input/search/AccountSearchPicker.vue'
 import {twoFactorAdmin} from '@/api'
-import type {AccountSearchResult} from '@/api/twoFactorAdmin'
+import type {AccountSearchResult} from '@/api/generated/schema'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 
 const emit = defineEmits<{
@@ -35,7 +33,7 @@ const resetSuccess = ref('')
 function onResetPick(item: AccountSearchResult) {
   resetAccountId.value = item.id
   resetAccountUid.value = item.uid
-  resetAccountName.value = `${item.displayName} (${item.email})`
+  resetAccountName.value = twoFactorAdmin.accountLabel(item)
 }
 
 function onResetUidUpdate(uid: string | null | undefined) {
@@ -52,7 +50,7 @@ function openResetModal() {
   resetConfirmOpen.value = true
 }
 
-const {running: resetLoading, error, failure, run: confirmReset} = useAsyncAction(async () => {
+const {running: resetLoading, failure, run: confirmReset} = useAsyncAction(async () => {
   if (!resetAccountId.value) return
   await twoFactorAdmin.resetAccount2FAByInstanceAdmin(resetAccountId.value)
   resetSuccess.value = t('twoFactor.admin.resetSuccess', {name: resetAccountName.value ?? resetAccountId.value})
@@ -85,20 +83,15 @@ const {running: resetLoading, error, failure, run: confirmReset} = useAsyncActio
       </ErrorButton>
     </div>
 
-    <Modal v-model="resetConfirmOpen" size="sm">
-      <div class="space-y-4 p-4">
-        <SubHeader>{{ t('twoFactor.admin.resetConfirmTitle') }}</SubHeader>
-        <p class="text-sm">{{ t('twoFactor.admin.resetConfirmText', {name: resetAccountName ?? resetAccountId}) }}</p>
-        <Alert variant="error">{{ t('twoFactor.admin.resetWarning') }}</Alert>
-        <ButtonRow pair align="end">
-          <SecondaryButton :disabled="resetLoading" @click="resetConfirmOpen = false">
-            {{ t('common.cancel') }}
-          </SecondaryButton>
-          <ErrorButton :disabled="resetLoading" @click="confirmReset">
-            {{ resetLoading ? t('common.loading') : t('twoFactor.admin.reset') }}
-          </ErrorButton>
-        </ButtonRow>
-      </div>
-    </Modal>
+    <ConfirmDeleteModal
+        v-model="resetConfirmOpen"
+        :title="t('twoFactor.admin.resetConfirmTitle')"
+        :message="t('twoFactor.admin.resetConfirmText', {name: resetAccountName ?? resetAccountId})"
+        :confirm-label="t('twoFactor.admin.reset')"
+        :busy="resetLoading"
+        @confirm="confirmReset"
+    >
+      <Alert variant="error">{{ t('twoFactor.admin.resetWarning') }}</Alert>
+    </ConfirmDeleteModal>
   </NeutralContainer>
 </template>

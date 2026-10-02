@@ -16,7 +16,7 @@ const {t} = useI18n()
 <template>
   <div class="mt-3 pt-3 border-t border-[var(--border)]">
     <div class="flex items-center gap-2 mb-1">
-      <SectionHeader class="!text-xs !mb-0">Stacktrace</SectionHeader>
+      <SectionHeader class="!text-xs !mb-0">{{ t('helpCenter.sample.admin.stacktrace') }}</SectionHeader>
       <IconButton :icon="['fas', 'copy']" :label="t('adminProblems.copyStacktrace')" class="text-(--text-muted)"/>
     </div>
     <pre class="text-xs font-mono bg-[var(--bg)] rounded p-2 overflow-x-auto max-h-32 whitespace-pre-wrap">{{ trace }}</pre>

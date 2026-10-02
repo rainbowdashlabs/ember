@@ -10,15 +10,18 @@ import ThemeToggle from '@/components/theme/ThemeToggle.vue'
 import AppLink from '@/components/navigation/AppLink.vue'
 import UpdateNotice from '@/components/layout/UpdateNotice.vue'
 import client from '@/api/client'
+import type {PublicConfigResponse} from '@/api/generated/schema'
 
+/**
+ * The footer of every page. The way to the discovery page shows at every width; what a layout puts
+ * into the slot, a station or cluster switcher, shows on wider screens only, as it always has.
+ */
 const {t} = useI18n()
 const version = ref('')
 
 onMounted(async () => {
-  try {
-    const res = await client.get<{ version?: string }>('/public/config')
-    version.value = res.data.version ?? ''
-  } catch { /* ignore */ }
+  const res = await client.get<PublicConfigResponse>('/public/config').catch(() => null)
+  if (res) version.value = res.data.version
 })
 </script>
 
@@ -49,12 +52,14 @@ onMounted(async () => {
         </router-link>
       </div>
 
-      <div class="hidden md:flex md:flex-col md:items-end gap-2">
-        <router-link class="text-sm text-[var(--link)] hover:underline flex items-center gap-1" :to="{name: 'public-discovery'}">
+      <div class="flex flex-col items-center md:items-end gap-2">
+        <router-link class="text-sm text-[var(--link)] hover:underline flex items-center gap-1" :to="{name: 'public-discovery'}" data-testid="footer-discovery">
           <font-awesome-icon :icon="['fas', 'compass']"/>
           {{ t('discovery.title') }}
         </router-link>
-        <slot/>
+        <div class="hidden md:flex md:flex-col md:items-end gap-2">
+          <slot/>
+        </div>
       </div>
     </div>
   </footer>

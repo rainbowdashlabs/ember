@@ -3,58 +3,67 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import client, {scheduleTokenRefresh} from './client'
-import {isStorageDenied, setItem} from './storage'
-import {StorageDeniedError, type LoginResponse} from './auth'
+import client from './client'
+import {isStorageDenied} from './storage'
+import {StorageDeniedError} from './auth'
 import type {PasskeyModeName} from './adminSettings'
+import type {
+    CeremonyResponse,
+    components,
+    CreationFinishRequest,
+    DeviceCodeRequest,
+    DeviceEnrollBeginRequest,
+    DeviceEnrollFinishRequest,
+    DeviceIdentifierRequest,
+    DeviceLookupResponse,
+    DevicePollRequest,
+    DevicePollResponse,
+    DeviceRequestResponse,
+    DeviceStepUpBeginRequest,
+    DeviceStepUpBeginResponse,
+    DeviceStepUpPollRequest,
+    DeviceStepUpPollResponse,
+    LoginResponse,
+    OfferAnswerRequest,
+    OfferResponse,
+    PasskeyEntryResponse,
+    PasskeysStatusResponse,
+    PublicModeResponse,
+    RemovalResponse,
+    RenameRequest,
+    SignInClaimRequest,
+    SignInFinishRequest,
+    SwitchRequest,
+    TokenEnrollFinishRequest,
+    TokenEnrollLookupResponse,
+    TokenEnrollRequest,
+    TrialOutcome,
+    TrialResponse,
+} from './generated/schema'
 
-export interface PasskeyCeremony {
-    challengeToken: string
-    optionsJson: string
-}
+export type DeviceRequestPurposeName = components['schemas']['DeviceRequestPurpose']
 
-export interface PasskeyEntry {
-    id: number
-    label: string
-    createdAt: string
-    lastUsedAt: string | null
-    aaguid: string | null
-    /** Whether this passkey has ever completed a sign-in ceremony, the trial included. */
-    tried: boolean
-    /** URL-safe base64 credential id, for the browser's signal calls. */
-    credentialId: string | null
-}
-
-export interface PasskeysStatus {
-    passkeys: PasskeyEntry[]
-    hasPassword: boolean
-    passwordLoginEnabled: boolean
-    /** Whether the member opted their passkeys into the password path as well. */
-    askWithPassword: boolean
-    /** Whether the switch that turns password sign-in off may be offered at all. */
-    mayDisablePasswordLogin: boolean
-    mode: PasskeyModeName
-    /** The effective relying-party id, which the browser's signal calls need. */
-    rpId: string
-    /** URL-safe base64 user handle, or null while the account holds no passkey. */
-    userHandle: string | null
-}
-
-export type TrialOutcome = 'OK' | 'FOREIGN_CREDENTIAL' | 'FAILED'
-
-// -- The passwordless sign-in --
+/**
+ * What approving a device request buys. The handshake is the same either way; only what the poll
+ * hands over at the end of it differs.
+ */
+export const DeviceRequestPurpose = {
+    ENROL_PASSKEY: 'ENROL_PASSKEY',
+    SIGN_IN: 'SIGN_IN',
+    STEP_UP: 'STEP_UP',
+} as const satisfies Record<DeviceRequestPurposeName, DeviceRequestPurposeName>
 
 export async function publicPasskeyMode(): Promise<PasskeyModeName> {
-    const res = await client.get<{mode: PasskeyModeName}>('/public/settings/passkeys')
+    const res = await client.get<PublicModeResponse>('/public/settings/passkeys')
     return res.data.mode
 }
 
-export async function passkeySignInBegin(): Promise<PasskeyCeremony> {
-    const res = await client.post<PasskeyCeremony>('/auth/passkey/begin')
+export async function passkeySignInBegin(): Promise<CeremonyResponse> {
+    const res = await client.post<CeremonyResponse>('/auth/passkey/begin')
     return res.data
 }
 
-/** Finishes the sign-in and persists the session the way a password login does. */
+/** Finishes the sign-in; the session arrives as a cookie, the way a password login's does. */
 export async function passkeySignInFinish(
     challengeToken: string,
     credentialJson: string,
@@ -67,26 +76,17 @@ export async function passkeySignInFinish(
         challengeToken,
         credentialJson,
         trustedDevice,
-    })
-    if (res.data.token) {
-        setItem('session_token', res.data.token)
-        if (res.data.expiresAt) {
-            setItem('session_expires_at', res.data.expiresAt)
-            scheduleTokenRefresh(res.data.expiresAt)
-        }
-    }
+    } satisfies SignInFinishRequest)
     return res.data
 }
 
-// -- The member's own passkeys --
-
-export async function getPasskeysStatus(): Promise<PasskeysStatus> {
-    const res = await client.get<PasskeysStatus>('/account/passkeys')
+export async function getPasskeysStatus(): Promise<PasskeysStatusResponse> {
+    const res = await client.get<PasskeysStatusResponse>('/account/passkeys')
     return res.data
 }
 
-export async function passkeyCreateBegin(): Promise<PasskeyCeremony> {
-    const res = await client.post<PasskeyCeremony>('/account/passkeys/begin')
+export async function passkeyCreateBegin(): Promise<CeremonyResponse> {
+    const res = await client.post<CeremonyResponse>('/account/passkeys/begin')
     return res.data
 }
 
@@ -94,110 +94,53 @@ export async function passkeyCreateFinish(
     challengeToken: string,
     credentialJson: string,
     label: string,
-): Promise<PasskeyEntry> {
-    const res = await client.post<PasskeyEntry>('/account/passkeys/finish', {challengeToken, credentialJson, label})
+): Promise<PasskeyEntryResponse> {
+    const res = await client.post<PasskeyEntryResponse>(
+        '/account/passkeys/finish',
+        {challengeToken, credentialJson, label} satisfies CreationFinishRequest,
+    )
     return res.data
 }
 
 export async function renamePasskey(id: number, label: string): Promise<void> {
-    await client.post(`/account/passkeys/${id}/rename`, {label})
+    await client.post(`/account/passkeys/${id}/rename`, {label} satisfies RenameRequest)
 }
 
-export interface PasskeyRemoval {
-    /** True when removing the last passkey opened the password door again. */
-    passwordLoginReenabled: boolean
-}
-
-export async function removePasskey(id: number): Promise<PasskeyRemoval> {
-    const res = await client.delete<PasskeyRemoval>(`/account/passkeys/${id}`)
+export async function removePasskey(id: number): Promise<RemovalResponse> {
+    const res = await client.delete<RemovalResponse>(`/account/passkeys/${id}`)
     return res.data
 }
 
 export async function setPasswordLogin(enabled: boolean): Promise<void> {
-    await client.post('/account/passkeys/password-login', {enabled})
+    await client.post('/account/passkeys/password-login', {enabled} satisfies SwitchRequest)
 }
 
 export async function setAskWithPassword(enabled: boolean): Promise<void> {
-    await client.post('/account/passkeys/second-factor', {enabled})
+    await client.post('/account/passkeys/second-factor', {enabled} satisfies SwitchRequest)
 }
 
-// -- The offer --
-
 export async function offerState(): Promise<boolean> {
-    const res = await client.get<{offer: boolean}>('/account/passkeys/offer')
+    const res = await client.get<OfferResponse>('/account/passkeys/offer')
     return res.data.offer
 }
 
-export async function answerOffer(answer: 'LATER' | 'DECLINED'): Promise<void> {
-    await client.post('/account/passkeys/offer-answer', {answer})
+export type OfferAnswerName = components['schemas']['OfferAnswer']
+
+/** How a member answers the offer to set up a passkey: ask again later, or never again. */
+export const OfferAnswer = {
+    LATER: 'LATER',
+    DECLINED: 'DECLINED',
+} as const satisfies Record<OfferAnswerName, OfferAnswerName>
+
+export async function answerOffer(answer: OfferAnswerName): Promise<void> {
+    await client.post('/account/passkeys/offer-answer', {answer} satisfies OfferAnswerRequest)
 }
 
-// -- The device handshake --
-
-export interface DeviceRequest {
-    /** The eight-character code, ungrouped. Scanning the QR carries it; typing it is the fallback. */
-    code: string
-    pollSecret: string
-    /**
-     * The number this screen shows and the approving screen asks for.
-     *
-     * <p>It is the one part of the handshake the QR does not carry, which is what makes carrying
-     * the code in the QR safe: a picture forwarded to somebody does not bring this screen with it.
-     */
-    matchNumber: number
-    expiresAt: string
-    /** Base64 PNG of a QR code opening the approval screen with the code already in it. */
-    qrPng: string
-}
-
-export type DevicePollStatus = 'PENDING' | 'APPROVED' | 'EXPIRED' | 'UNKNOWN' | 'REJECTED'
-
-/**
- * What approving a device request buys. The handshake is the same either way; only what the poll
- * hands over at the end of it differs.
- */
-export const DeviceRequestPurpose = {
-    ENROL_PASSKEY: 'ENROL_PASSKEY',
-    SIGN_IN: 'SIGN_IN',
-    STEP_UP: 'STEP_UP',
-} as const
-
-export type DeviceRequestPurposeName = (typeof DeviceRequestPurpose)[keyof typeof DeviceRequestPurpose]
-
-export interface DevicePollResult {
-    status: DevicePollStatus
-    /** Present exactly once: on the poll that found the approval first. */
-    enrollToken: string | null
-    /** What that token buys. Absent until there is something to claim. */
-    purpose: DeviceRequestPurposeName | null
-}
-
-/** Somebody the approving reader may sign in: themselves, or a member in their care. */
-export interface ApprovalCandidate {
-    accountId: number
-    name: string
-}
-
-export interface DeviceLookup {
-    userAgent: string | null
-    country: string | null
-    createdAt: string
-    purpose: DeviceRequestPurposeName
-    /** What a step-up was demanded for, absent for the other purposes. */
-    stepUpCategory: string | null
-    /** Whose step-up it is, where that is somebody in the reader's care rather than the reader. */
-    stepUpSubject: string | null
-    /**
-     * The six numbers to offer, in the order to offer them. One is the number the asking screen
-     * shows, and which it is is never said here.
-     */
-    numberChoices: number[]
-    /** Whom this reader may sign in, for a sign-in. Themselves first. */
-    candidates: ApprovalCandidate[]
-}
-
-export async function deviceRequest(identifier: string): Promise<DeviceRequest> {
-    const res = await client.post<DeviceRequest>('/auth/passkey/device-request', {identifier})
+export async function deviceRequest(identifier: string): Promise<DeviceRequestResponse> {
+    const res = await client.post<DeviceRequestResponse>(
+        '/auth/passkey/device-request',
+        {identifier} satisfies DeviceIdentifierRequest,
+    )
     return res.data
 }
 
@@ -209,37 +152,39 @@ export async function deviceRequest(identifier: string): Promise<DeviceRequest> 
  * be answered by another. An address that belongs to nobody is answered exactly like one that does,
  * so the screen says nothing about who has an account here.
  */
-export async function signInRequest(identifier: string): Promise<DeviceRequest> {
-    const res = await client.post<DeviceRequest>('/auth/device/sign-in-request', {identifier})
+export async function signInRequest(identifier: string): Promise<DeviceRequestResponse> {
+    const res = await client.post<DeviceRequestResponse>(
+        '/auth/device/sign-in-request',
+        {identifier} satisfies DeviceIdentifierRequest,
+    )
     return res.data
 }
 
 /**
- * Spends the claim and keeps the session it bought, the way a password or passkey sign-in does.
- * Without persisting it here the device would be signed in on the server and know nothing about it.
+ * Spends the claim; the session it bought arrives as a cookie, the way a password or passkey
+ * sign-in's does.
  */
 export async function signInClaim(claimToken: string): Promise<LoginResponse> {
     if (isStorageDenied()) {
         throw new StorageDeniedError()
     }
-    const res = await client.post<LoginResponse>('/auth/device/sign-in-claim', {claimToken})
-    if (res.data.token) {
-        setItem('session_token', res.data.token)
-        if (res.data.expiresAt) {
-            setItem('session_expires_at', res.data.expiresAt)
-            scheduleTokenRefresh(res.data.expiresAt)
-        }
-    }
+    const res = await client.post<LoginResponse>('/auth/device/sign-in-claim', {claimToken} satisfies SignInClaimRequest)
     return res.data
 }
 
-export async function devicePoll(pollSecret: string): Promise<DevicePollResult> {
-    const res = await client.post<DevicePollResult>('/auth/passkey/device-request/poll', {pollSecret})
+export async function devicePoll(pollSecret: string): Promise<DevicePollResponse> {
+    const res = await client.post<DevicePollResponse>(
+        '/auth/passkey/device-request/poll',
+        {pollSecret} satisfies DevicePollRequest,
+    )
     return res.data
 }
 
-export async function deviceEnrollBegin(enrollToken: string): Promise<PasskeyCeremony> {
-    const res = await client.post<PasskeyCeremony>('/auth/passkey/enroll/begin', {enrollToken})
+export async function deviceEnrollBegin(enrollToken: string): Promise<CeremonyResponse> {
+    const res = await client.post<CeremonyResponse>(
+        '/auth/passkey/enroll/begin',
+        {enrollToken} satisfies DeviceEnrollBeginRequest,
+    )
     return res.data
 }
 
@@ -248,11 +193,17 @@ export async function deviceEnrollFinish(
     challengeToken: string,
     credentialJson: string,
 ): Promise<void> {
-    await client.post('/auth/passkey/enroll/finish', {enrollToken, challengeToken, credentialJson})
+    await client.post(
+        '/auth/passkey/enroll/finish',
+        {enrollToken, challengeToken, credentialJson} satisfies DeviceEnrollFinishRequest,
+    )
 }
 
-export async function deviceLookup(code: string): Promise<DeviceLookup> {
-    const res = await client.post<DeviceLookup>('/account/passkeys/device-lookup', {code})
+export async function deviceLookup(code: string): Promise<DeviceLookupResponse> {
+    const res = await client.post<DeviceLookupResponse>(
+        '/account/passkeys/device-lookup',
+        {code} satisfies DeviceCodeRequest,
+    )
     return res.data
 }
 
@@ -264,53 +215,45 @@ export async function deviceLookup(code: string): Promise<DeviceLookup> {
  * answers 409 and the code is spent, so there is no second guess on it.
  */
 export async function deviceApprove(code: string, pickedNumber: number, forAccountId?: number): Promise<void> {
-    await client.post('/account/passkeys/device-approve', {
-        code,
-        pickedNumber,
-        forAccountId: forAccountId ?? null,
-    })
+    await client.post(
+        '/account/passkeys/device-approve',
+        {code, pickedNumber, forAccountId} satisfies DeviceCodeRequest,
+    )
 }
-
-// -- Confirming a step-up on a device that is already signed in --
-
-export interface DeviceStepUp {
-    code: string
-    pollSecret: string
-    /** The number this screen shows and the confirming screen asks for. */
-    matchNumber: number
-    expiresAt: string
-}
-
-export type DeviceStepUpStatus = DevicePollStatus | 'CONFIRMED'
 
 /**
  * Raises the request the other device will confirm. The category is all that travels: it is what the
  * approval screen shows and the only thing a confirmation answers.
  */
-export async function stepUpDeviceBegin(category: string): Promise<DeviceStepUp> {
-    const res = await client.post<DeviceStepUp>('/auth/stepup/device/begin', {category})
+export async function stepUpDeviceBegin(category: string): Promise<DeviceStepUpBeginResponse> {
+    const res = await client.post<DeviceStepUpBeginResponse>(
+        '/auth/stepup/device/begin',
+        {category} satisfies DeviceStepUpBeginRequest,
+    )
     return res.data
 }
 
-export async function stepUpDevicePoll(pollSecret: string): Promise<{status: DeviceStepUpStatus}> {
-    const res = await client.post<{status: DeviceStepUpStatus}>('/auth/stepup/device/poll', {pollSecret})
+export async function stepUpDevicePoll(pollSecret: string): Promise<DeviceStepUpPollResponse> {
+    const res = await client.post<DeviceStepUpPollResponse>(
+        '/auth/stepup/device/poll',
+        {pollSecret} satisfies DeviceStepUpPollRequest,
+    )
     return res.data
 }
 
-// -- The token doors: a mail link, a QR in the room or a console line --
-
-export interface TokenEnrollLookup {
-    firstName: string
-    lastName: string
-}
-
-export async function tokenEnrollLookup(token: string): Promise<TokenEnrollLookup> {
-    const res = await client.post<TokenEnrollLookup>('/auth/passkey/token-enroll/lookup', {token})
+export async function tokenEnrollLookup(token: string): Promise<TokenEnrollLookupResponse> {
+    const res = await client.post<TokenEnrollLookupResponse>(
+        '/auth/passkey/token-enroll/lookup',
+        {token} satisfies TokenEnrollRequest,
+    )
     return res.data
 }
 
-export async function tokenEnrollBegin(token: string): Promise<PasskeyCeremony> {
-    const res = await client.post<PasskeyCeremony>('/auth/passkey/token-enroll/begin', {token})
+export async function tokenEnrollBegin(token: string): Promise<CeremonyResponse> {
+    const res = await client.post<CeremonyResponse>(
+        '/auth/passkey/token-enroll/begin',
+        {token} satisfies TokenEnrollRequest,
+    )
     return res.data
 }
 
@@ -319,20 +262,21 @@ export async function tokenEnrollFinish(
     challengeToken: string,
     credentialJson: string,
 ): Promise<void> {
-    await client.post('/auth/passkey/token-enroll/finish', {token, challengeToken, credentialJson})
+    await client.post(
+        '/auth/passkey/token-enroll/finish',
+        {token, challengeToken, credentialJson} satisfies TokenEnrollFinishRequest,
+    )
 }
 
-// -- The trial that follows a creation --
-
-export async function trialBegin(): Promise<PasskeyCeremony> {
-    const res = await client.post<PasskeyCeremony>('/account/passkeys/trial/begin')
+export async function trialBegin(): Promise<CeremonyResponse> {
+    const res = await client.post<CeremonyResponse>('/account/passkeys/trial/begin')
     return res.data
 }
 
 export async function trialFinish(challengeToken: string, credentialJson: string): Promise<TrialOutcome> {
-    const res = await client.post<{outcome: TrialOutcome}>('/account/passkeys/trial/finish', {
-        challengeToken,
-        credentialJson,
-    })
+    const res = await client.post<TrialResponse>(
+        '/account/passkeys/trial/finish',
+        {challengeToken, credentialJson} satisfies SignInFinishRequest,
+    )
     return res.data.outcome
 }

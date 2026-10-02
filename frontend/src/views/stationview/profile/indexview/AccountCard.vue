@@ -11,7 +11,7 @@ import UserAvatar from '@/components/avatar/UserAvatar.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 
 defineProps<{
-  accountUid?: string
+  accountUid?: string | null
   fullName: string
   accountEmail: string
 }>()

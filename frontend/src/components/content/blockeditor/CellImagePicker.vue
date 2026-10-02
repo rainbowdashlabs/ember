@@ -10,8 +10,8 @@ import IconButton from '@/components/button/IconButton.vue'
 import MediaBrowseButton from '@/components/media/MediaBrowseButton.vue'
 import DragList from '@/components/input/DragList.vue'
 import CellImagePickerMultiItem from './cellimagepicker/CellImagePickerMultiItem.vue'
-import {type GalleryItem} from '@/api/pageManage'
-import {mediaImageSrcset, mediaImageUrlAt, type StationFile} from '@/api/media'
+import type {GalleryItem, StationFile} from '@/api/generated/schema'
+import {mediaImageSrcset, mediaImageUrlAt} from '@/api/media'
 import {moveWithin} from '@/util/reorder'
 
 const itemsModel = defineModel<GalleryItem[] | null>('items')
@@ -85,7 +85,6 @@ function swapAt(i: number, payload: {file: StationFile}) {
 
 <template>
     <div class="space-y-3">
-        <!-- Multi-mode: vertical list of items with reorder + alt + subtext -->
         <div
             v-if="multi && items.length > 0"
             class="space-y-2 pr-1"
@@ -109,7 +108,6 @@ function swapAt(i: number, payload: {file: StationFile}) {
             </DragList>
         </div>
 
-        <!-- Single-mode: one image preview -->
         <div v-if="!multi && items.length > 0" class="flex items-start gap-2">
             <img :src="mediaImageUrlAt(stationUid, items[0]?.imageHash ?? '', 128)"
                  :srcset="mediaImageSrcset(stationUid, items[0]?.imageHash ?? '', 128)" alt=""

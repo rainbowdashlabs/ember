@@ -6,6 +6,9 @@
 package dev.chojo.ember.feature.system.service;
 
 import dev.chojo.ember.feature.system.repository.ProblemReportRepository;
+import dev.chojo.ember.lifecycle.Schedule;
+import dev.chojo.ember.lifecycle.ScheduledTask;
+import dev.chojo.ember.lifecycle.TaskSource;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -13,8 +16,7 @@ import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.util.List;
 
 /**
  * Lets go of problem reports a month after somebody marked them dealt with.
@@ -28,10 +30,10 @@ import java.util.concurrent.TimeUnit;
  * it was dealt with. What was never dealt with is never swept: it is still somebody's to answer.
  */
 @Singleton
-public class ProblemReportSweeper {
+public class ProblemReportSweeper implements TaskSource {
     private static final Logger log = LoggerFactory.getLogger(ProblemReportSweeper.class);
     private static final Duration KEEP_AFTER_ACKNOWLEDGED = Duration.ofDays(30);
-    private static final int SCAN_INTERVAL_HOURS = 6;
+    private static final Duration SCAN_INTERVAL = Duration.ofHours(6);
 
     private final ProblemReportRepository repository;
     private final ProblemReportScreenshotService screenshots;
@@ -40,12 +42,6 @@ public class ProblemReportSweeper {
     public ProblemReportSweeper(ProblemReportRepository repository, ProblemReportScreenshotService screenshots) {
         this.repository = repository;
         this.screenshots = screenshots;
-        var scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
-            var thread = new Thread(r, "problem-report-sweeper");
-            thread.setDaemon(true);
-            return thread;
-        });
-        scheduler.scheduleWithFixedDelay(this::sweep, 1, SCAN_INTERVAL_HOURS, TimeUnit.HOURS);
     }
 
     /**
@@ -67,5 +63,11 @@ public class ProblemReportSweeper {
         } catch (Exception e) {
             log.warn("Sweeping problem reports failed", e);
         }
+    }
+
+    @Override
+    public List<ScheduledTask> scheduledTasks() {
+        return List.of(new ScheduledTask(
+                "problem-report-sweep", Schedule.fixedDelay(Duration.ofHours(1), SCAN_INTERVAL), this::sweep));
     }
 }

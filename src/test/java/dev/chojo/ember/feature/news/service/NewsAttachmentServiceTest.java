@@ -6,6 +6,8 @@
 package dev.chojo.ember.feature.news.service;
 
 import dev.chojo.ember.api.MemberIdentity;
+import dev.chojo.ember.api.refusal.NewsRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.media.MediaTestSupport;
@@ -16,7 +18,6 @@ import dev.chojo.ember.feature.news.entity.News;
 import dev.chojo.ember.feature.news.repository.NewsAttachmentRepository;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -37,7 +38,7 @@ class NewsAttachmentServiceTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         media = MediaTestSupport.library(
-                stationRepo, contentContainerRepo, mediaFileRepo, mediaMetaRepo, storageUsageRepo);
+                localStorage(), stationRepo, contentContainerRepo, mediaFileRepo, mediaMetaRepo, storageUsageRepo);
         service = new NewsAttachmentService(new NewsAttachmentRepository(), media, stationRepo, new Api());
         station = stationRepo.create("NewsAttachmentStation");
         otherStation = stationRepo.create("NewsAttachmentOtherStation");
@@ -100,8 +101,12 @@ class NewsAttachmentServiceTest extends RepositoryTestBase {
     void aFileFromAnotherStationIsRefused() throws Exception {
         var foreign = upload(otherStation.id(), "foreign");
         try {
-            assertThrows(BadRequestResponse.class, () -> service.attach(entry.id(), station.id(), foreign.id(), null));
-            assertThrows(BadRequestResponse.class, () -> service.attach(entry.id(), station.id(), 99999, null));
+            var elsewhere = assertThrows(
+                    RefusalResponse.class, () -> service.attach(entry.id(), station.id(), foreign.id(), null));
+            var missing =
+                    assertThrows(RefusalResponse.class, () -> service.attach(entry.id(), station.id(), 99999, null));
+            assertEquals(NewsRefusal.NEWS_ATTACHMENT_FILE_ELSEWHERE, elsewhere.refusal());
+            assertEquals(NewsRefusal.NEWS_ATTACHMENT_FILE_NOT_HERE, missing.refusal());
         } finally {
             media.deleteFile(foreign.id());
         }
@@ -135,7 +140,7 @@ class NewsAttachmentServiceTest extends RepositoryTestBase {
         var attachment = service.attach(entry.id(), station.id(), file.id(), null);
         try {
             assertThrows(
-                    BadRequestResponse.class,
+                    RefusalResponse.class,
                     () -> media.deleteFile(file.id()),
                     "the entry hands this file out; the delete has to say so rather than break it");
             assertTrue(media.findFile(file.id()).isPresent());

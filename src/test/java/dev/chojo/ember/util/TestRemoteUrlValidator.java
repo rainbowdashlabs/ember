@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.util;
 
+import dev.chojo.ember.feature.federation.service.OutboundHttp;
 import dev.chojo.ember.feature.federation.service.RemoteUrlValidator;
 
 /**
@@ -21,6 +22,16 @@ public final class TestRemoteUrlValidator {
             public boolean isAllowed(String url) {
                 return true;
             }
+
+            @Override
+            public boolean permitsPrivateHosts() {
+                return true;
+            }
         };
+    }
+
+    /** An outbound gateway that reaches loopback test servers, as a development instance does. */
+    public static OutboundHttp permissiveOutbound() {
+        return new OutboundHttp(permissive());
     }
 }

@@ -144,8 +144,6 @@ export function matchesDateFilter(
     return true
 }
 
-// -- The year/month/day tree the filter modal renders --
-
 export interface DateTreeMonth {
     /** The month as its own token, e.g. {@code 2026-03}. */
     month: string

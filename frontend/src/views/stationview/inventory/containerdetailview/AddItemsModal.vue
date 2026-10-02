@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {computed, onMounted, ref} from 'vue'
+import {computed, nextTick, onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
@@ -21,9 +21,9 @@ import {normaliseScannedPayload} from '@/components/scanner/useBarcodeScanner'
 import {containerPathFor} from '@/util/containerPath'
 import {inventory, inventoryContainers} from '@/api'
 import {useAsyncAction} from '@/composables/useAsyncAction'
-import type {InventoryItem, InventorySize} from '@/api/inventory'
-import type {InventoryContainer} from '@/api/inventoryContainers'
-import {describeFailure, type Failure} from '@/util/failure'
+import type {InventoryContainer, InventoryItem, InventorySize} from '@/api/generated/schema'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {describeFailure} from '@/util/failure'
 
 const props = defineProps<{
   targetContainerId: number
@@ -38,8 +38,6 @@ const emit = defineEmits<{
 const {t} = useI18n()
 
 const open = ref(true)
-const loading = ref(true)
-const failure = ref<Failure | null>(null)
 
 /** What the scanner turned up that the reader has to sort out, which is no fault of Ember's. */
 const scanNote = ref('')
@@ -90,18 +88,11 @@ function toggle(item: InventoryItem) {
   else selectedIds.value.add(item.id)
 }
 
-async function loadItems() {
-  loading.value = true
-  try {
-    const [allItems, allSizes] = await Promise.all([inventory.listAllItems(), inventory.listAllSizes()])
-    items.value = allItems
-    sizes.value = allSizes
-  } catch (e) {
-    failure.value = describeFailure(e, t)
-  } finally {
-    loading.value = false
-  }
-}
+const {loading, failure} = useAsyncLoader(async () => {
+  const [allItems, allSizes] = await Promise.all([inventory.listAllItems(), inventory.listAllSizes()])
+  items.value = allItems
+  sizes.value = allSizes
+})
 
 function onScan(value: string) {
   const term = normaliseScannedPayload(value).trim()
@@ -148,11 +139,16 @@ function onClose() {
   emit('close')
 }
 
-onMounted(loadItems)
+const searchField = ref<InstanceType<typeof SearchInput> | null>(null)
+
+/** The dialog opens with the one thing a reader does first, searching, already in hand. */
+onMounted(() => {
+  nextTick(() => searchField.value?.focus())
+})
 </script>
 
 <template>
-  <Modal v-model="open" size="lg" mobile-full @update:modelValue="(v) => { if (!v) onClose() }">
+  <Modal v-model="open" size="lg" mobile-full @update:model-value="(v) => { if (!v) onClose() }">
     <SubHeader class="mb-2">{{ t('inventory.storage.addItems.title') }}</SubHeader>
     <p class="text-xs text-(--text-muted) mb-3">{{ t('inventory.storage.addItems.intro') }}</p>
 
@@ -160,7 +156,7 @@ onMounted(loadItems)
     <FailureAlert :message="scanNote" expected class="mb-3"/>
 
     <div class="flex items-center gap-2 mb-2">
-      <SearchInput v-model="search" :placeholder="t('inventory.storage.addItems.searchPlaceholder')" class="flex-1" autofocus />
+      <SearchInput ref="searchField" v-model="search" :placeholder="t('inventory.storage.addItems.searchPlaceholder')" class="flex-1" />
       <ScanButton mode="continuous" :disabled="submitting" @decoded="onScan" />
     </div>
 
@@ -181,8 +177,13 @@ onMounted(loadItems)
             'py-2 px-2 flex items-center gap-3 text-sm cursor-pointer rounded-theme',
             selectedIds.has(i.id) ? 'bg-primary/10' : 'hover:bg-(--bg-accent)',
           ]"
+          role="checkbox"
+          :aria-checked="selectedIds.has(i.id)"
+          tabindex="0"
           data-testid="container-add-item"
           @click="toggle(i)"
+          @keydown.space.prevent="toggle(i)"
+          @keydown.enter.prevent="toggle(i)"
       >
         <font-awesome-icon
             :icon="['fas', selectedIds.has(i.id) ? 'square-check' : 'square']"

@@ -9,7 +9,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import TableHeaderCell from '@/components/typography/TableHeaderCell.vue'
-import type {FeedUserAgentStat} from '@/api/feedMetrics'
+import type {FeedUserAgentStat} from '@/api/generated/schema'
 import {formatDateTime} from '@/util/format'
 
 defineProps<{

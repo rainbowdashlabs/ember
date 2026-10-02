@@ -13,10 +13,14 @@ import dev.chojo.ember.feature.protocol.entity.TestProtocolRunCheck;
 import dev.chojo.ember.feature.protocol.entity.TestProtocolSection;
 import dev.chojo.ember.feature.protocol.repository.TestProtocolRepository;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.station.service.StationLogoService;
+import dev.chojo.ember.util.DocumentNumber;
 import dev.chojo.ember.util.TypstCompiler;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,34 +28,48 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+/**
+ * Prints a test protocol run: one sheet per member with every item ticked or not, and one
+ * evaluation table across all members. Both are templates in the station's document language,
+ * fed with the run as data, so nothing a section, an item or a name says is read as markup.
+ *
+ * <p>A member whose name cannot be resolved goes to the template as {@code null}, and the
+ * template prints its own word for "unknown".
+ */
 @Singleton
 public class TestProtocolPdfService {
     private static final Logger log = LoggerFactory.getLogger(TestProtocolPdfService.class);
+    private static final String MEMBER_TEMPLATE = "protocol-member.typ";
+    private static final String EVALUATION_TEMPLATE = "protocol-evaluation.typ";
 
     private final TestProtocolRepository repository;
     private final StationMemberRepository memberRepository;
     private final AccountRepository accountRepository;
     private final StationRepository stationRepository;
+    private final StationLogoService logoService;
 
     @Inject
     public TestProtocolPdfService(
             TestProtocolRepository repository,
             StationMemberRepository memberRepository,
             AccountRepository accountRepository,
-            StationRepository stationRepository) {
+            StationRepository stationRepository,
+            StationLogoService logoService) {
         this.repository = repository;
         this.memberRepository = memberRepository;
         this.accountRepository = accountRepository;
         this.stationRepository = stationRepository;
+        this.logoService = logoService;
     }
-
-    // ── Per-member PDF ──────────────────────────────────────────
 
     public byte[] exportRunMember(int runId, int memberId, String protocolName, LocalDate testDate) {
         var rm = repository
@@ -71,72 +89,36 @@ public class TestProtocolPdfService {
         var run = repository.findRunById(runId).orElseThrow();
         var sections = repository.findSections(run.protocolId());
         var allItems = repository.findAllItemsByProtocol(run.protocolId());
-        var itemsBySectionId = allItems.stream().collect(Collectors.groupingBy(TestProtocolItem::sectionId));
+        var sheet = new MemberSheet(
+                sections,
+                allItems.stream().collect(Collectors.groupingBy(TestProtocolItem::sectionId)),
+                checkedItems,
+                itemTesterMap,
+                localeOf(run.stationId()));
 
-        String memberName = resolveMemberName(memberId);
-        String stationName =
-                stationRepository.findById(run.stationId()).map(Station::name).orElse("");
-
-        var logo = loadLogo(run.stationId());
-        Map<String, byte[]> resources = logo != null ? Map.of(logo.filename(), logo.data()) : Map.of();
-        var sb = new StringBuilder();
-        sb.append("""
-                #set page(paper: "a4", flipped: true, margin: 1.5cm, columns: 2)
-                #set text(font: "Liberation Sans", size: 9pt, lang: "de")
-
-                """);
-
-        // Header
-        sb.append("#align(center)[\n");
-        if (logo != null) {
-            sb.append("  #grid(columns: (auto, 1fr), gutter: 0.5em, align: (center, left),\n");
-            sb.append("    image(\"").append(logo.filename()).append("\", width: 1.2cm),\n");
-            sb.append("    align(horizon)[#text(size: 10pt, weight: \"bold\")[")
-                    .append(esc(stationName))
-                    .append("]]\n");
-            sb.append("  )\n  #v(0.3em)\n");
-        }
-        sb.append("  #text(size: 14pt, weight: \"bold\")[")
-                .append(esc(protocolName))
-                .append("]\n");
-        sb.append("  #v(0.3em)\n");
-        sb.append("  Name: *")
-                .append(esc(memberName))
-                .append("* #h(2em) Datum: ")
-                .append(testDate)
-                .append("\n");
-        sb.append("  #v(0.5em)\n]\n\n");
-
-        var topSections = sections.stream()
-                .filter(s -> s.parentId() == null)
-                .sorted(Comparator.comparingInt(TestProtocolSection::position))
-                .toList();
-
-        double totalScore = 0, totalMax = 0;
-        for (var section : topSections) {
-            var r = renderSection(sb, section, sections, itemsBySectionId, checkedItems, itemTesterMap, 0);
-            totalScore += r.score;
-            totalMax += r.max;
-            sb.append("\n");
+        var sheetSections = new ArrayList<SheetSection>();
+        double totalScore = 0;
+        double totalMax = 0;
+        for (var section : sheet.childrenOf(null)) {
+            var rendered = sheet.section(section, true);
+            totalScore += rendered.score();
+            totalMax += rendered.max();
+            sheetSections.add(rendered.section());
         }
 
-        sb.append("#v(0.5em)\n#line(length: 100%)\n");
-        sb.append("#text(size: 11pt, weight: \"bold\")[Gesamt: ")
-                .append(fmt(totalScore))
-                .append(" \\/ ")
-                .append(fmt(totalMax))
-                .append(" Punkte]\n\n");
-        sb.append("#v(1.5em)\nUnterschrift: #box(width: 6cm, stroke: (bottom: 0.5pt))[]\n");
+        var data = header(run.stationId(), protocolName, testDate);
+        data.put("memberName", resolveMemberName(memberId));
+        data.put("sections", sheetSections);
+        data.put("totalScore", sheet.number(totalScore));
+        data.put("totalMax", sheet.number(totalMax));
 
         try {
-            return TypstCompiler.compile(sb.toString(), resources);
+            return render(run.stationId(), MEMBER_TEMPLATE, data);
         } catch (Exception e) {
             log.warn("PDF export failed for run {} member {}", runId, memberId, e);
             throw new RuntimeException("PDF export failed", e);
         }
     }
-
-    // ── Evaluation table PDF ────────────────────────────────────
 
     public byte[] exportEvaluationTable(int runId, String protocolName, LocalDate testDate) {
         var run = repository.findRunById(runId).orElseThrow();
@@ -144,9 +126,11 @@ public class TestProtocolPdfService {
         var allItems = repository.findAllItemsByProtocol(run.protocolId());
         var members = repository.findRunMembers(runId);
         var itemsBySectionId = allItems.stream().collect(Collectors.groupingBy(TestProtocolItem::sectionId));
+        Locale locale = localeOf(run.stationId());
 
-        record MS(int memberId, String name, Map<Integer, Double> scores, double total) {}
+        record MS(Map<Integer, Double> scores, double total) {}
         var data = new ArrayList<MS>();
+        var memberNames = new ArrayList<String>();
         for (var rm : members) {
             var checks = repository.findChecks(rm.id());
             var checkedIds = checks.stream()
@@ -162,7 +146,8 @@ public class TestProtocolPdfService {
                                 .mapToDouble(TestProtocolItem::points)
                                 .sum());
             }
-            data.add(new MS(rm.memberId(), resolveMemberName(rm.memberId()), sc, rm.totalScore()));
+            data.add(new MS(sc, rm.totalScore()));
+            memberNames.add(resolveMemberName(rm.memberId()));
         }
         var allScores = data.stream().map(MS::scores).toList();
         var topSections = sections.stream()
@@ -170,193 +155,69 @@ public class TestProtocolPdfService {
                 .sorted(Comparator.comparingInt(TestProtocolSection::position))
                 .toList();
 
-        String stationName =
-                stationRepository.findById(run.stationId()).map(Station::name).orElse("");
-        var logo = loadLogo(run.stationId());
-        Map<String, byte[]> resources = logo != null ? Map.of(logo.filename(), logo.data()) : Map.of();
-        var sb = new StringBuilder();
-        sb.append("""
-                #set page(paper: "a4", flipped: true, margin: 1cm)
-                #set text(font: "Liberation Sans", size: 7pt, lang: "de")
-                #let score-fill(score, max) = {
-                  if max == 0 { white } else {
-                    let ratio = score / max
-                    if ratio >= 0.9 { rgb("#dcfce7") }
-                    else if ratio >= 0.6 { rgb("#fef9c3") }
-                    else if ratio >= 0.3 { rgb("#ffedd5") }
-                    else { rgb("#fee2e2") }
-                  }
-                }
-
-                """);
-
-        // Header
-        sb.append("#align(center)[\n");
-        if (logo != null) {
-            sb.append("  #box(image(\"")
-                    .append(logo.filename())
-                    .append("\", width: 1cm)) #h(0.5em) #text(size: 9pt, weight: \"bold\")[")
-                    .append(esc(stationName))
-                    .append("]\n  #v(0.3em)\n");
-        }
-        sb.append("  #text(size: 11pt, weight: \"bold\")[")
-                .append(esc(protocolName))
-                .append(" - Auswertung]\n");
-        sb.append("  #v(0.2em)\n  #text(size: 8pt)[Datum: ").append(testDate).append("]\n]\n#v(0.3em)\n\n");
-
-        // Table
-        sb.append("#table(\n  columns: (auto, 3em, 3em");
-        sb.repeat(", 1fr", data.size());
-        sb.append("),\n  align: (left, center, center");
-        sb.repeat(", center", data.size());
-        sb.append("),\n  stroke: 0.3pt + luma(180),\n");
-
-        // Header row
-        sb.append("  table.header([*Thema*], [*Max*], [*Ø*]");
-        for (var m : data) sb.append(", [*").append(esc(m.name())).append("*]");
-        sb.append("),\n");
-
+        var rows = new ArrayList<EvaluationRow>();
         for (var sec : topSections) {
-            // Subsection detail rows first
             for (var sub : sections.stream()
-                    .filter(s -> s.parentId() != null && s.parentId() == sec.id())
+                    .filter(s -> Objects.equals(s.parentId(), sec.id()))
                     .sorted(Comparator.comparingInt(TestProtocolSection::position))
                     .toList()) {
                 double subMax = secMax(sub, sections, itemsBySectionId);
-                double subAvg = avg(allScores, sub, sections);
-                sb.append("  [#h(0.5em)#text(size: 6.5pt)[")
-                        .append(esc(sub.name()))
-                        .append("]],\n");
-                sb.append("  [#text(size: 6.5pt)[").append(fmt(subMax)).append("]],\n");
-                colorCell(sb, subAvg, subMax);
-                for (var m : data) colorCell(sb, secScore(m.scores(), sub, sections), subMax);
+                var cells = new ArrayList<ScoreCell>();
+                cells.add(cell(avg(allScores, sub, sections), subMax, locale));
+                for (var m : data) cells.add(cell(secScore(m.scores(), sub, sections), subMax, locale));
+                rows.add(new EvaluationRow(RowKind.DETAIL, sub.name(), DocumentNumber.of(subMax, locale), cells));
             }
-            // Top-level section sum row (bold, gray, acts as sum separator)
             double sMax = secMax(sec, sections, itemsBySectionId);
-            double sAvg = avg(allScores, sec, sections);
-            sb.append("  table.cell(fill: luma(235))[*").append(esc(sec.name())).append("*],\n");
-            sb.append("  table.cell(fill: luma(235))[*").append(fmt(sMax)).append("*],\n");
-            boldColorCell(sb, sAvg, sMax);
-            for (var m : data) boldColorCell(sb, secScore(m.scores(), sec, sections), sMax);
-            sb.append("  table.hline(stroke: 0.8pt),\n");
+            var cells = new ArrayList<ScoreCell>();
+            cells.add(cell(avg(allScores, sec, sections), sMax, locale));
+            for (var m : data) cells.add(cell(secScore(m.scores(), sec, sections), sMax, locale));
+            rows.add(new EvaluationRow(RowKind.SECTION, sec.name(), DocumentNumber.of(sMax, locale), cells));
         }
 
         double tMax = topSections.stream()
                 .mapToDouble(s -> secMax(s, sections, itemsBySectionId))
                 .sum();
         double tAvg = data.isEmpty() ? 0 : data.stream().mapToDouble(MS::total).sum() / data.size();
-        sb.append("  table.cell(fill: luma(210))[*Gesamt*],\n");
-        sb.append("  table.cell(fill: luma(210))[*").append(fmt(tMax)).append("*],\n");
-        boldColorCell(sb, tAvg, tMax);
-        for (var m : data) boldColorCell(sb, m.total(), tMax);
-        sb.append(")\n");
+        var totalCells = new ArrayList<ScoreCell>();
+        totalCells.add(cell(tAvg, tMax, locale));
+        for (var m : data) totalCells.add(cell(m.total(), tMax, locale));
+        rows.add(new EvaluationRow(RowKind.TOTAL, null, DocumentNumber.of(tMax, locale), totalCells));
+
+        var document = header(run.stationId(), protocolName, testDate);
+        document.put("members", memberNames);
+        document.put("rows", rows);
 
         try {
-            return TypstCompiler.compile(sb.toString(), resources);
+            return render(run.stationId(), EVALUATION_TEMPLATE, document);
         } catch (Exception e) {
             log.warn("Evaluation PDF export failed for run {}", runId, e);
             throw new RuntimeException("Evaluation PDF export failed", e);
         }
     }
 
-    // ── Helpers ─────────────────────────────────────────────────
+    private Map<String, Object> header(int stationId, String protocolName, LocalDate testDate) {
+        var data = new LinkedHashMap<String, Object>();
+        data.put(
+                "stationName",
+                stationRepository.findById(stationId).map(Station::name).orElse(""));
+        data.put("protocolName", protocolName);
+        data.put("testDate", testDate == null ? "" : testDate.toString());
+        data.put("hasLogo", false);
+        return data;
+    }
 
-    private SectionResult renderSection(
-            StringBuilder sb,
-            TestProtocolSection section,
-            List<TestProtocolSection> allSections,
-            Map<Integer, List<TestProtocolItem>> itemsBySectionId,
-            Set<Integer> checkedItems,
-            Map<Integer, Integer> itemTesterMap,
-            int depth) {
+    private byte[] render(int stationId, String template, Map<String, Object> data) throws Exception {
+        String language =
+                StationFormat.languageOf(stationRepository.findById(stationId).orElse(null));
+        return TypstCompiler.compileTemplate(data, language + "/" + template, loadLogo(stationId));
+    }
 
-        double sScore = 0, sMax = 0;
-        var sectionItems = itemsBySectionId.getOrDefault(section.id(), List.of()).stream()
-                .sorted(Comparator.comparingInt(TestProtocolItem::position))
-                .toList();
-        for (var item : sectionItems) {
-            sMax += item.points();
-            if (checkedItems.contains(item.id())) sScore += item.points();
-        }
-        var children = allSections.stream()
-                .filter(s -> s.parentId() != null && s.parentId() == section.id())
-                .sorted(Comparator.comparingInt(TestProtocolSection::position))
-                .toList();
+    private Locale localeOf(int stationId) {
+        return StationFormat.localeOf(stationRepository.findById(stationId).orElse(null));
+    }
 
-        // Collect testers
-        var testerIds = new LinkedHashSet<Integer>();
-        for (var item : sectionItems)
-            if (itemTesterMap.containsKey(item.id())) testerIds.add(itemTesterMap.get(item.id()));
-        for (var child : children)
-            for (var item : itemsBySectionId.getOrDefault(child.id(), List.of()))
-                if (itemTesterMap.containsKey(item.id())) testerIds.add(itemTesterMap.get(item.id()));
-
-        // Calculate child scores first so we have the total for the header
-        double cScore = 0, cMax = 0;
-        // We'll render children after the header, but need totals now
-        for (var child : children) {
-            double cm = 0;
-            for (var ci : itemsBySectionId.getOrDefault(child.id(), List.of())) cm += ci.points();
-            cMax += cm;
-            // child score needs checked items
-            for (var ci : itemsBySectionId.getOrDefault(child.id(), List.of()))
-                if (checkedItems.contains(ci.id())) cScore += ci.points();
-        }
-        double totalScore = sScore + cScore;
-        double totalMax = sMax + cMax;
-
-        // Section header as table: Name | Prüfer (top-level only) | Score
-        if (depth == 0) {
-            String testers = testerIds.stream().map(this::resolveMemberName).collect(Collectors.joining(", "));
-            sb.append("#v(0.4em)\n");
-            sb.append("#line(length: 100%, stroke: 0.5pt)\n");
-            sb.append("#table(columns: (1fr, auto, auto), stroke: none, inset: 3pt,\n");
-            sb.append("  [#text(size: 11pt, weight: \"bold\")[")
-                    .append(esc(section.name()))
-                    .append("]],\n");
-            sb.append("  [#text(size: 8pt)[Prüfer: ")
-                    .append(esc(testers.isEmpty() ? "-" : testers))
-                    .append("]],\n");
-            sb.append("  align(right)[#text(weight: \"bold\")[")
-                    .append(fmt(totalScore))
-                    .append(" \\/ ")
-                    .append(fmt(totalMax))
-                    .append("P]]\n");
-            sb.append(")\n");
-        } else {
-            sb.append("#v(0.2em)\n");
-            sb.append("#table(columns: (1fr, auto), stroke: none, inset: 2pt,\n");
-            sb.append("  [#text(size: 9pt, weight: \"bold\")[")
-                    .append(esc(section.name()))
-                    .append("]],\n");
-            sb.append("  align(right)[")
-                    .append(fmt(totalScore))
-                    .append(" \\/ ")
-                    .append(fmt(totalMax))
-                    .append("P]\n");
-            sb.append(")\n");
-        }
-
-        // Items
-        for (var item : sectionItems) {
-            boolean checked = checkedItems.contains(item.id());
-            sb.append(
-                    checked
-                            ? "#box(stroke: 0.5pt, width: 10pt, height: 10pt, align(center + horizon)[#text(size: 7pt)[✓]])"
-                            : "#box(stroke: 0.5pt, width: 10pt, height: 10pt)[]");
-            sb.append(" ")
-                    .append(esc(item.label()))
-                    .append(" #h(1fr) ")
-                    .append(fmt(item.points()))
-                    .append("P\n\n");
-        }
-
-        // Render children (actual recursive call for their content)
-        for (var child : children) {
-            renderSection(sb, child, allSections, itemsBySectionId, checkedItems, itemTesterMap, depth + 1);
-        }
-
-        return new SectionResult(totalScore, totalMax);
+    private static ScoreCell cell(double score, double max, Locale locale) {
+        return new ScoreCell(score, max, DocumentNumber.of(score, locale));
     }
 
     private double secMax(
@@ -365,7 +226,7 @@ public class TestProtocolPdfService {
                 .mapToDouble(TestProtocolItem::points)
                 .sum();
         double c = all.stream()
-                .filter(s -> s.parentId() != null && s.parentId() == sec.id())
+                .filter(s -> Objects.equals(s.parentId(), sec.id()))
                 .mapToDouble(s -> secMax(s, all, items))
                 .sum();
         return d + c;
@@ -374,7 +235,7 @@ public class TestProtocolPdfService {
     private double secScore(Map<Integer, Double> scores, TestProtocolSection sec, List<TestProtocolSection> all) {
         double d = scores.getOrDefault(sec.id(), 0.0);
         double c = all.stream()
-                .filter(s -> s.parentId() != null && s.parentId() == sec.id())
+                .filter(s -> Objects.equals(s.parentId(), sec.id()))
                 .mapToDouble(s -> scores.getOrDefault(s.id(), 0.0))
                 .sum();
         return d + c;
@@ -385,71 +246,179 @@ public class TestProtocolPdfService {
         return allScores.stream().mapToDouble(s -> secScore(s, sec, all)).sum() / allScores.size();
     }
 
-    private void colorCell(StringBuilder sb, double score, double max) {
-        sb.append("  table.cell(fill: score-fill(")
-                .append(fmt(score))
-                .append(", ")
-                .append(fmt(max))
-                .append("))[")
-                .append(fmt(score))
-                .append("],\n");
-    }
-
-    private void boldColorCell(StringBuilder sb, double score, double max) {
-        sb.append("  table.cell(fill: score-fill(")
-                .append(fmt(score))
-                .append(", ")
-                .append(fmt(max))
-                .append("))[*")
-                .append(fmt(score))
-                .append("*],\n");
-    }
-
-    private String fmt(double val) {
-        if (val == (long) val) return String.valueOf((long) val);
-        return String.format("%.1f", val);
-    }
-
-    private String esc(String text) {
-        return text.replace("\\", "\\\\")
-                .replace("#", "\\#")
-                .replace("*", "\\*")
-                .replace("_", "\\_")
-                .replace("[", "\\[")
-                .replace("]", "\\]");
-    }
-
-    private LogoResource loadLogo(int stationId) {
-        var stationLogo = stationRepository.findLogo(stationId);
+    /**
+     * The station's logo, or the application's own when the station has none, or {@code null}
+     * when not even that can be read.
+     */
+    private TypstCompiler.@Nullable StationLogo loadLogo(int stationId) {
+        var stationLogo = logoService.original(stationId);
         if (stationLogo.isPresent()) {
             var logo = stationLogo.get();
-            return new LogoResource("logo." + TypstCompiler.logoExtension(logo.contentType()), logo.data());
+            return new TypstCompiler.StationLogo(logo.data(), logo.contentType());
         }
         try (var stream = getClass().getClassLoader().getResourceAsStream("logo/IconBG.png")) {
-            if (stream != null) return new LogoResource("logo.png", stream.readAllBytes());
+            if (stream != null) return new TypstCompiler.StationLogo(stream.readAllBytes(), "image/png");
         } catch (Exception e) {
             log.warn("Fallback logo could not be read, the protocol is built without one", e);
         }
         return null;
     }
 
+    /** The member's display name, else the official name of their account, else {@code null}. */
     private String resolveMemberName(int memberId) {
         return memberRepository
                 .findById(memberId)
                 .map(m -> {
                     if (m.displayName() != null && !m.displayName().isBlank()) return m.displayName();
-                    if (m.accountId() != null) {
-                        return accountRepository
-                                .findById(m.accountId())
-                                .map(a -> NameParts.of(a).official())
-                                .orElse("Unbekannt");
-                    }
-                    return "Unbekannt";
+                    Integer accountId = m.accountId();
+                    if (accountId == null) return null;
+                    return accountRepository
+                            .findById(accountId)
+                            .map(a -> NameParts.of(a).official())
+                            .orElse(null);
                 })
-                .orElse("Unbekannt");
+                .orElse(null);
     }
 
-    private record SectionResult(double score, double max) {}
+    /**
+     * One member's run, turned into the nested sections the member sheet prints.
+     *
+     * <p>A section's header total counts its own items and those of its direct children, which is
+     * what the sheet has always shown.
+     */
+    private final class MemberSheet {
+        private final List<TestProtocolSection> sections;
+        private final Map<Integer, List<TestProtocolItem>> itemsBySectionId;
+        private final Set<Integer> checkedItems;
+        private final Map<Integer, Integer> itemTesterMap;
+        private final Locale locale;
 
-    private record LogoResource(String filename, byte[] data) {}
+        MemberSheet(
+                List<TestProtocolSection> sections,
+                Map<Integer, List<TestProtocolItem>> itemsBySectionId,
+                Set<Integer> checkedItems,
+                Map<Integer, Integer> itemTesterMap,
+                Locale locale) {
+            this.sections = sections;
+            this.itemsBySectionId = itemsBySectionId;
+            this.checkedItems = checkedItems;
+            this.itemTesterMap = itemTesterMap;
+            this.locale = locale;
+        }
+
+        String number(double value) {
+            return DocumentNumber.of(value, locale);
+        }
+
+        List<TestProtocolSection> childrenOf(@Nullable Integer parentId) {
+            return sections.stream()
+                    .filter(s -> parentId == null ? s.parentId() == null : parentId.equals(s.parentId()))
+                    .sorted(Comparator.comparingInt(TestProtocolSection::position))
+                    .toList();
+        }
+
+        private List<TestProtocolItem> itemsOf(TestProtocolSection section) {
+            return itemsBySectionId.getOrDefault(section.id(), List.of());
+        }
+
+        /**
+         * Builds a section with its items and children.
+         *
+         * @param topLevel whether it is a top-level section, the only kind that names its testers
+         */
+        RenderedSection section(TestProtocolSection section, boolean topLevel) {
+            var sectionItems = itemsOf(section).stream()
+                    .sorted(Comparator.comparingInt(TestProtocolItem::position))
+                    .toList();
+            var children = childrenOf(section.id());
+
+            double score = 0;
+            double max = 0;
+            var testerIds = new LinkedHashSet<Integer>();
+            var items = new ArrayList<SheetItem>();
+            for (var item : sectionItems) {
+                boolean checked = checkedItems.contains(item.id());
+                max += item.points();
+                if (checked) score += item.points();
+                if (itemTesterMap.containsKey(item.id())) testerIds.add(itemTesterMap.get(item.id()));
+                items.add(new SheetItem(item.label(), number(item.points()), checked));
+            }
+            for (var child : children) {
+                for (var item : itemsOf(child)) {
+                    max += item.points();
+                    if (checkedItems.contains(item.id())) score += item.points();
+                    if (itemTesterMap.containsKey(item.id())) testerIds.add(itemTesterMap.get(item.id()));
+                }
+            }
+
+            List<String> testers = topLevel
+                    ? testerIds.stream()
+                            .map(TestProtocolPdfService.this::resolveMemberName)
+                            .toList()
+                    : List.of();
+            var childSections = children.stream()
+                    .map(child -> section(child, false).section())
+                    .toList();
+            return new RenderedSection(
+                    new SheetSection(section.name(), testers, number(score), number(max), items, childSections),
+                    score,
+                    max);
+        }
+    }
+
+    private record RenderedSection(SheetSection section, double score, double max) {}
+
+    /**
+     * A section of the member sheet.
+     *
+     * @param name the section's name
+     * @param testers who ticked its items, a {@code null} entry for a name that cannot be resolved;
+     *         empty below the top level
+     * @param score the points reached, formatted
+     * @param max the points available, formatted
+     * @param items its own items in order
+     * @param children its subsections in order
+     */
+    public record SheetSection(
+            String name,
+            List<String> testers,
+            String score,
+            String max,
+            List<SheetItem> items,
+            List<SheetSection> children) {}
+
+    /**
+     * An item of the member sheet.
+     *
+     * @param label what was tested
+     * @param points the points it is worth, formatted
+     * @param checked whether the member passed it
+     */
+    public record SheetItem(String label, String points, boolean checked) {}
+
+    /** How a row of the evaluation table is drawn. */
+    public enum RowKind {
+        DETAIL,
+        SECTION,
+        TOTAL
+    }
+
+    /**
+     * A row of the evaluation table.
+     *
+     * @param kind a subsection's detail row, a top-level section's sum row, or the grand total
+     * @param name the section's name, {@code null} for the total, which the template names
+     * @param max the points available, formatted
+     * @param cells the average first, then one cell per member in column order
+     */
+    public record EvaluationRow(RowKind kind, @Nullable String name, String max, List<ScoreCell> cells) {}
+
+    /**
+     * A score in the evaluation table, coloured by how much of the maximum it reaches.
+     *
+     * @param score the points reached, for the colour
+     * @param max the points available, for the colour
+     * @param label the points reached, formatted
+     */
+    public record ScoreCell(double score, double max, String label) {}
 }

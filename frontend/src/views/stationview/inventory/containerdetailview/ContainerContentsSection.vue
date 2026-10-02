@@ -15,7 +15,7 @@ import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import RowLink from '@/components/navigation/RowLink.vue'
 import ContainerContentsTree from '@/views/stationview/inventory/storageview/ContainerContentsTree.vue'
 import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
-import type {ContainerContents, InventoryContainerKind} from '@/api/inventoryContainers'
+import type {ContainerContents, InventoryContainerKind} from '@/api/generated/schema'
 
 const recursive = defineModel<boolean>('recursive', {required: true})
 

@@ -9,9 +9,11 @@ import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
 import dev.chojo.ember.feature.knowledgebase.entity.KbSearchResult;
 import dev.chojo.ember.feature.knowledgebase.repository.KnowledgeBaseRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.util.Markdown;
 import dev.chojo.ember.util.sql.FullTextSearch;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,13 +59,10 @@ public class KbSearchService {
     }
 
     /**
-     * Strips HTML tags and markdown punctuation so the index holds plain words only.
+     * Takes the markup off so the index holds plain words only, on a single line.
      */
     private static String toPlainText(String text) {
-        return text.replaceAll("<[^>]+>", " ")
-                .replaceAll("[#*_\\[\\]()>`~]", " ")
-                .replaceAll("\\s+", " ")
-                .trim();
+        return Markdown.toPlainText(text).replaceAll("\\s+", " ");
     }
 
     /**
@@ -98,7 +97,7 @@ public class KbSearchService {
      * @param fileId the file to reindex
      * @param text   the file's body, or {@code null} when it has none
      */
-    public void reindex(int fileId, String text) {
+    public void reindex(int fileId, @Nullable String text) {
         var file = repository.findFileById(fileId).orElse(null);
         if (file == null) {
             log.warn("Reindex skipped: knowledge file {} not found", fileId);

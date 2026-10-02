@@ -11,8 +11,7 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ArtPicker from '../ArtPicker.vue'
-import type {InventorySize} from '@/api/inventory'
-import type {InventoryArt} from '@/api/inventoryArts'
+import type {InventoryArt, InventorySize} from '@/api/generated/schema'
 
 const name = defineModel<string>('name', {required: true})
 const internalId = defineModel<string>('internalId', {required: true})
@@ -50,7 +49,7 @@ const {t} = useI18n()
     </div>
     <div v-if="props.showArt" class="space-y-1">
       <FieldLabel>{{ t('inventory.art.field') }}</FieldLabel>
-      <ArtPicker v-model:artId="artId" v-model:draft="artDraft" :arts="props.arts"/>
+      <ArtPicker v-model:art-id="artId" v-model:draft="artDraft" :arts="props.arts"/>
     </div>
     <div v-if="props.sizes.length > 0" class="space-y-1">
       <FieldLabel>{{ t('itemDetail.size') }}</FieldLabel>

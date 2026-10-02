@@ -8,7 +8,7 @@ import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import DiscoveryGrid from '@/components/discovery/DiscoveryGrid.vue'
-import type {DiscoveryEntry} from '@/api/discovery'
+import type {DiscoveryEntry} from '@/api/generated/schema'
 
 const props = defineProps<{
   stations: DiscoveryEntry[]

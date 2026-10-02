@@ -6,9 +6,9 @@
 import { ref, watch, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { knowledgeBase, memberGroups, userTags } from '@/api'
-import type { KbGrant } from '@/api/knowledgeBase'
-import type { MemberGroup, UserTag } from '@/api/types'
-import { emptyRestriction, type RestrictionSelection } from '@/components/input/restriction'
+import type { GrantRequest, MemberGroup, UserTag } from '@/api/generated/schema'
+import { emptyRestriction } from '@/components/input/restriction'
+import type { RestrictionSelection } from '@/api/types'
 import { grantKey, groupKey, tagKey, userTypeKey, type GrantLevels } from './kbGrantLevels'
 import type { KbEntryApi, KbEntryTarget } from './useKbEntryEditor'
 import { describeFailure, FailureKind, type Failure } from '@/util/failure'
@@ -101,12 +101,12 @@ export function useKbEntrySharing(
    * An entry the dialog has no level for keeps {@code null}, which leaves the station permission
    * in charge for that audience.
    */
-  function buildGrants(): KbGrant[] {
+  function buildGrants(): GrantRequest[] {
     const levels = grantLevels.value
     return [
-      ...restriction.value.userTypes.map(userType => ({userType, level: levels[userTypeKey(userType)] ?? null})),
-      ...restriction.value.groupIds.map(groupId => ({groupId, level: levels[groupKey(groupId)] ?? null})),
-      ...restriction.value.tagIds.map(tagId => ({tagId, level: levels[tagKey(tagId)] ?? null})),
+      ...restriction.value.userTypes.map(userType => ({userType, level: levels[userTypeKey(userType)] ?? undefined})),
+      ...restriction.value.groupIds.map(groupId => ({groupId, level: levels[groupKey(groupId)] ?? undefined})),
+      ...restriction.value.tagIds.map(tagId => ({tagId, level: levels[tagKey(tagId)] ?? undefined})),
     ]
   }
 

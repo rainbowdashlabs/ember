@@ -9,11 +9,11 @@ import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
 import RegistrationFieldAnswers from '../RegistrationFieldAnswers.vue'
-import type {EventRegistrationEntry, EventRegistrationField} from '@/api/events'
+import type {EventRegistrationField, RegistrationResponse} from '@/api/generated/schema'
 
 /** Who signed up on the ranking, with what they answered and whether an answer is still missing. */
 defineProps<{
-  registration: EventRegistrationEntry
+  registration: RegistrationResponse
   fields: EventRegistrationField[]
   canEditAnswers: boolean
 }>()

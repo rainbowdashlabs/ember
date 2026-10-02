@@ -6,6 +6,7 @@
 package dev.chojo.ember.util.sql;
 
 import de.chojo.sadu.queries.api.call.Call;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -13,16 +14,9 @@ import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
 /**
- * Assembles the optional part of a {@code WHERE} clause. Every predicate is registered
- * together with the parameters it references, so a fragment can never be added without its
- * binds - the failure mode of the hand-rolled variant, where a ternary-produced fragment and
- * a separate {@code if (value != null) call = call.bind(...)} drift apart and the statement
- * fails at runtime with a missing parameter.
- *
- * <p>Fragments must be trusted compile-time constants; they are placed into a {@code %s} slot
- * of the statement. Values never reach the statement text - they always travel as named binds
- * applied through {@link #apply(Call)}. Predicates whose value is {@code null} are dropped
- * entirely, so an absent filter widens the result instead of matching {@code IS NULL}.
+ * The optional part of a {@code WHERE} clause, each predicate registered with its binds so a fragment can never
+ * reach the statement without them. Fragments are trusted constants for a {@code %s} slot; values only travel as
+ * binds. A predicate whose value is {@code null} is dropped, so an absent filter widens the result.
  *
  * <pre>{@code
  * var where = WhereBuilder.create()
@@ -39,85 +33,57 @@ public final class WhereBuilder {
 
     private WhereBuilder() {}
 
-    /**
-     * Starts an empty clause.
-     */
+    /** Starts an empty clause. */
     public static WhereBuilder create() {
         return new WhereBuilder();
     }
 
-    /**
-     * Appends a predicate that carries no parameters, for example a fragment picked by a
-     * {@code switch} over a filter mode. Blank fragments are ignored, so the "no filter"
-     * branch needs no special casing.
-     */
+    /** Appends a predicate without binds; a blank fragment is ignored. */
     public WhereBuilder add(String fragment) {
         if (fragment.isBlank()) return this;
         return append(fragment, UnaryOperator.identity());
     }
 
-    /**
-     * Appends a parameterless predicate only when {@code condition} holds.
-     */
+    /** Appends a predicate without binds when the condition holds. */
     public WhereBuilder addIf(boolean condition, String fragment) {
         return condition ? add(fragment) : this;
     }
 
-    /**
-     * Appends a predicate bound to a single integer parameter. A {@code null} value drops the
-     * predicate and its bind.
-     */
-    public WhereBuilder add(String fragment, String parameter, Integer value) {
+    /** Appends a predicate with one bind, unless the value is {@code null}. */
+    public WhereBuilder add(String fragment, String parameter, @Nullable Integer value) {
+        return value == null ? this : append(fragment, call -> call.bind(parameter, value));
+    }
+
+    /** Appends a predicate with one bind, unless the value is {@code null}. */
+    public WhereBuilder add(String fragment, String parameter, @Nullable Boolean value) {
+        return value == null ? this : append(fragment, call -> call.bind(parameter, value));
+    }
+
+    /** Appends a predicate with one bind, unless the value is {@code null}. */
+    public WhereBuilder add(String fragment, String parameter, @Nullable String value) {
+        return value == null ? this : append(fragment, call -> call.bind(parameter, value));
+    }
+
+    /** Appends a predicate with one bind, unless the value is {@code null}. */
+    public WhereBuilder add(String fragment, String parameter, @Nullable Enum<?> value) {
         return value == null ? this : append(fragment, call -> call.bind(parameter, value));
     }
 
     /**
-     * Appends a predicate bound to a single boolean parameter. A {@code null} value drops the
-     * predicate and its bind.
+     * Appends a case-insensitive substring search, binding the trimmed lower-cased term inside {@code %}, so the
+     * fragment reads {@code LOWER(column) LIKE :parameter}. A blank search is dropped.
      */
-    public WhereBuilder add(String fragment, String parameter, Boolean value) {
-        return value == null ? this : append(fragment, call -> call.bind(parameter, value));
-    }
-
-    /**
-     * Appends a predicate bound to a single string parameter. A {@code null} value drops the
-     * predicate and its bind.
-     */
-    public WhereBuilder add(String fragment, String parameter, String value) {
-        return value == null ? this : append(fragment, call -> call.bind(parameter, value));
-    }
-
-    /**
-     * Appends a predicate bound to a single enum parameter. A {@code null} value drops the
-     * predicate and its bind.
-     */
-    public WhereBuilder add(String fragment, String parameter, Enum<?> value) {
-        return value == null ? this : append(fragment, call -> call.bind(parameter, value));
-    }
-
-    /**
-     * Appends a case-insensitive substring search. The parameter is bound to the trimmed,
-     * lower-cased term wrapped in {@code %} wildcards, so the fragment only has to spell out
-     * the {@code LOWER(column) LIKE :parameter} comparison. A {@code null} or blank term drops
-     * the predicate, which is what makes an empty search box return the unfiltered list.
-     */
-    public WhereBuilder like(String fragment, String parameter, String search) {
+    public WhereBuilder like(String fragment, String parameter, @Nullable String search) {
         if (search == null || search.isBlank()) return this;
         return add(fragment, parameter, "%" + search.trim().toLowerCase() + "%");
     }
 
-    /**
-     * The assembled fragment for the statement's {@code %s} slot, one predicate per line and
-     * empty when no predicate applies.
-     */
+    /** The clause for the statement's {@code %s} slot, one predicate per line, empty without predicates. */
     public String fragment() {
         return predicates.stream().map(Predicate::fragment).collect(Collectors.joining("\n"));
     }
 
-    /**
-     * Applies the binds of every retained predicate to the call and returns it, so the call
-     * can be handed straight to {@code single(...)}.
-     */
+    /** Applies every retained predicate's binds to the call and returns it. */
     public Call apply(Call call) {
         Call bound = call;
         for (Predicate predicate : predicates) {

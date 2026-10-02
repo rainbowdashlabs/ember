@@ -3,7 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {onBeforeUnmount, onMounted, readonly, ref, type Ref} from 'vue'
+import {useElementSize} from '@vueuse/core'
+import {computed, type Ref} from 'vue'
 
 function rootFontSizePx(): number {
     return parseFloat(getComputedStyle(document.documentElement).fontSize) || 16
@@ -20,22 +21,6 @@ function rootFontSizePx(): number {
  * @param target the element to measure
  */
 export function useElementWidth(target: Ref<HTMLElement | null>): Readonly<Ref<number | null>> {
-    const width = ref<number | null>(null)
-    let observer: ResizeObserver | null = null
-
-    onMounted(() => {
-        if (!target.value || typeof ResizeObserver === 'undefined') return
-        observer = new ResizeObserver(entries => {
-            const entry = entries[0]
-            if (entry) width.value = entry.contentRect.width / rootFontSizePx()
-        })
-        observer.observe(target.value)
-    })
-
-    onBeforeUnmount(() => {
-        observer?.disconnect()
-        observer = null
-    })
-
-    return readonly(width)
+    const {width} = useElementSize(target)
+    return computed(() => width.value > 0 ? width.value / rootFontSizePx() : null)
 }

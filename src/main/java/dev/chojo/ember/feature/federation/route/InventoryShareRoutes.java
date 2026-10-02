@@ -5,28 +5,29 @@
  */
 package dev.chojo.ember.feature.federation.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.FederationRefusal;
 import dev.chojo.ember.feature.federation.entity.InventoryShare;
 import dev.chojo.ember.feature.federation.entity.ShareGrant;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
-import dev.chojo.ember.feature.federation.service.FederationService;
+import dev.chojo.ember.feature.federation.service.InventoryShareOverviewService;
+import dev.chojo.ember.feature.federation.service.InventoryShareOverviewService.ShareDetail;
 import dev.chojo.ember.feature.federation.service.InventoryShareService;
-import dev.chojo.ember.feature.inventory.entity.InventoryArt;
-import dev.chojo.ember.feature.inventory.repository.InventoryArtRepository;
-import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
-import dev.chojo.ember.feature.station.repository.StationRepository;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
+import io.javalin.openapi.HttpMethod;
+import io.javalin.openapi.OpenApi;
+import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiRequestBody;
+import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 
@@ -38,23 +39,12 @@ import static dev.chojo.ember.api.RouteSupport.pathInt;
 public class InventoryShareRoutes implements Routes {
 
     private final InventoryShareService service;
-    private final InventoryRepository inventoryRepository;
-    private final InventoryArtRepository artRepository;
-    private final FederationService federationService;
-    private final StationRepository stationRepository;
+    private final InventoryShareOverviewService overviewService;
 
     @Inject
-    public InventoryShareRoutes(
-            InventoryShareService service,
-            InventoryRepository inventoryRepository,
-            InventoryArtRepository artRepository,
-            FederationService federationService,
-            StationRepository stationRepository) {
+    public InventoryShareRoutes(InventoryShareService service, InventoryShareOverviewService overviewService) {
         this.service = service;
-        this.inventoryRepository = inventoryRepository;
-        this.artRepository = artRepository;
-        this.federationService = federationService;
-        this.stationRepository = stationRepository;
+        this.overviewService = overviewService;
     }
 
     @Override
@@ -94,85 +84,45 @@ public class InventoryShareRoutes implements Routes {
                 StationPermission.INVENTORY_LENDING_MANAGER);
     }
 
+    @OpenApi(
+            path = "/api/v1/lending/shares",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ShareDetail[].class)))
     private void listShares(Context ctx) {
-        var session = UserSession.from(ctx);
-        int stationId = session.stationId();
-        var inventoryNames = new HashMap<Integer, String>();
-        for (var inventory : inventoryRepository.findByStation(stationId)) {
-            inventoryNames.put(inventory.id(), inventory.name());
-        }
-        var partnerNames = partnerNames(stationId);
-        ctx.json(service.findShares(stationId).stream()
-                .map(share -> describe(share, inventoryNames, partnerNames))
-                .toList());
+        var session = StationSession.from(ctx);
+        ctx.json(overviewService.overview(session.stationId()));
     }
 
-    private ShareDetail describe(
-            InventoryShare share, Map<Integer, String> inventoryNames, Map<Integer, String> partnerNames) {
-        String inventoryName = null;
-        String artName = null;
-        String itemName = null;
-        String itemInternalId = null;
-        switch (share.level()) {
-            case ITEM -> {
-                var item = inventoryRepository.findItemById(share.itemId()).orElse(null);
-                if (item != null) {
-                    itemName = item.name();
-                    itemInternalId = item.internalId();
-                    inventoryName = inventoryNames.get(item.inventoryId());
-                    if (item.artId() != null) {
-                        artName = artRepository
-                                .findById(item.artId())
-                                .map(InventoryArt::name)
-                                .orElse(null);
-                    }
-                }
-            }
-            case ART -> {
-                var art = artRepository.findById(share.artId()).orElse(null);
-                if (art != null) {
-                    artName = art.name();
-                    inventoryName = inventoryNames.get(art.inventoryId());
-                }
-            }
-            case INVENTORY -> inventoryName = inventoryNames.get(share.inventoryId());
-        }
-        var targets = service.findTargets(share.id()).stream()
-                .map(partnerId -> new SharePartner(partnerId, partnerNames.getOrDefault(partnerId, "?")))
-                .toList();
-        return new ShareDetail(share, inventoryName, artName, itemName, itemInternalId, targets);
-    }
-
-    private Map<Integer, String> partnerNames(int stationId) {
-        var names = new HashMap<Integer, String>();
-        for (var partner : federationService.findPartners(stationId)) {
-            String name = stationRepository
-                    .findByUid(partner.partnerStationId())
-                    .map(station -> station.name())
-                    .orElse(partner.partnerStationName());
-            names.put(partner.id(), name != null ? name : "?");
-        }
-        return names;
-    }
-
+    @OpenApi(
+            path = "/api/v1/lending/shares/inventory/{inventoryId}",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ShareSetting.class)))
     private void getInventoryShare(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int inventoryId = pathInt(ctx, "inventoryId");
         ctx.json(service.findForInventory(session.stationId(), inventoryId)
                 .map(this::toSetting)
                 .orElseGet(ShareSetting::unshared));
     }
 
+    @OpenApi(
+            path = "/api/v1/lending/shares/art/{artId}",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ShareSetting.class)))
     private void getArtShare(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int artId = pathInt(ctx, "artId");
         ctx.json(service.findForArt(session.stationId(), artId)
                 .map(this::toSetting)
                 .orElseGet(ShareSetting::unshared));
     }
 
+    @OpenApi(
+            path = "/api/v1/lending/shares/item/{itemId}",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ShareSetting.class)))
     private void getItemShare(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int itemId = pathInt(ctx, "itemId");
         ctx.json(service.findForItem(session.stationId(), itemId)
                 .map(this::toSetting)
@@ -183,8 +133,13 @@ public class InventoryShareRoutes implements Routes {
         return new ShareSetting(true, share.shareGrant(), share.shareScope(), service.findTargets(share.id()));
     }
 
+    @OpenApi(
+            path = "/api/v1/lending/shares/inventory/{inventoryId}",
+            methods = HttpMethod.PUT,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SetShareRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ShareSetting.class)))
     private void setInventoryShare(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int inventoryId = pathInt(ctx, "inventoryId");
         var body = readBody(ctx);
         var share = service.setInventoryShare(
@@ -192,44 +147,66 @@ public class InventoryShareRoutes implements Routes {
         ctx.json(toSetting(share));
     }
 
+    @OpenApi(
+            path = "/api/v1/lending/shares/art/{artId}",
+            methods = HttpMethod.PUT,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SetShareRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ShareSetting.class)))
     private void setArtShare(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int artId = pathInt(ctx, "artId");
         var body = readBody(ctx);
         var share = service.setArtShare(session.stationId(), artId, body.scope(), body.grant(), body.partnerIdList());
         ctx.json(toSetting(share));
     }
 
+    @OpenApi(
+            path = "/api/v1/lending/shares/item/{itemId}",
+            methods = HttpMethod.PUT,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SetShareRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ShareSetting.class)))
     private void setItemShare(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         int itemId = pathInt(ctx, "itemId");
         var body = readBody(ctx);
         var share = service.setItemShare(session.stationId(), itemId, body.scope(), body.grant(), body.partnerIdList());
         ctx.json(toSetting(share));
     }
 
+    @OpenApi(
+            path = "/api/v1/lending/shares/inventory/{inventoryId}",
+            methods = HttpMethod.DELETE,
+            responses = @OpenApiResponse(status = "204"))
     private void deleteInventoryShare(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         service.removeInventoryShare(session.stationId(), pathInt(ctx, "inventoryId"));
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
+    @OpenApi(
+            path = "/api/v1/lending/shares/art/{artId}",
+            methods = HttpMethod.DELETE,
+            responses = @OpenApiResponse(status = "204"))
     private void deleteArtShare(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         service.removeArtShare(session.stationId(), pathInt(ctx, "artId"));
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
+    @OpenApi(
+            path = "/api/v1/lending/shares/item/{itemId}",
+            methods = HttpMethod.DELETE,
+            responses = @OpenApiResponse(status = "204"))
     private void deleteItemShare(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = StationSession.from(ctx);
         service.removeItemShare(session.stationId(), pathInt(ctx, "itemId"));
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
     private SetShareRequest readBody(Context ctx) {
         var body = ctx.bodyAsClass(SetShareRequest.class);
-        if (body.grant() == null) throw Refusal.SHARE_GRANT_MISSING.raise();
-        if (body.scope() == null) throw Refusal.SHARE_SCOPE_MISSING.raise();
+        if (body.grant() == null) throw FederationRefusal.SHARE_GRANT_MISSING.raise();
+        if (body.scope() == null) throw FederationRefusal.SHARE_SCOPE_MISSING.raise();
         return body;
     }
 
@@ -247,21 +224,13 @@ public class InventoryShareRoutes implements Routes {
     }
 
     /** What is currently said about one inventory or one item. */
-    public record ShareSetting(boolean shared, ShareGrant grant, ShareScope scope, List<Integer> partnerIds) {
+    public record ShareSetting(
+            boolean shared,
+            @Nullable ShareGrant grant,
+            @Nullable ShareScope scope,
+            List<Integer> partnerIds) {
         static ShareSetting unshared() {
             return new ShareSetting(false, null, null, List.of());
         }
     }
-
-    /** One row of the overview of everything this station offers. */
-    public record ShareDetail(
-            InventoryShare share,
-            String inventoryName,
-            String artName,
-            String itemName,
-            String itemInternalId,
-            List<SharePartner> partners) {}
-
-    /** A partner named by a share, with the name to show for it. */
-    public record SharePartner(int partnerId, String stationName) {}
 }

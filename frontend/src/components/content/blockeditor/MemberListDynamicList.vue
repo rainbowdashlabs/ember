@@ -7,9 +7,9 @@
 import {useI18n} from 'vue-i18n'
 import TextInput from '@/components/input/text/TextInput.vue'
 import DragList from '@/components/input/DragList.vue'
-import type {ResolvedMember} from '@/api/pageManage'
+import type {ResolvedMember} from '@/api/generated/schema'
 
-const props = defineProps<{
+defineProps<{
     members: ResolvedMember[]
     isOrderSort: boolean
     descriptionFor: (uid: string) => string

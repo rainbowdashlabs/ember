@@ -7,7 +7,8 @@
 import {useI18n} from 'vue-i18n'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import BulletList from '@/components/typography/BulletList.vue'
-import DummyVersionList from './DummyVersionList.vue'
+import KbVersionList from '@/views/stationview/knowledge/kbversionsview/KbVersionList.vue'
+import {sampleVersions} from '@/views/helpcenter/stationview/knowledge/fixtures'
 
 /**
  * The half of the wiki article that only somebody who may write in it needs to read: what can be
@@ -61,8 +62,7 @@ const {t} = useI18n()
 
     <HelpSection :title="t('helpCenter.kb.versionsTitle')">
       <p>{{ t('helpCenter.kb.versionsText') }}</p>
+      <KbVersionList class="mt-3" :versions="sampleVersions" :can-revert="true"/>
     </HelpSection>
-
-    <DummyVersionList/>
   </div>
 </template>

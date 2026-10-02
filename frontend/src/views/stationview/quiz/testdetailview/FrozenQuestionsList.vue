@@ -14,7 +14,8 @@ import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
-import {QuizTestStatus, type FrozenQuestionDetail, type QuizQuestion, type QuizTestDetail} from '@/api/quiz'
+import {QuizTestStatus} from '@/api/quiz'
+import type {FrozenQuestionDetail, QuizQuestion, QuizTestDetail} from '@/api/generated/schema'
 
 defineProps<{
   test: QuizTestDetail['test']
@@ -42,7 +43,7 @@ const { t } = useI18n()
         {{ frozenQuestions.length > 0 ? t('quiz.frozenQuestions.regenerate') : t('quiz.frozenQuestions.generate') }}
       </SecondaryButton>
     </div>
-    <EmptyState compact v-if="frozenQuestions.length === 0">{{ t('quiz.frozenQuestions.empty') }}</EmptyState>
+    <EmptyState v-if="frozenQuestions.length === 0" compact>{{ t('quiz.frozenQuestions.empty') }}</EmptyState>
     <NeutralContainer v-for="fq in frozenQuestions" :key="fq.position">
       <div v-if="fq.question" class="flex items-start gap-3">
         <MutedText class="w-6 shrink-0 pt-0.5">{{ fq.position + 1 }}.</MutedText>

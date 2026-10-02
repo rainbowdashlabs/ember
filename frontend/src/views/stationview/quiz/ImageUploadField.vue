@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {useId} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import AuthImage from '@/components/display/AuthImage.vue'
@@ -19,11 +20,13 @@ const emit = defineEmits<{
   selectImage: [event: Event]
   removeImage: []
 }>()
+
+const fileId = useId()
 </script>
 
 <template>
   <div class="space-y-2">
-    <label class="text-xs text-(--text-muted) block">{{ t('quiz.questions.image') }}</label>
+    <label :for="fileId" class="text-xs text-(--text-muted) block">{{ t('quiz.questions.image') }}</label>
     <div v-if="imagePreview || authSrc" class="flex items-start gap-3">
       <img v-if="imagePreview" :src="imagePreview" alt="" class="h-24 w-24 object-cover rounded border border-bg-light-accent dark:border-bg-dark-accent"/>
       <AuthImage v-else-if="authSrc" :src="authSrc" alt="" class="h-24 w-24 object-cover rounded border border-bg-light-accent dark:border-bg-dark-accent"/>
@@ -34,7 +37,7 @@ const emit = defineEmits<{
     <label v-else class="inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg font-medium cursor-pointer bg-bg-light-accent dark:bg-bg-dark-accent hover:brightness-110 transition-all">
       <font-awesome-icon :icon="['fas', 'upload']"/>
       {{ t('quiz.questions.uploadImage') }}
-      <input type="file" accept="image/png,image/jpeg,image/webp" class="hidden" @change="(e: Event) => emit('selectImage', e)"/>
+      <input :id="fileId" type="file" accept="image/png,image/jpeg,image/webp" class="hidden" @change="(e: Event) => emit('selectImage', e)"/>
     </label>
   </div>
 </template>

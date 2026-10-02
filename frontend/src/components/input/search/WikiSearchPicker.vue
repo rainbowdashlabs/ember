@@ -8,7 +8,7 @@ import {computed, onMounted, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import EntitySearchPicker from './EntitySearchPicker.vue'
 import * as publicKb from '@/api/publicKb'
-import type {KbFile} from '@/api/knowledgeBase'
+import type {KbFile} from '@/api/generated/schema'
 
 /**
  * Picker for WIKI_ARTICLE cells. Backed by the existing public KB search endpoint so it works

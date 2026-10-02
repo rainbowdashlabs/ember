@@ -6,10 +6,11 @@
 import {computed, type Ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {ItemOwner} from '@/api/inventory'
-import {StepActor, type Movement, type StepActorName} from '@/api/movements'
+import {StepActor, type StepActorName} from '@/api/movements'
+import type {MovementResponse} from '@/api/generated/schema'
 
 /** What a screen needs of a movement to name the parties it is between. */
-export type PartiesOf = Pick<Movement, 'ownerKind' | 'ownerName'>
+export type PartiesOf = Pick<MovementResponse,'ownerKind' | 'ownerName'>
 
 /**
  * The parties of one movement, by name rather than by role.

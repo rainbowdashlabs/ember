@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.cluster.service;
 
+import dev.chojo.ember.api.refusal.ClusterRefusal;
 import dev.chojo.ember.feature.cluster.entity.LossReportRequirement;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
@@ -22,10 +23,9 @@ import dev.chojo.ember.feature.inventory.service.MovementFlowService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.station.repository.StationRepository;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -100,11 +100,13 @@ public class ClusterInventoryService {
         for (var item : owned) {
             UUID stationUid = null;
             String stationName = null;
-            if (item.custodyStationId() != null) {
-                var station = stationRepository.findById(item.custodyStationId());
+            Integer custodyStationId = item.custodyStationId();
+            if (custodyStationId != null) {
+                var station = stationRepository.findById(custodyStationId);
                 stationUid = station.map(s -> s.uid()).orElse(null);
                 stationName = station.map(s -> s.name()).orElse(null);
             }
+            Integer sizeId = item.sizeId();
             items.add(new ClusterItem(
                     item.id(),
                     item.internalId(),
@@ -113,8 +115,8 @@ public class ClusterInventoryService {
                     stationUid,
                     stationName,
                     holderName(item.assignedTo()),
-                    item.sizeId(),
-                    item.sizeId() == null ? null : sizeLabels.get(item.sizeId())));
+                    sizeId,
+                    sizeId == null ? null : sizeLabels.get(sizeId)));
         }
         return items;
     }
@@ -265,8 +267,7 @@ public class ClusterInventoryService {
                 .filter(flow -> flow.purpose() == purpose)
                 .findFirst()
                 .ifPresent(flow -> {
-                    throw new BadRequestResponse("'%s' already walks every %s. Archive it before adding another."
-                            .formatted(flow.name(), purpose.name()));
+                    throw ClusterRefusal.CLUSTER_INVENTORY_FLOW_PURPOSE_TAKEN.raise(flow.name());
                 });
         return flowService.createClusterFlow(clusterId, name, purpose);
     }
@@ -355,14 +356,16 @@ public class ClusterInventoryService {
 
     /** A chain of another association, or of a station, is not this one's to change. */
     private void requireOwnFlow(int clusterId, int flowId) {
-        MovementFlow flow = flowService.findFlow(flowId).orElseThrow(() -> new NotFoundResponse("No such flow"));
+        MovementFlow flow =
+                flowService.findFlow(flowId).orElseThrow(ClusterRefusal.CLUSTER_INVENTORY_FLOW_NOT_HERE::raise);
         if (flow.clusterId() == null || flow.clusterId() != clusterId) {
-            throw new NotFoundResponse("No such flow");
+            throw ClusterRefusal.CLUSTER_INVENTORY_FLOW_NOT_HERE.raise();
         }
     }
 
     private void requireOwnStep(int clusterId, int stepId) {
-        MovementFlowStep step = flowService.findStep(stepId).orElseThrow(() -> new NotFoundResponse("No such step"));
+        MovementFlowStep step =
+                flowService.findStep(stepId).orElseThrow(ClusterRefusal.CLUSTER_INVENTORY_FLOW_STEP_NOT_HERE::raise);
         requireOwnFlow(clusterId, step.flowId());
     }
 
@@ -410,14 +413,15 @@ public class ClusterInventoryService {
      * for somebody who has left, and a member still at their station carries no name of their own, only an
      * account that does.
      */
-    private String holderName(Integer memberId) {
+    private @Nullable String holderName(@Nullable Integer memberId) {
         if (memberId == null) return null;
         String name = nameResolver.called(memberId);
         return name != null && !name.isBlank() ? name : null;
     }
 
     private void requireCluster(int clusterId) {
-        if (clusterRepository.findById(clusterId).isEmpty()) throw new NotFoundResponse("No such cluster");
+        if (clusterRepository.findById(clusterId).isEmpty())
+            throw ClusterRefusal.CLUSTER_INVENTORY_CLUSTER_NOT_HERE.raise();
     }
 
     /**
@@ -426,14 +430,14 @@ public class ClusterInventoryService {
      */
     public record ClusterItem(
             int itemId,
-            String internalId,
+            @Nullable String internalId,
             String name,
             ItemCustody custody,
-            UUID stationUid,
-            String stationName,
-            String holderName,
-            Integer sizeId,
-            String sizeLabel) {}
+            @Nullable UUID stationUid,
+            @Nullable String stationName,
+            @Nullable String holderName,
+            @Nullable Integer sizeId,
+            @Nullable String sizeLabel) {}
 
     /**
      * One kind of thing the association owns, with the sizes it is cut to.

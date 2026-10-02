@@ -5,7 +5,8 @@
  */
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
-import {listTrustedDevices, revokeAllTrustedDevices, revokeTrustedDevice, type TrustedDevice} from '@/api/twoFactor'
+import {listTrustedDevices, revokeAllTrustedDevices, revokeTrustedDevice} from '@/api/twoFactor'
+import type {TrustedDeviceEntry} from '@/api/generated/schema'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
@@ -17,12 +18,12 @@ import {formatDateTime} from '@/util/format'
 
 const {t} = useI18n()
 
-const {config: devices, loading, failure, runWith} = useConfigPanel<TrustedDevice[]>({
+const {config: devices, loading, failure, runWith} = useConfigPanel<TrustedDeviceEntry[]>({
   initial: [],
   fetch: () => listTrustedDevices(),
 })
 
-async function handleRevoke(device: TrustedDevice) {
+async function handleRevoke(device: TrustedDeviceEntry) {
   await runWith(async () => {
     await revokeTrustedDevice(device.id)
     return await listTrustedDevices()
@@ -43,7 +44,7 @@ async function handleRevokeAll() {
   <NeutralContainer class="space-y-3">
     <div class="flex items-center justify-between gap-2">
       <SubHeader>{{ t('twoFactor.trustedDevices.title') }}</SubHeader>
-      <SecondaryButton v-if="devices.length > 0" size="sm" @click="handleRevokeAll">
+      <SecondaryButton v-if="devices.length > 0" @click="handleRevokeAll">
         {{ t('twoFactor.trustedDevices.revokeAll') }}
       </SecondaryButton>
     </div>

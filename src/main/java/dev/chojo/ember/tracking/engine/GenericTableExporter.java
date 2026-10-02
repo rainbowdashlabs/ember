@@ -8,11 +8,10 @@ package dev.chojo.ember.tracking.engine;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.tracking.CustomScope;
 import dev.chojo.ember.tracking.DataTracking;
-import dev.chojo.ember.tracking.ForeignKey;
-import dev.chojo.ember.tracking.Lookup;
 import dev.chojo.ember.tracking.OutputShape;
-import dev.chojo.ember.tracking.Status;
 import dev.chojo.ember.tracking.TableEntry;
+import dev.chojo.ember.tracking.TrackingStatus;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -46,51 +45,16 @@ public final class GenericTableExporter {
         this.scopeResolver = new StationScopeResolver(tracking);
     }
 
-    private static void appendSelect(StringBuilder sb, List<String> columns, List<Lookup> lookups) {
+    private static void appendSelect(StringBuilder sb, List<String> columns, LookupSql lookups) {
         for (int i = 0; i < columns.size(); i++) {
             if (i > 0) sb.append(", ");
             sb.append("t.").append(columns.get(i));
         }
-        for (int i = 0; i < lookups.size(); i++) {
-            var lk = lookups.get(i);
-            sb.append(", lk")
-                    .append(i)
-                    .append('.')
-                    .append(lk.pick())
-                    .append(" AS ")
-                    .append(lk.emitAs());
-        }
-    }
-
-    private static void appendLookupJoins(StringBuilder sb, TableEntry table, List<Lookup> lookups) {
-        for (int i = 0; i < lookups.size(); i++) {
-            var lk = lookups.get(i);
-            ForeignKey fk = findFk(table, lk.via());
-            sb.append(" LEFT JOIN ")
-                    .append(fk.refTable())
-                    .append(" lk")
-                    .append(i)
-                    .append(" ON t.")
-                    .append(lk.via())
-                    .append(" = lk")
-                    .append(i)
-                    .append('.')
-                    .append(fk.refColumn());
-        }
+        lookups.appendSelect(sb);
     }
 
     private static void appendOrderAndPagination(StringBuilder sb, List<String> columns) {
         sb.append(" ORDER BY t.").append(columns.get(0)).append(" OFFSET :offset LIMIT :limit");
-    }
-
-    private static ForeignKey findFk(TableEntry table, String column) {
-        if (table.foreignKeys() != null) {
-            for (var fk : table.foreignKeys()) {
-                if (column.equals(fk.column())) return fk;
-            }
-        }
-        throw new IllegalStateException(
-                "Lookup references FK column '" + column + "' on " + table + " but no such FK is tracked");
     }
 
     /**
@@ -99,12 +63,12 @@ public final class GenericTableExporter {
     public List<Map<String, Object>> export(String tableName, int stationId, int offset, int limit) {
         var table = tableEntry(tableName);
         var transfer = table.stationTransfer();
-        if (transfer == null || transfer.status() != Status.TRACKED) {
+        if (transfer == null || transfer.status() != TrackingStatus.TRACKED) {
             throw new IllegalStateException("Table " + tableName + " is not TRACKED for station transfer (status="
                     + (transfer == null ? "null" : transfer.status()) + ")");
         }
 
-        Set<String> ignored = Set.copyOf(transfer.ignoredColumns() == null ? List.of() : transfer.ignoredColumns());
+        Set<String> ignored = Set.copyOf(transfer.ignoredColumns());
         List<String> selectableColumns = new ArrayList<>();
         for (var col : table.columns()) {
             if (!ignored.contains(col.name())) selectableColumns.add(col.name());
@@ -113,10 +77,11 @@ public final class GenericTableExporter {
             throw new IllegalStateException("Table " + tableName + " has no exportable columns after ignoredColumns");
         }
 
-        List<Lookup> lookups = table.lookups() == null ? List.of() : table.lookups();
-        String sql = table.customScope() != null
-                ? buildCustomScopeSql(table, tableName, selectableColumns, lookups, table.customScope())
-                : buildDirectScopeSql(table, tableName, selectableColumns, lookups);
+        var lookups = LookupSql.of(tableName, table);
+        var customScope = table.customScope();
+        String sql = customScope != null
+                ? buildCustomScopeSql(tableName, selectableColumns, lookups, customScope)
+                : buildDirectScopeSql(tableName, selectableColumns, lookups);
         return runQuery(sql, stationId, offset, limit);
     }
 
@@ -125,7 +90,7 @@ public final class GenericTableExporter {
      * a {@code List<Map>} for {@code ROWS}, a single {@code Map} (or null) for {@code SINGLE},
      * a {@code List<Object>} for {@code FLAT}.
      */
-    public Object exportShaped(String tableName, int stationId, int offset, int limit) {
+    public @Nullable Object exportShaped(String tableName, int stationId, int offset, int limit) {
         var table = tableEntry(tableName);
         OutputShape shape = table.effectiveShape();
         return switch (shape) {
@@ -147,12 +112,12 @@ public final class GenericTableExporter {
     }
 
     private TableEntry tableEntry(String tableName) {
-        var t = tracking.tables() == null ? null : tracking.tables().get(tableName);
+        var t = tracking.tables().get(tableName);
         if (t == null) throw new IllegalArgumentException("Unknown table: " + tableName);
         return t;
     }
 
-    private String buildDirectScopeSql(TableEntry table, String tableName, List<String> columns, List<Lookup> lookups) {
+    private String buildDirectScopeSql(String tableName, List<String> columns, LookupSql lookups) {
         var scope = scopeResolver
                 .resolve(tableName)
                 .orElseThrow(() ->
@@ -182,7 +147,7 @@ public final class GenericTableExporter {
                     .append('.')
                     .append(join.fk().refColumn());
         }
-        appendLookupJoins(sb, table, lookups);
+        lookups.appendJoins(sb);
         sb.append(" WHERE ")
                 .append(tableAlias.get(scope.terminalTable()))
                 .append('.')
@@ -193,11 +158,11 @@ public final class GenericTableExporter {
     }
 
     private String buildCustomScopeSql(
-            TableEntry table, String tableName, List<String> columns, List<Lookup> lookups, CustomScope customScope) {
+            String tableName, List<String> columns, LookupSql lookups, CustomScope customScope) {
         var sb = new StringBuilder("SELECT ");
         appendSelect(sb, columns, lookups);
         sb.append(" FROM ").append(tableName).append(" t");
-        appendLookupJoins(sb, table, lookups);
+        lookups.appendJoins(sb);
         sb.append(" WHERE ").append(buildCustomScopeFilter(customScope, "t", 0));
         appendOrderAndPagination(sb, columns);
         return sb.toString();
@@ -220,9 +185,10 @@ public final class GenericTableExporter {
         sb.append(vt).append('.').append(customScope.viaColumn());
         sb.append(" FROM ").append(customScope.viaTable()).append(' ').append(vt);
 
-        var via = tracking.tables() == null ? null : tracking.tables().get(customScope.viaTable());
-        if (via != null && via.customScope() != null) {
-            sb.append(" WHERE ").append(buildCustomScopeFilter(via.customScope(), vt, depth + 1));
+        var via = tracking.tables().get(customScope.viaTable());
+        CustomScope nestedScope = via != null ? via.customScope() : null;
+        if (nestedScope != null) {
+            sb.append(" WHERE ").append(buildCustomScopeFilter(nestedScope, vt, depth + 1));
             sb.append(" AND ")
                     .append(vt)
                     .append('.')
@@ -267,6 +233,13 @@ public final class GenericTableExporter {
         return sb.toString();
     }
 
+    /**
+     * Runs the page query and maps each row to its wire form.
+     *
+     * <p>Timestamps travel as epoch milliseconds, which the importer already reads and which avoids the
+     * parsing edge cases of a string format. They are read through the value converter rather than the
+     * driver's own date mapping, which is not the same across every driver version shipped against.
+     */
     private List<Map<String, Object>> runQuery(String sql, int stationId, int offset, int limit) {
         var queryObj = query(sql)
                 .single(call().bind("stationId", stationId)
@@ -285,13 +258,6 @@ public final class GenericTableExporter {
                                 || "timestamp".equals(typeName)
                                 || "timestamp with time zone".equals(typeName)
                                 || "timestamp without time zone".equals(typeName)) {
-                            // Wire format for timestamps is epoch milliseconds (long). Matches
-                            // GenericTableImporter.asInstant which already treats Number values as
-                            // epoch millis, and dodges JSON / locale / PG-version parsing edge
-                            // cases that a string ISO-8601 format runs into on the import side.
-                            // Routes through the SADU value converter rather than getObject(Instant)
-                            // because the JDBC driver's java.time mapping is not guaranteed across
-                            // every PG / driver version we ship against.
                             Instant instant = row.get(i, StandardValueConverter.INSTANT_TIMESTAMP);
                             out.put(label, instant == null ? null : instant.toEpochMilli());
                         } else {

@@ -31,7 +31,15 @@ const {t} = useI18n()
         ? 'border-success bg-success/5'
         : 'border-bg-light-accent dark:border-bg-dark-accent opacity-50'"
   >
-    <div class="flex items-start gap-3 p-3 cursor-pointer" @click="emit('toggle')">
+    <div
+        class="flex items-start gap-3 p-3 cursor-pointer"
+        role="checkbox"
+        tabindex="0"
+        :aria-checked="preview.accepted"
+        @click="emit('toggle')"
+        @keydown.enter.prevent="emit('toggle')"
+        @keydown.space.prevent="emit('toggle')"
+    >
       <font-awesome-icon
           :icon="['fas', preview.accepted ? 'square-check' : 'square']"
           class="text-lg mt-0.5 shrink-0"

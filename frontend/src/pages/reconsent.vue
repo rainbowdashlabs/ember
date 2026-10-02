@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {useI18n} from 'vue-i18n'
 import ReconsentView from '~/views/ReconsentView.vue'
 
 definePageMeta({
@@ -11,8 +12,10 @@ definePageMeta({
   name: 'reconsent',
 })
 
+const {t} = useI18n()
+
 useHead({
-  title: 'Zustimmung',
+  title: t('pageHead.reconsent'),
 })
 </script>
 

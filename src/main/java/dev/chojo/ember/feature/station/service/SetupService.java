@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -76,6 +77,7 @@ public class SetupService {
     private final KnowledgeBaseRepository knowledgeBaseRepository;
     private final StationMemberRepository stationMemberRepository;
     private final StationService stationService;
+    private final StationLogoService logoService;
 
     @Inject
     public SetupService(
@@ -85,7 +87,8 @@ public class SetupService {
             EventRepository eventRepository,
             KnowledgeBaseRepository knowledgeBaseRepository,
             StationMemberRepository stationMemberRepository,
-            StationService stationService) {
+            StationService stationService,
+            StationLogoService logoService) {
         this.stationRepository = stationRepository;
         this.mailProviderRepository = mailProviderRepository;
         this.memberGroupRepository = memberGroupRepository;
@@ -93,6 +96,7 @@ public class SetupService {
         this.knowledgeBaseRepository = knowledgeBaseRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.stationService = stationService;
+        this.logoService = logoService;
     }
 
     /**
@@ -174,7 +178,7 @@ public class SetupService {
                 STEP_KB_SEED,
                 new StepState(
                         STEP_KB_SEED, kbEnabled && knowledgeBaseRepository.existsForStation(stationId), kbEnabled));
-        map.put(STEP_FEDERATION, new StepState(STEP_FEDERATION, isFederationComplete(station), true));
+        map.put(STEP_FEDERATION, new StepState(STEP_FEDERATION, isFederationComplete(stationId, station), true));
         map.put(
                 STEP_INVITES,
                 new StepState(
@@ -199,11 +203,16 @@ public class SetupService {
 
     private boolean isBrandingComplete(int stationId, Station station) {
         if (notBlank(station.customThemeColors())) return true;
-        return stationRepository.findLogo(stationId).isPresent();
+        return logoService.exists(stationId);
     }
 
-    private static boolean isFederationComplete(Station station) {
-        return notBlank(station.discoveryDescription());
+    /**
+     * The discovery step is done once the station has saved its discovery settings, which it can do
+     * with the setting it started with unchanged. A station that wrote a description before the save
+     * was recorded has plainly been there too.
+     */
+    private boolean isFederationComplete(int stationId, Station station) {
+        return stationRepository.isDiscoveryReviewed(stationId) || notBlank(station.discoveryDescription());
     }
 
     private static boolean notBlank(String s) {
@@ -240,5 +249,6 @@ public class SetupService {
      * @param requiredSteps required step states, in display order
      * @param optionalSteps optional step states, in display order
      */
-    public record SetupStatus(Instant completedAt, List<StepState> requiredSteps, List<StepState> optionalSteps) {}
+    public record SetupStatus(
+            @Nullable Instant completedAt, List<StepState> requiredSteps, List<StepState> optionalSteps) {}
 }

@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.restriction;
 
 import dev.chojo.ember.api.auth.StationUserType;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.Objects;
@@ -23,19 +24,23 @@ public record RestrictionSet(List<Restriction> restrictions, RestrictionMode mod
      * restrictions are always OR-connected: a direct member match grants access immediately, and
      * when no other restriction type is present a missing member match denies it.
      *
-     * @param memberUserType the member's user type
+     * @param memberUserType the member's user type, or null where the member has none
      * @param memberGroupIds the member's group IDs
      * @param memberTagIds   the member's tag IDs
      * @param memberId       the member's ID (for per-user restrictions)
      * @return true if the member passes the restrictions
      */
     public boolean matches(
-            StationUserType memberUserType, List<Integer> memberGroupIds, List<Integer> memberTagIds, int memberId) {
+            @Nullable StationUserType memberUserType,
+            List<Integer> memberGroupIds,
+            List<Integer> memberTagIds,
+            int memberId) {
         if (restrictions.isEmpty()) return true;
 
         boolean hasMemberRestrictions = restrictions.stream().anyMatch(r -> r.memberId() != null);
         if (hasMemberRestrictions) {
-            boolean memberMatch = restrictions.stream().anyMatch(r -> r.memberId() != null && r.memberId() == memberId);
+            boolean memberMatch = restrictions.stream()
+                    .anyMatch(r -> Integer.valueOf(memberId).equals(r.memberId()));
             if (memberMatch) return true;
             boolean hasOtherRestrictions = restrictions.stream()
                     .anyMatch(r -> r.userType() != null || r.groupId() != null || r.tagId() != null);

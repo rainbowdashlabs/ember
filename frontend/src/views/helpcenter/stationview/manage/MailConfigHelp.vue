@@ -15,7 +15,8 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
-import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
+import SmtpEncryptionField from '@/components/mail/SmtpEncryptionField.vue'
+import {SmtpEncryption} from '@/api/mailProviders'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
@@ -79,7 +80,6 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.mailConfig.senderName') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Provider selection -->
     <NeutralContainer class="space-y-4">
       <SectionHeader>{{ t('stationManage.mailTitle') }}</SectionHeader>
       <p class="text-sm text-(--text-muted)">{{ t('stationManage.mailHint') }}</p>
@@ -88,10 +88,7 @@ const {t} = useI18n()
         <FieldLabel>{{ t('stationManage.mailProvider') }}</FieldLabel>
         <SelectInput model-value="BREVO" disabled>
           <option value="NONE">{{ t('stationManage.mailProviderNone') }}</option>
-          <option value="RAPIDMAIL">RapidMail</option>
-          <option value="TWILIO">Twilio</option>
-          <option value="SWEEGO">Sweego</option>
-          <option value="BREVO">Brevo</option>
+          <option v-for="(name, key) in RELAY_PROVIDER_NAMES" :key="key" :value="key">{{ name }}</option>
           <option value="SMTP">{{ t('stationManage.mailProviderCustomSmtp') }}</option>
         </SelectInput>
       </div>
@@ -107,7 +104,7 @@ const {t} = useI18n()
         </div>
       </div>
 
-      <SubHeader>Brevo</SubHeader>
+      <SubHeader>{{ RELAY_PROVIDER_NAMES.BREVO }}</SubHeader>
       <p class="text-xs text-(--text-muted)">{{ t('mailProviders.BREVO.intro') }}</p>
       <div class="grid gap-4 sm:grid-cols-2">
         <div class="space-y-1">
@@ -129,11 +126,10 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.mailConfig.smtpPort') }}</p>
       <p>{{ t('helpCenter.mailConfig.smtpUser') }}</p>
       <p>{{ t('helpCenter.mailConfig.smtpPassword') }}</p>
-      <p>{{ t('helpCenter.mailConfig.smtpSsl') }}</p>
+      <p>{{ t('helpCenter.mailConfig.smtpEncryption') }}</p>
       <p>{{ t('helpCenter.mailConfig.smtpProviderInfo') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Custom SMTP -->
     <NeutralContainer class="space-y-4">
       <SubHeader>SMTP</SubHeader>
       <div class="grid gap-4 sm:grid-cols-2">
@@ -162,10 +158,7 @@ const {t} = useI18n()
           <TextInput model-value="" :placeholder="t('stationManage.mailPasswordPlaceholder')" type="password" disabled/>
         </div>
       </div>
-      <div class="flex items-center justify-between">
-        <label class="text-sm font-medium">SSL</label>
-        <ToggleInput :model-value="true" disabled/>
-      </div>
+      <SmtpEncryptionField :model-value="SmtpEncryption.STARTTLS"/>
     </NeutralContainer>
 
     <HelpSection :title="t('helpCenter.mailConfig.limitsTitle')">
@@ -175,7 +168,6 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.mailConfig.limitsUsage') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Limits -->
     <NeutralContainer class="space-y-4">
       <SubHeader>{{ t('stationManage.mailLimits') }}</SubHeader>
       <div class="grid gap-4 sm:grid-cols-2">
@@ -196,7 +188,6 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.mailConfig.testText') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Save & Test buttons -->
     <NeutralContainer class="space-y-4">
       <ButtonRow pair>
         <PrimaryButton disabled>{{ t('stationManage.save') }}</PrimaryButton>

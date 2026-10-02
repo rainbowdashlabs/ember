@@ -10,20 +10,19 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import type { WaitingListField } from '@/api/waitingList'
+import type { WaitingListField } from '@/api/generated/schema'
 import FieldRow from './FieldRow.vue'
 
 const props = defineProps<{
   listName: string
   fields: WaitingListField[]
-  fieldTypeLabel: (type: string) => string
 }>()
 
 defineEmits<{
-  (e: 'add'): void
-  (e: 'edit', field: WaitingListField): void
-  (e: 'delete', field: WaitingListField): void
-  (e: 'move', index: number, direction: -1 | 1): void
+  add: []
+  edit: [field: WaitingListField]
+  delete: [field: WaitingListField]
+  move: [index: number, direction: -1 | 1]
 }>()
 
 const { t } = useI18n()
@@ -44,7 +43,7 @@ const sortedFields = computed(() =>
 
     <p class="text-sm text-(--text-muted)">{{ t('waitingList.fieldsHint') }}</p>
 
-    <EmptyState compact v-if="sortedFields.length === 0">{{ t('waitingList.noFields') }}</EmptyState>
+    <EmptyState v-if="sortedFields.length === 0" compact>{{ t('waitingList.noFields') }}</EmptyState>
 
     <div class="space-y-2">
       <FieldRow
@@ -53,7 +52,6 @@ const sortedFields = computed(() =>
         :field="field"
         :index="index"
         :total="sortedFields.length"
-        :field-type-label="fieldTypeLabel"
         @move="(i, d) => $emit('move', i, d)"
         @edit="(f) => $emit('edit', f)"
         @delete="(f) => $emit('delete', f)"

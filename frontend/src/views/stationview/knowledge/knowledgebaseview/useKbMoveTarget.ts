@@ -5,7 +5,7 @@
  */
 import {ref} from 'vue'
 import {knowledgeBase} from '@/api'
-import type {KbFileSummary, KbFolder, KbFolderTreeEntry} from '@/api/knowledgeBase'
+import type {FolderTreeEntry, KbFileSummary, KbFolder} from '@/api/generated/schema'
 
 /**
  * The folder tree a move picks from, and which entry is being moved.
@@ -16,7 +16,7 @@ import type {KbFileSummary, KbFolder, KbFolderTreeEntry} from '@/api/knowledgeBa
  * root, which is a real place to put something.
  */
 export function useKbMoveTarget() {
-    const folders = ref<KbFolderTreeEntry[]>([])
+    const folders = ref<FolderTreeEntry[]>([])
     const showMove = ref(false)
     const movingFolder = ref<KbFolder | null>(null)
     const movingFile = ref<KbFileSummary | null>(null)

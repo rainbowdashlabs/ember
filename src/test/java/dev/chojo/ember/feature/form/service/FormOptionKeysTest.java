@@ -5,8 +5,8 @@
  */
 package dev.chojo.ember.feature.form.service;
 
-import dev.chojo.ember.api.Refusal;
-import dev.chojo.ember.api.RefusalResponse;
+import dev.chojo.ember.api.refusal.FormRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.form.entity.FormAnswer;
@@ -23,7 +23,6 @@ import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.members.service.UserTagService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import dev.chojo.ember.util.ShareTokens;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -60,8 +59,7 @@ class FormOptionKeysTest extends RepositoryTestBase {
                 mock(MemberGroupService.class),
                 mock(UserTagService.class),
                 restrictionService,
-                new DomainEventBus(Set.of()),
-                new ShareTokens());
+                new DomainEventBus(Set.of()));
         station = stationRepo.create("FormOptionKeysStation");
         for (int i = 0; i < 3; i++) {
             var account = accountRepo.create("form-option-keys-" + i + "@test.com", "Form", "Keys" + i);
@@ -79,11 +77,11 @@ class FormOptionKeysTest extends RepositoryTestBase {
     @Test
     void reorderingAndRenamingOptionsKeepsWhatWasChosen() {
         var question = questionWith(choice(YES, NO, MAYBE, true));
-        answer(question, 0, new FormAnswerValue.Choice(List.of("k-no"), null));
+        answer(question, 0, new FormAnswerValue.ChoiceAnswer(List.of("k-no"), null));
 
         save(question, choice(new Option("k-maybe", "Weiß nicht"), NO, new Option("k-yes", "Ja, gern"), true));
 
-        assertEquals(List.of(new FormAnswerValue.Choice(List.of("k-no"), null)), answersTo(question));
+        assertEquals(List.of(new FormAnswerValue.ChoiceAnswer(List.of("k-no"), null)), answersTo(question));
         var tally = FormResultTally.tally(
                         service.findQuestions(question.formId()),
                         service.findAllAnswersForForm(question.formId()),
@@ -99,16 +97,16 @@ class FormOptionKeysTest extends RepositoryTestBase {
     @Test
     void removingAChoiceOptionDropsOnlyItsSelections() {
         var question = questionWith(choice(YES, NO, MAYBE, true));
-        answer(question, 0, new FormAnswerValue.Choice(List.of("k-yes", "k-no"), null));
-        answer(question, 1, new FormAnswerValue.Choice(List.of("k-no"), null));
-        answer(question, 2, new FormAnswerValue.Choice(List.of("k-maybe"), null));
+        answer(question, 0, new FormAnswerValue.ChoiceAnswer(List.of("k-yes", "k-no"), null));
+        answer(question, 1, new FormAnswerValue.ChoiceAnswer(List.of("k-no"), null));
+        answer(question, 2, new FormAnswerValue.ChoiceAnswer(List.of("k-maybe"), null));
 
         save(question, choice(YES, MAYBE, true));
 
         assertEquals(
                 List.of(
-                        new FormAnswerValue.Choice(List.of("k-yes"), null),
-                        new FormAnswerValue.Choice(List.of("k-maybe"), null)),
+                        new FormAnswerValue.ChoiceAnswer(List.of("k-yes"), null),
+                        new FormAnswerValue.ChoiceAnswer(List.of("k-maybe"), null)),
                 answersTo(question),
                 "a choice left with nothing selected is gone, the others lose only the removed option");
         assertEquals(3, service.countResponses(question.formId()), "the responses themselves stay");
@@ -117,39 +115,39 @@ class FormOptionKeysTest extends RepositoryTestBase {
     @Test
     void aChoiceLeftWithOnlyItsOtherTextStays() {
         var question = questionWith(choice(YES, NO, MAYBE, true));
-        answer(question, 0, new FormAnswerValue.Choice(List.of("k-no"), "Übungsdienst"));
+        answer(question, 0, new FormAnswerValue.ChoiceAnswer(List.of("k-no"), "Übungsdienst"));
 
         save(question, choice(YES, MAYBE, true));
 
-        assertEquals(List.of(new FormAnswerValue.Choice(List.of(), "Übungsdienst")), answersTo(question));
+        assertEquals(List.of(new FormAnswerValue.ChoiceAnswer(List.of(), "Übungsdienst")), answersTo(question));
     }
 
     @Test
     void removingARankingOptionDropsItFromTheOrder() {
         var question = questionWith(new FormQuestionConfig.Ranking(List.of(YES, NO, MAYBE)));
-        answer(question, 0, new FormAnswerValue.Ranking(List.of("k-maybe", "k-yes", "k-no")));
+        answer(question, 0, new FormAnswerValue.RankingAnswer(List.of("k-maybe", "k-yes", "k-no")));
 
         save(question, new FormQuestionConfig.Ranking(List.of(MAYBE, NO)));
 
-        assertEquals(List.of(new FormAnswerValue.Ranking(List.of("k-maybe", "k-no"))), answersTo(question));
+        assertEquals(List.of(new FormAnswerValue.RankingAnswer(List.of("k-maybe", "k-no"))), answersTo(question));
     }
 
     @Test
     void removingALikertStatementDropsItsRating() {
         var question = questionWith(new FormQuestionConfig.Likert(List.of(YES, NO), 1, 5, List.of()));
-        answer(question, 0, new FormAnswerValue.Likert(Map.of("k-yes", 4, "k-no", 2)));
-        answer(question, 1, new FormAnswerValue.Likert(Map.of("k-no", 5)));
+        answer(question, 0, new FormAnswerValue.LikertAnswer(Map.of("k-yes", 4, "k-no", 2)));
+        answer(question, 1, new FormAnswerValue.LikertAnswer(Map.of("k-no", 5)));
 
         save(question, new FormQuestionConfig.Likert(List.of(YES), 1, 5, List.of()));
 
-        assertEquals(List.of(new FormAnswerValue.Likert(Map.of("k-yes", 4))), answersTo(question));
+        assertEquals(List.of(new FormAnswerValue.LikertAnswer(Map.of("k-yes", 4))), answersTo(question));
     }
 
     @Test
     void countsTheAnswersNamingEachOption() {
         var question = questionWith(choice(YES, NO, MAYBE, true));
-        answer(question, 0, new FormAnswerValue.Choice(List.of("k-yes", "k-no"), null));
-        answer(question, 1, new FormAnswerValue.Choice(List.of("k-no"), null));
+        answer(question, 0, new FormAnswerValue.ChoiceAnswer(List.of("k-yes", "k-no"), null));
+        answer(question, 1, new FormAnswerValue.ChoiceAnswer(List.of("k-no"), null));
 
         var count = service.countAnswersPerQuestion(question.formId()).getFirst();
 
@@ -166,8 +164,8 @@ class FormOptionKeysTest extends RepositoryTestBase {
         var missing =
                 assertThrows(RefusalResponse.class, () -> save(question, choice(YES, new Option(" ", "Nein"), false)));
 
-        assertEquals(Refusal.QUESTION_OPTION_KEYS_NOT_DISTINCT, duplicate.refusal());
-        assertEquals(Refusal.QUESTION_OPTION_KEYS_NOT_DISTINCT, missing.refusal());
+        assertEquals(FormRefusal.QUESTION_OPTION_KEYS_NOT_DISTINCT, duplicate.refusal());
+        assertEquals(FormRefusal.QUESTION_OPTION_KEYS_NOT_DISTINCT, missing.refusal());
         assertEquals(
                 choice(YES, NO, false),
                 service.findQuestions(question.formId()).getFirst().config());
@@ -183,7 +181,7 @@ class FormOptionKeysTest extends RepositoryTestBase {
                         question.formId(),
                         members.getFirst().id(),
                         members.getFirst().id(),
-                        Map.of(question.id(), new FormAnswerValue.Choice(List.of("k-gone"), null))));
+                        Map.of(question.id(), new FormAnswerValue.ChoiceAnswer(List.of("k-gone"), null))));
     }
 
     private static FormQuestionConfig.Choice choice(Option first, Option second, boolean multi) {

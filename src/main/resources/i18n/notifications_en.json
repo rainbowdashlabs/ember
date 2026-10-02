@@ -37,6 +37,7 @@
     "status.CLOSED": "Closed",
     "cancelled": "Event cancelled",
     "cancelledWithReason": "Event cancelled: {reason}",
+    "cancelledTooFewRegistrations": "Event cancelled: too few registrations",
     "registrationRequired": "Registration required"
   },
   "feedLabel": {
@@ -86,7 +87,8 @@
     "progressFormat": "{checked} of {total} items",
     "recurrence": "Recurrence",
     "deadline": "Registration deadline",
-    "limit": "Attendee limit"
+    "limit": "Attendee limit",
+    "nextDate": "Next date"
   },
   "storageCategory": {
     "KB_FILES": "Wiki",
@@ -145,6 +147,9 @@
     "REGISTRATION_CLOSING.one": "Registration closes tomorrow: {eventName} - {memberName} pending",
     "REGISTRATION_CLOSING.other": "Registration closes in {daysBefore} days: {eventName} - {memberName} pending",
     "REGISTRATION_ANSWER_MISSING": "Answer missing: {eventName} - {memberName}",
+    "EVENT_DATE_DROPPED": "Registration withdrawn: {eventName} - {memberName}",
+    "EVENT_MOVED": "Moved: {eventName} - {memberName}",
+    "EVENT_DATE_RESTORED": "Takes place again: {eventName}",
     "PROCEDURE_ASSIGNED": "Procedure assigned: {procedureName}",
     "PROCEDURE_RESOLVED": "Resolved: {procedureName}",
     "PROCEDURE_REOPENED": "Reopened: {procedureName}",
@@ -205,6 +210,9 @@
     "EVENT_REMINDER": "Event Reminder",
     "REGISTRATION_CLOSING": "Registration Closing",
     "REGISTRATION_ANSWER_MISSING": "Answer Wanted",
+    "EVENT_DATE_DROPPED": "Event Date Dropped",
+    "EVENT_MOVED": "Event Moved",
+    "EVENT_DATE_RESTORED": "Event Date Restored",
     "PROCEDURE_ASSIGNED": "Procedure Assigned",
     "PROCEDURE_RESOLVED": "Procedure Resolved",
     "PROCEDURE_REOPENED": "Procedure Reopened",
@@ -257,6 +265,9 @@
     "notification.registrationDeadlineExpired.one": "Registration deadline expired for {eventName} ({pendingCount} pending)",
     "notification.registrationDeadlineExpired.other": "Registration deadline expired for {eventName} ({pendingCount} pending)",
     "notification.eventCancelled": "Event cancelled: {eventName}",
+    "notification.eventCancelled.DATE": "{eventName} on {eventDate} was cancelled",
+    "notification.eventCancelled.THRESHOLD": "{eventName} on {eventDate} was cancelled: too few registrations",
+    "notification.eventDateRestored": "{eventName} on {eventDate} takes place after all",
     "notification.eventReminder.one": "{eventName} is tomorrow ({eventDate})",
     "notification.eventReminder.other": "{eventName} in {daysBefore} days ({eventDate})",
     "notification.procedureAssigned": "{assignedByName} assigned you to procedure \"{procedureName}\"",
@@ -293,6 +304,9 @@
     "notification.registrationClosing.one": "{eventName}: registration closes tomorrow, {memberName} has not answered yet",
     "notification.registrationClosing.other": "{eventName}: registration closes in {daysBefore} days, {memberName} has not answered yet",
     "notification.registrationAnswerMissing": "{eventName} on {eventDate}: a new question was added and {memberName} has not answered it yet",
+    "notification.eventDateDropped": "{eventName} has moved and no longer takes place on {eventDate}: the registration of {memberName} was withdrawn. The next date is {nextDate}",
+    "notification.eventDateDropped.LAST": "{eventName} no longer takes place on {eventDate}: the registration of {memberName} was withdrawn. No later date is left",
+    "notification.eventMoved": "{eventName} has moved to {eventDate} at {startTime}: the registration of {memberName} moves with it",
     "notification.movementCancelled": "{inventoryName}: movement of {itemName} called off - {reason}",
     "notification.mailboxSuspended": "Mailbox \"{mailbox}\" is no longer being checked: {reason}",
     "notification.mailImportUnbound": "{count} documents that arrived by mail are not on a member yet"

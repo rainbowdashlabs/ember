@@ -8,12 +8,11 @@ import {useI18n} from 'vue-i18n'
 import Spinner from '@/components/feedback/Spinner.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import IconButton from '@/components/button/IconButton.vue'
-import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import KbCreateMenu from './KbCreateMenu.vue'
 import KbItemGrid from './KbItemGrid.vue'
 import KbItemList from './KbItemList.vue'
 import KbSelectionBar from './KbSelectionBar.vue'
-import type {KbFolder} from '@/api/knowledgeBase'
+import type {KbFolder} from '@/api/generated/schema'
 import type {KbItem} from './useKbItems'
 
 const {t} = useI18n()
@@ -50,7 +49,7 @@ const emit = defineEmits<{
     <div>
         <Spinner v-if="loading"/>
         <template v-else>
-            <MutedText tag="p" size="sm" v-if="currentFolder?.description">
+            <MutedText v-if="currentFolder?.description" tag="p" size="sm">
                 {{ currentFolder.description }}
             </MutedText>
 

@@ -26,7 +26,7 @@ const logo = emberLogo()
         :pixel-size="512" size="h-20 w-20 sm:h-24 sm:w-24"/>
 
     <PageHeader class="text-4xl! font-black! leading-tight sm:text-5xl! xl:text-6xl!">
-      {{ slide.heading }}<br>
+      {{ slide.heading }}<br/>
       <span :class="accentText(slide.accent)">{{ slide.headingAccent }}</span>
     </PageHeader>
 

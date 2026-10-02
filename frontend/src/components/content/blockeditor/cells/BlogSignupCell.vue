@@ -4,18 +4,21 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import type {BlogSignupConfig} from '@/api/pageManage'
+import {useI18n} from 'vue-i18n'
+import type {BlogSignupConfig} from '@/api/generated/schema'
 
 defineProps<{
     config: BlogSignupConfig
     stationUid?: string | null
 }>()
+
+const {t} = useI18n()
 </script>
 
 <template>
     <div class="rounded-theme border border-(--border) bg-primary/5 p-4 space-y-2 text-center">
         <font-awesome-icon :icon="['fas', 'rss']" class="text-3xl text-primary"/>
-        <p class="font-semibold">{{ config.title || 'Blog abonnieren' }}</p>
+        <p class="font-semibold">{{ config.title || t('stationPages.cellHints.subscribeBlog') }}</p>
         <p v-if="config.description" class="text-sm text-(--text-muted)">{{ config.description }}</p>
         <div v-if="stationUid" class="flex justify-center gap-2 pt-1">
             <a :href="`/api/v1/public/station/${stationUid}/blog.atom`" target="_blank" rel="alternate noopener"

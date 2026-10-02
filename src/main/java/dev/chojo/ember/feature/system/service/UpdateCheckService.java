@@ -6,8 +6,14 @@
 package dev.chojo.ember.feature.system.service;
 
 import dev.chojo.ember.conf.file.elements.Updates;
+import dev.chojo.ember.feature.federation.service.OutboundHttp;
+import dev.chojo.ember.lifecycle.Schedule;
+import dev.chojo.ember.lifecycle.ScheduledTask;
+import dev.chojo.ember.lifecycle.TaskSource;
+import dev.chojo.ember.util.Json;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tools.jackson.databind.json.JsonMapper;
@@ -19,9 +25,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -37,15 +41,12 @@ import java.util.concurrent.atomic.AtomicReference;
  * at warn and change nothing, so an instance with no outbound access is merely quiet.
  */
 @Singleton
-public class UpdateCheckService {
+public class UpdateCheckService implements TaskSource {
     private static final Logger log = LoggerFactory.getLogger(UpdateCheckService.class);
-    private static final JsonMapper JSON = JsonMapper.builder().build();
+    private static final JsonMapper JSON = Json.MAPPER;
     private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(10);
 
-    private final HttpClient httpClient = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(5))
-            .followRedirects(HttpClient.Redirect.NORMAL)
-            .build();
+    private final HttpClient httpClient = OutboundHttp.trustedClient(Duration.ofSeconds(5), HttpClient.Redirect.NORMAL);
 
     private static final String GITHUB_API = "https://api.github.com";
 
@@ -71,22 +72,6 @@ public class UpdateCheckService {
         this.config = config;
         this.apiBase = apiBase;
         this.currentVersion = readCurrentVersion();
-    }
-
-    /**
-     * Starts the periodic check, unless the operator switched it off.
-     *
-     * <p>The first run is delayed by a minute so that starting up is never held behind an outbound
-     * call, and so that an instance restarted in a loop does not hammer the API.
-     */
-    public void start() {
-        if (!config.enabled()) {
-            log.debug("Update check disabled");
-            return;
-        }
-        ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(
-                runnable -> Thread.ofVirtual().name("update-check").unstarted(runnable));
-        scheduler.scheduleAtFixedRate(this::check, 1, config.checkIntervalHours() * 60L, TimeUnit.MINUTES);
     }
 
     /**
@@ -161,7 +146,7 @@ public class UpdateCheckService {
      * is refused rather than announced: reaching the higher number first would otherwise decide the
      * answer before the part that says it is not a finished release is ever looked at.
      */
-    private static int[] numbersOf(String version) {
+    private static int @Nullable [] numbersOf(String version) {
         String[] parts = version.split("\\.");
         int[] numbers = new int[parts.length];
         for (int i = 0; i < parts.length; i++) {
@@ -214,5 +199,20 @@ public class UpdateCheckService {
      * @param latestVersion   the newest release found, null where no check has succeeded
      * @param updateAvailable whether the newest release is ahead of the running one
      */
-    public record UpdateStatus(String currentVersion, String latestVersion, boolean updateAvailable) {}
+    public record UpdateStatus(
+            String currentVersion, @Nullable String latestVersion, boolean updateAvailable) {}
+
+    /**
+     * The check at {@code updates.checkIntervalHours} while switched on. The first run waits a minute so start
+     * up never waits on an outbound call and an instance restarting in a loop does not hammer the API.
+     */
+    @Override
+    public List<ScheduledTask> scheduledTasks() {
+        return List.of(new ScheduledTask(
+                "update-check",
+                Schedule.fixedRate(Duration.ofMinutes(1), Duration.ofHours(config.checkIntervalHours())),
+                () -> {
+                    if (config.enabled()) check();
+                }));
+    }
 }

@@ -5,10 +5,12 @@
  */
 package dev.chojo.ember.feature.station.service;
 
+import dev.chojo.ember.api.refusal.Refusal;
+import dev.chojo.ember.api.refusal.StationRefusal;
 import dev.chojo.ember.feature.station.repository.StationRepository;
-import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,37 +54,36 @@ public class StationLocationService {
     }
 
     private static void validate(LocationUpdate update) {
-        if (update == null) throw new BadRequestResponse("body required");
-        if ((update.latitude() == null) != (update.longitude() == null)) {
-            throw new BadRequestResponse("latitude and longitude must be set together");
+        if (update == null) throw StationRefusal.STATION_LOCATION_MISSING.raise();
+        BigDecimal latitude = update.latitude();
+        BigDecimal longitude = update.longitude();
+        String country = update.country();
+        if ((latitude == null) != (longitude == null)) {
+            throw StationRefusal.STATION_LOCATION_HALF_PINNED.raise();
         }
-        if (update.latitude() != null
-                && (update.latitude().compareTo(LAT_MIN) < 0
-                        || update.latitude().compareTo(LAT_MAX) > 0)) {
-            throw new BadRequestResponse("latitude out of range [-90, 90]");
+        if (latitude != null && (latitude.compareTo(LAT_MIN) < 0 || latitude.compareTo(LAT_MAX) > 0)) {
+            throw StationRefusal.STATION_LATITUDE_OUT_OF_RANGE.raise();
         }
-        if (update.longitude() != null
-                && (update.longitude().compareTo(LON_MIN) < 0
-                        || update.longitude().compareTo(LON_MAX) > 0)) {
-            throw new BadRequestResponse("longitude out of range [-180, 180]");
+        if (longitude != null && (longitude.compareTo(LON_MIN) < 0 || longitude.compareTo(LON_MAX) > 0)) {
+            throw StationRefusal.STATION_LONGITUDE_OUT_OF_RANGE.raise();
         }
-        if (update.country() != null
-                && !update.country().isBlank()
-                && !COUNTRY_RX.matcher(update.country().trim()).matches()) {
-            throw new BadRequestResponse("country must be ISO-3166-1 alpha-2 uppercase");
+        if (country != null
+                && !country.isBlank()
+                && !COUNTRY_RX.matcher(country.trim()).matches()) {
+            throw StationRefusal.STATION_COUNTRY_NOT_A_CODE.raise();
         }
-        rejectIfTooLong("addressLine", update.addressLine());
-        rejectIfTooLong("postalCode", update.postalCode());
-        rejectIfTooLong("city", update.city());
+        rejectIfTooLong(StationRefusal.STATION_ADDRESS_LINE_TOO_LONG, update.addressLine());
+        rejectIfTooLong(StationRefusal.STATION_POSTAL_CODE_TOO_LONG, update.postalCode());
+        rejectIfTooLong(StationRefusal.STATION_CITY_TOO_LONG, update.city());
     }
 
-    private static void rejectIfTooLong(String field, String value) {
+    private static void rejectIfTooLong(Refusal refusal, @Nullable String value) {
         if (value != null && value.length() > MAX_TEXT_LEN) {
-            throw new BadRequestResponse(field + " exceeds " + MAX_TEXT_LEN + " characters");
+            throw refusal.raise();
         }
     }
 
-    private static String trimToNull(String value) {
+    private static @Nullable String trimToNull(@Nullable String value) {
         if (value == null) return null;
         String trimmed = value.trim();
         return trimmed.isEmpty() ? null : trimmed;
@@ -96,7 +97,7 @@ public class StationLocationService {
                 .findById(stationId)
                 .map(s -> new LocationView(
                         s.addressLine(), s.postalCode(), s.city(), s.country(), s.latitude(), s.longitude()))
-                .orElseThrow(() -> new BadRequestResponse("Station not found"));
+                .orElseThrow(StationRefusal.STATION_NOT_HERE_FOR_LOCATION::raise);
     }
 
     /**
@@ -144,21 +145,21 @@ public class StationLocationService {
      * Response payload for {@code GET /station/location}.
      */
     public record LocationView(
-            String addressLine,
-            String postalCode,
-            String city,
-            String country,
-            BigDecimal latitude,
-            BigDecimal longitude) {}
+            @Nullable String addressLine,
+            @Nullable String postalCode,
+            @Nullable String city,
+            @Nullable String country,
+            @Nullable BigDecimal latitude,
+            @Nullable BigDecimal longitude) {}
 
     /**
      * Request payload for {@code PUT /station/location}.
      */
     public record LocationUpdate(
-            String addressLine,
-            String postalCode,
-            String city,
-            String country,
-            BigDecimal latitude,
-            BigDecimal longitude) {}
+            @Nullable String addressLine,
+            @Nullable String postalCode,
+            @Nullable String city,
+            @Nullable String country,
+            @Nullable BigDecimal latitude,
+            @Nullable BigDecimal longitude) {}
 }

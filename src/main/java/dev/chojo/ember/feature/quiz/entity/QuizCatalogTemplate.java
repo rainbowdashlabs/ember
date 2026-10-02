@@ -5,7 +5,8 @@
  */
 package dev.chojo.ember.feature.quiz.entity;
 
-import io.javalin.http.InternalServerErrorResponse;
+import dev.chojo.ember.api.refusal.QuizRefusal;
+import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -36,7 +37,7 @@ public enum QuizCatalogTemplate {
      * @param format the format as the request spells it, in either case
      * @return the template, or {@code null} for a format there is no example of
      */
-    public static QuizCatalogTemplate byFormat(String format) {
+    public static @Nullable QuizCatalogTemplate byFormat(String format) {
         if (format == null) return null;
         try {
             return valueOf(format.toUpperCase(Locale.ROOT));
@@ -56,10 +57,10 @@ public enum QuizCatalogTemplate {
     /** Reads the shipped example. A missing one is a broken build, not a bad request. */
     public String read() {
         try (var stream = QuizCatalogTemplate.class.getClassLoader().getResourceAsStream(resourcePath)) {
-            if (stream == null) throw new InternalServerErrorResponse("Template " + resourcePath + " is missing");
+            if (stream == null) throw QuizRefusal.QUIZ_CATALOG_EXAMPLE_MISSING.raise();
             return new String(stream.readAllBytes(), StandardCharsets.UTF_8);
         } catch (IOException e) {
-            throw new InternalServerErrorResponse("Failed to read template " + resourcePath);
+            throw QuizRefusal.QUIZ_CATALOG_EXAMPLE_NOT_READ.raise();
         }
     }
 }

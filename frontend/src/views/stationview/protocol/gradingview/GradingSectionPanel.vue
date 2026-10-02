@@ -11,13 +11,13 @@ import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import GradingItemButton from './GradingItemButton.vue'
-import type { TestProtocolSection, TestProtocolItem } from '@/api/protocol'
+import type { TestProtocolSection, TestProtocolItem } from '@/api/generated/schema'
 
 defineProps<{
   section: TestProtocolSection
   childSections: TestProtocolSection[]
   sectionItems: (sectionId: number) => TestProtocolItem[]
-  checks: Map<number, boolean>
+  checks: ReadonlyMap<number, boolean>
   score: number
   maxPoints: number
   done: boolean

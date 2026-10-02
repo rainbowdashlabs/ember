@@ -9,7 +9,8 @@ import {useI18n} from 'vue-i18n'
 import MutedIconButton from '@/components/button/MutedIconButton.vue'
 import DragList from '@/components/input/DragList.vue'
 import PartnerStationSearchPicker from '@/components/input/search/PartnerStationSearchPicker.vue'
-import {resolvePartnerStations, type PublicPartnerSummary} from '@/api/publicPages'
+import {resolvePartnerStations} from '@/api/publicPages'
+import type {PublicPartnerSummary} from '@/api/generated/schema'
 import {moveWithin} from '@/util/reorder'
 
 const modelValue = defineModel<string[]>({required: true})
@@ -24,17 +25,14 @@ const nameCache = ref<Record<string, string>>({})
 
 const uids = computed(() => modelValue.value ?? [])
 
+/** Looks up the names not known yet. A station whose name cannot be found is shown by its UUID. */
 async function refreshNames(list: string[]) {
     const missing = list.filter(uid => !(uid in nameCache.value))
     if (missing.length === 0) return
-    try {
-        const resolved = await resolvePartnerStations(props.stationUid, missing)
-        const next = {...nameCache.value}
-        for (const r of resolved as PublicPartnerSummary[]) next[r.uid] = r.name
-        nameCache.value = next
-    } catch {
-        // leave missing entries; UI falls back to the UUID.
-    }
+    const resolved = await resolvePartnerStations(props.stationUid, missing).catch(() => [])
+    const next = {...nameCache.value}
+    for (const r of resolved as PublicPartnerSummary[]) next[r.uid] = r.name
+    nameCache.value = next
 }
 
 watch(uids, list => refreshNames(list), {immediate: true})

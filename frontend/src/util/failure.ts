@@ -3,7 +3,9 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
+import type {CountUnit, RefusalDetail} from '@/api/generated/schema'
 import {apiErrorBody, apiErrorCode, apiErrorMessage, apiErrorStatus} from './apiError'
+import {formatBytes} from './storage'
 
 /**
  * What kind of failure something was, which is what decides what the reader should do about it.
@@ -94,7 +96,10 @@ const KEY = 'failure'
 export function describeFailure(e: unknown, t: Translate): Failure {
     const status = apiErrorStatus(e)
     const code = apiErrorCode(e)
-    const said = translatedRefusal(code, t) ?? apiErrorMessage(e)
+    const translated = translatedRefusal(code, t)
+    const said = translated === undefined
+        ? apiErrorMessage(e)
+        : withDetail(translated, apiErrorBody(e)?.detail, t)
     const kind = kindOf(e, status)
     const technical = apiErrorMessage(e) ?? thrownMessage(e)
 
@@ -145,6 +150,46 @@ function translatedRefusal(code: string | undefined, t: Translate): string | und
     const key = `refusal.${code}`
     const written = t(key)
     return written === key ? undefined : written
+}
+
+/**
+ * Our sentence for a refusal with the value it was about after it, in parentheses.
+ *
+ * <p>The server names the value in its English sentence as well, which is why only our own sentence
+ * needs it added: a sentence nobody translated already carries it.
+ */
+function withDetail(sentence: string, detail: RefusalDetail | undefined, t: Translate): string {
+    return detail ? `${sentence} (${formatRefusalDetail(detail, t)})` : sentence
+}
+
+const UNIT_KEYS: Record<CountUnit, string> = {
+    DAYS: 'failure.detail.days',
+    HOURS: 'failure.detail.hours',
+    YEARS: 'failure.detail.years',
+    LINE: 'failure.detail.line',
+}
+
+/**
+ * Writes the value a refusal was about in the reader's language: text as it was typed, a count as a
+ * number (with its unit where the refusal named one), and the room left of a pool as a size against
+ * the size of the pool, in the units the storage screens use.
+ *
+ * @param detail what the refusal was about
+ * @param t      the translator
+ * @return the value, ready to stand in parentheses after the sentence
+ */
+export function formatRefusalDetail(detail: RefusalDetail, t: Translate): string {
+    switch (detail.kind) {
+        case 'TEXT':
+            return detail.text
+        case 'COUNT':
+            return detail.unit ? t(UNIT_KEYS[detail.unit], {count: detail.count}) : String(detail.count)
+        case 'ROOM':
+            return t('failure.detail.room', {
+                free: formatBytes(detail.freeBytes),
+                total: formatBytes(detail.totalBytes),
+            })
+    }
 }
 
 /**

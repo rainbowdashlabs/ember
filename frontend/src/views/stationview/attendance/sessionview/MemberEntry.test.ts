@@ -3,12 +3,12 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-// @vitest-environment happy-dom
+/** @vitest-environment happy-dom */
 import {mount} from '@vue/test-utils'
 import {describe, expect, it} from 'vitest'
 import MemberEntry from './MemberEntry.vue'
-import type {MemberNotes, SwapNote} from '@/api/attendance'
-import type {StationMember} from '@/api/types'
+import type {MemberNotes, MemberWithName, SwapNote} from '@/api/generated/schema'
+import {createMember} from '@/test/mocks/factories'
 
 /**
  * What a row of the sheet gives away about a member before anybody asks.
@@ -22,8 +22,8 @@ const harness = {
     },
 }
 
-function member(): StationMember {
-    return {id: 1, identity: {id: 1, firstName: 'Max', lastName: 'Hoffmann'}} as unknown as StationMember
+function member(): MemberWithName {
+    return createMember({id: 1, name: 'Max Hoffmann', firstName: 'Max', lastName: 'Hoffmann'})
 }
 
 function swap(overrides: Partial<SwapNote> = {}): SwapNote {

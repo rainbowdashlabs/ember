@@ -8,14 +8,14 @@ import { useI18n } from 'vue-i18n'
 import TextInput from '@/components/input/text/TextInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 
-const props = defineProps<{
+defineProps<{
   firstname: string
   lastname: string
 }>()
 
 const emit = defineEmits<{
-  (e: 'update:firstname', value: string): void
-  (e: 'update:lastname', value: string): void
+  'update:firstname': [value: string]
+  'update:lastname': [value: string]
 }>()
 
 const { t } = useI18n()
@@ -25,11 +25,11 @@ const { t } = useI18n()
   <div class="grid gap-4 sm:grid-cols-2">
     <div class="space-y-1">
       <FieldLabel>{{ t('waitingList.firstname') }} <span class="text-error">*</span></FieldLabel>
-      <TextInput :model-value="firstname" @update:model-value="emit('update:firstname', $event ?? '')" :placeholder="t('waitingList.firstnamePlaceholder')"/>
+      <TextInput :model-value="firstname" :placeholder="t('waitingList.firstnamePlaceholder')" @update:model-value="emit('update:firstname', $event ?? '')"/>
     </div>
     <div class="space-y-1">
       <FieldLabel>{{ t('waitingList.lastname') }}</FieldLabel>
-      <TextInput :model-value="lastname" @update:model-value="emit('update:lastname', $event ?? '')" :placeholder="t('waitingList.lastnamePlaceholder')"/>
+      <TextInput :model-value="lastname" :placeholder="t('waitingList.lastnamePlaceholder')" @update:model-value="emit('update:lastname', $event ?? '')"/>
     </div>
   </div>
 </template>

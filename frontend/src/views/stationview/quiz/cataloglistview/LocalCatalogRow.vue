@@ -12,7 +12,7 @@ import DeleteButton from '@/components/button/DeleteButton.vue'
 import MutedIconButton from '@/components/button/MutedIconButton.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import type { QuizCatalog } from '@/api/quiz'
+import type { QuizCatalog } from '@/api/generated/schema'
 
 const props = defineProps<{
   catalog: QuizCatalog

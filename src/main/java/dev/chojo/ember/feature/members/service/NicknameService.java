@@ -6,12 +6,12 @@
 package dev.chojo.ember.feature.members.service;
 
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.MemberRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.ForbiddenResponse;
-import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,13 +58,12 @@ public class NicknameService {
      * @param nickname the name, or null or blank to give them their register name back
      * @param actorId the member doing the writing
      * @param permissions what the actor may do at this station
-     * @throws ForbiddenResponse where the actor is neither the member, nor one of their managers,
-     *     nor somebody who keeps the station's members
-     * @throws BadRequestResponse where the name is longer than {@link #MAX_LENGTH} or carries a line
-     *     break
+     * @throws RefusalResponse where the actor is neither the member, nor one of their managers, nor
+     *     somebody who keeps the station's members, or where the name is longer than
+     *     {@link #MAX_LENGTH} or carries a line break
      */
-    public void set(int memberId, String nickname, int actorId, Set<StationPermission> permissions) {
-        var member = memberRepository.findById(memberId).orElseThrow(NotFoundResponse::new);
+    public void set(int memberId, @Nullable String nickname, int actorId, Set<StationPermission> permissions) {
+        var member = memberRepository.findById(memberId).orElseThrow(MemberRefusal.NICKNAME_MEMBER_NOT_HERE::raise);
         requireMayWrite(memberId, actorId, permissions);
 
         String cleaned = clean(nickname);
@@ -97,20 +96,19 @@ public class NicknameService {
 
     private void requireMayWrite(int memberId, int actorId, Set<StationPermission> permissions) {
         if (!mayWrite(memberId, actorId, permissions)) {
-            throw new ForbiddenResponse("Only a member, whoever looks after them, or whoever keeps the station's "
-                    + "members may set the name they go by");
+            throw MemberRefusal.NICKNAME_NOT_YOURS_TO_SET.raise();
         }
     }
 
-    private static String clean(String nickname) {
+    private static @Nullable String clean(@Nullable String nickname) {
         if (nickname == null) return null;
         String trimmed = nickname.trim();
         if (trimmed.isEmpty()) return null;
         if (trimmed.length() > MAX_LENGTH) {
-            throw new BadRequestResponse("A name to be called by is at most " + MAX_LENGTH + " characters");
+            throw MemberRefusal.NICKNAME_TOO_LONG.raise();
         }
         if (trimmed.chars().anyMatch(c -> c == '\n' || c == '\r')) {
-            throw new BadRequestResponse("A name to be called by is one line");
+            throw MemberRefusal.NICKNAME_NOT_ONE_LINE.raise();
         }
         return trimmed;
     }

@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.station.transfer;
 
+import org.jspecify.annotations.Nullable;
+
 import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
@@ -17,7 +19,7 @@ public final class WireValues {
 
     private WireValues() {}
 
-    public static Integer asInteger(Object val) {
+    public static @Nullable Integer asInteger(Object val) {
         if (val instanceof Number n) return n.intValue();
         if (val instanceof String s) {
             try {
@@ -29,19 +31,19 @@ public final class WireValues {
         return null;
     }
 
-    public static String asString(Object o, String defaultValue) {
+    public static String asString(Object o, @Nullable String defaultValue) {
         return o == null ? defaultValue : o.toString();
     }
 
     @SuppressWarnings("unchecked")
-    public static Map<String, Object> asMap(Object o) {
+    public static @Nullable Map<String, Object> asMap(Object o) {
         return o instanceof Map ? (Map<String, Object>) o : null;
     }
 
     /**
      * Parses a UUID, returning {@code null} for absent or malformed values instead of throwing.
      */
-    public static UUID asUuid(Object raw) {
+    public static @Nullable UUID asUuid(Object raw) {
         if (raw == null) return null;
         try {
             return UUID.fromString(raw.toString());
@@ -56,7 +58,7 @@ public final class WireValues {
      * payloads with ISO-8601 strings or driver-native types are accepted so the importer keeps
      * working through a wire-format transition.
      */
-    public static Instant asInstant(Object val) {
+    public static @Nullable Instant asInstant(Object val) {
         return switch (val) {
             case null -> null;
             case Instant i -> i;

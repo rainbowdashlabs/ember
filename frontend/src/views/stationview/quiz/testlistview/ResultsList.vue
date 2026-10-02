@@ -12,7 +12,8 @@ import EmptyState from '@/components/feedback/EmptyState.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
-import {QuizTestStatus, type QuizTestSummary} from '@/api/quiz'
+import {QuizTestStatus} from '@/api/quiz'
+import type {QuizTestSummary} from '@/api/generated/schema'
 
 const props = defineProps<{
   summaries: QuizTestSummary[]

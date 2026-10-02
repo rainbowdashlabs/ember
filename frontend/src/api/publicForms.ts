@@ -4,30 +4,9 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-import type {FormPurposeName, PageTarget, QuestionType} from './forms'
+import type {components, PublicForm, PublicFormSubmitRequest, PublicFormSubmitResponse} from './generated/schema'
 
-export interface PublicFormQuestion {
-    id: number
-    questionType: QuestionType
-    title: string
-    description: string
-    required: boolean
-    /** Whether the options come in a different order for every reader. */
-    shuffle: boolean
-    /** The key of the page the question stands on. */
-    pageKey: string
-    config: Record<string, unknown>
-    /** Where the page leads per option key picked, for the question that decides it. */
-    branch?: Record<string, PageTarget> | null
-}
-
-/** One page of a public form, which the browser walks the way the server does on submit. */
-export interface PublicFormPage {
-    key: string
-    title: string
-    description: string
-    after: PageTarget
-}
+export type PublicFormStateName = components['schemas']['PublicFormState']
 
 /**
  * Why a form is not taking answers, in the terms the reader can act on. CLOSED covers a form
@@ -38,45 +17,7 @@ export const PublicFormState = {
     NOT_PUBLISHED: 'NOT_PUBLISHED',
     NOT_OPEN_YET: 'NOT_OPEN_YET',
     CLOSED: 'CLOSED',
-} as const
-
-export type PublicFormStateName = (typeof PublicFormState)[keyof typeof PublicFormState]
-
-export interface PublicForm {
-    publicUid: string
-    title: string
-    description: string
-    purpose: FormPurposeName
-    state: PublicFormStateName
-    /** When it stopped taking answers, or nothing while it still does. */
-    closedSince?: string | null
-    /** Whether the questions of each page come in a different order for every reader. */
-    shuffleQuestions: boolean
-    /** The pages in their order; empty unless the form is open, like the questions. */
-    pages: PublicFormPage[]
-    /** Empty unless the form is open: a form nobody can answer hands out no questions. */
-    questions: PublicFormQuestion[]
-    /** What the form says once it is sent; nothing unless the form is open. */
-    completion?: PublicFormCompletion | null
-}
-
-/** What a public form says once it is sent, each part empty where the form has none. */
-export interface PublicFormCompletion {
-    message?: string | null
-    link?: string | null
-    linkLabel?: string | null
-}
-
-export interface PublicFormSubmitRequest {
-    answers: Record<number, Record<string, unknown>>
-    consentVersion: string
-    privacyVersion: string
-    tosVersion: string
-}
-
-export interface PublicFormSubmitResponse {
-    responseId: number
-}
+} as const satisfies Record<PublicFormStateName, PublicFormStateName>
 
 export async function getPublicForm(stationUid: string, publicUid: string): Promise<PublicForm> {
     const res = await client.get<PublicForm>(`/public/${stationUid}/forms/${publicUid}`)

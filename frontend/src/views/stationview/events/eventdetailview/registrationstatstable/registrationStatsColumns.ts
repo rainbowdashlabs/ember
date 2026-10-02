@@ -3,13 +3,13 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {EventRegistrationEntry, MemberRegistrationStats} from '@/api/events'
+import type {RegistrationResponse, RegistrationStatsResponse} from '@/api/generated/schema'
 import {ColumnTypes, type TableColumn} from '@/components/table/tableColumn'
 
 /** One sign-up on the ranking, with how often its member has been let in before, where that is known. */
 export interface RankedRegistration {
-    registration: EventRegistrationEntry
-    stats: MemberRegistrationStats | null
+    registration: RegistrationResponse
+    stats: RegistrationStatsResponse | null
 }
 
 export const SCORE_KEY = 'score'

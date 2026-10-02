@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.inventory.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Summary of an inventory with item and lost counts.
@@ -30,8 +31,8 @@ public record InventorySummary(
         int procurementCount,
         int lentOutCount,
         int artCount,
-        String icon,
-        String color) {
+        @Nullable String icon,
+        @Nullable String color) {
     public static RowMapping<InventorySummary> map() {
         return row -> new InventorySummary(
                 row.getInt("id"),

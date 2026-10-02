@@ -5,22 +5,22 @@
  */
 import client from './client'
 import {createCrudResource, createScopedCrudResource} from './crud'
-export interface ChecklistSummary {
-    id: number
-    name: string
-    description: string
-    memberCount: number
-    columnCount: number
-    lastRefreshedAt?: string | null
-    createdAt: string
-}
-
-export interface ChecklistColumnDto {
-    id: number
-    position: number
-    label: string
-    description: string
-}
+import type {
+    AddMembersResponse,
+    BulkSetRequest,
+    BulkSetResponse,
+    CellResponse,
+    CellWriteRequest,
+    ChecklistDetailResponse,
+    ChecklistSummaryResponse,
+    ColumnCreateRequest,
+    ColumnResponse,
+    ColumnUpdateRequest,
+    CreateRequest,
+    NoteHistoryEntryResponse,
+    RefreshResponse,
+    UpdateRequest,
+} from './generated/schema'
 
 /**
  * A column being defined in the editor, before it has been saved and given an id and a position.
@@ -31,132 +31,16 @@ export interface ChecklistColumnDraft {
     description: string
 }
 
-export interface ChecklistEntryDto {
-    id: number
-    memberId: number
-    memberName: string
-    addedAt: string
-    deletedAt?: string | null
-    inFilter: boolean
-}
-
-export interface ChecklistCellDto {
-    id: number
-    entryId: number
-    columnId: number
-    checked: boolean
-    note?: string | null
-    updatedAt: string
-    updatedBy?: number | null
-}
-
-export interface ChecklistRestrictionDto {
-    userTypes: string[]
-    groupIds: number[]
-    tagIds: number[]
-    memberIds: number[]
-    mode: 'AND' | 'OR'
-}
-
-/**
- * The one occurrence a list follows, when it follows one at all.
- *
- * <p>The date belongs to it as much as the appointment does: sign-ups are kept per appointment and
- * date, so a weekly Dienst named without one would mean every Tuesday there has ever been.
- */
-export interface ChecklistSourceOccurrence {
-    eventId: number
-    eventDate: string
-    /** The appointment's name, so the header can say what the list follows without a second request. */
-    eventName?: string | null
-}
-
-/**
- * What a list should follow from now on, sent when it is created or when its membership is edited.
- * Sending one replaces the filter; sending a filter instead stops the list following anything.
- */
-export interface ChecklistSourceRequest {
-    eventId: number
-    date: string
-}
-
-export interface ChecklistDetail {
-    id: number
-    name: string
-    description: string
-    mode: 'AND' | 'OR'
-    createdAt: string
-    createdBy?: number | null
-    lastRefreshedAt?: string | null
-    columns: ChecklistColumnDto[]
-    entries: ChecklistEntryDto[]
-    cells: ChecklistCellDto[]
-    restriction: ChecklistRestrictionDto
-    /** Absent when the list follows its filter, or when the appointment it followed has been deleted. */
-    source?: ChecklistSourceOccurrence | null
-}
-
-export interface ChecklistNoteHistoryEntry {
-    id: number
-    oldNote?: string | null
-    newNote?: string | null
-    changedBy?: number | null
-    changedByName?: string | null
-    changedAt: string
-}
-
-export interface ChecklistRefreshResult {
-    added: number
-    alreadyPresent: number
-}
-
-export interface ChecklistAddMembersResult {
-    added: number
-    restored: number
-    skipped: number
-}
-
-export interface ChecklistBulkSetResult {
-    updated: number
-}
-
-export interface ChecklistCreateRequest {
-    name: string
-    description?: string
-    columns: { label: string; description?: string }[]
-    restriction: ChecklistRestrictionDto
-    source?: ChecklistSourceRequest
-}
-
-export interface ChecklistUpdateRequest {
-    name?: string
-    description?: string
-    restriction?: ChecklistRestrictionDto
-    source?: ChecklistSourceRequest
-}
-
-interface ColumnCreateRequest {
-    label: string
-    description?: string
-    position?: number
-}
-
-interface ColumnUpdateRequest {
-    label?: string
-    description?: string
-    position?: number
-}
-
 const checklists = createCrudResource<
-    ChecklistSummary,
-    ChecklistCreateRequest,
-    ChecklistUpdateRequest,
-    ChecklistDetail,
-    ChecklistDetail
+    ChecklistSummaryResponse,
+    CreateRequest,
+    UpdateRequest,
+    ChecklistDetailResponse,
+    ChecklistDetailResponse
 >('/checklist', {updateMethod: 'patch'})
 
 const columns = createScopedCrudResource<
-    ChecklistColumnDto,
+    ColumnResponse,
     ColumnCreateRequest,
     ColumnUpdateRequest
 >((id: number) => `/checklist/${id}/column`, {updateMethod: 'patch'})
@@ -171,8 +55,8 @@ export const addColumn = columns.create
 export const updateColumn = columns.update
 export const deleteColumn = columns.remove
 
-export async function refreshChecklist(id: number): Promise<ChecklistRefreshResult> {
-    const res = await client.post<ChecklistRefreshResult>(`/checklist/${id}/refresh`)
+export async function refreshChecklist(id: number): Promise<RefreshResponse> {
+    const res = await client.post<RefreshResponse>(`/checklist/${id}/refresh`)
     return res.data
 }
 
@@ -183,8 +67,8 @@ export async function reorderColumns(id: number, orderedIds: number[]): Promise<
 export async function addMembers(
     id: number,
     memberIds: number[],
-): Promise<ChecklistAddMembersResult> {
-    const res = await client.post<ChecklistAddMembersResult>(`/checklist/${id}/entry`, {memberIds})
+): Promise<AddMembersResponse> {
+    const res = await client.post<AddMembersResponse>(`/checklist/${id}/entry`, {memberIds})
     return res.data
 }
 
@@ -196,9 +80,9 @@ export async function writeCell(
     id: number,
     entryId: number,
     columnId: number,
-    body: {checked: boolean; note?: string | null},
-): Promise<ChecklistCellDto> {
-    const res = await client.put<ChecklistCellDto>(
+    body: CellWriteRequest,
+): Promise<CellResponse> {
+    const res = await client.put<CellResponse>(
         `/checklist/${id}/entry/${entryId}/column/${columnId}`,
         body,
     )
@@ -209,8 +93,8 @@ export async function getNoteHistory(
     id: number,
     entryId: number,
     columnId: number,
-): Promise<ChecklistNoteHistoryEntry[]> {
-    const res = await client.get<ChecklistNoteHistoryEntry[]>(
+): Promise<NoteHistoryEntryResponse[]> {
+    const res = await client.get<NoteHistoryEntryResponse[]>(
         `/checklist/${id}/entry/${entryId}/column/${columnId}/note-history`,
     )
     return res.data
@@ -219,9 +103,9 @@ export async function getNoteHistory(
 export async function bulkSetColumn(
     id: number,
     columnId: number,
-    body: {entryIds: number[]; checked: boolean},
-): Promise<ChecklistBulkSetResult> {
-    const res = await client.post<ChecklistBulkSetResult>(`/checklist/${id}/column/${columnId}/bulk`, body)
+    body: BulkSetRequest,
+): Promise<BulkSetResponse> {
+    const res = await client.post<BulkSetResponse>(`/checklist/${id}/column/${columnId}/bulk`, body)
     return res.data
 }
 

@@ -4,6 +4,18 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
+import type {
+    BeaconFault,
+    BeaconMetricsRow,
+    BeaconReport,
+    BeaconSettingsRequest,
+    BeaconStatus,
+    MetricsBatch,
+    ProblemPayload,
+    ReportPayload,
+    SendReportRequest,
+    SendResult,
+} from './generated/schema'
 
 /**
  * What this instance sends to a beacon, and whether it is one.
@@ -11,125 +23,12 @@ import client from './client'
  * <p>Stored settings, so changing one takes effect on the next entry rather than on the next
  * restart. Everything that reads them asks at the moment it matters.
  */
-export interface BeaconStatus {
-    enabled: boolean
-    url: string
-    forwardProblems: boolean
-    forwardReports: boolean
-    /** Whether a report carrying a picture waits for somebody here before it is passed on. */
-    reviewReportPictures: boolean
-    metricsEnabled: boolean
-    receiving: boolean
-    contactName: string
-    contactMail: string
-}
-
-/** What one fault would travel as, shown before anything leaves the instance. */
-export interface ProblemPayload {
-    version: string
-    contactName: string | null
-    contactMail: string | null
-    fingerprint: string
-    level: string
-    logger: string
-    exceptionClass: string | null
-    message: string | null
-    frames: string
-    occurrences: number
-    firstOccurrence: string
-    lastOccurrence: string
-}
-
-/** What a problem report travels as: what somebody wrote, without anything naming them. */
-export interface ReportPayload {
-    version: string
-    contactName: string | null
-    contactMail: string | null
-    message: string
-    page: string | null
-    browser: string | null
-    screenSize: string | null
-    roles: string | null
-    recentRequests: string | null
-    reportedAt: string
-}
-
-/** One subject's bucketed counts, as they would travel. */
-export interface MetricsSubject {
-    metricsUid: string
-    subject: string
-    members: string | null
-    accounts: string | null
-    stations: string | null
-    inventory: string | null
-}
-
-/** A whole day for the instance and its stations, in one body. */
-export interface MetricsBatch {
-    protocolVersion: number
-    version: string
-    day: string
-    subjects: MetricsSubject[]
-}
-
-/** A fault as a beacon has gathered it, across every instance that met it. */
-export interface BeaconFault {
-    id: number
-    fingerprint: string
-    level: string
-    exceptionClass: string | null
-    logger: string | null
-    /** What it was logged with. For a warning without an exception it is the only thing that names it. */
-    message: string | null
-    frames: string | null
-    instances: number
-    occurrences: number
-    versions: string[]
-    firstSeen: string
-    lastSeen: string
-    acknowledged: boolean
-    resolvedIn: string | null
-}
-
-/** A forwarded report, with the screen it was written about and whoever can be written to about it. */
-export interface BeaconReport {
-    id: number
-    message: string
-    page: string | null
-    version: string | null
-    browser: string | null
-    screenSize: string | null
-    /** What the reporter was allowed to do, which tells a fault some people meet from one everybody meets. */
-    roles: string | null
-    /** The calls the screen made before it was written, each stripped of its query string. */
-    recentRequests: string | null
-    contactName: string | null
-    contactMail: string | null
-    reportedAt: string
-    acknowledged: boolean
-    /** The picture the report was forwarded with, absent where it carried none. */
-    screenshotFileId: number | null
-    /** Which installation sent it, worked out from the key that signed the delivery. */
-    instanceId: string | null
-}
-
-/** A day of one subject's bucketed counts. */
-export interface BeaconMetricsRow {
-    metricsUid: string
-    subject: string
-    day: string
-    members: string | null
-    accounts: string | null
-    stations: string | null
-    inventory: string | null
-}
-
 export async function getStatus(): Promise<BeaconStatus> {
     return (await client.get<BeaconStatus>('/admin/beacon')).data
 }
 
 /** Writes the switches and the contact, and gives back what is now stored. */
-export async function updateSettings(settings: BeaconStatus): Promise<BeaconStatus> {
+export async function updateSettings(settings: BeaconSettingsRequest): Promise<BeaconStatus> {
     return (await client.put<BeaconStatus>('/admin/beacon', settings)).data
 }
 
@@ -139,11 +38,11 @@ export async function previewProblem(id: number): Promise<ProblemPayload> {
 }
 
 export async function sendProblem(id: number): Promise<number> {
-    return (await client.post<{queued: number}>(`/admin/beacon/problems/${id}/send`)).data.queued
+    return (await client.post<SendResult>(`/admin/beacon/problems/${id}/send`)).data.queued
 }
 
 export async function sendProblems(ids: number[]): Promise<number> {
-    return (await client.post<{queued: number}>('/admin/beacon/problems/send', {ids})).data.queued
+    return (await client.post<SendResult>('/admin/beacon/problems/send', {ids})).data.queued
 }
 
 /** What one problem report would travel as. A report is a person talking, so the bytes are shown. */
@@ -152,27 +51,16 @@ export async function previewReportPayload(id: number): Promise<ReportPayload> {
 }
 
 /**
- * Passes one problem report on now.
+ * Passes one problem report on now, with what an operator decided about its picture.
  *
  * <p>Whatever the automatic switch says: the switch governs what leaves on its own, and this is an
- * operator deciding about the report in front of them.
+ * operator deciding about the report in front of them. A report and its picture travel together or the
+ * picture does not travel: there is no sending it afterwards, which is why that is decided here and only
+ * here.
  */
-export async function sendReportToBeacon(id: number, picture?: ReportPictureDecision): Promise<number> {
-    const answer = await client.post<{queued: number}>(`/admin/beacon/reports/${id}/send`, picture ?? {})
+export async function sendReportToBeacon(id: number, picture?: SendReportRequest): Promise<number> {
+    const answer = await client.post<SendResult>(`/admin/beacon/reports/${id}/send`, picture ?? {})
     return answer.data.queued
-}
-
-/**
- * What an operator decided about the picture of the report they are passing on.
- *
- * <p>A report and its picture travel together or the picture does not travel: there is no sending it
- * afterwards, which is why this is decided here and only here.
- */
-export interface ReportPictureDecision {
-    /** A further covered copy to send in place of the reporter's, or null to send theirs as it is. */
-    screenshot?: string | null
-    /** Whether it goes without a picture at all. */
-    dropScreenshot?: boolean
 }
 
 /** The day's numbers as they would go, so an operator can see what leaves. */
@@ -180,6 +68,7 @@ export async function previewMetrics(): Promise<MetricsBatch> {
     return (await client.get<MetricsBatch>('/admin/beacon/figures/preview')).data
 }
 
+/** The faults this beacon gathered, across every instance that met them. */
 export async function listFaults(includeAcknowledged = false): Promise<BeaconFault[]> {
     return (await client.get<BeaconFault[]>('/admin/beacon/collected/faults', {params: {includeAcknowledged}})).data
 }
@@ -188,6 +77,7 @@ export async function resolveFault(id: number, acknowledged: boolean, resolvedIn
     await client.put(`/admin/beacon/collected/faults/${id}`, {acknowledged, resolvedIn})
 }
 
+/** The forwarded reports, with the screen each was written about and whoever can be written to about it. */
 export async function listBeaconReports(includeAcknowledged = false): Promise<BeaconReport[]> {
     return (await client.get<BeaconReport[]>('/admin/beacon/collected/reports', {params: {includeAcknowledged}})).data
 }

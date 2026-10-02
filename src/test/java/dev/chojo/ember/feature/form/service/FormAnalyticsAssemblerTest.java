@@ -5,28 +5,28 @@
  */
 package dev.chojo.ember.feature.form.service;
 
+import dev.chojo.ember.api.refusal.FormRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.form.entity.FormAnswerValue;
 import dev.chojo.ember.feature.form.entity.FormPurpose;
 import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
 import dev.chojo.ember.feature.form.entity.FormQuestionType;
-import dev.chojo.ember.feature.form.service.FormAnalyticsAssembler.ResultGroupDto;
+import dev.chojo.ember.feature.form.service.FormAnalyticsAssembler.FormResultGroup;
 import dev.chojo.ember.feature.form.service.FormResultQuery.Dimension;
-import dev.chojo.ember.feature.form.service.FormResultQuery.Filter;
-import dev.chojo.ember.feature.form.service.FormResultQuery.Grouping;
 import dev.chojo.ember.feature.form.service.FormResultQuery.Match;
+import dev.chojo.ember.feature.form.service.FormResultQuery.ResultFilter;
+import dev.chojo.ember.feature.form.service.FormResultQuery.ResultGrouping;
 import dev.chojo.ember.feature.legal.entity.ConsentProof;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
-import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.members.service.UserTagService;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import dev.chojo.ember.util.ShareTokens;
-import io.javalin.http.NotFoundResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -62,8 +62,7 @@ class FormAnalyticsAssemblerTest extends RepositoryTestBase {
         var groupService = mock(MemberGroupService.class);
         var tagService = mock(UserTagService.class);
 
-        formService = new FormService(
-                formRepo, memberService, groupService, tagService, restrictionService, eventBus, new ShareTokens());
+        formService = new FormService(formRepo, memberService, groupService, tagService, restrictionService, eventBus);
         assembler = new FormAnalyticsAssembler(
                 formService,
                 new FormRespondents(stationMemberRepo, memberGroupRepo, userTagRepo, profileFieldRepo, stationRepo),
@@ -107,7 +106,7 @@ class FormAnalyticsAssemblerTest extends RepositoryTestBase {
                 formId,
                 submitterMember.id(),
                 guardianMember.id(),
-                Map.of(questionId, new FormAnswerValue.Text("Blue")));
+                Map.of(questionId, new FormAnswerValue.TextAnswer("Blue")));
         responseId = response.id();
     }
 
@@ -149,17 +148,17 @@ class FormAnalyticsAssemblerTest extends RepositoryTestBase {
         memberGroupRepo.addMember(parents.id(), guardianMember.id());
         try {
             var grouped = assembler.buildAnalytics(
-                    formId, new FormResultQuery(null, new Grouping(Dimension.GROUP, null, null, null)));
+                    formId, new FormResultQuery(null, new ResultGrouping(Dimension.GROUP, null, null, null)));
             assertEquals(
                     List.of(String.valueOf(youth.id())),
-                    grouped.groups().stream().map(ResultGroupDto::key).toList());
+                    grouped.groups().stream().map(FormResultGroup::key).toList());
             assertEquals("Jugend", grouped.groups().getFirst().label());
             assertEquals(
                     List.of("Blue"),
                     grouped.groups().getFirst().tallies().getFirst().values());
             assertTrue(grouped.groupsOverlap());
 
-            var onlyParents = new Filter(null, List.of(parents.id()), Match.ANY, null, null, null, null, null);
+            var onlyParents = new ResultFilter(null, List.of(parents.id()), Match.ANY, null, null, null, null, null);
             var filtered = assembler.buildAnalytics(formId, new FormResultQuery(onlyParents, null));
             assertEquals(0, filtered.totalResponses());
             assertTrue(filtered.responseIds().isEmpty());
@@ -175,16 +174,10 @@ class FormAnalyticsAssemblerTest extends RepositoryTestBase {
         var born = LocalDate.of(2010, 1, 1);
         int age = Period.between(born, LocalDate.now()).getYears();
         var field = profileFieldRepo.create(
-                station.id(),
-                "Geburtstag",
-                ProfileFieldType.BIRTH_DATE,
-                ProfileFieldConfig.parse("{}"),
-                false,
-                false,
-                null);
+                station.id(), "Geburtstag", FieldType.BIRTH_DATE, ProfileFieldConfig.parse("{}"), false, false, null);
         profileFieldRepo.setValue(submitterMember.id(), field.id(), StringNode.valueOf(born.toString()));
         try {
-            var exactly = new Filter(null, null, null, null, null, null, age, age);
+            var exactly = new ResultFilter(null, null, null, null, null, null, age, age);
             assertEquals(
                     1,
                     assembler
@@ -192,10 +185,10 @@ class FormAnalyticsAssemblerTest extends RepositoryTestBase {
                             .totalResponses());
 
             var grouped = assembler.buildAnalytics(
-                    formId, new FormResultQuery(null, new Grouping(Dimension.AGE, null, null, List.of(age))));
+                    formId, new FormResultQuery(null, new ResultGrouping(Dimension.AGE, null, null, List.of(age))));
             assertEquals(
                     List.of(age + "+"),
-                    grouped.groups().stream().map(ResultGroupDto::key).toList());
+                    grouped.groups().stream().map(FormResultGroup::key).toList());
         } finally {
             profileFieldRepo.delete(field.id());
         }
@@ -222,7 +215,8 @@ class FormAnalyticsAssemblerTest extends RepositoryTestBase {
 
     @Test
     void getResponseDetailThrowsForUnknownResponse() {
-        assertThrows(NotFoundResponse.class, () -> assembler.getResponseDetail(formId, 99999));
+        var refused = assertThrows(RefusalResponse.class, () -> assembler.getResponseDetail(formId, 99999));
+        assertEquals(FormRefusal.FORM_RESPONSE_NOT_HERE, refused.refusal());
     }
 
     @Test
@@ -264,7 +258,10 @@ class FormAnalyticsAssemblerTest extends RepositoryTestBase {
                     new FormQuestionConfig.Text(false));
             var consent = new ConsentProof("v1", "v1", "v1", "127.0.0.1", "US", "test-agent", Instant.now());
             var response = formService.submitAnonymousResponse(
-                    poll.id(), new byte[] {1, 2, 3, 4}, Map.of(question.id(), new FormAnswerValue.Text("A")), consent);
+                    poll.id(),
+                    new byte[] {1, 2, 3, 4},
+                    Map.of(question.id(), new FormAnswerValue.TextAnswer("A")),
+                    consent);
 
             var entry = assembler.listResponses(poll.id()).stream()
                     .filter(e -> e.id() == response.id())

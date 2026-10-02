@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.form.route;
 
+import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.conf.file.elements.Network;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
@@ -15,10 +16,10 @@ import dev.chojo.ember.feature.form.entity.PageEntry;
 import dev.chojo.ember.feature.form.entity.PageTarget;
 import dev.chojo.ember.feature.form.entity.QuestionBranch;
 import dev.chojo.ember.feature.form.entity.QuestionEntry;
-import dev.chojo.ember.feature.form.route.PublicFormRoutes.PublicForm;
 import dev.chojo.ember.feature.form.route.PublicFormRoutes.PublicFormState;
 import dev.chojo.ember.feature.form.service.FormService;
 import dev.chojo.ember.feature.form.service.PublicFormRateLimiter;
+import dev.chojo.ember.feature.form.service.PublicFormService;
 import dev.chojo.ember.feature.form.service.SubmitterHashService;
 import dev.chojo.ember.feature.legal.service.ConsentService;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -26,29 +27,21 @@ import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.members.service.UserTagService;
 import dev.chojo.ember.feature.station.entity.Station;
-import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.service.StationLogoService;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import dev.chojo.ember.util.ShareTokens;
-import io.javalin.http.Context;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
+import tools.jackson.databind.JsonNode;
 
-import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static dev.chojo.ember.api.RouteHarness.read;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 /**
  * A public form that is not taking answers hands out its title and its state, and nothing of how it
@@ -56,7 +49,7 @@ import static org.mockito.Mockito.when;
  */
 class PublicFormWithholdingRouteTest extends RepositoryTestBase {
     private static FormService formService;
-    private static PublicFormRoutes routes;
+    private static RouteHarness harness;
     private static Station station;
     private static Account account;
     private static StationMember member;
@@ -69,19 +62,19 @@ class PublicFormWithholdingRouteTest extends RepositoryTestBase {
                 mock(MemberGroupService.class),
                 mock(UserTagService.class),
                 restrictionService,
-                new DomainEventBus(Set.of()),
-                new ShareTokens());
+                new DomainEventBus(Set.of()));
         station = stationRepo.create("PublicFormWithholdingStation");
         account = accountRepo.create("public-withholding@test.com", "Wilma", "Withheld");
         member = stationMemberRepo.create(station.id(), account.id());
-        routes = new PublicFormRoutes(
-                formService,
-                mock(StationRepository.class),
-                mock(SubmitterHashService.class),
-                mock(PublicFormRateLimiter.class),
-                mock(ConsentService.class),
-                mock(Network.class),
-                mock(StationLogoService.class));
+        harness = RouteHarness.serving(new PublicFormRoutes(
+                        formService,
+                        new PublicFormService(formService, stationRepo),
+                        mock(SubmitterHashService.class),
+                        mock(PublicFormRateLimiter.class),
+                        mock(ConsentService.class),
+                        new Network(),
+                        mock(StationLogoService.class)))
+                .withStations(stationRepo);
     }
 
     @AfterAll
@@ -91,42 +84,45 @@ class PublicFormWithholdingRouteTest extends RepositoryTestBase {
     }
 
     @Test
-    void anOpenFormHandsOutItsPagesBranchesAndCompletion() throws Exception {
+    void anOpenFormHandsOutItsPagesBranchesAndCompletion() {
         int form = branchingPoll();
         formService.publish(form);
 
         var view = viewOf(form);
 
-        assertEquals(PublicFormState.OPEN, view.state());
-        assertEquals(2, view.pages().size());
-        assertNotNull(view.questions().getFirst().branch());
-        assertEquals("Bis bald", view.completion().message());
+        assertEquals(PublicFormState.OPEN.name(), view.path("state").asString());
+        assertEquals(2, view.path("pages").size());
+        assertTrue(view.path("questions").get(0).hasNonNull("branch"));
+        assertEquals("Bis bald", view.path("completion").path("message").asString());
     }
 
     @Test
-    void aFormNotPublishedYetWithholdsThem() throws Exception {
+    void aFormNotPublishedYetWithholdsThem() {
         var view = viewOf(branchingPoll());
 
-        assertEquals(PublicFormState.NOT_PUBLISHED, view.state());
+        assertEquals(PublicFormState.NOT_PUBLISHED.name(), view.path("state").asString());
         assertWithheld(view);
     }
 
     @Test
-    void aClosedFormWithholdsThem() throws Exception {
+    void aClosedFormWithholdsThem() {
         int form = branchingPoll();
         formService.publish(form);
         formService.close(form);
 
         var view = viewOf(form);
 
-        assertEquals(PublicFormState.CLOSED, view.state());
+        assertEquals(PublicFormState.CLOSED.name(), view.path("state").asString());
         assertWithheld(view);
     }
 
-    private static void assertWithheld(PublicForm view) {
-        assertTrue(view.pages().isEmpty(), "no pages");
-        assertTrue(view.questions().isEmpty(), "no questions, so no branches");
-        assertNull(view.completion(), "no completion text");
+    private static void assertWithheld(JsonNode view) {
+        assertTrue(view.path("pages").isEmpty(), "no pages");
+        assertTrue(view.path("questions").isEmpty(), "no questions, so no branches");
+        assertTrue(
+                view.path("completion").isMissingNode()
+                        || view.path("completion").isNull(),
+                "no completion text");
     }
 
     private static int branchingPoll() {
@@ -151,15 +147,10 @@ class PublicFormWithholdingRouteTest extends RepositoryTestBase {
         return form;
     }
 
-    private static PublicForm viewOf(int form) throws Exception {
+    private static JsonNode viewOf(int form) {
         String token = formService.replaceShareLink(form, null).orElseThrow();
-        Context ctx = mock(Context.class);
-        when(ctx.pathParam("token")).thenReturn(token);
-        Method method = PublicFormRoutes.class.getDeclaredMethod("getSharedForm", Context.class);
-        method.setAccessible(true);
-        method.invoke(routes, ctx);
-        var captor = ArgumentCaptor.forClass(Object.class);
-        verify(ctx).json(captor.capture());
-        return assertInstanceOf(PublicForm.class, captor.getValue());
+        return read(
+                harness.request(client -> client.get(RouteHarness.PREFIX + "/public/shared-form/" + token)),
+                JsonNode.class);
     }
 }

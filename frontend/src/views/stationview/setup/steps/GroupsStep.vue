@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {computed, onMounted, reactive, ref} from 'vue'
+import {computed, reactive, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import SetupLayout from '@/views/stationview/setup/SetupLayout.vue'
@@ -15,11 +15,12 @@ import MutedText from '@/components/typography/MutedText.vue'
 import GroupList from './groupsstep/GroupList.vue'
 import GroupEditor from './groupsstep/GroupEditor.vue'
 import {memberGroups, stationMembers} from '@/api'
-import type {MemberGroup, PermissionGrant} from '@/api/types'
+import type {MemberGroup, Permission} from '@/api/generated/schema'
 import {useSetupStatus} from '@/composables/useSetupStatus'
 import {useAsyncAction} from '@/composables/useAsyncAction'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {goToNextStep} from '@/views/stationview/setup/steps'
-import {describeFailure, type Failure} from '@/util/failure'
+import {describeFailure} from '@/util/failure'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -27,32 +28,23 @@ const {reload} = useSetupStatus()
 
 const groups = ref<MemberGroup[]>([])
 const draft = ref('')
-const loading = ref(true)
-const failure = ref<Failure | null>(null)
-
-const allRoles = ref<PermissionGrant[]>([])
-const permissionsByGroup = reactive<Record<number, Set<number>>>({})
+const allRoles = ref<Permission[]>([])
+const permissionsByGroup = reactive(new Map<number, Set<number>>())
 const permissionLoading = reactive<Record<number, boolean>>({})
 const selectedId = ref<number | null>(null)
 const colorDraft = ref<string>('')
 
 const selectedGroup = computed(() => groups.value.find((g) => g.id === selectedId.value) ?? null)
 
-onMounted(async () => {
-    try {
-        const [groupsRes, rolesRes] = await Promise.all([
-            memberGroups.listGroups(),
-            stationMembers.listAllPermissions(),
-        ])
-        groups.value = sortByPosition(groupsRes)
-        allRoles.value = rolesRes
-        const firstGroup = groups.value[0]
-        if (firstGroup) await selectGroup(firstGroup.id)
-    } catch (e) {
-        failure.value = describeFailure(e, t)
-    } finally {
-        loading.value = false
-    }
+const {loading, failure} = useAsyncLoader(async () => {
+    const [groupsRes, rolesRes] = await Promise.all([
+        memberGroups.listGroups(),
+        stationMembers.listAllPermissions(),
+    ])
+    groups.value = sortByPosition(groupsRes)
+    allRoles.value = rolesRes
+    const firstGroup = groups.value[0]
+    if (firstGroup) await selectGroup(firstGroup.id)
 })
 
 function sortByPosition(list: MemberGroup[]): MemberGroup[] {
@@ -63,7 +55,7 @@ const {running: adding, failure: addFailure, run: runAddGroup} = useAsyncAction(
     const nextPosition = (groups.value[groups.value.length - 1]?.position ?? -1) + 1
     const created = await memberGroups.createGroup({name: draft.value.trim(), position: nextPosition})
     groups.value = sortByPosition([...groups.value, created])
-    permissionsByGroup[created.id] = new Set()
+    permissionsByGroup.set(created.id, new Set())
     draft.value = ''
     await selectGroup(created.id)
 })
@@ -80,7 +72,7 @@ async function removeGroup(id: number) {
     try {
         await memberGroups.deleteGroup(id)
         groups.value = groups.value.filter((g) => g.id !== id)
-        delete permissionsByGroup[id]
+        permissionsByGroup.delete(id)
         if (selectedId.value === id) {
             selectedId.value = groups.value[0]?.id ?? null
             if (selectedId.value) await selectGroup(selectedId.value)
@@ -93,14 +85,14 @@ async function removeGroup(id: number) {
 async function selectGroup(id: number) {
     selectedId.value = id
     colorDraft.value = selectedGroup.value?.color ?? ''
-    if (!(id in permissionsByGroup)) {
+    if (!permissionsByGroup.has(id)) {
         permissionLoading[id] = true
         try {
             const grants = await memberGroups.getGroupPermissions(id)
-            permissionsByGroup[id] = new Set(grants.map((g) => g.id))
+            permissionsByGroup.set(id, new Set(grants.map((g) => g.id)))
         } catch (e) {
             failure.value = {...describeFailure(e, t), message: t('setup.steps.groups.permissionsLoadFailed')}
-            permissionsByGroup[id] = new Set()
+            permissionsByGroup.set(id, new Set())
         } finally {
             permissionLoading[id] = false
         }
@@ -111,7 +103,7 @@ async function persistGroup(group: MemberGroup, patch: Partial<MemberGroup>) {
     try {
         const updated = await memberGroups.updateGroup(group.id, {
             name: patch.name ?? group.name,
-            color: patch.color !== undefined ? (patch.color || null) : group.color,
+            color: (patch.color !== undefined ? patch.color : group.color) || null,
             position: patch.position ?? group.position,
         })
         groups.value = sortByPosition(groups.value.map((g) => (g.id === group.id ? {...g, ...updated} : g)))
@@ -139,7 +131,7 @@ async function moveGroup(id: number, delta: -1 | 1) {
 }
 
 async function onPermissionsChange(groupId: number, newIds: Set<number>) {
-    permissionsByGroup[groupId] = newIds
+    permissionsByGroup.set(groupId, newIds)
     try {
         await memberGroups.setGroupPermissions(groupId, {permissionIds: [...newIds]})
     } catch (e: unknown) {
@@ -186,7 +178,7 @@ const {running: saving, run: save} = useAsyncAction(async () => {
           :group="selectedGroup"
           :color="colorDraft"
           :all-roles="allRoles"
-          :permissions="permissionsByGroup[selectedGroup.id] ?? new Set()"
+          :permissions="permissionsByGroup.get(selectedGroup.id) ?? new Set()"
           :permissions-loading="permissionLoading[selectedGroup.id] ?? false"
           @color-change="onColorChange"
           @permissions-change="ids => onPermissionsChange(selectedGroup!.id, ids)"

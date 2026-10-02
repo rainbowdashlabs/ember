@@ -13,7 +13,7 @@ import MemberInventoryLink from '@/components/inventory/MemberInventoryLink.vue'
 import RowLink from '@/components/navigation/RowLink.vue'
 import RecordTable from '@/components/table/RecordTable.vue'
 import {ColumnTypes, type TableColumn} from '@/components/table/tableColumn'
-import type {ProcurementEntry} from '@/api/procurement'
+import type {ProcurementResponse} from '@/api/generated/schema'
 import {useDataTable} from '@/composables/useDataTable'
 import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
 import InventoryTypeCell from './InventoryTypeCell.vue'
@@ -24,7 +24,7 @@ import {INVENTORY_TYPE_KEY, inventoryTypeColumn} from './inventoryTypeColumn'
  * procurement page, where it is dealt with.
  */
 const props = defineProps<{
-  entries: ProcurementEntry[]
+  entries: ProcurementResponse[]
   inventoryTypeMap: Map<number, string>
 }>()
 
@@ -32,19 +32,19 @@ const {t} = useI18n()
 const router = useRouter()
 const routes = useInventoryRoutes()
 
-function sizeOf(entry: ProcurementEntry): string {
+function sizeOf(entry: ProcurementResponse): string {
   return entry.sizeLabel || t('common.unisize')
 }
 
-const columns = computed<TableColumn<ProcurementEntry>[]>(() => [
+const columns = computed<TableColumn<ProcurementResponse>[]>(() => [
   {key: 'item', label: t('inventory.overview.colItem'), type: ColumnTypes.TEXT, value: entry => entry.inventoryName},
-  inventoryTypeColumn<ProcurementEntry>(t, entry => props.inventoryTypeMap.get(entry.inventoryId)),
+  inventoryTypeColumn<ProcurementResponse>(t, entry => props.inventoryTypeMap.get(entry.inventoryId)),
   {key: 'member', label: t('inventory.overview.colOwner'), type: ColumnTypes.TEXT, value: entry => entry.memberName},
   {key: 'notes', label: t('inventory.overview.colNotes'), type: ColumnTypes.TEXT, value: entry => entry.notes},
   {key: 'requested', label: t('inventory.overview.colRequested'), type: ColumnTypes.DATE, value: entry => entry.requestedAt},
 ])
 
-const table = useDataTable<ProcurementEntry>({
+const table = useDataTable<ProcurementResponse>({
   id: 'inventory-overview-procurement',
   rows: () => props.entries,
   columns,

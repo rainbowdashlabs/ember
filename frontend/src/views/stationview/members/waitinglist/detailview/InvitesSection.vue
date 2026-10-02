@@ -11,7 +11,7 @@ import DeleteButton from '@/components/button/DeleteButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import type { WaitingListInvite } from '@/api/waitingList'
+import type { WaitingListInvite } from '@/api/generated/schema'
 import { formatDate, formatDateTime } from '@/util/format'
 
 defineProps<{
@@ -36,7 +36,7 @@ const { t } = useI18n()
       </PrimaryButton>
     </div>
 
-    <EmptyState compact v-if="invites.length === 0">{{ t('waitingList.noInvites') }}</EmptyState>
+    <EmptyState v-if="invites.length === 0" compact>{{ t('waitingList.noInvites') }}</EmptyState>
 
     <div class="space-y-2">
       <div

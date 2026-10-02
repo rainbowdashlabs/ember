@@ -79,7 +79,7 @@ test.describe('Lists from sign-ups', () => {
         }
 
         await page.goto(`/station/events/${eventId}`)
-        await page.getByRole('button', {name: 'Anmeldungen'}).click()
+        await page.getByRole('tab', {name: 'Anmeldungen'}).click()
 
         await page.getByRole('button', {name: 'Aus den Anmeldungen'}).click()
         await page.getByTestId('signup-checklist-entry').click()
@@ -133,7 +133,7 @@ test.describe('Lists from sign-ups', () => {
         }
 
         await page.goto(`/station/events/${eventId}`)
-        await page.getByRole('button', {name: 'Anmeldungen'}).click()
+        await page.getByRole('tab', {name: 'Anmeldungen'}).click()
 
         await page.getByRole('button', {name: 'Aus den Anmeldungen'}).click()
         await page.getByTestId('signup-survey-entry').click()

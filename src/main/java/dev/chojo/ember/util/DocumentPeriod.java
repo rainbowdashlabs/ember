@@ -15,14 +15,8 @@ import java.time.temporal.WeekFields;
 import java.util.Locale;
 
 /**
- * The stretch of time a document covers, written the way a reader would say it.
- *
- * <p>A month is its name, a week is the number people schedule by, a quarter is the quarter, and a
- * year is the year. The month names come from the language itself rather than from a list kept here,
- * because Java already knows them in every language and a list would be one more thing to translate.
- *
- * <p>The window is read in the station's own zone: an export covering January was asked for in
- * January where the station is, and an hour's difference must not make its name say December.
+ * The stretch of time a document covers, as a reader says it, read in the station's zone so an hour's
+ * difference cannot turn January into December.
  */
 public final class DocumentPeriod {
 
@@ -52,16 +46,7 @@ public final class DocumentPeriod {
         return moment.get(WeekFields.ISO.weekOfWeekBasedYear());
     }
 
-    /**
-     * A single day, for a document that is a snapshot rather than a period.
-     *
-     * <p>Written the way it sorts, so a folder of the same export taken week after week falls into
-     * order on its own. Spelled-out dates do not, and a reader with a year of them would have to read
-     * every name to find the newest.
-     *
-     * @param moment the moment the document was made
-     * @param zone   the station's zone, so a late evening export is not already tomorrow
-     */
+    /** A snapshot's day as {@code yyyy-MM-dd} in the station's zone, so a folder of exports sorts by name. */
     public static String day(Instant moment, ZoneId zone) {
         return DAY.format(moment.atZone(zone));
     }

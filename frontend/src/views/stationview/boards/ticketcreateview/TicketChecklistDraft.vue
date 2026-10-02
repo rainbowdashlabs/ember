@@ -19,10 +19,10 @@ defineProps<{
 }>()
 
 const emit = defineEmits<{
-    (e: 'update:newTitle', value: string): void
-    (e: 'add'): void
-    (e: 'remove', key: number): void
-    (e: 'toggle', key: number): void
+    'update:newTitle': [value: string]
+    add: []
+    remove: [key: number]
+    toggle: [key: number]
 }>()
 
 const { t } = useI18n()
@@ -34,7 +34,7 @@ const { t } = useI18n()
         <div v-for="item in items" :key="item.key" class="flex items-center gap-2 py-0.5">
             <CheckboxInput :model-value="item.checked" @update:model-value="emit('toggle', item.key)" />
             <span class="flex-1 text-sm" :class="{ 'line-through text-(--text-muted)': item.checked }">{{ item.title }}</span>
-            <IconButton :icon="['fas', 'xmark']" label="Remove" class="text-xs" @click="emit('remove', item.key)" />
+            <IconButton :icon="['fas', 'xmark']" :label="t('common.remove')" class="text-xs" @click="emit('remove', item.key)" />
         </div>
         <div class="flex gap-2 mt-2 items-center">
             <TextInput :model-value="newTitle" :placeholder="t('boards.addChecklistItem')" class="flex-1 text-sm" @update:model-value="v => emit('update:newTitle', String(v))" @keydown.enter="emit('add')" />

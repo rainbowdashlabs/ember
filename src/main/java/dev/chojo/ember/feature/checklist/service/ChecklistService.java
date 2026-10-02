@@ -26,6 +26,7 @@ import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionSet;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -138,7 +139,7 @@ public class ChecklistService {
             RestrictionMode mode,
             List<ColumnSpec> columns,
             FilterSpec filter,
-            OccurrenceSpec occurrence,
+            @Nullable OccurrenceSpec occurrence,
             int createdBy) {
         var checklist = repository.create(
                 stationId,
@@ -302,7 +303,7 @@ public class ChecklistService {
      * Writes the cell at (entryId, columnId) and appends a note-history row when the note
      * actually changed. Returns the new cell.
      */
-    public CellWriteResult writeCell(int entryId, int columnId, boolean checked, String note, int updatedBy) {
+    public CellWriteResult writeCell(int entryId, int columnId, boolean checked, @Nullable String note, int updatedBy) {
         var previous = repository.findCell(entryId, columnId).orElse(null);
         String previousNote = previous != null ? previous.note() : null;
         String normalisedNote = note == null || note.isEmpty() ? null : note;
@@ -450,6 +451,33 @@ public class ChecklistService {
      * Lightweight bag used by the create flow to pass each column's label and description.
      */
     public record ColumnSpec(String label, String description) {}
+
+    /**
+     * The named members that belong to the station, each once, in the order they were named.
+     * A member of another station is dropped rather than refused.
+     *
+     * @param memberIds the members a request named
+     * @param stationId the station the checklist belongs to
+     */
+    public List<Integer> membersOfStation(List<Integer> memberIds, int stationId) {
+        var ofStation = memberRepository.findByStation(stationId).stream()
+                .map(StationMember::id)
+                .collect(Collectors.toSet());
+        return memberIds.stream().distinct().filter(ofStation::contains).toList();
+    }
+
+    /**
+     * The named rows that are on the checklist, removed ones included, each once, in the order
+     * they were named.
+     *
+     * @param entryIds    the rows a request named
+     * @param checklistId the checklist
+     */
+    public List<Integer> rowsOfChecklist(List<Integer> entryIds, int checklistId) {
+        var onList =
+                findEntries(checklistId, true).stream().map(ChecklistEntry::id).collect(Collectors.toSet());
+        return entryIds.stream().distinct().filter(onList::contains).toList();
+    }
 
     /**
      * Counts of inserted vs. already-present rows returned by an additive refresh.

@@ -6,10 +6,10 @@
 package dev.chojo.ember.feature.board.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.BoardRefusal;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.board.entity.BoardTicketAttachment;
 import dev.chojo.ember.feature.board.service.BoardTicketService;
@@ -30,6 +30,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.Objects;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 
@@ -73,7 +74,7 @@ public class BoardTicketAttachmentRoutes implements Routes {
             responses =
                     @OpenApiResponse(status = "200", content = @OpenApiContent(from = BoardTicketAttachment[].class)))
     private void getAttachments(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(ticketService.findAttachments(guards.viewableTicketId(ctx, session)));
     }
 
@@ -91,23 +92,23 @@ public class BoardTicketAttachmentRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void uploadAttachment(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         int ticketId = guards.editableTicketId(ctx, session);
         var file = ctx.uploadedFile("file");
-        if (file == null) throw Refusal.TICKET_UPLOAD_MISSING_FILE.raise();
-        if (file.size() > apiConfig.maxUploadSizeBytes()) throw Refusal.TICKET_UPLOAD_TOO_LARGE.raise();
+        if (file == null) throw BoardRefusal.TICKET_UPLOAD_MISSING_FILE.raise();
+        if (file.size() > apiConfig.maxUploadSizeBytes()) throw BoardRefusal.TICKET_UPLOAD_TOO_LARGE.raise();
         try (var content = file.content()) {
             var att = ticketService.uploadAttachment(
                     session.stationId(),
                     ticketId,
                     file.filename(),
-                    file.contentType(),
+                    Objects.requireNonNullElse(file.contentType(), "application/octet-stream"),
                     content.readAllBytes(),
                     guards.actor(session));
             ctx.status(HttpStatus.CREATED).json(att);
         } catch (IOException e) {
             log.warn("Failed to read an uploaded ticket attachment for ticket {}", ticketId, e);
-            throw Refusal.TICKET_UPLOAD_NOT_READ.raise();
+            throw BoardRefusal.TICKET_UPLOAD_NOT_READ.raise();
         }
     }
 
@@ -122,14 +123,14 @@ public class BoardTicketAttachmentRoutes implements Routes {
                 @OpenApiParam(name = "attachmentId", type = Integer.class, required = true)
             },
             responses = {
-                @OpenApiResponse(status = "200"),
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = byte[].class)),
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void downloadAttachment(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var att = requireAttachmentOfTicket(ctx, guards.viewableTicketId(ctx, session));
         var path = ticketService.getAttachmentPath(session.stationId(), att);
-        if (!Files.exists(path)) throw Refusal.TICKET_ATTACHMENT_CONTENT_NOT_HERE.raise();
+        if (!Files.exists(path)) throw BoardRefusal.TICKET_ATTACHMENT_CONTENT_NOT_HERE.raise();
         ctx.contentType(SafeInlineMime.safeContentType(att.contentType()));
         ctx.header(
                 "Content-Disposition",
@@ -138,7 +139,7 @@ public class BoardTicketAttachmentRoutes implements Routes {
             ctx.result(Files.newInputStream(path));
         } catch (IOException e) {
             log.warn("Failed to hand out ticket attachment {}", att.id(), e);
-            throw Refusal.TICKET_ATTACHMENT_NOT_READ.raise();
+            throw BoardRefusal.TICKET_ATTACHMENT_NOT_READ.raise();
         }
     }
 
@@ -157,12 +158,12 @@ public class BoardTicketAttachmentRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void deleteAttachment(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var att = requireAttachmentOfTicket(ctx, guards.editableTicketId(ctx, session));
         if (ticketService.deleteAttachment(session.stationId(), att.id())) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
-            throw Refusal.TICKET_ATTACHMENT_NOT_DELETED.raise();
+            throw BoardRefusal.TICKET_ATTACHMENT_NOT_DELETED.raise();
         }
     }
 
@@ -178,8 +179,8 @@ public class BoardTicketAttachmentRoutes implements Routes {
     private BoardTicketAttachment requireAttachmentOfTicket(Context ctx, int ticketId) {
         var att = ticketService
                 .findAttachmentById(pathInt(ctx, "attachmentId"))
-                .orElseThrow(Refusal.TICKET_ATTACHMENT_NOT_HERE::raise);
-        if (att.ticketId() != ticketId) throw Refusal.TICKET_ATTACHMENT_NOT_HERE.raise();
+                .orElseThrow(BoardRefusal.TICKET_ATTACHMENT_NOT_HERE::raise);
+        if (att.ticketId() != ticketId) throw BoardRefusal.TICKET_ATTACHMENT_NOT_HERE.raise();
         return att;
     }
 }

@@ -15,17 +15,18 @@ import {BarChart, LineChart} from 'echarts/charts'
 import {DataZoomComponent, GridComponent, LegendComponent, TooltipComponent} from 'echarts/components'
 import HelpCenterHint from '@/components/help/HelpCenterHint.vue'
 import {feedMetrics} from '@/api'
-import type {FeedMetricDaily, FeedUserAgentStat} from '@/api/feedMetrics'
+import type {FeedMetricDaily, FeedUserAgentStat} from '@/api/generated/schema'
 import FeedMetricsSummary from './adminfeedmetricsview/FeedMetricsSummary.vue'
 import FeedMetricsCharts from './adminfeedmetricsview/FeedMetricsCharts.vue'
 import FeedMetricsTables from './adminfeedmetricsview/FeedMetricsTables.vue'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {bottomLegend, cartesianGrid} from '@/util/chartLayout'
-import {darkThemeActive as isDark} from '@/util/themeState'
+import {useThemePaint} from '@/composables/useThemePaint'
 
 use([CanvasRenderer, BarChart, LineChart, GridComponent, TooltipComponent, LegendComponent, DataZoomComponent])
 
 const {t} = useI18n()
+const {dark: isDark} = useThemePaint()
 
 const daily = ref<FeedMetricDaily[]>([])
 const userAgents = ref<FeedUserAgentStat[]>([])
@@ -96,10 +97,6 @@ const totalRendered = computed(() =>
 
 const totalCacheHits = computed(() =>
     daily.value.filter(r => r.status === 304).reduce((sum, r) => sum + r.count, 0),
-)
-
-const totalErrors = computed(() =>
-    daily.value.filter(r => r.status >= 500).reduce((sum, r) => sum + r.count, 0),
 )
 
 /** Status-code breakdown across the window - sparkline-style. */

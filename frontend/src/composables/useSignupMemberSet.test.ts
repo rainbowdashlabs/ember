@@ -3,32 +3,27 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-// @vitest-environment happy-dom
+/** @vitest-environment happy-dom */
 import {describe, expect, it} from 'vitest'
 import {ref} from 'vue'
-import {RegistrationStatus, type EventRegistrationEntry, type FederatedEventRegistration, type StationEvent} from '@/api/events'
+import {RegistrationStatus, type RegistrationStatusName} from '@/api/events'
+import type {EnrichedFederationRegistration, RegistrationResponse} from '@/api/generated/schema'
 import {useSignupMemberSet} from './useSignupMemberSet'
 
 const TUESDAY = '2026-05-05'
 const NEXT_TUESDAY = '2026-05-12'
 
-function event(requiresRegistration: boolean): StationEvent {
-  return {id: 7, stationId: 'station', name: 'Dienst', requiresRegistration}
+type Signup = Pick<RegistrationResponse, 'status' | 'eventDate' | 'memberId'>
+
+function event(requiresRegistration: boolean) {
+  return {requiresRegistration}
 }
 
-function signup(memberId: number, status: string, eventDate: string): EventRegistrationEntry {
-  return {
-    id: memberId * 100,
-    eventId: 7,
-    memberId,
-    memberName: `Mitglied ${memberId}`,
-    eventDate,
-    status,
-    createdAt: '2026-05-01T10:00:00Z',
-  }
+function signup(memberId: number, status: RegistrationStatusName, eventDate: string): Signup {
+  return {memberId, eventDate, status}
 }
 
-function guest(status: string, eventDate: string): FederatedEventRegistration {
+function guest(status: RegistrationStatusName, eventDate: string): EnrichedFederationRegistration {
   return {
     registration: {
       id: 1,
@@ -38,6 +33,7 @@ function guest(status: string, eventDate: string): FederatedEventRegistration {
       eventDate,
       status,
       createdAt: '2026-05-01T10:00:00Z',
+      standing: true,
     },
     memberIdentity: null,
   }
@@ -46,8 +42,8 @@ function guest(status: string, eventDate: string): FederatedEventRegistration {
 function resolve(options: {
   requiresRegistration?: boolean
   date?: string | null
-  registrations?: EventRegistrationEntry[]
-  federated?: FederatedEventRegistration[]
+  registrations?: Signup[]
+  federated?: EnrichedFederationRegistration[]
   members?: number[]
 }) {
   const set = useSignupMemberSet({

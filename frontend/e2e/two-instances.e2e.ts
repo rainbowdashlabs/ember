@@ -5,8 +5,10 @@
  */
 import {
     expect,
+    homeBaseUrl,
     homeInternalUrl,
     homePublishedUrl,
+    instanceRequest,
     instanceRequestAs,
     peerBaseUrl,
     peerInternalUrl,
@@ -184,6 +186,53 @@ test.describe('Two instances', () => {
     })
 
     /**
+     * A station the second instance publishes shows on the first instance's discovery page.
+     *
+     * <p>The first instance learns of the second as a peer, fetches its published stations into its
+     * own cache and lists them from there, marked with the instance they belong to and linked to
+     * their page on it. A station made on the second instance is listed publicly from the start,
+     * which is what puts it on the card the second instance publishes. It is made for the story
+     * because the seeded stations of the two share their identities, and a card naming a station of
+     * the first instance is one the first instance already lists as its own.
+     */
+    test('a station of the other instance is listed on the discovery page', async ({
+        peerAdminApi,
+        homeAdminApi,
+        page,
+    }) => {
+        const name = unique('E2E-Fernwache')
+        const created = await peerAdminApi.post('/api/v1/stations', {data: {name}})
+        expect(created.status()).toBe(201)
+        const {id: uid} = await created.json()
+
+        await proveFreshly(homeAdminApi)
+        const added = await homeAdminApi.post('/api/v1/admin/discovery/peers', {data: {baseUrl: peerInternalUrl()}})
+        expect(added.ok(), await added.text()).toBe(true)
+        const fetched = await homeAdminApi.post('/api/v1/admin/discovery/discover-now')
+        expect(fetched.ok(), await fetched.text()).toBe(true)
+
+        const visitor = await instanceRequest(homeBaseUrl())
+        try {
+            const listed = await visitor.get('/api/v1/public/discovery')
+            expect(listed.ok()).toBe(true)
+            const entries: {stationUid: string; instanceHost: string | null; publicPageUrl: string | null}[] =
+                await listed.json()
+            const entry = must(entries.find(e => e.stationUid === uid), 'the station of the other instance')
+            const host = new URL(peerInternalUrl()).hostname
+            expect(entry.instanceHost).toBe(host)
+            expect(entry.publicPageUrl?.startsWith(`${peerInternalUrl()}/public/station/`)).toBe(true)
+
+            await page.goto(`/discovery?q=${encodeURIComponent(name)}`)
+            await expect(page.getByText(name, {exact: true})).toBeVisible()
+            await expect(page.getByText(`Auf der Instanz ${host}`)).toBeVisible()
+            await expect(page.getByRole('link', {name: `Zur Wache ${name} auf ${host}`}))
+                .toHaveAttribute('href', must(entry.publicPageUrl, 'the link to the station'))
+        } finally {
+            await visitor.dispose()
+        }
+    })
+
+    /**
      * A file of an event travels from the instance that owns it to the instance that reads it.
      *
      * <p>This is the story a single instance cannot tell. Between two stations of one database the
@@ -352,6 +401,107 @@ test.describe('Two instances', () => {
         }
     })
 })
+
+/**
+ * Lending between two installations works the way it works between two stations of one.
+ *
+ * <p>The borrowing station finds what the lending one offers, asks for it, and the request is
+ * written down at both ends under one identity. The lending station agrees and hands the gear over
+ * on its own instance, the borrowing station reads that in the thread it shares with it, and when it
+ * gives the gear back the lending station's copy follows.
+ *
+ * <p>Every call here goes from the first instance to the second. The second one knows the first
+ * only by the address the browser uses, which no container can reach, so what the lending station
+ * pushes back is checked where it can be read: in the thread the borrowing station fetches.
+ */
+test.describe('Lending between instances', () => {
+    test('a station borrows gear from a partner on the other instance', async ({
+        peerAdminApi,
+        homeManagerApi,
+    }) => {
+        const manager = await stationManagerOf(peerBaseUrl())
+        const created = await peerAdminApi.post('/api/v1/stations', {
+            data: {name: unique('E2E-Leihwache'), managerEmail: manager.email},
+        })
+        expect(created.status()).toBe(201)
+        const {id: lendingStation} = await created.json()
+
+        const lender = await instanceRequestAs(peerBaseUrl(), {email: manager.email, stationId: lendingStation})
+        try {
+            await proveFreshly(lender)
+            const invited = await lender.post('/api/v1/federation/invite')
+            expect(invited.ok()).toBe(true)
+            const {inviteCode} = await invited.json()
+
+            await proveFreshly(homeManagerApi)
+            const accepted = await homeManagerApi.post('/api/v1/federation/accept', {data: {inviteCode}})
+            expect(accepted.status(), await accepted.text()).toBe(201)
+
+            const shelf = unique('Leihregal')
+            const inventoryId = await offeredShelf(lender, shelf)
+
+            const browsed = await homeManagerApi.get('/api/v1/federated/lending/available')
+            expect(browsed.ok(), await browsed.text()).toBe(true)
+            const offers = (await browsed.json()).entries as {inventoryName: string; stationId: string}[]
+            const offer = offers.find(entry => entry.inventoryName === shelf)
+            expect(offer?.stationId, 'the other instance offers its shelf').toBe(lendingStation)
+
+            const day = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10)
+            const asked = await homeManagerApi.post('/api/v1/lending/requests', {
+                data: {owningStationId: lendingStation, dateFrom: day, dateTo: day, items: [{inventoryId, quantity: 1}]},
+            })
+            expect(asked.status(), await asked.text()).toBe(201)
+            const borrowing = (await asked.json()).request.id
+
+            const listed = await lender.get('/api/v1/lending/requests')
+            expect(listed.ok(), await listed.text()).toBe(true)
+            const copies = (await listed.json()) as {request: {id: number; status: string}; itemSummary: string}[]
+            const copy = must(copies[0], 'the lending station holds its copy of the request')
+            expect(copy.request.status).toBe('REQUESTED')
+            expect(copy.itemSummary).toContain(shelf)
+
+            const approved = await lender.post(`/api/v1/lending/requests/${copy.request.id}/approve`)
+            expect(approved.ok(), await approved.text()).toBe(true)
+            const lent = await lender.post(`/api/v1/lending/requests/${copy.request.id}/lent`)
+            expect(lent.ok(), await lent.text()).toBe(true)
+
+            const thread = await homeManagerApi.get(`/api/v1/lending/requests/${borrowing}/messages`)
+            expect(thread.ok(), await thread.text()).toBe(true)
+            const said = ((await thread.json()) as {message: {message: string}}[]).map(entry => entry.message.message)
+            expect(said).toContain('Anfrage genehmigt')
+            expect(said).toContain('Ausrüstung ausgeliehen')
+
+            const returned = await homeManagerApi.post(`/api/v1/lending/requests/${borrowing}/returned`)
+            expect(returned.ok(), await returned.text()).toBe(true)
+            await expect.poll(async () => {
+                const detail = await lender.get(`/api/v1/lending/requests/${copy.request.id}`)
+                return (await detail.json()).request.request.status
+            }, {timeout: 30_000, message: 'the lending station\'s copy follows the gear coming back'}).toBe('RETURNED')
+        } finally {
+            await lender.dispose()
+        }
+    })
+})
+
+/** A shelf of the station with one piece on it, offered to every partner. */
+async function offeredShelf(api: APIRequestContext, name: string): Promise<number> {
+    const created = await api.post('/api/v1/inventories', {
+        data: {name, inventoryType: 'INTERNAL', hasSizes: false, homogeneous: false},
+    })
+    expect(created.ok(), await created.text()).toBe(true)
+    const inventoryId = (await created.json()).id
+
+    const item = await api.post(`/api/v1/inventories/${inventoryId}/items`, {
+        data: {internalId: `${name}-1`, name: `${name} Stück`},
+    })
+    expect(item.ok(), await item.text()).toBe(true)
+
+    const offered = await api.put(`/api/v1/lending/shares/inventory/${inventoryId}`, {
+        data: {grant: 'GRANT', scope: 'ALL_PARTNERS', partnerIds: []},
+    })
+    expect(offered.ok(), await offered.text()).toBe(true)
+    return inventoryId
+}
 
 /** The smallest thing the media library accepts: one transparent pixel. */
 const PIXEL = Buffer.from(

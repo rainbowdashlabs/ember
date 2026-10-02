@@ -15,7 +15,8 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import EntryHeaderInfo from './entrydetailview/EntryHeaderInfo.vue'
 import EntryCoreFieldsCard from './entrydetailview/EntryCoreFieldsCard.vue'
 import EntryCustomFieldsCard from './entrydetailview/EntryCustomFieldsCard.vue'
-import type { GuardianInput, WaitingListEntryWithScore, WaitingListField } from '@/api/waitingList'
+import type { GuardianInput } from '@/api/waitingList'
+import type { WaitingListEntryWithScore, WaitingListField } from '@/api/generated/schema'
 import { waitingList } from '@/api'
 import { setFieldValue as writeFieldValue } from '@/util/profileFields'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
@@ -164,10 +165,10 @@ function goBack() {
 
       <template v-if="!loading && entry">
         <EntryHeaderInfo
-          :entry="entry"
-          :entry-full-name="entryFullName"
           v-model:editing-created-at="editingCreatedAt"
           v-model:edit-created-at-value="editCreatedAtValue"
+          :entry="entry"
+          :entry-full-name="entryFullName"
           @start-edit-created-at="startEditCreatedAt"
           @save-created-at="saveCreatedAt"
         />

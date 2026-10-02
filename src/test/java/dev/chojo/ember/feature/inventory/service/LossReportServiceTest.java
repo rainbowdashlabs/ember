@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.entity.LossReportRequirement;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
@@ -16,7 +17,6 @@ import dev.chojo.ember.feature.inventory.entity.StepActor;
 import dev.chojo.ember.feature.inventory.entity.StepSubject;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.atomic.AtomicInteger;
@@ -117,17 +117,18 @@ class LossReportServiceTest extends RepositoryTestBase {
         assertEquals(MovementState.OPEN, movement.state());
         assertEquals(itemId, movement.outgoingItemId());
 
-        // The announcement was the report itself; what waits is the association's own step
         var steps = itemMovementService.stepsOf(movement);
         assertEquals(3, steps.size(), "the return leg is not walked, because there is nothing to walk back");
         assertEquals("Mitglied meldet an", steps.get(0).label());
         assertEquals("Verband schickt Ersatz", steps.get(1).label());
         assertEquals("Wache gibt aus", steps.get(2).label());
-        assertEquals(steps.get(1).id(), movement.currentStepId());
+        assertEquals(
+                steps.get(1).id(),
+                movement.currentStepId(),
+                "the report was the announcement, so the association's own step waits");
 
-        // The gear is still missing. Reporting it says nothing about where it is.
         var item = inventoryRepo.findItemById(itemId).orElseThrow();
-        assertEquals(ItemCustody.LOST, item.custody());
+        assertEquals(ItemCustody.LOST, item.custody(), "reporting a loss says nothing about where the gear is");
         assertEquals("Beim Einsatz liegen geblieben", item.lostNote(), "the member's note is not overwritten");
 
         clusterService.releaseStation(cluster.id(), station.id());
@@ -167,11 +168,11 @@ class LossReportServiceTest extends RepositoryTestBase {
 
         clusterInventoryService.setLossReportRequires(cluster.id(), LossReportRequirement.DOCUMENT);
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> lossReportService.report(station.id(), itemId, null, null, memberId),
                 "a note is short of what was asked for");
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> lossReportService.report(station.id(), itemId, "Weg", null, memberId),
                 "and so is a note without the document");
 
@@ -208,7 +209,7 @@ class LossReportServiceTest extends RepositoryTestBase {
                         cluster.id())
                 .id();
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> lossReportService.report(station.id(), held, "Weg", null, memberId),
                 "gear nobody has reported missing is not a loss");
 
@@ -218,7 +219,7 @@ class LossReportServiceTest extends RepositoryTestBase {
                 .id();
         itemCustodyService.markLost(own, null, null);
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> lossReportService.report(station.id(), own, "Weg", null, memberId),
                 "the station's own loss has nobody to report it to");
         assertFalse(lossReportService.requirementFor(own).isPresent());

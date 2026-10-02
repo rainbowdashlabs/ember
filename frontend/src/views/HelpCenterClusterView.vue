@@ -37,6 +37,10 @@ watch(
         <SidebarLink :icon="['fas', 'house']" name="help-cluster-overview" to="/helpcenter/cluster" @navigate="close">
           {{ t('clusterSidebar.overview') }}
         </SidebarLink>
+        <SidebarLink :icon="['fas', 'bell']" name="help-cluster-notifications" to="/helpcenter/cluster/notifications"
+                     @navigate="close">
+          {{ t('clusterSidebar.notifications') }}
+        </SidebarLink>
         <SidebarLink :icon="['fas', 'sliders']" name="help-cluster-settings" to="/helpcenter/cluster/settings"
                      @navigate="close">
           {{ t('clusterSidebar.settings') }}

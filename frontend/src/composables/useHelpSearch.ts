@@ -3,9 +3,9 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {computed, ref, watch} from 'vue'
-import i18n from '@/i18n'
+import {computed, onMounted, ref, watch} from 'vue'
 import {loadHelpcenterMessages} from '@/composables/useHelpcenterMessages'
+import {browserShallowRef} from '@/util/browserState'
 import {HELP_PAGES} from '@/composables/helpPages.generated'
 
 export interface HelpSearchEntry {
@@ -78,11 +78,10 @@ function resolveKey(obj: Record<string, unknown>, keyPath: string): unknown {
  * <p>Reading the merged messages is the fix, and it costs nothing: the search box only ever renders
  * inside a help center layout, and that layout has awaited the chunk before anybody can type. Importing
  * the chunk statically here would work too and would undo the code splitting it exists for.
+ *
+ * @param messages the German messages with the help text merged in under `helpCenter`
  */
-export async function buildHelpSearchIndex(): Promise<HelpSearchEntry[]> {
-    await loadHelpcenterMessages()
-    const messages = i18n.global.getLocaleMessage('de-DE') as Record<string, unknown>
-
+export function buildHelpSearchIndex(messages: Record<string, unknown>): HelpSearchEntry[] {
     const drawn = HELP_PAGES.map(page => {
         const prefixes = Array.isArray(page.i18nPrefix) ? page.i18nPrefix : [page.i18nPrefix]
         const subtrees = prefixes.map(prefix => resolveKey(messages, prefix)).filter(Boolean)
@@ -141,32 +140,51 @@ function lastSegment(path: string): string {
     return segments[segments.length - 1] ?? path
 }
 
-/**
- * Built once and shared by every box that asks afterwards.
- *
- * <p>Started as the help centre renders rather than on the first keystroke: the chunk the text lives in
- * is four thousand lines, and nobody should be typing into a box that is still reading it.
- *
- * <p>A failed attempt is forgotten rather than remembered. The chunk comes over the network, a fetch can
- * fail, and a remembered failure would leave the box answering nothing for the rest of the visit, which
- * is the shape of the fault this whole repair is about.
- */
-const index = ref<HelpSearchEntry[]>([])
-let building: Promise<void> | null = null
-
-function ensureIndex(): void {
-    if (building) return
-    building = buildHelpSearchIndex()
-        .then(entries => {
-            index.value = entries
-        })
-        .catch(() => {
-            building = null
-        })
+/** The index every search box reads, and the build that fills it while one is under way. */
+interface HelpSearchIndex {
+    entries: HelpSearchEntry[]
+    building: Promise<void> | null
 }
 
+/**
+ * Built once in the browser and shared by every box that asks afterwards. Nobody types into a page
+ * the server renders, so the server never builds it and every request there sees it empty.
+ */
+const helpIndex = browserShallowRef<HelpSearchIndex>({entries: [], building: null})
+
+/**
+ * Starts building the index unless a build is done or under way.
+ *
+ * <p>Started as the search box is mounted rather than on the first keystroke: the chunk the text lives
+ * in is four thousand lines, and nobody should be typing into a box that is still reading it.
+ *
+ * <p>A failed attempt is forgotten rather than remembered. The chunk comes over the network, a fetch can
+ * fail, and a remembered failure would leave the box answering nothing for the rest of the visit.
+ *
+ * @param i18n the i18n instance of the app the box belongs to, whose German messages the text is merged into
+ */
+function ensureIndex(i18n: ReturnType<typeof useNuxtApp>['$i18n']): void {
+    if (helpIndex.value.building) return
+    const building = loadHelpcenterMessages()
+        .then(() => {
+            const messages = i18n.getLocaleMessage('de-DE') as Record<string, unknown>
+            helpIndex.value = {...helpIndex.value, entries: buildHelpSearchIndex(messages)}
+        })
+        .catch(() => {
+            helpIndex.value = {...helpIndex.value, building: null}
+        })
+    helpIndex.value = {...helpIndex.value, building}
+}
+
+/**
+ * The help centre search: a query, debounced, answered from the index of every help page's text.
+ *
+ * <p>The index is built once the box is mounted, so a server render reads an empty one and builds
+ * nothing.
+ */
 export function useHelpSearch() {
-    ensureIndex()
+    const i18n = useNuxtApp().$i18n
+    onMounted(() => ensureIndex(i18n))
 
     const query = ref('')
     const debouncedQuery = ref('')
@@ -184,7 +202,7 @@ export function useHelpSearch() {
         if (!q || q.length < 2) return []
 
         const matched: HelpSearchResult[] = []
-        for (const entry of index.value) {
+        for (const entry of helpIndex.value.entries) {
             const textLower = entry.text.toLowerCase()
             const matchIndex = textLower.indexOf(q)
             if (matchIndex === -1) continue

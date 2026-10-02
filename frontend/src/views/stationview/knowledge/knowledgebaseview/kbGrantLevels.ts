@@ -3,7 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {KbAccessLevelName, KbGrant} from '@/api/knowledgeBase'
+import type {KbAccessLevelName} from '@/api/knowledgeBase'
+import type {KbGrant} from '@/api/generated/schema'
 
 /**
  * The level each audience entry of one knowledge base entry holds, keyed by the entry it belongs

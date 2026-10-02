@@ -5,7 +5,7 @@
  */
 <script lang="ts" setup>
 import {computed} from 'vue'
-import {type ImageGalleryConfig} from '@/api/pageManage'
+import type {ImageGalleryConfig} from '@/api/generated/schema'
 import {mediaImageSrcset, mediaImageUrlAt} from '@/api/media'
 import {ENLARGED_WIDTH, PAGE_WIDTH} from '@/util/contentContext'
 import EnlargeableImage from '@/components/button/EnlargeableImage.vue'
@@ -34,6 +34,10 @@ const itemWidth = computed(() => {
     return Math.max(SMALLEST_WIDTH, Math.round(drawn))
 })
 
+/** The pictures of the gallery, leaving out an entry that never had one chosen. */
+const pictures = computed(() => (props.config.items ?? [])
+    .flatMap(item => item.imageHash ? [{...item, imageHash: item.imageHash}] : []))
+
 function enlarged(imageHash: string): string {
     return props.stationUid ? mediaImageUrlAt(props.stationUid, imageHash, ENLARGED_WIDTH) : ''
 }
@@ -41,7 +45,7 @@ function enlarged(imageHash: string): string {
 
 <template>
     <div v-if="config.aspectMode === 'PRESERVE'" class="flex flex-wrap justify-center items-end gap-2">
-        <figure v-for="(item, gi) in config.items ?? []" :key="item.imageHash + '-' + gi"
+        <figure v-for="(item, gi) in pictures" :key="item.imageHash + '-' + gi"
                 class="inline-flex flex-col items-center gap-1 shrink-0">
             <EnlargeableImage :src="enlarged(item.imageHash)" :alt="item.altText" :caption="item.subtext">
                 <img :src="stationUid ? mediaImageUrlAt(stationUid, item.imageHash, itemWidth) : ''"
@@ -58,7 +62,7 @@ function enlarged(imageHash: string): string {
         </figure>
     </div>
     <div v-else :class="`grid grid-cols-${columns} gap-2`">
-        <figure v-for="(item, gi) in config.items ?? []" :key="item.imageHash + '-' + gi" class="space-y-1">
+        <figure v-for="(item, gi) in pictures" :key="item.imageHash + '-' + gi" class="space-y-1">
             <EnlargeableImage :src="enlarged(item.imageHash)" :alt="item.altText" :caption="item.subtext">
                 <img :src="stationUid ? mediaImageUrlAt(stationUid, item.imageHash, itemWidth) : ''"
                      :srcset="stationUid ? mediaImageSrcset(stationUid, item.imageHash, itemWidth) : undefined"

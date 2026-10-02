@@ -8,12 +8,13 @@ import { useI18n } from 'vue-i18n'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import type { GuardianInput, WaitingListField } from '@/api/waitingList'
+import type { GuardianInput } from '@/api/waitingList'
+import type { WaitingListField } from '@/api/generated/schema'
 import BasicFieldsSection from './BasicFieldsSection.vue'
 import GuardiansSection from './GuardiansSection.vue'
 import CustomFieldsSection from './CustomFieldsSection.vue'
 
-const props = defineProps<{
+defineProps<{
   firstname: string
   lastname: string
   guardians: GuardianInput[]
@@ -23,13 +24,13 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'update:firstname', value: string): void
-  (e: 'update:lastname', value: string): void
-  (e: 'update:guardians', value: GuardianInput[]): void
-  (e: 'update:notes', value: string): void
-  (e: 'addGuardian'): void
-  (e: 'removeGuardian', index: number): void
-  (e: 'updateFieldValue', fieldId: number, value: string): void
+  'update:firstname': [value: string]
+  'update:lastname': [value: string]
+  'update:guardians': [value: GuardianInput[]]
+  'update:notes': [value: string]
+  addGuardian: []
+  removeGuardian: [index: number]
+  updateFieldValue: [fieldId: number, value: string]
 }>()
 
 const { t } = useI18n()
@@ -59,7 +60,7 @@ const { t } = useI18n()
 
     <div class="space-y-1">
       <FieldLabel>{{ t('waitingList.notes') }}</FieldLabel>
-      <TextAreaInput :model-value="notes" @update:model-value="emit('update:notes', $event ?? '')" :placeholder="t('waitingList.notesPlaceholder')"/>
+      <TextAreaInput :model-value="notes" :placeholder="t('waitingList.notesPlaceholder')" @update:model-value="emit('update:notes', $event ?? '')"/>
     </div>
   </NeutralContainer>
 </template>

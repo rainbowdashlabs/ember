@@ -22,6 +22,7 @@ import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.restriction.RestrictionSet;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -75,7 +76,7 @@ public class KbAccessService {
      * @param fileId   the file, or {@code null} when asking about a folder
      * @return the restrictions
      */
-    public List<KbAccessGrant> findRestrictions(Integer folderId, Integer fileId) {
+    public List<KbAccessGrant> findRestrictions(@Nullable Integer folderId, @Nullable Integer fileId) {
         return repository.findRestrictions(folderId, fileId);
     }
 
@@ -86,7 +87,7 @@ public class KbAccessService {
      * @param fileId    the file, or {@code null} when setting them on a folder
      * @param selection the user types, groups, tags and members that may see the item
      */
-    public void setRestrictions(Integer folderId, Integer fileId, RestrictionSelection selection) {
+    public void setRestrictions(@Nullable Integer folderId, @Nullable Integer fileId, RestrictionSelection selection) {
         var grants = new ArrayList<GrantEntry>();
         for (StationUserType userType : selection.userTypes()) {
             grants.add(new GrantEntry(userType, null, null, null, null));
@@ -111,7 +112,7 @@ public class KbAccessService {
      * @param fileId   the file, or {@code null} when setting them on a folder
      * @param grants   the audiences and their levels
      */
-    public void setGrants(Integer folderId, Integer fileId, List<GrantEntry> grants) {
+    public void setGrants(@Nullable Integer folderId, @Nullable Integer fileId, List<GrantEntry> grants) {
         repository.clearRestrictions(folderId, fileId);
         for (var grant : grants) {
             repository.addRestriction(
@@ -126,7 +127,7 @@ public class KbAccessService {
         log.info("Knowledge {} now carries {} grant(s)", subject(folderId, fileId), grants.size());
     }
 
-    private String subject(Integer folderId, Integer fileId) {
+    private String subject(@Nullable Integer folderId, @Nullable Integer fileId) {
         return folderId != null ? "folder " + folderId : "file " + fileId;
     }
 
@@ -135,7 +136,11 @@ public class KbAccessService {
      * set; a null level leaves the level to the station permission the member holds.
      */
     public record GrantEntry(
-            StationUserType userType, Integer groupId, Integer tagId, Integer memberId, KbAccessLevel level) {}
+            @Nullable StationUserType userType,
+            @Nullable Integer groupId,
+            @Nullable Integer tagId,
+            @Nullable Integer memberId,
+            @Nullable KbAccessLevel level) {}
 
     /**
      * Reads the group and user-tag memberships an access check needs, so a whole listing can be
@@ -178,7 +183,7 @@ public class KbAccessService {
      * @param fileId   the file, or {@code null} when asking about a folder
      * @return {@code true} when the member may see the item
      */
-    public boolean canAccess(MemberAccess access, Integer folderId, Integer fileId) {
+    public boolean canAccess(MemberAccess access, @Nullable Integer folderId, @Nullable Integer fileId) {
         return effectiveLevel(access, folderId, fileId).covers(KbAccessLevel.READ);
     }
 
@@ -196,8 +201,8 @@ public class KbAccessService {
      */
     public boolean canAccess(
             int memberId,
-            Integer folderId,
-            Integer fileId,
+            @Nullable Integer folderId,
+            @Nullable Integer fileId,
             StationUserType memberUserType,
             List<Integer> memberGroupIds,
             List<Integer> memberTagIds) {
@@ -208,9 +213,10 @@ public class KbAccessService {
         }
 
         if (fileId != null) {
-            var file = repository.findAnyFileById(fileId);
-            if (file.isPresent() && file.get().folderId() != null) {
-                return canAccessFolder(memberId, file.get().folderId(), memberUserType, memberGroupIds, memberTagIds);
+            Integer fileFolderId =
+                    repository.findAnyFileById(fileId).map(KbFile::folderId).orElse(null);
+            if (fileFolderId != null) {
+                return canAccessFolder(memberId, fileFolderId, memberUserType, memberGroupIds, memberTagIds);
             }
         }
 
@@ -231,20 +237,22 @@ public class KbAccessService {
      * @param fileId   the file, or {@code null} when asking about a folder
      * @return {@code true} when the item is public
      */
-    public boolean isPubliclyVisible(PublicKbMode mode, Integer folderId, Integer fileId) {
+    public boolean isPubliclyVisible(PublicKbMode mode, @Nullable Integer folderId, @Nullable Integer fileId) {
         if (mode == PublicKbMode.OFF) return false;
         if (repository.hasRestrictions(folderId, fileId)) return false;
 
         if (fileId != null) {
             var file = repository.findAnyFileById(fileId).orElse(null);
-            if (file != null && file.folderId() != null && !isPubliclyVisible(mode, file.folderId(), null)) {
+            Integer fileFolderId = file == null ? null : file.folderId();
+            if (fileFolderId != null && !isPubliclyVisible(mode, fileFolderId, null)) {
                 return false;
             }
         }
 
         if (folderId != null) {
             var folder = repository.findAnyFolderById(folderId).orElse(null);
-            if (folder != null && folder.parentId() != null && !isPubliclyVisible(mode, folder.parentId(), null)) {
+            Integer parentId = folder == null ? null : folder.parentId();
+            if (parentId != null && !isPubliclyVisible(mode, parentId, null)) {
                 return false;
             }
         }
@@ -267,7 +275,8 @@ public class KbAccessService {
      * @param fileId         the file being moved, or {@code null} when moving a folder
      * @return {@code true} when the item would be public there
      */
-    public boolean isPubliclyVisibleUnder(PublicKbMode mode, Integer targetFolderId, Integer folderId, Integer fileId) {
+    public boolean isPubliclyVisibleUnder(
+            PublicKbMode mode, @Nullable Integer targetFolderId, @Nullable Integer folderId, @Nullable Integer fileId) {
         if (mode == PublicKbMode.OFF) return false;
         if (repository.hasRestrictions(folderId, fileId)) return false;
         if (targetFolderId != null && !isPubliclyVisible(mode, targetFolderId, null)) return false;
@@ -281,7 +290,7 @@ public class KbAccessService {
      * @param fileId   the file, or {@code null} when setting it on a folder
      * @param visible  whether the item is public
      */
-    public void setPublicVisibility(Integer folderId, Integer fileId, boolean visible) {
+    public void setPublicVisibility(@Nullable Integer folderId, @Nullable Integer fileId, boolean visible) {
         repository.setPublicVisibility(folderId, fileId, visible);
         log.info("Knowledge {} is now {} to the public", subject(folderId, fileId), visible ? "open" : "closed");
     }
@@ -293,7 +302,7 @@ public class KbAccessService {
      * @param folderId the folder, or {@code null} when removing it from a file
      * @param fileId   the file, or {@code null} when removing it from a folder
      */
-    public void removePublicVisibility(Integer folderId, Integer fileId) {
+    public void removePublicVisibility(@Nullable Integer folderId, @Nullable Integer fileId) {
         repository.removePublicVisibility(folderId, fileId);
         log.info("Knowledge {} follows its folder and station again", subject(folderId, fileId));
     }
@@ -305,7 +314,7 @@ public class KbAccessService {
      * @param fileId   the file, or {@code null} when asking about a folder
      * @return the override, or empty when the item has none
      */
-    public Optional<Boolean> findPublicVisibility(Integer folderId, Integer fileId) {
+    public Optional<Boolean> findPublicVisibility(@Nullable Integer folderId, @Nullable Integer fileId) {
         return repository.findPublicVisibility(folderId, fileId);
     }
 
@@ -322,7 +331,7 @@ public class KbAccessService {
      * @param fileId   the file, or {@code null} when asking about a folder
      * @return the level and where it came from
      */
-    public LevelExplanation explainLevel(MemberAccess access, Integer folderId, Integer fileId) {
+    public LevelExplanation explainLevel(MemberAccess access, @Nullable Integer folderId, @Nullable Integer fileId) {
         var level = effectiveLevel(access, folderId, fileId);
         if (access.canManage()) return new LevelExplanation(level, null);
         return new LevelExplanation(level, levelSource(access, folderId, fileId));
@@ -332,7 +341,7 @@ public class KbAccessService {
      * The name of the deepest folder along the path whose grants name the member with a level. The
      * file's own grants are not a "source" worth naming - the reader is already looking at it.
      */
-    private String levelSource(MemberAccess access, Integer folderId, Integer fileId) {
+    private @Nullable String levelSource(MemberAccess access, @Nullable Integer folderId, @Nullable Integer fileId) {
         Integer startFolder = folderId;
         if (fileId != null) {
             var file = repository.findAnyFileById(fileId);
@@ -348,7 +357,7 @@ public class KbAccessService {
         String source = null;
         for (var node : path) {
             boolean decides = grants.stream()
-                    .filter(grant -> grant.folderId() != null && grant.folderId() == node.id())
+                    .filter(grant -> grant.isOnFolder(node.id()))
                     .filter(grant -> grant.level() != null)
                     .anyMatch(grant ->
                             grant.matches(access.memberId(), access.userType(), access.groupIds(), access.tagIds()));
@@ -366,7 +375,8 @@ public class KbAccessService {
      * A member's level and the folder whose grant set it, or a null source when the station
      * permission decided.
      */
-    public record LevelExplanation(KbAccessLevel level, String source) {}
+    public record LevelExplanation(
+            KbAccessLevel level, @Nullable String source) {}
 
     /**
      * Resolves what a member may do with a folder or file.
@@ -383,7 +393,7 @@ public class KbAccessService {
      * @param fileId   the file, or {@code null} when asking about a folder
      * @return the level the member holds on that item
      */
-    public KbAccessLevel effectiveLevel(MemberAccess access, Integer folderId, Integer fileId) {
+    public KbAccessLevel effectiveLevel(MemberAccess access, @Nullable Integer folderId, @Nullable Integer fileId) {
         if (access.canManage()) return KbAccessLevel.MANAGE;
         return levelWithin(access, gatesOf(folderId, fileId));
     }
@@ -397,7 +407,7 @@ public class KbAccessService {
      * @param fileId   the file, or {@code null} when asking about a folder
      * @return the IDs of the members who may read the item
      */
-    public Set<Integer> readers(List<MemberAccess> members, Integer folderId, Integer fileId) {
+    public Set<Integer> readers(List<MemberAccess> members, @Nullable Integer folderId, @Nullable Integer fileId) {
         var gates = gatesOf(folderId, fileId);
         return members.stream()
                 .filter(access ->
@@ -410,14 +420,14 @@ public class KbAccessService {
      * Reads everything that gates a folder or file: the folders above it, root first, their grants
      * and, for a file, its own grants and mode. A file that no longer exists is gated by nothing.
      */
-    private Gates gatesOf(Integer folderId, Integer fileId) {
+    private Gates gatesOf(@Nullable Integer folderId, @Nullable Integer fileId) {
         Integer startFolder = folderId;
         RestrictionMode fileMode = RestrictionMode.AND;
         if (fileId != null) {
             var file = repository.findAnyFileById(fileId);
             if (file.isEmpty()) return Gates.NOTHING;
             startFolder = file.get().folderId();
-            if (file.get().restrictionMode() != null) fileMode = file.get().restrictionMode();
+            fileMode = file.get().restrictionMode();
         }
 
         var path = startFolder != null ? repository.findFolderPath(startFolder) : List.<FolderPathNode>of();
@@ -453,7 +463,10 @@ public class KbAccessService {
      * @param fileMode how the file's own grants combine
      */
     private record Gates(
-            List<FolderPathNode> path, List<KbAccessGrant> grants, Integer fileId, RestrictionMode fileMode) {
+            List<FolderPathNode> path,
+            List<KbAccessGrant> grants,
+            @Nullable Integer fileId,
+            RestrictionMode fileMode) {
         private static final Gates NOTHING = new Gates(List.of(), List.of(), null, RestrictionMode.AND);
     }
 
@@ -470,7 +483,7 @@ public class KbAccessService {
      * @return the level per folder id and per file id, in two maps
      */
     public ChildLevels childLevels(
-            MemberAccess access, Integer parentFolderId, List<ChildNode> folders, List<ChildNode> files) {
+            MemberAccess access, @Nullable Integer parentFolderId, List<ChildNode> folders, List<ChildNode> files) {
         if (access.canManage()) {
             return new ChildLevels(constant(folders, KbAccessLevel.MANAGE), constant(files, KbAccessLevel.MANAGE));
         }
@@ -487,15 +500,14 @@ public class KbAccessService {
         var folderLevels = new HashMap<Integer, KbAccessLevel>();
         for (var child : folders) {
             var rows = grants.stream()
-                    .filter(grant -> grant.folderId() != null && grant.folderId() == child.id())
+                    .filter(grant -> grant.isOnFolder(child.id()))
                     .toList();
             folderLevels.put(child.id(), resolveChild(access, rows, child.mode(), carried));
         }
         var fileLevels = new HashMap<Integer, KbAccessLevel>();
         for (var child : files) {
-            var rows = grants.stream()
-                    .filter(grant -> grant.fileId() != null && grant.fileId() == child.id())
-                    .toList();
+            var rows =
+                    grants.stream().filter(grant -> grant.isOnFile(child.id())).toList();
             fileLevels.put(child.id(), resolveChild(access, rows, child.mode(), carried));
         }
         return new ChildLevels(folderLevels, fileLevels);
@@ -543,14 +555,14 @@ public class KbAccessService {
 
         var levels = new HashMap<Integer, KbAccessLevel>();
         for (var file : files) {
-            var inherited = file.folderId() != null ? carried.get(file.folderId()) : null;
+            Integer fileFolderId = file.folderId();
+            var inherited = fileFolderId != null ? carried.get(fileFolderId) : null;
             if (inherited == KbAccessLevel.NONE) {
                 levels.put(file.id(), KbAccessLevel.NONE);
                 continue;
             }
-            var rows = grants.stream()
-                    .filter(grant -> grant.fileId() != null && grant.fileId() == file.id())
-                    .toList();
+            var rows =
+                    grants.stream().filter(grant -> grant.isOnFile(file.id())).toList();
             levels.put(file.id(), resolveChild(access, rows, file.mode(), inherited));
         }
         return levels;
@@ -573,7 +585,7 @@ public class KbAccessService {
     /**
      * One file of a batch: its id, the folder it sits in, and the mode its own grants combine in.
      */
-    public record FileNode(int id, Integer folderId, RestrictionMode mode) {
+    public record FileNode(int id, @Nullable Integer folderId, RestrictionMode mode) {
         public static FileNode of(KbFile file) {
             return new FileNode(file.id(), file.folderId(), file.restrictionMode());
         }
@@ -583,12 +595,12 @@ public class KbAccessService {
      * Applies the grants of a whole ancestry, root first, to arrive at the level carried down to
      * its last folder.
      */
-    private KbAccessLevel applyPath(MemberAccess access, List<FolderPathNode> path, List<KbAccessGrant> grants) {
+    private @Nullable KbAccessLevel applyPath(
+            MemberAccess access, List<FolderPathNode> path, List<KbAccessGrant> grants) {
         KbAccessLevel carried = null;
         for (var node : path) {
-            var rows = grants.stream()
-                    .filter(grant -> grant.folderId() != null && grant.folderId() == node.id())
-                    .toList();
+            var rows =
+                    grants.stream().filter(grant -> grant.isOnFolder(node.id())).toList();
             carried = applyNode(access, rows, node.restrictionMode(), carried);
             if (carried == KbAccessLevel.NONE) return KbAccessLevel.NONE;
         }
@@ -596,7 +608,7 @@ public class KbAccessService {
     }
 
     private KbAccessLevel resolveChild(
-            MemberAccess access, List<KbAccessGrant> rows, RestrictionMode mode, KbAccessLevel carried) {
+            MemberAccess access, List<KbAccessGrant> rows, RestrictionMode mode, @Nullable KbAccessLevel carried) {
         var resolved = applyNode(access, rows, mode, carried);
         return resolved != null ? resolved : stationDefault(access);
     }
@@ -612,7 +624,7 @@ public class KbAccessService {
      * when nothing along the way said anything, or {@link KbAccessLevel#NONE} when the member is
      * gated out.
      */
-    private KbAccessLevel carriedLevel(MemberAccess access, Integer folderId) {
+    private @Nullable KbAccessLevel carriedLevel(MemberAccess access, @Nullable Integer folderId) {
         if (folderId == null) return null;
         var path = repository.findFolderPath(folderId);
         var grants = repository.findRestrictionsForPath(
@@ -656,8 +668,7 @@ public class KbAccessService {
                 carried = KbAccessLevel.NONE;
             } else {
                 var rows = grants.stream()
-                        .filter(grant -> grant.folderId() != null
-                                && grant.folderId() == current.node().id())
+                        .filter(grant -> grant.isOnFolder(current.node().id()))
                         .toList();
                 carried = applyNode(access, rows, current.node().mode(), current.carried());
             }
@@ -669,13 +680,13 @@ public class KbAccessService {
         return levels;
     }
 
-    private record PendingNode(TreeNode node, KbAccessLevel carried) {}
+    private record PendingNode(TreeNode node, @Nullable KbAccessLevel carried) {}
 
     /**
      * One folder of a station's whole tree: its id, where it hangs, and the mode its own grants
      * combine in.
      */
-    public record TreeNode(int id, Integer parentId, RestrictionMode mode) {}
+    public record TreeNode(int id, @Nullable Integer parentId, RestrictionMode mode) {}
 
     /**
      * One child of a listed folder: its id and the mode its own grants combine in.
@@ -693,11 +704,11 @@ public class KbAccessService {
      * <p>Answers {@link KbAccessLevel#NONE} when the member is gated out or explicitly denied here,
      * which is unambiguous: a level a member is granted is never {@code NONE}.
      */
-    private KbAccessLevel applyNode(
-            MemberAccess access, List<KbAccessGrant> rows, RestrictionMode mode, KbAccessLevel carried) {
+    private @Nullable KbAccessLevel applyNode(
+            MemberAccess access, List<KbAccessGrant> rows, RestrictionMode mode, @Nullable KbAccessLevel carried) {
         if (rows.isEmpty()) return carried;
 
-        var restrictions = toRestrictionSet(rows, mode != null ? mode : RestrictionMode.AND);
+        var restrictions = toRestrictionSet(rows, mode);
         if (!restrictions.matches(access.userType(), access.groupIds(), access.tagIds(), access.memberId())) {
             return KbAccessLevel.NONE;
         }
@@ -705,8 +716,9 @@ public class KbAccessService {
         KbAccessLevel nodeLevel = null;
         for (var row : rows) {
             if (!row.matches(access.memberId(), access.userType(), access.groupIds(), access.tagIds())) continue;
-            if (row.level() == KbAccessLevel.NONE) return KbAccessLevel.NONE;
-            if (row.level() != null) nodeLevel = KbAccessLevel.max(nodeLevel, row.level());
+            KbAccessLevel rowLevel = row.level();
+            if (rowLevel == KbAccessLevel.NONE) return KbAccessLevel.NONE;
+            if (rowLevel != null) nodeLevel = KbAccessLevel.max(nodeLevel, rowLevel);
         }
         return nodeLevel != null ? nodeLevel : carried;
     }
@@ -724,15 +736,13 @@ public class KbAccessService {
         return KbAccessLevel.READ;
     }
 
-    private RestrictionMode restrictionMode(Integer folderId, Integer fileId) {
+    private RestrictionMode restrictionMode(@Nullable Integer folderId, @Nullable Integer fileId) {
         if (fileId != null) {
             var file = repository.findAnyFileById(fileId);
-            if (file.isPresent() && file.get().restrictionMode() != null)
-                return file.get().restrictionMode();
+            if (file.isPresent()) return file.get().restrictionMode();
         } else if (folderId != null) {
             var folder = repository.findAnyFolderById(folderId);
-            if (folder.isPresent() && folder.get().restrictionMode() != null)
-                return folder.get().restrictionMode();
+            if (folder.isPresent()) return folder.get().restrictionMode();
         }
         return RestrictionMode.AND;
     }
@@ -748,14 +758,13 @@ public class KbAccessService {
 
         var rawRestrictions = repository.findRestrictions(folderId, null);
         if (!rawRestrictions.isEmpty()) {
-            RestrictionMode mode =
-                    folder.get().restrictionMode() != null ? folder.get().restrictionMode() : RestrictionMode.AND;
-            var restrictions = toRestrictionSet(rawRestrictions, mode);
+            var restrictions = toRestrictionSet(rawRestrictions, folder.get().restrictionMode());
             if (!restrictions.matches(memberUserType, memberGroupIds, memberTagIds, memberId)) return false;
         }
 
-        if (folder.get().parentId() != null) {
-            return canAccessFolder(memberId, folder.get().parentId(), memberUserType, memberGroupIds, memberTagIds);
+        Integer parentId = folder.get().parentId();
+        if (parentId != null) {
+            return canAccessFolder(memberId, parentId, memberUserType, memberGroupIds, memberTagIds);
         }
 
         return true;
@@ -771,7 +780,7 @@ public class KbAccessService {
      */
     public record MemberAccess(
             int memberId,
-            StationUserType userType,
+            @Nullable StationUserType userType,
             List<Integer> groupIds,
             List<Integer> tagIds,
             boolean canEdit,

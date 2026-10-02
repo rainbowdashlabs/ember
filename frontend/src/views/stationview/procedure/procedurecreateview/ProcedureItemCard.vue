@@ -12,35 +12,30 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
+import type {EditableItem} from '@/composables/useProcedureForm'
 
 const {t} = useI18n()
 
 const props = defineProps<{
-  item: {
-    tempId: number
-    title: string
-    description: string
-    isPublic: boolean
-    userAssigned: boolean
-    dependsOn: number[]
-  }
   allItems: { tempId: number; title: string }[]
 }>()
+
+const item = defineModel<EditableItem>('item', {required: true})
 
 const emit = defineEmits<{
   remove: []
 }>()
 
 function availableDeps() {
-  return props.allItems.filter(i => i.tempId !== props.item.tempId && !props.item.dependsOn.includes(i.tempId))
+  return props.allItems.filter(i => i.tempId !== item.value.tempId && !item.value.dependsOn.includes(i.tempId))
 }
 
 function addDependency(value: string | number | null | undefined) {
-  if (value) props.item.dependsOn = [...props.item.dependsOn, Number(value)]
+  if (value) item.value = {...item.value, dependsOn: [...item.value.dependsOn, Number(value)]}
 }
 
 function removeDependency(depId: number) {
-  props.item.dependsOn = props.item.dependsOn.filter(d => d !== depId)
+  item.value = {...item.value, dependsOn: item.value.dependsOn.filter(d => d !== depId)}
 }
 </script>
 
@@ -71,7 +66,7 @@ function removeDependency(depId: number) {
         <span v-for="depId in item.dependsOn" :key="depId"
               class="inline-flex items-center gap-1 bg-(--bg-light-accent) dark:bg-(--bg-dark-accent) rounded px-2 py-0.5 text-xs">
           {{ allItems.find(i => i.tempId === depId)?.title || '?' }}
-          <IconButton :icon="['fas', 'xmark']" label="Remove" class="!p-0" @click="removeDependency(depId)"/>
+          <IconButton :icon="['fas', 'xmark']" :label="t('common.remove')" class="!p-0" @click="removeDependency(depId)"/>
         </span>
       </div>
       <SelectInput v-if="availableDeps().length > 0" model-value="" class="w-full text-xs"

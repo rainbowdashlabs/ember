@@ -4,7 +4,9 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {computed, onBeforeUnmount, onMounted, ref} from 'vue'
+import {useEventListener} from '@vueuse/core'
+import {computed, ref} from 'vue'
+import {useBreakpoint} from '@/composables/useBreakpoint'
 import UserAvatar from '@/components/avatar/UserAvatar.vue'
 import AccountMenu from '@/components/layout/AccountMenu.vue'
 import IdentityButton from '@/components/button/IdentityButton.vue'
@@ -15,12 +17,8 @@ const {sessionInfo, fullName} = useSession()
 const {logout} = useLogout()
 
 const open = ref(false)
-const isDesktop = ref(false)
+const {isDesktop} = useBreakpoint()
 const rootEl = ref<HTMLElement | null>(null)
-
-function updateBreakpoint() {
-  isDesktop.value = window.matchMedia('(min-width: 1024px)').matches
-}
 
 function onDocumentClick(e: MouseEvent) {
   if (!open.value) return
@@ -29,16 +27,7 @@ function onDocumentClick(e: MouseEvent) {
   }
 }
 
-onMounted(() => {
-  updateBreakpoint()
-  window.addEventListener('resize', updateBreakpoint)
-  window.addEventListener('mousedown', onDocumentClick)
-})
-
-onBeforeUnmount(() => {
-  window.removeEventListener('resize', updateBreakpoint)
-  window.removeEventListener('mousedown', onDocumentClick)
-})
+useEventListener('mousedown', onDocumentClick)
 
 const accountUid = computed(() => sessionInfo.value?.account?.uid)
 const displayName = computed(() => fullName())

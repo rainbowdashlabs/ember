@@ -38,9 +38,12 @@ const stationName = ref('')
 const lockTheme = ref(false)
 const lockFeel = ref(false)
 
-// What the cluster above the station has taken out of its hands, and who to name for it. Separate from
-// lockTheme and lockFeel, which are the station's own decision about its members.
+/** The cluster above the station, named where it has taken a choice out of the station's hands. */
 const clusterName = ref<string | null>(null)
+/**
+ * What the cluster has taken out of the station's hands. Separate from `lockTheme` and `lockFeel`,
+ * which are the station's own decision about its members.
+ */
 const clusterLocks = ref({theme: false, colors: false, feel: false, logo: false})
 
 const customEnabled = ref(false)
@@ -105,7 +108,7 @@ async function save() {
       allowUserTheme: !lockTheme.value,
       defaultFeel: themeCtrl.activeFeel.value,
       allowUserFeel: !lockFeel.value,
-      customThemeColors: customEnabled.value ? JSON.stringify(customColors.value) : null,
+      customThemeColors: customEnabled.value ? JSON.stringify(customColors.value) : undefined,
     })
   } catch (e) {
     failure.value = describeFailure(e, t)

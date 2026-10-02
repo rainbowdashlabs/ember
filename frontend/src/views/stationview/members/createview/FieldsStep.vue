@@ -12,7 +12,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import ProfileFieldsLayout, {type LaidOutField} from '@/components/profilefields/ProfileFieldsLayout.vue'
-import type {ProfileField} from '@/api/profileFields'
+import type {ProfileField} from '@/api/generated/schema'
 
 /**
  * The questions a new member is asked, drawn the way they are drawn everywhere else.
@@ -45,7 +45,7 @@ function valueOf(field: LaidOutField): string {
   <NeutralContainer class="space-y-4">
     <SectionHeader>{{ t('membersCreate.stepFields') }}</SectionHeader>
 
-    <EmptyState compact v-if="fields.length === 0">{{ t('membersCreate.noFields') }}</EmptyState>
+    <EmptyState v-if="fields.length === 0" compact>{{ t('membersCreate.noFields') }}</EmptyState>
 
     <ProfileFieldsLayout
         v-else

@@ -5,14 +5,13 @@
  */
 package dev.chojo.ember.feature.account.route;
 
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.auth.SessionCookies;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.legal.service.GdprDeletionService;
 import dev.chojo.ember.feature.legal.service.GdprExportService;
 import dev.chojo.ember.feature.members.entity.NameParts;
-import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.util.DocumentName;
 import dev.chojo.ember.util.DocumentPeriod;
 import dev.chojo.ember.util.DocumentWord;
@@ -21,10 +20,12 @@ import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
+import io.javalin.openapi.OpenApiContent;
 import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -37,16 +38,16 @@ import java.time.ZoneOffset;
 public class AccountDataRoutes implements Routes {
     private final GdprExportService gdprExportService;
     private final GdprDeletionService gdprDeletionService;
-    private final StationMemberRepository stationMemberRepository;
+    private final SessionCookies sessionCookies;
 
     @Inject
     public AccountDataRoutes(
             GdprExportService gdprExportService,
             GdprDeletionService gdprDeletionService,
-            StationMemberRepository stationMemberRepository) {
+            SessionCookies sessionCookies) {
         this.gdprExportService = gdprExportService;
         this.gdprDeletionService = gdprDeletionService;
-        this.stationMemberRepository = stationMemberRepository;
+        this.sessionCookies = sessionCookies;
     }
 
     @Override
@@ -60,7 +61,7 @@ public class AccountDataRoutes implements Routes {
             methods = HttpMethod.GET,
             summary = "Export all personal data (GDPR/DSGVO)",
             tags = {"Session"},
-            responses = @OpenApiResponse(status = "200"))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(type = "application/zip")))
     private void gdprExport(Context ctx) {
         UserSession session = UserSession.from(ctx);
         String locale = ctx.queryParam("locale");
@@ -76,7 +77,7 @@ public class AccountDataRoutes implements Routes {
      * <p>Their name is in it, because the usual reason for asking is to hand the file to somebody
      * else, and a folder of files all called the same thing helps nobody.
      */
-    private static String dataExportName(UserSession session, String locale) {
+    private static String dataExportName(UserSession session, @Nullable String locale) {
         String language = "en".equals(locale) ? "en" : "de";
         String filename = DocumentName.of(
                 "zip",
@@ -97,16 +98,8 @@ public class AccountDataRoutes implements Routes {
             tags = {"Session"},
             responses = @OpenApiResponse(status = "204"))
     private void deleteAccount(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        var memberships = stationMemberRepository.findAllByAccountId(session.accountId());
-        for (var member : memberships) {
-            var roles = stationMemberRepository.findPermissions(member.id());
-            boolean isManager = roles.stream().anyMatch(r -> r.permission() == StationPermission.STATION_ADMINISTRATOR);
-            if (isManager) {
-                throw Refusal.ACCOUNT_STILL_ADMINISTERS_STATION.raise();
-            }
-        }
-        gdprDeletionService.deleteAccount(session.accountId());
+        gdprDeletionService.deleteOwnAccount(UserSession.from(ctx).accountId());
+        sessionCookies.clear(ctx);
         ctx.status(HttpStatus.NO_CONTENT);
     }
 }

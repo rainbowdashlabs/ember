@@ -6,19 +6,15 @@
 package dev.chojo.ember.feature.events.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
-import dev.chojo.ember.feature.events.entity.EventFieldType;
-import dev.chojo.ember.feature.events.entity.EventRegistrationFieldConfig;
+import dev.chojo.ember.api.refusal.EventRefusal;
+import dev.chojo.ember.feature.events.entity.AppointmentTemplateField;
 import dev.chojo.ember.feature.events.entity.EventTemplate;
-import dev.chojo.ember.feature.events.entity.EventTemplateField;
 import dev.chojo.ember.feature.events.entity.EventTemplateFieldData;
-import dev.chojo.ember.feature.events.entity.EventTemplateRegistrationField;
+import dev.chojo.ember.feature.events.entity.RegistrationTemplateField;
 import dev.chojo.ember.feature.events.entity.StationEvent;
-import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository.FieldEntry;
-import dev.chojo.ember.feature.events.service.EventRegistrationFieldService;
 import dev.chojo.ember.feature.events.service.EventTemplateRestrictionService;
 import dev.chojo.ember.feature.events.service.EventTemplateService;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
@@ -35,6 +31,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -44,16 +41,12 @@ import static dev.chojo.ember.api.RouteSupport.requireOwnedOrNotFound;
 @Singleton
 public class EventTemplateRoutes implements Routes {
     private final EventTemplateService eventTemplateService;
-    private final EventRegistrationFieldService registrationFieldService;
     private final EventTemplateRestrictionService restrictionService;
 
     @Inject
     public EventTemplateRoutes(
-            EventTemplateService eventTemplateService,
-            EventRegistrationFieldService registrationFieldService,
-            EventTemplateRestrictionService restrictionService) {
+            EventTemplateService eventTemplateService, EventTemplateRestrictionService restrictionService) {
         this.eventTemplateService = eventTemplateService;
-        this.registrationFieldService = registrationFieldService;
         this.restrictionService = restrictionService;
     }
 
@@ -99,7 +92,7 @@ public class EventTemplateRoutes implements Routes {
             tags = {"Event Templates"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventTemplate[].class)))
     private void list(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(eventTemplateService.findByStation(session.stationId()));
     }
 
@@ -111,10 +104,10 @@ public class EventTemplateRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = CreateTemplateRequest.class)),
             responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = EventTemplate.class)))
     private void create(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(CreateTemplateRequest.class);
         if (req.name() == null || req.name().isBlank()) {
-            throw Refusal.EVENT_TEMPLATE_NEEDS_A_NAME.raise();
+            throw EventRefusal.EVENT_TEMPLATE_NEEDS_A_NAME.raise();
         }
         ctx.status(HttpStatus.CREATED).json(eventTemplateService.create(session.stationId(), req.name()));
     }
@@ -132,10 +125,13 @@ public class EventTemplateRoutes implements Routes {
     private void get(Context ctx) {
         int id = pathInt(ctx, "id");
         var template = requireOwnedOrNotFound(ctx, id, eventTemplateService::findById, EventTemplate::stationId);
-        var fields = eventTemplateService.findFields(id);
         var reminderDays = eventTemplateService.findReminderDays(id);
-        var registrationFields = registrationFieldService.findByTemplate(id);
-        ctx.json(new TemplateDetailResponse(template, fields, restrictionsOf(id), reminderDays, registrationFields));
+        ctx.json(new TemplateDetailResponse(
+                template,
+                eventTemplateService.findFields(id),
+                restrictionsOf(id),
+                reminderDays,
+                eventTemplateService.findRegistrationFields(id)));
     }
 
     /** What the template hands its appointments, as the editor and the appointment both read it. */
@@ -152,22 +148,18 @@ public class EventTemplateRoutes implements Routes {
             tags = {"Event Templates"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SetRegistrationFieldsRequest.class)),
-            responses = @OpenApiResponse(status = "200"))
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = RegistrationTemplateField[].class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
     private void setRegistrationFields(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedOrNotFound(ctx, id, eventTemplateService::findById, EventTemplate::stationId);
         var req = ctx.bodyAsClass(SetRegistrationFieldsRequest.class);
         var fields = req.fields() == null ? List.<RegistrationFieldDefinition>of() : req.fields();
-        registrationFieldService.replaceTemplateFields(
-                id,
-                fields.stream()
-                        .map(f -> new FieldEntry(
-                                f.name(),
-                                f.fieldType(),
-                                f.config() != null ? f.config() : EventRegistrationFieldConfig.empty(),
-                                f.overview()))
-                        .toList());
-        ctx.json(registrationFieldService.findByTemplate(id));
+        eventTemplateService.replaceRegistrationFields(
+                id, fields.stream().map(RegistrationFieldDefinition::toDraft).toList());
+        ctx.json(eventTemplateService.findRegistrationFields(id));
     }
 
     @OpenApi(
@@ -198,9 +190,11 @@ public class EventTemplateRoutes implements Routes {
                 req.restrictionMode(),
                 req.attendanceTemplateId(),
                 req.registrationLimit())) {
-            throw Refusal.EVENT_TEMPLATE_NOT_CHANGED.raise();
+            throw EventRefusal.EVENT_TEMPLATE_NOT_CHANGED.raise();
         }
-        ctx.json(eventTemplateService.findById(id).orElseThrow(Refusal.EVENT_TEMPLATE_NOT_HERE_AFTER_CHANGE::raise));
+        ctx.json(eventTemplateService
+                .findById(id)
+                .orElseThrow(EventRefusal.EVENT_TEMPLATE_NOT_HERE_AFTER_CHANGE::raise));
     }
 
     @OpenApi(
@@ -219,7 +213,7 @@ public class EventTemplateRoutes implements Routes {
         if (eventTemplateService.delete(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
-            throw Refusal.EVENT_TEMPLATE_NOT_DELETED.raise();
+            throw EventRefusal.EVENT_TEMPLATE_NOT_DELETED.raise();
         }
     }
 
@@ -231,14 +225,16 @@ public class EventTemplateRoutes implements Routes {
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SetFieldsRequest.class)),
             responses = {
-                @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventTemplateField[].class)),
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = AppointmentTemplateField[].class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void setFields(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedOrNotFound(ctx, id, eventTemplateService::findById, EventTemplate::stationId);
         var req = ctx.bodyAsClass(SetFieldsRequest.class);
-        eventTemplateService.replaceFields(id, req.fields());
+        eventTemplateService.replaceFields(
+                id, req.fields().stream().map(EventTemplateFieldData::toDraft).toList());
         ctx.json(eventTemplateService.findFields(id));
     }
 
@@ -273,16 +269,29 @@ public class EventTemplateRoutes implements Routes {
         ctx.json(restrictionsOf(id));
     }
 
+    @OpenApi(
+            path = "/api/v1/event-templates/{id}/reminders",
+            methods = HttpMethod.GET,
+            summary = "List the days before an appointment its reminders go out, as the template sets them",
+            tags = {"Event Templates"},
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Integer[].class)))
     private void getReminders(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedOrNotFound(ctx, id, eventTemplateService::findById, EventTemplate::stationId);
         ctx.json(eventTemplateService.findReminderDays(id));
     }
 
+    @OpenApi(
+            path = "/api/v1/event-templates/{id}/reminders",
+            methods = HttpMethod.PUT,
+            summary = "Replace the reminder days an event template hands over",
+            tags = {"Event Templates"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = EventRoutes.SetRemindersRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Integer[].class)))
     private void setReminders(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedOrNotFound(ctx, id, eventTemplateService::findById, EventTemplate::stationId);
-        var req = ctx.bodyAsClass(SetRemindersRequest.class);
+        var req = ctx.bodyAsClass(EventRoutes.SetRemindersRequest.class);
         eventTemplateService.setReminders(id, req.daysBefore() != null ? req.daysBefore() : List.of());
         ctx.json(eventTemplateService.findReminderDays(id));
     }
@@ -291,23 +300,23 @@ public class EventTemplateRoutes implements Routes {
 
     public record UpdateTemplateRequest(
             String name,
-            String title,
-            String description,
-            Integer categoryId,
-            StationEvent.EventType eventType,
-            Boolean requiresRegistration,
-            String registrationDeadlineOffset,
-            Boolean requiresConfirmation,
-            RestrictionMode restrictionMode,
-            Integer attendanceTemplateId,
-            Integer registrationLimit) {}
+            @Nullable String title,
+            @Nullable String description,
+            @Nullable Integer categoryId,
+            StationEvent.@Nullable EventType eventType,
+            @Nullable Boolean requiresRegistration,
+            @Nullable String registrationDeadlineOffset,
+            @Nullable Boolean requiresConfirmation,
+            @Nullable RestrictionMode restrictionMode,
+            @Nullable Integer attendanceTemplateId,
+            @Nullable Integer registrationLimit) {}
 
     public record TemplateDetailResponse(
             EventTemplate template,
-            List<EventTemplateField> fields,
+            List<AppointmentTemplateField> fields,
             TemplateRestrictions restriction,
             List<Integer> reminderDays,
-            List<EventTemplateRegistrationField> registrationFields) {}
+            List<RegistrationTemplateField> registrationFields) {}
 
     /**
      * Both audiences a template hands to the appointments written from it.
@@ -323,12 +332,4 @@ public class EventTemplateRoutes implements Routes {
     public record SetFieldsRequest(List<EventTemplateFieldData> fields) {}
 
     public record SetRegistrationFieldsRequest(List<RegistrationFieldDefinition> fields) {}
-
-    /**
-     * A registration question as the template editor submits it, before it has a row of its own.
-     */
-    public record RegistrationFieldDefinition(
-            String name, EventFieldType fieldType, EventRegistrationFieldConfig config, boolean overview) {}
-
-    public record SetRemindersRequest(List<Integer> daysBefore) {}
 }

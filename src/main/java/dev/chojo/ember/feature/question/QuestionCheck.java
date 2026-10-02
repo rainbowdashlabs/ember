@@ -5,11 +5,14 @@
  */
 package dev.chojo.ember.feature.question;
 
+import org.jspecify.annotations.Nullable;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.IntPredicate;
 
 /**
  * The one place an answer is measured against the question it answers.
@@ -36,9 +39,9 @@ public final class QuestionCheck {
      * @param answer   what was given, which may be nothing
      * @return what is wrong with it, or empty where nothing is
      */
-    public static Optional<QuestionProblem> answer(Question question, String answer) {
-        String value = said(answer);
-        if (value.isEmpty()) value = said(question.defaultValue());
+    public static Optional<QuestionProblem> answer(Question question, @Nullable String answer) {
+        String value = QuestionValues.said(answer);
+        if (value.isEmpty()) value = QuestionValues.said(question.defaultValue());
         if (value.isEmpty()) {
             return question.required()
                     ? Optional.of(new QuestionProblem(QuestionProblem.Code.REQUIRED, question.name(), null))
@@ -59,9 +62,37 @@ public final class QuestionCheck {
      * @param answer   what was given, which may be nothing
      * @return what is wrong with it, or empty where nothing is or nothing was given
      */
-    public static Optional<QuestionProblem> answerIfGiven(Question question, String answer) {
-        String value = said(answer);
+    public static Optional<QuestionProblem> answerIfGiven(Question question, @Nullable String answer) {
+        String value = QuestionValues.said(answer);
         return value.isEmpty() ? Optional.empty() : value(question, value);
+    }
+
+    /**
+     * Whether this answer is one the question takes, including whether every member it names passes
+     * the group, user type or tag the question is narrowed to.
+     *
+     * @param question    what is being answered
+     * @param answer      what was given, which may be nothing
+     * @param eligibility who passes which narrowing
+     * @return what is wrong with it, or empty where nothing is
+     */
+    public static Optional<QuestionProblem> answer(
+            Question question, @Nullable String answer, MemberEligibility eligibility) {
+        return answer(question, answer).or(() -> eligible(question, answerOrDefault(question, answer), eligibility));
+    }
+
+    /**
+     * Whether what was answered is one the question takes, including the narrowing of a member
+     * field, without asking whether it had to be answered at all.
+     *
+     * @param question    what is being answered
+     * @param answer      what was given, which may be nothing
+     * @param eligibility who passes which narrowing
+     * @return what is wrong with it, or empty where nothing is or nothing was given
+     */
+    public static Optional<QuestionProblem> answerIfGiven(
+            Question question, @Nullable String answer, MemberEligibility eligibility) {
+        return answerIfGiven(question, answer).or(() -> eligible(question, QuestionValues.said(answer), eligibility));
     }
 
     /**
@@ -75,8 +106,21 @@ public final class QuestionCheck {
      * @return what is wrong with its default, or empty where it has none or it is fine
      */
     public static Optional<QuestionProblem> defaultValue(Question question) {
-        String value = said(question.defaultValue());
+        String value = QuestionValues.said(question.defaultValue());
         return value.isEmpty() ? Optional.empty() : value(question, value);
+    }
+
+    /**
+     * Whether the question's own default is an answer it would take, including whether every member
+     * it names passes the group, user type or tag the question is narrowed to.
+     *
+     * @param question    the question as it is being configured
+     * @param eligibility who passes which narrowing
+     * @return what is wrong with its default, or empty where it has none or it is fine
+     */
+    public static Optional<QuestionProblem> defaultValue(Question question, MemberEligibility eligibility) {
+        return defaultValue(question)
+                .or(() -> eligible(question, QuestionValues.said(question.defaultValue()), eligibility));
     }
 
     private static Optional<QuestionProblem> value(Question question, String value) {
@@ -155,6 +199,46 @@ public final class QuestionCheck {
         return Optional.empty();
     }
 
+    private static String answerOrDefault(Question question, @Nullable String answer) {
+        String value = QuestionValues.said(answer);
+        return value.isEmpty() ? QuestionValues.said(question.defaultValue()) : value;
+    }
+
+    /**
+     * Whether every member an answer names passes the narrowing of the field, where it has one.
+     *
+     * <p>A field that lost the group, user type or tag it was narrowed to refuses everybody rather
+     * than taking anybody, so a deleted group does not quietly open the field to the whole station.
+     */
+    private static Optional<QuestionProblem> eligible(Question question, String value, MemberEligibility eligibility) {
+        if (value.isEmpty()) return Optional.empty();
+        if (!(question.rules() instanceof QuestionRules.Members(var constraint, var id, var userType))) {
+            return Optional.empty();
+        }
+        return switch (constraint) {
+            case NONE -> Optional.empty();
+            case GROUP ->
+                id == null
+                        ? problem(QuestionProblem.Code.MISSING_REFERENCE, question, "group")
+                        : everyMember(question, value, member -> eligibility.inGroup(member, id), "of its group");
+            case USER_TYPE ->
+                userType == null
+                        ? problem(QuestionProblem.Code.MISSING_REFERENCE, question, "user type")
+                        : everyMember(
+                                question, value, member -> eligibility.ofType(member, userType), "of its user type");
+            case TAG ->
+                id == null
+                        ? problem(QuestionProblem.Code.MISSING_REFERENCE, question, "tag")
+                        : everyMember(question, value, member -> eligibility.hasTag(member, id), "with its tag");
+        };
+    }
+
+    private static Optional<QuestionProblem> everyMember(
+            Question question, String value, IntPredicate passes, String whom) {
+        boolean all = QuestionValues.memberIds(value).stream().allMatch(passes::test);
+        return all ? Optional.empty() : problem(QuestionProblem.Code.NOT_ELIGIBLE, question, whom);
+    }
+
     private static Optional<QuestionProblem> parses(
             Question question, String value, Parser parser, QuestionProblem.Code code) {
         try {
@@ -165,19 +249,9 @@ public final class QuestionCheck {
         }
     }
 
-    private static Optional<QuestionProblem> problem(QuestionProblem.Code code, Question question, String detail) {
+    private static Optional<QuestionProblem> problem(
+            QuestionProblem.Code code, Question question, @Nullable String detail) {
         return Optional.of(new QuestionProblem(code, question.name(), detail));
-    }
-
-    /**
-     * What was actually said, which is nothing in more spellings than one.
-     *
-     * <p>The features that keep their answers as JSON write an unanswered question as the literal
-     * {@code null} or as an empty string in quotes, and both mean the same as an empty box.
-     */
-    private static String said(String stored) {
-        String text = QuestionValues.text(stored);
-        return text.equalsIgnoreCase("null") ? "" : text;
     }
 
     /** What reading a date or a time out of an answer looks like, so both go through one path. */

@@ -5,11 +5,13 @@
  */
 package dev.chojo.ember.feature.system.service;
 
+import dev.chojo.ember.api.refusal.SystemRefusal;
+import dev.chojo.ember.feature.media.entity.MediaContent;
+import dev.chojo.ember.feature.media.image.ImageFormat;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
-import dev.chojo.ember.feature.media.service.MediaStorageService;
-import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,10 +37,6 @@ public class ProblemReportScreenshotService {
     /** What a picture of a page may weigh. Generous for a screen, far short of what a page may hold. */
     private static final int MAX_BYTES = 3 * 1024 * 1024;
 
-    private static final byte[] PNG_MAGIC = {(byte) 0x89, 'P', 'N', 'G', '\r', '\n', 0x1a, '\n'};
-    private static final byte[] RIFF_MAGIC = {'R', 'I', 'F', 'F'};
-    private static final byte[] WEBP_MAGIC = {'W', 'E', 'B', 'P'};
-
     private final MediaLibraryService media;
 
     @Inject
@@ -58,21 +56,22 @@ public class ProblemReportScreenshotService {
      * @param memberId who sent it, for the record the library keeps of its uploads
      * @return the identifier of the stored file, or empty where nothing was sent
      */
-    public Optional<Integer> store(String encoded, Integer memberId) {
+    public Optional<Integer> store(@Nullable String encoded, @Nullable Integer memberId) {
         if (encoded == null || encoded.isBlank()) return Optional.empty();
         byte[] picture = decode(encoded);
-        String type = typeOf(picture);
+        ImageFormat format = formatOf(picture);
         try {
-            var stored = media.upload(null, null, memberId, fileName(type), type, picture);
+            var stored = media.upload(
+                    null, null, memberId, "problem-report." + format.extension(), format.mimeType(), picture);
             return Optional.of(stored.id());
         } catch (IOException e) {
             log.warn("The picture of a problem report could not be kept", e);
-            throw new BadRequestResponse("the picture could not be stored");
+            throw SystemRefusal.PROBLEM_PICTURE_NOT_KEPT.raise();
         }
     }
 
     /** The picture of a report, for the screen that shows it and for the delivery that carries it. */
-    public Optional<MediaStorageService.FileData> read(int fileId) {
+    public Optional<MediaContent> read(int fileId) {
         return media.readById(fileId);
     }
 
@@ -83,7 +82,7 @@ public class ProblemReportScreenshotService {
      * not its bytes could be reached, and a file left behind is a smaller wrong than a report that
      * refuses to be deleted.
      */
-    public void forget(Integer fileId) {
+    public void forget(@Nullable Integer fileId) {
         if (fileId == null) return;
         try {
             media.deleteFile(fileId);
@@ -100,29 +99,17 @@ public class ProblemReportScreenshotService {
         try {
             picture = Base64.getDecoder().decode(payload.strip());
         } catch (IllegalArgumentException e) {
-            throw new BadRequestResponse("the picture is not readable");
+            throw SystemRefusal.PROBLEM_PICTURE_NOT_READABLE.raise();
         }
-        if (picture.length == 0) throw new BadRequestResponse("the picture is empty");
-        if (picture.length > MAX_BYTES) throw new BadRequestResponse("the picture is too large");
+        if (picture.length == 0) throw SystemRefusal.PROBLEM_PICTURE_EMPTY.raise();
+        if (picture.length > MAX_BYTES) throw SystemRefusal.PROBLEM_PICTURE_TOO_LARGE.raise();
         return picture;
     }
 
     /** What the bytes say they are, rather than what the request claimed. */
-    private static String typeOf(byte[] picture) {
-        if (startsWith(picture, PNG_MAGIC, 0)) return "image/png";
-        if (startsWith(picture, RIFF_MAGIC, 0) && startsWith(picture, WEBP_MAGIC, 8)) return "image/webp";
-        throw new BadRequestResponse("the picture is neither a PNG nor a WebP");
-    }
-
-    private static boolean startsWith(byte[] picture, byte[] magic, int offset) {
-        if (picture.length < offset + magic.length) return false;
-        for (int i = 0; i < magic.length; i++) {
-            if (picture[offset + i] != magic[i]) return false;
-        }
-        return true;
-    }
-
-    private static String fileName(String type) {
-        return "problem-report" + ("image/png".equals(type) ? ".png" : ".webp");
+    private static ImageFormat formatOf(byte[] picture) {
+        return ImageFormat.sniff(picture)
+                .filter(format -> format == ImageFormat.PNG || format == ImageFormat.WEBP)
+                .orElseThrow(SystemRefusal.PROBLEM_PICTURE_KIND_NOT_TAKEN::raise);
     }
 }

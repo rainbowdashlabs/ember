@@ -5,8 +5,13 @@
  */
 package dev.chojo.ember.feature.events.service;
 
+import dev.chojo.ember.api.refusal.EventRefusal;
+import dev.chojo.ember.api.refusal.Refusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.events.EventAnswerRecorded;
 import dev.chojo.ember.event.events.EventRegistrationStatusChanged;
+import dev.chojo.ember.feature.events.entity.AwaitingAnswer;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.EventRegistrationField;
 import dev.chojo.ember.feature.events.entity.MemberRegistrationStats;
@@ -18,9 +23,9 @@ import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepositor
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
-import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -142,7 +147,7 @@ public class EventRegistrationService {
      * @return the created registration
      */
     public EventRegistration register(
-            int eventId, int memberId, LocalDate eventDate, boolean autoAccept, Integer createdBy) {
+            int eventId, int memberId, LocalDate eventDate, boolean autoAccept, @Nullable Integer createdBy) {
         var registration =
                 registrationRepository.create(eventId, memberId, eventDate, RegistrationStatus.PENDING, createdBy);
         log.info(
@@ -153,9 +158,10 @@ public class EventRegistrationService {
                 autoAccept ? RegistrationStatus.ACCEPTED : RegistrationStatus.PENDING);
         if (autoAccept) {
             registrationRepository.updateStatus(registration.id(), RegistrationStatus.ACCEPTED);
-            return registrationRepository.findById(registration.id()).orElse(registration);
         }
-        return registration;
+        var stored = registrationRepository.findById(registration.id()).orElse(registration);
+        recorded(stored);
+        return stored;
     }
 
     /**
@@ -164,7 +170,7 @@ public class EventRegistrationService {
      * @param memberIds the reader and everyone they answer for
      * @return one entry per event and member still owing an answer
      */
-    public List<EventRegistrationRepository.AwaitingAnswer> findAwaitingAnswer(List<Integer> memberIds) {
+    public List<AwaitingAnswer> findAwaitingAnswer(List<Integer> memberIds) {
         return registrationRepository.findAwaitingAnswer(memberIds);
     }
 
@@ -249,15 +255,19 @@ public class EventRegistrationService {
      * @return true if the registration was updated
      */
     public boolean updateStatus(int id, RegistrationStatus status) {
-        registrationRepository.findById(id).ifPresent(EventRegistrationService::requireNotHeldByAField);
+        registrationRepository
+                .findById(id)
+                .ifPresent(registration -> requireNotHeldByAField(
+                        registration, EventRefusal.REGISTRATION_HELD_BY_A_FIELD_ON_STATUS_CHANGE));
         if (!registrationRepository.updateStatus(id, status)) {
             log.warn("Cannot update registration status: registration {} not found", id);
             return false;
         }
         log.info("Updated registration {} status to {}", id, status);
-        registrationRepository
-                .findById(id)
-                .ifPresent(registration -> announce(registration.eventId(), registration.memberId(), status));
+        registrationRepository.findById(id).ifPresent(registration -> {
+            announce(registration.eventId(), registration.memberId(), status);
+            recorded(registration);
+        });
         return true;
     }
 
@@ -272,7 +282,7 @@ public class EventRegistrationService {
      * @param current the status the registration holds now, or null where there is none yet
      * @return the status to write
      */
-    private static RegistrationStatus refusalFor(RegistrationStatus current) {
+    private static RegistrationStatus refusalFor(@Nullable RegistrationStatus current) {
         return current == RegistrationStatus.ACCEPTED ? RegistrationStatus.WITHDRAWN : RegistrationStatus.DECLINED;
     }
 
@@ -283,11 +293,12 @@ public class EventRegistrationService {
      * as long as the question names the member, and taking it back here would be undone by the next
      * time the two are compared. The way off the list is out of the question.
      *
-     * @throws BadRequestResponse where the registration is held by a question
+     * @param refusal what the caller refuses a place held by a question with
+     * @throws RefusalResponse where the registration is held by a question
      */
-    private static void requireNotHeldByAField(EventRegistration registration) {
+    private static void requireNotHeldByAField(EventRegistration registration, Refusal refusal) {
         if (registration.fromField()) {
-            throw new BadRequestResponse("This place comes from a field of the appointment and is taken back there");
+            throw refusal.raise();
         }
     }
 
@@ -316,10 +327,11 @@ public class EventRegistrationService {
             log.warn("Cannot withdraw registration: registration {} not found", id);
             return false;
         }
-        requireNotHeldByAField(registration);
+        requireNotHeldByAField(registration, EventRefusal.REGISTRATION_HELD_BY_A_FIELD_ON_WITHDRAWAL);
         if (!registrationRepository.recordAnswer(id, RegistrationStatus.WITHDRAWN)) return false;
         log.info("Withdrew registration {}", id);
         announceFreedPlace(registration.eventId(), registration.memberId(), registration.status());
+        recorded(id);
         return true;
     }
 
@@ -347,6 +359,7 @@ public class EventRegistrationService {
         if (registration.previousStatus() == RegistrationStatus.ACCEPTED) {
             announce(registration.eventId(), registration.memberId(), RegistrationStatus.ACCEPTED);
         }
+        recorded(id);
         return true;
     }
 
@@ -363,11 +376,12 @@ public class EventRegistrationService {
             log.warn("Cannot refuse registration: registration {} not found", id);
             return false;
         }
-        requireNotHeldByAField(registration);
+        requireNotHeldByAField(registration, EventRefusal.REGISTRATION_HELD_BY_A_FIELD_ON_REFUSAL);
         var status = refusalFor(registration.status());
         if (!registrationRepository.recordAnswer(id, status)) return false;
         log.info("Recorded {} for registration {}", status, id);
         announceFreedPlace(registration.eventId(), registration.memberId(), registration.status());
+        recorded(id);
         return true;
     }
 
@@ -384,7 +398,7 @@ public class EventRegistrationService {
      *
      * @param heldBefore the status the registration held before this refusal was written
      */
-    private void announceFreedPlace(int eventId, int memberId, RegistrationStatus heldBefore) {
+    private void announceFreedPlace(int eventId, int memberId, @Nullable RegistrationStatus heldBefore) {
         if (heldBefore == RegistrationStatus.ACCEPTED) {
             announce(eventId, memberId, RegistrationStatus.WITHDRAWN);
         }
@@ -419,6 +433,36 @@ public class EventRegistrationService {
     }
 
     /**
+     * Tells whoever keeps a record of the date what a registration says now that it was written,
+     * read back as it was stored.
+     *
+     * @param registrationId the registration just written
+     */
+    private void recorded(int registrationId) {
+        registrationRepository.findById(registrationId).ifPresent(this::recorded);
+    }
+
+    /**
+     * Tells whoever keeps a record of the date what a registration says now that it was written.
+     *
+     * <p>Every answer is told, whoever gave it and whatever it says, because an attendance sheet
+     * opened for the date before the answer came in would otherwise only learn of it when somebody
+     * fills it in from the appointment by hand.
+     *
+     * @param registration the registration as it was stored
+     */
+    private void recorded(EventRegistration registration) {
+        eventRepository
+                .findById(registration.eventId())
+                .ifPresent(event -> eventBus.publish(new EventAnswerRecorded(
+                        event.stationId(),
+                        event.id(),
+                        registration.memberId(),
+                        registration.eventDate(),
+                        registration.status())));
+    }
+
+    /**
      * Records that a member will not attend an event occurrence.
      *
      * @param eventId   the event ID
@@ -427,17 +471,18 @@ public class EventRegistrationService {
      * @param createdBy the member ID of the creator, or null if self-declined
      * @return the stored declination
      */
-    public EventRegistration decline(int eventId, int memberId, LocalDate eventDate, Integer createdBy) {
+    public EventRegistration decline(int eventId, int memberId, LocalDate eventDate, @Nullable Integer createdBy) {
         var existing = registrationRepository.findByEventAndDate(eventId, eventDate).stream()
                 .filter(r -> r.memberId() == memberId)
                 .findFirst()
                 .orElse(null);
-        if (existing != null) requireNotHeldByAField(existing);
+        if (existing != null) requireNotHeldByAField(existing, EventRefusal.REGISTRATION_HELD_BY_A_FIELD_ON_DECLINE);
         var heldBefore = existing == null ? null : existing.status();
         var status = refusalFor(heldBefore);
         var result = registrationRepository.create(eventId, memberId, eventDate, status, createdBy);
         log.info("Recorded {} for member {} on event {} ({})", status, memberId, eventId, eventDate);
         announceFreedPlace(eventId, memberId, heldBefore);
+        recorded(result);
         return result;
     }
 
@@ -471,7 +516,7 @@ public class EventRegistrationService {
      * @param months     the number of months to look back
      * @return the statistics per member
      */
-    public List<MemberRegistrationStats> findStatsByEvent(int eventId, Integer categoryId, int months) {
+    public List<MemberRegistrationStats> findStatsByEvent(int eventId, @Nullable Integer categoryId, int months) {
         return registrationRepository.findStatsByEvent(eventId, categoryId, months);
     }
 }

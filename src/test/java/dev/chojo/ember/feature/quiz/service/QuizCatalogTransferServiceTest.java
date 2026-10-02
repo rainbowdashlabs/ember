@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.quiz.service;
 
+import dev.chojo.ember.api.refusal.QuizRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.quiz.entity.CatalogMetadata;
 import dev.chojo.ember.feature.quiz.entity.CatalogTransfer;
 import dev.chojo.ember.feature.quiz.entity.CreateQuestionCommand;
@@ -14,7 +16,6 @@ import dev.chojo.ember.feature.quiz.entity.QuizCategory;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestion;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestionType;
 import dev.chojo.ember.util.Json;
-import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -105,8 +106,6 @@ class QuizCatalogTransferServiceTest {
         return captor.getAllValues();
     }
 
-    // -- Reading --
-
     @Test
     void readsTheCurrentShape() {
         var transfer = service.read(json("""
@@ -171,11 +170,15 @@ class QuizCatalogTransferServiceTest {
 
     @Test
     void refusesABodyThatIsNotACatalogFile() {
-        assertThrows(BadRequestResponse.class, () -> service.read(json("{\"something\": 1}")));
-        assertThrows(BadRequestResponse.class, () -> service.read(json("[]")));
+        assertEquals(
+                QuizRefusal.QUIZ_CATALOG_FILE_NOT_RECOGNISED,
+                assertThrows(RefusalResponse.class, () -> service.read(json("{\"something\": 1}")))
+                        .refusal());
+        assertEquals(
+                QuizRefusal.QUIZ_CATALOG_FILE_NOT_AN_OBJECT,
+                assertThrows(RefusalResponse.class, () -> service.read(json("[]")))
+                        .refusal());
     }
-
-    // -- Importing --
 
     @Test
     void createsTheCatalogWithItsQuestionsAndCategories() {
@@ -255,8 +258,6 @@ class QuizCatalogTransferServiceTest {
         verify(catalogService, never()).createCategory(anyInt(), eq("Unbenutzt"), anyString(), anyInt());
     }
 
-    // -- Appending --
-
     @Test
     void appendsBehindTheQuestionsTheCatalogAlreadyHas() {
         var target = catalog(5, STATION_ID, "Grundwissen", "Basis", CatalogMetadata.none());
@@ -308,8 +309,6 @@ class QuizCatalogTransferServiceTest {
         verify(questionService, never()).createQuestion(any());
     }
 
-    // -- Refusing --
-
     @Test
     void reportsEveryProblemAtOnceAndCreatesNothing() {
         var outcome = service.importInto(STATION_ID, service.read(json("""
@@ -328,7 +327,7 @@ class QuizCatalogTransferServiceTest {
         assertEquals(
                 List.of("catalog.name", "questions[0]", "questions[1]", "questions[2]", "questions[3]"),
                 outcome.problems().stream()
-                        .map(QuizCatalogTransferService.TransferProblem::location)
+                        .map(QuizCatalogTransferService.CatalogTransferProblem::location)
                         .sorted()
                         .toList());
         verify(catalogService, never()).createCatalog(anyInt(), anyString(), anyString(), anyBoolean(), any());
@@ -339,7 +338,7 @@ class QuizCatalogTransferServiceTest {
     void refusesAFileWrittenForALaterVersion() {
         var transfer = new CatalogTransfer(
                 CatalogTransfer.FORMAT_VERSION + 1,
-                new CatalogTransfer.CatalogInfo("Zukunft", "", false, CatalogMetadata.none()),
+                new CatalogTransfer.CatalogTransferInfo("Zukunft", "", false, CatalogMetadata.none()),
                 List.of(),
                 List.of());
 
@@ -360,8 +359,6 @@ class QuizCatalogTransferServiceTest {
         assertNull(outcome.catalog());
         assertEquals("categories[1]", outcome.problems().getFirst().location());
     }
-
-    // -- Exporting --
 
     @Test
     void exportsOnlyTheCategoriesItsOwnQuestionsUse() {

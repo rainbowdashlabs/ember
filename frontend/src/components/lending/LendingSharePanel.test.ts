@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-// @vitest-environment happy-dom
+/** @vitest-environment happy-dom */
 import {beforeEach, describe, expect, it, vi} from 'vitest'
 import {mount} from '@vue/test-utils'
 import {ref} from 'vue'
@@ -34,7 +34,7 @@ vi.mock('@/composables/useInventoryRoutes', () => ({
  * be filled. The card is left off those screens rather than shown and refused on save.
  */
 describe('LendingSharePanel', () => {
-    const i18n = createI18n({legacy: false, locale: 'de-DE', messages: {'de-DE': de}})
+    const i18n = createI18n({legacy: false, locale: 'de-DE', messages: {'de-DE': de, en: {}}})
 
     function panel(lendable: boolean) {
         return mount(LendingSharePanel, {

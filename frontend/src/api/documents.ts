@@ -5,30 +5,7 @@
  */
 import client from './client'
 import {uploadFile} from './upload'
-
-/** A file kept for the members it concerns. */
-export interface StationDocument {
-    id: number
-    title: string
-    fileName: string
-    mimeType: string
-    sizeBytes: number
-    /** Kept from the members it belongs to and shown only to whoever may read other members. */
-    hidden: boolean
-    /** Survives its members being marked former, which is what a binding document needs. */
-    keepOnArchive: boolean
-    hasThumbnail: boolean
-    uploadedBy: number | null
-    createdAt: string
-    memberIds: number[]
-    tags: string[]
-}
-
-/** A page of the store, with the number of documents the filters match in all. */
-export interface DocumentPage {
-    documents: StationDocument[]
-    total: number
-}
+import type {DocumentPage, MemberDocumentResponse} from '@/api/generated/schema'
 
 /** What is said about a document while it is put in. */
 export interface DocumentUpload {
@@ -53,44 +30,73 @@ function fieldsOf(upload: DocumentUpload): Record<string, string | File | undefi
     }
 }
 
-export async function listForMember(memberId: number): Promise<StationDocument[]> {
-    const res = await client.get<StationDocument[]>(`/station-members/${memberId}/documents`)
+/**
+ * Where the documents of one member are read and added, which is the station's own store reached
+ * through whichever door the reader comes: the station's screens or the association's.
+ */
+export interface MemberDocumentSource {
+    listOf(memberId: number): Promise<MemberDocumentResponse[]>
+    upload(memberId: number, upload: DocumentUpload): Promise<MemberDocumentResponse>
+    /** Where the document itself is served from, for a download or an inline view. */
+    contentUrl(documentId: number): string
+    /** Where the picture of a document is served from, or null where this door serves none. */
+    thumbnailUrl: ((documentId: number) => string) | null
+}
+
+export async function listForMember(memberId: number): Promise<MemberDocumentResponse[]> {
+    const res = await client.get<MemberDocumentResponse[]>(`/station-members/${memberId}/documents`)
     return res.data
 }
 
-export async function uploadForMember(memberId: number, upload: DocumentUpload): Promise<StationDocument> {
-    return uploadFile<StationDocument>(`/station-members/${memberId}/documents`, fieldsOf(upload))
+export async function uploadForMember(memberId: number, upload: DocumentUpload): Promise<MemberDocumentResponse> {
+    return uploadFile<MemberDocumentResponse>(`/station-members/${memberId}/documents`, fieldsOf(upload))
 }
 
-/** What the store holds, a page at a time, narrowed by member or by words. */
-export async function listStation(params: {
+/** What the store is narrowed by, for a page of it and for every document it matches. */
+export interface DocumentFilter {
     memberIds?: number[]
     search?: string
     /** Only the documents that name nobody, which are the station's own paperwork. */
     unbound?: boolean
-    page?: number
-    size?: number
-} = {}): Promise<DocumentPage> {
-    const {memberIds, ...rest} = params
-    const res = await client.get<DocumentPage>('/documents', {
-        params: {...rest, memberIds: memberIds?.length ? memberIds.join(',') : undefined},
-    })
+    /** Only the documents about people who have all left, archived or deleted. */
+    departed?: boolean
+}
+
+function filterParams(filter: DocumentFilter): Record<string, unknown> {
+    const {memberIds, ...rest} = filter
+    return {...rest, memberIds: memberIds?.length ? memberIds.join(',') : undefined}
+}
+
+/** What the store holds, a page at a time, narrowed by member or by words. */
+export async function listStation(params: DocumentFilter & {page?: number, size?: number} = {}): Promise<DocumentPage> {
+    const res = await client.get<DocumentPage>('/documents', {params: filterParams(params)})
     return res.data
+}
+
+/** Every document the filter matches, by id, so all of them can be chosen at once. */
+export async function listIds(filter: DocumentFilter): Promise<number[]> {
+    const res = await client.get<number[]>('/documents/ids', {params: filterParams(filter)})
+    return res.data
+}
+
+/** Removes several documents in one go; one the reader may not remove stops all of it. */
+export async function prune(documentIds: number[]): Promise<void> {
+    await client.post('/documents/prune', {documentIds})
 }
 
 /** Puts a document in the store without binding it to anybody. */
-export async function uploadForStation(upload: DocumentUpload): Promise<StationDocument> {
-    return uploadFile<StationDocument>('/documents', fieldsOf(upload))
+export async function uploadForStation(upload: DocumentUpload): Promise<MemberDocumentResponse> {
+    return uploadFile<MemberDocumentResponse>('/documents', fieldsOf(upload))
 }
 
 /** Gives a document exactly these members, letting go of the ones left out. */
-export async function setMembers(documentId: number, memberIds: number[]): Promise<StationDocument> {
-    const res = await client.put<StationDocument>(`/documents/${documentId}/members`, {memberIds})
+export async function setMembers(documentId: number, memberIds: number[]): Promise<MemberDocumentResponse> {
+    const res = await client.put<MemberDocumentResponse>(`/documents/${documentId}/members`, {memberIds})
     return res.data
 }
 
-export async function setTags(documentId: number, tags: string[]): Promise<StationDocument> {
-    const res = await client.put<StationDocument>(`/documents/${documentId}/tags`, {tags})
+export async function setTags(documentId: number, tags: string[]): Promise<MemberDocumentResponse> {
+    const res = await client.put<MemberDocumentResponse>(`/documents/${documentId}/tags`, {tags})
     return res.data
 }
 
@@ -111,4 +117,12 @@ export function contentUrl(documentId: number): string {
 /** Where the picture of a document is served from, for the tile to show. */
 export function thumbnailUrl(documentId: number, size = 256): string {
     return `/documents/${documentId}/thumbnail?size=${size}`
+}
+
+/** A member's documents as the station's own screens reach them. */
+export const stationDocumentSource: MemberDocumentSource = {
+    listOf: listForMember,
+    upload: uploadForMember,
+    contentUrl,
+    thumbnailUrl: documentId => thumbnailUrl(documentId),
 }

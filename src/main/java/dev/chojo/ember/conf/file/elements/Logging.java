@@ -48,4 +48,16 @@ public class Logging {
     public int retentionDays() {
         return Math.max(1, retentionDays);
     }
+
+    public void databaseEnabled(boolean databaseEnabled) {
+        this.databaseEnabled = databaseEnabled;
+    }
+
+    public void databaseLevel(String databaseLevel) {
+        this.databaseLevel = databaseLevel;
+    }
+
+    public void retentionDays(int retentionDays) {
+        this.retentionDays = retentionDays;
+    }
 }

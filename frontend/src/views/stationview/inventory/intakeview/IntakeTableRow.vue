@@ -10,8 +10,7 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import MutedIconButton from '@/components/button/MutedIconButton.vue'
 import FieldValueInput from '@/views/stationview/inventory/detailview/FieldValueInput.vue'
-import type {InventorySize} from '@/api/inventory'
-import type {InventoryFieldDefinition} from '@/api/inventoryFields'
+import type {InventoryFieldDefinition, InventorySize} from '@/api/generated/schema'
 import type {IntakeLine} from './intakeLines'
 
 /** One member's line of the stock-taking: what they hold, in the columns the inventory keeps. */

@@ -9,11 +9,11 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
-import type { ProcedureTemplateItem } from '@/api/procedures'
+import type { ProcedureTemplateItem } from '@/api/generated/schema'
 
 const { t } = useI18n()
 
-const props = defineProps<{
+defineProps<{
   item: ProcedureTemplateItem
   index: number
   canManage: boolean
@@ -22,10 +22,10 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'edit', item: ProcedureTemplateItem): void
-  (e: 'delete', itemId: number): void
-  (e: 'openDeps', item: ProcedureTemplateItem): void
-  (e: 'removeDep', depId: number, itemId: number): void
+  edit: [item: ProcedureTemplateItem]
+  delete: [itemId: number]
+  openDeps: [item: ProcedureTemplateItem]
+  removeDep: [depId: number, itemId: number]
 }>()
 </script>
 
@@ -47,7 +47,6 @@ const emit = defineEmits<{
             <font-awesome-icon :icon="['fas', 'user']" class="w-3 h-3 mr-0.5" /> {{ t('procedures.itemUserAssigned') }}
           </span>
         </div>
-        <!-- Dependencies list -->
         <div v-if="dependencies.length > 0" class="mt-2">
           <span class="text-xs font-medium text-[var(--text-muted)]">{{ t('procedures.dependsOn') }}:</span>
           <div class="flex flex-wrap gap-1 mt-1">
@@ -60,7 +59,7 @@ const emit = defineEmits<{
               <IconButton
                 v-if="canManage"
                 :icon="['fas', 'xmark']"
-                label="Remove"
+                :label="t('common.remove')"
                 class="!p-0 !w-3 !h-3 text-[var(--text-muted)]"
                 @click="emit('removeDep', depId, item.id)"
               />

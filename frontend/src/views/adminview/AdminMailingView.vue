@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {computed, onMounted, ref} from 'vue'
+import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
@@ -22,10 +22,11 @@ import {
 } from '@/api/mailProviders'
 import {useSession} from '@/composables/useSession'
 import {adminSettings} from '@/api'
-import type {MailingConfig} from '@/api/adminSettings'
+import type {MailingConfigResponse} from '@/api/generated/schema'
 import {useConfigPanel} from '@/composables/useConfigPanel'
 import {useAsyncAction} from '@/composables/useAsyncAction'
-import {describeFailure, type Failure} from '@/util/failure'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {describeFailure} from '@/util/failure'
 
 const {t} = useI18n()
 
@@ -39,7 +40,7 @@ function mailingFailed(e: unknown): string {
   return t('adminSettings.mailing.saveFailed', {error: describeFailure(e, t).message})
 }
 
-const {config: mailingConfig, loading, failure: configFailure, runWith, reload} = useConfigPanel<MailingConfig>({
+const {config: mailingConfig, loading, failure: configFailure, runWith, reload} = useConfigPanel<MailingConfigResponse>({
   initial: {notificationDigestIntervalMinutes: 60},
   fetch: () => adminSettings.getMailingConfig(),
   formatError: mailingFailed,
@@ -47,8 +48,6 @@ const {config: mailingConfig, loading, failure: configFailure, runWith, reload} 
 
 const showClearModal = ref(false)
 const testMailSent = ref(false)
-/** Only the list failing to load, which is a page-level problem rather than one entry's. */
-const chainFailure = ref<Failure | null>(null)
 
 const {sessionInfo} = useSession()
 const ownAddress = computed(() => sessionInfo.value?.account?.email ?? '')
@@ -85,15 +84,12 @@ async function test(position: number, recipient: string) {
   }
 }
 
-onMounted(async () => {
-  try {
-    const chain = await getInstanceProviders()
-    providers.value = chain.fallbacks ?? []
-    providersLoaded.value = true
-  } catch (e) {
-    chainFailure.value = {...describeFailure(e, t), message: t('mailChain.loadFailed')}
-  }
-})
+/** Only the list failing to load, which is a page-level problem rather than one entry's. */
+const {failure: chainFailure} = useAsyncLoader(async () => {
+  const chain = await getInstanceProviders()
+  providers.value = chain.fallbacks ?? []
+  providersLoaded.value = true
+}, {errorMessageKey: 'mailChain.loadFailed'})
 
 async function saveProviders() {
   if (!providersLoaded.value) return

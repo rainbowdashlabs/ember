@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.cluster.service;
 
+import dev.chojo.ember.api.refusal.ClusterRefusal;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.ClusterModuleDenied;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
@@ -15,10 +16,9 @@ import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.entity.ThemeFeel;
 import dev.chojo.ember.feature.station.repository.StationRepository;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -64,8 +64,6 @@ public class ClusterGovernanceService {
         this.stationRepository = stationRepository;
         this.eventBus = eventBus;
     }
-
-    // -- Public wiki --
 
     /**
      * Whether the cluster's wiki stands on the public web, and how.
@@ -120,10 +118,8 @@ public class ClusterGovernanceService {
     private Station homeStation(int clusterId) {
         return stationRepository
                 .findById(requireCluster(clusterId).homeStationId())
-                .orElseThrow(() -> new NotFoundResponse("No such station"));
+                .orElseThrow(ClusterRefusal.CLUSTER_GOVERNANCE_HOME_STATION_NOT_HERE::raise);
     }
-
-    // -- Modules --
 
     /**
      * What the cluster denies of one group of its stations, or of all of them.
@@ -131,7 +127,7 @@ public class ClusterGovernanceService {
      * @param clusterId      the cluster
      * @param stationGroupId the group, or {@code null} for the denials that reach every station
      */
-    public Set<StationModule> findDeniedModules(int clusterId, Integer stationGroupId) {
+    public Set<StationModule> findDeniedModules(int clusterId, @Nullable Integer stationGroupId) {
         requireOwnGroup(clusterId, stationGroupId);
         return clusterRepository.findDeniedModules(clusterId, stationGroupId);
     }
@@ -152,7 +148,7 @@ public class ClusterGovernanceService {
      * @param stationGroupId the group it is deciding for, or {@code null} for every station
      * @param modules        the modules it now denies there
      */
-    public void setDeniedModules(int clusterId, Integer stationGroupId, Set<StationModule> modules) {
+    public void setDeniedModules(int clusterId, @Nullable Integer stationGroupId, Set<StationModule> modules) {
         Cluster cluster = requireCluster(clusterId);
         requireOwnGroup(clusterId, stationGroupId);
         Set<StationModule> before = clusterRepository.findDeniedModules(clusterId, stationGroupId);
@@ -165,8 +161,9 @@ public class ClusterGovernanceService {
 
         for (StationModule module : newlyDenied) {
             for (Station station : reached(clusterId, stationGroupId)) {
-                // Only the stations that had it switched on lose anything they can see
-                if (stationRepository.findDisabledModules(station.id()).contains(module)) continue;
+                boolean alreadySwitchedOffThere =
+                        stationRepository.findDisabledModules(station.id()).contains(module);
+                if (alreadySwitchedOffThere) continue;
                 eventBus.publish(new ClusterModuleDenied(station.id(), cluster.name(), module));
             }
         }
@@ -181,16 +178,14 @@ public class ClusterGovernanceService {
     }
 
     /** A group of another association is not this one's to decide for. */
-    private void requireOwnGroup(int clusterId, Integer stationGroupId) {
+    private void requireOwnGroup(int clusterId, @Nullable Integer stationGroupId) {
         if (stationGroupId == null) return;
         boolean own = stationGroupRepository
                 .findById(stationGroupId)
                 .filter(group -> group.clusterId() == clusterId)
                 .isPresent();
-        if (!own) throw new BadRequestResponse("That group of stations belongs to another association");
+        if (!own) throw ClusterRefusal.CLUSTER_GOVERNANCE_STATION_GROUP_NOT_OWN.raise();
     }
-
-    // -- Look and feel --
 
     /**
      * Sets the look the cluster hands its stations, and pushes it out.
@@ -213,9 +208,9 @@ public class ClusterGovernanceService {
      */
     public void setLookAndFeel(
             int clusterId,
-            String defaultTheme,
-            String customThemeColors,
-            ThemeFeel defaultFeel,
+            @Nullable String defaultTheme,
+            @Nullable String customThemeColors,
+            @Nullable ThemeFeel defaultFeel,
             boolean themeLocked,
             boolean colorsLocked,
             boolean feelLocked,
@@ -254,6 +249,8 @@ public class ClusterGovernanceService {
     }
 
     private Cluster requireCluster(int clusterId) {
-        return clusterRepository.findById(clusterId).orElseThrow(() -> new NotFoundResponse("No such cluster"));
+        return clusterRepository
+                .findById(clusterId)
+                .orElseThrow(ClusterRefusal.CLUSTER_GOVERNANCE_CLUSTER_NOT_HERE::raise);
     }
 }

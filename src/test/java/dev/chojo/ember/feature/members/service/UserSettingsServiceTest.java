@@ -7,8 +7,6 @@ package dev.chojo.ember.feature.members.service;
 
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.members.entity.StationMember;
-import dev.chojo.ember.feature.notifications.entity.NotificationSetting;
-import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
@@ -17,8 +15,6 @@ import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
-
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -31,7 +27,7 @@ class UserSettingsServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        service = new UserSettingsService(userSettingsRepo, notificationSettingsRepo);
+        service = new UserSettingsService(userSettingsRepo);
         station = stationRepo.create("UserSettingsSvc Station");
         account = accountRepo.create("usettings-svc@test.com", "Settings", "User");
         member = stationMemberRepo.create(station.id(), account.id());
@@ -85,48 +81,8 @@ class UserSettingsServiceTest extends RepositoryTestBase {
     }
 
     @Test
-    @Order(10)
-    void getNotificationSettingsEmpty() {
-        var settings = service.getNotificationSettings(member.id());
-        assertNotNull(settings);
-        // Default: no explicit settings stored
-        assertTrue(settings.isEmpty() || settings.containsKey(NotificationType.NEW_NEWS));
-    }
-
-    @Test
-    @Order(11)
-    void updateNotificationSettings() {
-        var newSettings = Map.of(
-                NotificationType.NEW_NEWS,
-                new NotificationSetting(member.id(), NotificationType.NEW_NEWS, true, false, false));
-        service.updateNotificationSettings(member.id(), newSettings);
-
-        var stored = service.getNotificationSettings(member.id());
-        assertTrue(stored.containsKey(NotificationType.NEW_NEWS));
-        assertTrue(stored.get(NotificationType.NEW_NEWS).appEnabled());
-        assertFalse(stored.get(NotificationType.NEW_NEWS).emailEnabled());
-    }
-
-    @Test
-    @Order(12)
-    void updateNotificationSettingsMultipleTypes() {
-        var newSettings = Map.of(
-                NotificationType.NEW_EVENT,
-                new NotificationSetting(member.id(), NotificationType.NEW_EVENT, false, true, false),
-                NotificationType.NEW_NEWS,
-                new NotificationSetting(member.id(), NotificationType.NEW_NEWS, true, true, false));
-        service.updateNotificationSettings(member.id(), newSettings);
-
-        var stored = service.getNotificationSettings(member.id());
-        assertTrue(stored.containsKey(NotificationType.NEW_EVENT));
-        assertFalse(stored.get(NotificationType.NEW_EVENT).appEnabled());
-        assertTrue(stored.get(NotificationType.NEW_EVENT).emailEnabled());
-    }
-
-    @Test
     @Order(13)
     void findOrCreateIdempotent() {
-        // Should not reset the settings that were updated
         var settings = service.findOrCreate(member.id());
         assertNotNull(settings);
         assertEquals(member.id(), settings.memberId());

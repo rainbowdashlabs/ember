@@ -28,7 +28,7 @@ defineProps<{
 <template>
   <div class="space-y-3">
     <template v-if="selectedTypes.has(QuizQuestionTypes.MULTIPLE_CHOICE)">
-      <SubHeader class="text-sm">Multiple Choice</SubHeader>
+      <SubHeader class="text-sm">{{ t('quiz.questionTypes.MULTIPLE_CHOICE') }}</SubHeader>
       <div class="flex items-center gap-3 flex-wrap">
         <div class="flex items-center gap-1">
           <FieldLabel hint>{{ t('quiz.batch.correctCount') }}</FieldLabel>
@@ -51,11 +51,11 @@ defineProps<{
       <SubHeader class="text-sm">{{ t('quiz.questionTypes.ORDERING') }}</SubHeader>
       <div class="flex items-center gap-3 flex-wrap">
         <div class="flex items-center gap-1">
-          <FieldLabel hint>Min</FieldLabel>
+          <FieldLabel hint>{{ t('quiz.batch.minCount') }}</FieldLabel>
           <NumberInput v-model="orderMin" class="w-14"/>
         </div>
         <div class="flex items-center gap-1">
-          <FieldLabel hint>Max</FieldLabel>
+          <FieldLabel hint>{{ t('quiz.batch.maxCount') }}</FieldLabel>
           <NumberInput v-model="orderMax" class="w-14"/>
         </div>
       </div>

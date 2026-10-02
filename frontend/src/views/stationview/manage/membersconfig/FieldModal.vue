@@ -9,18 +9,22 @@ import {useI18n} from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import BasicFields from './fieldmodal/BasicFields.vue'
-import QuestionOptionsEditor from '@/components/input/QuestionOptionsEditor.vue'
 import AgeFields from './fieldmodal/AgeFields.vue'
-import FieldDefaultValueSection from '@/components/input/FieldDefaultValueSection.vue'
+import QuestionSettingsEditor from '@/components/input/questionsettings/QuestionSettingsEditor.vue'
 import BirthDateFields from './fieldmodal/BirthDateFields.vue'
 import ExpiryDateFields from './fieldmodal/ExpiryDateFields.vue'
 import BehaviorToggles from './fieldmodal/BehaviorToggles.vue'
 import ModalActions from './fieldmodal/ModalActions.vue'
 import WidthField from '@/components/profilefields/WidthField.vue'
 import {
-    ageSourceOf, DATE_FIELD_TYPES, FieldTypes, parseFieldConfig,
-    type ProfileField, type ProfileFieldConfig, type ProfileFieldRequest,
+    ageSourceOf, parseFieldConfig,
+    type EditableField, type FieldSettings, type EditableFieldRequest,
 } from '@/api/profileFields'
+import {FieldTypes, holdsValue as typeHoldsValue, isDateType, type FieldTypeName} from '@/api/fieldTypes'
+import {
+    defaultAsText, TODAY, typedDefault,
+    type QuestionSetting, type QuestionSettingsModel,
+} from '@/components/input/questionsettings/questionSettings'
 import {FieldWidths} from '@/components/profilefields/fieldLayout'
 import {expiryConfigOf, expirySettingsOf, type ExpirySettings} from '@/util/expiry'
 
@@ -28,59 +32,53 @@ import {expiryConfigOf, expirySettingsOf, type ExpirySettings} from '@/util/expi
  * The question itself. Who is asked it is not here: a question is written once and put to as many
  * audiences as it is meant for, and naming one while writing it is what used to make the same
  * question be written twice.
+ *
+ * <p>The answers of a choice and the starting value are the shared settings every feature edits the
+ * same way. A date starts as today or not at all, because a fixed day goes stale the day after it is
+ * set; a number is whole, because the profile offers no step.
  */
 const {t} = useI18n()
 
 const modelValue = defineModel<boolean>({required: true})
 
 const props = defineProps<{
-  field: ProfileField | null
-  dateFields: ProfileField[]
+  field: EditableField | null
+  dateFields: EditableField[]
   /** The field that already is the station's birth date, if any. */
-  birthDateField: ProfileField | null
+  birthDateField: EditableField | null
 }>()
-
-/** The birth date carries a date like any other, so it offers the same configuration. */
-function isDateType(type: string | undefined): boolean {
-  return DATE_FIELD_TYPES.includes(type ?? '')
-}
 
 const birthDateAvailable = computed(() =>
     !props.birthDateField || props.birthDateField.id === props.field?.id)
 
-/**
- * A heading and a spacer hold no answer, so everything that describes an answer is beside the point
- * for them. A spacer keeps its width all the same, which is the only thing it is for.
- */
-const holdsValue = computed(() =>
-    fieldType.value !== FieldTypes.SECTION && fieldType.value !== FieldTypes.SPACER)
-
-const isSpacer = computed(() => fieldType.value === FieldTypes.SPACER)
-
 const emit = defineEmits<{
-  save: [data: ProfileFieldRequest]
+  save: [data: EditableFieldRequest]
 }>()
 
 const fieldName = ref('')
-const fieldType = ref<string>(FieldTypes.TEXT)
+const fieldType = ref<FieldTypeName>(FieldTypes.TEXT)
 const fieldDescription = ref('')
 const fieldRequired = ref(false)
 const fieldReadonly = ref(false)
 const fieldNotifyOnChange = ref(false)
 const fieldOverview = ref(false)
-const fieldEnumOptions = ref<string[]>([])
+const fieldSettings = ref<QuestionSettingsModel>({})
 const fieldAgeSourceId = ref<number | null>(null)
 const fieldAgeMode = ref('now')
-const fieldHasDefault = ref(false)
-const fieldDefaultValue = ref('')
-const fieldDefaultBool = ref(false)
-const fieldDefaultToday = ref(false)
-const fieldDefaultNumber = ref<number>(0)
 const fieldKeepOnArchive = ref(false)
 const fieldShowAge = ref(true)
 const fieldExpiry = ref<ExpirySettings>(expirySettingsOf({}))
 const fieldWidth = ref<string>(FieldWidths.FULL)
 const saving = ref(false)
+
+/**
+ * Whether anything describing an answer is beside the point. A heading and a spacer hold no answer;
+ * a spacer keeps its width all the same, which is the only thing it is for. An age holds none of its
+ * own either, but is still asked, so it keeps the settings about being asked.
+ */
+const holdsValue = computed(() => fieldType.value !== FieldTypes.SECTION && fieldType.value !== FieldTypes.SPACER)
+
+const isSpacer = computed(() => fieldType.value === FieldTypes.SPACER)
 
 /**
  * Whether the answer is worked out from another one rather than given.
@@ -91,62 +89,42 @@ const saving = ref(false)
 const isCalculated = computed(() => fieldType.value === FieldTypes.AGE)
 
 /**
- * Whether the answer can start from a value. A date's only starting value is today, and a
- * certificate that runs out on the day it is entered is never what anybody means, so an expiry date
- * starts empty.
+ * What of the shared settings this question offers. A certificate that runs out on the day it is
+ * entered is never what anybody means, so an expiry date starts empty.
  */
-const offersDefault = computed(() => !isCalculated.value && fieldType.value !== FieldTypes.EXPIRY_DATE)
+const offers = computed<QuestionSetting[]>(() =>
+    typeHoldsValue(fieldType.value) && fieldType.value !== FieldTypes.EXPIRY_DATE
+        ? ['options', 'default', 'todayDefault']
+        : ['options'])
+
+/** A date's only starting value is today; an empty one written before that was a choice reads as none. */
+function startingValue(type: FieldTypeName, stored: unknown): string | null {
+  const text = defaultAsText(stored)
+  if (isDateType(type) && text !== TODAY) return null
+  return text
+}
 
 watch(modelValue, (open) => {
   if (!open) return
   const f = props.field
-  if (f) {
-    fieldName.value = f.name ?? ''
-    fieldType.value = f.fieldType ?? FieldTypes.TEXT
-    const cfg = parseFieldConfig(f.config)
-    fieldDescription.value = typeof cfg.description === 'string' ? cfg.description : ''
-    fieldRequired.value = !!f.required
-    fieldReadonly.value = !!f.readonly
-    fieldNotifyOnChange.value = !!cfg.notifyOnChange
-    fieldOverview.value = !!cfg.overview
-    fieldEnumOptions.value = [...((cfg.options as string[]) ?? [])]
-    fieldAgeSourceId.value = ageSourceOf(cfg, props.dateFields)?.id ?? null
-    fieldAgeMode.value = (cfg.ageMode as string) ?? 'now'
-    fieldHasDefault.value = cfg.defaultValue !== undefined
-    if (f.fieldType === FieldTypes.BOOLEAN) {
-      fieldDefaultBool.value = cfg.defaultValue === true
-    } else if (isDateType(f.fieldType)) {
-      fieldDefaultToday.value = cfg.defaultValue === '__TODAY__'
-    } else if (f.fieldType === FieldTypes.NUMBER) {
-      fieldDefaultNumber.value = typeof cfg.defaultValue === 'number' ? cfg.defaultValue : 0
-    } else {
-      fieldDefaultValue.value = typeof cfg.defaultValue === 'string' ? cfg.defaultValue : ''
-    }
-    fieldKeepOnArchive.value = f.keepOnArchive ?? false
-    fieldShowAge.value = cfg.showAge !== false
-    fieldExpiry.value = expirySettingsOf(cfg)
-    fieldWidth.value = f.width ?? FieldWidths.FULL
-  } else {
-    fieldName.value = ''
-    fieldType.value = FieldTypes.TEXT
-    fieldDescription.value = ''
-    fieldRequired.value = false
-    fieldReadonly.value = false
-    fieldNotifyOnChange.value = false
-    fieldOverview.value = false
-    fieldEnumOptions.value = []
-    fieldAgeSourceId.value = null
-    fieldAgeMode.value = 'now'
-    fieldHasDefault.value = false
-    fieldDefaultValue.value = ''
-    fieldDefaultBool.value = false
-    fieldDefaultToday.value = false
-    fieldKeepOnArchive.value = false
-    fieldShowAge.value = true
-    fieldExpiry.value = expirySettingsOf({})
-    fieldWidth.value = FieldWidths.FULL
-    fieldDefaultNumber.value = 0
+  const cfg = parseFieldConfig(f?.config)
+  fieldName.value = f?.name ?? ''
+  fieldType.value = f?.fieldType ?? FieldTypes.TEXT
+  fieldDescription.value = typeof cfg.description === 'string' ? cfg.description : ''
+  fieldRequired.value = !!f?.required
+  fieldReadonly.value = !!f?.readonly
+  fieldNotifyOnChange.value = !!cfg.notifyOnChange
+  fieldOverview.value = !!cfg.overview
+  fieldSettings.value = {
+    options: [...(cfg.options ?? [])],
+    defaultValue: startingValue(fieldType.value, cfg.defaultValue),
   }
+  fieldAgeSourceId.value = ageSourceOf(cfg, props.dateFields)?.id ?? null
+  fieldAgeMode.value = (cfg.ageMode as string) ?? 'now'
+  fieldKeepOnArchive.value = f?.keepOnArchive ?? false
+  fieldShowAge.value = cfg.showAge !== false
+  fieldExpiry.value = expirySettingsOf(cfg)
+  fieldWidth.value = f?.width ?? FieldWidths.FULL
 })
 
 /**
@@ -155,14 +133,13 @@ watch(modelValue, (open) => {
  * <p>A birth date's age is the exception in reverse: it is recorded only where it was switched off,
  * so every birth date written before there was a switch keeps showing the age it always showed.
  */
-function buildConfig(): ProfileFieldConfig {
-  const cfg: ProfileFieldConfig = {}
+function buildConfig(): FieldSettings {
+  const cfg: FieldSettings = {}
   if (fieldDescription.value.trim()) cfg.description = fieldDescription.value.trim()
   if (fieldNotifyOnChange.value) cfg.notifyOnChange = true
   if (fieldOverview.value) cfg.overview = true
-  if (fieldType.value === FieldTypes.ENUM && fieldEnumOptions.value.length > 0) {
-    cfg.options = [...fieldEnumOptions.value]
-  }
+  const options = fieldSettings.value.options ?? []
+  if (fieldType.value === FieldTypes.CHOICE && options.length > 0) cfg.options = [...options]
   if (fieldType.value === FieldTypes.AGE) {
     const source = props.dateFields.find(f => f.id === fieldAgeSourceId.value)
     if (source) {
@@ -173,16 +150,9 @@ function buildConfig(): ProfileFieldConfig {
   }
   if (fieldType.value === FieldTypes.BIRTH_DATE && !fieldShowAge.value) cfg.showAge = false
   if (fieldType.value === FieldTypes.EXPIRY_DATE) Object.assign(cfg, expiryConfigOf(fieldExpiry.value))
-  if (offersDefault.value && fieldHasDefault.value) {
-    if (fieldType.value === FieldTypes.BOOLEAN) {
-      cfg.defaultValue = fieldDefaultBool.value
-    } else if (isDateType(fieldType.value)) {
-      cfg.defaultValue = fieldDefaultToday.value ? '__TODAY__' : ''
-    } else if (fieldType.value === FieldTypes.NUMBER) {
-      cfg.defaultValue = fieldDefaultNumber.value
-    } else {
-      cfg.defaultValue = fieldDefaultValue.value.trim()
-    }
+  if (offers.value.includes('default')) {
+    const starting = typedDefault(fieldType.value, fieldSettings.value.defaultValue)
+    if (starting !== undefined) cfg.defaultValue = starting
   }
   return cfg
 }
@@ -211,27 +181,10 @@ function submit() {
                    :named="!isSpacer"
                    :birth-date-available="birthDateAvailable"/>
       <template v-if="holdsValue">
-        <QuestionOptionsEditor
-            v-if="fieldType === 'ENUM'"
-            v-model="fieldEnumOptions"
-            :label="t('membersConfig.fieldEnumOptions')"
-        />
-        <AgeFields v-if="fieldType === 'AGE'" v-model:source-id="fieldAgeSourceId" v-model:mode="fieldAgeMode"
+        <AgeFields v-if="isCalculated" v-model:source-id="fieldAgeSourceId" v-model:mode="fieldAgeMode"
                    :date-fields="dateFields"/>
-        <FieldDefaultValueSection
-          v-if="offersDefault"
-          v-model:has-default="fieldHasDefault"
-          v-model:default-value="fieldDefaultValue"
-          v-model:default-bool="fieldDefaultBool"
-          v-model:default-today="fieldDefaultToday"
-          v-model:default-number="fieldDefaultNumber"
-          :toggle-label="t('membersConfig.fieldDefault')"
-          :placeholder="t('membersConfig.fieldDefaultPlaceholder')"
-          :date-hint="t('membersConfig.fieldDefaultDateHint')"
-          :field-type="fieldType"
-          :enum-options="fieldEnumOptions"
-        />
-        <BirthDateFields v-if="fieldType === 'BIRTH_DATE'" v-model:show-age="fieldShowAge"/>
+        <QuestionSettingsEditor v-model="fieldSettings" :field-type="fieldType" :offers="offers"/>
+        <BirthDateFields v-if="fieldType === FieldTypes.BIRTH_DATE" v-model:show-age="fieldShowAge"/>
         <ExpiryDateFields v-if="fieldType === FieldTypes.EXPIRY_DATE" v-model="fieldExpiry"/>
         <BehaviorToggles
           v-model:required="fieldRequired"

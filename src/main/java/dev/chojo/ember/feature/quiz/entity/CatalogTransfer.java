@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.quiz.entity;
 
+import org.jspecify.annotations.Nullable;
 import tools.jackson.databind.JsonNode;
 
 import java.util.List;
@@ -26,7 +27,10 @@ import java.util.List;
  * @param questions     the questions, created in the order they appear
  */
 public record CatalogTransfer(
-        int formatVersion, CatalogInfo catalog, List<CategoryEntry> categories, List<QuestionEntry> questions) {
+        int formatVersion,
+        CatalogTransferInfo catalog,
+        List<CatalogTransferCategory> categories,
+        List<CatalogTransferQuestion> questions) {
 
     /** The shape written by this version. */
     public static final int FORMAT_VERSION = 1;
@@ -42,29 +46,31 @@ public record CatalogTransfer(
      * @param trainingEnabled whether members may train against it
      * @param metadata        where the questions came from
      */
-    public record CatalogInfo(String name, String description, boolean trainingEnabled, CatalogMetadata metadata) {
+    public record CatalogTransferInfo(
+            String name, String description, boolean trainingEnabled, CatalogMetadata metadata) {
 
-        public CatalogInfo {
+        public CatalogTransferInfo {
             description = description != null ? description : "";
             metadata = CatalogMetadata.orNone(metadata);
         }
     }
 
     /**
-     * @param key         how the questions in this file refer to the category
+     * @param key         how the questions in this file refer to the category, absent in a file the
+     *                    import refuses
      * @param name        the category name, matched against the station's own categories on import
      * @param description what the category covers, used only when the category has to be created
      * @param position    where it sorts, used only when the category has to be created
      */
-    public record CategoryEntry(String key, String name, String description, int position) {
+    public record CatalogTransferCategory(@Nullable String key, String name, String description, int position) {
 
-        public CategoryEntry {
+        public CatalogTransferCategory {
             description = description != null ? description : "";
         }
     }
 
     /**
-     * @param categoryKey      the {@link CategoryEntry#key()} this question belongs to, or absent
+     * @param categoryKey      the {@link CatalogTransferCategory#key()} this question belongs to, or absent
      * @param quizQuestionType the {@link QuizQuestionType} name, resolved on import
      * @param title            the question text
      * @param description      supplementary text
@@ -74,14 +80,14 @@ public record CatalogTransfer(
      * @param config           the config of the question's type
      * @param position         where it sorts inside the catalog, its index in the file when absent
      */
-    public record QuestionEntry(
-            String categoryKey,
+    public record CatalogTransferQuestion(
+            @Nullable String categoryKey,
             String quizQuestionType,
             String title,
             String description,
-            String imageUrl,
-            Double points,
-            Boolean autoPoints,
+            @Nullable String imageUrl,
+            @Nullable Double points,
+            @Nullable Boolean autoPoints,
             JsonNode config,
-            Integer position) {}
+            @Nullable Integer position) {}
 }

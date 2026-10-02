@@ -35,7 +35,6 @@ public final class SchemaReader {
     public Map<String, RawTable> readTables() throws SQLException {
         Map<String, RawTable> result = new TreeMap<>();
 
-        // Tables + their COMMENT ON TABLE descriptions
         try (var conn = dataSource.getConnection();
                 var stmt = conn.prepareStatement("""
                      SELECT t.table_name,
@@ -56,7 +55,6 @@ public final class SchemaReader {
             }
         }
 
-        // Columns + their COMMENT ON COLUMN descriptions (via pg_description on pg_attribute)
         try (var conn = dataSource.getConnection();
                 var stmt = conn.prepareStatement("""
                      SELECT c.table_name,
@@ -86,7 +84,6 @@ public final class SchemaReader {
             }
         }
 
-        // Foreign keys with delete rule
         try (var conn = dataSource.getConnection();
                 var stmt = conn.prepareStatement("""
                      SELECT tc.table_name,

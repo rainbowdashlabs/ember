@@ -10,14 +10,15 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import NumberSetting from '@/views/adminview/adminsecuritytokensview/NumberSetting.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
-import type {TokensConfigResponse} from '@/api/adminSettings'
+import type {TokensConfigResponse} from '@/api/generated/schema'
 
 const {t} = useI18n()
 
 defineProps<{
-  config: TokensConfigResponse
   save: () => Promise<void>
 }>()
+
+const config = defineModel<TokensConfigResponse>('config', {required: true})
 </script>
 
 <template>

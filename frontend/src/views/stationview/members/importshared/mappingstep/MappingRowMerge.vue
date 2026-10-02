@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import { useId } from 'vue'
 import { useI18n } from 'vue-i18n'
 import TextInput from '@/components/input/text/TextInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
@@ -12,6 +13,9 @@ const { t } = useI18n()
 
 const mergeOrder = defineModel<number>('mergeOrder', { required: true })
 const mergeSeparator = defineModel<string>('mergeSeparator', { required: true })
+
+const orderId = useId()
+const separatorId = useId()
 </script>
 
 <template>
@@ -21,12 +25,12 @@ const mergeSeparator = defineModel<string>('mergeSeparator', { required: true })
       {{ t('memberImport.mergedWith') }}
     </span>
     <div class="flex items-center gap-1">
-      <label class="text-(--text-muted)">{{ t('memberImport.order') }}:</label>
-      <NumberInput :model-value="mergeOrder" class="w-12 text-center text-xs" @update:model-value="mergeOrder = $event ?? 0" />
+      <label :for="orderId" class="text-(--text-muted)">{{ t('memberImport.order') }}:</label>
+      <NumberInput :id="orderId" :model-value="mergeOrder" class="w-12 text-center text-xs" @update:model-value="mergeOrder = $event ?? 0" />
     </div>
     <div class="flex items-center gap-1">
-      <label class="text-(--text-muted)">{{ t('memberImport.sep') }}:</label>
-      <TextInput v-model="mergeSeparator" class="w-10 text-center text-xs" />
+      <label :for="separatorId" class="text-(--text-muted)">{{ t('memberImport.sep') }}:</label>
+      <TextInput :id="separatorId" v-model="mergeSeparator" class="w-10 text-center text-xs" />
     </div>
   </div>
 </template>

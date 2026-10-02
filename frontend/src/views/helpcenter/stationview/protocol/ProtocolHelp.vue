@@ -24,28 +24,27 @@ const { t } = useI18n()
       <p>{{ t('helpCenter.protocol.structureText') }}</p>
     </HelpSection>
 
-    <!-- Demo structure -->
     <NeutralContainer>
       <div class="space-y-2 text-sm">
-        <div class="font-medium">Jugendflamme Stufe 1</div>
+        <div class="font-medium">{{ t('helpCenter.sample.protocol.jugendflamme1') }}</div>
         <div class="ml-4 space-y-1">
           <div class="flex items-center gap-2">
             <font-awesome-icon :icon="['fas', 'folder']" class="w-3 h-3 text-[var(--primary)]" />
-            <span>Notruf</span>
+            <span>{{ t('helpCenter.sample.protocol.emergencyCall') }}</span>
             <MutedText class="ml-auto">8P</MutedText>
           </div>
           <div class="ml-6 space-y-0.5 text-xs text-[var(--text-muted)]">
-            <div>5 W-Fragen (5P) - Wo?, Was?, Wie viele?, Wer?, Warten?</div>
-            <div>Notrufnummern (3P) - 112, 110, 116117</div>
+            <div>{{ t('helpCenter.sample.protocol.fiveWPoints') }}</div>
+            <div>{{ t('helpCenter.sample.protocol.numbersPoints') }}</div>
           </div>
           <div class="flex items-center gap-2">
             <font-awesome-icon :icon="['fas', 'folder']" class="w-3 h-3 text-[var(--primary)]" />
-            <span>Knoten und Stiche</span>
+            <span>{{ t('helpCenter.sample.protocol.knots') }}</span>
             <MutedText class="ml-auto">11P</MutedText>
           </div>
           <div class="flex items-center gap-2">
             <font-awesome-icon :icon="['fas', 'folder']" class="w-3 h-3 text-[var(--primary)]" />
-            <span>Schläuche</span>
+            <span>{{ t('helpCenter.sample.protocol.hoses') }}</span>
             <MutedText class="ml-auto">15P</MutedText>
           </div>
         </div>
@@ -60,17 +59,16 @@ const { t } = useI18n()
       <p>{{ t('helpCenter.protocol.gradingText') }}</p>
     </HelpSection>
 
-    <!-- Demo grading -->
     <NeutralContainer>
       <div class="space-y-2">
         <div class="flex items-center gap-2 p-2 rounded-lg border-2 border-[var(--success)]" style="background: color-mix(in srgb, var(--success) 10%, transparent)">
           <font-awesome-icon :icon="['fas', 'square-check']" class="w-5 h-5 text-[var(--success)]" />
-          <span class="text-sm">Wo?</span>
+          <span class="text-sm">{{ t('helpCenter.sample.protocol.where') }}</span>
           <MutedText class="ml-auto">1P</MutedText>
         </div>
         <div class="flex items-center gap-2 p-2 rounded-lg border-2 border-[var(--border)]">
           <font-awesome-icon :icon="['fas', 'square']" class="w-5 h-5 text-[var(--text-muted)]" />
-          <span class="text-sm">Was?</span>
+          <span class="text-sm">{{ t('helpCenter.sample.protocol.what') }}</span>
           <MutedText class="ml-auto">1P</MutedText>
         </div>
       </div>

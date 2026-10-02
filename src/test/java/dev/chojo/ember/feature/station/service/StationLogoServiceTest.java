@@ -5,12 +5,13 @@
  */
 package dev.chojo.ember.feature.station.service;
 
-import dev.chojo.ember.feature.media.service.ImageVariantService;
+import dev.chojo.ember.feature.media.service.ImageVariants;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository.StationLogo;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
 import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
 import dev.chojo.ember.feature.storage.service.StorageService;
+import dev.chojo.ember.util.WebpEncoder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -48,7 +49,7 @@ class StationLogoServiceTest {
         var backend = new LocalStorageBackend(tempDir);
         var resolver = new StorageBackendResolver(backend);
         var storageService = new StorageService(resolver, backend);
-        var variants = new ImageVariantService(storageService);
+        var variants = new ImageVariants(storageService);
 
         stationRepository = Mockito.mock(StationRepository.class);
         when(stationRepository.resolveUid(STATION_ID)).thenReturn(STATION_UID);
@@ -66,9 +67,11 @@ class StationLogoServiceTest {
 
         var small = logoService.read(STATION_ID, 64);
         assertTrue(small.isPresent());
-        assertEquals("image/png", small.orElseThrow().contentType());
+        assertEquals(
+                WebpEncoder.isAvailable() ? "image/webp" : "image/png",
+                small.orElseThrow().contentType());
 
-        assertTrue(logoService.original(STATION_ID).isPresent());
+        assertEquals("image/png", logoService.original(STATION_ID).orElseThrow().contentType());
 
         logoService.delete(STATION_ID);
         assertFalse(logoService.exists(STATION_ID));

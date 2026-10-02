@@ -19,10 +19,11 @@ import MemberListStaticList from './MemberListStaticList.vue'
 import {listGroups} from '@/api/memberGroups'
 import {listTags} from '@/api/userTags'
 import {getMemberPickerByUid} from '@/api/members'
-import {MemberListSortBy, resolveMemberListSource, type MemberListSortByName, type MemberListSource, type ResolvedMember} from '@/api/pageManage'
-import type {MemberGroup, UserTag} from '@/api/types'
+import {MemberListSortBy, resolveMemberListSource, type MemberListSortByName, type MemberListSource} from '@/api/pageManage'
+import type {MemberGroup, ResolvedMember, UserTag} from '@/api/generated/schema'
 import {useConfigPatch} from '@/composables/useConfigPatch'
 import {moveWithin} from '@/util/reorder'
+import {withoutKey} from '@/util/record'
 
 const config = defineModel<Record<string, unknown>>('config', {required: true})
 
@@ -74,12 +75,8 @@ function descriptionFor(uid: string): string {
 }
 
 function setDescription(uid: string, value: string | undefined) {
-    const map = {...((cfg.value.memberDescriptions as Record<string, string> | undefined) ?? {})}
-    if (value && value.trim().length > 0) {
-        map[uid] = value
-    } else {
-        delete map[uid]
-    }
+    const current = (cfg.value.memberDescriptions as Record<string, string> | undefined) ?? {}
+    const map = value && value.trim().length > 0 ? {...current, [uid]: value} : withoutKey(current, uid)
     patch({memberDescriptions: Object.keys(map).length > 0 ? map : null})
 }
 
@@ -145,8 +142,7 @@ function moveDynamicMember(from: number, to: number) {
 const {picked, take} = useMemberUidPick(addManualMember)
 
 function removeManualMember(uid: string) {
-    const map = {...((cfg.value.memberDescriptions as Record<string, string> | undefined) ?? {})}
-    delete map[uid]
+    const map = withoutKey((cfg.value.memberDescriptions as Record<string, string> | undefined) ?? {}, uid)
     patch({
         source: {kind: 'manual', memberUids: manualUids.value.filter(id => id !== uid)},
         memberDescriptions: Object.keys(map).length > 0 ? map : null,

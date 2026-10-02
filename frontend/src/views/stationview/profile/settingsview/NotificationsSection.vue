@@ -4,15 +4,16 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import InfoContainer from '@/components/container/InfoContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
-import type {UserSettings, NotificationToggle} from '@/api/userSettings'
+import type {NotificationToggle, NotificationType, SettingsResponse} from '@/api/generated/schema'
 
 const props = defineProps<{
-  settings: UserSettings
+  settings: SettingsResponse
 }>()
 
 const emit = defineEmits<{
@@ -25,23 +26,28 @@ const emit = defineEmits<{
 const {t} = useI18n()
 
 interface NotifyRow {
-  type: string
+  type: NotificationType
   label: string
   hint: string
 }
 
-const notifyRows: NotifyRow[] = [
+const allRows: NotifyRow[] = [
   {type: 'NEW_NEWS', label: 'notifyNews', hint: 'notifyNewsHint'},
   {type: 'NEWS_COMMENT', label: 'notifyComments', hint: 'notifyCommentsHint'},
   {type: 'COMMENT_MENTION', label: 'notifyMentions', hint: 'notifyMentionsHint'},
   {type: 'NEW_EVENT', label: 'notifyEvents', hint: 'notifyEventsHint'},
   {type: 'EVENT_REGISTRATION_STATUS', label: 'notifyEventStatus', hint: 'notifyEventStatusHint'},
-  {type: 'EXCHANGE_STATUS_CHANGE', label: 'notifyExchanges', hint: 'notifyExchangesHint'},
   {type: 'MEMBER_ADDED_TO_GROUP', label: 'notifyGroups', hint: 'notifyGroupsHint'},
   {type: 'PROFILE_FIELD_CHANGED', label: 'notifyProfile', hint: 'notifyProfileHint'},
   {type: 'PROCUREMENT_REQUESTED', label: 'notifyProcurement', hint: 'notifyProcurementHint'},
   {type: 'EXPIRY_REMINDER', label: 'notifyExpiry', hint: 'notifyExpiryHint'},
 ]
+
+/**
+ * The rows for the types the server reported. The page sends back every type it switched, and the
+ * server refuses a save naming one it does not know, so a row it did not report is never offered.
+ */
+const notifyRows = computed(() => allRows.filter(row => row.type in props.settings.notifications))
 
 function getToggle(type: string): NotificationToggle {
   return props.settings.notifications?.[type] ?? {app: true, email: false, feed: true}
@@ -49,7 +55,6 @@ function getToggle(type: string): NotificationToggle {
 </script>
 
 <template>
-  <!-- Mail provider info -->
   <InfoContainer v-if="settings.mailConfigured" class="space-y-2">
     <p class="text-sm">
       {{ t('userSettings.mailProviderInfo', {provider: settings.mailProviderName || t('userSettings.mailProviderUnknown')}) }}
@@ -66,7 +71,6 @@ function getToggle(type: string): NotificationToggle {
     {{ t('userSettings.mailNotConfigured') }}
   </NeutralContainer>
 
-  <!-- Master email toggle -->
   <NeutralContainer class="space-y-4">
     <SubHeader class="text-sm">{{ t('userSettings.emailTitle') }}</SubHeader>
     <div class="flex items-center justify-between">
@@ -82,20 +86,17 @@ function getToggle(type: string): NotificationToggle {
     </div>
   </NeutralContainer>
 
-  <!-- Per-type notification toggles -->
   <NeutralContainer data-onboarding="notifications.matrix" class="space-y-4">
     <SubHeader class="text-sm">{{ t('userSettings.notifications') }}</SubHeader>
     <p class="text-xs text-(--text-muted)">{{ t('userSettings.notificationsHint') }}</p>
 
-    <!-- Header row -->
     <div class="grid grid-cols-[1fr_auto_auto_auto] gap-x-4 items-center text-xs font-semibold text-(--text-muted) border-b border-(--border) pb-2">
-      <span></span>
+      <span/>
       <span class="w-12 text-center">{{ t('userSettings.columnApp') }}</span>
       <span class="w-12 text-center">{{ t('userSettings.columnEmail') }}</span>
       <span class="w-12 text-center">{{ t('userSettings.columnFeed') }}</span>
     </div>
 
-    <!-- Notification rows -->
     <div v-for="row in notifyRows" :key="row.type"
          class="grid grid-cols-[1fr_auto_auto_auto] gap-x-4 items-center py-1">
       <div>

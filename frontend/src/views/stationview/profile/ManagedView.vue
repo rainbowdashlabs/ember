@@ -13,53 +13,34 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import {describeFailure} from '@/util/failure'
 import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
 import {fromMember} from '@/components/input/select/memberOption'
-import ProfileFieldsLayout, {type LaidOutField} from '@/components/profilefields/ProfileFieldsLayout.vue'
-import {valueFields} from '@/components/profilefields/fieldLayout'
+import ProfileFieldsLayout from '@/components/profilefields/ProfileFieldsLayout.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import {parseFieldConfig, type ProfileField} from '@/api/profileFields'
+import type {ManagedMember} from '@/api/generated/schema'
 import { managedMembers } from '@/api'
-import type { ManagedMember } from '@/api/managedMembers'
-import { decodeProfileValues, getFieldValue, setFieldValue } from '@/util/profileFields'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
+import { useProfileAnswers } from '@/composables/useProfileAnswers'
+import { guardianAnswers } from '@/composables/profileAnswerPorts'
 import ManagedAccessPanel from './managedview/ManagedAccessPanel.vue'
 
 const { t } = useI18n()
 
 const members = ref<ManagedMember[]>([])
-const fields = ref<ProfileField[]>([])
 const selectedMemberId = ref<string>('')
-const values = ref<Map<number, string>>(new Map())
 const loadingProfile = ref(false)
 
-const memberOptions = computed(() => members.value.map(fromMember))
-
 /**
- * Whether the guardian may write this answer.
- *
- * <p>A question the station keeps to its own member management is one of them to read here, and a
- * question that works itself out from another is nobody's to write. This screen used to look for
- * both in the question's settings, where only the second of them lives, so a question marked for
- * the member management alone was offered to every guardian.
+ * The answers of the member in the guardian's care. A question the station keeps to its own member
+ * management, or one that works itself out from another, is read here and not written: the port
+ * says which.
  */
-function readonlyHere(field: ProfileField): boolean {
-  return !!field.readonly || !!parseFieldConfig(field.config).computed
-}
+const answers = useProfileAnswers(guardianAnswers)
+const {fields, valueOf, update} = answers
 
-function valueOf(field: LaidOutField): string {
-  return getValue(field.id)
-}
-
-function getValue(fieldId: number): string {
-  return getFieldValue(values, fieldId)
-}
-
-function setValue(fieldId: number, val: string) {
-  setFieldValue(values, fieldId, val)
-}
+const memberOptions = computed(() => members.value.map(fromMember))
 
 const route = useRoute()
 
@@ -84,10 +65,7 @@ async function loadMemberProfile() {
   loadingProfile.value = true
   failure.value = null
   try {
-    const memberId = Number(selectedMemberId.value)
-    const profile = await managedMembers.getProfile(memberId)
-    fields.value = profile.fields
-    values.value = decodeProfileValues(profile.values)
+    await answers.load(Number(selectedMemberId.value))
   } catch (e) {
     failure.value = describeFailure(e, t)
   } finally {
@@ -99,10 +77,7 @@ async function saveProfile() {
   if (!selectedMemberId.value) return
   failure.value = null
   try {
-    const entries = valueFields(fields.value)
-      .filter(f => !readonlyHere(f))
-      .map(f => ({ fieldId: f.id, value: JSON.stringify(getValue(f.id)) }))
-    await managedMembers.setProfile(Number(selectedMemberId.value), entries)
+    await answers.save(Number(selectedMemberId.value))
   } catch (e) {
     failure.value = describeFailure(e, t)
     throw e
@@ -123,7 +98,7 @@ async function saveProfile() {
         <NeutralContainer class="space-y-4">
           <SectionHeader>{{ t('profileManaged.title') }}</SectionHeader>
 
-          <EmptyState compact v-if="members.length === 0">{{ t('profileManaged.noManaged') }}</EmptyState>
+          <EmptyState v-if="members.length === 0" compact>{{ t('profileManaged.noManaged') }}</EmptyState>
 
           <div v-else class="space-y-1">
             <FieldLabel>{{ t('profileManaged.selectMember') }}</FieldLabel>
@@ -144,7 +119,7 @@ async function saveProfile() {
           <ProfileFieldsLayout
             :fields="fields"
             :get-value="valueOf"
-            @update="(field, value) => setValue(field.id, value)"
+            @update="update"
           />
 
           <SaveButton data-onboarding="managed.fields.save" :action="saveProfile"/>

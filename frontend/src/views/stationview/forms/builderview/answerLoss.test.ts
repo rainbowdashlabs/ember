@@ -5,7 +5,7 @@
  */
 import {describe, expect, it} from 'vitest'
 import {answerLoss} from './useAnswerLossConsent'
-import type {QuestionAnswerCount} from '@/api/forms'
+import type {QuestionAnswerCount} from '@/api/generated/schema'
 
 /**
  * One question before a save asks about everything it throws away: the answers of removed

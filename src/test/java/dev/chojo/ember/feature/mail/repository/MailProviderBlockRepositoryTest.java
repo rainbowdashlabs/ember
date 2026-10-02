@@ -89,10 +89,10 @@ class MailProviderBlockRepositoryTest extends RepositoryTestBase {
     @Test
     void anAddressWithoutADomainIsIgnoredRatherThanStored() {
         repository.block(null, MailProviderType.BREVO, "   ", "nonsense");
-        repository.block(null, MailProviderType.BREVO, null, "nonsense");
+        repository.block(null, MailProviderType.BREVO, "@", "nonsense");
 
         assertTrue(repository.blockedFor(null, "   ").isEmpty());
-        assertTrue(repository.blockedFor(null, null).isEmpty());
+        assertTrue(repository.blockedFor(null, "@").isEmpty());
     }
 
     /**

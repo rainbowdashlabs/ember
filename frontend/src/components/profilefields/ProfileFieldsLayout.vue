@@ -12,8 +12,10 @@ import QuestionValueInput from '@/components/input/QuestionValueInput.vue'
 import {questionKindOf} from '@/util/questions'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import ExpiryStateBadge from '@/components/display/ExpiryStateBadge.vue'
-import {FieldTypes, parseFieldConfig, type ProfileField} from '@/api/profileFields'
-import {calculatedAnswer, type FieldOrigin} from '@/util/profileFields'
+import {parseFieldConfig, type FieldOriginName, type FieldSettings} from '@/api/profileFields'
+import {FieldTypes} from '@/api/fieldTypes'
+import type {MergedField} from '@/api/generated/schema'
+import {calculatedAnswer} from '@/util/profileFields'
 import {isSection, isSpacer, spanClass} from './fieldLayout'
 
 /**
@@ -25,12 +27,14 @@ import {isSection, isSpacer, spanClass} from './fieldLayout'
 /**
  * A field as this layout needs it: the station's own, or one its cluster added.
  *
- * The station is optional because a cluster's question belongs to no station: it is asked at every station
- * under the cluster, and the row it lives in names the cluster instead.
+ * Only what both kinds carry, because a cluster's question belongs to no station: it is asked at every
+ * station under the cluster, and the row it lives in names the cluster instead. A cluster's question
+ * names its type as plain text, so the type is read as text here.
  */
-export type LaidOutField = Omit<ProfileField, 'stationId'> & {
-  stationId?: string
-  origin?: FieldOrigin
+export type LaidOutField = Pick<MergedField, 'id' | 'name'> & Partial<Pick<MergedField, 'required' | 'width'>> & {
+  fieldType: string
+  config: FieldSettings
+  origin?: FieldOriginName
   /**
    * Whether this reader may read the answer but not write it. Theirs rather than the question's: a
    * manager may write a date the member they are looking at only reads.
@@ -95,8 +99,7 @@ function valueOf(field: LaidOutField): string {
 
 /** The sentence the station wrote to say what the question is after, empty when it wrote none. */
 function descriptionOf(field: LaidOutField): string {
-  const described = parseFieldConfig(field.config).description
-  return typeof described === 'string' ? described : ''
+  return parseFieldConfig(field.config).description ?? ''
 }
 </script>
 
@@ -106,7 +109,7 @@ function descriptionOf(field: LaidOutField): string {
       <div v-if="isSection(field)" :class="spanClass(field)" class="pt-2 first:pt-0">
         <SubHeader class="text-sm">{{ field.name }}</SubHeader>
       </div>
-      <div v-else-if="isSpacer(field)" :class="spanClass(field)" aria-hidden="true"></div>
+      <div v-else-if="isSpacer(field)" :class="spanClass(field)" aria-hidden="true"/>
       <div v-else :data-field="field.name" :class="spanClass(field)" class="space-y-1">
         <FieldLabel>
           {{ field.name }}
@@ -123,7 +126,7 @@ function descriptionOf(field: LaidOutField): string {
         <QuestionValueInput
             :kind="questionKindOf(field.fieldType) ?? 'TEXT'"
             :model-value="valueOf(field)"
-            :options="(parseFieldConfig(field.config).options as string[]) ?? []"
+            :options="parseFieldConfig(field.config).options ?? []"
             :disabled="locked(field)"
             :required="!!field.required"
             @update:model-value="emit('update', field, $event)"

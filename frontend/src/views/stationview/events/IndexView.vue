@@ -16,7 +16,8 @@ import EventDashboardBody from './indexview/EventDashboardBody.vue'
 import EventDashboardModals from './indexview/EventDashboardModals.vue'
 import EventFilterBar from './eventshared/EventFilterBar.vue'
 import {useEventDashboard} from './indexview/useEventDashboard'
-import {EventKinds, EventStates, type EventBreak, type StationEvent} from '@/api/events'
+import {EventKinds, EventStates} from '@/api/events'
+import type {EventBreak, EventSummary} from '@/api/generated/schema'
 import {events} from '@/api'
 import {useConfirmDelete} from '@/composables/useConfirmDelete'
 import {describeFailure, saying} from '@/util/failure'
@@ -53,7 +54,7 @@ const {
   target: deleteEventTarget,
   requestDelete: requestDeleteEvent,
   confirm: confirmDeleteEvent,
-} = useConfirmDelete<StationEvent>({
+} = useConfirmDelete<EventSummary>({
   onDelete: event => events.deleteEvent(event.id),
   onSuccess: () => reload(),
   failure,
@@ -74,7 +75,7 @@ function openAddEvent() {
   router.push({name: eventRoutes.create})
 }
 
-function openEditEvent(event: StationEvent) {
+function openEditEvent(event: EventSummary) {
   router.push({name: eventRoutes.edit, params: {id: event.id}})
 }
 

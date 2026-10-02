@@ -5,9 +5,10 @@
  */
 package dev.chojo.ember.feature.station.service;
 
+import dev.chojo.ember.api.refusal.RefusalResponse;
+import dev.chojo.ember.api.refusal.StationRefusal;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -37,7 +38,7 @@ class StationLocationServiceTest extends RepositoryTestBase {
 
     @Test
     void findThrowsForUnknownStation() {
-        assertThrows(BadRequestResponse.class, () -> service.find(999_999));
+        assertThrows(RefusalResponse.class, () -> service.find(999_999));
     }
 
     @Test
@@ -72,19 +73,19 @@ class StationLocationServiceTest extends RepositoryTestBase {
 
     @Test
     void updateRejectsNullBody() {
-        assertThrows(BadRequestResponse.class, () -> service.update(station.id(), null));
+        assertThrows(RefusalResponse.class, () -> service.update(station.id(), null));
     }
 
     @Test
     void updateRejectsHalfCoordinate() {
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> service.update(
                         station.id(),
                         new StationLocationService.LocationUpdate(
                                 null, null, null, null, new BigDecimal("48.0"), null)));
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> service.update(
                         station.id(),
                         new StationLocationService.LocationUpdate(
@@ -94,25 +95,25 @@ class StationLocationServiceTest extends RepositoryTestBase {
     @Test
     void updateRejectsOutOfRangeCoordinates() {
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> service.update(
                         station.id(),
                         new StationLocationService.LocationUpdate(
                                 null, null, null, null, new BigDecimal("100.0"), new BigDecimal("0.0"))));
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> service.update(
                         station.id(),
                         new StationLocationService.LocationUpdate(
                                 null, null, null, null, new BigDecimal("0.0"), new BigDecimal("181.0"))));
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> service.update(
                         station.id(),
                         new StationLocationService.LocationUpdate(
                                 null, null, null, null, new BigDecimal("-90.1"), new BigDecimal("0"))));
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> service.update(
                         station.id(),
                         new StationLocationService.LocationUpdate(
@@ -122,7 +123,7 @@ class StationLocationServiceTest extends RepositoryTestBase {
     @Test
     void updateRejectsMalformedCountry() {
         assertThrows(
-                BadRequestResponse.class,
+                RefusalResponse.class,
                 () -> service.update(
                         station.id(), new StationLocationService.LocationUpdate(null, null, null, "DEU", null, null)));
     }
@@ -130,21 +131,24 @@ class StationLocationServiceTest extends RepositoryTestBase {
     @Test
     void updateRejectsOversizedAddressFields() {
         String tooLong = "x".repeat(201);
-        assertThrows(
-                BadRequestResponse.class,
+        var addressLine = assertThrows(
+                RefusalResponse.class,
                 () -> service.update(
                         station.id(),
                         new StationLocationService.LocationUpdate(tooLong, null, null, null, null, null)));
-        assertThrows(
-                BadRequestResponse.class,
+        var postalCode = assertThrows(
+                RefusalResponse.class,
                 () -> service.update(
                         station.id(),
                         new StationLocationService.LocationUpdate(null, tooLong, null, null, null, null)));
-        assertThrows(
-                BadRequestResponse.class,
+        var city = assertThrows(
+                RefusalResponse.class,
                 () -> service.update(
                         station.id(),
                         new StationLocationService.LocationUpdate(null, null, tooLong, null, null, null)));
+        assertEquals(StationRefusal.STATION_ADDRESS_LINE_TOO_LONG, addressLine.refusal());
+        assertEquals(StationRefusal.STATION_POSTAL_CODE_TOO_LONG, postalCode.refusal());
+        assertEquals(StationRefusal.STATION_CITY_TOO_LONG, city.refusal());
     }
 
     @Test
@@ -159,16 +163,13 @@ class StationLocationServiceTest extends RepositoryTestBase {
     @Test
     void updateAcceptsBlankCountryAsNull() {
         service.update(station.id(), new StationLocationService.LocationUpdate(null, null, null, "  ", null, null));
-        // No exception thrown means the blank value bypassed the regex check.
     }
 
     @Test
     void distanceKmStaticHelper() {
-        // Munich → Berlin reference distance: ~504 km. Allow ±5 km tolerance.
-        double d = StationLocationService.distanceKm(48.137154, 11.576124, 52.520008, 13.404954);
-        assertEquals(504, d, 5);
+        double munichToBerlin = StationLocationService.distanceKm(48.137154, 11.576124, 52.520008, 13.404954);
+        assertEquals(504, munichToBerlin, 5);
 
-        // Zero distance for identical points.
         assertEquals(0, StationLocationService.distanceKm(0, 0, 0, 0), 0.001);
     }
 

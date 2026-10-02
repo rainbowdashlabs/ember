@@ -27,6 +27,9 @@ export interface PagedListView<T> {
  * rather than a count the server would have to work out for every page. The cost is a last press
  * that returns nothing, on a list whose length happens to be a multiple of the page.
  *
+ * <p>A first page asked for again, because a filter changed, wins over everything still on its way:
+ * an older first page and a next page fetched for the old filter are both dropped when they land.
+ *
  * <p>Neither call swallows a failure: the screen that owns the list says what a failed load looks
  * like, and a list that quietly stopped growing would read as a list that had ended.
  *
@@ -44,17 +47,23 @@ export function usePagedList<T>(fetchPage: (offset: number) => Promise<T[]>, pag
         loadingMore: loadingMore.value,
     }))
 
+    let latestLoad = 0
+
     async function load() {
+        const run = ++latestLoad
         const page = await fetchPage(0)
+        if (run !== latestLoad) return
         items.value = page
         hasMore.value = page.length >= pageSize
     }
 
     async function loadMore() {
         if (loadingMore.value || !hasMore.value) return
+        const run = latestLoad
         loadingMore.value = true
         try {
             const page = await fetchPage(items.value.length)
+            if (run !== latestLoad) return
             items.value = [...items.value, ...page]
             hasMore.value = page.length >= pageSize
         } finally {

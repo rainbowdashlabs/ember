@@ -5,7 +5,7 @@
  */
 <script lang="ts" setup>
 import {computed} from 'vue'
-import type {AttendanceEntry} from '@/api/attendance'
+import type {AttendanceEntry} from '@/api/generated/schema'
 import {formatDayMonth, formatTime} from '@/util/format'
 
 /**

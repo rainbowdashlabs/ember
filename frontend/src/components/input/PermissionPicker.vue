@@ -6,12 +6,16 @@
 <script lang="ts" setup>
 import {computed, toRef} from 'vue'
 import {useI18n} from 'vue-i18n'
-import type {PermissionGrant} from '@/api/types'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import {usePermissionTree, type PermissionScope} from '@/composables/usePermissionTree'
+import {usePermissionTree, type PermissionGrant, type PermissionScope} from '@/composables/usePermissionTree'
 import {GROUP_ICONS} from '@/components/input/permissionpicker/groupIcons'
 
+/**
+ * The permission tree, a group per top-level permission. A group's header opens and closes it
+ * wherever it is pressed, which is a pointer's convenience; its name is the control a keyboard and a
+ * screen reader reach, beside the switch that grants it.
+ */
 const props = defineProps<{
   allRoles: PermissionGrant[]
   modelValue: Set<number>
@@ -62,10 +66,10 @@ const {
           class="rounded-lg border border-(--border) overflow-hidden transition-shadow"
           :class="{'shadow-sm border-primary/30': isEffectivelyEnabled(node.name) || countEnabledDescendants(node) > 0}"
       >
-        <!-- Top-level group header -->
         <div
             class="flex items-center gap-3 px-3 py-2.5 cursor-pointer select-none transition-colors"
             :class="[isEffectivelyEnabled(node.name) ? 'bg-primary/5' : 'hover:bg-bg-light-accent/40 dark:hover:bg-bg-dark-accent/40', isDisabled(node.name) ? 'opacity-60' : '']"
+            role="presentation"
             @click="node.children.length > 0 && toggleExpand(node.name)"
         >
           <ToggleInput
@@ -79,7 +83,15 @@ const {
               :icon="GROUP_ICONS[node.name]"
               class="h-4 w-4 text-(--text-muted)"
           />
-          <div class="flex-1 min-w-0">
+          <div
+              class="flex-1 min-w-0"
+              role="button"
+              tabindex="0"
+              :aria-expanded="node.children.length > 0 ? isExpanded(node.name) : undefined"
+              :aria-disabled="node.children.length === 0"
+              @keydown.enter.prevent="node.children.length > 0 && toggleExpand(node.name)"
+              @keydown.space.prevent="node.children.length > 0 && toggleExpand(node.name)"
+          >
             <div class="font-medium text-sm">{{ t(`permissions.${node.name}.label`) }}</div>
             <div class="text-xs text-(--text-muted) leading-tight">{{ t(`permissions.${node.name}.desc`) }}</div>
             <div v-if="isLocked(node.name)" class="text-[10px] text-primary italic mt-0.5">
@@ -100,7 +112,6 @@ const {
           />
         </div>
 
-        <!-- Flat list of all descendants -->
         <div v-if="node.children.length > 0 && isExpanded(node.name)" class="border-t border-(--border)">
           <div
               v-for="item in flattenDescendants(node)"

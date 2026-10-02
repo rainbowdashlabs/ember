@@ -17,7 +17,7 @@ import ButtonRow from '@/components/button/ButtonRow.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import ProcedureItemRow from '@/views/stationview/procedure/proceduredetailview/ProcedureItemRow.vue'
-import type {ProcedureItem} from '@/api/procedures'
+import type {ProcedureItem} from '@/api/generated/schema'
 import {StationPermission} from '@/api/types'
 
 const {t} = useI18n()
@@ -71,7 +71,7 @@ const LOCKED_ITEM: ProcedureItem = {
             <PrimaryBadge>{{ t('procedures.open') }}</PrimaryBadge>
             <ErrorBadge>{{ t('procedures.overdue') }}</ErrorBadge>
           </div>
-          <p class="text-(--text-muted) text-sm">Alle Schritte bis zum ersten Übungsabend.</p>
+          <p class="text-(--text-muted) text-sm">{{ t('helpCenter.sample.events.untilFirstEvening') }}</p>
         </div>
         <ButtonRow pair class="shrink-0">
           <SecondaryButton :icon="['fas', 'pen']">{{ t('common.edit') }}</SecondaryButton>

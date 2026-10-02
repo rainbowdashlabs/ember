@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.storage.service;
 import dev.chojo.ember.conf.file.elements.Storage;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,7 +60,7 @@ public class PresentationCompressor {
      * configured {@link Storage#compressThresholdBytes()} are left untouched - recompressing
      * tiny files burns CPU for no net win.
      */
-    public boolean shouldCompress(String mimeType, long fileSize) {
+    public boolean shouldCompress(@Nullable String mimeType, long fileSize) {
         if (mimeType == null) return false;
         if (fileSize <= storageConfig.compressThresholdBytes()) return false;
         if (storageConfig.compressPresentations() && PRESENTATION_MIME_TYPES.contains(mimeType)) return true;

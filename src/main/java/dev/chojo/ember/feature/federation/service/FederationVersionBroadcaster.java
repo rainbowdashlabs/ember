@@ -7,13 +7,16 @@ package dev.chojo.ember.feature.federation.service;
 
 import dev.chojo.ember.feature.federation.contract.FederationContractVersions;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
+import dev.chojo.ember.lifecycle.Schedule;
+import dev.chojo.ember.lifecycle.ScheduledTask;
+import dev.chojo.ember.lifecycle.TaskSource;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.time.Duration;
+import java.util.List;
 
 /**
  * Pings all active remote federation partners to exchange contract vectors. The signed
@@ -27,16 +30,17 @@ import java.util.concurrent.TimeUnit;
  * that does not depend on traffic, so an unreachable or still-restarting partner heals on
  * its own once it answers.
  * <p>
- * Constructing this eager singleton also warms {@link FederationContractVersions}, so the
+ * Constructing it, which happens when the scheduled tasks are gathered at boot, also warms
+ * {@link FederationContractVersions}, so the
  * reflective contract hash computation runs at boot instead of on whichever user-facing
  * request happens to touch it first.
  */
 @Singleton
-public class FederationVersionBroadcaster {
+public class FederationVersionBroadcaster implements TaskSource {
     private static final Logger log = LoggerFactory.getLogger(FederationVersionBroadcaster.class);
 
-    private static final long INITIAL_DELAY_MINUTES = 2;
-    private static final long SWEEP_INTERVAL_MINUTES = 15;
+    private static final Duration INITIAL_DELAY = Duration.ofMinutes(2);
+    private static final Duration SWEEP_INTERVAL = Duration.ofMinutes(15);
 
     private final FederationRepository repository;
     private final FederationContractRefreshService refreshService;
@@ -47,15 +51,6 @@ public class FederationVersionBroadcaster {
         this.repository = repository;
         this.refreshService = refreshService;
         FederationContractVersions.current();
-
-        // Delay to let the app finish booting (QueryConfiguration, Javalin, etc.)
-        var scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
-            var t = new Thread(r, "federation-version-broadcast");
-            t.setDaemon(true);
-            return t;
-        });
-        scheduler.scheduleWithFixedDelay(
-                this::broadcastVersion, INITIAL_DELAY_MINUTES, SWEEP_INTERVAL_MINUTES, TimeUnit.MINUTES);
     }
 
     private void broadcastVersion() {
@@ -80,5 +75,13 @@ public class FederationVersionBroadcaster {
         } catch (Exception e) {
             log.error("Error during federation version broadcast", e);
         }
+    }
+
+    @Override
+    public List<ScheduledTask> scheduledTasks() {
+        return List.of(new ScheduledTask(
+                "federation-version-broadcast",
+                Schedule.fixedDelay(INITIAL_DELAY, SWEEP_INTERVAL),
+                this::broadcastVersion));
     }
 }

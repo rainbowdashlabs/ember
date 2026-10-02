@@ -5,7 +5,8 @@
  */
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
-import type {ColumnEntry, GdprDeletionContext, TrackingStatusName} from '@/api/dataTracking'
+import type {ColumnEntry, DeletionStrategy, GdprDeletionContext} from '@/api/generated/schema'
+import type {TrackingStatusName} from '@/api/dataTracking'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import StatusBadge from './StatusBadge.vue'
@@ -13,11 +14,12 @@ import StatusReasonFields from './StatusReasonFields.vue'
 import DeletionStrategyEditor from './DeletionStrategyEditor.vue'
 
 defineProps<{
-  deletion: GdprDeletionContext
   statuses: TrackingStatusName[]
   strategies: readonly string[]
   columns: ColumnEntry[]
 }>()
+
+const deletion = defineModel<GdprDeletionContext>('deletion', {required: true})
 
 const emit = defineEmits<{
   addStrategy: []
@@ -25,6 +27,10 @@ const emit = defineEmits<{
 }>()
 
 const {t} = useI18n()
+
+function replaceStrategy(index: number, strategy: DeletionStrategy) {
+  deletion.value.strategies?.splice(index, 1, strategy)
+}
 </script>
 
 <template>
@@ -53,11 +59,12 @@ const {t} = useI18n()
           {{ t('adminDataTracking.detail.noStrategies') }}
         </div>
         <DeletionStrategyEditor
-            v-for="(s, idx) in deletion.strategies ?? []"
+            v-for="(strategy, idx) in deletion.strategies ?? []"
             :key="idx"
-            :strategy="s"
+            :strategy="strategy"
             :columns="columns"
             :strategies="strategies"
+            @update:strategy="changed => replaceStrategy(idx, changed)"
             @remove="emit('removeStrategy', idx)"
         />
       </div>

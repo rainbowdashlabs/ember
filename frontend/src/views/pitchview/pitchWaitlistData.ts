@@ -4,9 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import type {
-    WaitingList, WaitingListEntry, WaitingListEntryWithScore, WaitingListField, WaitingListWithCount,
-} from '@/api/waitingList'
-import type {MemberGroup} from '@/api/types'
+    MemberGroup, WaitingList, WaitingListEntry, WaitingListEntryWithScore, WaitingListField, WaitingListWithCount,
+} from '@/api/generated/schema'
 import type {PitchWaitlist} from './pitchTypes'
 
 /**
@@ -33,7 +32,8 @@ const LIST: WaitingList = {
     description: 'Anmeldungen für die Aufnahme im kommenden Jahr',
     scoringFormula: '[wartezeit_monate] + (age([Geburtsdatum]) < 12 ? 5 : 0)',
     confirmIntervalDays: 90, createdAt: daysAgo(300), visibleFields: [1, 2],
-    testingGroupId: 3, joinGroupId: 2, attendanceThreshold: 4, isPublic: true, sendsMail: true,
+    testingGroupId: 3, joinGroupId: 2, joinUserType: 'MEMBER', attendanceThreshold: 4, isPublic: true,
+    sendsMail: true, minAgeRegister: null, minAgeJoin: null,
 }
 
 export const WAITLISTS: WaitingListWithCount[] = [
@@ -50,7 +50,8 @@ function entry(id: number, firstname: string, lastname: string,
     return {
         id, listId: 1, firstname, lastname, parentName: '', email: `${firstname.toLowerCase()}@example.org`,
         accessToken: `token-${id}`, status, confirmedAt: daysAgo(20), createdAt: daysAgo(200),
-        notes: '', attendanceCount: 0, ...rest,
+        notes: '', attendanceCount: 0, reminderSentAt: null, memberId: null, invitedAt: null, testingAt: null,
+        joinedAt: null, withdrawnAt: null, invitation: null, answer: null, ...rest,
     }
 }
 
@@ -60,7 +61,7 @@ function withScore(base: WaitingListEntry,
                    guardians: {firstname: string; lastname: string; email: string; phone: string}[] = [],
 ): WaitingListEntryWithScore {
     return {
-        entry: base, score, belowJoinAge: false,
+        entry: base, score, age: null, belowJoinAge: false,
         values: values.map(value => ({entryId: base.id, ...value})),
         guardians: guardians.map((guardian, index) => ({
             id: index + 1, entryId: base.id, position: index, ...guardian,
@@ -96,8 +97,8 @@ const TESTING: WaitingListEntryWithScore[] = [
 ]
 
 const GROUPS: MemberGroup[] = [
-    {id: 2, stationId: 'wache', name: 'Löschgruppe', position: 0},
-    {id: 3, stationId: 'wache', name: 'Schnupperkinder', position: 1},
+    {id: 2, stationId: 'wache', name: 'Löschgruppe', color: null, position: 0, groupSetId: null, userTypes: []},
+    {id: 3, stationId: 'wache', name: 'Schnupperkinder', color: null, position: 1, groupSetId: null, userTypes: []},
 ]
 
 export const WAITLIST: PitchWaitlist = {

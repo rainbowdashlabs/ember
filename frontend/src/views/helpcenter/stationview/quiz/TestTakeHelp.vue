@@ -32,11 +32,9 @@ const { t } = useI18n()
       <p>{{ t('helpCenter.quizTestTake.step3') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Timer and progress -->
     <HelpSection :title="t('helpCenter.quizTestTake.progressTitle')">
       <p>{{ t('helpCenter.quizTestTake.progressText') }}</p>
       <NeutralContainer class="space-y-3">
-        <!-- Timer and question counter -->
         <div class="flex items-center justify-between">
           <span class="text-sm text-(--text-muted)">{{ t('helpCenter.quizTestTake.questionCounter', { current: 3, total: 15 }) }}</span>
           <span class="text-sm font-mono font-bold">
@@ -45,7 +43,6 @@ const { t } = useI18n()
           </span>
         </div>
 
-        <!-- Progress dots -->
         <div class="flex flex-wrap gap-1">
           <IconButton v-for="i in 15" :key="i"
             :icon="['fas', 'circle']"
@@ -64,7 +61,6 @@ const { t } = useI18n()
       </NeutralContainer>
     </HelpSection>
 
-    <!-- Dummy: Question view -->
     <HelpSection :title="t('helpCenter.quizTestTake.questionTitle')">
       <p>{{ t('helpCenter.quizTestTake.questionText') }}</p>
       <NeutralContainer class="space-y-3">
@@ -83,13 +79,11 @@ const { t } = useI18n()
       </NeutralContainer>
     </HelpSection>
 
-    <!-- Question types -->
     <HelpSection :title="t('helpCenter.quizTestTake.typesTitle')">
       <p>{{ t('helpCenter.quizTestTake.typesText') }}</p>
       <p>{{ t('helpCenter.quizTestTake.typesList') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Navigation buttons -->
     <HelpSection :title="t('helpCenter.quizTestTake.navigationTitle')">
       <p>{{ t('helpCenter.quizTestTake.navigationText') }}</p>
       <ButtonRow align="between">
@@ -106,7 +100,6 @@ const { t } = useI18n()
       </ButtonRow>
     </HelpSection>
 
-    <!-- Dummy: Submit confirmation modal -->
     <HelpSection :title="t('helpCenter.quizTestTake.submitTitle')">
       <p>{{ t('helpCenter.quizTestTake.submitText') }}</p>
       <NeutralContainer class="space-y-4">

@@ -15,7 +15,8 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import {adminSettings} from '@/api'
-import type {DocumentPlaceholder} from '@/api/adminSettings'
+import type {DocumentPlaceholder} from '@/api/generated/schema'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {describeFailure, type Failure} from '@/util/failure'
 
 const {t} = useI18n()
@@ -27,7 +28,6 @@ const emit = defineEmits<{
   saved: []
 }>()
 
-const loading = ref(false)
 const expanded = ref(false)
 
 const missing = computed(() => placeholders.value.filter(entry => !entry.value.trim()).length)
@@ -59,15 +59,15 @@ async function save() {
   }
 }
 
+const {loading, failure, reload: fetchPlaceholders} = useAsyncLoader(async (isCurrent) => {
+  const loaded = await adminSettings.getLegalPlaceholders()
+  if (isCurrent()) placeholders.value = loaded
+}, {autoLoad: false})
+
+/** Reads the placeholders again and hands a failure to the page, which shows it. */
 async function load() {
-  loading.value = true
-  try {
-    placeholders.value = await adminSettings.getLegalPlaceholders()
-  } catch (e) {
-    emit('error', describeFailure(e, t))
-  } finally {
-    loading.value = false
-  }
+  await fetchPlaceholders()
+  if (failure.value) emit('error', failure.value)
 }
 
 defineExpose({reload: load})

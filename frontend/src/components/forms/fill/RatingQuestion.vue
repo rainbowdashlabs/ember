@@ -8,7 +8,7 @@ import { computed } from 'vue'
 import IconButton from '@/components/button/IconButton.vue'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 
-type RatingAnswer = { rating: number }
+import type { RatingAnswer } from '@/api/generated/schema'
 
 const props = defineProps<{
   config: Record<string, unknown>

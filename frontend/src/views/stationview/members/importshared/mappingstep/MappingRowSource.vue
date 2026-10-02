@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import { useId } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
@@ -11,6 +12,7 @@ import TextInput from '@/components/input/text/TextInput.vue'
 const { t } = useI18n()
 
 const splitChar = defineModel<string>('splitChar', {required: true})
+const splitCharId = useId()
 
 defineProps<{
   csvColumn: string
@@ -50,8 +52,8 @@ defineEmits<{
     </div>
     <div class="text-xs text-(--text-muted) truncate">{{ previewText || '-' }}</div>
     <div v-if="isSplit && isFirstSplitSibling" class="flex items-center gap-2 mt-1 text-xs">
-      <label class="text-(--text-muted)">{{ t('memberImport.splitChar') }}:</label>
-      <TextInput v-model="splitChar" class="w-12 text-center text-xs" />
+      <label :for="splitCharId" class="text-(--text-muted)">{{ t('memberImport.splitChar') }}:</label>
+      <TextInput :id="splitCharId" v-model="splitChar" class="w-12 text-center text-xs" />
     </div>
   </div>
 </template>

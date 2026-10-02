@@ -3,7 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {readonly, ref, shallowReadonly} from 'vue'
+import {readonly, shallowReadonly} from 'vue'
+import {browserRef, browserShallowRef} from '@/util/browserState'
 import {canBeRead} from '@/util/fileKind'
 import {isHandheld} from '@/util/handheld'
 import {SaveResult, saveBlob} from '@/util/saveBlob'
@@ -15,8 +16,8 @@ export interface ViewedDocument {
     mimeType: string
 }
 
-const viewed = ref<ViewedDocument | null>(null)
-const unsaved = ref<string | null>(null)
+const viewed = browserShallowRef<ViewedDocument | null>(null)
+const unsaved = browserRef<string | null>(null)
 
 /**
  * Hands a finished document to the reader, by whichever route that device actually has.

@@ -4,10 +4,10 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { computed } from 'vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import QuestionHeading from '@/components/forms/fill/QuestionHeading.vue'
-import {QuestionTypes, type ChoiceAnswer, type FormQuestion, type LikertAnswer, type RankingAnswer} from '@/api/forms'
+import {QuestionTypes} from '@/api/forms'
+import type {FormAnswerValue, FormQuestion} from '@/api/generated/schema'
 import ChoiceQuestion from './ChoiceQuestion.vue'
 import TextQuestion from './TextQuestion.vue'
 import RatingQuestion from '@/components/forms/fill/RatingQuestion.vue'
@@ -15,20 +15,17 @@ import DateQuestion from './DateQuestion.vue'
 import RankingQuestion from '@/components/forms/fill/RankingQuestion.vue'
 import LikertQuestion from '@/components/forms/fill/LikertQuestion.vue'
 
-const props = defineProps<{
+defineProps<{
   question: FormQuestion
   /** What is wrong with the answer, where something is. */
   error?: string
 }>()
 
-const answer = defineModel<Record<string, unknown>>({ default: () => ({}) })
-
-function parseConfig(config: Record<string, unknown> | string): Record<string, unknown> {
-  if (typeof config === 'object' && config !== null) return config
-  try { return JSON.parse(config || '{}') } catch { return {} }
-}
-
-const config = computed(() => parseConfig(props.question.config))
+/**
+ * The answer, which names the kind of question it answers and so decides which field is drawn. Every
+ * question opens with one; none draws only the heading.
+ */
+const answer = defineModel<FormAnswerValue>()
 </script>
 
 <template>
@@ -37,23 +34,23 @@ const config = computed(() => parseConfig(props.question.config))
       <QuestionHeading :title="question.title" :description="question.description"
                        :required="question.required" :error="error"/>
 
-      <ChoiceQuestion v-if="question.formQuestionType === QuestionTypes.CHOICE"
-                      v-model="(answer as ChoiceAnswer)"
-                      :config="config" />
-      <TextQuestion v-else-if="question.formQuestionType === QuestionTypes.TEXT"
-                    v-model="(answer as { text: string })"
-                    :config="config" />
-      <RatingQuestion v-else-if="question.formQuestionType === QuestionTypes.RATING"
-                      v-model="(answer as { rating: number })"
-                      :config="config" />
-      <DateQuestion v-else-if="question.formQuestionType === QuestionTypes.DATE"
-                    v-model="(answer as { date: string })" />
-      <RankingQuestion v-else-if="question.formQuestionType === QuestionTypes.RANKING"
-                       v-model="(answer as RankingAnswer)"
-                       :config="config" />
-      <LikertQuestion v-else-if="question.formQuestionType === QuestionTypes.LIKERT"
-                      v-model="(answer as LikertAnswer)"
-                      :config="config" />
+      <ChoiceQuestion v-if="answer?.type === QuestionTypes.CHOICE"
+                      v-model="answer"
+                      :config="question.config" />
+      <TextQuestion v-else-if="answer?.type === QuestionTypes.TEXT"
+                    v-model="answer"
+                    :config="question.config" />
+      <RatingQuestion v-else-if="answer?.type === QuestionTypes.RATING"
+                      v-model="answer"
+                      :config="question.config" />
+      <DateQuestion v-else-if="answer?.type === QuestionTypes.DATE"
+                    v-model="answer" />
+      <RankingQuestion v-else-if="answer?.type === QuestionTypes.RANKING"
+                       v-model="answer"
+                       :config="question.config" />
+      <LikertQuestion v-else-if="answer?.type === QuestionTypes.LIKERT"
+                      v-model="answer"
+                      :config="question.config" />
     </div>
   </NeutralContainer>
 </template>

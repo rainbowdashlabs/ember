@@ -6,9 +6,8 @@
 package dev.chojo.ember.feature.inventory.route;
 
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
-import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata;
 import dev.chojo.ember.feature.inventory.entity.ItemCorrection;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
@@ -16,8 +15,7 @@ import dev.chojo.ember.feature.inventory.entity.SelfCheck;
 import dev.chojo.ember.feature.inventory.entity.SelfCheckState;
 import dev.chojo.ember.feature.inventory.service.SelfCheckReviewService;
 import dev.chojo.ember.feature.inventory.service.SelfCheckReviewService.SelfCheckReview;
-import dev.chojo.ember.feature.members.entity.NameParts;
-import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import io.javalin.http.Context;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
@@ -28,10 +26,11 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.time.LocalDate;
-import java.util.Optional;
+import java.util.Objects;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 
@@ -47,17 +46,12 @@ import static dev.chojo.ember.api.RouteSupport.pathInt;
 @Singleton
 public class SelfCheckReviewRoutes implements Routes {
     private final SelfCheckReviewService reviewService;
-    private final StationMemberRepository stationMemberRepository;
-    private final AccountRepository accountRepository;
+    private final MemberNameResolver names;
 
     @Inject
-    public SelfCheckReviewRoutes(
-            SelfCheckReviewService reviewService,
-            StationMemberRepository stationMemberRepository,
-            AccountRepository accountRepository) {
+    public SelfCheckReviewRoutes(SelfCheckReviewService reviewService, MemberNameResolver names) {
         this.reviewService = reviewService;
-        this.stationMemberRepository = stationMemberRepository;
-        this.accountRepository = accountRepository;
+        this.names = names;
     }
 
     @Override
@@ -84,7 +78,7 @@ public class SelfCheckReviewRoutes implements Routes {
             queryParams = @OpenApiParam(name = "includeEnded", type = Boolean.class),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = SelfCheckTask[].class)))
     private void forStation(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         boolean includeEnded = "true".equalsIgnoreCase(ctx.queryParam("includeEnded"));
         var tasks = reviewService.forStation(session.stationId(), includeEnded);
         ctx.json(tasks.stream().map(this::toTask).toList());
@@ -98,7 +92,7 @@ public class SelfCheckReviewRoutes implements Routes {
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = SelfCheckReview.class)))
     private void read(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(reviewService.read(
                 pathInt(ctx, "id"), session.stationId(), session.member().id()));
     }
@@ -114,7 +108,7 @@ public class SelfCheckReviewRoutes implements Routes {
             },
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = SelfCheckReview.class)))
     private void take(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         ctx.json(reviewService.take(
                 pathInt(ctx, "id"),
                 pathInt(ctx, "rowId"),
@@ -134,7 +128,7 @@ public class SelfCheckReviewRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = CorrectRowRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = SelfCheckReview.class)))
     private void correct(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(CorrectRowRequest.class);
         ctx.json(reviewService.correctAndTake(
                 pathInt(ctx, "id"),
@@ -156,7 +150,7 @@ public class SelfCheckReviewRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = RefuseRowRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = SelfCheckReview.class)))
     private void refuse(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(RefuseRowRequest.class);
         ctx.json(reviewService.refuse(
                 pathInt(ctx, "id"),
@@ -182,14 +176,9 @@ public class SelfCheckReviewRoutes implements Routes {
                 task.checkId());
     }
 
-    private String nameOf(Integer memberId) {
+    private String nameOf(@Nullable Integer memberId) {
         if (memberId == null) return "";
-        return stationMemberRepository
-                .findById(memberId)
-                .flatMap(member ->
-                        member.accountId() == null ? Optional.empty() : accountRepository.findById(member.accountId()))
-                .map(account -> NameParts.of(account).called())
-                .orElse("");
+        return Objects.requireNonNullElse(names.called(memberId), "");
     }
 
     /**
@@ -198,26 +187,26 @@ public class SelfCheckReviewRoutes implements Routes {
      */
     public record CorrectRowRequest(
             int inventoryId,
-            Integer pickedItemId,
-            Integer sizeId,
-            ItemOwner ownerKind,
-            String internalId,
-            InventoryItemMetadata metadata) {
+            @Nullable Integer pickedItemId,
+            @Nullable Integer sizeId,
+            @Nullable ItemOwner ownerKind,
+            @Nullable String internalId,
+            @Nullable InventoryItemMetadata metadata) {
         ItemCorrection toCorrection() {
             return new ItemCorrection(inventoryId, null, pickedItemId, sizeId, ownerKind, internalId, metadata);
         }
     }
 
-    public record RefuseRowRequest(String reason) {}
+    public record RefuseRowRequest(@Nullable String reason) {}
 
     public record SelfCheckTask(
             int id,
             int memberId,
             String memberName,
-            LocalDate dueOn,
+            @Nullable LocalDate dueOn,
             SelfCheckState state,
             Instant handedOutAt,
-            Instant submittedAt,
+            @Nullable Instant submittedAt,
             String handedOutByName,
-            Integer checkId) {}
+            @Nullable Integer checkId) {}
 }

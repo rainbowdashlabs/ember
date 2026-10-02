@@ -208,7 +208,7 @@ test.describe('Cluster station groups', () => {
         const refused = await page.request.delete(`/api/v1/cluster/station-groups/${group}`,
             {headers: own.headers})
         expect(refused.status(), 'the filing is not removed out from under a question').toBe(400)
-        expect(await refused.text()).toContain('1 question')
+        expect((await refused.json()).code, 'refused because a question is still asked of it').toBe('CU-132')
 
         const dropped = await page.request.delete(`/api/v1/cluster/fields/${fieldId}`, {headers: own.headers})
         expect(dropped.ok(), `the question was withdrawn (${await dropped.text()})`).toBeTruthy()
@@ -241,8 +241,8 @@ test.describe('Cluster station groups', () => {
         const fieldId = (await asked.json()).id
 
         const memberId = await somebodyAt(page, own, own.stationUid, `Antwortet${Date.now()}`)
-        const answered = await page.request.put(`/api/v1/cluster/fields/member/${memberId}`,
-            {headers: own.headers, data: {values: {[fieldId]: 'true'}}})
+        const answered = await page.request.put(`/api/v1/cluster/members/manage/${memberId}/profile`,
+            {headers: own.headers, data: {values: [{fieldId, value: JSON.stringify('true'), origin: 'CLUSTER'}]}})
         expect(answered.ok(), `the answer was written (${await answered.text()})`).toBeTruthy()
 
         await putInGroup(page, own, group, [])
@@ -253,9 +253,11 @@ test.describe('Cluster station groups', () => {
         await putInGroup(page, own, group, [own.stationUid])
         await page.reload()
         await expect(page.getByText(question)).toBeVisible({timeout: 15000})
-        const values = await page.request.get(`/api/v1/cluster/fields/member/${memberId}`,
+        const {values} = await page.request.get(`/api/v1/cluster/members/manage/${memberId}/profile`,
             {headers: own.headers}).then(r => r.json())
-        expect(values.values[fieldId], 'the answer waited out the time nobody was asking').toBe('true')
+        const kept = values.find((value: {fieldId: number; origin: string}) =>
+            value.fieldId === fieldId && value.origin === 'CLUSTER')
+        expect(kept?.value, 'the answer waited out the time nobody was asking').toBe('true')
 
         await own.stationPage.context().close()
     })

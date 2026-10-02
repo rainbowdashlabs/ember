@@ -11,15 +11,22 @@ import { useRoute, useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
-import {InventoryTypes, type InventoryDetail, type InventoryItem, type InventorySize} from '@/api/inventory'
-import type { ProcurementEntry } from '@/api/procurement'
-import {StationPermission, type StationMember} from '@/api/types'
+import {InventoryTypes} from '@/api/inventory'
+import type {
+  InventoryArt,
+  InventoryContainer,
+  InventoryDetail,
+  InventoryItem,
+  InventorySize,
+  LentOutItem,
+  MemberWithName,
+  ProcurementResponse,
+} from '@/api/generated/schema'
+import {StationPermission} from '@/api/types'
 import { inventory, inventoryArts, inventoryContainers, stationMembers, procurement } from '@/api'
-import type { InventoryContainer } from '@/api/inventoryContainers'
-import type { InventoryArt } from '@/api/inventoryArts'
 import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
-import { getLentOutByInventory, type LentOutItem } from '@/api/lending'
+import { getLentOutByInventory } from '@/api/lending'
 import { useStations } from '@/composables/useStations'
 import { containerPathFor } from '@/util/containerPath'
 import DetailHeader from './detailview/DetailHeader.vue'
@@ -39,9 +46,13 @@ const { hasPermission } = useSession()
 const inventoryId = computed(() => Number(route.params.id))
 const detail = ref<InventoryDetail | null>(null)
 const items = ref<InventoryItem[]>([])
+/**
+ * The kinds of a drawer of different things. Most drawers have none, so an empty list is the
+ * ordinary answer and leaves the flat list exactly as it was.
+ */
 const arts = ref<InventoryArt[]>([])
-const memberMap = ref<Map<number, StationMember>>(new Map())
-const openProcurement = ref<ProcurementEntry[]>([])
+const memberMap = ref<Map<number, MemberWithName>>(new Map())
+const openProcurement = ref<ProcurementResponse[]>([])
 const lentOutItems = ref<LentOutItem[]>([])
 const containers = ref<InventoryContainer[]>([])
 const modals = ref<InstanceType<typeof DetailViewModals> | null>(null)
@@ -88,6 +99,10 @@ const canProcure = computed(() => hasPermission(StationPermission.INVENTORY_PROC
 const canCreateInternal = computed(() => hasPermission(StationPermission.INVENTORY_CREATE_INTERNAL))
 const canCreateExternal = computed(() => hasPermission(StationPermission.INVENTORY_CREATE_EXTERNAL))
 
+/**
+ * What this screen offers. Ordering more needs something to be more of, which a drawer of different
+ * things has not got, so procurement is not offered there.
+ */
 const permissions = computed(() => {
   const type = detail.value?.inventoryType ?? InventoryTypes.INTERNAL
   const canCreateItem = type === InventoryTypes.INTERNAL ? canCreateInternal.value
@@ -95,8 +110,6 @@ const permissions = computed(() => {
     : canCreateInternal.value || canCreateExternal.value
   return {
     canEdit: canEdit.value,
-    // Ordering three more needs something to be three more of, which a drawer of different things
-    // has not got, so this screen does not offer it there either
     canProcure: canProcure.value && (detail.value?.homogeneous ?? true),
     canCreateItem,
     canQuickAssign: (type === InventoryTypes.EXTERNAL || type === InventoryTypes.MIXED) && canCreateExternal.value,
@@ -202,12 +215,10 @@ const {loading, failure, reload: loadData} = useAsyncLoader(async () => {
   detail.value = inv
   items.value = allItems
   containers.value = allContainers
-  // Only a drawer of different things has kinds, and most drawers have none, so an empty list here
-  // is the ordinary answer and leaves the flat list exactly as it was.
   arts.value = inv.homogeneous === false
       ? await inventoryArts.listArts(inventoryId.value).catch(() => [] as InventoryArt[])
       : []
-  const map = new Map<number, StationMember>()
+  const map = new Map<number, MemberWithName>()
   for (const m of members) map.set(m.id, m)
   memberMap.value = map
   try {

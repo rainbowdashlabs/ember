@@ -7,19 +7,20 @@
 import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import MemberName from '@/components/avatar/MemberName.vue'
+import BareButton from '@/components/button/BareButton.vue'
 import MemberEntryStatusIcon from './memberentry/MemberEntryStatusIcon.vue'
 import MemberEntryActions from './memberentry/MemberEntryActions.vue'
 import MemberEntryStatusButtons from './memberentry/MemberEntryStatusButtons.vue'
 import MemberEntryReadonlyTimes from './memberentry/MemberEntryReadonlyTimes.vue'
 import MemberCheckNotes from './MemberCheckNotes.vue'
 import {actionCount, hasAnything, hasBirthday} from './memberNotes'
-import type {AttendanceEntry, AttendanceStatus, MemberNotes} from '@/api/attendance'
-import type {StationMember} from '@/api/types'
+import type {AttendanceStatus} from '@/api/attendance'
+import type {AttendanceEntry, MemberNotes, MemberWithName} from '@/api/generated/schema'
 
 const {t} = useI18n()
 
 const props = defineProps<{
-  member: StationMember
+  member: MemberWithName
   entry?: AttendanceEntry
   memberName: string
   readonly?: boolean
@@ -108,18 +109,17 @@ const notesLabel = computed(() => {
         {{ hadJoined ? t('attendanceSession.noEntry') : t('attendanceSession.beforeJoining') }}
       </span>
     </div>
-    <button
+    <BareButton
         v-if="anyNotes"
         :aria-expanded="showingNotes"
         class="mt-2 flex items-center gap-2 text-xs text-(--text-muted) hover:text-(--text)"
         data-testid="member-notes-toggle"
-        type="button"
         @click="showingNotes = !showingNotes"
     >
       <font-awesome-icon :icon="['fas', showingNotes ? 'chevron-down' : 'chevron-right']"/>
       <span>{{ notesLabel }}</span>
       <font-awesome-icon v-if="birthday" :icon="['fas', 'cake-candles']" class="text-primary"/>
-    </button>
+    </BareButton>
 
     <MemberCheckNotes
         v-if="anyNotes && showingNotes"

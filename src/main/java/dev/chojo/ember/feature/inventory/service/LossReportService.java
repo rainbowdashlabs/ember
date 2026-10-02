@@ -5,10 +5,14 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
+import dev.chojo.ember.api.refusal.DocumentRefusal;
+import dev.chojo.ember.api.refusal.InventoryRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.ClusterItemLost;
 import dev.chojo.ember.feature.cluster.entity.LossReportRequirement;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
+import dev.chojo.ember.feature.documents.service.DocumentIntake;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.inventory.entity.ItemMovement;
@@ -17,17 +21,20 @@ import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.inventory.entity.MovementPurpose;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.inventory.repository.ItemMovementDocumentRepository;
+import dev.chojo.ember.feature.media.image.MediaTypes;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.entity.StorageScope;
 import dev.chojo.ember.feature.storage.entity.Variant;
 import dev.chojo.ember.feature.storage.service.StorageService;
-import io.javalin.http.BadRequestResponse;
+import io.javalin.http.UploadedFile;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -42,6 +49,14 @@ import java.util.Optional;
 public class LossReportService {
     private static final Logger log = LoggerFactory.getLogger(LossReportService.class);
 
+    /** What a file attached to a loss report is refused with. */
+    private static final DocumentIntake.Refusals EVIDENCE_REFUSALS = new DocumentIntake.Refusals(
+            InventoryRefusal.LOSS_REPORT_NEEDS_A_DOCUMENT,
+            DocumentRefusal.DOCUMENT_UPLOAD_TOO_LARGE,
+            InventoryRefusal.LOSS_REPORT_FILE_UNREADABLE,
+            DocumentRefusal.DOCUMENT_UPLOAD_NO_ROOM,
+            DocumentRefusal.DOCUMENT_UPLOAD_NOT_WHAT_IT_IS_CALLED);
+
     private final InventoryRepository inventoryRepository;
     private final ItemMovementService movementService;
     private final ItemMovementDocumentRepository documentRepository;
@@ -49,6 +64,7 @@ public class LossReportService {
     private final StationRepository stationRepository;
     private final StorageService storage;
     private final DomainEventBus eventBus;
+    private final DocumentIntake intake;
 
     @Inject
     public LossReportService(
@@ -58,7 +74,8 @@ public class LossReportService {
             ClusterRepository clusterRepository,
             StationRepository stationRepository,
             StorageService storage,
-            DomainEventBus eventBus) {
+            DomainEventBus eventBus,
+            DocumentIntake intake) {
         this.inventoryRepository = inventoryRepository;
         this.movementService = movementService;
         this.documentRepository = documentRepository;
@@ -66,6 +83,25 @@ public class LossReportService {
         this.stationRepository = stationRepository;
         this.storage = storage;
         this.eventBus = eventBus;
+        this.intake = intake;
+    }
+
+    /**
+     * Takes in the file attached to a loss report, by the checks every uploaded file passes: no larger
+     * than the station takes for one file, room left for it, and its bytes deciding what kind of file it
+     * is.
+     *
+     * @param stationId the station raising the report
+     * @param file      the uploaded file, or null where none was attached
+     * @return the file, or null where none was attached
+     */
+    public @Nullable Attachment evidence(int stationId, @Nullable UploadedFile file) {
+        if (file == null) return null;
+        var upload = intake.admit(stationId, StorageCategory.MOVEMENT_DOCUMENTS, file, EVIDENCE_REFUSALS);
+        return new Attachment(
+                upload.fileName(),
+                Objects.requireNonNullElse(upload.declaredType(), MediaTypes.UNTYPED),
+                upload.data());
     }
 
     /**
@@ -77,8 +113,9 @@ public class LossReportService {
     public Optional<LossReportRequirement> requirementFor(int itemId) {
         return inventoryRepository
                 .findItemById(itemId)
-                .filter(item -> item.ownerKind() == ItemOwner.CLUSTER && item.ownerClusterId() != null)
-                .flatMap(item -> clusterRepository.findById(item.ownerClusterId()))
+                .filter(item -> item.ownerKind() == ItemOwner.CLUSTER)
+                .flatMap(item -> Optional.ofNullable(item.ownerClusterId()))
+                .flatMap(clusterRepository::findById)
                 .map(cluster -> cluster.lossReportRequires());
     }
 
@@ -91,21 +128,24 @@ public class LossReportService {
      * @param document   the file they attached, or {@code null}
      * @param reportedBy who is raising it
      * @return the movement the report walks
-     * @throws BadRequestResponse when the item is not missing, has no owner here, or the report is short of
-     *                            what that owner asks for
+     * @throws RefusalResponse when the item is not missing, has no owner here, or the report is short of
+     *                         what that owner asks for
      */
-    public ItemMovement report(int stationId, int itemId, String note, Attachment document, int reportedBy) {
-        InventoryItem item =
-                inventoryRepository.findItemById(itemId).orElseThrow(() -> new BadRequestResponse("No such item"));
+    public ItemMovement report(
+            int stationId, int itemId, @Nullable String note, @Nullable Attachment document, int reportedBy) {
+        InventoryItem item = inventoryRepository
+                .findItemById(itemId)
+                .orElseThrow(InventoryRefusal.LOSS_REPORT_PIECE_NOT_HERE::raise);
         if (item.custody() != ItemCustody.LOST) {
-            throw new BadRequestResponse("This gear is not recorded as missing, so there is nothing to report");
+            throw InventoryRefusal.LOSS_REPORT_PIECE_NOT_MISSING.raise();
         }
-        if (item.ownerKind() != ItemOwner.CLUSTER || item.ownerClusterId() == null) {
-            throw new BadRequestResponse("The station owns this gear itself, so there is nobody to report it to");
+        Integer ownerClusterId = item.ownerClusterId();
+        if (item.ownerKind() != ItemOwner.CLUSTER || ownerClusterId == null) {
+            throw InventoryRefusal.LOSS_REPORT_STATION_OWNS_IT.raise();
         }
         var cluster = clusterRepository
-                .findById(item.ownerClusterId())
-                .orElseThrow(() -> new BadRequestResponse("The body that owns this gear is not here to answer"));
+                .findById(ownerClusterId)
+                .orElseThrow(InventoryRefusal.LOSS_REPORT_OWNER_NOT_HERE::raise);
         requireEnough(cluster.lossReportRequires(), note, document);
 
         ItemMovement movement = movementService.create(
@@ -138,13 +178,13 @@ public class LossReportService {
     /**
      * Refuses a report that falls short of what the owner asks for, before anything is written down.
      */
-    private void requireEnough(LossReportRequirement requires, String note, Attachment document) {
+    private void requireEnough(LossReportRequirement requires, @Nullable String note, @Nullable Attachment document) {
         if (requires == LossReportRequirement.NOTHING) return;
         if (note == null || note.isBlank()) {
-            throw new BadRequestResponse("The body that owns this gear asks for a note with a loss report");
+            throw InventoryRefusal.LOSS_REPORT_NEEDS_A_NOTE.raise();
         }
         if (requires == LossReportRequirement.DOCUMENT && document == null) {
-            throw new BadRequestResponse("The body that owns this gear asks for a document with a loss report");
+            throw InventoryRefusal.LOSS_REPORT_NEEDS_A_DOCUMENT.raise();
         }
     }
 
@@ -175,7 +215,7 @@ public class LossReportService {
     }
 
     private StorageScope.Station scope(int stationId) {
-        return new StorageScope.Station(stationId, stationRepository.resolveUid(stationId));
+        return new StorageScope.Station(stationId, stationRepository.requireUid(stationId));
     }
 
     private static String contentKey(int documentId) {

@@ -63,10 +63,9 @@ public class DemoMirrorStationSeeder implements DemoSeeder {
         return MIRROR_STATION;
     }
 
+    /** Mirrors the first station only; a second mirror would teach nothing the first does not. */
     @Override
     public void seed(DemoRunContext run) {
-        // The mirror is the first station's mirror: a second one would be a second copy of a station that
-        // already has one, which teaches nothing the first does not
         int jfStationId = run.primaryStation().stationId();
         var ffStation = stationRepository.create("FF Musterstadt", DemoUids.station("ff-musterstadt"));
         stationRepository.updatePublicSlug(ffStation.id(), "ff-musterstadt");
@@ -81,12 +80,13 @@ public class DemoMirrorStationSeeder implements DemoSeeder {
         int mirrored = 0;
         for (var userType : List.of(StationUserType.MANAGER, StationUserType.TEAM)) {
             for (StationMember jfMember : stationMemberRepository.findByStationAndUserType(jfStationId, userType)) {
-                if (jfMember.accountId() == null) continue;
+                Integer accountId = jfMember.accountId();
+                if (accountId == null) continue;
                 String email = accountRepository
-                        .findById(jfMember.accountId())
+                        .findById(accountId)
                         .map(Account::email)
                         .orElseThrow();
-                var ffMember = stationMemberRepository.create(ffStation.id(), jfMember.accountId());
+                var ffMember = stationMemberRepository.create(ffStation.id(), accountId);
                 memberLookupService.setUid(ffMember.id(), DemoUids.member(email, ffStation.id()));
                 stationMemberRepository.setUserType(ffMember.id(), userType);
                 stationMemberRepository.grantPermission(ffMember.id(), loginRole.id());
@@ -99,10 +99,12 @@ public class DemoMirrorStationSeeder implements DemoSeeder {
         }
 
         String remoteHost = demoConfig.federationForceHttp() ? "http://localhost:" + apiConfig.port() : null;
-        var keyPair = federationService.generateKeyPair();
-        stationRepository.updateFederationPrivateKey(ffStation.id(), federationService.encodePrivateKey(keyPair));
         federationService.acceptInvite(
-                jfStationId, ffStation.id(), federationService.encodePublicKey(keyPair), remoteHost, remoteHost);
+                jfStationId,
+                ffStation.id(),
+                federationService.ensureStationKey(ffStation.id()),
+                remoteHost,
+                remoteHost);
 
         log.info(
                 "Demo: Created FF Musterstadt (id={}) with {} mirrored members, federated with JF Musterstadt",

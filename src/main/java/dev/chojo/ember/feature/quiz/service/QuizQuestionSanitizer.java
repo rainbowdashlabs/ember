@@ -14,6 +14,7 @@ import jakarta.inject.Singleton;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Strips the solution out of a question so it can be handed to the member taking the
@@ -55,63 +56,61 @@ public class QuizQuestionSanitizer {
             case CONNECT -> connect(config);
             case ORDERING -> ordering(config);
             case ENUMERATION -> enumeration(config);
-            case TRUE_FALSE, IMAGE_TEXT -> new QuizQuestionConfigView.Empty();
+            case TRUE_FALSE, IMAGE_TEXT -> new QuizQuestionConfigView.EmptyView();
         };
     }
 
     private QuizQuestionConfigView multipleChoice(QuestionConfig config) {
-        if (!(config instanceof QuestionConfig.MultipleChoice choice) || choice.options() == null) {
-            return new QuizQuestionConfigView.MultipleChoice(List.of(), false);
+        var choices = config instanceof QuestionConfig.MultipleChoice choice ? choice.options() : null;
+        if (choices == null) {
+            return new QuizQuestionConfigView.MultipleChoiceView(List.of(), false);
         }
-        var options = choice.options().stream()
-                .map(option -> new QuizQuestionConfigView.MultipleChoice.Option(option.text()))
+        var options = choices.stream()
+                .map(option -> new QuizQuestionConfigView.MultipleChoiceView.ChoiceOptionView(option.text()))
                 .toList();
-        long correct = choice.options().stream()
-                .filter(QuestionConfig.MultipleChoice.Option::correct)
+        long correct = choices.stream()
+                .filter(QuestionConfig.MultipleChoice.ChoiceOption::correct)
                 .count();
-        return new QuizQuestionConfigView.MultipleChoice(options, correct > 1);
+        return new QuizQuestionConfigView.MultipleChoiceView(options, correct > 1);
     }
 
     private QuizQuestionConfigView freeAnswer(QuestionConfig config) {
         if (!(config instanceof QuestionConfig.FreeAnswer free)) {
-            return new QuizQuestionConfigView.FreeAnswer(DEFAULT_FREE_ANSWER_LINES);
+            return new QuizQuestionConfigView.FreeAnswerView(DEFAULT_FREE_ANSWER_LINES);
         }
-        return new QuizQuestionConfigView.FreeAnswer(free.lines());
+        return new QuizQuestionConfigView.FreeAnswerView(free.lines());
     }
 
     private QuizQuestionConfigView fillInTheBlank(QuestionConfig config) {
         if (!(config instanceof QuestionConfig.FillInTheBlank fill)) {
-            return new QuizQuestionConfigView.FillInTheBlank("", List.of(), 0, false);
+            return new QuizQuestionConfigView.FillInTheBlankView("", List.of(), 0, false);
         }
-        var answers = fill.answers() != null ? fill.answers() : List.<String>of();
+        var answers = Objects.requireNonNullElse(fill.answers(), List.<String>of());
         var wordBank = new ArrayList<>(answers);
-        if (fill.distractors() != null) wordBank.addAll(fill.distractors());
-        return new QuizQuestionConfigView.FillInTheBlank(
-                fill.text() != null ? fill.text() : "", wordBank, answers.size(), fill.useDropdown());
+        wordBank.addAll(Objects.requireNonNullElse(fill.distractors(), List.<String>of()));
+        return new QuizQuestionConfigView.FillInTheBlankView(
+                Objects.requireNonNullElse(fill.text(), ""), wordBank, answers.size(), fill.useDropdown());
     }
 
     private QuizQuestionConfigView connect(QuestionConfig config) {
-        if (!(config instanceof QuestionConfig.Connect connect) || connect.pairs() == null) {
-            return new QuizQuestionConfigView.Connect(List.of(), List.of());
+        var pairs = config instanceof QuestionConfig.Connect connect ? connect.pairs() : null;
+        if (pairs == null) {
+            return new QuizQuestionConfigView.ConnectView(List.of(), List.of());
         }
-        var leftItems =
-                connect.pairs().stream().map(QuestionConfig.Connect.Pair::left).toList();
-        var rightItems =
-                connect.pairs().stream().map(QuestionConfig.Connect.Pair::right).toList();
-        return new QuizQuestionConfigView.Connect(leftItems, rightItems);
+        var leftItems = pairs.stream().map(QuestionConfig.Connect.Pair::left).toList();
+        var rightItems = pairs.stream().map(QuestionConfig.Connect.Pair::right).toList();
+        return new QuizQuestionConfigView.ConnectView(leftItems, rightItems);
     }
 
     private QuizQuestionConfigView ordering(QuestionConfig config) {
-        if (!(config instanceof QuestionConfig.Ordering order) || order.items() == null) {
-            return new QuizQuestionConfigView.Ordering(List.of());
-        }
-        return new QuizQuestionConfigView.Ordering(order.items());
+        var items = config instanceof QuestionConfig.Ordering order ? order.items() : null;
+        return new QuizQuestionConfigView.OrderingView(Objects.requireNonNullElse(items, List.of()));
     }
 
     private QuizQuestionConfigView enumeration(QuestionConfig config) {
         if (!(config instanceof QuestionConfig.Enumeration enumeration)) {
-            return new QuizQuestionConfigView.Enumeration(DEFAULT_ENUMERATION_REQUIRED_COUNT);
+            return new QuizQuestionConfigView.EnumerationView(DEFAULT_ENUMERATION_REQUIRED_COUNT);
         }
-        return new QuizQuestionConfigView.Enumeration(enumeration.requiredCount());
+        return new QuizQuestionConfigView.EnumerationView(enumeration.requiredCount());
     }
 }

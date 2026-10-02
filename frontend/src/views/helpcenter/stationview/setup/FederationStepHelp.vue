@@ -4,16 +4,20 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import {ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
+import DiscoveryVisibilityChoice from '@/views/stationview/setup/steps/federationstep/DiscoveryVisibilityChoice.vue'
+import PublicListingContents from '@/views/stationview/setup/steps/federationstep/PublicListingContents.vue'
 import WizardFrame from './setuphelp/WizardFrame.vue'
+import {DiscoveryVisibility, type DiscoveryVisibilityName} from '@/api/stationManage'
 
 const {t} = useI18n()
+const sampleVisibility = ref<DiscoveryVisibilityName>(DiscoveryVisibility.PUBLIC)
 </script>
 
 <template>
@@ -31,15 +35,9 @@ const {t} = useI18n()
     <HelpSection :title="t('helpCenter.setupFederation.exampleTitle')">
       <p>{{ t('helpCenter.setupFederation.exampleText') }}</p>
       <WizardFrame step-id="federation" skippable>
-        <p class="text-sm text-(--text-muted)">{{ t('setup.steps.federation.consequence') }}</p>
-        <div class="space-y-3">
-          <label class="block text-sm">
-            {{ t('setup.steps.federation.visibility') }}
-            <SelectInput model-value="PUBLIC">
-              <option value="PUBLIC">{{ t('setup.steps.federation.visibilityPublic') }}</option>
-              <option value="NONE">{{ t('setup.steps.federation.visibilityNone') }}</option>
-            </SelectInput>
-          </label>
+        <div class="space-y-4">
+          <DiscoveryVisibilityChoice v-model="sampleVisibility"/>
+          <PublicListingContents/>
           <label class="block text-sm">
             {{ t('setup.steps.federation.description') }}
             <TextAreaInput model-value="Freiwillige Feuerwehr Musterstadt mit Jugendfeuerwehr und Atemschutz."/>

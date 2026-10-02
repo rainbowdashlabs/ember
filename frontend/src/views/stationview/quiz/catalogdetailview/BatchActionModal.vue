@@ -15,10 +15,11 @@ import MutedText from '@/components/typography/MutedText.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import BatchActionFields from '@/views/stationview/quiz/catalogdetailview/batchactionmodal/BatchActionFields.vue'
 import BatchGenerateOptions from '@/views/stationview/quiz/catalogdetailview/batchactionmodal/BatchGenerateOptions.vue'
-import {QuizQuestionTypes, type QuizCategory, type QuizQuestion} from '@/api/quiz'
+import {QuizQuestionTypes} from '@/api/quiz'
+import type {QuizCategory, QuizQuestion} from '@/api/generated/schema'
 import {quiz, ai} from '@/api'
 import {useAsyncAction} from '@/composables/useAsyncAction'
-import {type AiCredentials, readAiCredentials} from '@/util/aiCredentials'
+import {type AiCredentials, loadAiCredentials} from '@/util/aiCredentials'
 import {reportCaughtError} from '@/util/devErrorReporter'
 import {describeFailure, FailureKind, type Failure} from '@/util/failure'
 
@@ -150,10 +151,9 @@ async function regenerateQuestion(q: QuizQuestion, prompt: string, credentials: 
   const type = q.quizQuestionType
   const jobId = await ai.startGenerateQuestions({
     provider: credentials.provider,
-    apiKey: credentials.apiKey,
     model: credentials.model || null,
     userPrompt: prompt, catalogId: props.catalogId,
-    entries: [{questionType: type, count: 1, categoryId: q.categoryId}],
+    entries: [{quizQuestionType: type, count: 1, categoryId: q.categoryId}],
   })
   while (true) {
     await new Promise(r => setTimeout(r, 1500))
@@ -163,7 +163,7 @@ async function regenerateQuestion(q: QuizQuestion, prompt: string, credentials: 
       await quiz.updateQuestion(q.id, {
         title: gen.title, description: q.description, categoryId: q.categoryId,
         quizQuestionType: type, points: q.points, autoPoints: q.autoPoints,
-        config: gen.config,
+        config: ai.generatedConfig(gen.config),
       })
     }
     if (poll.done) break
@@ -177,8 +177,8 @@ async function regenerateQuestion(q: QuizQuestion, prompt: string, credentials: 
  * and no report is offered for it.
  */
 async function batchGenerate(targets: QuizQuestion[]): Promise<unknown> {
-  const credentials = readAiCredentials()
-  if (!credentials.apiKey) {
+  const credentials = await loadAiCredentials()
+  if (!credentials.available) {
     emit('error', {
       kind: FailureKind.REJECTED,
       message: t('quiz.ai.noKeyConfigured'),
@@ -212,17 +212,16 @@ async function batchGenerate(targets: QuizQuestion[]): Promise<unknown> {
       <MutedText>{{ questions.length }} {{ t('quiz.batch.selected') }}</MutedText>
 
       <BatchActionFields
-        :action="action"
-        :categories="categories"
         v-model:auto-points="batchAutoPoints"
         v-model:points="batchPoints"
         v-model:points-per-correct="batchPointsPerCorrect"
         v-model:category-id="batchCategoryId"
+        :action="action"
+        :categories="categories"
       />
 
       <template v-if="action === 'generate'">
         <BatchGenerateOptions
-          :selected-types="selectedTypesSet"
           v-model:mc-correct="batchAiMcCorrect"
           v-model:mc-wrong="batchAiMcWrong"
           v-model:connect-pairs="batchAiConnectPairs"
@@ -230,6 +229,7 @@ async function batchGenerate(targets: QuizQuestion[]): Promise<unknown> {
           v-model:order-max="batchAiOrderMax"
           v-model:fill-gaps="batchAiFillGaps"
           v-model:fill-sentences="batchAiFillSentences"
+          :selected-types="selectedTypesSet"
         />
       </template>
 

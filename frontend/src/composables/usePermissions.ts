@@ -3,9 +3,10 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {StationPermission, type StationPermissionName} from '@/api/types'
-import {sessionInfo} from '@/util/sessionState'
-import {getActingStation} from '@/util/actingStationState'
+import {StationPermission} from '@/api/types'
+import type {StationModule, StationPermission as StationPermissionName} from '@/api/generated/schema'
+import {sessionState} from '@/util/sessionState'
+import {actingStationState} from '@/util/actingStationState'
 
 /**
  * Declarative permission groups behind the named helpers below. A group is granted as soon
@@ -63,58 +64,64 @@ const PERMISSION_GROUPS = {
 type PermissionGroup = keyof typeof PERMISSION_GROUPS
 
 /**
- * Whether the caller may do this at the station the request is for.
- *
- * <p>Usually that is the station they belong to. While a screen is open on the association's side, it is the
- * station the association owns, where its knowledge base, news and calendar are kept: those screens are the
- * station's own and ask the station's own question, and the answer there comes from what the reader holds at
- * the association rather than from any membership, which they do not have.
- */
-function hasPermission(permission: string): boolean {
-    const held = getActingStation()
-        ? sessionInfo.value?.ownStationPermissions
-        : sessionInfo.value?.permissions
-    return held?.includes(permission) ?? false
-}
-
-/**
- * Whether the caller holds a permission at the cluster they are acting for. Separate from the station check
- * because the two sets are separate: one person can hold everything at a cluster and nothing at its stations.
- */
-function hasClusterPermission(permission: string): boolean {
-    return sessionInfo.value?.clusterPermissions?.includes(permission) ?? false
-}
-
-function hasAny(group: PermissionGroup): boolean {
-    return PERMISSION_GROUPS[group].some(permission => hasPermission(permission))
-}
-
-function isAdmin(): boolean {
-    return sessionInfo.value?.instanceUserType === 'ADMINISTRATOR'
-}
-
-/**
- * Whether the caller may edit the account behind a name on a station's roll.
- *
- * <p>The station right is the ordinary way in. Whoever administers the instance is let in beside it,
- * because of the one account nobody else can help: an administrator whose address cannot be written
- * to cannot correct it themselves, since the confirmation would go to the address being corrected,
- * and the person who can do it for them need not be at their station.
- */
-function canEditMemberAccounts(): boolean {
-    return hasPermission(StationPermission.MEMBER_EDIT) || isAdmin()
-}
-
-function isModuleEnabled(module: string): boolean {
-    return !(sessionInfo.value?.disabledModules?.includes(module) ?? false)
-}
-
-/**
  * Permission checks for the signed-in session. Every named helper is a thin read over
  * {@link PERMISSION_GROUPS}; the names are the public API and are consumed through
  * {@code useSession}, which composes them in.
+ *
+ * <p>Take it at the top of a setup or a composable, before anything is awaited: the session and the
+ * acting station behind the checks are held per request.
  */
 export function usePermissions() {
+    const session = sessionState()
+    const acting = actingStationState()
+
+    /**
+     * Whether the caller may do this at the station the request is for.
+     *
+     * <p>Usually that is the station they belong to. While a screen is open on the association's side, it is
+     * the station the association owns, where its knowledge base, news and calendar are kept: those screens
+     * are the station's own and ask the station's own question, and the answer there comes from what the
+     * reader holds at the association rather than from any membership, which they do not have.
+     */
+    function hasPermission(permission: string): boolean {
+        const info = session.value.info
+        const held = acting.current() ? info?.ownStationPermissions : info?.permissions
+        return held?.includes(permission) ?? false
+    }
+
+    /**
+     * Whether the caller holds a permission at the cluster they are acting for. Separate from the station
+     * check because the two sets are separate: one person can hold everything at a cluster and nothing at its
+     * stations.
+     */
+    function hasClusterPermission(permission: string): boolean {
+        return session.value.info?.clusterPermissions?.includes(permission) ?? false
+    }
+
+    function hasAny(group: PermissionGroup): boolean {
+        return PERMISSION_GROUPS[group].some(permission => hasPermission(permission))
+    }
+
+    function isAdmin(): boolean {
+        return session.value.info?.instanceUserType === 'ADMINISTRATOR'
+    }
+
+    /**
+     * Whether the caller may edit the account behind a name on a station's roll.
+     *
+     * <p>The station right is the ordinary way in. Whoever administers the instance is let in beside it,
+     * because of the one account nobody else can help: an administrator whose address cannot be written
+     * to cannot correct it themselves, since the confirmation would go to the address being corrected,
+     * and the person who can do it for them need not be at their station.
+     */
+    function canEditMemberAccounts(): boolean {
+        return hasPermission(StationPermission.MEMBER_EDIT) || isAdmin()
+    }
+
+    function isModuleEnabled(module: StationModule): boolean {
+        return !(session.value.info?.disabledModules.includes(module) ?? false)
+    }
+
     return {
         hasPermission,
         hasClusterPermission,

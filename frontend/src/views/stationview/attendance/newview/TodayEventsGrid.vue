@@ -8,17 +8,17 @@ import {useI18n} from 'vue-i18n'
 import PrimaryContainer from '@/components/container/PrimaryContainer.vue'
 import ProseExcerpt from '@/components/display/ProseExcerpt.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import type {StationEvent} from '@/api/events'
+import type {EventSummary} from '@/api/generated/schema'
 import {formatTime} from '@/util/format'
 import {renderMarkdown} from '@/util/markdown'
 
 const props = defineProps<{
-  events: StationEvent[]
+  events: EventSummary[]
   templateName: (id: number) => string
 }>()
 
 const emit = defineEmits<{
-  (e: 'select', ev: StationEvent): void
+  (e: 'select', ev: EventSummary): void
 }>()
 
 const {t} = useI18n()
@@ -37,7 +37,7 @@ const {t} = useI18n()
         </div>
         <ProseExcerpt :html="renderMarkdown(ev.description)" max-height="max-h-32"/>
         <p class="text-xs text-(--text-muted)">
-          {{ t('attendanceNew.template') }}: {{ props.templateName(ev.templateId!) }}
+          {{ t('attendanceNew.template') }}: {{ ev.templateId != null ? props.templateName(ev.templateId) : '' }}
         </p>
       </PrimaryContainer>
     </div>

@@ -7,6 +7,8 @@ package dev.chojo.ember.feature.events.repository;
 
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.content.entity.BlockAudience;
+import dev.chojo.ember.feature.events.entity.CancellationCause;
+import dev.chojo.ember.feature.events.entity.PickerMode;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -121,6 +123,43 @@ class EventRepositoryTest extends RepositoryTestBase {
         } finally {
             eventRepo.delete(closing.id());
             eventRepo.delete(later.id());
+        }
+    }
+
+    /** A one-time appointment whose date was called off has no list closing and nobody owing an answer. */
+    @Test
+    void aCancelledOneOffIsNeitherClosingNorAwaitingAnswers() {
+        Instant start = Instant.now().plus(java.time.Duration.ofDays(10));
+        var called = eventRepo.create(
+                station.id(),
+                "Abgesagt",
+                "desc",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                start,
+                start.plusSeconds(3600),
+                null,
+                true,
+                Instant.now().plus(java.time.Duration.ofDays(2)),
+                false,
+                null,
+                null,
+                null,
+                null,
+                null);
+        try {
+            assertTrue(eventRepo.findEventsClosingIn(3).stream().anyMatch(e -> e.eventId() == called.id()));
+            assertTrue(eventRegistrationRepo.findAwaitingAnswer(List.of(member.id())).stream()
+                    .anyMatch(a -> a.eventId() == called.id()));
+
+            var day = occurrenceCalendar.dateInView(called).orElseThrow();
+            eventDateCancellationRepo.cancel(called.id(), day, CancellationCause.MANUAL, null, null);
+
+            assertTrue(eventRepo.findEventsClosingIn(3).stream().noneMatch(e -> e.eventId() == called.id()));
+            assertTrue(eventRegistrationRepo.findAwaitingAnswer(List.of(member.id())).stream()
+                    .noneMatch(a -> a.eventId() == called.id()));
+        } finally {
+            eventRepo.delete(called.id());
         }
     }
 
@@ -264,7 +303,7 @@ class EventRepositoryTest extends RepositoryTestBase {
         var event =
                 oneTime("Member Visible", Instant.parse("2027-02-15T09:00:00Z"), Instant.parse("2027-02-15T12:00:00Z"));
         try {
-            var events = eventRepo.findByStationForMember(station.id(), member.id());
+            var events = eventRepo.findByStationForMember(station.id(), member.id(), false);
             assertTrue(events.stream().anyMatch(e -> e.id() == event.id()));
         } finally {
             eventRepo.delete(event.id());
@@ -279,11 +318,11 @@ class EventRepositoryTest extends RepositoryTestBase {
                 Instant.now().plus(41, ChronoUnit.DAYS));
         try {
             var members = eventRepo.searchForPicker(
-                    station.id(), BlockAudience.MEMBERS, "internal-picker", EventRepository.PickerMode.FUTURE, 20);
+                    station.id(), BlockAudience.MEMBERS, "internal-picker", PickerMode.FUTURE, 20);
             assertTrue(members.stream().anyMatch(e -> "Internal-Picker-Event".equals(e.name())));
 
             var publicOnly = eventRepo.searchForPicker(
-                    station.id(), BlockAudience.PUBLIC, "internal-picker", EventRepository.PickerMode.FUTURE, 20);
+                    station.id(), BlockAudience.PUBLIC, "internal-picker", PickerMode.FUTURE, 20);
             assertTrue(publicOnly.isEmpty());
         } finally {
             eventRepo.delete(event.id());
@@ -367,7 +406,7 @@ class EventRepositoryTest extends RepositoryTestBase {
     }
 
     @Test
-    void findAutoCancel() {
+    void findThresholdCandidates() {
         var event = eventRepo.create(
                 station.id(),
                 "Auto Cancel Event",
@@ -383,25 +422,29 @@ class EventRepositoryTest extends RepositoryTestBase {
                 null,
                 null,
                 5,
-                Instant.now().minusSeconds(3600),
+                1000,
                 null);
         try {
-            assertTrue(eventRepo.findAutoCancel().stream().anyMatch(e -> e.id() == event.id()));
+            assertTrue(eventRepo.findThresholdCandidates().stream().anyMatch(e -> e.id() == event.id()));
+            eventRepo.cancelEvent(event.id(), null);
+            assertFalse(
+                    eventRepo.findThresholdCandidates().stream().anyMatch(e -> e.id() == event.id()),
+                    "a series called off as a whole has no date left to check");
         } finally {
             eventRepo.delete(event.id());
         }
     }
 
     @Test
-    void setThresholdNotified() {
+    void theDaysBeforeEachDateAreKept() {
         var event = eventRepo.create(
                 station.id(),
-                "Threshold Notify Event",
+                "Threshold Days Event",
                 "desc",
-                StationEvent.EventType.ONE_TIME,
-                null,
-                Instant.parse("2027-10-15T09:00:00Z"),
-                Instant.parse("2027-10-15T12:00:00Z"),
+                StationEvent.EventType.RECURRING,
+                3,
+                Instant.parse("2027-10-13T09:00:00Z"),
+                Instant.parse("2027-10-13T12:00:00Z"),
                 null,
                 false,
                 null,
@@ -409,11 +452,12 @@ class EventRepositoryTest extends RepositoryTestBase {
                 null,
                 null,
                 3,
-                Instant.now().plusSeconds(86400),
+                2,
                 null);
         try {
-            assertTrue(eventRepo.setThresholdNotified(event.id()));
-            assertTrue(eventRepo.findById(event.id()).orElseThrow().thresholdNotified());
+            var read = eventRepo.findById(event.id()).orElseThrow();
+            assertEquals(3, read.minRegistrations());
+            assertEquals(2, read.thresholdDays());
         } finally {
             eventRepo.delete(event.id());
         }
@@ -580,8 +624,8 @@ class EventRepositoryTest extends RepositoryTestBase {
                 null,
                 null);
         try {
-            var futureMatches = eventRepo.searchForPicker(
-                    station.id(), BlockAudience.PUBLIC, "Future", EventRepository.PickerMode.FUTURE, 20);
+            var futureMatches =
+                    eventRepo.searchForPicker(station.id(), BlockAudience.PUBLIC, "Future", PickerMode.FUTURE, 20);
             var match = futureMatches.stream()
                     .filter(e -> "Future-Picker-Event".equals(e.name()))
                     .findFirst()
@@ -590,12 +634,10 @@ class EventRepositoryTest extends RepositoryTestBase {
             assertNotNull(match.startTime());
             assertEquals("PickerCat", match.categoryName());
 
-            var pastMatches = eventRepo.searchForPicker(
-                    station.id(), BlockAudience.PUBLIC, null, EventRepository.PickerMode.PAST, 20);
+            var pastMatches = eventRepo.searchForPicker(station.id(), BlockAudience.PUBLIC, null, PickerMode.PAST, 20);
             assertTrue(pastMatches.stream().anyMatch(e -> "Past-Picker-Event".equals(e.name())));
 
-            var all = eventRepo.searchForPicker(
-                    station.id(), BlockAudience.PUBLIC, "  ", EventRepository.PickerMode.ALL, 20);
+            var all = eventRepo.searchForPicker(station.id(), BlockAudience.PUBLIC, "  ", PickerMode.ALL, 20);
             assertTrue(all.stream().anyMatch(e -> "Future-Picker-Event".equals(e.name())));
             assertTrue(all.stream().anyMatch(e -> "Past-Picker-Event".equals(e.name())));
         } finally {

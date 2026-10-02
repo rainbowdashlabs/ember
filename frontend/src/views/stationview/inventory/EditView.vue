@@ -14,8 +14,7 @@ import ButtonRow from '@/components/button/ButtonRow.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import type {InventoryDetail, InventoryItem} from '@/api/inventory'
-import type {StationMember} from '@/api/types'
+import type {InventoryDetail, InventoryItem, MemberWithName} from '@/api/generated/schema'
 import {inventory, stationMembers} from '@/api'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {describeFailure, type Failure} from '@/util/failure'
@@ -35,7 +34,7 @@ const inventoryId = computed(() => Number(route.params.id))
 
 const detail = ref<InventoryDetail | null>(null)
 const items = ref<InventoryItem[]>([])
-const members = ref<StationMember[]>([])
+const members = ref<MemberWithName[]>([])
 const success = ref('')
 
 const {loading, failure} = useAsyncLoader(async () => {

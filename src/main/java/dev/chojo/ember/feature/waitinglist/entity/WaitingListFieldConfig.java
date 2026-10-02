@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.waitinglist.entity;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import dev.chojo.ember.feature.question.QuestionConfigs;
 import dev.chojo.ember.feature.question.QuestionSettings;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -18,7 +19,8 @@ import java.util.List;
  * @param placeholder placeholder text
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public record WaitingListFieldConfig(List<String> options, String placeholder) {
+public record WaitingListFieldConfig(
+        @Nullable List<String> options, @Nullable String placeholder) {
     public static final WaitingListFieldConfig EMPTY = new WaitingListFieldConfig(null, null);
 
     public static WaitingListFieldConfig parse(String json) {

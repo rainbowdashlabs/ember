@@ -19,8 +19,8 @@ const {t} = useI18n()
           <th class="py-2 pr-3">{{ t('apiStatus.endpoint') }}</th>
           <th class="py-2 pr-3 text-right">{{ t('apiStatus.count') }}</th>
           <th class="py-2 pr-3 text-right">{{ t('apiStatus.avg') }}</th>
-          <th class="py-2 pr-3 text-right">Min</th>
-          <th class="py-2 pr-3 text-right">Max</th>
+          <th class="py-2 pr-3 text-right">{{ t('helpCenter.sample.admin.minimum') }}</th>
+          <th class="py-2 pr-3 text-right">{{ t('helpCenter.sample.admin.maximum') }}</th>
           <th class="py-2 text-right">{{ t('apiStatus.errorRate') }}</th>
         </tr>
       </thead>

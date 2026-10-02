@@ -4,15 +4,21 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, onBeforeUnmount, onMounted, ref} from 'vue'
+import {computed, ref, watch} from 'vue'
+import {useI18n} from 'vue-i18n'
+import type {AcceptableValue} from 'reka-ui'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import DropdownPanel from './dropdown/DropdownPanel.vue'
+import DropdownListbox from './dropdown/DropdownListbox.vue'
+import DropdownGroups from './dropdown/DropdownGroups.vue'
+import DropdownOption from './dropdown/DropdownOption.vue'
+import DropdownSearch from './dropdown/DropdownSearch.vue'
+import {filterOptions, groupOptions, type SelectOption} from './dropdown/groupOptions'
 
-export interface SelectOption {
-  value: string
-  label: string
-  group?: string
-}
-
+/**
+ * Any number of choices out of a list, behind a button that names the first two and counts the
+ * rest. The panel stays open while the reader ticks through it, and offers all and none at once.
+ */
 const modelValue = defineModel<string[]>({required: true})
 
 const props = defineProps<{
@@ -20,51 +26,34 @@ const props = defineProps<{
   placeholder?: string
   disabled?: boolean
   searchable?: boolean
+  /** Lands on the button that opens the list, so a label outside can name it. */
+  id?: string
 }>()
 
+const {t} = useI18n()
+
 const open = ref(false)
-const containerRef = ref<HTMLElement | null>(null)
 const searchQuery = ref('')
 
 const selectedSet = computed(() => new Set(modelValue.value))
 
-const filteredOptions = computed(() => {
-  if (!props.searchable || !searchQuery.value.trim()) return props.options
-  const q = searchQuery.value.toLowerCase()
-  return props.options.filter(o => o.label.toLowerCase().includes(q))
-})
+const groupedOptions = computed(() => groupOptions(props.searchable ? filterOptions(props.options, searchQuery.value) : props.options))
 
 const triggerLabel = computed(() => {
-  if (modelValue.value.length === 0) return props.placeholder ?? 'Auswahl'
-  const selectedLabels = props.options
-      .filter(o => selectedSet.value.has(o.value))
-      .map(o => o.label)
+  if (modelValue.value.length === 0) return props.placeholder ?? t('dropdown.choose')
+  const selectedLabels = props.options.filter(o => selectedSet.value.has(o.value)).map(o => o.label)
   if (selectedLabels.length <= 2) return selectedLabels.join(', ')
   return `${selectedLabels.slice(0, 2).join(', ')} +${selectedLabels.length - 2}`
 })
 
-const groupedOptions = computed(() => {
-  const opts = filteredOptions.value
-  const hasGroups = opts.some(o => o.group)
-  if (!hasGroups) return [{group: undefined as string | undefined, options: opts}]
-
-  const map = new Map<string | undefined, SelectOption[]>()
-  for (const opt of opts) {
-    const key = opt.group
-    if (!map.has(key)) map.set(key, [])
-    map.get(key)!.push(opt)
-  }
-  return Array.from(map.entries()).map(([group, options]) => ({group, options}))
-})
-
 const allSelected = computed(() => props.options.length > 0 && modelValue.value.length === props.options.length)
 
-function toggle(value: string) {
-  if (selectedSet.value.has(value)) {
-    modelValue.value = modelValue.value.filter(v => v !== value)
-  } else {
-    modelValue.value = [...modelValue.value, value]
-  }
+watch(open, isOpen => {
+  if (!isOpen) searchQuery.value = ''
+})
+
+function choose(values: AcceptableValue | AcceptableValue[] | undefined) {
+  modelValue.value = Array.isArray(values) ? values.map(String) : []
 }
 
 function selectAll() {
@@ -74,91 +63,46 @@ function selectAll() {
 function selectNone() {
   modelValue.value = []
 }
-
-function onClickOutside(e: MouseEvent) {
-  if (containerRef.value && !containerRef.value.contains(e.target as Node)) {
-    open.value = false
-    searchQuery.value = ''
-  }
-}
-
-onMounted(() => document.addEventListener('click', onClickOutside))
-onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
 </script>
 
 <template>
-  <div ref="containerRef" class="relative inline-block">
-    <SecondaryButton :disabled="disabled" @click="open = !open">
-      {{ triggerLabel }}
-      <font-awesome-icon
-        :icon="['fas', 'chevron-down']"
-        :class="['ml-1.5 h-3 w-3 transition-transform duration-150', open ? 'rotate-180' : '']"
-      />
-    </SecondaryButton>
-
-    <div
-      v-if="open"
-      class="absolute z-20 mt-1 w-64 max-h-72 rounded-theme border border-bg-light-accent bg-bg-light shadow-lg dark:border-bg-dark-accent dark:bg-bg-dark flex flex-col"
-    >
-      <!-- Select all / none -->
-      <div class="flex gap-2 px-3 py-2 border-b border-bg-light-accent dark:border-bg-dark-accent text-xs">
-        <button
-          type="button"
-          class="text-primary hover:underline cursor-pointer"
-          :class="{'opacity-50': allSelected}"
-          :disabled="allSelected"
-          @click.stop="selectAll"
-        >
-          Alle auswählen
-        </button>
-        <span class="text-[var(--text)]">/</span>
-        <button
-          type="button"
-          class="text-primary hover:underline cursor-pointer"
-          :class="{'opacity-50': modelValue.length === 0}"
-          :disabled="modelValue.length === 0"
-          @click.stop="selectNone"
-        >
-          Keine
-        </button>
-      </div>
-
-      <!-- Search -->
-      <div v-if="searchable" class="px-2 py-1.5 border-b border-bg-light-accent dark:border-bg-dark-accent">
-        <input
-            v-model="searchQuery"
-            type="text"
-            class="w-full px-2 py-1 text-sm rounded border border-bg-light-accent dark:border-bg-dark-accent bg-transparent focus:outline-none focus:border-primary"
-            placeholder="Suche…"
-            @click.stop
-        />
-      </div>
-
-      <!-- Options -->
-      <div class="overflow-y-auto">
-        <template v-for="(section, idx) in groupedOptions" :key="idx">
-          <div
-            v-if="section.group"
-            class="px-3 py-1.5 text-xs font-semibold text-[var(--text)] opacity-60 uppercase tracking-wide"
-          >
-            {{ section.group }}
+  <div class="inline-block">
+    <DropdownPanel v-model:open="open">
+      <template #trigger>
+        <SecondaryButton :id="id" :disabled="disabled" aria-haspopup="listbox">
+          {{ triggerLabel }}
+          <font-awesome-icon
+              :icon="['fas', 'chevron-down']"
+              :class="['ml-1.5 h-3 w-3 transition-transform duration-150', open ? 'rotate-180' : '']"
+          />
+        </SecondaryButton>
+      </template>
+      <DropdownListbox :model-value="modelValue" multiple :label="placeholder ?? t('dropdown.choose')" @update:model-value="choose">
+        <template #head>
+          <div class="flex gap-2 border-b border-(--border) px-3 py-2 text-xs">
+            <button type="button" class="cursor-pointer text-primary hover:underline" :class="{'opacity-50': allSelected}"
+                    :disabled="allSelected" @click="selectAll">
+              {{ t('dropdown.selectAll') }}
+            </button>
+            <span class="text-(--text)">/</span>
+            <button type="button" class="cursor-pointer text-primary hover:underline" :class="{'opacity-50': modelValue.length === 0}"
+                    :disabled="modelValue.length === 0" @click="selectNone">
+              {{ t('dropdown.selectNone') }}
+            </button>
           </div>
-          <button
-            v-for="opt in section.options"
-            :key="opt.value"
-            type="button"
-            class="w-full flex items-center gap-2 px-3 py-2 text-sm text-left hover:bg-primary/5 transition-colors cursor-pointer"
-            @click.stop="toggle(opt.value)"
-          >
-            <font-awesome-icon
-              :icon="['fas', selectedSet.has(opt.value) ? 'square-check' : 'square']"
-              :class="selectedSet.has(opt.value) ? 'text-primary' : 'text-[var(--text)] opacity-40'"
-              class="h-4 w-4"
-            />
-            <span>{{ opt.label }}</span>
-          </button>
+          <DropdownSearch v-if="searchable" v-model="searchQuery" :placeholder="t('dropdown.search')"/>
         </template>
-      </div>
-    </div>
+        <DropdownGroups v-slot="{option}" :groups="groupedOptions">
+          <DropdownOption :value="option.value">
+            <font-awesome-icon
+                :icon="['fas', selectedSet.has(option.value) ? 'square-check' : 'square']"
+                :class="selectedSet.has(option.value) ? 'text-primary' : 'text-(--text) opacity-40'"
+                class="h-4 w-4"
+            />
+            <span>{{ option.label }}</span>
+          </DropdownOption>
+        </DropdownGroups>
+      </DropdownListbox>
+    </DropdownPanel>
   </div>
 </template>

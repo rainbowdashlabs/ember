@@ -15,62 +15,30 @@
  * knowingly missing. Those are better said than left silent.
  *
  * The rule was written down long before this check existed, and it was broken
- * again in every sitting, which is what a rule nobody checks is worth. Frontend
- * sources are always scanned; the Java sources above are scanned too when the
- * repository root is there, since the rule is the project's and not the
- * frontend's. The frontend image is built from `frontend/` alone, so their
- * absence is a warning rather than an error, the same way the em dash check
- * stands down.
+ * again in every sitting, which is what a rule nobody checks is worth. The Java
+ * sources are scanned alongside the frontend sources, since the rule is the
+ * project's and not the frontend's.
  *
  * Exit code 1 if a comment is found that is neither a doc comment nor a TODO.
  */
 
-import {existsSync, readFileSync, statSync, writeFileSync} from 'fs'
-import {join, relative} from 'path'
-import {SRC, walk, GREEN, YELLOW, RESET, BOLD, createReporter} from './lint-utils.mjs'
+import {readFileSync, statSync} from 'fs'
+import {join} from 'path'
+import {SRC, walk, GREEN, RESET, BOLD, createReporter} from './lint-utils.mjs'
 
 const reporter = createReporter()
 
-/**
- * What each file was already carrying when the check was written.
- *
- * <p>The rule is older than the check, and by the time anybody counted, four thousand comments had
- * gathered. Failing on all of them would have meant either a rewrite nobody asked for or a check
- * switched off within the week, so the debt is written down instead and the rule bites from here:
- * a file may carry what it carried, and not one comment more. A file that is not in the list must
- * carry none at all, which is every file written from now on.
- *
- * <p>Run with `--update` after genuinely removing some, so the count can only ever fall.
- */
-const BASELINE_PATH = new URL('./comment-baseline.json', import.meta.url).pathname
-const UPDATING = process.argv.includes('--update')
-const baseline = existsSync(BASELINE_PATH) ? JSON.parse(readFileSync(BASELINE_PATH, 'utf-8')) : {}
-const counts = {}
 
 const FRONTEND_EXTENSIONS = ['.ts', '.vue', '.js', '.mjs']
 
 const ROOT_TARGETS = [
     {path: 'src/main/java', extensions: ['.java']},
     {path: 'src/test/java', extensions: ['.java']},
+    {path: 'frontend/e2e', extensions: FRONTEND_EXTENSIONS},
+    {path: 'frontend/scripts', extensions: FRONTEND_EXTENSIONS},
 ]
 
 const REPO_ROOT = new URL('../..', import.meta.url).pathname
-const FRONTEND_ROOT = new URL('..', import.meta.url).pathname
-
-/**
- * What a file is called in the baseline, which has to be the one name in both layouts it is read
- * in.
- *
- * <p>The frontend image is built from `frontend/` alone, so there the frontend is the root and
- * naming a file relative to the repository above it names something else entirely. Every lookup
- * then missed, every file counted as one that may carry nothing, and the image failed on six
- * hundred comments the checkout was perfectly happy with. A frontend file is therefore named from
- * the frontend down, with the prefix written rather than derived.
- */
-function baselineKey(file) {
-    if (file.startsWith(FRONTEND_ROOT)) return join('frontend', relative(FRONTEND_ROOT, file))
-    return relative(REPO_ROOT, file)
-}
 
 /**
  * A line that opens a block comment which is a doc comment, and so may stand.
@@ -83,6 +51,12 @@ const BLOCK_OPENER = /^\s*\/\*/
 const LICENCE_MARKER = /SPDX-License-Identifier/
 
 const TODO = /^\s*(\/\/|\/\*|\*)\s*TODO\b/
+
+/** A Java text block's delimiter, inside which two slashes are text, such as an address. */
+const TEXT_BLOCK = '"""'
+
+/** Where a comment opens in a Vue template, which is markup and holds no doc comments at all. */
+const TEMPLATE_COMMENT = /<!--/
 
 /**
  * Whether a `//` sits inside a string or a regular expression rather than
@@ -101,6 +75,10 @@ function commentStart(line) {
             else if (c === quote) quote = null
             continue
         }
+        if (c === '\\') {
+            i++
+            continue
+        }
         if (c === '"' || c === "'" || c === '`') {
             quote = c
             continue
@@ -113,18 +91,58 @@ function commentStart(line) {
 
 function check(file) {
     const lines = readFileSync(file, 'utf-8').split('\n')
-    const key = baselineKey(file)
-    const allowed = baseline[key] ?? 0
     const found = []
+    const markup = file.endsWith('.vue')
+    const java = file.endsWith('.java')
     let inBlock = false
+    let inTemplateComment = false
+    let inTextBlock = false
+    let inCode = !markup
 
     for (let i = 0; i < lines.length; i++) {
-        const line = lines[i]
+        let line = lines[i]
+
+        if (inTextBlock) {
+            const end = line.indexOf(TEXT_BLOCK)
+            if (end === -1) continue
+            inTextBlock = false
+            line = line.slice(end + TEXT_BLOCK.length)
+        }
+
+        if (java) {
+            const open = line.indexOf(TEXT_BLOCK)
+            if (open !== -1 && line.indexOf(TEXT_BLOCK, open + TEXT_BLOCK.length) === -1) {
+                inTextBlock = true
+                line = line.slice(0, open)
+            }
+        }
+
+        if (inTemplateComment) {
+            if (line.includes('-->')) inTemplateComment = false
+            continue
+        }
+
+        if (markup && /^\s*<(script|style)\b/.test(line)) {
+            inCode = true
+            continue
+        }
+        if (markup && /^\s*<\/(script|style)>/.test(line)) {
+            inCode = false
+            continue
+        }
+
+        if (markup && !inCode && TEMPLATE_COMMENT.test(line)) {
+            inTemplateComment = !line.slice(line.indexOf('<!--')).includes('-->')
+            found.push({line: i + 1, message: 'Template comment. Name the block with a component or a class instead.'})
+            continue
+        }
 
         if (inBlock) {
             if (line.includes('*/')) inBlock = false
             continue
         }
+
+        if (!inCode) continue
 
         if (TODO.test(line)) continue
 
@@ -160,31 +178,24 @@ function check(file) {
         })
     }
 
-    if (found.length > 0) counts[key] = found.length
-
-    if (found.length > allowed) {
-        const over = found.slice(allowed)
-        for (const one of over) {
-            reporter.error(file, one.line, one.message)
-        }
+    for (const one of found) {
+        reporter.error(file, one.line, one.message)
     }
 
 }
 
+/** The generated API types, whose comments are the generator's and say what the backend declares. */
+const GENERATED = join(SRC, 'api', 'generated')
+
 const scanned = []
 for (const extension of FRONTEND_EXTENSIONS) {
-    scanned.push(...walk(SRC, extension))
+    scanned.push(...walk(SRC, extension).filter(file => !file.startsWith(GENERATED)))
 }
 scanned.forEach(check)
 
 let rootFiles = 0
-const missing = []
 for (const target of ROOT_TARGETS) {
     const absolute = join(REPO_ROOT, target.path)
-    if (!existsSync(absolute)) {
-        missing.push(target.path)
-        continue
-    }
     const files = statSync(absolute).isDirectory()
         ? target.extensions.flatMap(extension => walk(absolute, extension))
         : [absolute]
@@ -192,36 +203,9 @@ for (const target of ROOT_TARGETS) {
     rootFiles += files.length
 }
 
-if (missing.length === ROOT_TARGETS.length) {
-    reporter.warn(
-        '',
-        0,
-        'Only the frontend was checked: the repository root is not present, which is expected inside the frontend image.',
-    )
-}
-
-if (UPDATING) {
-    const kept = Object.fromEntries(
-        Object.entries(counts)
-            .filter(([key, count]) => count <= (baseline[key] ?? Infinity))
-            .sort(([a], [b]) => a.localeCompare(b)),
-    )
-    writeFileSync(BASELINE_PATH, `${JSON.stringify(kept, null, 2)}\n`)
-    const before = Object.values(baseline).reduce((sum, n) => sum + n, 0)
-    const after = Object.values(kept).reduce((sum, n) => sum + n, 0)
-    console.log(`\n${GREEN}${BOLD}Comment baseline written.${RESET} ${after} left, ${before - after} fewer.\n`)
-    process.exit(0)
-}
-
-const debt = Object.entries(counts)
-    .filter(([key, count]) => Math.min(count, baseline[key] ?? 0) > 0)
-    .reduce((sum, [key, count]) => sum + Math.min(count, baseline[key] ?? 0), 0)
-
 if (reporter.errors.length === 0 && reporter.warnings.length === 0) {
     console.log(
-        `\n${GREEN}${BOLD}Comment lint passed.${RESET} ${scanned.length + rootFiles} files checked.`
-            + (debt > 0 ? ` ${YELLOW}${debt} comment(s) still owed from before the check existed.${RESET}` : '')
-            + '\n',
+        `\n${GREEN}${BOLD}Comment lint passed.${RESET} ${scanned.length + rootFiles} files checked.\n`,
     )
 } else {
     reporter.print()

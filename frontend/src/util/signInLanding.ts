@@ -4,9 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {clusters, session} from '@/api'
-import type {Cluster} from '@/api/clusters'
-import type {StationMembership} from '@/api/session'
-import type {SessionInfo} from '@/api/types'
+import {isFirstStationNeeded} from '@/api/stations'
+import type {ClusterResponse, SessionInfo, StationMembership} from '@/api/generated/schema'
 
 /**
  * Where a fresh session belongs, and what it makes current.
@@ -30,8 +29,13 @@ export interface SignInLanding {
 export interface LandingMemberships {
     stations: StationMembership[]
     info: SessionInfo | null
-    clusters: Cluster[]
+    clusters: ClusterResponse[]
+    /** Whether the instance has no station at all yet, asked only of an administrator who belongs to none. */
+    firstStationNeeded?: boolean
 }
+
+/** Where an administrator founds the instance's first station. */
+export const FIRST_STATION_PATH = '/admin/first-station'
 
 export async function loadLandingMemberships(): Promise<LandingMemberships> {
     const [stations, info, myClusters] = await Promise.all([
@@ -39,11 +43,19 @@ export async function loadLandingMemberships(): Promise<LandingMemberships> {
         session.getSessionInfo().catch(() => null),
         clusters.listMine().catch(() => []),
     ])
-    return {stations, info, clusters: myClusters}
+    const firstStationNeeded = stations.length === 0 && info?.instanceUserType === 'ADMINISTRATOR'
+        ? await isFirstStationNeeded().catch(() => false)
+        : false
+    return {stations, info, clusters: myClusters, firstStationNeeded}
 }
 
 /**
  * Works out where somebody belongs from what they may act for.
+ *
+ * <p>An administrator of an instance with no station at all is led to found the first one, whatever
+ * they were headed for, since nothing else on the instance works before it exists. Somebody who
+ * belongs to no station but acts for an association lands on the association, their whole reason to
+ * be here.
  *
  * @param memberships what the account may act for
  * @param redirect    where the reader was headed before they were asked to sign in
@@ -58,9 +70,9 @@ export function landingFromMemberships(memberships: LandingMemberships, redirect
         return {path: redirect || '/cross-station'}
     }
     if (info?.instanceUserType === 'ADMINISTRATOR') {
+        if (memberships.firstStationNeeded) return {path: FIRST_STATION_PATH}
         return {path: redirect || '/admin/dashboard/overview'}
     }
-    // Somebody who runs an association and belongs to no station has it as their whole reason to be here
     const [onlyCluster] = memberships.clusters
     if (memberships.clusters.length > 0) {
         return {

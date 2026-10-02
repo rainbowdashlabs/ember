@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.members.entity;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.List;
 
 /**
@@ -25,7 +27,11 @@ public record MemberTable(List<MemberTableHeader> columns, List<MemberTableRow> 
      * identically named questions apart, and what its cells hold.
      */
     public record MemberTableHeader(
-            String label, MemberTableColumnKind kind, String key, Integer fieldId, MemberTableCellType type) {}
+            String label,
+            MemberTableColumnKind kind,
+            @Nullable String key,
+            @Nullable Integer fieldId,
+            MemberTableCellType type) {}
 
     /** One person's row, in the same order as the columns. */
     public record MemberTableRow(int memberId, List<String> values) {}

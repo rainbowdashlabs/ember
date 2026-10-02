@@ -5,20 +5,21 @@
  */
 package dev.chojo.ember.feature.quiz.service;
 
+import dev.chojo.ember.api.refusal.QuizRefusal;
 import dev.chojo.ember.feature.quiz.entity.CatalogMetadata;
 import dev.chojo.ember.feature.quiz.entity.CatalogTransfer;
-import dev.chojo.ember.feature.quiz.entity.CatalogTransfer.CatalogInfo;
-import dev.chojo.ember.feature.quiz.entity.CatalogTransfer.CategoryEntry;
-import dev.chojo.ember.feature.quiz.entity.CatalogTransfer.QuestionEntry;
+import dev.chojo.ember.feature.quiz.entity.CatalogTransfer.CatalogTransferCategory;
+import dev.chojo.ember.feature.quiz.entity.CatalogTransfer.CatalogTransferInfo;
+import dev.chojo.ember.feature.quiz.entity.CatalogTransfer.CatalogTransferQuestion;
 import dev.chojo.ember.feature.quiz.entity.CreateQuestionCommand;
 import dev.chojo.ember.feature.quiz.entity.QuestionConfig;
 import dev.chojo.ember.feature.quiz.entity.QuizCatalog;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestion;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestionType;
 import dev.chojo.ember.util.Json;
-import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tools.jackson.databind.JsonNode;
@@ -72,16 +73,17 @@ public class QuizCatalogTransferService {
 
         var keysById = new HashMap<Integer, String>();
         var taken = new HashSet<String>();
-        var categories = new ArrayList<CategoryEntry>();
+        var categories = new ArrayList<CatalogTransferCategory>();
         for (var category : catalogService.findCategories(catalog.stationId())) {
             if (!used.contains(category.id())) continue;
             String key = uniqueKey(category.name(), taken);
             keysById.put(category.id(), key);
-            categories.add(new CategoryEntry(key, category.name(), category.description(), category.position()));
+            categories.add(
+                    new CatalogTransferCategory(key, category.name(), category.description(), category.position()));
         }
 
         var entries = questions.stream()
-                .map(question -> new QuestionEntry(
+                .map(question -> new CatalogTransferQuestion(
                         keysById.get(question.categoryId()),
                         question.quizQuestionType().name(),
                         question.title(),
@@ -93,8 +95,8 @@ public class QuizCatalogTransferService {
                         question.position()))
                 .toList();
 
-        var info =
-                new CatalogInfo(catalog.name(), catalog.description(), catalog.trainingEnabled(), catalog.metadata());
+        var info = new CatalogTransferInfo(
+                catalog.name(), catalog.description(), catalog.trainingEnabled(), catalog.metadata());
         return new CatalogTransfer(CatalogTransfer.FORMAT_VERSION, info, categories, entries);
     }
 
@@ -103,13 +105,13 @@ public class QuizCatalogTransferService {
      * earlier versions wrote, which carried the catalog's fields at the top level and addressed
      * categories by the database id of the station that exported them.
      *
-     * @throws BadRequestResponse when the body is not a catalog file at all
+     * @throws dev.chojo.ember.api.refusal.RefusalResponse when the body is not a catalog file at all
      */
     public CatalogTransfer read(JsonNode body) {
-        if (body == null || !body.isObject()) throw new BadRequestResponse("The file is not a catalog export");
+        if (body == null || !body.isObject()) throw QuizRefusal.QUIZ_CATALOG_FILE_NOT_AN_OBJECT.raise();
         if (body.has("catalog")) return readCurrent(body);
         if (body.has("name")) return readLegacy(body);
-        throw new BadRequestResponse("The file is not a catalog export");
+        throw QuizRefusal.QUIZ_CATALOG_FILE_NOT_RECOGNISED.raise();
     }
 
     /**
@@ -154,18 +156,19 @@ public class QuizCatalogTransferService {
     }
 
     private ImportPlan plan(CatalogTransfer transfer, boolean catalogNameRequired) {
-        var problems = new ArrayList<TransferProblem>();
+        var problems = new ArrayList<CatalogTransferProblem>();
         var categoriesByKey = planCategories(transfer.categories(), problems);
         var planned = planQuestions(transfer.questions(), categoriesByKey.keySet(), problems);
         var info = transfer.catalog();
 
         if (transfer.formatVersion() > CatalogTransfer.FORMAT_VERSION) {
-            problems.add(new TransferProblem(
+            problems.add(new CatalogTransferProblem(
                     "formatVersion", "The file was written for a newer version of Ember and cannot be read here"));
         }
         if (catalogNameRequired
                 && (info == null || info.name() == null || info.name().isBlank())) {
-            problems.add(new TransferProblem("catalog.name", "The file does not say what the catalog is called"));
+            problems.add(
+                    new CatalogTransferProblem("catalog.name", "The file does not say what the catalog is called"));
         }
         return new ImportPlan(List.copyOf(problems), categoriesByKey, planned);
     }
@@ -174,8 +177,9 @@ public class QuizCatalogTransferService {
         var resolver = new QuizCategoryResolver(catalogService, catalog.stationId());
         var categoryIds = new HashMap<String, Integer>();
         for (var question : plan.questions()) {
-            if (question.categoryKey() == null) continue;
-            categoryIds.computeIfAbsent(question.categoryKey(), key -> {
+            String categoryKey = question.categoryKey();
+            if (categoryKey == null) continue;
+            categoryIds.computeIfAbsent(categoryKey, key -> {
                 var entry = plan.categories().get(key);
                 return resolver.resolve(entry.name(), entry.description(), entry.position());
             });
@@ -202,7 +206,7 @@ public class QuizCatalogTransferService {
             return Json.CONFIG_MAPPER.treeToValue(body, CatalogTransfer.class);
         } catch (Exception e) {
             log.warn("Rejected a catalog file that does not fit the transfer shape", e);
-            throw new BadRequestResponse("The file is not a catalog export");
+            throw QuizRefusal.QUIZ_CATALOG_FILE_NOT_READ.raise();
         }
     }
 
@@ -212,24 +216,24 @@ public class QuizCatalogTransferService {
      * to. The id itself is never used to look anything up here.
      */
     private CatalogTransfer readLegacy(JsonNode body) {
-        var info = new CatalogInfo(
+        var info = new CatalogTransferInfo(
                 body.path("name").asString(null),
                 body.path("description").asString(""),
                 body.path("trainingEnabled").asBoolean(false),
                 CatalogMetadata.none());
 
-        var categories = new ArrayList<CategoryEntry>();
+        var categories = new ArrayList<CatalogTransferCategory>();
         for (var node : body.path("categories")) {
-            categories.add(new CategoryEntry(
+            categories.add(new CatalogTransferCategory(
                     legacyKey(node.path("id")),
                     node.path("name").asString(null),
                     node.path("description").asString(""),
                     node.path("position").asInt(0)));
         }
 
-        var questions = new ArrayList<QuestionEntry>();
+        var questions = new ArrayList<CatalogTransferQuestion>();
         for (var node : body.path("questions")) {
-            questions.add(new QuestionEntry(
+            questions.add(new CatalogTransferQuestion(
                     legacyKey(node.path("categoryId")),
                     node.path("quizQuestionType").asString(null),
                     node.path("title").asString(null),
@@ -243,66 +247,68 @@ public class QuizCatalogTransferService {
         return new CatalogTransfer(CatalogTransfer.FORMAT_VERSION, info, categories, questions);
     }
 
-    private static String legacyKey(JsonNode id) {
+    private static @Nullable String legacyKey(JsonNode id) {
         return id == null || id.isNull() || id.isMissingNode() ? null : id.asString();
     }
 
-    private Map<String, CategoryEntry> planCategories(List<CategoryEntry> entries, List<TransferProblem> problems) {
-        var byKey = new LinkedHashMap<String, CategoryEntry>();
+    private Map<String, CatalogTransferCategory> planCategories(
+            List<CatalogTransferCategory> entries, List<CatalogTransferProblem> problems) {
+        var byKey = new LinkedHashMap<String, CatalogTransferCategory>();
         for (int i = 0; i < entries.size(); i++) {
             var entry = entries.get(i);
             String location = "categories[%d]".formatted(i);
-            if (entry.key() == null || entry.key().isBlank()) {
-                problems.add(new TransferProblem(location, "The category has no key for questions to refer to"));
+            String key = entry.key();
+            if (key == null || key.isBlank()) {
+                problems.add(new CatalogTransferProblem(location, "The category has no key for questions to refer to"));
                 continue;
             }
             if (entry.name() == null || entry.name().isBlank()) {
-                problems.add(new TransferProblem(location, "The category has no name"));
+                problems.add(new CatalogTransferProblem(location, "The category has no name"));
                 continue;
             }
-            if (byKey.putIfAbsent(entry.key(), entry) != null) {
-                problems.add(new TransferProblem(
-                        location, "Another category already uses the key %s".formatted(entry.key())));
+            if (byKey.putIfAbsent(key, entry) != null) {
+                problems.add(new CatalogTransferProblem(
+                        location, "Another category already uses the key %s".formatted(key)));
             }
         }
         return byKey;
     }
 
     private List<PlannedQuestion> planQuestions(
-            List<QuestionEntry> entries, Set<String> categoryKeys, List<TransferProblem> problems) {
+            List<CatalogTransferQuestion> entries, Set<String> categoryKeys, List<CatalogTransferProblem> problems) {
         var planned = new ArrayList<PlannedQuestion>();
         for (int i = 0; i < entries.size(); i++) {
             var entry = entries.get(i);
             String location = "questions[%d]".formatted(i);
 
             if (entry.title() == null || entry.title().isBlank()) {
-                problems.add(new TransferProblem(location, "The question has no text"));
+                problems.add(new CatalogTransferProblem(location, "The question has no text"));
                 continue;
             }
             var type = questionType(entry.quizQuestionType());
             if (type == null) {
-                problems.add(new TransferProblem(
+                problems.add(new CatalogTransferProblem(
                         location, "%s is not a question type Ember knows".formatted(entry.quizQuestionType())));
                 continue;
             }
             var config = type.readConfig(configText(entry.config()));
             if (config.isEmpty()) {
-                problems.add(new TransferProblem(
+                problems.add(new CatalogTransferProblem(
                         location, "The answers do not fit a question of type %s".formatted(type.name())));
                 continue;
             }
             if (entry.categoryKey() != null && !categoryKeys.contains(entry.categoryKey())) {
-                problems.add(new TransferProblem(
+                problems.add(new CatalogTransferProblem(
                         location, "No category in the file has the key %s".formatted(entry.categoryKey())));
                 continue;
             }
             planned.add(new PlannedQuestion(
-                    entry.categoryKey(), type, config.get(), entry, entry.position() != null ? entry.position() : i));
+                    entry.categoryKey(), type, config.get(), entry, Objects.requireNonNullElse(entry.position(), i)));
         }
         return planned;
     }
 
-    private static QuizQuestionType questionType(String name) {
+    private static @Nullable QuizQuestionType questionType(String name) {
         if (name == null || name.isBlank()) return null;
         try {
             return QuizQuestionType.valueOf(name.trim().toUpperCase(Locale.ROOT));
@@ -345,23 +351,29 @@ public class QuizCatalogTransferService {
      * @param location where in the file it sits, as {@code questions[4]} or {@code catalog.name}
      * @param message  what is wrong with it
      */
-    public record TransferProblem(String location, String message) {}
+    public record CatalogTransferProblem(String location, String message) {}
 
     /**
      * @param catalog  the created catalog, or {@code null} when the file was refused
      * @param problems every reason the file was refused, empty when it was not
      */
-    public record ImportOutcome(QuizCatalog catalog, List<TransferProblem> problems) {}
+    public record ImportOutcome(@Nullable QuizCatalog catalog, List<CatalogTransferProblem> problems) {}
 
     private record PlannedQuestion(
-            String categoryKey, QuizQuestionType type, QuestionConfig config, QuestionEntry entry, int position) {}
+            @Nullable String categoryKey,
+            QuizQuestionType type,
+            QuestionConfig config,
+            CatalogTransferQuestion entry,
+            int position) {}
 
     /**
      * A file read through in full before anything is written: the problems it carries, the
      * categories its questions may refer to, and the questions themselves.
      */
     private record ImportPlan(
-            List<TransferProblem> problems, Map<String, CategoryEntry> categories, List<PlannedQuestion> questions) {
+            List<CatalogTransferProblem> problems,
+            Map<String, CatalogTransferCategory> categories,
+            List<PlannedQuestion> questions) {
 
         private boolean rejected() {
             return !problems.isEmpty();

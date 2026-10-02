@@ -5,13 +5,13 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
+import dev.chojo.ember.api.refusal.InventoryRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.inventory.entity.InventoryTag;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.NotFoundResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -66,8 +66,8 @@ class InventoryTagServiceTest extends RepositoryTestBase {
 
     @Test
     void aWordThatIsNoWordIsRefused() {
-        assertThrows(BadRequestResponse.class, () -> inventoryTagService.create(station.id(), "   ", null));
-        assertThrows(BadRequestResponse.class, () -> inventoryTagService.create(station.id(), null, null));
+        assertThrows(RefusalResponse.class, () -> inventoryTagService.create(station.id(), "   ", null));
+        assertThrows(RefusalResponse.class, () -> inventoryTagService.create(station.id(), null, null));
     }
 
     @Test
@@ -75,9 +75,10 @@ class InventoryTagServiceTest extends RepositoryTestBase {
         var funk = inventoryTagService.create(station.id(), "RenameFunk", null);
         var licht = inventoryTagService.create(station.id(), "RenameLicht", null);
 
-        assertThrows(
-                BadRequestResponse.class,
+        var taken = assertThrows(
+                RefusalResponse.class,
                 () -> inventoryTagService.update(station.id(), licht.id(), "renamefunk", null, 0));
+        assertEquals(InventoryRefusal.INVENTORY_TAG_NAME_TAKEN, taken.refusal());
 
         var renamed = inventoryTagService.update(station.id(), licht.id(), " RenameLicht ", "#00C507", 3);
         assertEquals("RenameLicht", renamed.name());
@@ -92,9 +93,9 @@ class InventoryTagServiceTest extends RepositoryTestBase {
     void aWordOfAnotherStationIsNotThereAtAll() {
         var theirs = inventoryTagService.create(stranger.id(), "Fremd", null);
         assertThrows(
-                NotFoundResponse.class, () -> inventoryTagService.update(station.id(), theirs.id(), "Neu", null, 0));
-        assertThrows(NotFoundResponse.class, () -> inventoryTagService.delete(station.id(), theirs.id()));
-        assertThrows(NotFoundResponse.class, () -> inventoryTagService.update(station.id(), -1, "Neu", null, 0));
+                RefusalResponse.class, () -> inventoryTagService.update(station.id(), theirs.id(), "Neu", null, 0));
+        assertThrows(RefusalResponse.class, () -> inventoryTagService.delete(station.id(), theirs.id()));
+        assertThrows(RefusalResponse.class, () -> inventoryTagService.update(station.id(), -1, "Neu", null, 0));
         inventoryTagService.delete(stranger.id(), theirs.id());
     }
 
@@ -142,9 +143,9 @@ class InventoryTagServiceTest extends RepositoryTestBase {
         assertEquals("Funk", byItem.get(wearing.id()).getFirst().name());
 
         assertThrows(
-                NotFoundResponse.class,
+                RefusalResponse.class,
                 () -> inventoryTagService.findTagsInInventory(station.id(), strangerInventoryId));
-        assertThrows(NotFoundResponse.class, () -> inventoryTagService.findTagsInInventory(station.id(), -1));
+        assertThrows(RefusalResponse.class, () -> inventoryTagService.findTagsInInventory(station.id(), -1));
 
         for (var tag : inventoryTagService.findByStation(station.id())) {
             inventoryTagService.delete(station.id(), tag.id());
@@ -156,11 +157,11 @@ class InventoryTagServiceTest extends RepositoryTestBase {
     @Test
     void aThingOfAnotherStationIsNotThereAtAll() {
         var theirs = inventoryRepo.createItem(strangerInventoryId, "TS-200", "Fremdes Ding", null, null);
-        assertThrows(NotFoundResponse.class, () -> inventoryTagService.findTagsForItem(station.id(), theirs.id()));
+        assertThrows(RefusalResponse.class, () -> inventoryTagService.findTagsForItem(station.id(), theirs.id()));
         assertThrows(
-                NotFoundResponse.class,
+                RefusalResponse.class,
                 () -> inventoryTagService.setItemTags(station.id(), theirs.id(), List.of("Funk")));
-        assertThrows(NotFoundResponse.class, () -> inventoryTagService.findTagsForItem(station.id(), -1));
+        assertThrows(RefusalResponse.class, () -> inventoryTagService.findTagsForItem(station.id(), -1));
         inventoryRepo.deleteItem(theirs.id());
     }
 

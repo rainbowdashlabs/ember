@@ -4,26 +4,22 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
-import type {TrackingStatusName, TransferContext} from '@/api/dataTracking'
-import MultiSelectDropdown from '@/components/input/select/MultiSelectDropdown.vue'
+import type {TransferContext} from '@/api/generated/schema'
+import type {TrackingStatusName} from '@/api/dataTracking'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import StatusBadge from './StatusBadge.vue'
 import StatusReasonFields from './StatusReasonFields.vue'
+import IgnoredColumnsField from './IgnoredColumnsField.vue'
 
-const props = defineProps<{
-  transfer: TransferContext
+defineProps<{
   statuses: TrackingStatusName[]
   columnOptions: { value: string; label: string; group?: string }[]
 }>()
 
-const {t} = useI18n()
+const transfer = defineModel<TransferContext>('transfer', {required: true})
 
-const ignoredColumns = computed({
-  get: () => props.transfer.ignoredColumns ?? [],
-  set: (v: string[]) => { props.transfer.ignoredColumns = [...v] },
-})
+const {t} = useI18n()
 </script>
 
 <template>
@@ -40,17 +36,7 @@ const ignoredColumns = computed({
           :statuses="statuses"
           show-rationale-on-tracked
       />
-      <div>
-        <label class="block text-xs text-(--text-muted) mb-1">
-          {{ t('adminDataTracking.detail.ignoredColumns') }}
-        </label>
-        <MultiSelectDropdown
-            v-model="ignoredColumns"
-            :options="columnOptions"
-            :placeholder="t('adminDataTracking.detail.ignoredColumnsPlaceholder')"
-            searchable
-        />
-      </div>
+      <IgnoredColumnsField v-model:ignored="transfer.ignoredColumns" :column-options="columnOptions"/>
     </div>
   </section>
 </template>

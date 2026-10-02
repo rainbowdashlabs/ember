@@ -8,7 +8,7 @@ import {useI18n} from 'vue-i18n'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FilesBrowser from './FilesBrowser.vue'
 import MediaModals from './MediaModals.vue'
-import type {StationFile, StationFileFolder, StationFileListing, StationFileTag} from '@/api/media'
+import type {FileListing, StationFile, StationFileFolder, StationFileTag} from '@/api/generated/schema'
 import type {FolderTreeNode} from './useMediaFolderTree'
 
 const search = defineModel<string>('search', {required: true})
@@ -40,8 +40,8 @@ const props = defineProps<{
   selectedIds: number[]
   breadcrumbs: StationFileFolder[]
   visibleFolders: StationFileFolder[]
-  filtered: StationFileListing[]
-  pagedFiles: StationFileListing[]
+  filtered: FileListing[]
+  pagedFiles: FileListing[]
   stationUid: string
   totalPages: number
   pageSizeOptions: readonly number[]
@@ -51,27 +51,27 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'new-folder'): void
-  (e: 'edit-folder', f: StationFileFolder): void
-  (e: 'remove-folder', f: StationFileFolder): void
-  (e: 'new-tag'): void
-  (e: 'edit-tag', t: StationFileTag): void
-  (e: 'remove-tag', t: StationFileTag): void
-  (e: 'toggle-multi-select'): void
-  (e: 'upload', files: File[]): void
-  (e: 'prune'): void
-  (e: 'open-bulk-move'): void
-  (e: 'clear-selection'): void
-  (e: 'preview-file', f: StationFile): void
-  (e: 'edit-file', f: StationFile): void
-  (e: 'delete-file', f: StationFile): void
-  (e: 'toggle-select', id: number, value: boolean, shift: boolean, index: number): void
-  (e: 'toggle-tag', fileId: number, tagId: number, currentlyAssigned: boolean): void
-  (e: 'save-edit', id: number, altText: string, description: string): void
-  (e: 'save-folder'): void
-  (e: 'save-tag'): void
-  (e: 'bulk-move'): void
-  (e: 'bulk-delete'): void
+  'new-folder': []
+  'edit-folder': [f: StationFileFolder]
+  'remove-folder': [f: StationFileFolder]
+  'new-tag': []
+  'edit-tag': [t: StationFileTag]
+  'remove-tag': [t: StationFileTag]
+  'toggle-multi-select': []
+  upload: [files: File[]]
+  prune: []
+  'open-bulk-move': []
+  'clear-selection': []
+  'preview-file': [f: StationFile]
+  'edit-file': [f: StationFile]
+  'delete-file': [f: StationFile]
+  'toggle-select': [id: number, value: boolean, shift: boolean, index: number]
+  'toggle-tag': [fileId: number, tagId: number, currentlyAssigned: boolean]
+  'save-edit': [id: number, altText: string, description: string]
+  'save-folder': []
+  'save-tag': []
+  'bulk-move': []
+  'bulk-delete': []
 }>()
 
 const {t} = useI18n()

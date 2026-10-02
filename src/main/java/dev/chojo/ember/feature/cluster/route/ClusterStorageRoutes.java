@@ -6,11 +6,11 @@
 package dev.chojo.ember.feature.cluster.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.ClusterPermission;
 import dev.chojo.ember.api.auth.InstancePermission;
+import dev.chojo.ember.api.refusal.ClusterRefusal;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.service.ClusterService;
 import dev.chojo.ember.feature.cluster.service.ClusterStorageQuotaService;
@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.storage.entity.ClusterQuotaDefaults;
 import dev.chojo.ember.feature.storage.entity.ClusterStorageQuotaPreset;
 import dev.chojo.ember.feature.storage.entity.QuotaOrigin;
 import dev.chojo.ember.feature.storage.entity.StationQuotas;
+import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -30,6 +31,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.UUID;
@@ -101,7 +103,7 @@ public class ClusterStorageRoutes implements Routes {
                                 station.usedBytes(),
                                 station.usage().stream()
                                         .map(usage -> new CategoryUsageResponse(
-                                                usage.category().name(), usage.totalBytes(), usage.fileCount()))
+                                                usage.category(), usage.totalBytes(), usage.fileCount()))
                                         .toList(),
                                 station.presetId(),
                                 station.presetName()))
@@ -236,6 +238,10 @@ public class ClusterStorageRoutes implements Routes {
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
+    /**
+     * Hands a station a share of the pool. A screen that only knows about a total sends that one
+     * field, and a null total from it still hands the room back.
+     */
     @OpenApi(
             path = "/api/v1/cluster/storage/stations/{stationUid}",
             pathParams = @OpenApiParam(name = "stationUid", type = String.class, required = true),
@@ -251,8 +257,6 @@ public class ClusterStorageRoutes implements Routes {
         Cluster cluster = requireActive(ctx);
         var request = ctx.bodyAsClass(DimensionsRequest.class);
         UUID stationUid = parseUid(ctx.pathParam("stationUid"));
-        // The screen that only knows about a total sends that one field and nothing else, and its meaning has
-        // not changed: null hands the room back
         if (request.onlyTotal() && request.totalBytes() == null) {
             quotaService.handBack(cluster.id(), stationUid);
         } else {
@@ -295,7 +299,7 @@ public class ClusterStorageRoutes implements Routes {
     private void setPool(Context ctx) {
         Cluster cluster = clusterService
                 .findByUid(parseUid(ctx.pathParam("clusterUid")))
-                .orElseThrow(Refusal.CLUSTER_NOT_HERE_ON_POOL::raise);
+                .orElseThrow(ClusterRefusal.CLUSTER_NOT_HERE_ON_POOL::raise);
         var request = ctx.bodyAsClass(PoolRequest.class);
         quotaService.setStoragePool(cluster.id(), request.quotaBytes());
         ctx.status(HttpStatus.NO_CONTENT);
@@ -304,15 +308,15 @@ public class ClusterStorageRoutes implements Routes {
     private Cluster requireActive(Context ctx) {
         UserSession session = UserSession.from(ctx);
         Integer clusterId = session.clusterId();
-        if (clusterId == null) throw Refusal.NO_CLUSTER_CHOSEN_FOR_STORAGE.raise();
-        return clusterService.findById(clusterId).orElseThrow(Refusal.CLUSTER_NOT_HERE_FOR_STORAGE::raise);
+        if (clusterId == null) throw ClusterRefusal.NO_CLUSTER_CHOSEN_FOR_STORAGE.raise();
+        return clusterService.findById(clusterId).orElseThrow(ClusterRefusal.CLUSTER_NOT_HERE_FOR_STORAGE::raise);
     }
 
     private static UUID parseUid(String raw) {
         try {
             return UUID.fromString(raw);
         } catch (IllegalArgumentException e) {
-            throw Refusal.NOT_AN_IDENTITY_IN_CLUSTER_STORAGE.raise(raw);
+            throw ClusterRefusal.NOT_AN_IDENTITY_IN_CLUSTER_STORAGE.raise(raw);
         }
     }
 
@@ -335,13 +339,13 @@ public class ClusterStorageRoutes implements Routes {
      * request to grant nothing.
      */
     public record DimensionsRequest(
-            Long totalBytes,
-            Long kbBytes,
-            Long boardBytes,
-            Long imagesBytes,
-            Long pagesBytes,
-            Long perFileBytes,
-            Long perImageBytes) {
+            @Nullable Long totalBytes,
+            @Nullable Long kbBytes,
+            @Nullable Long boardBytes,
+            @Nullable Long imagesBytes,
+            @Nullable Long pagesBytes,
+            @Nullable Long perFileBytes,
+            @Nullable Long perImageBytes) {
         boolean onlyTotal() {
             return kbBytes == null
                     && boardBytes == null
@@ -415,7 +419,7 @@ public class ClusterStorageRoutes implements Routes {
         }
     }
 
-    public record CategoryUsageResponse(String category, long totalBytes, int fileCount) {}
+    public record CategoryUsageResponse(StorageCategory category, long totalBytes, int fileCount) {}
 
     /**
      * @param quotaBytes the total granted, kept beside the rest because the screen that only reads a total is
@@ -425,21 +429,21 @@ public class ClusterStorageRoutes implements Routes {
     public record StationRoomResponse(
             UUID stationUid,
             String stationName,
-            Long quotaBytes,
+            @Nullable Long quotaBytes,
             boolean ownStore,
             Dimensions granted,
             ResolvedResponse resolved,
             long usedBytes,
             List<CategoryUsageResponse> usage,
-            Integer presetId,
-            String presetName) {}
+            @Nullable Integer presetId,
+            @Nullable String presetName) {}
 
     /**
      * @param poolBytes the whole the cluster may hand out, or {@code null} when the instance set no cap
      * @param handedOut the sum of the totals promised, the cluster's own store included
      */
     public record OverviewResponse(
-            Long poolBytes,
+            @Nullable Long poolBytes,
             long handedOut,
             Dimensions defaults,
             List<TierResponse> presets,

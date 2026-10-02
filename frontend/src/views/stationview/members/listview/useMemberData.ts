@@ -4,11 +4,19 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import { ref, computed } from 'vue'
-import {parseFieldConfig, type ProfileField} from '@/api/profileFields'
-import {calculatedAnswer, type ProfileFieldAssignment} from '@/util/profileFields'
-import type { StationMember, MemberGroup, UserTag, PermissionGrant } from '@/api/types'
+import {parseFieldConfig} from '@/api/profileFields'
+import {calculatedAnswer} from '@/util/profileFields'
 import { profileFields, stationMembers } from '@/api'
-import type { RichMember } from '@/api/stationMembers'
+import type {
+  GroupEntry,
+  MemberIdentity,
+  MemberWithName,
+  Permission,
+  ProfileField,
+  ProfileFieldAssignment,
+  RichMember,
+  TagEntry,
+} from '@/api/generated/schema'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { useI18n } from 'vue-i18n'
 import { describeFailure } from '@/util/failure'
@@ -21,6 +29,13 @@ export function memberDisplayName(m: {id: number; name?: string | null; email?: 
   return m.name && m.name.trim() ? m.name : m.email ?? `#${m.id}`
 }
 
+/** What the name helpers read of a person: the whole name and, where the list carries them, its halves. */
+interface NamedMember {
+  name?: string | null
+  firstName?: string
+  lastName?: string
+}
+
 /**
  * The two halves of a name, taken as they are stored where the server sends them.
  *
@@ -28,15 +43,26 @@ export function memberDisplayName(m: {id: number; name?: string | null; email?: 
  * names or two surnames: "Millie Jo Harnack" reads as a surname of "Jo Harnack". It stays as the
  * fallback for the lists that do not carry the halves.
  */
-export function getMemberFirstName(m: StationMember): string {
+export function getMemberFirstName(m: NamedMember): string {
   if (m.firstName !== undefined) return m.firstName
   return (m.name ?? '').split(' ')[0] ?? ''
 }
 
-export function getMemberLastName(m: StationMember): string {
+export function getMemberLastName(m: NamedMember): string {
   if (m.lastName !== undefined) return m.lastName
   return (m.name ?? '').split(' ').slice(1).join(' ')
 }
+
+/**
+ * One person as the member list reads them: what a station's own roll sends, and what an association's
+ * search can say about somebody at one of its stations. Whether a profile is complete is known only
+ * on a station's own roll; the search does not say.
+ */
+export type RosterMember = Pick<RichMember,
+    'id' | 'stationId' | 'accountId' | 'name' | 'firstName' | 'lastName' | 'email' | 'accountSetupPending'
+    | 'setupMailExpiresAt' | 'mailReaches' | 'former' | 'roles' | 'groups' | 'tags' | 'profileValues'>
+    & Partial<Pick<RichMember, 'profileComplete'>>
+    & {userType: string; identity: MemberIdentity}
 
 /**
  * Where a member list gets its people, its questions and its grants.
@@ -50,13 +76,13 @@ export interface MemberDataSource {
    * @return the people, the questions, who each question is put to, and the permissions in force
    */
   load(): Promise<{
-    members: RichMember[]
+    members: RosterMember[]
     fields: ProfileField[]
     assignments: ProfileFieldAssignment[]
-    roles: PermissionGrant[]
+    roles: Permission[]
   }>
   /** Who manages this person, fetched when a row is opened. Absent where nobody does. */
-  loadManagers?(memberId: number): Promise<StationMember[]>
+  loadManagers?(memberId: number): Promise<MemberWithName[]>
 }
 
 /** The station's own roll, which is what this screen has always shown. */
@@ -74,17 +100,17 @@ export const STATION_MEMBER_SOURCE: MemberDataSource = {
 }
 
 export function useMemberData(source: MemberDataSource = STATION_MEMBER_SOURCE) {
-  const members = ref<StationMember[]>([])
+  const members = ref<RosterMember[]>([])
   const fields = ref<ProfileField[]>([])
   const assignments = ref<ProfileFieldAssignment[]>([])
-  const allGroups = ref<MemberGroup[]>([])
-  const allTags = ref<UserTag[]>([])
-  const allRoles = ref<PermissionGrant[]>([])
+  const allGroups = ref<GroupEntry[]>([])
+  const allTags = ref<TagEntry[]>([])
+  const allRoles = ref<Permission[]>([])
   const memberValues = ref<Map<number, Map<number, string>>>(new Map())
   const memberRolesMap = ref<Map<number, string[]>>(new Map())
   const memberGroupsMap = ref<Map<number, string[]>>(new Map())
   const memberTagsMap = ref<Map<number, string[]>>(new Map())
-  const memberManagers = ref<Map<number, StationMember[]>>(new Map())
+  const memberManagers = ref<Map<number, MemberWithName[]>>(new Map())
   const expandedId = ref<number | null>(null)
 
   const overviewFields = computed(() => fields.value.filter(f => parseFieldConfig(f.config).overview))
@@ -129,30 +155,14 @@ export function useMemberData(source: MemberDataSource = STATION_MEMBER_SOURCE) 
     assignments.value = allAssignments
     allRoles.value = roles
 
-    const memberList: StationMember[] = []
     const valMap = new Map<number, Map<number, string>>()
     const rolesMap = new Map<number, string[]>()
     const groupsMap = new Map<number, string[]>()
     const tagsMap = new Map<number, string[]>()
-    const groupSet = new Map<number, MemberGroup>()
-    const tagSet = new Map<number, UserTag>()
+    const groupSet = new Map<number, GroupEntry>()
+    const tagSet = new Map<number, TagEntry>()
 
     for (const rm of richMembers) {
-      memberList.push({
-        id: rm.id,
-        stationId: String(rm.stationId),
-        accountId: rm.accountId ?? 0,
-        name: rm.name,
-        firstName: rm.firstName,
-        lastName: rm.lastName,
-        email: rm.email,
-        userType: rm.userType,
-        identity: rm.identity,
-        accountSetupPending: rm.accountSetupPending,
-        setupMailExpiresAt: rm.setupMailExpiresAt,
-        mailReaches: rm.mailReaches,
-      })
-
       rolesMap.set(rm.id, rm.roles)
 
       const fieldMap = new Map<number, string>()
@@ -162,21 +172,17 @@ export function useMemberData(source: MemberDataSource = STATION_MEMBER_SOURCE) 
       valMap.set(rm.id, fieldMap)
 
       groupsMap.set(rm.id, rm.groups.map(g => g.name))
-      for (const g of rm.groups) {
-        if (!groupSet.has(g.id)) {
-          groupSet.set(g.id, { id: g.id, stationId: String(rm.stationId), name: g.name })
-        }
+      for (const group of rm.groups) {
+        if (!groupSet.has(group.id)) groupSet.set(group.id, group)
       }
 
       tagsMap.set(rm.id, rm.tags.map(t => t.name))
       for (const tag of rm.tags) {
-        if (!tagSet.has(tag.id)) {
-          tagSet.set(tag.id, { id: tag.id, stationId: String(rm.stationId), name: tag.name })
-        }
+        if (!tagSet.has(tag.id)) tagSet.set(tag.id, tag)
       }
     }
 
-    members.value = memberList
+    members.value = richMembers
     memberValues.value = valMap
     memberRolesMap.value = rolesMap
     memberGroupsMap.value = groupsMap
@@ -191,7 +197,7 @@ export function useMemberData(source: MemberDataSource = STATION_MEMBER_SOURCE) 
    * <p>A failure here used to be swallowed, and the open row then read as though nobody managed them,
    * which for a young member is the opposite of the truth. It is said out loud instead.
    */
-  async function toggleExpand(member: StationMember) {
+  async function toggleExpand(member: RosterMember) {
     if (expandedId.value === member.id) { expandedId.value = null; return }
     expandedId.value = member.id
     if (source.loadManagers && !memberManagers.value.has(member.id)) {

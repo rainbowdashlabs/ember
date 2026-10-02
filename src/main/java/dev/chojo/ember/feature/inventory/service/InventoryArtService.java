@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
+import dev.chojo.ember.api.refusal.InventoryRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.inventory.entity.ArtStock;
 import dev.chojo.ember.feature.inventory.entity.Glyph;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
@@ -13,10 +15,9 @@ import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.ItemNameCount;
 import dev.chojo.ember.feature.inventory.repository.InventoryArtRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -120,7 +121,7 @@ public class InventoryArtService {
      * @return every kind sharing its key, this one among them
      */
     public List<InventoryArt> sameAcrossStations(int artId) {
-        InventoryArt art = artRepository.findById(artId).orElseThrow(NotFoundResponse::new);
+        InventoryArt art = artRepository.findById(artId).orElseThrow(InventoryRefusal.ART_NOT_HERE_TO_MATCH::raise);
         return artRepository.findByMergeKey(art.mergeKey());
     }
 
@@ -132,10 +133,10 @@ public class InventoryArtService {
      * @param note        a free note, may be empty or {@code null}
      * @param position    the sort position
      * @return the kind that was written
-     * @throws BadRequestResponse when the inventory holds one thing in many copies, or when the name
-     *                            is blank or already taken there
+     * @throws RefusalResponse when the inventory holds one thing in many copies, or when the name
+     *                         is blank or already taken there
      */
-    public InventoryArt create(int inventoryId, String name, String note, int position) {
+    public InventoryArt create(int inventoryId, String name, @Nullable String note, int position) {
         return create(inventoryId, name, note, position, Glyph.NONE);
     }
 
@@ -149,12 +150,12 @@ public class InventoryArtService {
      * @param glyph       the picture the pieces of this kind are drawn with
      * @return the kind that was written
      */
-    public InventoryArt create(int inventoryId, String name, String note, int position, Glyph glyph) {
+    public InventoryArt create(int inventoryId, String name, @Nullable String note, int position, Glyph glyph) {
         Glyph painted = glyph.paintable();
         Inventory inventory = requireHeterogeneous(inventoryId);
         String trimmed = requireName(name);
         artRepository.findByName(inventoryId, trimmed).ifPresent(existing -> {
-            throw new BadRequestResponse("This inventory already has a kind called %s".formatted(existing.name()));
+            throw InventoryRefusal.ART_NAME_TAKEN_ON_CREATE.raise(existing.name());
         });
         InventoryArt art = artRepository.create(inventoryId, trimmed, note, position, painted);
         log.info("Created kind {} (name='{}') in inventory {}", art.id(), trimmed, inventory.id());
@@ -176,7 +177,7 @@ public class InventoryArtService {
      * @param position its new sort position
      * @return the kind as it now stands, or empty when nothing changed
      */
-    public Optional<InventoryArt> update(int id, String name, String note, int position) {
+    public Optional<InventoryArt> update(int id, String name, @Nullable String note, int position) {
         Glyph current = artRepository
                 .findById(id)
                 .map(art -> new Glyph(art.icon(), art.color()))
@@ -194,13 +195,13 @@ public class InventoryArtService {
      * @param glyph    the picture the pieces of this kind are drawn with
      * @return the kind as it now stands, or empty when nothing changed
      */
-    public Optional<InventoryArt> update(int id, String name, String note, int position, Glyph glyph) {
+    public Optional<InventoryArt> update(int id, String name, @Nullable String note, int position, Glyph glyph) {
         Glyph painted = glyph.paintable();
-        InventoryArt before = artRepository.findById(id).orElseThrow(NotFoundResponse::new);
+        InventoryArt before = artRepository.findById(id).orElseThrow(InventoryRefusal.ART_NOT_HERE_TO_CHANGE::raise);
         String trimmed = requireName(name);
         artRepository.findByName(before.inventoryId(), trimmed).ifPresent(existing -> {
             if (existing.id() != id) {
-                throw new BadRequestResponse("This inventory already has a kind called %s".formatted(existing.name()));
+                throw InventoryRefusal.ART_NAME_TAKEN_ON_CHANGE.raise(existing.name());
             }
         });
         if (!artRepository.update(id, trimmed, note, position, painted)) {
@@ -239,7 +240,7 @@ public class InventoryArtService {
      * @param itemIds     the pieces
      * @return how many pieces changed
      */
-    public int assign(int inventoryId, Integer artId, List<Integer> itemIds) {
+    public int assign(int inventoryId, @Nullable Integer artId, List<Integer> itemIds) {
         List<Integer> owned = requireItemsOfInventory(inventoryId, itemIds);
         if (artId != null) requireArtOfInventory(inventoryId, artId);
         int changed = artRepository.setArt(artId, owned);
@@ -279,26 +280,24 @@ public class InventoryArtService {
      * without anybody having chosen that.
      */
     private Inventory requireHeterogeneous(int inventoryId) {
-        Inventory inventory = inventoryRepository
-                .findById(inventoryId)
-                .orElseThrow(() -> new NotFoundResponse("This inventory does not exist"));
+        Inventory inventory =
+                inventoryRepository.findById(inventoryId).orElseThrow(InventoryRefusal.ART_INVENTORY_NOT_HERE::raise);
         if (inventory.homogeneous()) {
-            throw new BadRequestResponse(
-                    "Kinds exist only in a collection, and this inventory is uniform, one thing in many copies");
+            throw InventoryRefusal.ART_INVENTORY_UNIFORM.raise();
         }
         return inventory;
     }
 
     private static String requireName(String name) {
         String trimmed = name == null ? "" : name.trim();
-        if (trimmed.isEmpty()) throw new BadRequestResponse("A kind needs a name");
+        if (trimmed.isEmpty()) throw InventoryRefusal.ART_NEEDS_A_NAME.raise();
         return trimmed;
     }
 
     private InventoryArt requireArtOfInventory(int inventoryId, int artId) {
-        InventoryArt art = artRepository.findById(artId).orElseThrow(NotFoundResponse::new);
+        InventoryArt art = artRepository.findById(artId).orElseThrow(InventoryRefusal.ART_NOT_HERE::raise);
         if (art.inventoryId() != inventoryId) {
-            throw new BadRequestResponse("That kind belongs to another inventory");
+            throw InventoryRefusal.ART_IN_ANOTHER_INVENTORY.raise();
         }
         return art;
     }
@@ -307,9 +306,10 @@ public class InventoryArtService {
         if (itemIds == null || itemIds.isEmpty()) return List.of();
         List<Integer> distinct = itemIds.stream().distinct().toList();
         for (Integer itemId : distinct) {
-            InventoryItem item = inventoryRepository.findItemById(itemId).orElseThrow(NotFoundResponse::new);
+            InventoryItem item =
+                    inventoryRepository.findItemById(itemId).orElseThrow(InventoryRefusal.ART_PIECE_NOT_HERE::raise);
             if (item.inventoryId() != inventoryId) {
-                throw new BadRequestResponse("That piece belongs to another inventory");
+                throw InventoryRefusal.ART_PIECE_IN_ANOTHER_INVENTORY.raise();
             }
         }
         return distinct;

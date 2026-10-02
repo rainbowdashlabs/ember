@@ -12,8 +12,7 @@ import {news as newsApi} from '@/api'
 
 const props = defineProps<{
   newsId: number
-  // Optional initial value so the badge can paint immediately while the
-  // authoritative count is being fetched.
+  /** Painted at once while the authoritative count is being fetched. */
   initialCount?: number
   newsTitle?: string
 }>()
@@ -22,22 +21,18 @@ const {t} = useI18n()
 const modalOpen = ref(false)
 const count = ref<number>(props.initialCount ?? 0)
 
+/** Reads the current count, keeping the last one where the read fails. */
 async function fetchCount() {
-  try {
-    count.value = await newsApi.getNewsViewCount(props.newsId)
-  } catch {
-    // Best-effort - fall back to whatever we last had.
-  }
+  await newsApi.getNewsViewCount(props.newsId).then(viewed => { count.value = viewed }).catch(() => {})
 }
 
 defineExpose({refresh: fetchCount})
 
 onMounted(fetchCount)
 
+/** Opens the list of readers and refreshes the count too, so it cannot lag behind a view recorded since mount. */
 function open() {
   modalOpen.value = true
-  // Modal load itself fetches the seen list; refresh the count too so the
-  // badge can't lag behind a view recorded between mount and click.
   fetchCount()
 }
 </script>

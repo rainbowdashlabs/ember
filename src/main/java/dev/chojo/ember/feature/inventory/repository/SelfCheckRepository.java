@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.inventory.entity.SelfCheckRowState;
 import dev.chojo.ember.feature.inventory.entity.SelfCheckState;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.LocalDate;
 import java.util.Collection;
@@ -144,7 +145,7 @@ public class SelfCheckRepository {
      * @param checkId the check it wrote, or {@code null} where it wrote none
      * @return {@code true} where this call is the one that ended it
      */
-    public boolean finish(int taskId, SelfCheckState state, Integer checkId) {
+    public boolean finish(int taskId, SelfCheckState state, @Nullable Integer checkId) {
         return query("""
                 UPDATE inventory_self_check
                 SET state = :state, closed_at = now(), check_id = :check_id
@@ -226,8 +227,8 @@ public class SelfCheckRepository {
             int inventoryId,
             SelfCheckAnswer answer,
             String note,
-            String typedInternalId,
-            Integer sizeId,
+            @Nullable String typedInternalId,
+            @Nullable Integer sizeId,
             int answeredBy) {
         return SqlSupport.insertReturning(
                 """
@@ -269,8 +270,8 @@ public class SelfCheckRepository {
             int slot,
             SelfCheckAnswer answer,
             String note,
-            String typedInternalId,
-            Integer sizeId,
+            @Nullable String typedInternalId,
+            @Nullable Integer sizeId,
             int answeredBy) {
         return SqlSupport.insertReturning(
                 """
@@ -409,7 +410,11 @@ public class SelfCheckRepository {
      * happened by the time this is written.
      */
     public SelfCheckRaised recordRaised(
-            int taskId, SelfCheckRaisedKind kind, Integer itemId, Integer movementId, int raisedBy) {
+            int taskId,
+            SelfCheckRaisedKind kind,
+            @Nullable Integer itemId,
+            @Nullable Integer movementId,
+            int raisedBy) {
         return SqlSupport.insertReturning(
                 """
                 INSERT INTO inventory_self_check_raised(task_id, kind, state, item_id, movement_id, raised_by)
@@ -440,7 +445,7 @@ public class SelfCheckRepository {
             SelfCheckRaisedKind kind,
             int itemId,
             int rowId,
-            Integer newSizeId,
+            @Nullable Integer newSizeId,
             String words,
             int raisedBy) {
         return SqlSupport.insertReturning(
@@ -485,7 +490,7 @@ public class SelfCheckRepository {
      * @param movementId the movement an exchange started, or {@code null} for a loss
      * @return {@code true} where this call is the one that sent it out
      */
-    public boolean markRaised(int raisedId, int itemId, Integer movementId) {
+    public boolean markRaised(int raisedId, int itemId, @Nullable Integer movementId) {
         return query("""
                 UPDATE inventory_self_check_raised
                 SET state = 'RAISED', item_id = :item_id, movement_id = :movement_id

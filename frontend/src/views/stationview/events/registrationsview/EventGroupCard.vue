@@ -8,18 +8,17 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import ErrorContainer from '@/components/container/ErrorContainer.vue'
 import EventGroupHeader from './EventGroupHeader.vue'
 import StatusSections from './StatusSections.vue'
-import type {EventRegistrationEntry, MemberRegistrationStats, StationEvent} from '@/api/events'
-
-type StatusKey = 'PENDING' | 'ACCEPTED' | 'DENIED' | 'DECLINED' | 'WITHDRAWN'
+import type {RegistrationStatusName} from '@/api/events'
+import type {EventSummary, RegistrationResponse, RegistrationStatsResponse} from '@/api/generated/schema'
 
 defineProps<{
-  event: StationEvent
-  counts: { PENDING: number; ACCEPTED: number; DENIED: number; DECLINED: number; WITHDRAWN: number }
+  event: EventSummary
+  counts: Record<RegistrationStatusName, number>
   deadlineExpired: boolean
   expanded: boolean
   expandedLoading: boolean
-  expandedByStatus: Record<StatusKey, EventRegistrationEntry[]>
-  registrationStats: MemberRegistrationStats[]
+  expandedByStatus: Record<RegistrationStatusName, RegistrationResponse[]>
+  registrationStats: RegistrationStatsResponse[]
   formatDeadline: (iso?: string | null) => string
 }>()
 

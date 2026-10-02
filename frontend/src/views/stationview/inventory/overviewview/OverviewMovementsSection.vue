@@ -11,7 +11,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import RowLink from '@/components/navigation/RowLink.vue'
 import {useDataTable} from '@/composables/useDataTable'
 import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
-import type {Movement} from '@/api/movements'
+import type {MovementResponse} from '@/api/generated/schema'
 import MovementRecordTable from '../movementqueueview/MovementRecordTable.vue'
 import MovementSubjectCell from '../movementqueueview/MovementSubjectCell.vue'
 import {MovementColumn, type MovementColumnKey, useMovementColumns} from '../movementqueueview/movementColumns'
@@ -22,7 +22,7 @@ import {MovementColumn, type MovementColumnKey, useMovementColumns} from '../mov
  * is worked.
  */
 const props = defineProps<{
-  movements: Movement[]
+  movements: MovementResponse[]
 }>()
 
 const {t} = useI18n()
@@ -40,7 +40,7 @@ const SHOWN: MovementColumnKey[] = [
 const allColumns = useMovementColumns(() => props.movements)
 const columns = computed(() => allColumns.value.filter(column => SHOWN.includes(column.key as MovementColumnKey)))
 
-const table = useDataTable<Movement>({
+const table = useDataTable<MovementResponse>({
   id: 'inventory-overview-movements',
   rows: () => props.movements,
   columns,

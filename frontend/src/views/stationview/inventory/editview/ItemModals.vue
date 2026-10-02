@@ -11,29 +11,31 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
-import TextInput from '@/components/input/text/TextInput.vue'
-import NumberInput from '@/components/input/number/NumberInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
 import {fromMember, userTypesOf} from '@/components/input/select/memberOption'
-import MutedText from '@/components/typography/MutedText.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
-import ScanButton from '@/components/scanner/ScanButton.vue'
 import {normaliseScannedPayload} from '@/components/scanner/useBarcodeScanner'
-import {ItemOwner, type InventoryDetail, type InventoryItem, type InventoryItemHistory} from '@/api/inventory'
-import type {StationMember} from '@/api/types'
+import {ItemOwner} from '@/api/inventory'
+import type {
+  HistoryResponse,
+  InventoryArt,
+  InventoryDetail,
+  InventoryFieldDefinition,
+  InventoryItem,
+} from '@/api/generated/schema'
+import type {MemberLike} from '@/components/input/select/memberOption'
 import {inventory, inventoryArts, inventoryFields} from '@/api'
-import type {InventoryArt} from '@/api/inventoryArts'
 import {useModalTarget} from '@/composables/useModalTarget'
 import AddItemFields from './itemmodals/AddItemFields.vue'
 import EditItemModal from '../detailview/EditItemModal.vue'
 import EditItemCustomFields from '../detailview/edititemmodal/EditItemCustomFields.vue'
 import {buildItemMetadata} from '../detailview/itemMetadata'
-import type {InventoryFieldDefinition} from '@/api/inventoryFields'
 import {useAsyncAction} from '@/composables/useAsyncAction'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {formatDate} from '@/util/format'
 import {describeFailure, type Failure} from '@/util/failure'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
@@ -42,7 +44,7 @@ const {t} = useI18n()
 
 const props = defineProps<{
   detail: InventoryDetail
-  members: StationMember[]
+  members: MemberLike[]
 }>()
 
 const emit = defineEmits<{
@@ -214,9 +216,14 @@ async function submitQuickAssign() {
 
 const showHistoryModal = ref(false)
 const historyTarget = ref<InventoryItem | null>(null)
-const historyEntries = ref<InventoryItemHistory[]>([])
-const historyLoading = ref(false)
-const historyFailure = ref<Failure | null>(null)
+const historyEntries = ref<HistoryResponse[]>([])
+const {loading: historyLoading, failure: historyFailure, reload: loadHistory} = useAsyncLoader(async (isCurrent) => {
+  const item = historyTarget.value
+  if (!item) return
+  historyEntries.value = []
+  const entries = await inventory.getItemHistory(item.id)
+  if (isCurrent()) historyEntries.value = entries
+}, {autoLoad: false})
 
 /**
  * Opens the history of one piece.
@@ -227,17 +234,8 @@ const historyFailure = ref<Failure | null>(null)
  */
 async function openHistory(item: InventoryItem) {
   historyTarget.value = item
-  historyEntries.value = []
-  historyFailure.value = null
-  historyLoading.value = true
   showHistoryModal.value = true
-  try {
-    historyEntries.value = await inventory.getItemHistory(item.id)
-  } catch (e) {
-    historyFailure.value = describeFailure(e, t)
-  } finally {
-    historyLoading.value = false
-  }
+  await loadHistory()
 }
 
 const {isOpen: showDeleteModal, target: deleteTarget, open: requestDelete} = useModalTarget<InventoryItem>()
@@ -262,17 +260,17 @@ defineExpose({openAdd, openEdit, openAssign, openQuickAssign, openHistory, reque
     <form class="space-y-4" @submit.prevent="saveItem">
       <SectionHeader>{{ t('inventory.edit.addItem') }}</SectionHeader>
       <AddItemFields
-          v-model:internalId="itemInternalId"
+          v-model:internal-id="itemInternalId"
           v-model:name="itemName"
-          v-model:sizeId="itemSizeId"
+          v-model:size-id="itemSizeId"
           v-model:quantity="itemQuantity"
-          v-model:artId="itemArtId"
-          v-model:artDraft="itemArtDraft"
+          v-model:art-id="itemArtId"
+          v-model:art-draft="itemArtDraft"
           :detail="detail"
           :arts="arts"
           :heterogeneous="heterogeneous"
       />
-      <EditItemCustomFields :defs="fieldDefs" v-model="fieldValues"/>
+      <EditItemCustomFields v-model="fieldValues" :defs="fieldDefs"/>
       <ButtonRow pair align="end">
         <SecondaryButton type="button" @click="showItemModal = false">{{ t('common.cancel') }}</SecondaryButton>
         <PrimaryButton :disabled="itemSaving || !itemName.trim() || fieldsInvalid" type="submit">

@@ -8,16 +8,20 @@ import { useI18n } from 'vue-i18n'
 import BoardAccessSection from './BoardAccessSection.vue'
 import BoardFederationSection from './BoardFederationSection.vue'
 import type { RoleOption } from './BoardFederationSection.vue'
-import type { PermissionGrant, MemberGroup, UserTag } from '@/api/types'
-import type { FederationTarget } from '@/api/boards'
-import type { PartnerResponse } from '@/api/federation'
+import type {
+    FederationTargetResponse,
+    MemberGroup,
+    PartnerResponse,
+    Permission,
+    UserTag,
+} from '@/api/generated/schema'
 
 defineProps<{
-    allRoles: PermissionGrant[]
+    allRoles: Permission[]
     allGroups: MemberGroup[]
     allTags: UserTag[]
     canFederate: boolean
-    federationTargets: FederationTarget[]
+    federationTargets: FederationTargetResponse[]
     availablePartners: PartnerResponse[]
     hasFullMode: boolean
     roleOptions: RoleOption[]
@@ -44,32 +48,32 @@ const { t } = useI18n()
 <template>
     <div class="space-y-6">
         <BoardAccessSection
-            :title="t('boards.viewAccess')"
-            description="Leer = sichtbar für alle Mitglieder"
-            :roles="allRoles"
-            :groups="allGroups"
-            :tags="allTags"
             v-model:selected-user-types="viewUserTypes"
             v-model:selected-group-ids="viewGroupIds"
             v-model:selected-tag-ids="viewTagIds"
-        />
-        <BoardAccessSection
-            :title="t('boards.editAccess')"
-            description="Leer = alle mit Lesezugriff können bearbeiten"
+            :title="t('boards.viewAccess')"
+            :description="t('boards.viewOverrideHint')"
             :roles="allRoles"
             :groups="allGroups"
             :tags="allTags"
+        />
+        <BoardAccessSection
             v-model:selected-user-types="editUserTypes"
             v-model:selected-group-ids="editGroupIds"
             v-model:selected-tag-ids="editTagIds"
+            :title="t('boards.editAccess')"
+            :description="t('boards.editOverrideHint')"
+            :roles="allRoles"
+            :groups="allGroups"
+            :tags="allTags"
         />
         <BoardFederationSection
+            v-model:add-partner-id="addPartnerId"
+            v-model:federated-edit-user-types="federatedEditUserTypes"
             :can-federate="canFederate"
             :targets="federationTargets"
             :available-partners="availablePartners"
             :has-full-mode="hasFullMode"
-            v-model:add-partner-id="addPartnerId"
-            v-model:federated-edit-user-types="federatedEditUserTypes"
             :role-options="roleOptions"
             :partner-name="partnerName"
             @add="emit('addPartner')"

@@ -3,7 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {computed, ref} from 'vue'
+import {onMounted, onUnmounted, watch, type Ref} from 'vue'
+import {browserRef, browserShallowRef} from '@/util/browserState'
 
 /**
  * Which sidebar group is the one you are standing in.
@@ -18,43 +19,45 @@ import {computed, ref} from 'vue'
  * rail and the flyout) and both would answer the same question the same way. Every group claims the
  * length of its longest matching prefix and reads back whether anybody claimed more.
  */
-const claims = ref(new Map<number, number>())
+const claims = browserRef(new Map<number, number>())
 
-let nextId = 0
+const handles = browserShallowRef({next: 0})
 
-/** A group's own handle in the register, held for as long as it is mounted. */
-export function claimSidebarGroup(): number {
-    nextId += 1
-    return nextId
-}
-
-/**
- * Says how well this group matches the page being shown.
- *
- * <p>Nothing is registered on the server. The map is module level, a render there never unmounts, and
- * entries from one request would otherwise decide the highlight of the next.
- *
- * @param id     the group's handle
- * @param length the length of its longest matching prefix, or 0 when none matches
- */
-export function reportSidebarMatch(id: number, length: number): void {
-    if (import.meta.server) return
+function report(id: number, length: number): void {
     const next = new Map(claims.value)
     if (length > 0) next.set(id, length)
     else next.delete(id)
     claims.value = next
 }
 
-/** Forgets a group that has gone away, so an unmounted sidebar keeps nothing lit. */
-export function releaseSidebarGroup(id: number): void {
+function release(id: number): void {
     const next = new Map(claims.value)
     next.delete(id)
     claims.value = next
 }
 
-/** The best match anybody has claimed, which is the only one that lights up. */
-export const bestSidebarMatch = computed(() => {
+/**
+ * Enters a group in the register for as long as it is mounted, reporting how well it matches the
+ * page being shown.
+ *
+ * <p>From the mount on, never while the group sets up. A server render never mounts, so nothing it
+ * draws is registered, and the browser's first render sees the same empty register the server saw,
+ * which is what keeps the highlight the same in both.
+ *
+ * @param matchLength the length of the group's longest matching prefix, or 0 when none matches
+ */
+export function followSidebarMatch(matchLength: Readonly<Ref<number>>): void {
+    let id = 0
+    onMounted(() => {
+        id = ++handles.value.next
+        watch(matchLength, length => report(id, length), {immediate: true})
+    })
+    onUnmounted(() => release(id))
+}
+
+/** The best match anybody has claimed, which is the only one that lights up; 0 while nobody has. */
+export function bestSidebarMatch(): number {
     let best = 0
     for (const length of claims.value.values()) best = Math.max(best, length)
     return best
-})
+}

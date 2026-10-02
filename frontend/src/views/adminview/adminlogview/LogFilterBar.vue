@@ -11,7 +11,8 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import LogLevelFilter from './LogLevelFilter.vue'
 import LogFacetPanel from './LogFacetPanel.vue'
-import {LOG_LEVELS, searchFacets, type LogFacet} from '@/api/applicationLog'
+import {LOG_LEVELS, searchFacets} from '@/api/applicationLog'
+import type {LogFacet} from '@/api/generated/schema'
 
 /**
  * Everything the log is narrowed by, in one place.

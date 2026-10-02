@@ -5,6 +5,7 @@
  */
 import {request, type APIRequestContext} from '@playwright/test'
 import {demoStationGroups, instanceAdmin, test as base, type DemoAccount} from './auth'
+import {demoSignIn, sessionHeaders} from './session'
 
 /**
  * The second instance: a whole other installation of the application, not a second station of the
@@ -104,29 +105,25 @@ export async function instanceRequest(baseUrl: string): Promise<APIRequestContex
 /**
  * A request context signed in as the given account of the instance at the given address.
  *
- * The token is asked for the same way the first instance's sessions are: the demo login endpoint,
- * which a dev instance answers with a session for whoever is named. The station travels on the
- * header, because an account can be at a station and nothing guesses which one is meant.
+ * The session is asked for the same way the first instance's sessions are: the demo login endpoint,
+ * which a dev instance answers with a session cookie for whoever is named. The context carries the
+ * cookie and sends the token every change needs on each request. The station travels on the header,
+ * because an account can be at a station and nothing guesses which one is meant.
+ *
+ * Both instances answer on `localhost`, and a cookie does not tell ports apart, so a context only
+ * ever talks to the one instance it signed in at.
  */
 export async function instanceRequestAs(
     baseUrl: string,
     account: {email: string; stationId?: string},
 ): Promise<APIRequestContext> {
-    const anonymous = await instanceRequest(baseUrl)
-    let token: string
-    try {
-        const login = await anonymous.post('/api/v1/demo/login', {data: {email: account.email}})
-        if (!login.ok()) {
-            throw new Error(`The instance at ${baseUrl} answered ${login.status()} to a login for ${account.email}`)
-        }
-        token = (await login.json()).token
-    } finally {
-        await anonymous.dispose()
-    }
-
-    const headers: Record<string, string> = {Authorization: `Bearer ${token}`}
-    if (account.stationId) headers['X-Station-Id'] = account.stationId
-    return request.newContext({baseURL: baseUrl, extraHTTPHeaders: headers})
+    const context = await instanceRequest(baseUrl)
+    const session = await demoSignIn(context, account.email).finally(() => context.dispose())
+    return request.newContext({
+        baseURL: baseUrl,
+        storageState: {cookies: session.cookies, origins: []},
+        extraHTTPHeaders: sessionHeaders(session, account.stationId),
+    })
 }
 
 /** Whoever administers the instance at the given address, discovered rather than named. */

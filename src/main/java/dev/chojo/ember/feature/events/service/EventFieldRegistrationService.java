@@ -7,7 +7,7 @@ package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.EventRegistrationStatusChanged;
-import dev.chojo.ember.feature.events.entity.EventField;
+import dev.chojo.ember.feature.events.entity.AppointmentField;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
@@ -60,7 +60,7 @@ public class EventFieldRegistrationService {
     private final EventRepository eventRepository;
     private final EventFieldRepository fieldRepository;
     private final EventRegistrationRepository registrationRepository;
-    private final EventDateResolver dateResolver;
+    private final OccurrenceCalendar occurrenceCalendar;
     private final DomainEventBus eventBus;
     private final MemberNameResolver nameResolver;
 
@@ -69,13 +69,13 @@ public class EventFieldRegistrationService {
             EventRepository eventRepository,
             EventFieldRepository fieldRepository,
             EventRegistrationRepository registrationRepository,
-            EventDateResolver dateResolver,
+            OccurrenceCalendar occurrenceCalendar,
             DomainEventBus eventBus,
             MemberNameResolver nameResolver) {
         this.eventRepository = eventRepository;
         this.fieldRepository = fieldRepository;
         this.registrationRepository = registrationRepository;
-        this.dateResolver = dateResolver;
+        this.occurrenceCalendar = occurrenceCalendar;
         this.eventBus = eventBus;
         this.nameResolver = nameResolver;
     }
@@ -93,7 +93,7 @@ public class EventFieldRegistrationService {
         if (event == null) return;
 
         var memberFields = fieldRepository.findByEvent(eventId).stream()
-                .filter(field -> field.fieldType().isMemberField())
+                .filter(field -> field.fieldType().namesMembers())
                 .toList();
         var dateValues = fieldRepository.findDateValues(eventId);
         var dates = datesToReconcile(event, memberFields, dateValues);
@@ -157,7 +157,7 @@ public class EventFieldRegistrationService {
      * question still takes those places away again.
      */
     private Set<LocalDate> datesToReconcile(
-            StationEvent event, List<EventField> memberFields, Map<Integer, Map<LocalDate, String>> dateValues) {
+            StationEvent event, List<AppointmentField> memberFields, Map<Integer, Map<LocalDate, String>> dateValues) {
         var dates = new TreeSet<LocalDate>();
         for (var field : memberFields) {
             if (!field.config().perDate()) continue;
@@ -165,14 +165,16 @@ public class EventFieldRegistrationService {
         }
         boolean anyRepeating =
                 memberFields.stream().anyMatch(field -> !field.config().perDate());
-        if (anyRepeating) dates.addAll(dateResolver.occurrencesWithin(event, HORIZON_DAYS));
+        if (anyRepeating) dates.addAll(occurrenceCalendar.occurrencesWithin(event, HORIZON_DAYS));
         dates.addAll(registrationRepository.findFromFieldDates(event.id()));
         return dates;
     }
 
     /** Who each of those dates names, as a set of members per date. */
     private Map<LocalDate, Set<Integer>> namedOn(
-            List<EventField> memberFields, Map<Integer, Map<LocalDate, String>> dateValues, Set<LocalDate> dates) {
+            List<AppointmentField> memberFields,
+            Map<Integer, Map<LocalDate, String>> dateValues,
+            Set<LocalDate> dates) {
         var named = new HashMap<LocalDate, Set<Integer>>();
         for (var date : dates) {
             var members = new LinkedHashSet<Integer>();

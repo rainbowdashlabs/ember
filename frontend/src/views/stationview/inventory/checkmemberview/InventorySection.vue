@@ -11,19 +11,18 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import InventoryItemCard from './InventoryItemCard.vue'
 import EmptySlotCard from './EmptySlotCard.vue'
-import type { InventoryItem, RequiredInventoryItem } from '@/api/inventory'
-import type { CheckResult } from '@/api/inventoryCheck'
+import type { CheckResult, InventoryItem, RequiredInventoryItem } from '@/api/generated/schema'
 
 const props = defineProps<{
   req: RequiredInventoryItem
   assignedItems: InventoryItem[]
   availableItems: InventoryItem[]
   emptySlotCount: number
-  itemResults: Map<number, CheckResult>
-  itemNotes: Map<number, string>
-  slotsNotInPossession: Set<string>
-  slotProcurements: Set<string>
-  slotSelections: Map<string, string>
+  itemResults: ReadonlyMap<number, CheckResult>
+  itemNotes: ReadonlyMap<number, string>
+  slotsNotInPossession: ReadonlySet<string>
+  slotProcurements: ReadonlySet<string>
+  slotSelections: ReadonlyMap<string, string>
   sizeLabel: (req: RequiredInventoryItem, sizeId?: number | null) => string
   itemLabel: (item: InventoryItem, req: RequiredInventoryItem) => string
 }>()
@@ -61,12 +60,11 @@ const pieceCount = computed(() => props.assignedItems.length + props.emptySlotCo
           {{ t('inventory.check.inExchange', {count: req.inExchangeQuantity}) }}
         </span>
         <span v-if="req.assignedQuantity < req.requiredQuantity" class="text-error">
-          ({{ req.requiredQuantity - req.assignedQuantity }} fehlt)
+          {{ t('memberDetail.missingCount', {count: req.requiredQuantity - req.assignedQuantity}) }}
         </span>
       </MutedText>
     </div>
 
-    <!-- Assigned items -->
     <div class="space-y-2">
       <InventoryItemCard
         v-for="(item, index) in assignedItems"
@@ -85,7 +83,6 @@ const pieceCount = computed(() => props.assignedItems.length + props.emptySlotCo
       />
     </div>
 
-    <!-- Empty slots -->
     <EmptySlotCard
       v-for="slotIdx in emptySlotCount"
       :key="`empty-${req.inventoryId}-${slotIdx}`"

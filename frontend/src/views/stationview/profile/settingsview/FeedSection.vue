@@ -13,13 +13,12 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import ButtonRow from '@/components/button/ButtonRow.vue'
-import ErrorButton from '@/components/button/ErrorButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
-import Modal from '@/components/feedback/Modal.vue'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import {feedToken} from '@/api'
-import {buildFeedUrl, type FeedPreset, type FeedTokenResponse} from '@/api/feedToken'
+import {buildFeedUrl, type FeedPreset} from '@/api/feedToken'
+import type {FeedTokenResponse} from '@/api/generated/schema'
 import {useConfigPanel} from '@/composables/useConfigPanel'
 import {useFlashMessage} from '@/composables/useFlashMessage'
 import FeedCard from './feedsection/FeedCard.vue'
@@ -141,26 +140,22 @@ async function copyUrl(url: string) {
       </template>
     </template>
 
-    <Modal v-model="regenerateConfirmOpen">
-      <div class="space-y-4">
-        <SubHeader>{{ t('userSettings.feedRegenerateConfirmTitle') }}</SubHeader>
-        <p class="text-sm">{{ t('userSettings.feedRegenerateConfirmBody') }}</p>
-        <ButtonRow align="end">
-          <SecondaryButton @click="regenerateConfirmOpen = false">{{ t('common.cancel') }}</SecondaryButton>
-          <ErrorButton :icon="['fas', 'rotate']" @click="confirmRegenerate">{{ t('userSettings.feedRegenerate') }}</ErrorButton>
-        </ButtonRow>
-      </div>
-    </Modal>
+    <ConfirmDeleteModal
+        v-model="regenerateConfirmOpen"
+        :title="t('userSettings.feedRegenerateConfirmTitle')"
+        :message="t('userSettings.feedRegenerateConfirmBody')"
+        :confirm-label="t('userSettings.feedRegenerate')"
+        :confirm-icon="['fas', 'rotate']"
+        @confirm="confirmRegenerate"
+    />
 
-    <Modal v-model="revokeConfirmOpen">
-      <div class="space-y-4">
-        <SubHeader>{{ t('userSettings.feedRevokeConfirmTitle') }}</SubHeader>
-        <p class="text-sm">{{ t('userSettings.feedRevokeConfirmBody') }}</p>
-        <ButtonRow align="end">
-          <SecondaryButton @click="revokeConfirmOpen = false">{{ t('common.cancel') }}</SecondaryButton>
-          <ErrorButton :icon="['fas', 'trash']" @click="confirmRevoke">{{ t('userSettings.feedRevokeConfirm') }}</ErrorButton>
-        </ButtonRow>
-      </div>
-    </Modal>
+    <ConfirmDeleteModal
+        v-model="revokeConfirmOpen"
+        :title="t('userSettings.feedRevokeConfirmTitle')"
+        :message="t('userSettings.feedRevokeConfirmBody')"
+        :confirm-label="t('userSettings.feedRevokeConfirm')"
+        :confirm-icon="['fas', 'trash']"
+        @confirm="confirmRevoke"
+    />
   </NeutralContainer>
 </template>

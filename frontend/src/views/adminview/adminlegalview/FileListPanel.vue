@@ -11,7 +11,7 @@ import ButtonRow from '@/components/button/ButtonRow.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import LegalFileRow from './LegalFileRow.vue'
-import type {LegalFile} from '@/api/adminSettings'
+import type {LegalFileEntry} from '@/api/generated/schema'
 import {applyPlaceholders} from '@/util/placeholders'
 import {renderMarkdown} from '@/util/markdown'
 
@@ -22,7 +22,7 @@ const props = defineProps<{
   placeholderValues: Record<string, string>
 }>()
 
-const files = defineModel<LegalFile[]>('files', {required: true})
+const files = defineModel<LegalFileEntry[]>('files', {required: true})
 const showPreview = defineModel<boolean>('showPreview', {required: true})
 
 const emit = defineEmits<{

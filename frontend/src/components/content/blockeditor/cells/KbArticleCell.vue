@@ -7,7 +7,7 @@
 import {computed, onMounted, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import * as publicKb from '@/api/publicKb'
-import type {KbArticleConfig} from '@/api/pageManage'
+import type {KbArticleConfig} from '@/api/generated/schema'
 import MutedText from '@/components/typography/MutedText.vue'
 
 const props = defineProps<{
@@ -20,13 +20,14 @@ const {t} = useI18n()
 const resolvedTitle = ref<string | null>(null)
 const resolvedHref = ref<string | null>(null)
 
+/** Reads the article's title and address. One that cannot be read leaves the link on the knowledge base itself. */
 async function resolve() {
-    if (!props.stationUid || !props.config.articleId) return
-    try {
-        const file = await publicKb.getFile(props.stationUid, props.config.articleId)
-        resolvedTitle.value = file.name ?? null
-        resolvedHref.value = `/public/station/${props.stationUid}/knowledge/file/${file.id}`
-    } catch { /* fall back */ }
+    const stationUid = props.stationUid
+    if (!stationUid || !props.config.articleId) return
+    const file = await publicKb.getFile(stationUid, props.config.articleId).catch(() => null)
+    if (!file) return
+    resolvedTitle.value = file.name ?? null
+    resolvedHref.value = `/public/station/${stationUid}/knowledge/file/${file.id}`
 }
 
 onMounted(resolve)

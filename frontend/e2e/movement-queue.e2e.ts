@@ -86,7 +86,7 @@ test.describe('Movement queue', () => {
      */
     test('opening a movement and closing it again changes nothing', async ({managerPage: page}) => {
         const headers = await apiHeaders(page)
-        const {id, inventoryName} = await swapOnItsWay(page, headers, 'OPEN')
+        const {id} = await swapOnItsWay(page, headers, 'OPEN')
 
         const before = await standingOf(page, headers, id)
         expect(before.state, 'a fresh movement is open').toBe('OPEN')

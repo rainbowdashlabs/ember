@@ -10,7 +10,8 @@ import { useRoute, useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import RequirementCard from './requirementsview/RequirementCard.vue'
-import {getRequirements, type RegistrationUpdateRequirement, type RequirementsResponse} from '@/api/requirements'
+import {getRequirements} from '@/api/requirements'
+import type {RegistrationUpdateItem, RequirementsResponse} from '@/api/generated/schema'
 import {usableRedirect} from '@/util/redirect'
 import {formatDate} from '@/util/format'
 
@@ -42,7 +43,7 @@ const hasAnything = computed(() => blocking.value || selfChecks.value.length > 0
 const sentHere = computed(() => typeof route.query.redirect === 'string')
 
 /** Names whose registration it is only where it is not the reader's own. */
-function registrationText(update: RegistrationUpdateRequirement): string {
+function registrationText(update: RegistrationUpdateItem): string {
     const date = formatDate(update.eventDate)
     return update.memberName
         ? t('requirements.registrationTextFor', {date, name: update.memberName})

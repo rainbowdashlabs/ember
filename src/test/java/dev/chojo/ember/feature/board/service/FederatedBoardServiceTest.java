@@ -15,15 +15,19 @@ import dev.chojo.ember.feature.board.entity.AccessData;
 import dev.chojo.ember.feature.board.entity.BoardShareMode;
 import dev.chojo.ember.feature.board.entity.BoardTicket;
 import dev.chojo.ember.feature.board.entity.TicketPriority;
+import dev.chojo.ember.feature.board.route.RemoteBoardRoutes.RemoteBoardRenamedWebhook;
+import dev.chojo.ember.feature.board.route.RemoteBoardRoutes.RemoteBoardUnsharedWebhook;
+import dev.chojo.ember.feature.board.route.RemoteBoardRoutes.RemoteShareModeChangedWebhook;
+import dev.chojo.ember.feature.board.route.RemoteBoardWebhookRoutes;
 import dev.chojo.ember.feature.board.service.FederatedBoardService.PartnerShareConfig;
-import dev.chojo.ember.feature.federation.service.FederationWebhookService;
-import dev.chojo.ember.feature.federation.service.FederationWebhookService.WebhookEvent;
+import dev.chojo.ember.feature.comment.entity.CommentEntityType;
+import dev.chojo.ember.feature.federation.repository.FederationRepository;
+import dev.chojo.ember.feature.federation.transport.FederationTransport;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.UserTagService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
-import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
 import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
@@ -57,7 +61,7 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
 
     private static FederatedBoardService service;
     private static FederatedBoardNotificationService notificationService;
-    private static FederationWebhookService webhookService;
+    private static FederationTransport transport;
     private static BoardTicketService ticketService;
 
     private static Station station;
@@ -66,6 +70,7 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
     private static StationMember member;
 
     private static int boardId;
+    private static UUID boardUid;
     private static int laneId;
     private static int ticketId;
     private static int partnerId;
@@ -74,9 +79,10 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         service = new FederatedBoardService(federatedBoardRepo);
-        webhookService = mock(FederationWebhookService.class);
-        notificationService = new FederatedBoardNotificationService(webhookService, service);
-        var fbBackend = new LocalStorageBackend();
+        transport = mock(FederationTransport.class);
+        notificationService =
+                new FederatedBoardNotificationService(transport, new FederationRepository(), service, boardRepo);
+        var fbBackend = localStorage();
         var fbResolver = new StorageBackendResolver(fbBackend);
         var fbStorage = new StorageService(fbResolver, fbBackend);
         var attachmentSvc = new BoardAttachmentService(fbStorage, stationRepo, fbBackend);
@@ -92,21 +98,19 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
                 newStationMemberService(null, null),
                 memberIdentityFactory,
                 memberNameResolver,
-                attachmentSvc,
-                silentCommentMentions());
+                attachmentSvc);
 
         station = stationRepo.create("FedBoardStation");
         partnerStation = stationRepo.create("FedBoardPartner");
         account = accountRepo.create("fed-board@test.com", "Fed", "Board");
         member = stationMemberRepo.create(station.id(), account.id());
 
-        // Create a board with a lane
         var board = boardRepo.create(station.id(), "Fed Test Board", "Desc", "FTB");
         boardId = board.id();
+        boardUid = board.uid();
         var lane = boardRepo.createLane(boardId, "Open", null, 0);
         laneId = lane.id();
 
-        // Create a ticket
         BoardTicket ticket = ticketService.createTicket(
                 boardId,
                 laneId,
@@ -118,12 +122,15 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
                 memberIdentityFactory.local(station.id(), member.id()));
         ticketId = ticket.id();
 
-        // Create a comment
-        var comment = ticketService.createComment(
-                ticketId, null, memberIdentityFactory.local(station.id(), member.id()), "Fed comment");
+        var comment = commentRepo.create(
+                CommentEntityType.BOARD_TICKET,
+                ticketId,
+                null,
+                null,
+                memberIdentityFactory.local(station.id(), member.id()),
+                "Fed comment");
         int commentId = comment.id();
 
-        // Create federation partners via direct SQL
         partnerId = Query.query(
                         "INSERT INTO federation_partner(station_id, partner_station_id, status) VALUES (:s, :p::uuid, 'ACTIVE') RETURNING id;")
                 .single(Call.of()
@@ -133,7 +140,6 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
                 .first()
                 .orElseThrow();
 
-        // Create second partner station and partner for multi-partner tests
         var partnerStation2 = stationRepo.create("FedBoardPartner2");
         partner2Id = Query.query(
                         "INSERT INTO federation_partner(station_id, partner_station_id, status) VALUES (:s, :p::uuid, 'ACTIVE') RETURNING id;")
@@ -152,8 +158,6 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
         stationRepo.delete(partnerStation.id());
         accountRepo.delete(account.id());
     }
-
-    // -- Sharing --
 
     @Test
     @Order(1)
@@ -216,8 +220,6 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
         assertTrue(targets.isEmpty());
     }
 
-    // -- Access Control --
-
     @Test
     @Order(10)
     void canFederatedView() {
@@ -228,14 +230,12 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
     @Test
     @Order(11)
     void canFederatedWriteFullMode() {
-        // partner2 is FULL
         assertTrue(service.canFederatedWrite(boardId, partner2Id));
     }
 
     @Test
     @Order(12)
     void canFederatedWriteReadOnlyMode() {
-        // partnerId is READ_ONLY
         assertFalse(service.canFederatedWrite(boardId, partnerId));
     }
 
@@ -248,7 +248,6 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
     @Test
     @Order(14)
     void canFederatedEditNoUserTypesRestriction() {
-        // partner2 is FULL, no edit user types set => any user type can edit
         assertTrue(service.canFederatedEdit(
                 boardId, partner2Id, List.of(StationUserType.MEMBER, StationUserType.GUARDIAN, StationUserType.TEAM)));
     }
@@ -257,16 +256,13 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
     @Order(15)
     void canFederatedEditWithUserTypesRestriction() {
         service.setFederatedEditUserTypes(boardId, List.of(StationUserType.TEAM, StationUserType.MANAGER));
-        // partner2 has FULL mode, user type TEAM is allowed
         assertTrue(service.canFederatedEdit(boardId, partner2Id, List.of(StationUserType.TEAM)));
-        // user type MEMBER is not allowed
         assertFalse(service.canFederatedEdit(boardId, partner2Id, List.of(StationUserType.MEMBER)));
     }
 
     @Test
     @Order(16)
     void canFederatedEditReadOnlyDenied() {
-        // partnerId is READ_ONLY, should be denied even with matching user types
         assertFalse(service.canFederatedEdit(boardId, partnerId, List.of(StationUserType.TEAM)));
     }
 
@@ -286,10 +282,6 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
         var userTypes = service.findFederatedEditUserTypes(boardId);
         assertTrue(userTypes.isEmpty());
     }
-
-    // Satellite table tests removed - identity is now inline in board_ticket columns
-
-    // -- Bookmarks --
 
     @Test
     @Order(60)
@@ -325,7 +317,6 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
     @Test
     @Order(63)
     void deleteBookmarkByBoard() {
-        // Create another bookmark first
         service.createBookmark(member.id(), partnerId, REMOTE_BOARD_UID_2, "Another Board", "AB", BoardShareMode.FULL);
         service.deleteBookmarkByBoard(member.id(), partnerId, REMOTE_BOARD_UID_2);
         var bookmarks = service.findBookmarks(member.id());
@@ -343,13 +334,10 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
     @Test
     @Order(65)
     void deleteBookmarksByBoard() {
-        // Create bookmarks, then delete by board
         service.createBookmark(member.id(), partnerId, REMOTE_BOARD_UID_3, "Board 300", "B3", BoardShareMode.FULL);
         service.deleteBookmarksByBoard(partnerId, REMOTE_BOARD_UID_3);
         assertTrue(service.findBookmarks(member.id()).isEmpty());
     }
-
-    // -- Local Overrides --
 
     @Test
     @Order(70)
@@ -415,8 +403,6 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
         assertEquals(List.of(77), result.tagIds());
     }
 
-    // -- Unshare --
-
     @Test
     @Order(80)
     void unshareBoardRemovesEverything() {
@@ -425,8 +411,6 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
         assertTrue(service.findShareTargets(boardId).isEmpty());
         assertFalse(service.isSharedWith(boardId, partnerId));
     }
-
-    // -- PartnerShareConfig record --
 
     @Test
     @Order(90)
@@ -440,21 +424,15 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
         assertEquals(StationUserType.MANAGER, configWithType.requiredUserType());
     }
 
-    // ============================================================
-    // FederatedBoardNotificationService tests
-    // ============================================================
-
     @Test
     @Order(100)
     void notifyFederatedWatchersNoWatchers() {
-        // Re-share the board for later tests
         service.shareBoard(
                 boardId,
                 List.of(
                         new PartnerShareConfig(partnerId, BoardShareMode.FULL),
                         new PartnerShareConfig(partner2Id, BoardShareMode.READ_ONLY)));
 
-        // Create a second ticket with no watchers
         var ticket2 = ticketService.createTicket(
                 boardId,
                 laneId,
@@ -464,142 +442,54 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
                 TicketPriority.LOW,
                 null,
                 memberIdentityFactory.local(station.id(), member.id()));
-        reset(webhookService);
-        // notifyFederatedWatchers was a no-op placeholder and has been removed; federated watcher
-        // notifications now flow through the domain event system.
-        verifyNoInteractions(webhookService);
+        reset(transport);
+        verifyNoInteractions(transport);
         ticketService.deleteTicket(ticket2.id());
-    }
-
-    @Test
-    @Order(110)
-    void notifyMentionOnlyForFullMode() {
-        reset(webhookService);
-        // partnerId is FULL
-        notificationService.notifyMention(partnerId, boardId, ticketId, "FTB-1", REMOTE_MEMBER_1);
-        verify(webhookService)
-                .fireEventToPartner(
-                        eq(partnerId),
-                        eq(WebhookEvent.BOARD_MENTION),
-                        argThat(payload -> ((FederatedBoardNotificationService.TicketMemberPayload) payload)
-                                .remoteMemberId()
-                                .equals(REMOTE_MEMBER_1)));
-
-        reset(webhookService);
-        // partner2Id is READ_ONLY
-        notificationService.notifyMention(partner2Id, boardId, ticketId, "FTB-1", REMOTE_MEMBER_2);
-        verifyNoInteractions(webhookService);
-    }
-
-    @Test
-    @Order(120)
-    void notifyAssignment() {
-        reset(webhookService);
-        notificationService.notifyAssignment(partnerId, boardId, ticketId, "FTB-1", REMOTE_ASSIGNEE);
-        verify(webhookService)
-                .fireEventToPartner(
-                        eq(partnerId),
-                        eq(WebhookEvent.BOARD_ASSIGNMENT),
-                        argThat(payload -> ((FederatedBoardNotificationService.TicketMemberPayload) payload)
-                                .remoteMemberId()
-                                .equals(REMOTE_ASSIGNEE)));
-    }
-
-    @Test
-    @Order(121)
-    void notifyAssignmentReadOnlySkipped() {
-        reset(webhookService);
-        notificationService.notifyAssignment(partner2Id, boardId, ticketId, "FTB-1", REMOTE_ASSIGNEE);
-        verifyNoInteractions(webhookService);
-    }
-
-    @Test
-    @Order(130)
-    void notifyUnassignment() {
-        reset(webhookService);
-        notificationService.notifyUnassignment(partnerId, boardId, ticketId, "FTB-1", REMOTE_ASSIGNEE);
-        verify(webhookService)
-                .fireEventToPartner(
-                        eq(partnerId),
-                        eq(WebhookEvent.BOARD_UNASSIGNMENT),
-                        argThat(payload -> ((FederatedBoardNotificationService.TicketMemberPayload) payload)
-                                .remoteMemberId()
-                                .equals(REMOTE_ASSIGNEE)));
-    }
-
-    @Test
-    @Order(131)
-    void notifyUnassignmentReadOnlySkipped() {
-        reset(webhookService);
-        notificationService.notifyUnassignment(partner2Id, boardId, ticketId, "FTB-1", REMOTE_ASSIGNEE);
-        verifyNoInteractions(webhookService);
     }
 
     @Test
     @Order(140)
     void notifyBoardRenamed() {
-        reset(webhookService);
-        notificationService.notifyBoardRenamed(boardId, "New Name", "NN");
-        // Should be called for both share targets
-        verify(webhookService).fireEventToPartner(eq(partnerId), eq(WebhookEvent.BOARD_RENAMED), argThat(payload -> {
-            var p = (FederatedBoardNotificationService.BoardRenamedPayload) payload;
-            return p.newName().equals("New Name") && p.newShortKey().equals("NN");
-        }));
-        verify(webhookService)
-                .fireEventToPartner(
-                        eq(partner2Id),
-                        eq(WebhookEvent.BOARD_RENAMED),
-                        argThat(payload -> ((FederatedBoardNotificationService.BoardRenamedPayload) payload)
-                                .newName()
-                                .equals("New Name")));
+        reset(transport);
+        notificationService.notifyBoardRenamed(partnerId, boardId, "New Name", "NN");
+        verify(transport)
+                .notify(
+                        argThat(partner -> partner.id() == partnerId),
+                        eq(RemoteBoardWebhookRoutes.BOARD_RENAMED.at()),
+                        eq(new RemoteBoardRenamedWebhook(boardUid, "New Name", "NN")));
+        verifyNoMoreInteractions(transport);
     }
 
     @Test
     @Order(150)
     void notifyBoardUnshared() {
-        reset(webhookService);
-        notificationService.notifyBoardUnshared(boardId);
-        verify(webhookService)
-                .fireEventToPartner(
-                        eq(partnerId),
-                        eq(WebhookEvent.BOARD_UNSHARED),
-                        argThat(payload -> payload instanceof FederatedBoardNotificationService.BoardIdPayload));
-        verify(webhookService)
-                .fireEventToPartner(
-                        eq(partner2Id),
-                        eq(WebhookEvent.BOARD_UNSHARED),
-                        argThat(payload -> payload instanceof FederatedBoardNotificationService.BoardIdPayload));
+        reset(transport);
+        notificationService.notifyBoardUnshared(partnerId, boardId);
+        verify(transport)
+                .notify(
+                        argThat(partner -> partner.id() == partnerId),
+                        eq(RemoteBoardWebhookRoutes.BOARD_UNSHARED.at()),
+                        eq(new RemoteBoardUnsharedWebhook(boardUid)));
+        verifyNoMoreInteractions(transport);
     }
 
     @Test
     @Order(160)
     void notifyShareModeChanged() {
-        reset(webhookService);
+        reset(transport);
         notificationService.notifyShareModeChanged(partnerId, boardId, BoardShareMode.READ_ONLY);
-        verify(webhookService)
-                .fireEventToPartner(
-                        eq(partnerId),
-                        eq(WebhookEvent.BOARD_SHARE_MODE_CHANGED),
-                        argThat(payload ->
-                                ((FederatedBoardNotificationService.ShareModeChangedPayload) payload).shareMode()
-                                        == BoardShareMode.READ_ONLY));
+        verify(transport)
+                .notify(
+                        argThat(partner -> partner.id() == partnerId),
+                        eq(RemoteBoardWebhookRoutes.SHARE_MODE_CHANGED.at()),
+                        eq(new RemoteShareModeChangedWebhook(boardUid, BoardShareMode.READ_ONLY)));
     }
 
     @Test
     @Order(170)
-    void notifyBoardRenamedNoTargets() {
-        // Unshare and verify no notifications sent
-        service.unshareBoard(boardId);
-        reset(webhookService);
-        notificationService.notifyBoardRenamed(boardId, "Nobody cares", "NC");
-        verifyNoInteractions(webhookService);
-    }
-
-    @Test
-    @Order(171)
-    void notifyBoardUnsharedNoTargets() {
-        reset(webhookService);
-        notificationService.notifyBoardUnshared(boardId);
-        verifyNoInteractions(webhookService);
+    void aMissingBoardTellsNobody() {
+        reset(transport);
+        notificationService.notifyBoardUnshared(partnerId, -1);
+        verifyNoInteractions(transport);
     }
 }

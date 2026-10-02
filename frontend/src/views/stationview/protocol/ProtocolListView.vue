@@ -27,16 +27,16 @@ import { useConfirmAction } from '@/composables/useConfirmAction'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { describeFailure } from '@/util/failure'
 import { protocol, federation } from '@/api'
-import type { TestProtocol, SharedProtocolEntry } from '@/api/protocol'
+import type { TestProtocol, SharedProtocolView } from '@/api/generated/schema'
+import { StationPermission } from '@/api/types'
 
 const { t } = useI18n()
 const router = useRouter()
-import { StationPermission } from '@/api/types'
 const { hasPermission, loaded } = useSession()
 const canConfigure = computed(() => hasPermission(StationPermission.PROTOCOL_CONFIGURE))
 
 const protocols = ref<TestProtocol[]>([])
-const sharedProtocols = ref<SharedProtocolEntry[]>([])
+const sharedProtocols = ref<SharedProtocolView[]>([])
 
 const searchQuery = ref('')
 const showFederated = ref(true)
@@ -147,12 +147,10 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
       </PrimaryButton>
     </ButtonRow>
 
-    <!-- Search -->
     <div class="mb-4">
       <SearchInput v-model="searchQuery" :placeholder="t('protocol.search')" />
     </div>
 
-    <!-- Filters -->
     <div class="flex flex-wrap items-center gap-2 mb-4">
       <SelectionToggleButton :selected="showFederated" @toggle="showFederated = !showFederated">
         <font-awesome-icon :icon="['fas', 'arrow-right-arrow-left']" class="w-3 h-3 mr-1" />
@@ -197,7 +195,7 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
 
     <Modal v-model="showCreateModal">
       <SubHeader class="mb-3">{{ t('protocol.create') }}</SubHeader>
-      <form @submit.prevent="handleCreate" class="space-y-3">
+      <form class="space-y-3" @submit.prevent="handleCreate">
         <TextInput v-model="newName" :placeholder="t('protocol.name')" required />
         <TextAreaInput v-model="newDescription" :placeholder="t('protocol.description')" />
         <div>
@@ -210,7 +208,6 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
       </form>
     </Modal>
 
-    <!-- Delete Modal -->
     <Modal v-model="showDeleteModal">
       <SubHeader class="mb-3">{{ t('protocol.deleteConfirm') }}</SubHeader>
       <p class="mb-4">{{ deleteTarget?.name }}</p>

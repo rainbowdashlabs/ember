@@ -7,10 +7,8 @@ import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { demo } from '@/api'
 import { describeFailure, type Failure } from '@/util/failure'
-import type { DemoAccount, DemoAccountsPayload, DemoStationGroup } from '@/api/demo'
+import type { DemoAccount, DemoStationGroup } from '@/api/generated/schema'
 import { StationUserType, StationUserTypeLabels } from '@/api/types'
-
-export type { DemoAccount }
 
 /** The band a person with no station of their own is offered under. */
 const NO_STATION = 'Ohne Wache'
@@ -53,7 +51,7 @@ export interface DemoAccountsView {
 
 /** What somebody is at their station, in the words the account cards use. */
 export function roleLabel(account: DemoAccount): string {
-  return StationUserTypeLabels[account.userType as keyof typeof StationUserTypeLabels] ?? account.userType ?? 'Login'
+  return StationUserTypeLabels[account.userType]
 }
 
 /**
@@ -95,13 +93,13 @@ export function useDemoAccounts() {
    */
   function buildRoleGroups(source: DemoAccount[]): RoleGroup[] {
     const groups: RoleGroup[] = []
-    const seen = new Set<string>()
+    const seen = new Set<DemoAccount>()
 
     function addGroup(label: string, filter: (a: DemoAccount) => boolean) {
-      const matching = source.filter(a => !seen.has(a.email) && filter(a))
+      const matching = source.filter(a => !seen.has(a) && filter(a))
       if (!matching.length) return
       groups.push({label, accounts: matching})
-      matching.forEach(a => seen.add(a.email))
+      matching.forEach(a => seen.add(a))
     }
 
     addGroup('Admin', a => a.userType === StationUserType.MANAGER)
@@ -125,34 +123,37 @@ export function useDemoAccounts() {
     const everybody = [...noStationAccounts.value, ...stationGroups.value.flatMap(g => g.accounts)]
     const seen = new Set<string>()
     const acting = everybody.filter(a => {
-      if (!a.email || seen.has(a.email) || !(a.clusterPermissions ?? []).length) return false
+      if (!a.email || seen.has(a.email) || !a.clusterPermissions.length) return false
       seen.add(a.email)
       return true
     })
 
     const groups: RoleGroup[] = []
-    const taken = new Set<string>()
+    const taken = new Set<DemoAccount>()
 
     function addGroup(label: string, holds: string) {
-      const matching = acting.filter(a => !taken.has(a.email) && (a.clusterPermissions ?? []).includes(holds))
+      const matching = acting.filter(a => !taken.has(a) && a.clusterPermissions.includes(holds))
       if (!matching.length) return
       groups.push({label, accounts: matching})
-      matching.forEach(a => taken.add(a.email))
+      matching.forEach(a => taken.add(a))
     }
 
-    addGroup('Verbandsleitung', 'CLUSTER_ADMINISTRATOR')
-    addGroup('Mitgliederverwaltung', 'CLUSTER_MEMBER_MANAGER')
-    addGroup('Materialverwaltung', 'CLUSTER_INVENTORY_MANAGER')
-    const rest = acting.filter(a => !taken.has(a.email))
-    if (rest.length) groups.push({label: 'Verband', accounts: rest})
+    addGroup(t('demo.clusterRoles.administrator'), 'CLUSTER_ADMINISTRATOR')
+    addGroup(t('demo.clusterRoles.memberManager'), 'CLUSTER_MEMBER_MANAGER')
+    addGroup(t('demo.clusterRoles.inventoryManager'), 'CLUSTER_INVENTORY_MANAGER')
+    const rest = acting.filter(a => !taken.has(a))
+    if (rest.length) groups.push({label: t('demo.clusterRoles.other'), accounts: rest})
     return groups
   })
 
-  /** Everything about somebody the search reads: who they are, how they sign in, and what they are. */
+  /**
+   * Everything about somebody the search reads: who they are, how they sign in, and what they are.
+   * Somebody without an address of their own is still found by everything else.
+   */
   function haystack(account: DemoAccount): string[] {
     return [
       `${account.firstName} ${account.lastName}`,
-      account.email,
+      ...(account.email ? [account.email] : []),
       roleLabel(account),
       ...account.groups,
       ...account.tags,
@@ -173,7 +174,7 @@ export function useDemoAccounts() {
     if (!needle) return []
 
     const matching = (accounts: DemoAccount[]) => accounts.filter(account =>
-      haystack(account).some(value => value?.toLowerCase().includes(needle)))
+      haystack(account).some(value => value.toLowerCase().includes(needle)))
 
     const bands: RoleGroup[] = []
     const withoutStation = matching(noStationAccounts.value)
@@ -186,34 +187,22 @@ export function useDemoAccounts() {
   })
 
   /**
-   * Accepts both the grouped payload and the two flat shapes older instances return, so a demo
-   * instance one version behind still offers its accounts.
+   * Reads whether this instance offers demo accounts, and which. A failure is kept and shown, because
+   * a server that is still starting is not one without demo accounts, and silence would leave the
+   * reader at the wrong form with no idea why.
    */
-  function applyPayload(payload: DemoAccountsPayload) {
-    if (!Array.isArray(payload)) {
-      stationGroups.value = payload.stationGroups ?? []
-      noStationAccounts.value = payload.noStationAccounts ?? []
-      return
-    }
-    const [firstEntry] = payload
-    stationGroups.value = firstEntry && 'accounts' in firstEntry
-      ? (payload as DemoStationGroup[])
-      : [{stationId: 'default', stationName: 'Station', accounts: payload as DemoAccount[]}]
-    noStationAccounts.value = []
-  }
-
   async function load() {
     try {
       const status = await demo.getDemoStatus()
       isDemo.value = status.demo
       isDev.value = status.dev
       if (isDemo.value || isDev.value) {
-        applyPayload(await demo.getDemoAccounts())
+        const accounts = await demo.getDemoAccounts()
+        stationGroups.value = accounts.stationGroups
+        noStationAccounts.value = accounts.noStationAccounts
         activeStation.value = stationGroups.value[0]?.stationId ?? ''
       }
     } catch (e) {
-      // A server that is still starting is not a server that has no demo accounts, and telling the
-      // reader nothing leaves them looking at the wrong form with no idea why.
       isDemo.value = false
       isDev.value = false
       unreachable.value = describeFailure(e, t)

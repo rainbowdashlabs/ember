@@ -20,7 +20,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import type {DocumentUpload} from '@/api/documents'
-import type {StationMember} from '@/api/types'
+import type {MemberLike} from '@/components/input/select/memberOption'
 
 /**
  * Putting a document in: the file, what it is called, and what is to become of it.
@@ -30,8 +30,13 @@ const modelValue = defineModel<boolean>({required: true})
 const props = defineProps<{
   /** Whether the reader may keep a document from the members it belongs to. */
   canHide?: boolean
+  /**
+   * Whether the reader may tag a document and keep it past the membership, which is the station's
+   * decision: a member putting a document on themselves, or the association filing one, may not.
+   */
+  canLabel?: boolean
   /** The members it can be put on straight away. Absent where the profile already says who. */
-  members?: StationMember[]
+  members?: MemberLike[]
   /** Every label written so far, offered while typing. */
   allTags?: string[]
 }>()
@@ -75,8 +80,8 @@ function submit() {
     file: file.value,
     title: title.value.trim() || file.value.name,
     hidden: props.canHide ? hidden.value : false,
-    keepOnArchive: keepOnArchive.value,
-    tags: tags.value,
+    keepOnArchive: props.canLabel ? keepOnArchive.value : false,
+    tags: props.canLabel ? tags.value : [],
     memberIds: memberIds.value.map(Number),
   })
   saving.value = false
@@ -108,16 +113,18 @@ function submit() {
         />
       </div>
 
-      <div class="space-y-1">
-        <FieldLabel>{{ t('documents.tags') }}</FieldLabel>
-        <TagPicker v-model="tags" :suggestions="props.allTags" :placeholder="t('documents.tagsPlaceholder')"/>
-      </div>
+      <template v-if="props.canLabel">
+        <div class="space-y-1">
+          <FieldLabel>{{ t('documents.tags') }}</FieldLabel>
+          <TagPicker v-model="tags" :suggestions="props.allTags" :placeholder="t('documents.tagsPlaceholder')"/>
+        </div>
 
-      <div class="flex items-center gap-2">
-        <ToggleInput v-model="keepOnArchive"/>
-        <span class="text-sm">{{ t('documents.keepOnArchive') }}</span>
-      </div>
-      <MutedText size="sm">{{ t('documents.keepOnArchiveHint') }}</MutedText>
+        <div class="flex items-center gap-2">
+          <ToggleInput v-model="keepOnArchive"/>
+          <span class="text-sm">{{ t('documents.keepOnArchive') }}</span>
+        </div>
+        <MutedText size="sm">{{ t('documents.keepOnArchiveHint') }}</MutedText>
+      </template>
 
       <template v-if="props.canHide">
         <div class="flex items-center gap-2">

@@ -22,12 +22,14 @@ import dev.chojo.ember.feature.twofactor.entity.TwoFactorFactor;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorKind;
 import dev.chojo.ember.feature.twofactor.service.TotpService;
 import dev.chojo.ember.feature.twofactor.service.TwoFactorAuditService;
+import dev.chojo.ember.feature.twofactor.service.WebAuthnCeremonies.CeremonyStart;
+import dev.chojo.ember.util.RandomTokens;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.EnumSet;
@@ -43,11 +45,6 @@ import java.util.Set;
 @Singleton
 public class PasskeyEnrollmentService {
     private static final Logger log = LoggerFactory.getLogger(PasskeyEnrollmentService.class);
-    private static final SecureRandom RANDOM = new SecureRandom();
-
-    /** No 0/O, 1/I/L or U, so a code typed from a screen survives the typing. */
-    private static final char[] CODE_ALPHABET = "23456789ABCDEFGHJKMNPQRSTVWXYZ".toCharArray();
-
     private static final int CODE_LENGTH = 8;
 
     /** Five minutes for the QR in the room: both people are standing there. */
@@ -99,11 +96,7 @@ public class PasskeyEnrollmentService {
     }
 
     private static String newCode() {
-        var code = new StringBuilder(CODE_LENGTH);
-        for (int i = 0; i < CODE_LENGTH; i++) {
-            code.append(CODE_ALPHABET[RANDOM.nextInt(CODE_ALPHABET.length)]);
-        }
-        return code.toString();
+        return RandomTokens.readableCode(CODE_LENGTH);
     }
 
     private static String normalize(String token) {
@@ -134,7 +127,11 @@ public class PasskeyEnrollmentService {
      * log line.
      */
     public IssuedCode issueCodeWithQr(
-            int targetAccountId, Integer actorAccountId, Duration ttl, String userAgent, String country) {
+            int targetAccountId,
+            Integer actorAccountId,
+            Duration ttl,
+            @Nullable String userAgent,
+            @Nullable String country) {
         String code = issueCode(targetAccountId, ttl);
         auditService.record(
                 targetAccountId,
@@ -178,7 +175,7 @@ public class PasskeyEnrollmentService {
      * Opens the creation ceremony behind a token. The token is not spent yet; the finish
      * consumes it whatever happens.
      */
-    public Optional<PasskeyService.CeremonyStart> begin(String rawToken) {
+    public Optional<CeremonyStart> begin(String rawToken) {
         return findDoor(rawToken)
                 .flatMap(door -> accountRepository.findById(door.token().accountId()))
                 .map(account -> {
@@ -193,7 +190,7 @@ public class PasskeyEnrollmentService {
      * spent twice however the ceremony ends. A door that came through the verification mail also
      * verifies the address, because reaching it proved the same thing the mail was for.
      */
-    public boolean finish(String rawToken, String challengeToken, String credentialJson, String country) {
+    public boolean finish(String rawToken, String challengeToken, String credentialJson, @Nullable String country) {
         Optional<Door> doorOpt = findDoor(rawToken);
         if (doorOpt.isEmpty()) return false;
         Door door = doorOpt.get();
@@ -222,7 +219,8 @@ public class PasskeyEnrollmentService {
      *
      * @return whether anybody could be mailed; when not, the QR code in the room is the way
      */
-    public boolean onboardAgain(int targetAccountId, int actorAccountId, String userAgent, String country) {
+    public boolean onboardAgain(
+            int targetAccountId, int actorAccountId, @Nullable String userAgent, @Nullable String country) {
         int disabled = passkeyRepository.disableSignInPasskeys(targetAccountId);
         accountRepository.deleteSessionsByAccount(targetAccountId);
         accountRepository.deleteAllTokens(targetAccountId);
@@ -248,17 +246,21 @@ public class PasskeyEnrollmentService {
         return mailRecipientService.isReachable(accountId);
     }
 
+    /**
+     * Whether a token of this type may create a passkey. The setup, reset and verification mails may
+     * only on a passwordless instance: elsewhere a reset link must not mint a sign-in passkey past an
+     * enrolled second factor.
+     */
     private boolean isDoor(TokenType type) {
         if (type == TokenType.PASSKEY_ENROLLMENT) return true;
-        // The setup, reset and verification mails hold exactly this power on a passwordless
-        // instance and only their own errand anywhere else: on a mixed instance a reset link
-        // must not mint a sign-in passkey past an enrolled second factor.
         return PASSWORDLESS_DOORS.contains(type) && modeService.effectiveMode() == PasskeySettings.Mode.PASSWORDLESS;
     }
 
+    /**
+     * Finds the token behind a link or a typed code. A link token arrives verbatim, a typed code
+     * grouped and in any case; whichever form matched is kept, because consuming goes by it.
+     */
     private Optional<Door> findDoor(String rawToken) {
-        // A typed 8-char code arrives grouped and case-mangled; a link token arrives verbatim.
-        // Whichever form matched is remembered, because consuming goes by the same raw value.
         Optional<Door> door = accountRepository.findToken(rawToken).map(token -> new Door(token, rawToken));
         if (door.isEmpty()) {
             String normalized = normalize(rawToken);

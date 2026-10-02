@@ -13,9 +13,11 @@ import ErrorContainer from '@/components/container/ErrorContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import DownloadButton from '@/components/button/DownloadButton.vue'
-import DummySessionsList from './sessionshelp/DummySessionsList.vue'
+import SessionsSection from '@/views/stationview/profile/settingsview/SessionsSection.vue'
+import {demoSessions} from './fixtures'
 
 const {t} = useI18n()
+const sessions = demoSessions()
 </script>
 
 <template>
@@ -28,7 +30,7 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.sessions.listText') }}</p>
     </HelpSection>
 
-    <DummySessionsList/>
+    <SessionsSection :sessions="sessions"/>
 
     <HelpSection :title="t('helpCenter.sessions.gdprTitle')">
       <p>{{ t('helpCenter.sessions.gdprText') }}</p>

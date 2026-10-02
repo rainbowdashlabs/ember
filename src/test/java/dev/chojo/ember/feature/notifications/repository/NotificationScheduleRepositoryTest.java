@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.notifications.repository;
 
 import dev.chojo.ember.feature.cluster.entity.Cluster;
+import dev.chojo.ember.feature.notifications.entity.DigestGroup;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.BeforeAll;
@@ -16,7 +17,10 @@ import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 
+import static de.chojo.sadu.queries.api.call.Call.call;
+import static de.chojo.sadu.queries.api.query.Query.query;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -42,18 +46,20 @@ class NotificationScheduleRepositoryTest extends RepositoryTestBase {
     /** A station that has asked for nothing says so, rather than saying it asked for no times. */
     @Test
     void aStationThatHasAskedForNothingHasNothing() {
-        var schedule = repository.forStation(station.id()).orElseThrow();
+        var schedule = stationGroup();
 
         assertTrue(schedule.sendTimes().isEmpty());
         assertNull(schedule.lastSent());
-        assertEquals("Europe/Berlin", schedule.timezone());
+        assertEquals("Europe/Berlin", schedule.zone().getId());
+        assertEquals(station.name(), schedule.name());
+        assertEquals(station.uid(), schedule.uid());
     }
 
     @Test
     void theTimesAStationAsksForComeBackAsItAskedForThem() {
         repository.setStationSendTimes(station.id(), List.of(LocalTime.of(14, 0), LocalTime.of(7, 0)));
 
-        var schedule = repository.forStation(station.id()).orElseThrow();
+        var schedule = stationGroup();
 
         assertEquals(List.of(LocalTime.of(7, 0), LocalTime.of(14, 0)), schedule.sendTimes());
     }
@@ -64,7 +70,7 @@ class NotificationScheduleRepositoryTest extends RepositoryTestBase {
         repository.setStationSendTimes(station.id(), List.of(LocalTime.of(9, 0)));
         repository.setStationSendTimes(station.id(), List.of());
 
-        assertTrue(repository.forStation(station.id()).orElseThrow().sendTimes().isEmpty());
+        assertTrue(stationGroup().sendTimes().isEmpty());
     }
 
     @Test
@@ -72,20 +78,56 @@ class NotificationScheduleRepositoryTest extends RepositoryTestBase {
         var when = Instant.now().truncatedTo(ChronoUnit.SECONDS);
         repository.markStationSent(station.id(), when);
 
-        assertEquals(when, repository.forStation(station.id()).orElseThrow().lastSent());
+        assertEquals(when, stationGroup().lastSent());
     }
 
-    /** A cluster keeps the same two things the same way, and is read by the same sweep. */
+    /**
+     * A cluster keeps the same two things the same way, and is read by the same sweep. No screen sets
+     * a cluster's times yet, so the test writes them the way the column holds them.
+     */
     @Test
     void aClusterKeepsItsOwnTimesAndItsOwnMoment() {
-        repository.setClusterSendTimes(cluster.id(), List.of(LocalTime.of(6, 30)));
+        storeClusterSendTimes(cluster.id(), "{06:30}");
         var when = Instant.now().truncatedTo(ChronoUnit.SECONDS);
         repository.markClusterSent(cluster.id(), when);
 
-        var schedule = repository.forCluster(cluster.id()).orElseThrow();
+        var schedule =
+                repository.findDigestGroups(List.of(), List.of(cluster.id())).getFirst();
 
         assertEquals(List.of(LocalTime.of(6, 30)), schedule.sendTimes());
         assertEquals(when, schedule.lastSent());
+        assertEquals(new DigestGroup.Key(DigestGroup.Kind.CLUSTER, cluster.id()), schedule.key());
+        assertEquals(cluster.uid(), schedule.uid(), "a cluster's links carry the cluster");
+    }
+
+    /**
+     * A cluster reads its times on its home station's clock and writes in its language, so asking for
+     * seven in the morning in Berlin is seven in Berlin, summer and winter.
+     */
+    @Test
+    void aClusterKeepsTheClockAndLanguageOfItsHomeStation() {
+        var home = stationRepo.create("Kreisverband Zuhause");
+        stationRepo.updateTimezone(home.id(), "Europe/Berlin");
+        stationRepo.updateLocale(home.id(), "de-DE");
+        var berlin = clusterRepo.create("Kreisverband Berlin", "keeps its home's clock", home.id());
+        storeClusterSendTimes(berlin.id(), "{07:00}");
+        try {
+            var group =
+                    repository.findDigestGroups(List.of(), List.of(berlin.id())).getFirst();
+
+            assertEquals("Europe/Berlin", group.zone().getId());
+            assertEquals("de-DE", group.locale());
+            var july = Instant.parse("2026-07-01T05:00:00Z");
+            var january = Instant.parse("2026-01-15T06:00:00Z");
+            var floor = java.time.Duration.ZERO;
+            assertTrue(group.isDue(july.minusSeconds(3600), floor, july));
+            assertFalse(group.isDue(july.minusSeconds(3600), floor, july.minusSeconds(60)));
+            assertTrue(group.isDue(january.minusSeconds(3600), floor, january));
+            assertFalse(group.isDue(january.minusSeconds(3600), floor, january.minusSeconds(60)));
+        } finally {
+            clusterRepo.delete(berlin.id());
+            stationRepo.delete(home.id());
+        }
     }
 
     /** Handing back nothing at all means the same as handing back an empty list. */
@@ -94,7 +136,7 @@ class NotificationScheduleRepositoryTest extends RepositoryTestBase {
         repository.setStationSendTimes(station.id(), List.of(LocalTime.of(5, 0)));
         repository.setStationSendTimes(station.id(), null);
 
-        assertTrue(repository.forStation(station.id()).orElseThrow().sendTimes().isEmpty());
+        assertTrue(stationGroup().sendTimes().isEmpty());
     }
 
     /** The same time asked for twice is one time, and the order asked in does not matter. */
@@ -104,13 +146,21 @@ class NotificationScheduleRepositoryTest extends RepositoryTestBase {
                 station.id(), List.of(LocalTime.of(14, 0), LocalTime.of(7, 0), LocalTime.of(14, 0)));
 
         assertEquals(
-                List.of(LocalTime.of(7, 0), LocalTime.of(14, 0)),
-                repository.forStation(station.id()).orElseThrow().sendTimes());
+                List.of(LocalTime.of(7, 0), LocalTime.of(14, 0)), stationGroup().sendTimes());
     }
 
     @Test
     void somethingThatIsNotThereHasNoSchedule() {
-        assertTrue(repository.forStation(999999).isEmpty());
-        assertTrue(repository.forCluster(999999).isEmpty());
+        assertTrue(repository.findDigestGroups(List.of(999999), List.of(999999)).isEmpty());
+    }
+
+    private static DigestGroup stationGroup() {
+        return repository.findDigestGroups(List.of(station.id()), List.of()).getFirst();
+    }
+
+    private static void storeClusterSendTimes(int clusterId, String times) {
+        query("UPDATE cluster SET notification_send_times = :times::time[] WHERE id = :id;")
+                .single(call().bind("times", times).bind("id", clusterId))
+                .update();
     }
 }

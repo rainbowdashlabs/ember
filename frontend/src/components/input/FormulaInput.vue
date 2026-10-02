@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref, computed, nextTick } from 'vue'
+import { ref, computed, nextTick, useId } from 'vue'
 
 interface FieldInfo {
   name: string
@@ -16,7 +16,11 @@ const modelValue = defineModel<string>({required: true})
 const props = defineProps<{
   placeholder?: string
   fields: FieldInfo[]
+  /** What a label's `for` names, generated where the caller gives none. */
+  id?: string
 }>()
+
+const generatedId = useId()
 
 const inputRef = ref<HTMLInputElement | null>(null)
 const showSuggestions = ref(false)
@@ -86,6 +90,10 @@ function onKeydown(event: KeyboardEvent) {
   }
 }
 
+/**
+ * Puts a picked suggestion in at the cursor. One that wraps nothing, such as {@code age([field])},
+ * replaces everything from the opening bracket with its full label.
+ */
 function applySuggestion(suggestion: { label: string; wrap: 'bracket' | 'none' }) {
   const text = modelValue.value
   const pos = cursorPos.value
@@ -96,7 +104,6 @@ function applySuggestion(suggestion: { label: string; wrap: 'bracket' | 'none' }
   let newPos: number
 
   if (suggestion.wrap === 'none') {
-    // Replace everything from the opening [ with the full label (e.g. age([field]))
     const before = text.substring(0, bracketStart)
     const after = text.substring(pos)
     const trimmedAfter = after.startsWith(']') ? after.substring(1) : after
@@ -138,6 +145,7 @@ function onBlur() {
 <template>
   <div class="relative">
     <input
+      :id="id ?? generatedId"
       ref="inputRef"
       :value="modelValue"
       :placeholder="placeholder"

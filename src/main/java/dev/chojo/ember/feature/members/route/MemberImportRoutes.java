@@ -6,10 +6,10 @@
 package dev.chojo.ember.feature.members.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.Refusal;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.feature.account.service.SetupMail;
 import dev.chojo.ember.feature.members.service.MemberImportService;
 import dev.chojo.ember.feature.members.service.MemberImportService.ColumnMapping;
@@ -32,7 +32,7 @@ import java.util.List;
  */
 @Singleton
 public class MemberImportRoutes implements Routes {
-    private static final int MAX_CSV_BYTES = 2 * 1024 * 1024; // 2 MB
+    private static final int MAX_CSV_BYTES = 2 * 1024 * 1024;
 
     private final MemberImportService importService;
 
@@ -43,10 +43,10 @@ public class MemberImportRoutes implements Routes {
 
     private static void validateCsv(String csv) {
         if (csv == null || csv.isBlank()) {
-            throw Refusal.IMPORT_FILE_MISSING.raise();
+            throw MemberRefusal.IMPORT_FILE_MISSING.raise();
         }
         if (csv.getBytes(StandardCharsets.UTF_8).length > MAX_CSV_BYTES) {
-            throw Refusal.IMPORT_FILE_TOO_LARGE.raise();
+            throw MemberRefusal.IMPORT_FILE_TOO_LARGE.raise();
         }
     }
 
@@ -90,7 +90,7 @@ public class MemberImportRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void preview(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(ImportRequest.class);
         validateCsv(request.csv());
         ctx.json(importService.preview(
@@ -110,7 +110,7 @@ public class MemberImportRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void importMembers(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(ImportRequest.class);
         validateCsv(request.csv());
         ctx.status(HttpStatus.CREATED)
@@ -136,7 +136,7 @@ public class MemberImportRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void previewTeam(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(ImportRequest.class);
         validateCsv(request.csv());
         ctx.json(importService.preview(
@@ -156,7 +156,7 @@ public class MemberImportRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void importTeamMembers(Context ctx) {
-        UserSession session = UserSession.from(ctx);
+        StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(ImportRequest.class);
         validateCsv(request.csv());
         ctx.status(HttpStatus.CREATED)

@@ -12,18 +12,19 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import FederatedBoardAccessOverride from '@/views/stationview/federation/FederatedBoardAccessOverride.vue'
 import FederatedBoardHeader from '@/views/stationview/federation/federatedboardview/FederatedBoardHeader.vue'
-import FederatedBoardLane from '@/views/stationview/federation/federatedboardview/FederatedBoardLane.vue'
+import KanbanBoard from '@/components/kanban/KanbanBoard.vue'
+import {boardLanes} from '@/components/kanban/kanbanLanes'
 import FederatedBoardCreateTicketModal
   from '@/views/stationview/federation/federatedboardview/FederatedBoardCreateTicketModal.vue'
-import {TicketPriority, type BoardLabel, type BoardLane, type BoardTicket, type TicketPriorityName} from '@/api/boards'
+import {TicketPriority, type TicketPriorityName} from '@/api/boards'
+import type {BoardLabel, BoardLane, FederatedBoardDetail, TicketSummary} from '@/api/generated/schema'
 import {priorityIcon, priorityColor} from '@/util/ticketPriority'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useAsyncAction} from '@/composables/useAsyncAction'
-import {useBoardDragAndDrop} from '@/composables/useBoardDragAndDrop'
+import {useTicketMoves} from '@/composables/useTicketMoves'
 import {reportCaughtError} from '@/util/devErrorReporter'
 import {
-  type FederatedBoardDetail,
   BoardShareMode,
   getBoard as fedGetBoard,
   getLanes as fedGetLanes,
@@ -46,7 +47,7 @@ const boardKey = computed(() => route.params.boardKey as string)
 
 const boardDetail = ref<FederatedBoardDetail | null>(null)
 const lanes = ref<BoardLane[]>([])
-const tickets = ref<BoardTicket[]>([])
+const tickets = ref<TicketSummary[]>([])
 const allLabels = ref<BoardLabel[]>([])
 const ticketLabelMap = ref<Map<number, number[]>>(new Map())
 
@@ -62,7 +63,7 @@ const createValidationError = ref('')
 
 const showOverrideModal = ref(false)
 const searchQuery = ref('')
-const searchResults = ref<BoardTicket[] | null>(null)
+const searchResults = ref<TicketSummary[] | null>(null)
 const searching = ref(false)
 
 const {loading, failure, reload: loadData} = useAsyncLoader(async () => {
@@ -101,33 +102,7 @@ const pageTitle = computed(() => board.value?.name || t('pages.federated-board-v
 const pageSubtitle = computed(() => boardDetail.value?.stationName
     || t('pages.federated-board-view.subtitle'))
 
-const visibleLanes = computed(() => lanes.value.filter(l => !board.value?.backlogLaneId || l.id !== board.value.backlogLaneId))
-
-function ticketsForLane(laneId: number): BoardTicket[] {
-  return tickets.value.filter(tt => tt.laneId === laneId).sort((a, b) => a.position - b.position)
-}
-
-function isLastLane(laneId: number): boolean {
-  const vl = visibleLanes.value
-  return vl[vl.length - 1]?.id === laneId
-}
-
-function shouldHideTicket(ticket: BoardTicket, laneId: number): boolean {
-  if (!isLastLane(laneId)) return false
-  if (!board.value) return false
-  const entered = new Date(ticket.laneEnteredAt)
-  const cutoff = new Date()
-  cutoff.setDate(cutoff.getDate() - board.value.hideDoneAfterDays)
-  return entered < cutoff
-}
-
-function visibleTicketsForLane(laneId: number): BoardTicket[] {
-  return ticketsForLane(laneId).filter(tt => !shouldHideTicket(tt, laneId))
-}
-
-function archivedCountForLane(laneId: number): number {
-  return ticketsForLane(laneId).filter(tt => shouldHideTicket(tt, laneId)).length
-}
+const visibleLanes = computed(() => boardLanes(lanes.value, board.value?.backlogLaneId ?? null))
 
 function labelsForTicket(ticketId: number): BoardLabel[] {
   const ids = ticketLabelMap.value.get(ticketId) ?? []
@@ -167,11 +142,11 @@ function onSearchInput() {
   }, 300)
 }
 
-function ticketPage(ticket: BoardTicket) {
+function ticketPage(ticket: TicketSummary) {
   return `/station/federation/boards/${partnerUid.value}/${boardKey.value}/tickets/${ticket.ticketNumber}`
 }
 
-function openTicketDetail(ticket: BoardTicket) {
+function openTicketDetail(ticket: TicketSummary) {
   router.push(ticketPage(ticket))
 }
 
@@ -204,19 +179,10 @@ function handleCreateTicket() {
   void runCreateTicket()
 }
 
-const {
-  dragTicket,
-  dropLaneId,
-  dropPosition,
-  onTicketDragStart,
-  onLaneDragOver,
-  onLaneDragLeave,
-  onLaneDrop,
-  onDragEnd,
-} = useBoardDragAndDrop(tickets, {
+const {moveTicket} = useTicketMoves(tickets, {
   reorder: (ticketNumber, payload) => fedReorderTickets(partnerUid.value, boardKey.value, ticketNumber, payload),
   move: (ticketNumber, payload) => fedMoveTicket(partnerUid.value, boardKey.value, ticketNumber, payload),
-}, loadData, () => !isReadOnly.value)
+}, loadData)
 
 watch([partnerUid, boardKey], loadData)
 </script>
@@ -230,12 +196,12 @@ watch([partnerUid, boardKey], loadData)
     <FailureAlert v-else-if="failure" :failure="failure"/>
     <template v-else-if="board">
       <FederatedBoardHeader
+          v-model:search-query="searchQuery"
           :board-name="board.name"
           :short-key="board.shortKey"
           :is-read-only="isReadOnly"
           :is-full="isFull"
           :can-manage-boards="canManageBoards()"
-          v-model:search-query="searchQuery"
           :search-results="searchResults"
           :ticket-page="ticketPage"
           :lane-name="laneName"
@@ -252,28 +218,15 @@ watch([partnerUid, boardKey], loadData)
         <span>{{ t('boards.federatedFrom') }}: <strong class="text-(--text)">{{ boardDetail?.stationName }}</strong></span>
       </div>
 
-      <div class="flex flex-col md:flex-row gap-4 md:overflow-x-auto pb-4" style="min-height: 200px">
-        <FederatedBoardLane
-            v-for="lane in visibleLanes"
-            :key="lane.id"
-            :lane="lane"
-            :short-key="board.shortKey"
-            :is-full="isFull"
-            :visible-tickets="visibleTicketsForLane(lane.id)"
-            :is-last-lane="isLastLane(lane.id)"
-            :archived-count="archivedCountForLane(lane.id)"
-            :drag-ticket="dragTicket"
-            :drop-lane-id="dropLaneId"
-            :drop-position="dropPosition"
-            :labels-for-ticket="labelsForTicket"
-            @dragover="onLaneDragOver"
-            @dragleave="onLaneDragLeave"
-            @drop="onLaneDrop"
-            @ticket-dragstart="onTicketDragStart"
-            @ticket-dragend="onDragEnd"
-            @open-ticket="openTicketDetail"
-        />
-      </div>
+      <KanbanBoard
+          :board="board"
+          :lanes="lanes"
+          :tickets="tickets"
+          :labels-for-ticket="labelsForTicket"
+          :read-only="!isFull"
+          @move="moveTicket"
+          @open="openTicketDetail"
+      />
 
       <FederatedBoardCreateTicketModal
           v-if="isFull"

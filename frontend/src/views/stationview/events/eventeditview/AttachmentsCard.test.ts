@@ -3,14 +3,13 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-// @vitest-environment happy-dom
+/** @vitest-environment happy-dom */
 import {describe, expect, it} from 'vitest'
 import {mount} from '@vue/test-utils'
 import AttachmentsCard from './AttachmentsCard.vue'
 import MediaBrowseButton from '@/components/media/MediaBrowseButton.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
-import type {EventAttachment} from '@/api/events'
-import type {StationFile} from '@/api/media'
+import type {EventAttachment, StationFile} from '@/api/generated/schema'
 
 function attachment(id: number, overrides: Partial<EventAttachment> = {}): EventAttachment {
     return {

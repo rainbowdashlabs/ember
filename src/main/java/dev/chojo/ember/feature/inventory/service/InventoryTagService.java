@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
+import dev.chojo.ember.api.refusal.InventoryRefusal;
+import dev.chojo.ember.api.refusal.Refusal;
 import dev.chojo.ember.feature.federation.service.InventoryShareService;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
@@ -12,10 +14,9 @@ import dev.chojo.ember.feature.inventory.entity.InventoryTag;
 import dev.chojo.ember.feature.inventory.entity.TaggedItemSummary;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryTagRepository;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -95,8 +96,8 @@ public class InventoryTagService {
      * @param color     optional hex colour for the badge
      * @return the tag, new or found
      */
-    public InventoryTag create(int stationId, String name, String color) {
-        String wanted = requireName(name);
+    public InventoryTag create(int stationId, String name, @Nullable String color) {
+        String wanted = requireName(name, InventoryRefusal.INVENTORY_TAG_NAME_MISSING_ON_CREATE);
         var existing = tagRepository.findByName(stationId, wanted);
         if (existing.isPresent()) return existing.get();
         var tag = tagRepository.create(stationId, wanted, color);
@@ -114,15 +115,15 @@ public class InventoryTagService {
      * @param position  where it should sit
      * @return the tag as it now stands
      */
-    public InventoryTag update(int stationId, int id, String name, String color, int position) {
-        var tag = requireOwnTag(stationId, id);
-        String wanted = requireName(name);
+    public InventoryTag update(int stationId, int id, String name, @Nullable String color, int position) {
+        var tag = requireOwnTag(stationId, id, InventoryRefusal.INVENTORY_TAG_NOT_HERE_ON_CHANGE);
+        String wanted = requireName(name, InventoryRefusal.INVENTORY_TAG_NAME_MISSING_ON_CHANGE);
         var clash = tagRepository.findByName(stationId, wanted);
         if (clash.isPresent() && clash.get().id() != tag.id()) {
-            throw new BadRequestResponse("The station already has a tag of that name");
+            throw InventoryRefusal.INVENTORY_TAG_NAME_TAKEN.raise();
         }
         tagRepository.update(id, wanted, color, position);
-        return tagRepository.findById(id).orElseThrow(NotFoundResponse::new);
+        return tagRepository.findById(id).orElseThrow(InventoryRefusal.INVENTORY_TAG_NOT_HERE_AFTER_CHANGE::raise);
     }
 
     /**
@@ -132,7 +133,7 @@ public class InventoryTagService {
      * @param id        the tag
      */
     public void delete(int stationId, int id) {
-        requireOwnTag(stationId, id);
+        requireOwnTag(stationId, id, InventoryRefusal.INVENTORY_TAG_NOT_HERE_ON_DELETE);
         tagRepository.delete(id, stationId);
         log.info("Item tag {} deleted at station {}", id, stationId);
     }
@@ -145,7 +146,7 @@ public class InventoryTagService {
      * @return its tags
      */
     public List<InventoryTag> findTagsForItem(int stationId, int itemId) {
-        requireOwnItem(stationId, itemId);
+        requireOwnItem(stationId, itemId, InventoryRefusal.INVENTORY_TAG_ITEM_NOT_HERE_ON_READ);
         return tagRepository.findTagsForItem(itemId);
     }
 
@@ -168,8 +169,10 @@ public class InventoryTagService {
      * @return item id to its tags, holding only the things that wear one
      */
     public Map<Integer, List<InventoryTag>> findTagsInInventory(int stationId, int inventoryId) {
-        Inventory inventory = inventoryRepository.findById(inventoryId).orElseThrow(NotFoundResponse::new);
-        if (inventory.stationId() != stationId) throw new NotFoundResponse();
+        Inventory inventory = inventoryRepository
+                .findById(inventoryId)
+                .orElseThrow(InventoryRefusal.INVENTORY_TAG_INVENTORY_NOT_HERE::raise);
+        if (inventory.stationId() != stationId) throw InventoryRefusal.INVENTORY_TAG_INVENTORY_NOT_HERE.raise();
         return tagRepository.findTagsForItems(inventoryRepository.findItems(inventoryId).stream()
                 .map(InventoryItem::id)
                 .toList());
@@ -189,7 +192,7 @@ public class InventoryTagService {
      * @return the tags it now wears
      */
     public List<InventoryTag> setItemTags(int stationId, int itemId, List<String> names) {
-        requireOwnItem(stationId, itemId);
+        requireOwnItem(stationId, itemId, InventoryRefusal.INVENTORY_TAG_ITEM_NOT_HERE_ON_TAGGING);
         var ids = new ArrayList<Integer>();
         for (String name : names == null ? List.<String>of() : names) {
             if (name == null || name.isBlank()) continue;
@@ -207,7 +210,7 @@ public class InventoryTagService {
      * @param name       the word as somebody typed it
      * @return what was found
      */
-    public List<TaggedItemSummary> findItemsByTag(Collection<Integer> stationIds, String name) {
+    public List<TaggedItemSummary> findItemsByTag(Collection<Integer> stationIds, @Nullable String name) {
         if (name == null || name.isBlank()) return List.of();
         return tagRepository.findItemsByTag(stationIds, name);
     }
@@ -232,21 +235,38 @@ public class InventoryTagService {
                 .toList();
     }
 
-    private static String requireName(String name) {
+    private static String requireName(String name, Refusal missing) {
         String wanted = name == null ? "" : name.strip();
-        if (wanted.isEmpty()) throw new BadRequestResponse("A tag needs a name");
+        if (wanted.isEmpty()) throw missing.raise();
         return wanted;
     }
 
-    private InventoryTag requireOwnTag(int stationId, int id) {
-        var tag = tagRepository.findById(id).orElseThrow(NotFoundResponse::new);
-        if (tag.stationId() != stationId) throw new NotFoundResponse();
+    /**
+     * The station's own tag, refused alike whether it is gone or another station's, so the answer
+     * does not say that a tag exists elsewhere.
+     *
+     * @param stationId the station the tag has to belong to
+     * @param id        the tag
+     * @param missing   what to refuse with where it is not the station's
+     * @return the tag
+     */
+    private InventoryTag requireOwnTag(int stationId, int id, Refusal missing) {
+        var tag = tagRepository.findById(id).orElseThrow(missing::raise);
+        if (tag.stationId() != stationId) throw missing.raise();
         return tag;
     }
 
-    private void requireOwnItem(int stationId, int itemId) {
-        InventoryItem item = inventoryRepository.findItemById(itemId).orElseThrow(NotFoundResponse::new);
-        Inventory inventory = inventoryRepository.findById(item.inventoryId()).orElseThrow(NotFoundResponse::new);
-        if (inventory.stationId() != stationId) throw new NotFoundResponse();
+    /**
+     * Refuses a thing that is gone, sits in an inventory that is gone, or belongs to another
+     * station, all alike, so the answer does not say that it exists elsewhere.
+     *
+     * @param stationId the station the thing has to belong to
+     * @param itemId    the thing
+     * @param missing   what to refuse with where it is not the station's
+     */
+    private void requireOwnItem(int stationId, int itemId, Refusal missing) {
+        InventoryItem item = inventoryRepository.findItemById(itemId).orElseThrow(missing::raise);
+        Inventory inventory = inventoryRepository.findById(item.inventoryId()).orElseThrow(missing::raise);
+        if (inventory.stationId() != stationId) throw missing.raise();
     }
 }

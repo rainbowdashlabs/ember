@@ -6,30 +6,27 @@
 import {
     answerStepUpPrompts,
     apiHeaders,
-    demoAccounts,
     DEMO_PASSWORD,
     expect,
     freshStepUpProof,
     pageAs,
     pageAsThrowaway,
-    pinnedRole,
     test,
-    type DemoAccount,
 } from './fixtures/auth'
 import type {APIRequestContext, Browser, CDPSession, Page} from '@playwright/test'
 import {cast, passkeySlot, spokenForMemberIds, type CastMember} from './fixtures/cast'
+import {demoSignIn} from './fixtures/session'
 
 /**
  * The passkey stories, over Chromium's virtual authenticator: the only way to prove any of this
  * without a finger. Chromium only; the other projects skip.
  *
  * Every story takes a throwaway account of its own: a passkey on a shared role would follow the
- * other stories around, and several of these end sessions or refuse passwords on purpose.
+ * other stories around, and several of these end sessions or refuse passwords on purpose. A story
+ * chains several ceremonies, a step-up round trip and full sign-ins, so each is given two minutes.
  */
 test.describe('Passkeys', () => {
     test.skip(({browserName}) => browserName !== 'chromium', 'the virtual authenticator is CDP-only')
-    // Several ceremonies, a step-up round trip and full sign-ins chain up in one story, and the
-    // stagger that keeps the proofs off the throttle costs its seconds too.
     test.describe.configure({timeout: 120_000})
 
     /**
@@ -106,28 +103,25 @@ test.describe('Passkeys', () => {
      * shares one session, so the first story's proof covers the rest through the freshness
      * window, but only if the others arrive after it rather than alongside it. A burst of
      * simultaneous proofs spends codes on refusals until the account is throttled for minutes.
+     *
+     * The row is found by id, never by the address it is about to overwrite. A proof is only given
+     * when the write is refused, and a spent code or a throttled answer is simply waited out.
      */
     async function giveAddress(manager: Page, memberId: number, address: string, slot: number): Promise<MemberRow> {
         await manager.waitForTimeout(slot * 6_000)
         const headers = await apiHeaders(manager)
         const list = await manager.request.get('/api/v1/station-members', {headers})
-        // By id, never by the address: the address is what this is about to overwrite, so a row
-        // found by it is a row that has not been written yet and cannot be found twice.
         const row = (await list.json() as MemberRow[]).find(candidate => candidate.id === memberId)
         if (!row) throw new Error(`Member ${memberId} is not in the station list`)
         const put = () => manager.request.put(`/api/v1/members/${row.accountId}`, {
             headers,
             data: {email: address, firstName: row.firstName, lastName: row.lastName},
         })
-        // Proved only when refused: the retried write usually goes through on the freshness a
-        // sibling story's proof left behind, without spending a code of its own.
         let saved = await put()
         for (let attempt = 0; saved.status() === 401 && attempt < 3; attempt++) {
             try {
                 await freshStepUpProof(manager)
             } catch {
-                // The code was spent or the throttle answered: the next period brings a fresh
-                // code and the throttle a free slot, so the wait is the whole remedy.
                 await manager.waitForTimeout(15_000)
             }
             saved = await put()
@@ -158,11 +152,10 @@ test.describe('Passkeys', () => {
         return {cdp, authenticatorId}
     }
 
-    /** Walks the security screen's creation flow to the finished trial. */
+    /** Walks the security screen's creation flow to the finished trial; the fixture answers its fresh-proof dialog. */
     async function createPasskey(page: Page): Promise<void> {
         await page.goto('/account/security')
         await page.getByRole('button', {name: 'Passkey einrichten'}).click()
-        // The creation stands behind the fresh-proof check; the fixture answers the dialog.
         await page.getByRole('dialog').getByRole('button', {name: 'Passkey einrichten'}).click()
         await expect(page.getByText('Und jetzt probieren wir ihn einmal aus.')).toBeVisible({timeout: 15_000})
         await page.getByRole('button', {name: 'Ausprobieren', exact: true}).click()
@@ -175,6 +168,9 @@ test.describe('Passkeys', () => {
      * the button, and the autofill that starts on its own. The virtual authenticator answers the
      * autofill immediately, so the sign-in often completes before any button could be pressed -
      * whichever way it happens is the passkey signing its owner in.
+     *
+     * The click carries a timeout so that it can lose the race against the autofill navigating away:
+     * without one it retries for as long as the story runs on a page that is already signed in.
      */
     async function signInWithPasskey(page: Page): Promise<void> {
         await page.goto('/login')
@@ -182,25 +178,23 @@ test.describe('Passkeys', () => {
         const button = page.getByRole('button', {name: 'Mit Passkey anmelden'})
         await expect(shell.or(button).first()).toBeVisible({timeout: 20_000})
         if (await shell.count() === 0) {
-            // The click can lose a last-moment race against the autofill navigating away, and the
-            // timeout is what lets it lose. Nothing sets an action timeout, so the default of none
-            // applies: a click whose target keeps moving out from under it is retried for as long
-            // as it takes, never rejects, and the catch below never runs. The story then sits here
-            // until its own budget ends, with a page that looks perfectly signed in.
             await button.click({timeout: 10_000}).catch(() => {})
         }
         await expect(shell).toBeVisible({timeout: 20_000})
     }
 
+    /**
+     * A passkey is created, tried, and then signs its owner back in with nothing else; a password
+     * sign-in afterwards still asks nothing extra.
+     *
+     * <p>The session goes in only once the login screen is up, since a screen opened with a session
+     * moves on at once. The authenticator is removed before the password sign-in, because it would
+     * answer the screen's passkey autofill on its own and win the race.
+     */
     test('a passkey is created, tried, and signs its owner in', async ({browser, request}) => {
         const account = await storyAccount(0)
 
-        // The context is built by hand: the throwaway fixture plants its session through an init
-        // script that runs on every load, which would put the token back the moment this story
-        // signs out to prove the passkey alone gets in.
-        const login = await request.post('/api/v1/demo/login', {data: {email: account.email}})
-        if (!login.ok()) throw new Error(`Demo login for ${account.email} answered ${login.status()}`)
-        const {token} = await login.json() as {token: string}
+        const session = await demoSignIn(request, account.email)
 
         const context = await browser.newContext()
         const page = await context.newPage()
@@ -208,24 +202,19 @@ test.describe('Passkeys', () => {
         const {cdp, authenticatorId} = await addAuthenticator(page)
         await answerStepUpPrompts(page)
         await page.goto('/login')
-        await page.evaluate(([sessionToken, stationId]) => {
-            window.localStorage.setItem('session_token', sessionToken ?? '')
+        await context.addCookies(session.cookies)
+        await page.evaluate(stationId => {
             if (stationId) window.localStorage.setItem('station_id', stationId)
-        }, [token, account.stationId ?? ''])
+        }, account.stationId ?? '')
 
         await createPasskey(page)
         await expect(page.getByText('Anmeldung', {exact: true})).toBeVisible()
 
-        // The credential survives into a fresh sign-in: sign out by clearing the session, then
-        // come back in with nothing but the passkey.
-        await page.evaluate(() => window.localStorage.removeItem('session_token'))
+        await context.clearCookies()
         await signInWithPasskey(page)
 
-        // A password sign-in afterwards asks nothing extra: the password path is untouched (D3).
-        // The authenticator goes away first: it answers the login screen's passkey autofill on
-        // its own, and that sign-in would win the race against the password form being filled.
         await cdp.send('WebAuthn.removeVirtualAuthenticator', {authenticatorId})
-        await page.evaluate(() => window.localStorage.removeItem('session_token'))
+        await context.clearCookies()
         await page.goto('/login')
         await page.getByPlaceholder('E-Mail oder Benutzername').fill(account.email)
         await page.getByPlaceholder('Passwort').fill(DEMO_PASSWORD)
@@ -235,25 +224,25 @@ test.describe('Passkeys', () => {
         await context.close()
     })
 
+    /**
+     * The password can be switched off once a passkey has proven itself, and removing the last passkey
+     * is the safety valve that opens it again.
+     *
+     * <p>The switch is only offered to somebody the way back in can be mailed to. The refused password
+     * gets the same words as any refused sign-in, so the refusal tells nobody that the account exists;
+     * it is tried from a sessionless context, since a demo login would replace the account's session.
+     */
     test('switching the password off refuses it, removing the last passkey opens it again', async ({browser, request}) => {
-        // The switch is only offered to somebody the way back in can be mailed to.
         const account = await addressedStoryAccount(browser, request, 1)
         const page = await pageAsThrowaway(browser, request, [], account)
         await addAuthenticator(page)
 
         await createPasskey(page)
 
-        // The switch appears only once a passkey has proven itself, and it stands behind the
-        // fresh-proof check like everything else on this screen. Its accessible name starts with
-        // the label and carries the hint after it.
         await page.getByRole('switch', {name: /^Anmeldung mit Passwort/}).click()
         await expect(page.getByText('Die Anmeldung mit Passwort ist ausgeschaltet.', {exact: false}))
             .toBeVisible({timeout: 15_000})
 
-        // The password is now refused at the door, in the same words every other refused sign-in
-        // gets. Naming this one apart would tell whoever is trying addresses that this one has an
-        // account and signs in another way. Tried from a sessionless context: a demo login here
-        // would replace the one session the account has, which is the one the first page needs.
         const freshContext = await browser.newContext()
         const fresh = await freshContext.newPage()
         await fresh.addInitScript(() => window.localStorage.setItem('storage_consent', 'accepted'))
@@ -265,7 +254,6 @@ test.describe('Passkeys', () => {
             .toBeVisible({timeout: 15_000})
         await freshContext.close()
 
-        // Removing the last passkey is the safety valve: the password door opens again, visibly.
         await page.goto('/account/security')
         await page.getByRole('button', {name: 'Löschen'}).first().click()
         await page.getByRole('dialog').getByRole('button', {name: 'Löschen'}).click()
@@ -275,20 +263,21 @@ test.describe('Passkeys', () => {
         await page.context().close()
     })
 
+    /**
+     * A new device with no session but an authenticator of its own asks for a credential, the
+     * signed-in device approves, and the new one enrols and signs in with the passkey it made.
+     */
     test('the device handshake frees a device across two contexts', async ({browser, request}) => {
         const account = await storyAccount(2)
 
-        // The signed-in device, which will approve.
         const approver = await pageAsThrowaway(browser, request, [], account)
 
-        // The new device: no session, only a virtual authenticator of its own.
         const newContext = await browser.newContext()
         const newDevice = await newContext.newPage()
         await newDevice.addInitScript(() => window.localStorage.setItem('storage_consent', 'accepted'))
         await addAuthenticator(newDevice)
 
         await newDevice.goto('/unlock-device')
-        // A browser that can hold a passkey is asked which it wants; this story wants the credential.
         await newDevice.getByRole('button', {name: 'Passkey auf diesem Gerät anlegen'}).click()
         const handshake = await raiseRequest(newDevice, account.email)
 
@@ -302,7 +291,6 @@ test.describe('Passkeys', () => {
         await approver.getByTestId(`number-choice-${handshake.matchNumber}`).click()
         await expect(approver.getByText('Freigeschaltet.', {exact: false})).toBeVisible({timeout: 15_000})
 
-        // The new device enrols and signs in with the passkey it just made.
         await expect(newDevice.getByTestId('app-shell')).toBeVisible({timeout: 30_000})
 
         await approver.context().close()
@@ -316,14 +304,13 @@ test.describe('Passkeys', () => {
      * that cannot hold a passkey has no other way in whatsoever. What proves it worked is that the
      * device ends up signed in while holding nothing: no ceremony runs, and no authenticator is
      * attached to this context at all.
+     *
+     * <p>The story has a slot of its own, since the approval screen is throttled per account.
      */
     test('a device with no credential is signed in by one that already holds a session', async ({browser, request}) => {
-        // A slot of its own: the approval screen is throttled per account, and sharing one with the
-        // enrolment story above made the second of the two meet a refusal instead of a code.
         const account = await storyAccount(4)
         const approver = await pageAsThrowaway(browser, request, [], account)
 
-        // Deliberately no authenticator on this context: nothing here can hold a passkey.
         const newContext = await browser.newContext()
         const newDevice = await newContext.newPage()
         await newDevice.addInitScript(() => window.localStorage.setItem('storage_consent', 'accepted'))
@@ -337,15 +324,14 @@ test.describe('Passkeys', () => {
         await approver.getByPlaceholder('K7RM-2WQD').fill(handshake.code)
         await approver.getByRole('button', {name: 'Code prüfen'}).click()
 
-        // The screen says what this grant is, which is a different thing from a passkey.
-        await expect(approver.getByText('Das Gerät wird danach in deinem Namen angemeldet', {exact: false}))
+        await expect(approver.getByText('Das Gerät wird danach in deinem Namen angemeldet', {exact: false}),
+            'the screen says this grant is a sign-in rather than a passkey')
             .toBeVisible()
         await approver.getByTestId(`number-choice-${handshake.matchNumber}`).click()
         await expect(approver.getByText('Freigeschaltet.', {exact: false})).toBeVisible({timeout: 15_000})
 
         await expect(newDevice.getByTestId('app-shell')).toBeVisible({timeout: 30_000})
 
-        // And nothing was left behind: the account holds no passkey it did not have before.
         const headers = await apiHeaders(newDevice)
         const status = await newDevice.request.get('/api/v1/account/passkeys', {headers});
         expect((await status.json()).passkeys ?? [], 'a sign-in leaves no credential on the device').toHaveLength(0)
@@ -354,8 +340,11 @@ test.describe('Passkeys', () => {
         await newContext.close()
     })
 
+    /**
+     * The offer of a passkey goes only to somebody the way back in can be mailed to, appears once
+     * after a sign-in, and once declined the next sign-in goes straight through.
+     */
     test('the offer appears once after a sign-in and Nein danke ends it', async ({browser, request}) => {
-        // The offer never goes to somebody the way back in cannot be mailed to.
         const account = await addressedStoryAccount(browser, request, 3)
 
         const context = await browser.newContext()
@@ -380,8 +369,7 @@ test.describe('Passkeys', () => {
         await page.getByRole('button', {name: 'Nein danke'}).click()
         await expect(page.getByTestId('app-shell')).toBeVisible({timeout: 20_000})
 
-        // Declined for good: the next sign-in goes straight through.
-        await page.evaluate(() => window.localStorage.removeItem('session_token'))
+        await context.clearCookies()
         await signInWithPassword()
         await expect(page.getByTestId('app-shell')).toBeVisible({timeout: 20_000})
         expect(page.url()).not.toContain('passkey-offer')
@@ -400,13 +388,13 @@ test.describe('Passkeys', () => {
      *
      * <p>The guardian first gives them something to sign in with and switches their access on,
      * because neither is true of a seeded managed member, and the approval screen offers only the
-     * people who could actually sign in.
+     * people who could actually sign in. It is a login name rather than an address: a dev session
+     * token is the address, so giving one out would sign the charge out elsewhere.
+     *
+     * <p>Neither side is somebody another story acts as, since signing in replaces a dev session row
+     * and addressing a managed member ends their sessions; both are settled by id at global setup.
      */
     test('a guardian signs a member in their care in on a borrowed machine', async ({browser, request}) => {
-        // Nobody another story is acting as, on either side. Signing in replaces a dev session row
-        // and giving a managed member an address ends their sessions outright, so a guardian or a
-        // charge that is also a shared role or another story's part would take that story's session
-        // out from under it in the middle of the run. Both are settled by id at global setup.
         const spokenFor = await spokenForMemberIds()
         const guardianCast = (await cast()).guardians.passkeySpec
         const guardian = await pageAsThrowaway(browser, request, [], guardianCast)
@@ -419,10 +407,6 @@ test.describe('Passkeys', () => {
         const charge = managed.find((member: {id: number}) => !spokenFor.has(member.id))
         test.skip(!charge, 'every member this guardian looks after is already spoken for by another story')
 
-        // Something to sign in with, and permission to. A managed member is seeded with neither, and
-        // the approval screen offers only the people for whom both are true. A name rather than an
-        // address on purpose: a dev session token is the account's address, so giving one out would
-        // sign this member out of wherever else they are, which is the trap the choice above avoids.
         await freshStepUpProof(guardian)
         const loginName = `charge${Date.now()}`
         await guardian.request.put(`/api/v1/managed-members/${charge.id}/username`, {
@@ -437,22 +421,18 @@ test.describe('Passkeys', () => {
 
         await newDevice.goto('/unlock-device')
         await newDevice.getByRole('button', {name: 'Nur anmelden, nichts speichern'}).click()
-        // Named as the charge, which is who is signing in. The guardian may answer it because the
-        // charge is in their care, and that is the only reason anybody but the charge may.
         const handshake = await raiseRequest(newDevice, loginName)
 
         await guardian.goto('/account/unlock-device')
         await guardian.getByPlaceholder('K7RM-2WQD').fill(handshake.code)
         await guardian.getByRole('button', {name: 'Code prüfen'}).click()
 
-        // The choice the guardian gets and nobody else does: whose sign-in this is.
         const forWhom = guardian.getByTestId('approve-for')
         await expect(forWhom).toBeVisible({timeout: 15_000})
         await forWhom.selectOption(String(charge.accountId))
         await guardian.getByTestId(`number-choice-${handshake.matchNumber}`).click()
         await expect(guardian.getByText('Freigeschaltet.', {exact: false})).toBeVisible({timeout: 15_000})
 
-        // The device is signed in as the charge, not as the guardian who approved it.
         await expect(newDevice.getByTestId('app-shell')).toBeVisible({timeout: 30_000})
         const session = await newDevice.request
             .get('/api/v1/session', {headers: await apiHeaders(newDevice)})
@@ -464,10 +444,12 @@ test.describe('Passkeys', () => {
         await guardian.context().close()
     })
 
-    test('a manager onboards a member again and gets a passkey code for an addressless one', async ({browser, request}) => {
-        // The shared manager session acts here; a fresh login as the manager would replace it
-        // under every other story. The target is a slot of its own, because onboarding again
-        // ends the target's sessions.
+    /**
+     * A manager onboards a member again. The shared manager session acts, since a fresh login would
+     * replace it under every other story, and the target has a slot of its own because onboarding
+     * ends its sessions. A member with an address is never offered the code: the mail path is theirs.
+     */
+    test('a manager onboards a member again and gets a passkey code for an addressless one', async ({browser}) => {
         const target = await storyAccount(ONBOARD_SLOT)
         const page = await pageAs(browser, 'manager')
 
@@ -479,8 +461,6 @@ test.describe('Passkeys', () => {
         await page.getByRole('button', {name: 'Erneut onboarden'}).click()
         await expect(page.getByText('Der Einrichtungslink ist unterwegs.')).toBeVisible({timeout: 15_000})
 
-        // A member with an address of their own is never offered the code button: the mail path
-        // is theirs, and it is the one with a second party in it.
         await expect(page.getByRole('button', {name: 'Code anzeigen'})).toHaveCount(0)
 
         await page.context().close()

@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import { useId } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
@@ -26,6 +27,7 @@ defineEmits<{
 }>()
 
 const { t } = useI18n()
+const pointsId = useId()
 </script>
 
 <template>
@@ -35,8 +37,8 @@ const { t } = useI18n()
       <TextInput v-model="label" :placeholder="t('protocol.itemLabel')" required />
       <TextAreaInput v-model="description" :placeholder="t('protocol.description')" />
       <div>
-        <label class="block text-sm mb-1">{{ t('protocol.points') }}</label>
-        <DecimalInput v-model="points" step="0.5" />
+        <label :for="pointsId" class="block text-sm mb-1">{{ t('protocol.points') }}</label>
+        <DecimalInput :id="pointsId" v-model="points" step="0.5" />
       </div>
       <div class="flex gap-2 justify-end">
         <PrimaryButton type="submit">{{ t('common.save') }}</PrimaryButton>
