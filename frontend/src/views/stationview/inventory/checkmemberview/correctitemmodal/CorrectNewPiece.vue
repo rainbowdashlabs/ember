@@ -9,8 +9,7 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import FieldValueInput from '@/views/stationview/inventory/detailview/FieldValueInput.vue'
-import {ItemOwner, type ItemOwnerName} from '@/api/inventory'
-import type {InventoryFieldDefinition, RequiredInventoryItem} from '@/api/generated/schema'
+import {ItemOwner, type InventoryFieldDefinition, type RequiredInventoryItem} from '@/api/generated/schema'
 
 /**
  * The piece the member actually holds, written down for the first time.
@@ -25,7 +24,7 @@ defineProps<{
   asksOwner: boolean
 }>()
 
-const owner = defineModel<ItemOwnerName>('owner', {required: true})
+const owner = defineModel<ItemOwner>('owner', {required: true})
 const sizeId = defineModel<string>('sizeId', {required: true})
 const internalId = defineModel<string>('internalId', {required: true})
 const fieldValues = defineModel<Record<string, unknown>>('fieldValues', {required: true})

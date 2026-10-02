@@ -7,12 +7,11 @@
 import {useI18n} from 'vue-i18n'
 import Spinner from '@/components/feedback/Spinner.vue'
 import StatusSection from './StatusSection.vue'
-import type {RegistrationStatusName} from '@/api/events'
-import type {RegistrationResponse, RegistrationStatsResponse} from '@/api/generated/schema'
+import type {RegistrationResponse, RegistrationStatsResponse, RegistrationStatus} from '@/api/generated/schema'
 
 defineProps<{
   loading: boolean
-  byStatus: Record<RegistrationStatusName, RegistrationResponse[]>
+  byStatus: Record<RegistrationStatus, RegistrationResponse[]>
   stats: RegistrationStatsResponse[]
 }>()
 

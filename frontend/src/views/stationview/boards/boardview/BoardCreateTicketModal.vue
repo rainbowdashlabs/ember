@@ -15,8 +15,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import BoardCreateTicketFields from './BoardCreateTicketFields.vue'
 import { boards } from '@/api'
-import {TicketPriority, type TicketPriorityName} from '@/api/boards'
-import type {BoardLane, MemberCompletion} from '@/api/generated/schema'
+import {TicketPriority, type BoardLane, type MemberCompletion} from '@/api/generated/schema'
 import { useAsyncAction } from '@/composables/useAsyncAction'
 
 const open = defineModel<boolean>({ required: true })
@@ -36,7 +35,7 @@ const router = useRouter()
 const title = ref('')
 const description = ref('')
 const laneId = ref('')
-const priority = ref<TicketPriorityName>(TicketPriority.MEDIUM)
+const priority = ref<TicketPriority>(TicketPriority.MEDIUM)
 const assignee = ref('')
 const dueDate = ref('')
 const validationError = ref('')

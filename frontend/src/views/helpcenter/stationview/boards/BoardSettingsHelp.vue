@@ -13,7 +13,7 @@ import BoardGeneralSection from '@/views/stationview/boards/boardsettingsview/Bo
 import BoardLanesSection from '@/views/stationview/boards/boardsettingsview/BoardLanesSection.vue'
 import BoardFieldsSection from '@/views/stationview/boards/boardsettingsview/BoardFieldsSection.vue'
 import BoardFederationSection from '@/views/stationview/boards/boardsettingsview/BoardFederationSection.vue'
-import {FieldTypes} from '@/api/fieldTypes'
+import {FieldType} from '@/api/generated/schema'
 import {
     demoAvailablePartners,
     demoFederationTargets,
@@ -69,7 +69,7 @@ const federationTargets = demoFederationTargets()
                 :fields="fields"
                 :lanes="lanes"
                 new-field-name=""
-                :new-field-type="FieldTypes.TEXT"
+                :new-field-type="FieldType.TEXT"
             />
         </HelpSection>
 

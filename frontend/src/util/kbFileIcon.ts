@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {KbFileType} from '@/api/knowledgeBase'
+import {KbFileType} from '@/api/generated/schema'
 
 /**
  * Returns the FontAwesome icon tuple for a knowledge-base file based on its

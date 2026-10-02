@@ -7,7 +7,7 @@ import { computed, ref, watch, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useSession } from '@/composables/useSession'
 import { PALETTE_ROUTES, type PaletteRouteEntry } from '@/data/paletteRoutes'
-import { StationModules, StationPermission } from '@/api/types'
+import { StationModule, StationPermission } from '@/api/generated/schema'
 import type { PersonIdentity } from '@/util/personIdentity'
 import { listCompletions } from '@/api/stationMembers'
 import { search as searchKb } from '@/api/knowledgeBase'
@@ -186,7 +186,7 @@ export function useQuickSearchResults(query: Ref<string>, scope: Ref<string>) {
    */
   async function loadInventories() {
     if (inventoriesLoaded) return
-    if (!inStation.value || !isModuleEnabled(StationModules.INVENTORY) || !hasPermission(StationPermission.INVENTORY_READ)) {
+    if (!inStation.value || !isModuleEnabled(StationModule.INVENTORY) || !hasPermission(StationPermission.INVENTORY_READ)) {
       inventories.value = []
       return
     }
@@ -199,7 +199,7 @@ export function useQuickSearchResults(query: Ref<string>, scope: Ref<string>) {
   }
 
   async function runKbSearch(q: string) {
-    if (!inStation.value || !isModuleEnabled(StationModules.KNOWLEDGE_BASE) || q.length < MIN_KB_QUERY_LENGTH) {
+    if (!inStation.value || !isModuleEnabled(StationModule.KNOWLEDGE_BASE) || q.length < MIN_KB_QUERY_LENGTH) {
       kbResults.value = []
       return
     }
@@ -211,7 +211,7 @@ export function useQuickSearchResults(query: Ref<string>, scope: Ref<string>) {
   }
 
   async function runEventSearch(q: string) {
-    if (!inStation.value || !isModuleEnabled(StationModules.EVENTS)) {
+    if (!inStation.value || !isModuleEnabled(StationModule.EVENTS)) {
       eventResults.value = []
       return
     }

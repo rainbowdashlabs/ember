@@ -4,21 +4,12 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-import type {components, HourlyTrafficResponse} from './generated/schema'
-
-export type AuthBucketName = components['schemas']['AuthBucket']
-
-/** Auth bucket the backend classifies each request into. */
-export const AuthBucket = {
-    AUTHENTICATED: 'AUTHENTICATED',
-    UNAUTHENTICATED: 'UNAUTHENTICATED',
-    FEDERATION: 'FEDERATION',
-} as const satisfies Record<AuthBucketName, AuthBucketName>
+import type {AuthBucket, HourlyTrafficResponse} from './generated/schema'
 
 export interface TrafficQuery {
     from: string
     to: string
-    auth?: AuthBucketName
+    auth?: AuthBucket
 }
 
 /** Instance-admin view of every station + global bucket inside the window. */

@@ -10,17 +10,18 @@ import {useRoute} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
-import {CancellationCauses, isRecurringEvent} from '@/api/events'
-import type {
-  AbsentMemberResponse,
-  AttendanceTemplate,
-  CancellationNotice,
-  EventCategory,
-  AppointmentField,
-  ManagedMember,
-  MemberCompletion,
-  RegistrationResponse,
-  StationEvent,
+import {isRecurringEvent} from '@/api/events'
+import {
+  CancellationCause,
+  type AbsentMemberResponse,
+  type AttendanceTemplate,
+  type CancellationNotice,
+  type EventCategory,
+  type AppointmentField,
+  type ManagedMember,
+  type MemberCompletion,
+  type RegistrationResponse,
+  type StationEvent,
 } from '@/api/generated/schema'
 import {attendance, events, managedMembers as managedMembersApi, stationMembers} from '@/api'
 import {useSession} from '@/composables/useSession'
@@ -106,7 +107,7 @@ const cancellation = computed((): CancellationNotice | null => {
   const ev = event.value
   if (!ev) return null
   if (ev.cancelled) {
-    return {date: effectiveDate.value, cause: CancellationCauses.MANUAL, reason: ev.cancelReason, cancelledAt: ev.cancelledAt}
+    return {date: effectiveDate.value, cause: CancellationCause.MANUAL, reason: ev.cancelReason, cancelledAt: ev.cancelledAt}
   }
   return cancelledDates.value.find(notice => notice.date === effectiveDate.value) ?? null
 })

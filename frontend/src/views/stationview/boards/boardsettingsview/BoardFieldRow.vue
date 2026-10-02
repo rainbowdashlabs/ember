@@ -12,7 +12,8 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import FieldTypePicker from '@/components/input/FieldTypePicker.vue'
 import QuestionOptionsEditor from '@/components/input/QuestionOptionsEditor.vue'
-import { FieldTypes, OfferedFieldTypes } from '@/api/fieldTypes'
+import { OfferedFieldTypes } from '@/api/fieldTypes'
+import { FieldType } from '@/api/generated/schema'
 import { isBoardFieldType, type BoardFieldDraft } from '@/api/boards'
 import type { LaneDraft } from './BoardLanesSection.vue'
 
@@ -59,13 +60,13 @@ function retype(value: unknown) {
             {{ t('questionSettings.required') }}
         </label>
         <QuestionOptionsEditor
-            v-if="field.fieldType === FieldTypes.CHOICE"
+            v-if="field.fieldType === FieldType.CHOICE"
             :label="t('questionSettings.options')"
             :model-value="field.options"
             class="pl-6"
             @update:model-value="options => emit('update', { options })"
         />
-        <div v-if="field.fieldType === FieldTypes.LANE_ASSIGNEE" class="pl-6">
+        <div v-if="field.fieldType === FieldType.LANE_ASSIGNEE" class="pl-6">
             <FieldLabel class="text-xs mb-1">{{ t('boards.fieldLane') }}</FieldLabel>
             <SelectInput :model-value="String(field.laneId ?? '')"
                          @update:model-value="v => emit('update', { laneId: v ? Number(v) : null })">

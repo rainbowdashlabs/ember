@@ -8,7 +8,7 @@ import { useI18n } from 'vue-i18n'
 import IconSelectInput from '@/components/input/select/IconSelectInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import InlineEditTrigger from '@/components/button/InlineEditTrigger.vue'
-import type { TicketPriorityName } from '@/api/boards'
+import type { TicketPriority } from '@/api/generated/schema'
 import type {PriorityOption} from './types'
 
 
@@ -17,7 +17,7 @@ const props = defineProps<{
     canEdit: boolean
 }>()
 
-const priority = defineModel<TicketPriorityName>('priority')
+const priority = defineModel<TicketPriority>('priority')
 const editing = defineModel<boolean>('editing', { default: false })
 
 const emit = defineEmits<{

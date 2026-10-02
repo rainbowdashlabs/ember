@@ -7,8 +7,7 @@
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import MemberName from '@/components/avatar/MemberName.vue'
-import {MovementState} from '@/api/movements'
-import type {MovementResponse} from '@/api/generated/schema'
+import {MovementState, type MovementResponse} from '@/api/generated/schema'
 
 /**
  * What was written down about a movement: who it is with, what it is out of, and why.

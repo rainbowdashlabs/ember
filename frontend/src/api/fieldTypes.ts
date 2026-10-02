@@ -3,52 +3,18 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {components} from './generated/schema'
+import {FieldType} from './generated/schema'
 
-/** One type a field of any feature can have, under the one name the server knows it by. */
-export type FieldTypeName = components['schemas']['FieldType']
-
-/**
- * Every field type, under the shared names.
- *
- * <p>Profile, association, inventory, board, appointment, registration, attendance and waiting list
- * fields all pick from this one list. Each feature offers a part of it, which is what
- * {@link OfferedFieldTypes} says.
- */
-export const FieldTypes = {
-    TEXT: 'TEXT',
-    LONG_TEXT: 'LONG_TEXT',
-    NUMBER: 'NUMBER',
-    DATE: 'DATE',
-    TIME: 'TIME',
-    BOOLEAN: 'BOOLEAN',
-    CHOICE: 'CHOICE',
-    URL: 'URL',
-    MEMBER: 'MEMBER',
-    MEMBER_LIST: 'MEMBER_LIST',
-    BIRTH_DATE: 'BIRTH_DATE',
-    EXPIRY_DATE: 'EXPIRY_DATE',
-    AGE: 'AGE',
-    SECTION: 'SECTION',
-    SPACER: 'SPACER',
-    LOCATION: 'LOCATION',
-    MEMBER_OF_GROUP: 'MEMBER_OF_GROUP',
-    MEMBER_LIST_OF_GROUP: 'MEMBER_LIST_OF_GROUP',
-    MEMBER_OF_TYPE: 'MEMBER_OF_TYPE',
-    MEMBER_LIST_OF_TYPE: 'MEMBER_LIST_OF_TYPE',
-    MEMBER_OF_TAG: 'MEMBER_OF_TAG',
-    MEMBER_LIST_OF_TAG: 'MEMBER_LIST_OF_TAG',
-    LANE_ASSIGNEE: 'LANE_ASSIGNEE',
-} as const satisfies Record<FieldTypeName, FieldTypeName>
-
-const T = FieldTypes
+const T = FieldType
 
 /**
  * The types each feature's type picker offers, in the order it offers them.
  *
- * <p>Each list is part of what the server accepts for that feature, and is exactly what the feature's
- * screen offered before the names were shared. Where a screen offers less than the server accepts, a
- * field already saved under one of the others still shows its own type in the picker.
+ * <p>Profile, association, inventory, board, appointment, registration, attendance and waiting list
+ * fields all pick from the one list of field types. Each list is part of what the server accepts for
+ * that feature, and is exactly what the feature's screen offered before the names were shared. Where a
+ * screen offers less than the server accepts, a field already saved under one of the others still
+ * shows its own type in the picker.
  */
 export const OfferedFieldTypes = {
     PROFILE: [
@@ -68,42 +34,42 @@ export const OfferedFieldTypes = {
         T.MEMBER_LIST_OF_GROUP,
     ],
     WAITING_LIST: [T.TEXT, T.NUMBER, T.DATE, T.BIRTH_DATE, T.BOOLEAN, T.CHOICE],
-} as const satisfies Record<string, readonly FieldTypeName[]>
+} as const satisfies Record<string, readonly FieldType[]>
 
 /** Which members a member field may name, or null where it names anybody or nobody. */
 export type MemberConstraint = 'group' | 'userType' | 'tag' | null
 
-const NAMES_MEMBERS: readonly FieldTypeName[] = [
+const NAMES_MEMBERS: readonly FieldType[] = [
     T.MEMBER, T.MEMBER_LIST, T.MEMBER_OF_GROUP, T.MEMBER_LIST_OF_GROUP, T.MEMBER_OF_TYPE,
     T.MEMBER_LIST_OF_TYPE, T.MEMBER_OF_TAG, T.MEMBER_LIST_OF_TAG, T.LANE_ASSIGNEE,
 ]
 
-const NAMES_SEVERAL: readonly FieldTypeName[] = [
+const NAMES_SEVERAL: readonly FieldType[] = [
     T.MEMBER_LIST, T.MEMBER_LIST_OF_GROUP, T.MEMBER_LIST_OF_TYPE, T.MEMBER_LIST_OF_TAG,
 ]
 
-const HOLDS_NOTHING: readonly FieldTypeName[] = [T.AGE, T.SECTION, T.SPACER]
+const HOLDS_NOTHING: readonly FieldType[] = [T.AGE, T.SECTION, T.SPACER]
 
-const DATES: readonly FieldTypeName[] = [T.DATE, T.BIRTH_DATE, T.EXPIRY_DATE]
+const DATES: readonly FieldType[] = [T.DATE, T.BIRTH_DATE, T.EXPIRY_DATE]
 
 /** Whether a field of this type names members, one or several. */
 export function namesMembers(type: string | null | undefined): boolean {
-    return NAMES_MEMBERS.includes(type as FieldTypeName)
+    return NAMES_MEMBERS.includes(type as FieldType)
 }
 
 /** Whether a field of this type names several members rather than one. */
 export function namesSeveralMembers(type: string | null | undefined): boolean {
-    return NAMES_SEVERAL.includes(type as FieldTypeName)
+    return NAMES_SEVERAL.includes(type as FieldType)
 }
 
 /** Whether a field of this type holds a value of its own; an age, a heading and a gap do not. */
 export function holdsValue(type: string | null | undefined): boolean {
-    return !!type && !HOLDS_NOTHING.includes(type as FieldTypeName)
+    return !!type && !HOLDS_NOTHING.includes(type as FieldType)
 }
 
 /** Whether a field of this type holds a calendar date, which is also what an age counts from. */
 export function isDateType(type: string | null | undefined): boolean {
-    return DATES.includes(type as FieldTypeName)
+    return DATES.includes(type as FieldType)
 }
 
 /** Which members a member field of this type may name. */
@@ -124,8 +90,8 @@ export function memberConstraintOf(type: string | null | undefined): MemberConst
 }
 
 /** Whether a name is one of the field types, which is what a value read from a select box is checked by. */
-export function isFieldType(value: unknown): value is FieldTypeName {
-    return typeof value === 'string' && Object.hasOwn(FieldTypes, value)
+export function isFieldType(value: unknown): value is FieldType {
+    return typeof value === 'string' && Object.hasOwn(FieldType, value)
 }
 
 type Translate = (key: string) => string

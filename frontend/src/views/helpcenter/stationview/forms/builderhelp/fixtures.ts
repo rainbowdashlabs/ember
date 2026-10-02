@@ -3,17 +3,19 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {PageTargetKind, QuestionTypes} from '@/api/forms'
-import type {
-    FormLayout,
-    FormPage,
-    FormQuestion,
-    FormQuestionConfig,
-    MemberGroup,
-    QuestionBranch,
-    UserTag,
+import {PageTargetKind} from '@/api/forms'
+import {
+    FormQuestionType,
+    StationUserType,
+    type FormLayout,
+    type FormPage,
+    type FormQuestion,
+    type FormQuestionConfig,
+    type MemberGroup,
+    type QuestionBranch,
+    type UserTag,
 } from '@/api/generated/schema'
-import {StationUserType, type RestrictionSelection} from '@/api/types'
+import type {RestrictionSelection} from '@/api/types'
 import type {MemberLike} from '@/components/input/select/memberOption'
 import type {Translate} from '@/util/failure'
 import {numberedOptions} from '@/util/formOptions'
@@ -35,10 +37,10 @@ export function sampleLayout(t: Translate): FormLayout {
             page(2, 'p2', 'Warum nicht?'),
         ],
         questions: [
-            question(1, t('helpCenter.sample.forms.satisfaction'), {questionType: QuestionTypes.RATING, scale: 5, icon: 'STAR'},
+            question(1, t('helpCenter.sample.forms.satisfaction'), {questionType: FormQuestionType.RATING, scale: 5, icon: 'STAR'},
                 '1 = sehr unzufrieden, 5 = sehr zufrieden'),
             question(2, t('helpCenter.sample.forms.likedMost'), {
-                questionType: QuestionTypes.CHOICE,
+                questionType: FormQuestionType.CHOICE,
                 multiSelect: true,
                 multiLimitType: 'AT_MOST',
                 multiLimit: 2,
@@ -46,7 +48,7 @@ export function sampleLayout(t: Translate): FormLayout {
                 options: numberedOptions(t('helpCenter.formsFill.dummyChoiceOption1'), t('helpCenter.formsFill.dummyChoiceOption2')),
             }),
             question(3, t('helpCenter.formsPages.dummyBranchQuestion'), {
-                questionType: QuestionTypes.CHOICE,
+                questionType: FormQuestionType.CHOICE,
                 options: numberedOptions(t('helpCenter.formsPages.dummyBranchYes'), t('helpCenter.formsPages.dummyBranchNo')),
             }, '', {o0: {kind: PageTargetKind.PAGE, page: 'p1'}, o1: {kind: PageTargetKind.PAGE, page: 'p2'}}),
         ],

@@ -20,8 +20,14 @@ import {IntakeAudience, type IntakeAudienceName} from './intakeview/intakeAudien
 import IntakeTableCard from './intakeview/IntakeTableCard.vue'
 import {lineFor, namesAPiece, rowsOf, type IntakeLine} from './intakeview/intakeLines'
 import {inventory, inventoryFields, memberGroups as memberGroupsApi, stationMembers} from '@/api'
-import {InventoryTypes, ItemOwner, type ItemOwnerName} from '@/api/inventory'
-import type {InventoryDetail, InventoryFieldDefinition, MemberGroup, MemberWithName} from '@/api/generated/schema'
+import {
+  InventoryType,
+  ItemOwner,
+  type InventoryDetail,
+  type InventoryFieldDefinition,
+  type MemberGroup,
+  type MemberWithName,
+} from '@/api/generated/schema'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
@@ -122,8 +128,8 @@ const filled = computed(() => lines.value.filter(namesAPiece).length)
  * <p>An inventory that holds only one kind answers this by itself; one that holds both is asked,
  * because a station taking stock of its own gear and of the association's does so in one table.
  */
-const holdsBoth = computed(() => detail.value?.inventoryType === InventoryTypes.MIXED)
-const ownerKind = ref<ItemOwnerName>(ItemOwner.STATION)
+const holdsBoth = computed(() => detail.value?.inventoryType === InventoryType.MIXED)
+const ownerKind = ref<ItemOwner>(ItemOwner.STATION)
 
 const {running: saving, failure: saveFailure, run: save} = useAsyncAction(async () => {
   const written = await inventory.takeStock(

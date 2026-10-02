@@ -6,8 +6,7 @@
 <script setup lang="ts">
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import QuestionHeading from '@/components/forms/fill/QuestionHeading.vue'
-import {QuestionTypes} from '@/api/forms'
-import type {FormAnswerValue, FormQuestion} from '@/api/generated/schema'
+import {FormQuestionType, type FormAnswerValue, type FormQuestion} from '@/api/generated/schema'
 import ChoiceQuestion from './ChoiceQuestion.vue'
 import TextQuestion from './TextQuestion.vue'
 import RatingQuestion from '@/components/forms/fill/RatingQuestion.vue'
@@ -34,21 +33,21 @@ const answer = defineModel<FormAnswerValue>()
       <QuestionHeading :title="question.title" :description="question.description"
                        :required="question.required" :error="error"/>
 
-      <ChoiceQuestion v-if="answer?.type === QuestionTypes.CHOICE"
+      <ChoiceQuestion v-if="answer?.type === FormQuestionType.CHOICE"
                       v-model="answer"
                       :config="question.config" />
-      <TextQuestion v-else-if="answer?.type === QuestionTypes.TEXT"
+      <TextQuestion v-else-if="answer?.type === FormQuestionType.TEXT"
                     v-model="answer"
                     :config="question.config" />
-      <RatingQuestion v-else-if="answer?.type === QuestionTypes.RATING"
+      <RatingQuestion v-else-if="answer?.type === FormQuestionType.RATING"
                       v-model="answer"
                       :config="question.config" />
-      <DateQuestion v-else-if="answer?.type === QuestionTypes.DATE"
+      <DateQuestion v-else-if="answer?.type === FormQuestionType.DATE"
                     v-model="answer" />
-      <RankingQuestion v-else-if="answer?.type === QuestionTypes.RANKING"
+      <RankingQuestion v-else-if="answer?.type === FormQuestionType.RANKING"
                        v-model="answer"
                        :config="question.config" />
-      <LikertQuestion v-else-if="answer?.type === QuestionTypes.LIKERT"
+      <LikertQuestion v-else-if="answer?.type === FormQuestionType.LIKERT"
                       v-model="answer"
                       :config="question.config" />
     </div>

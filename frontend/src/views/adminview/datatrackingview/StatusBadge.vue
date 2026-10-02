@@ -5,11 +5,11 @@
  */
 <script lang="ts" setup>
 import {computed} from 'vue'
-import type {TrackingStatusName} from '@/api/dataTracking'
+import type {TrackingStatus} from '@/api/generated/schema'
 import PillBadge from '@/components/badge/PillBadge.vue'
 
 const props = defineProps<{
-  status: TrackingStatusName | string
+  status: TrackingStatus | string
   label?: string
   count?: number
 }>()

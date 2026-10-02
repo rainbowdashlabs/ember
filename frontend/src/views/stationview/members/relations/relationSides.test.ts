@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {describe, expect, it} from 'vitest'
-import {StationUserType} from '@/api/types'
+import {StationUserType} from '@/api/generated/schema'
 import {canHaveGuardians, looksAfterMembers, relationsTabLabel} from './relationSides'
 
 /**

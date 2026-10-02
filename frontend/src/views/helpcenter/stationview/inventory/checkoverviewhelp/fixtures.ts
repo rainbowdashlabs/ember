@@ -3,8 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {EnrichedCheckSummary} from '@/api/generated/schema'
-import {StationUserType} from '@/api/types'
+import {StationUserType, type EnrichedCheckSummary} from '@/api/generated/schema'
 
 /** The reader of the help page, who holds the lock on one of the checks below. */
 export const currentMemberId = 100

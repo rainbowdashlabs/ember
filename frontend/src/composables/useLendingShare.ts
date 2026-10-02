@@ -7,9 +7,7 @@ import {computed, toValue, type ComputedRef, type MaybeRefOrGetter} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
 import {useSession} from '@/composables/useSession'
-import {ShareGrant, ShareScope} from '@/api/lending'
-import type {ShareSetting} from '@/api/generated/schema'
-import {StationPermission} from '@/api/types'
+import {ShareGrant, ShareScope, StationPermission, type ShareSetting} from '@/api/generated/schema'
 
 /**
  * Whether the sharing controls belong on this screen at all, and how the current setting reads.

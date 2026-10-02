@@ -6,9 +6,15 @@
 import {mount} from '@vue/test-utils'
 import {defineComponent, ref} from 'vue'
 import {describe, expect, it} from 'vitest'
-import {ItemCustody, ItemOwner} from '@/api/inventory'
-import {MovementState, StepActor} from '@/api/movements'
-import type {InventoryItem, MemberCheckState, MovementStanding} from '@/api/generated/schema'
+import {
+    ItemCustody,
+    ItemOwner,
+    MovementState,
+    StepActor,
+    type InventoryItem,
+    type MemberCheckState,
+    type MovementStanding,
+} from '@/api/generated/schema'
 import {useMemberCheck} from './useMemberCheck'
 
 function piece(id: number): InventoryItem {

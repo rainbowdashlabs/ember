@@ -17,8 +17,7 @@ import {emberGuide, defaultGazePositions} from '@/composables/useEmberLogo'
 import {useOnboardingTasks} from '@/composables/useOnboardingTasks'
 import {flowFor} from '@/util/onboardingFlows'
 import {canInstall, runInstall} from '@/util/installPrompt'
-import {OnboardingTaskState, type OnboardingLevelName} from '@/api/onboarding'
-import type {OnboardingTaskView} from '@/api/generated/schema'
+import {OnboardingTaskState, type OnboardingLevel, type OnboardingTaskView} from '@/api/generated/schema'
 
 /**
  * What Ember still asks of the reader, on the level it asks it.
@@ -32,7 +31,7 @@ import type {OnboardingTaskView} from '@/api/generated/schema'
  * first: the card then simply has nothing to show and draws nothing.
  */
 const props = defineProps<{
-  level: OnboardingLevelName
+  level: OnboardingLevel
 }>()
 
 const {t} = useI18n()

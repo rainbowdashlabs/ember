@@ -16,10 +16,14 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FormShareLink from '@/components/public/FormShareLink.vue'
-import {FormStatus, type FormPurposeName} from '@/api/forms'
-import type {Form, FormListEntry} from '@/api/generated/schema'
-import {PublicFormState} from '@/api/publicForms'
-import { StationPermission } from '@/api/types'
+import {
+  FormStatus,
+  PublicFormState,
+  StationPermission,
+  type Form,
+  type FormListEntry,
+  type FormPurpose,
+} from '@/api/generated/schema'
 import { forms } from '@/api'
 import { useSession } from '@/composables/useSession'
 import ManagedFormsSection from './listview/ManagedFormsSection.vue'
@@ -28,7 +32,7 @@ import ConfirmActionModal from './listview/ConfirmActionModal.vue'
 
 const props = withDefaults(defineProps<{
   /** When set, filters the list to forms of this purpose and pre-selects the same purpose for newly created forms. */
-  purpose?: FormPurposeName
+  purpose?: FormPurpose
   /** Whether to show the "available forms to fill" section below the management list. Defaults to true for INTERNAL forms. */
   showAvailableSection?: boolean
   /** i18n key for the management-section heading. Defaults to the generic {@code forms.title}. */

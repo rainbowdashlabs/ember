@@ -3,12 +3,12 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {RegistrationStatus, type RegistrationStatusName} from '@/api/events'
-import {FieldTypes} from '@/api/fieldTypes'
-import type {
-    EventRegistrationFieldValue,
-    EventRegistrationField,
-    RegistrationResponse,
+import {
+    FieldType,
+    RegistrationStatus,
+    type EventRegistrationFieldValue,
+    type EventRegistrationField,
+    type RegistrationResponse,
 } from '@/api/generated/schema'
 
 /**
@@ -31,7 +31,7 @@ export interface AnswerablePerson<K extends string | number = number> {
  *             locally and the person themselves across stations
  */
 export interface GivenAnswer<K extends string | number = number, U = number> extends AnswerablePerson<K> {
-    status: RegistrationStatusName
+    status: RegistrationStatus
     undo: U
     /** Who answered on this person's behalf, where somebody did. */
     createdByName?: string | null
@@ -55,7 +55,7 @@ export interface PersonAnswer<K extends string | number = number> {
 }
 
 /** Whether an answer says somebody is not coming, which is what taking it back would undo. */
-export function isRefusal(status: RegistrationStatusName): boolean {
+export function isRefusal(status: RegistrationStatus): boolean {
     return status === RegistrationStatus.DECLINED || status === RegistrationStatus.DENIED
 }
 
@@ -225,7 +225,7 @@ export function answerTotals(
 
     const totals: AnswerTotal[] = []
     for (const field of fields) {
-        if (field.fieldType === FieldTypes.NUMBER) {
+        if (field.fieldType === FieldType.NUMBER) {
             const sum = answersOf(field.id)
                 .map(Number)
                 .filter(value => !Number.isNaN(value))
@@ -233,7 +233,7 @@ export function answerTotals(
             totals.push({label: field.name, text: String(sum)})
             continue
         }
-        if (field.fieldType !== FieldTypes.CHOICE) continue
+        if (field.fieldType !== FieldType.CHOICE) continue
         const answers = answersOf(field.id)
         const perOption = (field.config.options ?? [])
             .map(option => ({option, count: answers.filter(answer => answer === option).length}))

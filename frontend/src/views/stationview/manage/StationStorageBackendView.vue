@@ -15,7 +15,6 @@ import StorageApplyConfirmModal from '@/components/storage/StorageApplyConfirmMo
 import StorageBackendForm from '@/components/storage/StorageBackendForm.vue'
 import StorageBackendHistory from '@/components/storage/StorageBackendHistory.vue'
 import StorageBackendSummaryCard from '@/components/storage/StorageBackendSummaryCard.vue'
-import {StationPermission} from '@/api/types'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {type StorageBackendChoice, useStorageBackendEditor} from '@/composables/useStorageBackendEditor'
@@ -26,7 +25,7 @@ import {
     probeStationBackend,
     probeStationBackendConfig,
 } from '@/api/storageBackend'
-import type {AuditEntryResponse, BackendOverrideResponse} from '@/api/generated/schema'
+import {StationPermission, type AuditEntryResponse, type BackendOverrideResponse} from '@/api/generated/schema'
 
 const {t} = useI18n()
 const {hasPermission, loaded} = useSession()

@@ -9,8 +9,14 @@ import { useI18n } from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
-import {MovementState} from '@/api/movements'
-import type { Inventory, InventorySize, MemberWithName, MovementResponse, ProcurementResponse } from '@/api/generated/schema'
+import {
+  MovementState,
+  type Inventory,
+  type InventorySize,
+  type MemberWithName,
+  type MovementResponse,
+  type ProcurementResponse,
+} from '@/api/generated/schema'
 import { inventory, stationMembers, movements, procurement } from '@/api'
 import { useStations } from '@/composables/useStations'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'

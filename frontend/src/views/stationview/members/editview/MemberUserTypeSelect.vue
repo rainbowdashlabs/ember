@@ -14,8 +14,8 @@ import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import {stationMembers} from '@/api'
-import {StationUserType, StationUserTypeLabels} from '@/api/types'
-import type {MemberGroup, StationUserType as StationUserTypeName} from '@/api/generated/schema'
+import {StationUserTypeLabels} from '@/api/types'
+import {StationUserType, type MemberGroup} from '@/api/generated/schema'
 import {describeFailure, type Failure} from '@/util/failure'
 
 /**
@@ -78,7 +78,7 @@ async function apply(value: string) {
 }
 
 function label(type: string): string {
-  return StationUserTypeLabels[type as StationUserTypeName] ?? type
+  return StationUserTypeLabels[type as StationUserType] ?? type
 }
 </script>
 

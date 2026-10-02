@@ -11,8 +11,8 @@ import ErrorButton from '@/components/button/ErrorButton.vue'
 import MultiSelectDropdown from '@/components/input/select/MultiSelectDropdown.vue'
 import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
 import {fromMember} from '@/components/input/select/memberOption'
-import {StationUserType, StationUserTypeLabels, type RestrictionSelection} from '@/api/types'
-import {userTypesOf} from '@/util/stationUserTypes'
+import {StationUserTypeLabels, type RestrictionSelection} from '@/api/types'
+import {STATION_USER_TYPES, userTypesOf} from '@/util/stationUserTypes'
 import type {GroupEntry, TagEntry} from '@/api/generated/schema'
 import type {MemberLike} from '@/components/input/select/memberOption'
 
@@ -50,7 +50,7 @@ const mode = computed({
 })
 
 const userTypeOptions = computed(() =>
-    Object.values(StationUserType).map(ut => ({value: ut, label: StationUserTypeLabels[ut]}))
+    STATION_USER_TYPES.map(ut => ({value: ut, label: StationUserTypeLabels[ut]}))
 )
 
 const groupOptions = computed(() =>

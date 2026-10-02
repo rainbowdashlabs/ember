@@ -13,8 +13,14 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import StepDispatcher from './createview/StepDispatcher.vue'
 import {parseFieldConfig} from '@/api/profileFields'
-import type {IssuedOneTimePassword, MemberGroup, MemberWithName, ProfileField} from '@/api/generated/schema'
-import {StationPermission, StationUserType} from '@/api/types'
+import {
+  StationPermission,
+  StationUserType,
+  type IssuedOneTimePassword,
+  type MemberGroup,
+  type MemberWithName,
+  type ProfileField,
+} from '@/api/generated/schema'
 import {memberGroups, members, profileFields, stationMembers} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {setFieldValue as writeFieldValue} from '@/util/profileFields'

@@ -5,15 +5,14 @@
  */
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
-import type {TransferContext} from '@/api/generated/schema'
-import type {TrackingStatusName} from '@/api/dataTracking'
+import type {TrackingStatus, TransferContext} from '@/api/generated/schema'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import StatusBadge from './StatusBadge.vue'
 import StatusReasonFields from './StatusReasonFields.vue'
 import IgnoredColumnsField from './IgnoredColumnsField.vue'
 
 defineProps<{
-  statuses: TrackingStatusName[]
+  statuses: TrackingStatus[]
   columnOptions: { value: string; label: string; group?: string }[]
 }>()
 

@@ -14,14 +14,13 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import MarkdownEditor from '@/components/input/MarkdownEditor.vue'
-import {TicketPriority, type TicketPriorityName} from '@/api/boards'
-import type {BoardLane} from '@/api/generated/schema'
+import {TicketPriority, type BoardLane} from '@/api/generated/schema'
 
 const modelValue = defineModel<boolean>({required: true})
 const title = defineModel<string>('title', {required: true})
 const description = defineModel<string>('description', {required: true})
 const laneId = defineModel<string>('laneId', {required: true})
-const priority = defineModel<TicketPriorityName>('priority', {required: true})
+const priority = defineModel<TicketPriority>('priority', {required: true})
 
 defineProps<{
   laneOptions: BoardLane[]

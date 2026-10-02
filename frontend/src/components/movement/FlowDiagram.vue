@@ -6,8 +6,7 @@
 <script lang="ts" setup>
 import {computed, useId} from 'vue'
 import {useI18n} from 'vue-i18n'
-import {ItemCustody, ItemOwner, type ItemCustodyName, type ItemOwnerName} from '@/api/inventory'
-import {StepSubject, type StepActorName, type StepSubjectName} from '@/api/movements'
+import {ItemCustody, ItemOwner, StepSubject, type StepActor} from '@/api/generated/schema'
 
 /**
  * A chain drawn as the piece's journey rather than listed as its steps.
@@ -31,9 +30,9 @@ interface DiagramStep {
     id: number
     position: number
     label: string
-    actor: StepActorName
-    subject: StepSubjectName
-    custodyAfter: ItemCustodyName
+    actor: StepActor
+    subject: StepSubject
+    custodyAfter: ItemCustody
     picksItem: boolean
     archived: boolean
     current?: boolean
@@ -47,7 +46,7 @@ const props = defineProps<{
      * body above the station for its gear and the station's own shelf for the station's own, so that
      * column is named after whichever of the two it means.
      */
-    ownerKind?: ItemOwnerName | null
+    ownerKind?: ItemOwner | null
     /**
      * What that owner is called, where the caller knows it. An association by name says whose gear
      * this is; "the owner" says only that somebody owns it.
@@ -71,7 +70,7 @@ const TRACK_GAP = 26
  * station, a partner station, the member. Being lost is no place at all and sits at the end, where a
  * track that reaches it visibly stops.
  */
-const CUSTODY_ORDER: ItemCustodyName[] = [
+const CUSTODY_ORDER: ItemCustody[] = [
     ItemCustody.WITH_OWNER,
     ItemCustody.IN_TRANSIT,
     ItemCustody.AT_STATION,
@@ -103,7 +102,7 @@ interface Edge {
 }
 
 interface Track {
-    subject: StepSubjectName
+    subject: StepSubject
     nodes: Node[]
     edges: Edge[]
     top: number
@@ -133,7 +132,7 @@ const tracks = computed<Track[]>(() => {
         const mine = walkable.value.filter(step => step.subject === subject)
         if (mine.length === 0) continue
 
-        const takenPerColumn = new Map<ItemCustodyName, number>()
+        const takenPerColumn = new Map<ItemCustody, number>()
         const laid = mine.map(step => {
             const column = columns.value.indexOf(step.custodyAfter)
             const subRow = takenPerColumn.get(step.custodyAfter) ?? 0
@@ -180,7 +179,7 @@ const height = computed(() => {
  * a second column called "Wache": two headings with one name say nothing about which of them a piece
  * is standing in.
  */
-function columnLabel(custody: ItemCustodyName): string {
+function columnLabel(custody: ItemCustody): string {
     if (custody !== ItemCustody.WITH_OWNER) return t(`movements.place.${custody}`)
     if (props.ownerKind === ItemOwner.STATION) return t('movements.place.STORE')
     return props.ownerName ?? t('movements.owner.above')

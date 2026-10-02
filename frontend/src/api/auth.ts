@@ -7,7 +7,6 @@ import client from './client'
 import {isStorageDenied, removeItem} from './storage'
 import type {
     ChangePasswordRequest,
-    components,
     EmailChangeResponse,
     EmailRequest,
     LoginRequest,
@@ -20,14 +19,6 @@ import type {
     TokenRequest,
     TokenStatus,
 } from './generated/schema'
-
-export type EmailChangeStatusName = components['schemas']['EmailChangeStatus']
-
-/** Where an email change stands once one of its two addresses has confirmed. */
-export const EmailChangeStatus = {
-    COMMITTED: 'COMMITTED',
-    WAITING: 'WAITING',
-} as const satisfies Record<EmailChangeStatusName, EmailChangeStatusName>
 
 export class StorageDeniedError extends Error {
     constructor() {

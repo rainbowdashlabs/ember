@@ -3,8 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {FieldTypeName} from '@/api/fieldTypes'
-import type {FieldConfig} from '@/api/generated/schema'
+import type {FieldConfig, FieldType} from '@/api/generated/schema'
 
 /**
  * In-flight edit state for a single inventory field definition.
@@ -17,7 +16,7 @@ export interface DraftField {
     itemId: number | null
     key: string
     label: string
-    fieldType: FieldTypeName
+    fieldType: FieldType
     required: boolean
     sortOrder: number
     config: FieldConfig

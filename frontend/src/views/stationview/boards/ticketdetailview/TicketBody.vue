@@ -7,12 +7,13 @@
 import TicketLeftColumn from './TicketLeftColumn.vue'
 import TicketRightColumn from './TicketRightColumn.vue'
 import type {
-    AnyBoard, BoardFieldRaw, BoardFieldTypeName, TicketPriorityName, TypedBoardField,
+    AnyBoard, BoardFieldRaw, BoardFieldTypeName, TypedBoardField,
 } from '@/api/boards'
 import type { CommentSource } from '@/api/comments'
 import type {
     BoardChecklistItem, BoardLabel, BoardLane, BoardTicket, BoardTicketAttachment, BoardTicketHistoryResponse,
-    BoardTicketKbLink, BoardTicketLink, BoardTicketTransitionResponse, BoardWeblink, MemberCompletion, TicketSummary,
+    BoardTicketKbLink, BoardTicketLink, BoardTicketTransitionResponse, BoardWeblink, MemberCompletion, TicketPriority,
+    TicketSummary,
 } from '@/api/generated/schema'
 import type {PriorityOption, KbSearchResult} from './types'
 import type { Failure } from '@/util/failure'
@@ -50,7 +51,7 @@ const title = defineModel<string>('title', { default: '' })
 const description = defineModel<string>('description', { default: '' })
 const newChecklistTitle = defineModel<string>('newChecklistTitle', { default: '' })
 const kbSearchQuery = defineModel<string>('kbSearchQuery', { default: '' })
-const priority = defineModel<TicketPriorityName>('priority')
+const priority = defineModel<TicketPriority>('priority')
 const assignedMemberId = defineModel<string>('assignedMemberId', { default: '' })
 const dueDate = defineModel<string>('dueDate', { default: '' })
 const fieldValues = defineModel<Record<number, BoardFieldRaw | null>>('fieldValues', { default: () => ({}) })

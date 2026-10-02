@@ -10,7 +10,7 @@ import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import TagListPanel from '@/views/stationview/members/tagsview/TagListPanel.vue'
 import TagMembersPanel from '@/views/stationview/members/tagsview/TagMembersPanel.vue'
-import {StationUserType} from '@/api/types'
+import {StationUserType} from '@/api/generated/schema'
 import {demoCandidates, demoTagMembers, demoTags} from './fixtures'
 
 const {t} = useI18n()

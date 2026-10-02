@@ -7,8 +7,8 @@ import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { demo } from '@/api'
 import { describeFailure, type Failure } from '@/util/failure'
-import type { DemoAccount, DemoStationGroup } from '@/api/generated/schema'
-import { StationUserType, StationUserTypeLabels } from '@/api/types'
+import { StationUserType, type DemoAccount, type DemoStationGroup } from '@/api/generated/schema'
+import { StationUserTypeLabels } from '@/api/types'
 
 /** The band a person with no station of their own is offered under. */
 const NO_STATION = 'Ohne Wache'

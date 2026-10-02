@@ -5,8 +5,7 @@
  */
 import {computed, inject, provide, ref, type InjectionKey} from 'vue'
 import {inventory, movements} from '@/api'
-import {MovementPurpose, type MovementPurposeName} from '@/api/movements'
-import type {FlowPreview, Inventory, InventorySize} from '@/api/generated/schema'
+import {MovementPurpose, type FlowPreview, type Inventory, type InventorySize} from '@/api/generated/schema'
 
 /** Which question the wizard is on. The preview is always last, because it is the answer to the rest. */
 export type WizardStep = 'purpose' | 'party' | 'subject' | 'reason' | 'preview'
@@ -18,7 +17,7 @@ export type WizardStep = 'purpose' | 'party' | 'subject' | 'reason' | 'preview'
  * one that is left. The steps named in {@link skip} are not asked at all.
  */
 export interface WizardPrefill {
-    purpose?: MovementPurposeName
+    purpose?: MovementPurpose
     memberId?: number | null
     itemId?: number | null
     inventoryId?: number | null
@@ -57,7 +56,7 @@ export function useProvidedMovementWizard(): MovementWizardState {
 }
 
 /** A piece leaves on a return and a swap; on an issue or a request there is nothing to hand in. */
-export function startsFromAPiece(purpose: MovementPurposeName | null): boolean {
+export function startsFromAPiece(purpose: MovementPurpose | null): boolean {
     return purpose === MovementPurpose.RETURN || purpose === MovementPurpose.EXCHANGE
 }
 
@@ -69,7 +68,7 @@ export function startsFromAPiece(purpose: MovementPurposeName | null): boolean {
  * discovering on submit that no chain serves the combination.
  */
 export function useMovementWizard(prefill: () => WizardPrefill) {
-    const purpose = ref<MovementPurposeName | null>(null)
+    const purpose = ref<MovementPurpose | null>(null)
     const memberId = ref<number | null>(null)
     const forTheStore = ref(false)
     const itemId = ref<number | null>(null)
@@ -105,8 +104,8 @@ export function useMovementWizard(prefill: () => WizardPrefill) {
      * neither a request nor the chains that end at a body are offered. That is read from the inventory
      * side rather than from the session, which knows nothing about it.
      */
-    const purposes = computed<MovementPurposeName[]>(() => {
-        const offered: MovementPurposeName[] = [MovementPurpose.ISSUE, MovementPurpose.RETURN, MovementPurpose.EXCHANGE]
+    const purposes = computed<MovementPurpose[]>(() => {
+        const offered: MovementPurpose[] = [MovementPurpose.ISSUE, MovementPurpose.RETURN, MovementPurpose.EXCHANGE]
         if (ownerAbove.value) offered.push(MovementPurpose.REQUEST)
         return offered
     })

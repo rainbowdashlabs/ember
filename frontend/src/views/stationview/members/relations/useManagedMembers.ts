@@ -5,8 +5,7 @@
  */
 import { computed, ref, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { StationUserType } from '@/api/types'
-import type { MemberWithName } from '@/api/generated/schema'
+import { StationUserType, type MemberWithName } from '@/api/generated/schema'
 import { stationMembers } from '@/api'
 import { memberDisplayName } from '../listview/useMemberData'
 import { describeFailure, type Failure } from '@/util/failure'

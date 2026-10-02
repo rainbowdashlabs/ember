@@ -8,8 +8,7 @@ import {useI18n} from 'vue-i18n'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import LabeledNumberInput from './LabeledNumberInput.vue'
-import {ImageFit} from '@/api/pageManage'
-import type {ImageConfig} from '@/api/generated/schema'
+import {ImageFit, type ImageConfig} from '@/api/generated/schema'
 
 defineProps<{
     config: ImageConfig

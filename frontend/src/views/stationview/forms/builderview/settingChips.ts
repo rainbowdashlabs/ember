@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {QuestionTypes} from '@/api/forms'
+import {FormQuestionType} from '@/api/generated/schema'
 import type {Translate} from '@/util/failure'
 import type {QuestionDraft} from './types'
 
@@ -13,7 +13,7 @@ const DEFAULT_LIKERT_MIN = 1
 const DEFAULT_LIKERT_MAX = 5
 
 /** The kinds of question whose options can be shuffled for every reader. */
-const SHUFFLEABLE: readonly string[] = [QuestionTypes.CHOICE, QuestionTypes.RANKING, QuestionTypes.LIKERT]
+const SHUFFLEABLE: readonly string[] = [FormQuestionType.CHOICE, FormQuestionType.RANKING, FormQuestionType.LIKERT]
 
 /** Whether the options of this kind of question can be put in a different order for every reader. */
 export function canShuffle(type: string): boolean {
@@ -59,10 +59,10 @@ function likertChips(config: Record<string, unknown>, t: Translate): string[] {
 
 function typeChips(question: QuestionDraft, t: Translate): string[] {
     switch (question.questionType) {
-        case QuestionTypes.CHOICE: return choiceChips(question.config, t)
-        case QuestionTypes.TEXT: return question.config.longAnswer ? [t('forms.chips.longAnswer')] : []
-        case QuestionTypes.RATING: return ratingChips(question.config, t)
-        case QuestionTypes.LIKERT: return likertChips(question.config, t)
+        case FormQuestionType.CHOICE: return choiceChips(question.config, t)
+        case FormQuestionType.TEXT: return question.config.longAnswer ? [t('forms.chips.longAnswer')] : []
+        case FormQuestionType.RATING: return ratingChips(question.config, t)
+        case FormQuestionType.LIKERT: return likertChips(question.config, t)
         default: return []
     }
 }

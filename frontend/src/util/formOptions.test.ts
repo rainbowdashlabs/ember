@@ -6,7 +6,7 @@
 import {describe, expect, it} from 'vitest'
 import {newOptionKey, numberedOptions, optionKeysOf, optionLabel, optionsOf} from './formOptions'
 import {formatAnswerDisplay} from './formAnswerDisplay'
-import {QuestionTypes} from '@/api/forms'
+import {FormQuestionType} from '@/api/generated/schema'
 
 /**
  * Options are read by key wherever an answer is shown, so an answer keeps meaning what it meant.
@@ -39,21 +39,21 @@ describe('formatAnswerDisplay', () => {
     const reordered = {options: [{key: 'b', label: 'Nein'}, {key: 'a', label: 'Ja'}]}
 
     it('names the options a choice picked by key, whatever their order now', () => {
-        expect(formatAnswerDisplay(QuestionTypes.CHOICE, reordered, '{"selected":["a"],"other":"Später"}'))
+        expect(formatAnswerDisplay(FormQuestionType.CHOICE, reordered, '{"selected":["a"],"other":"Später"}'))
             .toBe('Ja, Sonstige: Später')
     })
 
     it('shows a key the question no longer has as itself', () => {
-        expect(formatAnswerDisplay(QuestionTypes.CHOICE, reordered, '{"selected":["gone"]}')).toBe('#gone')
+        expect(formatAnswerDisplay(FormQuestionType.CHOICE, reordered, '{"selected":["gone"]}')).toBe('#gone')
     })
 
     it('lists a ranking in the order it was given', () => {
-        expect(formatAnswerDisplay(QuestionTypes.RANKING, reordered, '{"order":["a","b"]}')).toBe('1. Ja, 2. Nein')
+        expect(formatAnswerDisplay(FormQuestionType.RANKING, reordered, '{"order":["a","b"]}')).toBe('1. Ja, 2. Nein')
     })
 
     it('lists Likert ratings by statement, in the order of the statements', () => {
         const config = {statements: [{key: 's2', label: 'Zelte'}, {key: 's1', label: ''}]}
-        expect(formatAnswerDisplay(QuestionTypes.LIKERT, config, '{"ratings":{"s1":4,"s2":2}}'))
+        expect(formatAnswerDisplay(FormQuestionType.LIKERT, config, '{"ratings":{"s1":4,"s2":2}}'))
             .toBe('Zelte: 2, Option 2: 4')
     })
 })

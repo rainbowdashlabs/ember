@@ -8,7 +8,8 @@ import {getItem, removeItem} from './storage'
 import {CSRF_HEADER, csrfToken} from './sessionCookie'
 import {showToast} from '@/util/toast'
 import {reportApiError} from '@/util/devErrorReporter'
-import {requestStepUp, StepUpCancelledError, StepUpProof, type StepUpCategory, type StepUpProofName} from '@/util/stepUp'
+import {requestStepUp, StepUpCancelledError} from '@/util/stepUp'
+import {StepUpProof, type StepUpCategory} from './generated/schema'
 import type {ApiErrorBody} from '@/util/apiError'
 import {getActingStation} from '@/util/actingStationState'
 import {isPublicRoute} from '@/util/publicRoute'
@@ -52,10 +53,10 @@ function stepUpCategoryOf(body: ApiErrorBody | undefined, header: unknown): Step
 }
 
 /** The proofs the refusal named, filtered to the ones this client knows how to offer. */
-function stepUpProofsOf(body: ApiErrorBody | undefined): StepUpProofName[] | null {
+function stepUpProofsOf(body: ApiErrorBody | undefined): StepUpProof[] | null {
     if (!body?.proofs) return null
     const known = Object.values(StepUpProof)
-    return body.proofs.filter((proof): proof is StepUpProofName => (known as string[]).includes(proof))
+    return body.proofs.filter((proof): proof is StepUpProof => (known as string[]).includes(proof))
 }
 
 /** One request as a problem report lists it. */

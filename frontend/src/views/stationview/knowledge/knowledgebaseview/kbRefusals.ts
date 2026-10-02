@@ -3,12 +3,11 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {KbRefusalReason, type KbRefusalReasonName} from '@/api/knowledgeBase'
-import type {BulkOutcome} from '@/api/generated/schema'
+import {KbRefusalReason, type BulkOutcome} from '@/api/generated/schema'
 
 type Translate = (key: string, named?: Record<string, unknown>) => string
 
-const REASON_KEYS: Record<KbRefusalReasonName, string> = {
+const REASON_KEYS: Record<KbRefusalReason, string> = {
     [KbRefusalReason.NO_PERMISSION]: 'kb.refusalNoPermission',
     [KbRefusalReason.NAME_TAKEN]: 'kb.refusalNameTaken',
     [KbRefusalReason.TARGET_INSIDE]: 'kb.refusalTargetInside',
@@ -22,7 +21,7 @@ const REASON_KEYS: Record<KbRefusalReasonName, string> = {
  * The server sends a reason from a closed set rather than a sentence, because there is one language
  * file and free text from the server could not be written in it.
  */
-export function kbRefusalMessage(t: Translate, reason: KbRefusalReasonName | null, name: string): string {
+export function kbRefusalMessage(t: Translate, reason: KbRefusalReason | null, name: string): string {
     const key = reason ? REASON_KEYS[reason] : 'kb.refusalNotFound'
     return t(key, {name})
 }

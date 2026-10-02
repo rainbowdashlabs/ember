@@ -10,8 +10,7 @@ import EntitySearchPicker from './EntitySearchPicker.vue'
 import GearGlyph from '@/components/inventory/GearGlyph.vue'
 import {listSearch, numericPickerModel} from '@/util/listSearch'
 import {glyphFor} from '@/util/glyph'
-import {InventoryTypes} from '@/api/inventory'
-import type {Inventory} from '@/api/generated/schema'
+import {InventoryType, type Inventory} from '@/api/generated/schema'
 
 const model = defineModel<number | null>()
 
@@ -40,7 +39,7 @@ const keyFn = (entry: Inventory) => entry.id
  * station differ in exactly those two things and in their picture.
  */
 function subtitleFn(entry: Inventory): string {
-  const owner = t(`inventory.manage.type.${entry.inventoryType ?? InventoryTypes.INTERNAL}`)
+  const owner = t(`inventory.manage.type.${entry.inventoryType ?? InventoryType.INTERNAL}`)
   const kind = entry.homogeneous ? t('inventory.manage.kindStockName') : t('inventory.manage.kindCollectionName')
   return `${owner} · ${kind}`
 }

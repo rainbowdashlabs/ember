@@ -11,7 +11,7 @@ import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import {formatDate} from '@/util/format'
-import {ItemOwner} from '@/api/inventory'
+import {ItemOwner} from '@/api/generated/schema'
 import type {ExpectedRow} from './types'
 
 defineProps<{

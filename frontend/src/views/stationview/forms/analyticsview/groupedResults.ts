@@ -3,8 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {QuestionTypes} from '@/api/forms'
-import type {FormQuestionInfo, FormQuestionTally, FormResultGroup} from '@/api/generated/schema'
+import {FormQuestionType, type FormQuestionInfo, type FormQuestionTally, type FormResultGroup} from '@/api/generated/schema'
 import {optionsOf} from '@/util/formOptions'
 
 /**
@@ -60,7 +59,7 @@ export function matrixOf(question: FormQuestionInfo, groups: FormResultGroup[], 
     })
 
     switch (question.questionType) {
-        case QuestionTypes.CHOICE: {
+        case FormQuestionType.CHOICE: {
             const options = optionsOf(cfg)
             const rows = options.map(option => tallies.map(t => t?.optionCounts?.[option.key] ?? 0))
             const labels = options.map(option => option.label)
@@ -70,12 +69,12 @@ export function matrixOf(question: FormQuestionInfo, groups: FormResultGroup[], 
             }
             return percentOf(rows, labels)
         }
-        case QuestionTypes.RATING: {
+        case FormQuestionType.RATING: {
             const scale = Math.max(0, ...tallies.map(t => t?.ratingCounts?.length ?? 0))
             const rows = Array.from({length: scale}, (_, i) => tallies.map(t => t?.ratingCounts?.[i] ?? 0))
             return percentOf(rows, rows.map((_, i) => String(i + 1)))
         }
-        case QuestionTypes.LIKERT: {
+        case FormQuestionType.LIKERT: {
             const statements = optionsOf(cfg, 'statements')
             return {
                 rows: statements.map((statement, i) => statement.label || `Option ${i + 1}`),
@@ -85,7 +84,7 @@ export function matrixOf(question: FormQuestionInfo, groups: FormResultGroup[], 
                 answers,
             }
         }
-        case QuestionTypes.RANKING: {
+        case FormQuestionType.RANKING: {
             const options = optionsOf(cfg)
             return {
                 rows: options.map(option => option.label),

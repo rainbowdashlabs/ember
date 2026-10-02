@@ -3,8 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {InstanceUserType} from '@/api/adminAccounts'
-import type {AccountOverview, AssociationRole} from '@/api/generated/schema'
+import {InstanceUserType, type AccountOverview, type AssociationRole} from '@/api/generated/schema'
 import {ColumnTypes, enumOptions, type TableColumn} from '@/components/table/tableColumn'
 
 /** How an account's password stands, as the list tells them apart. */

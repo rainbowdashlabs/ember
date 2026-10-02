@@ -10,12 +10,11 @@ import InfoBadge from '@/components/badge/InfoBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import type {RegistrationStatusName} from '@/api/events'
-import type {EventSummary} from '@/api/generated/schema'
+import type {EventSummary, RegistrationStatus} from '@/api/generated/schema'
 
 defineProps<{
   event: EventSummary
-  counts: Record<RegistrationStatusName, number>
+  counts: Record<RegistrationStatus, number>
   deadlineExpired: boolean
   formatDeadline: (iso?: string | null) => string
 }>()

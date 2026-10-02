@@ -3,9 +3,10 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {FieldTypes, type FieldTypeName} from '@/api/fieldTypes'
 import {isYes} from '@/util/questions'
-import type {FieldValue, InventoryFieldDefinition, InventoryItemMetadata} from '@/api/generated/schema'
+import {
+    FieldType, type FieldValue, type InventoryFieldDefinition, type InventoryItemMetadata,
+} from '@/api/generated/schema'
 
 /**
  * The metadata attached to an inventory item, or an empty one where the item carries none, so
@@ -22,18 +23,18 @@ export function parseItemMetadata(raw: InventoryItemMetadata | null | undefined)
  * was typed. The value is turned into what the field's type stores, so the payload says what the
  * backend reads rather than whatever the input happened to produce.
  */
-export function fieldValueOf(type: FieldTypeName, value: unknown): FieldValue | null {
+export function fieldValueOf(type: FieldType, value: unknown): FieldValue | null {
     if (value === undefined || value === null || value === '') return null
     switch (type) {
-        case FieldTypes.NUMBER: {
+        case FieldType.NUMBER: {
             const num = Number(value)
             return Number.isNaN(num) ? null : {kind: 'NUMBER', value: num}
         }
-        case FieldTypes.BOOLEAN:
+        case FieldType.BOOLEAN:
             return {kind: 'BOOLEAN', value: isYes(value)}
-        case FieldTypes.DATE:
+        case FieldType.DATE:
             return {kind: 'DATE', value: String(value)}
-        case FieldTypes.CHOICE:
+        case FieldType.CHOICE:
             return {kind: 'CHOICE', value: String(value)}
         default:
             return {kind: 'TEXT', value: String(value)}

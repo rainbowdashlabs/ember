@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {QuizQuestionTypes, type QuizQuestionTypeName} from '@/api/quiz'
+import {QuizQuestionType} from '@/api/generated/schema'
 
 /**
  * One entry of the format reference. The wizard and the help centre render the same list, so what
@@ -72,7 +72,7 @@ export const JSON_QUESTION_FIELDS: FormatField[] = [
  * from drifting apart.
  */
 export interface QuestionTypeFormat {
-    type: QuizQuestionTypeName
+    type: QuizQuestionType
     spellings: string
     csvAnswer: string
     config: string
@@ -80,49 +80,49 @@ export interface QuestionTypeFormat {
 
 export const QUESTION_TYPE_FORMATS: QuestionTypeFormat[] = [
     {
-        type: QuizQuestionTypes.MULTIPLE_CHOICE,
+        type: QuizQuestionType.MULTIPLE_CHOICE,
         spellings: 'MC, Multiple Choice, multiple_choice',
         csvAnswer: 'Brandklasse F',
         config: '{"options": [{"text": "Brandklasse F", "correct": true}], "pointsPerCorrect": 2}',
     },
     {
-        type: QuizQuestionTypes.TRUE_FALSE,
+        type: QuizQuestionType.TRUE_FALSE,
         spellings: 'TF, wahr-falsch, true_false',
         csvAnswer: 'ja / nein',
         config: '{"correctAnswer": false}',
     },
     {
-        type: QuizQuestionTypes.FREE_ANSWER,
+        type: QuizQuestionType.FREE_ANSWER,
         spellings: 'Freitext, FREE, free_answer',
         csvAnswer: 'Unfallverhütungsvorschrift',
         config: '{"answers": ["Unfallverhütungsvorschrift"], "lines": 3}',
     },
     {
-        type: QuizQuestionTypes.FILL_IN_THE_BLANK,
+        type: QuizQuestionType.FILL_IN_THE_BLANK,
         spellings: 'Lückentext, fill_blank',
         csvAnswer: '15 Meter',
         config: '{"text": "…", "answers": ["15 Meter"], "distractors": ["20 Meter"], "useDropdown": true}',
     },
     {
-        type: QuizQuestionTypes.CONNECT,
+        type: QuizQuestionType.CONNECT,
         spellings: 'Zuordnung, connect',
         csvAnswer: 'LF=Löschgruppenfahrzeug;DLK=Drehleiter mit Korb',
         config: '{"pairs": [{"left": "LF", "right": "Löschgruppenfahrzeug"}]}',
     },
     {
-        type: QuizQuestionTypes.ORDERING,
+        type: QuizQuestionType.ORDERING,
         spellings: 'Reihenfolge, ordering',
         csvAnswer: 'Absichern;Notruf;Erste Hilfe',
         config: '{"items": ["Absichern", "Notruf", "Erste Hilfe"]}',
     },
     {
-        type: QuizQuestionTypes.ENUMERATION,
+        type: QuizQuestionType.ENUMERATION,
         spellings: 'Aufzählung, enumeration',
         csvAnswer: 'Sauerstoff;Wärme;brennbarer Stoff',
         config: '{"answers": ["Sauerstoff", "Wärme"], "requiredCount": 3, "orderedRequired": false}',
     },
     {
-        type: QuizQuestionTypes.IMAGE_TEXT,
+        type: QuizQuestionType.IMAGE_TEXT,
         spellings: 'IMAGE_TEXT',
         csvAnswer: 'Verteiler',
         config: '{"imageUrl": "https://…/verteiler.png", "answer": "Verteiler"}',

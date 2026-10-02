@@ -3,8 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {TrackingStatus} from '@/api/dataTracking'
-import type {DataTracking, TableEntry} from '@/api/generated/schema'
+import {TrackingStatus, type DataTracking, type TableEntry} from '@/api/generated/schema'
 
 /** One tracked database table as the inventory lists it. */
 export interface TrackingRow {

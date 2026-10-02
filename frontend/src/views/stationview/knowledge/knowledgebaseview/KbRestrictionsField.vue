@@ -12,8 +12,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import FieldHint from '@/components/typography/FieldHint.vue'
 import {StationUserTypeLabels, type RestrictionSelection} from '@/api/types'
-import type {MemberGroup, StationUserType, UserTag} from '@/api/generated/schema'
-import {KbAccessLevel, type KbAccessLevelName} from '@/api/knowledgeBase'
+import {KbAccessLevel, type MemberGroup, type StationUserType, type UserTag} from '@/api/generated/schema'
 import {groupKey, tagKey, userTypeKey, type GrantLevels} from './kbGrantLevels'
 
 const {t} = useI18n()
@@ -64,7 +63,7 @@ const entries = computed<LevelEntry[]>(() => [
 ])
 
 function setLevel(key: string, value: string) {
-    levels.value = {...levels.value, [key]: value ? value as KbAccessLevelName : null}
+    levels.value = {...levels.value, [key]: value ? value as KbAccessLevel : null}
 }
 </script>
 

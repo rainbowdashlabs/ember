@@ -9,8 +9,8 @@ import IconButton from '@/components/button/IconButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import type { WaitingListField } from '@/api/generated/schema'
-import { FieldTypes, fieldTypeLabel } from '@/api/fieldTypes'
+import { FieldType, type WaitingListField } from '@/api/generated/schema'
+import { fieldTypeLabel } from '@/api/fieldTypes'
 
 defineProps<{
   field: WaitingListField
@@ -50,7 +50,7 @@ const { t } = useI18n()
         <SecondaryBadge>{{ fieldTypeLabel(t, field.fieldType) }}</SecondaryBadge>
         <PrimaryBadge v-if="field.required">{{ t('waitingList.required') }}</PrimaryBadge>
       </div>
-      <MutedText v-if="field.fieldType === FieldTypes.CHOICE" tag="div" class="mt-1">
+      <MutedText v-if="field.fieldType === FieldType.CHOICE" tag="div" class="mt-1">
         {{ t('waitingList.options') }}: {{ field.config?.options?.join(', ') || '-' }}
       </MutedText>
     </div>

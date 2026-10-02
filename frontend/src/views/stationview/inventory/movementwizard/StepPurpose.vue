@@ -8,7 +8,7 @@ import {useI18n} from 'vue-i18n'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import BareButton from '@/components/button/BareButton.vue'
-import type {MovementPurposeName} from '@/api/movements'
+import type {MovementPurpose} from '@/api/generated/schema'
 
 /**
  * What the reader wants to do, which is the one question that decides everything after it.
@@ -17,10 +17,10 @@ import type {MovementPurposeName} from '@/api/movements'
  * to ask for anything, and offering the question anyway would end in a refusal three steps later.
  */
 const props = defineProps<{
-  purposes: MovementPurposeName[]
+  purposes: MovementPurpose[]
 }>()
 
-const purpose = defineModel<MovementPurposeName | null>({required: true})
+const purpose = defineModel<MovementPurpose | null>({required: true})
 
 const emit = defineEmits<{
   picked: []
@@ -28,7 +28,7 @@ const emit = defineEmits<{
 
 const {t} = useI18n()
 
-function pick(chosen: MovementPurposeName) {
+function pick(chosen: MovementPurpose) {
   purpose.value = chosen
   emit('picked')
 }

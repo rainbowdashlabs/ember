@@ -12,9 +12,8 @@ import QuestionValueInput from '@/components/input/QuestionValueInput.vue'
 import {questionKindOf} from '@/util/questions'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import ExpiryStateBadge from '@/components/display/ExpiryStateBadge.vue'
-import {parseFieldConfig, type FieldOriginName, type FieldSettings} from '@/api/profileFields'
-import {FieldTypes} from '@/api/fieldTypes'
-import type {MergedField} from '@/api/generated/schema'
+import {parseFieldConfig, type FieldSettings} from '@/api/profileFields'
+import {FieldType, type FieldOrigin, type MergedField} from '@/api/generated/schema'
 import {calculatedAnswer} from '@/util/profileFields'
 import {isSection, isSpacer, spanClass} from './fieldLayout'
 
@@ -34,7 +33,7 @@ import {isSection, isSpacer, spanClass} from './fieldLayout'
 export type LaidOutField = Pick<MergedField, 'id' | 'name'> & Partial<Pick<MergedField, 'required' | 'width'>> & {
   fieldType: string
   config: FieldSettings
-  origin?: FieldOriginName
+  origin?: FieldOrigin
   /**
    * Whether this reader may read the answer but not write it. Theirs rather than the question's: a
    * manager may write a date the member they are looking at only reads.
@@ -119,7 +118,7 @@ function descriptionOf(field: LaidOutField): string {
           </SecondaryBadge>
           <MutedText v-if="worksItselfOut(field)" class="ml-1">({{ t('profile.calculatedHint') }})</MutedText>
           <MutedText v-else-if="locked(field)" class="ml-1">({{ t('profile.readonlyHint') }})</MutedText>
-          <ExpiryStateBadge v-if="field.fieldType === FieldTypes.EXPIRY_DATE" class="ml-1"
+          <ExpiryStateBadge v-if="field.fieldType === FieldType.EXPIRY_DATE" class="ml-1"
                             :value="valueOf(field)" :config="field.config"/>
         </FieldLabel>
         <MutedText v-if="descriptionOf(field)" class="block text-xs">{{ descriptionOf(field) }}</MutedText>

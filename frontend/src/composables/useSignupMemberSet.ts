@@ -4,8 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {computed, type ComputedRef} from 'vue'
-import {RegistrationStatus, type AnyEvent} from '@/api/events'
-import type {EnrichedFederationRegistration, RegistrationResponse} from '@/api/generated/schema'
+import type {AnyEvent} from '@/api/events'
+import {RegistrationStatus, type EnrichedFederationRegistration, type RegistrationResponse} from '@/api/generated/schema'
 
 /**
  * The people holding a place on one date, ready to be handed to anything that works from a list

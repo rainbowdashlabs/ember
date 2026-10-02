@@ -4,25 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {browserShallowRef} from '@/util/browserState'
-import type {components} from '@/api/generated/schema'
-
-export type StepUpCategory = components['schemas']['StepUpCategory']
-
-export type StepUpProofName = components['schemas']['StepUpProof']
-
-export const StepUpProof = {
-    TOTP: 'TOTP',
-    SECURITY_KEY: 'SECURITY_KEY',
-    BACKUP_CODE: 'BACKUP_CODE',
-    PASSKEY: 'PASSKEY',
-    PASSWORD: 'PASSWORD',
-    /**
-     * Confirming on a device the reader is already signed in on. The answer for somebody with no
-     * password and no passkey on the machine in front of them, and never offered where the account
-     * has no other live session to confirm from.
-     */
-    ANOTHER_DEVICE: 'ANOTHER_DEVICE',
-} as const satisfies Record<StepUpProofName, StepUpProofName>
+import type {StepUpCategory, StepUpProof} from '@/api/generated/schema'
 
 /** Thrown into the original caller when the reader dismissed the prompt instead of answering it. */
 export class StepUpCancelledError extends Error {
@@ -42,7 +24,7 @@ interface Waiter {
  * plumbing is held apart and shallow, because handing callbacks to a reactive proxy and then
  * mutating them through it is a trap nobody reading the modal would expect.
  */
-const current = browserShallowRef<{category: StepUpCategory | null, proofs: StepUpProofName[] | null} | null>(null)
+const current = browserShallowRef<{category: StepUpCategory | null, proofs: StepUpProof[] | null} | null>(null)
 const waiters = browserShallowRef<Waiter[]>([])
 
 /**
@@ -56,7 +38,7 @@ const waiters = browserShallowRef<Waiter[]>([])
  * parallel ACCOUNT_SECURITY requests from stacking multiple prompts on top of each other. The
  * category of the prompt already showing wins, because that is the one being answered.
  */
-export function requestStepUp(category: StepUpCategory | null, proofs: StepUpProofName[] | null = null): Promise<void> {
+export function requestStepUp(category: StepUpCategory | null, proofs: StepUpProof[] | null = null): Promise<void> {
     if (!current.value) {
         current.value = {category, proofs}
     }

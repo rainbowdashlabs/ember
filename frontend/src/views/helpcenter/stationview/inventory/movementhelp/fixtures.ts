@@ -3,9 +3,14 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {MovementResponse} from '@/api/generated/schema'
-import {ItemOwner} from '@/api/inventory'
-import {MovementParty, MovementPurpose, MovementState, StepActor} from '@/api/movements'
+import {
+    ItemOwner,
+    MovementParty,
+    MovementPurpose,
+    MovementState,
+    StepActor,
+    type MovementResponse,
+} from '@/api/generated/schema'
 
 /** An open movement of a station's own piece, with no turn taken yet beyond what the fields say. */
 function movement(fields: Pick<MovementResponse, 'id' | 'purpose' | 'itemName' | 'inventoryName' | 'memberName'> & Partial<MovementResponse>): MovementResponse {

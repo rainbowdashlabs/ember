@@ -17,12 +17,8 @@ import CellEmptyChooser from './CellEmptyChooser.vue'
 import CellMarkdownInline from './CellMarkdownInline.vue'
 import CellNestedRowsEditor from './CellNestedRowsEditor.vue'
 import type {RowEditData} from './EditorRow.vue'
-import {
-    CellContentType,
-    isLayoutKind,
-    type CellContentTypeName,
-    type LayoutKindName,
-} from '@/api/pageManage'
+import {isLayoutKind, type LayoutKindName} from '@/api/pageManage'
+import {CellContentType} from '@/api/generated/schema'
 import {usePageClipboard} from '@/composables/usePageClipboard'
 
 /**
@@ -33,7 +29,7 @@ export interface CellEditData {
     id: number
     sortOrder: number
     widthPercent: number
-    contentType: CellContentTypeName
+    contentType: CellContentType
     content: string
     config: Record<string, unknown>
 }
@@ -75,7 +71,7 @@ function updateField<K extends keyof CellEditData>(key: K, value: CellEditData[K
 }
 
 function onContentTypeChange(type: string) {
-    cell.value = {...cell.value, contentType: type as CellContentTypeName, content: '', config: {}}
+    cell.value = {...cell.value, contentType: type as CellContentType, content: '', config: {}}
 }
 
 function onPasteHere() {

@@ -5,8 +5,8 @@
  */
 <script setup lang="ts">
 import {computed} from 'vue'
-import {CellContentType, configOf, isLayoutKind, type LayoutKindName} from '@/api/pageManage'
-import type {ContentCell as CellData, ImageConfig} from '@/api/generated/schema'
+import {configOf, isLayoutKind, type LayoutKindName} from '@/api/pageManage'
+import {CellContentType, type ContentCell as CellData, type ImageConfig} from '@/api/generated/schema'
 import CellLayoutRender from '@/components/content/blockeditor/CellLayoutRender.vue'
 import CellImagePreview from '@/components/content/blockeditor/CellImagePreview.vue'
 import EnlargeableImage from '@/components/button/EnlargeableImage.vue'

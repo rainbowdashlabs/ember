@@ -5,7 +5,8 @@
  */
 /** @vitest-environment happy-dom */
 import {describe, expect, it} from 'vitest'
-import {KbAccessLevel, KbFileType, levelCovers, rawFileUrl} from './knowledgeBase'
+import {KbAccessLevel, KbFileType} from './generated/schema'
+import {levelCovers, rawFileUrl} from './knowledgeBase'
 
 /**
  * One permission decision the interface reuses everywhere an action is offered, so it has to answer

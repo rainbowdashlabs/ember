@@ -8,16 +8,18 @@ import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
 import {forms, memberGroups, profileFields, userTags} from '@/api'
 import {ResultDimension, type ResultFilterState, type ResultGroupingState} from '@/api/forms'
-import type {FormAnalytics, FormResultGroup, MemberGroup, ProfileField, UserTag} from '@/api/generated/schema'
-import {FieldTypes} from '@/api/fieldTypes'
-import {StationUserType, StationUserTypeLabels} from '@/api/types'
+import {
+    FieldType, type FormAnalytics, type FormResultGroup, type MemberGroup, type ProfileField, type UserTag,
+} from '@/api/generated/schema'
+import {StationUserTypeLabels} from '@/api/types'
+import {STATION_USER_TYPES} from '@/util/stationUserTypes'
 import {useThemePaint} from '@/composables/useThemePaint'
 import {neutralSeriesColor, seriesColor, SERIES_LIMIT} from '@/util/seriesPalette'
 import type {GroupSeries} from './groupedChart'
 import {decodeView, encodeView, NO_VALUE_GROUP, toQuery} from './resultQuery'
 
 /** The kinds of profile field results can be filtered and grouped by. */
-const GROUPABLE_FIELD_TYPES: string[] = [FieldTypes.CHOICE, FieldTypes.BOOLEAN, FieldTypes.NUMBER]
+const GROUPABLE_FIELD_TYPES: string[] = [FieldType.CHOICE, FieldType.BOOLEAN, FieldType.NUMBER]
 
 /**
  * The filtered and grouped view of a form's results.
@@ -79,10 +81,10 @@ export function useResultView(formId: Ref<number>, enabled: Ref<boolean>) {
     /** Every key a group of the current grouping can have, in the order they are shown elsewhere. */
     const colorOrder = computed<string[]>(() => {
         switch (grouping.value?.by) {
-            case ResultDimension.USER_TYPE: return Object.values(StationUserType)
+            case ResultDimension.USER_TYPE: return [...STATION_USER_TYPES]
             case ResultDimension.GROUP: return groups.value.map(g => String(g.id))
             case ResultDimension.TAG: return tags.value.map(tag => String(tag.id))
-            case ResultDimension.FIELD: return groupedField.value?.fieldType === FieldTypes.BOOLEAN
+            case ResultDimension.FIELD: return groupedField.value?.fieldType === FieldType.BOOLEAN
                 ? ['true', 'false']
                 : ((groupedField.value?.config?.options as string[] | undefined) ?? [])
             default: return []
@@ -93,7 +95,7 @@ export function useResultView(formId: Ref<number>, enabled: Ref<boolean>) {
         const by = grouping.value?.by
         if (group.key === NO_VALUE_GROUP) return t(`forms.analytics.grouping.none.${by ?? 'GROUP'}`)
         if (by === ResultDimension.USER_TYPE) return StationUserTypeLabels[group.key as keyof typeof StationUserTypeLabels] ?? group.key
-        if (by === ResultDimension.FIELD && groupedField.value?.fieldType === FieldTypes.BOOLEAN) {
+        if (by === ResultDimension.FIELD && groupedField.value?.fieldType === FieldType.BOOLEAN) {
             return group.key === 'true' ? t('forms.analytics.grouping.yes') : t('forms.analytics.grouping.no')
         }
         return group.label || group.key

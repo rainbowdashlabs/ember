@@ -10,8 +10,7 @@ import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
-import {LendingStatus, type LendingStatusName} from '@/api/lending'
-import type {LendingRequestDetail} from '@/api/generated/schema'
+import {LendingStatus, type LendingRequestDetail} from '@/api/generated/schema'
 
 defineProps<{
   detail: LendingRequestDetail
@@ -19,7 +18,7 @@ defineProps<{
 
 const {t} = useI18n()
 
-function statusBadge(status: LendingStatusName) {
+function statusBadge(status: LendingStatus) {
   switch (status) {
     case LendingStatus.APPROVED:
     case LendingStatus.LENT:

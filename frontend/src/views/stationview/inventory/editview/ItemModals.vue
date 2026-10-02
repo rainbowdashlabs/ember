@@ -19,7 +19,7 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import {normaliseScannedPayload} from '@/components/scanner/useBarcodeScanner'
-import {ItemOwner} from '@/api/inventory'
+import {ItemOwner} from '@/api/generated/schema'
 import type {
   HistoryResponse,
   InventoryArt,

@@ -7,8 +7,7 @@
 import {describe, expect, it} from 'vitest'
 import {mount} from '@vue/test-utils'
 import LineTargetFields from './LineTargetFields.vue'
-import {ItemCustody, ItemOwner} from '@/api/inventory'
-import type {Inventory, InventoryArt, InventoryItem} from '@/api/generated/schema'
+import {ItemCustody, ItemOwner, type Inventory, type InventoryArt, type InventoryItem} from '@/api/generated/schema'
 
 const DRAWER: Inventory = {
   id: 1, stationId: 's', name: 'Handfunkgeräte', inventoryType: 'INTERNAL', hasSizes: false, homogeneous: false,

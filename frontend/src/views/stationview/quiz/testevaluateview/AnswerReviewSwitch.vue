@@ -5,8 +5,7 @@
  */
 <script setup lang="ts">
 import {computed} from 'vue'
-import {QuizQuestionTypes} from '@/api/quiz'
-import type {QuizQuestion, QuizTestAnswer} from '@/api/generated/schema'
+import {QuizQuestionType, type QuizQuestion, type QuizTestAnswer} from '@/api/generated/schema'
 import McAnswerReview from './McAnswerReview.vue'
 import TrueFalseAnswerReview from './TrueFalseAnswerReview.vue'
 import ConnectAnswerReview from './ConnectAnswerReview.vue'
@@ -31,27 +30,27 @@ const type = computed(() => props.question.quizQuestionType)
 
 <template>
   <McAnswerReview
-    v-if="type === QuizQuestionTypes.MULTIPLE_CHOICE"
+    v-if="type === QuizQuestionType.MULTIPLE_CHOICE"
     :question="props.question"
     :answer="props.answer"
   />
   <TrueFalseAnswerReview
-    v-else-if="type === QuizQuestionTypes.TRUE_FALSE"
+    v-else-if="type === QuizQuestionType.TRUE_FALSE"
     :question="props.question"
     :answer="props.answer"
   />
   <ConnectAnswerReview
-    v-else-if="type === QuizQuestionTypes.CONNECT"
+    v-else-if="type === QuizQuestionType.CONNECT"
     :question="props.question"
     :answer="props.answer"
   />
   <OrderingAnswerReview
-    v-else-if="type === QuizQuestionTypes.ORDERING"
+    v-else-if="type === QuizQuestionType.ORDERING"
     :question="props.question"
     :answer="props.answer"
   />
   <FillBlankAnswerReview
-    v-else-if="type === QuizQuestionTypes.FILL_IN_THE_BLANK"
+    v-else-if="type === QuizQuestionType.FILL_IN_THE_BLANK"
     :question="props.question"
     :answer="props.answer"
     :is-gap-correct="props.isGapCorrect"

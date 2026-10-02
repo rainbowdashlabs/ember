@@ -7,8 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import type {RouteLocationRaw} from 'vue-router'
 import Alert from '@/components/feedback/Alert.vue'
-import {SwitchBlockerKinds} from '@/api/inventory'
-import type {SwitchBlocker} from '@/api/generated/schema'
+import {SwitchBlockerKind, type SwitchBlocker} from '@/api/generated/schema'
 import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
 
 /**
@@ -35,11 +34,11 @@ function labelOf(blocker: SwitchBlocker): string {
 /** Where to go to deal with one, or nothing when it is already on this screen. */
 function targetOf(blocker: SwitchBlocker): RouteLocationRaw | null {
   switch (blocker.kind) {
-    case SwitchBlockerKinds.REQUIREMENT:
+    case SwitchBlockerKind.REQUIREMENT:
       return {name: routes.requirements}
-    case SwitchBlockerKinds.PROCUREMENT:
+    case SwitchBlockerKind.PROCUREMENT:
       return {name: routes.procurement}
-    case SwitchBlockerKinds.EXCHANGE:
+    case SwitchBlockerKind.EXCHANGE:
       return {name: routes.movement, params: {id: String(blocker.id)}}
     default:
       return null

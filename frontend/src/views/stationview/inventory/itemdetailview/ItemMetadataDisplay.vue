@@ -13,8 +13,12 @@ import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
 import ItemFact from './ItemFact.vue'
-import {ItemOwner} from '@/api/inventory'
-import type {InventoryItem, InventorySize, ItemLocationResponse} from '@/api/generated/schema'
+import {
+  ItemOwner,
+  type InventoryItem,
+  type InventorySize,
+  type ItemLocationResponse,
+} from '@/api/generated/schema'
 import type {PersonIdentity} from '@/util/personIdentity'
 import {formatDate} from '@/util/format'
 

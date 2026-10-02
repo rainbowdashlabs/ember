@@ -4,9 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {parseFieldConfig} from '@/api/profileFields'
-import {FieldTypes} from '@/api/fieldTypes'
-import type {ProfileField, StationUserType as StationUserTypeName} from '@/api/generated/schema'
-import {StationUserType, StationUserTypeLabels} from '@/api/types'
+import {FieldType, StationUserType, type ProfileField} from '@/api/generated/schema'
+import {StationUserTypeLabels} from '@/api/types'
 import {
     ColumnTypes, columnTypeOf, enumOptions,
     type CellValue, type ColumnOption, type TableColumn,
@@ -35,7 +34,7 @@ export function roleOf(roles: readonly string[]): string {
 
 /** The kinds of member as the options of an enum column, worded the one way every table words them. */
 export function userTypeOptions(): ColumnOption[] {
-    return enumOptions(Object.keys(StationUserTypeLabels), value => StationUserTypeLabels[value as StationUserTypeName])
+    return enumOptions(Object.keys(StationUserTypeLabels), value => StationUserTypeLabels[value as StationUserType])
 }
 
 export const MEMBER_NAME_KEY = 'name'
@@ -69,7 +68,7 @@ function fieldColumn(field: ProfileField, sources: MemberColumnSources): TableCo
 
 /** Whether a question is answered at all, which a heading or a spacer in the form never is. */
 export function holdsAnswer(field: Pick<ProfileField, 'fieldType'>): boolean {
-    return field.fieldType !== FieldTypes.SECTION && field.fieldType !== FieldTypes.SPACER
+    return field.fieldType !== FieldType.SECTION && field.fieldType !== FieldType.SPACER
 }
 
 /**

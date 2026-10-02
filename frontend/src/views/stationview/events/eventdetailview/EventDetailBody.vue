@@ -33,7 +33,7 @@ import type {
 } from '@/api/generated/schema'
 import {attendance, events} from '@/api'
 import {useAsyncAction} from '@/composables/useAsyncAction'
-import {StationModules, StationPermission} from '@/api/types'
+import {StationModule, StationPermission} from '@/api/generated/schema'
 import type {MemberLike} from '@/components/input/select/memberOption'
 import {formatDateTime} from '@/util/format'
 import {localAnswers, type AnswerablePerson} from '@/util/eventAnswers'
@@ -203,7 +203,7 @@ const activeTab = ref<'info' | 'registrations' | 'equipment'>('info')
  * keeps internal. Somebody who helps run the appointments but keeps no gear holds only the second.
  */
 const canReadEquipment = computed(() =>
-    isModuleEnabled(StationModules.INVENTORY)
+    isModuleEnabled(StationModule.INVENTORY)
     && (props.hasPermission(StationPermission.INVENTORY_READ)
         || props.hasPermission(StationPermission.EVENT_INTERNAL)))
 

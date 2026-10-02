@@ -13,8 +13,7 @@ import Alert from '@/components/feedback/Alert.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import {dataTracking, demo} from '@/api'
 import {useAsyncAction} from '@/composables/useAsyncAction'
-import type {DataTracking, Summary, TableEntry, TableUpdate} from '@/api/generated/schema'
-import type {TrackingStatusName} from '@/api/dataTracking'
+import type {DataTracking, Summary, TableEntry, TableUpdate, TrackingStatus} from '@/api/generated/schema'
 import TableColumnPicker from '@/components/table/TableColumnPicker.vue'
 import TableDetailDrawer from './datatrackingview/TableDetailDrawer.vue'
 import TrackingTable from './datatrackingview/TrackingTable.vue'
@@ -37,7 +36,7 @@ const selectedTable = ref<string | null>(null)
 
 const selectedForBatch = ref<Set<string>>(new Set())
 const batchContext = ref<'stationTransfer' | 'gdprExport' | 'gdprDeletion'>('stationTransfer')
-const batchStatus = ref<TrackingStatusName>('UNVERIFIED')
+const batchStatus = ref<TrackingStatus>('UNVERIFIED')
 const batchError = ref('')
 
 /**

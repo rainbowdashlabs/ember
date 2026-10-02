@@ -9,8 +9,8 @@ import {useI18n} from 'vue-i18n'
 import SearchInput from '@/components/input/text/SearchInput.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import BareButton from '@/components/button/BareButton.vue'
-import {KbAccessLevel, levelCovers} from '@/api/knowledgeBase'
-import type {FolderTreeEntry} from '@/api/generated/schema'
+import {levelCovers} from '@/api/knowledgeBase'
+import {KbAccessLevel, type FolderTreeEntry} from '@/api/generated/schema'
 
 /**
  * Picks a folder anywhere in the station's wiki, the tree root included.

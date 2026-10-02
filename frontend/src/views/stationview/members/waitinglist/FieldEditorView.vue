@@ -11,9 +11,8 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
-import type { WaitingList, WaitingListField, WaitingListFieldConfig } from '@/api/generated/schema'
+import { FieldType, type WaitingList, type WaitingListField, type WaitingListFieldConfig } from '@/api/generated/schema'
 import { waitingList } from '@/api'
-import { FieldTypes, type FieldTypeName } from '@/api/fieldTypes'
 import type { QuestionSettingsModel } from '@/components/input/questionsettings/questionSettings'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { useAsyncAction } from '@/composables/useAsyncAction'
@@ -36,7 +35,7 @@ const fields = ref<WaitingListField[]>([])
 const showFieldModal = ref(false)
 const editingField = ref<WaitingListField | null>(null)
 const fieldName = ref('')
-const fieldType = ref<FieldTypeName>(FieldTypes.TEXT)
+const fieldType = ref<FieldType>(FieldType.TEXT)
 const fieldSettings = ref<QuestionSettingsModel>({})
 const fieldPublic = ref(true)
 
@@ -65,7 +64,7 @@ const {loading, failure} = useAsyncLoader(async () => {
 function openAddField() {
   editingField.value = null
   fieldName.value = ''
-  fieldType.value = FieldTypes.TEXT
+  fieldType.value = FieldType.TEXT
   fieldSettings.value = {}
   fieldPublic.value = true
   showFieldModal.value = true
@@ -82,7 +81,7 @@ function openEditField(field: WaitingListField) {
 
 function buildConfig(): WaitingListFieldConfig {
   const options = usableOptions(fieldSettings.value.options ?? [])
-  if (fieldType.value !== FieldTypes.CHOICE || options.length === 0) return {}
+  if (fieldType.value !== FieldType.CHOICE || options.length === 0) return {}
   return {options}
 }
 

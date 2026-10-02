@@ -5,14 +5,21 @@
  */
 import {mount} from '@vue/test-utils'
 import {describe, expect, it} from 'vitest'
-import {InventoryTypes, ItemCustody, ItemOwner} from '@/api/inventory'
-import {MovementState, StepActor} from '@/api/movements'
-import type {InventoryItem, MovementStanding, RequiredInventoryItem} from '@/api/generated/schema'
+import {
+    InventoryType,
+    ItemCustody,
+    ItemOwner,
+    MovementState,
+    StepActor,
+    type InventoryItem,
+    type MovementStanding,
+    type RequiredInventoryItem,
+} from '@/api/generated/schema'
 import RapidCheckMode from './RapidCheckMode.vue'
 
 const jackets: RequiredInventoryItem = {
     inventoryId: 1, inventoryName: 'Jacken', assignedQuantity: 1, requiredQuantity: 1, inExchangeQuantity: 0,
-    hasSizes: false, homogeneous: true, inventoryType: InventoryTypes.INTERNAL, sizes: [],
+    hasSizes: false, homogeneous: true, inventoryType: InventoryType.INTERNAL, sizes: [],
 }
 
 const jacket: InventoryItem = {

@@ -11,8 +11,7 @@ import MutedText from '@/components/typography/MutedText.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import HelpCenterHint from '@/components/help/HelpCenterHint.vue'
 import {stations, traffic} from '@/api'
-import type {AuthBucketName} from '@/api/traffic'
-import type {HourlyTrafficRow} from '@/api/generated/schema'
+import type {AuthBucket, HourlyTrafficRow} from '@/api/generated/schema'
 import TrafficTotals from './admintrafficview/TrafficTotals.vue'
 import TrafficWindowSelector from './admintrafficview/TrafficWindowSelector.vue'
 import TrafficChartCard from './admintrafficview/TrafficChartCard.vue'
@@ -23,7 +22,7 @@ const {t} = useI18n()
 
 const windowHours = ref(72)
 const metric = ref<'ingressBytes' | 'egressBytes' | 'requests' | 'inout'>('egressBytes')
-const authFilter = ref<AuthBucketName | ''>('')
+const authFilter = ref<AuthBucket | ''>('')
 const rows = ref<HourlyTrafficRow[]>([])
 const stationNames = ref<Map<string, string>>(new Map())
 

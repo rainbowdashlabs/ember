@@ -18,7 +18,7 @@ import Th from '@/components/table/Th.vue'
 import Td from '@/components/table/Td.vue'
 import DataTable from '@/components/table/DataTable.vue'
 import TRow from '@/components/table/TRow.vue'
-import {StationPermission} from '@/api/types'
+import {StationPermission} from '@/api/generated/schema'
 
 const {t} = useI18n()
 

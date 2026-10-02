@@ -23,8 +23,12 @@ import HandOutChoice from '@/components/inventory/HandOutChoice.vue'
 import type {HandOutMode} from '@/components/inventory/HandOutChoice.vue'
 import MovementWizard from '@/views/stationview/inventory/movementwizard/MovementWizard.vue'
 import type {WizardPrefill} from '@/views/stationview/inventory/movementwizard/useMovementWizard'
-import {MovementPurpose} from '@/api/movements'
-import type {InventoryItem, MemberWithName, MyInventoryItem} from '@/api/generated/schema'
+import {
+  MovementPurpose,
+  type InventoryItem,
+  type MemberWithName,
+  type MyInventoryItem,
+} from '@/api/generated/schema'
 
 const { t } = useI18n()
 

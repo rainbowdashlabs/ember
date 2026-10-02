@@ -9,11 +9,11 @@ import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
-import {TaskOutcome, type TaskOutcomeName} from '@/api/adminTasks'
+import {TaskOutcome} from '@/api/generated/schema'
 
 /** How the last run of a background task went, in the colour the rest of the admin area uses for it. */
 defineProps<{
-  outcome: TaskOutcomeName
+  outcome: TaskOutcome
 }>()
 
 const {t} = useI18n()

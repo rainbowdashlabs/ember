@@ -8,12 +8,11 @@ import { useI18n } from 'vue-i18n'
 import MutedIconButton from '@/components/button/MutedIconButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import QuestionEditor from '../QuestionEditor.vue'
-import type { QuizQuestionTypeName } from '@/api/quiz'
-import type { QuizCategory } from '@/api/generated/schema'
+import type { QuizCategory, QuizQuestionType } from '@/api/generated/schema'
 
 const title = defineModel<string>('title', {required: true})
 const description = defineModel<string>('description', {required: true})
-const questionType = defineModel<QuizQuestionTypeName>('questionType', {required: true})
+const questionType = defineModel<QuizQuestionType>('questionType', {required: true})
 const categoryId = defineModel<number | null>('categoryId', {required: true})
 const points = defineModel<number>('points', {required: true})
 const autoPoints = defineModel<boolean>('autoPoints', {required: true})

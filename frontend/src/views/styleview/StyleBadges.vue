@@ -14,7 +14,7 @@ import SizeBadge from '@/components/badge/SizeBadge.vue'
 import StationBadge from '@/components/badge/StationBadge.vue'
 import UserTagBadge from '@/components/badge/UserTagBadge.vue'
 import WaitingListStatusBadge from '@/components/badge/WaitingListStatusBadge.vue'
-import {WaitingListEntryStatus} from '@/api/waitingList'
+import {WaitingListEntryStatus} from '@/api/generated/schema'
 </script>
 
 <template>

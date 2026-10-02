@@ -5,8 +5,7 @@
  */
 /** @vitest-environment happy-dom */
 import {describe, expect, it} from 'vitest'
-import {FieldTypes} from '@/api/fieldTypes'
-import type {WaitingListEntryWithScore, WaitingListField} from '@/api/generated/schema'
+import {FieldType, type WaitingListEntryWithScore, type WaitingListField} from '@/api/generated/schema'
 import {sortValueOf} from '@/components/table/columnFilter'
 import {ColumnTypes} from '@/components/table/tableColumn'
 import {BIRTH_DATE_KEY, fieldIdOfColumn, waitingColumns} from './waitingColumns'
@@ -30,7 +29,7 @@ function entry(values: Record<number, unknown>): WaitingListEntryWithScore {
 const t = (key: string) => key
 
 describe('waitingColumns', () => {
-    const fields = [field(1, FieldTypes.BIRTH_DATE), field(2, FieldTypes.BOOLEAN), field(3, FieldTypes.NUMBER), field(4, FieldTypes.CHOICE)]
+    const fields = [field(1, FieldType.BIRTH_DATE), field(2, FieldType.BOOLEAN), field(3, FieldType.NUMBER), field(4, FieldType.CHOICE)]
     const columns = waitingColumns({t, fields, visibleFieldIds: new Set([2])})
 
     it('gives the date of birth a pinned column of its own and offers only the other questions', () => {

@@ -17,18 +17,20 @@ import BoardAccessSections from './boardsettingsview/BoardAccessSections.vue'
 import type { LaneDraft } from './boardsettingsview/BoardLanesSection.vue'
 import { boards, stationMembers, memberGroups, userTags, federation } from '@/api'
 import { fieldDraftOf, type BoardFieldDraft, type BoardFieldTypeName } from '@/api/boards'
-import { FieldTypes } from '@/api/fieldTypes'
-import type {
-  Board,
-  FederationConfigResponse,
-  FederationTargetResponse,
-  MemberGroup,
-  PartnerResponse,
-  Permission,
-  UserTag,
+import {
+  FieldType,
+  StationPermission,
+  StationUserType,
+  type Board,
+  type FederationConfigResponse,
+  type FederationTargetResponse,
+  type MemberGroup,
+  type PartnerResponse,
+  type Permission,
+  type UserTag,
 } from '@/api/generated/schema'
-import { userTypesOf } from '@/util/stationUserTypes'
-import {StationPermission, StationUserType, StationUserTypeLabels} from '@/api/types'
+import { STATION_USER_TYPES, userTypesOf } from '@/util/stationUserTypes'
+import {StationUserTypeLabels} from '@/api/types'
 import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { useFlashMessage } from '@/composables/useFlashMessage'
@@ -53,7 +55,7 @@ const lanes = ref<LaneDraft[]>([])
 const newLaneName = ref('')
 const fields = ref<BoardFieldDraft[]>([])
 const newFieldName = ref('')
-const newFieldType = ref<BoardFieldTypeName>(FieldTypes.TEXT)
+const newFieldType = ref<BoardFieldTypeName>(FieldType.TEXT)
 
 const allRoles = ref<Permission[]>([])
 const allGroups = ref<MemberGroup[]>([])
@@ -84,7 +86,7 @@ const hasFullMode = computed(() =>
 )
 
 const roleOptions = computed(() =>
-    Object.values(StationUserType).map(ut => ({ value: ut, label: StationUserTypeLabels[ut] ?? ut }))
+    STATION_USER_TYPES.map(ut => ({ value: ut, label: StationUserTypeLabels[ut] ?? ut }))
 )
 
 function partnerName(partnerId: number): string {
@@ -229,7 +231,7 @@ function addField() {
     if (!newFieldName.value.trim()) return
     fields.value.push({ name: newFieldName.value.trim(), fieldType: newFieldType.value, required: false, options: [], laneId: null })
     newFieldName.value = ''
-    newFieldType.value = FieldTypes.TEXT
+    newFieldType.value = FieldType.TEXT
 }
 
 function removeField(index: number) {

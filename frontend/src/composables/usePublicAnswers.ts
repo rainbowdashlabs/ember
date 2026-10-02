@@ -4,8 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {ref} from 'vue'
-import {QuestionTypes} from '@/api/forms'
-import type {FormAnswerValue, PublicFormQuestion} from '@/api/generated/schema'
+import {FormQuestionType, type FormAnswerValue, type PublicFormQuestion} from '@/api/generated/schema'
 import {emptyAnswer} from '@/util/formAnswers'
 
 /**
@@ -32,12 +31,12 @@ export function usePublicAnswers() {
      */
     function toggleChoice(q: PublicFormQuestion, optionKey: string) {
         const answer = answers.value[q.id]
-        if (answer?.type !== QuestionTypes.CHOICE) return
+        if (answer?.type !== FormQuestionType.CHOICE) return
         if (!optionKey) {
             answer.selected = []
             return
         }
-        const multiSelect = q.config.questionType === QuestionTypes.CHOICE && !!q.config.multiSelect
+        const multiSelect = q.config.questionType === FormQuestionType.CHOICE && !!q.config.multiSelect
         if (!multiSelect) {
             answer.selected = [optionKey]
             answer.other = ''
@@ -50,12 +49,12 @@ export function usePublicAnswers() {
 
     function updateText(q: PublicFormQuestion, text: string) {
         const answer = answers.value[q.id]
-        if (answer?.type === QuestionTypes.TEXT) answer.text = text
+        if (answer?.type === FormQuestionType.TEXT) answer.text = text
     }
 
     function updateDate(q: PublicFormQuestion, date: string) {
         const answer = answers.value[q.id]
-        if (answer?.type === QuestionTypes.DATE) answer.date = date
+        if (answer?.type === FormQuestionType.DATE) answer.date = date
     }
 
     return {answers, reset, toggleChoice, updateText, updateDate}

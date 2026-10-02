@@ -3,8 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {FieldTypes} from '@/api/fieldTypes'
-import type {StationUserType} from '@/api/generated/schema'
+import {FieldType, type StationUserType} from '@/api/generated/schema'
 
 /**
  * What a field says about the answer it takes, in the one shape every settings screen edits.
@@ -58,8 +57,8 @@ export function defaultAsText(value: unknown): string | null {
  */
 export function typedDefault(fieldType: string, text: string | null | undefined): unknown {
     if (text === null || text === undefined) return undefined
-    if (fieldType === FieldTypes.BOOLEAN) return text === 'true'
-    if (fieldType === FieldTypes.NUMBER) {
+    if (fieldType === FieldType.BOOLEAN) return text === 'true'
+    if (fieldType === FieldType.NUMBER) {
         const number = Number(text)
         return text.trim() === '' || Number.isNaN(number) ? undefined : number
     }

@@ -14,9 +14,14 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import ItemSearchPicker from '@/components/input/search/ItemSearchPicker.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import ItemChipSize from '@/components/inventory/ItemChipSize.vue'
-import {ItemOwner, type InventoryTypeName, type ItemOwnerName} from '@/api/inventory'
-import type {InventorySize, MovementStepResponse, NewItemRequest} from '@/api/generated/schema'
-import {StationPermission} from '@/api/types'
+import {
+  ItemOwner,
+  StationPermission,
+  type InventorySize,
+  type InventoryType,
+  type MovementStepResponse,
+  type NewItemRequest,
+} from '@/api/generated/schema'
 import {useSession} from '@/composables/useSession'
 
 const {t} = useI18n()
@@ -44,7 +49,7 @@ const props = defineProps<{
   /** That size in words, shown above the piece being chosen so the right one is easy to find. */
   wantedSizeName?: string | null
   /** Whose gear the movement is about, which is the only gear a replacement may come from. */
-  ownerKind?: ItemOwnerName | null
+  ownerKind?: ItemOwner | null
   /** Which association that is, so a station in one association cannot pick another's piece. */
   ownerClusterId?: string | null
   /**
@@ -57,7 +62,7 @@ const props = defineProps<{
    */
   inventoryId?: number | null
   /** Which sort of shelf that is, which guards the mixed one where both owners' gear sits together. */
-  inventoryType?: InventoryTypeName | null
+  inventoryType?: InventoryType | null
   /** What the inventory is called, which is what a piece written down here is called by default. */
   inventoryName?: string | null
   busy: boolean

@@ -11,7 +11,7 @@ import { useRoute, useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
-import {InventoryTypes} from '@/api/inventory'
+import {InventoryType, StationPermission} from '@/api/generated/schema'
 import type {
   InventoryArt,
   InventoryContainer,
@@ -22,7 +22,6 @@ import type {
   MemberWithName,
   ProcurementResponse,
 } from '@/api/generated/schema'
-import {StationPermission} from '@/api/types'
 import { inventory, inventoryArts, inventoryContainers, stationMembers, procurement } from '@/api'
 import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
@@ -81,7 +80,7 @@ const itemTable = useItemTable({
   items: () => items.value,
   sizes: () => detail.value?.sizes ?? [],
   hasSizes: () => detail.value?.hasSizes ?? false,
-  isMixed: () => detail.value?.inventoryType === InventoryTypes.MIXED,
+  isMixed: () => detail.value?.inventoryType === InventoryType.MIXED,
   sizeLabel: itemSizeLabel,
   assignedName: itemAssignedName,
 })
@@ -104,16 +103,16 @@ const canCreateExternal = computed(() => hasPermission(StationPermission.INVENTO
  * things has not got, so procurement is not offered there.
  */
 const permissions = computed(() => {
-  const type = detail.value?.inventoryType ?? InventoryTypes.INTERNAL
-  const canCreateItem = type === InventoryTypes.INTERNAL ? canCreateInternal.value
-    : type === InventoryTypes.EXTERNAL ? canCreateExternal.value
+  const type = detail.value?.inventoryType ?? InventoryType.INTERNAL
+  const canCreateItem = type === InventoryType.INTERNAL ? canCreateInternal.value
+    : type === InventoryType.EXTERNAL ? canCreateExternal.value
     : canCreateInternal.value || canCreateExternal.value
   return {
     canEdit: canEdit.value,
     canProcure: canProcure.value && (detail.value?.homogeneous ?? true),
     canCreateItem,
-    canQuickAssign: (type === InventoryTypes.EXTERNAL || type === InventoryTypes.MIXED) && canCreateExternal.value,
-    canAddInternal: type !== InventoryTypes.EXTERNAL && canCreateInternal.value,
+    canQuickAssign: (type === InventoryType.EXTERNAL || type === InventoryType.MIXED) && canCreateExternal.value,
+    canAddInternal: type !== InventoryType.EXTERNAL && canCreateInternal.value,
     canTakeStock: routes.intake !== undefined,
   }
 })

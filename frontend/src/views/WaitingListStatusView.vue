@@ -17,8 +17,7 @@ import InvitationDetails from './waitingliststatusview/InvitationDetails.vue'
 import InvitationAnswerActions from './waitingliststatusview/InvitationAnswerActions.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import type { WaitingListAnswerName } from '@/api/waitingList'
-import type { WaitingListPublicStatus } from '@/api/generated/schema'
+import type { WaitingListAnswer, WaitingListPublicStatus } from '@/api/generated/schema'
 import { waitingList } from '@/api'
 import { describeFailure, type Failure } from '@/util/failure'
 import { useFlashMessage } from '@/composables/useFlashMessage'
@@ -75,7 +74,7 @@ const { running: removing, failure: removeFailure, run: removeFromList } = useAs
 })
 
 const answerNote = ref('')
-const pendingAnswer = ref<WaitingListAnswerName | null>(null)
+const pendingAnswer = ref<WaitingListAnswer | null>(null)
 
 const { running: answering, failure: answerFailure, run: sendAnswer } = useAsyncAction(async () => {
   if (!pendingAnswer.value) return
@@ -91,7 +90,7 @@ const { running: answering, failure: answerFailure, run: sendAnswer } = useAsync
   await readBack()
 })
 
-function answer(chosen: WaitingListAnswerName) {
+function answer(chosen: WaitingListAnswer) {
   pendingAnswer.value = chosen
   sendAnswer()
 }

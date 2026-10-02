@@ -3,8 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {MemberTableCellTypes, type ColumnChoice} from '@/api/memberTable'
-import type {MemberTable, MemberTableHeader} from '@/api/generated/schema'
+import type {ColumnChoice} from '@/api/memberTable'
+import {MemberTableCellType, type MemberTable, type MemberTableHeader} from '@/api/generated/schema'
 import {columnTypeOf, type CellValue, type ColumnOption, type TableColumn} from '@/components/table/tableColumn'
 
 /** One person on the drawn table: the cells as read back by column key, without anything beside them. */
@@ -49,18 +49,21 @@ function isoDay(cell: string): string {
 /**
  * A drawn cell read back into what it holds, so it sorts and filters by what it is rather than by
  * how it reads.
+ *
+ * <p>Dates and birth dates arrive as `dd.mm.yyyy` from the station's own questions and as ISO days
+ * from an appointment's; a boolean as the station's word for it or as `true` and `false`.
  */
 function cellValue(header: MemberTableHeader, cell: string | undefined): CellValue {
     if (!cell) return null
     switch (header.type) {
-        case MemberTableCellTypes.DATE:
-        case MemberTableCellTypes.BIRTH_DATE:
+        case MemberTableCellType.DATE:
+        case MemberTableCellType.BIRTH_DATE:
             return isoDay(cell)
-        case MemberTableCellTypes.NUMBER: {
+        case MemberTableCellType.NUMBER: {
             const number = Number(cell.replace(',', '.'))
             return Number.isFinite(number) ? number : cell
         }
-        case MemberTableCellTypes.BOOLEAN:
+        case MemberTableCellType.BOOLEAN:
             return TRUE_WORDS.has(cell.toLowerCase())
         default:
             return header.kind === 'BUILTIN' && LISTING_BUILTINS.has(header.key ?? '') ? cell.split(', ') : cell

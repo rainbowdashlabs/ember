@@ -16,11 +16,11 @@ import ContentBlockEditor from '@/components/content/ContentBlockEditor.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
-import {StationUserType, StationUserTypeLabels} from '@/api/types'
-import {ContentMode, type ContentModeName} from '@/api/news'
+import {StationUserTypeLabels} from '@/api/types'
+import {STATION_USER_TYPES} from '@/util/stationUserTypes'
 import {INSTANCE_MEDIA_SCOPE} from '@/api/media'
 import {markdownAsSingleBlock} from '@/util/blockSwitch'
-import type {StationUserType as StationUserTypeName, SystemNewsResponse} from '@/api/generated/schema'
+import {ContentMode, type StationUserType, type SystemNewsResponse} from '@/api/generated/schema'
 import type {RowEditData} from '@/components/content/blockeditor/EditorRow.vue'
 
 const props = defineProps<{
@@ -35,7 +35,7 @@ const emit = defineEmits<{
     contentMarkdown: string
     userTypes: string[]
     notifyMembers: boolean
-    contentMode: ContentModeName
+    contentMode: ContentMode
     rows: RowEditData[]
   }): void
   (e: 'cancel'): void
@@ -51,7 +51,7 @@ const userTypes = ref<string[]>([])
  * out, and a second notice for a fixed typo is what makes notifications worth ignoring.
  */
 const notifyMembers = ref(false)
-const contentMode = ref<ContentModeName>(ContentMode.SIMPLE)
+const contentMode = ref<ContentMode>(ContentMode.SIMPLE)
 const rows = ref<RowEditData[]>([])
 
 watch(() => props.entry, entry => {
@@ -74,7 +74,7 @@ watch(() => props.entry, entry => {
   notifyMembers.value = false
 }, {immediate: true})
 
-const allUserTypes = Object.values(StationUserType)
+const allUserTypes = STATION_USER_TYPES
 
 const canSave = computed(() =>
     !!title.value.trim() && (contentMode.value === ContentMode.RICH || !!contentMarkdown.value.trim()),
@@ -114,7 +114,7 @@ function submit() {
 }
 
 function label(userType: string): string {
-  return StationUserTypeLabels[userType as StationUserTypeName] ?? userType
+  return StationUserTypeLabels[userType as StationUserType] ?? userType
 }
 </script>
 

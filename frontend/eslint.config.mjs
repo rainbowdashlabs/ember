@@ -371,6 +371,13 @@ export default withNuxt(
         },
     },
     {
+        name: 'ember/enums',
+        files: ['src/**/*.{ts,vue}'],
+        rules: {
+            'ember/no-hand-kept-enum': 'error',
+        },
+    },
+    {
         name: 'ember/state-types',
         files: ['src/**/*.{ts,vue}'],
         rules: restrictSyntax(INLINE_STATE_TYPE),

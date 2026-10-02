@@ -22,7 +22,7 @@ import type {
   RequiredInventoryItem,
 } from '@/api/generated/schema'
 import { inventoryCheck, movements } from '@/api'
-import { MovementPurpose } from '@/api/movements'
+import { MovementPurpose } from '@/api/generated/schema'
 import { useConfigPanel } from '@/composables/useConfigPanel'
 import { useAsyncAction } from '@/composables/useAsyncAction'
 import { useMemberCheck, type CheckEntry } from '@/composables/useMemberCheck'

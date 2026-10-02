@@ -5,12 +5,12 @@
  */
 import client from './client'
 import {documentFrom, type DocumentFile} from '@/util/documentFile'
+import {MovementPurpose} from './generated/schema'
 import type {
     AcknowledgeStepRequest,
     BindingRequest,
     BindingResponse,
     ChosenLanding,
-    components,
     CorrectMovementRequest,
     CreateMovementRequest,
     FlowPreview,
@@ -23,68 +23,6 @@ import type {
     StepRequest,
     StepResponse,
 } from './generated/schema'
-
-type Schemas = components['schemas']
-
-export type MovementPurposeName = Schemas['MovementPurpose']
-
-/** What a movement of gear between two parties is for. */
-export const MovementPurpose = {
-    ISSUE: 'ISSUE',
-    RETURN: 'RETURN',
-    EXCHANGE: 'EXCHANGE',
-    /** A station asking the body above it for a piece it does not have. */
-    REQUEST: 'REQUEST',
-} as const satisfies Record<MovementPurposeName, MovementPurposeName>
-
-export type MovementStateName = Schemas['MovementState']
-
-/** Where a movement stands as a whole, as opposed to which step it is on. */
-export const MovementState = {
-    OPEN: 'OPEN',
-    DONE: 'DONE',
-    DECLINED: 'DECLINED',
-    CANCELLED: 'CANCELLED',
-} as const satisfies Record<MovementStateName, MovementStateName>
-
-export type StepActorName = Schemas['StepActor']
-
-/** The party a step belongs to. */
-export const StepActor = {
-    MEMBER: 'MEMBER',
-    STATION: 'STATION',
-    OWNER: 'OWNER',
-} as const satisfies Record<StepActorName, StepActorName>
-
-export type StepSubjectName = Schemas['StepSubject']
-
-/** Which of a movement's two items a step is about. */
-export const StepSubject = {
-    OUTGOING: 'OUTGOING',
-    INCOMING: 'INCOMING',
-} as const satisfies Record<StepSubjectName, StepSubjectName>
-
-export type AckKindName = Schemas['AckKind']
-
-/** How a step came to be acknowledged, or that nobody did and it was set by hand. */
-export const AckKind = {
-    CONFIRMED: 'CONFIRMED',
-    ASSERTED: 'ASSERTED',
-    FORCED: 'FORCED',
-    CORRECTED: 'CORRECTED',
-    AUTO_CONFIRMED: 'AUTO_CONFIRMED',
-} as const satisfies Record<AckKindName, AckKindName>
-
-export type MovementPartyName = Schemas['MovementParty']
-
-/**
- * The end of a movement that is not the owner. An issue that fills a shelf and one that dresses a
- * member are different chains, and this is what tells them apart.
- */
-export const MovementParty = {
-    STORE: 'STORE',
-    MEMBER: 'MEMBER',
-} as const satisfies Record<MovementPartyName, MovementPartyName>
 
 /** The file attached to a report, fetched with the session so it can be handed to the reader. */
 export async function downloadDocument(movementId: number): Promise<DocumentFile> {
@@ -204,7 +142,7 @@ export async function rechain(id: number, stepIndex: number | null): Promise<Mov
 
 /** What the wizard asks about before it starts anything. */
 export interface FlowQuery {
-    purpose: MovementPurposeName
+    purpose: MovementPurpose
     memberId?: number | null
     itemId?: number | null
     inventoryId?: number | null

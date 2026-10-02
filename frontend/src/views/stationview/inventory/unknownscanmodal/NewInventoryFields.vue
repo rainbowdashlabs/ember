@@ -11,7 +11,7 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
-import {InventoryTypes} from '@/api/inventory'
+import {InventoryType} from '@/api/generated/schema'
 
 const name = defineModel<string>('name', {required: true})
 const type = defineModel<'INTERNAL' | 'EXTERNAL' | 'MIXED'>('type', {required: true})
@@ -46,9 +46,9 @@ function onSizeInput(index: number, value: string, current: string[]) {
         :model-value="type"
         @update:model-value="(v: string | number | null | undefined) => type = String(v ?? '') as 'INTERNAL' | 'EXTERNAL' | 'MIXED'"
     >
-      <option :value="InventoryTypes.INTERNAL">{{ t('inventory.unknownScan.types.INTERNAL') }}</option>
-      <option :value="InventoryTypes.EXTERNAL">{{ t('inventory.unknownScan.types.EXTERNAL') }}</option>
-      <option :value="InventoryTypes.MIXED">{{ t('inventory.unknownScan.types.MIXED') }}</option>
+      <option :value="InventoryType.INTERNAL">{{ t('inventory.unknownScan.types.INTERNAL') }}</option>
+      <option :value="InventoryType.EXTERNAL">{{ t('inventory.unknownScan.types.EXTERNAL') }}</option>
+      <option :value="InventoryType.MIXED">{{ t('inventory.unknownScan.types.MIXED') }}</option>
     </SelectInput>
   </div>
   <label class="flex items-center gap-2 text-sm">

@@ -8,11 +8,14 @@ import {useI18n} from 'vue-i18n'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
-import {ItemOwner, type ItemOwnerName} from '@/api/inventory'
+import {ItemOwner} from '@/api/generated/schema'
+
+/** The owners an unknown item can be recorded under, in the order the picker offers them. */
+const OWNER_CHOICES: readonly ItemOwner[] = [ItemOwner.STATION, ItemOwner.CLUSTER]
 
 const itemName = defineModel<string>('itemName', {required: true})
 const pickedSize = defineModel<string>('pickedSize', {required: true})
-const ownerKind = defineModel<ItemOwnerName>('ownerKind', {required: true})
+const ownerKind = defineModel<ItemOwner>('ownerKind', {required: true})
 
 defineProps<{
   showSizePicker: boolean
@@ -47,10 +50,9 @@ const {t} = useI18n()
     <FieldLabel>{{ t('inventory.unknownScan.itemOwner') }}</FieldLabel>
     <SelectInput
         :model-value="ownerKind"
-        @update:model-value="(v: string | number | null | undefined) => ownerKind = String(v ?? '') as ItemOwnerName"
+        @update:model-value="(v: string | number | null | undefined) => ownerKind = String(v ?? '') as ItemOwner"
     >
-      <option :value="ItemOwner.STATION">{{ t('inventory.unknownScan.owners.STATION') }}</option>
-      <option :value="ItemOwner.CLUSTER">{{ t('inventory.unknownScan.owners.CLUSTER') }}</option>
+      <option v-for="owner in OWNER_CHOICES" :key="owner" :value="owner">{{ t(`inventory.unknownScan.owners.${owner}`) }}</option>
     </SelectInput>
   </div>
 </template>

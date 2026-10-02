@@ -11,8 +11,8 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import TrainingQuestionCard from '@/components/quiz/TrainingQuestionCard.vue'
 import * as publicQuiz from '@/api/publicQuiz'
-import {isQuizQuestionOf, QuizQuestionTypes} from '@/api/quiz'
-import type {PublicQuizQuestion, QuizQuestion} from '@/api/generated/schema'
+import {isQuizQuestionOf} from '@/api/quiz'
+import {QuizQuestionType, type PublicQuizQuestion, type QuizQuestion} from '@/api/generated/schema'
 import {moveWithin} from '@/util/reorder'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 
@@ -66,12 +66,12 @@ function resetUserInput() {
 }
 
 function initQuestionState(q: QuizQuestion) {
-    if (isQuizQuestionOf(q, QuizQuestionTypes.MULTIPLE_CHOICE)) {
+    if (isQuizQuestionOf(q, QuizQuestionType.MULTIPLE_CHOICE)) {
         mcDisplayOrder.value = shuffle((q.config.options ?? []).map((_, i) => i))
     }
-    if (isQuizQuestionOf(q, QuizQuestionTypes.ORDERING)) {
+    if (isQuizQuestionOf(q, QuizQuestionType.ORDERING)) {
         userOrderItems.value = shuffle((q.config.items ?? []).map((_, i) => i))
-    } else if (isQuizQuestionOf(q, QuizQuestionTypes.CONNECT)) {
+    } else if (isQuizQuestionOf(q, QuizQuestionType.CONNECT)) {
         userConnectPairs.value = {}
         connectRightOrder.value = shuffle((q.config.pairs ?? []).map((_, i) => i))
     }

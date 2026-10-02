@@ -16,7 +16,7 @@ import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue
 import SearchInput from '@/components/input/text/SearchInput.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
-import {StationPermission} from '@/api/types'
+import {StationPermission} from '@/api/generated/schema'
 
 const {t} = useI18n()
 

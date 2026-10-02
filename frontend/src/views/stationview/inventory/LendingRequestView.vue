@@ -18,8 +18,12 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
-import {LendingStatus} from '@/api/lending'
-import type {AvailableItemDetail, EnrichedMessage, LendingRequestDetail} from '@/api/generated/schema'
+import {
+  LendingStatus,
+  type AvailableItemDetail,
+  type EnrichedMessage,
+  type LendingRequestDetail,
+} from '@/api/generated/schema'
 import * as lending from '@/api/lending'
 import {useSession} from '@/composables/useSession'
 import {useSidebarCounts} from '@/composables/useSidebarCounts'

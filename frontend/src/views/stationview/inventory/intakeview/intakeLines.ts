@@ -3,8 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {ItemOwnerName} from '@/api/inventory'
-import type {InventoryFieldDefinition, InventoryIntakeRow} from '@/api/generated/schema'
+import type {InventoryFieldDefinition, InventoryIntakeRow, ItemOwner} from '@/api/generated/schema'
 import {buildItemMetadata} from '@/views/stationview/inventory/detailview/itemMetadata'
 import {
     getMemberFirstName,
@@ -70,7 +69,7 @@ export function namesAPiece(line: IntakeLine): boolean {
 export function rowsOf(
     lines: IntakeLine[],
     fields: InventoryFieldDefinition[],
-    ownerKind?: ItemOwnerName,
+    ownerKind?: ItemOwner,
 ): InventoryIntakeRow[] {
     return lines.filter(namesAPiece).map(line => ({
         memberId: line.memberId,

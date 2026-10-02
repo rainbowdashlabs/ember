@@ -12,8 +12,7 @@ import PublicChoiceQuestion from './PublicChoiceQuestion.vue'
 import RatingQuestion from './RatingQuestion.vue'
 import RankingQuestion from './RankingQuestion.vue'
 import LikertQuestion from './LikertQuestion.vue'
-import {QuestionTypes} from '@/api/forms'
-import type {FormAnswerValue, PublicFormQuestion} from '@/api/generated/schema'
+import {FormQuestionType, type FormAnswerValue, type PublicFormQuestion} from '@/api/generated/schema'
 
 /**
  * The fields one question of a public form is answered with.
@@ -41,11 +40,11 @@ const emit = defineEmits<{
   'toggle-choice': [optionKey: string]
 }>()
 
-const longAnswer = computed(() => props.question.config.questionType === QuestionTypes.TEXT && !!props.question.config.longAnswer)
+const longAnswer = computed(() => props.question.config.questionType === FormQuestionType.TEXT && !!props.question.config.longAnswer)
 </script>
 
 <template>
-    <template v-if="answer?.type === QuestionTypes.TEXT">
+    <template v-if="answer?.type === FormQuestionType.TEXT">
         <TextAreaInput v-if="longAnswer"
                        :model-value="answer.text"
                        @update:model-value="(v?: string) => emit('update:text', v ?? '')"/>
@@ -53,23 +52,23 @@ const longAnswer = computed(() => props.question.config.questionType === Questio
                    :model-value="answer.text"
                    @update:model-value="(v?: string) => emit('update:text', v ?? '')"/>
     </template>
-    <template v-else-if="answer?.type === QuestionTypes.DATE">
+    <template v-else-if="answer?.type === FormQuestionType.DATE">
         <DateInput :model-value="answer.date"
                    @update:model-value="(v?: string) => emit('update:date', v ?? '')"/>
     </template>
-    <template v-else-if="answer?.type === QuestionTypes.CHOICE">
+    <template v-else-if="answer?.type === FormQuestionType.CHOICE">
         <PublicChoiceQuestion
             :question="question"
             :answer="answer"
             @toggle="(key: string) => emit('toggle-choice', key)"/>
     </template>
-    <template v-else-if="answer?.type === QuestionTypes.RATING">
+    <template v-else-if="answer?.type === FormQuestionType.RATING">
         <RatingQuestion :config="question.config" :model-value="answer"/>
     </template>
-    <template v-else-if="answer?.type === QuestionTypes.RANKING">
+    <template v-else-if="answer?.type === FormQuestionType.RANKING">
         <RankingQuestion :config="question.config" :model-value="answer"/>
     </template>
-    <template v-else-if="answer?.type === QuestionTypes.LIKERT">
+    <template v-else-if="answer?.type === FormQuestionType.LIKERT">
         <LikertQuestion :config="question.config" :model-value="answer"/>
     </template>
 </template>

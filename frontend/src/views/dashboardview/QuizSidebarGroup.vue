@@ -10,7 +10,7 @@ import SidebarGroup from '@/components/navigation/SidebarGroup.vue'
 import SidebarSubGroup from '@/components/navigation/SidebarSubGroup.vue'
 import QuizSidebarLinks from '@/views/dashboardview/quizsidebargroup/QuizSidebarLinks.vue'
 import ProtocolSidebarLinks from '@/views/dashboardview/quizsidebargroup/ProtocolSidebarLinks.vue'
-import {StationModules, StationPermission} from '@/api/types'
+import {StationModule, StationPermission} from '@/api/generated/schema'
 import {useSession} from '@/composables/useSession'
 
 defineProps<{
@@ -26,7 +26,7 @@ const emit = defineEmits<{
 const {t} = useI18n()
 const {isModuleEnabled, hasPermission, canTestProtocol} = useSession()
 
-const quiz = computed(() => isModuleEnabled(StationModules.QUIZ))
+const quiz = computed(() => isModuleEnabled(StationModule.QUIZ))
 
 /**
  * Whether tests are part of this group at all.
@@ -36,7 +36,7 @@ const quiz = computed(() => isModuleEnabled(StationModules.QUIZ))
  * with nothing under it, and the group was named after a half of it they could not open. For them
  * the whole thing now reads exactly as it does at a station that does not run tests.
  */
-const protocols = computed(() => isModuleEnabled(StationModules.TEST_PROTOCOL)
+const protocols = computed(() => isModuleEnabled(StationModule.TEST_PROTOCOL)
     && (hasPermission(StationPermission.PROTOCOL_CREATE) || canTestProtocol()))
 
 /**

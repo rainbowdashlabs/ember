@@ -19,7 +19,6 @@ import type {
     BoardTicketLink,
     BoardTicketTransitionResponse,
     CommentResponse,
-    components,
     DiscoveredBoard,
     EnrichedBookmark,
     FederatedBoardDetail,
@@ -39,13 +38,6 @@ import type {
     TicketLabelMapping,
     TicketSummary,
 } from './generated/schema'
-
-export type BoardShareModeName = components['schemas']['BoardShareMode']
-
-export const BoardShareMode = {
-    READ_ONLY: 'READ_ONLY',
-    FULL: 'FULL',
-} as const satisfies Record<BoardShareModeName, BoardShareModeName>
 
 export async function discoverBoards(): Promise<DiscoveredBoard[]> {
     const res = await client.get<DiscoveredBoard[]>('/federated/boards')

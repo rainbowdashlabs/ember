@@ -7,8 +7,7 @@
 import {describe, expect, it} from 'vitest'
 import {mount} from '@vue/test-utils'
 import QuestionSettingsEditor from './QuestionSettingsEditor.vue'
-import {FieldTypes} from '@/api/fieldTypes'
-import type {MemberGroup} from '@/api/generated/schema'
+import {FieldType, type MemberGroup} from '@/api/generated/schema'
 import {TODAY, typedDefault, type QuestionSetting, type QuestionSettingsModel} from './questionSettings'
 
 const ALL: QuestionSetting[] = ['required', 'default', 'options', 'bounds', 'step', 'members']
@@ -34,44 +33,44 @@ describe('QuestionSettingsEditor', () => {
     }
 
     it('offers the answers of a choice only for a choice', () => {
-        expect(edit(FieldTypes.CHOICE).find('[data-testid="question-option-add"]').exists()).toBe(true)
-        expect(edit(FieldTypes.TEXT).find('[data-testid="question-option-add"]').exists()).toBe(false)
+        expect(edit(FieldType.CHOICE).find('[data-testid="question-option-add"]').exists()).toBe(true)
+        expect(edit(FieldType.TEXT).find('[data-testid="question-option-add"]').exists()).toBe(false)
     })
 
     it('offers bounds only for a number, and the step only where the feature offers it', () => {
-        expect(shows(edit(FieldTypes.NUMBER), 'question-min')).toBe(true)
-        expect(shows(edit(FieldTypes.NUMBER), 'question-step')).toBe(true)
-        expect(shows(edit(FieldTypes.NUMBER, ['bounds']), 'question-step')).toBe(false)
-        expect(shows(edit(FieldTypes.DATE), 'question-min')).toBe(false)
+        expect(shows(edit(FieldType.NUMBER), 'question-min')).toBe(true)
+        expect(shows(edit(FieldType.NUMBER), 'question-step')).toBe(true)
+        expect(shows(edit(FieldType.NUMBER, ['bounds']), 'question-step')).toBe(false)
+        expect(shows(edit(FieldType.DATE), 'question-min')).toBe(false)
     })
 
     it('offers the group only for a member field narrowed to one', () => {
-        expect(shows(edit(FieldTypes.MEMBER_OF_GROUP), 'question-group')).toBe(true)
-        expect(shows(edit(FieldTypes.MEMBER), 'question-group')).toBe(false)
-        expect(shows(edit(FieldTypes.MEMBER_LIST_OF_TAG), 'question-tag')).toBe(true)
+        expect(shows(edit(FieldType.MEMBER_OF_GROUP), 'question-group')).toBe(true)
+        expect(shows(edit(FieldType.MEMBER), 'question-group')).toBe(false)
+        expect(shows(edit(FieldType.MEMBER_LIST_OF_TAG), 'question-tag')).toBe(true)
     })
 
     it('leaves out what the feature does not offer', () => {
-        const wrapper = edit(FieldTypes.CHOICE, ['required'])
+        const wrapper = edit(FieldType.CHOICE, ['required'])
         expect(wrapper.find('[data-testid="question-option-add"]').exists()).toBe(false)
         expect(shows(wrapper, 'question-has-default')).toBe(false)
         expect(shows(wrapper, 'question-required')).toBe(true)
     })
 
     it('offers no starting value for a type that holds none', () => {
-        expect(shows(edit(FieldTypes.AGE), 'question-has-default')).toBe(false)
-        expect(shows(edit(FieldTypes.TEXT), 'question-has-default')).toBe(true)
+        expect(shows(edit(FieldType.AGE), 'question-has-default')).toBe(false)
+        expect(shows(edit(FieldType.TEXT), 'question-has-default')).toBe(true)
     })
 
     it('starts a date from today where the feature says so', async () => {
-        const wrapper = edit(FieldTypes.DATE, ['default', 'todayDefault'])
+        const wrapper = edit(FieldType.DATE, ['default', 'todayDefault'])
         await wrapper.find('[data-testid="question-has-default"]').trigger('click')
         expect(wrapper.emitted('update:modelValue')?.at(-1)).toEqual([{defaultValue: TODAY}])
         expect(shows(wrapper, 'question-default')).toBe(false)
     })
 
     it('hands a group back as a number and no group as none', async () => {
-        const wrapper = edit(FieldTypes.MEMBER_OF_GROUP)
+        const wrapper = edit(FieldType.MEMBER_OF_GROUP)
         await wrapper.find('[data-testid="question-group"]').setValue('3')
         expect(wrapper.emitted('update:modelValue')?.at(-1)).toEqual([{groupId: 3}])
         await wrapper.find('[data-testid="question-group"]').setValue('')
@@ -81,13 +80,13 @@ describe('QuestionSettingsEditor', () => {
 
 describe('typedDefault', () => {
     it('keeps a yes as a yes and a number as a number', () => {
-        expect(typedDefault(FieldTypes.BOOLEAN, 'true')).toBe(true)
-        expect(typedDefault(FieldTypes.NUMBER, '4')).toBe(4)
-        expect(typedDefault(FieldTypes.TEXT, ' Halle ')).toBe('Halle')
+        expect(typedDefault(FieldType.BOOLEAN, 'true')).toBe(true)
+        expect(typedDefault(FieldType.NUMBER, '4')).toBe(4)
+        expect(typedDefault(FieldType.TEXT, ' Halle ')).toBe('Halle')
     })
 
     it('leaves out a starting value there is none of', () => {
-        expect(typedDefault(FieldTypes.TEXT, null)).toBeUndefined()
-        expect(typedDefault(FieldTypes.NUMBER, '')).toBeUndefined()
+        expect(typedDefault(FieldType.TEXT, null)).toBeUndefined()
+        expect(typedDefault(FieldType.NUMBER, '')).toBeUndefined()
     })
 })

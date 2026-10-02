@@ -6,12 +6,8 @@
 /** @vitest-environment happy-dom */
 import {describe, expect, it, vi} from 'vitest'
 import {computed, ref} from 'vue'
-import {
-    KbFavouriteTarget,
-    type FavouriteEntry,
-    type SharedFileEntry,
-} from '@/api/knowledgeBase'
-import type {KbFavourite, KbFileSummary} from '@/api/generated/schema'
+import type {FavouriteEntry, SharedFileEntry} from '@/api/knowledgeBase'
+import {KbFavouriteTarget, type KbFavourite, type KbFileSummary} from '@/api/generated/schema'
 import {favouriteKey} from '@/composables/useKbFavourites'
 import {useKbItems} from './useKbItems'
 

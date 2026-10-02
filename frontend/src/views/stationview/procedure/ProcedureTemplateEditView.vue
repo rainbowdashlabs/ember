@@ -26,8 +26,7 @@ import TemplateItemCard from '@/views/stationview/procedure/proceduretemplateedi
 import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { procedures } from '@/api'
-import { StationPermission } from '@/api/types'
-import type { ProcedureTemplateDetail, ProcedureTemplateItem } from '@/api/generated/schema'
+import { StationPermission, type ProcedureTemplateDetail, type ProcedureTemplateItem } from '@/api/generated/schema'
 
 const { t } = useI18n()
 const route = useRoute()

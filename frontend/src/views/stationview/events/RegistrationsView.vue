@@ -12,8 +12,12 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import EventGroupCard from './registrationsview/EventGroupCard.vue'
 import {events} from '@/api'
-import {RegistrationStatus, type RegistrationStatusName} from '@/api/events'
-import type {EventSummary, RegistrationResponse, RegistrationStatsResponse} from '@/api/generated/schema'
+import {
+  RegistrationStatus,
+  type EventSummary,
+  type RegistrationResponse,
+  type RegistrationStatsResponse,
+} from '@/api/generated/schema'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useEventEditDeps} from '@/composables/useEventEditDeps'
 import {formatDateTime} from '@/util/format'
@@ -29,7 +33,7 @@ const registrationStats = ref<RegistrationStatsResponse[]>([])
 const expandedRegistrations = ref<RegistrationResponse[]>([])
 const expandedLoading = ref(false)
 
-type StatusCounts = Record<RegistrationStatusName, number>
+type StatusCounts = Record<RegistrationStatus, number>
 
 interface EventGroup {
   event: EventSummary
@@ -82,7 +86,7 @@ const eventGroups = computed((): EventGroup[] => {
 })
 
 const expandedByStatus = computed(() => {
-  const groups: Record<RegistrationStatusName, RegistrationResponse[]> = {
+  const groups: Record<RegistrationStatus, RegistrationResponse[]> = {
     PENDING: [],
     ACCEPTED: [],
     DENIED: [],
@@ -138,7 +142,7 @@ async function refreshExpanded() {
  * followed by a refresh that failed used to read as a refusal that was not written: the row was gone
  * from the list and the page said it had not worked.
  */
-async function decide(regId: number, status: RegistrationStatusName) {
+async function decide(regId: number, status: RegistrationStatus) {
   failure.value = null
   try {
     await events.updateRegistrationStatus(regId, status)

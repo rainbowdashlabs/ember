@@ -13,8 +13,7 @@ import EmptyState from '@/components/feedback/EmptyState.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import {adminNews} from '@/api'
-import type {SystemNewsRequest, SystemNewsResponse} from '@/api/generated/schema'
-import {ContentMode, type ContentModeName} from '@/api/news'
+import {ContentMode, type SystemNewsRequest, type SystemNewsResponse} from '@/api/generated/schema'
 import {userTypesOf} from '@/util/stationUserTypes'
 import type {RowEditData} from '@/components/content/blockeditor/EditorRow.vue'
 import {useConfigPanel} from '@/composables/useConfigPanel'
@@ -60,7 +59,7 @@ interface EditorPayload {
   contentMarkdown: string
   userTypes: string[]
   notifyMembers: boolean
-  contentMode: ContentModeName
+  contentMode: ContentMode
   rows: RowEditData[]
 }
 

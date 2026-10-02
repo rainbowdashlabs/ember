@@ -12,8 +12,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import EventFieldValueInput from '../eventshared/EventFieldValueInput.vue'
-import type {BatchRow, EventFieldEntry} from '@/api/generated/schema'
-import {FieldTypes} from '@/api/fieldTypes'
+import {FieldType, type BatchRow, type EventFieldEntry} from '@/api/generated/schema'
 import {formatDate} from '@/util/format'
 
 const {t} = useI18n()
@@ -68,7 +67,7 @@ function setAllName(value: string) {
         <div v-for="fd in activeFields()" :key="'setall-' + fd.name" class="space-y-1 min-w-32">
           <FieldLabel>{{ fd.name }} - {{ t('batchCreate.setAll') }}</FieldLabel>
           <EventFieldValueInput
-              :field-type="fd.fieldType ?? FieldTypes.TEXT"
+              :field-type="fd.fieldType ?? FieldType.TEXT"
               :config="fd.config"
               model-value=""
               @update:model-value="setAllColumn(fd.name, $event)"
@@ -95,7 +94,7 @@ function setAllName(value: string) {
             </td>
             <td v-for="fd in activeFields()" :key="fd.name" class="p-2">
               <EventFieldValueInput
-                  :field-type="fd.fieldType ?? FieldTypes.TEXT"
+                  :field-type="fd.fieldType ?? FieldType.TEXT"
                   :config="fd.config"
                   :model-value="row.fieldValues?.[fd.name] ?? ''"
                   @update:model-value="updateRow(index, {...row, fieldValues: {...(row.fieldValues ?? {}), [fd.name]: $event}})"

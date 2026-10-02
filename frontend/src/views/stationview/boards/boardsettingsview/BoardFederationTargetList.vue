@@ -7,8 +7,8 @@
 import { useI18n } from 'vue-i18n'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
-import type { FederationTargetResponse, StationUserType as StationUserTypeName } from '@/api/generated/schema'
-import { StationUserType, StationUserTypeLabels } from '@/api/types'
+import { StationUserType, type FederationTargetResponse } from '@/api/generated/schema'
+import { StationUserTypeLabels } from '@/api/types'
 
 defineProps<{
     targets: FederationTargetResponse[]
@@ -28,7 +28,7 @@ function applyShareMode(target: FederationTargetResponse, value: SelectValue) {
 }
 
 function applyRequiredUserType(target: FederationTargetResponse, value: SelectValue) {
-    target.requiredUserType = (value ?? StationUserType.MEMBER) as StationUserTypeName
+    target.requiredUserType = (value ?? StationUserType.MEMBER) as StationUserType
 }
 </script>
 

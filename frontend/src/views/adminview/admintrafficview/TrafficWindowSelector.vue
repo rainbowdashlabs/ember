@@ -7,14 +7,14 @@
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SelectInput from '@/components/input/select/SelectInput.vue'
-import {AuthBucket, type AuthBucketName} from '@/api/traffic'
+import {AuthBucket} from '@/api/generated/schema'
 
 /** Allowed metrics, mirrors {@code TrafficChart}'s prop type. */
 type Metric = 'ingressBytes' | 'egressBytes' | 'requests' | 'inout'
 
 const windowHours = defineModel<number>('windowHours', {required: true})
 const metric = defineModel<Metric>('metric', {required: true})
-const authFilter = defineModel<AuthBucketName | ''>('authFilter', {required: true})
+const authFilter = defineModel<AuthBucket | ''>('authFilter', {required: true})
 
 const {t} = useI18n()
 
@@ -28,7 +28,7 @@ const metricModel = computed({
 })
 const authModel = computed({
   get: () => authFilter.value,
-  set: v => authFilter.value = v as AuthBucketName | '',
+  set: v => authFilter.value = v as AuthBucket | '',
 })
 </script>
 

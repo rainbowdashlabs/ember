@@ -15,8 +15,7 @@ import MutedText from '@/components/typography/MutedText.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import BatchActionFields from '@/views/stationview/quiz/catalogdetailview/batchactionmodal/BatchActionFields.vue'
 import BatchGenerateOptions from '@/views/stationview/quiz/catalogdetailview/batchactionmodal/BatchGenerateOptions.vue'
-import {QuizQuestionTypes} from '@/api/quiz'
-import type {QuizCategory, QuizQuestion} from '@/api/generated/schema'
+import {QuizQuestionType, type QuizCategory, type QuizQuestion} from '@/api/generated/schema'
 import {quiz, ai} from '@/api'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {type AiCredentials, loadAiCredentials} from '@/util/aiCredentials'
@@ -92,7 +91,7 @@ const {running: processing, failure: executeFailure, run: runExecute} = useAsync
     }
   } else if (props.action === 'pointsPerCorrect') {
     for (const q of targets) {
-      if (q.quizQuestionType !== QuizQuestionTypes.MULTIPLE_CHOICE) continue
+      if (q.quizQuestionType !== QuizQuestionType.MULTIPLE_CHOICE) continue
       done++; progress.value = `${done}/${targets.length}`
       const config = parseConfig(q)
       config.pointsPerCorrect = batchPointsPerCorrect.value
@@ -132,16 +131,16 @@ async function execute() {
 }
 
 function generationPrompt(type: string): string | null {
-  if (type === QuizQuestionTypes.MULTIPLE_CHOICE) {
+  if (type === QuizQuestionType.MULTIPLE_CHOICE) {
     return `Generate a multiple choice question with exactly ${batchAiMcCorrect.value} correct and ${batchAiMcWrong.value} wrong answers.`
   }
-  if (type === QuizQuestionTypes.CONNECT) {
+  if (type === QuizQuestionType.CONNECT) {
     return `Generate a connect/matching question with exactly ${batchAiConnectPairs.value} pairs.`
   }
-  if (type === QuizQuestionTypes.ORDERING) {
+  if (type === QuizQuestionType.ORDERING) {
     return `Generate an ordering question with ${batchAiOrderMin.value}-${batchAiOrderMax.value} items.`
   }
-  if (type === QuizQuestionTypes.FILL_IN_THE_BLANK) {
+  if (type === QuizQuestionType.FILL_IN_THE_BLANK) {
     return `Generate a fill-in-the-blank question with ${batchAiFillGaps.value} gaps in ${batchAiFillSentences.value} sentences.`
   }
   return null

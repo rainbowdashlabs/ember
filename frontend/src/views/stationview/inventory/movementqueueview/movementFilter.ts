@@ -3,20 +3,12 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {
-    MovementPurpose,
-    MovementState,
-    StepActor,
-    type MovementPurposeName,
-    type MovementStateName,
-    type StepActorName,
-} from '@/api/movements'
-import type {MovementResponse} from '@/api/generated/schema'
+import {MovementPurpose, MovementState, StepActor, type MovementResponse} from '@/api/generated/schema'
 import type {SortComparator} from '@/composables/useSortable'
 import {enumOptions, type ColumnOption} from '@/components/table/tableColumn'
 
 /** Every purpose a movement can have, in the order the wizard offers them. */
-export const filterablePurposes: MovementPurposeName[] = [
+export const filterablePurposes: MovementPurpose[] = [
     MovementPurpose.ISSUE,
     MovementPurpose.RETURN,
     MovementPurpose.EXCHANGE,
@@ -24,7 +16,7 @@ export const filterablePurposes: MovementPurposeName[] = [
 ]
 
 /** Every state a movement can be in, running first. */
-export const filterableStates: MovementStateName[] = [
+export const filterableStates: MovementState[] = [
     MovementState.OPEN,
     MovementState.DONE,
     MovementState.DECLINED,
@@ -32,7 +24,7 @@ export const filterableStates: MovementStateName[] = [
 ]
 
 /** Whose turn it can be, ours first, which is what somebody working the queue narrows by first. */
-export const filterableTurns: StepActorName[] = [StepActor.STATION, StepActor.MEMBER, StepActor.OWNER]
+export const filterableTurns: StepActor[] = [StepActor.STATION, StepActor.MEMBER, StepActor.OWNER]
 
 type Translate = (key: string) => string
 

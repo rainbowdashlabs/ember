@@ -11,8 +11,7 @@ import NumberInput from '@/components/input/number/NumberInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import MultiSelectInput from '@/components/input/select/MultiSelectInput.vue'
 import LabelledField from '@/components/input/LabelledField.vue'
-import {MailRuleAction, MailTitleSource} from '@/api/mailImport'
-import type {MailRuleActionName, MailTitleSourceName} from '@/api/mailImport'
+import {MailRuleAction, MailTitleSource} from '@/api/generated/schema'
 
 /** What a rule takes and how it files it: the filters that judge each message and each attachment. */
 const props = defineProps<{
@@ -23,8 +22,8 @@ const subjectFilter = defineModel<string>('subjectFilter', {required: true})
 const attachmentNameFilter = defineModel<string>('attachmentNameFilter', {required: true})
 const acceptedTypes = defineModel<string[]>('acceptedTypes', {required: true})
 const minSizeKilobytes = defineModel<number>('minSizeKilobytes', {required: true})
-const titleSource = defineModel<MailTitleSourceName>('titleSource', {required: true})
-const action = defineModel<MailRuleActionName>('action', {required: true})
+const titleSource = defineModel<MailTitleSource>('titleSource', {required: true})
+const action = defineModel<MailRuleAction>('action', {required: true})
 const moveToFolder = defineModel<string>('moveToFolder', {required: true})
 
 const {t} = useI18n()

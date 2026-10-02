@@ -11,7 +11,7 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import {clusterInventory} from '@/api'
-import {LossReportRequirement, type LossReportRequirementName} from '@/api/inventory'
+import {LossReportRequirement} from '@/api/generated/schema'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 
@@ -23,13 +23,13 @@ import {useAsyncAction} from '@/composables/useAsyncAction'
  */
 const {t} = useI18n()
 
-const requires = ref<LossReportRequirementName>(LossReportRequirement.NOTHING)
+const requires = ref<LossReportRequirement>(LossReportRequirement.NOTHING)
 
 const {loading, failure} = useAsyncLoader(async () => {
   requires.value = (await clusterInventory.getLossReportSettings()).requires
 })
 
-const {running: saving, failure: saveFailure, run: save} = useAsyncAction(async (value: LossReportRequirementName) => {
+const {running: saving, failure: saveFailure, run: save} = useAsyncAction(async (value: LossReportRequirement) => {
   await clusterInventory.setLossReportSettings(value)
   requires.value = value
 })
@@ -47,7 +47,7 @@ const {running: saving, failure: saveFailure, run: save} = useAsyncAction(async 
         :model-value="requires"
         class="w-64"
         data-testid="loss-report-requires"
-        @update:model-value="v => save(v as LossReportRequirementName)"
+        @update:model-value="v => save(v as LossReportRequirement)"
     >
       <option
           v-for="option in [LossReportRequirement.NOTHING, LossReportRequirement.NOTE, LossReportRequirement.DOCUMENT]"

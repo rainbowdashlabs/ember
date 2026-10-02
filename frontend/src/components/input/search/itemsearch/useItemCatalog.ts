@@ -9,7 +9,7 @@ import type {ItemChipSource} from '@/components/inventory/ItemChip.vue'
 import {containerPathFor} from '@/util/containerPath'
 import {glyphFor} from '@/util/glyph'
 import {inventory, inventoryArts, inventoryContainers, movements, stationMembers} from '@/api'
-import {MovementState} from '@/api/movements'
+import {MovementState} from '@/api/generated/schema'
 import type {
     Inventory,
     InventoryArt,

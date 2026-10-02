@@ -7,8 +7,7 @@
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
-import {QuizQuestionTypes} from '@/api/quiz'
-import type {QuizQuestionRead} from '@/api/generated/schema'
+import {QuizQuestionType, type QuizQuestionRead} from '@/api/generated/schema'
 import { useI18n } from 'vue-i18n'
 import QuestionHeader from './questioninputcard/QuestionHeader.vue'
 import MultipleChoiceInput from './questioninputcard/MultipleChoiceInput.vue'
@@ -52,7 +51,7 @@ const { t } = useI18n()
   <NeutralContainer class="space-y-4">
     <QuestionHeader :question="question" :direct-image-src="directImageSrc" />
 
-    <template v-if="question.quizQuestionType === QuizQuestionTypes.MULTIPLE_CHOICE">
+    <template v-if="question.quizQuestionType === QuizQuestionType.MULTIPLE_CHOICE">
       <MultipleChoiceInput
         :config="config"
         :disabled="disabled"
@@ -62,7 +61,7 @@ const { t } = useI18n()
       />
     </template>
 
-    <template v-else-if="question.quizQuestionType === QuizQuestionTypes.TRUE_FALSE">
+    <template v-else-if="question.quizQuestionType === QuizQuestionType.TRUE_FALSE">
       <div class="flex gap-3">
         <SelectionToggleButton
           :selected="tfAnswer === true"
@@ -81,7 +80,7 @@ const { t } = useI18n()
       </div>
     </template>
 
-    <template v-else-if="question.quizQuestionType === QuizQuestionTypes.FREE_ANSWER || question.quizQuestionType === QuizQuestionTypes.ENUMERATION || question.quizQuestionType === QuizQuestionTypes.IMAGE_TEXT">
+    <template v-else-if="question.quizQuestionType === QuizQuestionType.FREE_ANSWER || question.quizQuestionType === QuizQuestionType.ENUMERATION || question.quizQuestionType === QuizQuestionType.IMAGE_TEXT">
       <TextAreaInput
         v-model="freeAnswer"
         :aria-label="question.title"
@@ -92,7 +91,7 @@ const { t } = useI18n()
       />
     </template>
 
-    <template v-else-if="question.quizQuestionType === QuizQuestionTypes.FILL_IN_THE_BLANK">
+    <template v-else-if="question.quizQuestionType === QuizQuestionType.FILL_IN_THE_BLANK">
       <FillInBlankInput
         :config="config"
         :disabled="disabled"
@@ -101,7 +100,7 @@ const { t } = useI18n()
       />
     </template>
 
-    <template v-else-if="question.quizQuestionType === QuizQuestionTypes.ORDERING">
+    <template v-else-if="question.quizQuestionType === QuizQuestionType.ORDERING">
       <OrderingInput
         :config="config"
         :disabled="disabled"
@@ -110,7 +109,7 @@ const { t } = useI18n()
       />
     </template>
 
-    <template v-else-if="question.quizQuestionType === QuizQuestionTypes.CONNECT">
+    <template v-else-if="question.quizQuestionType === QuizQuestionType.CONNECT">
       <ConnectInput
         :config="config"
         :disabled="disabled"

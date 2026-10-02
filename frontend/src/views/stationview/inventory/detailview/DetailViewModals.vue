@@ -12,8 +12,7 @@ import HistoryModal from './HistoryModal.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import ItemModals from '../editview/ItemModals.vue'
 import { inventory, procurement } from '@/api'
-import {InventoryTypes} from '@/api/inventory'
-import type {InventoryDetail, InventoryItem} from '@/api/generated/schema'
+import {InventoryType, type InventoryDetail, type InventoryItem} from '@/api/generated/schema'
 import type { MemberLike } from '@/components/input/select/memberOption'
 import { useModalTarget } from '@/composables/useModalTarget'
 import {describeFailure, type Failure} from '@/util/failure'
@@ -89,7 +88,7 @@ async function submitProcurement() {
 
 async function unassign(item: InventoryItem) {
   try {
-    if (props.detail?.inventoryType === InventoryTypes.EXTERNAL) {
+    if (props.detail?.inventoryType === InventoryType.EXTERNAL) {
       await inventory.deleteItem(item.id)
     } else {
       await inventory.assignItem(item.id, { memberId: null, memberName: '' })

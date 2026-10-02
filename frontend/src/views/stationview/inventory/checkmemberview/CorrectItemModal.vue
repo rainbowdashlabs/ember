@@ -17,7 +17,7 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import CorrectNewPiece from './correctitemmodal/CorrectNewPiece.vue'
 import type {Failure} from '@/util/failure'
 import {inventoryFields} from '@/api'
-import {InventoryTypes, ItemOwner, type ItemOwnerName} from '@/api/inventory'
+import {InventoryType, ItemOwner} from '@/api/generated/schema'
 import type {
   CorrectItemRequest,
   InventoryFieldDefinition,
@@ -61,7 +61,7 @@ const {t} = useI18n()
 
 const source = ref<'STOCK' | 'NEW'>('NEW')
 const pickedItemId = ref('')
-const owner = ref<ItemOwnerName>(ItemOwner.STATION)
+const owner = ref<ItemOwner>(ItemOwner.STATION)
 const sizeId = ref('')
 const internalId = ref('')
 const fieldValues = ref<Record<string, unknown>>({})
@@ -76,7 +76,7 @@ const fields = ref<InventoryFieldDefinition[]>([])
  */
 const pickable = computed(() => props.availableItems.filter(item => item.ownerKind === ItemOwner.STATION))
 
-const asksOwner = computed(() => props.req?.inventoryType === InventoryTypes.MIXED)
+const asksOwner = computed(() => props.req?.inventoryType === InventoryType.MIXED)
 
 const needsSize = computed(() => Boolean(props.req?.hasSizes) && (props.req?.sizes.length ?? 0) > 0)
 
@@ -96,7 +96,7 @@ watch(show, async visible => {
   if (!visible || !props.req) return
   source.value = pickable.value.length > 0 ? 'STOCK' : 'NEW'
   pickedItemId.value = ''
-  owner.value = props.req.inventoryType === InventoryTypes.EXTERNAL ? ItemOwner.CLUSTER : ItemOwner.STATION
+  owner.value = props.req.inventoryType === InventoryType.EXTERNAL ? ItemOwner.CLUSTER : ItemOwner.STATION
   sizeId.value = props.statedSizeId == null ? '' : String(props.statedSizeId)
   internalId.value = ''
   fieldValues.value = {}

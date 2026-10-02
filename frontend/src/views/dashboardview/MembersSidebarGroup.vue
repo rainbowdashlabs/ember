@@ -8,7 +8,7 @@ import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SidebarGroup from '@/components/navigation/SidebarGroup.vue'
 import SidebarLink from '@/components/navigation/SidebarLink.vue'
-import {StationModules, StationPermission} from '@/api/types'
+import {StationModule, StationPermission} from '@/api/generated/schema'
 import {useSession} from '@/composables/useSession'
 import {useSidebarCounts} from '@/composables/useSidebarCounts'
 
@@ -50,7 +50,7 @@ function close() {
                  @navigate="close">
       {{ t('sidebar.tags') }}
     </SidebarLink>
-    <SidebarLink v-if="isModuleEnabled(StationModules.DOCUMENTS) && hasPermission(StationPermission.DOCUMENT_READ)"
+    <SidebarLink v-if="isModuleEnabled(StationModule.DOCUMENTS) && hasPermission(StationPermission.DOCUMENT_READ)"
                  :icon="['fas', 'file']" name="member-documents" to="/station/members/documents"
                  @navigate="close">
       {{ t('sidebar.documents') }}
@@ -67,7 +67,7 @@ function close() {
                  @navigate="close">
       {{ t('sidebar.formerMembers') }}
     </SidebarLink>
-    <SidebarLink v-if="isModuleEnabled(StationModules.WAITING_LIST) && hasAnyWaitlistPermission()"
+    <SidebarLink v-if="isModuleEnabled(StationModule.WAITING_LIST) && hasAnyWaitlistPermission()"
                  :badge="counts.waitingListEntries" :icon="['fas', 'clipboard-list']" name="waiting-lists" to="/station/members/waiting-lists"
                  @navigate="close">
       {{ t('sidebar.waitingLists') }}

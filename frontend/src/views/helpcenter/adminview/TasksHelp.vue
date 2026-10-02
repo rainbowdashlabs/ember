@@ -12,7 +12,7 @@ import HelpList from '@/components/helpcenter/HelpList.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import TaskOutcomeBadge from '@/views/adminview/admintasksview/TaskOutcomeBadge.vue'
-import {TaskOutcome} from '@/api/adminTasks'
+import {TaskOutcome} from '@/api/generated/schema'
 
 const {t} = useI18n()
 </script>

@@ -3,23 +3,22 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import { QuestionTypes, type MultiLimitType, type QuestionType, type RatingIcon } from '@/api/forms'
-import type { FormQuestionConfig } from '@/api/generated/schema'
+import { FormQuestionType, MultiLimitType, RatingIcon, type FormQuestionConfig } from '@/api/generated/schema'
 import { blankOption, optionsOf } from '@/util/formOptions'
 
-const MULTI_LIMIT_TYPES: readonly MultiLimitType[] = ['NONE', 'AT_MOST', 'AT_LEAST', 'EXACTLY']
-const RATING_ICONS: readonly RatingIcon[] = ['STAR', 'NUMBER', 'HEART', 'THUMB_UP']
+const MULTI_LIMIT_TYPES: readonly MultiLimitType[] = Object.values(MultiLimitType)
+const RATING_ICONS: readonly RatingIcon[] = Object.values(RatingIcon)
 
 /** The settings a question of the given kind starts with, one empty option included where it has options. */
-export function defaultConfig(type: QuestionType): Record<string, unknown> {
+export function defaultConfig(type: FormQuestionType): Record<string, unknown> {
   switch (type) {
-    case QuestionTypes.CHOICE:
+    case FormQuestionType.CHOICE:
       return { multiSelect: false, dropdown: false, allowOther: false, options: [blankOption([])], multiLimitType: 'NONE', multiLimit: null }
-    case QuestionTypes.TEXT: return { longAnswer: false }
-    case QuestionTypes.RATING: return { scale: 5, icon: 'STAR' }
-    case QuestionTypes.DATE: return {}
-    case QuestionTypes.RANKING: return { options: [blankOption([])] }
-    case QuestionTypes.LIKERT: return { statements: [blankOption([])], scaleMin: 1, scaleMax: 5, scaleLabels: [] }
+    case FormQuestionType.TEXT: return { longAnswer: false }
+    case FormQuestionType.RATING: return { scale: 5, icon: 'STAR' }
+    case FormQuestionType.DATE: return {}
+    case FormQuestionType.RANKING: return { options: [blankOption([])] }
+    case FormQuestionType.LIKERT: return { statements: [blankOption([])], scaleMin: 1, scaleMax: 5, scaleLabels: [] }
   }
 }
 
@@ -47,9 +46,9 @@ function texts(value: unknown): string[] | undefined {
  * @param type   the kind of question
  * @param config what the editor holds for it
  */
-export function questionConfigOf(type: QuestionType, config: Record<string, unknown>): FormQuestionConfig {
+export function questionConfigOf(type: FormQuestionType, config: Record<string, unknown>): FormQuestionConfig {
   switch (type) {
-    case QuestionTypes.CHOICE:
+    case FormQuestionType.CHOICE:
       return {
         questionType: type,
         options: optionsOf(config),
@@ -59,12 +58,12 @@ export function questionConfigOf(type: QuestionType, config: Record<string, unkn
         multiLimitType: oneOf(MULTI_LIMIT_TYPES, config.multiLimitType),
         multiLimit: whole(config.multiLimit),
       }
-    case QuestionTypes.TEXT: return { questionType: type, longAnswer: flag(config.longAnswer) }
-    case QuestionTypes.RATING:
+    case FormQuestionType.TEXT: return { questionType: type, longAnswer: flag(config.longAnswer) }
+    case FormQuestionType.RATING:
       return { questionType: type, scale: whole(config.scale), icon: oneOf(RATING_ICONS, config.icon) }
-    case QuestionTypes.DATE: return { questionType: type }
-    case QuestionTypes.RANKING: return { questionType: type, options: optionsOf(config) }
-    case QuestionTypes.LIKERT:
+    case FormQuestionType.DATE: return { questionType: type }
+    case FormQuestionType.RANKING: return { questionType: type, options: optionsOf(config) }
+    case FormQuestionType.LIKERT:
       return {
         questionType: type,
         statements: optionsOf(config, 'statements'),

@@ -13,17 +13,15 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import {StationPermission} from '@/api/types'
 import type {
     BlockCellRequest, BlockRowRequest, ContentRow, MemberCompletion, MemberGroup, PartnerResponse, UserTag,
 } from '@/api/generated/schema'
-import { ShareScope } from '@/api/lending'
+import { ContentMode, NewsVisibilityRole, ShareScope, StationPermission } from '@/api/generated/schema'
 import { userTypesOf } from '@/util/stationUserTypes'
 import { news, memberGroups, userTags, federation, events, stationMembers } from '@/api'
 import { buildAnnouncementDraft, type AnnouncementDraft } from './editview/announcementPrefill'
 import AnnouncementNotice from './editview/AnnouncementNotice.vue'
 import ContentPanel from './editview/ContentPanel.vue'
-import {ContentMode, type ContentModeName} from '@/api/news'
 import type {RowEditData} from '@/components/content/blockeditor/EditorRow.vue'
 import {markdownAsSingleBlock} from '@/util/blockSwitch'
 import AttachmentsPanel from './editview/AttachmentsPanel.vue'
@@ -75,12 +73,12 @@ const tags = ref<UserTag[]>([])
 const members = ref<MemberCompletion[]>([])
 
 const publicBlog = ref(false)
-const contentMode = ref<ContentModeName>(ContentMode.SIMPLE)
+const contentMode = ref<ContentMode>(ContentMode.SIMPLE)
 const rows = ref<RowEditData[]>([])
 
 const federationShared = ref(false)
 const federationScope = ref<string>(ShareScope.ALL_PARTNERS)
-const federationVisibilityRole = ref<string>(news.NewsVisibilityRole.MEMBER)
+const federationVisibilityRole = ref<string>(NewsVisibilityRole.MEMBER)
 const federationPartnerIds = ref<number[]>([])
 const partners = ref<PartnerResponse[]>([])
 
@@ -258,7 +256,7 @@ const { loading, failure, reload } = useAsyncLoader(async () => {
       federationShared.value = fedShare.shared
       if (fedShare.shared) {
         federationScope.value = fedShare.scope ?? ShareScope.ALL_PARTNERS
-        federationVisibilityRole.value = fedShare.visibilityRole ?? news.NewsVisibilityRole.MEMBER
+        federationVisibilityRole.value = fedShare.visibilityRole ?? NewsVisibilityRole.MEMBER
         federationPartnerIds.value = fedShare.partnerIds ?? []
       }
     }

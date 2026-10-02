@@ -19,8 +19,7 @@ import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import CustodyChoice from './CustodyChoice.vue'
 import {movements} from '@/api'
-import type {ItemCustodyName} from '@/api/inventory'
-import {MovementState, type MovementStateName} from '@/api/movements'
+import {MovementState, type ItemCustody} from '@/api/generated/schema'
 import {describeFailure, type Failure} from '@/util/failure'
 
 /**
@@ -42,7 +41,7 @@ const model = defineModel<boolean>({required: true})
 
 const {t} = useI18n()
 
-const closeStates: MovementStateName[] = [MovementState.DONE, MovementState.DECLINED, MovementState.CANCELLED]
+const closeStates: MovementState[] = [MovementState.DONE, MovementState.DECLINED, MovementState.CANCELLED]
 
 const outgoing = ref('')
 const incoming = ref('')
@@ -67,10 +66,10 @@ async function submit() {
   failure.value = null
   try {
     await movements.correctMovement(props.movementId, {
-      outgoing: outgoing.value ? (outgoing.value as ItemCustodyName) : null,
-      incoming: incoming.value ? (incoming.value as ItemCustodyName) : null,
+      outgoing: outgoing.value ? (outgoing.value as ItemCustody) : null,
+      incoming: incoming.value ? (incoming.value as ItemCustody) : null,
       detachArrival: detach.value,
-      closeAs: closeAs.value ? (closeAs.value as MovementStateName) : null,
+      closeAs: closeAs.value ? (closeAs.value as MovementState) : null,
       reason: reason.value,
     })
     model.value = false

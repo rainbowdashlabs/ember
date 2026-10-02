@@ -14,14 +14,15 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import DashboardEventTile from './upcomingeventspanel/DashboardEventTile.vue'
 import EventAnswerDialog from '@/views/stationview/events/eventshared/EventAnswerDialog.vue'
 import SignOffConfirm from '@/views/stationview/events/eventshared/eventregistrationactions/SignOffConfirm.vue'
-import {EventTypes, isQuarterMonthOf, isRecurringEvent} from '@/api/events'
-import type {
-  EventBreak,
-  EventCategory,
-  EventSummary,
-  FeedStatusResponse,
-  ManagedMember,
-  RegistrationResponse,
+import {isQuarterMonthOf, isRecurringEvent} from '@/api/events'
+import {
+  EventType,
+  type EventBreak,
+  type EventCategory,
+  type EventSummary,
+  type FeedStatusResponse,
+  type ManagedMember,
+  type RegistrationResponse,
 } from '@/api/generated/schema'
 import {events, managedMembers as managedMembersApi} from '@/api'
 import {describeFailure, type Failure} from '@/util/failure'
@@ -88,7 +89,7 @@ const upcomingEvents = computed((): UpcomingEvent[] => {
   const upcoming: UpcomingEvent[] = []
 
   for (const ev of allEvents.value) {
-    if (ev.eventType === EventTypes.ONE_TIME && ev.startTime) {
+    if (ev.eventType === EventType.ONE_TIME && ev.startTime) {
       const d = new Date(ev.startTime)
       const eventDateStr = toIsoDate(d)
       if (eventDateStr >= todayStr) {
@@ -111,13 +112,13 @@ const upcomingEvents = computed((): UpcomingEvent[] => {
       if (!isRecurringEvent(ev.eventType)) continue
       if (!ev.dayOfWeek || ev.dayOfWeek !== dow) continue
 
-      if (ev.eventType === EventTypes.RECURRING) {
+      if (ev.eventType === EventType.RECURRING) {
         upcoming.push({event: ev, date: dateStr, dayLabel: weekdayName(dow)})
-      } else if (ev.eventType === EventTypes.MONTHLY_FIRST) {
+      } else if (ev.eventType === EventType.MONTHLY_FIRST) {
         if (dayOfMonth <= 7) upcoming.push({event: ev, date: dateStr, dayLabel: weekdayName(dow)})
-      } else if (ev.eventType === EventTypes.QUARTERLY) {
+      } else if (ev.eventType === EventType.QUARTERLY) {
         if (dayOfMonth <= 7 && isQuarterMonthOf(ev, date.getUTCFullYear(), month)) upcoming.push({event: ev, date: dateStr, dayLabel: weekdayName(dow)})
-      } else if (ev.eventType === EventTypes.YEARLY && ev.startTime) {
+      } else if (ev.eventType === EventType.YEARLY && ev.startTime) {
         const refDate = new Date(ev.startTime)
         if (refDate.getMonth() === month && refDate.getDate() === dayOfMonth) {
           upcoming.push({event: ev, date: dateStr, dayLabel: weekdayName(dow)})

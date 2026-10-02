@@ -12,7 +12,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import MovementWizard from '../movementwizard/MovementWizard.vue'
 import type {WizardPrefill} from '../movementwizard/useMovementWizard'
-import {MovementPurpose} from '@/api/movements'
+import {MovementPurpose} from '@/api/generated/schema'
 
 /**
  * Asking the association above for a piece the station does not have.

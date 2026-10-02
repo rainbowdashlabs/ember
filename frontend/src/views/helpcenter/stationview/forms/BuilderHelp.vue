@@ -15,7 +15,8 @@ import QuestionEditor from '@/views/stationview/forms/builderview/QuestionEditor
 import AddQuestionMenu from '@/views/stationview/forms/builderview/AddQuestionMenu.vue'
 import FormRestrictionsEditor from '@/views/stationview/forms/builderview/FormRestrictionsEditor.vue'
 import FormEditorActions from '@/views/stationview/forms/builderview/FormEditorActions.vue'
-import {FormPurpose, FormVisibility, QUESTION_TYPES_BY_PURPOSE} from '@/api/forms'
+import {QUESTION_TYPES_BY_PURPOSE} from '@/api/forms'
+import {FormPurpose, FormVisibility} from '@/api/generated/schema'
 import {
   sampleGroups,
   sampleLayoutEditor,

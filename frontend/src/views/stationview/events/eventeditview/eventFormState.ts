@@ -3,8 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {EventTypes, type EventTypeName} from '@/api/events'
-import type {EventFieldEntry} from '@/api/generated/schema'
+import {EventType, type EventFieldEntry} from '@/api/generated/schema'
 import {emptyRestriction} from '@/components/input/restriction'
 
 /**
@@ -17,7 +16,7 @@ export function createEventFormState() {
     description: '',
     categoryId: '',
     templateId: '',
-    eventType: EventTypes.ONE_TIME as string,
+    eventType: EventType.ONE_TIME as string,
     dayOfWeek: '1',
     startTime: '',
     endTime: '',
@@ -42,8 +41,8 @@ export function createEventFormState() {
  * The kind of appointment a form names, read back from the known kinds, or nothing where the form
  * holds a value that is none of them.
  */
-export function eventTypeNamed(value: string | null | undefined): EventTypeName | undefined {
-  return Object.values(EventTypes).find(type => type === value)
+export function eventTypeNamed(value: string | null | undefined): EventType | undefined {
+  return Object.values(EventType).find(type => type === value)
 }
 
 /**

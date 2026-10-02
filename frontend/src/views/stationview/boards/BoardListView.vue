@@ -21,8 +21,7 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import { boards } from '@/api'
-import {LanePreset, type LanePresetName} from '@/api/boards'
-import type {Board} from '@/api/generated/schema'
+import {LanePreset, type Board} from '@/api/generated/schema'
 import { useConfirmDelete } from '@/composables/useConfirmDelete'
 import { useConfigPanel } from '@/composables/useConfigPanel'
 import { useAsyncAction } from '@/composables/useAsyncAction'
@@ -38,7 +37,7 @@ const showCreateModal = ref(false)
 const createName = ref('')
 const createDescription = ref('')
 const createShortKey = ref('')
-const createPreset = ref<LanePresetName | ''>(LanePreset.SIMPLE)
+const createPreset = ref<LanePreset | ''>(LanePreset.SIMPLE)
 const createValidationError = ref('')
 
 const {

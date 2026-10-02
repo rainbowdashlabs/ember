@@ -6,8 +6,7 @@
 import {mount} from '@vue/test-utils'
 import {defineComponent} from 'vue'
 import {describe, expect, it} from 'vitest'
-import {MovementPurpose, MovementState, StepActor} from '@/api/movements'
-import type {MovementResponse} from '@/api/generated/schema'
+import {MovementPurpose, MovementState, StepActor, type MovementResponse} from '@/api/generated/schema'
 import {useDataTable, type DataTableApi} from '@/composables/useDataTable'
 import {MovementColumn, useMovementColumns} from './movementColumns'
 

@@ -3,8 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {AvailableInventoryEntry, LendingRequestResponse} from '@/api/generated/schema'
-import type {LendingStatusName} from '@/api/lending'
+import type {AvailableInventoryEntry, LendingRequestResponse, LendingStatus} from '@/api/generated/schema'
 
 /** What two partner stations offer, one with a known distance and one without. */
 export const offers: AvailableInventoryEntry[] = [
@@ -36,7 +35,7 @@ interface RequestFixture {
   from: string
   to: string
   items: string
-  status: LendingStatusName
+  status: LendingStatus
   overdue?: boolean
 }
 

@@ -5,7 +5,7 @@
  */
 /** @vitest-environment happy-dom */
 import {describe, expect, it} from 'vitest'
-import {StationModules} from '@/api/types'
+import {StationModule} from '@/api/generated/schema'
 import deDE from '@/i18n/de-DE'
 import {STATION_MODULE_OPTIONS} from './stationModules'
 
@@ -20,11 +20,11 @@ function translated(key: string): unknown {
 describe('STATION_MODULE_OPTIONS', () => {
     it('offers every module a station can have, each once', () => {
         const offered = STATION_MODULE_OPTIONS.map(option => option.value)
-        expect([...offered].sort()).toEqual(Object.values(StationModules).sort())
+        expect([...offered].sort()).toEqual(Object.values(StationModule).sort())
     })
 
     it('includes the documents, which an association and the setup could not reach before', () => {
-        expect(STATION_MODULE_OPTIONS.map(option => option.value)).toContain(StationModules.DOCUMENTS)
+        expect(STATION_MODULE_OPTIONS.map(option => option.value)).toContain(StationModule.DOCUMENTS)
     })
 
     it('names and describes every module in words that exist', () => {

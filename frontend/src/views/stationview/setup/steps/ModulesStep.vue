@@ -16,8 +16,7 @@ import {useSetupStatus} from '@/composables/useSetupStatus'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {goToNextStep} from '@/views/stationview/setup/steps'
 import {STATION_MODULE_OPTIONS} from '@/data/stationModules'
-import {StationModules} from '@/api/types'
-import type {StationModule} from '@/api/generated/schema'
+import {StationModule} from '@/api/generated/schema'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -25,9 +24,9 @@ const {load: reloadSession} = useSession()
 const {reload} = useSetupStatus()
 
 const disabled = ref<Set<StationModule>>(new Set([
-  StationModules.INVENTORY, StationModules.ATTENDANCE, StationModules.FORMS, StationModules.LOST_AND_FOUND,
-  StationModules.WAITING_LIST, StationModules.QUIZ, StationModules.TEST_PROTOCOL, StationModules.BOARDS,
-  StationModules.PROCEDURES,
+  StationModule.INVENTORY, StationModule.ATTENDANCE, StationModule.FORMS, StationModule.LOST_AND_FOUND,
+  StationModule.WAITING_LIST, StationModule.QUIZ, StationModule.TEST_PROTOCOL, StationModule.BOARDS,
+  StationModule.PROCEDURES,
 ]))
 const loading = ref(true)
 

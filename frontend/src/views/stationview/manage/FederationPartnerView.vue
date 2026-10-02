@@ -25,8 +25,8 @@ import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import FederationCompatibilityBadge from './federationview/FederationCompatibilityBadge.vue'
 import { federation } from '@/api'
-import { CapabilityDirection, CapabilityType, type CapabilityDirectionName, type CapabilityTypeName } from '@/api/federation'
-import type { FederationContract, PartnerResponse, FederationCapability } from '@/api/generated/schema'
+import { CapabilityDirection, type CapabilityDirectionName } from '@/api/federation'
+import { CapabilityType, type FederationContract, type PartnerResponse, type FederationCapability } from '@/api/generated/schema'
 import Td from '@/components/table/Td.vue'
 import Th from '@/components/table/Th.vue'
 import MutedText from '@/components/typography/MutedText.vue'
@@ -68,12 +68,12 @@ const compatibility = computed(() =>
 
 interface CapRow {
   label: string
-  capability: CapabilityTypeName
+  capability: CapabilityType
   importCap: FederationCapability | undefined
   exportCap: FederationCapability | undefined
 }
 
-const capabilityOrder: CapabilityTypeName[] = [
+const capabilityOrder: CapabilityType[] = [
   CapabilityType.KB_SHARE,
   CapabilityType.QUIZ_SHARE,
   CapabilityType.PROTOCOL_SHARE,
@@ -84,7 +84,7 @@ const capabilityOrder: CapabilityTypeName[] = [
 ]
 
 const capRows = computed<CapRow[]>(() => {
-  const labels: Record<CapabilityTypeName, string> = {
+  const labels: Record<CapabilityType, string> = {
     KB_SHARE: t('federation.cap.kb'),
     QUIZ_SHARE: t('federation.cap.quiz'),
     PROTOCOL_SHARE: t('federation.cap.protocol'),
@@ -106,7 +106,7 @@ function record(e: unknown) {
   failure.value = describeFailure(e, t)
 }
 
-async function toggleCap(capability: CapabilityTypeName, direction: CapabilityDirectionName, currentEnabled: boolean) {
+async function toggleCap(capability: CapabilityType, direction: CapabilityDirectionName, currentEnabled: boolean) {
   try {
     capabilities.value = await federation.setCapabilities(partnerId.value, [
       { capability, direction, enabled: !currentEnabled },

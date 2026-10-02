@@ -21,9 +21,7 @@ import ContentBlocks from '@/components/content/ContentBlocks.vue'
 import type {RowEditData} from '@/components/content/blockeditor/EditorRow.vue'
 import {internalContentContext} from '@/util/contentContext'
 import {provideBlockAudience} from '@/composables/useBlockAudience'
-import {ContentMode, type ContentModeName} from '@/api/news'
-import {KbFileType} from '@/api/knowledgeBase'
-import type {ContentRow, KbFile} from '@/api/generated/schema'
+import {ContentMode, KbFileType, type ContentRow, type KbFile} from '@/api/generated/schema'
 import {downloadAuthed} from '@/util/downloadAuthed'
 
 const props = defineProps<{
@@ -34,7 +32,7 @@ const props = defineProps<{
   renderedHtml: string
   youtubeEmbedUrl: string
   canEdit: boolean
-  contentMode: ContentModeName
+  contentMode: ContentMode
   stationUid: string
   readerRows: ContentRow[]
 }>()

@@ -6,8 +6,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { isQuizQuestionOf, QuizQuestionTypes } from '@/api/quiz'
-import type { QuizQuestion } from '@/api/generated/schema'
+import { isQuizQuestionOf } from '@/api/quiz'
+import { QuizQuestionType, type QuizQuestion } from '@/api/generated/schema'
 
 const props = defineProps<{
   question: QuizQuestion
@@ -15,14 +15,14 @@ const props = defineProps<{
 
 const { t } = useI18n()
 
-const choice = computed(() => isQuizQuestionOf(props.question, QuizQuestionTypes.MULTIPLE_CHOICE) ? props.question.config : null)
-const trueFalse = computed(() => isQuizQuestionOf(props.question, QuizQuestionTypes.TRUE_FALSE) ? props.question.config : null)
-const fillBlank = computed(() => isQuizQuestionOf(props.question, QuizQuestionTypes.FILL_IN_THE_BLANK) ? props.question.config : null)
-const freeAnswer = computed(() => isQuizQuestionOf(props.question, QuizQuestionTypes.FREE_ANSWER) ? props.question.config : null)
-const connect = computed(() => isQuizQuestionOf(props.question, QuizQuestionTypes.CONNECT) ? props.question.config : null)
-const ordering = computed(() => isQuizQuestionOf(props.question, QuizQuestionTypes.ORDERING) ? props.question.config : null)
-const enumeration = computed(() => isQuizQuestionOf(props.question, QuizQuestionTypes.ENUMERATION) ? props.question.config : null)
-const imageText = computed(() => isQuizQuestionOf(props.question, QuizQuestionTypes.IMAGE_TEXT) ? props.question.config : null)
+const choice = computed(() => isQuizQuestionOf(props.question, QuizQuestionType.MULTIPLE_CHOICE) ? props.question.config : null)
+const trueFalse = computed(() => isQuizQuestionOf(props.question, QuizQuestionType.TRUE_FALSE) ? props.question.config : null)
+const fillBlank = computed(() => isQuizQuestionOf(props.question, QuizQuestionType.FILL_IN_THE_BLANK) ? props.question.config : null)
+const freeAnswer = computed(() => isQuizQuestionOf(props.question, QuizQuestionType.FREE_ANSWER) ? props.question.config : null)
+const connect = computed(() => isQuizQuestionOf(props.question, QuizQuestionType.CONNECT) ? props.question.config : null)
+const ordering = computed(() => isQuizQuestionOf(props.question, QuizQuestionType.ORDERING) ? props.question.config : null)
+const enumeration = computed(() => isQuizQuestionOf(props.question, QuizQuestionType.ENUMERATION) ? props.question.config : null)
+const imageText = computed(() => isQuizQuestionOf(props.question, QuizQuestionType.IMAGE_TEXT) ? props.question.config : null)
 </script>
 
 <template>

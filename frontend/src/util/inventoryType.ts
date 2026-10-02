@@ -8,7 +8,7 @@ import InfoBadge from '@/components/badge/InfoBadge.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
-import {InventoryTypes, ItemOwner} from '@/api/inventory'
+import {InventoryType, ItemOwner} from '@/api/generated/schema'
 import {enumOptions, type ColumnOption} from '@/components/table/tableColumn'
 
 /**
@@ -18,7 +18,7 @@ import {enumOptions, type ColumnOption} from '@/components/table/tableColumn'
 export type InventoryTypeTranslator = (key: string) => string
 
 /**
- * Returns the localized label for the given {@link InventoryTypes} value, or an
+ * Returns the localized label for the given {@link InventoryType} value, or an
  * empty string when the type is missing.
  */
 export function inventoryTypeLabel(t: InventoryTypeTranslator, type?: string | null): string {
@@ -28,16 +28,16 @@ export function inventoryTypeLabel(t: InventoryTypeTranslator, type?: string | n
 
 /**
  * Returns the badge component that visually represents the given
- * {@link InventoryTypes} value. Unknown values fall back to
+ * {@link InventoryType} value. Unknown values fall back to
  * {@link SecondaryBadge}.
  */
 export function inventoryTypeBadge(type?: string | null): Component {
     switch (type) {
-        case InventoryTypes.INTERNAL:
+        case InventoryType.INTERNAL:
             return InfoBadge
-        case InventoryTypes.EXTERNAL:
+        case InventoryType.EXTERNAL:
             return SecondaryBadge
-        case InventoryTypes.MIXED:
+        case InventoryType.MIXED:
             return SuccessBadge
         default:
             return SecondaryBadge
@@ -65,7 +65,10 @@ export function itemOwnerLabel(t: InventoryTypeTranslator, ownerKind?: string | 
     return t('inventory.edit.ownerCluster')
 }
 
+/** Every owner a piece can have, in the order a filter offers them: the station, the body above it, a partner. */
+const ITEM_OWNERS: readonly ItemOwner[] = [ItemOwner.STATION, ItemOwner.CLUSTER, ItemOwner.PARTNER_STATION]
+
 /** Every owner a piece can have, each by its name. */
 export function itemOwnerOptions(t: InventoryTypeTranslator): ColumnOption[] {
-    return enumOptions(Object.values(ItemOwner), owner => itemOwnerLabel(t, owner))
+    return enumOptions(ITEM_OWNERS, owner => itemOwnerLabel(t, owner))
 }

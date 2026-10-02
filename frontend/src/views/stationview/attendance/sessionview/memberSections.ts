@@ -4,7 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import type {AttendanceEntry, MemberGroup, MemberWithName, SessionAudience} from '@/api/generated/schema'
-import {StationUserType, StationUserTypeLabels} from '@/api/types'
+import {StationUserTypeLabels} from '@/api/types'
+import {STATION_USER_TYPES} from '@/util/stationUserTypes'
 
 /** One block of names on a sheet, headed by a group or a user type, or by nothing for the rest. */
 export interface MemberSection {
@@ -52,7 +53,7 @@ export function buildMemberSections(sources: MemberSectionSources): MemberSectio
     }
 
     const entered = new Set(sources.entries.map(entry => entry.memberId))
-    for (const type of Object.values(StationUserType)) {
+    for (const type of STATION_USER_TYPES) {
         if (!sources.audience.userTypes.includes(type)) continue
         take(`type-${type}`, StationUserTypeLabels[type], sources.allMembers.filter(member =>
             member.userType === type

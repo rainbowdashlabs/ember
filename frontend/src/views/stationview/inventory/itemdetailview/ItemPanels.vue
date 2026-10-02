@@ -13,7 +13,7 @@ import ReportLossPanel from './ReportLossPanel.vue'
 import ItemHistoryPanel from './ItemHistoryPanel.vue'
 import ItemCheckHistoryPanel from './ItemCheckHistoryPanel.vue'
 import LendingSharePanel from '@/components/lending/LendingSharePanel.vue'
-import {ItemOwner} from '@/api/inventory'
+import {ItemOwner} from '@/api/generated/schema'
 import type {
   HistoryResponse,
   InventoryItem,

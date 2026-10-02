@@ -6,8 +6,7 @@
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {ColumnTypes, type ColumnOption, type TableColumn} from '@/components/table/tableColumn'
-import {MovementState} from '@/api/movements'
-import type {MovementResponse} from '@/api/generated/schema'
+import {MovementState, type MovementResponse} from '@/api/generated/schema'
 import {
     hasMoved,
     lastMovedAt,

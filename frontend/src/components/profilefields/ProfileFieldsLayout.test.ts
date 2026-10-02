@@ -7,7 +7,7 @@
 import {describe, expect, it} from 'vitest'
 import {mount} from '@vue/test-utils'
 import ProfileFieldsLayout, {type LaidOutField} from './ProfileFieldsLayout.vue'
-import {FieldTypes} from '@/api/fieldTypes'
+import {FieldType} from '@/api/generated/schema'
 
 /**
  * The form a member's answers are given on.
@@ -17,8 +17,8 @@ import {FieldTypes} from '@/api/fieldTypes'
  * into it, before it began working itself out, is not what it shows.
  */
 describe('ProfileFieldsLayout', () => {
-    const birthDate = question(10, 'Geburtsdatum', FieldTypes.BIRTH_DATE)
-    const age = question(12, 'Alter', FieldTypes.AGE, {sourceFieldId: 10, ageMode: 'now'})
+    const birthDate = question(10, 'Geburtsdatum', FieldType.BIRTH_DATE)
+    const age = question(12, 'Alter', FieldType.AGE, {sourceFieldId: 10, ageMode: 'now'})
 
     function question(id: number, name: string, fieldType: string, config: LaidOutField['config'] = {}): LaidOutField {
         return {id, name, fieldType, config, required: false, width: null}
@@ -56,7 +56,7 @@ describe('ProfileFieldsLayout', () => {
 
     /** The member sees their own date running out before any reminder tells them. */
     it('marks an expiry date that has passed beside its label', () => {
-        const firstAid = question(20, 'Erste Hilfe gültig bis', FieldTypes.EXPIRY_DATE)
+        const firstAid = question(20, 'Erste Hilfe gültig bis', FieldType.EXPIRY_DATE)
         const view = mount(ProfileFieldsLayout, {
             props: {fields: [firstAid], getValue: () => '2020-01-31'},
         })

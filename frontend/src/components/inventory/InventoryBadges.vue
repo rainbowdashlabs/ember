@@ -8,7 +8,7 @@ import {useI18n} from 'vue-i18n'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
-import {InventoryTypes, type InventoryTypeName} from '@/api/inventory'
+import {InventoryType} from '@/api/generated/schema'
 
 /**
  * What an inventory is, said in labels rather than in a sentence, so a list of a dozen of them can
@@ -24,7 +24,7 @@ import {InventoryTypes, type InventoryTypeName} from '@/api/inventory'
  * ever one thing in it, and writing a one would be noise.
  */
 const props = defineProps<{
-  inventoryType: InventoryTypeName | null | undefined
+  inventoryType: InventoryType | null | undefined
   hasSizes: boolean
   homogeneous: boolean
   /** How many kinds are defined in the inventory, or {@code null} where nobody has counted. */
@@ -37,7 +37,7 @@ const {t} = useI18n()
 <template>
   <div class="flex flex-wrap items-center gap-1.5">
     <InfoBadge data-testid="inventory-badge-type">
-      {{ t('inventory.manage.type.' + (props.inventoryType ?? InventoryTypes.INTERNAL)) }}
+      {{ t('inventory.manage.type.' + (props.inventoryType ?? InventoryType.INTERNAL)) }}
     </InfoBadge>
     <PrimaryBadge data-testid="inventory-badge-kind">
       {{ props.homogeneous ? t('inventory.manage.kindStockName') : t('inventory.manage.kindCollectionName') }}

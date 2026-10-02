@@ -13,8 +13,7 @@ import RowActionsMenu from './RowActionsMenu.vue'
 import ContentRow from '@/components/content/ContentRow.vue'
 import {publicContentContext} from '@/util/contentContext'
 import type {CellEditData} from './EditorCell.vue'
-import {CellContentType} from '@/api/pageManage'
-import type {ContentRow as RowData} from '@/api/generated/schema'
+import {CellContentType, type ContentRow as RowData} from '@/api/generated/schema'
 import {usePageClipboard} from '@/composables/usePageClipboard'
 
 export interface RowEditData {

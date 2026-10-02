@@ -3,8 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {LinkType, TicketPriority} from '@/api/boards'
-import type {BoardLabel, BoardLane, MemberCompletion} from '@/api/generated/schema'
+import {LinkType, TicketPriority, type BoardLabel, type BoardLane, type MemberCompletion} from '@/api/generated/schema'
 import type {DraftChecklistItem} from '@/views/stationview/boards/ticketcreateview/TicketChecklistDraft.vue'
 import type {DraftLink, TicketOption} from '@/views/stationview/boards/ticketcreateview/TicketLinksDraft.vue'
 import type {DraftWeblink} from '@/views/stationview/boards/ticketcreateview/TicketWeblinksDraft.vue'

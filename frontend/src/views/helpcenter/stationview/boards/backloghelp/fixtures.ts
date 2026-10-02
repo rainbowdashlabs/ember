@@ -3,8 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {TicketPriority, type TicketPriorityName} from '@/api/boards'
-import type {MemberCompletion, MemberIdentity, TicketSummary} from '@/api/generated/schema'
+import {TicketPriority, type MemberCompletion, type MemberIdentity, type TicketSummary} from '@/api/generated/schema'
 
 type Translate = (key: string) => string
 
@@ -20,7 +19,7 @@ function identityOf(completion: MemberCompletion): MemberIdentity {
     return {stationUid, memberUid, name, nameColor, stationName, displayTag}
 }
 
-function ticket(ticketNumber: number, title: string, priority: TicketPriorityName, assignee: MemberCompletion | null, dueDate: string | null): TicketSummary {
+function ticket(ticketNumber: number, title: string, priority: TicketPriority, assignee: MemberCompletion | null, dueDate: string | null): TicketSummary {
     return {
         id: ticketNumber, ticketNumber, title, priority, dueDate, assignee: assignee ? identityOf(assignee) : null,
         boardId: 1, laneId: BACKLOG_LANE_ID, position: ticketNumber, attachmentCount: 0, checklistChecked: 0, checklistTotal: 0,

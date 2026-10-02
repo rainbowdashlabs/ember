@@ -16,8 +16,7 @@ import {useMemberPick} from '@/composables/useMemberPick'
 import type {MemberOption} from '@/components/input/select/memberOption'
 import IntakeTable from './IntakeTable.vue'
 import type {IntakeLine} from './intakeLines'
-import {ItemOwner, type ItemOwnerName} from '@/api/inventory'
-import type {InventoryFieldDefinition, InventorySize} from '@/api/generated/schema'
+import {ItemOwner, type InventoryFieldDefinition, type InventorySize} from '@/api/generated/schema'
 import type {Failure} from '@/util/failure'
 
 /**
@@ -28,7 +27,7 @@ import type {Failure} from '@/util/failure'
  */
 const lines = defineModel<IntakeLine[]>('lines', {required: true})
 const bulkSize = defineModel<string>('bulkSize', {required: true})
-const ownerKind = defineModel<ItemOwnerName>('ownerKind', {required: true})
+const ownerKind = defineModel<ItemOwner>('ownerKind', {required: true})
 
 defineProps<{
   sizes: InventorySize[]

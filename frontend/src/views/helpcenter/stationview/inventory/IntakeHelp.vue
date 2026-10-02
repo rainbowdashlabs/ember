@@ -12,7 +12,7 @@ import HelpPermissionGuard from '@/components/helpcenter/HelpPermissionGuard.vue
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import IntakeTable from '@/views/stationview/inventory/intakeview/IntakeTable.vue'
 import {lineFor, type IntakeLine} from '@/views/stationview/inventory/intakeview/intakeLines'
-import {StationPermission} from '@/api/types'
+import {StationPermission} from '@/api/generated/schema'
 import {ref} from 'vue'
 
 const {t} = useI18n()

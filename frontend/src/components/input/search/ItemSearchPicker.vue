@@ -11,8 +11,7 @@ import ScanButton from '@/components/scanner/ScanButton.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import ItemChip from '@/components/inventory/ItemChip.vue'
 import {normaliseScannedPayload} from '@/components/scanner/useBarcodeScanner'
-import type {InventoryTypeName, ItemOwnerName} from '@/api/inventory'
-import type {InventoryItem} from '@/api/generated/schema'
+import type {InventoryItem, InventoryType, ItemOwner} from '@/api/generated/schema'
 import {passesItemFilters} from './itemsearch/itemFilters'
 import {ITEM_SEARCH_LIMIT, queryTokens, scoreItemText} from './itemsearch/itemRanking'
 import {useItemCatalog} from './itemsearch/useItemCatalog'
@@ -37,7 +36,7 @@ const props = defineProps<{
    * one for the association's comes out of theirs: offering both invites handing the wrong body's
    * property over, and the movement would be refused for it afterwards anyway.
    */
-  ownerKind?: ItemOwnerName | null
+  ownerKind?: ItemOwner | null
   /** Which association that is, so one association's gear is not offered for another's movement. */
   ownerClusterId?: string | null
   /**
@@ -45,7 +44,7 @@ const props = defineProps<{
    * a shelf that holds both. A mixed shelf answers for either side, because it is what its pieces say
    * it is.
    */
-  inventoryType?: InventoryTypeName | null
+  inventoryType?: InventoryType | null
   /** Whether pieces another open movement has already promised somebody are left out. */
   excludeSpokenFor?: boolean
   /** The size asked for, whose pieces are drawn as a fit and offered first. */

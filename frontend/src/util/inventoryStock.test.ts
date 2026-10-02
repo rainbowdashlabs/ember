@@ -5,8 +5,7 @@
  */
 /** @vitest-environment happy-dom */
 import {describe, expect, it} from 'vitest'
-import {ItemCustody, ItemOwner} from '@/api/inventory'
-import type {InventoryItem} from '@/api/generated/schema'
+import {ItemCustody, ItemOwner, type InventoryItem} from '@/api/generated/schema'
 import {isAtHand, stockByArt, stockByInventory} from './inventoryStock'
 
 function piece(id: number, patch: Partial<InventoryItem> = {}): InventoryItem {

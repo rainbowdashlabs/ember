@@ -23,7 +23,6 @@ import KbRelatedFilesSection from '@/views/stationview/knowledge/kbfileview/KbRe
 import CommentSection from '@/components/comment/CommentSection.vue'
 import PresentationViewer from '@/views/stationview/knowledge/kbfileview/PresentationViewer.vue'
 import KbFileContent from '@/views/stationview/knowledge/kbfileview/KbFileContent.vue'
-import {ContentMode, type ContentModeName} from '@/api/news'
 import type {RowEditData} from '@/components/content/blockeditor/EditorRow.vue'
 import KbEditFileModal from '@/views/stationview/knowledge/knowledgebaseview/KbEditFileModal.vue'
 import KbShareModal from '@/views/stationview/knowledge/knowledgebaseview/KbShareModal.vue'
@@ -31,13 +30,17 @@ import KbMoveModal from '@/views/stationview/knowledge/knowledgebaseview/KbMoveM
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {knowledgeBase} from '@/api'
+import {levelCovers} from '@/api/knowledgeBase'
 import {
+    ContentMode,
     KbAccessLevel,
     KbFileType,
-    levelCovers,
-    type KbAccessLevelName,
-} from '@/api/knowledgeBase'
-import type {BlockCellRequest, BlockRowRequest, ContentRow, KbFile, MarkdownHtmlResponse} from '@/api/generated/schema'
+    type BlockCellRequest,
+    type BlockRowRequest,
+    type ContentRow,
+    type KbFile,
+    type MarkdownHtmlResponse,
+} from '@/api/generated/schema'
 import {useKbFileMetadata} from '@/views/stationview/knowledge/kbfileview/useKbFileMetadata'
 import {useKbMoveTarget} from '@/views/stationview/knowledge/knowledgebaseview/useKbMoveTarget'
 import {STATION_KB_ROUTES, type KbRoutes} from '@/views/stationview/knowledge/knowledgebaseview/useKbNavigation'
@@ -71,7 +74,7 @@ const lastEditedByName = ref<string | null>(null)
 const markdownData = ref<MarkdownHtmlResponse | null>(null)
 const editing = ref(false)
 const editContent = ref('')
-const contentMode = ref<ContentModeName>(ContentMode.SIMPLE)
+const contentMode = ref<ContentMode>(ContentMode.SIMPLE)
 const blockRows = ref<RowEditData[]>([])
 const readerRows = ref<ContentRow[]>([])
 const textContent = ref('')
@@ -124,7 +127,7 @@ const federatedContentUnavailable = computed(() => isFederated.value
  * What this reader may do here. A folder can hold the level below the station-wide right, so the
  * page has to ask the file rather than the session.
  */
-const accessLevel = ref<KbAccessLevelName | undefined>(undefined)
+const accessLevel = ref<KbAccessLevel | undefined>(undefined)
 const accessLevelSource = ref<string | null>(null)
 
 const mayEdit = computed(() =>

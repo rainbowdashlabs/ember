@@ -8,8 +8,9 @@ import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import FieldAnswerInput from '@/components/input/FieldAnswerInput.vue'
 import {numberFieldViolation} from '@/api/inventoryFields'
-import {FieldTypes} from '@/api/fieldTypes'
-import type {EnumConfig, InventoryFieldDefinition, NumberConfig, TextConfig} from '@/api/generated/schema'
+import {
+  FieldType, type EnumConfig, type InventoryFieldDefinition, type NumberConfig, type TextConfig,
+} from '@/api/generated/schema'
 
 /**
  * Answering one of the fields a piece of equipment carries.
@@ -39,22 +40,22 @@ const numberConfig = computed<NumberConfig | null>(() => (props.field.config.kin
 const enumConfig = computed<EnumConfig | null>(() => (props.field.config.kind === 'CHOICE' ? props.field.config : null))
 
 /** A long answer is a text field the station marked as one, which no other feature says separately. */
-const answerType = computed(() => (textConfig.value?.multiline ? FieldTypes.LONG_TEXT : props.field.fieldType))
+const answerType = computed(() => (textConfig.value?.multiline ? FieldType.LONG_TEXT : props.field.fieldType))
 
 const asText = computed(() => (value.value == null ? '' : String(value.value)))
 
 /** Back into the shape a piece of equipment stores: a number, a yes or a no, or nothing at all. */
 function write(next: string) {
   if (next === '') {
-    value.value = props.field.fieldType === FieldTypes.BOOLEAN ? false : null
+    value.value = props.field.fieldType === FieldType.BOOLEAN ? false : null
     return
   }
-  if (props.field.fieldType === FieldTypes.NUMBER) {
+  if (props.field.fieldType === FieldType.NUMBER) {
     const parsed = Number(next)
     value.value = Number.isNaN(parsed) ? null : parsed
     return
   }
-  if (props.field.fieldType === FieldTypes.BOOLEAN) {
+  if (props.field.fieldType === FieldType.BOOLEAN) {
     value.value = next === 'true'
     return
   }

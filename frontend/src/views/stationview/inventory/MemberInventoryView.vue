@@ -13,8 +13,7 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import {inventory, movements, stationMembers} from '@/api'
 import type {HandOutMode} from '@/components/inventory/HandOutChoice.vue'
-import type {InventoryItem, MemberWithName, MyInventoryItem} from '@/api/generated/schema'
-import {StationPermission} from '@/api/types'
+import {MovementPurpose, StationPermission, type InventoryItem, type MemberWithName, type MyInventoryItem} from '@/api/generated/schema'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useAsyncAction} from '@/composables/useAsyncAction'
@@ -28,7 +27,6 @@ import MemberInventoryGroups from './memberinventoryview/MemberInventoryGroups.v
 import MovementsPanel from '@/components/inventory/MovementsPanel.vue'
 import MovementWizard from './movementwizard/MovementWizard.vue'
 import type {WizardPrefill} from './movementwizard/useMovementWizard'
-import {MovementPurpose} from '@/api/movements'
 import {describeFailure, type Failure} from '@/util/failure'
 
 const routes = useInventoryRoutes()

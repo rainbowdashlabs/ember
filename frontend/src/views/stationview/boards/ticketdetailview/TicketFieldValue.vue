@@ -10,7 +10,7 @@ import FieldAnswerInput from '@/components/input/FieldAnswerInput.vue'
 import QuestionValueDisplay from '@/components/display/QuestionValueDisplay.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import type { MemberOption } from '@/components/input/select/memberOption'
-import { FieldTypes } from '@/api/fieldTypes'
+import { FieldType } from '@/api/generated/schema'
 import { fieldValueOfText, fieldValueText, type BoardFieldRaw, type BoardFieldTypeName, type TypedBoardField } from '@/api/boards'
 
 /**
@@ -35,11 +35,11 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 
-const PICKED: readonly string[] = [FieldTypes.BOOLEAN, FieldTypes.CHOICE, FieldTypes.LANE_ASSIGNEE]
+const PICKED: readonly string[] = [FieldType.BOOLEAN, FieldType.CHOICE, FieldType.LANE_ASSIGNEE]
 
 const held = ref<BoardFieldRaw | null>(value.value)
 
-const options = computed(() => (props.field.fieldType === FieldTypes.CHOICE ? props.field.config.options : []))
+const options = computed(() => (props.field.fieldType === FieldType.CHOICE ? props.field.config.options : []))
 
 const memberNames = computed(() => new Map(props.members.map(member => [Number(member.value), member.name])))
 
@@ -68,7 +68,7 @@ function commit() {
             :members="members"
             :model-value="fieldValueText(value)"
             :options="options"
-            :placeholder="field.fieldType === FieldTypes.LANE_ASSIGNEE ? t('boards.unassigned') : undefined"
+            :placeholder="field.fieldType === FieldType.LANE_ASSIGNEE ? t('boards.unassigned') : undefined"
             :required="field.config.required"
             @update:model-value="write"
         />

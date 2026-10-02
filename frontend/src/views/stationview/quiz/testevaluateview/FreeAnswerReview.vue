@@ -8,8 +8,7 @@ import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import IconButton from '@/components/button/IconButton.vue'
-import {QuizQuestionTypes} from '@/api/quiz'
-import type {QuizQuestion, QuizTestAnswer} from '@/api/generated/schema'
+import {QuizQuestionType, type QuizQuestion, type QuizTestAnswer} from '@/api/generated/schema'
 
 const props = defineProps<{
   question: QuizQuestion
@@ -40,8 +39,8 @@ const sampleAnswers = computed<string>(() => {
 })
 
 const showSampleAnswers = computed(() =>
-  props.question.quizQuestionType === QuizQuestionTypes.FREE_ANSWER
-    || props.question.quizQuestionType === QuizQuestionTypes.ENUMERATION,
+  props.question.quizQuestionType === QuizQuestionType.FREE_ANSWER
+    || props.question.quizQuestionType === QuizQuestionType.ENUMERATION,
 )
 </script>
 

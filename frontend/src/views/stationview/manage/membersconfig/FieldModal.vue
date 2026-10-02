@@ -20,7 +20,8 @@ import {
     ageSourceOf, parseFieldConfig,
     type EditableField, type FieldSettings, type EditableFieldRequest,
 } from '@/api/profileFields'
-import {FieldTypes, holdsValue as typeHoldsValue, isDateType, type FieldTypeName} from '@/api/fieldTypes'
+import {holdsValue as typeHoldsValue, isDateType} from '@/api/fieldTypes'
+import {FieldType} from '@/api/generated/schema'
 import {
     defaultAsText, TODAY, typedDefault,
     type QuestionSetting, type QuestionSettingsModel,
@@ -56,7 +57,7 @@ const emit = defineEmits<{
 }>()
 
 const fieldName = ref('')
-const fieldType = ref<FieldTypeName>(FieldTypes.TEXT)
+const fieldType = ref<FieldType>(FieldType.TEXT)
 const fieldDescription = ref('')
 const fieldRequired = ref(false)
 const fieldReadonly = ref(false)
@@ -76,9 +77,9 @@ const saving = ref(false)
  * a spacer keeps its width all the same, which is the only thing it is for. An age holds none of its
  * own either, but is still asked, so it keeps the settings about being asked.
  */
-const holdsValue = computed(() => fieldType.value !== FieldTypes.SECTION && fieldType.value !== FieldTypes.SPACER)
+const holdsValue = computed(() => fieldType.value !== FieldType.SECTION && fieldType.value !== FieldType.SPACER)
 
-const isSpacer = computed(() => fieldType.value === FieldTypes.SPACER)
+const isSpacer = computed(() => fieldType.value === FieldType.SPACER)
 
 /**
  * Whether the answer is worked out from another one rather than given.
@@ -86,19 +87,19 @@ const isSpacer = computed(() => fieldType.value === FieldTypes.SPACER)
  * <p>Nobody writes it, so everything about writing it, expecting it, locking it, reporting a change
  * to it or starting it off with a value, is a setting with nothing to act on.
  */
-const isCalculated = computed(() => fieldType.value === FieldTypes.AGE)
+const isCalculated = computed(() => fieldType.value === FieldType.AGE)
 
 /**
  * What of the shared settings this question offers. A certificate that runs out on the day it is
  * entered is never what anybody means, so an expiry date starts empty.
  */
 const offers = computed<QuestionSetting[]>(() =>
-    typeHoldsValue(fieldType.value) && fieldType.value !== FieldTypes.EXPIRY_DATE
+    typeHoldsValue(fieldType.value) && fieldType.value !== FieldType.EXPIRY_DATE
         ? ['options', 'default', 'todayDefault']
         : ['options'])
 
 /** A date's only starting value is today; an empty one written before that was a choice reads as none. */
-function startingValue(type: FieldTypeName, stored: unknown): string | null {
+function startingValue(type: FieldType, stored: unknown): string | null {
   const text = defaultAsText(stored)
   if (isDateType(type) && text !== TODAY) return null
   return text
@@ -109,7 +110,7 @@ watch(modelValue, (open) => {
   const f = props.field
   const cfg = parseFieldConfig(f?.config)
   fieldName.value = f?.name ?? ''
-  fieldType.value = f?.fieldType ?? FieldTypes.TEXT
+  fieldType.value = f?.fieldType ?? FieldType.TEXT
   fieldDescription.value = typeof cfg.description === 'string' ? cfg.description : ''
   fieldRequired.value = !!f?.required
   fieldReadonly.value = !!f?.readonly
@@ -139,8 +140,8 @@ function buildConfig(): FieldSettings {
   if (fieldNotifyOnChange.value) cfg.notifyOnChange = true
   if (fieldOverview.value) cfg.overview = true
   const options = fieldSettings.value.options ?? []
-  if (fieldType.value === FieldTypes.CHOICE && options.length > 0) cfg.options = [...options]
-  if (fieldType.value === FieldTypes.AGE) {
+  if (fieldType.value === FieldType.CHOICE && options.length > 0) cfg.options = [...options]
+  if (fieldType.value === FieldType.AGE) {
     const source = props.dateFields.find(f => f.id === fieldAgeSourceId.value)
     if (source) {
       cfg.sourceFieldId = source.id
@@ -148,8 +149,8 @@ function buildConfig(): FieldSettings {
     }
     cfg.ageMode = fieldAgeMode.value
   }
-  if (fieldType.value === FieldTypes.BIRTH_DATE && !fieldShowAge.value) cfg.showAge = false
-  if (fieldType.value === FieldTypes.EXPIRY_DATE) Object.assign(cfg, expiryConfigOf(fieldExpiry.value))
+  if (fieldType.value === FieldType.BIRTH_DATE && !fieldShowAge.value) cfg.showAge = false
+  if (fieldType.value === FieldType.EXPIRY_DATE) Object.assign(cfg, expiryConfigOf(fieldExpiry.value))
   if (offers.value.includes('default')) {
     const starting = typedDefault(fieldType.value, fieldSettings.value.defaultValue)
     if (starting !== undefined) cfg.defaultValue = starting
@@ -184,8 +185,8 @@ function submit() {
         <AgeFields v-if="isCalculated" v-model:source-id="fieldAgeSourceId" v-model:mode="fieldAgeMode"
                    :date-fields="dateFields"/>
         <QuestionSettingsEditor v-model="fieldSettings" :field-type="fieldType" :offers="offers"/>
-        <BirthDateFields v-if="fieldType === FieldTypes.BIRTH_DATE" v-model:show-age="fieldShowAge"/>
-        <ExpiryDateFields v-if="fieldType === FieldTypes.EXPIRY_DATE" v-model="fieldExpiry"/>
+        <BirthDateFields v-if="fieldType === FieldType.BIRTH_DATE" v-model:show-age="fieldShowAge"/>
+        <ExpiryDateFields v-if="fieldType === FieldType.EXPIRY_DATE" v-model="fieldExpiry"/>
         <BehaviorToggles
           v-model:required="fieldRequired"
           v-model:readonly="fieldReadonly"

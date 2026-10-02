@@ -7,14 +7,14 @@
 import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {dataTracking} from '@/api'
-import {TrackingStatus, type TrackingStatusName} from '@/api/dataTracking'
-import type {
-  ColumnEntry,
-  DeletionStrategy,
-  GdprDeletionContext,
-  GdprExportContext,
-  TableEntry,
-  TransferContext,
+import {
+  TrackingStatus,
+  type ColumnEntry,
+  type DeletionStrategy,
+  type GdprDeletionContext,
+  type GdprExportContext,
+  type TableEntry,
+  type TransferContext,
 } from '@/api/generated/schema'
 import TableDetailHeader from './TableDetailHeader.vue'
 import TableDetailBody from './TableDetailBody.vue'
@@ -53,7 +53,7 @@ const columnOptions = computed(() =>
     columns.value.map(c => ({value: c.name, label: c.name, group: c.type})),
 )
 
-const statuses: TrackingStatusName[] = [
+const statuses: TrackingStatus[] = [
   TrackingStatus.TRACKED,
   TrackingStatus.IGNORED,
   TrackingStatus.UNVERIFIED,

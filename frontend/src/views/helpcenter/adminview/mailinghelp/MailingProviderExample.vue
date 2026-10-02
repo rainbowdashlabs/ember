@@ -15,7 +15,7 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import SmtpEncryptionField from '@/components/mail/SmtpEncryptionField.vue'
 import {RELAY_PROVIDER_NAMES} from '@/util/mailProviders'
-import {SmtpEncryption} from '@/api/mailProviders'
+import {SmtpEncryption} from '@/api/generated/schema'
 
 /**
  * A mail provider as the administration page shows it, filled in for an own mail server, so the

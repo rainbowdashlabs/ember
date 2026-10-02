@@ -15,7 +15,7 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import UnknownScanForm from '@/views/stationview/inventory/unknownscanmodal/UnknownScanForm.vue'
 import {buildItemMetadata} from '@/views/stationview/inventory/detailview/itemMetadata'
-import {InventoryTypes, ItemOwner, type ItemOwnerName} from '@/api/inventory'
+import {InventoryType, ItemOwner} from '@/api/generated/schema'
 import {inventory, inventoryFields} from '@/api'
 import type {
   Inventory,
@@ -47,12 +47,12 @@ const validation = ref('')
 
 const targetInventoryId = ref<number | 'new'>('new')
 const newInventoryName = ref('')
-const newInventoryType = ref<'INTERNAL' | 'EXTERNAL' | 'MIXED'>(InventoryTypes.INTERNAL)
+const newInventoryType = ref<'INTERNAL' | 'EXTERNAL' | 'MIXED'>(InventoryType.INTERNAL)
 const newInventoryHasSizes = ref(false)
 const newInventorySizes = ref<string[]>([''])
 
 const itemName = ref('')
-const ownerKind = ref<ItemOwnerName>(ItemOwner.STATION)
+const ownerKind = ref<ItemOwner>(ItemOwner.STATION)
 
 const availableSizes = ref<InventorySize[]>([])
 const pickedSizeLabel = ref<string>('')
@@ -76,8 +76,8 @@ const sizeOptionLabels = computed(() => {
   return availableSizes.value.map(s => s.label).filter((l): l is string => !!l)
 })
 const showOwnerPicker = computed(() => {
-  if (isCreatingInventory.value) return newInventoryType.value === InventoryTypes.MIXED
-  return selectedInventory.value?.inventoryType === InventoryTypes.MIXED
+  if (isCreatingInventory.value) return newInventoryType.value === InventoryType.MIXED
+  return selectedInventory.value?.inventoryType === InventoryType.MIXED
 })
 
 const sortedFieldDefs = computed(() =>
@@ -98,8 +98,8 @@ watch(selectedInventory, async (inv) => {
   fieldDefs.value = []
   if (!inv) return
   itemName.value = inv.name ?? ''
-  if (inv.inventoryType === InventoryTypes.EXTERNAL) ownerKind.value = ItemOwner.CLUSTER
-  else if (inv.inventoryType === InventoryTypes.INTERNAL) ownerKind.value = ItemOwner.STATION
+  if (inv.inventoryType === InventoryType.EXTERNAL) ownerKind.value = ItemOwner.CLUSTER
+  else if (inv.inventoryType === InventoryType.INTERNAL) ownerKind.value = ItemOwner.STATION
   await loadSizesAndFields(inv)
 })
 

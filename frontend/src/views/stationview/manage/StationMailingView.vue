@@ -29,7 +29,7 @@ import {
   updateStationProviders,
   type MailProvider,
 } from '@/api/mailProviders'
-import {StationPermission} from '@/api/types'
+import {StationPermission} from '@/api/generated/schema'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useSession} from '@/composables/useSession'
 import {describeFailure} from '@/util/failure'

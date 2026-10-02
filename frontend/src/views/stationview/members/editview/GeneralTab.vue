@@ -19,14 +19,14 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MemberUserTypeSelect from './MemberUserTypeSelect.vue'
 import MemberGroupChips from './MemberGroupChips.vue'
 import MemberTagChips from './MemberTagChips.vue'
-import {StationUserType} from '@/api/types'
-import type {
-  MemberGroup,
-  MemberGroupSet,
-  MemberWithName,
-  MyInventoryItem,
-  Permission,
-  UserTag,
+import {
+  StationUserType,
+  type MemberGroup,
+  type MemberGroupSet,
+  type MemberWithName,
+  type MyInventoryItem,
+  type Permission,
+  type UserTag,
 } from '@/api/generated/schema'
 import {stationMembers, memberGroups} from '@/api'
 import {useAsyncAction} from '@/composables/useAsyncAction'

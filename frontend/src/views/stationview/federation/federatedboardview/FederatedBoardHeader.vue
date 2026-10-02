@@ -13,8 +13,7 @@ import ButtonRow from '@/components/button/ButtonRow.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SearchInput from '@/components/input/text/SearchInput.vue'
 import FederatedBoardSearchResults from '@/views/stationview/federation/federatedboardview/FederatedBoardSearchResults.vue'
-import type {TicketPriorityName} from '@/api/boards'
-import type {TicketSummary} from '@/api/generated/schema'
+import type {TicketPriority, TicketSummary} from '@/api/generated/schema'
 
 defineProps<{
   boardName: string
@@ -26,8 +25,8 @@ defineProps<{
   /** Where each hit of the search leads. */
   ticketPage: (ticket: TicketSummary) => string
   laneName: (laneId: number) => string
-  priorityIcon: (priority: TicketPriorityName) => string[]
-  priorityColor: (priority: TicketPriorityName) => string
+  priorityIcon: (priority: TicketPriority) => string[]
+  priorityColor: (priority: TicketPriority) => string
 }>()
 
 const emit = defineEmits<{

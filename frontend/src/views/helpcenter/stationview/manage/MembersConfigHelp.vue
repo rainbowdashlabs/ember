@@ -18,7 +18,7 @@ import AudiencesPanel from '@/views/stationview/manage/membersconfig/AudiencesPa
 import TemplateButtons from '@/views/stationview/manage/membersconfig/TemplateButtons.vue'
 import ExpiryDateFields from '@/views/stationview/manage/membersconfig/fieldmodal/ExpiryDateFields.vue'
 import {STATION_ROLES} from '@/composables/useFieldsConfig'
-import {FieldTypes} from '@/api/fieldTypes'
+import {FieldType} from '@/api/generated/schema'
 import {expirySettingsOf, type ExpirySettings} from '@/util/expiry'
 import {DEMO_AUDIENCE_COUNT, DEMO_FIELDS, demoAudiences, demoExpiryDates} from './fixtures'
 
@@ -109,7 +109,7 @@ const expiryDates = demoExpiryDates()
       <div class="space-y-1">
         <FieldLabel>{{ t('fieldTypes.label.EXPIRY_DATE') }}</FieldLabel>
         <p v-for="date in expiryDates" :key="date" class="text-sm">
-          <QuestionValueDisplay :value="date" :field-type="FieldTypes.EXPIRY_DATE" :config="{warnFromDays: 90}"/>
+          <QuestionValueDisplay :value="date" :field-type="FieldType.EXPIRY_DATE" :config="{warnFromDays: 90}"/>
         </p>
       </div>
     </NeutralContainer>

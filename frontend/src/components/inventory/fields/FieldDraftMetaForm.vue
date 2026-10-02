@@ -11,14 +11,15 @@ import NumberInput from '@/components/input/number/NumberInput.vue'
 import FieldTypePicker from '@/components/input/FieldTypePicker.vue'
 import LabelledField from '@/components/input/LabelledField.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
-import {OfferedFieldTypes, type FieldTypeName} from '@/api/fieldTypes'
+import {OfferedFieldTypes} from '@/api/fieldTypes'
+import type {FieldType} from '@/api/generated/schema'
 import type {DraftField} from './types'
 import {harmonizeKey} from './harmonize'
 
 const draft = defineModel<DraftField>('draft', {required: true})
 
 const emit = defineEmits<{
-    (e: 'type-changed', value: FieldTypeName): void
+    (e: 'type-changed', value: FieldType): void
 }>()
 
 const {t} = useI18n()

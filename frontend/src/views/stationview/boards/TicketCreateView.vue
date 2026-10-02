@@ -19,8 +19,14 @@ import type { DraftWeblink } from './ticketcreateview/TicketWeblinksDraft.vue'
 import type { DraftLink, TicketOption } from './ticketcreateview/TicketLinksDraft.vue'
 import { describeFailure, type Failure } from '@/util/failure'
 import { boards } from '@/api'
-import type { Board, BoardLabel, BoardLane, MemberCompletion } from '@/api/generated/schema'
-import {LinkType, TicketPriority, type LinkTypeName, type TicketPriorityName} from '@/api/boards'
+import {
+    LinkType,
+    TicketPriority,
+    type Board,
+    type BoardLabel,
+    type BoardLane,
+    type MemberCompletion,
+} from '@/api/generated/schema'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { useAsyncAction } from '@/composables/useAsyncAction'
 
@@ -40,7 +46,7 @@ const allTickets = ref<TicketOption[]>([])
 const title = ref('')
 const description = ref('')
 const laneId = ref('')
-const priority = ref<TicketPriorityName>(TicketPriority.MEDIUM)
+const priority = ref<TicketPriority>(TicketPriority.MEDIUM)
 const assignee = ref('')
 const dueDate = ref('')
 
@@ -111,7 +117,7 @@ function removeWeblink(key: number) {
 
 const ticketLinks = ref<DraftLink[]>([])
 const newLinkTicketId = ref('')
-const newLinkType = ref<LinkTypeName>(LinkType.RELATES_TO)
+const newLinkType = ref<LinkType>(LinkType.RELATES_TO)
 
 function addLink() {
     if (!newLinkTicketId.value) return
@@ -155,7 +161,7 @@ const {loading, failure: loadFailure} = useAsyncLoader(async () => {
     const q = route.query
     if (q.title) title.value = String(q.title)
     if (q.description) description.value = String(q.description)
-    if (q.priority) priority.value = String(q.priority) as TicketPriorityName
+    if (q.priority) priority.value = String(q.priority) as TicketPriority
     if (q.assignee) assignee.value = String(q.assignee)
     if (q.dueDate) dueDate.value = String(q.dueDate)
 

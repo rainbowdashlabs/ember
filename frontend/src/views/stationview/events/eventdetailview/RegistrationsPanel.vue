@@ -24,14 +24,13 @@ import RegistrationFieldAnswers from './RegistrationFieldAnswers.vue'
 import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
 import {userTypesOf, type MemberOption} from '@/components/input/select/memberOption'
 import {useMemberPick} from '@/composables/useMemberPick'
-import {RegistrationStatus} from '@/api/events'
 import type {
   EventRegistrationField,
   RegistrationResponse,
   RegistrationStatsResponse,
   StationEvent,
 } from '@/api/generated/schema'
-import {StationPermission} from '@/api/types'
+import {RegistrationStatus, StationPermission} from '@/api/generated/schema'
 import {useSession} from '@/composables/useSession'
 import {formatDateTime} from '@/util/format'
 import {answerTotals} from '@/util/eventAnswers'

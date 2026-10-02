@@ -6,7 +6,6 @@
 import client from './client'
 import { createCrudResource, pageParams } from './crud'
 import { noMentionables, stationMentionables, type CommentSource } from './comments'
-import { StationPermission } from './types'
 import type {
     BlockAudience,
     BlockRowRequest,
@@ -24,32 +23,12 @@ import type {
     PublicBlogEntry,
     components,
 } from '@/api/generated/schema'
+import { NewsVisibilityRole, StationPermission } from '@/api/generated/schema'
 
 type Schemas = components['schemas']
 
-export type ContentModeName = Schemas['ContentMode']
-
-/**
- * How an entry was written. A plain entry is one markdown field, which is the right tool for a
- * short notice; a rich entry is built from blocks with the page editor. The switch only goes one
- * way, because the stored text of a rich entry is derived from its blocks.
- */
-export const ContentMode = {
-    SIMPLE: 'SIMPLE',
-    RICH: 'RICH',
-} as const satisfies Record<ContentModeName, ContentModeName>
-
-export type NewsVisibilityRoleName = Schemas['NewsVisibilityRole']
-
-/** Who at a partner station may read a shared entry. */
-export const NewsVisibilityRole = {
-    MEMBER: 'MEMBER',
-    TEAM: 'TEAM',
-    MANAGER: 'MANAGER',
-} as const satisfies Record<NewsVisibilityRoleName, NewsVisibilityRoleName>
-
 /** The role a select hands back, read as one the server knows; anything else is every member. */
-export function visibilityRoleOf(value: string): NewsVisibilityRoleName {
+export function visibilityRoleOf(value: string): NewsVisibilityRole {
     return Object.values(NewsVisibilityRole).find(role => role === value) ?? NewsVisibilityRole.MEMBER
 }
 const news = createCrudResource<NewsResponse, NewsRequest>('/news')
@@ -123,7 +102,7 @@ export async function getFederationShare(newsId: number): Promise<NewsFederation
 export async function setFederationShare(
     newsId: number,
     scope: Schemas['ShareScope'],
-    visibilityRole: NewsVisibilityRoleName,
+    visibilityRole: NewsVisibilityRole,
     partnerIds?: number[],
 ): Promise<void> {
     await client.put(`/news/${newsId}/federation`, { scope, visibilityRole, partnerIds: partnerIds ?? [] })
@@ -141,7 +120,7 @@ export interface FederatedNewsListing {
     authorName: string
     publishedAt: string
     commentCount: number
-    visibilityRole: NewsVisibilityRoleName
+    visibilityRole: NewsVisibilityRole
     stationName: string
     stationId: string
 }

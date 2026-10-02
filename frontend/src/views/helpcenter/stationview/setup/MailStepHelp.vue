@@ -13,7 +13,7 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import SmtpEncryptionField from '@/components/mail/SmtpEncryptionField.vue'
-import {SmtpEncryption} from '@/api/mailProviders'
+import {SmtpEncryption} from '@/api/generated/schema'
 import WizardFrame from './setuphelp/WizardFrame.vue'
 
 const {t} = useI18n()

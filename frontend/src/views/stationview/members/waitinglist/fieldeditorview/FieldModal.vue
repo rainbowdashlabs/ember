@@ -6,12 +6,12 @@
 <script setup lang="ts">
 import Modal from '@/components/feedback/Modal.vue'
 import FieldModalForm from './FieldModalForm.vue'
-import type {FieldTypeName} from '@/api/fieldTypes'
+import type {FieldType} from '@/api/generated/schema'
 import type {QuestionSettingsModel} from '@/components/input/questionsettings/questionSettings'
 
 const modelValue = defineModel<boolean>({required: true})
 const fieldName = defineModel<string>('fieldName', {required: true})
-const fieldType = defineModel<FieldTypeName>('fieldType', {required: true})
+const fieldType = defineModel<FieldType>('fieldType', {required: true})
 const fieldSettings = defineModel<QuestionSettingsModel>('fieldSettings', {required: true})
 const fieldPublic = defineModel<boolean>('fieldPublic', {required: true})
 

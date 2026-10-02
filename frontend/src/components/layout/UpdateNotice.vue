@@ -8,7 +8,7 @@ import {onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import AppLink from '@/components/navigation/AppLink.vue'
 import {useSession} from '@/composables/useSession'
-import {StationPermission} from '@/api/types'
+import {StationPermission} from '@/api/generated/schema'
 import {getUpdateStatus} from '@/api/system'
 
 const {t} = useI18n()

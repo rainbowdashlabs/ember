@@ -9,8 +9,9 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
-import {StationUserType, StationUserTypeLabels} from '@/api/types'
-import type {MemberGroupSet, StationUserType as StationUserTypeName} from '@/api/generated/schema'
+import {StationUserTypeLabels} from '@/api/types'
+import type {MemberGroupSet, StationUserType} from '@/api/generated/schema'
+import {STATION_USER_TYPES} from '@/util/stationUserTypes'
 
 /**
  * The rules of a group in its form: the set it belongs to, and the member types it takes. No type
@@ -21,13 +22,13 @@ defineProps<{
 }>()
 
 const setId = defineModel<number | null>('setId', {required: true})
-const userTypes = defineModel<StationUserTypeName[]>('userTypes', {required: true})
+const userTypes = defineModel<StationUserType[]>('userTypes', {required: true})
 
 const {t} = useI18n()
 
-const types = Object.values(StationUserType)
+const types = STATION_USER_TYPES
 
-function toggle(type: StationUserTypeName) {
+function toggle(type: StationUserType) {
   userTypes.value = userTypes.value.includes(type)
       ? userTypes.value.filter(held => held !== type)
       : [...userTypes.value, type]

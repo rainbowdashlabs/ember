@@ -13,11 +13,11 @@ import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import DateTimeInput from '@/components/input/datetime/DateTimeInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import { FormPurpose, FormVisibility, type FormPurposeName, type FormVisibilityName } from '@/api/forms'
+import { FormPurpose, FormVisibility } from '@/api/generated/schema'
 
 const props = defineProps<{
   /** What the form is for, which decides whether the two settings that need a signed-in reader apply. */
-  purpose: FormPurposeName
+  purpose: FormPurpose
 }>()
 
 const { t } = useI18n()
@@ -46,7 +46,7 @@ const forced = defineModel<boolean>('forced', { required: true })
  * it is meant for answers at its link and nowhere else, so replacing that link ends every way in
  * that was given out.
  */
-const visibility = defineModel<FormVisibilityName>('visibility', { required: true })
+const visibility = defineModel<FormVisibility>('visibility', { required: true })
 
 const reachesOutside = computed(() => props.purpose !== FormPurpose.INTERNAL)
 

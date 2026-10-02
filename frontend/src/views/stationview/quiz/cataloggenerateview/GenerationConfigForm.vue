@@ -17,7 +17,7 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import type {Failure} from '@/util/failure'
-import type {QuizQuestionTypeName} from '@/api/quiz'
+import type {QuizQuestionType} from '@/api/generated/schema'
 
 interface Category {
   id: number
@@ -35,7 +35,7 @@ const emit = defineEmits<{
 }>()
 
 export interface GenEntry {
-  quizQuestionType: QuizQuestionTypeName
+  quizQuestionType: QuizQuestionType
   count: number
   categoryId: number | null
 }

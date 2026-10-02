@@ -8,16 +8,15 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import ErrorContainer from '@/components/container/ErrorContainer.vue'
 import EventGroupHeader from './EventGroupHeader.vue'
 import StatusSections from './StatusSections.vue'
-import type {RegistrationStatusName} from '@/api/events'
-import type {EventSummary, RegistrationResponse, RegistrationStatsResponse} from '@/api/generated/schema'
+import type {EventSummary, RegistrationResponse, RegistrationStatsResponse, RegistrationStatus} from '@/api/generated/schema'
 
 defineProps<{
   event: EventSummary
-  counts: Record<RegistrationStatusName, number>
+  counts: Record<RegistrationStatus, number>
   deadlineExpired: boolean
   expanded: boolean
   expandedLoading: boolean
-  expandedByStatus: Record<RegistrationStatusName, RegistrationResponse[]>
+  expandedByStatus: Record<RegistrationStatus, RegistrationResponse[]>
   registrationStats: RegistrationStatsResponse[]
   formatDeadline: (iso?: string | null) => string
 }>()

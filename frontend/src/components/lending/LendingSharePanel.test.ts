@@ -9,7 +9,7 @@ import {mount} from '@vue/test-utils'
 import {ref} from 'vue'
 import {createI18n} from 'vue-i18n'
 import LendingSharePanel from './LendingSharePanel.vue'
-import {ShareGrant, ShareScope} from '@/api/lending'
+import {ShareGrant, ShareScope} from '@/api/generated/schema'
 import de from '@/i18n/de-DE'
 
 const getShare = vi.fn()

@@ -26,8 +26,8 @@ import GearIconPicker from '@/components/input/select/GearIconPicker.vue'
 import GearGlyph from '@/components/inventory/GearGlyph.vue'
 import {glyphFor} from '@/util/glyph'
 import {inventoryArts} from '@/api'
-import type {ArtStock, InventoryArt} from '@/api/generated/schema'
-import {isLendableInventory, type InventoryTypeName} from '@/api/inventory'
+import type {ArtStock, InventoryArt, InventoryType} from '@/api/generated/schema'
+import {isLendableInventory} from '@/api/inventory'
 import {useConfirmDelete} from '@/composables/useConfirmDelete'
 import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
 import {describeFailure, type Failure} from '@/util/failure'
@@ -42,7 +42,7 @@ import {describeFailure, type Failure} from '@/util/failure'
 const props = defineProps<{
   inventoryId: number
   /** Who may stand in the inventory, which decides whether a kind in it can be offered at all. */
-  inventoryType: InventoryTypeName | null | undefined
+  inventoryType: InventoryType | null | undefined
 }>()
 
 const {t} = useI18n()

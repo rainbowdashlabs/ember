@@ -18,7 +18,7 @@ import type {
   MemberWithName,
   SessionAudience,
 } from '@/api/generated/schema'
-import {StationPermission} from '@/api/types'
+import {StationPermission} from '@/api/generated/schema'
 import {attendance, events, memberGroups, stationMembers} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {useAsyncAction} from '@/composables/useAsyncAction'

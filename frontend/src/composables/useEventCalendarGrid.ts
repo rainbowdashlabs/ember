@@ -4,8 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import { computed, ref, type Ref } from 'vue'
-import { EventTypes, isQuarterMonthOf, isRecurringEvent } from '@/api/events'
-import type { EventBreak, EventSummary } from '@/api/generated/schema'
+import { isQuarterMonthOf, isRecurringEvent } from '@/api/events'
+import { EventType, type EventBreak, type EventSummary } from '@/api/generated/schema'
 import { toIsoDate } from '@/util/format'
 
 /**
@@ -115,10 +115,10 @@ export function useEventCalendarGrid(source: Ref<CalendarSource>) {
     if (!ev.dayOfWeek || ev.dayOfWeek !== dow) return false
     const dayOfMonth = date.getDate()
     const month = date.getMonth()
-    if (ev.eventType === EventTypes.RECURRING) return true
-    if (ev.eventType === EventTypes.MONTHLY_FIRST) return dayOfMonth <= 7
-    if (ev.eventType === EventTypes.QUARTERLY) return dayOfMonth <= 7 && isQuarterMonthOf(ev, date.getFullYear(), month)
-    if (ev.eventType === EventTypes.YEARLY && ev.startTime) {
+    if (ev.eventType === EventType.RECURRING) return true
+    if (ev.eventType === EventType.MONTHLY_FIRST) return dayOfMonth <= 7
+    if (ev.eventType === EventType.QUARTERLY) return dayOfMonth <= 7 && isQuarterMonthOf(ev, date.getFullYear(), month)
+    if (ev.eventType === EventType.YEARLY && ev.startTime) {
       const ref = new Date(ev.startTime)
       return ref.getMonth() === month && ref.getDate() === dayOfMonth
     }
@@ -133,7 +133,7 @@ export function useEventCalendarGrid(source: Ref<CalendarSource>) {
     for (const ev of source.value.allEvents) {
       if (!isVisible(ev) || eventDayDuration(ev) > 0) continue
 
-      if (ev.eventType === EventTypes.ONE_TIME) {
+      if (ev.eventType === EventType.ONE_TIME) {
         if (!ev.startTime) continue
         if (dateStr === toIsoDate(new Date(ev.startTime))) {
           result.push({event: ev, date: dateStr})
@@ -172,7 +172,7 @@ export function useEventCalendarGrid(source: Ref<CalendarSource>) {
   }
 
   function barStartDates(ev: EventSummary, weekStart: string, weekEnd: string, dur: number): string[] {
-    if (ev.eventType === EventTypes.ONE_TIME) {
+    if (ev.eventType === EventType.ONE_TIME) {
       if (!ev.startTime) return []
       return [toIsoDate(new Date(ev.startTime))]
     }

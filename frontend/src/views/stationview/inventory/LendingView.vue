@@ -21,10 +21,9 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import type {LendingEmptyReasonName} from '@/api/lending'
-import type {AvailableInventoryEntry, LendingRequestResponse} from '@/api/generated/schema'
+import {StationPermission, type AvailableInventoryEntry, type LendingRequestResponse} from '@/api/generated/schema'
 import * as lending from '@/api/lending'
 import {useSession} from '@/composables/useSession'
-import {StationPermission} from '@/api/types'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 
 const routes = useInventoryRoutes()

@@ -3,20 +3,20 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {
-  EnrichedMemberChangeSummary,
-  MemberGroupSet,
-  MemberIdentity,
-  Permission,
-  UserTag,
+import {
+  FieldType,
+  StationUserType,
+  type EnrichedMemberChangeSummary,
+  type MemberGroupSet,
+  type MemberIdentity,
+  type Permission,
+  type UserTag,
 } from '@/api/generated/schema'
 import type {ChangeEntry} from '@/api/profileFieldChanges'
 import type {AssignableMember} from '@/composables/useGroupsConfig'
 import type {PermissionGrant} from '@/composables/usePermissionTree'
 import {fromMember, type MemberOption} from '@/components/input/select/memberOption'
 import type {GroupRow} from '@/util/groupRules'
-import {StationUserType} from '@/api/types'
-import {FieldTypes} from '@/api/fieldTypes'
 
 /** Looks up a help text, so the demo names follow the help center's own sample people and groups. */
 type Translate = (key: string) => string
@@ -105,7 +105,7 @@ export function demoChanges(t: Translate): ChangeEntry[] {
     changedBy: 1,
     changedByName: t('helpCenter.sample.people.maxMustermann'),
     clusterFieldId: null,
-    fieldType: FieldTypes.TEXT,
+    fieldType: FieldType.TEXT,
     requiresAcknowledgement: true,
   }
   return [

@@ -5,12 +5,12 @@
  */
 import client from './client'
 import {createScopedCrudResource} from './crud'
-import {FieldTypes, type FieldTypeName} from './fieldTypes'
-import type {
-    FieldConfig,
-    FieldDefinitionRequest,
-    FieldUpdateRequest,
-    InventoryFieldDefinition,
+import {
+    FieldType,
+    type FieldConfig,
+    type FieldDefinitionRequest,
+    type FieldUpdateRequest,
+    type InventoryFieldDefinition,
 } from './generated/schema'
 
 const fields = createScopedCrudResource<
@@ -94,15 +94,15 @@ export function hasInvalidFieldValues(
 }
 
 /** The settings a field of an inventory starts with; a type an inventory does not offer starts as text. */
-export function defaultFieldConfig(type: FieldTypeName): FieldConfig {
+export function defaultFieldConfig(type: FieldType): FieldConfig {
     switch (type) {
-        case FieldTypes.DATE:
+        case FieldType.DATE:
             return {kind: 'DATE'}
-        case FieldTypes.CHOICE:
+        case FieldType.CHOICE:
             return {kind: 'CHOICE', options: []}
-        case FieldTypes.NUMBER:
+        case FieldType.NUMBER:
             return {kind: 'NUMBER', min: null, max: null, step: null, unit: ''}
-        case FieldTypes.BOOLEAN:
+        case FieldType.BOOLEAN:
             return {kind: 'BOOLEAN', trueLabel: 'Yes', falseLabel: 'No'}
         default:
             return {kind: 'TEXT', multiline: false, maxLength: 200}

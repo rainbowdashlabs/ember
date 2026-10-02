@@ -3,8 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {PublicFormState, type PublicFormStateName} from '@/api/publicForms'
-import {FormStatus} from '@/api/forms'
+import {FormStatus, PublicFormState} from '@/api/generated/schema'
 
 /** What a form needs to say whether it is taking answers: the state somebody set, and the dates. */
 interface Dated {
@@ -22,7 +21,7 @@ interface Dated {
  * status by itself left a poll badged as taking answers on the station's own list while its page
  * told every visitor it was closed.
  */
-export function formStateOf(form: Dated): PublicFormStateName {
+export function formStateOf(form: Dated): PublicFormState {
     if (form.status === FormStatus.DRAFT) return PublicFormState.NOT_PUBLISHED
     if (form.status === FormStatus.CLOSED) return PublicFormState.CLOSED
     const now = Date.now()

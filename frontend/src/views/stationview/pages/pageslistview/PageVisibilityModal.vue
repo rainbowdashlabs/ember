@@ -14,8 +14,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import {PageVisibility, type PageVisibilityName} from '@/api/pageManage'
-import type {StationPage} from '@/api/generated/schema'
+import {PageVisibility, type StationPage} from '@/api/generated/schema'
 
 /**
  * Who reaches a page, as three states rather than a switch.
@@ -30,13 +29,13 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'choose', visibility: PageVisibilityName): void
+  (e: 'choose', visibility: PageVisibility): void
   (e: 'close'): void
 }>()
 
 const {t} = useI18n()
 
-const chosen = ref<PageVisibilityName>(PageVisibility.DRAFT)
+const chosen = ref<PageVisibility>(PageVisibility.DRAFT)
 
 /**
  * The dialog is open exactly while a page is being asked about. Closing it says so upwards, since
@@ -53,7 +52,7 @@ watch(() => props.page, page => {
   if (page) chosen.value = page.visibility
 }, {immediate: true})
 
-const options: {value: PageVisibilityName; labelKey: string; hintKey: string}[] = [
+const options: {value: PageVisibility; labelKey: string; hintKey: string}[] = [
   {value: PageVisibility.DRAFT, labelKey: 'stationPages.visibilityDraft', hintKey: 'stationPages.visibilityDraftHint'},
   {
     value: PageVisibility.UNLISTED,

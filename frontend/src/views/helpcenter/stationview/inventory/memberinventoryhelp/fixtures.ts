@@ -3,9 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {MyInventoryItem} from '@/api/generated/schema'
+import {ItemCustody, ItemOwner, type MyInventoryItem} from '@/api/generated/schema'
 import type {MemberLike} from '@/components/input/select/memberOption'
-import {ItemCustody, ItemOwner} from '@/api/inventory'
 import type {InventoryGroup} from '@/views/stationview/inventory/memberinventoryview/MemberInventoryGroups.vue'
 
 /** The member whose gear the page shows. */

@@ -4,20 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-import type {components, PublicForm, PublicFormSubmitRequest, PublicFormSubmitResponse} from './generated/schema'
-
-export type PublicFormStateName = components['schemas']['PublicFormState']
-
-/**
- * Why a form is not taking answers, in the terms the reader can act on. CLOSED covers a form
- * somebody closed and one whose end date has passed alike.
- */
-export const PublicFormState = {
-    OPEN: 'OPEN',
-    NOT_PUBLISHED: 'NOT_PUBLISHED',
-    NOT_OPEN_YET: 'NOT_OPEN_YET',
-    CLOSED: 'CLOSED',
-} as const satisfies Record<PublicFormStateName, PublicFormStateName>
+import type {PublicForm, PublicFormSubmitRequest, PublicFormSubmitResponse} from './generated/schema'
 
 export async function getPublicForm(stationUid: string, publicUid: string): Promise<PublicForm> {
     const res = await client.get<PublicForm>(`/public/${stationUid}/forms/${publicUid}`)

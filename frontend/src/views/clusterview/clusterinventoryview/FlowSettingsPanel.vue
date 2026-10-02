@@ -16,8 +16,12 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import FlowCard from '@/views/stationview/inventory/flowview/FlowCard.vue'
 import {clusterInventory} from '@/api'
-import {MovementPurpose, type MovementPurposeName} from '@/api/movements'
-import type {ClusterFlowResponse, FlowResponse, StepRequest} from '@/api/generated/schema'
+import {
+  MovementPurpose,
+  type ClusterFlowResponse,
+  type FlowResponse,
+  type StepRequest,
+} from '@/api/generated/schema'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useFlowProblems} from '@/composables/useFlowProblems'
 import type {Failure} from '@/util/failure'
@@ -39,7 +43,7 @@ const actionFailure = ref<Failure | null>(null)
 const flowFailures = ref<Record<number, Failure | null>>({})
 
 const newName = ref('')
-const newPurpose = ref<MovementPurposeName>(MovementPurpose.ISSUE)
+const newPurpose = ref<MovementPurpose>(MovementPurpose.ISSUE)
 
 const {loading, failure, reload} = useAsyncLoader(async () => {
   flows.value = await clusterInventory.listFlows()

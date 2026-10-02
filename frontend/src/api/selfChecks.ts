@@ -6,7 +6,6 @@
 import client from './client'
 import type {
     AnswerBody,
-    components,
     CorrectRowRequest,
     HandOutSelfChecksRequest,
     HeldReportRequest,
@@ -19,28 +18,6 @@ import type {
     SelfCheckSummary,
     SelfCheckTask,
 } from './generated/schema'
-
-export type SelfCheckStateName = components['schemas']['SelfCheckState']
-
-/** Where a task stands. */
-export const SelfCheckState = {
-    OPEN: 'OPEN',
-    SUBMITTED: 'SUBMITTED',
-    DONE: 'DONE',
-    OVERTAKEN: 'OVERTAKEN',
-} as const satisfies Record<SelfCheckStateName, SelfCheckStateName>
-
-export type SelfCheckAnswerName = components['schemas']['SelfCheckAnswer']
-
-/** What a member may say about one piece of their gear or one empty place in it. */
-export const SelfCheckAnswer = {
-    HAVE_IT: 'HAVE_IT',
-    DO_NOT_HAVE_IT: 'DO_NOT_HAVE_IT',
-    TURNED_UP: 'TURNED_UP',
-    WRONG_RECORD: 'WRONG_RECORD',
-    NEVER_HAD: 'NEVER_HAD',
-    HAVE_ONE: 'HAVE_ONE',
-} as const satisfies Record<SelfCheckAnswerName, SelfCheckAnswerName>
 
 export async function handOut(memberIds: number[], dueOn?: string | null): Promise<SelfCheckSummary[]> {
     const request: HandOutSelfChecksRequest = {memberIds, dueOn}

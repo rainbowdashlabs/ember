@@ -11,8 +11,7 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import TicketCreateMetaFields from './TicketCreateMetaFields.vue'
-import type { TicketPriorityName } from '@/api/boards'
-import type { BoardLabel, BoardLane, MemberCompletion } from '@/api/generated/schema'
+import type { BoardLabel, BoardLane, MemberCompletion, TicketPriority } from '@/api/generated/schema'
 import type { Failure } from '@/util/failure'
 
 defineProps<{
@@ -30,7 +29,7 @@ defineProps<{
 }>()
 
 const laneId = defineModel<string>('laneId', { required: true })
-const priority = defineModel<TicketPriorityName>('priority', { required: true })
+const priority = defineModel<TicketPriority>('priority', { required: true })
 const assignee = defineModel<string>('assignee', { required: true })
 const dueDate = defineModel<string>('dueDate', { required: true })
 

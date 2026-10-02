@@ -10,8 +10,7 @@ import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
-import {AckKind, StepActor} from '@/api/movements'
-import type {MovementStepResponse} from '@/api/generated/schema'
+import {AckKind, StepActor, type MovementStepResponse} from '@/api/generated/schema'
 import {formatDate} from '@/util/format'
 
 const {t} = useI18n()

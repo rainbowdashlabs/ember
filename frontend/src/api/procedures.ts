@@ -7,7 +7,6 @@ import client from './client'
 import { createCrudResource, createScopedCrudResource, type NoContent } from './crud'
 import type {
     AssigneeRequest,
-    components,
     CreateProcedureRequest,
     DependencyEntry,
     DependencyRequest,
@@ -16,6 +15,7 @@ import type {
     ProcedureDetail,
     ProcedureItem,
     ProcedureItemRequest,
+    ProcedureStatus,
     ProcedureTemplate,
     ProcedureTemplateDetail,
     ProcedureTemplateItem,
@@ -23,16 +23,9 @@ import type {
     UpdateProcedureRequest,
 } from './generated/schema'
 
-export type ProcedureStatusName = components['schemas']['ProcedureStatus']
-
-export const ProcedureStatus = {
-    OPEN: 'OPEN',
-    RESOLVED: 'RESOLVED',
-} as const satisfies Record<ProcedureStatusName, ProcedureStatusName>
-
 /** Which procedures a list asks for: by state, and only the reader's own with `assignee: 'me'`. */
 export interface ProcedureListParams {
-    status?: ProcedureStatusName
+    status?: ProcedureStatus
     assignee?: 'me'
 }
 

@@ -11,8 +11,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import CustomFieldsSection from '@/views/stationview/inventory/detailview/CustomFieldsSection.vue'
 import NewInventoryFields from '@/views/stationview/inventory/unknownscanmodal/NewInventoryFields.vue'
 import ItemBasicsFields from '@/views/stationview/inventory/unknownscanmodal/ItemBasicsFields.vue'
-import type {ItemOwnerName} from '@/api/inventory'
-import type {Inventory, InventoryFieldDefinition} from '@/api/generated/schema'
+import type {Inventory, InventoryFieldDefinition, ItemOwner} from '@/api/generated/schema'
 
 const targetInventoryId = defineModel<number | 'new'>('targetInventoryId', {required: true})
 const newInventoryName = defineModel<string>('newInventoryName', {required: true})
@@ -21,7 +20,7 @@ const newInventoryHasSizes = defineModel<boolean>('newInventoryHasSizes', {requi
 const newInventorySizes = defineModel<string[]>('newInventorySizes', {required: true})
 const itemName = defineModel<string>('itemName', {required: true})
 const pickedSizeLabel = defineModel<string>('pickedSizeLabel', {required: true})
-const ownerKind = defineModel<ItemOwnerName>('ownerKind', {required: true})
+const ownerKind = defineModel<ItemOwner>('ownerKind', {required: true})
 const fieldValues = defineModel<Record<string, unknown>>('fieldValues', {required: true})
 
 defineProps<{

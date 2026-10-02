@@ -3,8 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {StationPermission} from '@/api/types'
-import type {StationModule, StationPermission as StationPermissionName} from '@/api/generated/schema'
+import {StationPermission, type StationModule} from '@/api/generated/schema'
 import {sessionState} from '@/util/sessionState'
 import {actingStationState} from '@/util/actingStationState'
 
@@ -59,7 +58,7 @@ const PERMISSION_GROUPS = {
     protocolTesting: [StationPermission.PROTOCOL_TESTER],
     boardManagement: [StationPermission.BOARD_MANAGER],
     federationManagement: [StationPermission.STATION_FEDERATION],
-} as const satisfies Record<string, readonly StationPermissionName[]>
+} as const satisfies Record<string, readonly StationPermission[]>
 
 type PermissionGroup = keyof typeof PERMISSION_GROUPS
 

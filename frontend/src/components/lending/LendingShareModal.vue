@@ -20,7 +20,8 @@ import ButtonRow from '@/components/button/ButtonRow.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import * as federation from '@/api/federation'
 import * as lending from '@/api/lending'
-import type {ShareGrantName, ShareScopeName, ShareTarget} from '@/api/lending'
+import type {ShareTarget} from '@/api/lending'
+import type {ShareGrant, ShareScope} from '@/api/generated/schema'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {describeFailure} from '@/util/failure'
 
@@ -42,8 +43,8 @@ const emit = defineEmits<{ saved: [] }>()
 const {t} = useI18n()
 
 const shared = ref(false)
-const grant = ref<ShareGrantName>('GRANT')
-const scope = ref<ShareScopeName>('ALL_PARTNERS')
+const grant = ref<ShareGrant>('GRANT')
+const scope = ref<ShareScope>('ALL_PARTNERS')
 const partnerIds = ref<string[]>([])
 const partnerOptions = ref<{ value: string; label: string }[]>([])
 const saving = ref(false)

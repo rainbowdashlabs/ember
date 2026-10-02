@@ -8,7 +8,7 @@ import {useI18n} from 'vue-i18n'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
-import {QuizQuestionTypes} from '@/api/quiz'
+import {QuizQuestionType} from '@/api/generated/schema'
 
 const {t} = useI18n()
 
@@ -27,7 +27,7 @@ defineProps<{
 
 <template>
   <div class="space-y-3">
-    <template v-if="selectedTypes.has(QuizQuestionTypes.MULTIPLE_CHOICE)">
+    <template v-if="selectedTypes.has(QuizQuestionType.MULTIPLE_CHOICE)">
       <SubHeader class="text-sm">{{ t('quiz.questionTypes.MULTIPLE_CHOICE') }}</SubHeader>
       <div class="flex items-center gap-3 flex-wrap">
         <div class="flex items-center gap-1">
@@ -40,14 +40,14 @@ defineProps<{
         </div>
       </div>
     </template>
-    <template v-if="selectedTypes.has(QuizQuestionTypes.CONNECT)">
+    <template v-if="selectedTypes.has(QuizQuestionType.CONNECT)">
       <SubHeader class="text-sm">{{ t('quiz.questionTypes.CONNECT') }}</SubHeader>
       <div class="flex items-center gap-1">
         <FieldLabel hint>{{ t('quiz.batch.pairCount') }}</FieldLabel>
         <NumberInput v-model="connectPairs" class="w-14"/>
       </div>
     </template>
-    <template v-if="selectedTypes.has(QuizQuestionTypes.ORDERING)">
+    <template v-if="selectedTypes.has(QuizQuestionType.ORDERING)">
       <SubHeader class="text-sm">{{ t('quiz.questionTypes.ORDERING') }}</SubHeader>
       <div class="flex items-center gap-3 flex-wrap">
         <div class="flex items-center gap-1">
@@ -60,7 +60,7 @@ defineProps<{
         </div>
       </div>
     </template>
-    <template v-if="selectedTypes.has(QuizQuestionTypes.FILL_IN_THE_BLANK)">
+    <template v-if="selectedTypes.has(QuizQuestionType.FILL_IN_THE_BLANK)">
       <SubHeader class="text-sm">{{ t('quiz.questionTypes.FILL_IN_THE_BLANK') }}</SubHeader>
       <div class="flex items-center gap-3 flex-wrap">
         <div class="flex items-center gap-1">

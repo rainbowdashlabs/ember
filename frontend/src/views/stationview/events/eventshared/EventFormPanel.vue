@@ -20,14 +20,15 @@ import RestrictionsField from '@/components/input/RestrictionsField.vue'
 import type {RestrictionSelection} from '@/api/types'
 import EventFieldList from './EventFieldList.vue'
 import RepeatEndField from './RepeatEndField.vue'
-import {EventTypes, isRecurringEvent, needsDayOfWeek} from '@/api/events'
-import type {
-    AttendanceTemplate,
-    AttendanceTemplateField,
-    EventCategory,
-    EventFieldEntry,
-    MemberGroup,
-    UserTag,
+import {isRecurringEvent, needsDayOfWeek} from '@/api/events'
+import {
+    EventType,
+    type AttendanceTemplate,
+    type AttendanceTemplateField,
+    type EventCategory,
+    type EventFieldEntry,
+    type MemberGroup,
+    type UserTag,
 } from '@/api/generated/schema'
 import type {MemberLike} from '@/components/input/select/memberOption'
 import {weekdayName} from '@/util/format'
@@ -121,19 +122,19 @@ const labelId = useId()
       <div class="space-y-2">
         <FieldLabel>{{ t('events.type') }}</FieldLabel>
         <ToggleSwitch
-            :model-value="eventType === EventTypes.ONE_TIME ? 'onetime' : 'recurring'"
+            :model-value="eventType === EventType.ONE_TIME ? 'onetime' : 'recurring'"
             option-a="onetime"
             option-b="recurring"
             :label-a="t('events.typeOneTime')"
             :label-b="t('events.typeRecurringShort')"
             data-testid="event-type-toggle"
-            @update:model-value="eventType = $event === 'onetime' ? EventTypes.ONE_TIME : EventTypes.RECURRING"
+            @update:model-value="eventType = $event === 'onetime' ? EventType.ONE_TIME : EventType.RECURRING"
         />
-        <SelectInput v-if="eventType !== EventTypes.ONE_TIME" v-model="eventType" class="w-full">
-          <option :value="EventTypes.RECURRING">{{ t('events.typeRecurring') }}</option>
-          <option :value="EventTypes.MONTHLY_FIRST">{{ t('events.typeMonthlyFirst') }}</option>
-          <option :value="EventTypes.QUARTERLY">{{ t('events.typeQuarterly') }}</option>
-          <option :value="EventTypes.YEARLY">{{ t('events.typeYearly') }}</option>
+        <SelectInput v-if="eventType !== EventType.ONE_TIME" v-model="eventType" class="w-full">
+          <option :value="EventType.RECURRING">{{ t('events.typeRecurring') }}</option>
+          <option :value="EventType.MONTHLY_FIRST">{{ t('events.typeMonthlyFirst') }}</option>
+          <option :value="EventType.QUARTERLY">{{ t('events.typeQuarterly') }}</option>
+          <option :value="EventType.YEARLY">{{ t('events.typeYearly') }}</option>
         </SelectInput>
       </div>
 
@@ -145,7 +146,7 @@ const labelId = useId()
       </div>
 
       <RepeatEndField
-          v-if="eventType !== EventTypes.ONE_TIME && repeatUntil !== undefined"
+          v-if="eventType !== EventType.ONE_TIME && repeatUntil !== undefined"
           v-model:until="repeatUntil"
           v-model:count="repeatCount"
       />

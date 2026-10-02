@@ -8,8 +8,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SuccessContainer from '@/components/container/SuccessContainer.vue'
 import QuestionInputCard from './questioncard/QuestionInputCard.vue'
-import {QuizQuestionTypes} from '@/api/quiz'
-import type {QuizQuestion} from '@/api/generated/schema'
+import {QuizQuestionType, type QuizQuestion} from '@/api/generated/schema'
 
 const userTfAnswer = defineModel<boolean | null>('userTfAnswer', {required: true})
 const userAnswer = defineModel<string>('userAnswer', {required: true})
@@ -71,7 +70,7 @@ const correctPairs = computed<{ left: string; right: string }[]>(() => {
     @reorder-items="(from: number, to: number) => emit('reorderItems', from, to)"
     @set-connect-pair="(li: number, rv: string) => emit('setConnectPair', li, rv)"
   >
-    <template v-if="showAnswer && question.quizQuestionType === QuizQuestionTypes.MULTIPLE_CHOICE">
+    <template v-if="showAnswer && question.quizQuestionType === QuizQuestionType.MULTIPLE_CHOICE">
       <div class="space-y-1 pt-2 border-t border-bg-light-accent dark:border-bg-dark-accent">
         <span class="text-xs text-(--text-muted)">{{ t('quiz.training.correctAnswer') }}:</span>
         <div v-for="(opt, i) in mcOptions" :key="i" class="flex items-center gap-2 text-sm">
@@ -85,12 +84,12 @@ const correctPairs = computed<{ left: string; right: string }[]>(() => {
       </div>
     </template>
 
-    <div v-if="showAnswer && question.quizQuestionType === QuizQuestionTypes.TRUE_FALSE" class="text-sm">
+    <div v-if="showAnswer && question.quizQuestionType === QuizQuestionType.TRUE_FALSE" class="text-sm">
       <span class="text-(--text-muted)">{{ t('quiz.training.correctAnswer') }}: </span>
       <span :class="correctTf ? 'text-success' : 'text-error'">{{ correctTf ? t('quiz.attempt.true') : t('quiz.attempt.false') }}</span>
     </div>
 
-    <template v-if="showAnswer && question.quizQuestionType === QuizQuestionTypes.FREE_ANSWER">
+    <template v-if="showAnswer && question.quizQuestionType === QuizQuestionType.FREE_ANSWER">
       <div v-if="(config.answers as string[] | undefined)?.length" class="space-y-1">
         <span class="text-xs text-(--text-muted)">{{ t('quiz.training.sampleAnswer') }}:</span>
         <p v-for="(ans, i) in (config.answers as string[])" :key="i" class="text-sm text-success">{{ ans }}</p>
@@ -100,12 +99,12 @@ const correctPairs = computed<{ left: string; right: string }[]>(() => {
       </SuccessContainer>
     </template>
 
-    <div v-if="showAnswer && question.quizQuestionType === QuizQuestionTypes.IMAGE_TEXT && (config.answer as string)" class="space-y-1">
+    <div v-if="showAnswer && question.quizQuestionType === QuizQuestionType.IMAGE_TEXT && (config.answer as string)" class="space-y-1">
       <span class="text-xs text-(--text-muted)">{{ t('quiz.training.correctAnswer') }}:</span>
       <p class="text-sm text-success">{{ config.answer as string }}</p>
     </div>
 
-    <template v-if="showAnswer && question.quizQuestionType === QuizQuestionTypes.FILL_IN_THE_BLANK">
+    <template v-if="showAnswer && question.quizQuestionType === QuizQuestionType.FILL_IN_THE_BLANK">
       <div class="space-y-1">
         <span class="text-xs text-(--text-muted)">{{ t('quiz.training.correctAnswer') }}:</span>
         <div v-for="(ans, i) in ((config.answers as string[]) ?? [])" :key="i" class="flex items-center gap-2 text-sm text-success">
@@ -115,7 +114,7 @@ const correctPairs = computed<{ left: string; right: string }[]>(() => {
       </div>
     </template>
 
-    <div v-if="showAnswer && question.quizQuestionType === QuizQuestionTypes.ORDERING" class="space-y-1">
+    <div v-if="showAnswer && question.quizQuestionType === QuizQuestionType.ORDERING" class="space-y-1">
       <span class="text-xs text-(--text-muted)">{{ t('quiz.training.correctOrder') }}:</span>
       <div v-for="(item, i) in correctOrderItems" :key="i" class="flex items-center gap-2 text-xs text-success">
         <span class="w-5 text-right">{{ i + 1 }}.</span>
@@ -123,7 +122,7 @@ const correctPairs = computed<{ left: string; right: string }[]>(() => {
       </div>
     </div>
 
-    <div v-if="showAnswer && question.quizQuestionType === QuizQuestionTypes.CONNECT" class="space-y-1">
+    <div v-if="showAnswer && question.quizQuestionType === QuizQuestionType.CONNECT" class="space-y-1">
       <span class="text-xs text-(--text-muted)">{{ t('quiz.training.correctPairs') }}:</span>
       <div v-for="pair in correctPairs" :key="pair.left" class="text-xs text-success flex items-center gap-2">
         <span>{{ pair.left }}</span>
@@ -132,7 +131,7 @@ const correctPairs = computed<{ left: string; right: string }[]>(() => {
       </div>
     </div>
 
-    <div v-if="showAnswer && question.quizQuestionType === QuizQuestionTypes.ENUMERATION && (config.answers as string[] | undefined)?.length" class="space-y-1">
+    <div v-if="showAnswer && question.quizQuestionType === QuizQuestionType.ENUMERATION && (config.answers as string[] | undefined)?.length" class="space-y-1">
       <span class="text-xs text-(--text-muted)">{{ t('quiz.training.correctAnswer') }}:</span>
       <div v-for="(ans, i) in (config.answers as string[])" :key="i" class="flex items-center gap-1 text-sm text-success">
         <span class="text-xs text-(--text-muted) w-5 text-right">{{ i + 1 }}.</span>

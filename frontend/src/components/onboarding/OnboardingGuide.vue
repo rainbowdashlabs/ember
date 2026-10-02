@@ -15,7 +15,7 @@ import MutedIconButton from '@/components/button/MutedIconButton.vue'
 import {useOnboardingGuide} from '@/composables/useOnboardingGuide'
 import {useOnboardingTasks} from '@/composables/useOnboardingTasks'
 import {emberGuide} from '@/composables/useEmberLogo'
-import {OnboardingTaskState} from '@/api/onboarding'
+import {OnboardingTaskState} from '@/api/generated/schema'
 
 /**
  * Ember standing next to whatever the reader should do next.

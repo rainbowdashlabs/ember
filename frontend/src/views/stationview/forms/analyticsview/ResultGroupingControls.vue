@@ -12,9 +12,9 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import {ResultDimension, type ResultDimensionName, type ResultGroupingState} from '@/api/forms'
-import {FieldTypes} from '@/api/fieldTypes'
-import type {MemberGroup, ProfileField, UserTag} from '@/api/generated/schema'
-import {StationUserType, StationUserTypeLabels} from '@/api/types'
+import {FieldType, type MemberGroup, type ProfileField, type UserTag} from '@/api/generated/schema'
+import {StationUserTypeLabels} from '@/api/types'
+import {STATION_USER_TYPES} from '@/util/stationUserTypes'
 import {groupingBy, NO_VALUE_GROUP, parseBounds} from './resultQuery'
 
 /**
@@ -51,14 +51,14 @@ const dimension = computed({
 
 const field = computed(() => props.fields.find(f => f.id === grouping.value?.fieldId))
 const usesBrackets = computed(() => grouping.value?.by === ResultDimension.AGE
-    || (grouping.value?.by === ResultDimension.FIELD && field.value?.fieldType === FieldTypes.NUMBER))
+    || (grouping.value?.by === ResultDimension.FIELD && field.value?.fieldType === FieldType.NUMBER))
 
 const onlyOptions = computed(() => {
   switch (grouping.value?.by) {
-    case ResultDimension.USER_TYPE: return Object.values(StationUserType).map(type => ({value: type, label: StationUserTypeLabels[type]}))
+    case ResultDimension.USER_TYPE: return STATION_USER_TYPES.map(type => ({value: type, label: StationUserTypeLabels[type]}))
     case ResultDimension.GROUP: return [...props.groups.map(g => ({value: String(g.id), label: g.name ?? ''})), none('GROUP')]
     case ResultDimension.TAG: return [...props.tags.map(tag => ({value: String(tag.id), label: tag.name})), none('TAG')]
-    case ResultDimension.FIELD: return field.value?.fieldType === FieldTypes.BOOLEAN
+    case ResultDimension.FIELD: return field.value?.fieldType === FieldType.BOOLEAN
         ? [{value: 'true', label: t('forms.analytics.grouping.yes')}, {value: 'false', label: t('forms.analytics.grouping.no')}]
         : ((field.value?.config?.options as string[] | undefined) ?? []).map(option => ({value: option, label: option}))
     default: return []

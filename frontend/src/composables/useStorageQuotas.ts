@@ -7,8 +7,7 @@ import {inject, provide, ref, type InjectionKey, type Ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {describeFailure, saying, type Failure} from '@/util/failure'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
-import type {CategoryUsage} from '@/api/generated/schema'
-import type {QuotaOriginName} from '@/api/storageMonitoring'
+import type {CategoryUsage, QuotaOrigin} from '@/api/generated/schema'
 
 /**
  * One station as the storage panels read it.
@@ -29,7 +28,7 @@ export interface StorageRoomRow {
     presetName: string | null
     usesOwnBackend: boolean
     /** Whose word the quota is on, where the owner can say. */
-    origin?: QuotaOriginName | null
+    origin?: QuotaOrigin | null
     /** An association's own store rather than one of its member stations. */
     ownStore?: boolean
 }

@@ -27,7 +27,8 @@ import {
   webauthnStepUpFinish,
 } from '@/api/twoFactor'
 import {getWebAuthnCredential, isWebAuthnSupported} from '@/util/webauthn'
-import {useStepUpPrompt, type StepUpProofName} from '@/util/stepUp'
+import {useStepUpPrompt} from '@/util/stepUp'
+import type {StepUpProof} from '@/api/generated/schema'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {describeFailure, FailureKind, type Failure} from '@/util/failure'
 
@@ -44,7 +45,7 @@ const webauthnSupported = isWebAuthnSupported()
  * A refusal without the set (an older backend during a rolling deploy) falls back to the
  * second-factor proofs, which is everything this dialog offered before.
  */
-const proofs = computed<StepUpProofName[]>(
+const proofs = computed<StepUpProof[]>(
     () => current.value?.proofs ?? ['TOTP', 'SECURITY_KEY', 'BACKUP_CODE'],
 )
 const offersPasskey = computed(() => proofs.value.includes('PASSKEY') && webauthnSupported)

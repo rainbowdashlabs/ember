@@ -10,7 +10,7 @@ import {ref} from 'vue'
 import CreateView from './CreateView.vue'
 import StepDispatcher from './createview/StepDispatcher.vue'
 import type {IssuedOneTimePassword, SessionInfo} from '@/api/generated/schema'
-import {StationPermission} from '@/api/types'
+import {StationPermission} from '@/api/generated/schema'
 import {createSessionInfo} from '@/test/mocks/factories'
 
 const api = vi.hoisted(() => ({

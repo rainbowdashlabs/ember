@@ -8,10 +8,11 @@ import {useI18n} from 'vue-i18n'
 import TextInput from '@/components/input/text/TextInput.vue'
 import FieldTypePicker from '@/components/input/FieldTypePicker.vue'
 import LabelledField from '@/components/input/LabelledField.vue'
-import {OfferedFieldTypes, type FieldTypeName} from '@/api/fieldTypes'
+import {OfferedFieldTypes} from '@/api/fieldTypes'
+import type {FieldType} from '@/api/generated/schema'
 
 const name = defineModel<string>('name', {required: true})
-const fieldType = defineModel<FieldTypeName>('fieldType', {required: true})
+const fieldType = defineModel<FieldType>('fieldType', {required: true})
 
 const {t} = useI18n()
 </script>

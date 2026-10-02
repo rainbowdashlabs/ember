@@ -6,9 +6,13 @@
 import {mount} from '@vue/test-utils'
 import {defineComponent, ref} from 'vue'
 import {describe, expect, it} from 'vitest'
-import {ItemOwner} from '@/api/inventory'
-import {MovementState, StepActor} from '@/api/movements'
-import type {MovementResponse, MyInventoryItem} from '@/api/generated/schema'
+import {
+    ItemOwner,
+    MovementState,
+    StepActor,
+    type MovementResponse,
+    type MyInventoryItem,
+} from '@/api/generated/schema'
 import MovementStandingBadges from '@/components/inventory/MovementStandingBadges.vue'
 import {useMovementStanding, type StandingOf} from './useMovementStanding'
 

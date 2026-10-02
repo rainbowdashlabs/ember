@@ -6,8 +6,9 @@
 import {describe, expect, it} from 'vitest'
 import {mountSuspended} from '@nuxt/test-utils/runtime'
 import BoardFederationTargetList from './BoardFederationTargetList.vue'
-import {StationUserType, StationUserTypeLabels} from '@/api/types'
-import type {FederationTargetResponse} from '@/api/generated/schema'
+import {StationUserTypeLabels} from '@/api/types'
+import {StationUserType, type FederationTargetResponse} from '@/api/generated/schema'
+import {STATION_USER_TYPES} from '@/util/stationUserTypes'
 
 /**
  * Who on a partner station may see a shared board is a user type there, which is what the backend
@@ -24,7 +25,7 @@ describe('BoardFederationTargetList', () => {
         const list = await mountWith({partnerId: 1, shareMode: 'READ_ONLY', requiredUserType: StationUserType.MEMBER})
 
         const options = list.get('[data-testid="federation-target-user-type"]').findAll('option')
-        expect(options.map(option => option.attributes('value'))).toEqual(Object.values(StationUserType))
+        expect(options.map(option => option.attributes('value'))).toEqual(STATION_USER_TYPES)
         expect(options.map(option => option.text())).toEqual(Object.values(StationUserTypeLabels))
     })
 

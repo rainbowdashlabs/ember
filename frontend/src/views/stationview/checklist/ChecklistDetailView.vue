@@ -22,7 +22,7 @@ import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {describeFailure, type Failure} from '@/util/failure'
 import {useSession} from '@/composables/useSession'
 import {showToast} from '@/util/toast'
-import {StationPermission} from '@/api/types'
+import {StationPermission} from '@/api/generated/schema'
 import {checklists, memberGroups, stationMembers, userTags} from '@/api'
 import type {
   AddMembersResponse as ChecklistAddMembersResult,

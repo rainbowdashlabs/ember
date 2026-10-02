@@ -5,7 +5,7 @@
  */
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
-import type {TrackingStatusName} from '@/api/dataTracking'
+import type {TrackingStatus} from '@/api/generated/schema'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
@@ -17,12 +17,12 @@ import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
  * The component owns no state; it forwards updates via v-model:status,
  * v-model:reason, and v-model:rationale so callers stay typed and binding-free.
  */
-const status = defineModel<TrackingStatusName>('status', {required: true})
+const status = defineModel<TrackingStatus>('status', {required: true})
 const reason = defineModel<string | null | undefined>('reason')
 const rationale = defineModel<string | null | undefined>('rationale')
 
 defineProps<{
-  statuses: TrackingStatusName[]
+  statuses: TrackingStatus[]
   showRationaleOnTracked?: boolean
 }>()
 
@@ -32,7 +32,7 @@ const {t} = useI18n()
 <template>
   <SelectInput
       :model-value="status"
-      @update:model-value="status = $event as TrackingStatusName"
+      @update:model-value="status = $event as TrackingStatus"
   >
     <option v-for="s in statuses" :key="s" :value="s">{{ s }}</option>
   </SelectInput>

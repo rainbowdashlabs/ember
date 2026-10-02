@@ -3,10 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {ProfileFieldAssignment, StationModule} from '@/api/generated/schema'
-import {StationModules} from '@/api/types'
+import {FieldType, StationModule, type ProfileFieldAssignment} from '@/api/generated/schema'
 import {STATION_MODULE_OPTIONS} from '@/data/stationModules'
-import {FieldTypes, type FieldTypeName} from '@/api/fieldTypes'
 import type {EditableField, FieldSettings} from '@/api/profileFields'
 import type {Audience} from '@/composables/useFieldsConfig'
 
@@ -14,16 +12,16 @@ import type {Audience} from '@/composables/useFieldsConfig'
 type Translate = (key: string) => string
 
 /** A question of the station's profile with the settings the table shows. */
-function question(id: number, name: string, fieldType: FieldTypeName, required: boolean, readonly: boolean,
+function question(id: number, name: string, fieldType: FieldType, required: boolean, readonly: boolean,
                   config: FieldSettings = {}): EditableField {
   return {id, name, fieldType, required, readonly, keepOnArchive: true, width: null, config}
 }
 
 /** Three questions of a station's profile: a phone number, a birth date and a clothing size. */
 export const DEMO_FIELDS: EditableField[] = [
-  question(1, 'Telefonnummer', FieldTypes.TEXT, true, false),
-  question(2, 'Geburtsdatum', FieldTypes.BIRTH_DATE, true, true),
-  question(3, 'Kleidergröße', FieldTypes.CHOICE, false, false, {options: ['S', 'M', 'L', 'XL']}),
+  question(1, 'Telefonnummer', FieldType.TEXT, true, false),
+  question(2, 'Geburtsdatum', FieldType.BIRTH_DATE, true, true),
+  question(3, 'Kleidergröße', FieldType.CHOICE, false, false, {options: ['S', 'M', 'L', 'XL']}),
 ]
 
 /** How many audiences each of the questions is put to. */
@@ -65,14 +63,14 @@ export function demoExpiryDates(): string[] {
 }
 
 const ENABLED_MODULES: ReadonlySet<StationModule> = new Set<StationModule>([
-  StationModules.INVENTORY,
-  StationModules.NEWS,
-  StationModules.EVENTS,
-  StationModules.ATTENDANCE,
-  StationModules.FORMS,
-  StationModules.QUIZ,
-  StationModules.KNOWLEDGE_BASE,
-  StationModules.DOCUMENTS,
+  StationModule.INVENTORY,
+  StationModule.NEWS,
+  StationModule.EVENTS,
+  StationModule.ATTENDANCE,
+  StationModule.FORMS,
+  StationModule.QUIZ,
+  StationModule.KNOWLEDGE_BASE,
+  StationModule.DOCUMENTS,
 ])
 
 /** The modules a typical station has switched off: everything but the everyday ones above. */

@@ -3,8 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {QuizQuestionTypes, type QuizQuestionTypeName} from '@/api/quiz'
-import type {CatalogTransferQuestion, CsvMappings} from '@/api/generated/schema'
+import {QuizQuestionType, type CatalogTransferQuestion, type CsvMappings} from '@/api/generated/schema'
 
 /**
  * A drafted question as the wizard holds it: what would be created, the answer cell it was read
@@ -18,14 +17,14 @@ export interface ImportDraft {
     included: boolean
 }
 
-export const QUIZ_CSV_TYPES: QuizQuestionTypeName[] = [
-    QuizQuestionTypes.MULTIPLE_CHOICE,
-    QuizQuestionTypes.TRUE_FALSE,
-    QuizQuestionTypes.FREE_ANSWER,
-    QuizQuestionTypes.FILL_IN_THE_BLANK,
-    QuizQuestionTypes.ORDERING,
-    QuizQuestionTypes.ENUMERATION,
-    QuizQuestionTypes.CONNECT,
+export const QUIZ_CSV_TYPES: QuizQuestionType[] = [
+    QuizQuestionType.MULTIPLE_CHOICE,
+    QuizQuestionType.TRUE_FALSE,
+    QuizQuestionType.FREE_ANSWER,
+    QuizQuestionType.FILL_IN_THE_BLANK,
+    QuizQuestionType.ORDERING,
+    QuizQuestionType.ENUMERATION,
+    QuizQuestionType.CONNECT,
 ]
 
 export const ANSWER_SEPARATOR_PRESETS: {label: string; value: string}[] = [
@@ -53,7 +52,7 @@ export function createQuizCsvMapping(headers: string[]): CsvMappingForm {
         orderedRequiredColumn: '',
         separator: ',',
         answerSeparator: ';',
-        defaultType: QuizQuestionTypes.MULTIPLE_CHOICE,
+        defaultType: QuizQuestionType.MULTIPLE_CHOICE,
     }
 }
 
@@ -63,23 +62,23 @@ type ListConfig = {items?: string[]; answers?: string[]}
 
 /** Whether a question of this type keeps its answers as a list the wizard can edit. */
 export function hasAnswerList(type: string): boolean {
-    return type !== QuizQuestionTypes.TRUE_FALSE && type !== QuizQuestionTypes.IMAGE_TEXT
+    return type !== QuizQuestionType.TRUE_FALSE && type !== QuizQuestionType.IMAGE_TEXT
 }
 
 /** Whether the wizard offers to mark single entries right or wrong. */
 export function hasCorrectness(type: string): boolean {
-    return type === QuizQuestionTypes.MULTIPLE_CHOICE
+    return type === QuizQuestionType.MULTIPLE_CHOICE
 }
 
 /** The answers of a drafted config, whichever field its type keeps them in. */
 export function answerList(draft: ImportDraft): string[] {
     const config = draft.question.config
     switch (draft.question.quizQuestionType) {
-        case QuizQuestionTypes.MULTIPLE_CHOICE:
+        case QuizQuestionType.MULTIPLE_CHOICE:
             return ((config as OptionConfig).options ?? []).map(option => option.text)
-        case QuizQuestionTypes.CONNECT:
+        case QuizQuestionType.CONNECT:
             return ((config as PairConfig).pairs ?? []).map(pair => `${pair.left}=${pair.right}`)
-        case QuizQuestionTypes.ORDERING:
+        case QuizQuestionType.ORDERING:
             return (config as ListConfig).items ?? []
         default:
             return (config as ListConfig).answers ?? []
@@ -99,7 +98,7 @@ export function isCorrect(draft: ImportDraft, index: number): boolean {
 export function setAnswerList(draft: ImportDraft, answers: string[]) {
     const config = draft.question.config
     switch (draft.question.quizQuestionType) {
-        case QuizQuestionTypes.MULTIPLE_CHOICE: {
+        case QuizQuestionType.MULTIPLE_CHOICE: {
             const previous = (config as OptionConfig).options ?? []
             ;(config as OptionConfig).options = answers.map((text, index) => ({
                 text,
@@ -107,14 +106,14 @@ export function setAnswerList(draft: ImportDraft, answers: string[]) {
             }))
             return
         }
-        case QuizQuestionTypes.CONNECT: {
+        case QuizQuestionType.CONNECT: {
             ;(config as PairConfig).pairs = answers.map(entry => {
                 const [left, right] = entry.split('=', 2)
                 return {left: (left ?? '').trim(), right: (right ?? '').trim()}
             })
             return
         }
-        case QuizQuestionTypes.ORDERING:
+        case QuizQuestionType.ORDERING:
             ;(config as ListConfig).items = answers
             return
         default:

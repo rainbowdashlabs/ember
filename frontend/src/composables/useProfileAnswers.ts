@@ -6,11 +6,11 @@
 import {computed, shallowRef} from 'vue'
 import type {LaidOutField} from '@/components/profilefields/ProfileFieldsLayout.vue'
 import {valueFields} from '@/components/profilefields/fieldLayout'
-import type {FieldOriginName} from '@/api/profileFields'
+import type {FieldOrigin} from '@/api/generated/schema'
 import {decodeMergedValues, profileKey, type ProfileFieldValueEntry} from '@/util/profileFields'
 
 /** One stored answer, naming who asked its question where both a station and its association ask. */
-export type StoredProfileAnswer = ProfileFieldValueEntry & {origin?: FieldOriginName}
+export type StoredProfileAnswer = ProfileFieldValueEntry & {origin?: FieldOrigin}
 
 /** The questions put to one member and what they answered, as a port reads them. */
 export interface ProfileAnswersSnapshot {
@@ -22,7 +22,7 @@ export interface ProfileAnswersSnapshot {
 export interface ProfileAnswerEntry {
     fieldId: number
     value: string
-    origin: FieldOriginName
+    origin: FieldOrigin
 }
 
 /**

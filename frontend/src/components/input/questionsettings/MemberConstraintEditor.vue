@@ -9,8 +9,9 @@ import {useI18n} from 'vue-i18n'
 import LabelledField from '@/components/input/LabelledField.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import {memberConstraintOf} from '@/api/fieldTypes'
-import {StationUserType, StationUserTypeLabels} from '@/api/types'
-import type {MemberGroup, StationUserType as StationUserTypeName, UserTag} from '@/api/generated/schema'
+import {StationUserTypeLabels} from '@/api/types'
+import type {MemberGroup, StationUserType, UserTag} from '@/api/generated/schema'
+import {STATION_USER_TYPES} from '@/util/stationUserTypes'
 
 /**
  * The group, user type or tag a member field is narrowed to, whichever its type names.
@@ -19,7 +20,7 @@ import type {MemberGroup, StationUserType as StationUserTypeName, UserTag} from 
  * for the picker but the field's rule.
  */
 const groupId = defineModel<number | null | undefined>('groupId', {required: true})
-const userType = defineModel<StationUserTypeName | null | undefined>('userType', {required: true})
+const userType = defineModel<StationUserType | null | undefined>('userType', {required: true})
 const tagId = defineModel<number | null | undefined>('tagId', {required: true})
 
 const props = defineProps<{
@@ -32,13 +33,13 @@ const {t} = useI18n()
 
 const constraint = computed(() => memberConstraintOf(props.fieldType))
 
-const userTypeOptions = Object.values(StationUserType).map(value => ({value, label: StationUserTypeLabels[value]}))
+const userTypeOptions = STATION_USER_TYPES.map(value => ({value, label: StationUserTypeLabels[value]}))
 
 function idOrNull(value: unknown): number | null {
   return value === '' || value === null || value === undefined ? null : Number(value)
 }
 
-function userTypeOrNull(value: unknown): StationUserTypeName | null {
+function userTypeOrNull(value: unknown): StationUserType | null {
   return userTypeOptions.find(option => option.value === value)?.value ?? null
 }
 </script>

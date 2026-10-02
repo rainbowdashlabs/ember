@@ -7,16 +7,16 @@
 import {mount} from '@vue/test-utils'
 import {defineComponent} from 'vue'
 import {describe, expect, it} from 'vitest'
-import type {EditableField, EditableFieldRequest, ProfileFieldScopeName} from '@/api/profileFields'
-import {FieldTypes, OfferedFieldTypes, type FieldTypeName} from '@/api/fieldTypes'
-import type {ProfileFieldAssignment} from '@/api/generated/schema'
+import type {EditableField, EditableFieldRequest} from '@/api/profileFields'
+import {OfferedFieldTypes} from '@/api/fieldTypes'
+import {FieldType, type ProfileFieldAssignment, type ProfileFieldScope} from '@/api/generated/schema'
 import {STATION_ROLES, useFieldsConfig, type FieldsPort} from './useFieldsConfig'
 
-function field(id: number, name: string, fieldType: FieldTypeName = FieldTypes.BIRTH_DATE): EditableField {
+function field(id: number, name: string, fieldType: FieldType = FieldType.BIRTH_DATE): EditableField {
   return {id, name, fieldType, config: {}, required: false, readonly: false, keepOnArchive: false, width: null}
 }
 
-function askedOf(id: number, fieldId: number, role: ProfileFieldScopeName, position = 0): ProfileFieldAssignment {
+function askedOf(id: number, fieldId: number, role: ProfileFieldScope, position = 0): ProfileFieldAssignment {
   return {
     id, fieldId, targetKind: 'ROLE', role, groupId: null, position,
     widthOverride: null, readonlyOverride: null, requiredOverride: null,
@@ -83,7 +83,7 @@ describe('useFieldsConfig', () => {
   /** Selecting a question shows who it is put to, and offers the kinds it is not put to yet. */
   it('names the audiences of the selected question and what is left to add', async () => {
     const config = configFor(
-        [field(1, 'Geburtsdatum'), field(2, 'Telefon', FieldTypes.TEXT)],
+        [field(1, 'Geburtsdatum'), field(2, 'Telefon', FieldType.TEXT)],
         [askedOf(10, 1, 'MEMBER'), askedOf(11, 1, 'TEAM'), askedOf(12, 2, 'MANAGER')])
     await config.reload()
 
@@ -98,7 +98,7 @@ describe('useFieldsConfig', () => {
    */
   it('points out a question nobody is asked', async () => {
     const config = configFor(
-        [field(1, 'Geburtsdatum'), field(2, 'Telefon', FieldTypes.TEXT)],
+        [field(1, 'Geburtsdatum'), field(2, 'Telefon', FieldType.TEXT)],
         [askedOf(10, 1, 'MEMBER')])
     await config.reload()
 
@@ -108,7 +108,7 @@ describe('useFieldsConfig', () => {
   /** One form holds what that audience is asked, in the order the assignment gives. */
   it('builds one audience\'s form out of the assignments', async () => {
     const config = configFor(
-        [field(1, 'Geburtsdatum'), field(2, 'Telefon', FieldTypes.TEXT)],
+        [field(1, 'Geburtsdatum'), field(2, 'Telefon', FieldType.TEXT)],
         [askedOf(10, 1, 'MEMBER', 1), askedOf(11, 2, 'MEMBER', 0), askedOf(12, 1, 'TEAM', 0)])
     await config.reload()
 
@@ -127,7 +127,7 @@ describe('useFieldsConfig', () => {
     const created: EditableFieldRequest[] = []
     const config = configFor([], [], created)
     const birthDate = {
-      fields: [{name: 'Geburtsdatum', fieldType: FieldTypes.BIRTH_DATE, config: {}, required: true, readonly: true}],
+      fields: [{name: 'Geburtsdatum', fieldType: FieldType.BIRTH_DATE, config: {}, required: true, readonly: true}],
     }
 
     await config.applyTemplate(birthDate, 'MEMBER')

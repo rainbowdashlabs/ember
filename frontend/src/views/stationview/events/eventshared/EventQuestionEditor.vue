@@ -15,8 +15,10 @@ import DeleteButton from '@/components/button/DeleteButton.vue'
 import EventFieldValueInput from './EventFieldValueInput.vue'
 import OrganiserQuestionSettings from './OrganiserQuestionSettings.vue'
 import RegistrantQuestionSettings from './RegistrantQuestionSettings.vue'
-import {FieldTypes, namesMembers, OfferedFieldTypes, type FieldTypeName} from '@/api/fieldTypes'
-import type {AttendanceTemplateField, EventFieldEntry, MemberGroup, UserTag} from '@/api/generated/schema'
+import {namesMembers, OfferedFieldTypes} from '@/api/fieldTypes'
+import {
+  FieldType, type AttendanceTemplateField, type EventFieldEntry, type MemberGroup, type UserTag,
+} from '@/api/generated/schema'
 import {fromMember, type MemberLike} from '@/components/input/select/memberOption'
 import {SHARED_SETTINGS, settingsModelOf, withSettingsModel, type EventQuestionMode} from './eventQuestions'
 
@@ -56,7 +58,7 @@ const emit = defineEmits<{
 const {t} = useI18n()
 
 const organiser = computed(() => props.mode === 'organiser')
-const fieldType = computed<FieldTypeName>(() => question.value.fieldType ?? FieldTypes.TEXT)
+const fieldType = computed<FieldType>(() => question.value.fieldType ?? FieldType.TEXT)
 const offered = computed(() => (organiser.value ? OfferedFieldTypes.APPOINTMENT : OfferedFieldTypes.REGISTRATION))
 const settings = computed(() => settingsModelOf(question.value.config))
 const members = computed(() => (props.allMembers ?? []).map(fromMember))

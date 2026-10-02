@@ -12,8 +12,12 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import {inventory, managedMembers} from '@/api'
-import {MovementPurpose} from '@/api/movements'
-import type {ManagedMember, MyInventoryItem, MyRequirement} from '@/api/generated/schema'
+import {
+  MovementPurpose,
+  type ManagedMember,
+  type MyInventoryItem,
+  type MyRequirement,
+} from '@/api/generated/schema'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useAsyncAction} from '@/composables/useAsyncAction'

@@ -4,12 +4,13 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-import type {AssignmentTarget, EditableFieldRequest, ProfileFieldScopeName} from './profileFields'
+import type {AssignmentTarget, EditableFieldRequest} from './profileFields'
 import type {
     AssignmentRequest,
     ClusterFieldResponse,
     ClusterProfileFieldAssignment,
     ProfileFieldAssignment,
+    ProfileFieldScope,
 } from './generated/schema'
 
 /**
@@ -43,7 +44,7 @@ export async function deleteField(fieldId: number): Promise<void> {
 }
 
 /** Puts one audience's questions in a given order in one request, named by role as a station's order is. */
-export async function reorderFields(role: ProfileFieldScopeName, fieldIds: number[]): Promise<void> {
+export async function reorderFields(role: ProfileFieldScope, fieldIds: number[]): Promise<void> {
     await client.put('/cluster/fields/order', {role, fieldIds})
 }
 

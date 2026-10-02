@@ -8,10 +8,9 @@ import {onboarding} from '@/api'
 import {
     OnboardingLevel,
     OnboardingTaskState,
-    type OnboardingLevelName,
-    type OnboardingTaskStateName,
-} from '@/api/onboarding'
-import type {OnboardingStatus, OnboardingTaskView} from '@/api/generated/schema'
+    type OnboardingStatus,
+    type OnboardingTaskView,
+} from '@/api/generated/schema'
 import {flowFor} from '@/util/onboardingFlows'
 import {clearActiveTask, onboardingState} from '@/util/onboardingState'
 
@@ -30,7 +29,7 @@ export function useOnboardingTasks() {
     const stationTasks = computed(() => onboardingStatus.value.STATION?.tasks ?? [])
     const instanceTasks = computed(() => onboardingStatus.value.INSTANCE?.tasks ?? [])
 
-    function openOf(level: OnboardingLevelName): OnboardingTaskView[] {
+    function openOf(level: OnboardingLevel): OnboardingTaskView[] {
         return (onboardingStatus.value[level]?.tasks ?? []).filter(t => t.state === OnboardingTaskState.OPEN)
     }
 
@@ -42,11 +41,11 @@ export function useOnboardingTasks() {
      * earlier one, which is what left a station manager looking at their own tasks and none of the
      * station's.
      */
-    function keep(level: OnboardingLevelName, status: OnboardingStatus | undefined) {
+    function keep(level: OnboardingLevel, status: OnboardingStatus | undefined) {
         onboardingStatus.value = {...onboardingStatus.value, [level]: status}
     }
 
-    async function load(level: OnboardingLevelName) {
+    async function load(level: OnboardingLevel) {
         loading.value = true
         try {
             keep(level, await onboarding.getTasks(level))
@@ -57,24 +56,24 @@ export function useOnboardingTasks() {
         }
     }
 
-    async function mark(level: OnboardingLevelName, taskId: string, state: OnboardingTaskStateName) {
+    async function mark(level: OnboardingLevel, taskId: string, state: OnboardingTaskState) {
         keep(level, await onboarding.markTask(level, taskId, state))
         if (activeTaskId.value === taskId && state !== OnboardingTaskState.OPEN) stop()
     }
 
     /** Ticks off a task Ember cannot see for itself. */
-    const confirm = (level: OnboardingLevelName, taskId: string) => mark(level, taskId, OnboardingTaskState.DONE)
+    const confirm = (level: OnboardingLevel, taskId: string) => mark(level, taskId, OnboardingTaskState.DONE)
 
-    const skip = (level: OnboardingLevelName, taskId: string) => mark(level, taskId, OnboardingTaskState.SKIPPED)
+    const skip = (level: OnboardingLevel, taskId: string) => mark(level, taskId, OnboardingTaskState.SKIPPED)
 
     /**
      * Throws a passed-over task away for good. It leaves the list and does not come back, which is
      * how a list of first steps is finally done with rather than carrying its leftovers forever.
      */
-    const discard = (level: OnboardingLevelName, taskId: string) => mark(level, taskId, OnboardingTaskState.DISMISSED)
+    const discard = (level: OnboardingLevel, taskId: string) => mark(level, taskId, OnboardingTaskState.DISMISSED)
 
     /** Puts a skipped task back on the list, which anyone sharing it may do. */
-    const resume = (level: OnboardingLevelName, taskId: string) => mark(level, taskId, OnboardingTaskState.OPEN)
+    const resume = (level: OnboardingLevel, taskId: string) => mark(level, taskId, OnboardingTaskState.OPEN)
 
     /**
      * Begins walking a task. The guide takes over from here: it lights up the first step and moves
@@ -83,7 +82,7 @@ export function useOnboardingTasks() {
      * Nothing is navigated. Walking somebody to the page they were meant to find is the one thing
      * this tour must not do: the first step points at the way there, and the reader takes it.
      */
-    function start(level: OnboardingLevelName, task: OnboardingTaskView) {
+    function start(level: OnboardingLevel, task: OnboardingTaskView) {
         if (flowFor(task.key).length === 0) return
         activeLevel.value = level
         activeTaskId.value = task.id
@@ -97,7 +96,7 @@ export function useOnboardingTasks() {
      * A task that happens outside Ember, such as putting a bookmark somewhere, is passed over here:
      * there would be nothing to point at.
      */
-    function startNext(level: OnboardingLevelName) {
+    function startNext(level: OnboardingLevel) {
         const next = openOf(level).find(task => flowFor(task.key).length > 0)
         if (next) start(level, next)
     }

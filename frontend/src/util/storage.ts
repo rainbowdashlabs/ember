@@ -124,7 +124,7 @@ export type StorageLabelTranslator = (key: string) => string
 
 /**
  * Builds a category-to-display-name function bound to a translator. The
- * returned function maps a backend {@link StorageCategoryName} (or any other
+ * returned function maps a backend storage category (or any other
  * string for forward compatibility) to its localized display name, falling
  * back to the raw category code when no translation is registered.
  */

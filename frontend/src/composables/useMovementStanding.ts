@@ -5,8 +5,7 @@
  */
 import {computed, type Ref} from 'vue'
 import {useI18n} from 'vue-i18n'
-import {MovementState} from '@/api/movements'
-import type {MovementStanding} from '@/api/generated/schema'
+import {MovementState, type MovementStanding} from '@/api/generated/schema'
 import {useMovementParties} from '@/composables/useMovementParties'
 
 /**
