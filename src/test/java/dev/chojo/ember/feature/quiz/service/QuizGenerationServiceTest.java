@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.quiz.service;
 import dev.chojo.ember.api.refusal.QuizRefusal;
 import dev.chojo.ember.api.refusal.Refusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
+import dev.chojo.ember.feature.quiz.entity.AiVendor;
 import dev.chojo.ember.feature.quiz.entity.QuestionConfig;
 import dev.chojo.ember.feature.quiz.entity.QuestionConfig.MultipleChoice.ChoiceOption;
 import dev.chojo.ember.feature.quiz.entity.QuizCatalog;
@@ -82,7 +83,7 @@ class QuizGenerationServiceTest {
         when(ai.createQuestionSession(
                         eq(STATION),
                         eq(ACCOUNT),
-                        eq("openai"),
+                        eq(AiVendor.OPENAI),
                         isNull(),
                         eq(QuizQuestionType.FREE_ANSWER),
                         isNull(),
@@ -167,11 +168,13 @@ class QuizGenerationServiceTest {
                 new QuestionConfig.MultipleChoice(List.of(new ChoiceOption("Yes", true)), 1));
         when(failing.title()).thenReturn("Broken?");
         when(questions.findQuestions(CATALOG)).thenReturn(List.of(shortOfOptions, full, noRightAnswer, free, failing));
-        when(ai.generate(STATION, ACCOUNT, "claude", null, "Colour?", "Red", 1)).thenReturn(List.of("Green"));
-        when(ai.generate(STATION, ACCOUNT, "claude", null, "Broken?", "Yes", 2))
+        when(ai.generate(STATION, ACCOUNT, AiVendor.CLAUDE, null, "Colour?", "Red", 1))
+                .thenReturn(List.of("Green"));
+        when(ai.generate(STATION, ACCOUNT, AiVendor.CLAUDE, null, "Broken?", "Yes", 2))
                 .thenThrow(new IllegalStateException("offline"));
 
-        var result = service.fillDistractors(STATION, ACCOUNT, CATALOG, new BatchGenerateRequest("claude", null, 3));
+        var result =
+                service.fillDistractors(STATION, ACCOUNT, CATALOG, new BatchGenerateRequest(AiVendor.CLAUDE, null, 3));
 
         assertEquals(1, result.generatedCount());
         assertEquals(List.of("Broken?: offline"), result.errors());

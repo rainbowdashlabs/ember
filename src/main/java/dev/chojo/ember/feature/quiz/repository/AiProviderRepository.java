@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.quiz.repository;
 
+import dev.chojo.ember.feature.quiz.entity.AiVendor;
 import dev.chojo.ember.feature.quiz.entity.StationAiProvider;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -15,6 +16,10 @@ import java.util.Optional;
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
 
+/**
+ * The AI provider keys stations keep, stored under {@link AiVendor#key()}. A row whose provider this
+ * instance does not know is left out of every read.
+ */
 @Singleton
 public class AiProviderRepository {
     private static final String STATION_AI_PROVIDER_COLUMNS = "id, station_id, provider, api_key, model";
@@ -25,26 +30,30 @@ public class AiProviderRepository {
                         STATION_AI_PROVIDER_COLUMNS)
                 .single(call().bind("station_id", stationId))
                 .map(StationAiProvider.map())
-                .all();
+                .all()
+                .stream()
+                .flatMap(Optional::stream)
+                .toList();
     }
 
-    public Optional<StationAiProvider> findByProvider(int stationId, String provider) {
+    public Optional<StationAiProvider> findByProvider(int stationId, AiVendor provider) {
         return query(
                         "SELECT %s FROM station_ai_provider WHERE station_id = :station_id AND provider = :provider;",
                         STATION_AI_PROVIDER_COLUMNS)
-                .single(call().bind("station_id", stationId).bind("provider", provider))
+                .single(call().bind("station_id", stationId).bind("provider", provider.key()))
                 .map(StationAiProvider.map())
-                .first();
+                .first()
+                .flatMap(row -> row);
     }
 
-    public void upsert(int stationId, String provider, String apiKey, @Nullable String model) {
+    public void upsert(int stationId, AiVendor provider, String apiKey, @Nullable String model) {
         query("""
                 INSERT INTO station_ai_provider(station_id, provider, api_key, model)
                 VALUES (:station_id, :provider, :api_key, :model)
                 ON CONFLICT (station_id, provider)
                 DO UPDATE SET api_key = :api_key, model = :model;""")
                 .single(call().bind("station_id", stationId)
-                        .bind("provider", provider)
+                        .bind("provider", provider.key())
                         .bind("api_key", apiKey)
                         .bind("model", model))
                 .insert();
@@ -65,7 +74,10 @@ public class AiProviderRepository {
                 ORDER BY id;""", STATION_AI_PROVIDER_COLUMNS)
                 .single(call().bind("prefix", sealedPrefix))
                 .map(StationAiProvider.map())
-                .all();
+                .all()
+                .stream()
+                .flatMap(Optional::stream)
+                .toList();
     }
 
     /**
@@ -87,9 +99,9 @@ public class AiProviderRepository {
                 .changed();
     }
 
-    public void delete(int stationId, String provider) {
+    public void delete(int stationId, AiVendor provider) {
         query("DELETE FROM station_ai_provider WHERE station_id = :station_id AND provider = :provider;")
-                .single(call().bind("station_id", stationId).bind("provider", provider))
+                .single(call().bind("station_id", stationId).bind("provider", provider.key()))
                 .delete();
     }
 

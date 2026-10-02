@@ -13,6 +13,7 @@ import type {
     AiProviderRequest,
     AiSettingsResponse,
     BatchGenerateRequest,
+    components,
     BatchResult,
     GeneratedQuestionWithMeta,
     GenerateQuestionsRequest,
@@ -21,6 +22,15 @@ import type {
     ModelInfo,
     TransientKeyRequest,
 } from './generated/schema'
+
+export type AiVendorName = components['schemas']['AiVendor']
+
+/** The AI providers generation can ask, in the order a picker offers them. */
+export const AiVendor = {
+    OPENAI: 'OPENAI',
+    GEMINI: 'GEMINI',
+    CLAUDE: 'CLAUDE',
+} as const satisfies Record<AiVendorName, AiVendorName>
 
 /**
  * What a person may see of their own AI key: never the key itself, only which provider and model it
@@ -51,16 +61,16 @@ export async function savePrompt(prompt: string): Promise<void> {
     await client.put('/ai/settings/prompt', request)
 }
 
-export async function saveProvider(provider: string, apiKey: string, model?: string | null): Promise<void> {
+export async function saveProvider(provider: AiVendorName, apiKey: string, model?: string | null): Promise<void> {
     const request: AiProviderRequest = {apiKey, model}
     await client.put(`/ai/providers/${provider}`, request)
 }
 
-export async function deleteProvider(provider: string): Promise<void> {
+export async function deleteProvider(provider: AiVendorName): Promise<void> {
     await client.delete(`/ai/providers/${provider}`)
 }
 
-export async function fetchModels(provider: string, apiKey?: string | null): Promise<ModelInfo[]> {
+export async function fetchModels(provider: AiVendorName, apiKey?: string | null): Promise<ModelInfo[]> {
     const request: TransientKeyRequest = {apiKey: apiKey ?? null}
     const res = await client.post<ModelInfo[]>(`/ai/providers/${provider}/models`, request)
     return res.data

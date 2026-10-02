@@ -11,6 +11,7 @@ import com.anthropic.models.messages.Message;
 import com.anthropic.models.messages.MessageCreateParams;
 import com.openai.client.OpenAIClient;
 import com.openai.models.chat.completions.ChatCompletionCreateParams;
+import dev.chojo.ember.feature.quiz.entity.AiVendor;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestionType;
 import dev.chojo.ember.feature.quiz.repository.AiProviderRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,7 +33,7 @@ import static org.mockito.Mockito.when;
 
 /**
  * Every vendor client is built for one call and closed when that call ends, whether it answered
- * or failed, and the provider key picks the vendor.
+ * or failed, and the provider picks the vendor client.
  */
 class AiServiceTest {
 
@@ -51,12 +52,12 @@ class AiServiceTest {
 
     @Test
     void theKeyComesFromThePersonThenTheStation() {
-        when(credentials.stationKey(1, "claude")).thenReturn(Optional.of("station"));
-        when(credentials.keyFor(7, "claude")).thenReturn(Optional.of("personal"));
+        when(credentials.stationKey(1, AiVendor.CLAUDE)).thenReturn(Optional.of("station"));
+        when(credentials.keyFor(7, AiVendor.CLAUDE)).thenReturn(Optional.of("personal"));
         when(clients.anthropic(anyString())).thenThrow(new IllegalStateException("offline"));
 
-        assertThrows(RuntimeException.class, () -> service.generate(1, 7, "claude", null, "Q", "A", 1));
-        assertThrows(RuntimeException.class, () -> service.generate(1, 8, "claude", null, "Q", "A", 1));
+        assertThrows(RuntimeException.class, () -> service.generate(1, 7, AiVendor.CLAUDE, null, "Q", "A", 1));
+        assertThrows(RuntimeException.class, () -> service.generate(1, 8, AiVendor.CLAUDE, null, "Q", "A", 1));
 
         verify(clients).anthropic("personal");
         verify(clients).anthropic("station");
@@ -64,11 +65,11 @@ class AiServiceTest {
 
     @Test
     void aTypedKeyIsTriedForTheModelListBeforeTheStoredOne() {
-        when(credentials.keyFor(7, "claude")).thenReturn(Optional.of("personal"));
+        when(credentials.keyFor(7, AiVendor.CLAUDE)).thenReturn(Optional.of("personal"));
         when(clients.anthropic(anyString())).thenThrow(new IllegalStateException("offline"));
 
-        assertThrows(RuntimeException.class, () -> service.fetchModels(1, 7, "claude", "typed"));
-        assertThrows(RuntimeException.class, () -> service.fetchModels(1, 7, "claude", " "));
+        assertThrows(RuntimeException.class, () -> service.fetchModels(1, 7, AiVendor.CLAUDE, "typed"));
+        assertThrows(RuntimeException.class, () -> service.fetchModels(1, 7, AiVendor.CLAUDE, " "));
 
         verify(clients).anthropic("typed");
         verify(clients).anthropic("personal");
@@ -76,29 +77,29 @@ class AiServiceTest {
 
     @Test
     void withoutAnyKeyNothingIsCalled() {
-        assertThrows(IllegalArgumentException.class, () -> service.generate(1, 7, "claude", null, "Q", "A", 1));
-        assertThrows(IllegalArgumentException.class, () -> service.fetchModels(1, 7, "claude", null));
+        assertThrows(IllegalArgumentException.class, () -> service.generate(1, 7, AiVendor.CLAUDE, null, "Q", "A", 1));
+        assertThrows(IllegalArgumentException.class, () -> service.fetchModels(1, 7, AiVendor.CLAUDE, null));
 
         verifyNoInteractions(clients);
     }
 
     @Test
     void aStationKeyIsSavedThroughTheCredentialsSoItIsEncrypted() {
-        service.saveProvider(1, "openai", "sk-station", "gpt-4o");
+        service.saveProvider(1, AiVendor.OPENAI, "sk-station", "gpt-4o");
 
-        verify(credentials).saveStationKey(1, "openai", "sk-station", "gpt-4o");
+        verify(credentials).saveStationKey(1, AiVendor.OPENAI, "sk-station", "gpt-4o");
         verifyNoInteractions(stations);
     }
 
     @Test
     void anOpenAiClientIsClosedWhenTheCallFails() {
         OpenAIClient client = mock(OpenAIClient.class, RETURNS_DEEP_STUBS);
-        when(credentials.keyFor(1, "openai")).thenReturn(Optional.of("key"));
+        when(credentials.keyFor(1, AiVendor.OPENAI)).thenReturn(Optional.of("key"));
         when(clients.openAi("key")).thenReturn(client);
         when(client.chat().completions().create(any(ChatCompletionCreateParams.class)))
                 .thenThrow(new IllegalStateException("offline"));
 
-        assertThrows(RuntimeException.class, () -> service.generate(1, 1, "openai", null, "Q", "A", 3));
+        assertThrows(RuntimeException.class, () -> service.generate(1, 1, AiVendor.OPENAI, null, "Q", "A", 3));
 
         verify(client).close();
     }
@@ -112,10 +113,10 @@ class AiServiceTest {
         when(block.asText().text()).thenReturn("first\nsecond\n\nthird");
         when(message.content()).thenReturn(List.of(block));
         when(client.messages().create(any(MessageCreateParams.class))).thenReturn(message);
-        when(credentials.keyFor(1, "claude")).thenReturn(Optional.of("key"));
+        when(credentials.keyFor(1, AiVendor.CLAUDE)).thenReturn(Optional.of("key"));
         when(clients.anthropic("key")).thenReturn(client);
 
-        assertEquals(List.of("first", "second"), service.generate(1, 1, "claude", null, "Q", "A", 2));
+        assertEquals(List.of("first", "second"), service.generate(1, 1, AiVendor.CLAUDE, null, "Q", "A", 2));
 
         verify(client).close();
     }
@@ -126,7 +127,7 @@ class AiServiceTest {
         when(clients.anthropic("key")).thenReturn(client);
         when(client.models().list()).thenThrow(new IllegalStateException("offline"));
 
-        assertThrows(RuntimeException.class, () -> service.fetchModels(1, 1, "claude", "key"));
+        assertThrows(RuntimeException.class, () -> service.fetchModels(1, 1, AiVendor.CLAUDE, "key"));
 
         verify(client).close();
     }
@@ -134,26 +135,16 @@ class AiServiceTest {
     @Test
     void aSessionTurnClosesItsClient() {
         OpenAIClient client = mock(OpenAIClient.class, RETURNS_DEEP_STUBS);
-        when(credentials.stationKey(1, "openai")).thenReturn(Optional.of("key"));
+        when(credentials.stationKey(1, AiVendor.OPENAI)).thenReturn(Optional.of("key"));
         when(clients.openAi("key")).thenReturn(client);
         when(client.chat().completions().create(any(ChatCompletionCreateParams.class)))
                 .thenThrow(new IllegalStateException("offline"));
         var session = service.createQuestionSession(
-                1, 1, "openai", null, QuizQuestionType.TRUE_FALSE, "prompt", "de", null, null, List.of());
+                1, 1, AiVendor.OPENAI, null, QuizQuestionType.TRUE_FALSE, "prompt", "de", null, null, List.of());
 
         assertTrue(service.generateNextQuestion(session, QuizQuestionType.TRUE_FALSE)
                 .isEmpty());
 
         verify(client).close();
-    }
-
-    @Test
-    void anUnknownProviderBuildsNoClient() {
-        when(credentials.keyFor(1, "mystery")).thenReturn(Optional.of("key"));
-
-        assertThrows(IllegalArgumentException.class, () -> service.generate(1, 1, "mystery", null, "Q", "A", 1));
-        assertTrue(service.fetchModels(1, 1, "mystery", "key").isEmpty());
-
-        verifyNoInteractions(clients);
     }
 }

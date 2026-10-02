@@ -60,7 +60,7 @@ public class AiCredentialService {
      * @param apiKey    the key
      * @param model     the model to ask by default, or {@code null}
      */
-    public void saveStationKey(int stationId, String provider, String apiKey, @Nullable String model) {
+    public void saveStationKey(int stationId, AiVendor provider, String apiKey, @Nullable String model) {
         stations.upsert(stationId, provider, cipher.seal(apiKey.trim()), model);
     }
 
@@ -72,7 +72,7 @@ public class AiCredentialService {
      * @return the plaintext key, or empty when the station keeps none for this provider or it no
      *         longer opens
      */
-    public Optional<String> stationKey(int stationId, String provider) {
+    public Optional<String> stationKey(int stationId, AiVendor provider) {
         return stations.findByProvider(stationId, provider).flatMap(this::open);
     }
 
@@ -138,8 +138,7 @@ public class AiCredentialService {
      * @param apiKey    the new key, or blank to keep the stored one
      * @return what became of it
      */
-    public SaveOutcome save(int accountId, String provider, @Nullable String model, @Nullable String apiKey) {
-        if (AiVendor.fromKey(provider).isEmpty()) return SaveOutcome.PROVIDER_UNKNOWN;
+    public SaveOutcome save(int accountId, AiVendor provider, @Nullable String model, @Nullable String apiKey) {
         String chosenModel = model == null || model.isBlank() ? null : model.trim();
         if (apiKey != null && !apiKey.isBlank()) {
             repository.save(accountId, provider, chosenModel, cipher.seal(apiKey.trim()));
@@ -147,7 +146,7 @@ public class AiCredentialService {
         }
         Optional<AccountAiCredential> kept = repository
                 .find(accountId)
-                .filter(credential -> credential.provider().equals(provider))
+                .filter(credential -> credential.provider() == provider)
                 .filter(credential -> open(credential).isPresent());
         if (kept.isEmpty()) return SaveOutcome.KEY_MISSING;
         repository.save(accountId, provider, chosenModel, kept.get().sealedKey());
@@ -171,10 +170,10 @@ public class AiCredentialService {
      * @param provider  the provider to be called
      * @return the plaintext key, or empty when the account keeps none for this provider
      */
-    public Optional<String> keyFor(int accountId, String provider) {
+    public Optional<String> keyFor(int accountId, AiVendor provider) {
         return repository
                 .find(accountId)
-                .filter(credential -> credential.provider().equals(provider))
+                .filter(credential -> credential.provider() == provider)
                 .flatMap(this::open);
     }
 
@@ -209,7 +208,7 @@ public class AiCredentialService {
      * @param keyEnding the last four characters of the key, or {@code null} when it does not open
      */
     public record AiCredentialSummary(
-            @Nullable String provider,
+            @Nullable AiVendor provider,
             @Nullable String model,
             boolean usable,
             @Nullable String keyEnding) {}
@@ -221,14 +220,12 @@ public class AiCredentialService {
      * @param model    the model asked by default, or {@code null} for the provider's default
      * @param key      the plaintext key
      */
-    public record StationKey(String provider, @Nullable String model, String key) {}
+    public record StationKey(AiVendor provider, @Nullable String model, String key) {}
 
     /** What became of a save. */
     public enum SaveOutcome {
         /** The key and its settings were written. */
         SAVED,
-        /** The provider is none this instance can call. */
-        PROVIDER_UNKNOWN,
         /** No key was given and none is stored for this provider to keep. */
         KEY_MISSING
     }

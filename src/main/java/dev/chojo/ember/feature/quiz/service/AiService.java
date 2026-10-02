@@ -88,12 +88,12 @@ public class AiService {
         return providerRepository.findByStation(stationId);
     }
 
-    public void saveProvider(int stationId, String provider, String apiKey, @Nullable String model) {
+    public void saveProvider(int stationId, AiVendor provider, String apiKey, @Nullable String model) {
         credentials.saveStationKey(stationId, provider, apiKey, model);
         log.info("Saved AI provider {} (model {}) for station {}", provider, model, stationId);
     }
 
-    public void deleteProvider(int stationId, String provider) {
+    public void deleteProvider(int stationId, AiVendor provider) {
         providerRepository.delete(stationId, provider);
         log.info("Deleted AI provider {} for station {}", provider, stationId);
     }
@@ -117,12 +117,12 @@ public class AiService {
      * <p>The first user message carries the station's instructions and every existing title, so
      * the model has the whole context from the start and each later turn only asks for one more.
      *
-     * @throws IllegalArgumentException when the provider is unknown or no API key is available
+     * @throws IllegalArgumentException when no API key is available
      */
     public ChatSession createQuestionSession(
             int stationId,
             int accountId,
-            String provider,
+            AiVendor vendor,
             @Nullable String model,
             QuizQuestionType quizQuestionType,
             @Nullable String userPrompt,
@@ -130,8 +130,7 @@ public class AiService {
             @Nullable String categoryName,
             @Nullable String categoryDescription,
             List<String> existingTitles) {
-        AiVendor vendor = requireVendor(provider);
-        String apiKey = storedKey(stationId, accountId, provider);
+        String apiKey = storedKey(stationId, accountId, vendor);
         if (apiKey == null || apiKey.isBlank()) throw new IllegalArgumentException("No API key available");
         String resolvedModel = resolveModel(stationId, vendor, model);
         String effectiveLocale = locale != null ? locale : "de";
@@ -186,18 +185,17 @@ public class AiService {
     /**
      * Generates wrong answers for a question.
      *
-     * @throws IllegalArgumentException when the provider is unknown or no API key is available
+     * @throws IllegalArgumentException when no API key is available
      */
     public List<String> generate(
             int stationId,
             int accountId,
-            String provider,
+            AiVendor vendor,
             @Nullable String model,
             String question,
             String correctAnswer,
             int count) {
-        AiVendor vendor = requireVendor(provider);
-        String apiKey = storedKey(stationId, accountId, provider);
+        String apiKey = storedKey(stationId, accountId, vendor);
         if (apiKey == null || apiKey.isBlank()) throw new IllegalArgumentException("No API key available");
         String resolvedModel = resolveModel(stationId, vendor, model);
         String systemPrompt = loadPromptFile("wrong_answers", "de").replace("{count}", String.valueOf(count));
@@ -214,32 +212,30 @@ public class AiService {
         } catch (IllegalArgumentException e) {
             throw e;
         } catch (Exception e) {
-            log.error("AI generation failed for provider {}", provider, e);
+            log.error("AI generation failed for provider {}", vendor, e);
             throw new RuntimeException("AI generation failed: " + e.getMessage());
         }
     }
 
     /**
-     * Lists the chat models the key can use, or nothing for a provider this service does not know.
+     * Lists the chat models the key can use.
      *
      * <p>A key typed into the settings but not saved yet is tried as it is, so somebody can pick a
      * model before deciding to keep the key; without one the stored key is used.
      *
      * @throws IllegalArgumentException when no API key is available
      */
-    public List<ModelInfo> fetchModels(int stationId, int accountId, String provider, @Nullable String typedKey) {
-        String apiKey = typedKey != null && !typedKey.isBlank() ? typedKey : storedKey(stationId, accountId, provider);
+    public List<ModelInfo> fetchModels(int stationId, int accountId, AiVendor vendor, @Nullable String typedKey) {
+        String apiKey = typedKey != null && !typedKey.isBlank() ? typedKey : storedKey(stationId, accountId, vendor);
         if (apiKey == null || apiKey.isBlank()) throw new IllegalArgumentException("No API key available");
-        var vendor = AiVendor.fromKey(provider);
-        if (vendor.isEmpty()) return List.of();
         try {
-            return switch (vendor.get()) {
+            return switch (vendor) {
                 case OPENAI -> fetchOpenAiModels(apiKey);
                 case GEMINI -> fetchGeminiModels(apiKey);
                 case CLAUDE -> fetchClaudeModels(apiKey);
             };
         } catch (Exception e) {
-            log.error("Failed to fetch models for provider {}", provider, e);
+            log.error("Failed to fetch models for provider {}", vendor, e);
             throw new RuntimeException("Failed to fetch models: " + e.getMessage());
         }
     }
@@ -264,22 +260,17 @@ public class AiService {
     }
 
     /** The key a call is made with: the caller's own, then the station's. */
-    private @Nullable String storedKey(int stationId, int accountId, String provider) {
+    private @Nullable String storedKey(int stationId, int accountId, AiVendor vendor) {
         return credentials
-                .keyFor(accountId, provider)
-                .or(() -> credentials.stationKey(stationId, provider))
+                .keyFor(accountId, vendor)
+                .or(() -> credentials.stationKey(stationId, vendor))
                 .orElse(null);
-    }
-
-    private static AiVendor requireVendor(String provider) {
-        return AiVendor.fromKey(provider)
-                .orElseThrow(() -> new IllegalArgumentException("Unknown provider: " + provider));
     }
 
     private String resolveModel(int stationId, AiVendor vendor, @Nullable String requestModel) {
         if (requestModel != null && !requestModel.isBlank()) return requestModel;
         return providerRepository
-                .findByProvider(stationId, vendor.key())
+                .findByProvider(stationId, vendor)
                 .map(StationAiProvider::model)
                 .filter(m -> !m.isBlank())
                 .orElse(vendor.defaultModel());

@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.quiz.service;
 
 import dev.chojo.ember.api.refusal.QuizRefusal;
+import dev.chojo.ember.feature.quiz.entity.AiVendor;
 import dev.chojo.ember.feature.quiz.entity.QuestionConfig;
 import dev.chojo.ember.feature.quiz.entity.QuizCatalog;
 import dev.chojo.ember.feature.quiz.entity.QuizCategory;
@@ -40,7 +41,7 @@ import java.util.stream.Collectors;
 @Singleton
 public class QuizGenerationService {
     private static final Logger log = LoggerFactory.getLogger(QuizGenerationService.class);
-    private static final String DEFAULT_PROVIDER = "openai";
+    private static final AiVendor DEFAULT_PROVIDER = AiVendor.OPENAI;
     private static final int DEFAULT_TOTAL_OPTIONS = 5;
 
     private final ConcurrentHashMap<String, GenerationJob> jobs = new ConcurrentHashMap<>();
@@ -203,7 +204,7 @@ public class QuizGenerationService {
                 .orElseThrow(QuizRefusal.AI_GENERATION_CATALOG_NOT_HERE::raise);
     }
 
-    private static String providerOf(@Nullable String provider) {
+    private static AiVendor providerOf(@Nullable AiVendor provider) {
         return Objects.requireNonNullElse(provider, DEFAULT_PROVIDER);
     }
 
@@ -215,7 +216,7 @@ public class QuizGenerationService {
             @Nullable QuizCategory category) {}
 
     public record GenerateQuestionsRequest(
-            @Nullable String provider,
+            @Nullable AiVendor provider,
             @Nullable String model,
             @Nullable String userPrompt,
             @Nullable String locale,
@@ -232,7 +233,7 @@ public class QuizGenerationService {
     }
 
     public record BatchGenerateRequest(
-            @Nullable String provider,
+            @Nullable AiVendor provider,
             @Nullable String model,
             @Nullable Integer targetTotalOptions) {}
 

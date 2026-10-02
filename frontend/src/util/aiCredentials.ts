@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {getAiCredential, getSettings} from '@/api/ai'
+import {AiVendor, type AiVendorName, getAiCredential, getSettings} from '@/api/ai'
 
 /**
  * Which AI provider and model generation asks, and whether there is a key to ask with at all.
@@ -12,7 +12,7 @@ import {getAiCredential, getSettings} from '@/api/ai'
  * one, and the station's otherwise.
  */
 export interface AiCredentials {
-    provider: string
+    provider: AiVendorName
     model: string
     available: boolean
 }
@@ -32,7 +32,7 @@ export async function loadAiCredentials(): Promise<AiCredentials> {
     }
     const station = (await getSettings().catch(() => null))?.providers[0]
     if (station) return {provider: station.provider, model: station.model ?? '', available: true}
-    return {provider: 'openai', model: '', available: false}
+    return {provider: AiVendor.OPENAI, model: '', available: false}
 }
 
 /**

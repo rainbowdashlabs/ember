@@ -247,7 +247,7 @@ public enum QuizRefusal implements Refusal {
      */
     REMOTE_QUIZ_CATALOG_NOT_SHARED(69, HttpStatus.NOT_FOUND, "No catalog here is shared with you under that number"),
 
-    /** A personal AI key saved for a provider this instance cannot call. */
+    /** An AI provider named in an address that is none this instance can call. */
     AI_KEY_PROVIDER_UNKNOWN(70, HttpStatus.BAD_REQUEST, "That AI provider is not one this instance can use"),
 
     /**

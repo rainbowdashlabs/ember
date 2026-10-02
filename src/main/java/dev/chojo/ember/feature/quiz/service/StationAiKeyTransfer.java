@@ -5,11 +5,13 @@
  */
 package dev.chojo.ember.feature.quiz.service;
 
+import dev.chojo.ember.feature.quiz.entity.AiVendor;
 import dev.chojo.ember.feature.quiz.service.AiCredentialService.StationKey;
 import dev.chojo.ember.feature.storage.credential.CredentialCipher;
 import dev.chojo.ember.util.Json;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tools.jackson.core.type.TypeReference;
@@ -41,7 +43,7 @@ public class StationAiKeyTransfer {
 
     private static final Logger log = LoggerFactory.getLogger(StationAiKeyTransfer.class);
     private static final String PURPOSE = "ember station transfer: AI keys";
-    private static final TypeReference<List<StationKey>> KEYS = new TypeReference<>() {};
+    private static final TypeReference<List<CarriedKey>> KEYS = new TypeReference<>() {};
 
     private final AiCredentialService credentials;
 
@@ -58,7 +60,8 @@ public class StationAiKeyTransfer {
      * @return the sealed keys, or empty when the station keeps none that opens
      */
     public Optional<String> seal(int stationId, String token) {
-        List<StationKey> keys = credentials.stationKeys(stationId);
+        List<CarriedKey> keys =
+                credentials.stationKeys(stationId).stream().map(CarriedKey::of).toList();
         if (keys.isEmpty()) return Optional.empty();
         return Optional.of(cipher(token).seal(Json.MAPPER.writeValueAsString(keys)));
     }
@@ -69,17 +72,37 @@ public class StationAiKeyTransfer {
      * @param stationId the station the page was imported into
      * @param page      the exported station page
      * @param token     the transfer token the page was pulled with
-     * @return how many keys were stored
+     * @return how many keys were stored; a key for a provider this instance does not know is left out
      */
     public int adopt(int stationId, Map<String, Object> page, String token) {
         if (!(page.get(FIELD) instanceof String sealed) || !CredentialCipher.isSealed(sealed)) return 0;
-        List<StationKey> keys = Json.MAPPER.readValue(cipher(token).unseal(sealed), KEYS);
+        List<StationKey> keys = Json.MAPPER.readValue(cipher(token).unseal(sealed), KEYS).stream()
+                .flatMap(carried -> carried.known().stream())
+                .toList();
         keys.forEach(key -> credentials.saveStationKey(stationId, key.provider(), key.key(), key.model()));
         log.info("Station {} took over {} AI key(s) of the station it was imported from", stationId, keys.size());
         return keys.size();
     }
 
-    private static CredentialCipher cipher(String token) {
+    static CredentialCipher cipher(String token) {
         return CredentialCipher.derivedFrom(PURPOSE, token);
+    }
+
+    /**
+     * One key as it travels: the provider under its stored key rather than its constant name, which is
+     * what instances before and after the provider became an enum both read.
+     *
+     * @param provider the provider's stored key, for example {@code openai}
+     * @param model    the model asked by default, or {@code null} for the provider's default
+     * @param key      the plaintext key
+     */
+    record CarriedKey(String provider, @Nullable String model, String key) {
+        static CarriedKey of(StationKey key) {
+            return new CarriedKey(key.provider().key(), key.model(), key.key());
+        }
+
+        Optional<StationKey> known() {
+            return AiVendor.fromKey(provider).map(vendor -> new StationKey(vendor, model, key));
+        }
     }
 }

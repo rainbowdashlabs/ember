@@ -6742,7 +6742,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    provider: string;
+                    provider: components["schemas"]["AiVendor"];
                 };
                 cookie?: never;
             };
@@ -6779,7 +6779,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    provider: string;
+                    provider: components["schemas"]["AiVendor"];
                 };
                 cookie?: never;
             };
@@ -6814,7 +6814,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    provider: string;
+                    provider: components["schemas"]["AiVendor"];
                 };
                 cookie?: never;
             };
@@ -54233,12 +54233,12 @@ export interface components {
         AiCredentialRequest: {
             apiKey?: string | null;
             model?: string | null;
-            provider?: string;
+            provider?: components["schemas"]["AiVendor"];
         };
         AiCredentialSummary: {
             keyEnding: string | null;
             model: string | null;
-            provider: string | null;
+            provider: components["schemas"]["AiVendor"] | null;
             usable: boolean;
         };
         AiGenerateRequest: {
@@ -54246,7 +54246,7 @@ export interface components {
             /** Format: int32 */
             count?: number | null;
             model?: string | null;
-            provider?: string | null;
+            provider?: components["schemas"]["AiVendor"] | null;
             question?: string;
         };
         AiGenerateResponse: {
@@ -54267,6 +54267,8 @@ export interface components {
         AiSuccessResponse: {
             success: boolean;
         };
+        /** @enum {string} */
+        AiVendor: "OPENAI" | "GEMINI" | "CLAUDE";
         AnswerBody: {
             answer?: components["schemas"]["SelfCheckAnswer"] | null;
             /** Format: int32 */
@@ -54670,7 +54672,7 @@ export interface components {
         };
         BatchGenerateRequest: {
             model?: string | null;
-            provider?: string | null;
+            provider?: components["schemas"]["AiVendor"] | null;
             /** Format: int32 */
             targetTotalOptions?: number | null;
         };
@@ -57808,7 +57810,7 @@ export interface components {
             entries?: components["schemas"]["GenerateEntry"][];
             locale?: string | null;
             model?: string | null;
-            provider?: string | null;
+            provider?: components["schemas"]["AiVendor"] | null;
             userPrompt?: string | null;
         };
         GenerationPollResponse: {
@@ -62933,7 +62935,7 @@ export interface components {
             /** Format: int32 */
             id: number;
             model: string | null;
-            provider: string;
+            provider: components["schemas"]["AiVendor"];
             /** Format: uuid */
             stationId: string;
         };
@@ -64545,6 +64547,7 @@ export type AiPromptRequest = components['schemas']['AiPromptRequest'];
 export type AiProviderRequest = components['schemas']['AiProviderRequest'];
 export type AiSettingsResponse = components['schemas']['AiSettingsResponse'];
 export type AiSuccessResponse = components['schemas']['AiSuccessResponse'];
+export type AiVendor = components['schemas']['AiVendor'];
 export type AnswerBody = components['schemas']['AnswerBody'];
 export type AnswerProblem = components['schemas']['AnswerProblem'];
 export type AnswerRequest = components['schemas']['AnswerRequest'];

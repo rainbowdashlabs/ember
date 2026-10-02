@@ -9004,9 +9004,9 @@ export default {
             regenerate: 'Neu generieren',
             addEntry: 'Fragetyp hinzufügen',
             providers: {
-                openai: 'OpenAI',
-                gemini: 'Google Gemini',
-                claude: 'Anthropic Claude',
+                OPENAI: 'OpenAI',
+                GEMINI: 'Google Gemini',
+                CLAUDE: 'Anthropic Claude',
             },
         },
         csv: {

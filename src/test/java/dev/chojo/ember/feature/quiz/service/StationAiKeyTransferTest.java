@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.quiz.service;
 
+import dev.chojo.ember.feature.quiz.entity.AiVendor;
 import dev.chojo.ember.feature.quiz.repository.AccountAiCredentialRepository;
 import dev.chojo.ember.feature.quiz.repository.AiProviderRepository;
 import dev.chojo.ember.feature.quiz.service.AiCredentialService.StationKey;
@@ -47,8 +48,8 @@ class StationAiKeyTransferTest extends RepositoryTestBase {
     @Test
     void theDestinationCallsWithTheSameKeysAfterTheTransfer() {
         int sourceStation = newStation();
-        source.saveStationKey(sourceStation, "openai", "sk-open", "gpt-4o");
-        source.saveStationKey(sourceStation, "claude", "sk-claude", null);
+        source.saveStationKey(sourceStation, AiVendor.OPENAI, "sk-open", "gpt-4o");
+        source.saveStationKey(sourceStation, AiVendor.CLAUDE, "sk-claude", null);
         String sealed =
                 new StationAiKeyTransfer(source).seal(sourceStation, TOKEN).orElseThrow();
 
@@ -58,17 +59,20 @@ class StationAiKeyTransferTest extends RepositoryTestBase {
 
         assertEquals(2, adopted);
         assertEquals(
-                List.of(new StationKey("claude", null, "sk-claude"), new StationKey("openai", "gpt-4o", "sk-open")),
+                List.of(
+                        new StationKey(AiVendor.CLAUDE, null, "sk-claude"),
+                        new StationKey(AiVendor.OPENAI, "gpt-4o", "sk-open")),
                 destination.stationKeys(destinationStation));
-        assertTrue(source.stationKey(destinationStation, "openai").isEmpty(), "stored under the destination's key");
+        assertTrue(
+                source.stationKey(destinationStation, AiVendor.OPENAI).isEmpty(), "stored under the destination's key");
     }
 
     @Test
     void theSealedKeysAreNeitherPlaintextNorTheStoredValue() {
         int stationId = newStation();
-        source.saveStationKey(stationId, "openai", "sk-very-secret", null);
+        source.saveStationKey(stationId, AiVendor.OPENAI, "sk-very-secret", null);
         String stored = new AiProviderRepository()
-                .findByProvider(stationId, "openai")
+                .findByProvider(stationId, AiVendor.OPENAI)
                 .orElseThrow()
                 .apiKey();
 
@@ -81,7 +85,7 @@ class StationAiKeyTransferTest extends RepositoryTestBase {
     @Test
     void anotherTokenCannotOpenThem() {
         int stationId = newStation();
-        source.saveStationKey(stationId, "openai", "sk-open", null);
+        source.saveStationKey(stationId, AiVendor.OPENAI, "sk-open", null);
         String sealed = new StationAiKeyTransfer(source).seal(stationId, TOKEN).orElseThrow();
 
         assertThrows(CredentialCipherException.class, () -> new StationAiKeyTransfer(destination)
@@ -91,9 +95,33 @@ class StationAiKeyTransferTest extends RepositoryTestBase {
     @Test
     void aKeyThatNoLongerOpensIsNotCarried() {
         int stationId = newStation();
-        destination.saveStationKey(stationId, "openai", "sk-elsewhere", null);
+        destination.saveStationKey(stationId, AiVendor.OPENAI, "sk-elsewhere", null);
 
         assertTrue(new StationAiKeyTransfer(source).seal(stationId, TOKEN).isEmpty());
+    }
+
+    @Test
+    void theProviderTravelsUnderItsStoredKeySoEveryInstanceReadsIt() {
+        int stationId = newStation();
+        source.saveStationKey(stationId, AiVendor.OPENAI, "sk-open", null);
+
+        String sealed = new StationAiKeyTransfer(source).seal(stationId, TOKEN).orElseThrow();
+
+        assertTrue(StationAiKeyTransfer.cipher(TOKEN).unseal(sealed).contains("\"provider\":\"openai\""));
+    }
+
+    @Test
+    void aKeyForAProviderThisInstanceDoesNotKnowIsLeftBehind() {
+        String sealed = StationAiKeyTransfer.cipher(TOKEN).seal("""
+                [{"provider":"mystery","model":null,"key":"sk-x"},
+                 {"provider":"gemini","model":null,"key":"sk-g"}]""");
+        int stationId = newStation();
+
+        int adopted = new StationAiKeyTransfer(destination)
+                .adopt(stationId, Map.of(StationAiKeyTransfer.FIELD, sealed), TOKEN);
+
+        assertEquals(1, adopted);
+        assertEquals(List.of(new StationKey(AiVendor.GEMINI, null, "sk-g")), destination.stationKeys(stationId));
     }
 
     @Test
