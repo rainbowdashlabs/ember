@@ -20,16 +20,22 @@ import dev.chojo.ember.feature.cluster.entity.ClusterMember;
 import dev.chojo.ember.feature.cluster.entity.ClusterMemberGroup;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.members.entity.NameParts;
+import dev.chojo.ember.feature.members.util.GroupNames;
+import dev.chojo.ember.util.SetDiff;
+import dev.chojo.ember.util.sql.Transactions;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Collection;
+import java.util.EnumMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 /**
  * The cluster's own members, their groups, and the three ways they come to hold a permission.
@@ -159,17 +165,15 @@ public class ClusterMemberService {
     public void setPermissions(int clusterId, int memberId, Set<ClusterPermission> permissions) {
         Cluster cluster = requireCluster(clusterId);
         requireMember(clusterId, memberId);
-        Set<ClusterPermission> before = clusterRepository.findDirectPermissions(memberId);
-        if (before.equals(permissions)) return;
+        var change = SetDiff.of(clusterRepository.findDirectPermissions(memberId), permissions);
+        if (change.isEmpty()) return;
 
-        for (ClusterPermission permission : before) {
-            if (!permissions.contains(permission)) clusterService.revoke(memberId, permission);
-        }
-        for (ClusterPermission permission : permissions) {
-            if (!before.contains(permission)) clusterService.grant(memberId, permission);
-        }
+        Transactions.run(() -> {
+            change.removed().forEach(permission -> clusterService.revoke(memberId, permission));
+            change.added().forEach(permission -> clusterService.grant(memberId, permission));
+        });
         log.info("Cluster member {} now holds {} of their own", memberId, permissions);
-        eventBus.publish(new ClusterMemberRoleChanged(memberId, cluster.name()));
+        announce(cluster, Set.of(memberId));
     }
 
     public List<ClusterMemberGroup> findGroups(int clusterId) {
@@ -182,25 +186,36 @@ public class ClusterMemberService {
                 group, clusterRepository.findGroupPermissions(groupId), clusterRepository.findGroupMemberIds(groupId));
     }
 
-    public ClusterMemberGroup createGroup(int clusterId, String name) {
+    public ClusterMemberGroup createGroup(int clusterId, @Nullable String name) {
         requireCluster(clusterId);
-        if (name == null || name.isBlank()) throw ClusterRefusal.CLUSTER_MEMBER_GROUP_NAME_MISSING_ON_CREATE.raise();
-        ClusterMemberGroup group = clusterRepository.createGroup(clusterId, name.trim());
+        String checked = GroupNames.require(
+                name,
+                null,
+                namesOfOtherGroups(clusterId, null),
+                ClusterRefusal.CLUSTER_MEMBER_GROUP_NAME_MISSING_ON_CREATE,
+                ClusterRefusal.CLUSTER_MEMBER_GROUP_NAME_TAKEN_ON_CREATE);
+        ClusterMemberGroup group = clusterRepository.createGroup(clusterId, checked);
         log.info("Cluster {} opened the group '{}' ({})", clusterId, group.name(), group.id());
         return group;
     }
 
-    public void renameGroup(int clusterId, int groupId, String name) {
-        requireGroup(clusterId, groupId);
-        if (name == null || name.isBlank()) throw ClusterRefusal.CLUSTER_MEMBER_GROUP_NAME_MISSING_ON_CHANGE.raise();
-        clusterRepository.renameGroup(groupId, name.trim());
-        log.info("Cluster {} renamed group {} to '{}'", clusterId, groupId, name.trim());
+    public void renameGroup(int clusterId, int groupId, @Nullable String name) {
+        updateGroup(clusterId, groupId, new GroupChange(name, null, null));
     }
 
+    /**
+     * Closes a group. Everybody who was in it is told, because what it carried is no longer theirs.
+     *
+     * @param clusterId the cluster
+     * @param groupId   the group
+     */
     public void deleteGroup(int clusterId, int groupId) {
         requireGroup(clusterId, groupId);
+        Cluster cluster = requireCluster(clusterId);
+        List<Integer> members = clusterRepository.findGroupMemberIds(groupId);
         clusterRepository.deleteGroup(groupId);
         log.info("Cluster {} closed group {}", clusterId, groupId);
+        announce(cluster, members);
     }
 
     /**
@@ -211,28 +226,99 @@ public class ClusterMemberService {
      * @param memberIds who should be in it
      */
     public void setGroupMembers(int clusterId, int groupId, Set<Integer> memberIds) {
-        Cluster cluster = requireCluster(clusterId);
-        requireGroup(clusterId, groupId);
-        List<Integer> before = clusterRepository.findGroupMemberIds(groupId);
+        updateGroup(clusterId, groupId, new GroupChange(null, null, memberIds));
+    }
 
-        for (int memberId : before) {
-            if (!memberIds.contains(memberId)) {
-                clusterRepository.removeFromGroup(groupId, memberId);
-                eventBus.publish(new ClusterMemberRoleChanged(memberId, cluster.name()));
-            }
-        }
-        for (int memberId : memberIds) {
-            if (before.contains(memberId)) continue;
-            requireMember(clusterId, memberId);
-            clusterRepository.addToGroup(groupId, memberId);
-            eventBus.publish(new ClusterMemberRoleChanged(memberId, cluster.name()));
-        }
+    /**
+     * Changes a group's name, what it carries and who is in it, all of it or none of it.
+     *
+     * <p>One request may name all three, and a refusal for the last part must not leave the first two
+     * written: a group renamed and granted more while its people stayed the same is a state nobody asked
+     * for. Everybody whose standing moved is told once the change holds, and not before.
+     *
+     * @param clusterId the cluster
+     * @param groupId   the group
+     * @param change    the parts to change
+     */
+    public void updateGroup(int clusterId, int groupId, GroupChange change) {
+        Cluster cluster = requireCluster(clusterId);
+        ClusterMemberGroup group = requireGroup(clusterId, groupId);
+        String name = change.name();
+        Set<Integer> memberIds = change.memberIds();
+        Set<ClusterPermission> permissions = change.permissions();
+        Set<Integer> moved = Transactions.call(() -> {
+            Set<Integer> affected = new HashSet<>();
+            if (name != null) rename(group, name);
+            if (memberIds != null) affected.addAll(writeGroupMembers(clusterId, groupId, memberIds));
+            if (permissions != null) affected.addAll(writeGroupPermissions(groupId, permissions));
+            return affected;
+        });
+        announce(cluster, moved);
+    }
+
+    private void rename(ClusterMemberGroup group, String name) {
+        String checked = GroupNames.require(
+                name,
+                group.name(),
+                namesOfOtherGroups(group.clusterId(), group.id()),
+                ClusterRefusal.CLUSTER_MEMBER_GROUP_NAME_MISSING_ON_CHANGE,
+                ClusterRefusal.CLUSTER_MEMBER_GROUP_NAME_TAKEN_ON_CHANGE);
+        clusterRepository.renameGroup(group.id(), checked);
+        log.info("Cluster {} renamed group {} to '{}'", group.clusterId(), group.id(), checked);
+    }
+
+    /**
+     * @return everybody who joined or left
+     */
+    private List<Integer> writeGroupMembers(int clusterId, int groupId, Collection<Integer> memberIds) {
+        var change = SetDiff.of(clusterRepository.findGroupMemberIds(groupId), memberIds);
+        change.added().forEach(memberId -> requireMember(clusterId, memberId));
+        change.removed().forEach(memberId -> clusterRepository.removeFromGroup(groupId, memberId));
+        change.added().forEach(memberId -> clusterRepository.addToGroup(groupId, memberId));
         log.info(
-                "Cluster {} put {} member(s) in group {}, {} were there before",
+                "Cluster {} put {} member(s) in group {} and took {} out",
                 clusterId,
-                memberIds.size(),
+                change.added().size(),
                 groupId,
-                before.size());
+                change.removed().size());
+        return change.touched();
+    }
+
+    /**
+     * @return everybody in the group, where what it carries changed
+     */
+    private List<Integer> writeGroupPermissions(int groupId, Set<ClusterPermission> permissions) {
+        var change = SetDiff.of(clusterRepository.findGroupPermissions(groupId), permissions);
+        if (change.isEmpty()) return List.of();
+
+        Map<ClusterPermission, Integer> granted = new EnumMap<>(ClusterPermission.class);
+        for (ClusterPermission permission : change.added()) {
+            granted.put(
+                    permission,
+                    clusterRepository
+                            .findPermissionId(permission)
+                            .orElseThrow(() ->
+                                    ClusterRefusal.CLUSTER_MEMBER_GROUP_PERMISSION_UNKNOWN.raise(permission.name())));
+        }
+        for (ClusterPermission permission : change.removed()) {
+            clusterRepository
+                    .findPermissionId(permission)
+                    .ifPresent(id -> clusterRepository.revokeFromGroup(groupId, id));
+        }
+        granted.values().forEach(id -> clusterRepository.grantToGroup(groupId, id));
+        log.info("Cluster group {} now carries {}", groupId, permissions);
+        return clusterRepository.findGroupMemberIds(groupId);
+    }
+
+    private List<String> namesOfOtherGroups(int clusterId, @Nullable Integer exceptGroupId) {
+        return clusterRepository.findGroups(clusterId).stream()
+                .filter(group -> exceptGroupId == null || group.id() != exceptGroupId)
+                .map(ClusterMemberGroup::name)
+                .toList();
+    }
+
+    private void announce(Cluster cluster, Collection<Integer> memberIds) {
+        memberIds.forEach(memberId -> eventBus.publish(new ClusterMemberRoleChanged(memberId, cluster.name())));
     }
 
     /**
@@ -248,21 +334,25 @@ public class ClusterMemberService {
     public void setMemberGroups(int clusterId, int memberId, Set<Integer> groupIds) {
         Cluster cluster = requireCluster(clusterId);
         requireMember(clusterId, memberId);
-        Set<Integer> before = clusterRepository.findGroupsOfMember(memberId).stream()
-                .map(ClusterMemberGroup::id)
-                .collect(Collectors.toSet());
-        if (before.equals(groupIds)) return;
+        var change = SetDiff.of(
+                clusterRepository.findGroupsOfMember(memberId).stream()
+                        .map(ClusterMemberGroup::id)
+                        .toList(),
+                groupIds);
+        if (change.isEmpty()) return;
 
-        for (int groupId : before) {
-            if (!groupIds.contains(groupId)) clusterRepository.removeFromGroup(groupId, memberId);
-        }
-        for (int groupId : groupIds) {
-            if (before.contains(groupId)) continue;
-            requireGroup(clusterId, groupId);
-            clusterRepository.addToGroup(groupId, memberId);
-        }
-        eventBus.publish(new ClusterMemberRoleChanged(memberId, cluster.name()));
-        log.info("Cluster {} moved member {} from groups {} to {}", clusterId, memberId, before, groupIds);
+        change.added().forEach(groupId -> requireGroup(clusterId, groupId));
+        Transactions.run(() -> {
+            change.removed().forEach(groupId -> clusterRepository.removeFromGroup(groupId, memberId));
+            change.added().forEach(groupId -> clusterRepository.addToGroup(groupId, memberId));
+        });
+        log.info(
+                "Cluster {} moved member {} into groups {} and out of {}",
+                clusterId,
+                memberId,
+                change.added(),
+                change.removed());
+        announce(cluster, Set.of(memberId));
     }
 
     /**
@@ -273,28 +363,7 @@ public class ClusterMemberService {
      * @param permissions what it now carries
      */
     public void setGroupPermissions(int clusterId, int groupId, Set<ClusterPermission> permissions) {
-        Cluster cluster = requireCluster(clusterId);
-        requireGroup(clusterId, groupId);
-        Set<ClusterPermission> before = clusterRepository.findGroupPermissions(groupId);
-        if (before.equals(permissions)) return;
-
-        for (ClusterPermission permission : before) {
-            if (permissions.contains(permission)) continue;
-            clusterRepository
-                    .findPermissionId(permission)
-                    .ifPresent(id -> clusterRepository.revokeFromGroup(groupId, id));
-        }
-        for (ClusterPermission permission : permissions) {
-            if (before.contains(permission)) continue;
-            int id = clusterRepository
-                    .findPermissionId(permission)
-                    .orElseThrow(() -> ClusterRefusal.CLUSTER_MEMBER_GROUP_PERMISSION_UNKNOWN.raise(permission.name()));
-            clusterRepository.grantToGroup(groupId, id);
-        }
-        for (int memberId : clusterRepository.findGroupMemberIds(groupId)) {
-            eventBus.publish(new ClusterMemberRoleChanged(memberId, cluster.name()));
-        }
-        log.info("Cluster {} changed what group {} carries from {} to {}", clusterId, groupId, before, permissions);
+        updateGroup(clusterId, groupId, new GroupChange(null, permissions, null));
     }
 
     private Cluster requireCluster(int clusterId) {
@@ -331,6 +400,18 @@ public class ClusterMemberService {
             Set<ClusterPermission> resolved) {}
 
     public record GroupDetail(ClusterMemberGroup group, Set<ClusterPermission> permissions, List<Integer> memberIds) {}
+
+    /**
+     * The parts of a group one change touches. A part left {@code null} stays as it is.
+     *
+     * @param name        its new name
+     * @param permissions everything it carries afterwards
+     * @param memberIds   everybody in it afterwards
+     */
+    public record GroupChange(
+            @Nullable String name,
+            @Nullable Set<ClusterPermission> permissions,
+            @Nullable Set<Integer> memberIds) {}
 
     /**
      * A member of a cluster as the member list shows them, named by the account behind them.

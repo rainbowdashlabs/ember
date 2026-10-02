@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.entity.ClusterMember;
 import dev.chojo.ember.feature.cluster.service.ClusterMemberService;
 import dev.chojo.ember.feature.cluster.service.ClusterMemberService.ClusterMemberResponse;
+import dev.chojo.ember.feature.cluster.service.ClusterMemberService.GroupChange;
 import dev.chojo.ember.feature.cluster.service.ClusterService;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
@@ -27,6 +28,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.EnumSet;
 import java.util.List;
@@ -279,14 +281,15 @@ public class ClusterMemberRoutes implements Routes {
         Cluster cluster = requireActive(ctx);
         int groupId = pathInt(ctx, "groupId");
         var request = ctx.bodyAsClass(ClusterGroupUpdateRequest.class);
-
-        if (request.name() != null) memberService.renameGroup(cluster.id(), groupId, request.name());
-        if (request.permissions() != null) {
-            memberService.setGroupPermissions(cluster.id(), groupId, parsePermissions(request.permissions()));
-        }
-        if (request.memberIds() != null) {
-            memberService.setGroupMembers(cluster.id(), groupId, Set.copyOf(request.memberIds()));
-        }
+        List<String> permissions = request.permissions();
+        List<Integer> memberIds = request.memberIds();
+        memberService.updateGroup(
+                cluster.id(),
+                groupId,
+                new GroupChange(
+                        request.name(),
+                        permissions == null ? null : parsePermissions(permissions),
+                        memberIds == null ? null : Set.copyOf(memberIds)));
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -357,9 +360,13 @@ public class ClusterMemberRoutes implements Routes {
     public record ClusterGroupRequest(String name) {}
 
     /**
-     * Every field is optional: a caller renaming a group need not resend who is in it.
+     * Every field is optional: a caller renaming a group need not resend who is in it. The parts given
+     * are written together or not at all.
      */
-    public record ClusterGroupUpdateRequest(String name, List<String> permissions, List<Integer> memberIds) {}
+    public record ClusterGroupUpdateRequest(
+            @Nullable String name,
+            @Nullable List<String> permissions,
+            @Nullable List<Integer> memberIds) {}
 
     public record ClusterGroupResponse(int id, String name) {}
 

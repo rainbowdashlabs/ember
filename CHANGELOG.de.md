@@ -70,6 +70,7 @@
 - **Verborgene Unterlagen der Wache ließen sich über ihre Adresse öffnen.** Ein verborgenes Dokument, das niemanden nennt, konnte jeder öffnen, der die eigenen Unterlagen der Wache lesen darf, sofern er seine Nummer kannte. Jetzt öffnet es nur, wer Mitgliederdokumente einsehen darf.
 - **Mitglieder konnten eigene Uploads taggen und über den Austritt hinaus behalten.** Wer nur Dokumente für sich selbst hochladen darf, konnte der Wache neue Tags anlegen und ein Dokument über die Mitgliedschaft hinaus aufbewahren lassen. Beides bleibt jetzt bei denen, die Dokumente verwalten.
 - **Dateien werden genommen als das, was sie wirklich sind.** Ein Dokument konnte sich als Bild oder PDF ausgeben und etwas anderes sein, und wurde dann als solches angezeigt. Jetzt entscheidet der Inhalt, und eine Datei, deren Name etwas anderes behauptet, wird abgewiesen.
+- **Eine Gruppe entfernen braucht ihre Rechte.** Wer Gruppen verwalten durfte, konnte eine Gruppe löschen oder in einen Tag umwandeln und so allen darin Berechtigungen nehmen, die er selbst nicht hatte. Jetzt brauchst du dafür jede Berechtigung der Gruppe, und bei einer Gruppe mit Berechtigungen bestätigst du dich noch einmal kurz.
 
 ### Änderungen
 
@@ -194,6 +195,10 @@
 - **Alte Einstellungen eines Verbandsspeichers wurden nie gelöscht.** Zeigte ein Verband mit seinem Speicher woandershin oder gab ihn auf, blieben die alten Einstellungen samt Zugangsdaten für immer liegen. Sie werden jetzt gelöscht, sobald keine Wache mehr Dateien darauf hat.
 - **Das Speichern eines Verbandsspeichers konnte ihn ohne Speicher zurücklassen.** In seltenen Fällen ließ ein Speichern, das auf halbem Weg scheiterte, den Verband ganz ohne eigenen Speicher zurück. Der bisherige Speicher bleibt jetzt, bis der neue gespeichert ist.
 - **Ein abgelehnter Umzug erschien als begonnen.** Verschob ein Verband eine Wache, deren Dateien schon am richtigen Ort lagen, stand der Umzug im Verlauf der Wache trotzdem als begonnen. Jetzt stehen dort nur Umzüge, die wirklich beginnen.
+- **Gruppen des Verbands speicherten halbe Änderungen.** Wurde ein Teil einer Änderung an einer Mitgliedergruppe des Verbands abgelehnt, blieben die Teile davor trotzdem gespeichert, etwa ein neuer Name mit den alten Mitgliedern. Jetzt wird eine Änderung ganz gespeichert oder gar nicht.
+- **Eine gelöschte Gruppe des Verbands sagte niemandem Bescheid.** Wer in einer Mitgliedergruppe des Verbands war, verlor beim Löschen der Gruppe ihre Rechte ohne ein Wort. Jetzt kommt dieselbe Nachricht wie beim Herausnehmen aus einer Gruppe.
+- **Die Gruppen des Verbands boten Knöpfe an, die nicht funktionierten.** Wenn du die Mitgliedergruppen des Verbands nur ansehen darfst, wurden dir trotzdem Anlegen, Löschen und das Ändern der Mitglieder angeboten, und der Server lehnte dann ab. Diese Knöpfe sehen jetzt nur noch die Verwalter des Verbands.
+- **Doppelte Gruppennamen endeten in einem allgemeinen Fehler.** Gruppennamen einer Wache behielten Leerzeichen am Rand, und eine zweite Gruppe mit einem vergebenen Namen scheiterte, ohne zu sagen warum. Jetzt werden Namen bereinigt, und ein vergebener Name wird klar abgelehnt, egal wie er geschrieben ist.
 
 ## v26.19.5
 

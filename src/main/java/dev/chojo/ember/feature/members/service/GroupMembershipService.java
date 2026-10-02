@@ -21,6 +21,7 @@ import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.GroupRuleRefused.GroupConflict;
 import dev.chojo.ember.feature.members.util.PermissionValidation;
+import dev.chojo.ember.util.SetDiff;
 import dev.chojo.ember.util.sql.Transactions;
 import jakarta.inject.Inject;
 import jakarta.inject.Provider;
@@ -38,7 +39,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.function.IntPredicate;
 import java.util.stream.Collectors;
 
 /**
@@ -97,18 +97,18 @@ public class GroupMembershipService {
         if (!stationGroups.keySet().containsAll(wanted)) {
             throw MemberRefusal.GROUP_NOT_HERE_FOR_MEMBER.raise();
         }
-        Set<Integer> current = groupIdsOf(member.id());
-        List<MemberGroup> added = pick(stationGroups, wanted, id -> !current.contains(id));
-        List<MemberGroup> removed = pick(stationGroups, current, id -> !wanted.contains(id));
+        var change = SetDiff.of(groupIdsOf(member.id()), wanted);
+        List<MemberGroup> added = pick(stationGroups, change.added());
+        List<MemberGroup> removed = pick(stationGroups, change.removed());
 
         for (MemberGroup group : added) {
             if (!group.admits(member.userType())) {
                 throw MemberRefusal.GROUP_WRONG_USER_TYPE_FOR_MEMBER.raise(group.name());
             }
         }
-        requireOneGroupPerSet(pick(stationGroups, wanted, _ -> true));
+        requireOneGroupPerSet(pick(stationGroups, wanted));
         requireRightsFor(added, by.user(), MemberRefusal.GROUP_GRANTS_MORE_THAN_YOURS_FOR_MEMBER);
-        requirePresenceFor(concat(added, removed), by.user());
+        requirePresenceFor(pick(stationGroups, change.touched()), by.user());
 
         Transactions.run(() -> {
             removed.forEach(group -> groupRepository.removeMember(group.id(), member.id()));
@@ -142,13 +142,13 @@ public class GroupMembershipService {
         if (!stationMembers.keySet().containsAll(wanted)) {
             throw MemberRefusal.GROUP_MEMBER_NOT_HERE.raise();
         }
-        Set<Integer> current = groupRepository.findMembers(group.id()).stream()
-                .map(StationMember::id)
-                .collect(Collectors.toSet());
-        List<Integer> added =
-                wanted.stream().filter(id -> !current.contains(id)).toList();
-        List<Integer> removed =
-                current.stream().filter(id -> !wanted.contains(id)).toList();
+        var change = SetDiff.of(
+                groupRepository.findMembers(group.id()).stream()
+                        .map(StationMember::id)
+                        .toList(),
+                wanted);
+        List<Integer> added = change.added();
+        List<Integer> removed = change.removed();
 
         List<StationMember> misfits = added.stream()
                 .map(stationMembers::get)
@@ -328,6 +328,19 @@ public class GroupMembershipService {
     }
 
     /**
+     * Refuses removing a group, or turning it into a tag, unless the caller may take from its members
+     * everything it grants: they hold all of it, and proved themselves recently where it grants anything.
+     *
+     * @param group   the group about to go
+     * @param by      who is asking
+     * @param refusal the refusal for a group granting more than the caller holds
+     */
+    void requireMayDissolve(MemberGroup group, UserSession by, Refusal refusal) {
+        requireRightsFor(List.of(group), by, refusal);
+        requirePresenceFor(List.of(group), by);
+    }
+
+    /**
      * One member named in a refused change, with the groups the rule is about for them.
      *
      * @param memberId the member
@@ -389,19 +402,8 @@ public class GroupMembershipService {
         return groups.stream().collect(Collectors.toMap(MemberGroup::id, Function.identity()));
     }
 
-    private static List<MemberGroup> pick(
-            Map<Integer, MemberGroup> groups, Collection<Integer> ids, IntPredicate keep) {
-        return ids.stream()
-                .filter(keep::test)
-                .map(groups::get)
-                .filter(Objects::nonNull)
-                .toList();
-    }
-
-    private static List<MemberGroup> concat(List<MemberGroup> first, List<MemberGroup> second) {
-        var all = new ArrayList<>(first);
-        all.addAll(second);
-        return all;
+    private static List<MemberGroup> pick(Map<Integer, MemberGroup> groups, Collection<Integer> ids) {
+        return ids.stream().map(groups::get).filter(Objects::nonNull).toList();
     }
 
     private static List<Integer> ids(List<MemberGroup> groups) {

@@ -19,6 +19,7 @@ import {
     PROFILE_FIELD_NOT_HERE,
     LINK_CARRIES_NOTHING,
     GROUP_NAME_MISSING,
+    GROUP_NAME_TAKEN,
     GROUP_NOT_HERE,
     GROUP_NOT_HERE_NOTHING_SAVED,
     TAG_NAME_MISSING,
@@ -241,4 +242,8 @@ export default {
     'M-194': 'Inhalte sind noch auf diese Gruppe beschränkt, sie wurde nicht entfernt. Ändere zuerst, wer sie sehen darf',
     'M-195': 'Inhalte sind noch auf diese Gruppe beschränkt, sie wurde nicht in einen Tag umgewandelt. Ändere zuerst, wer sie sehen darf',
     'M-196': 'Diese Gruppe gehört nicht zu dieser Wache, es wurde nichts gespeichert',
+    'M-197': GROUP_NAME_TAKEN,
+    'M-198': GROUP_NAME_TAKEN,
+    'M-199': 'Diese Gruppe vergibt Berechtigungen, die du selbst nicht hast, sie wurde nicht entfernt',
+    'M-200': 'Diese Gruppe vergibt Berechtigungen, die du selbst nicht hast, sie wurde nicht in einen Tag umgewandelt',
 }

@@ -86,6 +86,11 @@ export interface GroupsCapabilities {
     permissionScope: PermissionScope
     /** What the group holds, which is what the assignment panel calls the things it lists. */
     holds: 'members' | 'stations'
+    /**
+     * Whether the reader may change the groups: create, rename and delete one, and change what it holds.
+     * Somebody who may only look sees the same panels without the controls the server would refuse.
+     */
+    canEdit: boolean
 }
 
 const GROUPS_CAPABILITIES: InjectionKey<GroupsCapabilities> = Symbol('groupsCapabilities')
@@ -96,6 +101,7 @@ const STATION_CAPABILITIES: GroupsCapabilities = {
     hasPermissions: true,
     permissionScope: 'station',
     holds: 'members',
+    canEdit: true,
 }
 
 export function useGroupsCapabilities(): GroupsCapabilities {

@@ -14,15 +14,15 @@ import type {GroupRow} from '@/util/groupRules'
 import {memberGroups, stationMembers} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {useConfirmAction} from '@/composables/useConfirmAction'
-import GroupListPanel from './groupsview/GroupListPanel.vue'
-import GroupDetailPanel from './groupsview/GroupDetailPanel.vue'
-import GroupFormModal from './groupsview/GroupFormModal.vue'
+import GroupListPanel from '@/components/groups/GroupListPanel.vue'
+import GroupDetailPanel from '@/components/groups/GroupDetailPanel.vue'
+import GroupFormModal from '@/components/groups/GroupFormModal.vue'
 import GroupRulesFields from './groupsview/GroupRulesFields.vue'
 import GroupSetPanel from './groupsview/GroupSetPanel.vue'
 import GroupConflictModal from './groupsview/GroupConflictModal.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import GroupConvertModal from './groupsview/GroupConvertModal.vue'
-import {useMemberAssignment} from './useMemberAssignment'
+import {useMemberAssignment} from '@/components/groups/useMemberAssignment'
 import {useGroupRulesForm} from './groupsview/useGroupRulesForm'
 import {useGroupSets} from './groupsview/useGroupSets'
 import {useSetMoves} from './groupsview/useSetMoves'
@@ -79,6 +79,7 @@ const {
   hasPermissions: true,
   permissionScope: 'station',
   holds: 'members',
+  canEdit: true,
 })
 
 const canConvertToTag = computed(() => hasPermission(StationPermission.MEMBER_MANAGE_TAGS))

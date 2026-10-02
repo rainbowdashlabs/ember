@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.MemberGroupSetRepository;
+import dev.chojo.ember.feature.members.util.GroupNames;
 import dev.chojo.ember.util.sql.Transactions;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -24,6 +25,7 @@ import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -59,18 +61,24 @@ public class GroupRulesService {
      * Creates a group with its rules.
      *
      * @param stationId the station
-     * @param name      the group's name
+     * @param name      the group's name, trimmed and held to {@link GroupNames}
      * @param rules     its binding and set, or {@code null} for a group in no set that takes every type
      * @param by        who is asking
      * @return the new group
      */
-    public MemberGroup create(int stationId, String name, @Nullable GroupRules rules, UserSession by) {
+    public MemberGroup create(int stationId, @Nullable String name, @Nullable GroupRules rules, UserSession by) {
+        String checked = GroupNames.require(
+                name,
+                null,
+                namesOfOtherGroups(stationId, null),
+                MemberRefusal.GROUP_NAME_MISSING_ON_CREATE,
+                MemberRefusal.GROUP_NAME_TAKEN_ON_CREATE);
         var group = Transactions.call(() -> {
-            var created = groupRepository.create(stationId, name);
+            var created = groupRepository.create(stationId, checked);
             if (rules != null) apply(created, rules, false, by);
             return groupRepository.findById(created.id()).orElseThrow();
         });
-        log.info("Group created: id={}, station={}, name='{}'", group.id(), stationId, name);
+        log.info("Group created: id={}, station={}, name='{}'", group.id(), stationId, checked);
         return group;
     }
 
@@ -78,9 +86,9 @@ public class GroupRulesService {
      * Changes a group's name, colour, position and, where given, its rules.
      *
      * @param group             the group, already checked to belong to the caller's station
-     * @param name              its new name
+     * @param name              its new name, trimmed and held to {@link GroupNames}
      * @param color             its new colour, or {@code null} for none
-     * @param position          its new position
+     * @param position          its new position, or {@code null} to keep the one it has
      * @param rules             its new binding and set, or {@code null} to leave both as they are
      * @param removeNonMatching whether members the new binding does not take are to be taken out of
      *                          the group, rather than refused
@@ -89,21 +97,35 @@ public class GroupRulesService {
      */
     public MemberGroup update(
             MemberGroup group,
-            String name,
+            @Nullable String name,
             @Nullable String color,
-            int position,
+            @Nullable Integer position,
             @Nullable GroupRules rules,
             boolean removeNonMatching,
             UserSession by) {
+        String checked = GroupNames.require(
+                name,
+                group.name(),
+                namesOfOtherGroups(group.stationId(), group.id()),
+                MemberRefusal.GROUP_NAME_MISSING_ON_CHANGE,
+                MemberRefusal.GROUP_NAME_TAKEN_ON_CHANGE);
+        int place = Objects.requireNonNullElse(position, group.position());
         var updated = Transactions.call(() -> {
             if (rules != null) apply(group, rules, removeNonMatching, by);
-            if (!groupRepository.update(group.id(), name, color, position)) {
+            if (!groupRepository.update(group.id(), checked, color, place)) {
                 throw MemberRefusal.GROUP_NOT_HERE_ON_CHANGE.raise();
             }
             return groupRepository.findById(group.id()).orElseThrow(MemberRefusal.GROUP_NOT_HERE_ON_CHANGE::raise);
         });
-        log.info("Group updated: id={}, name='{}'", group.id(), name);
+        log.info("Group updated: id={}, name='{}'", group.id(), checked);
         return updated;
+    }
+
+    private List<String> namesOfOtherGroups(int stationId, @Nullable Integer exceptGroupId) {
+        return groupRepository.findByStation(stationId).stream()
+                .filter(group -> exceptGroupId == null || group.id() != exceptGroupId)
+                .map(MemberGroup::name)
+                .toList();
     }
 
     private void apply(MemberGroup group, GroupRules rules, boolean removeNonMatching, UserSession by) {

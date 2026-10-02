@@ -9,12 +9,16 @@ import dev.chojo.ember.api.auth.ClusterPermission;
 import dev.chojo.ember.api.auth.ClusterUserType;
 import dev.chojo.ember.api.refusal.ClusterRefusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
+import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.events.ClusterMemberRoleChanged;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.account.service.AccountInviteService;
 import dev.chojo.ember.feature.account.service.AccountNameRequiredException;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -25,6 +29,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 /**
  * The cluster's own people and the three ways they come to hold a permission.
@@ -211,6 +217,59 @@ class ClusterMemberServiceTest extends RepositoryTestBase {
 
         service.deleteGroup(clusterId, group.id());
         assertTrue(service.findGroups(clusterId).isEmpty());
+    }
+
+    /**
+     * Closing a group takes what it carried from everybody in it, which is as much a change of their
+     * standing as being taken out of it one by one, and they hear about it the same way.
+     */
+    @Test
+    void closingAGroupTellsEverybodyWhoWasInIt() {
+        int clusterId = freshCluster();
+        var bus = mock(DomainEventBus.class);
+        var watched = new ClusterMemberService(
+                clusterRepo, clusterService, accountRepo, mock(AccountInviteService.class), bus);
+        var first = clusterService.addMember(clusterId, freshAccount().id(), ClusterUserType.CLUSTER_USER);
+        var second = clusterService.addMember(clusterId, freshAccount().id(), ClusterUserType.CLUSTER_USER);
+        var group = service.createGroup(clusterId, "Aufgelöst");
+        service.setGroupMembers(clusterId, group.id(), Set.of(first.id(), second.id()));
+        String clusterName = clusterRepo.findById(clusterId).orElseThrow().name();
+
+        watched.deleteGroup(clusterId, group.id());
+
+        verify(bus).publish(new ClusterMemberRoleChanged(first.id(), clusterName));
+        verify(bus).publish(new ClusterMemberRoleChanged(second.id(), clusterName));
+        assertTrue(service.findGroups(clusterId).isEmpty());
+    }
+
+    /** A list naming somebody of another cluster puts nobody in, not the ones named before them. */
+    @Test
+    void aRefusedMembershipWritesNobody() {
+        int clusterId = freshCluster();
+        var member = clusterService.addMember(clusterId, freshAccount().id(), ClusterUserType.CLUSTER_USER);
+        var stranger = clusterService.addMember(freshCluster(), freshAccount().id(), ClusterUserType.CLUSTER_USER);
+        var group = service.createGroup(clusterId, "Ganz oder gar nicht");
+
+        assertThrows(
+                RefusalResponse.class,
+                () -> service.setGroupMembers(
+                        clusterId, group.id(), new LinkedHashSet<>(List.of(member.id(), stranger.id()))));
+
+        assertTrue(service.findGroupDetail(clusterId, group.id()).memberIds().isEmpty());
+    }
+
+    @Test
+    void aGroupNameIsTrimmedAndTakenWhateverTheCase() {
+        int clusterId = freshCluster();
+        var group = service.createGroup(clusterId, "  Vorstand ");
+        assertEquals("Vorstand", group.name());
+
+        var refused = assertThrows(RefusalResponse.class, () -> service.createGroup(clusterId, "VORSTAND"));
+        assertEquals(ClusterRefusal.CLUSTER_MEMBER_GROUP_NAME_TAKEN_ON_CREATE, refused.refusal());
+        service.renameGroup(clusterId, group.id(), "vorstand");
+        assertEquals(
+                "vorstand",
+                service.findGroupDetail(clusterId, group.id()).group().name());
     }
 
     @Test

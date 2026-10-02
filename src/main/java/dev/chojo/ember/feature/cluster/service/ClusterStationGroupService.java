@@ -10,8 +10,10 @@ import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.entity.ClusterStationGroup;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.cluster.repository.ClusterStationGroupRepository;
+import dev.chojo.ember.feature.members.util.GroupNames;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.util.sql.Transactions;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -58,10 +60,14 @@ public class ClusterStationGroupService {
      * @param name      what it is called
      * @return the group
      */
-    public ClusterStationGroup create(int clusterId, String name) {
+    public ClusterStationGroup create(int clusterId, @Nullable String name) {
         requireCluster(clusterId);
-        String trimmed = requireName(name);
-        requireNameFree(clusterId, trimmed, null);
+        String trimmed = GroupNames.require(
+                name,
+                null,
+                namesOfOtherGroups(clusterId, null),
+                ClusterRefusal.CLUSTER_STATION_GROUP_NEEDS_A_NAME,
+                ClusterRefusal.CLUSTER_STATION_GROUP_NAME_TAKEN);
         ClusterStationGroup group = groupRepository.create(clusterId, trimmed);
         log.info("Cluster {} filed a station group '{}'", clusterId, trimmed);
         return group;
@@ -72,10 +78,14 @@ public class ClusterStationGroupService {
      * @param groupId   the group
      * @param name      what it is called now
      */
-    public void rename(int clusterId, int groupId, String name) {
-        requireOwnGroup(clusterId, groupId);
-        String trimmed = requireName(name);
-        requireNameFree(clusterId, trimmed, groupId);
+    public void rename(int clusterId, int groupId, @Nullable String name) {
+        ClusterStationGroup group = requireOwnGroup(clusterId, groupId);
+        String trimmed = GroupNames.require(
+                name,
+                group.name(),
+                namesOfOtherGroups(clusterId, groupId),
+                ClusterRefusal.CLUSTER_STATION_GROUP_NEEDS_A_NAME,
+                ClusterRefusal.CLUSTER_STATION_GROUP_NAME_TAKEN);
         groupRepository.rename(groupId, trimmed);
         log.info("Cluster {} renamed station group {} to '{}'", clusterId, groupId, trimmed);
     }
@@ -161,7 +171,7 @@ public class ClusterStationGroupService {
             stationIds.add(station.id());
         }
 
-        groupRepository.setStations(groupId, stationIds);
+        Transactions.run(() -> groupRepository.setStations(groupId, stationIds));
         log.info("Cluster {} filed {} station(s) under group {}", clusterId, stationIds.size(), groupId);
     }
 
@@ -180,23 +190,17 @@ public class ClusterStationGroupService {
                 .orElseThrow(ClusterRefusal.CLUSTER_STATION_GROUP_CLUSTER_GONE::raise);
     }
 
-    private void requireOwnGroup(int clusterId, int groupId) {
-        boolean own = groupRepository
+    private ClusterStationGroup requireOwnGroup(int clusterId, int groupId) {
+        return groupRepository
                 .findById(groupId)
                 .filter(group -> group.clusterId() == clusterId)
-                .isPresent();
-        if (!own) throw ClusterRefusal.CLUSTER_STATION_GROUP_NOT_HERE.raise();
+                .orElseThrow(ClusterRefusal.CLUSTER_STATION_GROUP_NOT_HERE::raise);
     }
 
-    private static String requireName(String name) {
-        if (name == null || name.isBlank()) throw ClusterRefusal.CLUSTER_STATION_GROUP_NEEDS_A_NAME.raise();
-        return name.trim();
-    }
-
-    private void requireNameFree(int clusterId, String name, @Nullable Integer exceptGroupId) {
-        boolean taken = groupRepository.findByCluster(clusterId).stream()
+    private List<String> namesOfOtherGroups(int clusterId, @Nullable Integer exceptGroupId) {
+        return groupRepository.findByCluster(clusterId).stream()
                 .filter(group -> exceptGroupId == null || group.id() != exceptGroupId)
-                .anyMatch(group -> group.name().equalsIgnoreCase(name));
-        if (taken) throw ClusterRefusal.CLUSTER_STATION_GROUP_NAME_TAKEN.raise(name);
+                .map(ClusterStationGroup::name)
+                .toList();
     }
 }

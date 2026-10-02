@@ -663,7 +663,7 @@ public abstract class RepositoryTestBase {
         var eventFedRepo = new EventFederationRepository();
         var fedRepo = new FederationRepository();
         var memberSvc = newStationMemberService(accountRepo, null);
-        var groupSvc = new MemberGroupService(memberGroupRepo, stationMemberRepo, userTagRepo);
+        var groupSvc = newMemberGroupService();
         var tagSvc = new UserTagService(userTagRepo, memberGroupRepo);
         memberNameResolver =
                 new MemberNameResolver(memberSvc, accountRepo, eventFedRepo, fedRepo, stationRepo, groupSvc, tagSvc);
@@ -895,10 +895,7 @@ public abstract class RepositoryTestBase {
     private static TicketCommentTarget ticketCommentTarget() {
         var memberService = newStationMemberService(null, null);
         var boards = new BoardService(
-                boardRepo,
-                memberService,
-                new MemberGroupService(memberGroupRepo, stationMemberRepo, userTagRepo),
-                new UserTagService(userTagRepo, memberGroupRepo));
+                boardRepo, memberService, newMemberGroupService(), new UserTagService(userTagRepo, memberGroupRepo));
         var tickets = new BoardTicketService(
                 boardTicketRepo,
                 boardRepo,
@@ -1036,6 +1033,14 @@ public abstract class RepositoryTestBase {
                 mock(StepUpGuard.class),
                 () -> mock(MemberNameResolver.class),
                 new DomainEventBus(Set.of()));
+    }
+
+    /**
+     * The group service over this class's repositories, its memberships from {@link #newGroupMemberships()},
+     * so removing a group asks nobody for a step-up.
+     */
+    protected static MemberGroupService newMemberGroupService() {
+        return new MemberGroupService(memberGroupRepo, stationMemberRepo, userTagRepo, newGroupMemberships());
     }
 
     /**

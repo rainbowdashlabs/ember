@@ -27076,6 +27076,15 @@ export interface paths {
                         "application/json": components["schemas"]["ErrorResponseWrapper"];
                     };
                 };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
             };
         };
         delete?: never;
@@ -27188,8 +27197,26 @@ export interface paths {
                     };
                     content?: never;
                 };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
                 /** @description Not Found */
                 404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -27232,8 +27259,26 @@ export interface paths {
                     };
                     content?: never;
                 };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
                 /** @description Not Found */
                 404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -55415,9 +55460,9 @@ export interface components {
             groupIds?: number[];
         };
         ClusterGroupUpdateRequest: {
-            memberIds?: number[];
-            name?: string;
-            permissions?: string[];
+            memberIds?: number[] | null;
+            name?: string | null;
+            permissions?: string[] | null;
         };
         ClusterInventoryTag: {
             canonicalName: string | null;
@@ -57803,9 +57848,9 @@ export interface components {
         };
         GroupRequest: {
             color?: string | null;
-            name?: string;
+            name?: string | null;
             /** Format: int32 */
-            position?: number;
+            position?: number | null;
             removeNonMatching?: boolean;
             rules?: components["schemas"]["GroupRulesRequest"] | null;
         };

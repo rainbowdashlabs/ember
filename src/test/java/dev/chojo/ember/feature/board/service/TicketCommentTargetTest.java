@@ -18,7 +18,6 @@ import dev.chojo.ember.feature.comment.entity.CommentOrigin;
 import dev.chojo.ember.feature.comment.entity.Moderation;
 import dev.chojo.ember.feature.comment.entity.TargetInfo;
 import dev.chojo.ember.feature.members.entity.StationMember;
-import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.UserTagService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -63,10 +62,7 @@ class TicketCommentTargetTest extends RepositoryTestBase {
 
         var memberService = newStationMemberService(null, null);
         var boards = new BoardService(
-                boardRepo,
-                memberService,
-                new MemberGroupService(memberGroupRepo, stationMemberRepo, userTagRepo),
-                new UserTagService(userTagRepo, memberGroupRepo));
+                boardRepo, memberService, newMemberGroupService(), new UserTagService(userTagRepo, memberGroupRepo));
         tickets = new BoardTicketService(
                 boardTicketRepo,
                 boardRepo,

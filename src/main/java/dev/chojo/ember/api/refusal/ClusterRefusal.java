@@ -681,7 +681,13 @@ public enum ClusterRefusal implements Refusal {
 
     /** An association question put to trial members, whom an association does not ask. */
     CLUSTER_FIELD_AUDIENCE_NOT_ASKED(
-            172, HttpStatus.BAD_REQUEST, "An association does not ask trial members, so nothing was saved");
+            172, HttpStatus.BAD_REQUEST, "An association does not ask trial members, so nothing was saved"),
+
+    /** A new member group given a name another member group of the cluster already has, whatever the case. */
+    CLUSTER_MEMBER_GROUP_NAME_TAKEN_ON_CREATE(173, HttpStatus.CONFLICT, Sentences.GROUP_NAME_TAKEN),
+
+    /** A member group renamed to a name another member group of the cluster already has, whatever the case. */
+    CLUSTER_MEMBER_GROUP_NAME_TAKEN_ON_CHANGE(174, HttpStatus.CONFLICT, Sentences.GROUP_NAME_TAKEN);
 
     private final Definition definition;
 

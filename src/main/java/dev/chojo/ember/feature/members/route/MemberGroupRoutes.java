@@ -73,10 +73,6 @@ public class MemberGroupRoutes implements Routes {
         this.groupRules = groupRules;
     }
 
-    private static boolean isBlank(String s) {
-        return s == null || s.isBlank();
-    }
-
     /**
      * Asserts the member named in the path belongs to the caller's station. Answers 404 for a
      * member of another station, so the groups a stranger is in cannot be read or probed.
@@ -143,14 +139,12 @@ public class MemberGroupRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = GroupRequest.class)),
             responses = {
                 @OpenApiResponse(status = "201", content = @OpenApiContent(from = MemberGroup.class)),
-                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+                @OpenApiResponse(status = "409", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void create(Context ctx) {
         StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(GroupRequest.class);
-        if (isBlank(request.name())) {
-            throw MemberRefusal.GROUP_NAME_MISSING_ON_CREATE.raise();
-        }
         ctx.status(HttpStatus.CREATED)
                 .json(groupRules.create(session.stationId(), request.name(), request.groupRules(), session.user()));
     }
@@ -201,9 +195,6 @@ public class MemberGroupRoutes implements Routes {
         int id = pathInt(ctx, "id");
         var group = requireOwnedOrNotFound(ctx, id, groupService::findById, MemberGroup::stationId);
         var request = ctx.bodyAsClass(GroupRequest.class);
-        if (isBlank(request.name())) {
-            throw MemberRefusal.GROUP_NAME_MISSING_ON_CHANGE.raise();
-        }
         ctx.json(groupRules.update(
                 group,
                 request.name(),
@@ -218,16 +209,20 @@ public class MemberGroupRoutes implements Routes {
             path = "/api/v1/groups/{id}",
             methods = HttpMethod.DELETE,
             summary = "Delete a member group",
+            description = "Refused while content is limited to the group. A group that grants permissions can only "
+                    + "be deleted by somebody holding all of them, and asks for a fresh proof.",
             tags = {"Member Groups"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             responses = {
                 @OpenApiResponse(status = "204"),
-                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+                @OpenApiResponse(status = "403", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+                @OpenApiResponse(status = "409", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void delete(Context ctx) {
         int id = pathInt(ctx, "id");
-        requireOwnedOrNotFound(ctx, id, groupService::findById, MemberGroup::stationId);
-        if (groupService.delete(id)) {
+        var group = requireOwnedOrNotFound(ctx, id, groupService::findById, MemberGroup::stationId);
+        if (groupService.delete(group, UserSession.from(ctx))) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
             throw MemberRefusal.GROUP_NOT_HERE_ON_DELETE.raise();
@@ -371,16 +366,19 @@ public class MemberGroupRoutes implements Routes {
             path = "/api/v1/groups/{id}/convert-to-tag",
             methods = HttpMethod.POST,
             summary = "Convert a group to a tag (keeps members, deletes the group)",
+            description = "Held to the same rules as deleting the group.",
             tags = {"Member Groups"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             responses = {
                 @OpenApiResponse(status = "204"),
-                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+                @OpenApiResponse(status = "403", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+                @OpenApiResponse(status = "409", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void convertToTag(Context ctx) {
         int id = pathInt(ctx, "id");
-        requireOwnedOrNotFound(ctx, id, groupService::findById, MemberGroup::stationId);
-        groupService.convertToTag(id);
+        var group = requireOwnedOrNotFound(ctx, id, groupService::findById, MemberGroup::stationId);
+        groupService.convertToTag(group, UserSession.from(ctx));
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -389,15 +387,15 @@ public class MemberGroupRoutes implements Routes {
      *
      * @param name              its name
      * @param color             its colour, or {@code null} for none
-     * @param position          its place in the order
+     * @param position          its place in the order, or {@code null} to keep the one it has
      * @param rules             its binding and set, or {@code null} to leave them as they are
      * @param removeNonMatching whether members a new binding does not take are taken out of the group,
      *                          rather than refused
      */
     public record GroupRequest(
-            String name,
+            @Nullable String name,
             @Nullable String color,
-            int position,
+            @Nullable Integer position,
             @Nullable GroupRulesRequest rules,
             boolean removeNonMatching) {
         @Nullable

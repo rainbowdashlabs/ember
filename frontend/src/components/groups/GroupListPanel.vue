@@ -17,8 +17,10 @@ import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import type {MemberGroupSet} from '@/api/generated/schema'
 import {boundTypeNames, type GroupRow} from '@/util/groupRules'
+import {useGroupsCapabilities} from '@/composables/useGroupsConfig'
 
 const {t} = useI18n()
+const capabilities = useGroupsCapabilities()
 
 const props = defineProps<{
   groups: GroupRow[]
@@ -49,7 +51,7 @@ function boundTo(group: GroupRow): string {
   <div class="space-y-4">
     <div class="flex items-center justify-between">
       <SubHeader>{{ t('memberGroups.title') }}</SubHeader>
-      <PrimaryButton data-onboarding="groups.add" :icon="['fas', 'plus']" @click="emit('create')">
+      <PrimaryButton v-if="capabilities.canEdit" data-onboarding="groups.add" :icon="['fas', 'plus']" @click="emit('create')">
         {{ t('memberGroups.create') }}
       </PrimaryButton>
     </div>
@@ -72,8 +74,8 @@ function boundTo(group: GroupRow): string {
         </span>
         <div class="flex items-center gap-2">
           <MutedIconButton v-if="canConvertToTag" :icon="['fas', 'hashtag']" :label="t('memberGroups.convertToTag')" @click.stop="emit('convert', group)"/>
-          <EditButton @click.stop="emit('edit', group)"/>
-          <DeleteButton @click.stop="emit('delete', group)"/>
+          <EditButton v-if="capabilities.canEdit" @click.stop="emit('edit', group)"/>
+          <DeleteButton v-if="capabilities.canEdit" @click.stop="emit('delete', group)"/>
         </div>
       </NeutralContainer>
     </div>

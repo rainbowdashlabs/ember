@@ -70,6 +70,7 @@
 - **Hidden station papers could be opened by their address.** A hidden document that names nobody could be opened by anyone allowed to read the station's own papers, as long as they knew its number. Now only those who may read member documents open it.
 - **Members could tag their own uploads and keep them past leaving.** A member allowed only to put documents on themselves could add tags to the station's list and mark a document to outlast the membership. Both now stay with the people who manage documents.
 - **Files are taken for what they really are.** A document could claim to be a picture or a PDF while being something else, and was shown as one. Now its contents decide, and a file whose name says otherwise is turned away.
+- **Removing a group needs the rights it grants.** Anyone allowed to manage groups could delete a group, or turn it into a tag, and so take permissions they did not hold themselves from everybody in it. Now you need every permission the group grants, and a fresh confirmation if it grants any.
 
 ### Changes
 
@@ -194,6 +195,10 @@
 - **Old settings of an association's storage were never deleted.** When an association pointed its storage somewhere new or gave it up, the old settings and their credentials stayed behind for good. They are now deleted as soon as no station's files are on them.
 - **Saving an association's storage could leave it with none.** In rare cases a save that failed halfway left the association without any storage of its own. The storage it had now stays until the new one is saved.
 - **A refused move showed up as started.** When an association moved a station whose files were already in place, the station's history still listed the move as started. Only moves that really start are listed now.
+- **Association groups could save half a change.** When one part of a change to an association's member group was refused, the parts before it stayed saved, such as a new name with the old members. Now a change is saved as a whole or not at all.
+- **Closing an association group told nobody.** People in an association's member group lost what it granted without a word when the group was deleted. They now get the same notice as when they are taken out of a group.
+- **The association's groups offered buttons that could not work.** If you may only look at the association's member groups, you were still offered creating, deleting and changing members, and the server then refused. Only the association's administrators see those controls now.
+- **Duplicate group names ended in a general error.** A station's group names kept stray spaces, and a second group with a name already in use failed without saying why. Names are now trimmed, and a name that is taken is refused with a clear message, however it is capitalised.
 
 ## v26.19.5
 

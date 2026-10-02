@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.members.service;
 
+import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.refusal.MemberRefusal;
@@ -41,10 +42,18 @@ class MemberGroupServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        service = new MemberGroupService(memberGroupRepo, stationMemberRepo, userTagRepo);
+        service = newMemberGroupService();
         station = stationRepo.create("GroupStation");
         account = accountRepo.create("group-svc@test.com", "Group", "Tester");
         member = stationMemberRepo.create(station.id(), account.id());
+    }
+
+    private static UserSession administrator() {
+        return signedIn(member, StationPermission.STATION_ADMINISTRATOR);
+    }
+
+    private static MemberGroup group(int id) {
+        return service.findById(id).orElseThrow();
     }
 
     @AfterAll
@@ -107,7 +116,7 @@ class MemberGroupServiceTest extends RepositoryTestBase {
     @Test
     @Order(40)
     void delete() {
-        assertTrue(service.delete(groupId));
+        assertTrue(service.delete(group(groupId), administrator()));
         assertTrue(service.findById(groupId).isEmpty());
     }
 
@@ -117,7 +126,7 @@ class MemberGroupServiceTest extends RepositoryTestBase {
         var group2 = memberGroupRepo.create(station.id(), "ToBeTag");
         memberGroupRepo.addMember(group2.id(), member.id());
 
-        service.convertToTag(group2.id());
+        service.convertToTag(group2, administrator());
 
         assertTrue(service.findById(group2.id()).isEmpty());
 
@@ -158,7 +167,7 @@ class MemberGroupServiceTest extends RepositoryTestBase {
     void aGroupSomethingIsLimitedToStaysAndSaysHowMany() {
         var group = groupLimitingTwoThings("Nur Atemschutz");
 
-        var refusal = assertThrows(RefusalResponse.class, () -> service.delete(group.id()));
+        var refusal = assertThrows(RefusalResponse.class, () -> service.delete(group, administrator()));
 
         assertEquals(MemberRefusal.GROUP_STILL_LIMITS_CONTENT_ON_DELETE, refusal.refusal());
         assertTrue(refusal.getMessage().endsWith(": 2"), refusal.getMessage());
@@ -171,7 +180,7 @@ class MemberGroupServiceTest extends RepositoryTestBase {
     void aGroupSomethingIsLimitedToIsNotTurnedIntoATag() {
         var group = groupLimitingTwoThings("Nur Maschinisten");
 
-        var refusal = assertThrows(RefusalResponse.class, () -> service.convertToTag(group.id()));
+        var refusal = assertThrows(RefusalResponse.class, () -> service.convertToTag(group, administrator()));
 
         assertEquals(MemberRefusal.GROUP_STILL_LIMITS_CONTENT_ON_CONVERT, refusal.refusal());
         assertEquals(RefusalDetail.count(2), refusal.detail());

@@ -1639,7 +1639,8 @@ volumes:
             joinRightsTitle: 'Wer Mitglieder in eine Gruppe aufnehmen darf',
             joinRightsText: 'Wer in eine Gruppe kommt, bekommt ihre Berechtigungen. Deshalb kannst du nur in '
                 + 'Gruppen aufnehmen, deren Berechtigungen du selbst hast. Bei Gruppen mit Berechtigungen fragt Ember '
-                + 'außerdem kurz nach deinem zweiten Faktor.',
+                + 'außerdem kurz nach deinem zweiten Faktor. Dasselbe gilt, wenn du eine solche Gruppe löschst oder '
+                + 'in einen Tag umwandelst, denn dann verlieren alle in ihr diese Berechtigungen.',
             setsTitle: 'Gruppensets',
             setsText: 'Ein Gruppenset fasst Gruppen zusammen, von denen ein Mitglied nur in einer sein kann, zum '
                 + 'Beispiel die Stufen einer Ausbildung. Lege das Set unter der Gruppenliste bei Gruppensets an und '
@@ -4214,7 +4215,7 @@ volumes:
             whatTitle: 'Wofür eine Gruppe?',
             whatText: 'Statt zehn Leuten einzeln dieselben Rechte zu geben, bekommt die Gruppe sie einmal und die zehn Leute kommen hinein.',
             howToTitle: 'Anlegen und füllen',
-            howToText: 'Name vergeben, Rechte ankreuzen, Mitglieder ankreuzen, speichern. Wer aus der Gruppe genommen wird, verliert die Rechte der Gruppe sofort wieder.',
+            howToText: 'Name vergeben, Rechte ankreuzen, Mitglieder ankreuzen, speichern. Wer aus der Gruppe genommen wird, verliert die Rechte der Gruppe sofort wieder, und wird eine Gruppe gelöscht, gilt das für alle in ihr. Anlegen, ändern und löschen kann nur, wer den Verband verwaltet; alle anderen sehen die Gruppen nur.',
             threeWaysTitle: 'Drei Wege zu einem Recht',
             threeWaysText: 'Ein Mitglied hält ein Recht, weil seine Rolle es mitbringt, weil es ihm einzeln gegeben wurde, oder weil eine seiner Gruppen es trägt. Auf der Mitgliedsseite steht, was woher kommt.',
             tip: 'Was eine Rolle mitbringt, lässt sich beim einzelnen Mitglied nicht wegnehmen. Dafür ändert man die Rolle.',

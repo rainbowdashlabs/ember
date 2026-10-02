@@ -21,6 +21,7 @@ import {
     ACCOUNT_NOT_HERE,
     PROFILE_FIELD_NOT_HERE,
     GROUP_NAME_MISSING,
+    GROUP_NAME_TAKEN,
     GROUP_NOT_HERE,
     LOOK_NOT_OFFERED,
     DEFAULT_NOT_SUITING,
@@ -203,4 +204,6 @@ export default {
     'CU-170': MEMBER_NOT_YET_FORMER,
     'CU-171': 'Eine Frage wird einer Art von Mitglied gestellt, es wurde nichts gespeichert',
     'CU-172': 'Ein Verband fragt keine Schnupperer, es wurde nichts gespeichert',
+    'CU-173': GROUP_NAME_TAKEN,
+    'CU-174': GROUP_NAME_TAKEN,
 }

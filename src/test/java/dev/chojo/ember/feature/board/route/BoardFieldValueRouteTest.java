@@ -20,7 +20,6 @@ import dev.chojo.ember.feature.board.service.BoardAttachmentService;
 import dev.chojo.ember.feature.board.service.BoardService;
 import dev.chojo.ember.feature.board.service.BoardTicketService;
 import dev.chojo.ember.feature.members.entity.StationMember;
-import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.UserTagService;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -66,10 +65,7 @@ class BoardFieldValueRouteTest extends RepositoryTestBase {
 
         var memberService = newStationMemberService(null, null);
         var boards = new BoardService(
-                boardRepo,
-                memberService,
-                new MemberGroupService(memberGroupRepo, stationMemberRepo, userTagRepo),
-                new UserTagService(userTagRepo, memberGroupRepo));
+                boardRepo, memberService, newMemberGroupService(), new UserTagService(userTagRepo, memberGroupRepo));
         var backend = localStorage();
         tickets = new BoardTicketService(
                 boardTicketRepo,

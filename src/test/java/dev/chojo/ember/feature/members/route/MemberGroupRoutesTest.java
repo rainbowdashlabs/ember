@@ -63,7 +63,7 @@ class MemberGroupRoutesTest extends RepositoryTestBase {
         var memberships = new GroupMembershipService(
                 memberGroupRepo, stationMemberRepo, stepUp, () -> memberNameResolver, new DomainEventBus(Set.of()));
         var groupRoutes = new MemberGroupRoutes(
-                new MemberGroupService(memberGroupRepo, stationMemberRepo, userTagRepo),
+                new MemberGroupService(memberGroupRepo, stationMemberRepo, userTagRepo, memberships),
                 memberships,
                 newStationMemberService(accountRepo, mock(AuthService.class)),
                 new MemberViewService(
@@ -281,6 +281,98 @@ class MemberGroupRoutesTest extends RepositoryTestBase {
 
             var unknown = client.get("/api/v1/station-members/" + child.id() + "/user-type/KING/consequences", session);
             assertEquals(MemberRefusal.USER_TYPE_UNKNOWN_FOR_CONSEQUENCES, refusalOf(unknown));
+        });
+    }
+
+    private MemberGroup groupGranting(String name, StationPermission permission) {
+        var group = memberGroupRepo.create(station.id(), name);
+        memberGroupRepo.addGroupPermission(
+                group.id(),
+                stationMemberRepo.findPermissionByName(permission).orElseThrow().id());
+        memberGroupRepo.addMember(group.id(), child.id());
+        return group;
+    }
+
+    /**
+     * Removing a group takes what it grants from everybody in it, the same as taking them out one by
+     * one, so the same two rules hold: only somebody holding all of it may, and only after a fresh proof.
+     */
+    @Test
+    void aGroupGrantingMoreThanYouHoldIsNeitherRemovedNorTurnedIntoATag() {
+        var admins = groupGranting("Verwaltung", StationPermission.STATION_ADMINISTRATOR);
+
+        harness.run((server, client) -> {
+            var session = harness.as(
+                    managerHolding(StationPermission.MEMBER_MANAGE_GROUP, StationPermission.MEMBER_MANAGE_TAGS));
+            var deleted = client.delete("/api/v1/groups/" + admins.id(), null, session);
+            assertEquals(MemberRefusal.GROUP_GRANTS_MORE_THAN_YOURS_ON_DELETE, refusalOf(deleted));
+            var converted = client.post("/api/v1/groups/" + admins.id() + "/convert-to-tag", null, session);
+            assertEquals(MemberRefusal.GROUP_GRANTS_MORE_THAN_YOURS_ON_CONVERT, refusalOf(converted));
+        });
+        assertTrue(memberGroupRepo.findById(admins.id()).isPresent());
+    }
+
+    @Test
+    void removingAGroupThatGrantsPermissionsAsksForAFreshProof() {
+        var readers = groupGranting("Leser", StationPermission.MEMBER_READ);
+        var plain = memberGroupRepo.create(station.id(), "Ohne Rechte");
+        doThrow(new StepUpRequiredException(StepUpCategory.ROLE_CHANGE, Set.of()))
+                .when(stepUp)
+                .require(any(), any());
+
+        harness.run((server, client) -> {
+            var session =
+                    harness.as(managerHolding(StationPermission.MEMBER_MANAGE_GROUP, StationPermission.MEMBER_READ));
+            var deleted = client.delete("/api/v1/groups/" + readers.id(), null, session);
+            assertEquals(401, deleted.code());
+            assertEquals("step_up_required", json(deleted).path("error").asString());
+            var converted = client.post("/api/v1/groups/" + readers.id() + "/convert-to-tag", null, session);
+            assertEquals(401, converted.code());
+
+            assertEquals(
+                    204,
+                    client.delete("/api/v1/groups/" + plain.id(), null, session).code());
+        });
+        assertTrue(memberGroupRepo.findById(readers.id()).isPresent());
+        assertTrue(memberGroupRepo.findById(plain.id()).isEmpty());
+    }
+
+    @Test
+    void aGroupNameIsTrimmedAndTakenWhateverTheCase() {
+        var other = memberGroupRepo.create(station.id(), "Aktive");
+
+        harness.run((server, client) -> {
+            var session = harness.as(managerHolding(StationPermission.MEMBER_MANAGE_GROUP));
+            var created = client.post("/api/v1/groups", body("{\"name\":\"  Jugend \"}"), session);
+            assertEquals(201, created.code());
+            assertEquals("Jugend", json(created).path("name").asString());
+            int jugend = json(created).path("id").asInt();
+
+            var twice = client.post("/api/v1/groups", body("{\"name\":\"jugend\"}"), session);
+            assertEquals(MemberRefusal.GROUP_NAME_TAKEN_ON_CREATE, refusalOf(twice));
+            var renamed = client.put("/api/v1/groups/" + other.id(), body("{\"name\":\" JUGEND\"}"), session);
+            assertEquals(MemberRefusal.GROUP_NAME_TAKEN_ON_CHANGE, refusalOf(renamed));
+
+            var recoloured = client.put(
+                    "/api/v1/groups/" + jugend, body("{\"name\":\"Jugend\",\"color\":\"#ff0000\"}"), session);
+            assertEquals(200, recoloured.code());
+        });
+        assertEquals(
+                "Aktive", memberGroupRepo.findById(other.id()).orElseThrow().name());
+    }
+
+    @Test
+    void aChangeThatNamesNoPositionKeepsTheOneTheGroupHas() {
+        var crew = memberGroupRepo.create(station.id(), "Crew");
+        memberGroupRepo.update(crew.id(), "Crew", null, 3);
+
+        harness.run((server, client) -> {
+            var saved = client.put(
+                    "/api/v1/groups/" + crew.id(),
+                    body("{\"name\":\"Mannschaft\"}"),
+                    harness.as(managerHolding(StationPermission.MEMBER_MANAGE_GROUP)));
+            assertEquals(200, saved.code());
+            assertEquals(3, json(saved).path("position").asInt());
         });
     }
 

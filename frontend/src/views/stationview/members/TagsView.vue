@@ -22,7 +22,7 @@ import TagMembersPanel from './tagsview/TagMembersPanel.vue'
 import TagFormModal from './tagsview/TagFormModal.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import TagConvertModal from './tagsview/TagConvertModal.vue'
-import {useMemberAssignment} from './useMemberAssignment'
+import {useMemberAssignment} from '@/components/groups/useMemberAssignment'
 import {describeFailure} from '@/util/failure'
 
 const {t} = useI18n()

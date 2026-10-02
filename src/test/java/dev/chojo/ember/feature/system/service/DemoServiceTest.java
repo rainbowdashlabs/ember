@@ -80,7 +80,6 @@ import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import dev.chojo.ember.feature.media.service.MediaReferenceRegistry;
 import dev.chojo.ember.feature.media.service.MediaStorageService;
 import dev.chojo.ember.feature.members.repository.MemberGroupSetRepository;
-import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService;
 import dev.chojo.ember.feature.members.service.UserTagService;
@@ -283,7 +282,7 @@ class DemoServiceTest extends RepositoryTestBase {
                         stationMemberRepo, newGroupMemberships(), new AccountInviteService(accountRepo, authService)),
                 clusterRepo);
 
-        var groupService = new MemberGroupService(memberGroupRepo, stationMemberRepo, userTagRepo);
+        var groupService = newMemberGroupService();
         var tagService = new UserTagService(userTagRepo, memberGroupRepo);
         var memberNameResolver = new MemberNameResolver(
                 newStationMemberService(accountRepo, mock(AuthService.class)),

@@ -21443,6 +21443,16 @@
                 }
               }
             }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
           }
         },
         "requestBody" : {
@@ -21572,8 +21582,28 @@
           "204" : {
             "description" : "No Content"
           },
+          "403" : {
+            "description" : "Forbidden",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
           "404" : {
             "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -21602,8 +21632,28 @@
           "204" : {
             "description" : "No Content"
           },
+          "403" : {
+            "description" : "Forbidden",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
           "404" : {
             "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -44670,16 +44720,16 @@
         "type" : "object",
         "properties" : {
           "name" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "permissions" : {
-            "type" : "array",
+            "type" : [ "array", "null" ],
             "items" : {
               "type" : "string"
             }
           },
           "memberIds" : {
-            "type" : "array",
+            "type" : [ "array", "null" ],
             "items" : {
               "type" : "integer",
               "format" : "int32"
@@ -51598,13 +51648,13 @@
         "type" : "object",
         "properties" : {
           "name" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "color" : {
             "type" : [ "string", "null" ]
           },
           "position" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "rules" : {

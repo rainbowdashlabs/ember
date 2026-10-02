@@ -171,6 +171,7 @@ final class Sentences {
     static final String PROFILE_FIELD_AUDIENCE_AMBIGUOUS =
             "Name either a kind of member or a group, and only one of the two";
     static final String GROUP_NAME_MISSING = "Give the group a name";
+    static final String GROUP_NAME_TAKEN = "Another group already has that name, so nothing was saved";
     static final String GROUP_NOT_HERE = "That group is not here any more";
     static final String GROUP_NOT_HERE_NOTHING_SAVED = "One of those groups is not here, so nothing was saved";
     static final String GROUP_WRONG_USER_TYPE = "That group takes only members of certain types, so nothing was saved";

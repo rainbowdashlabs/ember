@@ -6,16 +6,9 @@
 <script lang="ts" setup>
 import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
-import ViewContent from '@/components/layout/ViewContent.vue'
-import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
-import GroupListPanel from '@/views/stationview/members/groupsview/GroupListPanel.vue'
-import GroupDetailPanel from '@/views/stationview/members/groupsview/GroupDetailPanel.vue'
-import GroupFormModal from '@/views/stationview/members/groupsview/GroupFormModal.vue'
-import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
-import {useMemberAssignment} from '@/views/stationview/members/useMemberAssignment'
+import GroupsScreen from '@/components/groups/GroupsScreen.vue'
 import {clusterStationGroups, clusterStations} from '@/api'
-import {useGroupsConfig, type AssignableMember, type GroupsPort} from '@/composables/useGroupsConfig'
+import type {AssignableMember, GroupsCapabilities, GroupsPort} from '@/composables/useGroupsConfig'
 
 const {t} = useI18n()
 
@@ -38,6 +31,10 @@ function asAssignable(station: {stationUid: string; name: string}): AssignableMe
   }
 }
 
+function toUids(ids: number[]): string[] {
+  return ids.map(id => uidAt.value.get(id)).filter((uid): uid is string => !!uid)
+}
+
 /** A group of stations holds no people, carries no colour, cannot become a tag and grants nothing. */
 const port: GroupsPort = {
   listGroups: async () => (await clusterStationGroups.listGroups()).map(g => ({id: g.id, name: g.name})),
@@ -55,69 +52,19 @@ const port: GroupsPort = {
   setMembers: (groupId, ids) => clusterStationGroups.setStations(groupId, toUids(ids)),
 }
 
-function toUids(ids: number[]): string[] {
-  return ids.map(id => uidAt.value.get(id)).filter((uid): uid is string => !!uid)
+/** The page is open only to whoever may file stations, so everybody here may change the groups. */
+const capabilities: GroupsCapabilities = {
+  hasColour: false,
+  canConvertToTag: false,
+  hasPermissions: false,
+  permissionScope: 'cluster',
+  holds: 'stations',
+  canEdit: true,
 }
-
-const {
-  groups, allMembers, allRoles, selectedGroup, groupMembers, groupRoles, groupRoleIds,
-  groupLoading, loading, error, showGroupModal, editingGroup, groupName, groupColor,
-  groupSaving, groupSaveError, selectGroup, openCreateGroup, openEditGroup, saveGroup,
-  showDeleteModal, deleteTarget, requestDelete, confirmDelete,
-} = useGroupsConfig(port, {
-    hasColour: false,
-    canConvertToTag: false,
-    hasPermissions: false,
-    permissionScope: 'cluster',
-    holds: 'stations',
-})
-
-const sortedGroupMembers = computed(() =>
-    [...groupMembers.value].sort((a, b) => (a.name ?? '').localeCompare(b.name ?? ''))
-)
-
-const {
-  availableMembers,
-  offeredUserTypes,
-  addMember: addStationToGroup,
-  removeMember: removeStationFromGroup,
-} = useMemberAssignment(
-    allMembers,
-    groupMembers,
-    async ids => {
-      await clusterStationGroups.setStations(selectedGroup.value!.id, toUids(ids))
-      const held = new Set(ids)
-      return allMembers.value.filter(m => held.has(m.id))
-    },
-    error,
-)
 </script>
 
 <template>
-  <ViewContent :subtitle="t('pages.cluster-station-groups.subtitle')" :title="t('pages.cluster-station-groups.title')">
-    <div class="space-y-6">
-      <Spinner v-if="loading" size="lg"/>
-      <Alert v-if="error || groupSaveError" variant="error">{{ error || groupSaveError }}</Alert>
-
-      <div v-if="!loading" class="grid gap-6 lg:grid-cols-2">
-        <GroupListPanel :groups="groups" :selected-group="selectedGroup" :can-convert-to-tag="false"
-                        @create="openCreateGroup" @select="selectGroup" @edit="openEditGroup"
-                        @delete="requestDelete"/>
-        <GroupDetailPanel v-if="selectedGroup" v-model:group-role-ids="groupRoleIds" :selected-group="selectedGroup"
-                          :group-loading="groupLoading" :sorted-group-members="sortedGroupMembers"
-                          :available-members="availableMembers"
-                          :offered-user-types="offeredUserTypes" :group-roles="groupRoles" :all-roles="allRoles"
-                          :can-edit-roles="false" @add-member="addStationToGroup"
-                          @remove-member="removeStationFromGroup"/>
-        <div v-else class="flex items-center justify-center text-(--text-muted) py-12">
-          {{ t('clusterStationGroups.selectHint') }}
-        </div>
-      </div>
-
-      <GroupFormModal v-model="showGroupModal" v-model:name="groupName" v-model:color="groupColor"
-                      :is-edit="!!editingGroup" :saving="groupSaving" @save="saveGroup"/>
-      <ConfirmDeleteModal v-model="showDeleteModal" :message="t('memberGroups.deleteConfirm', {name: deleteTarget?.name})"
-                          @confirm="confirmDelete"/>
-    </div>
-  </ViewContent>
+  <GroupsScreen :title="t('pages.cluster-station-groups.title')" :subtitle="t('pages.cluster-station-groups.subtitle')"
+                :select-hint="t('clusterStationGroups.selectHint')" :port="port" :capabilities="capabilities"
+                :can-edit-roles="false"/>
 </template>

@@ -65,12 +65,12 @@ const words = computed(() => capabilities.holds === 'stations'
       <div v-for="member in current" :key="member.value"
            class="flex items-center justify-between rounded-lg px-3 py-2 bg-bg-light-accent dark:bg-bg-dark-accent">
         <MemberName :identity="identityOf(member)" :detail="member.email" class="text-sm font-medium"/>
-        <IconButton :icon="['fas', 'xmark']" :label="words.remove" class="text-error hover:text-error/80 text-sm" @click="emit('remove', Number(member.value))"/>
+        <IconButton v-if="capabilities.canEdit" :icon="['fas', 'xmark']" :label="words.remove" class="text-error hover:text-error/80 text-sm" @click="emit('remove', Number(member.value))"/>
       </div>
     </div>
   </div>
 
-  <div class="space-y-1">
+  <div v-if="capabilities.canEdit" class="space-y-1">
     <FieldLabel class="text-(--text-muted)">{{ words.add }}</FieldLabel>
     <MutedText v-if="availableMembers.length === 0" tag="div" size="sm" class="py-2">
       {{ words.allAdded }}

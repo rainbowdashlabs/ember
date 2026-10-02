@@ -15,7 +15,6 @@ import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.board.entity.LanePreset;
 import dev.chojo.ember.feature.board.entity.TicketPriority;
 import dev.chojo.ember.feature.members.entity.StationMember;
-import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.UserTagService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
@@ -62,7 +61,7 @@ class TicketAssignmentNeedsWriteAccessTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         var memberService = newStationMemberService(null, null);
-        var groupService = new MemberGroupService(memberGroupRepo, stationMemberRepo, userTagRepo);
+        var groupService = newMemberGroupService();
         var tagService = new UserTagService(userTagRepo, memberGroupRepo);
         boardService = new BoardService(boardRepo, memberService, groupService, tagService);
 

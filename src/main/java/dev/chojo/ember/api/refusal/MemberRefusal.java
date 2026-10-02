@@ -715,7 +715,23 @@ public enum MemberRefusal implements Refusal {
 
     /** A profile question put to a group that is not one of the station's own. */
     PROFILE_FIELD_GROUP_NOT_HERE(
-            196, HttpStatus.NOT_FOUND, "That group is not one of this station's, so nothing was saved");
+            196, HttpStatus.NOT_FOUND, "That group is not one of this station's, so nothing was saved"),
+
+    /** A new group given a name another group of the station already has, whatever the case. */
+    GROUP_NAME_TAKEN_ON_CREATE(197, HttpStatus.CONFLICT, Sentences.GROUP_NAME_TAKEN),
+
+    /** A group renamed to a name another group of the station already has, whatever the case. */
+    GROUP_NAME_TAKEN_ON_CHANGE(198, HttpStatus.CONFLICT, Sentences.GROUP_NAME_TAKEN),
+
+    /** A group removed that grants more than the caller holds, which would take those rights from its members. */
+    GROUP_GRANTS_MORE_THAN_YOURS_ON_DELETE(
+            199, HttpStatus.FORBIDDEN, "That group grants permissions you do not hold yourself, so it was not removed"),
+
+    /** A group turned into a tag that grants more than the caller holds, which would take those rights from its members. */
+    GROUP_GRANTS_MORE_THAN_YOURS_ON_CONVERT(
+            200,
+            HttpStatus.FORBIDDEN,
+            "That group grants permissions you do not hold yourself, so it was not turned into a tag");
 
     private final Definition definition;
 
