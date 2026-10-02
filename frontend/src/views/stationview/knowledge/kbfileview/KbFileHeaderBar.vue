@@ -13,8 +13,7 @@ import IconButton from '@/components/button/IconButton.vue'
 import ActionsMenu from '@/components/button/ActionsMenu.vue'
 import DropdownMenuItem from '@/components/button/DropdownMenuItem.vue'
 import PageHeader from '@/components/typography/PageHeader.vue'
-import {KbFileType} from '@/api/knowledgeBase'
-import type {KbFile} from '@/api/generated/schema'
+import {KbFileType, type KbFile} from '@/api/generated/schema'
 
 const props = defineProps<{
     file: KbFile

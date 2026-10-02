@@ -8,16 +8,20 @@ import {useI18n} from 'vue-i18n'
 import type {RouteLocationRaw} from 'vue-router'
 import {knowledgeBase} from '@/api'
 import {
-    KbAccessLevel,
-    KbFileType,
     levelCovers,
-    KbFavouriteTarget,
     type FavouriteEntry,
-    type KbAccessLevelName,
     type SharedFileEntry,
     type SharedFolderEntry,
 } from '@/api/knowledgeBase'
-import type {KbFavourite, KbFileSummary, KbFolder, SearchResultResponse} from '@/api/generated/schema'
+import {
+    KbAccessLevel,
+    KbFavouriteTarget,
+    KbFileType,
+    type KbFavourite,
+    type KbFileSummary,
+    type KbFolder,
+    type SearchResultResponse,
+} from '@/api/generated/schema'
 import {fileIcon} from '@/util/kbFileIcon'
 import {isPdfExportable} from '@/util/kbFileExport'
 import type {KbFavourites} from '@/composables/useKbFavourites'
@@ -160,9 +164,9 @@ interface KbItemSources {
     isFavouritesView: Ref<boolean>
     canManage: Ref<boolean>
     /** What the reader may do with each folder, as the browse listing reported it. */
-    folderLevels: Ref<Record<number, KbAccessLevelName>>
+    folderLevels: Ref<Record<number, KbAccessLevel>>
     /** What the reader may do with each file, as the browse listing reported it. */
-    fileLevels: Ref<Record<number, KbAccessLevelName>>
+    fileLevels: Ref<Record<number, KbAccessLevel>>
 }
 
 /**
@@ -207,7 +211,7 @@ export function useKbItems(sources: KbItemSources, handlers: KbItemHandlers) {
      * saying so on every entry says nothing, while for an editor it is the reason the edit action
      * is missing.
      */
-    function levelLabel(level: KbAccessLevelName | undefined): string | undefined {
+    function levelLabel(level: KbAccessLevel | undefined): string | undefined {
         if (!sources.canManage.value) return undefined
         if (levelCovers(level, KbAccessLevel.WRITE)) return undefined
         return t('kb.accessLevels.read')

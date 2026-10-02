@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {KbFileType} from '@/api/knowledgeBase'
+import {KbFileType} from '@/api/generated/schema'
 
 /**
  * Tells whether a knowledge-base file has a written body that can be rendered as PDF. Mirrors the

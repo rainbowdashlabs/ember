@@ -12,12 +12,12 @@ import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
 import DateInput from '@/components/input/datetime/DateInput.vue'
 import LabelSelectInput from '@/components/input/select/LabelSelectInput.vue'
 import { fromCompletion } from '@/components/input/select/memberOption'
-import {TicketPriority, type TicketPriorityName} from '@/api/boards'
-import type {BoardLabel, BoardLane, MemberCompletion} from '@/api/generated/schema'
+import type {BoardLabel, BoardLane, MemberCompletion, TicketPriority} from '@/api/generated/schema'
+import {priorityOptions} from '@/util/ticketPriority'
 
 const props = defineProps<{
     laneId: string
-    priority: TicketPriorityName
+    priority: TicketPriority
     assignee: string
     dueDate: string
     createLaneOptions: BoardLane[]
@@ -29,7 +29,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
     'update:laneId': [value: string]
-    'update:priority': [value: TicketPriorityName]
+    'update:priority': [value: TicketPriority]
     'update:assignee': [value: string]
     'update:dueDate': [value: string]
     toggleLabel: [id: number]
@@ -39,6 +39,7 @@ const emit = defineEmits<{
 const { t } = useI18n()
 
 const assignable = computed(() => props.assignableMembers.map(fromCompletion))
+const priorities = computed(() => priorityOptions(t))
 </script>
 
 <template>
@@ -51,12 +52,8 @@ const assignable = computed(() => props.assignableMembers.map(fromCompletion))
         </div>
         <div>
             <FieldLabel class="mb-1">{{ t('boards.priority') }}</FieldLabel>
-            <SelectInput :model-value="priority" class="w-full" @update:model-value="v => emit('update:priority', v as TicketPriorityName)">
-                <option :value="TicketPriority.LOWEST">{{ t('boards.priorityLowest') }}</option>
-                <option :value="TicketPriority.LOW">{{ t('boards.priorityLow') }}</option>
-                <option :value="TicketPriority.MEDIUM">{{ t('boards.priorityMedium') }}</option>
-                <option :value="TicketPriority.HIGH">{{ t('boards.priorityHigh') }}</option>
-                <option :value="TicketPriority.HIGHEST">{{ t('boards.priorityHighest') }}</option>
+            <SelectInput :model-value="priority" class="w-full" @update:model-value="v => emit('update:priority', v as TicketPriority)">
+                <option v-for="option in priorities" :key="option.value" :value="option.value">{{ option.label }}</option>
             </SelectInput>
         </div>
         <div>

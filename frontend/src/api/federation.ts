@@ -28,28 +28,6 @@ import type {
 
 type Schemas = components['schemas']
 
-export type FederationStatusName = Schemas['FederationStatus']
-
-/** Where a partnership stands: offered, in force, or put on hold by either side. */
-export const FederationStatus = {
-    PENDING: 'PENDING',
-    ACTIVE: 'ACTIVE',
-    SUSPENDED: 'SUSPENDED',
-} as const satisfies Record<FederationStatusName, FederationStatusName>
-
-export type CapabilityTypeName = Schemas['CapabilityType']
-
-/** What two partners may share with one another, each switched on per direction. */
-export const CapabilityType = {
-    KB_SHARE: 'KB_SHARE',
-    QUIZ_SHARE: 'QUIZ_SHARE',
-    PROTOCOL_SHARE: 'PROTOCOL_SHARE',
-    INVENTORY_LEND: 'INVENTORY_LEND',
-    EVENT_SHARE: 'EVENT_SHARE',
-    BOARD_SHARE: 'BOARD_SHARE',
-    NEWS_SHARE: 'NEWS_SHARE',
-} as const satisfies Record<CapabilityTypeName, CapabilityTypeName>
-
 export type CapabilityDirectionName = Schemas['Direction']
 
 /** Whether a capability lets this station take from a partner or hand to it. */

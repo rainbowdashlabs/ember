@@ -4,11 +4,12 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {noMentionables, type CommentSource} from '@/api/comments'
-import {TicketPriority, type BoardFieldRaw, type TicketPriorityName, type TypedBoardField} from '@/api/boards'
-import type {
-    Board, BoardChecklistItem, BoardLabel, BoardLane, BoardTicket, BoardTicketAttachment, BoardTicketHistoryResponse,
-    BoardTicketKbLink, BoardTicketLink, BoardTicketTransitionResponse, BoardWeblink, CommentResponse, MemberCompletion,
-    MemberIdentity, TicketSummary,
+import type {BoardFieldRaw, TypedBoardField} from '@/api/boards'
+import {
+    TicketPriority,
+    type Board, type BoardChecklistItem, type BoardLabel, type BoardLane, type BoardTicket, type BoardTicketAttachment,
+    type BoardTicketHistoryResponse, type BoardTicketKbLink, type BoardTicketLink, type BoardTicketTransitionResponse,
+    type BoardWeblink, type CommentResponse, type MemberCompletion, type MemberIdentity, type TicketSummary,
 } from '@/api/generated/schema'
 import {priorityColor, priorityIcon, priorityOptions} from '@/util/ticketPriority'
 import type {PriorityOption} from '@/views/stationview/boards/ticketdetailview/types'
@@ -32,7 +33,7 @@ function member(id: number, person: MemberIdentity): MemberCompletion {
     return {...person, id, name: person.name ?? ''}
 }
 
-function summary(id: number, title: string, laneId: number, priority: TicketPriorityName): TicketSummary {
+function summary(id: number, title: string, laneId: number, priority: TicketPriority): TicketSummary {
     return {
         id, ticketNumber: id, title, laneId, priority, boardId: BOARD_ID, position: id, assignee: null, dueDate: null,
         attachmentCount: 0, checklistChecked: 0, checklistTotal: 0, laneEnteredAt: '2026-06-01T09:00:00Z',
@@ -64,7 +65,7 @@ function boardFixtures(t: Translate) {
         {id: 1, boardId: BOARD_ID, position: 0, name: t('helpCenter.ticketDetail.customFieldExample'), fieldType: 'NUMBER', config: {required: false}},
     ]
     const priorityChoices: PriorityOption[] = priorityOptions(t).reverse().map(option => {
-        const value = option.value as TicketPriorityName
+        const value = option.value as TicketPriority
         return {...option, icon: priorityIcon(value), color: priorityColor(value)}
     })
     return {board, lanes, allLabels, boardFields, priorityChoices}

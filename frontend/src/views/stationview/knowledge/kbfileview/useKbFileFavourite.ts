@@ -5,7 +5,8 @@
  */
 import {computed, type Ref} from 'vue'
 import {useI18n} from 'vue-i18n'
-import {KbFavouriteTarget, type FavouriteEntry} from '@/api/knowledgeBase'
+import type {FavouriteEntry} from '@/api/knowledgeBase'
+import {KbFavouriteTarget} from '@/api/generated/schema'
 import {useKbFavourites} from '@/composables/useKbFavourites'
 import {describeFailure, type Failure} from '@/util/failure'
 

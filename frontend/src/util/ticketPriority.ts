@@ -3,10 +3,10 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {TicketPriority, type TicketPriorityName} from '@/api/boards'
+import {TicketPriority} from '@/api/generated/schema'
 import {enumOptions, type ColumnOption} from '@/components/table/tableColumn'
 
-const PRIORITY_LABEL_KEYS: Record<TicketPriorityName, string> = {
+const PRIORITY_LABEL_KEYS: Record<TicketPriority, string> = {
     [TicketPriority.LOWEST]: 'boards.priorityLowest',
     [TicketPriority.LOW]: 'boards.priorityLow',
     [TicketPriority.MEDIUM]: 'boards.priorityMedium',
@@ -15,18 +15,18 @@ const PRIORITY_LABEL_KEYS: Record<TicketPriorityName, string> = {
 }
 
 /** Every ticket priority, lowest first. */
-export const ticketPriorities = Object.keys(PRIORITY_LABEL_KEYS) as TicketPriorityName[]
+export const ticketPriorities = Object.keys(PRIORITY_LABEL_KEYS) as TicketPriority[]
 
 /** Every ticket priority with its label, lowest first. */
 export function priorityOptions(t: (key: string) => string): ColumnOption[] {
-    return enumOptions(ticketPriorities, priority => t(PRIORITY_LABEL_KEYS[priority as TicketPriorityName]))
+    return enumOptions(ticketPriorities, priority => t(PRIORITY_LABEL_KEYS[priority as TicketPriority]))
 }
 
 /**
  * Returns the FontAwesome icon tuple for a ticket priority, with a neutral
  * fallback for unknown values.
  */
-export function priorityIcon(priority: TicketPriorityName): string[] {
+export function priorityIcon(priority: TicketPriority): string[] {
     switch (priority) {
         case TicketPriority.HIGHEST:
             return ['fas', 'angles-up']
@@ -47,7 +47,7 @@ export function priorityIcon(priority: TicketPriorityName): string[] {
  * Returns the tailwind text-color class that visually pairs with the
  * {@link priorityIcon} for the same priority, with a neutral fallback.
  */
-export function priorityColor(priority: TicketPriorityName): string {
+export function priorityColor(priority: TicketPriority): string {
     switch (priority) {
         case TicketPriority.HIGHEST:
             return 'text-red-500'

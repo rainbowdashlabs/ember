@@ -44,7 +44,6 @@ import type {
     CanEditResponse,
     ChecklistItemRequest,
     CommentResponse,
-    components,
     CreateBoardRequest,
     CreateTicketRequest,
     FederationConfigRequest,
@@ -64,35 +63,6 @@ import type {
     UpdateTicketRequest,
     WeblinkRequest,
 } from './generated/schema'
-
-type Schemas = components['schemas']
-
-export type TicketPriorityName = Schemas['TicketPriority']
-
-export const TicketPriority = {
-    LOWEST: 'LOWEST',
-    LOW: 'LOW',
-    MEDIUM: 'MEDIUM',
-    HIGH: 'HIGH',
-    HIGHEST: 'HIGHEST',
-} as const satisfies Record<TicketPriorityName, TicketPriorityName>
-
-export type LinkTypeName = Schemas['LinkType']
-
-export const LinkType = {
-    RELATES_TO: 'RELATES_TO',
-    BLOCKS: 'BLOCKS',
-    BLOCKED_BY: 'BLOCKED_BY',
-    CAUSES: 'CAUSES',
-    CAUSED_BY: 'CAUSED_BY',
-} as const satisfies Record<LinkTypeName, LinkTypeName>
-
-export type LanePresetName = Schemas['LanePreset']
-
-export const LanePreset = {
-    SIMPLE: 'SIMPLE',
-    FEEDBACK: 'FEEDBACK',
-} as const satisfies Record<LanePresetName, LanePresetName>
 
 /** The field types a board offers. */
 export type BoardFieldTypeName = (typeof OfferedFieldTypes.BOARD)[number]

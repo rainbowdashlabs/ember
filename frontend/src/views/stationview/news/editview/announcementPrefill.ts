@@ -3,8 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {AppointmentField, StationEvent} from '@/api/generated/schema'
-import {CellContentType, type CellContentTypeName} from '@/api/pageManage'
+import {CellContentType, type AppointmentField, type StationEvent} from '@/api/generated/schema'
 import type {RowEditData} from '@/components/content/blockeditor/EditorRow.vue'
 import type {RestrictionSelection} from '@/api/types'
 import {answerText} from '@/util/questions'
@@ -127,6 +126,6 @@ function repeats(event: StationEvent): boolean {
     return event.eventType !== 'ONE_TIME'
 }
 
-function block(contentType: CellContentTypeName, content: string, config: Record<string, unknown> = {}) {
+function block(contentType: CellContentType, content: string, config: Record<string, unknown> = {}) {
     return {id: 0, sortOrder: 0, widthPercent: 100, contentType, content, config}
 }

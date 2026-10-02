@@ -3,8 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {OnboardingLevelName} from '@/api/onboarding'
-import type {OnboardingStatus} from '@/api/generated/schema'
+import type {OnboardingLevel, OnboardingStatus} from '@/api/generated/schema'
 
 /**
  * What the task tour currently knows and is currently doing. Lives here rather than in one of the
@@ -16,12 +15,12 @@ import type {OnboardingStatus} from '@/api/generated/schema'
  */
 export function onboardingState() {
     return {
-        onboardingStatus: useState<Partial<Record<OnboardingLevelName, OnboardingStatus>>>(
+        onboardingStatus: useState<Partial<Record<OnboardingLevel, OnboardingStatus>>>(
             'onboardingState.status', () => ({})),
         /** The task being walked through right now, or null while the reader is left alone. */
         activeTaskId: useState<string | null>('onboardingState.activeTaskId', () => null),
         activeTaskKey: useState<string | null>('onboardingState.activeTaskKey', () => null),
-        activeLevel: useState<OnboardingLevelName | null>('onboardingState.activeLevel', () => null),
+        activeLevel: useState<OnboardingLevel | null>('onboardingState.activeLevel', () => null),
         activeStep: useState('onboardingState.activeStep', () => 0),
         /** Set while the reader has waved the guide away for this visit. */
         guideDismissed: useState('onboardingState.guideDismissed', () => false),

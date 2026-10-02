@@ -10,14 +10,14 @@ import LayeredEmberLogo from '@/components/display/LayeredEmberLogo.vue'
 import BareButton from '@/components/button/BareButton.vue'
 import {emberGuide} from '@/composables/useEmberLogo'
 import {useOnboardingTasks} from '@/composables/useOnboardingTasks'
-import type {OnboardingLevelName} from '@/api/onboarding'
+import type {OnboardingLevel} from '@/api/generated/schema'
 
 /**
  * Ember waiting in the corner while somebody wanders off mid-task. Tapping it picks the guide back
  * up, and it is gone the moment nothing is open.
  */
 const props = defineProps<{
-  level: OnboardingLevelName
+  level: OnboardingLevel
 }>()
 
 const {t} = useI18n()

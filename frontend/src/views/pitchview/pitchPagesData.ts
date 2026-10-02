@@ -3,8 +3,14 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {PageVisibility, type CellContentTypeName} from '@/api/pageManage'
-import type {CellConfigByType, ContentCell, ContentRow, StationPage} from '@/api/generated/schema'
+import {
+    PageVisibility,
+    type CellConfigByType,
+    type CellContentType,
+    type ContentCell,
+    type ContentRow,
+    type StationPage,
+} from '@/api/generated/schema'
 import type {PitchPages} from './pitchTypes'
 
 const PITCH_STATION_UID = '00000000-0000-4000-8000-000000000001'
@@ -38,7 +44,7 @@ export const PAGE_TREE = [
     {page: page(5, 'Fahrzeuge', 'fahrzeuge', false), depth: 0},
 ]
 
-function cell<K extends CellContentTypeName>(contentType: K, content: string,
+function cell<K extends CellContentType>(contentType: K, content: string,
                                              config: CellConfigByType[K], widthPercent = 100): ContentCell {
     return {id: 0, rowId: 0, sortOrder: 0, widthPercent, contentType, content, config}
 }

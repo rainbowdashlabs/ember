@@ -13,8 +13,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
-import {PageVisibility} from '@/api/pageManage'
-import type {StationPage} from '@/api/generated/schema'
+import {PageVisibility, type StationPage} from '@/api/generated/schema'
 
 const props = defineProps<{
   page: StationPage

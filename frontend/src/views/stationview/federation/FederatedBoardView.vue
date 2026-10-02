@@ -16,8 +16,14 @@ import KanbanBoard from '@/components/kanban/KanbanBoard.vue'
 import {boardLanes} from '@/components/kanban/kanbanLanes'
 import FederatedBoardCreateTicketModal
   from '@/views/stationview/federation/federatedboardview/FederatedBoardCreateTicketModal.vue'
-import {TicketPriority, type TicketPriorityName} from '@/api/boards'
-import type {BoardLabel, BoardLane, FederatedBoardDetail, TicketSummary} from '@/api/generated/schema'
+import {
+  BoardShareMode,
+  TicketPriority,
+  type BoardLabel,
+  type BoardLane,
+  type FederatedBoardDetail,
+  type TicketSummary,
+} from '@/api/generated/schema'
 import {priorityIcon, priorityColor} from '@/util/ticketPriority'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
@@ -25,7 +31,6 @@ import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useTicketMoves} from '@/composables/useTicketMoves'
 import {reportCaughtError} from '@/util/devErrorReporter'
 import {
-  BoardShareMode,
   getBoard as fedGetBoard,
   getLanes as fedGetLanes,
   listTickets as fedListTickets,
@@ -58,7 +63,7 @@ const showCreateModal = ref(false)
 const createTitle = ref('')
 const createDescription = ref('')
 const createLaneId = ref('')
-const createPriority = ref<TicketPriorityName>(TicketPriority.MEDIUM)
+const createPriority = ref<TicketPriority>(TicketPriority.MEDIUM)
 const createValidationError = ref('')
 
 const showOverrideModal = ref(false)

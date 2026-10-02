@@ -16,8 +16,13 @@ import Modal from '@/components/feedback/Modal.vue'
 import TicketHeaderBar from './ticketdetailview/TicketHeaderBar.vue'
 import TicketBody from './ticketdetailview/TicketBody.vue'
 import { knowledgeBase, boards } from '@/api'
-import {rawFieldValue, TicketPriority, type AnyBoard, type BoardFieldRaw, type BoardFieldTypeName, type TicketPriorityName, type TypedBoardField} from '@/api/boards'
-import type {BoardChecklistItem, BoardLabel, BoardLane, BoardTicket, BoardTicketAttachment, BoardTicketHistoryResponse, BoardTicketKbLink, BoardTicketLink, BoardTicketTransitionResponse, BoardWeblink, MemberCompletion, TicketSummary} from '@/api/generated/schema'
+import {rawFieldValue, type AnyBoard, type BoardFieldRaw, type BoardFieldTypeName, type TypedBoardField} from '@/api/boards'
+import {
+    TicketPriority,
+    type BoardChecklistItem, type BoardLabel, type BoardLane, type BoardTicket, type BoardTicketAttachment,
+    type BoardTicketHistoryResponse, type BoardTicketKbLink, type BoardTicketLink, type BoardTicketTransitionResponse,
+    type BoardWeblink, type MemberCompletion, type TicketSummary,
+} from '@/api/generated/schema'
 import { useSession } from '@/composables/useSession'
 import { useBoardApi } from '@/composables/useBoardApi'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
@@ -58,7 +63,7 @@ const pageSubtitle = computed(() => board.value?.name || t('pages.ticket-detail.
 
 const title = ref('')
 const description = ref('')
-const priority = ref<TicketPriorityName>(TicketPriority.MEDIUM)
+const priority = ref<TicketPriority>(TicketPriority.MEDIUM)
 const assignedMemberId = ref('')
 const dueDate = ref('')
 
@@ -86,7 +91,7 @@ const showAddLink = ref(false)
 const showAddWeblink = ref(false)
 
 const priorityChoices = computed<PriorityOption[]>(() => priorityOptions(t).reverse().map(option => {
-    const value = option.value as TicketPriorityName
+    const value = option.value as TicketPriority
     return { ...option, icon: priorityIcon(value), color: priorityColor(value) }
 }))
 const isWatching = ref(false)

@@ -4,43 +4,27 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-import type {components, OnboardingStatus} from './generated/schema'
+import type {OnboardingLevel, OnboardingStatus, OnboardingTaskState} from './generated/schema'
 
-type Schemas = components['schemas']
-
-export type OnboardingLevelName = Schemas['OnboardingLevel']
-
-export const OnboardingLevel = {
-    MEMBER: 'MEMBER',
-    STATION: 'STATION',
-    INSTANCE: 'INSTANCE',
-} as const satisfies Record<OnboardingLevelName, OnboardingLevelName>
-
-export type OnboardingTaskStateName = Schemas['OnboardingTaskState']
-
-export const OnboardingTaskState = {
-    OPEN: 'OPEN',
-    DONE: 'DONE',
-    SKIPPED: 'SKIPPED',
-    /** Thrown away for good. Sent to the server, never received: such a task is not listed again. */
-    DISMISSED: 'DISMISSED',
-} as const satisfies Record<OnboardingTaskStateName, OnboardingTaskStateName>
-
-const path: Record<OnboardingLevelName, string> = {
+const path: Record<OnboardingLevel, string> = {
     MEMBER: '/onboarding/member',
     STATION: '/onboarding/station',
     INSTANCE: '/onboarding/instance',
 }
 
-export async function getTasks(level: OnboardingLevelName): Promise<OnboardingStatus> {
+export async function getTasks(level: OnboardingLevel): Promise<OnboardingStatus> {
     const res = await client.get<OnboardingStatus>(path[level])
     return res.data
 }
 
+/**
+ * Sets the state of one task. `DISMISSED` throws a task away for good: it is sent to the server but
+ * never received, because such a task is not listed again.
+ */
 export async function markTask(
-    level: OnboardingLevelName,
+    level: OnboardingLevel,
     taskId: string,
-    state: OnboardingTaskStateName,
+    state: OnboardingTaskState,
 ): Promise<OnboardingStatus> {
     const res = await client.put<OnboardingStatus>(`${path[level]}/${encodeURIComponent(taskId)}`, {state})
     return res.data

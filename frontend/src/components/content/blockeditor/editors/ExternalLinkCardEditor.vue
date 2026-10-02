@@ -10,7 +10,7 @@ import LinkSearchInput from '@/components/input/text/LinkSearchInput.vue'
 import MarkdownFieldInput from '@/components/input/text/MarkdownFieldInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import {ExternalLinkImageDisplay} from '@/api/pageManage'
+import {ExternalLinkImageDisplay} from '@/api/generated/schema'
 import {useConfigPatch} from '@/composables/useConfigPatch'
 import type {CellEditorEmits, CellEditorStationProps} from '../cellTypes'
 

@@ -4,10 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-import {ContentMode} from './news'
 import {createCrudResource} from './crud'
 import {noMentionables, stationMentionables, type CommentSource} from './comments'
-import {StationPermission} from './generated/schema'
 import {uploadFile as uploadMultipart} from './upload'
 import type {
     CommentResponse,
@@ -48,10 +46,8 @@ import type {
     TrashEntry,
     TrashView,
     YoutubeFileRequest,
-    components,
 } from '@/api/generated/schema'
-
-type Schemas = components['schemas']
+import {ContentMode, KbAccessLevel, KbFileType, StationPermission} from '@/api/generated/schema'
 
 /**
  * The file facts a federated listing carries. Partner stations only publish the
@@ -93,24 +89,11 @@ export interface SharedFolderEntry {
 /**
  * Tells whether a level is enough for an action, using the same order the server checks.
  */
-export function levelCovers(level: KbAccessLevelName | undefined, required: KbAccessLevelName): boolean {
+export function levelCovers(level: KbAccessLevel | undefined, required: KbAccessLevel): boolean {
     const order = [KbAccessLevel.NONE, KbAccessLevel.READ, KbAccessLevel.WRITE, KbAccessLevel.MANAGE]
     if (!level) return true
     return order.indexOf(level) >= order.indexOf(required)
 }
-
-export type KbFileTypeName = Schemas['KbFileType']
-
-export const KbFileType = {
-    MARKDOWN: 'MARKDOWN',
-    PDF: 'PDF',
-    TEXT: 'TEXT',
-    IMAGE: 'IMAGE',
-    YOUTUBE: 'YOUTUBE',
-    LINK: 'LINK',
-    PRESENTATION: 'PRESENTATION',
-    OTHER: 'OTHER',
-} as const satisfies Record<KbFileTypeName, KbFileTypeName>
 
 export async function browse(folderId?: number | null): Promise<BrowseResponse> {
     const params = folderId != null ? {folderId} : {}
@@ -272,18 +255,6 @@ export async function revertToVersion(fileId: number, version: number): Promise<
     await client.post(`/kb/files/${fileId}/versions/${version}/revert`)
 }
 
-export type KbAccessLevelName = Schemas['KbAccessLevel']
-
-/**
- * What a member may do with a folder or file, from nothing to everything.
- */
-export const KbAccessLevel = {
-    NONE: 'NONE',
-    READ: 'READ',
-    WRITE: 'WRITE',
-    MANAGE: 'MANAGE',
-} as const satisfies Record<KbAccessLevelName, KbAccessLevelName>
-
 export async function getFolderRestrictions(folderId: number): Promise<KbRestrictionResponse> {
     const res = await client.get<KbRestrictionResponse>(`/kb/folders/${folderId}/restrictions`)
     return res.data
@@ -364,30 +335,6 @@ export async function listRecentFiles(limit = 10): Promise<SearchResultResponse[
     const res = await client.get<SearchResultResponse[]>('/kb/files/recent', {params: {limit}})
     return res.data
 }
-
-export type KbRefusalReasonName = Schemas['KbRefusalReason']
-
-/**
- * Why one entry stayed where it was. The server sends one of these rather than a sentence, so the
- * screen can say it in the reader's language.
- */
-export const KbRefusalReason = {
-    NO_PERMISSION: 'NO_PERMISSION',
-    NAME_TAKEN: 'NAME_TAKEN',
-    TARGET_INSIDE: 'TARGET_INSIDE',
-    SHARE_TOO_WIDE: 'SHARE_TOO_WIDE',
-    NOT_FOUND: 'NOT_FOUND',
-} as const satisfies Record<KbRefusalReasonName, KbRefusalReasonName>
-
-export type KbReachName = Schemas['KbReach']
-
-/** How far an entry is read, on the one scale the wiki marks entries with. */
-export const KbReach = {
-    INTERNAL: 'INTERNAL',
-    NARROW: 'NARROW',
-    FEDERATED: 'FEDERATED',
-    PUBLIC: 'PUBLIC',
-} as const satisfies Record<KbReachName, KbReachName>
 
 export async function listFolderTree(): Promise<FolderTreeEntry[]> {
     const res = await client.get<FolderTreeEntry[]>('/kb/folders/tree')
@@ -503,16 +450,6 @@ export async function uploadKbImage(fileId: number, image: File): Promise<ImageU
 export function kbImageUrl(imageId: string, size = 1024): string {
     return `/kb/images/${imageId}?size=${size}`
 }
-
-export type KbFavouriteTargetName = Schemas['KbFavouriteTarget']
-
-/** What a favourite points at: a file or folder of this station, or one a partner shares. */
-export const KbFavouriteTarget = {
-    FILE: 'FILE',
-    FOLDER: 'FOLDER',
-    PARTNER_FILE: 'PARTNER_FILE',
-    PARTNER_FOLDER: 'PARTNER_FOLDER',
-} as const satisfies Record<KbFavouriteTargetName, KbFavouriteTargetName>
 
 /** Something that can be marked, named the way the server tells two favourites apart. */
 export type FavouriteEntry = Pick<KbFavourite, 'target' | 'entryId'> & {

@@ -16,8 +16,7 @@ import MutedText from '@/components/typography/MutedText.vue'
 import KbFolderPicker from './KbFolderPicker.vue'
 import {knowledgeBase} from '@/api'
 import {describeFailure, type Failure} from '@/util/failure'
-import {KbReach, type KbReachName} from '@/api/knowledgeBase'
-import type {FolderTreeEntry, MovePreview} from '@/api/generated/schema'
+import {KbReach, type FolderTreeEntry, type MovePreview} from '@/api/generated/schema'
 import {kbRefusalMessage} from './kbRefusals'
 
 /**
@@ -69,7 +68,7 @@ const excludeIds = computed(() => {
     return inside
 })
 
-const reachLabels: Record<KbReachName, string> = {
+const reachLabels: Record<KbReach, string> = {
     [KbReach.INTERNAL]: 'kb.moveReachInternal',
     [KbReach.NARROW]: 'kb.moveReachNarrow',
     [KbReach.FEDERATED]: 'kb.moveReachFederated',

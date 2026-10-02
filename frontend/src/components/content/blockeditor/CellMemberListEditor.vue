@@ -19,8 +19,8 @@ import MemberListStaticList from './MemberListStaticList.vue'
 import {listGroups} from '@/api/memberGroups'
 import {listTags} from '@/api/userTags'
 import {getMemberPickerByUid} from '@/api/members'
-import {MemberListSortBy, resolveMemberListSource, type MemberListSortByName, type MemberListSource} from '@/api/pageManage'
-import type {MemberGroup, ResolvedMember, UserTag} from '@/api/generated/schema'
+import {resolveMemberListSource, type MemberListSource} from '@/api/pageManage'
+import {MemberListSortBy, type MemberGroup, type ResolvedMember, type UserTag} from '@/api/generated/schema'
 import {useConfigPatch} from '@/composables/useConfigPatch'
 import {moveWithin} from '@/util/reorder'
 import {withoutKey} from '@/util/record'
@@ -106,7 +106,7 @@ async function refreshDynamicResolved() {
     try {
         dynamicResolved.value = await resolveMemberListSource(
             src,
-            (cfg.value.sortBy as MemberListSortByName | undefined) ?? null,
+            (cfg.value.sortBy as MemberListSortBy | undefined) ?? null,
             (cfg.value.memberDescriptions as Record<string, string> | undefined) ?? null,
             (cfg.value.memberOrder as string[] | undefined) ?? null,
         )
@@ -220,7 +220,7 @@ function removeManualMember(uid: string) {
 
     <FieldLabel hint class="mb-1">{{ TS('sortBy') }}</FieldLabel>
     <SelectInput :model-value="(cfg.sortBy as string) ?? MemberListSortBy.ORDER" class="w-full"
-        @update:model-value="(v: string | number | null | undefined) => patch({sortBy: (v == null ? MemberListSortBy.ORDER : String(v)) as MemberListSortByName})">
+        @update:model-value="(v: string | number | null | undefined) => patch({sortBy: (v == null ? MemberListSortBy.ORDER : String(v)) as MemberListSortBy})">
         <option :value="MemberListSortBy.ORDER">{{ TS('sortByOrder') }}</option>
         <option :value="MemberListSortBy.NAME">{{ TS('sortByName') }}</option>
         <option :value="MemberListSortBy.ROLE">{{ TS('sortByRole') }}</option>

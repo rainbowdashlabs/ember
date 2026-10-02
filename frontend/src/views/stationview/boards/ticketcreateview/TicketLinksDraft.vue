@@ -10,9 +10,9 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import MutedIcon from '@/components/display/MutedIcon.vue'
-import {LinkType, type LinkTypeName} from '@/api/boards'
+import {LinkType} from '@/api/generated/schema'
 
-export interface DraftLink { key: number; linkedTicketId: number; linkType: LinkTypeName }
+export interface DraftLink { key: number; linkedTicketId: number; linkType: LinkType }
 
 export interface TicketOption {
     id: number
@@ -27,7 +27,7 @@ defineProps<{
 }>()
 
 const newTicketId = defineModel<string>('newTicketId', { required: true })
-const newType = defineModel<LinkTypeName>('newType', { required: true })
+const newType = defineModel<LinkType>('newType', { required: true })
 
 const emit = defineEmits<{
     (e: 'add'): void

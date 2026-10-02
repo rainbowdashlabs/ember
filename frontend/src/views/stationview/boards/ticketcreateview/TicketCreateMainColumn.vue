@@ -14,7 +14,7 @@ import TicketLinksDraft from './TicketLinksDraft.vue'
 import type { DraftChecklistItem } from './TicketChecklistDraft.vue'
 import type { DraftWeblink } from './TicketWeblinksDraft.vue'
 import type { DraftLink, TicketOption } from './TicketLinksDraft.vue'
-import type { LinkTypeName } from '@/api/boards'
+import type { LinkType } from '@/api/generated/schema'
 
 defineProps<{
     title: string
@@ -26,7 +26,7 @@ defineProps<{
     newWeblinkTitle: string
     ticketLinks: DraftLink[]
     newLinkTicketId: string
-    newLinkType: LinkTypeName
+    newLinkType: LinkType
     allTickets: TicketOption[]
     shortKey: string
 }>()
@@ -43,7 +43,7 @@ const emit = defineEmits<{
     addWeblink: []
     removeWeblink: [key: number]
     'update:newLinkTicketId': [value: string]
-    'update:newLinkType': [value: LinkTypeName]
+    'update:newLinkType': [value: LinkType]
     addLink: []
     removeLink: [key: number]
 }>()
@@ -85,7 +85,7 @@ const { t } = useI18n()
             :new-ticket-id="newLinkTicketId"
             :new-type="newLinkType"
             @update:new-ticket-id="v => emit('update:newLinkTicketId', String(v))"
-            @update:new-type="v => emit('update:newLinkType', v as LinkTypeName)"
+            @update:new-type="v => emit('update:newLinkType', v as LinkType)"
             @add="emit('addLink')"
             @remove="k => emit('removeLink', k)"
         />

@@ -7,7 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import EditorFloatButton from './EditorFloatButton.vue'
 import EditorRow, {type RowEditData} from './EditorRow.vue'
-import {CellContentType} from '@/api/pageManage'
+import {CellContentType} from '@/api/generated/schema'
 
 /**
  * Edit-mode renderer for a NESTED_ROWS cell. Renders each nested row with insert / move handles

@@ -8,13 +8,15 @@ import { useRoute } from 'vue-router'
 import { boards } from '@/api'
 import * as federatedBoards from '@/api/federatedBoards'
 import type {
-    AnyBoard, BoardFieldRaw, BoardFieldTypeName, LinkTypeName, TypedBoardField, TypedBoardFieldValue,
+    AnyBoard, BoardFieldRaw, BoardFieldTypeName, TypedBoardField, TypedBoardFieldValue,
 } from '@/api/boards'
 import type { CommentSource } from '@/api/comments'
-import type {
-    BoardChecklistItem, BoardLabel, BoardLane, BoardTicket, BoardTicketAttachment,
-    BoardTicketHistoryResponse, BoardTicketKbLink, BoardTicketLink, BoardTicketTransitionResponse, BoardWeblink,
-    ChecklistItemRequest, MemberCompletion, MoveTicketRequest, ReorderChecklistRequest, TicketSummary, UpdateTicketRequest,
+import {
+    BoardShareMode,
+    type BoardChecklistItem, type BoardLabel, type BoardLane, type BoardTicket, type BoardTicketAttachment,
+    type BoardTicketHistoryResponse, type BoardTicketKbLink, type BoardTicketLink, type BoardTicketTransitionResponse,
+    type BoardWeblink, type ChecklistItemRequest, type LinkType, type MemberCompletion, type MoveTicketRequest,
+    type ReorderChecklistRequest, type TicketSummary, type UpdateTicketRequest,
 } from '@/api/generated/schema'
 
 /**
@@ -40,10 +42,10 @@ export function useBoardApi() {
             : `/station/boards/${boardKey.value}`,
     )
 
-    async function getBoard(): Promise<{ board: AnyBoard; canEdit: boolean; shareMode?: federatedBoards.BoardShareModeName }> {
+    async function getBoard(): Promise<{ board: AnyBoard; canEdit: boolean; shareMode?: BoardShareMode }> {
         if (isFederated.value) {
             const detail = await federatedBoards.getBoard(partnerUid.value!, boardKey.value)
-            const canEdit = detail.shareMode === federatedBoards.BoardShareMode.FULL
+            const canEdit = detail.shareMode === BoardShareMode.FULL
             return { board: detail.board, canEdit, shareMode: detail.shareMode }
         }
         const [board, editResult] = await Promise.all([
@@ -194,7 +196,7 @@ export function useBoardApi() {
         await boards.removeTicketLabel(boardKey.value, ticketNumber.value, labelId)
     }
 
-    async function createLink(linkedTicketId: number, linkedTicketNumber: number, linkType: LinkTypeName): Promise<void> {
+    async function createLink(linkedTicketId: number, linkedTicketNumber: number, linkType: LinkType): Promise<void> {
         if (isFederated.value) {
             await federatedBoards.createLink(partnerUid.value!, boardKey.value, ticketNumber.value, { linkedTicketNumber, linkType })
             return

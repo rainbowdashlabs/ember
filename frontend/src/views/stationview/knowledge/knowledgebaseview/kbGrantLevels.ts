@@ -3,15 +3,14 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {KbAccessLevelName} from '@/api/knowledgeBase'
-import type {KbGrant} from '@/api/generated/schema'
+import type {KbAccessLevel, KbGrant} from '@/api/generated/schema'
 
 /**
  * The level each audience entry of one knowledge base entry holds, keyed by the entry it belongs
  * to. A missing key and a {@code null} value mean the same thing: the entry names an audience and
  * leaves what they may do to their station permission.
  */
-export type GrantLevels = Record<string, KbAccessLevelName | null>
+export type GrantLevels = Record<string, KbAccessLevel | null>
 
 export function userTypeKey(userType: string): string {
     return `userType:${userType}`

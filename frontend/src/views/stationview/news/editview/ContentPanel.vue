@@ -12,7 +12,7 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ContentBlockEditor from '@/components/content/ContentBlockEditor.vue'
 import type {RowEditData} from '@/components/content/blockeditor/EditorRow.vue'
-import {ContentMode, type ContentModeName} from '@/api/news'
+import {ContentMode} from '@/api/generated/schema'
 import {provideBlockAudience} from '@/composables/useBlockAudience'
 
 const title = defineModel<string>('title', {required: true})
@@ -20,7 +20,7 @@ const contentMarkdown = defineModel<string>('contentMarkdown', {required: true})
 const rows = defineModel<RowEditData[]>('rows', {required: true})
 
 defineProps<{
-  mode: ContentModeName
+  mode: ContentMode
   stationUid: string
   /** Names this entry so its unsaved writing is told apart from another's. */
   draftKey?: string

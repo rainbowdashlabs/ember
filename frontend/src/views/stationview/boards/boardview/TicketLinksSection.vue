@@ -13,8 +13,15 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import UserAvatar from '@/components/avatar/UserAvatar.vue'
 import ImageLightbox from '@/components/display/ImageLightbox.vue'
 import { boards } from '@/api'
-import {LinkType, type LinkTypeName} from '@/api/boards'
-import type {BoardLane, BoardTicketAttachment, BoardTicketLink, BoardWeblink, MemberCompletion, TicketSummary} from '@/api/generated/schema'
+import {
+    LinkType,
+    type BoardLane,
+    type BoardTicketAttachment,
+    type BoardTicketLink,
+    type BoardWeblink,
+    type MemberCompletion,
+    type TicketSummary,
+} from '@/api/generated/schema'
 import { useBoardApi } from '@/composables/useBoardApi'
 import { useAttachmentPreview } from '@/views/stationview/boards/boardview/useAttachmentPreview'
 import { formatSize } from '@/util/format'
@@ -59,7 +66,7 @@ function ticketPath(ticketNumber: number): string {
 const api = useBoardApi()
 
 const linkSearchQuery = ref('')
-const linkType = ref<LinkTypeName>(LinkType.RELATES_TO)
+const linkType = ref<LinkType>(LinkType.RELATES_TO)
 const selectedIndex = ref(0)
 const newWeblinkUrl = ref('')
 const newWeblinkTitle = ref('')

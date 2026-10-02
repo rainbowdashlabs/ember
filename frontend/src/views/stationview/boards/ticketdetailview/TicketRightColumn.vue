@@ -13,8 +13,8 @@ import TicketPriorityField from './TicketPriorityField.vue'
 import TicketAssigneeField from './TicketAssigneeField.vue'
 import TicketDueDateField from './TicketDueDateField.vue'
 import TicketCustomFields from './TicketCustomFields.vue'
-import type { BoardFieldRaw, BoardFieldTypeName, TicketPriorityName, TypedBoardField } from '@/api/boards'
-import type { BoardLabel, BoardLane, BoardTicket, MemberCompletion } from '@/api/generated/schema'
+import type { BoardFieldRaw, BoardFieldTypeName, TypedBoardField } from '@/api/boards'
+import type { BoardLabel, BoardLane, BoardTicket, MemberCompletion, TicketPriority } from '@/api/generated/schema'
 import type {PriorityOption} from './types'
 import { formatDateTime } from '@/util/format'
 import type { Failure } from '@/util/failure'
@@ -36,7 +36,7 @@ defineProps<{
 
 const { t } = useI18n()
 
-const priority = defineModel<TicketPriorityName>('priority')
+const priority = defineModel<TicketPriority>('priority')
 const assignedMemberId = defineModel<string>('assignedMemberId', { default: '' })
 const dueDate = defineModel<string>('dueDate', { default: '' })
 const fieldValues = defineModel<Record<number, BoardFieldRaw | null>>('fieldValues', { default: () => ({}) })

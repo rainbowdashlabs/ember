@@ -5,8 +5,7 @@
  */
 /** @vitest-environment happy-dom */
 import {beforeEach, describe, expect, it, vi} from 'vitest'
-import {KbFavouriteTarget} from '@/api/knowledgeBase'
-import type {KbFavourite} from '@/api/generated/schema'
+import {KbFavouriteTarget, type KbFavourite} from '@/api/generated/schema'
 import {favouriteKey, useKbFavourites} from './useKbFavourites'
 
 const listFavourites = vi.fn()

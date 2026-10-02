@@ -6,8 +6,8 @@
 import {ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {federation, knowledgeBase} from '@/api'
-import type {KbAccessLevelName, SharedFileEntry, SharedFolderEntry} from '@/api/knowledgeBase'
-import type {KbFileSummary, KbFolder} from '@/api/generated/schema'
+import type {SharedFileEntry, SharedFolderEntry} from '@/api/knowledgeBase'
+import type {KbAccessLevel, KbFileSummary, KbFolder} from '@/api/generated/schema'
 import type {SharedContentItem} from '@/api/federation'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {describeFailure} from '@/util/failure'
@@ -26,9 +26,9 @@ export function useKbBrowse(navigation: ReturnType<typeof useKbNavigation>) {
     const sharedFiles = ref<SharedFileEntry[]>([])
     const sharedFolders = ref<SharedFolderEntry[]>([])
     const breadcrumbs = ref<KbFolder[]>([])
-    const currentLevel = ref<KbAccessLevelName | undefined>(undefined)
-    const folderLevels = ref<Record<number, KbAccessLevelName>>({})
-    const fileLevels = ref<Record<number, KbAccessLevelName>>({})
+    const currentLevel = ref<KbAccessLevel | undefined>(undefined)
+    const folderLevels = ref<Record<number, KbAccessLevel>>({})
+    const fileLevels = ref<Record<number, KbAccessLevel>>({})
     const sharedTrail = ref<SharedFolderEntry[]>([])
     const publicIds = ref<Set<number>>(new Set())
     const federatedIds = ref<Set<number>>(new Set())

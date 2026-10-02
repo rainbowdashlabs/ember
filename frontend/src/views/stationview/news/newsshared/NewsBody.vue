@@ -6,8 +6,7 @@
 <script setup lang="ts">
 import ProseContent from '@/components/display/ProseContent.vue'
 import ContentBlocks from '@/components/content/ContentBlocks.vue'
-import {ContentMode, type ContentModeName} from '@/api/news'
-import type {ContentRow} from '@/api/generated/schema'
+import {ContentMode, type ContentRow} from '@/api/generated/schema'
 import type {ContentRenderContext} from '@/util/contentContext'
 
 /**
@@ -18,7 +17,7 @@ import type {ContentRenderContext} from '@/util/contentContext'
  * to know the difference.
  */
 defineProps<{
-  mode: ContentModeName
+  mode: ContentMode
   rows: ContentRow[]
   html: string
   context: ContentRenderContext
