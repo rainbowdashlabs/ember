@@ -42503,6 +42503,56 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/public/discovery/remote/{instance}/{stationUid}/logo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get the copy of the logo of a station of another instance */
+        get: {
+            parameters: {
+                query?: {
+                    size?: number;
+                };
+                header?: never;
+                path: {
+                    instance: string;
+                    stationUid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "image/*": string;
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/public/discovery/stations": {
         parameters: {
             query?: never;
@@ -56574,6 +56624,7 @@ export interface components {
             instanceHost: string | null;
             isOwnStation: boolean;
             latitude: number | null;
+            logoUrl: string | null;
             longitude: number | null;
             name: string;
             publicPageUrl: string | null;
@@ -63513,7 +63564,7 @@ export interface components {
         /** @enum {string} */
         StorageBackendType: "LOCAL" | "SMB" | "SFTP" | "S3";
         /** @enum {string} */
-        StorageCategory: "MEDIA_FILES" | "INSTANCE_MEDIA_FILES" | "MEDIA_IMAGES" | "KB_FILES" | "MEMBER_DOCUMENTS" | "MOVEMENT_DOCUMENTS" | "BOARD_ATTACHMENTS" | "IMAGE_AVATAR" | "IMAGE_LOST_AND_FOUND" | "IMAGE_LOGO_FRAGMENT" | "IMAGE_STATION_LOGO" | "IMAGE_QUIZ_QUESTION" | "IMAGE_KB_ICON" | "IMAGE_KB_IMAGE" | "IMAGE_KB_FILE_PICTURE" | "DOCUMENT" | "DISCOVERY_KEY" | "MAP_TILE_CACHE" | "DEMO_AVATAR";
+        StorageCategory: "MEDIA_FILES" | "INSTANCE_MEDIA_FILES" | "MEDIA_IMAGES" | "KB_FILES" | "MEMBER_DOCUMENTS" | "MOVEMENT_DOCUMENTS" | "BOARD_ATTACHMENTS" | "IMAGE_AVATAR" | "IMAGE_LOST_AND_FOUND" | "IMAGE_LOGO_FRAGMENT" | "IMAGE_STATION_LOGO" | "IMAGE_QUIZ_QUESTION" | "IMAGE_KB_ICON" | "IMAGE_KB_IMAGE" | "IMAGE_KB_FILE_PICTURE" | "DOCUMENT" | "DISCOVERY_KEY" | "MAP_TILE_CACHE" | "DEMO_AVATAR" | "IMAGE_DISCOVERY_LOGO";
         StorageQuotaPreset: {
             /** Format: int64 */
             board: number;
@@ -67266,6 +67317,7 @@ export const StorageCategory = {
     DISCOVERY_KEY: "DISCOVERY_KEY",
     DOCUMENT: "DOCUMENT",
     IMAGE_AVATAR: "IMAGE_AVATAR",
+    IMAGE_DISCOVERY_LOGO: "IMAGE_DISCOVERY_LOGO",
     IMAGE_KB_FILE_PICTURE: "IMAGE_KB_FILE_PICTURE",
     IMAGE_KB_ICON: "IMAGE_KB_ICON",
     IMAGE_KB_IMAGE: "IMAGE_KB_IMAGE",

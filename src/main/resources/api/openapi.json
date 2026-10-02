@@ -32433,6 +32433,57 @@
         }
       }
     },
+    "/api/v1/public/discovery/remote/{instance}/{stationUid}/logo" : {
+      "get" : {
+        "summary" : "Get the copy of the logo of a station of another instance",
+        "tags" : [ "Discovery" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "image/*" : {
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "instance",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "stationUid",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "size",
+          "in" : "query",
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
     "/api/v1/public/discovery/stations" : {
       "get" : {
         "summary" : "List the station cards this instance publishes",
@@ -47591,6 +47642,9 @@
           "hasLogo" : {
             "type" : "boolean"
           },
+          "logoUrl" : {
+            "type" : [ "string", "null" ]
+          },
           "hasPublicKb" : {
             "type" : "boolean"
           },
@@ -47632,7 +47686,7 @@
             "type" : [ "string", "null" ]
           }
         },
-        "required" : [ "stationUid", "name", "description", "hasLogo", "hasPublicKb", "hasPublicCalendar", "alreadyFederated", "isOwnStation", "publicSlug", "city", "country", "latitude", "longitude", "clusterUid", "clusterName", "instanceHost", "publicPageUrl" ]
+        "required" : [ "stationUid", "name", "description", "hasLogo", "logoUrl", "hasPublicKb", "hasPublicCalendar", "alreadyFederated", "isOwnStation", "publicSlug", "city", "country", "latitude", "longitude", "clusterUid", "clusterName", "instanceHost", "publicPageUrl" ]
       },
       "DiscoveryIdentity" : {
         "type" : "object",
@@ -67546,7 +67600,7 @@
       },
       "StorageCategory" : {
         "type" : "string",
-        "enum" : [ "MEDIA_FILES", "INSTANCE_MEDIA_FILES", "MEDIA_IMAGES", "KB_FILES", "MEMBER_DOCUMENTS", "MOVEMENT_DOCUMENTS", "BOARD_ATTACHMENTS", "IMAGE_AVATAR", "IMAGE_LOST_AND_FOUND", "IMAGE_LOGO_FRAGMENT", "IMAGE_STATION_LOGO", "IMAGE_QUIZ_QUESTION", "IMAGE_KB_ICON", "IMAGE_KB_IMAGE", "IMAGE_KB_FILE_PICTURE", "DOCUMENT", "DISCOVERY_KEY", "MAP_TILE_CACHE", "DEMO_AVATAR" ]
+        "enum" : [ "MEDIA_FILES", "INSTANCE_MEDIA_FILES", "MEDIA_IMAGES", "KB_FILES", "MEMBER_DOCUMENTS", "MOVEMENT_DOCUMENTS", "BOARD_ATTACHMENTS", "IMAGE_AVATAR", "IMAGE_LOST_AND_FOUND", "IMAGE_LOGO_FRAGMENT", "IMAGE_STATION_LOGO", "IMAGE_QUIZ_QUESTION", "IMAGE_KB_ICON", "IMAGE_KB_IMAGE", "IMAGE_KB_FILE_PICTURE", "DOCUMENT", "DISCOVERY_KEY", "MAP_TILE_CACHE", "DEMO_AVATAR", "IMAGE_DISCOVERY_LOGO" ]
       },
       "StorageQuotaPreset" : {
         "type" : "object",

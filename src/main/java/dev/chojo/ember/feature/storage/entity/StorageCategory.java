@@ -166,6 +166,19 @@ public enum StorageCategory {
             QuotaMode.UNTRACKED,
             List.of("image/png", "image/svg+xml"),
             false,
+            Optional.empty()),
+    /**
+     * The copies this instance keeps of the logos other instances publish for their stations, drawn
+     * again here so the discovery page never sends a visitor's browser to another instance. A cache
+     * that is fetched again when lost, so it stays on the local backend and is counted nowhere.
+     */
+    IMAGE_DISCOVERY_LOGO(
+            "images/discovery-logos",
+            StorageScope.Kind.INSTANCE,
+            false,
+            QuotaMode.UNTRACKED,
+            MimeLists.IMAGES,
+            false,
             Optional.empty());
 
     /** Stands in for the MIME list of a category that accepts any type. */

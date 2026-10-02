@@ -372,6 +372,7 @@ public class StorageQuotaService {
                     DISCOVERY_KEY,
                     MAP_TILE_CACHE,
                     DEMO_AVATAR,
+                    IMAGE_DISCOVERY_LOGO,
                     INSTANCE_MEDIA_FILES -> Long.MAX_VALUE;
         };
     }

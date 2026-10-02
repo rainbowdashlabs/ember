@@ -69,7 +69,10 @@ public enum DiscoveryRefusal implements Refusal {
 
     /** A block written down without saying what is blocked or what kind of thing it is. */
     BLOCKLIST_ENTRY_INCOMPLETE(
-            14, HttpStatus.BAD_REQUEST, "Say what is being blocked and what kind of thing it is, so nothing was saved");
+            14, HttpStatus.BAD_REQUEST, "Say what is being blocked and what kind of thing it is, so nothing was saved"),
+
+    /** A logo of a station of another instance that this instance keeps no copy of. */
+    REMOTE_LOGO_NOT_HERE(15, HttpStatus.NOT_FOUND, "This instance keeps no logo for that station");
 
     private final Definition definition;
 

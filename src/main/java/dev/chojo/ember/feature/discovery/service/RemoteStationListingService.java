@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.discovery.entity.PublishedRemoteStation;
 import dev.chojo.ember.feature.discovery.repository.DiscoveryStationCacheRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -63,8 +64,11 @@ public class RemoteStationListingService {
         var instance = webAddress(published.instanceBaseUrl());
         if (uid.isEmpty() || instance.isEmpty()) return Optional.empty();
         var base = stripTrailingSlash(published.instanceBaseUrl());
+        String logoUrl = published.logoStored()
+                ? RemoteStationLogoService.publicAddress(published.instancePublicKey(), uid.get())
+                : null;
         return Optional.of(new RemoteStation(
-                uid.get(), card, instance.get().getHost(), base + PUBLIC_STATION_PATH + pathSegment(card)));
+                uid.get(), card, instance.get().getHost(), base + PUBLIC_STATION_PATH + pathSegment(card), logoUrl));
     }
 
     private static Optional<UUID> parseUid(String uid) {
@@ -103,7 +107,13 @@ public class RemoteStationListingService {
      * @param card           what the instance publishes about it
      * @param instanceHost   the host name of the instance it belongs to
      * @param publicPageUrl  the station's public page on that instance
+     * @param logoUrl        where this instance serves its copy of the station's logo, or {@code null}
+     *                       where it keeps none
      */
     public record RemoteStation(
-            UUID stationUid, DiscoveryStationCard card, String instanceHost, String publicPageUrl) {}
+            UUID stationUid,
+            DiscoveryStationCard card,
+            String instanceHost,
+            String publicPageUrl,
+            @Nullable String logoUrl) {}
 }

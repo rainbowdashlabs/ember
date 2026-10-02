@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:437ac96b095e1fd1e404cf7876d05289ca0f301ca00d306b39e9f9c0ae37d822",
-  "generatedAt": "2026-10-02T18:27:57Z",
+  "schemaHash": "sha256:e12b53c81dfab037c297c764228d23705f84a06da10a894bc90e39229a217af2",
+  "generatedAt": "2026-10-02T22:22:16Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -6114,7 +6114,7 @@
     "discovery_station_cache": {
       "feature": "discovery",
       "scope": "INSTANCE",
-      "tableHash": "sha256:d5da3dd31fd841e745b2e79a84aeffb8babb891d052e2f3e973e53f80b7a345c",
+      "tableHash": "sha256:d29f96c4fd749467f482ae48bcacfeca09dc45cebc9ec7ee67d7e8fbbc801ff1",
       "columns": [
         {
           "name": "instance_public_key",
@@ -6140,6 +6140,34 @@
           "type": "timestamptz",
           "nullable": false,
           "verified": true
+        },
+        {
+          "name": "logo_checked_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When this instance last asked the other instance for the station's logo. NULL until it has asked once."
+        },
+        {
+          "name": "logo_stored",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Whether this instance keeps a copy of the station's logo, which the discovery page shows in place of the other instance's own."
+        },
+        {
+          "name": "logo_etag",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "The entity tag the other instance sent with the logo copied here, asked back with so an unchanged logo is not sent again. NULL when none was sent."
+        },
+        {
+          "name": "logo_last_modified",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "The modification date the other instance sent with the logo copied here, as it was sent. NULL when none was sent."
         }
       ],
       "foreignKeys": [

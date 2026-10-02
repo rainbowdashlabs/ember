@@ -36,6 +36,9 @@ import java.util.stream.Collectors;
  */
 @Singleton
 public class StationDiscoveryService {
+    private static final String LOCAL_LOGO_PATH = "/api/v1/public/stations/";
+    private static final int LOGO_SIZE = 128;
+
     private final StationService stationService;
     private final StationLogoService logoService;
     private final FederationService federationService;
@@ -146,11 +149,13 @@ public class StationDiscoveryService {
      */
     private DiscoveryEntry toEntry(Station s, Set<UUID> partnerUids, boolean isOwnStation) {
         Optional<Cluster> cluster = clusterRepository.findByStation(s.id());
+        boolean hasLogo = logoService.exists(s.id());
         return new DiscoveryEntry(
                 s.uid(),
                 s.name(),
                 s.discoveryDescription(),
-                logoService.exists(s.id()),
+                hasLogo,
+                hasLogo ? LOCAL_LOGO_PATH + s.uid() + "/logo?size=" + LOGO_SIZE : null,
                 s.discoveryShowKb() && s.publicKbMode() != PublicKbMode.OFF,
                 s.publicCalendarEnabled(),
                 partnerUids.contains(s.uid()),
@@ -172,7 +177,8 @@ public class StationDiscoveryService {
                 remote.stationUid(),
                 card.name(),
                 card.slogan(),
-                false,
+                remote.logoUrl() != null,
+                remote.logoUrl(),
                 false,
                 false,
                 false,
@@ -205,14 +211,18 @@ public class StationDiscoveryService {
      * One card on the discovery page.
      *
      * <p>{@code instanceHost} and {@code publicPageUrl} are set for a station of another instance only:
-     * the host name of that instance and the station's public page there. A remote station carries no
-     * logo, since showing one would have every visitor's browser ask the other instance for it.
+     * the host name of that instance and the station's public page there.
+     *
+     * <p>{@code logoUrl} is where the page finds the logo, set exactly when {@code hasLogo} is. For a
+     * station of another instance it is the copy this instance keeps, never the other instance's own
+     * address, so no visitor's browser is sent there.
      */
     public record DiscoveryEntry(
             UUID stationUid,
             String name,
             @Nullable String description,
             boolean hasLogo,
+            @Nullable String logoUrl,
             boolean hasPublicKb,
             boolean hasPublicCalendar,
             boolean alreadyFederated,

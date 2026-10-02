@@ -20,6 +20,7 @@ describe('searchDiscovery', () => {
             name,
             description: null,
             hasLogo: false,
+            logoUrl: null,
             hasPublicKb: false,
             hasPublicCalendar: false,
             alreadyFederated: false,

@@ -10,7 +10,9 @@ import dev.chojo.ember.feature.discovery.entity.BlocklistKind;
 import dev.chojo.ember.feature.discovery.entity.CachedDiscoveryStation;
 import dev.chojo.ember.feature.discovery.entity.DiscoveryPeer;
 import dev.chojo.ember.feature.discovery.entity.DiscoveryStationCard;
+import dev.chojo.ember.feature.discovery.entity.PictureTags;
 import dev.chojo.ember.feature.discovery.entity.PublishedRemoteStation;
+import dev.chojo.ember.feature.discovery.entity.RemoteLogoCheck;
 import dev.chojo.ember.util.sql.WhereBuilder;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -48,22 +50,87 @@ public class DiscoveryStationCacheRepository {
     /**
      * Removes cached entries for a peer that are no longer present in its latest listing
      * response. Idempotent.
+     *
+     * @return the identifiers of the stations removed
      */
-    public int deleteMissing(String instancePublicKey, List<String> presentStationUids) {
+    public List<String> deleteMissing(String instancePublicKey, List<String> presentStationUids) {
         if (presentStationUids.isEmpty()) {
-            return query("DELETE FROM discovery_station_cache WHERE instance_public_key = :instance_public_key;")
+            return query("""
+                    DELETE FROM discovery_station_cache
+                    WHERE instance_public_key = :instance_public_key
+                    RETURNING station_uid;""")
                     .single(call().bind("instance_public_key", instancePublicKey))
-                    .delete()
-                    .rows();
+                    .map(row -> row.getString("station_uid"))
+                    .all();
         }
         return query("""
                 DELETE FROM discovery_station_cache
                 WHERE instance_public_key = :instance_public_key
-                  AND station_uid <> ALL(:present);""")
+                  AND station_uid <> ALL(:present)
+                RETURNING station_uid;""")
                 .single(call().bind("instance_public_key", instancePublicKey)
                         .bind("present", presentStationUids, PostgreSqlTypes.VARCHAR))
-                .delete()
-                .rows();
+                .map(row -> row.getString("station_uid"))
+                .all();
+    }
+
+    /**
+     * The cards of a peer whose logo is due to be asked for: never asked for yet, or last asked for at
+     * or before {@code checkedBefore}.
+     *
+     * @param instancePublicKey the peer
+     * @param checkedBefore     the latest last check that counts as due
+     * @return the due cards, with what is known of the copy kept here
+     */
+    public List<RemoteLogoCheck> findLogosDue(String instancePublicKey, Instant checkedBefore) {
+        return query("""
+                SELECT station_uid, payload ->> 'logoUrl' AS logo_url, logo_stored, logo_etag, logo_last_modified
+                FROM discovery_station_cache
+                WHERE instance_public_key = :instance_public_key
+                  AND (logo_checked_at IS NULL OR logo_checked_at <= :checked_before);""")
+                .single(call().bind("instance_public_key", instancePublicKey)
+                        .bind("checked_before", checkedBefore, INSTANT_TIMESTAMP))
+                .map(RemoteLogoCheck.map())
+                .all();
+    }
+
+    /**
+     * Writes down that a card's logo was asked for, and what is kept of it now.
+     *
+     * @param stored whether a copy of the logo is kept here
+     * @param tags   what the other instance sent with that copy
+     */
+    public void recordLogoCheck(
+            String instancePublicKey, String stationUid, Instant checkedAt, boolean stored, PictureTags tags) {
+        query("""
+                UPDATE discovery_station_cache
+                SET logo_checked_at    = :checked_at,
+                    logo_stored        = :stored,
+                    logo_etag          = :etag,
+                    logo_last_modified = :last_modified
+                WHERE instance_public_key = :instance_public_key
+                  AND station_uid = :station_uid;""")
+                .single(call().bind("instance_public_key", instancePublicKey)
+                        .bind("station_uid", stationUid)
+                        .bind("checked_at", checkedAt, INSTANT_TIMESTAMP)
+                        .bind("stored", stored)
+                        .bind("etag", tags.etag())
+                        .bind("last_modified", tags.lastModified()))
+                .update();
+    }
+
+    /**
+     * Forgets every logo copy of a peer's cards, so they are asked for afresh once the peer is shown
+     * again.
+     */
+    public void forgetLogos(String instancePublicKey) {
+        query("""
+                UPDATE discovery_station_cache
+                SET logo_checked_at    = NULL,
+                    logo_stored        = FALSE,
+                    logo_etag          = NULL,
+                    logo_last_modified = NULL
+                WHERE instance_public_key = :instance_public_key;""").single(call().bind("instance_public_key", instancePublicKey)).update();
     }
 
     public List<CachedDiscoveryStation> findAll() {
@@ -91,7 +158,7 @@ public class DiscoveryStationCacheRepository {
      */
     public List<PublishedRemoteStation> findPublishedElsewhere(String ownPublicKey, String ownBaseUrl) {
         return query("""
-                SELECT c.instance_public_key, p.base_url, c.payload
+                SELECT c.instance_public_key, p.base_url, c.payload, c.logo_stored
                 FROM discovery_station_cache c
                 JOIN discovery_peer p ON p.public_key = c.instance_public_key
                 WHERE p.reachable = TRUE

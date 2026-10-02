@@ -30,10 +30,6 @@ const emit = defineEmits<{
   invite: [station: DiscoveryEntry]
 }>()
 
-function logoUrl(station: DiscoveryEntry): string {
-  return `/api/v1/public/stations/${station.stationUid}/logo?size=128`
-}
-
 /**
  * A key that stays unique across instances: two instances may well publish a station under the same
  * identifier, and neither of them is this instance's own.
@@ -52,7 +48,7 @@ function offersFederation(station: DiscoveryEntry): boolean {
   <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
     <NeutralContainer v-for="station in stations" :key="cardKey(station)" class="flex flex-col gap-2">
       <div class="flex items-center gap-3">
-        <img v-if="station.hasLogo" :src="logoUrl(station)" :alt="station.name" class="w-10 h-10 rounded-full object-cover"/>
+        <img v-if="station.hasLogo && station.logoUrl" :src="station.logoUrl" :alt="station.name" class="w-10 h-10 rounded-full object-cover"/>
         <div v-else class="w-10 h-10 rounded-full bg-[var(--bg-accent)] flex items-center justify-center">
           <font-awesome-icon :icon="['fas', 'building']" class="text-[var(--text-muted)]"/>
         </div>

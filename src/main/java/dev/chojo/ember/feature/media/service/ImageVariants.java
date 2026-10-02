@@ -25,6 +25,8 @@ import dev.chojo.ember.util.FilePicture;
 import dev.chojo.ember.util.PixelBudget;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import net.coobird.thumbnailator.Thumbnails;
+import net.coobird.thumbnailator.geometry.Positions;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -119,10 +121,7 @@ public class ImageVariants {
         if (profile.layout() != VariantLayout.SIZED) {
             throw new IllegalArgumentException("The library keeps its own originals; add sizes to them instead");
         }
-        if (maxBytes > 0 && data.length > maxBytes) throw GeneralRefusal.PICTURE_TOO_LARGE.raise();
-        ImageFormat format = ImageFormat.sniff(data)
-                .filter(sniffed -> category.acceptsMimeType(sniffed.mimeType()))
-                .orElseThrow(GeneralRefusal.PICTURE_KIND_NOT_TAKEN::raise);
+        ImageFormat format = taken(category, data, maxBytes);
         BufferedImage image = decode(data);
 
         var encoded = new ArrayList<Encoded>();
@@ -134,6 +133,68 @@ public class ImageVariants {
 
         delete(scope, category, key);
         write(scope, category, key, encoded);
+    }
+
+    /**
+     * Stores a picture somebody else served as the whole set of a sized family, cut to a square from its
+     * middle and at most {@code side} pixels across.
+     *
+     * <p>Nothing of the bytes that came in is kept. Where {@link #store} keeps a GIF or a WebP as it came,
+     * this decodes every picture and writes it again as PNG, so whatever else the file carried stays
+     * behind.
+     *
+     * @param profile  the family, one of the sized ones
+     * @param maxBytes upper bound on the size of the bytes that came in; {@code 0} disables the check
+     * @param side     the longest the square may be; a smaller picture keeps its own size
+     * @throws dev.chojo.ember.api.refusal.RefusalResponse when the bytes are too large, are none of the
+     *                                             formats the category takes, cannot be decoded, or
+     *                                             declare more pixels than {@link PixelBudget#MAX_PIXELS}
+     * @throws IOException                         when the picture cannot be encoded; nothing stored has
+     *                                             changed
+     */
+    public void storeSquare(
+            ImageProfile profile,
+            StorageScope scope,
+            StorageCategory category,
+            String key,
+            byte[] data,
+            int maxBytes,
+            int side)
+            throws IOException {
+        if (profile.layout() != VariantLayout.SIZED) {
+            throw new IllegalArgumentException("Only a sized family is cut to a square");
+        }
+        taken(category, data, maxBytes);
+        BufferedImage square = square(decode(data), side);
+
+        var encoded = new ArrayList<Encoded>();
+        encoded.add(new Encoded(
+                profile.layout().originalName(ImageFormat.PNG.extension()),
+                encoder.encode(square, ImageFormat.PNG),
+                ImageFormat.PNG));
+        var sizeFormat = sizeFormat(ImageFormat.PNG);
+        if (sizeFormat.isPresent()) {
+            encoded.addAll(sizes(profile.layout(), profile.sizes(), square, sizeFormat.get()));
+        }
+
+        delete(scope, category, key);
+        write(scope, category, key, encoded);
+    }
+
+    /**
+     * The format of bytes a sized family is handed, refusing them when they are too large or are no
+     * picture the category takes. Only the signature decides, never what the sender declared.
+     */
+    private static ImageFormat taken(StorageCategory category, byte[] data, int maxBytes) {
+        if (maxBytes > 0 && data.length > maxBytes) throw GeneralRefusal.PICTURE_TOO_LARGE.raise();
+        return ImageFormat.sniff(data)
+                .filter(sniffed -> category.acceptsMimeType(sniffed.mimeType()))
+                .orElseThrow(GeneralRefusal.PICTURE_KIND_NOT_TAKEN::raise);
+    }
+
+    private static BufferedImage square(BufferedImage image, int side) throws IOException {
+        int length = Math.min(side, Math.min(image.getWidth(), image.getHeight()));
+        return Thumbnails.of(image).crop(Positions.CENTER).size(length, length).asBufferedImage();
     }
 
     /**

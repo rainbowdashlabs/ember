@@ -25,6 +25,7 @@ describe('DiscoveryGrid', () => {
             name: 'Wache Hier',
             description: null,
             hasLogo: false,
+            logoUrl: null,
             hasPublicKb: true,
             hasPublicCalendar: false,
             alreadyFederated: false,
@@ -90,6 +91,26 @@ describe('DiscoveryGrid', () => {
         expect(card.text()).toContain('Code anfordern')
         expect(card.find('[data-testid="local-link"]').exists()).toBe(true)
         expect(card.text()).not.toContain('Auf der Instanz')
+    })
+
+    it('shows the logo of a remote station from the copy this instance keeps of it', () => {
+        const cached = '/api/v1/public/discovery/remote/ab12/00000000-0000-0000-0000-000000000002/logo?size=128'
+        const logo = grid([{...remote, hasLogo: true, logoUrl: cached}]).find('img')
+
+        expect(logo.attributes('src')).toBe(cached)
+    })
+
+    it('shows the logo of a station of this instance from the address it is given', () => {
+        const own = '/api/v1/public/stations/00000000-0000-0000-0000-000000000001/logo?size=128'
+        const logo = grid([entry({hasLogo: true, logoUrl: own})]).find('img')
+
+        expect(logo.attributes('src')).toBe(own)
+    })
+
+    it('shows the placeholder where no logo can be shown', () => {
+        const card = grid([remote])
+
+        expect(card.find('img').exists()).toBe(false)
     })
 
     it('shows a local and a remote station under the same identifier side by side', () => {

@@ -49,6 +49,7 @@ class DiscoveryAdminServiceTest {
     private FederationPartnerSeeder seeder;
     private DiscoveryHttpClient http;
     private DiscoveryKeyService keys;
+    private RemoteStationLogoService logos;
     private DiscoveryAdminService service;
 
     private static DiscoveryPeer peer(String key, boolean blocked) {
@@ -69,7 +70,8 @@ class DiscoveryAdminServiceTest {
         seeder = mock(FederationPartnerSeeder.class);
         http = mock(DiscoveryHttpClient.class);
         keys = mock(DiscoveryKeyService.class);
-        service = new DiscoveryAdminService(peers, blocklist, reputation, pings, fetcher, seeder, http, keys);
+        logos = mock(RemoteStationLogoService.class);
+        service = new DiscoveryAdminService(peers, blocklist, reputation, pings, fetcher, seeder, http, keys, logos);
     }
 
     private void peerAnswers(DiscoveryInfoResponse info) {
@@ -148,6 +150,7 @@ class DiscoveryAdminServiceTest {
         verify(peers).setBlocked("k1", true);
         verify(peers).setBlocked("k1", false);
         verify(pings).sendPing(peer("k1", false));
+        verify(logos).forgetInstance("k1");
     }
 
     @Test
@@ -169,6 +172,7 @@ class DiscoveryAdminServiceTest {
         assertEquals(3, service.seedFromFederation());
         assertTrue(service.peers().getFirst().blocked());
         assertTrue(service.deletePeer("k1"));
+        verify(logos).forgetInstance("k1");
     }
 
     @Test

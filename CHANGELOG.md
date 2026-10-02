@@ -1,5 +1,13 @@
 # Changelog
 
+## v26.20.1
+
+Stations of other instances show their logos on the discovery page. The logos come from this instance, so a visit to the page never reaches another instance.
+
+### Fixes
+
+- **Stations of other instances showed no logo.** On the discovery page, stations of other instances appeared without their logo. Their logos are now kept on this instance and shown from there, even while the other instance is down.
+
 ## v26.20.0
 
 Stations, associations and the instance now follow the same rules for profile questions, storage, notifications, documents and groups. More than twenty security gaps were found and closed, from hidden appointments to profiles any signed-in member could read. Forms have pages, branching, a preview and drafts that can be continued later. The new expiry date reminds in time, and single dates of a series can be cancelled and restored. The association gets its own notifications, a storage history and documents like a station. Stations without a mail server can take in people with one-time passwords. Deleting a template or a field keeps every entry. When Ember refuses something, it now says why, in the reader's language and with a unique error code that lets developers identify it quickly. DeepSeek and Mistral were added as AI providers.

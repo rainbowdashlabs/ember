@@ -10,6 +10,8 @@ import dev.chojo.ember.feature.discovery.entity.CachedDiscoveryStation;
 import dev.chojo.ember.feature.discovery.entity.DiscoveryPeer;
 import dev.chojo.ember.feature.discovery.entity.DiscoveryStationCard;
 import dev.chojo.ember.feature.discovery.entity.PeerSource;
+import dev.chojo.ember.feature.discovery.entity.PictureTags;
+import dev.chojo.ember.feature.discovery.entity.RemoteLogoCheck;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.Test;
 
@@ -74,8 +76,8 @@ class DiscoveryStationCacheRepositoryTest extends RepositoryTestBase {
     void deleteMissingClearsAllWhenListEmpty() {
         discoveryPeerRepo.upsert("k-cache-empty", "https://ce.example", "fp-ce", PeerSource.MANUAL, null);
         discoveryStationCacheRepo.upsert("k-cache-empty", card("uid-1", "A"), Instant.now());
-        int removed = discoveryStationCacheRepo.deleteMissing("k-cache-empty", List.of());
-        assertEquals(1, removed);
+        var removed = discoveryStationCacheRepo.deleteMissing("k-cache-empty", List.of());
+        assertEquals(List.of("uid-1"), removed);
         assertTrue(discoveryStationCacheRepo.findForPeer("k-cache-empty").isEmpty());
     }
 
@@ -85,14 +87,46 @@ class DiscoveryStationCacheRepositoryTest extends RepositoryTestBase {
         discoveryStationCacheRepo.upsert("k-cache-keep", card("uid-1", "A"), Instant.now());
         discoveryStationCacheRepo.upsert("k-cache-keep", card("uid-2", "B"), Instant.now());
         discoveryStationCacheRepo.upsert("k-cache-keep", card("uid-3", "C"), Instant.now());
-        int removed = discoveryStationCacheRepo.deleteMissing("k-cache-keep", List.of("uid-1", "uid-2"));
-        assertEquals(1, removed);
+        var removed = discoveryStationCacheRepo.deleteMissing("k-cache-keep", List.of("uid-1", "uid-2"));
+        assertEquals(List.of("uid-3"), removed);
         var remaining = discoveryStationCacheRepo.findForPeer("k-cache-keep").stream()
                 .map(CachedDiscoveryStation::stationUid)
                 .toList();
         assertTrue(remaining.contains("uid-1"));
         assertTrue(remaining.contains("uid-2"));
         assertFalse(remaining.contains("uid-3"));
+    }
+
+    @Test
+    void aLogoIsDueUntilAskedForAndAgainOnceItsCheckIsOld() {
+        discoveryPeerRepo.upsert("k-cache-logo", "https://cl.example", "fp-cl", PeerSource.MANUAL, null);
+        var now = Instant.parse("2026-05-01T12:00:00Z");
+        discoveryStationCacheRepo.upsert("k-cache-logo", card("uid-l", "Logo"), now);
+
+        var fresh = discoveryStationCacheRepo.findLogosDue("k-cache-logo", now);
+        assertEquals(List.of(new RemoteLogoCheck("uid-l", "https://logo", false, PictureTags.NONE)), fresh);
+
+        var tags = new PictureTags("\"v1\"", "Fri, 01 May 2026 12:00:00 GMT");
+        discoveryStationCacheRepo.recordLogoCheck("k-cache-logo", "uid-l", now, true, tags);
+        assertTrue(discoveryStationCacheRepo
+                .findLogosDue("k-cache-logo", now.minusSeconds(1))
+                .isEmpty());
+        assertEquals(
+                List.of(new RemoteLogoCheck("uid-l", "https://logo", true, tags)),
+                discoveryStationCacheRepo.findLogosDue("k-cache-logo", now));
+        assertTrue(publishedLogoStored("k-cache-logo"));
+
+        discoveryStationCacheRepo.forgetLogos("k-cache-logo");
+        assertEquals(fresh, discoveryStationCacheRepo.findLogosDue("k-cache-logo", now.minusSeconds(1)));
+        assertFalse(publishedLogoStored("k-cache-logo"));
+    }
+
+    private static boolean publishedLogoStored(String key) {
+        return discoveryStationCacheRepo.findPublishedElsewhere("own-key", "https://own.example").stream()
+                .filter(s -> s.instancePublicKey().equals(key))
+                .findFirst()
+                .orElseThrow()
+                .logoStored();
     }
 
     @Test

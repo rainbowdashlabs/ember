@@ -39,6 +39,7 @@ public class DiscoveryAdminService {
     private final FederationPartnerSeeder federationPartnerSeeder;
     private final DiscoveryHttpClient httpClient;
     private final DiscoveryKeyService keys;
+    private final RemoteStationLogoService logos;
 
     @Inject
     public DiscoveryAdminService(
@@ -49,7 +50,8 @@ public class DiscoveryAdminService {
             DiscoveryStationFetcher stationFetcher,
             FederationPartnerSeeder federationPartnerSeeder,
             DiscoveryHttpClient httpClient,
-            DiscoveryKeyService keys) {
+            DiscoveryKeyService keys,
+            RemoteStationLogoService logos) {
         this.peers = peers;
         this.blocklist = blocklist;
         this.reputation = reputation;
@@ -58,6 +60,7 @@ public class DiscoveryAdminService {
         this.federationPartnerSeeder = federationPartnerSeeder;
         this.httpClient = httpClient;
         this.keys = keys;
+        this.logos = logos;
     }
 
     private static PeerResponse toResponse(DiscoveryPeer p) {
@@ -145,9 +148,12 @@ public class DiscoveryAdminService {
     }
 
     /**
+     * Removes a peer, with the copies of its stations' logos.
+     *
      * @return whether there was such a peer to remove
      */
     public boolean deletePeer(String publicKey) {
+        logos.forgetInstance(publicKey);
         return peers.delete(publicKey);
     }
 
@@ -159,8 +165,15 @@ public class DiscoveryAdminService {
         return changeExistingPeer(publicKey, reputation::downvote);
     }
 
+    /**
+     * Blocks a peer and drops the copies of its stations' logos, which are fetched afresh should it be
+     * unblocked.
+     */
     public PeerResponse block(String publicKey) {
-        return changeExistingPeer(publicKey, key -> peers.setBlocked(key, true));
+        return changeExistingPeer(publicKey, key -> {
+            peers.setBlocked(key, true);
+            logos.forgetInstance(key);
+        });
     }
 
     public PeerResponse unblock(String publicKey) {

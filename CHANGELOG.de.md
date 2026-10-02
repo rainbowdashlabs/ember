@@ -1,5 +1,13 @@
 # Änderungsprotokoll
 
+## v26.20.1
+
+Wachen anderer Instanzen zeigen auf der Discovery-Seite ihr Logo. Die Logos kommen von dieser Instanz, ein Besuch der Seite erreicht also nie eine andere Instanz.
+
+### Fehlerbehebungen
+
+- **Wachen anderer Instanzen hatten kein Logo.** Auf der Discovery-Seite erschienen Wachen anderer Instanzen ohne ihr Logo. Ihre Logos werden jetzt auf dieser Instanz aufbewahrt und von hier gezeigt, auch wenn die andere Instanz gerade nicht erreichbar ist.
+
 ## v26.20.0
 
 Wachen, Verbände und die Instanz folgen jetzt denselben Regeln für Profilfragen, Speicher, Benachrichtigungen, Dokumente und Gruppen. Über zwanzig Sicherheitslücken wurden gefunden und geschlossen, von verborgenen Terminen bis zu Profilen, die jedes angemeldete Mitglied lesen konnte. Formulare haben Seiten, Verzweigungen, eine Vorschau und Entwürfe, an denen man später weiterarbeiten kann. Das neue Ablaufdatum erinnert rechtzeitig, und einzelne Termine einer Serie lassen sich absagen und zurückholen. Der Verband bekommt eigene Benachrichtigungen, einen Speicherverlauf und Dokumente wie eine Wache. Wachen ohne Mailserver können Leute mit Einmalpasswörtern aufnehmen. Beim Löschen einer Vorlage oder eines Felds bleiben alle Einträge erhalten. Und wenn Ember etwas ablehnt, sagt es jetzt, warum, auf Deutsch und mit einem einmaligen Fehlercode, der Entwicklern eine schnelle Identifizierung erlaubt. DeepSeek und Mistral wurden als KI-Anbieter hinzugefügt.

@@ -100,6 +100,7 @@ import dev.chojo.ember.feature.content.service.BlockReferences;
 import dev.chojo.ember.feature.content.service.CellDescriptions;
 import dev.chojo.ember.feature.discovery.route.AdminDiscoveryRoutes;
 import dev.chojo.ember.feature.discovery.route.PublicDiscoveryRoutes;
+import dev.chojo.ember.feature.discovery.route.RemoteStationLogoRoutes;
 import dev.chojo.ember.feature.discovery.service.DiscoveryMaintenanceScheduler;
 import dev.chojo.ember.feature.discovery.service.DiscoveryPingScheduler;
 import dev.chojo.ember.feature.discovery.service.DiscoveryStationRefreshScheduler;
@@ -530,6 +531,7 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(RemoteLendingRoutes.class);
         routesBinder.addBinding().to(DiscoveryRoutes.class);
         routesBinder.addBinding().to(PublicDiscoveryRoutes.class);
+        routesBinder.addBinding().to(RemoteStationLogoRoutes.class);
         routesBinder.addBinding().to(AdminDiscoveryRoutes.class);
         routesBinder.addBinding().to(PublicMapsRoutes.class);
         routesBinder.addBinding().to(AdminMapsRoutes.class);

@@ -48,6 +48,7 @@ class StationDiscoveryRemoteStationsTest {
     private StationService stations;
     private FederationService federation;
     private RemoteStationListingService remote;
+    private StationLogoService logos;
     private StationDiscoveryService service;
 
     private static Station station(int id, String name) {
@@ -60,6 +61,10 @@ class StationDiscoveryRemoteStationsTest {
     }
 
     private static RemoteStation remoteStation(String name, String clusterUid) {
+        return remoteStation(name, clusterUid, null);
+    }
+
+    private static RemoteStation remoteStation(String name, String clusterUid, String logoUrl) {
         var card = new DiscoveryStationCard(
                 REMOTE_UID.toString(),
                 name,
@@ -78,7 +83,8 @@ class StationDiscoveryRemoteStationsTest {
                 clusterUid,
                 "Kreis Nord",
                 "wache-nord");
-        return new RemoteStation(REMOTE_UID, card, "feuer.example", "https://feuer.example/public/station/wache-nord");
+        return new RemoteStation(
+                REMOTE_UID, card, "feuer.example", "https://feuer.example/public/station/wache-nord", logoUrl);
     }
 
     @BeforeEach
@@ -88,7 +94,8 @@ class StationDiscoveryRemoteStationsTest {
         remote = mock(RemoteStationListingService.class);
         var clusters = mock(ClusterRepository.class);
         when(clusters.findByStation(anyInt())).thenReturn(Optional.empty());
-        service = new StationDiscoveryService(stations, mock(StationLogoService.class), federation, clusters, remote);
+        logos = mock(StationLogoService.class);
+        service = new StationDiscoveryService(stations, logos, federation, clusters, remote);
 
         when(stations.findPubliclyDiscoverable(0)).thenReturn(List.of(PUBLIC));
         when(stations.findDiscoverable(OWN_ID)).thenReturn(List.of(PUBLIC, PARTNER));
@@ -150,8 +157,30 @@ class StationDiscoveryRemoteStationsTest {
         assertEquals(REMOTE_CLUSTER, entry.clusterUid());
         assertEquals("Kreis Nord", entry.clusterName());
         assertFalse(entry.hasLogo());
+        assertNull(entry.logoUrl());
         assertFalse(entry.isOwnStation());
         assertFalse(entry.alreadyFederated());
+    }
+
+    @Test
+    void aRemoteStationWithAKeptLogoIsGivenTheAddressOfTheCopy() {
+        String copy = "/api/v1/public/discovery/remote/ab/" + REMOTE_UID + "/logo?size=128";
+        when(remote.list()).thenReturn(List.of(remoteStation("Wache Nord", null, copy)));
+
+        var entry = service.list(false, null).getLast();
+
+        assertTrue(entry.hasLogo());
+        assertEquals(copy, entry.logoUrl());
+    }
+
+    @Test
+    void aLocalStationWithALogoIsGivenItsOwnAddress() {
+        when(logos.exists(PUBLIC.id())).thenReturn(true);
+
+        var entry = service.list(false, null).getFirst();
+
+        assertTrue(entry.hasLogo());
+        assertEquals("/api/v1/public/stations/" + PUBLIC.uid() + "/logo?size=128", entry.logoUrl());
     }
 
     @Test
