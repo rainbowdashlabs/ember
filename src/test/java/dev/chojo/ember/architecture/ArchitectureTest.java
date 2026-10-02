@@ -22,6 +22,9 @@ import dev.chojo.ember.feature.comment.repository.CommentRepository;
 import dev.chojo.ember.feature.events.entity.EventFieldType;
 import dev.chojo.ember.feature.notifications.repository.NotificationRepository;
 import dev.chojo.ember.feature.question.FieldType;
+import dev.chojo.ember.feature.storage.repository.ClusterStationStorageRepository;
+import dev.chojo.ember.feature.storage.repository.ClusterStorageConfigRepository;
+import dev.chojo.ember.owner.Owner;
 import jakarta.inject.Singleton;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
@@ -156,6 +159,30 @@ public class ArchitectureTest {
     @ArchTest
     static final ArchRule routesDoNotDependOnRepositories =
             noClasses().that(areRoutes()).should().dependOnClassesThat().resideInAPackage("..repository..");
+
+    /**
+     * A shared core is told whose data it touches by an {@link Owner}, and that owner comes from the
+     * session ({@code StationSession.owner()}, {@code UserSession.association(...)},
+     * {@code UserSession.instance()}). A route that built one itself would build it from what the
+     * request says, and a caller could then name another station's or association's data.
+     */
+    @ArchTest
+    static final ArchRule routesTakeTheirOwnerFromTheSession =
+            noClasses().that(areRoutes()).should().callConstructorWhere(target(owner(assignableTo(Owner.class))));
+
+    /**
+     * An association's storage versions and placements are kept by the storage feature and changed by
+     * the association's own storage service. Nobody else reaches them, so every write to them passes
+     * the checks those two hold.
+     */
+    @ArchTest
+    static final ArchRule onlyStorageAndTheAssociationReachAssociationStorage = noClasses()
+            .that()
+            .resideOutsideOfPackages("dev.chojo.ember.feature.storage..", "dev.chojo.ember.feature.cluster..")
+            .and(DescribedPredicate.not(tests()))
+            .should()
+            .dependOnClassesThat()
+            .belongToAnyOf(ClusterStorageConfigRepository.class, ClusterStationStorageRepository.class);
 
     @ArchTest
     static final ArchRule routesDoNotSaveConfiguration =

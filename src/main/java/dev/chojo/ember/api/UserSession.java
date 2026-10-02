@@ -13,11 +13,13 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.api.refusal.GeneralRefusal;
+import dev.chojo.ember.api.refusal.Refusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.cluster.entity.ClusterMember;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.twofactor.entity.StepUpProof;
+import dev.chojo.ember.owner.Owner;
 import io.javalin.http.Context;
 import org.jspecify.annotations.Nullable;
 
@@ -176,6 +178,32 @@ public record UserSession(
         Integer id = stationId;
         if (id == null) throw GeneralRefusal.NO_STATION_CHOSEN.raise();
         return id;
+    }
+
+    /**
+     * The association this request acts for, as the owner a shared core is told about.
+     *
+     * <p>Every association route names its own refusal for a request that chose no association, so
+     * the route hands it in.
+     *
+     * @param noneChosen the route's refusal for a request naming no association
+     * @return the association named by the session, never one named by the request body
+     * @throws RefusalResponse {@code noneChosen} when the request names no association
+     */
+    public Owner.Association association(Refusal noneChosen) {
+        Integer id = clusterId;
+        if (id == null) throw noneChosen.raise();
+        return new Owner.Association(id);
+    }
+
+    /**
+     * The instance, as the owner a shared core is told about, for a route the instance administration
+     * reaches. The permission check is the route's registration, as for every other route.
+     *
+     * @return the instance
+     */
+    public Owner.Instance instance() {
+        return new Owner.Instance();
     }
 
     public int accountId() {

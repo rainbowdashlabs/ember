@@ -10,6 +10,7 @@ import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.refusal.GeneralRefusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.owner.Owner;
 import io.javalin.http.Context;
 
 import java.util.Optional;
@@ -80,5 +81,14 @@ public record StationSession(UserSession user, int stationId, UUID stationUid, S
 
     public StationUserType userType() {
         return member.userType();
+    }
+
+    /**
+     * The station this request acts for, as the owner a shared core is told about.
+     *
+     * @return the station named by the session, never one named by the request body
+     */
+    public Owner.Station owner() {
+        return new Owner.Station(stationId);
     }
 }
