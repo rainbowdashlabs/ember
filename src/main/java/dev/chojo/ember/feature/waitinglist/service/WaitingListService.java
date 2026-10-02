@@ -33,6 +33,7 @@ import dev.chojo.ember.feature.question.FieldTypes;
 import dev.chojo.ember.feature.question.QuestionCheck;
 import dev.chojo.ember.feature.question.QuestionValues;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.waitinglist.entity.GuardianInput;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingList;
@@ -356,7 +357,7 @@ public class WaitingListService implements TaskSource {
                             g.firstname().isBlank() ? displayName : g.firstname(),
                             accessToken,
                             stationName,
-                            "de",
+                            languageOf(stationId),
                             stationId);
                 }
             }
@@ -964,6 +965,7 @@ public class WaitingListService implements TaskSource {
     public void checkExpiredConfirmations(WaitingList list) {
         if (!list.sendsMail()) return;
         String stationName = resolveStationName(list.stationId());
+        String language = languageOf(list.stationId());
 
         var expired = repository.findExpiredConfirmations(list.id(), list.confirmIntervalDays());
         for (var entry : expired) {
@@ -972,7 +974,7 @@ public class WaitingListService implements TaskSource {
                     entry.parentName().isBlank() ? entry.fullName() : entry.parentName(),
                     entry.accessToken(),
                     stationName,
-                    "de",
+                    language,
                     list.stationId());
             repository.updateReminderSentAt(entry.id(), Instant.now());
         }
@@ -984,7 +986,7 @@ public class WaitingListService implements TaskSource {
                     entry.parentName().isBlank() ? entry.fullName() : entry.parentName(),
                     entry.accessToken(),
                     stationName,
-                    "de",
+                    language,
                     list.stationId());
         }
 
@@ -1065,7 +1067,8 @@ public class WaitingListService implements TaskSource {
                 consent);
 
         String stationName = resolveStationName(list.stationId());
-        emailService.sendWaitlistVerifyEmail(email, firstname, stationName, token, "de", list.stationId());
+        emailService.sendWaitlistVerifyEmail(
+                email, firstname, stationName, token, languageOf(list.stationId()), list.stationId());
         log.info(
                 "Public waiting-list registration awaiting verification for list {} (station {})",
                 listId,
@@ -1152,16 +1155,17 @@ public class WaitingListService implements TaskSource {
         if (list == null || list.sendsMail()) {
             String stationName = list != null ? resolveStationName(list.stationId()) : "";
             int stationId = list != null ? list.stationId() : 0;
+            String language = languageOf(stationId);
             var guardians = repository.findGuardiansByEntry(entryId);
             for (var g : guardians) {
                 if (g.email() != null && !g.email().isBlank()) {
                     emailService.sendWaitlistRegistrationEmail(
-                            g.email(), g.fullName(), entry.accessToken(), stationName, "de", stationId);
+                            g.email(), g.fullName(), entry.accessToken(), stationName, language, stationId);
                 }
             }
             if (guardians.isEmpty() && entry.email() != null && !entry.email().isBlank()) {
                 emailService.sendWaitlistRegistrationEmail(
-                        entry.email(), entry.fullName(), entry.accessToken(), stationName, "de", stationId);
+                        entry.email(), entry.fullName(), entry.accessToken(), stationName, language, stationId);
             }
         }
 
@@ -1309,6 +1313,10 @@ public class WaitingListService implements TaskSource {
 
     private String resolveStationName(int stationId) {
         return stationRepository.findById(stationId).map(Station::name).orElse("");
+    }
+
+    private String languageOf(int stationId) {
+        return StationFormat.languageOf(stationRepository.findById(stationId).orElse(null));
     }
 
     @Override

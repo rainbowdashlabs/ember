@@ -203,6 +203,7 @@
 - **Mitgliederseiten im Verband zeigten keinen Namen.** Wenn du im Verband eine Person geöffnet hast, stand oben nur „Mitglied“ statt ihres Namens. Jetzt siehst du dort, um wen es geht.
 - **Gelöschte Vorlagen und Felder lassen deine Listen stehen.** Hast du eine Anwesenheitsvorlage gelöscht, verschwanden alle Anwesenheitslisten, die mit ihr geführt wurden, und ein gelöschtes Feld nahm seine Antworten von jeder Liste mit. Jetzt wird beides archiviert: Deine Listen behalten Anwesenheit und Antworten und zählen weiter in Auswertungen und Stunden.
 - **Manchen PDFs fehlte das Logo deiner Wache.** In manchen Fällen kamen Anwesenheitslisten und -berichte, die Terminliste, Inventarlisten, Prüfprotokolle und die Mitgliederliste ohne dein Logo heraus, und die Einrichtung der Wache fragte nach einem Logo, das du längst hochgeladen hattest. Jetzt finden sie dein Logo alle wieder.
+- **Mails der Warteliste kamen nur auf Deutsch.** Familien auf der Warteliste einer englischsprachigen Wache bekamen Bestätigung, Erinnerungen und Warnungen trotzdem auf Deutsch. Jetzt folgen diese Mails der Sprache deiner Wache.
 
 ## v26.19.5
 

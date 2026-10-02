@@ -207,6 +207,23 @@ class WaitingListServiceTest extends RepositoryTestBase {
         assertEquals(IntNode.valueOf(8), values.getFirst().value());
     }
 
+    /** A station that writes in English confirms a registration in English, not in the default German. */
+    @Test
+    void theRegistrationConfirmationIsWrittenInTheStationsLanguage() {
+        var english = stationRepo.create("English Waitlist Station");
+        stationRepo.updateLocale(english.id(), "en-GB");
+        var list = service.create(
+                english.id(), "English " + UUID.randomUUID(), "", null, 180, null, null, 5, false, true, null, null);
+        var invite = service.createInvite(list.id(), 1, null);
+
+        service.registerViaInvite(
+                invite.code(), "Max", "Miller", guardians("Sarah", "sarah@test.com"), Map.of(), null, TEST_CONSENT);
+
+        verify(emailService)
+                .sendWaitlistRegistrationEmail(
+                        eq("sarah@test.com"), anyString(), anyString(), anyString(), eq("en"), eq(english.id()));
+    }
+
     @Test
     void registerViaInviteRejectsUsedUpCode() {
         var invite = service.createInvite(listId, 1, null);
