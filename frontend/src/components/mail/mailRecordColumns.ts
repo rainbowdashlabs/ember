@@ -3,9 +3,20 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {MailDeliveryStatus, MailQueueStatus} from '@/api/mailProviders'
-import type {MailRecord} from '@/api/generated/schema'
+import {EmailQueueStatus, MailDeliveryStatus, type MailRecord} from '@/api/generated/schema'
 import {ColumnTypes, enumOptions, type TableColumn} from '@/components/table/tableColumn'
+
+/** What a provider can report about a mail, from arrived to refused, the order every filter offers them in. */
+export const DELIVERY_STATES: readonly MailDeliveryStatus[] = [
+    MailDeliveryStatus.UNKNOWN,
+    MailDeliveryStatus.DELIVERED,
+    MailDeliveryStatus.SOFT_BOUNCE,
+    MailDeliveryStatus.HARD_BOUNCE,
+    MailDeliveryStatus.BLOCKED,
+    MailDeliveryStatus.SPAM,
+    MailDeliveryStatus.DEFERRED,
+    MailDeliveryStatus.ERROR,
+]
 
 /** Delivery states that mean the mail did not arrive, which is what a reader is scanning for. */
 const UNDELIVERED: readonly string[] = [
@@ -17,20 +28,20 @@ const UNDELIVERED: readonly string[] = [
  * same as one that will never move, and only one of them needs somebody to act.
  */
 export function isStuck(mail: MailRecord): boolean {
-    return (mail.status === MailQueueStatus.PENDING || mail.status === MailQueueStatus.SENDING) && !mail.reachable
+    return (mail.status === EmailQueueStatus.PENDING || mail.status === EmailQueueStatus.SENDING) && !mail.reachable
 }
 
 /** Whether the mail went wrong somewhere: refused, given up on, or stuck. */
 export function isTroubled(mail: MailRecord): boolean {
-    return UNDELIVERED.includes(mail.deliveryStatus) || mail.status === MailQueueStatus.FAILED || isStuck(mail)
+    return UNDELIVERED.includes(mail.deliveryStatus) || mail.status === EmailQueueStatus.FAILED || isStuck(mail)
 }
 
 /** The words for each place in the queue, in the order a mail passes through them. */
 const QUEUE_LABEL_KEYS: Record<string, string> = {
-    [MailQueueStatus.PENDING]: 'mailDashboard.pending',
-    [MailQueueStatus.SENDING]: 'mailDashboard.sending',
-    [MailQueueStatus.SENT]: 'mailDashboard.sent',
-    [MailQueueStatus.FAILED]: 'mailDashboard.failed',
+    [EmailQueueStatus.PENDING]: 'mailDashboard.pending',
+    [EmailQueueStatus.SENDING]: 'mailDashboard.sending',
+    [EmailQueueStatus.SENT]: 'mailDashboard.sent',
+    [EmailQueueStatus.FAILED]: 'mailDashboard.failed',
 }
 
 /** The moment that says most about a mail: when it was handed over, or else when it was written. */
@@ -47,7 +58,7 @@ function momentOf(mail: MailRecord): string {
  */
 export function mailRecordColumns(t: (key: string) => string): TableColumn<MailRecord>[] {
     const queueStates = enumOptions(Object.keys(QUEUE_LABEL_KEYS), value => t(QUEUE_LABEL_KEYS[value]!))
-    const deliveryStates = enumOptions(Object.values(MailDeliveryStatus), value => t(`mailDashboard.delivery.${value}`))
+    const deliveryStates = enumOptions(DELIVERY_STATES, value => t(`mailDashboard.delivery.${value}`))
     return [
         {key: 'recipient', label: t('mailDashboard.colRecipient'), type: ColumnTypes.TEXT, value: mail => mail.recipient, pinned: true},
         {key: 'subject', label: t('mailDashboard.colSubject'), type: ColumnTypes.TEXT, value: mail => mail.subject},

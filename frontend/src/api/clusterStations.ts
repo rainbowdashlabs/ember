@@ -9,19 +9,8 @@ import type {
     ClusterApplicationResponse,
     ClusterApplicationView,
     ClusterStationResponse,
-    components,
     StationClusterResponse,
 } from './generated/schema'
-
-export type ClusterApplicationStatusName = components['schemas']['ClusterApplicationStatus']
-
-/** Where a station's request to join a cluster stands. */
-export const ClusterApplicationStatus = {
-    PENDING: 'PENDING',
-    APPROVED: 'APPROVED',
-    DENIED: 'DENIED',
-    WITHDRAWN: 'WITHDRAWN',
-} as const satisfies Record<ClusterApplicationStatusName, ClusterApplicationStatusName>
 
 export async function listStations(): Promise<ClusterStationResponse[]> {
     const res = await client.get<ClusterStationResponse[]>('/cluster/stations')

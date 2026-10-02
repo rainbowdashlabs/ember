@@ -10,9 +10,9 @@ import type {
   GdprDeletionContext,
   GdprExportContext,
   TableEntry,
+  TrackingStatus,
   TransferContext,
 } from '@/api/generated/schema'
-import type {TrackingStatusName} from '@/api/dataTracking'
 import SaveButton from '@/components/button/SaveButton.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
@@ -26,7 +26,7 @@ import type {Failure} from '@/util/failure'
 defineProps<{
   entry: TableEntry
   columns: ColumnEntry[]
-  statuses: TrackingStatusName[]
+  statuses: TrackingStatus[]
   strategies: readonly string[]
   columnOptions: { value: string; label: string; group?: string }[]
   failure: Failure | null

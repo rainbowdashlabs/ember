@@ -18,20 +18,6 @@ import type {
 
 type Schemas = components['schemas']
 
-export type ClusterBackendReachName = Schemas['ClusterBackendReach']
-
-/**
- * How far an association's own storage reaches.
- *
- * What it decided, not where anything is: a station moves when somebody moves it, and until then a station
- * under {@code EVERY_STATION} is out of place rather than relocated.
- */
-export const ClusterBackendReach = {
-    NONE: 'NONE',
-    OWN_FILES: 'OWN_FILES',
-    EVERY_STATION: 'EVERY_STATION',
-} as const satisfies Record<ClusterBackendReachName, ClusterBackendReachName>
-
 export type StoragePlacementActualName = Schemas['Actual']
 
 /** Where a station's files are. */

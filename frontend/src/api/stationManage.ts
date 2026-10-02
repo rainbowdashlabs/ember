@@ -6,7 +6,6 @@
 import client from './client'
 import {uploadFile} from './upload'
 import type {
-    components,
     DeleteRequestResponse,
     LocationUpdate,
     LocationView,
@@ -18,15 +17,6 @@ import type {
     StationModule,
     UpdateStationRequest,
 } from './generated/schema'
-
-export type DiscoveryVisibilityName = components['schemas']['DiscoveryVisibility']
-
-/** Where a station is listed for others to find: nowhere, on this instance only, or publicly. */
-export const DiscoveryVisibility = {
-    NONE: 'NONE',
-    INSTANCE: 'INSTANCE',
-    PUBLIC: 'PUBLIC',
-} as const satisfies Record<DiscoveryVisibilityName, DiscoveryVisibilityName>
 
 export async function getStationInfo(): Promise<StationInfo> {
     const res = await client.get<StationInfo>('/station/manage')

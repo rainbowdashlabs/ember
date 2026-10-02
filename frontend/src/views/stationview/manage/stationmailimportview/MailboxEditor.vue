@@ -13,9 +13,8 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import MailboxConnectionFields from './MailboxConnectionFields.vue'
-import {MailSecurity} from '@/api/mailImport'
-import type {MailboxDraft, MailSecurityName} from '@/api/mailImport'
-import type {MailboxResponse} from '@/api/generated/schema'
+import type {MailboxDraft} from '@/api/mailImport'
+import {MailSecurity, type MailboxResponse} from '@/api/generated/schema'
 
 /**
  * Adding a mailbox or changing one.
@@ -40,7 +39,7 @@ const {t} = useI18n()
 const name = ref('')
 const host = ref('')
 const port = ref(993)
-const security = ref<MailSecurityName>(MailSecurity.SSL)
+const security = ref<MailSecurity>(MailSecurity.SSL)
 const username = ref('')
 const password = ref('')
 const folder = ref('INBOX')

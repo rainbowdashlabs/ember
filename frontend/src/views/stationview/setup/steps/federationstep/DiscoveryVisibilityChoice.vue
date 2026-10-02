@@ -8,10 +8,10 @@ import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import RadioInput from '@/components/input/toggle/RadioInput.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import {DiscoveryVisibility, type DiscoveryVisibilityName} from '@/api/stationManage'
+import {DiscoveryVisibility} from '@/api/generated/schema'
 
 /** The three places a station can be listed, each with what it means written beside it. */
-const visibility = defineModel<DiscoveryVisibilityName>({required: true})
+const visibility = defineModel<DiscoveryVisibility>({required: true})
 
 const {t} = useI18n()
 

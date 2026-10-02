@@ -14,7 +14,7 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
-import {ClusterUserType} from '@/api/clusters'
+import {ClusterUserType} from '@/api/generated/schema'
 
 /**
  * Giving somebody a job at the association, which is what makes them a member of it.

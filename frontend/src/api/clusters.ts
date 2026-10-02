@@ -4,17 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-import type {ClusterMail, ClusterRequest, ClusterResponse, components} from './generated/schema'
-
-type Schemas = components['schemas']
-
-export type ClusterUserTypeName = Schemas['ClusterUserType']
-
-/** What a cluster member carries by default. */
-export const ClusterUserType = {
-    CLUSTER_USER: 'CLUSTER_USER',
-    CLUSTER_ADMIN: 'CLUSTER_ADMIN',
-} as const satisfies Record<ClusterUserTypeName, ClusterUserTypeName>
+import type {ClusterMail, ClusterRequest, ClusterResponse} from './generated/schema'
 
 /**
  * What a cluster member may do. The mirror of the station's permissions, and separate from them: a cluster

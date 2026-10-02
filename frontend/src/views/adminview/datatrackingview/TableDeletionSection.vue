@@ -5,8 +5,7 @@
  */
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
-import type {ColumnEntry, DeletionStrategy, GdprDeletionContext} from '@/api/generated/schema'
-import type {TrackingStatusName} from '@/api/dataTracking'
+import type {ColumnEntry, DeletionStrategy, GdprDeletionContext, TrackingStatus} from '@/api/generated/schema'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import StatusBadge from './StatusBadge.vue'
@@ -14,7 +13,7 @@ import StatusReasonFields from './StatusReasonFields.vue'
 import DeletionStrategyEditor from './DeletionStrategyEditor.vue'
 
 defineProps<{
-  statuses: TrackingStatusName[]
+  statuses: TrackingStatus[]
   strategies: readonly string[]
   columns: ColumnEntry[]
 }>()

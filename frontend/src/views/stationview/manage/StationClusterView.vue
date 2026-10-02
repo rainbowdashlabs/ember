@@ -17,8 +17,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import ApplicationHistory from './stationclusterview/ApplicationHistory.vue'
 import {clusterStations} from '@/api'
-import {ClusterApplicationStatus} from '@/api/clusterStations'
-import type {AvailableClusterResponse, StationClusterResponse} from '@/api/generated/schema'
+import {ClusterApplicationStatus, type AvailableClusterResponse, type StationClusterResponse} from '@/api/generated/schema'
 import {useConfigPanel} from '@/composables/useConfigPanel'
 
 const {t} = useI18n()

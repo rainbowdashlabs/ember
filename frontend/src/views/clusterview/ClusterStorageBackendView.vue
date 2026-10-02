@@ -23,8 +23,6 @@ import ClusterStoragePolicyPanel from '@/views/clusterview/clusterstoragebackend
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useStorageBackendEditor} from '@/composables/useStorageBackendEditor'
 import {
-    ClusterBackendReach,
-    type ClusterBackendReachName,
     applyClusterBackend,
     dropClusterBackend,
     getClusterBackend,
@@ -35,7 +33,12 @@ import {
     probeClusterBackendConfig,
     setClusterBackendPolicy,
 } from '@/api/clusterStorageBackend'
-import type {AuditEntryResponse, PlacementResponse, PolicyResponse} from '@/api/generated/schema'
+import {
+    ClusterBackendReach,
+    type AuditEntryResponse,
+    type PlacementResponse,
+    type PolicyResponse,
+} from '@/api/generated/schema'
 
 const {t} = useI18n()
 
@@ -43,7 +46,7 @@ const policy = ref<PolicyResponse | null>(null)
 const placements = ref<PlacementResponse[]>([])
 const auditEntries = ref<AuditEntryResponse[]>([])
 const movingUid = ref<string | null>(null)
-const reach = ref<ClusterBackendReachName>(ClusterBackendReach.NONE)
+const reach = ref<ClusterBackendReach>(ClusterBackendReach.NONE)
 const locked = ref(false)
 
 const editor = useStorageBackendEditor({

@@ -9,7 +9,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
-import type {TrackingStatusName} from '@/api/dataTracking'
+import type {TrackingStatus} from '@/api/generated/schema'
 
 type BatchContext = 'stationTransfer' | 'gdprExport' | 'gdprDeletion'
 
@@ -19,7 +19,7 @@ defineProps<{
 }>()
 
 const batchContext = defineModel<BatchContext>('batchContext', {required: true})
-const batchStatus = defineModel<TrackingStatusName>('batchStatus', {required: true})
+const batchStatus = defineModel<TrackingStatus>('batchStatus', {required: true})
 
 const emit = defineEmits<{
   apply: []

@@ -10,49 +10,11 @@ import type {
     BackendOverrideResponse,
     BackendRequest,
     BackendSummary,
-    components,
     InstanceMigrateRequest,
     InstanceMigrationStatusResponse,
     MigrationResponse,
     ProbeResult,
 } from './generated/schema'
-
-type Schemas = components['schemas']
-
-export type StorageBackendTypeName = Schemas['StorageBackendType']
-
-export const StorageBackendType = {
-    LOCAL: 'LOCAL',
-    S3: 'S3',
-    SMB: 'SMB',
-    SFTP: 'SFTP',
-} as const satisfies Record<StorageBackendTypeName, StorageBackendTypeName>
-
-export type StorageAuditActionName = Schemas['StorageAuditAction']
-
-export const StorageAuditAction = {
-    CREATED: 'CREATED',
-    UPDATED: 'UPDATED',
-    DELETED: 'DELETED',
-    PROBE_OK: 'PROBE_OK',
-    PROBE_FAILED: 'PROBE_FAILED',
-    MIGRATION_STARTED: 'MIGRATION_STARTED',
-    MIGRATION_COMPLETED: 'MIGRATION_COMPLETED',
-    MIGRATION_FAILED: 'MIGRATION_FAILED',
-    REJECTED: 'REJECTED',
-    INSTANCE_DEFAULT_UPDATED: 'INSTANCE_DEFAULT_UPDATED',
-    INSTANCE_MIGRATION_STARTED: 'INSTANCE_MIGRATION_STARTED',
-    INSTANCE_MIGRATION_COMPLETED: 'INSTANCE_MIGRATION_COMPLETED',
-    INSTANCE_MIGRATION_FAILED: 'INSTANCE_MIGRATION_FAILED',
-    POLICY_CHANGED: 'POLICY_CHANGED',
-} as const satisfies Record<StorageAuditActionName, StorageAuditActionName>
-
-export type StorageAuditOutcomeName = Schemas['StorageAuditOutcome']
-
-export const StorageAuditOutcome = {
-    OK: 'OK',
-    FAILED: 'FAILED',
-} as const satisfies Record<StorageAuditOutcomeName, StorageAuditOutcomeName>
 
 /**
  * What is behind a station's files, on whose word, and what is still the station's to change.

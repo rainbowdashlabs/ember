@@ -4,15 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-import type {components, DataTracking, Summary, TableEntry, TableUpdate} from './generated/schema'
-
-export type TrackingStatusName = components['schemas']['TrackingStatus']
-
-export const TrackingStatus = {
-    TRACKED: 'TRACKED',
-    IGNORED: 'IGNORED',
-    UNVERIFIED: 'UNVERIFIED',
-} as const satisfies Record<TrackingStatusName, TrackingStatusName>
+import type {DataTracking, Summary, TableEntry, TableUpdate} from './generated/schema'
 
 export async function getDataTracking(): Promise<DataTracking> {
     const res = await client.get<DataTracking>('/admin/data-tracking')

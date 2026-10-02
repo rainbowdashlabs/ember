@@ -4,66 +4,17 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-import type {
-    components,
-    CycleResponse,
-    InstanceSettingsResponse,
-    LogPageResponse,
-    MailboxRequest,
-    MailboxResponse,
-    RuleRequest,
-    RuleResponse,
-    TestResult,
+import {
+    MailImportOutcome,
+    type CycleResponse,
+    type InstanceSettingsResponse,
+    type LogPageResponse,
+    type MailboxRequest,
+    type MailboxResponse,
+    type RuleRequest,
+    type RuleResponse,
+    type TestResult,
 } from './generated/schema'
-
-type Schemas = components['schemas']
-
-export type MailSecurityName = Schemas['MailSecurity']
-
-/** How a mailbox connection is secured. */
-export const MailSecurity = {
-    SSL: 'SSL',
-    STARTTLS: 'STARTTLS',
-    NONE: 'NONE',
-} as const satisfies Record<MailSecurityName, MailSecurityName>
-
-export type MailRuleActionName = Schemas['MailRuleAction']
-
-/** What becomes of a message once its attachments have been dealt with. Deleting is not offered. */
-export const MailRuleAction = {
-    NOTHING: 'NOTHING',
-    MARK_SEEN: 'MARK_SEEN',
-    FLAG: 'FLAG',
-    MOVE: 'MOVE',
-} as const satisfies Record<MailRuleActionName, MailRuleActionName>
-
-export type MailTitleSourceName = Schemas['MailTitleSource']
-
-/** Where the title of a filed document comes from. */
-export const MailTitleSource = {
-    SUBJECT: 'SUBJECT',
-    FILE_NAME: 'FILE_NAME',
-} as const satisfies Record<MailTitleSourceName, MailTitleSourceName>
-
-export type MailImportOutcomeName = Schemas['MailImportOutcome']
-
-/** What became of one attachment. The grain is the attachment, so one mail can report several. */
-export const MailImportOutcome = {
-    IMPORTED: 'IMPORTED',
-    DUPLICATE: 'DUPLICATE',
-    SENDER_NOT_ALLOWED: 'SENDER_NOT_ALLOWED',
-    NO_RULE_MATCHED: 'NO_RULE_MATCHED',
-    TYPE_NOT_ALLOWED: 'TYPE_NOT_ALLOWED',
-    TOO_LARGE: 'TOO_LARGE',
-    TOO_SMALL: 'TOO_SMALL',
-    NO_ATTACHMENT: 'NO_ATTACHMENT',
-    QUOTA_EXCEEDED: 'QUOTA_EXCEEDED',
-    AUTHENTICATION_FAILED: 'AUTHENTICATION_FAILED',
-    NO_SIGNATURE: 'NO_SIGNATURE',
-    SIGNATURE_NOT_ALIGNED: 'SIGNATURE_NOT_ALIGNED',
-    SIGNATURE_FAILED: 'SIGNATURE_FAILED',
-    FAILED: 'FAILED',
-} as const satisfies Record<MailImportOutcomeName, MailImportOutcomeName>
 
 /** A mailbox as its editor holds it: every field filled in, the password only when it is being set. */
 export type MailboxDraft = Required<MailboxRequest>
@@ -94,8 +45,11 @@ function isDomain(domain: string): boolean {
     return domain.indexOf('.') > 0
 }
 
-/** Whether an outcome is the one that produced a document, which is what the page colours differently. */
-export function wasImported(outcome: MailImportOutcomeName): boolean {
+/**
+ * Whether an outcome is the one that produced a document, which is what the page colours differently.
+ * The grain of an outcome is the attachment, so one mail can report several.
+ */
+export function wasImported(outcome: MailImportOutcome): boolean {
     return outcome === MailImportOutcome.IMPORTED
 }
 

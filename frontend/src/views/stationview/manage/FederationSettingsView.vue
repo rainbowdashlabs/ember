@@ -18,7 +18,7 @@ import PublicWaitlistPanel from './federationsettingsview/PublicWaitlistPanel.vu
 import PublicBlogPanel from './federationsettingsview/PublicBlogPanel.vue'
 import PublicSlugPanel from './federationsettingsview/PublicSlugPanel.vue'
 import {stationManage} from '@/api'
-import {DiscoveryVisibility, type DiscoveryVisibilityName} from '@/api/stationManage'
+import {DiscoveryVisibility} from '@/api/generated/schema'
 import {useSession} from '@/composables/useSession'
 import {useFlashMessage} from '@/composables/useFlashMessage'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
@@ -31,7 +31,7 @@ const saving = ref(false)
 const {message: savedMessage, flash: flashSaved} = useFlashMessage(2000)
 const initialized = ref(false)
 
-const discoveryVisibility = ref<DiscoveryVisibilityName>(DiscoveryVisibility.NONE)
+const discoveryVisibility = ref<DiscoveryVisibility>(DiscoveryVisibility.NONE)
 const discoveryDescription = ref('')
 const publicKbMode = ref('OFF')
 const publicCalendarEnabled = ref(false)

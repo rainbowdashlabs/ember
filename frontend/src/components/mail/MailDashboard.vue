@@ -24,7 +24,7 @@ import {useMailRecordTable} from '@/components/mail/useMailRecordTable'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {showToast} from '@/util/toast'
 import {describeFailure, type Failure} from '@/util/failure'
-import {MailDeliveryStatus} from '@/api/mailProviders'
+import {DELIVERY_STATES} from '@/components/mail/mailRecordColumns'
 import type {MailDashboard, ProviderBlock, RequeuedMails} from '@/api/generated/schema'
 
 /**
@@ -108,7 +108,7 @@ async function doRequeue(id?: number) {
 /** The delivery states actually present, so the filter offers nothing that would match nothing. */
 const deliveryStates = computed(() => {
   const seen = new Set((data.value?.recent ?? []).map(entry => entry.deliveryStatus).filter(Boolean))
-  return Object.values(MailDeliveryStatus).filter(state => seen.has(state))
+  return DELIVERY_STATES.filter(state => seen.has(state))
 })
 
 const recentTable = useMailRecordTable('mail-recent', () => (data.value?.recent ?? [])

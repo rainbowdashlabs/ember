@@ -5,7 +5,8 @@
  */
 /** @vitest-environment happy-dom */
 import {describe, expect, it} from 'vitest'
-import {isValidSenderPattern, MailImportOutcome, wasImported} from './mailImport'
+import {MailImportOutcome} from './generated/schema'
+import {isValidSenderPattern, wasImported} from './mailImport'
 
 describe('isValidSenderPattern', () => {
     it('accepts one address', () => {

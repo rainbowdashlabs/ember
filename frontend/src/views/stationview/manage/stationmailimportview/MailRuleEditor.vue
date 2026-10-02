@@ -17,9 +17,8 @@ import RuleSenderPatterns from './RuleSenderPatterns.vue'
 import RuleFilterFields from './RuleFilterFields.vue'
 import RuleToggles from './RuleToggles.vue'
 import RuleTagList from './RuleTagList.vue'
-import {MailRuleAction, MailTitleSource} from '@/api/mailImport'
-import type {MailRuleActionName, MailRuleDraft, MailTitleSourceName} from '@/api/mailImport'
-import type {RuleResponse} from '@/api/generated/schema'
+import type {MailRuleDraft} from '@/api/mailImport'
+import {MailRuleAction, MailTitleSource, type RuleResponse} from '@/api/generated/schema'
 
 /**
  * Writing a rule.
@@ -49,11 +48,11 @@ const attachmentNameFilter = ref('')
 const acceptedTypes = ref<string[]>([])
 const minSizeKilobytes = ref(0)
 const includeInline = ref(false)
-const titleSource = ref<MailTitleSourceName>(MailTitleSource.SUBJECT)
+const titleSource = ref<MailTitleSource>(MailTitleSource.SUBJECT)
 const hidden = ref(false)
 const keepOnArchive = ref(false)
 const readSubjectForMember = ref(false)
-const action = ref<MailRuleActionName>(MailRuleAction.MARK_SEEN)
+const action = ref<MailRuleAction>(MailRuleAction.MARK_SEEN)
 const moveToFolder = ref('')
 const senderPatterns = ref<string[]>([])
 const tags = ref<string[]>([])

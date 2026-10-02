@@ -11,8 +11,7 @@ import NumberInput from '@/components/input/number/NumberInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import DateInput from '@/components/input/datetime/DateInput.vue'
 import LabelledField from '@/components/input/LabelledField.vue'
-import {MailSecurity} from '@/api/mailImport'
-import type {MailSecurityName} from '@/api/mailImport'
+import {MailSecurity} from '@/api/generated/schema'
 
 /**
  * How to reach a mailbox and how often.
@@ -30,7 +29,7 @@ const props = defineProps<{
 const name = defineModel<string>('name', {required: true})
 const host = defineModel<string>('host', {required: true})
 const port = defineModel<number>('port', {required: true})
-const security = defineModel<MailSecurityName>('security', {required: true})
+const security = defineModel<MailSecurity>('security', {required: true})
 const username = defineModel<string>('username', {required: true})
 const password = defineModel<string>('password', {required: true})
 const folder = defineModel<string>('folder', {required: true})

@@ -8,12 +8,12 @@ import {useI18n} from 'vue-i18n'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
-import {ApplicationStatus, type ApplicationStatusName} from '@/api/stationApplications'
+import {ApplicationStatus} from '@/api/generated/schema'
 
 const {t} = useI18n()
 
 defineProps<{
-  status: ApplicationStatusName
+  status: ApplicationStatus
 }>()
 </script>
 

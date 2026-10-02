@@ -4,19 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-import type {ApplicationRequest, components, StationApplication} from './generated/schema'
-
-export type ApplicationStatusName = components['schemas']['ApplicationStatus']
-
-/** Where an application stands. */
-export const ApplicationStatus = {
-    /** Submitted, but the applicant has not followed the confirmation link yet. */
-    UNVERIFIED: 'UNVERIFIED',
-    /** Confirmed and waiting for an operator to decide. */
-    PENDING: 'PENDING',
-    ACCEPTED: 'ACCEPTED',
-    DENIED: 'DENIED',
-} as const satisfies Record<ApplicationStatusName, ApplicationStatusName>
+import type {ApplicationRequest, StationApplication} from './generated/schema'
 
 export async function verify(token: string): Promise<void> {
     await client.post('/station-applications/verify', {token})

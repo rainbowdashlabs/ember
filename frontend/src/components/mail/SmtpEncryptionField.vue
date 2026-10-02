@@ -8,7 +8,7 @@ import {useI18n} from 'vue-i18n'
 import LabelledField from '@/components/input/LabelledField.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import {SmtpEncryption, type SmtpEncryptionName} from '@/api/mailProviders'
+import {SmtpEncryption} from '@/api/generated/schema'
 
 /**
  * How the connection to a mail server is secured.
@@ -16,7 +16,7 @@ import {SmtpEncryption, type SmtpEncryptionName} from '@/api/mailProviders'
  * Unencrypted is offered for a relay on the same internal network that cannot do better, and says
  * plainly what it costs: the login and every mail cross the network readable.
  */
-const encryption = defineModel<SmtpEncryptionName>({required: true})
+const encryption = defineModel<SmtpEncryption>({required: true})
 
 const {t} = useI18n()
 

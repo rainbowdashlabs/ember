@@ -3,15 +3,21 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {TrackingStatus, type TrackingStatusName} from '@/api/dataTracking'
-import type {TableEntry} from '@/api/generated/schema'
+import {TrackingStatus, type TableEntry} from '@/api/generated/schema'
 import {ColumnTypes, enumOptions, type TableColumn} from '@/components/table/tableColumn'
 import type {TrackingRow} from './trackingRow'
 
 interface TrackingContext {
     labelKey: string
-    statusOf: (entry: TableEntry) => TrackingStatusName
+    statusOf: (entry: TableEntry) => TrackingStatus
 }
+
+/** The statuses a context filter offers: settled ones first, the one still asking for review last. */
+const TRACKING_STATUSES: readonly TrackingStatus[] = [
+    TrackingStatus.TRACKED,
+    TrackingStatus.IGNORED,
+    TrackingStatus.UNVERIFIED,
+]
 
 /** The three contexts a table is tracked in, by the key of the column that shows how it stands there. */
 export const TRACKING_CONTEXTS: Record<string, TrackingContext> = {
@@ -29,7 +35,7 @@ function strategiesOf(row: TrackingRow): string[] {
  * deletion strategies it carries, and how many of its columns nobody has verified yet.
  */
 export function trackingColumns(t: (key: string) => string): TableColumn<TrackingRow>[] {
-    const statuses = enumOptions(Object.values(TrackingStatus), value => t(`adminDataTracking.filter.${value}`))
+    const statuses = enumOptions(TRACKING_STATUSES, value => t(`adminDataTracking.filter.${value}`))
     const contexts = Object.entries(TRACKING_CONTEXTS).map(([key, context]): TableColumn<TrackingRow> => ({
         key, label: t(context.labelKey), type: ColumnTypes.ENUM, value: row => context.statusOf(row.entry), options: statuses,
     }))

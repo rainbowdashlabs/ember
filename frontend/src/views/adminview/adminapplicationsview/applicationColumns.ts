@@ -3,11 +3,13 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {ApplicationStatus} from '@/api/stationApplications'
-import type {StationApplication} from '@/api/generated/schema'
+import {ApplicationStatus, type StationApplication} from '@/api/generated/schema'
 import {ColumnTypes, enumOptions, type TableColumn} from '@/components/table/tableColumn'
 
-/** The words each state of an application reads as, in the order they sort in. */
+/**
+ * The words each state of an application reads as, in the order they sort in. Unverified is submitted
+ * but not yet confirmed through the mailed link; pending is confirmed and waiting for an operator.
+ */
 const STATUS_LABEL_KEYS: Record<string, string> = {
     [ApplicationStatus.UNVERIFIED]: 'adminApplications.unverified',
     [ApplicationStatus.PENDING]: 'adminApplications.pendingBadge',

@@ -14,11 +14,14 @@ import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
-import {ClusterBackendReach, type ClusterBackendReachName} from '@/api/clusterStorageBackend'
+import {ClusterBackendReach} from '@/api/generated/schema'
 
 /**
  * The two settings that are the whole of what an association decides about storage: how far its own reaches,
  * and whether a station may point itself anywhere.
+ *
+ * The reach is what the association decided, not where anything is: a station moves when somebody moves it,
+ * and until then a station under every-station reach is out of place rather than relocated.
  *
  * Giving the storage up is beside them rather than inside the reach, because it is a different act: the
  * reach says what the storage is for and giving it up says there is none, and whoever is standing on the old
@@ -34,7 +37,7 @@ const emit = defineEmits<{
     drop: []
 }>()
 
-const reach = defineModel<ClusterBackendReachName>('reach', {required: true})
+const reach = defineModel<ClusterBackendReach>('reach', {required: true})
 const locked = defineModel<boolean>('locked', {required: true})
 
 const {t} = useI18n()

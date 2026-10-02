@@ -4,30 +4,16 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-import type {
-    components,
-    MailDashboard,
-    MailFallbackChain,
-    MailFallbackPayload,
-    MailTestResponse,
-    NotificationSchedulePayload,
-    RequeuedMails,
-    WebhookUrl,
+import {
+    SmtpEncryption,
+    type MailDashboard,
+    type MailFallbackChain,
+    type MailFallbackPayload,
+    type MailTestResponse,
+    type NotificationSchedulePayload,
+    type RequeuedMails,
+    type WebhookUrl,
 } from './generated/schema'
-
-type Schemas = components['schemas']
-
-export type SmtpEncryptionName = Schemas['SmtpEncryption']
-
-/**
- * How the connection to a relay is secured. STARTTLS is required, not merely attempted; NONE sends
- * the login and every mail readable and is only ever used when chosen on purpose.
- */
-export const SmtpEncryption = {
-    IMPLICIT_TLS: 'IMPLICIT_TLS',
-    STARTTLS: 'STARTTLS',
-    NONE: 'NONE',
-} as const satisfies Record<SmtpEncryptionName, SmtpEncryptionName>
 
 /**
  * One provider in the order mail is tried through, as a row of the list being edited.
@@ -116,30 +102,6 @@ export async function testInstanceProvider(position: number, recipient: string):
     )
     return res.data
 }
-
-export type MailQueueStatusName = Schemas['EmailQueueStatus']
-
-/** Where a mail stands in the queue: waiting, being handed over, handed over, or given up on. */
-export const MailQueueStatus = {
-    PENDING: 'PENDING',
-    SENDING: 'SENDING',
-    SENT: 'SENT',
-    FAILED: 'FAILED',
-} as const satisfies Record<MailQueueStatusName, MailQueueStatusName>
-
-export type MailDeliveryStatusName = Schemas['MailDeliveryStatus']
-
-/** What the provider reported about a mail after taking it. */
-export const MailDeliveryStatus = {
-    UNKNOWN: 'UNKNOWN',
-    DELIVERED: 'DELIVERED',
-    SOFT_BOUNCE: 'SOFT_BOUNCE',
-    HARD_BOUNCE: 'HARD_BOUNCE',
-    BLOCKED: 'BLOCKED',
-    SPAM: 'SPAM',
-    DEFERRED: 'DEFERRED',
-    ERROR: 'ERROR',
-} as const satisfies Record<MailDeliveryStatusName, MailDeliveryStatusName>
 
 /**
  * Puts mails a dead worker left in sending back into the queue. Without an id every left-behind
