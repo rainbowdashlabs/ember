@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.federation.entity.FederationChangeLog;
 import dev.chojo.ember.feature.federation.entity.FederationMetadataCache;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.entity.FederationShare;
+import dev.chojo.ember.feature.federation.entity.PairRequest;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -217,6 +218,12 @@ public class FederationService {
 
         /** The code only named a station, so it is now waiting for that station to answer. */
         record Requested(FederationPartner partner) implements CodeOutcome {}
+
+        /**
+         * The code only named a station of another instance, so that instance was sent a request and
+         * it now waits for its station to answer.
+         */
+        record RequestedRemotely(PairRequest request) implements CodeOutcome {}
 
         /** The code was turned away, for the named reason. */
         record Refused(CodeRefusal reason, @Nullable String detail) implements CodeOutcome {}

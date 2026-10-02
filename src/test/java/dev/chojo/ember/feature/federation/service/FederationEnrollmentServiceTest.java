@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.federation.entity.CapabilityType;
 import dev.chojo.ember.feature.federation.entity.Direction;
 import dev.chojo.ember.feature.federation.entity.FederationContract;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
+import dev.chojo.ember.feature.federation.entity.PairRequest;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.route.RemoteFederationRoutes.HandshakeRequest;
 import dev.chojo.ember.feature.federation.route.RemoteFederationRoutes.HandshakeResponse;
@@ -66,6 +67,7 @@ class FederationEnrollmentServiceTest extends RepositoryTestBase {
     private FederationEnrollmentService here;
     private FederationEnrollmentService there;
     private FederationHttpClient httpClient;
+    private OutgoingPairRequestService outgoingRequests;
 
     private Station stationHere;
     private Station stationThere;
@@ -116,6 +118,7 @@ class FederationEnrollmentServiceTest extends RepositoryTestBase {
         serviceThere = new FederationService(federationRepo, stationRepo, keys, api(HOST_THERE));
         httpClient = mock(FederationHttpClient.class);
         var signer = new StationSigner(keys, signingService);
+        outgoingRequests = mock(OutgoingPairRequestService.class);
         here = new FederationEnrollmentService(
                 serviceHere,
                 federationRepo,
@@ -124,6 +127,7 @@ class FederationEnrollmentServiceTest extends RepositoryTestBase {
                 signingService,
                 signer,
                 urlValidator,
+                outgoingRequests,
                 api(HOST_HERE),
                 new Federation());
         there = new FederationEnrollmentService(
@@ -134,6 +138,7 @@ class FederationEnrollmentServiceTest extends RepositoryTestBase {
                 signingService,
                 signer,
                 urlValidator,
+                outgoingRequests,
                 api(HOST_THERE),
                 new Federation());
 
@@ -355,13 +360,18 @@ class FederationEnrollmentServiceTest extends RepositoryTestBase {
     }
 
     @Test
-    void aCodeFromElsewhereWithoutATokenHasNothingToRedeem() {
+    void aCodeFromElsewhereWithoutATokenSendsThatInstanceARequest() {
         var code = codeFor(stationThere.uid(), HOST_THERE, null);
+        var sent = mock(PairRequest.class);
+        when(outgoingRequests.sendToCode(stationHere.id(), stationThere.uid(), HOST_THERE))
+                .thenReturn(sent);
 
         var outcome = here.enterCode(stationHere.id(), code);
 
-        assertEquals(FederationService.CodeRefusal.OTHER_INSTANCE, refusal(outcome));
-        assertEquals(HOST_THERE, ((FederationService.CodeOutcome.Refused) outcome).detail());
+        assertEquals(
+                sent,
+                assertInstanceOf(FederationService.CodeOutcome.RequestedRemotely.class, outcome)
+                        .request());
     }
 
     @Test

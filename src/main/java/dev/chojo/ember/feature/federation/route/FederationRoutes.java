@@ -226,6 +226,7 @@ public class FederationRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = AcceptRequest.class)),
             responses = {
                 @OpenApiResponse(status = "201", content = @OpenApiContent(from = FederationPartner.class)),
+                @OpenApiResponse(status = "202", content = @OpenApiContent(from = OutgoingPairRequestResponse.class)),
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void acceptInvite(Context ctx) {
@@ -241,6 +242,8 @@ public class FederationRoutes implements Routes {
                 ctx.status(HttpStatus.CREATED).json(partnered.partner());
             case FederationService.CodeOutcome.Requested requested ->
                 ctx.status(HttpStatus.CREATED).json(requested.partner());
+            case FederationService.CodeOutcome.RequestedRemotely sent ->
+                ctx.status(HttpStatus.ACCEPTED).json(OutgoingPairRequestResponse.of(sent.request()));
             case FederationService.CodeOutcome.Refused refused ->
                 ctx.status(HttpStatus.BAD_REQUEST)
                         .json(new ErrorResponseWrapper(refused.reason().name(), refusalMessage(refused)));

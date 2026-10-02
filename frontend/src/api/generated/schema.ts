@@ -24585,6 +24585,15 @@ export interface paths {
                         "application/json": components["schemas"]["FederationPartner"];
                     };
                 };
+                /** @description Accepted */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OutgoingPairRequestResponse"];
+                    };
+                };
                 /** @description Bad Request */
                 400: {
                     headers: {

@@ -51,8 +51,12 @@ export async function createInvite(): Promise<InviteCodeResponse> {
     return res.data
 }
 
-export async function acceptInvite(inviteCode: string): Promise<FederationPartner> {
-    const res = await client.post<FederationPartner>('/federation/accept', { inviteCode })
+/**
+ * Enters a code. A code of this instance or an invite code answers with the partnership; a pairing
+ * code of another instance answers with the request it sent there.
+ */
+export async function acceptInvite(inviteCode: string): Promise<FederationPartner | OutgoingPairRequestResponse> {
+    const res = await client.post<FederationPartner | OutgoingPairRequestResponse>('/federation/accept', { inviteCode })
     return res.data
 }
 

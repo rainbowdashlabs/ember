@@ -25,12 +25,13 @@ import FederationCompatibilityBadge from './federationview/FederationCompatibili
 import IncomingPairRequests, { type IncomingPairRequest } from './federationview/IncomingPairRequests.vue'
 import OutgoingPairRequests from './federationview/OutgoingPairRequests.vue'
 import { federation } from '@/api'
-import type {
-  FederationContract,
-  OutgoingPairRequestResponse,
-  PairRequestResponse,
-  PartnerResponse,
-  RemotePairRequestResponse,
+import {
+  FederationStatus,
+  type FederationContract,
+  type OutgoingPairRequestResponse,
+  type PairRequestResponse,
+  type PartnerResponse,
+  type RemotePairRequestResponse,
 } from '@/api/generated/schema'
 import { resolveFederationVersion } from '@/util/federationVersion'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
@@ -159,7 +160,7 @@ async function handleAccept() {
     showInviteModal.value = false
     acceptCode.value = ''
     generatedCode.value = ''
-    flash(result.status === 'ACTIVE' ? t('federation.connected') : t('federation.requestSent'))
+    flash(result.status === FederationStatus.ACTIVE ? t('federation.connected') : t('federation.requestSent'))
     await reload()
   } catch (e) { acceptFailure.value = federationFailure(e) }
 }
@@ -203,8 +204,8 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
             </div>
           </div>
           <FederationCompatibilityBadge :local="localContract" :partner="p.partner" />
-          <SuccessBadge v-if="p.partner.status === 'ACTIVE'">{{ t('federation.active') }}</SuccessBadge>
-          <ErrorBadge v-else-if="p.partner.status === 'SUSPENDED'">{{ t('federation.suspended') }}</ErrorBadge>
+          <SuccessBadge v-if="p.partner.status === FederationStatus.ACTIVE">{{ t('federation.active') }}</SuccessBadge>
+          <ErrorBadge v-else-if="p.partner.status === FederationStatus.SUSPENDED">{{ t('federation.suspended') }}</ErrorBadge>
           <SecondaryBadge v-else>{{ t('federation.pending') }}</SecondaryBadge>
           <PrimaryButton compact @click="router.push({ name: 'station-federation-partner', params: { id: p.partner.id } })">
             <font-awesome-icon :icon="['fas', 'sliders']" class="mr-1" /> {{ t('federation.manage') }}

@@ -76,19 +76,43 @@ class FederationRoutesTest {
     private FederationService federation;
     private IncomingPairRequestService incoming;
     private OutgoingPairRequestService outgoing;
+    private FederationEnrollmentService enrollment;
     private RouteHarness harness;
+
+    @Test
+    void aPairingCodeOfAnotherInstanceAnswersWithTheRequestItSent() {
+        var sent = new PairRequest(
+                13,
+                STATION,
+                PairRequestDirection.OUTGOING,
+                UUID.fromString("00000000-0000-0000-0000-000000000066"),
+                "Wache Fern",
+                "https://fern.example",
+                "instance-key",
+                null,
+                null,
+                PairRequestStatus.PENDING,
+                Instant.EPOCH,
+                null,
+                null);
+        when(enrollment.enterCode(STATION, "ember-code"))
+                .thenReturn(new FederationService.CodeOutcome.RequestedRemotely(sent));
+
+        var answer = harness.request(client -> client.post(
+                PREFIX + "/federation/accept", RouteHarness.body("{\"inviteCode\": \"ember-code\"}"), manager()));
+
+        assertEquals(202, answer.code());
+        assertEquals("PENDING", json(answer).path("status").asString());
+    }
 
     @BeforeEach
     void setup() {
         federation = mock(FederationService.class);
         incoming = mock(IncomingPairRequestService.class);
         outgoing = mock(OutgoingPairRequestService.class);
+        enrollment = mock(FederationEnrollmentService.class);
         harness = RouteHarness.serving(new FederationRoutes(
-                federation,
-                mock(FederationEnrollmentService.class),
-                mock(KnowledgeBaseFederationService.class),
-                incoming,
-                outgoing));
+                federation, enrollment, mock(KnowledgeBaseFederationService.class), incoming, outgoing));
     }
 
     @Test

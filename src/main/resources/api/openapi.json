@@ -19384,6 +19384,16 @@
               }
             }
           },
+          "202" : {
+            "description" : "Accepted",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OutgoingPairRequestResponse"
+                }
+              }
+            }
+          },
           "400" : {
             "description" : "Bad Request",
             "content" : {
