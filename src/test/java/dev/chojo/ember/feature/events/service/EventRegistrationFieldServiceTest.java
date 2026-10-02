@@ -9,6 +9,7 @@ import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.attendance.service.AttendanceTemplateGuards;
 import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.RegistrationFieldDraft;
 import dev.chojo.ember.feature.events.entity.RegistrationFieldValue;
@@ -59,7 +60,8 @@ class EventRegistrationFieldServiceTest extends RepositoryTestBase {
         registrationService = services.registration();
         repository = new EventRegistrationFieldRepository();
         templateRepository = new EventTemplateRepository();
-        templates = new EventTemplateService(templateRepository, attendanceRepo, memberEligibility);
+        templates = new EventTemplateService(
+                templateRepository, attendanceRepo, memberEligibility, new AttendanceTemplateGuards(attendanceRepo));
         service = new EventRegistrationFieldService(repository, memberEligibility);
 
         station = stationRepo.create("RegFieldStation");

@@ -17,6 +17,7 @@ import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.service.AccountInviteService;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.account.service.AvatarService;
+import dev.chojo.ember.feature.attendance.service.AttendanceTemplateGuards;
 import dev.chojo.ember.feature.board.service.BoardAttachmentService;
 import dev.chojo.ember.feature.board.service.BoardService;
 import dev.chojo.ember.feature.board.service.BoardTicketService;
@@ -206,7 +207,8 @@ class DemoServiceTest extends RepositoryTestBase {
                 stationMemberRepo,
                 accountRepo,
                 noOpBus);
-        var eventTemplateService = new EventTemplateService(eventTemplateRepo, attendanceRepo, memberEligibility);
+        var eventTemplateService = new EventTemplateService(
+                eventTemplateRepo, attendanceRepo, memberEligibility, new AttendanceTemplateGuards(attendanceRepo));
         var feedTokenService = new FeedTokenService(feedTokenRepo);
 
         var memberSvc = newStationMemberService(accountRepo, mock(AuthService.class));

@@ -414,7 +414,7 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
                 waitingListRepo.findEntryById(entry.id()).orElseThrow().attendanceCount(),
                 "a mark taken back counts for no date");
 
-        attendanceRepo.deleteTemplate(template.id());
+        attendanceRepo.archiveTemplate(template.id());
         stationMemberRepo.delete(member.id());
         accountRepo.delete(account.id());
     }

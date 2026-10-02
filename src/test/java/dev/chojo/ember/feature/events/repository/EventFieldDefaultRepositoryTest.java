@@ -73,7 +73,7 @@ class EventFieldDefaultRepositoryTest extends RepositoryTestBase {
             assertTrue(eventFieldDefaultRepo.findByEvent(event.id()).isEmpty());
         } finally {
             eventRepo.delete(event.id());
-            attendanceRepo.deleteTemplate(template.id());
+            attendanceRepo.archiveTemplate(template.id());
         }
     }
 

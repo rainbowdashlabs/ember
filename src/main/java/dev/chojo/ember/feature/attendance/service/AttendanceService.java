@@ -90,6 +90,7 @@ public class AttendanceService {
     private final EventDateCancellationRepository cancellationRepository;
     private final AttendanceAudienceService audienceService;
     private final MemberEligibility memberEligibility;
+    private final AttendanceTemplateGuards templateGuards;
 
     @Inject
     public AttendanceService(
@@ -104,8 +105,10 @@ public class AttendanceService {
             StationRepository stationRepository,
             EventDateCancellationRepository cancellationRepository,
             AttendanceAudienceService audienceService,
-            MemberEligibility memberEligibility) {
+            MemberEligibility memberEligibility,
+            AttendanceTemplateGuards templateGuards) {
         this.memberEligibility = memberEligibility;
+        this.templateGuards = templateGuards;
         this.cancellationRepository = cancellationRepository;
         this.audienceService = audienceService;
         this.attendanceRepository = attendanceRepository;
@@ -174,13 +177,30 @@ public class AttendanceService {
         return Optional.empty();
     }
 
-    public boolean deleteTemplate(int id) {
-        if (attendanceRepository.deleteTemplate(id)) {
-            log.info("Deleted attendance template {}", id);
+    /**
+     * Deletes a template the only way one is deleted: by archiving it, as
+     * {@link AttendanceRepository#archiveTemplate} describes. Its sheets stay as they are.
+     *
+     * @param id the template
+     * @return true where a template in use was archived
+     */
+    public boolean archiveTemplate(int id) {
+        if (attendanceRepository.archiveTemplate(id)) {
+            log.info("Archived attendance template {}, its sheets kept", id);
             return true;
         }
-        log.warn("Cannot delete attendance template: template {} not found", id);
+        log.warn("Cannot archive attendance template: template {} not found or archived already", id);
         return false;
+    }
+
+    /**
+     * A template that is still in use, as {@link AttendanceRepository#findActiveTemplateById} finds it.
+     *
+     * @param id the template
+     * @return the template, empty where there is none or it was deleted
+     */
+    public Optional<AttendanceTemplate> findActiveTemplateById(int id) {
+        return attendanceRepository.findActiveTemplateById(id);
     }
 
     public List<TemplateGroup> findTemplateGroups(int templateId) {
@@ -374,6 +394,7 @@ public class AttendanceService {
             @Nullable Integer countedMinutes,
             @Nullable SessionAudience audience,
             @Nullable LocalDate eventDate) {
+        templateGuards.requireOpenForNewWork(templateId);
         requireUsableSpan(startTime, endTime);
         requireUsableCountedMinutes(countedMinutes);
         String resolvedTitle = title;

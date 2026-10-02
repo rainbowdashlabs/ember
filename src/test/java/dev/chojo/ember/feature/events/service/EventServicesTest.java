@@ -987,7 +987,7 @@ class EventServicesTest extends RepositoryTestBase {
         assertEquals(
                 "nass", fieldDefaultService.findByEvent(event.id()).getFirst().value());
 
-        attendanceRepo.deleteTemplate(sheet.id());
+        attendanceRepo.archiveTemplate(sheet.id());
     }
 
     @Test

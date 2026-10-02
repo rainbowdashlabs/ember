@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.events.service;
 import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
+import dev.chojo.ember.feature.attendance.service.AttendanceTemplateGuards;
 import dev.chojo.ember.feature.events.entity.AppointmentTemplateField;
 import dev.chojo.ember.feature.events.entity.AppointmentTemplateFieldDraft;
 import dev.chojo.ember.feature.events.entity.EventTemplate;
@@ -45,15 +46,18 @@ public class EventTemplateService {
     private final EventTemplateRepository repository;
     private final AttendanceRepository attendanceRepository;
     private final MemberEligibility eligibility;
+    private final AttendanceTemplateGuards attendanceTemplateGuards;
 
     @Inject
     public EventTemplateService(
             EventTemplateRepository repository,
             AttendanceRepository attendanceRepository,
-            MemberEligibility eligibility) {
+            MemberEligibility eligibility,
+            AttendanceTemplateGuards attendanceTemplateGuards) {
         this.repository = repository;
         this.attendanceRepository = attendanceRepository;
         this.eligibility = eligibility;
+        this.attendanceTemplateGuards = attendanceTemplateGuards;
     }
 
     public List<EventTemplate> findByStation(int stationId) {
@@ -113,6 +117,7 @@ public class EventTemplateService {
             @Nullable RestrictionMode restrictionMode,
             @Nullable Integer attendanceTemplateId,
             @Nullable Integer registrationLimit) {
+        attendanceTemplateGuards.requireOpenForNewWork(attendanceTemplateId);
         if (repository.update(
                 id,
                 name,

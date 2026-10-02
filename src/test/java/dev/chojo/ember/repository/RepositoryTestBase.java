@@ -27,6 +27,7 @@ import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AccountInviteService;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
+import dev.chojo.ember.feature.attendance.service.AttendanceTemplateGuards;
 import dev.chojo.ember.feature.board.repository.BoardRepository;
 import dev.chojo.ember.feature.board.repository.BoardTicketRepository;
 import dev.chojo.ember.feature.board.repository.FederatedBoardRepository;
@@ -961,7 +962,8 @@ public abstract class RepositoryTestBase {
                 new EquipmentAvailabilityService(equipmentAvailabilityRepo, equipmentNeedRepo, eventRepo, calendar);
         var lending = newLendingService(eventBus, availability);
         var release = new EquipmentReleaseService(equipmentNeedRepo, lending);
-        var crudService = new EventCrudService(eventRepo, eventBus, release, restrictionService);
+        var crudService = new EventCrudService(
+                eventRepo, eventBus, release, restrictionService, new AttendanceTemplateGuards(attendanceRepo));
         var cancellation =
                 new EventCancellationService(eventRepo, eventDateCancellationRepo, calendar, release, eventBus);
         return new EventServices(

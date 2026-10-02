@@ -80,7 +80,8 @@ class AttendanceServiceTest extends RepositoryTestBase {
                 stationRepo,
                 eventDateCancellationRepo,
                 new AttendanceAudienceService(attendanceRepo),
-                memberEligibility);
+                memberEligibility,
+                new AttendanceTemplateGuards(attendanceRepo));
         station = stationRepo.create("AttendanceSvc Station");
         account = accountRepo.create("attend-svc@test.com", "Attend", "User");
         member = stationMemberRepo.create(station.id(), account.id());
@@ -822,7 +823,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
         assertEquals(AttendanceEntry.AttendanceStatus.UNCONFIRMED, forInvited.status());
 
         service.deleteSession(session.id());
-        service.deleteTemplate(expectingTemplate.id());
+        service.archiveTemplate(expectingTemplate.id());
         eventRepo.delete(event.id());
         stationMemberRepo.delete(outsider.id());
         accountRepo.delete(outsiderAccount.id());
@@ -885,7 +886,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
 
         service.deleteSession(session.id());
         eventRepo.delete(event.id());
-        service.deleteTemplate(sheet.id());
+        service.archiveTemplate(sheet.id());
     }
 
     /**
@@ -940,7 +941,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
 
         service.deleteSession(session.id());
         eventRepo.delete(event.id());
-        service.deleteTemplate(sheet.id());
+        service.archiveTemplate(sheet.id());
     }
 
     /**
@@ -967,7 +968,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
                         && entry.status() == AttendanceEntry.AttendanceStatus.UNCONFIRMED));
 
         service.deleteSession(session.id());
-        service.deleteTemplate(lateTemplate.id());
+        service.archiveTemplate(lateTemplate.id());
         memberGroupRepo.delete(lateGroup.id());
     }
 
@@ -1032,7 +1033,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
                         e.memberId() == member2.id() && e.status() == AttendanceEntry.AttendanceStatus.UNCONFIRMED));
 
         service.deleteSession(session.id());
-        service.deleteTemplate(template.id());
+        service.archiveTemplate(template.id());
         memberGroupRepo.delete(group.id());
         eventRepo.delete(event.id());
         stationMemberRepo.delete(member2.id());
@@ -1115,7 +1116,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
                         e -> e.memberId() == member3.id() && e.status() == AttendanceEntry.AttendanceStatus.DECLINED));
 
         service.deleteSession(session.id());
-        service.deleteTemplate(template.id());
+        service.archiveTemplate(template.id());
         memberGroupRepo.delete(group.id());
         eventRepo.delete(event.id());
         stationMemberRepo.delete(member3.id());
@@ -1163,7 +1164,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
 
         service.deleteAbsence(absence.id());
         service.deleteSession(session.id());
-        service.deleteTemplate(template.id());
+        service.archiveTemplate(template.id());
         memberGroupRepo.delete(group.id());
         eventRepo.delete(event.id());
     }
@@ -1212,7 +1213,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
 
         service.deleteSession(session.id());
         eventRepo.delete(event.id());
-        service.deleteTemplate(autoAttendTemplate.id());
+        service.archiveTemplate(autoAttendTemplate.id());
         stationMemberRepo.delete(member4.id());
         accountRepo.delete(account4.id());
     }
@@ -1316,7 +1317,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
         eventFieldRepo.deleteByEvent(event.id());
         service.deleteSession(session.id());
         eventRepo.delete(event.id());
-        service.deleteTemplate(fieldTemplate.id());
+        service.archiveTemplate(fieldTemplate.id());
         stationMemberRepo.delete(member6.id());
         accountRepo.delete(account6.id());
     }
@@ -1392,7 +1393,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
         assertTrue(entries2.stream().anyMatch(e -> e.memberId() == member8.id()));
 
         service.deleteSession(session2.id());
-        service.deleteTemplate(autoAttendTemplate2.id());
+        service.archiveTemplate(autoAttendTemplate2.id());
         stationMemberRepo.delete(member8.id());
         accountRepo.delete(account8.id());
     }
@@ -1414,7 +1415,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
         assertFalse(sessionFields.isEmpty());
 
         service.deleteSession(session.id());
-        service.deleteTemplate(defaultTemplate.id());
+        service.archiveTemplate(defaultTemplate.id());
     }
 
     @Test
@@ -1490,7 +1491,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
         service.deleteSession(session.id());
         eventFieldDefaultRepo.replaceForEvent(event.id(), List.of());
         eventRepo.delete(event.id());
-        service.deleteTemplate(fieldTemplate.id());
+        service.archiveTemplate(fieldTemplate.id());
     }
 
     @Test
@@ -1509,7 +1510,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
 
         service.deleteSession(session.id());
         service.setTemplateGroups(autoTemplate.id(), List.of());
-        service.deleteTemplate(autoTemplate.id());
+        service.archiveTemplate(autoTemplate.id());
         memberGroupRepo.removeMember(group.id(), member.id());
         memberGroupRepo.delete(group.id());
     }
@@ -1556,7 +1557,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
                         e -> e.memberId() == member9.id() && e.status() == AttendanceEntry.AttendanceStatus.DECLINED));
 
         service.deleteSession(session.id());
-        service.deleteTemplate(template.id());
+        service.archiveTemplate(template.id());
         memberGroupRepo.delete(group.id());
         eventRepo.delete(event.id());
         stationMemberRepo.delete(member9.id());
@@ -1619,7 +1620,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
                         .status());
 
         service.deleteSession(session.id());
-        service.deleteTemplate(template.id());
+        service.archiveTemplate(template.id());
         memberGroupRepo.delete(group.id());
         eventRepo.delete(event.id());
         stationMemberRepo.delete(coming.id());
@@ -1669,7 +1670,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
                         .status());
 
         service.deleteSession(session.id());
-        service.deleteTemplate(template.id());
+        service.archiveTemplate(template.id());
         memberGroupRepo.delete(group.id());
         eventRepo.delete(event.id());
         stationMemberRepo.delete(quiet.id());
@@ -1722,7 +1723,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
             assertEquals(entries, service.syncFromEvent(session.id()), "filling it in later changes nothing");
         } finally {
             service.deleteSession(session.id());
-            service.deleteTemplate(template.id());
+            service.archiveTemplate(template.id());
             memberGroupRepo.delete(group.id());
             eventRepo.delete(event.id());
             stationMemberRepo.delete(decliner.id());
@@ -1782,7 +1783,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
         } finally {
             service.deleteSession(sheet.id());
             service.deleteSession(nextSheet.id());
-            service.deleteTemplate(template.id());
+            service.archiveTemplate(template.id());
             memberGroupRepo.delete(group.id());
             eventRepo.delete(weekly.id());
             stationMemberRepo.delete(decliner.id());
@@ -2006,7 +2007,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
     }
 
     private void remove(Audience audience) {
-        service.deleteTemplate(audience.templateId());
+        service.archiveTemplate(audience.templateId());
         memberGroupRepo.delete(audience.groupId());
         audience.members().forEach(joined -> stationMemberRepo.delete(joined.id()));
         audience.accounts().forEach(created -> accountRepo.delete(created.id()));
@@ -2093,7 +2094,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
                         .status());
 
         service.deleteSession(session.id());
-        service.deleteTemplate(template.id());
+        service.archiveTemplate(template.id());
         memberGroupRepo.delete(group.id());
         eventRepo.delete(event.id());
         stationMemberRepo.delete(otherDay.id());
@@ -2125,7 +2126,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
                         e -> e.memberId() == member10.id() && e.status() == AttendanceEntry.AttendanceStatus.PRESENT));
 
         service.deleteSession(session.id());
-        service.deleteTemplate(autoTemplate.id());
+        service.archiveTemplate(autoTemplate.id());
         stationMemberRepo.delete(member10.id());
         accountRepo.delete(account10.id());
     }
@@ -2182,7 +2183,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
         assertFalse(entered.contains(outsider.id()), "nobody either answer names is left off");
 
         service.deleteSession(session.id());
-        service.deleteTemplate(template.id());
+        service.archiveTemplate(template.id());
         memberGroupRepo.delete(group.id());
     }
 
@@ -2222,7 +2223,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
                 "whom a group names comes before whom only a type names");
 
         service.deleteSession(session.id());
-        service.deleteTemplate(template.id());
+        service.archiveTemplate(template.id());
         memberGroupRepo.delete(group.id());
     }
 
@@ -2249,7 +2250,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
                 "the template's own group still fills the sheet");
 
         service.deleteSession(session.id());
-        service.deleteTemplate(template.id());
+        service.archiveTemplate(template.id());
         memberGroupRepo.delete(group.id());
     }
 
@@ -2279,7 +2280,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
         assertTrue(service.findEntries(session.id()).isEmpty(), "nobody of the other station is reached");
 
         service.deleteSession(session.id());
-        service.deleteTemplate(template.id());
+        service.archiveTemplate(template.id());
         stationRepo.delete(elsewhere.id());
         accountRepo.delete(foreignAccount.id());
     }
@@ -2331,7 +2332,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
             service.deleteSession(session.id());
         }
 
-        service.deleteTemplate(template.id());
+        service.archiveTemplate(template.id());
         memberGroupRepo.delete(group.id());
         stationMemberRepo.setUserType(manager.id(), StationUserType.GUARDIAN);
     }
@@ -2347,7 +2348,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
         assertTrue(service.setTemplateUserTypes(template.id(), null).isEmpty());
         assertTrue(service.findTemplateUserTypes(template.id()).isEmpty());
 
-        service.deleteTemplate(template.id());
+        service.archiveTemplate(template.id());
     }
 
     /**
@@ -2393,7 +2394,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
         assertFalse(entered.contains(templateOnly.id()), "the template's group stays off the sheet");
 
         service.deleteSession(session.id());
-        service.deleteTemplate(template.id());
+        service.archiveTemplate(template.id());
         memberGroupRepo.delete(templateGroup.id());
         memberGroupRepo.delete(chosenGroup.id());
         stationRepo.delete(foreignStation.id());
@@ -2409,8 +2410,10 @@ class AttendanceServiceTest extends RepositoryTestBase {
 
     @Test
     @Order(99)
-    void deleteTemplate() {
-        assertTrue(service.deleteTemplate(templateId));
-        assertTrue(service.findTemplateById(templateId).isEmpty());
+    void archiveTemplate() {
+        assertTrue(service.archiveTemplate(templateId));
+        assertTrue(service.findActiveTemplateById(templateId).isEmpty());
+        assertTrue(service.findTemplateById(templateId).isPresent());
+        assertFalse(service.archiveTemplate(templateId));
     }
 }

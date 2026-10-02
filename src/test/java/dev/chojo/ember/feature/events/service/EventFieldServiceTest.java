@@ -199,8 +199,8 @@ class EventFieldServiceTest extends RepositoryTestBase {
                 "and the one into another sheet is not");
 
         eventRepo.delete(onOurSheet.id());
-        attendanceRepo.deleteTemplate(ours.id());
-        attendanceRepo.deleteTemplate(theirs.id());
+        attendanceRepo.archiveTemplate(ours.id());
+        attendanceRepo.archiveTemplate(theirs.id());
     }
 
     @Test

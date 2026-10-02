@@ -86,4 +86,5 @@ export default {
     'AT-055': 'Das Mitglied war an diesem Tag noch nicht in der Wache, es wurde nichts gespeichert',
     'AT-056': 'Eine gespeicherte Auswertung muss mindestens eine Mitgliedsart oder Gruppe nennen, es wurde nichts gespeichert',
     'AT-057': 'Eine gespeicherte Auswertung kann keinen leeren Eintrag nennen, es wurde nichts gespeichert',
+    'AT-058': 'Diese Anwesenheitsvorlage wurde gelöscht und kann nicht mehr gewählt werden, es wurde nichts gespeichert',
 }

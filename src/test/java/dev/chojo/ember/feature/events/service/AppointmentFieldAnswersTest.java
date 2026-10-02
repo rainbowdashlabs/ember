@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.api.refusal.RefusalResponse;
+import dev.chojo.ember.feature.attendance.service.AttendanceTemplateGuards;
 import dev.chojo.ember.feature.events.entity.AppointmentTemplateFieldDraft;
 import dev.chojo.ember.feature.events.entity.EventFieldDraft;
 import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
@@ -52,7 +53,11 @@ class AppointmentFieldAnswersTest extends RepositoryTestBase {
                 eventRepo,
                 attendanceRepo,
                 eventFieldRegistrationService);
-        templates = new EventTemplateService(new EventTemplateRepository(), attendanceRepo, memberEligibility);
+        templates = new EventTemplateService(
+                new EventTemplateRepository(),
+                attendanceRepo,
+                memberEligibility,
+                new AttendanceTemplateGuards(attendanceRepo));
         station = stationRepo.create("AppointmentAnswersStation");
         firstMember = stationMemberRepo
                 .create(

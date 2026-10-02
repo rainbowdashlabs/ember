@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.attendance.service.AttendanceAudienceService;
 import dev.chojo.ember.feature.attendance.service.AttendanceExportService;
 import dev.chojo.ember.feature.attendance.service.AttendanceReportService;
 import dev.chojo.ember.feature.attendance.service.AttendanceService;
+import dev.chojo.ember.feature.attendance.service.AttendanceTemplateGuards;
 import dev.chojo.ember.feature.attendance.service.MemberCheckNotesService;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -70,7 +71,8 @@ class AttendanceTemplateAudienceRouteTest extends RepositoryTestBase {
                 stationRepo,
                 eventDateCancellationRepo,
                 new AttendanceAudienceService(attendanceRepo),
-                memberEligibility);
+                memberEligibility,
+                new AttendanceTemplateGuards(attendanceRepo));
         harness = RouteHarness.serving(new AttendanceRoutes(
                         attendanceService,
                         mock(MemberCheckNotesService.class),
@@ -101,8 +103,8 @@ class AttendanceTemplateAudienceRouteTest extends RepositoryTestBase {
     }
 
     @AfterEach
-    void deleteTemplate() {
-        attendanceService.deleteTemplate(templateId);
+    void archiveTemplate() {
+        attendanceService.archiveTemplate(templateId);
     }
 
     @Test

@@ -345,16 +345,18 @@ class AttendanceRepositoryTest extends RepositoryTestBase {
         assertTrue(attendanceRepo.findTemplateUserTypes(templateId).isEmpty());
     }
 
-    /** Deleting a template takes its user types with it. */
+    /** Archiving a template keeps its user types, because its sheets still read them. */
     @Test
     @Order(44)
-    void templateUserTypesGoWithTheirTemplate() {
-        int doomed = attendanceRepo.createTemplate(station.id(), "Doomed").id();
-        attendanceRepo.setTemplateUserTypes(doomed, Set.of(StationUserType.TEAM));
+    void templateUserTypesStayWithAnArchivedTemplate() {
+        int archived = attendanceRepo.createTemplate(station.id(), "Archived").id();
+        attendanceRepo.setTemplateUserTypes(archived, Set.of(StationUserType.TEAM));
 
-        attendanceRepo.deleteTemplate(doomed);
+        assertTrue(attendanceRepo.archiveTemplate(archived));
 
-        assertTrue(attendanceRepo.findTemplateUserTypes(doomed).isEmpty());
+        assertEquals(Set.of(StationUserType.TEAM), attendanceRepo.findTemplateUserTypes(archived));
+        assertTrue(attendanceRepo.isArchived(archived));
+        assertTrue(attendanceRepo.findActiveTemplateById(archived).isEmpty());
     }
 
     /**
@@ -550,8 +552,14 @@ class AttendanceRepositoryTest extends RepositoryTestBase {
 
     @Test
     @Order(99)
-    void deleteTemplate() {
-        assertTrue(attendanceRepo.deleteTemplate(templateId));
+    void archiveTemplate() {
+        assertFalse(attendanceRepo.isArchived(templateId));
+        assertTrue(attendanceRepo.findActiveTemplateById(templateId).isPresent());
+
+        assertTrue(attendanceRepo.archiveTemplate(templateId));
+
         assertTrue(attendanceRepo.findTemplatesByStation(station.id()).isEmpty());
+        assertTrue(attendanceRepo.findTemplateById(templateId).isPresent());
+        assertFalse(attendanceRepo.archiveTemplate(templateId));
     }
 }

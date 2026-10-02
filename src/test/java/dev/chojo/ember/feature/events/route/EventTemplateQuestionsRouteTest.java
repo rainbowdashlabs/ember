@@ -10,6 +10,7 @@ import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
+import dev.chojo.ember.feature.attendance.service.AttendanceTemplateGuards;
 import dev.chojo.ember.feature.events.entity.EventTemplate;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventTemplateRepository;
@@ -84,7 +85,10 @@ class EventTemplateQuestionsRouteTest {
                 .thenReturn(created);
         templateRepository = mock(EventTemplateRepository.class);
         var templates = new EventTemplateService(
-                templateRepository, mock(AttendanceRepository.class), mock(MemberEligibility.class));
+                templateRepository,
+                mock(AttendanceRepository.class),
+                mock(MemberEligibility.class),
+                mock(AttendanceTemplateGuards.class));
         var restrictions = mock(EventRestrictionService.class);
         var routes = new EventRoutes(
                 crudService,

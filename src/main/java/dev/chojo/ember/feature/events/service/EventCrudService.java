@@ -12,6 +12,7 @@ import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.EventChanged;
 import dev.chojo.ember.event.events.EventCreated;
 import dev.chojo.ember.event.events.EventDeleted;
+import dev.chojo.ember.feature.attendance.service.AttendanceTemplateGuards;
 import dev.chojo.ember.feature.content.entity.BlockAudience;
 import dev.chojo.ember.feature.equipment.service.EquipmentReleaseService;
 import dev.chojo.ember.feature.events.entity.PickerEvent;
@@ -49,17 +50,20 @@ public class EventCrudService {
     private final DomainEventBus eventBus;
     private final EquipmentReleaseService equipmentRelease;
     private final RestrictionService restrictionService;
+    private final AttendanceTemplateGuards attendanceTemplateGuards;
 
     @Inject
     public EventCrudService(
             EventRepository eventRepository,
             DomainEventBus eventBus,
             EquipmentReleaseService equipmentRelease,
-            RestrictionService restrictionService) {
+            RestrictionService restrictionService,
+            AttendanceTemplateGuards attendanceTemplateGuards) {
         this.eventRepository = eventRepository;
         this.eventBus = eventBus;
         this.equipmentRelease = equipmentRelease;
         this.restrictionService = restrictionService;
+        this.attendanceTemplateGuards = attendanceTemplateGuards;
     }
 
     /**
@@ -265,6 +269,7 @@ public class EventCrudService {
             @Nullable Integer thresholdDays,
             @Nullable Integer registrationCloseDays) {
         requireUsableSpan(startTime, endTime, EventRefusal.EVENT_ENDS_BEFORE_IT_STARTS_ON_CREATE);
+        attendanceTemplateGuards.requireOpenForNewWork(templateId);
         var event = eventRepository.create(
                 stationId,
                 name,
@@ -322,6 +327,7 @@ public class EventCrudService {
             @Nullable Integer thresholdDays,
             @Nullable Integer registrationCloseDays) {
         requireUsableSpan(startTime, endTime, EventRefusal.EVENT_ENDS_BEFORE_IT_STARTS_ON_CHANGE);
+        attendanceTemplateGuards.requireOpenForNewWork(templateId);
         var before = eventRepository.findById(id).orElse(null);
         if (eventRepository.update(
                 id,

@@ -5906,7 +5906,7 @@
         }
       },
       "delete" : {
-        "summary" : "Delete an attendance template",
+        "summary" : "Delete an attendance template, which archives it and keeps its sheets",
         "tags" : [ "Attendance" ],
         "responses" : {
           "204" : {

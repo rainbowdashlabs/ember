@@ -21,6 +21,7 @@ import dev.chojo.ember.feature.members.entity.MemberAbsence;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.util.sql.MemberNameSql;
 import dev.chojo.ember.util.sql.SqlSupport;
+import dev.chojo.ember.util.sql.Transactions;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
@@ -63,14 +64,40 @@ public class AttendanceRepository {
     }
 
     /**
-     * Finds all attendance templates belonging to a station.
+     * Finds a template that is still in use, leaving out one that was deleted and is only kept for
+     * the sheets made from it.
+     *
+     * @param id the template ID
+     * @return the template, empty where there is none or it was deleted
+     */
+    public Optional<AttendanceTemplate> findActiveTemplateById(int id) {
+        return query("""
+                SELECT %s FROM attendance_template WHERE id = :id AND archived_at IS NULL;""", ATTENDANCE_TEMPLATE_COLUMNS)
+                .single(call().bind("id", id))
+                .map(AttendanceTemplate.map())
+                .first();
+    }
+
+    /**
+     * Whether a template was deleted and is only kept for the sheets made from it.
+     *
+     * @param id the template ID
+     * @return true where the template is archived, false where it is in use or unknown
+     */
+    public boolean isArchived(int id) {
+        return SqlSupport.exists("""
+                SELECT 1 FROM attendance_template WHERE id = :id AND archived_at IS NOT NULL;""", call().bind("id", id));
+    }
+
+    /**
+     * Finds the attendance templates of a station that are still in use, leaving out deleted ones.
      *
      * @param stationId the station ID
-     * @return list of templates for the station
+     * @return list of templates for the station, in the order they were made
      */
     public List<AttendanceTemplate> findTemplatesByStation(int stationId) {
         return query("""
-                SELECT %s FROM attendance_template WHERE station_id = :station_id;""", ATTENDANCE_TEMPLATE_COLUMNS)
+                SELECT %s FROM attendance_template WHERE station_id = :station_id AND archived_at IS NULL ORDER BY id;""", ATTENDANCE_TEMPLATE_COLUMNS)
                 .single(call().bind("station_id", stationId))
                 .map(AttendanceTemplate.map())
                 .all();
@@ -108,13 +135,32 @@ public class AttendanceRepository {
     }
 
     /**
-     * Deletes an attendance template by its ID.
+     * Archives an attendance template, which is what deleting one does.
+     *
+     * <p>Nothing is removed: the template keeps its fields, groups and user types, and every sheet
+     * made from it keeps reading them, so its sheets show and count exactly as before. It only leaves
+     * every list a template is chosen from, and the appointments and appointment templates that
+     * pointed at it let go of it, as they did when a template was really deleted.
      *
      * @param id the template ID
-     * @return {@code true} if the template was deleted
+     * @return {@code true} if a template in use was archived
      */
-    public boolean deleteTemplate(int id) {
-        return SqlSupport.deleteById("attendance_template", id);
+    public boolean archiveTemplate(int id) {
+        return Transactions.call(() -> {
+            boolean archived = query("""
+                    UPDATE attendance_template
+                    SET archived_at = now()
+                    WHERE id = :id
+                      AND archived_at IS NULL;""").single(call().bind("id", id)).update().changed();
+            if (!archived) return false;
+            query("UPDATE station_event SET template_id = NULL WHERE template_id = :id;")
+                    .single(call().bind("id", id))
+                    .update();
+            query("UPDATE event_template SET attendance_template_id = NULL WHERE attendance_template_id = :id;")
+                    .single(call().bind("id", id))
+                    .update();
+            return true;
+        });
     }
 
     /**

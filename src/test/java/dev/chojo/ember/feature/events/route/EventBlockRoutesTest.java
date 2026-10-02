@@ -9,6 +9,7 @@ import dev.chojo.ember.api.LocalRouteServer;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.feature.attendance.service.AttendanceTemplateGuards;
 import dev.chojo.ember.feature.content.BlockReferenceTestBase;
 import dev.chojo.ember.feature.equipment.service.EquipmentReleaseService;
 import dev.chojo.ember.feature.events.service.BatchEventService;
@@ -48,7 +49,11 @@ class EventBlockRoutesTest extends BlockReferenceTestBase {
     @BeforeAll
     static void setupClass() {
         var crudService = new EventCrudService(
-                eventRepo, new DomainEventBus(Set.of()), mock(EquipmentReleaseService.class), restrictionService);
+                eventRepo,
+                new DomainEventBus(Set.of()),
+                mock(EquipmentReleaseService.class),
+                restrictionService,
+                mock(AttendanceTemplateGuards.class));
         var visibility =
                 new EventVisibility(crudService, mock(EventRestrictionService.class), mock(GuardianPolicy.class));
         var embedRoutes = new EventEmbedRoutes(crudService, new EventCategoryService(eventCategoryRepo), visibility);

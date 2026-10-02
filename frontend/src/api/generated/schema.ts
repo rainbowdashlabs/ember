@@ -8261,7 +8261,7 @@ export interface paths {
             };
         };
         post?: never;
-        /** Delete an attendance template */
+        /** Delete an attendance template, which archives it and keeps its sheets */
         delete: {
             parameters: {
                 query?: never;

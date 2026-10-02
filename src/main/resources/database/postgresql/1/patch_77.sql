@@ -990,3 +990,52 @@ COMMENT ON COLUMN ember_schema.member_document_member.member_id
     IS 'The member the document is about. Empty once that member was deleted and only their name is left.';
 COMMENT ON COLUMN ember_schema.member_document_member.departed_name
     IS 'The name of a member who was deleted while the document was kept for the record, written when the link to them went. It keeps the document a member''s paperwork rather than the station''s own.';
+
+ALTER TABLE ember_schema.attendance_template
+    ADD COLUMN archived_at TIMESTAMP WITH TIME ZONE;
+
+COMMENT ON COLUMN ember_schema.attendance_template.archived_at
+    IS 'When the template was deleted, NULL while it is in use. Deleting only archives it: it keeps its fields, groups and user types, because the sheets made from it still read them, and it is offered for nothing new.';
+
+ALTER TABLE ember_schema.attendance_template
+    DROP CONSTRAINT attendance_template_station_id_name_key;
+
+CREATE UNIQUE INDEX idx_attendance_template_name_in_use
+    ON ember_schema.attendance_template (station_id, name)
+    WHERE archived_at IS NULL;
+
+COMMENT ON COLUMN ember_schema.attendance_template.name
+    IS 'Template name, unique among the station''s templates in use. A deleted template gives its name up for a new one.';
+
+ALTER TABLE ember_schema.attendance_session
+    DROP CONSTRAINT attendance_session_template_id_fkey;
+
+ALTER TABLE ember_schema.attendance_session
+    ADD CONSTRAINT attendance_session_template_id_fkey
+        FOREIGN KEY (template_id) REFERENCES ember_schema.attendance_template (id) ON DELETE RESTRICT;
+
+COMMENT ON COLUMN ember_schema.attendance_session.template_id
+    IS 'The attendance template the sheet was made from. A template that has sheets cannot be deleted, only archived, so no sheet is ever taken with its template.';
+
+CREATE OR REPLACE FUNCTION ember_schema.station_drop_attendance_sheets() RETURNS TRIGGER
+    LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    DELETE
+    FROM ember_schema.attendance_session s
+        USING ember_schema.attendance_template t
+    WHERE t.id = s.template_id
+      AND t.station_id = OLD.id;
+    RETURN OLD;
+END;
+$$;
+
+COMMENT ON FUNCTION ember_schema.station_drop_attendance_sheets()
+    IS 'Deletes the attendance sheets of a station that is being deleted, before its templates go. A template refuses to be deleted while sheets hang off it, so without this a station with sheets could not be deleted at all.';
+
+CREATE TRIGGER station_drop_attendance_sheets
+    BEFORE DELETE
+    ON ember_schema.station
+    FOR EACH ROW
+EXECUTE FUNCTION ember_schema.station_drop_attendance_sheets();

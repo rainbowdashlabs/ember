@@ -221,7 +221,17 @@ public enum AttendanceRefusal implements Refusal {
 
     /** A saved report whose user types or groups include an empty entry. */
     ATTENDANCE_REPORT_PRESET_EMPTY_ENTRY(
-            57, HttpStatus.BAD_REQUEST, "A saved report cannot name an empty entry, so nothing was saved");
+            57, HttpStatus.BAD_REQUEST, "A saved report cannot name an empty entry, so nothing was saved"),
+
+    /**
+     * A deleted attendance template chosen for something new: a sheet, or an appointment or an
+     * appointment template to take its sheets from. Deleting only archives a template, so the sheets
+     * made from it keep it, but nothing new may start from it.
+     */
+    ATTENDANCE_TEMPLATE_ARCHIVED(
+            58,
+            HttpStatus.GONE,
+            "This attendance template was deleted and can no longer be chosen, so nothing was saved");
 
     private final Definition definition;
 

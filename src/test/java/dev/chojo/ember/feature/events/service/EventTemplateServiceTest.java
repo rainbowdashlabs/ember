@@ -9,6 +9,7 @@ import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
+import dev.chojo.ember.feature.attendance.service.AttendanceTemplateGuards;
 import dev.chojo.ember.feature.events.entity.AppointmentTemplateFieldDraft;
 import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.StationEvent;
@@ -40,7 +41,8 @@ class EventTemplateServiceTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         var repository = new EventTemplateRepository();
-        service = new EventTemplateService(repository, attendanceRepo, memberEligibility);
+        service = new EventTemplateService(
+                repository, attendanceRepo, memberEligibility, new AttendanceTemplateGuards(attendanceRepo));
         restrictions = new EventTemplateRestrictionService(repository, restrictionService);
         station = stationRepo.create("EventTemplateServiceStation");
     }
@@ -226,8 +228,8 @@ class EventTemplateServiceTest extends RepositoryTestBase {
                         .attendanceFieldId(),
                 "and the one into somebody else's sheet is not");
 
-        attendanceRepo.deleteTemplate(ours.id());
-        attendanceRepo.deleteTemplate(theirs.id());
+        attendanceRepo.archiveTemplate(ours.id());
+        attendanceRepo.archiveTemplate(theirs.id());
     }
 
     @Test

@@ -1912,7 +1912,7 @@ export default {
         create: 'Neue Vorlage',
         empty: 'Noch keine Anwesenheitsvorlagen vorhanden.',
         duplicate: 'Duplizieren',
-        deleteConfirm: 'Vorlage "{name}" wirklich löschen? Alle zugehörigen Sitzungen werden ebenfalls gelöscht.',
+        deleteConfirm: 'Vorlage "{name}" wirklich löschen? Sie wird archiviert und steht für neue Listen nicht mehr zur Wahl. Die Anwesenheitslisten, die mit ihr geführt wurden, bleiben mit allen Einträgen erhalten.',
         cancel: 'Abbrechen',
         back: 'Zurück',
         editTitle: 'Vorlage bearbeiten',

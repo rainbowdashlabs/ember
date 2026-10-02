@@ -379,7 +379,7 @@ public class AttendanceRoutes implements Routes {
         StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         verifyTemplateOwnership(id, session);
-        attendanceService.findTemplateById(id).ifPresentOrElse(template -> ctx.json(detailOf(template)), () -> {
+        attendanceService.findActiveTemplateById(id).ifPresentOrElse(template -> ctx.json(detailOf(template)), () -> {
             throw AttendanceRefusal.ATTENDANCE_TEMPLATE_GONE_WHILE_READ.raise();
         });
     }
@@ -397,7 +397,7 @@ public class AttendanceRoutes implements Routes {
             })
     private void updateTemplate(Context ctx) {
         int id = pathInt(ctx, "id");
-        requireOwnedOrNotFound(ctx, id, attendanceService::findTemplateById, AttendanceTemplate::stationId);
+        requireOwnedOrNotFound(ctx, id, attendanceService::findActiveTemplateById, AttendanceTemplate::stationId);
         var request = ctx.bodyAsClass(TemplateRequest.class);
         if (isBlank(request.name())) {
             throw AttendanceRefusal.ATTENDANCE_TEMPLATE_RENAME_NEEDS_A_NAME.raise();
@@ -410,7 +410,7 @@ public class AttendanceRoutes implements Routes {
     @OpenApi(
             path = "/api/v1/attendance/templates/{id}",
             methods = HttpMethod.DELETE,
-            summary = "Delete an attendance template",
+            summary = "Delete an attendance template, which archives it and keeps its sheets",
             tags = {"Attendance"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             responses = {
@@ -419,8 +419,8 @@ public class AttendanceRoutes implements Routes {
             })
     private void deleteTemplate(Context ctx) {
         int id = pathInt(ctx, "id");
-        requireOwnedOrNotFound(ctx, id, attendanceService::findTemplateById, AttendanceTemplate::stationId);
-        if (attendanceService.deleteTemplate(id)) {
+        requireOwnedOrNotFound(ctx, id, attendanceService::findActiveTemplateById, AttendanceTemplate::stationId);
+        if (attendanceService.archiveTemplate(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
             throw AttendanceRefusal.ATTENDANCE_TEMPLATE_NOT_HERE_TO_DELETE.raise();
@@ -437,7 +437,8 @@ public class AttendanceRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = TemplateGroupEntry[].class)))
     private void setTemplateGroups(Context ctx) {
         int templateId = pathInt(ctx, "templateId");
-        requireOwnedOrNotFound(ctx, templateId, attendanceService::findTemplateById, AttendanceTemplate::stationId);
+        requireOwnedOrNotFound(
+                ctx, templateId, attendanceService::findActiveTemplateById, AttendanceTemplate::stationId);
         var request = ctx.bodyAsClass(SetTemplateGroupsRequest.class);
         var groups = request.groups() != null
                 ? request.groups().stream()
@@ -461,7 +462,8 @@ public class AttendanceRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = StationUserType[].class)))
     private void setTemplateUserTypes(Context ctx) {
         int templateId = pathInt(ctx, "templateId");
-        requireOwnedOrNotFound(ctx, templateId, attendanceService::findTemplateById, AttendanceTemplate::stationId);
+        requireOwnedOrNotFound(
+                ctx, templateId, attendanceService::findActiveTemplateById, AttendanceTemplate::stationId);
         var request = ctx.bodyAsClass(SetTemplateUserTypesRequest.class);
         ctx.json(attendanceService.setTemplateUserTypes(templateId, request.userTypes()));
     }
@@ -492,7 +494,8 @@ public class AttendanceRoutes implements Routes {
                     @OpenApiResponse(status = "201", content = @OpenApiContent(from = AttendanceTemplateField[].class)))
     private void createTemplateField(Context ctx) {
         int templateId = pathInt(ctx, "templateId");
-        requireOwnedOrNotFound(ctx, templateId, attendanceService::findTemplateById, AttendanceTemplate::stationId);
+        requireOwnedOrNotFound(
+                ctx, templateId, attendanceService::findActiveTemplateById, AttendanceTemplate::stationId);
         var request = ctx.bodyAsClass(TemplateFieldRequest.class);
         if (isBlank(request.name()) || request.fieldType() == null) {
             throw AttendanceRefusal.ATTENDANCE_FIELD_DETAILS_MISSING.raise();
@@ -519,7 +522,8 @@ public class AttendanceRoutes implements Routes {
     private void updateTemplateField(Context ctx) {
         int templateId = pathInt(ctx, "templateId");
         int fieldId = pathInt(ctx, "fieldId");
-        requireOwnedOrNotFound(ctx, templateId, attendanceService::findTemplateById, AttendanceTemplate::stationId);
+        requireOwnedOrNotFound(
+                ctx, templateId, attendanceService::findActiveTemplateById, AttendanceTemplate::stationId);
         var request = ctx.bodyAsClass(TemplateFieldRequest.class);
         if (isBlank(request.name()) || request.fieldType() == null) {
             throw AttendanceRefusal.ATTENDANCE_FIELD_CHANGE_DETAILS_MISSING.raise();
@@ -548,7 +552,8 @@ public class AttendanceRoutes implements Routes {
     private void deleteTemplateField(Context ctx) {
         int templateId = pathInt(ctx, "templateId");
         int fieldId = pathInt(ctx, "fieldId");
-        requireOwnedOrNotFound(ctx, templateId, attendanceService::findTemplateById, AttendanceTemplate::stationId);
+        requireOwnedOrNotFound(
+                ctx, templateId, attendanceService::findActiveTemplateById, AttendanceTemplate::stationId);
         attendanceService.deleteTemplateField(templateId, fieldId).ifPresentOrElse(ctx::json, () -> {
             throw AttendanceRefusal.ATTENDANCE_FIELD_NOT_HERE_TO_DELETE.raise();
         });

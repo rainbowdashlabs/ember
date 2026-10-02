@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:621294193019e7c1d0ca01b877d8b7b441d04d66d0705daff7665cae11a6737d",
-  "generatedAt": "2026-10-02T10:49:19Z",
+  "schemaHash": "sha256:5000823391debff679d735fc38c32fbdc4d70bcca913d640b5082d54c4bcb335",
+  "generatedAt": "2026-10-02T13:07:10Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -1348,7 +1348,7 @@
     "attendance_session": {
       "feature": "attendance",
       "scope": "STATION",
-      "tableHash": "sha256:f3c092396b3e7cc96cabd5f080fb4c56c143eb3aa6fd0dd55a7cfa8ff3efe3b8",
+      "tableHash": "sha256:bfee4e19953625933759fe1297b7b88a234138e065e907d9872d342b7c5189c3",
       "columns": [
         {
           "name": "id",
@@ -1362,7 +1362,7 @@
           "type": "int4",
           "nullable": false,
           "verified": true,
-          "description": "References the attendance template."
+          "description": "The attendance template the sheet was made from. A template that has sheets cannot be deleted, only archived, so no sheet is ever taken with its template."
         },
         {
           "name": "start_time",
@@ -1432,7 +1432,7 @@
           "column": "template_id",
           "refTable": "attendance_template",
           "refColumn": "id",
-          "onDelete": "CASCADE"
+          "onDelete": "RESTRICT"
         }
       ],
       "stationTransfer": {
@@ -1566,7 +1566,7 @@
     "attendance_template": {
       "feature": "attendance",
       "scope": "STATION",
-      "tableHash": "sha256:6c35399eb2b973693c735b696b4c66ad485cbe27d14a7cc98df51ec81cf21bf4",
+      "tableHash": "sha256:1914694b52e8c9eed571f08bea2233d705f7c98b8b00cf570a4aadf173806491",
       "columns": [
         {
           "name": "id",
@@ -1587,7 +1587,14 @@
           "type": "text",
           "nullable": false,
           "verified": true,
-          "description": "Template name, unique within the station."
+          "description": "Template name, unique among the station's templates in use. A deleted template gives its name up for a new one."
+        },
+        {
+          "name": "archived_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When the template was deleted, NULL while it is in use. Deleting only archives it: it keeps its fields, groups and user types, because the sheets made from it still read them, and it is offered for nothing new."
         }
       ],
       "foreignKeys": [
