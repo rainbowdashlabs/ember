@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, onMounted} from 'vue'
+import {computed, onMounted, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SidebarLayout from '@/components/layout/SidebarLayout.vue'
 import SidebarGroup from '@/components/navigation/SidebarGroup.vue'
@@ -21,6 +21,7 @@ import {useQuickSearchShortcut} from '@/composables/useQuickSearchShortcut'
 import {useSession} from '@/composables/useSession'
 import {useCluster} from '@/composables/useCluster'
 import {usePageHeader} from '@/composables/usePageHeader'
+import {useClusterNotificationCount} from '@/composables/useClusterNotificationCount'
 import {ClusterPermission} from '@/api/clusters'
 
 const {t} = useI18n()
@@ -37,11 +38,18 @@ const {open: openQuickSearch} = useQuickSearchShortcut('cluster')
  */
 const sessionCurrent = computed(() => loaded.value && sessionClusterId.value === currentClusterId.value)
 
+const {count: unreadNotifications, refresh: refreshUnreadNotifications} = useClusterNotificationCount()
+
+/** The number on the bell follows the association the shell is open on, once the reader may read its inbox. */
+const mayReadInbox = computed(() => sessionCurrent.value && hasClusterPermission(ClusterPermission.USER))
+watch(mayReadInbox, may => { if (may) void refreshUnreadNotifications() })
+
 onMounted(() => {
   if (!sessionCurrent.value) {
     load()
   }
   void loadClusters()
+  if (mayReadInbox.value) void refreshUnreadNotifications()
 })
 </script>
 
@@ -54,6 +62,7 @@ onMounted(() => {
         </SidebarLink>
         <SidebarLink
             v-if="hasClusterPermission(ClusterPermission.USER)"
+            :badge="unreadNotifications"
             :icon="['fas', 'bell']"
             name="cluster-notifications"
             to="/cluster/notifications"

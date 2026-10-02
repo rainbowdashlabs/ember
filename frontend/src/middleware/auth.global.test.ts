@@ -25,6 +25,7 @@ const state = vi.hoisted(() => ({
     sessionLoads: 0,
     clusters: [] as {uid: string}[],
     clustersLoaded: false,
+    activeCluster: null as string | null,
     needsReconsent: false,
     demo: {demo: false, dev: false},
     demoLogins: [] as string[],
@@ -88,6 +89,10 @@ vi.mock('~/composables/useCluster', () => ({
             state.clustersLoaded = true
         },
         hasClusters: {value: state.clusters.length > 0},
+        clusterList: {value: state.clusters},
+        setActiveCluster: (uid: string) => {
+            state.activeCluster = uid
+        },
     }),
 }))
 
@@ -177,6 +182,7 @@ describe('auth route guard', () => {
         state.sessionLoads = 0
         state.clusters = []
         state.clustersLoaded = false
+        state.activeCluster = null
         state.needsReconsent = false
         state.demo = {demo: false, dev: false}
         state.demoLogins = []
@@ -395,6 +401,26 @@ describe('auth route guard', () => {
         await run(route('/cluster'))
 
         expect(state.navigations).toEqual([])
+    })
+
+    /** A link from an association's mail opens in that association, for a reader of several. */
+    it('takes the association from the link where the reader may act for it', async () => {
+        state.store.set('station_id', STATION)
+        state.clusters = [{uid: 'c1'}, {uid: 'c2'}]
+
+        await run(route('/cluster/applications', {cluster: 'c2'}))
+
+        expect(state.activeCluster).toBe('c2')
+        expect(state.navigations).toEqual([])
+    })
+
+    it('ignores an association in the link the reader may not act for', async () => {
+        state.store.set('station_id', STATION)
+        state.clusters = [{uid: 'c1'}]
+
+        await run(route('/cluster/applications', {cluster: 'c9'}))
+
+        expect(state.activeCluster).toBeNull()
     })
 
     describe('noting the area somebody is in', () => {

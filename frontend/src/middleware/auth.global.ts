@@ -70,7 +70,8 @@ async function waitsForFirstStation(): Promise<boolean> {
  * because every later gate asks about the person signed in. The administration area is closed to
  * anyone who is not an instance administrator, and stays closed when the session cannot be
  * established. A cluster area is closed to anyone who may act for no cluster, whose shell would
- * otherwise open on an emptiness that reads as a page they are meant to be on. A {@code ?station=}
+ * otherwise open on an emptiness that reads as a page they are meant to be on, and a {@code ?cluster=}
+ * link from an association's mail switches to that association where the reader may act for it. A {@code ?station=}
  * link hands its station over before anything can redirect and drop it, and the idle check runs only
  * once a station is known, since the requirements page is station-scoped. The activity stamp is
  * written only when the navigation is let through, so a redirect never spends the idle window.
@@ -110,9 +111,13 @@ export default defineNuxtRouteMiddleware(async (to) => {
     }
 
     if (to.path === '/cluster' || to.path.startsWith('/cluster/')) {
-        const {loaded: clustersLoaded, load: loadClusters, hasClusters} = useCluster()
+        const {loaded: clustersLoaded, load: loadClusters, hasClusters, clusterList, setActiveCluster} = useCluster()
         if (!clustersLoaded.value) await loadClusters()
         if (!hasClusters.value) return navigateTo('/station/dashboard/overview')
+        const queryCluster = typeof to.query.cluster === 'string' ? to.query.cluster : null
+        if (queryCluster && clusterList.value.some(cluster => cluster.uid === queryCluster)) {
+            setActiveCluster(queryCluster)
+        }
     }
 
     if (to.path === '/station' || to.path.startsWith('/station/')) {

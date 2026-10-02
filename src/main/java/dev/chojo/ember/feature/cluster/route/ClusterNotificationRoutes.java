@@ -53,6 +53,7 @@ public class ClusterNotificationRoutes implements Routes {
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/cluster/notifications", this::list, ClusterPermission.USER);
+        routes.get(prefix + "/cluster/notifications/unacknowledged", this::listUnacknowledged, ClusterPermission.USER);
         routes.get(prefix + "/cluster/notifications/count", this::count, ClusterPermission.USER);
         routes.get(prefix + "/cluster/notifications/settings", this::settings, ClusterPermission.USER);
         routes.put(prefix + "/cluster/notifications/settings", this::updateSettings, ClusterPermission.USER);
@@ -74,11 +75,24 @@ public class ClusterNotificationRoutes implements Routes {
     }
 
     @OpenApi(
+            path = "/api/v1/cluster/notifications/unacknowledged",
+            methods = HttpMethod.GET,
+            summary = "List the cluster notifications the caller has not read",
+            tags = {"Cluster"},
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = NotificationResponse[].class)))
+    private void listUnacknowledged(Context ctx) {
+        ctx.json(inbox.unread(requireClusterMember(ctx)).stream()
+                .map(NotificationResponse::of)
+                .toList());
+    }
+
+    @OpenApi(
             path = "/api/v1/cluster/notifications/count",
             methods = HttpMethod.GET,
             summary = "Count the cluster notifications the caller has not read",
             tags = {"Cluster"},
-            responses = @OpenApiResponse(status = "200"))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = CountResponse.class)))
     private void count(Context ctx) {
         ctx.json(new CountResponse(inbox.countUnread(requireClusterMember(ctx))));
     }

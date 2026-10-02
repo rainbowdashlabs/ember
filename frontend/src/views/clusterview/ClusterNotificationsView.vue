@@ -13,9 +13,13 @@ import Alert from '@/components/feedback/Alert.vue'
 import {clusters} from '@/api'
 import type {ClusterMail} from '@/api/generated/schema'
 import {useConfigPanel} from '@/composables/useConfigPanel'
+import {useClusterNotificationCount} from '@/composables/useClusterNotificationCount'
+import {clusterInbox} from '@/api/notifications'
+import NotificationInbox from '@/components/notifications/NotificationInbox.vue'
 import ClusterMailSwitch from './clusternotificationsview/ClusterMailSwitch.vue'
 
 const {t} = useI18n()
+const {refresh: refreshUnreadNotifications} = useClusterNotificationCount()
 
 const {config: settings, loading, failure, runWith} = useConfigPanel<ClusterMail | null>({
   initial: null,
@@ -43,6 +47,7 @@ async function toggleMail() {
       <Spinner v-if="loading" size="lg"/>
       <FailureAlert :failure="failure"/>
       <Alert v-if="saved" variant="success">{{ t('clusterNotifications.saved') }}</Alert>
+      <NotificationInbox :api="clusterInbox" @changed="refreshUnreadNotifications"/>
       <ClusterMailSwitch v-if="!loading && settings" :settings="settings" @toggle="toggleMail"/>
     </div>
   </ViewContent>

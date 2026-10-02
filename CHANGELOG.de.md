@@ -36,6 +36,7 @@
 - **Vorlagen bringen Anmeldefragen mit.** Im Editor für Terminvorlagen lassen sich die Fragen zur Anmeldung anlegen, im selben Editor wie an einem Termin.
 - **Zahlenfelder der Ausrüstung nehmen Schritte unter eins.** Der Schritt eines Zahlenfelds der Ausrüstung lässt sich im Feldeditor auf einen Bruchteil wie 0,5 setzen, womit das Feld Kommazahlen annimmt.
 - **Die Konfigurationshilfe nennt jede Einstellung.** Die Liste der Einstellungen und Umgebungsvariablen in der Hilfe wird aus dem Server selbst gelesen und zeigt jetzt auch die Grenzen für das Anmelden von Geräten, die älteren Ausweich-Mailanbieter und die verschlüsselten Speicher-Zugangsdaten, jeweils mit Schlüssel, Variable und Standardwert.
+- **Benachrichtigungen des Verbands in der App.** Verband → Benachrichtigungen zeigt jetzt, was dir der Verband gemeldet hat, öffnet jeden Hinweis auf seiner Seite und markiert ihn als gelesen, und die Glocke im Menü des Verbands zeigt, wie viele ungelesen sind. Hinweise, die zurückgehalten werden, solange derselbe noch ungelesen ist, etwa Erinnerungen, kommen wieder, sobald er hier gelesen ist.
 - **Abläufe können ohne Bestätigung des Mitglieds auskommen.** Jeder Ablauf auf der Seite der Abläufe hat einen Schalter, der den Erhalt eines Teils für das Mitglied bestätigt, sobald die Bewegung dort ankommt, statt auf das Mitglied zu warten. Der Verlauf der Bewegung zeigt diesen Schritt als automatisch bestätigt, andere Abläufe fragen weiter nach.
 
 ### Sicherheit

@@ -36,6 +36,7 @@
 - **Templates carry registration questions.** The appointment template editor sets up the questions asked at registration, in the same editor as on an appointment.
 - **Gear number fields take a step below one.** The step of a gear number field can be set to a fraction such as 0.5 in the field editor, which lets the field take decimal numbers.
 - **Configuration help lists every setting.** The list of settings and environment variables in the help centre is taken from the server itself, so it now also shows the device sign-in limits, the older mail fallbacks and the encrypted storage credentials, each with its key, variable and default.
+- **Association notifications in the app.** Association → Notifications now lists what the association has told you, opens each notice on its page and marks it read, and the bell in the association's menu shows how many are unread. Notices that are held back while the same one is still unread, such as reminders, arrive again once it is read here.
 - **Movement chains can skip the member's receipt.** Each chain on the movement chains page has a switch that confirms the member's receipt of a piece for them as soon as the movement gets there, instead of waiting for them. The movement's history marks that step as confirmed automatically, and other chains keep asking.
 
 ### Security

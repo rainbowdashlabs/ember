@@ -1106,7 +1106,7 @@ export default {
         },
         'cluster-notifications': {
             title: 'Benachrichtigungen',
-            subtitle: 'Wie dich der Verband erreicht',
+            subtitle: 'Was dir der Verband meldet und wie er dich erreicht',
         },
         'cluster-stations': {
             title: 'Wachen',

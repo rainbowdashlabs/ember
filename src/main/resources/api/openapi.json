@@ -12056,7 +12056,14 @@
         "tags" : [ "Cluster" ],
         "responses" : {
           "200" : {
-            "description" : "OK"
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CountResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -12098,6 +12105,27 @@
             "application/json" : {
               "schema" : {
                 "$ref" : "#/components/schemas/ClusterMailRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cluster/notifications/unacknowledged" : {
+      "get" : {
+        "summary" : "List the cluster notifications the caller has not read",
+        "tags" : [ "Cluster" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/NotificationResponse"
+                  }
+                }
               }
             }
           }

@@ -3879,9 +3879,11 @@ volumes:
         },
         clusterNotifications: {
             title: 'Benachrichtigungen des Verbands',
-            subtitle: 'Entscheide, ob dich der Verband per E-Mail erreicht.',
+            subtitle: 'Lies, was dir der Verband meldet, und entscheide, ob er dich per E-Mail erreicht.',
             whatIs: 'Was ist das?',
             whatIsText: 'Der Verband meldet dir Neues, zum Beispiel die Beitrittsanfrage einer Wache oder ein Ablaufdatum, das bald erreicht ist. Du siehst diese Meldungen immer in Ember. Hier stellst du ein, ob sie dir zusätzlich per E-Mail geschickt werden.',
+            readTitle: 'Wo lese ich die Meldungen?',
+            readText: 'Öffne in der Seitenleiste unter Verband den Punkt Benachrichtigungen. Die Zahl an der Glocke zeigt, wie viele Meldungen du noch nicht gelesen hast. Ein Klick auf eine Meldung öffnet die Seite, um die es geht, und markiert sie als gelesen. Mit "Alle gelesen" markierst du alle auf einmal.',
             howTo: 'Wie schalte ich die E-Mail ein?',
             howToText: 'Öffne in der Seitenleiste unter Verband den Punkt Benachrichtigungen. Schalte den Schalter ein, und die Einstellung ist sofort gespeichert. Mit einem zweiten Klick schaltest du sie wieder aus.',
             whenTitle: 'Wann und in welcher Sprache?',
