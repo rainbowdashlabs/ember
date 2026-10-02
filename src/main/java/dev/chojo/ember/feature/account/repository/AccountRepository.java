@@ -13,6 +13,7 @@ import dev.chojo.ember.auth.TokenHasher;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.entity.AccountCredential;
 import dev.chojo.ember.feature.account.entity.AccountSession;
+import dev.chojo.ember.feature.account.entity.AccountTies;
 import dev.chojo.ember.feature.account.entity.AccountToken;
 import dev.chojo.ember.feature.account.entity.TokenType;
 import dev.chojo.ember.feature.legal.entity.GdprConsent;
@@ -481,7 +482,8 @@ public class AccountRepository {
                     password_hash,
                     force_password_change,
                     last_breach_check_at,
-                    password_login_disabled_at
+                    password_login_disabled_at,
+                    one_time_password_expires_at
                 FROM
                     account_credential
                 WHERE account_id = :id;""")
@@ -522,7 +524,8 @@ public class AccountRepository {
     }
 
     /**
-     * Updates the password hash for an account and clears the force-password-change flag.
+     * Updates the password hash for an account and clears the force-password-change flag, along
+     * with the deadline of a one-time password the new one replaces.
      *
      * @param accountId    the account identifier
      * @param passwordHash the new hashed password
@@ -532,13 +535,65 @@ public class AccountRepository {
         return query("""
                 UPDATE account_credential
                 SET
-                    password_hash         = :hash,
-                    force_password_change = FALSE,
-                    last_breach_check_at  = NULL
+                    password_hash                = :hash,
+                    force_password_change        = FALSE,
+                    last_breach_check_at         = NULL,
+                    one_time_password_expires_at = NULL
                 WHERE account_id = :id;""")
                 .single(call().bind("hash", passwordHash).bind("id", accountId))
                 .update()
                 .changed();
+    }
+
+    /**
+     * Lays a one-time password down as the account's password, in one statement: the hash, the
+     * demand to choose a new one at the next sign-in, and the moment it stops working. Password
+     * sign-in is switched back on, because the password is no use otherwise. An account without a
+     * credential gets one.
+     *
+     * @param accountId    the account identifier
+     * @param passwordHash the hashed one-time password
+     * @param expiresAt    when it stops working
+     */
+    public void setOneTimePassword(int accountId, String passwordHash, Instant expiresAt) {
+        query("""
+                INSERT INTO account_credential(account_id, password_hash, force_password_change, one_time_password_expires_at)
+                VALUES (:id, :hash, TRUE, :expires_at)
+                ON CONFLICT (account_id) DO UPDATE
+                SET
+                    password_hash                = excluded.password_hash,
+                    force_password_change        = TRUE,
+                    last_breach_check_at         = NULL,
+                    password_login_disabled_at   = NULL,
+                    one_time_password_expires_at = excluded.one_time_password_expires_at;""")
+                .single(call().bind("id", accountId)
+                        .bind("hash", passwordHash)
+                        .bind("expires_at", expiresAt, INSTANT_TIMESTAMP))
+                .insert();
+    }
+
+    /**
+     * What ties an account has beyond one station: a membership at any other station, current or
+     * former, and a role in any association.
+     *
+     * @param accountId the account
+     * @param stationId the station that asks
+     * @return the ties
+     */
+    public AccountTies findTies(int accountId, int stationId) {
+        return query("""
+                SELECT
+                    EXISTS(SELECT 1
+                           FROM station_member
+                           WHERE account_id = :account_id
+                             AND station_id <> :station_id) AS elsewhere,
+                    EXISTS(SELECT 1
+                           FROM cluster_member
+                           WHERE account_id = :account_id) AS association;""")
+                .single(call().bind("account_id", accountId).bind("station_id", stationId))
+                .map(AccountTies.map())
+                .first()
+                .orElseThrow();
     }
 
     /**

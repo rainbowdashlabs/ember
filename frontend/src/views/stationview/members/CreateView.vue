@@ -13,16 +13,17 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import StepDispatcher from './createview/StepDispatcher.vue'
 import {parseFieldConfig} from '@/api/profileFields'
-import type {MemberGroup, MemberWithName, ProfileField} from '@/api/generated/schema'
-import {StationUserType} from '@/api/types'
+import type {IssuedOneTimePassword, MemberGroup, MemberWithName, ProfileField} from '@/api/generated/schema'
+import {StationPermission, StationUserType} from '@/api/types'
 import {memberGroups, members, profileFields, stationMembers} from '@/api'
+import {useSession} from '@/composables/useSession'
 import {setFieldValue as writeFieldValue} from '@/util/profileFields'
 import {admits, groupOfSet, toggled} from '@/util/groupRules'
 import {todayIsoDate} from '@/util/format'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useFieldAudiences} from '@/composables/useFieldAudiences'
-import {describeFailure, FailureKind} from '@/util/failure'
+import {describeFailure, type Failure, FailureKind} from '@/util/failure'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -34,6 +35,22 @@ const lastName = ref('')
 const email = ref('')
 const canLogin = ref(true)
 const sendSetupMail = ref(true)
+const issueOneTimePassword = ref(true)
+const oneTimePassword = ref<IssuedOneTimePassword | null>(null)
+const oneTimePasswordFailure = ref<Failure | null>(null)
+
+const {sessionInfo, hasPermission} = useSession()
+
+/**
+ * Whether the wizard offers a one-time password in place of the setup mail: only where no mail can
+ * go out, and only to the station's administration, who alone may issue one.
+ */
+const offerOneTimePassword = computed(() =>
+  sessionInfo.value?.canSendMail === false && hasPermission(StationPermission.STATION_ADMINISTRATOR))
+
+/** Whether this member is handed a one-time password, in which case no setup mail is queued for them. */
+const handsOverOneTimePassword = computed(() =>
+  canLogin.value && offerOneTimePassword.value && issueOneTimePassword.value)
 const allFields = ref<ProfileField[]>([])
 const fieldValues = ref<Map<number, string>>(new Map())
 const allGroups = ref<MemberGroup[]>([])
@@ -151,6 +168,19 @@ async function createNewManager(data: { firstName: string; lastName: string; ema
   }
 }
 
+/**
+ * Issues the one-time password for the account just made. A refusal is kept for the last step
+ * rather than failing the whole wizard: the member is in either way, and the refusal names why the
+ * password was not made (an address that already belonged to somebody elsewhere, for one).
+ */
+async function handOverOneTimePassword(accountId: number) {
+  try {
+    oneTimePassword.value = await members.issueOneTimePassword(accountId)
+  } catch (e) {
+    oneTimePasswordFailure.value = describeFailure(e, t)
+  }
+}
+
 /** Whether the account is already in, which is what decides how a later failure has to be worded. */
 let accountMade = false
 
@@ -170,7 +200,7 @@ const {running: saving, failure: createFailure, run: createAccount, clearError: 
     email: canLogin.value ? email.value : undefined,
     firstName: firstName.value,
     lastName: lastName.value,
-    sendSetupMail: sendSetupMail.value,
+    sendSetupMail: sendSetupMail.value && !handsOverOneTimePassword.value,
   })
 
   accountMade = true
@@ -199,6 +229,10 @@ const {running: saving, failure: createFailure, run: createAccount, clearError: 
     await stationMembers.setManagers(newMember.id, {managerIds: [...selectedManagerIds.value]})
   }
 
+  if (handsOverOneTimePassword.value) {
+    await handOverOneTimePassword(invited.id)
+  }
+
   step.value = 'done'
 }, {
   formatError: e => (accountMade
@@ -214,6 +248,9 @@ function startOver() {
   email.value = ''
   canLogin.value = true
   sendSetupMail.value = true
+  issueOneTimePassword.value = true
+  oneTimePassword.value = null
+  oneTimePasswordFailure.value = null
   fieldValues.value = new Map()
   selectedGroupIds.value = new Set()
   selectedManagerIds.value = new Set()
@@ -244,6 +281,7 @@ function startOver() {
           v-model:selected-user-type="selectedUserType"
           v-model:can-login="canLogin"
           v-model:send-setup-mail="sendSetupMail"
+          v-model:issue-one-time-password="issueOneTimePassword"
           v-model:email="email"
           v-model:first-name="firstName"
           v-model:last-name="lastName"
@@ -255,6 +293,9 @@ function startOver() {
           :selected-manager-ids="selectedManagerIds"
           :created-managers="createdManagers"
           :saving="saving"
+          :offer-one-time-password="offerOneTimePassword"
+          :one-time-password="oneTimePassword"
+          :one-time-password-failure="oneTimePasswordFailure"
           @next-from-identity="nextFromIdentity"
           @next-from-groups="nextFromGroups"
           @set-field-value="setFieldValue"

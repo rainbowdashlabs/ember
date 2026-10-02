@@ -12,6 +12,12 @@ import java.time.Instant;
 
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
+/**
+ * One row of an account's security history.
+ *
+ * @param stationId the station whose administration caused the event, or {@code null} where the
+ *                  account itself or an instance administrator did
+ */
 public record TwoFactorAuditEntry(
         int id,
         int accountId,
@@ -20,6 +26,7 @@ public record TwoFactorAuditEntry(
         @Nullable TwoFactorKind factorKind,
         @Nullable String userAgent,
         @Nullable String country,
+        @Nullable Integer stationId,
         Instant createdAt) {
 
     public static RowMapping<TwoFactorAuditEntry> map() {
@@ -34,6 +41,7 @@ public record TwoFactorAuditEntry(
                     kindStr != null ? TwoFactorKind.valueOf(kindStr) : null,
                     row.getString("user_agent"),
                     row.getString("country"),
+                    row.getObject("station_id", Integer.class),
                     row.get("created_at", INSTANT_TIMESTAMP));
         };
     }

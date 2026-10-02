@@ -10,6 +10,8 @@
 - **Einzelne Termine absagen und wiederherstellen.** Verantwortliche sagen jetzt gezielt den Termin ab, den sie gerade vor sich haben, und eine ganze Serie abzusagen bleibt ein eigener, endgültiger Schritt. Solange ein abgesagter Termin noch bevorsteht, holst du ihn zurück, und alle Angemeldeten erfahren davon.
 - **Hintergrundaufgaben auf einen Blick.** Eine neue Seite unter Monitoring zeigt jede Arbeit, die der Server von selbst erledigt, etwa Mailversand, Erinnerungen und Aufräumen. Du siehst Rhythmus, letzten Lauf, Dauer und letzte Fehlermeldung, gezählt seit dem letzten Neustart.
 - **Gruppensets für Stufen und Abschnitte.** Du kannst Gruppen zu einem Set bündeln, etwa die Stufen einer Ausbildung, und ein Mitglied ist nur in einer Gruppe pro Set. Sets legst du auf der Gruppenseite an, und wählst du eine andere Gruppe des Sets, wechselt das Mitglied dorthin.
+- **Einmalpasswörter, wenn keine Mail rausgeht.** Die Administration einer Wache gibt einem Mitglied jetzt auf seiner Mitgliederseite ein Einmalpasswort, und ohne Mailserver auch gleich beim Anlegen im Assistenten. Du kopierst oder druckst es einmal, es gilt sieben Tage, und beim ersten Anmelden wählt das Mitglied ein eigenes Passwort.
+- **Alle Konten der Instanz in einer Liste.** Unter Konten findet die Administration der Instanz jedes Konto mit seinen Wachen, Verbänden, der letzten Anmeldung und seinen Anmeldewegen. Zweiten Faktor zurücksetzen, Passwort stilllegen und ein Einmalpasswort erstellen erledigst du jetzt direkt dort.
 ### Verbesserungen
 
 - **Zahlenspalten nach ihren Werten filtern.** Neben dem Bereich listet der Filter einer Zahlenspalte wie dem Alter jetzt die Werte ihrer Zeilen. Du kreuzt einfach die an, die du brauchst.
@@ -89,6 +91,7 @@
 - **Mitgliederfelder halten sich an ihre Grenzen.** Ein Mitgliederfeld einer Anwesenheitsliste oder eines Termins, das auf eine Gruppe, einen Mitgliedstyp oder ein Tag beschränkt ist, lehnt jetzt jeden außerhalb davon ab. Das gilt beim Speichern von Liste, Termin oder Vorlage und beim Beantworten einer Anmeldefrage, und wen das Feld schon nennt, der bleibt.
 ### Fehlerbehebungen
 
+- **Ohne Mailserver kam kein Mitglied zu seinem Zugang.** Auf einer Instanz ohne Mail bekam ein neues Mitglied nie seinen Einrichtungs-Link, und der Assistent riet dir, einen Link weiterzugeben, den keine Seite je zeigte. Jetzt gibt die Administration der Wache stattdessen ein Einmalpasswort heraus.
 - **Späte Absagen erreichen die offene Anwesenheitsliste.** Wer nach dem Öffnen der Liste absagte oder seinen Platz zurückgab, stand darauf weiter als offen, bis jemand die Liste abglich. Jetzt steht die Person sofort als abgesagt da, während von Hand Markierte und geschlossene Listen bleiben, wie sie sind.
 - **Zweimal gespeicherter Speicher frisst keine Dateien mehr.** Hast du einen Speicher angewendet, auf dem du schon warst, etwa nur um das Passwort zu ändern, wurden die Dateien dort gelöscht. Ember erkennt jetzt, dass es derselbe Ort ist, und lässt deine Dateien in Ruhe.
 - **Überschriften werden keine Spalten mehr.** Überschriften und Abstände des Profilformulars erschienen als leere Spalten in der Mitgliederliste und ihrem Export. Jetzt fallen sie weg.

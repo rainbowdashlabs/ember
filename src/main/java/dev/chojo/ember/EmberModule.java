@@ -41,6 +41,7 @@ import dev.chojo.ember.conf.file.elements.Updates;
 import dev.chojo.ember.conf.file.elements.WebAuthnSettings;
 import dev.chojo.ember.db.ProfileFieldMergeBackup;
 import dev.chojo.ember.event.DomainEventHandler;
+import dev.chojo.ember.feature.account.route.AccountAdminRoutes;
 import dev.chojo.ember.feature.account.route.AccountDataRoutes;
 import dev.chojo.ember.feature.account.route.AccountSessionRoutes;
 import dev.chojo.ember.feature.account.route.AuthRoutes;
@@ -567,6 +568,7 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(PasskeyRoutes.class);
         routesBinder.addBinding().to(PasskeyAdminRoutes.class);
         routesBinder.addBinding().to(TwoFactorAdminRoutes.class);
+        routesBinder.addBinding().to(AccountAdminRoutes.class);
 
         Multibinder<TableImporter> tableImporterBinder = Multibinder.newSetBinder(binder(), TableImporter.class);
         tableImporterBinder.addBinding().to(StationTableImporter.class);

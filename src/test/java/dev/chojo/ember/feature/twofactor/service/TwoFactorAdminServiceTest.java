@@ -125,11 +125,12 @@ class TwoFactorAdminServiceTest {
 
     @Test
     void theAuditLogIsPagedSanely() {
-        var entry = new TwoFactorAuditEntry(1, 42, null, TwoFactorEvent.ENROLLED, null, "ua", "DE", Instant.EPOCH);
+        var entry =
+                new TwoFactorAuditEntry(1, 42, null, TwoFactorEvent.ENROLLED, null, "ua", "DE", null, Instant.EPOCH);
         when(repository.findRecentAudit(50, 0)).thenReturn(List.of(entry));
         when(repository.findAuditLog(42, 10, 5))
                 .thenReturn(List.of(new TwoFactorAuditEntry(
-                        2, 42, 1, TwoFactorEvent.REMOVED, TwoFactorKind.TOTP, "ua", "DE", Instant.EPOCH)));
+                        2, 42, 1, TwoFactorEvent.REMOVED, TwoFactorKind.TOTP, "ua", "DE", null, Instant.EPOCH)));
 
         var everybody = service.audit(null, 500, -3).entries();
         var one = service.audit(42, 10, 5).entries();

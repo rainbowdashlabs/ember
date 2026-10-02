@@ -14,7 +14,9 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.api.refusal.MemberRefusal;
+import dev.chojo.ember.feature.account.entity.IssuedOneTimePassword;
 import dev.chojo.ember.feature.account.service.AuthService;
+import dev.chojo.ember.feature.account.service.OneTimePasswordService;
 import dev.chojo.ember.feature.account.service.SetupMail;
 import dev.chojo.ember.feature.members.service.MemberAccountService;
 import dev.chojo.ember.feature.members.service.MemberAccountService.UpdateAccountRequest;
@@ -47,17 +49,20 @@ public class MemberRoutes implements Routes {
     private final MemberAccountService memberAccounts;
     private final StationMemberInviteService inviteService;
     private final PasskeyEnrollmentService enrollmentService;
+    private final OneTimePasswordService oneTimePasswords;
 
     @Inject
     public MemberRoutes(
             AuthService authService,
             MemberAccountService memberAccounts,
             StationMemberInviteService inviteService,
-            PasskeyEnrollmentService enrollmentService) {
+            PasskeyEnrollmentService enrollmentService,
+            OneTimePasswordService oneTimePasswords) {
         this.authService = authService;
         this.memberAccounts = memberAccounts;
         this.inviteService = inviteService;
         this.enrollmentService = enrollmentService;
+        this.oneTimePasswords = oneTimePasswords;
     }
 
     private static boolean isBlank(String s) {
@@ -85,6 +90,39 @@ public class MemberRoutes implements Routes {
                 StepUpCategory.ACCOUNT_SECURITY);
         routes.delete(
                 prefix + "/members/passkey-code/{accountId}", this::revokePasskeyCode, StationPermission.MEMBER_EDIT);
+        routes.post(
+                prefix + "/members/{accountId}/one-time-password",
+                this::issueOneTimePassword,
+                StationPermission.STATION_ADMINISTRATOR,
+                StepUpCategory.ACCOUNT_SECURITY);
+    }
+
+    /**
+     * A one-time password for a member whose account belongs to this station alone, for a station
+     * that cannot send them a link. Every wider account is refused with the reason, since only an
+     * instance administrator may decide on it.
+     */
+    @OpenApi(
+            path = "/api/v1/members/{accountId}/one-time-password",
+            methods = HttpMethod.POST,
+            summary = "Issue a one-time password for a member of this station alone",
+            description =
+                    "Lays a generated password down as the account's password, ends its sessions and asks for a new password at the next sign-in. Refused for one's own account, for an instance administrator, for an account with a role in an association and for one that is or was a member of another station. The password is answered once and works for seven days.",
+            tags = {"Members"},
+            pathParams = @OpenApiParam(name = "accountId", type = Integer.class, required = true),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = IssuedOneTimePassword.class)),
+                @OpenApiResponse(status = "403", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void issueOneTimePassword(Context ctx) {
+        StationSession session = StationSession.from(ctx);
+        ctx.json(oneTimePasswords.issueForStation(
+                session.stationId(),
+                session.accountId(),
+                pathInt(ctx, "accountId"),
+                ctx.userAgent(),
+                ctx.header("CF-IPCountry")));
     }
 
     /**

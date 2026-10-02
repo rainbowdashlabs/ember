@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:e372336dfb1eec41c81bf7dedc514a6d3230e6bc6745ad9b12dad247a1d94b62",
-  "generatedAt": "2026-10-02T13:47:40Z",
+  "schemaHash": "sha256:437ac96b095e1fd1e404cf7876d05289ca0f301ca00d306b39e9f9c0ae37d822",
+  "generatedAt": "2026-10-02T18:27:57Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -158,7 +158,7 @@
       "description": "User accounts. Each person has one account across all stations."
     },
     "account_2fa_audit": {
-      "tableHash": "sha256:897045597813ac3c8d944f9d947ac5e12dc52469de5fe75129cb06bf2346214c",
+      "tableHash": "sha256:74275f3a008de444d3e54c586bb126bdd136a790c7f3d4bce95b5c7df3f34ae6",
       "columns": [
         {
           "name": "id",
@@ -208,6 +208,13 @@
           "type": "timestamptz",
           "nullable": false,
           "verified": true
+        },
+        {
+          "name": "station_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The station whose administration acted, for an event a station administrator caused. NULL for everything done by the account itself or by an instance administrator."
         }
       ],
       "foreignKeys": [
@@ -220,6 +227,12 @@
         {
           "column": "actor_id",
           "refTable": "account",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
+        {
+          "column": "station_id",
+          "refTable": "station",
           "refColumn": "id",
           "onDelete": "SET NULL"
         }
@@ -691,7 +704,7 @@
     "account_credential": {
       "feature": "account",
       "scope": "USER",
-      "tableHash": "sha256:1194690f4a5942018fe99748bac7d6537cfaa0d95ab374f1bba8c4ab132a6a96",
+      "tableHash": "sha256:5dcf585d2e12273231c5ddf6e494c89e6295050660e2fdf8931e807b26aadc5d",
       "columns": [
         {
           "name": "account_id",
@@ -727,6 +740,13 @@
           "nullable": true,
           "verified": true,
           "description": "When the account switched password sign-in off. NULL means the password works on the login screen."
+        },
+        {
+          "name": "one_time_password_expires_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When the one-time password an administrator issued stops working. NULL once the account chose a password of its own, and for every password that was never issued as a one-time password."
         }
       ],
       "foreignKeys": [

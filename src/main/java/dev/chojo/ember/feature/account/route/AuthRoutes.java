@@ -343,6 +343,9 @@ public class AuthRoutes implements Routes {
                 ctx.header("CF-IPCountry"),
                 ctx.cookie("ember_2fa_trust"),
                 request.trustedDevice());
+        if (result.oneTimePasswordExpired()) {
+            throw MemberRefusal.ONE_TIME_PASSWORD_EXPIRED.raise();
+        }
         if (!result.success()) {
             throw MemberRefusal.SIGN_IN_REFUSED.raise();
         }

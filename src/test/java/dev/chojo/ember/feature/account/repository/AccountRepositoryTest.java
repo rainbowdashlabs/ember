@@ -5,11 +5,13 @@
  */
 package dev.chojo.ember.feature.account.repository;
 
+import dev.chojo.ember.api.auth.ClusterUserType;
 import dev.chojo.ember.api.auth.InstanceUserType;
 import dev.chojo.ember.auth.TokenHasher;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.entity.AccountCredential;
 import dev.chojo.ember.feature.account.entity.AccountSession;
+import dev.chojo.ember.feature.account.entity.AccountTies;
 import dev.chojo.ember.feature.account.entity.AccountToken;
 import dev.chojo.ember.feature.account.entity.TokenType;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -480,6 +482,50 @@ class AccountRepositoryTest extends RepositoryTestBase {
         accountRepo.recordConsent(accountId, "1.1", "1.1", "1.1", "127.0.0.1", "DE", "TestAgent");
         assertEquals(
                 "1.1", accountRepo.findLatestConsent(accountId).orElseThrow().consentVersion());
+    }
+
+    @Test
+    @Order(80)
+    void aOneTimePasswordDemandsAChangeAndAChosenPasswordClearsItsDeadline() {
+        var fresh = accountRepo.create("otp-repo-" + System.nanoTime() + "@test.com", "O", "T", true);
+        Instant deadline = Instant.now().plus(7, ChronoUnit.DAYS).truncatedTo(ChronoUnit.SECONDS);
+
+        accountRepo.setOneTimePassword(fresh.id(), "{otp}", deadline);
+        var issued = accountRepo.findCredential(fresh.id()).orElseThrow();
+        assertEquals("{otp}", issued.passwordHash());
+        assertTrue(issued.forcePasswordChange());
+        assertEquals(deadline, issued.oneTimePasswordExpiresAt());
+
+        accountRepo.setPasswordLoginDisabled(fresh.id(), true);
+        accountRepo.setOneTimePassword(fresh.id(), "{again}", deadline);
+        var again = accountRepo.findCredential(fresh.id()).orElseThrow();
+        assertEquals("{again}", again.passwordHash());
+        assertTrue(again.passwordLoginEnabled(), "a one-time password switches password sign-in back on");
+
+        accountRepo.updateCredential(fresh.id(), "{chosen}");
+        var chosen = accountRepo.findCredential(fresh.id()).orElseThrow();
+        assertFalse(chosen.forcePasswordChange());
+        assertNull(chosen.oneTimePasswordExpiresAt());
+        accountRepo.delete(fresh.id());
+    }
+
+    @Test
+    @Order(81)
+    void tiesNameAnyOtherStationFormerOrNotAndAnyAssociation() {
+        var fresh = accountRepo.create("ties-" + System.nanoTime() + "@test.com", "T", "I", true);
+        var home = stationRepo.create("Ties home " + System.nanoTime());
+        var other = stationRepo.create("Ties other " + System.nanoTime());
+        stationMemberRepo.create(home.id(), fresh.id());
+        assertEquals(new AccountTies(false, false), accountRepo.findTies(fresh.id(), home.id()));
+
+        var elsewhere = stationMemberRepo.create(other.id(), fresh.id());
+        stationMemberRepo.setFormer(elsewhere.id(), true);
+        assertEquals(new AccountTies(true, false), accountRepo.findTies(fresh.id(), home.id()));
+
+        var association = clusterRepo.create("Ties association " + System.nanoTime(), null, home.id());
+        clusterRepo.addMember(association.id(), fresh.id(), ClusterUserType.CLUSTER_USER);
+        assertEquals(new AccountTies(true, true), accountRepo.findTies(fresh.id(), home.id()));
+        accountRepo.delete(fresh.id());
     }
 
     @Test

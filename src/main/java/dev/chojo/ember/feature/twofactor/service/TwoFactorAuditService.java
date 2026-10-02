@@ -39,6 +39,25 @@ public class TwoFactorAuditService {
         log.info("2FA audit: account={}, event={}, kind={}, actor={}", accountId, event, factorKind, actorId);
     }
 
+    /**
+     * Records something an administrator did to an account.
+     *
+     * @param accountId the account acted on
+     * @param actorId   the administrator who acted
+     * @param stationId the station whose administration acted, or {@code null} for an instance
+     *                  administrator
+     */
+    public void recordByAdministration(
+            int accountId,
+            int actorId,
+            TwoFactorEvent event,
+            @Nullable Integer stationId,
+            @Nullable String userAgent,
+            @Nullable String country) {
+        repository.auditByAdministration(accountId, actorId, event, stationId, userAgent, country);
+        log.info("Account audit: account={}, event={}, actor={}, station={}", accountId, event, actorId, stationId);
+    }
+
     public List<TwoFactorAuditEntry> findByAccount(int accountId, int limit, int offset) {
         return repository.findAuditLog(accountId, limit, offset);
     }

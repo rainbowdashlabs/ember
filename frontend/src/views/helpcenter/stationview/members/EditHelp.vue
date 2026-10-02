@@ -19,7 +19,10 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import {computed, ref} from 'vue'
 import MemberGroupChips from '@/views/stationview/members/editview/MemberGroupChips.vue'
-import {StationUserType} from '@/api/types'
+import {StationPermission, StationUserType} from '@/api/types'
+import HelpPermissionGuard from '@/components/helpcenter/HelpPermissionGuard.vue'
+import OneTimePasswordSheet from '@/components/onetimepassword/OneTimePasswordSheet.vue'
+import {sampleSheet} from '@/views/helpcenter/adminview/accountshelp/sampleAccounts'
 import type {MemberGroup, MemberGroupSet, Permission} from '@/api/generated/schema'
 
 const {t} = useI18n()
@@ -140,6 +143,21 @@ const dummyGroupIds = new Set([1, 3])
     <HelpSection :title="t('helpCenter.membersEdit.notesTitle')">
       <p>{{ t('helpCenter.membersEdit.notesText') }}</p>
     </HelpSection>
+
+    <HelpPermissionGuard
+        :permissions="[StationPermission.STATION_ADMINISTRATOR]"
+        :label="t('helpCenter.permissionLabel.stationAdministrator')"
+    >
+      <HelpSection :title="t('helpCenter.membersEdit.oneTimePasswordTitle')">
+        <p>{{ t('helpCenter.membersEdit.oneTimePasswordText') }}</p>
+        <p>{{ t('helpCenter.membersEdit.oneTimePasswordEffects') }}</p>
+        <p>{{ t('helpCenter.membersEdit.oneTimePasswordAlone') }}</p>
+        <NeutralContainer class="space-y-4">
+          <SecondaryButton :icon="['fas', 'key']">{{ t('oneTimePassword.action') }}</SecondaryButton>
+          <OneTimePasswordSheet :sheet="sampleSheet(t)"/>
+        </NeutralContainer>
+      </HelpSection>
+    </HelpPermissionGuard>
 
     <HelpSection :title="t('helpCenter.membersEdit.formerTitle')">
       <p>{{ t('helpCenter.membersEdit.formerText') }}</p>

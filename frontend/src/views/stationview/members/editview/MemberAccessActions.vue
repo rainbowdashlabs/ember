@@ -13,7 +13,10 @@ import MutedText from '@/components/typography/MutedText.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import PasskeyCodeDisplay from '@/components/passkey/PasskeyCodeDisplay.vue'
+import OneTimePasswordAction from '@/components/onetimepassword/OneTimePasswordAction.vue'
 import {members, passkeys} from '@/api'
+import {StationPermission} from '@/api/types'
+import {useSession} from '@/composables/useSession'
 import type {MemberWithName, PasskeyCodeResponse} from '@/api/generated/schema'
 import type {PasskeyModeName} from '@/api/adminSettings'
 import {describeFailure, type Failure} from '@/util/failure'
@@ -22,7 +25,8 @@ import {describeFailure, type Failure} from '@/util/failure'
  * The member manager's way back in for somebody who lost theirs: onboard again (passkeys gone,
  * sessions ended, a fresh setup link where mail about the account goes), and the passkey code
  * for an addressless member with no guardian at hand. Neither is a new power; whoever may press
- * these can reset a password today.
+ * these can reset a password today. The station's administration also finds the one-time password
+ * here, for a station that cannot send the setup link at all.
  */
 const {t} = useI18n()
 
@@ -35,6 +39,14 @@ const notice = ref('')
 const busy = ref(false)
 
 const addressless = computed(() => !props.member.email || props.member.email.endsWith('.local'))
+
+const {hasPermission} = useSession()
+const mayIssueOneTimePassword = computed(() => hasPermission(StationPermission.STATION_ADMINISTRATOR))
+
+/** The station's door: refused, with the reason, for an account that is not this station's alone. */
+function issueOneTimePassword() {
+  return members.issueOneTimePassword(props.member.accountId)
+}
 
 onMounted(() => {
   passkeys.publicPasskeyMode().then(mode => passkeyMode.value = mode).catch(() => {})
@@ -87,6 +99,11 @@ async function revokeCode() {
       <SecondaryButton type="button" :disabled="busy" :icon="['fas', 'rotate-left']" @click="onboardAgain">
         {{ t('passkeys.onboardAgain.button') }}
       </SecondaryButton>
+    </div>
+
+    <div v-if="mayIssueOneTimePassword" class="space-y-2 border-t border-(--border) pt-4">
+      <MutedText tag="p" size="sm">{{ t('oneTimePassword.actionHint') }}</MutedText>
+      <OneTimePasswordAction :name="member.name" :issue="issueOneTimePassword"/>
     </div>
 
     <div v-if="addressless && passkeyMode !== 'OFF'" class="space-y-2 border-t border-(--border) pt-4">

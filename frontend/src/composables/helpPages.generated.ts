@@ -12,6 +12,7 @@ import type {HelpPage} from './useHelpSearch'
 
 export const HELP_PAGES: HelpPage[] = [
     {route: 'help-admin-two-factor', path: '/helpcenter/admin/2fa', i18nPrefix: 'helpCenter.adminTwoFactor'},
+    {route: 'help-admin-accounts', path: '/helpcenter/admin/accounts', i18nPrefix: 'helpCenter.adminAccounts'},
     {route: 'help-admin-beacon', path: '/helpcenter/admin/beacon', i18nPrefix: 'helpCenter.adminBeacon'},
     {route: 'help-admin-beacon-faults', path: '/helpcenter/admin/beacon/faults', i18nPrefix: 'helpCenter.adminBeaconFaults'},
     {route: 'help-admin-beacon-figures', path: '/helpcenter/admin/beacon/figures', i18nPrefix: 'helpCenter.adminBeaconMetrics'},

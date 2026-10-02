@@ -34,7 +34,7 @@ import {
     faDiagramProject, faFileCsv, faReply, faShieldHalved, faAt, faPaste, faClone, faHourglassHalf, faArrowUp,
     faSatelliteDish, faMapLocationDot, faUserClock, faFloppyDisk, faBoxArchive, faCakeCandles,
     faFilePowerpoint, faDisplay, faKey, faArrowsUpDown, faLightbulb, faBroom, faTowerBroadcast,
-    faEllipsisVertical, faWarehouse, faBox, faSuitcase, faCube, faFingerprint,
+    faEllipsisVertical, faWarehouse, faBox, faSuitcase, faCube, faFingerprint, faPrint,
     faHelmetSafety, faVest, faVestPatches, faMitten, faShoePrints, faSocks, faMask, faHeadSideMask,
     faGlasses, faRadio, faWalkieTalkie, faHeadphones, faStapler, faToolbox, faScrewdriverWrench, faWrench, faHammer,
     faFireExtinguisher, faWaterLadder, faBatteryFull, faTrowel, faKitMedical, faSuitcaseMedical,
@@ -83,7 +83,7 @@ library.add(
     faHelmetSafety, faVest, faVestPatches, faMitten, faShoePrints, faSocks, faMask, faHeadSideMask,
     faGlasses, faRadio, faWalkieTalkie, faHeadphones, faStapler, faToolbox, faScrewdriverWrench, faWrench, faHammer,
     faFireExtinguisher, faWaterLadder, faBatteryFull, faTrowel, faKitMedical, faSuitcaseMedical,
-    faTruckMedical, faDice, faDiceD20, faTent, faRuler, faBagShopping, faBriefcase,
+    faTruckMedical, faDice, faDiceD20, faTent, faRuler, faBagShopping, faBriefcase, faPrint,
 )
 
 export default defineNuxtPlugin((nuxtApp) => {

@@ -12,6 +12,11 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import HelpPermissionGuard from '@/components/helpcenter/HelpPermissionGuard.vue'
+import OneTimePasswordSheet from '@/components/onetimepassword/OneTimePasswordSheet.vue'
+import OneTimePasswordChoice from '@/views/stationview/members/createview/OneTimePasswordChoice.vue'
+import {StationPermission} from '@/api/types'
+import {sampleSheet} from '@/views/helpcenter/adminview/accountshelp/sampleAccounts'
 
 const {t} = useI18n()
 </script>
@@ -53,6 +58,21 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.membersCreate.step2Text') }}</p>
       <p>{{ t('helpCenter.membersCreate.step2NoLogin') }}</p>
     </HelpSection>
+
+    <HelpPermissionGuard
+        :permissions="[StationPermission.STATION_ADMINISTRATOR]"
+        :label="t('helpCenter.permissionLabel.stationAdministrator')"
+    >
+      <HelpSection :title="t('helpCenter.membersCreate.oneTimePasswordTitle')">
+        <p>{{ t('helpCenter.membersCreate.oneTimePasswordText') }}</p>
+        <p>{{ t('helpCenter.membersCreate.oneTimePasswordHandOver') }}</p>
+        <p>{{ t('helpCenter.membersCreate.oneTimePasswordShared') }}</p>
+        <NeutralContainer class="space-y-4">
+          <OneTimePasswordChoice :model-value="true"/>
+          <OneTimePasswordSheet :sheet="sampleSheet(t)"/>
+        </NeutralContainer>
+      </HelpSection>
+    </HelpPermissionGuard>
 
     <HelpSection :title="t('helpCenter.membersCreate.step3')">
       <p>{{ t('helpCenter.membersCreate.step3Text') }}</p>

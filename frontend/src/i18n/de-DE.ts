@@ -705,6 +705,7 @@ export default {
         securityHibp: 'HIBP',
         securityTwoFactor: 'Zwei-Faktor',
         twoFactor: 'Zwei-Faktor verwalten',
+        accounts: 'Konten',
         accountAvatar: 'Profil',
         accountTheming: 'Erscheinungsbild',
         accountSessions: 'Sitzungen',
@@ -1238,8 +1239,12 @@ export default {
             subtitle: 'Zwei-Faktor-Anforderungen konfigurieren',
         },
         'admin-two-factor': {
-            title: 'Zwei-Faktor-Reset',
-            subtitle: 'Zwei-Faktor-Authentifizierung für Konten zurücksetzen',
+            title: 'Zwei-Faktor-Protokoll',
+            subtitle: 'Was an den Anmeldungen der Konten geschah',
+        },
+        'admin-accounts': {
+            title: 'Konten',
+            subtitle: 'Jedes Konto dieser Instanz, mit seinen Wachen, Verbänden und Anmeldewegen',
         },
         'admin-problems': {
             title: 'System-Log',
@@ -2139,7 +2144,72 @@ export default {
         hintLater: 'Es geht keine Mail hinaus. Du versendest sie später über den Knopf in der '
             + 'Mitgliederliste, der dabei einen frischen Link erzeugt.',
         noMailServer: 'Diese Instanz hat keinen Mailserver eingerichtet und versendet keine '
-            + 'Einrichtungs-Mails. Gib den Einrichtungs-Link selbst weiter.',
+            + 'Einrichtungs-Mails. Die Administration deiner Wache kann der Person stattdessen ein '
+            + 'Einmalpasswort erstellen.',
+        oneTimePassword: 'Einmalpasswort erstellen',
+        oneTimePasswordHint: 'Nach dem Anlegen zeigt Ember dir ein Einmalpasswort, das du der Person selbst '
+            + 'übergibst. Beim ersten Anmelden wählt sie ein eigenes Passwort.',
+    },
+    adminAccounts: {
+        searchPlaceholder: 'Nach Name, Adresse oder Benutzername suchen…',
+        empty: 'Keine Konten gefunden.',
+        pager: 'Seite {page} von {pages}, {total} Konten',
+        previous: 'Zurück',
+        next: 'Weiter',
+        none: 'Keine',
+        neverSignedIn: 'Noch nie angemeldet',
+        oneTimeUntil: 'Einmalpasswort, gültig bis {date}',
+        actionsTitle: 'Aktionen',
+        col: {
+            name: 'Name',
+            loginName: 'Benutzername / Adresse',
+            stations: 'Wachen',
+            associations: 'Verbände',
+            role: 'Rolle auf der Instanz',
+            lastSignIn: 'Letzte Anmeldung',
+            password: 'Passwort',
+            passkeys: 'Passkeys',
+            twoFactor: 'Zweiter Faktor',
+        },
+        roles: {
+            USER: 'Benutzer',
+            ADMINISTRATOR: 'Administration',
+        },
+        password: {
+            NONE: 'Keines',
+            ON: 'Eingerichtet',
+            OFF: 'Abgeschaltet',
+            ONE_TIME: 'Einmalpasswort',
+        },
+        retire: {
+            action: 'Passwort stilllegen',
+            hint: 'Schaltet die Anmeldung mit Passwort ab. Das geht nur, wenn sich das Konto schon einmal '
+                + 'mit einem Passkey angemeldet hat.',
+            confirmTitle: 'Passwort stilllegen?',
+            confirmText: '{name} meldet sich danach nur noch mit einem Passkey an.',
+            success: 'Das Passwort von {name} ist stillgelegt.',
+        },
+    },
+    oneTimePassword: {
+        action: 'Einmalpasswort erstellen',
+        actionHint: 'Ersetzt das Passwort durch ein Einmalpasswort, das du der Person selbst übergibst. '
+            + 'Alle ihre Sitzungen werden beendet, und beim ersten Anmelden wählt sie ein eigenes Passwort.',
+        confirmTitle: 'Einmalpasswort erstellen?',
+        confirmText: 'Das bisherige Passwort von {name} funktioniert danach nicht mehr, und alle '
+            + 'Sitzungen werden beendet.',
+        dialog: {
+            title: 'Zugangsdaten für {name}',
+            hint: 'Dieses Passwort wird nur jetzt angezeigt. Übergib es der Person persönlich.',
+            loginName: 'Benutzername / Adresse',
+            password: 'Einmalpasswort',
+            instance: 'Adresse der Instanz',
+            expires: 'Gültig bis',
+            note: 'Beim ersten Anmelden muss ein eigenes Passwort gewählt werden. Das Einmalpasswort '
+                + 'gilt sieben Tage und nur ein einziges Mal.',
+            copy: 'Kopieren',
+            copied: 'Kopiert',
+            print: 'Drucken',
+        },
     },
     memberTable: {
         menu: 'Ansicht',
@@ -2518,6 +2588,7 @@ export default {
         done: 'Konto erstellt',
         doneHint: 'Die Einladung wurde versendet. Das Mitglied kann sich nun registrieren.',
         createAnother: 'Weiteres Konto erstellen',
+        showOneTimePassword: 'Zugangsdaten anzeigen',
         toList: 'Zur Mitgliederliste',
     },
     eventDetail: {
@@ -4823,9 +4894,8 @@ export default {
                 actions: 'Aktionen',
             },
             reset: '2FA zurücksetzen',
-            resetTitle: 'Konto-2FA zurücksetzen',
             resetHint: 'Setzt alle 2FA-Faktoren, Wiederherstellungscodes, vertrauten Geräte und aktiven Sitzungen eines Kontos zurück. Das Konto wird beim nächsten Login zur erneuten Einrichtung aufgefordert.',
-            resetAccountLabel: 'Konto',
+            resetMoved: 'Die zweiten Faktoren eines Kontos setzt du jetzt in der Kontenliste zurück:',
             accountSearchPlaceholder: 'Nach Name oder E-Mail suchen…',
             resetSuccess: '2FA für {name} zurückgesetzt.',
             resetConfirmTitle: 'Wirklich zurücksetzen?',
@@ -4838,7 +4908,6 @@ export default {
                 MANAGER: 'Manager',
                 TRIAL: 'Probe',
             },
-            instanceHint: 'Diese Einstellungen gelten in jeder Wache der Instanz.',
             audit: {
                 title: 'Audit-Protokoll',
                 empty: 'Noch keine Einträge.',
@@ -4873,6 +4942,7 @@ export default {
                     SIGNED_IN_VIA_DEVICE_CODE: 'Über anderes Gerät angemeldet',
                     STEPUP_VIA_DEVICE_CODE: 'Über anderes Gerät bestätigt',
                     DEVICE_REQUEST_APPROVED: 'Geräteanfrage freigegeben',
+                    ONE_TIME_PASSWORD_ISSUED: 'Einmalpasswort erstellt',
                 },
                 factors: {
                     TOTP: 'Authenticator-App',

@@ -10,6 +10,8 @@
 - **Cancel and restore single dates.** Managers can now call off just the date in front of them, while cancelling a whole series stays its own, final step. You can bring a cancelled date back as long as it lies ahead, and everyone still registered hears about it.
 - **Background tasks at a glance.** A new page under Monitoring lists every job the server runs on its own, like sending mail, reminders and clean-ups. You see how often each one runs, when it last ran, how long that took and its last failure, counted since the last restart.
 - **Group sets for levels and stages.** You can put groups into a set, like the levels of a training, and a member sits in only one group of a set. Sets live on the groups page, and picking another group of the set moves the member over.
+- **One-time passwords when no mail can go out.** A station's administration can now give a member a one-time password on their member page, and right in the creation wizard when there is no mail server. You copy or print it once, it works for seven days, and the member chooses their own password at the first sign-in.
+- **Every account of the instance in one list.** Instance administrators find each account under Accounts, with its stations, associations, last sign-in and how it signs in. Resetting the second factor, retiring a password and issuing a one-time password now happen right there.
 ### Improvements
 
 - **Filter number columns by their values.** Besides the range, the filter of a number column like age now lists the values in its rows. You tick the ones you want.
@@ -89,6 +91,7 @@
 - **Member fields keep to their limits.** A member field on an attendance sheet or appointment that is limited to a group, member type or tag now refuses anyone outside it. That holds when the sheet, appointment or template is saved and when a registration question is answered, and members it already names stay.
 ### Fixes
 
+- **Members could not get a login without a mail server.** On an instance without mail, a new member never received their setup link, and the creation screen told you to pass on a link no screen ever showed. Now the station's administration hands them a one-time password instead.
 - **Late declines reach an open attendance sheet.** A member who declined or gave back their place after the sheet was opened still stood on it as undecided until someone synced it. Now they show as declined right away, while hand-marked entries and closed sheets stay as they are.
 - **Saving storage twice no longer eats your files.** Applying a storage you were already on, say to change just the password, deleted the files stored there. Ember now notices it's the same place and leaves your files alone.
 - **Headings no longer become member list columns.** Headings and spacers of the profile form showed up as empty columns in the member list and its export. Now they are left out.

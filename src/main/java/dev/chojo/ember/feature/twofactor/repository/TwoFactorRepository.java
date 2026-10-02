@@ -50,7 +50,7 @@ public class TwoFactorRepository {
     private static final String TWO_FACTOR_POLICY_COLUMNS =
             "id, scope, station_id, user_type, required, grace_days, created_by, created_at";
     private static final String ACCOUNT_2FA_AUDIT_COLUMNS =
-            "id, account_id, actor_id, event, factor_kind, user_agent, country, created_at";
+            "id, account_id, actor_id, event, factor_kind, user_agent, country, station_id, created_at";
 
     public TwoFactorFactor createFactor(int accountId, TwoFactorKind kind, String label) {
         return insertReturning(
@@ -558,6 +558,31 @@ public class TwoFactorRepository {
                         .bind("actor_id", actorId)
                         .bind("event", event.name())
                         .bind("factor_kind", factorKind != null ? factorKind.name() : null)
+                        .bind("user_agent", userAgent)
+                        .bind("country", country))
+                .insert();
+    }
+
+    /**
+     * Records something an administrator did to an account, with the station whose administration
+     * acted.
+     *
+     * @param stationId the station, or {@code null} where an instance administrator acted
+     */
+    public void auditByAdministration(
+            int accountId,
+            int actorId,
+            TwoFactorEvent event,
+            @Nullable Integer stationId,
+            @Nullable String userAgent,
+            @Nullable String country) {
+        query("""
+                INSERT INTO account_2fa_audit (account_id, actor_id, event, station_id, user_agent, country)
+                VALUES (:account_id, :actor_id, CAST(:event AS two_factor_event), :station_id, :user_agent, :country);""")
+                .single(call().bind("account_id", accountId)
+                        .bind("actor_id", actorId)
+                        .bind("event", event.name())
+                        .bind("station_id", stationId)
                         .bind("user_agent", userAgent)
                         .bind("country", country))
                 .insert();

@@ -93,6 +93,9 @@ watch(
         </SidebarLink>
       </SidebarGroup>
 
+      <SidebarGroup :icon="['fas', 'users']" :label="t('sidebar.accounts')"
+                    to="/helpcenter/admin/accounts" name="help-admin-accounts" @navigate="close"/>
+
       <SidebarGroup :icon="['fas', 'mobile-screen']" :label="t('sidebar.twoFactor')"
                     to="/helpcenter/admin/2fa" name="help-admin-two-factor" @navigate="close"/>
 

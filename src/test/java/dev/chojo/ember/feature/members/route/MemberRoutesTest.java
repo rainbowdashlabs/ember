@@ -9,16 +9,20 @@ import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.account.entity.IssuedOneTimePassword;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.account.service.AuthService.EmailChangeResult;
+import dev.chojo.ember.feature.account.service.OneTimePasswordService;
 import dev.chojo.ember.feature.members.service.MemberAccountService;
 import dev.chojo.ember.feature.members.service.MemberAccountService.UpdateAccountRequest;
 import dev.chojo.ember.feature.members.service.MemberAccountService.UpdateAccountResponse;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService;
 import dev.chojo.ember.feature.passkey.service.PasskeyEnrollmentService;
 import dev.chojo.ember.feature.passkey.service.PasskeyEnrollmentService.IssuedCode;
+import io.javalin.router.JavalinDefaultRoutingApi;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -47,6 +51,7 @@ class MemberRoutesTest {
     private AuthService auth;
     private MemberAccountService memberAccounts;
     private PasskeyEnrollmentService enrollment;
+    private OneTimePasswordService oneTimePasswords;
     private RouteHarness harness;
     private UserSession manager;
 
@@ -59,8 +64,9 @@ class MemberRoutesTest {
         auth = mock(AuthService.class);
         memberAccounts = mock(MemberAccountService.class);
         enrollment = mock(PasskeyEnrollmentService.class);
-        harness = RouteHarness.serving(
-                new MemberRoutes(auth, memberAccounts, mock(StationMemberInviteService.class), enrollment));
+        oneTimePasswords = mock(OneTimePasswordService.class);
+        harness = RouteHarness.serving(new MemberRoutes(
+                auth, memberAccounts, mock(StationMemberInviteService.class), enrollment, oneTimePasswords));
         manager = TestSessions.member(3, StationPermission.MEMBER_EDIT, StationPermission.LOGIN);
     }
 
@@ -114,6 +120,37 @@ class MemberRoutesTest {
 
         verify(memberAccounts)
                 .actionableAccount(eq(TARGET), any(), eq(MemberRefusal.ACCOUNT_NOT_HERE_ON_ONBOARDING_AGAIN));
+    }
+
+    @Test
+    void aStationAdministratorIsHandedTheOneTimePasswordForTheirStation() {
+        var administrator = TestSessions.member(3, StationPermission.STATION_ADMINISTRATOR, StationPermission.LOGIN);
+        when(oneTimePasswords.issueForStation(eq(3), eq(TestSessions.ACCOUNT_ID), eq(TARGET), any(), any()))
+                .thenReturn(new IssuedOneTimePassword(TARGET, "Tom T", "tom", "k7mq-x2pd-9wtr-hb4z", Instant.EPOCH));
+
+        harness.run((server, client) -> {
+            var issued = client.post(
+                    PREFIX + "/members/" + TARGET + "/one-time-password", body("{}"), harness.as(administrator));
+            assertEquals("k7mq-x2pd-9wtr-hb4z", json(issued).path("password").asString());
+            var memberEditor =
+                    client.post(PREFIX + "/members/" + TARGET + "/one-time-password", body("{}"), harness.as(manager));
+            assertEquals(403, memberEditor.code(), "editing members is not enough");
+        });
+    }
+
+    @Test
+    void theOneTimePasswordAsksForAFreshSecondFactor() {
+        var router = mock(JavalinDefaultRoutingApi.class);
+
+        new MemberRoutes(auth, memberAccounts, mock(StationMemberInviteService.class), enrollment, oneTimePasswords)
+                .register(router, PREFIX);
+
+        verify(router)
+                .post(
+                        eq(PREFIX + "/members/{accountId}/one-time-password"),
+                        any(),
+                        eq(StationPermission.STATION_ADMINISTRATOR),
+                        eq(StepUpCategory.ACCOUNT_SECURITY));
     }
 
     @Test
