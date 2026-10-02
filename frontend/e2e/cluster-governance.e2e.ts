@@ -223,7 +223,7 @@ test.describe('Cluster governance', () => {
         const refused = await page.request.put(`/api/v1/cluster/storage/stations/${own.stationUid}`,
             {headers: own.headers, data: {totalBytes: 50 * 1024 * 1024}})
         expect(refused.ok()).toBeFalsy()
-        expect((await refused.text()).toLowerCase()).toContain('pool')
+        expect((await refused.json()).code, 'the grant does not fit the pool').toBe('CU-145')
     })
 
     /**

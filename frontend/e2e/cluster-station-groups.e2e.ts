@@ -208,7 +208,7 @@ test.describe('Cluster station groups', () => {
         const refused = await page.request.delete(`/api/v1/cluster/station-groups/${group}`,
             {headers: own.headers})
         expect(refused.status(), 'the filing is not removed out from under a question').toBe(400)
-        expect(await refused.text()).toContain('1 question')
+        expect((await refused.json()).code, 'refused because a question is still asked of it').toBe('CU-132')
 
         const dropped = await page.request.delete(`/api/v1/cluster/fields/${fieldId}`, {headers: own.headers})
         expect(dropped.ok(), `the question was withdrawn (${await dropped.text()})`).toBeTruthy()

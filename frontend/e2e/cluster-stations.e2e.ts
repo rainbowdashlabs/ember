@@ -121,7 +121,7 @@ test.describe('Cluster stations', () => {
 
         const refused = await page.request.delete(`/api/v1/clusters/${cluster.uid}`, {headers})
         expect(refused.ok()).toBeFalsy()
-        expect(await refused.text()).toContain('station')
+        expect((await refused.json()).code, 'refused while stations still belong to it').toBe('CU-123')
 
         await page.goto('/admin/clusters')
         await expect(page.getByText(cluster.name)).toBeVisible()

@@ -3,11 +3,16 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {describe, expect, it} from 'vitest'
+import {describe, expect, it, vi} from 'vitest'
 import {mountSuspended} from '@nuxt/test-utils/runtime'
 import TagsHelp from './TagsHelp.vue'
 import GroupsHelp from './GroupsHelp.vue'
 import ChangesHelp from './ChangesHelp.vue'
+
+vi.mock('@/api/data', () => ({
+    getPermissionHierarchy: async () => [],
+    getClusterPermissionHierarchy: async () => [],
+}))
 
 describe('member help articles', () => {
     it('show the real tag panels with a tag selected', async () => {
