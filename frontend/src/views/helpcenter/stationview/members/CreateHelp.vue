@@ -15,7 +15,7 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import HelpPermissionGuard from '@/components/helpcenter/HelpPermissionGuard.vue'
 import OneTimePasswordSheet from '@/components/onetimepassword/OneTimePasswordSheet.vue'
 import OneTimePasswordChoice from '@/views/stationview/members/createview/OneTimePasswordChoice.vue'
-import {StationPermission} from '@/api/types'
+import {StationPermission} from '@/api/generated/schema'
 import {sampleSheet} from '@/views/helpcenter/adminview/accountshelp/sampleAccounts'
 
 const {t} = useI18n()
