@@ -43,7 +43,7 @@
 - **Every storage screen asks before files move.** Moving a station's files or giving up your association's storage now waits for one confirmation, just like the station and instance screens already did. You see the same summary card and the same question on all three screens.
 - **Refused storage changes are written down.** When a storage change is refused, the history of the station, the association or the instance now says so and gives the reason you were shown.
 - **Clear out the paperwork of people who left.** A new switch on the documents page shows only documents about people who have all left, archived or deleted. Tick a few, or every one the filter finds, and delete them in one go after a single question.
-- **The association sees documents the way the station does.** On a person's page in the association, documents are tiles you open and preview, just like at the station. A document you file there names you as the one who filed it.
+- **The association sees documents like the station.** On a person's page in the association, documents are tiles you open and preview, just like at the station. A document you file there names you as the one who filed it.
 
 ### Security
 
@@ -66,9 +66,9 @@
 - **Profiles stay with those allowed to see them.** Any member of the station could read and overwrite other members' profile answers by sending the request to the server directly. Now only the member, their guardian and those who may read or edit members can.
 - **Association questions respect their locks.** A station could answer its association's profile questions past their locks, even ones kept from the station or not asked of that member. The association's member management could also answer questions of any station, and now every answer passes the same locks as the station's own.
 - **Removing a group no longer opens content.** An appointment, template, news entry, form, quiz or wiki entry limited only to a group became visible to the whole station once that group was removed or turned into a tag. Both now wait until nothing is limited to the group any more.
-- **The instance storage gets the same checks as a station's.** Saving the instance's storage now refuses incomplete credentials and any address this instance may not open a connection to, and a failed connection test keeps its exact reason in the instance log. If you keep the instance's files on a server inside your own network, set `federation.allowPrivateHosts` before you switch.
-- **Hidden station papers could be opened by their address.** A hidden document that names nobody could be opened by anyone allowed to read the station's own papers, as long as they knew its number. Now only those who may read member documents open it.
-- **Members could tag their own uploads and keep them past leaving.** A member allowed only to put documents on themselves could add tags to the station's list and mark a document to outlast the membership. Both now stay with the people who manage documents.
+- **Instance storage is checked like a station's.** Saving it now refuses incomplete credentials and addresses the instance may not reach. If your files sit on a server in your own network, set `federation.allowPrivateHosts` before you switch.
+- **Hidden station papers stay hidden.** A hidden document that names nobody could be opened by anyone allowed to read the station's own papers, as long as they knew its number. Now only those who may read member documents open it.
+- **Tags and keeping stay with document managers.** A member allowed only to put documents on themselves could add tags to the station's list and mark a document to outlast the membership. Both now stay with the people who manage documents.
 - **Files are taken for what they really are.** A document could claim to be a picture or a PDF while being something else, and was shown as one. Now its contents decide, and a file whose name says otherwise is turned away.
 - **Removing a group needs the rights it grants.** Anyone allowed to manage groups could delete a group, or turn it into a tag, and so take permissions they did not hold themselves from everybody in it. Now you need every permission the group grants, and a fresh confirmation if it grants any.
 
@@ -191,13 +191,13 @@
 - **Archiving kept a member's answers to the association.** When you archived a member, their answers to the association's questions stayed, even where a question was not marked to be kept. They are now cleared like the station's own.
 - **New station questions keep "Keep when archived".** Creating a question with this box ticked saved it without the setting. It now sticks from the start.
 - **You hear when the association changes your profile.** The association could fill in your profile from its member screen without you hearing about it. You now get a notification when it does.
-- **New credentials for an association's storage could be ignored.** In some cases, after you changed only the password of your association's storage, files were still written with the old one until Ember was restarted. The new credentials now apply at once.
-- **Old settings of an association's storage were never deleted.** When an association pointed its storage somewhere new or gave it up, the old settings and their credentials stayed behind for good. They are now deleted as soon as no station's files are on them.
-- **Saving an association's storage could leave it with none.** In rare cases a save that failed halfway left the association without any storage of its own. The storage it had now stays until the new one is saved.
+- **New association storage credentials could be ignored.** In some cases, after you changed only the password of your association's storage, files were still written with the old one until Ember was restarted. The new credentials now apply at once.
+- **Old association storage settings were never deleted.** When an association pointed its storage somewhere new or gave it up, the old settings and their credentials stayed behind for good. They are now deleted as soon as no station's files are on them.
+- **Saving association storage could leave none behind.** In rare cases a save that failed halfway left the association without any storage of its own. The storage it had now stays until the new one is saved.
 - **A refused move showed up as started.** When an association moved a station whose files were already in place, the station's history still listed the move as started. Only moves that really start are listed now.
 - **Association groups could save half a change.** When one part of a change to an association's member group was refused, the parts before it stayed saved, such as a new name with the old members. Now a change is saved as a whole or not at all.
 - **Closing an association group told nobody.** People in an association's member group lost what it granted without a word when the group was deleted. They now get the same notice as when they are taken out of a group.
-- **The association's groups offered buttons that could not work.** If you may only look at the association's member groups, you were still offered creating, deleting and changing members, and the server then refused. Only the association's administrators see those controls now.
+- **Association groups offered buttons that did nothing.** If you may only look at the association's member groups, you were still offered creating, deleting and changing members, and the server then refused. Only the association's administrators see those controls now.
 - **Duplicate group names ended in a general error.** A station's group names kept stray spaces, and a second group with a name already in use failed without saying why. Names are now trimmed, and a name that is taken is refused with a clear message, however it is capitalised.
 
 ## v26.19.5
