@@ -11,7 +11,7 @@ import StepSubject from './StepSubject.vue'
 import StepReason from './StepReason.vue'
 import StepPreview from './StepPreview.vue'
 import {startsFromAPiece, useProvidedMovementWizard} from './useMovementWizard'
-import {MovementPurpose} from '@/api/movements'
+import {MovementPurpose} from '@/api/generated/schema'
 
 /**
  * Whichever question the wizard is on, drawn from the one state the wizard keeps and provides.

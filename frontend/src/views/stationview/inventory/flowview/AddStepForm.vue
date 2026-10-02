@@ -11,9 +11,7 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import FlowField from './FlowField.vue'
-import {ItemCustody, type ItemCustodyName} from '@/api/inventory'
-import {StepActor, StepSubject, type StepActorName, type StepSubjectName} from '@/api/movements'
-import type {StepRequest} from '@/api/generated/schema'
+import {ItemCustody, StepActor, StepSubject, type StepRequest} from '@/api/generated/schema'
 
 const {t} = useI18n()
 
@@ -22,16 +20,16 @@ defineProps<{busy: boolean}>()
 const emit = defineEmits<{add: [step: StepRequest]}>()
 
 const label = ref('')
-const actor = ref<StepActorName>(StepActor.STATION)
-const subject = ref<StepSubjectName>(StepSubject.OUTGOING)
-const custodyAfter = ref<ItemCustodyName>(ItemCustody.AT_STATION)
+const actor = ref<StepActor>(StepActor.STATION)
+const subject = ref<StepSubject>(StepSubject.OUTGOING)
+const custodyAfter = ref<ItemCustody>(ItemCustody.AT_STATION)
 const picksItem = ref(false)
 
 /**
  * The custodies a step may leave an item in. Lending has its own flow and losing something is not a
  * step anybody takes, so neither is offered here.
  */
-const CUSTODIES: ItemCustodyName[] = [
+const CUSTODIES: ItemCustody[] = [
   ItemCustody.WITH_OWNER,
   ItemCustody.AT_STATION,
   ItemCustody.WITH_MEMBER,

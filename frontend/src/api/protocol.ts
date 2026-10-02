@@ -7,7 +7,6 @@ import client from './client'
 import { createCrudResource } from './crud'
 import { downloadAuthed } from '@/util/downloadAuthed'
 import type {
-    components,
     EvaluationResponse,
     ProtocolDetailResponse,
     ProtocolItemRequest,
@@ -24,14 +23,6 @@ import type {
     TestProtocolRunMember,
     TestProtocolSection,
 } from './generated/schema'
-
-export type RunStatusName = components['schemas']['RunStatus']
-
-/** Whether a run still takes grades, or has been closed. */
-export const RunStatus = {
-    OPEN: 'OPEN',
-    CLOSED: 'CLOSED',
-} as const satisfies Record<RunStatusName, RunStatusName>
 
 /**
  * Reads a protocol served by a federation partner. The partner is addressed by its station UUID

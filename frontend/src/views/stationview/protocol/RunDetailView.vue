@@ -24,8 +24,12 @@ import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { describeFailure } from '@/util/failure'
 import { protocol, stationMembers } from '@/api'
-import type { MemberWithName, TestProtocolRun, RunMemberWithProgress } from '@/api/generated/schema'
-import { RunStatus } from '@/api/protocol'
+import {
+  RunStatus,
+  type MemberWithName,
+  type TestProtocolRun,
+  type RunMemberWithProgress,
+} from '@/api/generated/schema'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import { formatDate } from '@/util/format'
 

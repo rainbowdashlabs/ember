@@ -3,13 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {
-    InventoryTypes,
-    ItemOwner,
-    type InventoryTypeName,
-    type ItemOwnerName,
-} from '@/api/inventory'
-import type {InventoryItem} from '@/api/generated/schema'
+import {InventoryType, ItemOwner, type InventoryItem} from '@/api/generated/schema'
 
 /** Which pieces an item picker may offer, as its caller asked for them. */
 export interface ItemFilterCriteria {
@@ -17,15 +11,15 @@ export interface ItemFilterCriteria {
     excludeAssigned?: boolean
     excludeLost?: boolean
     excludeContainerless?: boolean
-    ownerKind?: ItemOwnerName | null
+    ownerKind?: ItemOwner | null
     ownerClusterId?: string | null
-    inventoryType?: InventoryTypeName | null
+    inventoryType?: InventoryType | null
     excludeSpokenFor?: boolean
 }
 
 /** What the filters need to know beyond the piece itself. */
 export interface ItemFilterContext {
-    inventoryTypeOf: (inventoryId: number) => InventoryTypeName | undefined
+    inventoryTypeOf: (inventoryId: number) => InventoryType | undefined
     spokenFor: Set<number>
 }
 
@@ -55,8 +49,8 @@ function onTheSameKindOfShelf(item: InventoryItem, criteria: ItemFilterCriteria,
     const type = context.inventoryTypeOf(item.inventoryId)
     if (type == null) return false
     return type === criteria.inventoryType
-        || type === InventoryTypes.MIXED
-        || criteria.inventoryType === InventoryTypes.MIXED
+        || type === InventoryType.MIXED
+        || criteria.inventoryType === InventoryType.MIXED
 }
 
 /** Whether the picker may offer the piece at all. */

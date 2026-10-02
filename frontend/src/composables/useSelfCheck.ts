@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {computed, ref, type Ref} from 'vue'
-import {SelfCheckAnswer, type SelfCheckAnswerName} from '@/api/selfChecks'
+import {SelfCheckAnswer} from '@/api/generated/schema'
 import type {
     AnswerBody,
     InventoryItem,
@@ -30,7 +30,7 @@ export type SelfCheckEntry =
 
 /** What the member said about one entry, before it has been sent anywhere. */
 export interface SelfCheckDraft {
-    answer: SelfCheckAnswerName | null
+    answer: SelfCheckAnswer | null
     note: string
     typedInternalId: string
     /** The size they gave for a piece nobody wrote down, empty where they did not say. */
@@ -114,7 +114,7 @@ export function borrowed(item: InventoryItem): boolean {
  * belongs on the lending request it came in on and there is nothing of the station's to swap it for.
  * A piece already written off is asked the one question that is still open about it.
  */
-export function answersFor(entry: SelfCheckEntry): SelfCheckAnswerName[] {
+export function answersFor(entry: SelfCheckEntry): SelfCheckAnswer[] {
     if (entry.type === 'place') return [SelfCheckAnswer.NEVER_HAD, SelfCheckAnswer.HAVE_ONE]
     if (recordedLost(entry.item)) return [SelfCheckAnswer.TURNED_UP]
     if (borrowed(entry.item)) return [SelfCheckAnswer.HAVE_IT, SelfCheckAnswer.DO_NOT_HAVE_IT]

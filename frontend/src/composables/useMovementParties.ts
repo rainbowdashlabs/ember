@@ -5,9 +5,7 @@
  */
 import {computed, type Ref} from 'vue'
 import {useI18n} from 'vue-i18n'
-import {ItemOwner} from '@/api/inventory'
-import {StepActor, type StepActorName} from '@/api/movements'
-import type {MovementResponse} from '@/api/generated/schema'
+import {ItemOwner, StepActor, type MovementResponse} from '@/api/generated/schema'
 
 /** What a screen needs of a movement to name the parties it is between. */
 export type PartiesOf = Pick<MovementResponse,'ownerKind' | 'ownerName'>
@@ -32,7 +30,7 @@ export function useMovementParties(movement: Ref<PartiesOf | null | undefined>) 
     })
 
     /** The party whose step this is, with the owner named where it has a name. */
-    function actorLabel(actor: StepActorName): string {
+    function actorLabel(actor: StepActor): string {
         return actor === StepActor.OWNER ? ownerLabel.value : t(`movements.actor.${actor}`)
     }
 

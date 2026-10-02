@@ -3,15 +3,22 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {InventoryItem, MemberCheckState, RequiredInventoryItem} from '@/api/generated/schema'
-import {InventoryTypes, ItemCustody, ItemOwner} from '@/api/inventory'
-import {MovementState, StepActor} from '@/api/movements'
+import {
+    InventoryType,
+    ItemCustody,
+    ItemOwner,
+    MovementState,
+    StepActor,
+    type InventoryItem,
+    type MemberCheckState,
+    type RequiredInventoryItem,
+} from '@/api/generated/schema'
 
 /** An inventory a member is required to hold one of, in a single size. */
 function required(inventoryId: number, inventoryName: string, sizeLabel: string, assignedQuantity: number): RequiredInventoryItem {
     return {
         inventoryId, inventoryName, assignedQuantity, requiredQuantity: 1, inExchangeQuantity: 0,
-        hasSizes: true, homogeneous: true, inventoryType: InventoryTypes.INTERNAL,
+        hasSizes: true, homogeneous: true, inventoryType: InventoryType.INTERNAL,
         sizes: [{id: inventoryId, inventoryId, label: sizeLabel, note: '', position: 0}],
     }
 }

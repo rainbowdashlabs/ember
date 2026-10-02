@@ -6,10 +6,10 @@
 import client from './client'
 import {createCrudResource, type NoContent} from './crud'
 import {uploadFile} from './upload'
+import {InventoryType, ItemCustody} from './generated/schema'
 import type {
     AssignRequest,
     BorrowedItemResponse,
-    components,
     HistoryResponse,
     Inventory,
     InventoryDetail,
@@ -34,16 +34,6 @@ import type {
     UpdateRequirementRequest,
 } from './generated/schema'
 
-type Schemas = components['schemas']
-
-export type InventoryTypeName = Schemas['InventoryType']
-
-export const InventoryTypes = {
-    INTERNAL: 'INTERNAL',
-    EXTERNAL: 'EXTERNAL',
-    MIXED: 'MIXED',
-} as const satisfies Record<InventoryTypeName, InventoryTypeName>
-
 /**
  * Whether gear filed here can be offered to a partner station at all.
  *
@@ -55,39 +45,18 @@ export const InventoryTypes = {
  * beside the body's, and the pieces that are not the station's are dropped where the offer is read
  * rather than by hiding the decision.
  */
-export function isLendableInventory(inventoryType: InventoryTypeName | null | undefined): boolean {
-    return inventoryType !== InventoryTypes.EXTERNAL
+export function isLendableInventory(inventoryType: InventoryType | null | undefined): boolean {
+    return inventoryType !== InventoryType.EXTERNAL
 }
 
-export type ItemOwnerName = Schemas['ItemOwner']
-
 /**
- * Who owns an item: the station running its inventory, the one body above that station, or a
- * federation partner the station has borrowed it from. Members never own tracked items.
+ * Whether an item in this custody is free to hand to somebody.
+ *
+ * <p>Custody is who has an item right now, which is a different question from who owns it. A station
+ * can hold gear it does not own, and an owner can be holding gear nobody at the station has seen for
+ * a year.
  */
-export const ItemOwner = {
-    STATION: 'STATION',
-    CLUSTER: 'CLUSTER',
-    PARTNER_STATION: 'PARTNER_STATION',
-} as const satisfies Record<ItemOwnerName, ItemOwnerName>
-
-export type ItemCustodyName = Schemas['ItemCustody']
-
-/**
- * Who has an item right now, which is a different question from who owns it. A station can hold
- * gear it does not own, and an owner can be holding gear nobody at the station has seen for a year.
- */
-export const ItemCustody = {
-    WITH_OWNER: 'WITH_OWNER',
-    AT_STATION: 'AT_STATION',
-    WITH_MEMBER: 'WITH_MEMBER',
-    WITH_PARTNER: 'WITH_PARTNER',
-    IN_TRANSIT: 'IN_TRANSIT',
-    LOST: 'LOST',
-} as const satisfies Record<ItemCustodyName, ItemCustodyName>
-
-/** Whether an item in this custody is free to hand to somebody. */
-export function isAvailable(custody?: ItemCustodyName | null): boolean {
+export function isAvailable(custody?: ItemCustody | null): boolean {
     return custody === ItemCustody.WITH_OWNER || custody === ItemCustody.AT_STATION
 }
 
@@ -115,17 +84,6 @@ export function inventoryKindOf(homogeneous: boolean): InventoryKindName {
 export function isStock(kind: InventoryKindName): boolean {
     return kind === InventoryKinds.STOCK
 }
-
-export type SwitchBlockerKindName = Schemas['SwitchBlockerKind']
-
-/** What sort of thing stands in the way of an inventory changing what it holds. */
-export const SwitchBlockerKinds = {
-    REQUIREMENT: 'REQUIREMENT',
-    PROCUREMENT: 'PROCUREMENT',
-    EXCHANGE: 'EXCHANGE',
-    SIZE: 'SIZE',
-    ART: 'ART',
-} as const satisfies Record<SwitchBlockerKindName, SwitchBlockerKindName>
 
 /** The name the backend puts on that refusal, which is how it is told from any other bad request. */
 export const SWITCH_REFUSED = 'InventorySwitchRefusedException'
@@ -310,14 +268,6 @@ export async function markFound(id: number): Promise<InventoryItem> {
     const res = await client.delete<InventoryItem>(`/inventory-items/${id}/lost`)
     return res.data
 }
-
-export type LossReportRequirementName = Schemas['LossReportRequirement']
-
-export const LossReportRequirement = {
-    NOTHING: 'NOTHING',
-    NOTE: 'NOTE',
-    DOCUMENT: 'DOCUMENT',
-} as const satisfies Record<LossReportRequirementName, LossReportRequirementName>
 
 export async function lossReportTerms(itemId: number): Promise<LossReportTerms> {
     const res = await client.get<LossReportTerms>(`/inventory-items/${itemId}/loss-report`)

@@ -26,7 +26,7 @@ import type {
   SelfCheckReview,
   SelfCheckReviewRow,
 } from '@/api/generated/schema'
-import {SelfCheckAnswer} from '@/api/selfChecks'
+import {SelfCheckAnswer} from '@/api/generated/schema'
 import {useConfigPanel} from '@/composables/useConfigPanel'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {formatDate} from '@/util/format'

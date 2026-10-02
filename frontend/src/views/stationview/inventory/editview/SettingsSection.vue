@@ -15,8 +15,8 @@ import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
 import InventoryKindField from '@/components/inventory/InventoryKindField.vue'
 import GearIconPicker from '@/components/input/select/GearIconPicker.vue'
-import {InventoryTypes, switchRefusal, type InventoryTypeName} from '@/api/inventory'
-import type {InventoryDetail, SwitchBlocker} from '@/api/generated/schema'
+import {switchRefusal} from '@/api/inventory'
+import {InventoryType, type InventoryDetail, type SwitchBlocker} from '@/api/generated/schema'
 import {inventory} from '@/api'
 import {describeFailure, type Failure} from '@/util/failure'
 import SwitchRefusalAlert from './SwitchRefusalAlert.vue'
@@ -34,7 +34,7 @@ const emit = defineEmits<{
 }>()
 
 const editName = ref(props.detail.name ?? '')
-const editType = ref<string>(props.detail.inventoryType ?? InventoryTypes.INTERNAL)
+const editType = ref<string>(props.detail.inventoryType ?? InventoryType.INTERNAL)
 const editHomogeneous = ref(props.detail.homogeneous)
 const editHasSizes = ref(props.detail.hasSizes ?? false)
 const editIcon = ref<string | null>(props.detail.icon ?? null)
@@ -62,7 +62,7 @@ async function saveSettings() {
   try {
     await inventory.updateInventory(props.detail.id, {
       name: editName.value,
-      inventoryType: editType.value as InventoryTypeName,
+      inventoryType: editType.value as InventoryType,
       hasSizes: editHasSizes.value,
       homogeneous: editHomogeneous.value,
       icon: editIcon.value,
@@ -93,9 +93,9 @@ async function saveSettings() {
       <div class="space-y-1">
         <FieldLabel>{{ t('inventory.manage.typeLabel') }}</FieldLabel>
         <SelectInput v-model="editType">
-          <option :value="InventoryTypes.INTERNAL">{{ t('inventory.manage.type.INTERNAL') }}</option>
-          <option :value="InventoryTypes.EXTERNAL">{{ t('inventory.manage.type.EXTERNAL') }}</option>
-          <option :value="InventoryTypes.MIXED">{{ t('inventory.manage.type.MIXED') }}</option>
+          <option :value="InventoryType.INTERNAL">{{ t('inventory.manage.type.INTERNAL') }}</option>
+          <option :value="InventoryType.EXTERNAL">{{ t('inventory.manage.type.EXTERNAL') }}</option>
+          <option :value="InventoryType.MIXED">{{ t('inventory.manage.type.MIXED') }}</option>
         </SelectInput>
         <p class="text-xs text-(--text-muted)">{{ t('inventory.edit.typeSwitchHint') }}</p>
       </div>

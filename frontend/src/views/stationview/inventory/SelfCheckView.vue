@@ -17,9 +17,14 @@ import SelfCheckSection from './selfcheckview/SelfCheckSection.vue'
 import ReportLostModal from '../profile/inventoryview/ReportLostModal.vue'
 import SwapRequestModal from './selfcheckview/SwapRequestModal.vue'
 import {inventory, movements, selfChecks} from '@/api'
-import {MovementPurpose} from '@/api/movements'
-import type {InventorySize, RequiredInventoryItem, SelfCheckResponse} from '@/api/generated/schema'
-import {SelfCheckState, type SelfCheckAnswerName} from '@/api/selfChecks'
+import {
+  MovementPurpose,
+  SelfCheckState,
+  type InventorySize,
+  type RequiredInventoryItem,
+  type SelfCheckAnswer,
+  type SelfCheckResponse,
+} from '@/api/generated/schema'
 import {useConfigPanel} from '@/composables/useConfigPanel'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {
@@ -93,7 +98,7 @@ async function saveWhatWasSaid() {
   await selfChecks.saveAnswers(taskId.value, check.pending.value)
 }
 
-function setAnswer(key: string, answer: SelfCheckAnswerName) {
+function setAnswer(key: string, answer: SelfCheckAnswer) {
   saved.value = ''
   check.setDraft(key, {answer})
 }

@@ -11,7 +11,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import CreateInventoryBasicStep from './CreateInventoryBasicStep.vue'
 import CreateInventorySizesStep from './CreateInventorySizesStep.vue'
-import {InventoryTypes, type InventoryTypeName} from '@/api/inventory'
+import {InventoryType} from '@/api/generated/schema'
 import {inventory} from '@/api'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {describeFailure, type Failure} from '@/util/failure'
@@ -26,7 +26,7 @@ const {t} = useI18n()
 
 const step = ref<'basic' | 'sizes'>('basic')
 const name = ref('')
-const type = ref<InventoryTypeName>(InventoryTypes.INTERNAL)
+const type = ref<InventoryType>(InventoryType.INTERNAL)
 const hasSizes = ref(false)
 const homogeneous = ref(true)
 const sizes = ref<string[]>([])
@@ -37,7 +37,7 @@ const color = ref<string | null>(null)
 function reset() {
   step.value = 'basic'
   name.value = ''
-  type.value = InventoryTypes.INTERNAL
+  type.value = InventoryType.INTERNAL
   hasSizes.value = false
   homogeneous.value = true
   sizes.value = []

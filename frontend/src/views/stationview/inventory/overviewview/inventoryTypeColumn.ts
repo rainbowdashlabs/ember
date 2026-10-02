@@ -3,12 +3,15 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {InventoryTypes} from '@/api/inventory'
+import {InventoryType} from '@/api/generated/schema'
 import {ColumnTypes, enumOptions, type TableColumn} from '@/components/table/tableColumn'
 import {inventoryTypeLabel, type InventoryTypeTranslator} from '@/util/inventoryType'
 
 /** The key the inventory's kind is remembered under in every overview table. */
 export const INVENTORY_TYPE_KEY = 'inventoryType'
+
+/** The kinds of inventory in the order the filter offers them, the same as the pickers that create one. */
+const INVENTORY_TYPES: readonly InventoryType[] = [InventoryType.INTERNAL, InventoryType.EXTERNAL, InventoryType.MIXED]
 
 /**
  * The column saying what kind of inventory a row comes out of, which the overview's tables share.
@@ -25,6 +28,6 @@ export function inventoryTypeColumn<Row>(
         label: t('inventory.overview.colType'),
         type: ColumnTypes.ENUM,
         value: typeOf,
-        options: enumOptions(Object.values(InventoryTypes), type => inventoryTypeLabel(t, type)),
+        options: enumOptions(INVENTORY_TYPES,type => inventoryTypeLabel(t, type)),
     }
 }

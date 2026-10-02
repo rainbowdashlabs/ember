@@ -16,8 +16,13 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import {movements} from '@/api'
-import {MovementPurpose, type MovementPurposeName} from '@/api/movements'
-import type {BindingResponse, ChosenLanding, FlowResponse, StepRequest} from '@/api/generated/schema'
+import {
+  MovementPurpose,
+  type BindingResponse,
+  type ChosenLanding,
+  type FlowResponse,
+  type StepRequest,
+} from '@/api/generated/schema'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useFlowProblems} from '@/composables/useFlowProblems'
 import type {Failure} from '@/util/failure'
@@ -33,7 +38,7 @@ const actionFailure = ref<Failure | null>(null)
 const flowFailures = ref<Record<number, Failure | null>>({})
 
 /** The purposes in the order a piece of gear meets them, which is also the order the page reads in. */
-const PURPOSES: MovementPurposeName[] = [
+const PURPOSES: MovementPurpose[] = [
   MovementPurpose.ISSUE,
   MovementPurpose.EXCHANGE,
   MovementPurpose.RETURN,
@@ -41,7 +46,7 @@ const PURPOSES: MovementPurposeName[] = [
 ]
 
 const newName = ref('')
-const newPurpose = ref<MovementPurposeName>(MovementPurpose.EXCHANGE)
+const newPurpose = ref<MovementPurpose>(MovementPurpose.EXCHANGE)
 
 const {loading, failure, reload} = useAsyncLoader(async () => {
   ;[flows.value, bindings.value] = await Promise.all([movements.listFlows(), movements.listBindings()])

@@ -10,8 +10,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import {LendingStatus} from '@/api/lending'
-import type {EnrichedMessage, LendingRequestDetail} from '@/api/generated/schema'
+import {LendingStatus, type EnrichedMessage, type LendingRequestDetail} from '@/api/generated/schema'
 import {formatDateTime} from '@/util/format'
 
 const newMessage = defineModel<string>('newMessage', {required: true})

@@ -7,7 +7,6 @@ import client from './client'
 import {createCrudResource} from './crud'
 import type {
     CompleteContainerCheckRequest,
-    components,
     ContainerContents,
     ContainerDetail,
     ContainerPathResponse,
@@ -22,15 +21,6 @@ import type {
     ItemLocationResponse,
     KindRequest,
 } from './generated/schema'
-
-export type ContainerEventKindName = components['schemas']['ContainerEventKind']
-
-export const ContainerEventKind = {
-    CREATED: 'CREATED',
-    RENAMED: 'RENAMED',
-    MOVED: 'MOVED',
-    DELETED: 'DELETED',
-} as const satisfies Record<ContainerEventKindName, ContainerEventKindName>
 
 const kinds = createCrudResource<InventoryContainerKind, KindRequest>('/inventory-container-kinds')
 

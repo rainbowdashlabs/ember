@@ -13,9 +13,14 @@ import MutedIconButton from '@/components/button/MutedIconButton.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import ToggleSetting from '@/components/input/toggle/ToggleSetting.vue'
-import type {BindingResponse, ChosenLanding, FlowResponse, StepRequest} from '@/api/generated/schema'
-import {StepActor} from '@/api/movements'
-import {ItemCustody} from '@/api/inventory'
+import {
+  ItemCustody,
+  StepActor,
+  type BindingResponse,
+  type ChosenLanding,
+  type FlowResponse,
+  type StepRequest,
+} from '@/api/generated/schema'
 import FlowDiagram from '@/components/movement/FlowDiagram.vue'
 import FlowStepRow from './FlowStepRow.vue'
 import AddStepForm from './AddStepForm.vue'

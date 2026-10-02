@@ -29,7 +29,7 @@ import {
   type SelfCheckDraft,
   type SelfCheckEntry,
 } from '@/composables/useSelfCheck'
-import {SelfCheckAnswer, type SelfCheckAnswerName} from '@/api/selfChecks'
+import {SelfCheckAnswer} from '@/api/generated/schema'
 
 /**
  * One thing the member is asked about, and everything they may say about it.
@@ -58,7 +58,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  setAnswer: [key: string, answer: SelfCheckAnswerName]
+  setAnswer: [key: string, answer: SelfCheckAnswer]
   setNote: [key: string, note: string]
   setTypedInternalId: [key: string, typed: string]
   setSizeId: [key: string, sizeId: string]
@@ -150,7 +150,7 @@ function chooseActualSize(chosen: string) {
   if (differs) emit('setAnswer', props.entry.key, SelfCheckAnswer.WRONG_RECORD)
 }
 
-function answerLabel(answer: SelfCheckAnswerName): string {
+function answerLabel(answer: SelfCheckAnswer): string {
   return t(`selfCheck.answer.${answer}`)
 }
 </script>

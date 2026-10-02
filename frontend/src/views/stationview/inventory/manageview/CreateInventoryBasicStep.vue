@@ -15,10 +15,10 @@ import GearIconPicker from '@/components/input/select/GearIconPicker.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import {InventoryTypes, type InventoryTypeName} from '@/api/inventory'
+import {InventoryType} from '@/api/generated/schema'
 
 const name = defineModel<string>('name', {required: true})
-const type = defineModel<InventoryTypeName>('type', {required: true})
+const type = defineModel<InventoryType>('type', {required: true})
 const hasSizes = defineModel<boolean>('hasSizes', {required: true})
 const homogeneous = defineModel<boolean>('homogeneous', {required: true})
 const icon = defineModel<string | null>('icon')
@@ -47,9 +47,9 @@ watch(homogeneous, value => {
   <div class="space-y-1">
     <FieldLabel>{{ t('inventory.manage.typeLabel') }}</FieldLabel>
     <SelectInput v-model="type">
-      <option :value="InventoryTypes.INTERNAL">{{ t('inventory.manage.type.INTERNAL') }}</option>
-      <option :value="InventoryTypes.EXTERNAL">{{ t('inventory.manage.type.EXTERNAL') }}</option>
-      <option :value="InventoryTypes.MIXED">{{ t('inventory.manage.type.MIXED') }}</option>
+      <option :value="InventoryType.INTERNAL">{{ t('inventory.manage.type.INTERNAL') }}</option>
+      <option :value="InventoryType.EXTERNAL">{{ t('inventory.manage.type.EXTERNAL') }}</option>
+      <option :value="InventoryType.MIXED">{{ t('inventory.manage.type.MIXED') }}</option>
     </SelectInput>
     <p class="text-xs text-(--text-muted)">{{ t('inventory.manage.typeHint') }}</p>
   </div>

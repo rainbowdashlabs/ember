@@ -25,17 +25,6 @@ import type {
 
 type Schemas = components['schemas']
 
-export type LendingStatusName = Schemas['LendingStatus']
-
-export const LendingStatus = {
-    REQUESTED: 'REQUESTED',
-    APPROVED: 'APPROVED',
-    DECLINED: 'DECLINED',
-    LENT: 'LENT',
-    RETURNED: 'RETURNED',
-    CLOSED: 'CLOSED',
-} as const satisfies Record<LendingStatusName, LendingStatusName>
-
 export type LendingEmptyReasonName = Schemas['EmptyReason']
 
 /**
@@ -46,20 +35,6 @@ export const LendingEmptyReason = {
     NOTHING_SHARED: 'NOTHING_SHARED',
     NOTHING_FREE: 'NOTHING_FREE',
 } as const satisfies Record<LendingEmptyReasonName, LendingEmptyReasonName>
-
-export type ShareGrantName = Schemas['ShareGrant']
-
-export const ShareGrant = {
-    GRANT: 'GRANT',
-    WITHHOLD: 'WITHHOLD',
-} as const satisfies Record<ShareGrantName, ShareGrantName>
-
-export type ShareScopeName = Schemas['ShareScope']
-
-export const ShareScope = {
-    ALL_PARTNERS: 'ALL_PARTNERS',
-    SPECIFIC: 'SPECIFIC',
-} as const satisfies Record<ShareScopeName, ShareScopeName>
 
 /** Which of the three levels a sharing row speaks at. The narrowest one that exists decides. */
 export type ShareTarget = 'inventory' | 'art' | 'item'

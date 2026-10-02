@@ -11,8 +11,7 @@ import ItemModals from './ItemModals.vue'
 import InventoryItemTable from '../itemtable/InventoryItemTable.vue'
 import ItemListControls from '../itemtable/ItemListControls.vue'
 import {useItemTable} from '../itemtable/useItemTable'
-import {InventoryTypes} from '@/api/inventory'
-import type {InventoryDetail, InventoryItem} from '@/api/generated/schema'
+import {InventoryType, type InventoryDetail, type InventoryItem} from '@/api/generated/schema'
 import type {MemberLike} from '@/components/input/select/memberOption'
 import {inventory} from '@/api'
 import {describeFailure, type Failure} from '@/util/failure'
@@ -37,7 +36,7 @@ const table = useItemTable({
   items: () => props.items,
   sizes: () => props.detail.sizes ?? [],
   hasSizes: () => props.detail.hasSizes,
-  isMixed: () => props.detail.inventoryType === InventoryTypes.MIXED,
+  isMixed: () => props.detail.inventoryType === InventoryType.MIXED,
   sizeLabel: item => getSizeLabel(item.sizeId),
   assignedName: item => getMemberName(item.assignedTo),
 })
@@ -60,7 +59,7 @@ function getSizeLabel(sizeId: number | null | undefined): string {
 
 async function unassignItem(item: InventoryItem) {
   try {
-    if (props.detail.inventoryType === InventoryTypes.EXTERNAL) {
+    if (props.detail.inventoryType === InventoryType.EXTERNAL) {
       await inventory.deleteItem(item.id)
     } else {
       await inventory.assignItem(item.id, {memberId: null, memberName: ''})
@@ -95,13 +94,13 @@ async function doMarkFound(item: InventoryItem) {
     <ItemListControls
         :table="table.table"
         :count="items.length"
-        :show-quick-assign="detail.inventoryType === InventoryTypes.EXTERNAL || detail.inventoryType === InventoryTypes.MIXED"
-        :show-add="detail.inventoryType !== InventoryTypes.EXTERNAL"
+        :show-quick-assign="detail.inventoryType === InventoryType.EXTERNAL || detail.inventoryType === InventoryType.MIXED"
+        :show-add="detail.inventoryType !== InventoryType.EXTERNAL"
         :show-search="items.length > 0"
         @quick-assign="modals?.openQuickAssign()"
         @add="modals?.openAdd()"
     >
-      <p v-if="detail.inventoryType === InventoryTypes.EXTERNAL" class="text-xs text-(--text-muted)">
+      <p v-if="detail.inventoryType === InventoryType.EXTERNAL" class="text-xs text-(--text-muted)">
         {{ t('inventory.edit.externalItemsHint') }}
       </p>
     </ItemListControls>

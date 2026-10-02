@@ -10,11 +10,11 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import InventoryBadges from '@/components/inventory/InventoryBadges.vue'
-import type {InventoryTypeName} from '@/api/inventory'
+import type {InventoryType} from '@/api/generated/schema'
 
 defineProps<{
   name: string
-  inventoryType: InventoryTypeName | null
+  inventoryType: InventoryType | null
   hasSizes: boolean
   homogeneous: boolean
   /** How many kinds are defined here, or {@code null} while the inventory is still being read. */

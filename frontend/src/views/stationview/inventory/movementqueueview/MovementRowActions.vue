@@ -9,8 +9,7 @@ import ButtonRow from '@/components/button/ButtonRow.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
-import {MovementState} from '@/api/movements'
-import type {MovementResponse} from '@/api/generated/schema'
+import {MovementState, type MovementResponse} from '@/api/generated/schema'
 
 /**
  * What can be done with one movement from the list it is in.

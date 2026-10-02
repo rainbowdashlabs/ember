@@ -9,8 +9,7 @@ import { useI18n } from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import MutedIconButton from '@/components/button/MutedIconButton.vue'
 import ItemCardSummary from './inventoryitemcard/ItemCardSummary.vue'
-import { ItemCustody } from '@/api/inventory'
-import type { MyInventoryItem } from '@/api/generated/schema'
+import { ItemCustody, type MyInventoryItem } from '@/api/generated/schema'
 
 const { t } = useI18n()
 

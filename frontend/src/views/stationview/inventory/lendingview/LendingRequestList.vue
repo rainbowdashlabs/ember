@@ -13,8 +13,7 @@ import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import {formatDate} from '@/util/format'
-import {LendingStatus, type LendingStatusName} from '@/api/lending'
-import type {LendingRequestResponse} from '@/api/generated/schema'
+import {LendingStatus, type LendingRequestResponse} from '@/api/generated/schema'
 
 const routes = useInventoryRoutes()
 
@@ -38,7 +37,7 @@ function requestPage(entry: LendingRequestResponse) {
   return {name: routes.lendingRequest, params: {id: entry.request.id}}
 }
 
-function statusBadge(status: LendingStatusName) {
+function statusBadge(status: LendingStatus) {
   switch (status) {
     case LendingStatus.APPROVED:
     case LendingStatus.LENT:

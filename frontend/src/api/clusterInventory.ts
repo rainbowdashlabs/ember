@@ -4,8 +4,6 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-import type {LossReportRequirementName} from './inventory'
-import type {MovementPurposeName} from './movements'
 import type {
     ClusterFlowResponse,
     ClusterInventoryTag,
@@ -15,7 +13,9 @@ import type {
     ClusterStepResponse,
     ClusterTagRequest,
     InventoryStatResponse,
+    LossReportRequirement,
     LossReportSettings,
+    MovementPurpose,
     SendableItem,
 } from './generated/schema'
 
@@ -39,7 +39,7 @@ export async function listFlows(): Promise<ClusterFlowResponse[]> {
     return res.data
 }
 
-export async function createFlow(name: string, purpose: MovementPurposeName): Promise<ClusterFlowResponse> {
+export async function createFlow(name: string, purpose: MovementPurpose): Promise<ClusterFlowResponse> {
     const res = await client.post<ClusterFlowResponse>('/cluster/inventory/flows', {name, purpose})
     return res.data
 }
@@ -97,7 +97,7 @@ export async function getLossReportSettings(): Promise<LossReportSettings> {
     return res.data
 }
 
-export async function setLossReportSettings(requires: LossReportRequirementName): Promise<void> {
+export async function setLossReportSettings(requires: LossReportRequirement): Promise<void> {
     await client.put('/cluster/inventory/loss-report', {requires})
 }
 

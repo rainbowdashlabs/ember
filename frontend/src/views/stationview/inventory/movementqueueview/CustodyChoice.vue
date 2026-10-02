@@ -7,7 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
-import {ItemCustody, type ItemCustodyName} from '@/api/inventory'
+import {ItemCustody} from '@/api/generated/schema'
 
 /**
  * Where one of a movement's two pieces is said to be, or nothing to leave it where it is.
@@ -24,7 +24,7 @@ const props = defineProps<{
 
 const {t} = useI18n()
 
-const custodies: ItemCustodyName[] = [
+const custodies: ItemCustody[] = [
   ItemCustody.WITH_OWNER,
   ItemCustody.AT_STATION,
   ItemCustody.IN_TRANSIT,
