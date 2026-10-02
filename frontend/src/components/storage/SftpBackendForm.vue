@@ -35,7 +35,7 @@ watch(authMode, (next) => {
     <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div class="space-y-1">
             <FieldLabel>{{ t('stationStorageBackend.form.sftp.host') }}</FieldLabel>
-            <TextInput v-model="model.host" placeholder="files.example.org" />
+            <TextInput v-model="model.host" placeholder="files.example.org" data-testid="sftp-host" />
             <MutedText tag="p" size="xs">{{ t('stationStorageBackend.form.sftp.hostHint') }}</MutedText>
             <p v-if="hostInvalid" class="text-xs text-(--error)">
                 {{ t('stationStorageBackend.form.sftp.hostInvalid') }}
@@ -48,7 +48,7 @@ watch(authMode, (next) => {
         </div>
         <div class="space-y-1">
             <FieldLabel>{{ t('stationStorageBackend.form.sftp.username') }}</FieldLabel>
-            <TextInput v-model="model.username" />
+            <TextInput v-model="model.username" data-testid="sftp-username" />
             <MutedText tag="p" size="xs">{{ t('stationStorageBackend.form.sftp.usernameHint') }}</MutedText>
         </div>
         <div class="space-y-1">
@@ -58,7 +58,7 @@ watch(authMode, (next) => {
         </div>
         <div class="space-y-1 sm:col-span-2">
             <FieldLabel>{{ t('stationStorageBackend.form.sftp.basePath') }}</FieldLabel>
-            <TextInput v-model="model.basePath" />
+            <TextInput v-model="model.basePath" data-testid="sftp-base-path" />
             <MutedText tag="p" size="xs">{{ t('stationStorageBackend.form.sftp.basePathHint') }}</MutedText>
         </div>
         <div class="space-y-1 sm:col-span-2">
@@ -73,7 +73,7 @@ watch(authMode, (next) => {
         </div>
         <div v-if="authMode === 'PASSWORD'" class="space-y-1 sm:col-span-2">
             <FieldLabel>{{ t('stationStorageBackend.form.sftp.password') }}</FieldLabel>
-            <PasswordInput v-model="model.password" />
+            <PasswordInput v-model="model.password" data-testid="sftp-password" />
             <MutedText tag="p" size="xs">{{ t('stationStorageBackend.form.sftp.passwordHint') }}</MutedText>
         </div>
         <div v-else class="space-y-1 sm:col-span-2">

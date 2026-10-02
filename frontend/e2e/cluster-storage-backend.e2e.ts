@@ -6,7 +6,14 @@
 import type {Page} from '@playwright/test'
 import {test, expect, apiHeaders} from './fixtures/auth'
 import {ownCluster, stationUnder, type OwnCluster} from './fixtures/cluster'
-import {putSomething, readBack, sftpTarget, unreachableTarget} from './fixtures/storage'
+import {
+    historyRow,
+    putSomething,
+    readBack,
+    sftpTarget,
+    typeSftpTarget,
+    unreachableTarget,
+} from './fixtures/storage'
 
 /**
  * An association keeping its files on storage of its own, and deciding whether its stations do too.
@@ -37,6 +44,18 @@ test.describe('Cluster storage backend', () => {
             .get('/api/v1/cluster/storage/backend/placements', {headers: own.headers})
             .then(r => r.json())
         return rows.find((row: {stationUid: string}) => row.stationUid === stationUid)
+    }
+
+    /**
+     * The association's storage screen, entered the way the switcher enters it: loaded once for an origin to
+     * plant the association on, and again to open on it.
+     */
+    async function storageBackendScreen(page: Page, own: OwnCluster) {
+        await page.goto('/cluster/storage/backend')
+        await page.evaluate(uid => window.localStorage.setItem('cluster_id', uid), own.uid)
+        await page.goto('/cluster/storage/backend')
+        await expect(page.getByTestId('app-shell')).toBeVisible()
+        await expect(page.getByTestId('storage-backend-where')).toBeVisible()
     }
 
     /** Carries one station across, as the association. */
@@ -264,4 +283,78 @@ test.describe('Cluster storage backend', () => {
         await joining.page.context().close()
         await own.stationPage.context().close()
     })
+
+    /**
+     * The association's storage screen keeps its history, the way a station's always did.
+     *
+     * Three things happen on the screen and each is listed: a decision refused because there is no storage
+     * to decide about yet, the storage set up, and a test of it. The refusal is in the list too, since a
+     * history that keeps only what worked cannot say why somebody's change did not stick.
+     */
+    test('the association storage screen lists what was changed, tested and refused',
+        async ({adminPage: page, browser, request}) => {
+            const own = await ownCluster(page, browser, request, 'Verlauf')
+            await storageBackendScreen(page, own)
+            await expect(page.getByText('Noch keine Einträge.'), 'nothing has happened yet').toBeVisible()
+
+            await page.getByTestId('cluster-storage-reach').selectOption('EVERY_STATION')
+            await page.getByTestId('cluster-storage-policy-save').click()
+            await expect(page.getByText('Richte den Speicher des Verbunds ein, bevor du festlegst'),
+                'the decision is refused while there is nothing to decide about').toBeVisible()
+            await expect(historyRow(page, 'REJECTED', 'FAILED'), 'and the refusal is in the history').toHaveCount(1)
+
+            await typeSftpTarget(page)
+            await page.getByTestId('storage-backend-apply').click()
+            await expect(page.getByText('Speicher gespeichert.')).toBeVisible()
+            await expect(historyRow(page, 'CREATED', 'OK'), 'setting it up is in the history').toHaveCount(1)
+
+            await page.getByTestId('storage-backend-probe-saved').click()
+            await expect(page.getByText('Verbindung erfolgreich getestet.')).toBeVisible()
+            await expect(historyRow(page, 'PROBE_OK'), 'and so is the test').toHaveCount(1)
+
+            await page.reload()
+            await expect(page.getByTestId('storage-audit-row'), 'the history is the server\'s, not the screen\'s')
+                .toHaveCount(3)
+
+            await own.stationPage.context().close()
+        })
+
+    /**
+     * Moving a station's files is asked about before it happens, and saying no moves nothing.
+     *
+     * The move copies every file the station has and deletes the originals, and the button sits in a row of
+     * a table. Pressing it by accident has to cost nothing.
+     */
+    test('the association is asked before a station\'s files move, and cancelling moves nothing',
+        async ({adminPage: page, browser, request}) => {
+            const own = await ownCluster(page, browser, request, 'Rueckfrage')
+            const stationHeaders = await apiHeaders(own.stationPage)
+            const file = await putSomething(own.stationPage.request, stationHeaders, 'rueckfrage')
+            await pointAt(page, own, 'EVERY_STATION', true)
+
+            await storageBackendScreen(page, own)
+            const row = page.getByTestId('storage-placement-row').filter({hasText: own.stationName})
+            await expect(row.getByTestId('placement-out-of-place')).toBeVisible()
+
+            await row.getByTestId('placement-move').click()
+            const confirm = page.getByTestId('storage-confirm')
+            await expect(confirm, 'the move is asked about first').toBeVisible()
+            await expect(confirm).toContainText(`Die Dateien von ${own.stationName} werden dorthin kopiert`)
+            await confirm.getByRole('button', {name: 'Abbrechen'}).click()
+
+            await expect(confirm).toBeHidden()
+            await expect(row.getByTestId('placement-out-of-place'), 'cancelling left the station where it was')
+                .toBeVisible()
+            expect((await placementFor(page, own, own.stationUid)).inPlace).toBeFalsy()
+            await expect(historyRow(page, 'MIGRATION'), 'and nothing started moving').toHaveCount(0)
+
+            await row.getByTestId('placement-move').click()
+            await confirm.getByTestId('storage-confirm-go').click()
+            await expect(page.getByText(/^Verschoben\./)).toBeVisible({timeout: 30_000})
+            await expect(row.getByTestId('placement-in-place'), 'confirming carried it across').toBeVisible()
+            await expect(historyRow(page, 'MIGRATION_COMPLETED')).not.toHaveCount(0)
+            expect(await readBack(own.stationPage.request, stationHeaders, file)).toBe(file.bytes)
+
+            await own.stationPage.context().close()
+        })
 })

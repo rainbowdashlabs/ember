@@ -4,7 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import type {Page} from '@playwright/test'
-import {test, expect} from './fixtures/auth'
+import {test, expect, apiHeaders} from './fixtures/auth'
+import {createIdentifiedMember} from './fixtures/member'
 import {unique} from './fixtures/unique'
 
 /**
@@ -136,6 +137,53 @@ test.describe('Documents', () => {
 
         await expect(tile).toHaveCount(0)
     })
+
+    /**
+     * A document kept for the record outlives the member it is about, and still says whose it is.
+     *
+     * The member is deleted rather than archived, so nobody is left on the document to name: their name is
+     * what stays, marked as deleted. The switch for the paperwork of people who left finds it, and leaves the
+     * station's own paperwork out, which is the difference that makes clearing out safe.
+     */
+    test('a kept document names the deleted member and is found among those who left',
+        async ({managerPage: page}) => {
+            const {surname, id: memberId} = await createIdentifiedMember(page)
+            const headers = await apiHeaders(page)
+
+            const base = unique('Nachweis')
+            const keptTitle = `${base} behalten`
+            const kept = await page.request.post(`/api/v1/station-members/${memberId}/documents`, {
+                headers,
+                multipart: {
+                    file: {name: 'nachweis.txt', mimeType: 'text/plain', buffer: Buffer.from('Fuer die Akten.')},
+                    title: keptTitle,
+                    keepOnArchive: 'true',
+                },
+            })
+            expect(kept.ok(), `the document was kept for the member (${await kept.text()})`).toBeTruthy()
+
+            const ownPaper = `${base} Wache`
+            await page.goto('/station/members/documents')
+            await uploadDocument(page, ownPaper, 'wache.txt', 'Gehoert der Wache.')
+
+            const deleted = await page.request.delete(`/api/v1/station-members/${memberId}`, {headers})
+            expect(deleted.ok(), `the member was deleted (${await deleted.text()})`).toBeTruthy()
+
+            await page.goto('/station/members/documents')
+            await page.getByPlaceholder('Titel oder Inhalt').fill(base)
+            const keptTile = page.getByTestId('document-tile').filter({hasText: keptTitle})
+            await expect(keptTile, 'the kept document is still there').toBeVisible()
+            await expect(keptTile.getByTestId('document-departed'), 'and names whose it was, marked as deleted')
+                .toContainText(new RegExp(`${surname}.*\\(gelöscht\\)`))
+            await expect(page.getByTestId('document-tile').filter({hasText: ownPaper})).toBeVisible()
+
+            const departedOnly = page.getByTestId('documents-departed')
+            await expect(async () => {
+                if (await departedOnly.getAttribute('aria-pressed') !== 'true') await departedOnly.click()
+                await expect(page.getByTestId('document-tile').filter({hasText: ownPaper})).toHaveCount(0)
+            }).toPass({timeout: 30000})
+            await expect(keptTile, 'the switch for those who left finds it').toBeVisible()
+        })
 
     /**
      * Reading one's own documents needs no permission, and a member who was never granted the

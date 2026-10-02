@@ -22,6 +22,17 @@ import {unique} from './unique'
  * @return the surname, which is what the lists show and the menu searches by
  */
 export async function createMember(page: Page): Promise<string> {
+    return (await createIdentifiedMember(page)).surname
+}
+
+/**
+ * Walks the creation wizard like {@link createMember}, and answers with the id it found as well, for a story
+ * that goes on to act on the person through the API.
+ *
+ * @param page a page signed in as somebody who may create members
+ * @return the surname, and the id the person was found under
+ */
+export async function createIdentifiedMember(page: Page): Promise<{surname: string; id: number}> {
     const surname = unique('Story')
 
     await page.goto('/station/members/create')
@@ -41,11 +52,14 @@ export async function createMember(page: Page): Promise<string> {
     }
 
     const headers = await apiHeaders(page)
-    const listed = await page.request.get('/api/v1/station-members/rich', {headers})
-    if (listed.ok()) {
+    let id: number | undefined
+    await expect.poll(async () => {
+        const listed = await page.request.get('/api/v1/station-members/rich', {headers})
+        if (!listed.ok()) return undefined
         const rows = await listed.json() as {id: number; lastName?: string}[]
-        const row = rows.find(member => (member.lastName ?? '') === surname)
-        if (row) await remember(page, headers, row.id)
-    }
-    return surname
+        id = rows.find(member => (member.lastName ?? '') === surname)?.id
+        return id
+    }, {message: `the member ${surname} the wizard made reaches the list`}).toBeDefined()
+    await remember(page, headers, id!)
+    return {surname, id: id!}
 }

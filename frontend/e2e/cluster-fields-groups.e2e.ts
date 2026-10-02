@@ -3,7 +3,9 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
+import type {Page} from '@playwright/test'
 import {test, expect, clusterAccountWith, clusterHeaders, clusterPage, theSeededCluster} from './fixtures/auth'
+import {ownCluster, type OwnCluster} from './fixtures/cluster'
 
 /**
  * The association's questions and its groups, on the screens a station already had.
@@ -160,4 +162,82 @@ test.describe('Cluster fields and groups', () => {
 
         await page.context().close()
     })
+
+    /**
+     * A change to an association's member group is written whole or not at all.
+     *
+     * Two refused changes, and the group has to come out of both exactly as it went in. In the first the name
+     * is fine and one of the people is not the association's, so a rename written before the people were
+     * checked would stick. In the second the name is another group's in different letters, which is refused on
+     * the screen as well, with the name named.
+     *
+     * An association of the story's own, because renaming a group of the seeded one would rename it under
+     * every other story reading it.
+     */
+    test('a refused change leaves the association member group as it was',
+        async ({adminPage: page, browser, request}) => {
+            const own = await ownCluster(page, browser, request, 'Gruppenganz')
+            const stamp = Date.now()
+            const kept = await groupCalled(page, own, `Atemschutz ${stamp}`)
+            const other = await groupCalled(page, own, `Maschinisten ${stamp}`)
+
+            const surname = `Gruppe${stamp}`
+            const added = await page.request.post('/api/v1/cluster/members', {
+                headers: own.headers,
+                data: {email: `${surname.toLowerCase()}@e2e.ember`, userType: null, firstName: 'Gerda', lastName: surname},
+            })
+            expect(added.ok(), `the association took somebody on (${await added.text()})`).toBeTruthy()
+            const memberId = (await added.json()).id
+            await changeGroup(page, own, kept.id, {memberIds: [memberId]}, 204)
+
+            await changeGroup(page, own, kept.id, {name: `Umbenannt ${stamp}`, memberIds: [memberId, 2_000_000_000]}, 404)
+            expect(await groupState(page, own, kept.id), 'a good name does not stick when the people are refused')
+                .toEqual({name: kept.name, memberIds: [memberId]})
+
+            await changeGroup(page, own, kept.id, {name: other.name.toUpperCase(), memberIds: []}, 409)
+            expect(await groupState(page, own, kept.id), 'and the people do not change when the name is refused')
+                .toEqual({name: kept.name, memberIds: [memberId]})
+
+            await page.goto('/cluster/team/groups')
+            await page.evaluate(uid => window.localStorage.setItem('cluster_id', uid), own.uid)
+            await page.goto('/cluster/team/groups')
+            const row = page.getByTestId('group-row').filter({hasText: kept.name})
+            await row.getByRole('button', {name: 'Bearbeiten'}).click()
+
+            const modal = page.getByTestId('modal')
+            const taken = other.name.toLowerCase()
+            await modal.getByPlaceholder('Name der Gruppe').fill(taken)
+            await modal.getByRole('button', {name: 'Speichern', exact: true}).click()
+            await expect(page.getByText(`Eine andere Gruppe hat schon diesen Namen, es wurde nichts gespeichert (${taken})`),
+                'the screen says why, and names the name').toBeVisible()
+            await modal.getByRole('button', {name: 'Abbrechen'}).click()
+
+            await expect(row, 'the list still names the group as it was').toBeVisible()
+            await row.click()
+            await expect(page.getByText(surname).first(), 'with the same person in it').toBeVisible()
+            expect(await groupState(page, own, kept.id)).toEqual({name: kept.name, memberIds: [memberId]})
+
+            await own.stationPage.context().close()
+        })
+
+    /** A member group of the association, made through its own route. */
+    async function groupCalled(page: Page, own: OwnCluster, name: string): Promise<{id: number; name: string}> {
+        const made = await page.request.post('/api/v1/cluster/member-groups', {headers: own.headers, data: {name}})
+        expect(made.ok(), `the association made a group (${await made.text()})`).toBeTruthy()
+        return made.json()
+    }
+
+    /** One change to a member group, answered with the status the story expects. */
+    async function changeGroup(page: Page, own: OwnCluster, groupId: number, change: object, status: number) {
+        const answer = await page.request.put(`/api/v1/cluster/member-groups/${groupId}`,
+            {headers: own.headers, data: change})
+        expect(answer.status(), `the change answered ${await answer.text()}`).toBe(status)
+    }
+
+    /** What a member group is called and who is in it, as the server keeps it. */
+    async function groupState(page: Page, own: OwnCluster, groupId: number) {
+        const detail = await page.request.get(`/api/v1/cluster/member-groups/${groupId}`, {headers: own.headers})
+            .then(r => r.json())
+        return {name: detail.name, memberIds: detail.memberIds}
+    }
 })

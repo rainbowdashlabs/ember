@@ -62,6 +62,7 @@ function boundTo(group: GroupRow): string {
       <NeutralContainer
           v-for="group in groups"
           :key="group.id"
+          data-testid="group-row"
           :class="selectedGroup?.id === group.id ? 'border-primary' : 'hover:border-primary'"
           class="flex items-center justify-between gap-2 flex-wrap cursor-pointer transition-colors"
           @click="emit('select', group)"

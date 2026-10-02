@@ -112,6 +112,26 @@ export async function readBack(
     return response.text()
 }
 
+/**
+ * Types the SFTP service into a storage screen's form, the way somebody setting it up would.
+ *
+ * The station's, the association's and the instance's screen share the form, so this works on any of them.
+ */
+export async function typeSftpTarget(page: Page): Promise<void> {
+    const target = sftpTarget()
+    await page.getByTestId('storage-backend-type').selectOption('SFTP')
+    await page.getByTestId('sftp-host').fill(target.host)
+    await page.getByTestId('sftp-username').fill(target.username)
+    await page.getByTestId('sftp-base-path').fill(target.basePath)
+    await page.getByTestId('sftp-password').fill(target.password)
+}
+
+/** One row of a storage screen's history, by what was done and how it ended. */
+export function historyRow(page: Page, action: string, outcome?: string) {
+    const rows = page.getByTestId('storage-audit-row').filter({hasText: action})
+    return outcome ? rows.filter({hasText: outcome}) : rows
+}
+
 /** What an apply reports having carried, which is what says whether anything moved. */
 export function movedCounts(result: {totalKeys: number; copied: number; deleted: number}) {
     return {total: result.totalKeys, copied: result.copied, deleted: result.deleted}

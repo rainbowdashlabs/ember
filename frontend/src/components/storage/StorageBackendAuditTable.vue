@@ -31,7 +31,8 @@ const {t} = useI18n()
                 </tr>
             </thead>
             <tbody>
-                <tr v-for="entry in entries" :key="entry.id" class="border-b border-[var(--border)]">
+                <tr v-for="entry in entries" :key="entry.id" class="border-b border-[var(--border)]"
+                    data-testid="storage-audit-row">
                     <td class="p-2 font-mono text-xs">{{ entry.ts }}</td>
                     <td class="p-2">{{ entry.action }}</td>
                     <td class="p-2">{{ entry.outcome }}</td>

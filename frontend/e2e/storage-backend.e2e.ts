@@ -6,12 +6,14 @@
 import {test, expect, apiHeaders} from './fixtures/auth'
 import {ownCluster} from './fixtures/cluster'
 import {
+    historyRow,
     movedCounts,
     putSomething,
     readBack,
     s3Target,
     sftpTarget,
     smbTarget,
+    typeSftpTarget,
     unreachableTarget,
 } from './fixtures/storage'
 
@@ -110,6 +112,44 @@ test.describe('Station storage backend', () => {
 
         await own.stationPage.context().close()
     })
+
+    /**
+     * Applying storage that moves the files is asked about on the screen first, and saying no leaves the
+     * station where it was. Saying yes afterwards is what proves the question stood in front of the move
+     * rather than beside it.
+     */
+    test('the station is asked before its files move, and cancelling moves nothing',
+        async ({adminPage, browser, request}) => {
+            const own = await ownCluster(adminPage, browser, request, 'Nachfrage')
+            const page = own.stationPage
+            const headers = await apiHeaders(page)
+            const file = await putSomething(page.request, headers, 'nachfrage')
+
+            await page.goto('/station/manage/storage/backend')
+            await expect(page.getByTestId('storage-backend-where')).toContainText('Instanz-Standard')
+            await typeSftpTarget(page)
+            await page.getByTestId('storage-backend-apply').click()
+
+            const confirm = page.getByTestId('storage-confirm')
+            await expect(confirm, 'the move is asked about first').toBeVisible()
+            await expect(confirm).toContainText('Backend jetzt übernehmen?')
+            await confirm.getByRole('button', {name: 'Abbrechen'}).click()
+
+            await expect(confirm).toBeHidden()
+            await expect(page.getByTestId('storage-backend-where'), 'cancelling left the station where it was')
+                .toContainText('Instanz-Standard')
+            const backend = await page.request.get('/api/v1/station/storage/backend', {headers}).then(r => r.json())
+            expect(backend.override, 'and the server agrees').toBeNull()
+            await expect(historyRow(page, 'MIGRATION'), 'nothing started moving').toHaveCount(0)
+
+            await page.getByTestId('storage-backend-apply').click()
+            await confirm.getByTestId('storage-confirm-go').click()
+            await expect(page.getByText(/^Übernommen\./)).toBeVisible({timeout: 30_000})
+            await expect(page.getByTestId('storage-backend-where')).toContainText('eigenes SFTP-Backend')
+            expect(await readBack(page.request, headers, file)).toBe(file.bytes)
+
+            await page.context().close()
+        })
 
     /**
      * All three variants answer, through the connection test rather than through three applies: what
