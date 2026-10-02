@@ -42,6 +42,7 @@ const memberId = computed(() => Number(route.params.id))
 const editable = computed(() => hasClusterPermission(ClusterPermission.CLUSTER_MEMBER_MANAGER))
 
 const name = ref('')
+const loaded = ref(false)
 const answers = useProfileAnswers(associationManagerAnswers)
 const {fields, dirty, valueOf} = answers
 const saved = ref(false)
@@ -50,6 +51,7 @@ const {loading, failure, reload} = useAsyncLoader(async () => {
   const profile = await clusterMembers.getManagedMemberProfile(memberId.value)
   answers.apply(associationSnapshot(profile))
   name.value = profile.name
+  loaded.value = true
   saved.value = false
 })
 
@@ -86,7 +88,7 @@ const {running: saving, failure: saveFailure, run: save} = useAsyncAction(async 
       <FailureAlert :failure="saveFailure"/>
       <Alert v-if="saved" variant="success">{{ t('clusterMemberDetail.saved') }}</Alert>
 
-      <NeutralContainer v-if="!loading && name" class="space-y-4">
+      <NeutralContainer v-if="!loading && loaded" class="space-y-4">
         <div class="flex items-center justify-between gap-3">
           <SectionHeader>{{ t('clusterMemberDetail.fieldsTitle') }}</SectionHeader>
           <SecondaryBadge>{{ t('clusterMemberDetail.fieldCount', {count: fields.length}) }}</SecondaryBadge>
@@ -104,7 +106,7 @@ const {running: saving, failure: saveFailure, run: save} = useAsyncAction(async 
       </NeutralContainer>
 
       <MemberDocumentsPanel
-          v-if="!loading && name"
+          v-if="!loading && loaded"
           :member-id="memberId"
           :source="associationDocumentSource"
           :hint="t('clusterMemberDetail.documentsHint')"
