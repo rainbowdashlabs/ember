@@ -203,6 +203,7 @@
 - **Association member pages showed no name.** When you opened a person in the association, the page title read only "Member" instead of who it was about. It now shows the person's name.
 - **Deleting a template or a field keeps your sheets.** If you deleted an attendance template, every attendance sheet made from it went too, and removing a single field took its answers off every sheet. Now both are archived instead: your sheets keep their attendance and answers and keep counting in your reports and hours.
 - **Some PDFs left out your station's logo.** In some cases, attendance sheets and reports, the appointment list, inventory lists, test protocols and the member list came out without your logo, and the station setup asked for a logo you had already uploaded. They all find your logo again now.
+- **Waiting list mails arrived in German only.** Families on the waiting list of a station set to English still got their confirmation, reminders and warnings in German. These mails now follow your station's language.
 
 ## v26.19.5
 
