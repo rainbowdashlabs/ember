@@ -2139,7 +2139,32 @@ export default {
         hintLater: 'Es geht keine Mail hinaus. Du versendest sie später über den Knopf in der '
             + 'Mitgliederliste, der dabei einen frischen Link erzeugt.',
         noMailServer: 'Diese Instanz hat keinen Mailserver eingerichtet und versendet keine '
-            + 'Einrichtungs-Mails. Gib den Einrichtungs-Link selbst weiter.',
+            + 'Einrichtungs-Mails. Die Administration deiner Wache kann der Person stattdessen ein '
+            + 'Einmalpasswort erstellen.',
+        oneTimePassword: 'Einmalpasswort erstellen',
+        oneTimePasswordHint: 'Nach dem Anlegen zeigt Ember dir ein Einmalpasswort, das du der Person selbst '
+            + 'übergibst. Beim ersten Anmelden wählt sie ein eigenes Passwort.',
+    },
+    oneTimePassword: {
+        action: 'Einmalpasswort erstellen',
+        actionHint: 'Ersetzt das Passwort durch ein Einmalpasswort, das du der Person selbst übergibst. '
+            + 'Alle ihre Sitzungen werden beendet, und beim ersten Anmelden wählt sie ein eigenes Passwort.',
+        confirmTitle: 'Einmalpasswort erstellen?',
+        confirmText: 'Das bisherige Passwort von {name} funktioniert danach nicht mehr, und alle '
+            + 'Sitzungen werden beendet.',
+        dialog: {
+            title: 'Zugangsdaten für {name}',
+            hint: 'Dieses Passwort wird nur jetzt angezeigt. Übergib es der Person persönlich.',
+            loginName: 'Benutzername / Adresse',
+            password: 'Einmalpasswort',
+            instance: 'Adresse der Instanz',
+            expires: 'Gültig bis',
+            note: 'Beim ersten Anmelden muss ein eigenes Passwort gewählt werden. Das Einmalpasswort '
+                + 'gilt sieben Tage und nur ein einziges Mal.',
+            copy: 'Kopieren',
+            copied: 'Kopiert',
+            print: 'Drucken',
+        },
     },
     memberTable: {
         menu: 'Ansicht',
@@ -2518,6 +2543,7 @@ export default {
         done: 'Konto erstellt',
         doneHint: 'Die Einladung wurde versendet. Das Mitglied kann sich nun registrieren.',
         createAnother: 'Weiteres Konto erstellen',
+        showOneTimePassword: 'Zugangsdaten anzeigen',
         toList: 'Zur Mitgliederliste',
     },
     eventDetail: {

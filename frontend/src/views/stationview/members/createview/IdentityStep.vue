@@ -12,6 +12,7 @@ import ButtonRow from '@/components/button/ButtonRow.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import SetupMailChoice from '@/components/input/toggle/SetupMailChoice.vue'
+import OneTimePasswordChoice from './OneTimePasswordChoice.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
@@ -24,6 +25,12 @@ const lastName = defineModel<string>('lastName', {required: true})
 const email = defineModel<string>('email', {required: true})
 const canLogin = defineModel<boolean>('canLogin', {required: true})
 const sendSetupMail = defineModel<boolean>('sendSetupMail', {required: true})
+const issueOneTimePassword = defineModel<boolean>('issueOneTimePassword', {required: true})
+
+defineProps<{
+  /** Whether a one-time password is offered in place of the setup mail, which no mail server here sends. */
+  offerOneTimePassword: boolean
+}>()
 
 const emit = defineEmits<{
   next: []
@@ -63,6 +70,8 @@ const emit = defineEmits<{
     </div>
 
     <SetupMailChoice v-model="sendSetupMail" :has-address="canLogin"/>
+
+    <OneTimePasswordChoice v-if="offerOneTimePassword && canLogin" v-model="issueOneTimePassword"/>
 
     <ButtonRow pair align="between">
       <SecondaryButton @click="emit('back')">{{ t('membersCreate.back') }}</SecondaryButton>

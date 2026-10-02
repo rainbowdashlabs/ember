@@ -6,6 +6,7 @@
 import client from './client'
 import type {
     InviteRequest,
+    IssuedOneTimePassword,
     MemberInviteResponse,
     MemberSearchResult,
     MessageResponse,
@@ -68,6 +69,15 @@ export async function onboardAgain(accountId: number): Promise<OnboardAgainRespo
 /** The member manager's passkey code, for an addressless member with no guardian to hand it over. */
 export async function issuePasskeyCode(accountId: number): Promise<PasskeyCodeResponse> {
     const res = await client.post<PasskeyCodeResponse>('/members/passkey-code', {accountId})
+    return res.data
+}
+
+/**
+ * A one-time password for a member whose account belongs to this station alone. It replaces their
+ * password, ends their sessions and is answered only this once.
+ */
+export async function issueOneTimePassword(accountId: number): Promise<IssuedOneTimePassword> {
+    const res = await client.post<IssuedOneTimePassword>(`/members/${accountId}/one-time-password`)
     return res.data
 }
 

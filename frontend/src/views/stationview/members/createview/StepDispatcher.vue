@@ -11,8 +11,9 @@ import FieldsStep from './FieldsStep.vue'
 import GroupsStep from './GroupsStep.vue'
 import ManagerStep from './ManagerStep.vue'
 import DoneStep from './DoneStep.vue'
-import type { MemberGroup, MemberWithName, ProfileField } from '@/api/generated/schema'
+import type { IssuedOneTimePassword, MemberGroup, MemberWithName, ProfileField } from '@/api/generated/schema'
 import {StationUserType} from '@/api/types'
+import type {Failure} from '@/util/failure'
 
 type Step = 'userType' | 'identity' | 'fields' | 'groups' | 'manager' | 'done'
 
@@ -21,6 +22,10 @@ const props = defineProps<{
   selectedUserType: 'TRIAL' | 'MEMBER' | 'GUARDIAN' | 'TEAM'
   canLogin: boolean
   sendSetupMail: boolean
+  issueOneTimePassword: boolean
+  offerOneTimePassword: boolean
+  oneTimePassword: IssuedOneTimePassword | null
+  oneTimePasswordFailure: Failure | null
   email: string
   firstName: string
   lastName: string
@@ -39,6 +44,7 @@ const emit = defineEmits<{
   'update:selectedUserType': [value: 'TRIAL' | 'MEMBER' | 'GUARDIAN' | 'TEAM']
   'update:canLogin': [value: boolean]
   'update:sendSetupMail': [value: boolean]
+  'update:issueOneTimePassword': [value: boolean]
   'update:email': [value: string]
   'update:firstName': [value: string]
   'update:lastName': [value: string]
@@ -71,11 +77,14 @@ const submitLabel = () =>
     v-if="step === 'identity'"
     :can-login="canLogin"
     :send-setup-mail="sendSetupMail"
+    :issue-one-time-password="issueOneTimePassword"
+    :offer-one-time-password="offerOneTimePassword"
     :email="email"
     :first-name="firstName"
     :last-name="lastName"
     @update:can-login="emit('update:canLogin', $event)"
     @update:send-setup-mail="emit('update:sendSetupMail', $event)"
+    @update:issue-one-time-password="emit('update:issueOneTimePassword', $event)"
     @update:email="emit('update:email', $event)"
     @update:first-name="emit('update:firstName', $event)"
     @update:last-name="emit('update:lastName', $event)"
@@ -116,6 +125,8 @@ const submitLabel = () =>
 
   <DoneStep
     v-if="step === 'done'"
+    :one-time-password="oneTimePassword"
+    :one-time-password-failure="oneTimePasswordFailure"
     @create-another="emit('start-over')"
     @to-list="emit('to-list')"
   />
