@@ -179,7 +179,10 @@
     "CLUSTER_ITEM_ISSUED": "On its way from {clusterName}: {itemName}",
     "CLUSTER_ITEM_LOST": "Reported missing at {stationName}: {itemName}",
     "MAILBOX_SUSPENDED": "Mailbox suspended: {mailbox}",
-    "MAIL_IMPORT_UNBOUND": "Documents waiting to be sorted"
+    "MAIL_IMPORT_UNBOUND": "Documents waiting to be sorted",
+    "FEDERATION_REQUEST_RECEIVED": "Federation request from {stationName}",
+    "FEDERATION_REQUEST_ACCEPTED": "Federation with {stationName} accepted",
+    "FEDERATION_REQUEST_DECLINED": "Federation with {stationName} declined"
   },
   "digest": {
     "subject.one": "{stationName}: 1 new notification",
@@ -239,7 +242,10 @@
     "CLUSTER_ITEM_ISSUED": "Item on its way",
     "CLUSTER_ITEM_LOST": "Item reported missing",
     "MAILBOX_SUSPENDED": "Mailbox",
-    "MAIL_IMPORT_UNBOUND": "Documents"
+    "MAIL_IMPORT_UNBOUND": "Documents",
+    "FEDERATION_REQUEST_RECEIVED": "Federation",
+    "FEDERATION_REQUEST_ACCEPTED": "Federation",
+    "FEDERATION_REQUEST_DECLINED": "Federation"
   },
   "message": {
     "notification.newNews": "{title} - by {author}",
@@ -309,6 +315,9 @@
     "notification.eventMoved": "{eventName} has moved to {eventDate} at {startTime}: the registration of {memberName} moves with it",
     "notification.movementCancelled": "{inventoryName}: movement of {itemName} called off - {reason}",
     "notification.mailboxSuspended": "Mailbox \"{mailbox}\" is no longer being checked: {reason}",
-    "notification.mailImportUnbound": "{count} documents that arrived by mail are not on a member yet"
+    "notification.mailImportUnbound": "{count} documents that arrived by mail are not on a member yet",
+    "notification.federationRequestReceived": "{stationName} would like to become a partner station",
+    "notification.federationRequestAccepted": "{stationName} accepted the federation request",
+    "notification.federationRequestDeclined": "{stationName} declined the federation request"
   }
 }

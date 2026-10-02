@@ -72,6 +72,9 @@ const typeIcons: Partial<Record<NotificationType, string>> = {
   SELF_CHECK_ASSIGNED: 'shirt',
   SELF_CHECK_SUBMITTED: 'inbox',
   SELF_CHECK_ROW_REFUSED: 'rotate-left',
+  FEDERATION_REQUEST_RECEIVED: 'share-nodes',
+  FEDERATION_REQUEST_ACCEPTED: 'share-nodes',
+  FEDERATION_REQUEST_DECLINED: 'share-nodes',
 }
 
 /** A day as the database writes one, which is not how anybody here reads one. */

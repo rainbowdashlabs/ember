@@ -14,6 +14,9 @@ import dev.chojo.ember.auth.signing.repository.SignedRequestNonceRepository;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.Federation;
+import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.events.FederationRequestAnswered;
+import dev.chojo.ember.event.events.FederationRequestReceived;
 import dev.chojo.ember.feature.discovery.entity.PeerSource;
 import dev.chojo.ember.feature.discovery.repository.DiscoveryBlocklistRepository;
 import dev.chojo.ember.feature.discovery.repository.DiscoveryPeerRepository;
@@ -61,6 +64,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -92,6 +96,7 @@ class PairRequestExchangeTest extends RepositoryTestBase {
     private final FederationSigningService federationSigning = new FederationSigningService();
     private final PairRequestHttpClient httpClient = mock(PairRequestHttpClient.class);
     private final TaskScheduler scheduler = inline();
+    private final DomainEventBus events = mock(DomainEventBus.class);
     private boolean pushReaches = true;
 
     private Side here;
@@ -145,6 +150,7 @@ class PairRequestExchangeTest extends RepositoryTestBase {
                 signer,
                 httpClient,
                 scheduler,
+                events,
                 api(baseUrl));
         var outgoing = new OutgoingPairRequestService(
                 requests,
@@ -157,6 +163,7 @@ class PairRequestExchangeTest extends RepositoryTestBase {
                 urls,
                 federation,
                 replayStore,
+                events,
                 api(baseUrl));
         return new Side(baseUrl, discovery, signatures, incoming, outgoing);
     }
@@ -599,6 +606,8 @@ class PairRequestExchangeTest extends RepositoryTestBase {
         assertBothSidesActive();
         assertTrue(sentHere().isEmpty(), "the request turned into the partnership");
         assertEquals(PairRequestStatus.ACCEPTED, receivedThere().status());
+        verify(events).publish(new FederationRequestReceived(asked.id(), asking.name()));
+        verify(events).publish(new FederationRequestAnswered(asking.id(), asked.name(), true));
     }
 
     @Test
@@ -612,6 +621,7 @@ class PairRequestExchangeTest extends RepositoryTestBase {
         assertTrue(partners.findPartnerByStationAndRemoteUid(asking.id(), asked.uid())
                 .isEmpty());
         assertEquals(FederationRefusal.PAIR_REQUEST_DECLINED_RECENTLY, refusalOf(this::send));
+        verify(events).publish(new FederationRequestAnswered(asking.id(), asked.name(), false));
         assertEquals(
                 PairRequestStatus.DECLINED,
                 here.outgoing().outgoing(asking.id()).getFirst().status());

@@ -164,6 +164,20 @@ public sealed interface NotificationParams {
 
     record LendingNewRequest(String stationName, String itemSummary) implements NotificationParams {}
 
+    /**
+     * A station asked this one to federate.
+     *
+     * @param stationName the asking station, as its instance names it
+     */
+    record FederationRequestReceived(String stationName) implements NotificationParams {}
+
+    /**
+     * A station this one asked to federate gave its answer.
+     *
+     * @param stationName the asked station
+     */
+    record FederationRequestAnswered(String stationName) implements NotificationParams {}
+
     record LendingStatusChange(String stationName, LendingStatus status) implements NotificationParams {}
 
     record LendingNewMessage(String stationName, String senderName) implements NotificationParams {}

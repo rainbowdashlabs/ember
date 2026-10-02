@@ -7,6 +7,9 @@ package dev.chojo.ember.feature.federation.service;
 
 import dev.chojo.ember.api.refusal.FederationRefusal;
 import dev.chojo.ember.conf.file.elements.Api;
+import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.events.FederationRequestAnswered;
+import dev.chojo.ember.event.events.FederationRequestReceived;
 import dev.chojo.ember.feature.federation.contract.FederationContractVersions;
 import dev.chojo.ember.feature.federation.entity.CapabilityType;
 import dev.chojo.ember.feature.federation.entity.ChangeType;
@@ -37,6 +40,7 @@ import java.time.Instant;
 import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 @Singleton
@@ -46,6 +50,7 @@ public class FederationService {
     private final FederationRepository repository;
     private final StationRepository stationRepository;
     private final StationKeyStore stationKeys;
+    private final DomainEventBus eventBus;
     private final String instanceHost;
 
     @Inject
@@ -53,11 +58,30 @@ public class FederationService {
             FederationRepository repository,
             StationRepository stationRepository,
             StationKeyStore stationKeys,
+            DomainEventBus eventBus,
             Api apiConfig) {
         this.repository = repository;
         this.stationRepository = stationRepository;
         this.stationKeys = stationKeys;
+        this.eventBus = eventBus;
         this.instanceHost = addressOf(apiConfig.baseUrl());
+    }
+
+    /**
+     * A service that tells nobody about requests to federate, for callers that only work with
+     * partnerships that already stand.
+     *
+     * @param repository        the federation storage
+     * @param stationRepository the station storage
+     * @param stationKeys       the stations' federation keys
+     * @param apiConfig         the address this instance goes by
+     */
+    public FederationService(
+            FederationRepository repository,
+            StationRepository stationRepository,
+            StationKeyStore stationKeys,
+            Api apiConfig) {
+        this(repository, stationRepository, stationKeys, new DomainEventBus(Set.of()), apiConfig);
     }
 
     /**
@@ -398,6 +422,7 @@ public class FederationService {
                 partner.id(),
                 requestingStationId,
                 targetStationId);
+        eventBus.publish(new FederationRequestReceived(targetStationId, stationName(requestingStationId)));
         return partner;
     }
 
@@ -412,23 +437,34 @@ public class FederationService {
         }
 
         int requestingStationId = partner.stationId();
-        int targetStationId = stationRepository
-                .findByUid(partner.partnerStationId())
-                .orElseThrow()
-                .id();
+        var target = stationRepository.findByUid(partner.partnerStationId()).orElseThrow();
 
         repository.deletePartner(partnerId);
 
         var keyPair = generateKeyPair();
-        return acceptInvite(targetStationId, requestingStationId, encodePublicKey(keyPair), null, null);
+        var established = acceptInvite(target.id(), requestingStationId, encodePublicKey(keyPair), null, null);
+        eventBus.publish(new FederationRequestAnswered(requestingStationId, target.name(), true));
+        return established;
     }
 
     /**
-     * Declines a pending pair request.
+     * Declines a pending pair request and tells the asking station.
      */
     public void declinePairRequest(int partnerId) {
+        var request = repository.findPartnerById(partnerId);
         repository.deletePartner(partnerId);
         log.info("Declined federation pair request {}", partnerId);
+        request.ifPresent(declined -> eventBus.publish(new FederationRequestAnswered(
+                declined.stationId(),
+                stationRepository
+                        .findByUid(declined.partnerStationId())
+                        .map(Station::name)
+                        .orElse("Unknown"),
+                false)));
+    }
+
+    private String stationName(int stationId) {
+        return stationRepository.findById(stationId).map(Station::name).orElse("Unknown");
     }
 
     /**

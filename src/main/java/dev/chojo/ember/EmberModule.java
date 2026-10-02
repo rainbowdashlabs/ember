@@ -136,6 +136,8 @@ import dev.chojo.ember.feature.events.service.EventThresholdChecker;
 import dev.chojo.ember.feature.events.service.FieldRegistrationSweeper;
 import dev.chojo.ember.feature.events.service.RegistrationDeadlineChecker;
 import dev.chojo.ember.feature.events.service.SettledRefusalSweeper;
+import dev.chojo.ember.feature.federation.handler.FederationRequestAnsweredHandler;
+import dev.chojo.ember.feature.federation.handler.FederationRequestReceivedHandler;
 import dev.chojo.ember.feature.federation.handler.LendingMessageSentHandler;
 import dev.chojo.ember.feature.federation.handler.LendingRequestedHandler;
 import dev.chojo.ember.feature.federation.handler.LendingStatusChangedHandler;
@@ -658,6 +660,8 @@ public class EmberModule extends AbstractModule {
         eventBinder.addBinding().to(RegistrationDeadlineExpiredHandler.class);
         eventBinder.addBinding().to(MembersAddedToGroupHandler.class);
         eventBinder.addBinding().to(LendingRequestedHandler.class);
+        eventBinder.addBinding().to(FederationRequestReceivedHandler.class);
+        eventBinder.addBinding().to(FederationRequestAnsweredHandler.class);
         eventBinder.addBinding().to(LendingStatusChangedHandler.class);
         eventBinder.addBinding().to(LendingMessageSentHandler.class);
         eventBinder.addBinding().to(MentionedInCommentHandler.class);

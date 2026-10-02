@@ -6,6 +6,9 @@
 package dev.chojo.ember.feature.federation.service;
 
 import dev.chojo.ember.conf.file.elements.Api;
+import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.events.FederationRequestAnswered;
+import dev.chojo.ember.event.events.FederationRequestReceived;
 import dev.chojo.ember.feature.federation.contract.FederationContractVersions;
 import dev.chojo.ember.feature.federation.entity.CapabilityType;
 import dev.chojo.ember.feature.federation.entity.ChangeType;
@@ -31,6 +34,8 @@ import java.time.Instant;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class FederationServiceTest extends RepositoryTestBase {
@@ -384,6 +389,29 @@ class FederationServiceTest extends RepositoryTestBase {
 
         stationRepo.delete(stationI.id());
         stationRepo.delete(stationJ.id());
+    }
+
+    /** A request between two stations here tells the asked one, and its answer tells the asking one. */
+    @Test
+    @Order(82)
+    void aLocalRequestAndItsAnswersAreToldToBothStations() {
+        var events = mock(DomainEventBus.class);
+        var telling = new FederationService(federationRepo, stationRepo, TestStationKeys.store(), events, new Api());
+        var asking = stationRepo.create("FedSvcTestStationK");
+        var asked = stationRepo.create("FedSvcTestStationL");
+
+        var accepted = telling.createPairRequest(asking.id(), asked.id());
+        verify(events).publish(new FederationRequestReceived(asked.id(), asking.name()));
+        var partner = telling.acceptPairRequest(accepted.id());
+        verify(events).publish(new FederationRequestAnswered(asking.id(), asked.name(), true));
+        telling.endFederation(partner.id());
+
+        var declined = telling.createPairRequest(asking.id(), asked.id());
+        telling.declinePairRequest(declined.id());
+        verify(events).publish(new FederationRequestAnswered(asking.id(), asked.name(), false));
+
+        stationRepo.delete(asking.id());
+        stationRepo.delete(asked.id());
     }
 
     @Test

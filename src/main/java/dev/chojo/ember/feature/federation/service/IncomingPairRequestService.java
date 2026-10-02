@@ -10,6 +10,8 @@ import dev.chojo.ember.api.refusal.FederationRefusal;
 import dev.chojo.ember.auth.signing.DatabaseReplayStore;
 import dev.chojo.ember.auth.signing.SignedRequests;
 import dev.chojo.ember.conf.file.elements.Api;
+import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.events.FederationRequestReceived;
 import dev.chojo.ember.feature.cluster.entity.StationKind;
 import dev.chojo.ember.feature.discovery.entity.DiscoveryPeer;
 import dev.chojo.ember.feature.federation.contract.FederationContractVersions;
@@ -76,6 +78,7 @@ public class IncomingPairRequestService {
     private final StationSigner signer;
     private final PairRequestHttpClient httpClient;
     private final TaskScheduler scheduler;
+    private final DomainEventBus eventBus;
     private final String localBaseUrl;
 
     @Inject
@@ -92,6 +95,7 @@ public class IncomingPairRequestService {
             StationSigner signer,
             PairRequestHttpClient httpClient,
             TaskScheduler scheduler,
+            DomainEventBus eventBus,
             Api apiConfig) {
         this.requests = requests;
         this.partners = partners;
@@ -105,6 +109,7 @@ public class IncomingPairRequestService {
         this.signer = signer;
         this.httpClient = httpClient;
         this.scheduler = scheduler;
+        this.eventBus = eventBus;
         this.localBaseUrl = OutgoingPairRequestService.stripTrailingSlash(apiConfig.baseUrl());
     }
 
@@ -281,6 +286,7 @@ public class IncomingPairRequestService {
                 request.id(),
                 message.requesterStationUid(),
                 message.requesterBaseUrl());
+        eventBus.publish(new FederationRequestReceived(target.id(), request.remoteStationName()));
         return new PairRequestReceipt(target.name());
     }
 

@@ -11,6 +11,8 @@ import dev.chojo.ember.api.refusal.Refusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.auth.signing.DatabaseReplayStore;
 import dev.chojo.ember.conf.file.elements.Api;
+import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.events.FederationRequestAnswered;
 import dev.chojo.ember.feature.federation.contract.FederationContractVersions;
 import dev.chojo.ember.feature.federation.entity.PairRequest;
 import dev.chojo.ember.feature.federation.entity.PairRequestDirection;
@@ -68,6 +70,7 @@ public class OutgoingPairRequestService implements TaskSource {
     private final RemoteUrlValidator urlValidator;
     private final FederationService federationService;
     private final DatabaseReplayStore replayStore;
+    private final DomainEventBus eventBus;
     private final String localBaseUrl;
 
     @Inject
@@ -82,7 +85,9 @@ public class OutgoingPairRequestService implements TaskSource {
             RemoteUrlValidator urlValidator,
             FederationService federationService,
             DatabaseReplayStore replayStore,
+            DomainEventBus eventBus,
             Api apiConfig) {
+        this.eventBus = eventBus;
         this.requests = requests;
         this.partners = partners;
         this.stations = stations;
@@ -195,6 +200,8 @@ public class OutgoingPairRequestService implements TaskSource {
             case DECLINED -> {
                 requests.answer(request.id(), PairRequestStatus.DECLINED);
                 log.info("Station {} learned that request {} was declined", request.stationId(), request.id());
+                eventBus.publish(
+                        new FederationRequestAnswered(request.stationId(), request.remoteStationName(), false));
             }
             case ACCEPTED -> establish(request, answer);
         }
@@ -216,6 +223,8 @@ public class OutgoingPairRequestService implements TaskSource {
                 Objects.requireNonNull(answer.contract(), "an acceptance carries its contract"));
         federationService.enableEveryCapability(partner);
         requests.delete(request.id());
+        eventBus.publish(new FederationRequestAnswered(
+                request.stationId(), answer.stationName().strip(), true));
         log.info("Station {} is now federated with station {}", request.stationId(), request.remoteStationUid());
     }
 

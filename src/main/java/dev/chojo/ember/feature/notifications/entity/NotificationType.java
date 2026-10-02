@@ -74,7 +74,13 @@ public enum NotificationType {
             NotificationParams.ClusterMemberRoleChanged.class, "notification.clusterMemberRoleChanged"),
     CLUSTER_FIELD_VALUE_CHANGED(
             NotificationParams.ClusterFieldValueChanged.class, "notification.clusterFieldValueChanged"),
-    EXPIRY_REMINDER(NotificationParams.ExpiryReminder.class, "notification.expiryReminder");
+    EXPIRY_REMINDER(NotificationParams.ExpiryReminder.class, "notification.expiryReminder"),
+    FEDERATION_REQUEST_RECEIVED(
+            NotificationParams.FederationRequestReceived.class, "notification.federationRequestReceived"),
+    FEDERATION_REQUEST_ACCEPTED(
+            NotificationParams.FederationRequestAnswered.class, "notification.federationRequestAccepted"),
+    FEDERATION_REQUEST_DECLINED(
+            NotificationParams.FederationRequestAnswered.class, "notification.federationRequestDeclined");
 
     private final Class<? extends NotificationParams> paramsType;
     private final String localeKey;
