@@ -7,7 +7,10 @@
 import DiscoveryInstanceNote from '@/components/discovery/DiscoveryInstanceNote.vue'
 import type {DiscoveryEntry} from '@/api/generated/schema'
 
-/** The logo, or a placeholder where none can be shown, the station's name and, for a remote one, its host. */
+/**
+ * The logo, or a placeholder where none can be shown, the station's name and, for a remote one, its host.
+ * The slot sits at the end of the line, for a button that belongs to the whole tile.
+ */
 defineProps<{
   station: DiscoveryEntry
   large?: boolean
@@ -34,5 +37,6 @@ defineProps<{
       <div :class="large ? 'text-lg' : ''" class="font-medium truncate">{{ station.name }}</div>
       <DiscoveryInstanceNote v-if="station.instanceHost" :host="station.instanceHost"/>
     </div>
+    <slot/>
   </div>
 </template>

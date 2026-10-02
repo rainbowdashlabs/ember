@@ -2,11 +2,12 @@
 
 ## v26.20.1
 
-Stations of other instances show their logos on the discovery page. The logos come from this instance, so a visit to the page never reaches another instance. Links to a station's public page lead only to pages that exist. Tiles on the discovery page show what each station offers publicly and look the same for stations of every instance.
+Stations of other instances show their logos on the discovery page. The logos come from this instance, so a visit to the page never reaches another instance. Links to a station's public page lead only to pages that exist. Tiles on the discovery page show what each station offers publicly and look the same for stations of every instance. The page opens with a map that names every station on it.
 
 ### Improvements
 
 - **Station tiles show what is public.** On the discovery page, each tile has chips for an open waiting list, the wiki, the calendar and the blog, each leading straight there, and shows the station's address when it is published. Stations of other instances look the same as stations of this instance, apart from the address of their server.
+- **The discovery page opens with the map.** The map sits on top of the page with every station's name on its marker, and the search below it filters the map and the list together. A click on a marker opens that station's tile right below the map, and the page address keeps the choice for sharing.
 
 ### Fixes
 

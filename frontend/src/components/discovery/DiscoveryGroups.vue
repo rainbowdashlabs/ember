@@ -19,6 +19,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   connect: [station: DiscoveryEntry]
   invite: [station: DiscoveryEntry]
+  locate: [station: DiscoveryEntry]
 }>()
 
 const {t} = useI18n()
@@ -56,6 +57,7 @@ const loose = computed(() => props.stations.filter(station => !station.clusterUi
           :stations="group.stations"
           @connect="s => emit('connect', s)"
           @invite="s => emit('invite', s)"
+          @locate="s => emit('locate', s)"
       />
     </section>
 
@@ -66,6 +68,7 @@ const loose = computed(() => props.stations.filter(station => !station.clusterUi
           :stations="loose"
           @connect="s => emit('connect', s)"
           @invite="s => emit('invite', s)"
+          @locate="s => emit('locate', s)"
       />
     </section>
   </div>

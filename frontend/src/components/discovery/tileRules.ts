@@ -57,6 +57,19 @@ export function offerLinks(entry: DiscoveryEntry): OfferLink[] {
         .map(([, key, icon, part]) => ({key, icon, href: `${page}/${part}`}))
 }
 
+/**
+ * A key that stays unique across instances: two instances may well publish a station under the same
+ * identifier, and neither of them is this instance's own.
+ */
+export function discoveryKey(entry: DiscoveryEntry): string {
+    return `${entry.instanceHost ?? ''}/${entry.stationUid}`
+}
+
+/** Whether the station has a place on the map. */
+export function isOnTheMap(entry: DiscoveryEntry): boolean {
+    return typeof entry.latitude === 'number' && typeof entry.longitude === 'number'
+}
+
 /** The station's address as one line, from the parts it published. */
 export function placeLine(entry: DiscoveryEntry): string {
     return [entry.addressLine, entry.city, entry.country].filter(Boolean).join(', ')

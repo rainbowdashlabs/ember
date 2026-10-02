@@ -28,6 +28,11 @@ const BLOG = {key: 'blog', icon: ['fas', 'newspaper']}
       <p>{{ t('helpCenter.discovery.whatIsText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.discovery.mapTitle')">
+      <p>{{ t('helpCenter.discovery.mapText') }}</p>
+      <p>{{ t('helpCenter.discovery.mapChooseText') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.discovery.connectTitle')">
       <p>{{ t('helpCenter.discovery.connectText') }}</p>
     </HelpSection>

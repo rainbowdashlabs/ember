@@ -25,6 +25,14 @@ export interface MapStation {
   tint?: 'local' | 'near' | 'far' | null
 }
 
+/**
+ * Stations as pins on a map.
+ *
+ * <p>With `labels` every pin carries the station's name. Pins close enough for their names to run into
+ * each other are gathered into a counted marker until the map is zoomed in, which the clustering does
+ * with a radius wide enough for a name. The pin named by `selectedUid` stays outside the clusters, so its
+ * name always shows, and is drawn highlighted. Without `popups` a click on a pin only reports it.
+ */
 const props = withDefaults(
     defineProps<{
       stations: MapStation[]
@@ -33,6 +41,9 @@ const props = withDefaults(
       fitOnUpdate?: boolean
       initialCenter?: [number, number]
       initialZoom?: number
+      labels?: boolean
+      popups?: boolean
+      selectedUid?: string | null
     }>(),
     {
       height: '420px',
@@ -40,8 +51,13 @@ const props = withDefaults(
       fitOnUpdate: true,
       initialCenter: () => [51.0, 10.0] as [number, number],
       initialZoom: 5,
+      labels: false,
+      popups: true,
+      selectedUid: null,
     },
 )
+
+const LABELLED_CLUSTER_RADIUS = 110
 
 const emit = defineEmits<{
   (e: 'marker-click', uid: string): void
@@ -55,6 +71,7 @@ type Leaflet = Awaited<ReturnType<typeof loadLeaflet>>
 
 let mapInstance: LeafletMap | null = null
 let markerLayer: LayerGroup | null = null
+let selectedLayer: LayerGroup | null = null
 const markers: Map<string, Marker> = new Map()
 
 async function init() {
@@ -72,9 +89,13 @@ async function init() {
     scrollWheelZoom: true,
   })
   addTileLayer(L, mapInstance, config)
-  markerLayer = props.cluster ? L.markerClusterGroup() : L.layerGroup()
+  markerLayer = props.cluster
+      ? L.markerClusterGroup(props.labels ? {maxClusterRadius: LABELLED_CLUSTER_RADIUS, showCoverageOnHover: false} : {})
+      : L.layerGroup()
   markerLayer.addTo(mapInstance)
-  renderMarkers(L)
+  selectedLayer = L.layerGroup()
+  selectedLayer.addTo(mapInstance)
+  renderMarkers(L, props.fitOnUpdate)
   emit('ready')
 }
 
@@ -91,33 +112,53 @@ function tintColor(tint?: MapStation['tint']): string {
   }
 }
 
-function renderMarkers(L: Leaflet) {
-  if (!markerLayer) return
+function popupOf(station: MapStation): string {
+  const popupParts: string[] = []
+  popupParts.push(`<strong>${escapeHtml(station.name)}</strong>`)
+  if (station.subtitle) popupParts.push(`<div>${escapeHtml(station.subtitle)}</div>`)
+  if (station.href) popupParts.push(
+      `<div class="mt-2"><a href="${encodeURI(station.href)}" target="_blank" rel="noopener" class="text-(--primary)">${escapeHtml(station.name)} →</a></div>`,
+  )
+  return popupParts.join('')
+}
+
+function markerOf(L: Leaflet, station: MapStation, selected: boolean): Marker {
+  const icon = L.divIcon({
+    className: selected ? 'station-map-pin station-map-pin-selected' : 'station-map-pin',
+    html: `<span class="pin" style="background:${tintColor(station.tint)}"></span>`,
+    iconSize: [18, 18],
+    iconAnchor: [9, 18],
+    tooltipAnchor: [8, -9],
+  })
+  const marker = L.marker([station.latitude, station.longitude], {icon, title: station.name})
+  if (props.popups) marker.bindPopup(popupOf(station))
+  if (props.labels) {
+    marker.bindTooltip(escapeHtml(station.name), {
+      permanent: true,
+      direction: 'right',
+      className: selected ? 'station-map-label station-map-label-selected' : 'station-map-label',
+    })
+  }
+  marker.on('click', () => emit('marker-click', station.uid))
+  return marker
+}
+
+function renderMarkers(L: Leaflet, fit: boolean) {
+  if (!markerLayer || !selectedLayer) return
   markerLayer.clearLayers()
+  selectedLayer.clearLayers()
   markers.clear()
   const bounds: [number, number][] = []
   for (const station of props.stations) {
     if (typeof station.latitude !== 'number' || typeof station.longitude !== 'number') continue
-    const icon = L.divIcon({
-      className: 'station-map-pin',
-      html: `<span class="pin" style="background:${tintColor(station.tint)}"></span>`,
-      iconSize: [18, 18],
-      iconAnchor: [9, 18],
-    })
-    const marker = L.marker([station.latitude, station.longitude], {icon})
-    const popupParts: string[] = []
-    popupParts.push(`<strong>${escapeHtml(station.name)}</strong>`)
-    if (station.subtitle) popupParts.push(`<div>${escapeHtml(station.subtitle)}</div>`)
-    if (station.href) popupParts.push(
-        `<div class="mt-2"><a href="${encodeURI(station.href)}" target="_blank" rel="noopener" class="text-(--primary)">${escapeHtml(station.name)} →</a></div>`,
-    )
-    marker.bindPopup(popupParts.join(''))
-    marker.on('click', () => emit('marker-click', station.uid))
-    markerLayer.addLayer(marker)
+    const selected = station.uid === props.selectedUid
+    const marker = markerOf(L, station, selected)
+    const layer = selected ? selectedLayer : markerLayer
+    layer.addLayer(marker)
     markers.set(station.uid, marker)
     bounds.push([station.latitude, station.longitude])
   }
-  if (props.fitOnUpdate && bounds.length > 0 && mapInstance) {
+  if (fit && bounds.length > 0 && mapInstance) {
     mapInstance.fitBounds(bounds, {padding: [40, 40], maxZoom: 13})
   }
 }
@@ -131,9 +172,18 @@ watch(
     async () => {
       if (!mapInstance) return
       const L = await loadLeaflet()
-      renderMarkers(L)
+      renderMarkers(L, props.fitOnUpdate)
     },
     {deep: true},
+)
+
+watch(
+    () => props.selectedUid,
+    async () => {
+      if (!mapInstance) return
+      const L = await loadLeaflet()
+      renderMarkers(L, false)
+    },
 )
 
 onMounted(async () => {
@@ -146,6 +196,7 @@ onBeforeUnmount(() => {
     mapInstance.remove()
     mapInstance = null
     markerLayer = null
+    selectedLayer = null
     markers.clear()
   }
 })
@@ -160,6 +211,14 @@ defineExpose({
     if (!marker) return
     mapInstance.setView(marker.getLatLng(), Math.max(mapInstance.getZoom(), 11))
     marker.openPopup()
+  },
+  /**
+   * Moves the map so a station's pin sits in the middle, keeping the zoom.
+   */
+  center(uid: string) {
+    const marker = markers.get(uid)
+    if (!mapInstance || !marker) return
+    mapInstance.panTo(marker.getLatLng())
   },
 })
 </script>
@@ -177,5 +236,25 @@ defineExpose({
   transform: rotate(-45deg);
   border: 2px solid #fff;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+}
+
+:deep(.station-map-pin-selected .pin) {
+  width: 18px;
+  height: 18px;
+  border-width: 3px;
+}
+
+:deep(.station-map-label) {
+  padding: 1px 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+
+:deep(.station-map-label-selected) {
+  background: #ff6421;
+  border-color: #c71100;
+  color: #fff;
+  z-index: 1000;
 }
 </style>

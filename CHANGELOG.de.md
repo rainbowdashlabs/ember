@@ -2,11 +2,12 @@
 
 ## v26.20.1
 
-Wachen anderer Instanzen zeigen auf der Discovery-Seite ihr Logo. Die Logos kommen von dieser Instanz, ein Besuch der Seite erreicht also nie eine andere Instanz. Links zur öffentlichen Seite einer Wache führen nur noch zu Seiten, die es gibt. Die Kacheln auf der Discovery-Seite zeigen, was eine Wache öffentlich anbietet, und sehen für Wachen jeder Instanz gleich aus.
+Wachen anderer Instanzen zeigen auf der Discovery-Seite ihr Logo. Die Logos kommen von dieser Instanz, ein Besuch der Seite erreicht also nie eine andere Instanz. Links zur öffentlichen Seite einer Wache führen nur noch zu Seiten, die es gibt. Die Kacheln auf der Discovery-Seite zeigen, was eine Wache öffentlich anbietet, und sehen für Wachen jeder Instanz gleich aus. Die Seite beginnt mit einer Karte, auf der jede Wache mit Namen steht.
 
 ### Verbesserungen
 
 - **Kacheln zeigen, was öffentlich ist.** Auf der Discovery-Seite hat jede Kachel Chips für eine offene Warteliste, das Wiki, den Kalender und den Blog, die jeweils direkt dorthin führen, und zeigt die Adresse der Wache, wenn sie veröffentlicht ist. Wachen anderer Instanzen sehen aus wie Wachen dieser Instanz, nur die Adresse ihres Servers steht dabei.
+- **Die Discovery-Seite beginnt mit der Karte.** Die Karte steht oben auf der Seite, jede Markierung trägt den Namen ihrer Wache, und die Suche darunter filtert Karte und Liste zugleich. Ein Klick auf eine Markierung öffnet die Kachel der Wache direkt unter der Karte, und die Adresse der Seite behält die Auswahl zum Teilen.
 
 ### Fehlerbehebungen
 

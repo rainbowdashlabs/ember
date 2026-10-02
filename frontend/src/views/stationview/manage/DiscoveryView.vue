@@ -11,7 +11,7 @@ import MutedText from '@/components/typography/MutedText.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import AsyncSection from '@/components/feedback/AsyncSection.vue'
-import DiscoveryGroups from '@/components/discovery/DiscoveryGroups.vue'
+import DiscoveryExplorer from '@/components/discovery/DiscoveryExplorer.vue'
 import {discovery} from '@/api'
 import type {DiscoveryEntry} from '@/api/generated/schema'
 import {useSession} from '@/composables/useSession'
@@ -20,11 +20,18 @@ import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useFlashMessage} from '@/composables/useFlashMessage'
 import {describeFailure} from '@/util/failure'
 
+/**
+ * The chosen station's place in the address. Not `station`, which on a station page names the station
+ * the reader acts for and would switch it.
+ */
+const SELECTION_KEY = 'selected'
+
 const {t} = useI18n()
 const {loaded} = useSession()
 const viewer = useDiscoveryViewer(false)
 
 const stations = ref<DiscoveryEntry[]>([])
+const search = ref('')
 const {message: success, flash} = useFlashMessage(3000)
 
 const {loading, failure, reload: loadAll} = useAsyncLoader(async () => {
@@ -63,7 +70,13 @@ watch(loaded, (v) => { if (v) loadAll() }, {immediate: true})
     <Alert v-if="success" variant="success" class="mb-2">{{ success }}</Alert>
 
     <AsyncSection :empty="stations.length === 0" :empty-message="t('discovery.empty')" :loading="loading">
-      <DiscoveryGroups :stations="stations" :viewer="viewer" @connect="handleConnect"/>
+      <DiscoveryExplorer
+          v-model:search="search"
+          :stations="stations"
+          :viewer="viewer"
+          :selection-key="SELECTION_KEY"
+          @connect="handleConnect"
+      />
     </AsyncSection>
   </ViewContent>
 </template>

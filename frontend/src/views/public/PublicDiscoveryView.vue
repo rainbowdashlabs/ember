@@ -11,13 +11,9 @@ import MutedText from '@/components/typography/MutedText.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import AsyncSection from '@/components/feedback/AsyncSection.vue'
-import EmptyState from '@/components/feedback/EmptyState.vue'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import DiscoveryGroups from '@/components/discovery/DiscoveryGroups.vue'
-import StationMap, {type MapStation} from '@/components/map/StationMap.vue'
-import DiscoveryToolbar from '@/views/public/publicdiscoveryview/DiscoveryToolbar.vue'
-import {initialSearchTerm, searchDiscovery} from '@/views/public/publicdiscoveryview/discoverySearch'
+import DiscoveryExplorer from '@/components/discovery/DiscoveryExplorer.vue'
+import {initialSearchTerm} from '@/components/discovery/discoverySearch'
 import {discovery} from '@/api'
 import type {DiscoveryEntry} from '@/api/generated/schema'
 import {useDiscoveryViewer} from '@/composables/useDiscoveryViewer'
@@ -45,23 +41,7 @@ const loading = computed(() => status.value === 'pending')
 const failure = ref<Failure | null>(null)
 const {message: success, flash} = useFlashMessage(3000)
 const inviteCode = ref('')
-const tab = ref<'list' | 'map'>('list')
 const search = ref(initialSearchTerm(route.query.q))
-
-const shown = computed(() => searchDiscovery(stations.value, search.value))
-
-const mapStations = computed<MapStation[]>(() => shown.value
-    .filter((s) => typeof s.latitude === 'number' && typeof s.longitude === 'number')
-    .map((s) => ({
-      uid: `${s.instanceHost ?? ''}/${s.stationUid}`,
-      name: s.name,
-      latitude: s.latitude as number,
-      longitude: s.longitude as number,
-      subtitle: [s.city, s.country, s.instanceHost].filter(Boolean).join(', ') || null,
-      href: s.publicPageUrl,
-      tint: s.isOwnStation ? 'local' : s.alreadyFederated ? 'near' : null,
-    })),
-)
 
 /**
  * Asking to federate, and refreshing the list afterwards, which are two things and not one.
@@ -110,13 +90,14 @@ async function handleInvite(station: DiscoveryEntry) {
     </div>
 
     <AsyncSection :empty="stations.length === 0" :empty-message="t('discovery.empty')" :loading="loading">
-      <DiscoveryToolbar v-model:search="search" v-model:tab="tab"/>
-      <EmptyState v-if="shown.length === 0" :message="t('discovery.noSearchResults')"/>
-      <NeutralContainer v-else-if="tab === 'map'">
-        <EmptyState v-if="mapStations.length === 0" :message="t('stationDiscovery.noCoordinatesForFilter')"/>
-        <StationMap v-else :stations="mapStations" height="520px"/>
-      </NeutralContainer>
-      <DiscoveryGroups v-else :stations="shown" :viewer="viewer" @connect="handleConnect" @invite="handleInvite"/>
+      <DiscoveryExplorer
+          v-model:search="search"
+          :stations="stations"
+          :viewer="viewer"
+          selection-key="station"
+          @connect="handleConnect"
+          @invite="handleInvite"
+      />
     </AsyncSection>
   </div>
   </ViewContent>

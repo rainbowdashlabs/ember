@@ -189,8 +189,9 @@ test.describe('Two instances', () => {
      * A station the second instance publishes shows on the first instance's discovery page.
      *
      * <p>The first instance learns of the second as a peer, fetches its published stations into its
-     * own cache and lists them from there, marked with the instance they belong to and linked to
-     * their page on it. A station made on the second instance is listed publicly from the start,
+     * own cache and lists them from there, marked with the instance they belong to. A new station
+     * shows nothing public yet, so its tile offers no link to a page that would lead nowhere.
+     * A station made on the second instance is listed publicly from the start,
      * which is what puts it on the card the second instance publishes. It is made for the story
      * because the seeded stations of the two share their identities, and a card naming a station of
      * the first instance is one the first instance already lists as its own.
@@ -215,18 +216,23 @@ test.describe('Two instances', () => {
         try {
             const listed = await visitor.get('/api/v1/public/discovery')
             expect(listed.ok()).toBe(true)
-            const entries: {stationUid: string; instanceHost: string | null; publicPageUrl: string | null}[] =
+            const entries: {
+                stationUid: string
+                instanceHost: string | null
+                instanceUrl: string | null
+                publicPageUrl: string | null
+            }[] =
                 await listed.json()
             const entry = must(entries.find(e => e.stationUid === uid), 'the station of the other instance')
             const host = new URL(peerInternalUrl()).hostname
             expect(entry.instanceHost).toBe(host)
-            expect(entry.publicPageUrl?.startsWith(`${peerInternalUrl()}/public/station/`)).toBe(true)
+            expect(entry.instanceUrl).toBe(peerInternalUrl())
+            expect(entry.publicPageUrl).toBeNull()
 
             await page.goto(`/discovery?q=${encodeURIComponent(name)}`)
             await expect(page.getByText(name, {exact: true})).toBeVisible()
             await expect(page.getByText(`Instanz: ${host}`)).toBeVisible()
-            await expect(page.getByRole('link', {name: `Zur Wache ${name} auf ${host}`}))
-                .toHaveAttribute('href', must(entry.publicPageUrl, 'the link to the station'))
+            await expect(page.getByRole('link', {name: `Zur Wache ${name} auf ${host}`})).toHaveCount(0)
         } finally {
             await visitor.dispose()
         }
