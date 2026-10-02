@@ -144,8 +144,7 @@ public class AttendanceExportService {
 
         var entries = attendanceRepository.findEntries(sessionId);
         var sessionFields = attendanceRepository.findSessionFields(sessionId);
-        var templateFields =
-                attendanceRepository.findTemplateFields(session.get().templateId());
+        var templateFields = attendanceRepository.findSheetFields(sessionId);
         var audience = audienceService.audienceOf(session.get());
 
         var template = attendanceRepository.findTemplateById(session.get().templateId());

@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:5000823391debff679d735fc38c32fbdc4d70bcca913d640b5082d54c4bcb335",
-  "generatedAt": "2026-10-02T13:07:10Z",
+  "schemaHash": "sha256:e372336dfb1eec41c81bf7dedc514a6d3230e6bc6745ad9b12dad247a1d94b62",
+  "generatedAt": "2026-10-02T13:47:40Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -1512,7 +1512,7 @@
     "attendance_session_field": {
       "feature": "attendance",
       "scope": "STATION",
-      "tableHash": "sha256:6b8138cd94cc5f5d5d5cb81175577b17f761f21b33d11906c98ee520219db8b2",
+      "tableHash": "sha256:f90a291d39c464ae56a917949eaca8f87c1abbe718fb8637ee4885583fc1fc28",
       "columns": [
         {
           "name": "session_id",
@@ -1526,7 +1526,7 @@
           "type": "int4",
           "nullable": false,
           "verified": true,
-          "description": "References the attendance template field."
+          "description": "The template field this answer is given to. A field that has answers cannot be deleted, only archived, so no answer is ever taken with its field."
         },
         {
           "name": "value",
@@ -1541,7 +1541,7 @@
           "column": "field_id",
           "refTable": "attendance_template_field",
           "refColumn": "id",
-          "onDelete": "CASCADE"
+          "onDelete": "RESTRICT"
         },
         {
           "column": "session_id",
@@ -1624,7 +1624,7 @@
     "attendance_template_field": {
       "feature": "attendance",
       "scope": "STATION",
-      "tableHash": "sha256:4a4d66e1fd7b78e0c8d2f0ce3d4cca060d8b993fe5aa0c1c965e5e43976ae400",
+      "tableHash": "sha256:994f942518f28cfcb33dca5797a51abf0caa5ec2150bec3c30aa4c7779562ce1",
       "columns": [
         {
           "name": "id",
@@ -1645,7 +1645,7 @@
           "type": "text",
           "nullable": false,
           "verified": true,
-          "description": "Field name/label."
+          "description": "Field name, unique among the template's fields in use. A deleted field gives its name up for a new one."
         },
         {
           "name": "field_type",
@@ -1667,6 +1667,13 @@
           "nullable": false,
           "verified": true,
           "description": "Display order position."
+        },
+        {
+          "name": "archived_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When the field was deleted, NULL while it is in use. Deleting only archives it: the sheets that answered it keep the answer and still show it under the field's name and type, and no new sheet, appointment or appointment template is offered it."
         }
       ],
       "foreignKeys": [
@@ -7401,7 +7408,7 @@
           "type": "int4",
           "nullable": true,
           "verified": true,
-          "description": "References an attendance template field to auto-populate from."
+          "description": "The attendance template field this question's answer fills in on the sheet. Cleared when that field is deleted, which archives it."
         },
         {
           "name": "public",
@@ -7503,7 +7510,7 @@
           "type": "int4",
           "nullable": false,
           "verified": true,
-          "description": "References the attendance template field."
+          "description": "The attendance template field the appointment fills in on a new sheet. Removed when the field is deleted, which archives it."
         },
         {
           "name": "source",
@@ -8258,7 +8265,7 @@
           "type": "int4",
           "nullable": true,
           "verified": true,
-          "description": "References an attendance template field to auto-populate from."
+          "description": "The attendance template field this question's answer fills in on the sheet. Cleared when that field is deleted, which archives it."
         },
         {
           "name": "default_value",

@@ -87,4 +87,5 @@ export default {
     'AT-056': 'Eine gespeicherte Auswertung muss mindestens eine Mitgliedsart oder Gruppe nennen, es wurde nichts gespeichert',
     'AT-057': 'Eine gespeicherte Auswertung kann keinen leeren Eintrag nennen, es wurde nichts gespeichert',
     'AT-058': 'Diese Anwesenheitsvorlage wurde gelöscht und kann nicht mehr gewählt werden, es wurde nichts gespeichert',
+    'AT-059': 'Dieses Feld der Anwesenheitsvorlage wurde gelöscht und kann nicht mehr verwendet werden, es wurde nichts gespeichert',
 }

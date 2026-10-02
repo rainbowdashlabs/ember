@@ -819,5 +819,53 @@ test.describe('Attendance', () => {
 
             await expect(page.getByTestId('modal').getByTestId('field-width')).toHaveValue('half')
         })
+
+        /**
+         * Deleting a question of a sheet only archives it. The story answers it on a closed sheet
+         * first, deletes it in the configuration and then opens that sheet again, where the answer
+         * has to stand under the question's name as before.
+         */
+        test('a deleted question keeps its answer on the sheets that gave one', async ({managerPage: page}) => {
+            const headers = await apiHeaders(page)
+            const topic = unique('Thema')
+            const answer = unique('Knoten')
+
+            const template = await page.request
+                .post('/api/v1/attendance/templates', {headers, data: {name: unique('Archivbogen')}})
+                .then(response => response.json())
+            const field = await page.request
+                .post(`/api/v1/attendance/templates/${template.id}/fields`, {
+                    headers,
+                    data: {name: topic, fieldType: 'TEXT', config: {}, position: 0},
+                })
+                .then(response => response.json())
+                .then((fields: {id: number; name: string}[]) => fields.find(entry => entry.name === topic)!)
+            const created = await page.request.post(`/api/v1/attendance/templates/${template.id}/sessions`, {
+                headers,
+                data: {title: unique('Archivabend')},
+            })
+            expect(created.status(), `the sheet is opened (${await created.text()})`).toBe(201)
+            const sessionId = (await created.json()).id
+            const answered = await page.request.put(`/api/v1/attendance/sessions/${sessionId}/fields`, {
+                headers,
+                data: {fields: [{fieldId: field.id, value: JSON.stringify(answer)}]},
+            })
+            expect(answered.ok(), `the question is answered (${await answered.text()})`).toBeTruthy()
+            await page.request.post(`/api/v1/attendance/sessions/${sessionId}/lock`, {headers})
+
+            await page.goto(`/station/attendance/config/edit/${template.id}`)
+            const row = page.getByTestId('attendance-field-row').filter({hasText: topic})
+            await row.getByLabel('Löschen').click()
+            const confirm = page.getByTestId('modal')
+            await expect(confirm, 'the question says it is archived').toContainText('archiviert')
+            await confirm.locator('[data-confirm]').click()
+            await expect(row, 'the question is gone from the configuration').toHaveCount(0)
+
+            await page.goto(`/station/attendance/session/${sessionId}`)
+            await expect(page.getByText(topic), 'the sheet still names the question').toBeVisible()
+            await expect(page.getByText(answer), 'and still shows its answer').toBeVisible()
+
+            await page.request.delete(`/api/v1/attendance/templates/${template.id}`, {headers})
+        })
     })
 })

@@ -244,10 +244,18 @@ public class AttendanceService {
         return attendanceRepository.findTemplateFields(templateId);
     }
 
+    /**
+     * Changes a field of a template that is still in use.
+     *
+     * @return the template's fields in use, empty where the template has no such field
+     * @throws io.javalin.http.HttpResponseException {@link AttendanceRefusal#ATTENDANCE_FIELD_ARCHIVED}
+     *                                               for a field that was deleted
+     */
     public Optional<List<AttendanceTemplateField>> updateTemplateField(
             int templateId, int fieldId, String name, FieldType fieldType, AttendanceFieldConfig config, int position) {
+        templateGuards.requireFieldInUse(templateId, fieldId);
         requireUsable(name, fieldType, config);
-        if (attendanceRepository.updateTemplateField(fieldId, name, fieldType, config, position)) {
+        if (attendanceRepository.updateTemplateField(templateId, fieldId, name, fieldType, config, position)) {
             log.info("Updated attendance template field {} for template {}", fieldId, templateId);
             return Optional.of(attendanceRepository.findTemplateFields(templateId));
         }
@@ -273,13 +281,35 @@ public class AttendanceService {
         });
     }
 
-    public Optional<List<AttendanceTemplateField>> deleteTemplateField(int templateId, int fieldId) {
-        if (attendanceRepository.deleteTemplateField(fieldId)) {
-            log.info("Deleted attendance template field {} from template {}", fieldId, templateId);
+    /**
+     * Deletes a field the only way one is deleted: by archiving it, as
+     * {@link AttendanceRepository#archiveTemplateField} describes. The sheets that answered it keep
+     * the answer.
+     *
+     * @param templateId the template the field belongs to
+     * @param fieldId    the field
+     * @return the template's fields still in use, empty where the template has no such field
+     * @throws io.javalin.http.HttpResponseException {@link AttendanceRefusal#ATTENDANCE_FIELD_ARCHIVED}
+     *                                               for a field that was deleted already
+     */
+    public Optional<List<AttendanceTemplateField>> archiveTemplateField(int templateId, int fieldId) {
+        templateGuards.requireFieldInUse(templateId, fieldId);
+        if (attendanceRepository.archiveTemplateField(templateId, fieldId)) {
+            log.info("Archived attendance template field {} of template {}, its answers kept", fieldId, templateId);
             return Optional.of(attendanceRepository.findTemplateFields(templateId));
         }
-        log.warn("Cannot delete attendance template field: field {} not found", fieldId);
+        log.warn("Cannot archive attendance template field: field {} not on template {}", fieldId, templateId);
         return Optional.empty();
+    }
+
+    /**
+     * The fields a sheet shows, as {@link AttendanceRepository#findSheetFields} finds them.
+     *
+     * @param sessionId the sheet
+     * @return the fields in use and the deleted ones the sheet answered
+     */
+    public List<AttendanceTemplateField> findSheetFields(int sessionId) {
+        return attendanceRepository.findSheetFields(sessionId);
     }
 
     public List<SessionSummary> findSessionSummaries(int stationId) {
@@ -472,7 +502,7 @@ public class AttendanceService {
         var expected = expectedFor(templateId, audience);
         enterExpectedMembers(session.id(), expected, new HashSet<>());
         if (eventId != null) applyRegistrations(session.id(), eventId, expected);
-        enterMembersNamedInAutoAttendFields(session.id(), templateId);
+        enterMembersNamedInAutoAttendFields(session.id());
 
         return session;
     }
@@ -823,10 +853,8 @@ public class AttendanceService {
      */
     public List<AttendanceSessionField> setSessionFields(int sessionId, List<AttendanceFieldValueEntry> fields) {
         requireSessionOpen(sessionId);
-        var sheetFields = attendanceRepository
-                .findSessionById(sessionId)
-                .map(session -> fieldsById(session.templateId()))
-                .orElse(Map.of());
+        var sheetFields = attendanceRepository.findSheetFields(sessionId).stream()
+                .collect(Collectors.toMap(AttendanceTemplateField::id, field -> field));
         for (var entry : fields) {
             var field = sheetFields.get(entry.fieldId());
             if (field == null) continue;
@@ -1036,7 +1064,7 @@ public class AttendanceService {
             }
         }
 
-        enterMembersNamedInAutoAttendFields(sessionId, session.get().templateId());
+        enterMembersNamedInAutoAttendFields(sessionId);
 
         log.info("Synced attendance entries from event for session {}", sessionId);
         return attendanceRepository.findEntries(sessionId);
@@ -1075,10 +1103,9 @@ public class AttendanceService {
      * filling it in later did the naming, and until somebody pressed that the people named stood in
      * the field with no row on the sheet at all.
      *
-     * @param sessionId  the sheet being written
-     * @param templateId the template it was made from
+     * @param sessionId the sheet being written
      */
-    private void enterMembersNamedInAutoAttendFields(int sessionId, int templateId) {
+    private void enterMembersNamedInAutoAttendFields(int sessionId) {
         var values = attendanceRepository.findSessionFields(sessionId).stream()
                 .collect(Collectors.toMap(
                         AttendanceSessionField::fieldId, field -> field.value() != null ? field.value() : ""));
@@ -1086,7 +1113,7 @@ public class AttendanceService {
                 .map(AttendanceEntry::memberId)
                 .collect(Collectors.toCollection(HashSet::new));
 
-        for (var field : attendanceRepository.findTemplateFields(templateId)) {
+        for (var field : attendanceRepository.findSheetFields(sessionId)) {
             if (!field.config().autoAttend()) continue;
             String value = values.getOrDefault(field.id(), "");
             if (value.isBlank()) continue;

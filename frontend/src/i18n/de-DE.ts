@@ -1939,7 +1939,7 @@ export default {
         fieldAutoAttendHint: 'Mitglieder in diesem Feld werden automatisch als anwesend in der Sitzung erfasst.',
         fieldDefaultValueHint: 'Wird beim Erstellen einer neuen Sitzung automatisch eingetragen.',
         fieldPosition: 'Position',
-        deleteFieldConfirm: 'Feld "{name}" wirklich löschen?',
+        deleteFieldConfirm: 'Feld "{name}" wirklich löschen? Es wird archiviert und kommt auf keine neue Liste mehr. Bestehende Anwesenheitslisten behalten ihre Antworten in diesem Feld.',
     },
     profile: {
         documentsOf: 'Dokumente von {name}',

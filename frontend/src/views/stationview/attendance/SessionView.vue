@@ -118,7 +118,7 @@ const {loading, failure, reload: loadData} = useAsyncLoader(async () => {
   groups.value = allGroups
 
   if (session.value) {
-    await loadTemplateContext(session.value.templateId)
+    await loadSheetFields(detail.templateFields ?? [])
     await loadEventContext(session.value.eventId ?? null)
   }
 
@@ -194,10 +194,13 @@ async function loadGroupMembers(fields: AttendanceTemplateField[]): Promise<Map<
   return byGroup
 }
 
-async function loadTemplateContext(templateId: number) {
-  const tplFields = await attendance.listTemplateFields(templateId)
-  templateFields.value = tplFields
-  groupMembers.value = await loadGroupMembers(tplFields)
+/**
+ * The fields the sheet shows, as the sheet itself names them: the template's fields in use and the
+ * deleted ones this sheet answered, so an answer never disappears with its field.
+ */
+async function loadSheetFields(fields: AttendanceTemplateField[]) {
+  templateFields.value = fields
+  groupMembers.value = await loadGroupMembers(fields)
 }
 
 /**

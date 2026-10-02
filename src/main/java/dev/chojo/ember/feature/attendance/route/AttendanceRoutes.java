@@ -539,7 +539,7 @@ public class AttendanceRoutes implements Routes {
     @OpenApi(
             path = "/api/v1/attendance/templates/{templateId}/fields/{fieldId}",
             methods = HttpMethod.DELETE,
-            summary = "Delete a template field",
+            summary = "Delete a template field, which archives it and keeps its answers on existing sheets",
             tags = {"Attendance"},
             pathParams = {
                 @OpenApiParam(name = "templateId", type = Integer.class, required = true),
@@ -554,7 +554,7 @@ public class AttendanceRoutes implements Routes {
         int fieldId = pathInt(ctx, "fieldId");
         requireOwnedOrNotFound(
                 ctx, templateId, attendanceService::findActiveTemplateById, AttendanceTemplate::stationId);
-        attendanceService.deleteTemplateField(templateId, fieldId).ifPresentOrElse(ctx::json, () -> {
+        attendanceService.archiveTemplateField(templateId, fieldId).ifPresentOrElse(ctx::json, () -> {
             throw AttendanceRefusal.ATTENDANCE_FIELD_NOT_HERE_TO_DELETE.raise();
         });
     }
@@ -665,6 +665,7 @@ public class AttendanceRoutes implements Routes {
                             var entries = attendanceService.findEntries(id);
                             ctx.json(new SessionDetail(
                                     session,
+                                    attendanceService.findSheetFields(id),
                                     fields,
                                     entries,
                                     !attendanceService.isSessionOpen(id),
@@ -1441,8 +1442,10 @@ public class AttendanceRoutes implements Routes {
 
     /**
      * Detailed session response including fields and attendance entries.
-     */
-    /**
+     *
+     * @param templateFields the fields the sheet shows: its template's fields in use, and the deleted
+     *     ones it answered before they went, so the answer still reads under its field's name
+     * @param fields the sheet's answers, by field
      * @param locked whether the sheet refuses writes, decided here so the rule and the configured
      *     span are not written down a second time in the browser
      * @param audience whom the sheet expects: what it was started with, or its template's user types
@@ -1450,6 +1453,7 @@ public class AttendanceRoutes implements Routes {
      */
     public record SessionDetail(
             AttendanceSession session,
+            List<AttendanceTemplateField> templateFields,
             List<AttendanceSessionField> fields,
             List<AttendanceEntry> entries,
             boolean locked,

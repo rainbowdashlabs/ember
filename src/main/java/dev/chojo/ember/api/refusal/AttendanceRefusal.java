@@ -231,7 +231,17 @@ public enum AttendanceRefusal implements Refusal {
     ATTENDANCE_TEMPLATE_ARCHIVED(
             58,
             HttpStatus.GONE,
-            "This attendance template was deleted and can no longer be chosen, so nothing was saved");
+            "This attendance template was deleted and can no longer be chosen, so nothing was saved"),
+
+    /**
+     * A deleted field of an attendance template that is to be changed, deleted again or filled in
+     * by an appointment. Deleting only archives a field, so the sheets that answered it keep the
+     * answer, but nothing new may use it.
+     */
+    ATTENDANCE_FIELD_ARCHIVED(
+            59,
+            HttpStatus.GONE,
+            "This field of the attendance template was deleted and can no longer be used, so nothing was saved");
 
     private final Definition definition;
 

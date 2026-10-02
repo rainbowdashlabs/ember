@@ -6058,7 +6058,7 @@
         }
       },
       "delete" : {
-        "summary" : "Delete a template field",
+        "summary" : "Delete a template field, which archives it and keeps its answers on existing sheets",
         "tags" : [ "Attendance" ],
         "responses" : {
           "200" : {
@@ -64918,6 +64918,12 @@
           "session" : {
             "$ref" : "#/components/schemas/AttendanceSession"
           },
+          "templateFields" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/AttendanceTemplateField"
+            }
+          },
           "fields" : {
             "type" : "array",
             "items" : {
@@ -64937,7 +64943,7 @@
             "$ref" : "#/components/schemas/SessionAudience"
           }
         },
-        "required" : [ "session", "fields", "entries", "locked", "audience" ]
+        "required" : [ "session", "templateFields", "fields", "entries", "locked", "audience" ]
       },
       "SessionInfo" : {
         "type" : "object",

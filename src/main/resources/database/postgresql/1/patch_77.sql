@@ -1039,3 +1039,38 @@ CREATE TRIGGER station_drop_attendance_sheets
     ON ember_schema.station
     FOR EACH ROW
 EXECUTE FUNCTION ember_schema.station_drop_attendance_sheets();
+
+ALTER TABLE ember_schema.attendance_template_field
+    ADD COLUMN archived_at TIMESTAMP WITH TIME ZONE;
+
+COMMENT ON COLUMN ember_schema.attendance_template_field.archived_at
+    IS 'When the field was deleted, NULL while it is in use. Deleting only archives it: the sheets that answered it keep the answer and still show it under the field''s name and type, and no new sheet, appointment or appointment template is offered it.';
+
+ALTER TABLE ember_schema.attendance_template_field
+    DROP CONSTRAINT attendance_template_field_template_id_name_key;
+
+CREATE UNIQUE INDEX idx_attendance_template_field_name_in_use
+    ON ember_schema.attendance_template_field (template_id, name)
+    WHERE archived_at IS NULL;
+
+COMMENT ON COLUMN ember_schema.attendance_template_field.name
+    IS 'Field name, unique among the template''s fields in use. A deleted field gives its name up for a new one.';
+
+ALTER TABLE ember_schema.attendance_session_field
+    DROP CONSTRAINT attendance_session_field_field_id_fkey;
+
+ALTER TABLE ember_schema.attendance_session_field
+    ADD CONSTRAINT attendance_session_field_field_id_fkey
+        FOREIGN KEY (field_id) REFERENCES ember_schema.attendance_template_field (id) ON DELETE RESTRICT;
+
+COMMENT ON COLUMN ember_schema.attendance_session_field.field_id
+    IS 'The template field this answer is given to. A field that has answers cannot be deleted, only archived, so no answer is ever taken with its field.';
+
+COMMENT ON COLUMN ember_schema.event_field_default.field_id
+    IS 'The attendance template field the appointment fills in on a new sheet. Removed when the field is deleted, which archives it.';
+
+COMMENT ON COLUMN ember_schema.event_field.attendance_field_id
+    IS 'The attendance template field this question''s answer fills in on the sheet. Cleared when that field is deleted, which archives it.';
+
+COMMENT ON COLUMN ember_schema.event_template_field.attendance_field_id
+    IS 'The attendance template field this question''s answer fills in on the sheet. Cleared when that field is deleted, which archives it.';

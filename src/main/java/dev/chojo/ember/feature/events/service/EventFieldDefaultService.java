@@ -9,6 +9,7 @@ import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.attendance.entity.AttendanceTemplateField;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
+import dev.chojo.ember.feature.attendance.service.AttendanceTemplateGuards;
 import dev.chojo.ember.feature.events.entity.EventFieldDefault;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFieldDefaultRepository;
@@ -36,15 +37,18 @@ public class EventFieldDefaultService {
     private final EventFieldDefaultRepository fieldDefaultRepository;
     private final EventRepository eventRepository;
     private final AttendanceRepository attendanceRepository;
+    private final AttendanceTemplateGuards attendanceTemplateGuards;
 
     @Inject
     public EventFieldDefaultService(
             EventFieldDefaultRepository fieldDefaultRepository,
             EventRepository eventRepository,
-            AttendanceRepository attendanceRepository) {
+            AttendanceRepository attendanceRepository,
+            AttendanceTemplateGuards attendanceTemplateGuards) {
         this.fieldDefaultRepository = fieldDefaultRepository;
         this.eventRepository = eventRepository;
         this.attendanceRepository = attendanceRepository;
+        this.attendanceTemplateGuards = attendanceTemplateGuards;
     }
 
     /**
@@ -64,6 +68,7 @@ public class EventFieldDefaultService {
      * @param defaults the new field default configurations
      */
     public void setForEvent(int eventId, List<EventFieldDefault> defaults) {
+        requireFieldsInUse(eventId, defaults);
         requireAnswerable(eventId, defaults);
         fieldDefaultRepository.replaceForEvent(eventId, defaults);
         log.info("Set field defaults for event {} ({} defaults)", eventId, defaults.size());
@@ -89,6 +94,20 @@ public class EventFieldDefaultService {
                 throw EventRefusal.EVENT_FIELD_DEFAULT_NOT_ACCEPTED.raise(problem.question());
             });
         }
+    }
+
+    /**
+     * Refuses a starting value for a field of the sheet that was deleted, which no new sheet gets.
+     *
+     * @throws io.javalin.http.HttpResponseException {@link
+     *     dev.chojo.ember.api.refusal.AttendanceRefusal#ATTENDANCE_FIELD_ARCHIVED}
+     */
+    private void requireFieldsInUse(int eventId, List<EventFieldDefault> defaults) {
+        eventRepository
+                .findById(eventId)
+                .map(StationEvent::templateId)
+                .ifPresent(sheetId -> defaults.forEach(
+                        chosen -> attendanceTemplateGuards.requireFieldInUse(sheetId, chosen.fieldId())));
     }
 
     /** The questions the sheet this appointment is taken on asks, by field. */

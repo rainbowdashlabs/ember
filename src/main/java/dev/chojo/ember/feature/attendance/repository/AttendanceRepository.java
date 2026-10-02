@@ -44,6 +44,8 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 @Singleton
 public class AttendanceRepository {
     private static final String ATTENDANCE_TEMPLATE_COLUMNS = "id, station_id, name";
+    private static final String ATTENDANCE_TEMPLATE_FIELD_COLUMNS =
+            "id, template_id, name, field_type, config, position";
     private static final String ATTENDANCE_SESSION_COLUMNS =
             "id, template_id, start_time, end_time, created_at, event_id, title, unlocked_until, locked_at, counted_minutes";
     private static final String ATTENDANCE_ENTRY_COLUMNS =
@@ -164,17 +166,61 @@ public class AttendanceRepository {
     }
 
     /**
-     * Finds all fields for a template, ordered by position.
+     * Finds the fields of a template that are still in use, ordered by position, leaving out the
+     * deleted ones that are only kept for the sheets that answered them.
      *
      * @param templateId the template ID
-     * @return list of template fields
+     * @return the fields a new sheet gets and the template is configured with
      */
     public List<AttendanceTemplateField> findTemplateFields(int templateId) {
-        return query(
-                        "SELECT id, template_id, name, field_type, config, position FROM attendance_template_field WHERE template_id = :template_id ORDER BY position;")
+        return query("""
+                SELECT %s
+                FROM attendance_template_field
+                WHERE template_id = :template_id
+                  AND archived_at IS NULL
+                ORDER BY position, id;""", ATTENDANCE_TEMPLATE_FIELD_COLUMNS)
                 .single(call().bind("template_id", templateId))
                 .map(AttendanceTemplateField.map())
                 .all();
+    }
+
+    /**
+     * Finds the fields a sheet shows: the fields of its template in use, and the deleted ones the
+     * sheet answered before they went, so an answer stays readable under its field's name and type.
+     *
+     * @param sessionId the sheet
+     * @return the sheet's fields ordered by position, empty where there is no such sheet
+     */
+    public List<AttendanceTemplateField> findSheetFields(int sessionId) {
+        return query("""
+                SELECT %s
+                FROM attendance_template_field f
+                WHERE f.template_id = (SELECT template_id FROM attendance_session WHERE id = :session_id)
+                  AND (f.archived_at IS NULL
+                    OR EXISTS (SELECT 1
+                               FROM attendance_session_field a
+                               WHERE a.session_id = :session_id
+                                 AND a.field_id = f.id))
+                ORDER BY f.position, f.id;""", ATTENDANCE_TEMPLATE_FIELD_COLUMNS)
+                .single(call().bind("session_id", sessionId))
+                .map(AttendanceTemplateField.map())
+                .all();
+    }
+
+    /**
+     * Whether a field of a template was deleted and is only kept for the sheets that answered it.
+     *
+     * @param templateId the template the field belongs to
+     * @param fieldId    the field
+     * @return true where the field is archived, false where it is in use or not on that template
+     */
+    public boolean isFieldArchived(int templateId, int fieldId) {
+        return SqlSupport.exists("""
+                SELECT 1
+                FROM attendance_template_field
+                WHERE id = :id
+                  AND template_id = :template_id
+                  AND archived_at IS NOT NULL;""", call().bind("id", fieldId).bind("template_id", templateId));
     }
 
     /**
@@ -203,17 +249,18 @@ public class AttendanceRepository {
     }
 
     /**
-     * Updates an existing template field.
+     * Updates a field of a template that is still in use.
      *
-     * @param id        the field ID
-     * @param name      new display name
-     * @param fieldType new field type
-     * @param config    new JSONB configuration
-     * @param position  new ordering position
-     * @return {@code true} if the field was updated
+     * @param templateId the template the field belongs to
+     * @param id         the field ID
+     * @param name       new display name
+     * @param fieldType  new field type
+     * @param config     new JSONB configuration
+     * @param position   new ordering position
+     * @return {@code true} if a field of that template in use was updated
      */
     public boolean updateTemplateField(
-            int id, String name, FieldType fieldType, AttendanceFieldConfig config, int position) {
+            int templateId, int id, String name, FieldType fieldType, AttendanceFieldConfig config, int position) {
         return query("""
                 UPDATE attendance_template_field
                 SET
@@ -221,24 +268,55 @@ public class AttendanceRepository {
                     field_type = :field_type,
                     config     = :config::JSONB,
                     position   = :position
-                WHERE id = :id;""")
+                WHERE id = :id
+                  AND template_id = :template_id
+                  AND archived_at IS NULL;""")
                 .single(call().bind("name", name)
                         .bind("field_type", fieldType)
                         .bind("config", config.toJson())
                         .bind("position", position)
-                        .bind("id", id))
+                        .bind("id", id)
+                        .bind("template_id", templateId))
                 .update()
                 .changed();
     }
 
     /**
-     * Deletes a template field by its ID.
+     * Archives a field of a template, which is what deleting one does.
      *
-     * @param id the field ID
-     * @return {@code true} if the field was deleted
+     * <p>The field and every answer given to it stay, so the sheets that answered it show and export
+     * the answer as before. It leaves the template's configuration and every new sheet, and what
+     * pointed at it for new work lets go of it, as it did when a field was really deleted: an
+     * appointment's starting value for it is removed, and appointment and appointment template
+     * questions tied to it are untied.
+     *
+     * @param templateId the template the field belongs to
+     * @param id         the field ID
+     * @return {@code true} if a field of that template in use was archived
      */
-    public boolean deleteTemplateField(int id) {
-        return SqlSupport.deleteById("attendance_template_field", id);
+    public boolean archiveTemplateField(int templateId, int id) {
+        return Transactions.call(() -> {
+            boolean archived = query("""
+                    UPDATE attendance_template_field
+                    SET archived_at = now()
+                    WHERE id = :id
+                      AND template_id = :template_id
+                      AND archived_at IS NULL;""")
+                    .single(call().bind("id", id).bind("template_id", templateId))
+                    .update()
+                    .changed();
+            if (!archived) return false;
+            query("DELETE FROM event_field_default WHERE field_id = :id;")
+                    .single(call().bind("id", id))
+                    .delete();
+            query("UPDATE event_field SET attendance_field_id = NULL WHERE attendance_field_id = :id;")
+                    .single(call().bind("id", id))
+                    .update();
+            query("UPDATE event_template_field SET attendance_field_id = NULL WHERE attendance_field_id = :id;")
+                    .single(call().bind("id", id))
+                    .update();
+            return true;
+        });
     }
 
     /**

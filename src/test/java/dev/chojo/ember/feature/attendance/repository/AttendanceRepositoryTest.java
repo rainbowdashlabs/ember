@@ -102,7 +102,7 @@ class AttendanceRepositoryTest extends RepositoryTestBase {
     @Order(11)
     void updateTemplateField() {
         assertTrue(attendanceRepo.updateTemplateField(
-                fieldId, "Comment", FieldType.TEXT, AttendanceFieldConfig.parse("{}"), 2));
+                templateId, fieldId, "Comment", FieldType.TEXT, AttendanceFieldConfig.parse("{}"), 2));
         var fields = attendanceRepo.findTemplateFields(templateId);
         assertEquals("Comment", fields.getFirst().name());
         assertEquals(2, fields.getFirst().position());
@@ -110,9 +110,16 @@ class AttendanceRepositoryTest extends RepositoryTestBase {
 
     @Test
     @Order(12)
-    void deleteTemplateField() {
-        assertTrue(attendanceRepo.deleteTemplateField(fieldId));
+    void archiveTemplateField() {
+        assertFalse(attendanceRepo.isFieldArchived(templateId, fieldId));
+
+        assertTrue(attendanceRepo.archiveTemplateField(templateId, fieldId));
+
         assertTrue(attendanceRepo.findTemplateFields(templateId).isEmpty());
+        assertTrue(attendanceRepo.isFieldArchived(templateId, fieldId));
+        assertFalse(attendanceRepo.archiveTemplateField(templateId, fieldId));
+        assertFalse(attendanceRepo.updateTemplateField(
+                templateId, fieldId, "Again", FieldType.TEXT, AttendanceFieldConfig.parse("{}"), 2));
     }
 
     @Test

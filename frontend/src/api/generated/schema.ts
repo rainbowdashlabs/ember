@@ -8406,7 +8406,7 @@ export interface paths {
             };
         };
         post?: never;
-        /** Delete a template field */
+        /** Delete a template field, which archives it and keeps its answers on existing sheets */
         delete: {
             parameters: {
                 query?: never;
@@ -62498,6 +62498,7 @@ export interface components {
             fields: components["schemas"]["AttendanceSessionField"][];
             locked: boolean;
             session: components["schemas"]["AttendanceSession"];
+            templateFields: components["schemas"]["AttendanceTemplateField"][];
         };
         SessionInfo: {
             account: components["schemas"]["AccountInfo"];

@@ -168,18 +168,18 @@ class AttendanceServiceTest extends RepositoryTestBase {
 
     @Test
     @Order(14)
-    void deleteTemplateField() {
+    void archiveTemplateField() {
         var fields = service.findTemplateFields(templateId);
         int fieldId = fields.getFirst().id();
-        var result = service.deleteTemplateField(templateId, fieldId);
+        var result = service.archiveTemplateField(templateId, fieldId);
         assertTrue(result.isPresent());
         assertTrue(result.get().isEmpty());
     }
 
     @Test
     @Order(15)
-    void deleteTemplateFieldNonExistent() {
-        assertTrue(service.deleteTemplateField(templateId, 99999).isEmpty());
+    void archiveTemplateFieldNonExistent() {
+        assertTrue(service.archiveTemplateField(templateId, 99999).isEmpty());
     }
 
     /** A place belongs to an appointment, so a sheet does not take one and writes nothing. */
@@ -292,7 +292,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
         var found = service.findSessionFields(sessionId);
         assertFalse(found.isEmpty());
 
-        service.deleteTemplateField(templateId, fieldId);
+        service.archiveTemplateField(templateId, fieldId);
     }
 
     @Test

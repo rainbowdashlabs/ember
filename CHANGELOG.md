@@ -201,7 +201,7 @@
 - **Duplicate group names ended in a general error.** A station's group names kept stray spaces, and a second group with a name already in use failed without saying why. Names are now trimmed, and a name that is taken is refused with a clear message, however it is capitalised.
 - **The storage history keeps up with you.** A storage change that failed, or a test of your saved storage, was missing from the history on the storage screen until you reloaded the page. Both now appear right away, and what you typed stays in the form.
 - **Association member pages showed no name.** When you opened a person in the association, the page title read only "Member" instead of who it was about. It now shows the person's name.
-- **Deleting a template no longer deletes its sheets.** If you deleted an attendance template, every attendance sheet made from it went too, with everybody's attendance on it. Now the template is archived instead, and its sheets stay and keep counting in your reports and hours.
+- **Deleting a template or a field keeps your sheets.** If you deleted an attendance template, every attendance sheet made from it went too, and removing a single field took its answers off every sheet. Now both are archived instead: your sheets keep their attendance and answers and keep counting in your reports and hours.
 - **Some PDFs left out your station's logo.** In some cases, attendance sheets and reports, the appointment list, inventory lists, test protocols and the member list came out without your logo, and the station setup asked for a logo you had already uploaded. They all find your logo again now.
 
 ## v26.19.5

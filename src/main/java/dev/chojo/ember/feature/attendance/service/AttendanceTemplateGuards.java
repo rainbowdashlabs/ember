@@ -12,11 +12,12 @@ import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Whether an attendance template may be chosen for something new.
+ * Whether an attendance template, or one of its fields, may be chosen for something new.
  *
  * <p>Deleting a template only archives it, because the sheets made from it are history and keep
  * reading it. Everything that starts from a template asks here first: a new sheet, and an
- * appointment or an appointment template that is to take its sheets from one.
+ * appointment or an appointment template that is to take its sheets from one. A field is archived
+ * the same way, and changing it or filling it in from an appointment asks here too.
  */
 @Singleton
 public class AttendanceTemplateGuards {
@@ -36,6 +37,20 @@ public class AttendanceTemplateGuards {
     public void requireOpenForNewWork(@Nullable Integer templateId) {
         if (templateId != null && attendanceRepository.isArchived(templateId)) {
             throw AttendanceRefusal.ATTENDANCE_TEMPLATE_ARCHIVED.raise();
+        }
+    }
+
+    /**
+     * Refuses a template field that was deleted. Deleting only archives a field, so the sheets that
+     * answered it keep the answer, but it is neither changed nor used for anything new.
+     *
+     * @param templateId the template the field is named on
+     * @param fieldId    the field named
+     * @throws io.javalin.http.HttpResponseException {@link AttendanceRefusal#ATTENDANCE_FIELD_ARCHIVED}
+     */
+    public void requireFieldInUse(int templateId, int fieldId) {
+        if (attendanceRepository.isFieldArchived(templateId, fieldId)) {
+            throw AttendanceRefusal.ATTENDANCE_FIELD_ARCHIVED.raise();
         }
     }
 }
