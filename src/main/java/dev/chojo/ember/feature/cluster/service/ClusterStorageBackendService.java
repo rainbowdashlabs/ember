@@ -6,21 +6,36 @@
 package dev.chojo.ember.feature.cluster.service;
 
 import dev.chojo.ember.api.refusal.ClusterRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.entity.ClusterBackendReach;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.storage.audit.StorageAuditAction;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
+import dev.chojo.ember.feature.storage.core.BackendRedaction;
+import dev.chojo.ember.feature.storage.core.BackendRequest;
+import dev.chojo.ember.feature.storage.core.BackendSummary;
+import dev.chojo.ember.feature.storage.core.BackendValidation;
+import dev.chojo.ember.feature.storage.core.ProbeResult;
+import dev.chojo.ember.feature.storage.core.RetiredVersions;
 import dev.chojo.ember.feature.storage.entity.ClusterStationStorage;
 import dev.chojo.ember.feature.storage.entity.ClusterStorageConfig;
 import dev.chojo.ember.feature.storage.entity.StationStorageBackendConfig;
 import dev.chojo.ember.feature.storage.repository.ClusterStationStorageRepository;
 import dev.chojo.ember.feature.storage.repository.ClusterStorageConfigRepository;
 import dev.chojo.ember.feature.storage.repository.StationStorageConfigRepository;
+import dev.chojo.ember.feature.storage.service.StationMoves;
+import dev.chojo.ember.feature.storage.service.StorageBackendAuditService;
+import dev.chojo.ember.feature.storage.service.StorageBackendAuditService.Actor;
 import dev.chojo.ember.feature.storage.service.StorageMigrationService;
+import dev.chojo.ember.feature.storage.service.StorageMigrationService.Destination;
+import dev.chojo.ember.feature.storage.service.StorageProbeService;
+import dev.chojo.ember.owner.Owner;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,6 +43,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Supplier;
 
 /**
  * The storage an association keeps, what it decided about it, and which of its stations are actually on it.
@@ -36,9 +52,19 @@ import java.util.UUID;
  * at once; where a station's bytes are changes only when a copy finishes. A station whose placement does not
  * match the decision is <em>out of place</em>, which is a thing to be shown and acted on rather than a thing
  * to be hidden by reading one fact as if it were the other.
+ *
+ * <p>Every change is written to the association's storage history, a refused one included, and a move it
+ * makes for one of its stations to the station's history as well. Joining and leaving move files in the
+ * name of the association's own routine rather than a person.
  */
 @Singleton
 public class ClusterStorageBackendService {
+    /** The name a move made when a station joins is written down under. */
+    static final String JOIN = "association-join";
+
+    /** The name a move made when a station leaves is written down under. */
+    static final String RELEASE = "association-release";
+
     private static final Logger log = LoggerFactory.getLogger(ClusterStorageBackendService.class);
 
     private final ClusterRepository clusterRepository;
@@ -46,8 +72,12 @@ public class ClusterStorageBackendService {
     private final ClusterStorageConfigRepository configRepository;
     private final ClusterStationStorageRepository placementRepository;
     private final StationStorageConfigRepository stationConfigRepository;
-    private final StorageMigrationService migrationService;
+    private final StationMoves moves;
     private final StorageBackendResolver resolver;
+    private final BackendValidation validation;
+    private final StorageProbeService probeService;
+    private final StorageBackendAuditService auditService;
+    private final RetiredVersions retiredVersions;
 
     @Inject
     public ClusterStorageBackendService(
@@ -56,15 +86,23 @@ public class ClusterStorageBackendService {
             ClusterStorageConfigRepository configRepository,
             ClusterStationStorageRepository placementRepository,
             StationStorageConfigRepository stationConfigRepository,
-            StorageMigrationService migrationService,
-            StorageBackendResolver resolver) {
+            StationMoves moves,
+            StorageBackendResolver resolver,
+            BackendValidation validation,
+            StorageProbeService probeService,
+            StorageBackendAuditService auditService,
+            RetiredVersions retiredVersions) {
         this.clusterRepository = clusterRepository;
         this.stationRepository = stationRepository;
         this.configRepository = configRepository;
         this.placementRepository = placementRepository;
         this.stationConfigRepository = stationConfigRepository;
-        this.migrationService = migrationService;
+        this.moves = moves;
         this.resolver = resolver;
+        this.validation = validation;
+        this.probeService = probeService;
+        this.auditService = auditService;
+        this.retiredVersions = retiredVersions;
     }
 
     /**
@@ -82,47 +120,116 @@ public class ClusterStorageBackendService {
     }
 
     /**
+     * What the association decided, and the storage it stands on with nothing secret in it.
+     *
+     * @param clusterId the association
+     * @return the answer for its storage screen
+     */
+    public PolicyResponse describe(int clusterId) {
+        Policy policy = findPolicy(clusterId);
+        ClusterStorageConfig current = policy.current();
+        return new PolicyResponse(
+                policy.reach(), policy.locked(), current == null ? null : BackendRedaction.summaryOf(current.config()));
+    }
+
+    /**
      * Sets how far the association's storage reaches and whether its stations may point themselves anywhere.
      *
      * <p>Reaching anywhere at all needs somewhere to reach: an association that has configured no storage
      * cannot decide that its files, or its stations', belong on it.
      *
+     * @param actor     who decided
      * @param clusterId the association
      * @param reach     how far its storage reaches
      * @param locked    whether only the association may move a station
      */
-    public void setPolicy(int clusterId, ClusterBackendReach reach, boolean locked) {
+    public void setPolicy(Actor actor, int clusterId, @Nullable ClusterBackendReach reach, boolean locked) {
+        Cluster cluster = requireCluster(clusterId);
+        ClusterBackendReach checked = recordingRefusals(actor, clusterId, () -> {
+            if (reach == null) throw ClusterRefusal.CLUSTER_STORAGE_POLICY_NEEDS_A_REACH.raise();
+            if (reach != ClusterBackendReach.NONE
+                    && configRepository.findCurrent(clusterId).isEmpty()) {
+                throw ClusterRefusal.CLUSTER_STORAGE_REACH_WITHOUT_STORAGE.raise();
+            }
+            return reach;
+        });
+        writePolicy(actor, cluster, new StorageBackendAuditService.Policy(checked, locked));
+    }
+
+    /**
+     * Whether the storage the association saved answers, written to its history.
+     *
+     * @param actor     who asked
+     * @param clusterId the association
+     * @return the answer, with the reason of a failure kept in the log
+     */
+    public ProbeResult probe(Actor actor, int clusterId) {
+        ClusterStorageConfig current =
+                configRepository.findCurrent(requireCluster(clusterId).id()).orElse(null);
+        if (current == null) throw ClusterRefusal.CLUSTER_KEEPS_NO_STORAGE.raise();
+        return probeService.probeSaved(actor, new Owner.Association(clusterId), current.config());
+    }
+
+    /**
+     * Whether storage the association has not saved yet would answer, without storing or recording anything.
+     *
+     * @param clusterId the association
+     * @param request   the storage as the form describes it
+     * @return the answer, with the reason of a failure kept in the log
+     */
+    public ProbeResult probe(int clusterId, BackendRequest request) {
         requireCluster(clusterId);
-        if (reach != ClusterBackendReach.NONE
-                && configRepository.findCurrent(clusterId).isEmpty()) {
-            throw ClusterRefusal.CLUSTER_STORAGE_REACH_WITHOUT_STORAGE.raise();
-        }
-        clusterRepository.setStorageBackendPolicy(clusterId, reach, locked);
-        log.info("Cluster {} storage reaches {} and is {}", clusterId, reach, locked ? "locked" : "open");
+        return probeService.probe(new Owner.Association(clusterId), validation.toConfig(request));
+    }
+
+    /**
+     * Saves the storage the association typed in, checked as every owner's storage is.
+     *
+     * @param actor     who saved it
+     * @param clusterId the association
+     * @param request   the storage; S3, SMB or SFTP
+     * @return what the association decided and stands on afterwards
+     */
+    public PolicyResponse apply(Actor actor, int clusterId, BackendRequest request) {
+        requireCluster(clusterId);
+        StationStorageBackendConfig config = recordingRefusals(actor, clusterId, () -> validation.toConfig(request));
+        setBackend(actor, clusterId, config);
+        return describe(clusterId);
     }
 
     /**
      * Saves the association's storage, as a new version or as new credentials for the one it has.
      *
      * <p>Two configurations naming the same destination are the same storage with a new secret, and rotating
-     * a secret must not copy a terabyte: nobody moves, and only what was built for it is rebuilt. Anything
-     * else is somewhere else, so it becomes the current version and everybody standing on the old one is out
-     * of place until they are carried across.
+     * a secret must not copy a terabyte: nobody moves, and only the backend built for it is rebuilt, whoever
+     * still remembers it. Anything else is somewhere else, so it becomes the current version, everybody
+     * standing on the old one is out of place until they are carried across, and an old version nobody
+     * stands on goes with its credentials.
      *
+     * @param actor     who saved it
      * @param clusterId the association
      * @param config    the backend, with its credentials already encrypted
      * @return the version that is current afterwards
      */
-    public ClusterStorageConfig setBackend(int clusterId, StationStorageBackendConfig config) {
+    public ClusterStorageConfig setBackend(Actor actor, int clusterId, StationStorageBackendConfig config) {
         requireCluster(clusterId);
+        Owner owner = new Owner.Association(clusterId);
         Optional<ClusterStorageConfig> current = configRepository.findCurrent(clusterId);
+        @Nullable
+        BackendSummary before = current.map(version -> BackendRedaction.summaryOf(version.config()))
+                .orElse(null);
+        BackendSummary after = BackendRedaction.summaryOf(config);
         if (current.isPresent() && current.get().config().destinationKey().equals(config.destinationKey())) {
             configRepository.updateInPlace(current.get().id(), config);
-            resolver.invalidateStations(placedStationIds(clusterId));
+            resolver.invalidateClusterVersion(current.get().id());
+            auditService.recordConfigChange(actor, owner, StorageAuditAction.UPDATED, before, after);
             log.info("Cluster {} storage kept its destination and took new credentials", clusterId);
             return configRepository.findById(current.get().id()).orElseThrow();
         }
         ClusterStorageConfig version = configRepository.insertCurrent(clusterId, config);
+        StorageAuditAction action = before == null ? StorageAuditAction.CREATED : StorageAuditAction.UPDATED;
+        auditService.recordConfigChange(actor, owner, action, before, after);
+        retiredVersions.sweep(clusterId);
         log.info("Cluster {} storage points somewhere new, version {}", clusterId, version.id());
         return version;
     }
@@ -132,14 +239,24 @@ public class ClusterStorageBackendService {
      *
      * <p>The versions people are standing on stay, because the alternative is a station pointed at nothing.
      * They are out of place from this moment and the lock does not hold them there: a freeze cannot freeze a
-     * station onto storage its association no longer keeps.
+     * station onto storage its association no longer keeps. A version nobody stands on goes at once.
      *
+     * @param actor     who gave it up
      * @param clusterId the association
      */
-    public void dropBackend(int clusterId) {
-        requireCluster(clusterId);
+    public void dropBackend(Actor actor, int clusterId) {
+        Cluster cluster = requireCluster(clusterId);
+        configRepository
+                .findCurrent(clusterId)
+                .ifPresent(current -> auditService.recordConfigChange(
+                        actor,
+                        new Owner.Association(clusterId),
+                        StorageAuditAction.DELETED,
+                        BackendRedaction.summaryOf(current.config()),
+                        null));
         configRepository.retireCurrent(clusterId);
-        clusterRepository.setStorageBackendPolicy(clusterId, ClusterBackendReach.NONE, false);
+        writePolicy(actor, cluster, new StorageBackendAuditService.Policy(ClusterBackendReach.NONE, false));
+        retiredVersions.sweep(clusterId);
         log.info("Cluster {} gave up storage of its own", clusterId);
     }
 
@@ -166,13 +283,16 @@ public class ClusterStorageBackendService {
     }
 
     /**
-     * Carries one station's bytes to where its association's policy says they belong.
+     * Carries one station's bytes to where its association's policy says they belong. Every check is made
+     * before the move is written down, so a refused move never reads as one that started.
      *
+     * @param actor     who asked
      * @param clusterId the association
      * @param stationId the station of it being moved
      * @return what was carried
+     * @throws dev.chojo.ember.feature.storage.migration.MigrationException when the copy cannot be made
      */
-    public StorageMigrationService.MigrationResult moveStation(int clusterId, int stationId) {
+    public StorageMigrationService.MigrationResult moveStation(Actor actor, int clusterId, int stationId) {
         Cluster cluster = requireCluster(clusterId);
         Station station = requireStationOf(cluster, stationId);
         Policy policy = findPolicy(clusterId);
@@ -180,7 +300,8 @@ public class ClusterStorageBackendService {
         if (placement.inPlace()) {
             throw ClusterRefusal.CLUSTER_STORAGE_STATION_ALREADY_IN_PLACE.raise();
         }
-        return migrationService.moveStation(stationId, destinationFor(placement.expected(), policy));
+        Destination destination = destinationFor(placement.expected(), policy);
+        return moves.move(actor, new Owner.Association(clusterId), stationId, destination);
     }
 
     /**
@@ -197,14 +318,17 @@ public class ClusterStorageBackendService {
      */
     public void takeOverOnJoin(int clusterId, int stationId) {
         Policy policy = findPolicy(clusterId);
-        if (policy.reach() != ClusterBackendReach.EVERY_STATION || policy.current() == null) return;
+        ClusterStorageConfig current = policy.current();
+        if (policy.reach() != ClusterBackendReach.EVERY_STATION || current == null) return;
         boolean bringsOwn = stationConfigRepository.findOne(stationId).isPresent();
         boolean optsOut = bringsOwn && !policy.locked();
         if (optsOut) return;
 
-        ClusterStorageConfig current = policy.current();
-        migrationService.moveStation(
-                stationId, new StorageMigrationService.Destination.Cluster(clusterId, current.id(), current.config()));
+        moves.move(
+                Actor.system(JOIN),
+                new Owner.Association(clusterId),
+                stationId,
+                new Destination.Cluster(clusterId, current.id(), current.config()));
         log.info("Station {} arrived on cluster {} storage version {}", stationId, clusterId, current.id());
     }
 
@@ -226,8 +350,31 @@ public class ClusterStorageBackendService {
                 .isPresent();
         if (!onThisCluster) return;
 
-        migrationService.moveStation(stationId, new StorageMigrationService.Destination.InstanceDefault());
+        moves.move(
+                Actor.system(RELEASE), new Owner.Association(clusterId), stationId, new Destination.InstanceDefault());
         log.info("Station {} took its files off cluster {} storage on the way out", stationId, clusterId);
+    }
+
+    /** Runs a check, writing a refusal to the association's history before it is answered. */
+    private <T> T recordingRefusals(Actor actor, int clusterId, Supplier<T> check) {
+        try {
+            return check.get();
+        } catch (RefusalResponse refused) {
+            auditService.recordRejected(actor, new Owner.Association(clusterId), refused);
+            throw refused;
+        }
+    }
+
+    private void writePolicy(Actor actor, Cluster cluster, StorageBackendAuditService.Policy after) {
+        var before =
+                new StorageBackendAuditService.Policy(cluster.storageBackendReach(), cluster.storageBackendLocked());
+        clusterRepository.setStorageBackendPolicy(cluster.id(), after.reach(), after.locked());
+        if (!before.equals(after)) auditService.recordPolicyChange(actor, cluster.id(), before, after);
+        log.info(
+                "Cluster {} storage reaches {} and is {}",
+                cluster.id(),
+                after.reach(),
+                after.locked() ? "locked" : "open");
     }
 
     /**
@@ -257,9 +404,9 @@ public class ClusterStorageBackendService {
         Actual actual = bringsOwn ? Actual.ITS_OWN : placed.isPresent() ? Actual.THE_CLUSTERS : Actual.INSTANCE_DEFAULT;
         Expected expected = expectedFor(station, policy, isHome);
 
-        boolean onCurrent = placed.map(row -> policy.current() != null
-                        && row.configId() == policy.current().id())
-                .orElse(false);
+        ClusterStorageConfig current = policy.current();
+        boolean onCurrent = current != null
+                && placed.map(row -> row.configId() == current.id()).orElse(false);
         boolean inPlace =
                 switch (expected) {
                     case WHEREVER_IT_IS -> true;
@@ -270,23 +417,16 @@ public class ClusterStorageBackendService {
         return new Placement(station.id(), station.uid(), station.name(), isHome, actual, expected, inPlace);
     }
 
-    private StorageMigrationService.Destination destinationFor(Expected expected, Policy policy) {
+    private Destination destinationFor(Expected expected, Policy policy) {
         return switch (expected) {
             case THE_CLUSTERS -> {
                 ClusterStorageConfig current = policy.current();
                 if (current == null) throw ClusterRefusal.CLUSTER_STORAGE_NONE_TO_MOVE_ONTO.raise();
-                yield new StorageMigrationService.Destination.Cluster(
-                        current.clusterId(), current.id(), current.config());
+                yield new Destination.Cluster(current.clusterId(), current.id(), current.config());
             }
-            case INSTANCE_DEFAULT, WHEREVER_IT_IS -> new StorageMigrationService.Destination.InstanceDefault();
+            case INSTANCE_DEFAULT, WHEREVER_IT_IS -> new Destination.InstanceDefault();
             case ITS_OWN -> throw ClusterRefusal.CLUSTER_STORAGE_STATION_OWN_STORAGE.raise();
         };
-    }
-
-    private List<Integer> placedStationIds(int clusterId) {
-        return placementRepository.findByCluster(clusterId).stream()
-                .map(ClusterStationStorage::stationId)
-                .toList();
     }
 
     private Cluster requireCluster(int clusterId) {
@@ -309,7 +449,22 @@ public class ClusterStorageBackendService {
      * @param locked  whether only it may move a station
      * @param current the version new placements are carried to, or {@code null} when it keeps none
      */
-    public record Policy(ClusterBackendReach reach, boolean locked, ClusterStorageConfig current) {}
+    public record Policy(
+            ClusterBackendReach reach,
+            boolean locked,
+            @Nullable ClusterStorageConfig current) {}
+
+    /**
+     * What the association decided, and the storage it is standing on with nothing secret in it.
+     *
+     * @param reach   how far its own storage reaches
+     * @param locked  whether only it may move a station
+     * @param backend the storage it keeps, or {@code null} when it keeps none
+     */
+    public record PolicyResponse(
+            ClusterBackendReach reach,
+            boolean locked,
+            @Nullable BackendSummary backend) {}
 
     /**
      * One station of the association, where its bytes are and where they belong.

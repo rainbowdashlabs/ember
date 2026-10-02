@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.storage.repository;
 
 import dev.chojo.ember.feature.storage.entity.ClusterStorageConfig;
 import dev.chojo.ember.feature.storage.entity.StationStorageBackendConfig;
+import dev.chojo.ember.util.sql.Transactions;
 import jakarta.inject.Singleton;
 
 import java.util.List;
@@ -56,22 +57,26 @@ public class ClusterStorageConfigRepository {
     }
 
     /**
-     * Records a new current version, retiring the one before it.
+     * Records a new current version, retiring the one before it, as one change: a version that cannot be
+     * written leaves the one before it current.
      *
      * @param config the backend, its credentials encrypted by the caller
      */
     public ClusterStorageConfig insertCurrent(int clusterId, StationStorageBackendConfig config) {
-        retireCurrent(clusterId);
-        return query("""
-                INSERT INTO cluster_storage_config (cluster_id, backend_type, config, is_current)
-                VALUES (:cluster_id, :backend_type, :config::JSONB, TRUE)
-                RETURNING %s;""", COLUMNS)
-                .single(call().bind("cluster_id", clusterId)
-                        .bind("backend_type", config.type().name())
-                        .bind("config", config.toJson()))
-                .map(ClusterStorageConfig.map())
-                .first()
-                .orElseThrow();
+        return Transactions.call(() -> {
+            retireCurrent(clusterId);
+            return query("""
+                    INSERT INTO cluster_storage_config (cluster_id, backend_type, config, is_current)
+                    VALUES (:cluster_id, :backend_type, :config::JSONB, TRUE)
+                    RETURNING %s;""", COLUMNS)
+                    .single(call().bind("cluster_id", clusterId)
+                            .bind("backend_type", config.type().name())
+                            .bind("config", config.toJson()))
+                    .map(ClusterStorageConfig.map())
+                    .first()
+                    .orElseThrow(() -> new IllegalStateException(
+                            "A storage version of cluster " + clusterId + " could not be written"));
+        });
     }
 
     /**
@@ -91,12 +96,24 @@ public class ClusterStorageConfigRepository {
     }
 
     /**
-     * Deletes a version nobody stands on any more; the placement table's foreign key, with no
-     * {@code ON DELETE} clause, refuses it otherwise.
+     * Deletes every retired version of a cluster nobody stands on any more, and its credentials with it.
+     *
+     * <p>The current version stays even with nobody on it, since it is where the next station is carried. The
+     * placement table's foreign key, with no {@code ON DELETE} clause, still refuses a version somebody is
+     * being carried onto at the same moment.
+     *
+     * @param clusterId the cluster
+     * @return the versions deleted
      */
-    public void delete(int id) {
-        query("DELETE FROM cluster_storage_config WHERE id = :id;")
-                .single(call().bind("id", id))
-                .delete();
+    public List<Integer> deleteRetiredUnused(int clusterId) {
+        return query("""
+                DELETE FROM cluster_storage_config csc
+                WHERE csc.cluster_id = :cluster_id
+                  AND NOT csc.is_current
+                  AND NOT EXISTS (SELECT 1 FROM cluster_station_storage css WHERE css.config_id = csc.id)
+                RETURNING csc.id;""")
+                .single(call().bind("cluster_id", clusterId))
+                .map(row -> row.getInt("id"))
+                .all();
     }
 }

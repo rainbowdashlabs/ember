@@ -58,4 +58,5 @@ export default {
     'ST-037': 'Diese Art von Dateien führt diese Instanz nicht',
     'ST-038': 'Diese Art von Dateien gehört nicht zu einer Wache',
     'ST-039': 'Diese Art von Dateien zieht nicht mit einer Wache um',
+    'ST-040': 'Dieser Speicher kann hier nicht gewählt werden, es wurde nichts gespeichert',
 }

@@ -21,14 +21,14 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 
 /**
  * CRUD on the {@code storage_backend_audit} table. Inserts are append-only; reads are
- * cursor-paginated on {@code (ts DESC, id DESC)} so the admin / station audit views can keep
- * scrolling without {@code OFFSET} performance pitfalls.
+ * cursor-paginated on {@code (ts DESC, id DESC)} so the admin, station and association audit views can
+ * keep scrolling without {@code OFFSET} performance pitfalls.
  */
 @Singleton
 public class StorageBackendAuditRepository {
 
     private static final String SELECT_COLS = "id, ts, actor_account_id, actor_member_id, system_actor, station_id, "
-            + "action, old_config::text AS old_config_text, new_config::text AS new_config_text, "
+            + "cluster_id, action, old_config::text AS old_config_text, new_config::text AS new_config_text, "
             + "outcome, error";
     private static final RowMapping<StorageAuditEntry> MAP = row -> new StorageAuditEntry(
             row.getLong("id"),
@@ -37,6 +37,7 @@ public class StorageBackendAuditRepository {
             Optional.ofNullable((Integer) row.getObject("actor_member_id")),
             Optional.ofNullable(row.getString("system_actor")),
             Optional.ofNullable((Integer) row.getObject("station_id")),
+            Optional.ofNullable((Integer) row.getObject("cluster_id")),
             row.getEnum("action", StorageAuditAction.class),
             Optional.ofNullable(row.getString("old_config_text")),
             Optional.ofNullable(row.getString("new_config_text")),
@@ -49,10 +50,10 @@ public class StorageBackendAuditRepository {
     public long insert(NewEntry entry) {
         return query("""
                 INSERT INTO storage_backend_audit (
-                    actor_account_id, actor_member_id, system_actor, station_id,
+                    actor_account_id, actor_member_id, system_actor, station_id, cluster_id,
                     action, old_config, new_config, outcome, error
                 ) VALUES (
-                    :actor_account_id, :actor_member_id, :system_actor, :station_id,
+                    :actor_account_id, :actor_member_id, :system_actor, :station_id, :cluster_id,
                     :action, :old_config::JSONB, :new_config::JSONB, :outcome, :error
                 )
                 RETURNING id;
@@ -61,6 +62,7 @@ public class StorageBackendAuditRepository {
                         .bind("actor_member_id", entry.actorMemberId().orElse(null))
                         .bind("system_actor", entry.systemActor().orElse(null))
                         .bind("station_id", entry.stationId().orElse(null))
+                        .bind("cluster_id", entry.clusterId().orElse(null))
                         .bind("action", entry.action().name())
                         .bind("old_config", entry.oldConfig().orElse(null))
                         .bind("new_config", entry.newConfig().orElse(null))
@@ -72,14 +74,15 @@ public class StorageBackendAuditRepository {
     }
 
     /**
-     * Returns the most recent audit row for the same actor + station + action + outcome
-     * inside the dedupe window. Used by {@code StorageBackendAuditService} to suppress
-     * runaway probe-storm rows on admin-panel auto-refresh.
+     * Returns the most recent audit row for the same actor, owner, action and outcome inside the dedupe
+     * window. Used by {@code StorageBackendAuditService} to suppress runaway probe-storm rows on a screen's
+     * auto-refresh.
      */
     public Optional<StorageAuditEntry> findRecentMatching(
             Optional<Integer> actorAccountId,
             Optional<String> systemActor,
             Optional<Integer> stationId,
+            Optional<Integer> clusterId,
             StorageAuditAction action,
             StorageAuditOutcome outcome,
             Instant cutoff) {
@@ -94,6 +97,8 @@ public class StorageBackendAuditRepository {
                         OR system_actor = :system_actor )
                   AND ( (:station_id IS NULL AND station_id IS NULL)
                         OR station_id = :station_id )
+                  AND ( (:cluster_id IS NULL AND cluster_id IS NULL)
+                        OR cluster_id = :cluster_id )
                 ORDER BY ts DESC, id DESC
                 LIMIT 1;
                 """, SELECT_COLS)
@@ -102,7 +107,8 @@ public class StorageBackendAuditRepository {
                         .bind("outcome", outcome.name())
                         .bind("actor_account_id", actorAccountId.orElse(null))
                         .bind("system_actor", systemActor.orElse(null))
-                        .bind("station_id", stationId.orElse(null)))
+                        .bind("station_id", stationId.orElse(null))
+                        .bind("cluster_id", clusterId.orElse(null)))
                 .map(MAP)
                 .first();
     }
@@ -136,6 +142,25 @@ public class StorageBackendAuditRepository {
     }
 
     /**
+     * Paginated cursor read of one association's history: what it decided, its storage, and the moves it
+     * made for its stations.
+     */
+    public List<StorageAuditEntry> findByCluster(int clusterId, Optional<Instant> before, int limit) {
+        return query("""
+                SELECT %s FROM storage_backend_audit
+                WHERE cluster_id = :cluster_id
+                  AND ( :before::TIMESTAMPTZ IS NULL OR ts < :before::TIMESTAMPTZ )
+                ORDER BY ts DESC, id DESC
+                LIMIT :limit;
+                """, SELECT_COLS)
+                .single(call().bind("cluster_id", clusterId)
+                        .bind("before", before.orElse(null), INSTANT_TIMESTAMP)
+                        .bind("limit", limit))
+                .map(MAP)
+                .all();
+    }
+
+    /**
      * Inputs to {@link #insert(NewEntry)}. {@code oldConfig} / {@code newConfig} are
      * already-redacted JSON strings supplied by the caller; the repository never touches
      * raw cipher material.
@@ -145,6 +170,7 @@ public class StorageBackendAuditRepository {
             Optional<Integer> actorMemberId,
             Optional<String> systemActor,
             Optional<Integer> stationId,
+            Optional<Integer> clusterId,
             StorageAuditAction action,
             Optional<String> oldConfig,
             Optional<String> newConfig,

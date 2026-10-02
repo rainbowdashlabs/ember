@@ -6,14 +6,20 @@
 package dev.chojo.ember.feature.storage.service;
 
 import dev.chojo.ember.api.auth.InstanceUserType;
+import dev.chojo.ember.api.refusal.StorageRefusal;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.cluster.entity.Cluster;
+import dev.chojo.ember.feature.cluster.entity.ClusterBackendReach;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.storage.audit.StorageAuditAction;
 import dev.chojo.ember.feature.storage.audit.StorageAuditEntry;
 import dev.chojo.ember.feature.storage.audit.StorageAuditOutcome;
+import dev.chojo.ember.feature.storage.core.BackendRedaction;
+import dev.chojo.ember.feature.storage.core.BackendSummary;
 import dev.chojo.ember.feature.storage.credential.CredentialCipher;
-import dev.chojo.ember.feature.storage.entity.RedactedStationConfig;
 import dev.chojo.ember.feature.storage.entity.StationStorageBackendConfig;
+import dev.chojo.ember.feature.storage.service.StorageBackendAuditService.Actor;
+import dev.chojo.ember.owner.Owner;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -28,9 +34,9 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Behavioural tests for the storage backend audit trail. Every assertion reads the row back
- * through the repository, so the redaction contract (no cipher material in the table) and the
- * probe dedupe window are checked against what actually landed in the database.
+ * Behavioural tests for the storage history. Every assertion reads the row back through the repository, so
+ * the redaction contract (no cipher material in the table), the owner a row is filed under and the probe
+ * dedupe window are checked against what actually landed in the database.
  */
 class StorageBackendAuditServiceTest extends RepositoryTestBase {
 
@@ -53,19 +59,19 @@ class StorageBackendAuditServiceTest extends RepositoryTestBase {
         stationRepo.delete(station.id());
     }
 
-    private static StationStorageBackendConfig s3Config(String bucket) {
-        return new StationStorageBackendConfig.S3Variant(
+    private static BackendSummary s3(String bucket) {
+        return BackendRedaction.summaryOf(new StationStorageBackendConfig.S3Variant(
                 "https://s3.example.invalid",
                 "eu-central-1",
                 bucket,
                 true,
                 Optional.of("AES256"),
                 "/",
-                cipher.encrypt("{\"accessKey\":\"ak\",\"secretKey\":\"sk\"}"));
+                cipher.encrypt("{\"accessKey\":\"ak\",\"secretKey\":\"sk\"}")));
     }
 
-    private static StationStorageBackendConfig smbConfig() {
-        return new StationStorageBackendConfig.SmbVariant(
+    private static BackendSummary smb() {
+        return BackendRedaction.summaryOf(new StationStorageBackendConfig.SmbVariant(
                 "smb.example.invalid",
                 445,
                 "share",
@@ -73,7 +79,11 @@ class StorageBackendAuditServiceTest extends RepositoryTestBase {
                 "/base",
                 true,
                 false,
-                cipher.encrypt("{\"username\":\"u\",\"password\":\"p\"}"));
+                cipher.encrypt("{\"username\":\"u\",\"password\":\"p\"}")));
+    }
+
+    private static Actor human() {
+        return Actor.human(account.id(), null);
     }
 
     private List<StorageAuditEntry> rowsForStation() {
@@ -88,17 +98,13 @@ class StorageBackendAuditServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * A CREATED event carries only the new config, and the persisted snapshot is redacted -
-     * the plaintext secret key must never reach the table.
+     * A CREATED event carries only the new storage, redacted to a fingerprint: the secret key must never
+     * reach the table.
      */
     @Test
     void configCreationRecordsRedactedNewSnapshotOnly() {
         service.recordConfigChange(
-                StorageBackendAuditService.Actor.human(account.id(), null),
-                station.id(),
-                StorageAuditAction.CREATED,
-                null,
-                s3Config("created-bucket"));
+                human(), new Owner.Station(station.id()), StorageAuditAction.CREATED, null, s3("created-bucket"));
 
         StorageAuditEntry row = latestFor(StorageAuditAction.CREATED);
         assertEquals(Optional.of(account.id()), row.actorAccountId());
@@ -107,74 +113,47 @@ class StorageBackendAuditServiceTest extends RepositoryTestBase {
         assertTrue(row.oldConfig().isEmpty(), "CREATED must not carry an old snapshot");
         String newConfig = row.newConfig().orElseThrow();
         assertTrue(newConfig.contains("created-bucket"));
-        assertTrue(newConfig.contains(RedactedStationConfig.REDACTED_MARKER));
-        assertFalse(newConfig.contains("sk"), "secret key must not reach the audit table");
+        assertTrue(newConfig.contains("credentialFingerprint"));
+        assertFalse(newConfig.contains("\"sk\""), "secret key must not reach the audit table");
     }
 
     /**
-     * An UPDATED event carries both snapshots so a reader can diff the non-secret shape, and a
-     * DELETED event carries only the old one.
+     * An UPDATED event carries both snapshots so a reader can diff the non-secret shape, and a DELETED event
+     * carries only the old one.
      */
     @Test
     void updateCarriesBothSnapshotsAndDeleteOnlyTheOld() {
         service.recordConfigChange(
-                StorageBackendAuditService.Actor.human(account.id(), null),
-                station.id(),
-                StorageAuditAction.UPDATED,
-                s3Config("old-bucket"),
-                smbConfig());
+                human(), new Owner.Station(station.id()), StorageAuditAction.UPDATED, s3("old-bucket"), smb());
         StorageAuditEntry updated = latestFor(StorageAuditAction.UPDATED);
         assertTrue(updated.oldConfig().orElseThrow().contains("old-bucket"));
         assertTrue(updated.newConfig().orElseThrow().contains("smb.example.invalid"));
 
         service.recordConfigChange(
-                StorageBackendAuditService.Actor.system("migration"),
-                station.id(),
-                StorageAuditAction.DELETED,
-                smbConfig(),
-                null);
+                Actor.system("migration"), new Owner.Station(station.id()), StorageAuditAction.DELETED, smb(), null);
         StorageAuditEntry deleted = latestFor(StorageAuditAction.DELETED);
         assertEquals(Optional.of("migration"), deleted.systemActor());
         assertTrue(deleted.oldConfig().isPresent());
         assertTrue(deleted.newConfig().isEmpty(), "DELETED must not carry a new snapshot");
     }
 
-    /**
-     * A rejected mutation lands with the FAILED outcome, the operator-facing reason, and the
-     * attempted config in the new-config column.
-     */
+    /** A refused change lands with the FAILED outcome and the code and sentence the person was given. */
     @Test
-    void rejectionCarriesReasonAndAttemptedConfig() {
-        service.recordRejected(
-                StorageBackendAuditService.Actor.human(account.id(), null),
-                station.id(),
-                Optional.of(s3Config("rejected-bucket")),
-                "backend still holds bytes");
-
-        StorageAuditEntry row = latestFor(StorageAuditAction.REJECTED);
-        assertEquals(StorageAuditOutcome.FAILED, row.outcome());
-        assertEquals(Optional.of("backend still holds bytes"), row.error());
-        assertTrue(row.newConfig().orElseThrow().contains("rejected-bucket"));
-        assertTrue(row.oldConfig().isEmpty());
-    }
-
-    /**
-     * Rejections raised before any config was parsed carry no snapshot at all.
-     */
-    @Test
-    void rejectionWithoutAttemptedConfigStoresNoSnapshot() {
-        Station lonely = stationRepo.create("Rejection Without Config");
+    void rejectionCarriesTheRefusalItWasAnsweredWith() {
+        Station lonely = stationRepo.create("Rejection Station");
         try {
             service.recordRejected(
-                    StorageBackendAuditService.Actor.system("route"),
-                    lonely.id(),
-                    Optional.empty(),
-                    "credential encryption key not configured");
+                    human(), new Owner.Station(lonely.id()), StorageRefusal.STORAGE_KEYS_MISSING.raise());
 
             StorageAuditEntry row = storageBackendAuditRepo
                     .findByStation(lonely.id(), Optional.empty(), 10)
                     .getFirst();
             assertEquals(StorageAuditAction.REJECTED, row.action());
+            assertEquals(StorageAuditOutcome.FAILED, row.outcome());
+            assertEquals(
+                    Optional.of(StorageRefusal.STORAGE_KEYS_MISSING.code() + ": "
+                            + StorageRefusal.STORAGE_KEYS_MISSING.message()),
+                    row.error());
             assertTrue(row.newConfig().isEmpty());
             assertTrue(row.oldConfig().isEmpty());
         } finally {
@@ -183,17 +162,17 @@ class StorageBackendAuditServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * The admin panel auto-refreshes; back-to-back probes from the same actor with the same
-     * outcome collapse into a single row inside the dedupe window.
+     * A screen auto-refreshes; back-to-back probes from the same actor with the same outcome collapse into a
+     * single row inside the dedupe window.
      */
     @Test
     void repeatedProbesInsideTheDedupeWindowCollapseToOneRow() {
         Station probed = stationRepo.create("Probe Dedupe Station");
         try {
-            var actor = StorageBackendAuditService.Actor.human(account.id(), null);
-            service.recordProbe(actor, probed.id(), StorageAuditOutcome.OK, null);
-            service.recordProbe(actor, probed.id(), StorageAuditOutcome.OK, null);
-            service.recordProbe(actor, probed.id(), StorageAuditOutcome.OK, null);
+            var owner = new Owner.Station(probed.id());
+            service.recordProbe(human(), owner, StorageAuditOutcome.OK, null);
+            service.recordProbe(human(), owner, StorageAuditOutcome.OK, null);
+            service.recordProbe(human(), owner, StorageAuditOutcome.OK, null);
 
             var rows = storageBackendAuditRepo.findByStation(probed.id(), Optional.empty(), 50);
             assertEquals(1, rows.size(), "probes inside the dedupe window must collapse");
@@ -204,16 +183,16 @@ class StorageBackendAuditServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * The dedupe key includes the outcome: a probe that starts failing is recorded even though
-     * a successful probe from the same actor is still inside the window.
+     * The dedupe key includes the outcome: a probe that starts failing is recorded even though a successful
+     * probe from the same actor is still inside the window.
      */
     @Test
     void probeWithADifferentOutcomeIsNotDeduped() {
         Station flipping = stationRepo.create("Probe Flip Station");
         try {
-            var actor = StorageBackendAuditService.Actor.human(account.id(), null);
-            service.recordProbe(actor, flipping.id(), StorageAuditOutcome.OK, null);
-            service.recordProbe(actor, flipping.id(), StorageAuditOutcome.FAILED, "connection refused");
+            var owner = new Owner.Station(flipping.id());
+            service.recordProbe(human(), owner, StorageAuditOutcome.OK, null);
+            service.recordProbe(human(), owner, StorageAuditOutcome.FAILED, "connection refused");
 
             var rows = storageBackendAuditRepo.findByStation(flipping.id(), Optional.empty(), 50);
             assertEquals(2, rows.size());
@@ -229,25 +208,26 @@ class StorageBackendAuditServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * Migration lifecycle events derive their outcome from the action: only the FAILED action
-     * writes a FAILED outcome, and the failure reason rides along.
+     * Move steps derive their outcome from the action: only the FAILED action writes a FAILED outcome, and
+     * the failure reason rides along.
      */
     @Test
     void migrationOutcomeFollowsTheAction() {
         Station migrating = stationRepo.create("Migration Lifecycle Station");
         try {
-            var actor = StorageBackendAuditService.Actor.human(account.id(), null);
-            service.recordMigration(
-                    actor, migrating.id(), StorageAuditAction.MIGRATION_STARTED, null, s3Config("target"), null);
-            service.recordMigration(
-                    actor,
+            var owner = new Owner.Station(migrating.id());
+            service.recordMove(
+                    human(), owner, migrating.id(), StorageAuditAction.MIGRATION_STARTED, null, s3("target"), null);
+            service.recordMove(
+                    human(),
+                    owner,
                     migrating.id(),
                     StorageAuditAction.MIGRATION_FAILED,
-                    smbConfig(),
-                    s3Config("target"),
+                    smb(),
+                    s3("target"),
                     "target probe failed");
-            service.recordMigration(
-                    actor, migrating.id(), StorageAuditAction.MIGRATION_COMPLETED, null, s3Config("target"), null);
+            service.recordMove(
+                    human(), owner, migrating.id(), StorageAuditAction.MIGRATION_COMPLETED, null, s3("target"), null);
 
             var rows = storageBackendAuditRepo.findByStation(migrating.id(), Optional.empty(), 50);
             assertEquals(3, rows.size());
@@ -256,6 +236,7 @@ class StorageBackendAuditServiceTest extends RepositoryTestBase {
                         ? StorageAuditOutcome.FAILED
                         : StorageAuditOutcome.OK;
                 assertEquals(expected, row.outcome(), "outcome for " + row.action());
+                assertTrue(row.clusterId().isEmpty(), "a station's own move is its own history only");
             }
             var failed = rows.stream()
                     .filter(row -> row.action() == StorageAuditAction.MIGRATION_FAILED)
@@ -269,25 +250,62 @@ class StorageBackendAuditServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * Instance-level events are station-less and pass the caller's pre-redacted JSON straight
-     * through, since the instance config shape is owned by the route layer.
+     * What an association does to its own storage is its history alone, and a move it makes for one of its
+     * stations is both histories.
      */
     @Test
-    void instanceEventsAreStationLessAndPassCallerJsonThrough() {
-        var actor = StorageBackendAuditService.Actor.system("admin-panel");
-        service.recordInstanceConfigUpdate(actor, "{\"type\":\"LOCAL\"}", "{\"type\":\"S3\"}");
+    void anAssociationsRowsAreFiledUnderItAndItsMovesUnderBoth() {
+        Cluster cluster = clusterService.create("Audit Verband Service", null);
+        Station moved = stationRepo.create("Audit Verband Station");
+        try {
+            var owner = new Owner.Association(cluster.id());
+            service.recordConfigChange(human(), owner, StorageAuditAction.CREATED, null, smb());
+            service.recordPolicyChange(
+                    human(),
+                    cluster.id(),
+                    new StorageBackendAuditService.Policy(ClusterBackendReach.NONE, false),
+                    new StorageBackendAuditService.Policy(ClusterBackendReach.EVERY_STATION, true));
+            service.recordMove(
+                    Actor.system("association-join"),
+                    owner,
+                    moved.id(),
+                    StorageAuditAction.MIGRATION_COMPLETED,
+                    null,
+                    smb(),
+                    null);
+
+            var history = storageBackendAuditRepo.findByCluster(cluster.id(), Optional.empty(), 50);
+            assertEquals(3, history.size());
+            var policy = history.stream()
+                    .filter(row -> row.action() == StorageAuditAction.POLICY_CHANGED)
+                    .findFirst()
+                    .orElseThrow();
+            assertTrue(policy.stationId().isEmpty());
+            assertTrue(policy.newConfig().orElseThrow().contains("EVERY_STATION"));
+            assertTrue(policy.oldConfig().orElseThrow().contains("NONE"));
+
+            var stationHistory = storageBackendAuditRepo.findByStation(moved.id(), Optional.empty(), 50);
+            assertEquals(1, stationHistory.size());
+            assertEquals(Optional.of(cluster.id()), stationHistory.getFirst().clusterId());
+            assertEquals(
+                    Optional.of("association-join"), stationHistory.getFirst().systemActor());
+        } finally {
+            stationRepo.delete(moved.id());
+            clusterService.delete(cluster.id());
+        }
+    }
+
+    /** Instance events belong to nobody's history but the instance's and carry its storage redacted. */
+    @Test
+    void instanceEventsAreStationLess() {
+        var actor = Actor.system("admin-panel");
+        var local = new BackendSummary.LocalSummary("data");
+        service.recordConfigChange(
+                actor, new Owner.Instance(), StorageAuditAction.INSTANCE_DEFAULT_UPDATED, local, s3("instance"));
         service.recordInstanceMigration(
-                actor,
-                StorageAuditAction.INSTANCE_MIGRATION_FAILED,
-                "{\"type\":\"LOCAL\"}",
-                "{\"type\":\"S3\"}",
-                "instance probe failed");
+                actor, StorageAuditAction.INSTANCE_MIGRATION_FAILED, local, s3("instance"), "instance probe failed");
         service.recordInstanceMigration(
-                actor,
-                StorageAuditAction.INSTANCE_MIGRATION_COMPLETED,
-                "{\"type\":\"LOCAL\"}",
-                "{\"type\":\"S3\"}",
-                null);
+                actor, StorageAuditAction.INSTANCE_MIGRATION_COMPLETED, local, s3("instance"), null);
 
         var all = storageBackendAuditRepo.findAll(Optional.empty(), Optional.empty(), 200);
         var update = all.stream()
@@ -295,7 +313,9 @@ class StorageBackendAuditServiceTest extends RepositoryTestBase {
                 .findFirst()
                 .orElseThrow();
         assertTrue(update.stationId().isEmpty(), "instance events carry no station");
-        assertTrue(update.newConfig().orElseThrow().contains("S3"));
+        assertTrue(update.clusterId().isEmpty(), "nor an association");
+        assertTrue(update.oldConfig().orElseThrow().contains("LOCAL"));
+        assertTrue(update.newConfig().orElseThrow().contains("instance"));
         assertEquals(StorageAuditOutcome.OK, update.outcome());
 
         var failed = all.stream()
@@ -314,20 +334,20 @@ class StorageBackendAuditServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * The actor factories fill exactly one of the account / system slots, and the member id is
-     * carried only when the human actor is also a station member.
+     * The actor factories fill exactly one of the account / system slots, and the member id is carried only
+     * when the human actor is also a station member.
      */
     @Test
     void actorFactoriesPopulateExactlyOneAttributionSlot() {
-        var human = StorageBackendAuditService.Actor.human(42, 7);
+        var human = Actor.human(42, 7);
         assertEquals(Optional.of(42), human.accountId());
         assertEquals(Optional.of(7), human.memberId());
         assertTrue(human.systemActor().isEmpty());
 
-        var humanWithoutMembership = StorageBackendAuditService.Actor.human(42, null);
+        var humanWithoutMembership = Actor.human(42, null);
         assertTrue(humanWithoutMembership.memberId().isEmpty());
 
-        var system = StorageBackendAuditService.Actor.system("boot");
+        var system = Actor.system("boot");
         assertTrue(system.accountId().isEmpty());
         assertTrue(system.memberId().isEmpty());
         assertEquals(Optional.of("boot"), system.systemActor());

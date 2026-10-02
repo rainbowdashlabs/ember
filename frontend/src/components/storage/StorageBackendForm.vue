@@ -14,17 +14,17 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
-import Alert from '@/components/feedback/Alert.vue'
 import S3BackendForm from '@/components/storage/S3BackendForm.vue'
 import SmbBackendForm from '@/components/storage/SmbBackendForm.vue'
 import SftpBackendForm from '@/components/storage/SftpBackendForm.vue'
+import StorageProbeOutcome from '@/components/storage/StorageProbeOutcome.vue'
 import type {ProbeResult} from '@/api/generated/schema'
+import type {StorageBackendChoice} from '@/composables/useStorageBackendEditor'
 import type {S3Form, SftpForm, SmbForm} from '@/util/storageBackendForm'
 
-type BackendType = 'LOCAL' | 'CLUSTER' | 'S3' | 'SMB' | 'SFTP'
-
 /**
- * Editor for a storage backend selection, shared by the instance and the station view.
+ * Editor for a storage backend selection, shared by the station's, the association's and the instance's
+ * screen.
  *
  * All labels are read from `i18nPrefix`, so each caller keeps its own wording. Bind
  * `localRoot` when LOCAL means a writable directory - it then renders the root path
@@ -32,9 +32,10 @@ type BackendType = 'LOCAL' | 'CLUSTER' | 'S3' | 'SMB' | 'SFTP'
  *
  * `types` says which destinations this caller offers. An association has no instance default to fall back
  * to and no association above it, and a station only sees the association's storage when there is one, so
- * the list is the caller's rather than a constant.
+ * the list is the caller's rather than a constant. The storage already saved is tested from the summary
+ * card; this form tests what is typed into it.
  */
-const selectedType = defineModel<BackendType>('selectedType', {required: true})
+const selectedType = defineModel<StorageBackendChoice>('selectedType', {required: true})
 const s3 = defineModel<S3Form>('s3', {required: true})
 const smb = defineModel<SmbForm>('smb', {required: true})
 const sftp = defineModel<SftpForm>('sftp', {required: true})
@@ -44,20 +45,15 @@ const props = withDefaults(defineProps<{
     i18nPrefix: string
     probing: boolean
     saving: boolean
-    types?: BackendType[]
-    showLiveProbe?: boolean
-    canProbeLive?: boolean
+    types?: StorageBackendChoice[]
     probeOutcome?: ProbeResult | null
 }>(), {
     types: () => ['LOCAL', 'S3', 'SMB', 'SFTP'],
-    showLiveProbe: false,
-    canProbeLive: false,
     probeOutcome: null,
 })
 
 const emit = defineEmits<{
     'probe-config': []
-    'probe-live': []
     apply: []
 }>()
 
@@ -93,14 +89,7 @@ const {t} = useI18n()
         <SmbBackendForm v-else-if="selectedType === 'SMB'" v-model="smb"/>
         <SftpBackendForm v-else-if="selectedType === 'SFTP'" v-model="sftp"/>
 
-        <div v-if="props.probeOutcome" class="text-sm">
-            <Alert v-if="props.probeOutcome.healthy" variant="success">
-                {{ t(`${props.i18nPrefix}.probe.ok`) }}
-            </Alert>
-            <Alert v-else variant="error">
-                {{ t(`${props.i18nPrefix}.probe.failed`, {reason: props.probeOutcome.error ?? ''}) }}
-            </Alert>
-        </div>
+        <StorageProbeOutcome :outcome="props.probeOutcome"/>
 
         <ButtonRow>
             <SecondaryButton :disabled="props.probing || selectedType === 'LOCAL' || selectedType === 'CLUSTER'"
@@ -111,17 +100,7 @@ const {t} = useI18n()
                         : t(`${props.i18nPrefix}.actions.probeConfig`)
                 }}
             </SecondaryButton>
-            <SecondaryButton
-                v-if="props.showLiveProbe"
-                :disabled="props.probing || !props.canProbeLive"
-                @click="emit('probe-live')">
-                {{
-                    props.probing
-                        ? t(`${props.i18nPrefix}.actions.probing`)
-                        : t(`${props.i18nPrefix}.actions.probeLive`)
-                }}
-            </SecondaryButton>
-            <PrimaryButton :disabled="props.saving" @click="emit('apply')">
+            <PrimaryButton :disabled="props.saving" data-testid="storage-backend-apply" @click="emit('apply')">
                 {{
                     props.saving
                         ? t(`${props.i18nPrefix}.actions.applying`)

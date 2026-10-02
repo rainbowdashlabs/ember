@@ -23,6 +23,7 @@ public record StorageAuditEntry(
         Optional<Integer> actorMemberId,
         Optional<String> systemActor,
         Optional<Integer> stationId,
+        Optional<Integer> clusterId,
         StorageAuditAction action,
         Optional<String> oldConfig,
         Optional<String> newConfig,

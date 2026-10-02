@@ -178,7 +178,14 @@ public enum StorageRefusal implements Refusal {
     TRANSFER_FILE_KIND_NOT_A_STATIONS(38, HttpStatus.BAD_REQUEST, "That kind of file does not belong to a station"),
 
     /** Files of a moving station asked for by a kind that does not move with a station. */
-    TRANSFER_FILE_KIND_NOT_MOVABLE(39, HttpStatus.BAD_REQUEST, "That kind of file does not move with a station");
+    TRANSFER_FILE_KIND_NOT_MOVABLE(39, HttpStatus.BAD_REQUEST, "That kind of file does not move with a station"),
+
+    /**
+     * Storage named that its owner cannot choose: an association's own disk or another association's storage
+     * for an association, an association's storage for the instance.
+     */
+    STORAGE_DESTINATION_NOT_OFFERED(
+            40, HttpStatus.BAD_REQUEST, "That storage cannot be chosen here, so nothing was saved");
 
     private final Definition definition;
 

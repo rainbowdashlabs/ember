@@ -953,3 +953,12 @@ COMMENT ON COLUMN ember_schema.profile_field_change.changed_by
     IS 'The member who made the change, or null when they have no membership at the station of the member whose answer changed, as an association manager often has not.';
 COMMENT ON COLUMN ember_schema.profile_field_change.changed_by_account_id
     IS 'The account that made the change when it has no membership at that station, so the history can still name them; null whenever the member column names the author.';
+
+ALTER TABLE ember_schema.storage_backend_audit
+    ADD COLUMN cluster_id INTEGER NULL REFERENCES ember_schema.cluster(id) ON DELETE SET NULL;
+
+COMMENT ON COLUMN ember_schema.storage_backend_audit.cluster_id
+    IS 'The association whose history the row belongs to: a change to its own storage or its decision about it, or a move it made for one of its stations, which then names the station as well. Set to null when the association is deleted, so the row stays as proof of what was done.';
+
+CREATE INDEX idx_storage_backend_audit_cluster_ts
+    ON ember_schema.storage_backend_audit (cluster_id, ts DESC);

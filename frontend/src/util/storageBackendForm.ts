@@ -4,9 +4,6 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import type {
-    InstanceS3Summary,
-    InstanceSftpSummary,
-    InstanceSmbSummary,
     S3Request,
     S3Summary,
     SftpRequest,
@@ -23,9 +20,6 @@ export type SmbForm = Required<SmbRequest>
 
 /** What the SFTP form edits: every field of the request, each one filled in. */
 export type SftpForm = Required<SftpRequest>
-
-/** Any of the three forms of a remote storage. */
-export type RemoteBackendForm = S3Form | SmbForm | SftpForm
 
 /** Blank S3 form state. */
 export function newS3(): S3Form {
@@ -73,10 +67,10 @@ export function newSftp(): SftpForm {
 }
 
 /**
- * Seeds S3 form state from a stored backend summary, a station's or the instance's. Credentials stay
- * blank - the server never echoes them back.
+ * Seeds S3 form state from a stored storage, whoever owns it. Credentials stay blank - the server never
+ * echoes them back.
  */
-export function s3FormFrom(summary: S3Summary | InstanceS3Summary): S3Form {
+export function s3FormFrom(summary: S3Summary): S3Form {
     return {
         type: 'S3',
         endpoint: summary.endpoint,
@@ -91,16 +85,16 @@ export function s3FormFrom(summary: S3Summary | InstanceS3Summary): S3Form {
 }
 
 /**
- * Seeds SMB form state from a stored backend summary, a station's or the instance's. Only a station's
- * names a domain. Credentials stay blank - the server never echoes them back.
+ * Seeds SMB form state from a stored storage, whoever owns it. Credentials stay blank - the server never
+ * echoes them back.
  */
-export function smbFormFrom(summary: SmbSummary | InstanceSmbSummary): SmbForm {
+export function smbFormFrom(summary: SmbSummary): SmbForm {
     return {
         type: 'SMB',
         host: summary.host,
         port: summary.port,
         share: summary.share,
-        domain: ('domain' in summary ? summary.domain : null) ?? '',
+        domain: summary.domain ?? '',
         basePath: summary.basePath,
         seal: summary.seal,
         dfs: summary.dfs,
@@ -110,10 +104,10 @@ export function smbFormFrom(summary: SmbSummary | InstanceSmbSummary): SmbForm {
 }
 
 /**
- * Seeds SFTP form state from a stored backend summary, a station's or the instance's. The host
- * fingerprint and the credentials stay blank - the server never echoes them back.
+ * Seeds SFTP form state from a stored storage, whoever owns it. The host fingerprint and the credentials
+ * stay blank - the server never echoes them back.
  */
-export function sftpFormFrom(summary: SftpSummary | InstanceSftpSummary): SftpForm {
+export function sftpFormFrom(summary: SftpSummary): SftpForm {
     return {
         type: 'SFTP',
         host: summary.host,

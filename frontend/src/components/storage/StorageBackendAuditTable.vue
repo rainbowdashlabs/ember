@@ -8,6 +8,7 @@ import {useI18n} from 'vue-i18n'
 import MutedText from '@/components/typography/MutedText.vue'
 import type {AuditEntryResponse} from '@/api/generated/schema'
 
+/** The storage history of a station, an association or the whole instance, newest first. */
 defineProps<{
     entries: AuditEntryResponse[]
 }>()
@@ -17,16 +18,16 @@ const {t} = useI18n()
 
 <template>
     <div v-if="!entries.length" class="text-sm">
-        <MutedText tag="p" size="sm">{{ t('stationStorageBackend.audit.empty') }}</MutedText>
+        <MutedText tag="p" size="sm">{{ t('storageBackend.audit.empty') }}</MutedText>
     </div>
     <div v-else class="overflow-x-auto">
         <table class="w-full text-sm">
             <thead>
                 <tr class="border-b border-[var(--border)]">
-                    <th class="text-left p-2">{{ t('stationStorageBackend.audit.timestamp') }}</th>
-                    <th class="text-left p-2">{{ t('stationStorageBackend.audit.action') }}</th>
-                    <th class="text-left p-2">{{ t('stationStorageBackend.audit.outcome') }}</th>
-                    <th class="text-left p-2">{{ t('stationStorageBackend.audit.detail') }}</th>
+                    <th class="text-left p-2">{{ t('storageBackend.audit.timestamp') }}</th>
+                    <th class="text-left p-2">{{ t('storageBackend.audit.action') }}</th>
+                    <th class="text-left p-2">{{ t('storageBackend.audit.outcome') }}</th>
+                    <th class="text-left p-2">{{ t('storageBackend.audit.detail') }}</th>
                 </tr>
             </thead>
             <tbody>

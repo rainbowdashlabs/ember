@@ -106,9 +106,24 @@ class StorageBackendResolverTest {
         var cluster = (RecordingBackend) backendOf(CLUSTER_ONE);
         backendOf(CLUSTER_TWO);
 
-        resolver.invalidateStations(List.of(CLUSTER_ONE, CLUSTER_TWO, ON_DEFAULT));
+        resolver.invalidateClusterVersion(CONFIG_ID);
 
         assertTrue(cluster.closed);
+        assertNotSame(cluster, backendOf(CLUSTER_TWO));
+    }
+
+    /**
+     * A station that stopped being remembered, because it moved or fell out of the cache, must not keep the
+     * backend of its old version alive past a credential change at the cluster.
+     */
+    @Test
+    void aCredentialChangeAtTheClusterReachesTheBackendWhoeverIsRemembered() {
+        var cluster = (RecordingBackend) backendOf(CLUSTER_ONE);
+        resolver.invalidateStation(CLUSTER_ONE);
+
+        resolver.invalidateClusterVersion(CONFIG_ID);
+
+        assertTrue(cluster.closed, "the backend built with the old credentials is gone");
         assertNotSame(cluster, backendOf(CLUSTER_TWO));
     }
 

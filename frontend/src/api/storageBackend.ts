@@ -7,13 +7,11 @@ import client from './client'
 import {queryParams} from './crud'
 import type {
     AuditEntryResponse,
-    BackendOverrideRequest,
     BackendOverrideResponse,
+    BackendRequest,
+    BackendSummary,
     components,
-    InstanceBackendRequest,
-    InstanceBackendSummary,
     InstanceMigrateRequest,
-    InstanceMigrationResultResponse,
     InstanceMigrationStatusResponse,
     MigrationResponse,
     ProbeResult,
@@ -46,6 +44,7 @@ export const StorageAuditAction = {
     INSTANCE_MIGRATION_STARTED: 'INSTANCE_MIGRATION_STARTED',
     INSTANCE_MIGRATION_COMPLETED: 'INSTANCE_MIGRATION_COMPLETED',
     INSTANCE_MIGRATION_FAILED: 'INSTANCE_MIGRATION_FAILED',
+    POLICY_CHANGED: 'POLICY_CHANGED',
 } as const satisfies Record<StorageAuditActionName, StorageAuditActionName>
 
 export type StorageAuditOutcomeName = Schemas['StorageAuditOutcome']
@@ -54,9 +53,6 @@ export const StorageAuditOutcome = {
     OK: 'OK',
     FAILED: 'FAILED',
 } as const satisfies Record<StorageAuditOutcomeName, StorageAuditOutcomeName>
-
-/** A storage somebody typed in for a station or an association: one of the remote kinds, never the default. */
-export type RemoteBackendRequest = Extract<BackendOverrideRequest, {type: 'S3' | 'SMB' | 'SFTP'}>
 
 /**
  * What is behind a station's files, on whose word, and what is still the station's to change.
@@ -74,12 +70,12 @@ export async function probeStationBackend(): Promise<ProbeResult> {
     return data
 }
 
-export async function probeStationBackendConfig(request: RemoteBackendRequest): Promise<ProbeResult> {
+export async function probeStationBackendConfig(request: BackendRequest): Promise<ProbeResult> {
     const {data} = await client.post<ProbeResult>('/station/storage/backend/probe-config', request)
     return data
 }
 
-export async function applyStationBackend(request: BackendOverrideRequest): Promise<MigrationResponse> {
+export async function applyStationBackend(request: BackendRequest): Promise<MigrationResponse> {
     const {data} = await client.post<MigrationResponse>('/station/storage/backend/apply', request)
     return data
 }
@@ -91,8 +87,8 @@ export async function getStationStorageAudit(before?: string, limit = 50): Promi
     return data
 }
 
-export async function getInstanceBackend(): Promise<InstanceBackendSummary> {
-    const {data} = await client.get<InstanceBackendSummary>('/admin/storage/backend')
+export async function getInstanceBackend(): Promise<BackendSummary> {
+    const {data} = await client.get<BackendSummary>('/admin/storage/backend')
     return data
 }
 
@@ -101,13 +97,13 @@ export async function probeInstanceBackend(): Promise<ProbeResult> {
     return data
 }
 
-export async function probeInstanceBackendConfig(request: InstanceBackendRequest): Promise<ProbeResult> {
+export async function probeInstanceBackendConfig(request: BackendRequest): Promise<ProbeResult> {
     const {data} = await client.post<ProbeResult>('/admin/storage/backend/probe-config', request)
     return data
 }
 
-export async function applyInstanceBackend(request: InstanceMigrateRequest): Promise<InstanceMigrationResultResponse> {
-    const {data} = await client.post<InstanceMigrationResultResponse>('/admin/storage/backend/apply', request)
+export async function applyInstanceBackend(request: InstanceMigrateRequest): Promise<MigrationResponse> {
+    const {data} = await client.post<MigrationResponse>('/admin/storage/backend/apply', request)
     return data
 }
 

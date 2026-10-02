@@ -9,9 +9,7 @@ import dev.chojo.ember.api.refusal.ClusterRefusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
-import dev.chojo.ember.feature.storage.audit.StorageAuditAction;
 import dev.chojo.ember.feature.storage.migration.MigrationException;
-import dev.chojo.ember.feature.storage.service.StorageBackendAuditService;
 import dev.chojo.ember.feature.storage.service.StorageBackendAuditService.Actor;
 import dev.chojo.ember.feature.storage.service.StorageMigrationService.MigrationResult;
 import org.junit.jupiter.api.BeforeEach;
@@ -22,6 +20,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -33,7 +32,6 @@ class ClusterStationMoveServiceTest {
     private static final Actor ACTOR = Actor.human(1, null);
 
     private ClusterStorageBackendService backend;
-    private StorageBackendAuditService audit;
     private ClusterStationMoveService service;
 
     @BeforeEach
@@ -43,29 +41,26 @@ class ClusterStationMoveServiceTest {
         when(station.id()).thenReturn(4);
         when(stations.findByUid(STATION)).thenReturn(Optional.of(station));
         backend = mock(ClusterStorageBackendService.class);
-        audit = mock(StorageBackendAuditService.class);
-        service = new ClusterStationMoveService(stations, backend, audit);
+        service = new ClusterStationMoveService(stations, backend);
     }
 
     @Test
-    void aStationsFilesAreCarriedAndTheMoveWrittenDown() {
-        when(backend.moveStation(2, 4)).thenReturn(new MigrationResult(5, 4, 1, 0, 64));
+    void aStationsFilesAreCarriedInTheNameOfWhoAsked() {
+        when(backend.moveStation(ACTOR, 2, 4)).thenReturn(new MigrationResult(5, 4, 1, 0, 64));
 
         var moved = service.move(ACTOR, 2, STATION.toString());
 
         assertEquals(4, moved.copied());
-        verify(audit).recordMigration(ACTOR, 4, StorageAuditAction.MIGRATION_STARTED, null, null, null);
-        verify(audit).recordMigration(ACTOR, 4, StorageAuditAction.MIGRATION_COMPLETED, null, null, null);
+        assertEquals(64, moved.copiedBytes());
     }
 
     @Test
-    void aMoveThatFailsIsRefusedAndWrittenDown() {
-        when(backend.moveStation(2, 4)).thenThrow(new MigrationException("target full"));
+    void aMoveThatFailsIsRefusedWithoutItsReason() {
+        when(backend.moveStation(ACTOR, 2, 4)).thenThrow(new MigrationException("target full"));
 
         var refused = assertThrows(RefusalResponse.class, () -> service.move(ACTOR, 2, STATION.toString()));
 
         assertEquals(ClusterRefusal.CLUSTER_STORAGE_MOVE_FAILED, refused.refusal());
-        verify(audit).recordMigration(ACTOR, 4, StorageAuditAction.MIGRATION_FAILED, null, null, "target full");
     }
 
     @Test
@@ -80,6 +75,6 @@ class ClusterStationMoveServiceTest {
                                 RefusalResponse.class,
                                 () -> service.move(ACTOR, 2, UUID.randomUUID().toString()))
                         .refusal());
-        verify(backend, never()).moveStation(anyInt(), anyInt());
+        verify(backend, never()).moveStation(any(), anyInt(), anyInt());
     }
 }

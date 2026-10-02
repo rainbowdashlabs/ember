@@ -5820,7 +5820,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["InstanceBackendSummary"];
+                        "application/json": components["schemas"]["BackendSummary"];
                     };
                 };
             };
@@ -5862,7 +5862,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["InstanceMigrationResultResponse"];
+                        "application/json": components["schemas"]["MigrationResponse"];
                     };
                 };
             };
@@ -5964,7 +5964,7 @@ export interface paths {
             };
             requestBody?: {
                 content: {
-                    "application/json": components["schemas"]["InstanceBackendRequest"];
+                    "application/json": components["schemas"]["BackendRequest"];
                 };
             };
             responses: {
@@ -15990,6 +15990,45 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/cluster/storage/audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The history of the cluster's storage: its own, its decisions and the moves it made */
+        get: {
+            parameters: {
+                query?: {
+                    before?: string;
+                    limit?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AuditEntryResponse"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/cluster/storage/backend": {
         parameters: {
             query?: never;
@@ -16063,7 +16102,7 @@ export interface paths {
             };
             requestBody?: {
                 content: {
-                    "application/json": components["schemas"]["BackendOverrideRequest"];
+                    "application/json": components["schemas"]["BackendRequest"];
                 };
             };
             responses: {
@@ -16251,7 +16290,7 @@ export interface paths {
             };
             requestBody?: {
                 content: {
-                    "application/json": components["schemas"]["BackendOverrideRequest"];
+                    "application/json": components["schemas"]["BackendRequest"];
                 };
             };
             responses: {
@@ -52015,7 +52054,7 @@ export interface paths {
             };
             requestBody?: {
                 content: {
-                    "application/json": components["schemas"]["BackendOverrideRequest"];
+                    "application/json": components["schemas"]["BackendRequest"];
                 };
             };
             responses: {
@@ -52091,7 +52130,7 @@ export interface paths {
             };
             requestBody?: {
                 content: {
-                    "application/json": components["schemas"]["BackendOverrideRequest"];
+                    "application/json": components["schemas"]["BackendRequest"];
                 };
             };
             responses: {
@@ -54377,6 +54416,8 @@ export interface components {
             actorAccountId: number | null;
             /** Format: int32 */
             actorMemberId: number | null;
+            /** Format: uuid */
+            clusterId: string | null;
             error: string | null;
             /** Format: int64 */
             id: number;
@@ -54445,16 +54486,16 @@ export interface components {
             memberId: number;
             name: string;
         };
-        BackendOverrideRequest: components["schemas"]["ClusterStorageRequest"] | components["schemas"]["LocalRequest"] | components["schemas"]["S3Request"] | components["schemas"]["SftpRequest"] | components["schemas"]["SmbRequest"];
         BackendOverrideResponse: {
-            clusterBackend: components["schemas"]["BackendOverrideSummary"] | null;
+            clusterBackend: components["schemas"]["BackendSummary"] | null;
             clusterName: string | null;
             clusterOffersStorage: boolean;
             instanceDefault: components["schemas"]["StorageBackendType"];
             locked: boolean;
-            override: components["schemas"]["BackendOverrideSummary"] | null;
+            override: components["schemas"]["BackendSummary"] | null;
         };
-        BackendOverrideSummary: components["schemas"]["S3Summary"] | components["schemas"]["SftpSummary"] | components["schemas"]["SmbSummary"];
+        BackendRequest: components["schemas"]["ClusterStorageRequest"] | components["schemas"]["LocalRequest"] | components["schemas"]["S3Request"] | components["schemas"]["SftpRequest"] | components["schemas"]["SmbRequest"];
+        BackendSummary: components["schemas"]["LocalSummary"] | components["schemas"]["S3Summary"] | components["schemas"]["SftpSummary"] | components["schemas"]["SmbSummary"];
         BackupCodesConfig: {
             /** Format: int32 */
             count: number;
@@ -57867,70 +57908,12 @@ export interface components {
             /** Format: int64 */
             validForHours: number;
         };
-        InstanceBackendRequest: components["schemas"]["InstanceLocalRequest"] | components["schemas"]["InstanceS3Request"] | components["schemas"]["InstanceSftpRequest"] | components["schemas"]["InstanceSmbRequest"];
-        InstanceBackendSummary: components["schemas"]["InstanceLocalSummary"] | components["schemas"]["InstanceS3Summary"] | components["schemas"]["InstanceSftpSummary"] | components["schemas"]["InstanceSmbSummary"];
-        InstanceLocalRequest: {
-            root?: string;
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
-            type: "LOCAL";
-        };
-        InstanceLocalSummary: {
-            root: string;
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
-            type: "LOCAL";
-        };
         InstanceMigrateRequest: {
-            keepSource?: boolean;
-            target?: components["schemas"]["InstanceBackendRequest"];
-        };
-        InstanceMigrationResultResponse: {
-            /** Format: int32 */
-            copied: number;
-            /** Format: int64 */
-            copiedBytes: number;
-            /** Format: int32 */
-            deleted: number;
-            /** Format: int32 */
-            skipped: number;
-            /** Format: int32 */
-            totalKeys: number;
+            keepSource?: boolean | null;
+            target?: components["schemas"]["BackendRequest"] | null;
         };
         InstanceMigrationStatusResponse: {
             migrationInFlight: boolean;
-        };
-        InstanceS3Request: {
-            accessKey?: string;
-            basePath?: string;
-            bucket?: string;
-            endpoint?: string;
-            pathStyle?: boolean;
-            region?: string;
-            secretKey?: string;
-            sseAlgorithm?: string;
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
-            type: "S3";
-        };
-        InstanceS3Summary: {
-            basePath: string;
-            bucket: string;
-            endpoint: string;
-            pathStyle: boolean;
-            region: string;
-            sseAlgorithm: string;
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
-            type: "S3";
         };
         InstanceSettingsResponse: {
             canStorePasswords: boolean;
@@ -57942,65 +57925,6 @@ export interface components {
             /** Format: int32 */
             minimumIntervalMinutes: number;
             supportedTypes: string[];
-        };
-        InstanceSftpRequest: {
-            basePath?: string;
-            host?: string;
-            knownHostsFingerprint?: string;
-            password?: string;
-            /** Format: int32 */
-            port?: number;
-            privateKey?: string;
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
-            type: "SFTP";
-            username?: string;
-        };
-        InstanceSftpSummary: {
-            basePath: string;
-            host: string;
-            knownHostsPinned: boolean;
-            /** Format: int32 */
-            port: number;
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
-            type: "SFTP";
-            username: string;
-        };
-        InstanceSmbRequest: {
-            basePath?: string;
-            dfs?: boolean;
-            domain?: string;
-            host?: string;
-            password?: string;
-            /** Format: int32 */
-            port?: number;
-            seal?: boolean;
-            share?: string;
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
-            type: "SMB";
-            username?: string;
-        };
-        InstanceSmbSummary: {
-            basePath: string;
-            dfs: boolean;
-            host: string;
-            /** Format: int32 */
-            port: number;
-            seal: boolean;
-            share: string;
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
-            type: "SMB";
         };
         /** @enum {string} */
         InstanceUserType: "USER" | "ADMINISTRATOR";
@@ -58886,6 +58810,15 @@ export interface components {
             orderedIds?: number[];
         };
         LocalRequest: {
+            root?: string | null;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "LOCAL";
+        };
+        LocalSummary: {
+            root: string;
             /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
@@ -60491,10 +60424,10 @@ export interface components {
         };
         PolicyRequest: {
             locked?: boolean;
-            reach?: components["schemas"]["ClusterBackendReach"];
+            reach?: components["schemas"]["ClusterBackendReach"] | null;
         };
         PolicyResponse: {
-            backend: components["schemas"]["BackendOverrideSummary"] | null;
+            backend: components["schemas"]["BackendSummary"] | null;
             locked: boolean;
             reach: components["schemas"]["ClusterBackendReach"];
         };
@@ -62155,6 +62088,7 @@ export interface components {
         S3Summary: {
             basePath: string;
             bucket: string;
+            credentialFingerprint: string | null;
             endpoint: string;
             pathStyle: boolean;
             region: string;
@@ -62640,6 +62574,7 @@ export interface components {
         };
         SftpSummary: {
             basePath: string;
+            credentialFingerprint: string | null;
             host: string;
             knownHostsPinned: boolean;
             /** Format: int32 */
@@ -62821,6 +62756,7 @@ export interface components {
         };
         SmbSummary: {
             basePath: string;
+            credentialFingerprint: string | null;
             dfs: boolean;
             domain: string | null;
             host: string;
@@ -63245,7 +63181,7 @@ export interface components {
             verifiedAt: components["schemas"]["Instant"];
         };
         /** @enum {string} */
-        StorageAuditAction: "CREATED" | "UPDATED" | "DELETED" | "PROBE_OK" | "PROBE_FAILED" | "MIGRATION_STARTED" | "MIGRATION_COMPLETED" | "MIGRATION_FAILED" | "REJECTED" | "INSTANCE_DEFAULT_UPDATED" | "INSTANCE_MIGRATION_STARTED" | "INSTANCE_MIGRATION_COMPLETED" | "INSTANCE_MIGRATION_FAILED";
+        StorageAuditAction: "CREATED" | "UPDATED" | "DELETED" | "PROBE_OK" | "PROBE_FAILED" | "MIGRATION_STARTED" | "MIGRATION_COMPLETED" | "MIGRATION_FAILED" | "REJECTED" | "INSTANCE_DEFAULT_UPDATED" | "INSTANCE_MIGRATION_STARTED" | "INSTANCE_MIGRATION_COMPLETED" | "INSTANCE_MIGRATION_FAILED" | "POLICY_CHANGED";
         /** @enum {string} */
         StorageAuditOutcome: "OK" | "FAILED";
         /** @enum {string} */
@@ -64515,9 +64451,9 @@ export type AvailableInventoryResult = components['schemas']['AvailableInventory
 export type AvailableItemDetail = components['schemas']['AvailableItemDetail'];
 export type AwaitingAnswer = components['schemas']['AwaitingAnswer'];
 export type AwaitingMember = components['schemas']['AwaitingMember'];
-export type BackendOverrideRequest = components['schemas']['BackendOverrideRequest'];
 export type BackendOverrideResponse = components['schemas']['BackendOverrideResponse'];
-export type BackendOverrideSummary = components['schemas']['BackendOverrideSummary'];
+export type BackendRequest = components['schemas']['BackendRequest'];
+export type BackendSummary = components['schemas']['BackendSummary'];
 export type BackupCodesConfig = components['schemas']['BackupCodesConfig'];
 export type BackupCodesResponse = components['schemas']['BackupCodesResponse'];
 export type BatchCreateRequest = components['schemas']['BatchCreateRequest'];
@@ -65000,20 +64936,9 @@ export type ImportResult = components['schemas']['ImportResult'];
 export type ImportStartResponse = components['schemas']['ImportStartResponse'];
 export type InstallPresetRequest = components['schemas']['InstallPresetRequest'];
 export type InstallPresetResponse = components['schemas']['InstallPresetResponse'];
-export type InstanceBackendRequest = components['schemas']['InstanceBackendRequest'];
-export type InstanceBackendSummary = components['schemas']['InstanceBackendSummary'];
-export type InstanceLocalRequest = components['schemas']['InstanceLocalRequest'];
-export type InstanceLocalSummary = components['schemas']['InstanceLocalSummary'];
 export type InstanceMigrateRequest = components['schemas']['InstanceMigrateRequest'];
-export type InstanceMigrationResultResponse = components['schemas']['InstanceMigrationResultResponse'];
 export type InstanceMigrationStatusResponse = components['schemas']['InstanceMigrationStatusResponse'];
-export type InstanceS3Request = components['schemas']['InstanceS3Request'];
-export type InstanceS3Summary = components['schemas']['InstanceS3Summary'];
 export type InstanceSettingsResponse = components['schemas']['InstanceSettingsResponse'];
-export type InstanceSftpRequest = components['schemas']['InstanceSftpRequest'];
-export type InstanceSftpSummary = components['schemas']['InstanceSftpSummary'];
-export type InstanceSmbRequest = components['schemas']['InstanceSmbRequest'];
-export type InstanceSmbSummary = components['schemas']['InstanceSmbSummary'];
 export type InstanceUserType = components['schemas']['InstanceUserType'];
 export type Instant = components['schemas']['Instant'];
 export type IntakeRequest = components['schemas']['IntakeRequest'];
@@ -65125,6 +65050,7 @@ export type LocalMoveTicketRequest = components['schemas']['LocalMoveTicketReque
 export type LocalOverrideRequest = components['schemas']['LocalOverrideRequest'];
 export type LocalReorderRequest = components['schemas']['LocalReorderRequest'];
 export type LocalRequest = components['schemas']['LocalRequest'];
+export type LocalSummary = components['schemas']['LocalSummary'];
 export type LocalTime = components['schemas']['LocalTime'];
 export type LocalUpdateChecklistItemRequest = components['schemas']['LocalUpdateChecklistItemRequest'];
 export type LocalUpdateTicketRequest = components['schemas']['LocalUpdateTicketRequest'];

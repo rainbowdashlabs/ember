@@ -53,6 +53,7 @@ class StorageAuditLogServiceTest {
                 Optional.empty(),
                 Optional.empty(),
                 Optional.of(4),
+                Optional.of(2),
                 StorageAuditAction.MIGRATION_COMPLETED,
                 Optional.empty(),
                 Optional.of("{}"),
@@ -71,6 +72,16 @@ class StorageAuditLogServiceTest {
         assertEquals(1, entries.getFirst().actorAccountId());
         assertNull(entries.getFirst().actorMemberId());
         assertEquals("{}", entries.getFirst().newConfig());
+    }
+
+    @Test
+    void anAssociationsHistoryIsReadForItAloneAndSaysWhoseItIs() {
+        when(repository.findByCluster(2, Optional.of(BEFORE), 50)).thenReturn(List.of(entry()));
+
+        var entries = service.listForCluster(2, BEFORE.toString(), 50);
+
+        assertEquals(2, entries.getFirst().clusterId());
+        assertEquals(4, entries.getFirst().stationId());
     }
 
     @Test

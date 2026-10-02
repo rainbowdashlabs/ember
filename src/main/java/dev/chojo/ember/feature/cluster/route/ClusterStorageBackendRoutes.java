@@ -14,15 +14,14 @@ import dev.chojo.ember.feature.cluster.entity.ClusterBackendReach;
 import dev.chojo.ember.feature.cluster.service.ClusterService;
 import dev.chojo.ember.feature.cluster.service.ClusterStationMoveService;
 import dev.chojo.ember.feature.cluster.service.ClusterStorageBackendService;
+import dev.chojo.ember.feature.cluster.service.ClusterStorageBackendService.PolicyResponse;
 import dev.chojo.ember.feature.members.entity.StationMember;
-import dev.chojo.ember.feature.storage.entity.StationStorageBackendConfig;
+import dev.chojo.ember.feature.storage.core.BackendRequest;
+import dev.chojo.ember.feature.storage.core.MigrationResponse;
+import dev.chojo.ember.feature.storage.core.ProbeResult;
+import dev.chojo.ember.feature.storage.service.StorageAuditLogService;
+import dev.chojo.ember.feature.storage.service.StorageAuditLogService.AuditEntryResponse;
 import dev.chojo.ember.feature.storage.service.StorageBackendAuditService.Actor;
-import dev.chojo.ember.feature.storage.service.StorageBackendPayloads;
-import dev.chojo.ember.feature.storage.service.StorageBackendPayloads.BackendOverrideRequest;
-import dev.chojo.ember.feature.storage.service.StorageBackendPayloads.BackendOverrideSummary;
-import dev.chojo.ember.feature.storage.service.StorageBackendPayloads.MigrationResponse;
-import dev.chojo.ember.feature.storage.service.StorageBackendPayloads.ProbeResult;
-import dev.chojo.ember.feature.storage.service.StorageProbeService;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -39,7 +38,7 @@ import org.jspecify.annotations.Nullable;
 import java.util.UUID;
 
 /**
- * The storage an association keeps, and which of its stations stand on it.
+ * The storage an association keeps, which of its stations stand on it, and the history of both.
  *
  * <p>{@code CLUSTER_STORAGE} governs all of it and there is no step-up: this reaches the association's own
  * stations and nothing beyond them. The instance's own backend swap keeps its step-up, because that one moves
@@ -49,22 +48,19 @@ import java.util.UUID;
 public class ClusterStorageBackendRoutes implements Routes {
     private final ClusterService clusterService;
     private final ClusterStorageBackendService backendService;
-    private final StorageBackendPayloads payloads;
-    private final StorageProbeService probeService;
     private final ClusterStationMoveService moveService;
+    private final StorageAuditLogService auditLog;
 
     @Inject
     public ClusterStorageBackendRoutes(
             ClusterService clusterService,
             ClusterStorageBackendService backendService,
-            StorageBackendPayloads payloads,
-            StorageProbeService probeService,
-            ClusterStationMoveService moveService) {
+            ClusterStationMoveService moveService,
+            StorageAuditLogService auditLog) {
         this.clusterService = clusterService;
         this.backendService = backendService;
-        this.payloads = payloads;
-        this.probeService = probeService;
         this.moveService = moveService;
+        this.auditLog = auditLog;
     }
 
     @Override
@@ -84,6 +80,7 @@ public class ClusterStorageBackendRoutes implements Routes {
                 prefix + "/cluster/storage/backend/placements/{stationUid}/move",
                 this::move,
                 ClusterPermission.CLUSTER_STORAGE);
+        routes.get(prefix + "/cluster/storage/audit", this::listAudit, ClusterPermission.CLUSTER_STORAGE);
     }
 
     @OpenApi(
@@ -93,14 +90,7 @@ public class ClusterStorageBackendRoutes implements Routes {
             tags = {"Cluster"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = PolicyResponse.class)))
     private void get(Context ctx) {
-        Cluster cluster = requireActive(ctx);
-        var policy = backendService.findPolicy(cluster.id());
-        ctx.json(new PolicyResponse(
-                policy.reach(),
-                policy.locked(),
-                policy.current() == null
-                        ? null
-                        : StorageBackendPayloads.toSummary(policy.current().config())));
+        ctx.json(backendService.describe(requireActive(ctx).id()));
     }
 
     @OpenApi(
@@ -113,8 +103,7 @@ public class ClusterStorageBackendRoutes implements Routes {
     private void setPolicy(Context ctx) {
         Cluster cluster = requireActive(ctx);
         PolicyRequest request = ctx.bodyAsClass(PolicyRequest.class);
-        if (request.reach() == null) throw ClusterRefusal.CLUSTER_STORAGE_POLICY_NEEDS_A_REACH.raise();
-        backendService.setPolicy(cluster.id(), request.reach(), request.locked());
+        backendService.setPolicy(actor(ctx), cluster.id(), request.reach(), request.locked());
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -126,14 +115,7 @@ public class ClusterStorageBackendRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ProbeResult.class)))
     private void probe(Context ctx) {
         Cluster cluster = requireActive(ctx);
-        var policy = backendService.findPolicy(cluster.id());
-        if (policy.current() == null) throw ClusterRefusal.CLUSTER_KEEPS_NO_STORAGE.raise();
-        ctx.json(withoutReason(cluster, probeService.probe(policy.current().config())));
-    }
-
-    /** A failed probe answered the way a station's is, with its reason kept in the log. */
-    private static ProbeResult withoutReason(Cluster cluster, ProbeResult result) {
-        return StorageProbeService.withoutReason("association " + cluster.id(), result);
+        ctx.json(backendService.probe(actor(ctx), cluster.id()));
     }
 
     @OpenApi(
@@ -141,12 +123,11 @@ public class ClusterStorageBackendRoutes implements Routes {
             methods = HttpMethod.POST,
             summary = "Whether storage that has not been saved yet answers",
             tags = {"Cluster"},
-            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = BackendOverrideRequest.class)),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = BackendRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ProbeResult.class)))
     private void probeConfig(Context ctx) {
         Cluster cluster = requireActive(ctx);
-        ctx.json(withoutReason(
-                cluster, probeService.probe(payloads.toEntity(ctx.bodyAsClass(BackendOverrideRequest.class)))));
+        ctx.json(backendService.probe(cluster.id(), ctx.bodyAsClass(BackendRequest.class)));
     }
 
     @OpenApi(
@@ -154,15 +135,11 @@ public class ClusterStorageBackendRoutes implements Routes {
             methods = HttpMethod.POST,
             summary = "Saves the cluster's storage, as a new version or as new credentials for the one it has",
             tags = {"Cluster"},
-            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = BackendOverrideRequest.class)),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = BackendRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = PolicyResponse.class)))
     private void apply(Context ctx) {
         Cluster cluster = requireActive(ctx);
-        StationStorageBackendConfig config = payloads.toEntity(ctx.bodyAsClass(BackendOverrideRequest.class));
-        var version = backendService.setBackend(cluster.id(), config);
-        var policy = backendService.findPolicy(cluster.id());
-        ctx.json(new PolicyResponse(
-                policy.reach(), policy.locked(), StorageBackendPayloads.toSummary(version.config())));
+        ctx.json(backendService.apply(actor(ctx), cluster.id(), ctx.bodyAsClass(BackendRequest.class)));
     }
 
     @OpenApi(
@@ -173,7 +150,7 @@ public class ClusterStorageBackendRoutes implements Routes {
             responses = @OpenApiResponse(status = "204"))
     private void drop(Context ctx) {
         Cluster cluster = requireActive(ctx);
-        backendService.dropBackend(cluster.id());
+        backendService.dropBackend(actor(ctx), cluster.id());
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -209,6 +186,22 @@ public class ClusterStorageBackendRoutes implements Routes {
         ctx.json(moveService.move(actor, cluster.id(), ctx.pathParam("stationUid")));
     }
 
+    @OpenApi(
+            path = "/api/v1/cluster/storage/audit",
+            methods = HttpMethod.GET,
+            summary = "The history of the cluster's storage: its own, its decisions and the moves it made",
+            tags = {"Cluster"},
+            queryParams = {
+                @OpenApiParam(name = "before", type = String.class),
+                @OpenApiParam(name = "limit", type = Integer.class)
+            },
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = AuditEntryResponse[].class)))
+    private void listAudit(Context ctx) {
+        Cluster cluster = requireActive(ctx);
+        int limit = ctx.queryParamAsClass("limit", Integer.class).getOrDefault(StorageAuditLogService.DEFAULT_LIMIT);
+        ctx.json(auditLog.listForCluster(cluster.id(), ctx.queryParam("before"), limit));
+    }
+
     private Cluster requireActive(Context ctx) {
         UserSession session = UserSession.from(ctx);
         Integer clusterId = session.clusterId();
@@ -226,17 +219,9 @@ public class ClusterStorageBackendRoutes implements Routes {
     }
 
     /**
-     * What the cluster decided, and the storage it is standing on with nothing secret in it.
-     */
-    public record PolicyResponse(
-            ClusterBackendReach reach,
-            boolean locked,
-            @Nullable BackendOverrideSummary backend) {}
-
-    /**
      * What the cluster is deciding.
      */
-    public record PolicyRequest(ClusterBackendReach reach, boolean locked) {}
+    public record PolicyRequest(@Nullable ClusterBackendReach reach, boolean locked) {}
 
     /**
      * One station of the cluster, where its files are and where they belong.

@@ -39,6 +39,9 @@
 - **Benachrichtigungen des Verbands in der App.** Verband → Benachrichtigungen zeigt jetzt, was dir der Verband gemeldet hat, öffnet jeden Hinweis auf seiner Seite und markiert ihn als gelesen, und die Glocke im Menü des Verbands zeigt, wie viele ungelesen sind. Hinweise, die zurückgehalten werden, solange derselbe noch ungelesen ist, etwa Erinnerungen, kommen wieder, sobald er hier gelesen ist.
 - **Ablehnungen nennen den Wert, um den es geht.** Wird etwas abgelehnt, zeigt die Meldung den Wert, um den es ging, in der Sprache der Lesenden, etwa wie viel vom Speicherplatz des Verbands noch frei ist, wie viele Inhalte noch auf eine Gruppe beschränkt sind oder zu welcher Frage eine Antwort nicht passte.
 - **Abläufe können ohne Bestätigung des Mitglieds auskommen.** Jeder Ablauf auf der Seite der Abläufe hat einen Schalter, der den Erhalt eines Teils für das Mitglied bestätigt, sobald die Bewegung dort ankommt, statt auf das Mitglied zu warten. Der Verlauf der Bewegung zeigt diesen Schritt als automatisch bestätigt, andere Abläufe fragen weiter nach.
+- **Der Speicher deines Verbands hat einen Verlauf.** Die Speicher-Seite des Verbands zeigt jetzt jede Änderung: den Speicher, den du eingerichtet hast, deine Entscheidungen, jeden Umzug und jede abgelehnte Änderung. Einen Umzug, den du für eine Wache anstößt, siehst du auch im Verlauf dieser Wache.
+- **Jede Speicher-Seite fragt, bevor Dateien umziehen.** Verschiebst du die Dateien einer Wache oder gibst den Speicher deines Verbands auf, fragt die Seite jetzt einmal nach, so wie es die Seiten der Wache und der Instanz schon taten. Auf allen drei Seiten siehst du dieselbe Übersicht und dieselbe Frage.
+- **Abgelehnte Speicher-Änderungen werden festgehalten.** Wird eine Änderung am Speicher abgelehnt, steht das jetzt im Verlauf der Wache, des Verbands oder der Instanz, mit dem Grund, den du gesehen hast.
 
 ### Sicherheit
 
@@ -61,6 +64,7 @@
 - **Jedes Mitglied konnte die Profile anderer Mitglieder lesen und ändern.** Ein Mitglied der Wache konnte die Profilangaben jedes anderen Mitglieds dort lesen und überschreiben, indem es die Anfrage direkt an den Server schickte. Profilangaben lesen und ändern jetzt nur noch das Mitglied selbst, seine Erziehungsberechtigten und diejenigen, die Mitglieder ansehen oder bearbeiten dürfen.
 - **Fragen des Verbands ließen sich an ihren Sperren vorbei beantworten.** Eine Wache konnte Antworten auf Profilfragen ihres Verbands schreiben, die für das Mitglied gesperrt, der Wache vorenthalten oder dem Mitglied gar nicht gestellt waren, und die Mitgliederverwaltung eines Verbands konnte Antworten auf Fragen jeder Wache schreiben. Jede Antwort durchläuft jetzt dieselben Sperren wie eine Antwort auf die eigenen Fragen der Wache.
 - **Das Entfernen einer Gruppe konnte beschränkte Inhalte für alle öffnen.** Ein Termin, eine Terminvorlage, eine Neuigkeit, ein Formular, ein Quiz oder ein Wiki-Eintrag, der nur auf eine Gruppe beschränkt war, wurde für die ganze Wache sichtbar, sobald diese Gruppe entfernt oder in einen Tag umgewandelt wurde. Eine Gruppe lässt sich jetzt erst entfernen oder in einen Tag umwandeln, wenn nichts mehr auf sie beschränkt ist.
+- **Der Speicher der Instanz wird geprüft wie der einer Wache.** Beim Speichern lehnt die Instanz jetzt unvollständige Zugangsdaten ab und jede Adresse, zu der sie keine Verbindung aufbauen darf. Den genauen Grund eines fehlgeschlagenen Verbindungstests findest du im Protokoll der Instanz. Liegen die Dateien der Instanz auf einem Server in deinem eigenen Netz, setze vor dem Umstellen `federation.allowPrivateHosts`.
 
 ### Änderungen
 
@@ -179,6 +183,10 @@
 - **Beim Archivieren blieben die Antworten an den Verband stehen.** Hast du ein Mitglied archiviert, blieben seine Antworten auf die Fragen des Verbands erhalten, auch wenn eine Frage nicht zum Behalten markiert war. Jetzt werden sie gelöscht wie die der Wache.
 - **„Bei Archivierung behalten“ ging bei neuen Fragen der Wache verloren.** Wer eine Frage mit diesem Haken anlegte, bekam sie ohne die Einstellung gespeichert. Jetzt bleibt der Haken von Anfang an.
 - **Mitglieder erfuhren nicht, wenn der Verband ihr Profil änderte.** Der Verband konnte dein Profil über seine Mitgliederseite ausfüllen, ohne dass du davon hörtest. Jetzt bekommst du dann eine Benachrichtigung.
+- **Neue Zugangsdaten für den Speicher eines Verbands konnten ins Leere gehen.** Hast du nur das Passwort des Verbandsspeichers geändert, wurden Dateien in manchen Fällen bis zum Neustart von Ember noch mit dem alten geschrieben. Die neuen Zugangsdaten gelten jetzt sofort.
+- **Alte Einstellungen eines Verbandsspeichers wurden nie gelöscht.** Zeigte ein Verband mit seinem Speicher woandershin oder gab ihn auf, blieben die alten Einstellungen samt Zugangsdaten für immer liegen. Sie werden jetzt gelöscht, sobald keine Wache mehr Dateien darauf hat.
+- **Das Speichern eines Verbandsspeichers konnte ihn ohne Speicher zurücklassen.** In seltenen Fällen ließ ein Speichern, das auf halbem Weg scheiterte, den Verband ganz ohne eigenen Speicher zurück. Der bisherige Speicher bleibt jetzt, bis der neue gespeichert ist.
+- **Ein abgelehnter Umzug erschien als begonnen.** Verschob ein Verband eine Wache, deren Dateien schon am richtigen Ort lagen, stand der Umzug im Verlauf der Wache trotzdem als begonnen. Jetzt stehen dort nur Umzüge, die wirklich beginnen.
 
 ## v26.19.5
 

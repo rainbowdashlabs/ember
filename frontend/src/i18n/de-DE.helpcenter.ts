@@ -4280,7 +4280,9 @@ volumes:
             placementsTitle: 'Entscheiden und verschieben',
             placementsText: 'Eine Entscheidung ist sofort geschrieben, eine Kopie braucht Zeit. Deshalb wird nichts von allein verschoben: die Liste zeigt für jede Wache, wo ihre Dateien liegen und wo sie liegen sollen, und ihr verschiebt sie einzeln. Eine Wache, deren Kopie fehlschlägt, könnt ihr erneut verschieben, ohne die anderen anzufassen.',
             credentialsTitle: 'Zugangsdaten und Umzüge',
-            credentialsText: 'Zeigt die neue Konfiguration auf dasselbe Ziel, werden nur die Zugangsdaten erneuert und niemand zieht um. Zeigt sie woanders hin, gilt ab sofort der neue Ort, und alle, die noch auf dem alten liegen, stehen als zu verschieben in der Liste. Der alte Ort bleibt lesbar, bis die letzte Wache ihn verlassen hat.',
+            credentialsText: 'Zeigt die neue Konfiguration auf dasselbe Ziel, werden nur die Zugangsdaten erneuert und niemand zieht um. Zeigt sie woanders hin, gilt ab sofort der neue Ort, und alle, die noch auf dem alten liegen, stehen als zu verschieben in der Liste. Der alte Ort bleibt lesbar, bis die letzte Wache ihn verlassen hat, und wird danach mit seinen Zugangsdaten gelöscht.',
+            historyTitle: 'Verlauf',
+            historyText: 'Unter "Letzte Änderungen" steht, was mit dem Speicher des Verbands geschehen ist: wer ihn eingerichtet, geändert oder aufgegeben hat, wer die Entscheidung geändert hat, welche Wache wann verschoben wurde und was abgelehnt wurde. Ein Umzug, den der Verband für eine Wache anstößt, steht auch im Verlauf der Wache. Bevor Dateien verschoben werden oder der Speicher aufgegeben wird, fragt die Seite noch einmal nach.',
             joinLeaveTitle: 'Beitritt und Austritt',
             joinLeaveText: 'Nimmt der Verband eine Wache auf, während sein Speicher für alle Wachen gilt, werden ihre Dateien vorher kopiert und die Aufnahme erst danach geschrieben. Beim Austritt geht es umgekehrt. Klappt die Kopie nicht, passiert gar nichts: lieber kein Beitritt als ein Beitritt ohne Dateien.',
             tip: 'Gebt ihr den Speicher auf, verschwindet nichts. Wer noch darauf liegt, kommt einzeln zurück auf den Standard der Instanz.',
@@ -5755,7 +5757,7 @@ volumes:
             probe: {
                 title: 'Verbindung testen',
                 text: 'Mit „Verbindung testen" probiert Ember einmalig, ob das eingetragene Backend erreichbar ist und die Zugangsdaten stimmen. Es werden dabei keine Dateien verschoben und nichts gespeichert - der Test ist ein reiner Trockenlauf. Erst wenn der Test grün ist, lohnt sich das Übernehmen.',
-                live: '„Aktuelles Backend testen" prüft das bereits gespeicherte Backend (also den aktuell aktiven Override). Nützlich, wenn du zu einem späteren Zeitpunkt sehen willst, ob die Verbindung noch steht.',
+                live: '„Gespeicherten Speicher testen" oben bei der aktiven Konfiguration prüft das bereits gespeicherte Backend (also den aktuell aktiven Override). Nützlich, wenn du zu einem späteren Zeitpunkt sehen willst, ob die Verbindung noch steht.',
             },
             apply: {
                 title: 'Speichern und übernehmen',
@@ -5766,7 +5768,7 @@ volumes:
             },
             audit: {
                 title: 'Wer hat was geändert?',
-                text: 'Unten auf der Seite siehst du die letzten Änderungen am Speicher-Backend dieser Wache - wer hat getestet, wer hat übernommen, und ob der Vorgang erfolgreich war. Falls ein Verbindungstest oder eine Übernahme fehlschlägt, steht hier der Grund.',
+                text: 'Unten auf der Seite siehst du die letzten Änderungen am Speicher-Backend dieser Wache - wer hat getestet, wer hat übernommen, was abgelehnt wurde, und ob der Vorgang erfolgreich war. Auch Umzüge, die der Verband für die Wache angestoßen hat, stehen hier. Den genauen Grund eines fehlgeschlagenen Verbindungstests kennt nur das Protokoll der Instanz.',
             },
             tip: 'Zugangsdaten werden vor dem Speichern verschlüsselt. Auch nach dem Übernehmen siehst du sie aus Sicherheitsgründen nicht im Klartext - du musst sie beim nächsten Update neu eintragen, falls du sie ändern willst.',
         },

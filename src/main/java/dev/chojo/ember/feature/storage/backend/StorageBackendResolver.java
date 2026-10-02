@@ -134,13 +134,20 @@ public class StorageBackendResolver {
     }
 
     /**
-     * Forgets where several stations' bytes go after a change at their cluster, and closes the backends
-     * they stood on, since the change may have been to the credentials.
+     * Closes the backend built for one version of a cluster's storage and forgets every station that
+     * resolved to it, after its credentials changed or it was deleted.
+     *
+     * <p>Found by the version itself rather than through the stations on it: a station that is no longer
+     * remembered, because it moved or fell out of the cache, would otherwise leave the backend with the old
+     * credentials in place for the next station to be handed.
+     *
+     * @param configId the version
      */
-    public void invalidateStations(Iterable<Integer> stationIds) {
-        for (int stationId : stationIds) {
-            forget(stationId).ifPresent(backends::invalidate);
-        }
+    public void invalidateClusterVersion(int configId) {
+        BackendKey key = new BackendKey.Cluster(configId);
+        stationKeys.asMap().values().removeIf(cached -> cached.filter(key::equals)
+                .isPresent());
+        backends.invalidate(key);
     }
 
     /** Flushes every mapping and closes every cached backend. */

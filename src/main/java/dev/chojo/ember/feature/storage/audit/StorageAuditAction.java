@@ -7,11 +7,11 @@ package dev.chojo.ember.feature.storage.audit;
 
 /** What a row of the storage backend audit records. */
 public enum StorageAuditAction {
-    /** A station's own backend was set. */
+    /** A station's or an association's own storage was set. */
     CREATED,
-    /** A station's own backend was replaced. */
+    /** A station's or an association's own storage was replaced, or took new credentials. */
     UPDATED,
-    /** A station's own backend was removed. */
+    /** A station's or an association's own storage was given up. */
     DELETED,
     /** A probe a user started succeeded. */
     PROBE_OK,
@@ -27,5 +27,7 @@ public enum StorageAuditAction {
     INSTANCE_MIGRATION_STARTED,
     INSTANCE_MIGRATION_COMPLETED,
     /** An instance-wide move failed; the previous backend stays in use. */
-    INSTANCE_MIGRATION_FAILED
+    INSTANCE_MIGRATION_FAILED,
+    /** An association changed how far its storage reaches or whether its stations may choose their own. */
+    POLICY_CHANGED
 }

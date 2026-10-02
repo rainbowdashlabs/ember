@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.storage.backend.tree;
 
+import dev.chojo.ember.feature.storage.backend.BackendDestination;
 import dev.chojo.ember.feature.storage.backend.DigestingInputStream;
 import dev.chojo.ember.feature.storage.backend.HealthStatus;
 import dev.chojo.ember.feature.storage.backend.MetadataSidecar;
@@ -62,15 +63,7 @@ public class FileTreeBackend implements StorageBackend {
         this.type = type;
         this.trees = trees;
         this.tree = tree;
-        this.basePath = normalize(basePath);
-    }
-
-    private static String normalize(String path) {
-        if (path == null) return "";
-        String normalized = path.replace('\\', '/');
-        while (normalized.startsWith("/")) normalized = normalized.substring(1);
-        while (normalized.endsWith("/")) normalized = normalized.substring(0, normalized.length() - 1);
-        return normalized;
+        this.basePath = BackendDestination.treePath(basePath);
     }
 
     @Override
@@ -80,7 +73,7 @@ public class FileTreeBackend implements StorageBackend {
 
     @Override
     public String destination() {
-        return String.join("|", type.name(), tree, basePath);
+        return BackendDestination.tree(type, tree, basePath);
     }
 
     @Override
@@ -273,7 +266,7 @@ public class FileTreeBackend implements StorageBackend {
         if (fullKey == null || fullKey.isEmpty()) {
             throw new IllegalArgumentException("fullKey must not be empty");
         }
-        String key = normalize(fullKey);
+        String key = BackendDestination.treePath(fullKey);
         return basePath.isEmpty() ? key : basePath + "/" + key;
     }
 
@@ -336,7 +329,7 @@ public class FileTreeBackend implements StorageBackend {
             if (!rooted.isEmpty()) visitor.visit(rooted, info.get().size());
             return;
         }
-        walkDirectory(tree, start, normalize(rooted), visitor);
+        walkDirectory(tree, start, BackendDestination.treePath(rooted), visitor);
     }
 
     private static void walkDirectory(FileTree tree, String directory, String keyPrefix, KeyVisitor visitor)

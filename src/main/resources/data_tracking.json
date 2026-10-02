@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:3b72694d1428fc1fa1933cde1a306ccdab68a68a57c420ca535756bada2b2bc9",
-  "generatedAt": "2026-10-02T09:54:36Z",
+  "schemaHash": "sha256:ad0c92428958d9e3b279f984449da74a6ee80b0980aa016a30b42edb108cc811",
+  "generatedAt": "2026-10-02T10:35:49Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -22783,7 +22783,7 @@
     "storage_backend_audit": {
       "feature": "storage",
       "scope": "INSTANCE",
-      "tableHash": "sha256:62108f3572c0d1dd577bb97b36c99ee9b42d5b7ef6884c56b994320650b6885c",
+      "tableHash": "sha256:1e468db73ba3f8fe093bf4630099447d75b4d0130336cba5032ba354e4e829be",
       "columns": [
         {
           "name": "id",
@@ -22853,6 +22853,13 @@
           "type": "text",
           "nullable": true,
           "verified": true
+        },
+        {
+          "name": "cluster_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The association whose history the row belongs to: a change to its own storage or its decision about it, or a move it made for one of its stations, which then names the station as well. Set to null when the association is deleted, so the row stays as proof of what was done."
         }
       ],
       "foreignKeys": [
@@ -22865,6 +22872,12 @@
         {
           "column": "actor_member_id",
           "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
+        {
+          "column": "cluster_id",
+          "refTable": "cluster",
           "refColumn": "id",
           "onDelete": "SET NULL"
         },

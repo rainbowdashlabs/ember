@@ -3954,7 +3954,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/InstanceBackendSummary"
+                  "$ref" : "#/components/schemas/BackendSummary"
                 }
               }
             }
@@ -3972,7 +3972,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/InstanceMigrationResultResponse"
+                  "$ref" : "#/components/schemas/MigrationResponse"
                 }
               }
             }
@@ -4045,7 +4045,7 @@
           "content" : {
             "application/json" : {
               "schema" : {
-                "$ref" : "#/components/schemas/InstanceBackendRequest"
+                "$ref" : "#/components/schemas/BackendRequest"
               }
             }
           }
@@ -12341,6 +12341,41 @@
         }
       }
     },
+    "/api/v1/cluster/storage/audit" : {
+      "get" : {
+        "summary" : "The history of the cluster's storage: its own, its decisions and the moves it made",
+        "tags" : [ "Cluster" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/AuditEntryResponse"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "before",
+          "in" : "query",
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "limit",
+          "in" : "query",
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
     "/api/v1/cluster/storage/backend" : {
       "get" : {
         "summary" : "What this cluster decided about storage of its own, and what it is standing on",
@@ -12388,7 +12423,7 @@
           "content" : {
             "application/json" : {
               "schema" : {
-                "$ref" : "#/components/schemas/BackendOverrideRequest"
+                "$ref" : "#/components/schemas/BackendRequest"
               }
             }
           }
@@ -12501,7 +12536,7 @@
           "content" : {
             "application/json" : {
               "schema" : {
-                "$ref" : "#/components/schemas/BackendOverrideRequest"
+                "$ref" : "#/components/schemas/BackendRequest"
               }
             }
           }
@@ -39001,7 +39036,7 @@
           "content" : {
             "application/json" : {
               "schema" : {
-                "$ref" : "#/components/schemas/BackendOverrideRequest"
+                "$ref" : "#/components/schemas/BackendRequest"
               }
             }
           }
@@ -39046,7 +39081,7 @@
           "content" : {
             "application/json" : {
               "schema" : {
-                "$ref" : "#/components/schemas/BackendOverrideRequest"
+                "$ref" : "#/components/schemas/BackendRequest"
               }
             }
           }
@@ -41848,6 +41883,10 @@
             "type" : [ "string", "null" ],
             "format" : "uuid"
           },
+          "clusterId" : {
+            "type" : [ "string", "null" ],
+            "format" : "uuid"
+          },
           "action" : {
             "$ref" : "#/components/schemas/StorageAuditAction"
           },
@@ -41864,7 +41903,7 @@
             "type" : [ "string", "null" ]
           }
         },
-        "required" : [ "id", "ts", "actorAccountId", "actorMemberId", "systemActor", "stationId", "action", "oldConfig", "newConfig", "outcome", "error" ]
+        "required" : [ "id", "ts", "actorAccountId", "actorMemberId", "systemActor", "stationId", "clusterId", "action", "oldConfig", "newConfig", "outcome", "error" ]
       },
       "AuditResponse" : {
         "type" : "object",
@@ -42026,7 +42065,39 @@
         },
         "required" : [ "memberId", "name" ]
       },
-      "BackendOverrideRequest" : {
+      "BackendOverrideResponse" : {
+        "type" : "object",
+        "properties" : {
+          "instanceDefault" : {
+            "$ref" : "#/components/schemas/StorageBackendType"
+          },
+          "override" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/BackendSummary"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "clusterBackend" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/BackendSummary"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "clusterName" : {
+            "type" : [ "string", "null" ]
+          },
+          "clusterOffersStorage" : {
+            "type" : "boolean"
+          },
+          "locked" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "instanceDefault", "override", "clusterBackend", "clusterName", "clusterOffersStorage", "locked" ]
+      },
+      "BackendRequest" : {
         "oneOf" : [ {
           "$ref" : "#/components/schemas/ClusterStorageRequest"
         }, {
@@ -42049,40 +42120,10 @@
           }
         }
       },
-      "BackendOverrideResponse" : {
-        "type" : "object",
-        "properties" : {
-          "instanceDefault" : {
-            "$ref" : "#/components/schemas/StorageBackendType"
-          },
-          "override" : {
-            "anyOf" : [ {
-              "$ref" : "#/components/schemas/BackendOverrideSummary"
-            }, {
-              "type" : "null"
-            } ]
-          },
-          "clusterBackend" : {
-            "anyOf" : [ {
-              "$ref" : "#/components/schemas/BackendOverrideSummary"
-            }, {
-              "type" : "null"
-            } ]
-          },
-          "clusterName" : {
-            "type" : [ "string", "null" ]
-          },
-          "clusterOffersStorage" : {
-            "type" : "boolean"
-          },
-          "locked" : {
-            "type" : "boolean"
-          }
-        },
-        "required" : [ "instanceDefault", "override", "clusterBackend", "clusterName", "clusterOffersStorage", "locked" ]
-      },
-      "BackendOverrideSummary" : {
+      "BackendSummary" : {
         "oneOf" : [ {
+          "$ref" : "#/components/schemas/LocalSummary"
+        }, {
           "$ref" : "#/components/schemas/S3Summary"
         }, {
           "$ref" : "#/components/schemas/SftpSummary"
@@ -42092,6 +42133,7 @@
         "discriminator" : {
           "propertyName" : "type",
           "mapping" : {
+            "LOCAL" : "#/components/schemas/LocalSummary",
             "S3" : "#/components/schemas/S3Summary",
             "SFTP" : "#/components/schemas/SftpSummary",
             "SMB" : "#/components/schemas/SmbSummary"
@@ -52016,108 +52058,20 @@
         },
         "required" : [ "code", "validForHours" ]
       },
-      "InstanceBackendRequest" : {
-        "oneOf" : [ {
-          "$ref" : "#/components/schemas/InstanceLocalRequest"
-        }, {
-          "$ref" : "#/components/schemas/InstanceS3Request"
-        }, {
-          "$ref" : "#/components/schemas/InstanceSftpRequest"
-        }, {
-          "$ref" : "#/components/schemas/InstanceSmbRequest"
-        } ],
-        "discriminator" : {
-          "propertyName" : "type",
-          "mapping" : {
-            "LOCAL" : "#/components/schemas/InstanceLocalRequest",
-            "S3" : "#/components/schemas/InstanceS3Request",
-            "SFTP" : "#/components/schemas/InstanceSftpRequest",
-            "SMB" : "#/components/schemas/InstanceSmbRequest"
-          }
-        }
-      },
-      "InstanceBackendSummary" : {
-        "oneOf" : [ {
-          "$ref" : "#/components/schemas/InstanceLocalSummary"
-        }, {
-          "$ref" : "#/components/schemas/InstanceS3Summary"
-        }, {
-          "$ref" : "#/components/schemas/InstanceSftpSummary"
-        }, {
-          "$ref" : "#/components/schemas/InstanceSmbSummary"
-        } ],
-        "discriminator" : {
-          "propertyName" : "type",
-          "mapping" : {
-            "LOCAL" : "#/components/schemas/InstanceLocalSummary",
-            "S3" : "#/components/schemas/InstanceS3Summary",
-            "SFTP" : "#/components/schemas/InstanceSftpSummary",
-            "SMB" : "#/components/schemas/InstanceSmbSummary"
-          }
-        }
-      },
-      "InstanceLocalRequest" : {
-        "type" : "object",
-        "properties" : {
-          "type" : {
-            "type" : "string",
-            "enum" : [ "LOCAL" ]
-          },
-          "root" : {
-            "type" : "string"
-          }
-        },
-        "required" : [ "type" ]
-      },
-      "InstanceLocalSummary" : {
-        "type" : "object",
-        "properties" : {
-          "type" : {
-            "type" : "string",
-            "enum" : [ "LOCAL" ]
-          },
-          "root" : {
-            "type" : "string"
-          }
-        },
-        "required" : [ "type", "root" ]
-      },
       "InstanceMigrateRequest" : {
         "type" : "object",
         "properties" : {
           "target" : {
-            "$ref" : "#/components/schemas/InstanceBackendRequest"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/BackendRequest"
+            }, {
+              "type" : "null"
+            } ]
           },
           "keepSource" : {
-            "type" : "boolean"
+            "type" : [ "boolean", "null" ]
           }
         }
-      },
-      "InstanceMigrationResultResponse" : {
-        "type" : "object",
-        "properties" : {
-          "totalKeys" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "copied" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "skipped" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "deleted" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "copiedBytes" : {
-            "type" : "integer",
-            "format" : "int64"
-          }
-        },
-        "required" : [ "totalKeys", "copied", "skipped", "deleted", "copiedBytes" ]
       },
       "InstanceMigrationStatusResponse" : {
         "type" : "object",
@@ -52127,68 +52081,6 @@
           }
         },
         "required" : [ "migrationInFlight" ]
-      },
-      "InstanceS3Request" : {
-        "type" : "object",
-        "properties" : {
-          "type" : {
-            "type" : "string",
-            "enum" : [ "S3" ]
-          },
-          "endpoint" : {
-            "type" : "string"
-          },
-          "region" : {
-            "type" : "string"
-          },
-          "bucket" : {
-            "type" : "string"
-          },
-          "pathStyle" : {
-            "type" : "boolean"
-          },
-          "sseAlgorithm" : {
-            "type" : "string"
-          },
-          "basePath" : {
-            "type" : "string"
-          },
-          "accessKey" : {
-            "type" : "string"
-          },
-          "secretKey" : {
-            "type" : "string"
-          }
-        },
-        "required" : [ "type" ]
-      },
-      "InstanceS3Summary" : {
-        "type" : "object",
-        "properties" : {
-          "type" : {
-            "type" : "string",
-            "enum" : [ "S3" ]
-          },
-          "endpoint" : {
-            "type" : "string"
-          },
-          "region" : {
-            "type" : "string"
-          },
-          "bucket" : {
-            "type" : "string"
-          },
-          "pathStyle" : {
-            "type" : "boolean"
-          },
-          "sseAlgorithm" : {
-            "type" : "string"
-          },
-          "basePath" : {
-            "type" : "string"
-          }
-        },
-        "required" : [ "type", "endpoint", "region", "bucket", "pathStyle", "sseAlgorithm", "basePath" ]
       },
       "InstanceSettingsResponse" : {
         "type" : "object",
@@ -52219,131 +52111,6 @@
           }
         },
         "required" : [ "enabled", "minimumIntervalMinutes", "maxAttachmentsPerCycle", "logRetentionDays", "canStorePasswords", "supportedTypes" ]
-      },
-      "InstanceSftpRequest" : {
-        "type" : "object",
-        "properties" : {
-          "type" : {
-            "type" : "string",
-            "enum" : [ "SFTP" ]
-          },
-          "host" : {
-            "type" : "string"
-          },
-          "port" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "username" : {
-            "type" : "string"
-          },
-          "knownHostsFingerprint" : {
-            "type" : "string"
-          },
-          "basePath" : {
-            "type" : "string"
-          },
-          "password" : {
-            "type" : "string"
-          },
-          "privateKey" : {
-            "type" : "string"
-          }
-        },
-        "required" : [ "type" ]
-      },
-      "InstanceSftpSummary" : {
-        "type" : "object",
-        "properties" : {
-          "type" : {
-            "type" : "string",
-            "enum" : [ "SFTP" ]
-          },
-          "host" : {
-            "type" : "string"
-          },
-          "port" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "username" : {
-            "type" : "string"
-          },
-          "basePath" : {
-            "type" : "string"
-          },
-          "knownHostsPinned" : {
-            "type" : "boolean"
-          }
-        },
-        "required" : [ "type", "host", "port", "username", "basePath", "knownHostsPinned" ]
-      },
-      "InstanceSmbRequest" : {
-        "type" : "object",
-        "properties" : {
-          "type" : {
-            "type" : "string",
-            "enum" : [ "SMB" ]
-          },
-          "host" : {
-            "type" : "string"
-          },
-          "port" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "share" : {
-            "type" : "string"
-          },
-          "domain" : {
-            "type" : "string"
-          },
-          "basePath" : {
-            "type" : "string"
-          },
-          "seal" : {
-            "type" : "boolean"
-          },
-          "dfs" : {
-            "type" : "boolean"
-          },
-          "username" : {
-            "type" : "string"
-          },
-          "password" : {
-            "type" : "string"
-          }
-        },
-        "required" : [ "type" ]
-      },
-      "InstanceSmbSummary" : {
-        "type" : "object",
-        "properties" : {
-          "type" : {
-            "type" : "string",
-            "enum" : [ "SMB" ]
-          },
-          "host" : {
-            "type" : "string"
-          },
-          "port" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "share" : {
-            "type" : "string"
-          },
-          "basePath" : {
-            "type" : "string"
-          },
-          "seal" : {
-            "type" : "boolean"
-          },
-          "dfs" : {
-            "type" : "boolean"
-          }
-        },
-        "required" : [ "type", "host", "port", "share", "basePath", "seal", "dfs" ]
       },
       "InstanceUserType" : {
         "type" : "string",
@@ -54644,9 +54411,25 @@
           "type" : {
             "type" : "string",
             "enum" : [ "LOCAL" ]
+          },
+          "root" : {
+            "type" : [ "string", "null" ]
           }
         },
         "required" : [ "type" ]
+      },
+      "LocalSummary" : {
+        "type" : "object",
+        "properties" : {
+          "type" : {
+            "type" : "string",
+            "enum" : [ "LOCAL" ]
+          },
+          "root" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "type", "root" ]
       },
       "LocalTime" : {
         "type" : "string",
@@ -59307,7 +59090,11 @@
         "type" : "object",
         "properties" : {
           "reach" : {
-            "$ref" : "#/components/schemas/ClusterBackendReach"
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/ClusterBackendReach"
+            }, {
+              "type" : "null"
+            } ]
           },
           "locked" : {
             "type" : "boolean"
@@ -59325,7 +59112,7 @@
           },
           "backend" : {
             "anyOf" : [ {
-              "$ref" : "#/components/schemas/BackendOverrideSummary"
+              "$ref" : "#/components/schemas/BackendSummary"
             }, {
               "type" : "null"
             } ]
@@ -64213,9 +64000,12 @@
           },
           "basePath" : {
             "type" : "string"
+          },
+          "credentialFingerprint" : {
+            "type" : [ "string", "null" ]
           }
         },
-        "required" : [ "type", "endpoint", "region", "bucket", "pathStyle", "sseAlgorithm", "basePath" ]
+        "required" : [ "type", "endpoint", "region", "bucket", "pathStyle", "sseAlgorithm", "basePath", "credentialFingerprint" ]
       },
       "SaveBlocksRequest" : {
         "type" : "object",
@@ -65713,9 +65503,12 @@
           },
           "basePath" : {
             "type" : "string"
+          },
+          "credentialFingerprint" : {
+            "type" : [ "string", "null" ]
           }
         },
-        "required" : [ "type", "host", "port", "username", "knownHostsPinned", "basePath" ]
+        "required" : [ "type", "host", "port", "username", "knownHostsPinned", "basePath", "credentialFingerprint" ]
       },
       "ShareDetail" : {
         "type" : "object",
@@ -66182,9 +65975,12 @@
           },
           "dfs" : {
             "type" : "boolean"
+          },
+          "credentialFingerprint" : {
+            "type" : [ "string", "null" ]
           }
         },
-        "required" : [ "type", "host", "port", "share", "domain", "basePath", "seal", "dfs" ]
+        "required" : [ "type", "host", "port", "share", "domain", "basePath", "seal", "dfs", "credentialFingerprint" ]
       },
       "SmtpEncryption" : {
         "type" : "string",
@@ -67308,7 +67104,7 @@
       },
       "StorageAuditAction" : {
         "type" : "string",
-        "enum" : [ "CREATED", "UPDATED", "DELETED", "PROBE_OK", "PROBE_FAILED", "MIGRATION_STARTED", "MIGRATION_COMPLETED", "MIGRATION_FAILED", "REJECTED", "INSTANCE_DEFAULT_UPDATED", "INSTANCE_MIGRATION_STARTED", "INSTANCE_MIGRATION_COMPLETED", "INSTANCE_MIGRATION_FAILED" ]
+        "enum" : [ "CREATED", "UPDATED", "DELETED", "PROBE_OK", "PROBE_FAILED", "MIGRATION_STARTED", "MIGRATION_COMPLETED", "MIGRATION_FAILED", "REJECTED", "INSTANCE_DEFAULT_UPDATED", "INSTANCE_MIGRATION_STARTED", "INSTANCE_MIGRATION_COMPLETED", "INSTANCE_MIGRATION_FAILED", "POLICY_CHANGED" ]
       },
       "StorageAuditOutcome" : {
         "type" : "string",

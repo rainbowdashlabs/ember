@@ -20,6 +20,7 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -110,6 +111,26 @@ class StorageBackendDestinationTest {
 
         assertTrue(current.sharesDestinationWith(build(sftp("/srv/ember/", "bob"))));
         assertFalse(current.sharesDestinationWith(build(sftp("/srv/other", "alice"))));
+    }
+
+    /**
+     * A stored configuration names exactly the place the backend built from it reports, so an association
+     * deciding between new credentials and a new version agrees with the move that follows.
+     */
+    @Test
+    void aConfigurationNamesThePlaceItsBackendReports() {
+        for (var config : List.of(
+                s3("eu-central-1", true, "station", "old"),
+                smb("archive", "WORK", "alice"),
+                sftp("/srv/ember/", "alice"))) {
+            assertEquals(build(config).destination(), config.destinationKey());
+        }
+        assertEquals(
+                s3("eu-central-1", true, "station", "old").destinationKey(),
+                s3("us-east-1", false, "station", "new").destinationKey());
+        assertEquals(
+                smb("archive", "WORK", "alice").destinationKey(),
+                smb("archive", "HOME", "bob").destinationKey());
     }
 
     @Test

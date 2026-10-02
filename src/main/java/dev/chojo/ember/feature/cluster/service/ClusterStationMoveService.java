@@ -7,35 +7,32 @@ package dev.chojo.ember.feature.cluster.service;
 
 import dev.chojo.ember.api.refusal.ClusterRefusal;
 import dev.chojo.ember.feature.station.repository.StationRepository;
-import dev.chojo.ember.feature.storage.audit.StorageAuditAction;
+import dev.chojo.ember.feature.storage.core.MigrationResponse;
 import dev.chojo.ember.feature.storage.migration.MigrationException;
-import dev.chojo.ember.feature.storage.service.StorageBackendAuditService;
 import dev.chojo.ember.feature.storage.service.StorageBackendAuditService.Actor;
-import dev.chojo.ember.feature.storage.service.StorageBackendPayloads.MigrationResponse;
 import dev.chojo.ember.feature.storage.service.StorageMigrationService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.UUID;
 
 /**
- * An association carrying one of its stations' files to where its decision says they belong, on
- * demand, with the move written to the storage history.
+ * An association carrying one of its stations' files to where its decision says they belong, on demand. The
+ * move is written to the storage history by the move itself, once every check has passed.
  */
 @Singleton
 public class ClusterStationMoveService {
+    private static final Logger log = LoggerFactory.getLogger(ClusterStationMoveService.class);
+
     private final StationRepository stationRepository;
     private final ClusterStorageBackendService backendService;
-    private final StorageBackendAuditService auditService;
 
     @Inject
-    public ClusterStationMoveService(
-            StationRepository stationRepository,
-            ClusterStorageBackendService backendService,
-            StorageBackendAuditService auditService) {
+    public ClusterStationMoveService(StationRepository stationRepository, ClusterStorageBackendService backendService) {
         this.stationRepository = stationRepository;
         this.backendService = backendService;
-        this.auditService = auditService;
     }
 
     /**
@@ -51,16 +48,13 @@ public class ClusterStationMoveService {
                 .findByUid(parseUid(stationUid))
                 .orElseThrow(ClusterRefusal.STATION_NOT_HERE_ON_CLUSTER_STORAGE_MOVE::raise)
                 .id();
-        auditService.recordMigration(actor, stationId, StorageAuditAction.MIGRATION_STARTED, null, null, null);
         StorageMigrationService.MigrationResult result;
         try {
-            result = backendService.moveStation(clusterId, stationId);
+            result = backendService.moveStation(actor, clusterId, stationId);
         } catch (MigrationException e) {
-            auditService.recordMigration(
-                    actor, stationId, StorageAuditAction.MIGRATION_FAILED, null, null, e.getMessage());
+            log.warn("Storage move of station {} by cluster {} failed", stationId, clusterId, e);
             throw ClusterRefusal.CLUSTER_STORAGE_MOVE_FAILED.raise();
         }
-        auditService.recordMigration(actor, stationId, StorageAuditAction.MIGRATION_COMPLETED, null, null, null);
         return new MigrationResponse(
                 result.totalKeys(), result.copied(), result.skipped(), result.deleted(), result.copiedBytes());
     }

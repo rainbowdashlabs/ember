@@ -5,25 +5,29 @@
  */
 package dev.chojo.ember.feature.storage.service;
 
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.api.refusal.StorageRefusal;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.entity.ClusterBackendReach;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.audit.StorageAuditAction;
-import dev.chojo.ember.feature.storage.audit.StorageAuditOutcome;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
 import dev.chojo.ember.feature.storage.backend.StorageBackendType;
+import dev.chojo.ember.feature.storage.core.BackendRedaction;
+import dev.chojo.ember.feature.storage.core.BackendRequest;
+import dev.chojo.ember.feature.storage.core.BackendSummary;
+import dev.chojo.ember.feature.storage.core.BackendValidation;
+import dev.chojo.ember.feature.storage.core.MigrationResponse;
+import dev.chojo.ember.feature.storage.core.ProbeResult;
 import dev.chojo.ember.feature.storage.entity.StationStorageBackendConfig;
 import dev.chojo.ember.feature.storage.migration.MigrationException;
 import dev.chojo.ember.feature.storage.repository.ClusterStationStorageRepository;
 import dev.chojo.ember.feature.storage.repository.ClusterStorageConfigRepository;
 import dev.chojo.ember.feature.storage.repository.StationStorageConfigRepository;
 import dev.chojo.ember.feature.storage.service.StorageBackendAuditService.Actor;
-import dev.chojo.ember.feature.storage.service.StorageBackendPayloads.BackendOverrideRequest;
-import dev.chojo.ember.feature.storage.service.StorageBackendPayloads.BackendOverrideSummary;
-import dev.chojo.ember.feature.storage.service.StorageBackendPayloads.MigrationResponse;
-import dev.chojo.ember.feature.storage.service.StorageBackendPayloads.ProbeResult;
+import dev.chojo.ember.feature.storage.service.StorageMigrationService.Destination;
+import dev.chojo.ember.owner.Owner;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -36,7 +40,8 @@ import java.util.Optional;
  * A station picking where its own files are kept: its own remote storage, the instance's, or its
  * association's, and the files carried over whenever that changes.
  *
- * <p>Credentials are encrypted before they are stored and never read back out.
+ * <p>Credentials are encrypted before they are stored and never read back out. Every change is written to
+ * the station's history, a refused one included.
  */
 @Singleton
 public class StationStorageBackendService {
@@ -48,9 +53,9 @@ public class StationStorageBackendService {
     private final ClusterStorageConfigRepository clusterConfigRepository;
     private final ClusterStationStorageRepository placementRepository;
     private final StorageBackendResolver resolver;
-    private final StorageBackendPayloads payloads;
+    private final BackendValidation validation;
     private final StorageProbeService probeService;
-    private final StorageMigrationService migrationService;
+    private final StationMoves moves;
     private final StorageBackendAuditService auditService;
 
     @Inject
@@ -61,9 +66,9 @@ public class StationStorageBackendService {
             ClusterStorageConfigRepository clusterConfigRepository,
             ClusterStationStorageRepository placementRepository,
             StorageBackendResolver resolver,
-            StorageBackendPayloads payloads,
+            BackendValidation validation,
             StorageProbeService probeService,
-            StorageMigrationService migrationService,
+            StationMoves moves,
             StorageBackendAuditService auditService) {
         this.repository = repository;
         this.stationRepository = stationRepository;
@@ -71,9 +76,9 @@ public class StationStorageBackendService {
         this.clusterConfigRepository = clusterConfigRepository;
         this.placementRepository = placementRepository;
         this.resolver = resolver;
-        this.payloads = payloads;
+        this.validation = validation;
         this.probeService = probeService;
-        this.migrationService = migrationService;
+        this.moves = moves;
         this.auditService = auditService;
     }
 
@@ -100,14 +105,16 @@ public class StationStorageBackendService {
      * @return where its files are
      */
     public BackendOverrideResponse describe(int stationId) {
-        BackendOverrideSummary own = repository
+        @Nullable
+        BackendSummary own = repository
                 .findOne(stationId)
-                .map(row -> StorageBackendPayloads.toSummary(row.config()))
+                .map(row -> BackendRedaction.summaryOf(row.config()))
                 .orElse(null);
         Optional<Cluster> cluster = clusterRepository.findByStation(stationId);
-        BackendOverrideSummary onCluster = placementRepository
+        @Nullable
+        BackendSummary onCluster = placementRepository
                 .findConfigForStation(stationId)
-                .map(StorageBackendPayloads::toSummary)
+                .map(BackendRedaction::summaryOf)
                 .orElse(null);
         boolean clusterOffersStorage = cluster.filter(c -> c.storageBackendReach() == ClusterBackendReach.EVERY_STATION)
                 .flatMap(c -> clusterConfigRepository.findCurrent(c.id()))
@@ -133,27 +140,30 @@ public class StationStorageBackendService {
      * @param request   where to
      * @return what was carried over
      */
-    public MigrationResponse apply(Actor actor, int stationId, BackendOverrideRequest request) {
-        requireStationMayChooseItsOwn(stationId);
+    public MigrationResponse apply(Actor actor, int stationId, BackendRequest request) {
+        Owner owner = new Owner.Station(stationId);
+        @Nullable
         StationStorageBackendConfig existing = repository
                 .findOne(stationId)
                 .map(StationStorageConfigRepository.Row::config)
                 .orElse(null);
-        StorageMigrationService.Destination destination = destinationFor(stationId, request);
-        StationStorageBackendConfig target =
-                destination instanceof StorageMigrationService.Destination.Own own ? own.config() : null;
+        Destination destination;
+        try {
+            requireStationMayChooseItsOwn(stationId);
+            destination = destinationFor(stationId, request);
+        } catch (RefusalResponse refused) {
+            auditService.recordRejected(actor, owner, refused);
+            throw refused;
+        }
 
-        auditService.recordMigration(actor, stationId, StorageAuditAction.MIGRATION_STARTED, existing, target, null);
         StorageMigrationService.MigrationResult result;
         try {
-            result = migrationService.moveStation(stationId, destination);
+            result = moves.move(actor, owner, stationId, destination);
         } catch (MigrationException e) {
-            auditService.recordMigration(
-                    actor, stationId, StorageAuditAction.MIGRATION_FAILED, existing, target, e.getMessage());
             log.warn("Storage move for station {} failed", stationId, e);
             throw StorageRefusal.STATION_STORAGE_MOVE_NOT_DONE.raise();
         }
-        auditService.recordMigration(actor, stationId, StorageAuditAction.MIGRATION_COMPLETED, existing, target, null);
+        recordConfigChange(actor, owner, existing, destination);
         return new MigrationResponse(
                 result.totalKeys(), result.copied(), result.skipped(), result.deleted(), result.copiedBytes());
     }
@@ -167,13 +177,7 @@ public class StationStorageBackendService {
      */
     public ProbeResult probe(Actor actor, int stationId) {
         var row = repository.findOne(stationId).orElseThrow(StorageRefusal.STATION_KEEPS_NO_STORAGE_OF_ITS_OWN::raise);
-        ProbeResult result = masked(stationId, probeService.probe(row.config()));
-        auditService.recordProbe(
-                actor,
-                stationId,
-                result.healthy() ? StorageAuditOutcome.OK : StorageAuditOutcome.FAILED,
-                result.error());
-        return result;
+        return probeService.probeSaved(actor, new Owner.Station(stationId), row.config());
     }
 
     /**
@@ -183,12 +187,23 @@ public class StationStorageBackendService {
      * @param request   the storage as the form describes it
      * @return the answer, with the reason of a failure kept in the log
      */
-    public ProbeResult probe(int stationId, BackendOverrideRequest request) {
-        return masked(stationId, probeService.probe(payloads.toEntity(request)));
+    public ProbeResult probe(int stationId, BackendRequest request) {
+        return probeService.probe(new Owner.Station(stationId), validation.toConfig(request));
     }
 
-    private static ProbeResult masked(int stationId, ProbeResult result) {
-        return StorageProbeService.withoutReason("station " + stationId, result);
+    /**
+     * What a finished move changed about the station's own storage: set, replaced, or given up for the
+     * instance's or the association's.
+     */
+    private void recordConfigChange(
+            Actor actor, Owner owner, @Nullable StationStorageBackendConfig existing, Destination destination) {
+        @Nullable BackendSummary before = existing == null ? null : BackendRedaction.summaryOf(existing);
+        if (destination instanceof Destination.Own own) {
+            StorageAuditAction action = existing == null ? StorageAuditAction.CREATED : StorageAuditAction.UPDATED;
+            auditService.recordConfigChange(actor, owner, action, before, BackendRedaction.summaryOf(own.config()));
+        } else if (before != null) {
+            auditService.recordConfigChange(actor, owner, StorageAuditAction.DELETED, before, null);
+        }
     }
 
     /**
@@ -197,16 +212,15 @@ public class StationStorageBackendService {
      * <p>Its association's storage is not something the station describes: it is looked up, so a station
      * cannot type its way onto somewhere the association never named.
      */
-    private StorageMigrationService.Destination destinationFor(int stationId, BackendOverrideRequest request) {
+    private Destination destinationFor(int stationId, BackendRequest request) {
         return switch (request) {
-            case StorageBackendPayloads.LocalRequest ignored ->
-                new StorageMigrationService.Destination.InstanceDefault();
-            case StorageBackendPayloads.ClusterStorageRequest ignored -> clusterDestination(stationId);
-            default -> new StorageMigrationService.Destination.Own(payloads.toEntity(request));
+            case BackendRequest.LocalRequest ignored -> new Destination.InstanceDefault();
+            case BackendRequest.ClusterStorageRequest ignored -> clusterDestination(stationId);
+            default -> new Destination.Own(validation.toConfig(request));
         };
     }
 
-    private StorageMigrationService.Destination clusterDestination(int stationId) {
+    private Destination clusterDestination(int stationId) {
         Cluster cluster = clusterRepository
                 .findByStation(stationId)
                 .orElseThrow(StorageRefusal.STATION_ANSWERS_TO_NO_ASSOCIATION::raise);
@@ -216,7 +230,7 @@ public class StationStorageBackendService {
         var current = clusterConfigRepository
                 .findCurrent(cluster.id())
                 .orElseThrow(StorageRefusal.ASSOCIATION_KEEPS_NO_STORAGE_OF_ITS_OWN::raise);
-        return new StorageMigrationService.Destination.Cluster(cluster.id(), current.id(), current.config());
+        return new Destination.Cluster(cluster.id(), current.id(), current.config());
     }
 
     /**
@@ -242,8 +256,8 @@ public class StationStorageBackendService {
      */
     public record BackendOverrideResponse(
             StorageBackendType instanceDefault,
-            @Nullable BackendOverrideSummary override,
-            @Nullable BackendOverrideSummary clusterBackend,
+            @Nullable BackendSummary override,
+            @Nullable BackendSummary clusterBackend,
             @Nullable String clusterName,
             boolean clusterOffersStorage,
             boolean locked) {}

@@ -5862,7 +5862,6 @@ export default {
         linkAudit: 'Speicher-Audit',
         linkFromUsage: 'Instanz-Backend verwalten →',
         summary: {
-            title: 'Aktive Konfiguration',
             current: 'Die Instanz nutzt derzeit ein {type}-Backend.',
         },
         banner: {
@@ -5884,22 +5883,14 @@ export default {
             },
         },
         actions: {
-            probeLive: 'Aktuelles Backend testen',
             probeConfig: 'Verbindung testen',
             probing: 'Teste …',
             apply: 'Speichern und übernehmen',
             applying: 'Übernehme …',
         },
-        probe: {
-            ok: 'Verbindung erfolgreich getestet.',
-            failed: 'Verbindung fehlgeschlagen: {reason}',
-        },
         confirm: {
             title: 'Instanz-weit verschieben?',
             body: 'Während der Verschiebung sind sämtliche Schreibvorgänge auf der Instanz pausiert. Nach erfolgreichem Kopieren werden die alten Dateien standardmäßig gelöscht.',
-            keepSource: 'Quell-Dateien nach erfolgreicher Übernahme behalten',
-            cancel: 'Abbrechen',
-            confirm: 'Übernehmen',
         },
         feedback: {
             applied: 'Übernommen. {copied} Dateien kopiert, {skipped} übersprungen, {deleted} an der Quelle gelöscht.',
@@ -5923,11 +5914,34 @@ export default {
             title: 'Einträge',
         },
     },
+    storageBackend: {
+        summary: {
+            title: 'Aktive Konfiguration',
+            probe: 'Gespeicherten Speicher testen',
+            probing: 'Teste …',
+        },
+        probe: {
+            ok: 'Verbindung erfolgreich getestet.',
+            failed: 'Verbindung fehlgeschlagen: {reason}',
+        },
+        confirm: {
+            keepSource: 'Quell-Dateien nach erfolgreicher Übernahme behalten',
+            cancel: 'Abbrechen',
+            confirm: 'Übernehmen',
+        },
+        audit: {
+            title: 'Letzte Änderungen',
+            empty: 'Noch keine Einträge.',
+            timestamp: 'Zeitpunkt',
+            action: 'Aktion',
+            outcome: 'Ergebnis',
+            detail: 'Details',
+        },
+    },
     stationStorageBackend: {
         backToUsage: '← Zur Nutzungsübersicht',
         linkFromUsage: 'Speicher-Backend verwalten →',
         summary: {
-            title: 'Aktive Konfiguration',
             inherit: 'Die Wache nutzt aktuell den Instanz-Standard ({type}).',
             override: 'Die Wache nutzt aktuell ein eigenes {type}-Backend.',
             cluster: 'Die Dateien der Wache liegen auf dem {type}-Speicher von {cluster}.',
@@ -6012,31 +6026,16 @@ export default {
         },
         actions: {
             probeConfig: 'Verbindung testen',
-            probeLive: 'Aktuelles Backend testen',
             probing: 'Teste …',
             apply: 'Speichern und übernehmen',
             applying: 'Übernehme …',
         },
-        probe: {
-            ok: 'Verbindung erfolgreich getestet.',
-            failed: 'Verbindung fehlgeschlagen: {reason}',
-        },
         confirm: {
             title: 'Backend jetzt übernehmen?',
             body: 'Während der Übernahme werden Schreibvorgänge auf dieser Wache mit 503 abgewiesen. Schon vorhandene Dateien mit gleichem Hash werden übersprungen.',
-            cancel: 'Abbrechen',
-            confirm: 'Übernehmen',
         },
         feedback: {
             applied: 'Übernommen. {copied} Dateien kopiert, {skipped} übersprungen, {deleted} an der Quelle gelöscht.',
-        },
-        audit: {
-            title: 'Letzte Änderungen',
-            empty: 'Noch keine Einträge.',
-            timestamp: 'Zeitpunkt',
-            action: 'Aktion',
-            outcome: 'Ergebnis',
-            detail: 'Details',
         },
     },
     storageMonitoring: {
@@ -7867,14 +7866,18 @@ export default {
         },
         actions: {
             probeConfig: 'Verbindung testen',
-            probeLive: 'Gespeicherten Speicher testen',
             probing: 'Teste …',
             apply: 'Speicher speichern',
             applying: 'Speichere …',
         },
-        probe: {
-            ok: 'Verbindung erfolgreich getestet.',
-            failed: 'Verbindung fehlgeschlagen: {reason}',
+        summary: {
+            current: 'Der Verband nutzt einen eigenen {type}-Speicher.',
+            none: 'Der Verband hat keinen eigenen Speicher, seine Dateien liegen beim Standard der Instanz.',
+        },
+        confirm: {
+            title: 'Dateien verschieben?',
+            drop: 'Der Verband gibt seinen eigenen Speicher auf. Wer noch darauf liegt, bleibt dort, bis er einzeln zurückgeholt wird, und der Speicher wird gelöscht, sobald niemand mehr darauf liegt.',
+            move: 'Die Dateien von {station} werden dorthin kopiert, wo die Entscheidung des Verbands sie vorsieht, und danach an der alten Stelle gelöscht.',
         },
         placements: {
             title: 'Wo die Dateien liegen',

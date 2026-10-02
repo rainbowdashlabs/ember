@@ -22,7 +22,7 @@ import java.util.Optional;
 
 /**
  * The history of storage changes, newest first, read a page at a time: all of it for the administrator,
- * one station's for that station.
+ * one station's for that station, one association's for that association.
  */
 @Singleton
 public class StorageAuditLogService {
@@ -71,6 +71,21 @@ public class StorageAuditLogService {
                 .toList();
     }
 
+    /**
+     * The history of one association: its storage, what it decided about it, and the moves it made for its
+     * stations.
+     *
+     * @param clusterId the association
+     * @param before    the point in time to list from, or null for the newest
+     * @param limit     how many entries at most, held between 1 and 200
+     * @return the entries
+     */
+    public List<AuditEntryResponse> listForCluster(int clusterId, @Nullable String before, int limit) {
+        return repository.findByCluster(clusterId, pointBefore(before), clamp(limit)).stream()
+                .map(StorageAuditLogService::toResponse)
+                .toList();
+    }
+
     private static Optional<Instant> pointBefore(@Nullable String raw) {
         if (raw == null) return Optional.empty();
         try {
@@ -92,6 +107,7 @@ public class StorageAuditLogService {
                 entry.actorMemberId().orElse(null),
                 entry.systemActor().orElse(null),
                 entry.stationId().orElse(null),
+                entry.clusterId().orElse(null),
                 entry.action(),
                 entry.oldConfig().orElse(null),
                 entry.newConfig().orElse(null),
@@ -106,6 +122,7 @@ public class StorageAuditLogService {
             @Nullable Integer actorMemberId,
             @Nullable String systemActor,
             @Nullable Integer stationId,
+            @Nullable Integer clusterId,
             StorageAuditAction action,
             @Nullable String oldConfig,
             @Nullable String newConfig,

@@ -9,14 +9,14 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.StorageRefusal;
+import dev.chojo.ember.feature.storage.core.BackendRequest;
+import dev.chojo.ember.feature.storage.core.MigrationResponse;
+import dev.chojo.ember.feature.storage.core.ProbeResult;
 import dev.chojo.ember.feature.storage.service.StationStorageBackendService;
 import dev.chojo.ember.feature.storage.service.StationStorageBackendService.BackendOverrideResponse;
 import dev.chojo.ember.feature.storage.service.StorageAuditLogService;
 import dev.chojo.ember.feature.storage.service.StorageAuditLogService.AuditEntryResponse;
 import dev.chojo.ember.feature.storage.service.StorageBackendAuditService.Actor;
-import dev.chojo.ember.feature.storage.service.StorageBackendPayloads.BackendOverrideRequest;
-import dev.chojo.ember.feature.storage.service.StorageBackendPayloads.MigrationResponse;
-import dev.chojo.ember.feature.storage.service.StorageBackendPayloads.ProbeResult;
 import io.javalin.http.Context;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
@@ -29,9 +29,8 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 /**
- * Station-scoped self-service routes for picking a remote storage backend. A station manager
- * can override the inherited instance default for the entire station without involving an
- * instance admin. The override covers every station-scoped movable category at once.
+ * Where a station's files are kept: storage of its own, the instance's, or its association's, chosen by the
+ * station's administrators without an instance administrator, and the history of every change.
  */
 @Singleton
 public class StationStorageBackendRoutes implements Routes {
@@ -72,12 +71,12 @@ public class StationStorageBackendRoutes implements Routes {
             methods = HttpMethod.POST,
             summary = "Move the station's files onto another storage",
             tags = {"Storage"},
-            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = BackendOverrideRequest.class)),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = BackendRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MigrationResponse.class)))
     private void apply(Context ctx) {
         Actor actor = actor(ctx);
         int stationId = sessionStationId(ctx);
-        ctx.json(backendService.apply(actor, stationId, ctx.bodyAsClass(BackendOverrideRequest.class)));
+        ctx.json(backendService.apply(actor, stationId, ctx.bodyAsClass(BackendRequest.class)));
     }
 
     @OpenApi(
@@ -96,11 +95,11 @@ public class StationStorageBackendRoutes implements Routes {
             methods = HttpMethod.POST,
             summary = "Check whether a storage not saved yet would answer",
             tags = {"Storage"},
-            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = BackendOverrideRequest.class)),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = BackendRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ProbeResult.class)))
     private void probeConfig(Context ctx) {
         int stationId = sessionStationId(ctx);
-        ctx.json(backendService.probe(stationId, ctx.bodyAsClass(BackendOverrideRequest.class)));
+        ctx.json(backendService.probe(stationId, ctx.bodyAsClass(BackendRequest.class)));
     }
 
     @OpenApi(

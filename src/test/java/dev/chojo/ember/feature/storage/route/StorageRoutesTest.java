@@ -10,17 +10,17 @@ import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.GeneralRefusal;
 import dev.chojo.ember.api.refusal.StorageRefusal;
+import dev.chojo.ember.feature.storage.core.BackendRequest;
+import dev.chojo.ember.feature.storage.core.BackendSummary;
+import dev.chojo.ember.feature.storage.core.MigrationResponse;
+import dev.chojo.ember.feature.storage.core.ProbeResult;
 import dev.chojo.ember.feature.storage.entity.QuotaOrigin;
 import dev.chojo.ember.feature.storage.entity.StorageQuotaPreset;
 import dev.chojo.ember.feature.storage.service.InstanceStorageSettingsService;
-import dev.chojo.ember.feature.storage.service.InstanceStorageSettingsService.InstanceLocalSummary;
 import dev.chojo.ember.feature.storage.service.InstanceStorageSettingsService.InstanceMigrateRequest;
-import dev.chojo.ember.feature.storage.service.InstanceStorageSettingsService.InstanceMigrationResultResponse;
 import dev.chojo.ember.feature.storage.service.InstanceStorageSettingsService.InstanceMigrationStatusResponse;
-import dev.chojo.ember.feature.storage.service.InstanceStorageSettingsService.InstanceS3Request;
 import dev.chojo.ember.feature.storage.service.StorageAuditLogService;
 import dev.chojo.ember.feature.storage.service.StorageBackendAuditService.Actor;
-import dev.chojo.ember.feature.storage.service.StorageBackendPayloads.ProbeResult;
 import dev.chojo.ember.feature.storage.service.StorageQuotaAdminService;
 import dev.chojo.ember.feature.storage.service.StorageQuotaAdminService.PresetRequest;
 import dev.chojo.ember.feature.storage.service.StorageQuotaAdminService.QuotaUpdateRequest;
@@ -187,9 +187,10 @@ class StorageRoutesTest {
 
     @Test
     void theInstanceStorageIsDescribedProbedAndWatched() {
-        when(instance.summary()).thenReturn(new InstanceLocalSummary("data"));
-        when(instance.probe()).thenReturn(PROBED);
-        when(instance.probe(any(InstanceS3Request.class))).thenReturn(new ProbeResult(false, "no bucket", "now"));
+        when(instance.summary()).thenReturn(new BackendSummary.LocalSummary("data"));
+        when(instance.probe(Actor.human(TestSessions.ACCOUNT_ID, null))).thenReturn(PROBED);
+        when(instance.probe(any(BackendRequest.S3Request.class)))
+                .thenReturn(new ProbeResult(false, "no bucket", "now"));
         when(instance.status()).thenReturn(new InstanceMigrationStatusResponse(true));
 
         harness.run((server, client) -> {
@@ -211,7 +212,7 @@ class StorageRoutesTest {
 
     @Test
     void theInstanceMovesOntoNewStorageInTheNameOfWhoAsked() {
-        when(instance.apply(any(), any())).thenReturn(new InstanceMigrationResultResponse(3, 2, 1, 2, 42));
+        when(instance.apply(any(), any())).thenReturn(new MigrationResponse(3, 2, 1, 2, 42));
 
         harness.run((server, client) -> {
             var moved = post(client, "/backend/apply", body("{\"target\": {\"type\": \"LOCAL\", \"root\": \"data\"}}"));
@@ -221,8 +222,7 @@ class StorageRoutesTest {
         verify(instance)
                 .apply(
                         Actor.human(TestSessions.ACCOUNT_ID, null),
-                        new InstanceMigrateRequest(
-                                new InstanceStorageSettingsService.InstanceLocalRequest("data"), null));
+                        new InstanceMigrateRequest(new BackendRequest.LocalRequest("data"), null));
     }
 
     @Test

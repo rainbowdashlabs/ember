@@ -31,6 +31,10 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.clusterStorageBackend.credentialsText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.clusterStorageBackend.historyTitle')">
+      <p>{{ t('helpCenter.clusterStorageBackend.historyText') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.clusterStorageBackend.joinLeaveTitle')">
       <p>{{ t('helpCenter.clusterStorageBackend.joinLeaveText') }}</p>
     </HelpSection>

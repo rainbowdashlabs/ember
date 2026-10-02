@@ -61,15 +61,6 @@ public class ClusterStationStorageRepository {
                 .all());
     }
 
-    /** How many stations stand on one version, which says whether it may be deleted. */
-    public int countOn(int configId) {
-        return query("SELECT count(*) AS placed FROM cluster_station_storage WHERE config_id = :config_id;")
-                .single(call().bind("config_id", configId))
-                .map(row -> row.getInt("placed"))
-                .first()
-                .orElse(0);
-    }
-
     /** Records that a station's bytes now sit on a version of its cluster's storage. */
     public void place(int stationId, int clusterId, int configId) {
         query("""

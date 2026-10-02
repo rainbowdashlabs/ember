@@ -55,16 +55,6 @@ public class StorageMigrationService {
         this.locks = locks;
     }
 
-    /** Moves a station onto a backend of its own. */
-    public MigrationResult migrate(int stationId, StationStorageBackendConfig targetConfig) {
-        return moveStation(stationId, new Destination.Own(targetConfig));
-    }
-
-    /** Moves a station back to the instance default; nothing happens when it already stands there. */
-    public MigrationResult migrateToInstanceDefault(int stationId) {
-        return moveStation(stationId, new Destination.InstanceDefault());
-    }
-
     /**
      * Under the station's lock: probes the target, copies and verifies every movable station key,
      * records where the station now stands, checks a sample, and deletes the source. A target built for

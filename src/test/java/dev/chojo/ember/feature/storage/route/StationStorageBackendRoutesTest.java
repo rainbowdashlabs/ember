@@ -10,14 +10,14 @@ import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.StorageRefusal;
 import dev.chojo.ember.feature.storage.backend.StorageBackendType;
+import dev.chojo.ember.feature.storage.core.BackendRequest.LocalRequest;
+import dev.chojo.ember.feature.storage.core.BackendRequest.S3Request;
+import dev.chojo.ember.feature.storage.core.MigrationResponse;
+import dev.chojo.ember.feature.storage.core.ProbeResult;
 import dev.chojo.ember.feature.storage.service.StationStorageBackendService;
 import dev.chojo.ember.feature.storage.service.StationStorageBackendService.BackendOverrideResponse;
 import dev.chojo.ember.feature.storage.service.StorageAuditLogService;
 import dev.chojo.ember.feature.storage.service.StorageBackendAuditService.Actor;
-import dev.chojo.ember.feature.storage.service.StorageBackendPayloads.LocalRequest;
-import dev.chojo.ember.feature.storage.service.StorageBackendPayloads.MigrationResponse;
-import dev.chojo.ember.feature.storage.service.StorageBackendPayloads.ProbeResult;
-import dev.chojo.ember.feature.storage.service.StorageBackendPayloads.S3Request;
 import io.javalin.testtools.Request;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -91,7 +91,7 @@ class StationStorageBackendRoutesTest {
             assertEquals(2, json(moved).path("copied").asInt());
         });
 
-        verify(backend).apply(ACTOR, STATION, new LocalRequest());
+        verify(backend).apply(ACTOR, STATION, new LocalRequest(null));
     }
 
     @Test

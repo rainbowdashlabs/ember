@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.storage.backend.s3;
 
+import dev.chojo.ember.feature.storage.backend.BackendDestination;
 import dev.chojo.ember.feature.storage.backend.HealthStatus;
 import dev.chojo.ember.feature.storage.backend.ObjectMetadata;
 import dev.chojo.ember.feature.storage.backend.StorageBackend;
@@ -74,7 +75,7 @@ public class S3StorageBackend implements StorageBackend {
     public S3StorageBackend(S3BackendConfig config) {
         this.config = config;
         this.s3 = client(config);
-        this.basePath = normalizeBasePath(config.basePath());
+        this.basePath = BackendDestination.objectPrefix(config.basePath());
     }
 
     private static S3Client client(S3BackendConfig config) {
@@ -91,14 +92,6 @@ public class S3StorageBackend implements StorageBackend {
                         .apiCallTimeout(CALL_TIMEOUT)
                         .build())
                 .build();
-    }
-
-    private static String normalizeBasePath(String basePath) {
-        if (basePath == null || basePath.isBlank() || basePath.equals("/")) return "";
-        String trimmed = basePath;
-        while (trimmed.startsWith("/")) trimmed = trimmed.substring(1);
-        while (trimmed.endsWith("/")) trimmed = trimmed.substring(0, trimmed.length() - 1);
-        return trimmed;
     }
 
     private static Map<String, String> encodeMetadata(ObjectMetadata metadata) {
@@ -126,7 +119,7 @@ public class S3StorageBackend implements StorageBackend {
 
     @Override
     public String destination() {
-        return String.join("|", StorageBackendType.S3.name(), config.endpoint(), config.bucket(), basePath);
+        return BackendDestination.s3(config.endpoint(), config.bucket(), basePath);
     }
 
     @Override

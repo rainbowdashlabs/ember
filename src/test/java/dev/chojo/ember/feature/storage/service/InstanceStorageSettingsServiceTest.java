@@ -12,23 +12,31 @@ import dev.chojo.ember.conf.Conf;
 import dev.chojo.ember.conf.ConfigChanges;
 import dev.chojo.ember.conf.UnwritableConf;
 import dev.chojo.ember.conf.file.elements.StorageBackendSettings;
+import dev.chojo.ember.feature.federation.service.RemoteUrlValidator;
 import dev.chojo.ember.feature.storage.audit.StorageAuditAction;
+import dev.chojo.ember.feature.storage.audit.StorageAuditOutcome;
 import dev.chojo.ember.feature.storage.backend.HealthStatus;
 import dev.chojo.ember.feature.storage.backend.StorageBackend;
 import dev.chojo.ember.feature.storage.backend.StorageBackendFactory;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
 import dev.chojo.ember.feature.storage.backend.StorageBackendType;
+import dev.chojo.ember.feature.storage.core.BackendRequest;
+import dev.chojo.ember.feature.storage.core.BackendRequest.LocalRequest;
+import dev.chojo.ember.feature.storage.core.BackendRequest.S3Request;
+import dev.chojo.ember.feature.storage.core.BackendRequest.SftpRequest;
+import dev.chojo.ember.feature.storage.core.BackendSummary;
+import dev.chojo.ember.feature.storage.core.BackendSummary.LocalSummary;
+import dev.chojo.ember.feature.storage.core.BackendSummary.S3Summary;
+import dev.chojo.ember.feature.storage.core.BackendValidation;
 import dev.chojo.ember.feature.storage.credential.CredentialCipher;
 import dev.chojo.ember.feature.storage.credential.EncryptedBlob;
 import dev.chojo.ember.feature.storage.migration.MigrationException;
 import dev.chojo.ember.feature.storage.service.InstanceStorageMigrationService.MigrationResult;
 import dev.chojo.ember.feature.storage.service.InstanceStorageMigrationService.PreparedMigration;
-import dev.chojo.ember.feature.storage.service.InstanceStorageSettingsService.InstanceLocalRequest;
 import dev.chojo.ember.feature.storage.service.InstanceStorageSettingsService.InstanceMigrateRequest;
-import dev.chojo.ember.feature.storage.service.InstanceStorageSettingsService.InstanceS3Request;
-import dev.chojo.ember.feature.storage.service.InstanceStorageSettingsService.InstanceS3Summary;
-import dev.chojo.ember.feature.storage.service.InstanceStorageSettingsService.InstanceSftpRequest;
 import dev.chojo.ember.feature.storage.service.StorageBackendAuditService.Actor;
+import dev.chojo.ember.owner.Owner;
+import dev.chojo.ember.util.TestRemoteUrlValidator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -40,12 +48,12 @@ import java.util.Base64;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
@@ -79,19 +87,24 @@ class InstanceStorageSettingsServiceTest {
     }
 
     private InstanceStorageSettingsService serviceOn(Conf conf) {
+        return serviceOn(conf, TestRemoteUrlValidator.permissive());
+    }
+
+    private InstanceStorageSettingsService serviceOn(Conf conf, RemoteUrlValidator addresses) {
         return new InstanceStorageSettingsService(
                 conf,
                 new ConfigChanges(conf),
                 resolver,
                 factory,
                 cipher,
+                new BackendValidation(cipher, addresses),
                 migration,
                 audit,
-                new StorageProbeService(factory));
+                new StorageProbeService(factory, audit));
     }
 
-    private static InstanceS3Request bucket(String name) {
-        return new InstanceS3Request("https://s3.test", "eu", name, true, "", "files", "access", "secret");
+    private static S3Request bucket(String name) {
+        return new S3Request("https://s3.test", "eu", name, true, "", "files", "access", "secret");
     }
 
     private String decrypted(EncryptedBlob blob) {
@@ -117,12 +130,72 @@ class InstanceStorageSettingsServiceTest {
         verify(factory).invalidateInstanceDefault();
         verify(migration).commit(PREPARED, true);
         verify(audit)
+                .recordConfigChange(
+                        eq(ACTOR),
+                        eq(new Owner.Instance()),
+                        eq(StorageAuditAction.INSTANCE_DEFAULT_UPDATED),
+                        any(BackendSummary.class),
+                        any(BackendSummary.class));
+        verify(audit)
                 .recordInstanceMigration(
                         eq(ACTOR),
                         eq(StorageAuditAction.INSTANCE_MIGRATION_COMPLETED),
-                        anyString(),
-                        anyString(),
+                        any(BackendSummary.class),
+                        any(BackendSummary.class),
                         isNull());
+    }
+
+    /** The instance is held to what a station is held to: a storage nobody can sign in to is a mistake. */
+    @Test
+    void incompleteCredentialsAreRefusedBeforeAnythingMoves() {
+        var service = serviceOn(new Conf(directory));
+        var noKeys = new S3Request("https://s3.test", "eu", "ember", true, "", "files", "", "");
+        var bothWays = new SftpRequest("sftp.test", 22, "ember", "SHA256:abc", "files", "pw", "KEY");
+
+        assertEquals(
+                StorageRefusal.STORAGE_KEYS_MISSING,
+                assertThrows(
+                                RefusalResponse.class,
+                                () -> service.apply(ACTOR, new InstanceMigrateRequest(noKeys, false)))
+                        .refusal());
+        assertEquals(
+                StorageRefusal.STORAGE_SIGN_IN_AMBIGUOUS,
+                assertThrows(
+                                RefusalResponse.class,
+                                () -> service.apply(ACTOR, new InstanceMigrateRequest(bothWays, false)))
+                        .refusal());
+        verify(migration, never()).prepare(any());
+    }
+
+    /** And so is the address: the instance does not open connections into its own network either. */
+    @Test
+    void anAddressTheInstanceMayNotReachIsRefusedAndWrittenDown() {
+        var closed = new RemoteUrlValidator(null, null) {
+            @Override
+            public boolean isHostAllowed(String host) {
+                return false;
+            }
+        };
+        var service = serviceOn(new Conf(directory), closed);
+
+        var refused = assertThrows(
+                RefusalResponse.class, () -> service.apply(ACTOR, new InstanceMigrateRequest(bucket("ember"), false)));
+
+        assertEquals(StorageRefusal.STORAGE_ADDRESS_NOT_ALLOWED, refused.refusal());
+        verify(audit).recordRejected(ACTOR, new Owner.Instance(), refused);
+        verify(migration, never()).prepare(any());
+    }
+
+    @Test
+    void anAssociationsStorageIsNotTheInstancesToChoose() {
+        var service = serviceOn(new Conf(directory));
+
+        var refused = assertThrows(
+                RefusalResponse.class,
+                () -> service.apply(
+                        ACTOR, new InstanceMigrateRequest(new BackendRequest.ClusterStorageRequest(), false)));
+
+        assertEquals(StorageRefusal.STORAGE_DESTINATION_NOT_OFFERED, refused.refusal());
     }
 
     @Test
@@ -133,7 +206,8 @@ class InstanceStorageSettingsServiceTest {
                 RefusalResponse.class, () -> service.apply(ACTOR, new InstanceMigrateRequest(null, false)));
 
         assertEquals(StorageRefusal.INSTANCE_STORAGE_TARGET_MISSING, refused.refusal());
-        verifyNoInteractions(migration, audit);
+        verifyNoInteractions(migration);
+        verify(audit).recordRejected(ACTOR, new Owner.Instance(), refused);
     }
 
     @Test
@@ -153,8 +227,8 @@ class InstanceStorageSettingsServiceTest {
                 .recordInstanceMigration(
                         eq(ACTOR),
                         eq(StorageAuditAction.INSTANCE_MIGRATION_FAILED),
-                        anyString(),
-                        anyString(),
+                        any(BackendSummary.class),
+                        any(BackendSummary.class),
                         eq("target refused"));
     }
 
@@ -194,23 +268,29 @@ class InstanceStorageSettingsServiceTest {
         verify(migration).abort(PREPARED);
     }
 
+    /**
+     * The history names where the files are and a fingerprint of the credentials, so a rotation shows,
+     * but never the credentials themselves.
+     */
     @Test
-    void theAuditRowNamesWhereTheFilesAreButNeverTheCredentials() {
+    void theHistoryNamesWhereTheFilesAreButNeverTheCredentials() {
         var service = serviceOn(new Conf(directory));
 
         service.apply(ACTOR, new InstanceMigrateRequest(bucket("ember"), false));
 
-        var target = ArgumentCaptor.forClass(String.class);
+        var target = ArgumentCaptor.forClass(BackendSummary.class);
         verify(audit)
                 .recordInstanceMigration(
                         eq(ACTOR),
                         eq(StorageAuditAction.INSTANCE_MIGRATION_STARTED),
-                        eq("{\"type\":\"LOCAL\",\"root\":\"data\"}"),
+                        eq(new LocalSummary("data")),
                         target.capture(),
                         isNull());
-        assertTrue(target.getValue().contains("\"bucket\":\"ember\""));
-        assertFalse(target.getValue().contains("secret"));
-        assertFalse(target.getValue().contains("access"));
+        var s3 = (S3Summary) target.getValue();
+        assertEquals("ember", s3.bucket());
+        assertNotNull(s3.credentialFingerprint());
+        assertFalse(s3.toString().contains("secret"));
+        assertFalse(s3.toString().contains("access"));
     }
 
     @Test
@@ -218,7 +298,7 @@ class InstanceStorageSettingsServiceTest {
         var service = serviceOn(new Conf(directory));
         service.apply(ACTOR, new InstanceMigrateRequest(bucket("ember"), false));
 
-        service.apply(ACTOR, new InstanceMigrateRequest(new InstanceLocalRequest(null), false));
+        service.apply(ACTOR, new InstanceMigrateRequest(new LocalRequest(null), false));
 
         var written = new Conf(directory).main().storage().backend();
         assertEquals(StorageBackendType.LOCAL, written.type());
@@ -233,7 +313,7 @@ class InstanceStorageSettingsServiceTest {
         service.apply(
                 ACTOR,
                 new InstanceMigrateRequest(
-                        new InstanceSftpRequest("sftp.test", 22, "ember", "SHA256:abc", "files", " ", "KEY"), false));
+                        new SftpRequest("sftp.test", 22, "ember", "SHA256:abc", "files", " ", "KEY"), false));
 
         var sftp = new Conf(directory).main().storage().backend().sftp();
         assertNull(sftp.passwordEnc());
@@ -241,8 +321,9 @@ class InstanceStorageSettingsServiceTest {
         assertEquals("", sftp.privateKey());
     }
 
+    /** The operator is told what a station is told; the reason is in the instance log. */
     @Test
-    void storageNotSavedYetIsProbedWithoutWritingAnything() {
+    void storageNotSavedYetIsProbedWithoutWritingAnythingOrSayingWhy() {
         var backend = mock(StorageBackend.class);
         when(backend.probe()).thenReturn(HealthStatus.unhealthy("no bucket"));
         var built = ArgumentCaptor.forClass(StorageBackendSettings.class);
@@ -252,7 +333,7 @@ class InstanceStorageSettingsServiceTest {
         var result = service.probe(bucket("ember"));
 
         assertFalse(result.healthy());
-        assertEquals("no bucket", result.error());
+        assertEquals(StorageProbeService.PROBE_FAILED, result.error());
         assertEquals("ember", built.getValue().s3().bucket());
         assertEquals(
                 StorageBackendType.LOCAL,
@@ -260,16 +341,36 @@ class InstanceStorageSettingsServiceTest {
     }
 
     @Test
+    void theStorageInUseIsProbedForTheInstancesHistory() {
+        var running = mock(StorageBackend.class);
+        when(running.probe()).thenReturn(HealthStatus.unhealthy("disk full"));
+        when(resolver.instanceDefault()).thenReturn(running);
+        var service = serviceOn(new Conf(directory));
+
+        var result = service.probe(ACTOR);
+
+        assertEquals(StorageProbeService.PROBE_FAILED, result.error());
+        verify(audit)
+                .recordProbe(
+                        eq(ACTOR),
+                        eq(new Owner.Instance()),
+                        eq(StorageAuditOutcome.FAILED),
+                        eq(StorageProbeService.PROBE_FAILED));
+    }
+
+    @Test
     void theSummaryLeavesTheCredentialsOut() {
         var conf = new Conf(directory);
         var service = serviceOn(conf);
         service.apply(ACTOR, new InstanceMigrateRequest(bucket("ember"), false));
-        var backend = mock(StorageBackend.class);
-        when(backend.type()).thenReturn(StorageBackendType.S3);
-        when(resolver.instanceDefault()).thenReturn(backend);
 
-        var summary = service.summary();
+        var summary = (S3Summary) service.summary();
 
-        assertEquals(new InstanceS3Summary("https://s3.test", "eu", "ember", true, "", "files"), summary);
+        assertEquals("https://s3.test", summary.endpoint());
+        assertEquals("eu", summary.region());
+        assertEquals("ember", summary.bucket());
+        assertTrue(summary.pathStyle());
+        assertEquals("files", summary.basePath());
+        assertNotNull(summary.credentialFingerprint());
     }
 }

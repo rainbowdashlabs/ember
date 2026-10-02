@@ -193,6 +193,9 @@ import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.backend.StorageBackendFactory;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
 import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
+import dev.chojo.ember.feature.storage.core.BackendValidation;
+import dev.chojo.ember.feature.storage.core.RetiredVersions;
+import dev.chojo.ember.feature.storage.credential.CredentialCipher;
 import dev.chojo.ember.feature.storage.migration.MigrationLockRegistry;
 import dev.chojo.ember.feature.storage.repository.ClusterStationStorageRepository;
 import dev.chojo.ember.feature.storage.repository.ClusterStorageConfigRepository;
@@ -201,7 +204,10 @@ import dev.chojo.ember.feature.storage.repository.StationStorageConfigRepository
 import dev.chojo.ember.feature.storage.repository.StorageBackendAuditRepository;
 import dev.chojo.ember.feature.storage.repository.StorageQuotaPresetRepository;
 import dev.chojo.ember.feature.storage.repository.StorageUsageRepository;
+import dev.chojo.ember.feature.storage.service.StationMoves;
+import dev.chojo.ember.feature.storage.service.StorageBackendAuditService;
 import dev.chojo.ember.feature.storage.service.StorageMigrationService;
+import dev.chojo.ember.feature.storage.service.StorageProbeService;
 import dev.chojo.ember.feature.storage.service.StorageQuotaService;
 import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.feature.system.repository.ApplicationSettingRepository;
@@ -210,6 +216,7 @@ import dev.chojo.ember.feature.traffic.repository.StationTrafficRepository;
 import dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository;
 import dev.chojo.ember.feature.waitinglist.repository.WaitingListRepository;
 import dev.chojo.ember.lifecycle.TaskScheduler;
+import dev.chojo.ember.util.TestRemoteUrlValidator;
 import dev.chojo.ember.util.TestStationKeys;
 import dev.chojo.ember.util.sql.Transactions;
 import org.junit.jupiter.api.AfterAll;
@@ -220,6 +227,7 @@ import org.mockito.Mockito;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 import java.nio.file.Path;
+import java.util.Base64;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -554,20 +562,8 @@ public abstract class RepositoryTestBase {
         clusterStorageQuotaRepo = new ClusterStorageQuotaRepository();
         clusterGovernanceService = new ClusterGovernanceService(
                 clusterRepo, clusterStationGroupRepo, stationRepo, new DomainEventBus(Set.of()));
-        var storageMigrationService = new StorageMigrationService(
-                stationRepo,
-                new StationStorageConfigRepository(),
-                new ClusterStationStorageRepository(),
+        clusterStorageBackendService = newClusterStorageBackendService(
                 new StorageBackendFactory(new Storage(), localStorage(), null),
-                new StorageBackendResolver(localStorage()),
-                new MigrationLockRegistry());
-        clusterStorageBackendService = new ClusterStorageBackendService(
-                clusterRepo,
-                stationRepo,
-                new ClusterStorageConfigRepository(),
-                new ClusterStationStorageRepository(),
-                new StationStorageConfigRepository(),
-                storageMigrationService,
                 new StorageBackendResolver(localStorage()));
         clusterService = new ClusterService(
                 clusterRepo,
@@ -717,6 +713,39 @@ public abstract class RepositoryTestBase {
     /** A notifier over the shared repository, resolving cluster holders through the shared cluster service. */
     protected static Notifier newNotifier() {
         return new Notifier(notificationRepo, () -> clusterService);
+    }
+
+    /**
+     * The association storage service over the given backends, writing its history to the test database and
+     * reaching every address it is given.
+     *
+     * @param factory  what builds the backends a move carries files to
+     * @param resolver where the files of a station are found
+     * @return the service
+     */
+    protected static ClusterStorageBackendService newClusterStorageBackendService(
+            StorageBackendFactory factory, StorageBackendResolver resolver) {
+        var configs = new ClusterStorageConfigRepository();
+        var placements = new ClusterStationStorageRepository();
+        var ownConfigs = new StationStorageConfigRepository();
+        var audit = new StorageBackendAuditService(new StorageBackendAuditRepository());
+        var retired = new RetiredVersions(configs, resolver);
+        var migration = new StorageMigrationService(
+                stationRepo, ownConfigs, placements, factory, resolver, new MigrationLockRegistry());
+        return new ClusterStorageBackendService(
+                clusterRepo,
+                stationRepo,
+                configs,
+                placements,
+                ownConfigs,
+                new StationMoves(migration, ownConfigs, placements, audit, retired),
+                resolver,
+                new BackendValidation(
+                        new CredentialCipher(Base64.getEncoder().encodeToString(new byte[32])),
+                        TestRemoteUrlValidator.permissive()),
+                new StorageProbeService(factory, audit),
+                audit,
+                retired);
     }
 
     /**

@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.storage.repository.ClusterStationStorageRepositor
 import dev.chojo.ember.feature.storage.repository.ClusterStorageConfigRepository;
 import dev.chojo.ember.feature.storage.repository.ClusterStorageQuotaRepository;
 import dev.chojo.ember.feature.storage.repository.StationStorageConfigRepository;
+import dev.chojo.ember.feature.storage.service.StorageBackendAuditService.Actor;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -36,6 +37,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  */
 class StorageQuotaServiceTest extends RepositoryTestBase {
     private static final AtomicInteger NAMES = new AtomicInteger();
+    private static final Actor ACTOR = Actor.system("quota-test");
     private static final long GIB = 1024L * 1024 * 1024;
 
     private static StorageQuotaService service;
@@ -196,12 +198,12 @@ class StorageQuotaServiceTest extends RepositoryTestBase {
     void aClusterThatConfiguredStorageWithoutMovingTheStationPaysForNothing() {
         int clusterId = freshCluster();
         var station = clusterService.createStation(clusterId, "Wache Unbewegt " + NAMES.incrementAndGet());
-        clusterStorageBackendService.setBackend(clusterId, backend("beschlossen"));
+        clusterStorageBackendService.setBackend(ACTOR, clusterId, backend("beschlossen"));
 
         assertEquals(
                 QuotaAuthority.INSTANCE, service.resolveQuotas(station.id()).authority());
 
-        clusterStorageBackendService.dropBackend(clusterId);
+        clusterStorageBackendService.dropBackend(ACTOR, clusterId);
         clusterService.releaseStation(clusterId, station.id());
         stationRepo.delete(station.id());
     }
@@ -210,7 +212,7 @@ class StorageQuotaServiceTest extends RepositoryTestBase {
     void aClusterPayingForItsStationsBindsThemAndTheInstanceNoLongerDoes() {
         int clusterId = freshCluster();
         var station = clusterService.createStation(clusterId, "Wache Verbandsspeicher " + NAMES.incrementAndGet());
-        clusterStorageBackendService.setBackend(clusterId, backend("verband"));
+        clusterStorageBackendService.setBackend(ACTOR, clusterId, backend("verband"));
         var version = clusterBackendRepository.findCurrent(clusterId).orElseThrow();
         placements.place(station.id(), clusterId, version.id());
         quotaRepository.setGrant(
@@ -227,7 +229,7 @@ class StorageQuotaServiceTest extends RepositoryTestBase {
                 "whoever pays sets the limit, and the cluster set none here");
 
         placements.remove(station.id());
-        clusterStorageBackendService.dropBackend(clusterId);
+        clusterStorageBackendService.dropBackend(ACTOR, clusterId);
         clusterService.releaseStation(clusterId, station.id());
         stationRepo.delete(station.id());
     }

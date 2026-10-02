@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.storage.entity;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import dev.chojo.ember.feature.storage.backend.BackendDestination;
 import dev.chojo.ember.feature.storage.backend.StorageBackendType;
 import dev.chojo.ember.feature.storage.credential.EncryptedBlob;
 import dev.chojo.ember.util.Json;
@@ -45,21 +46,27 @@ public sealed interface StationStorageBackendConfig {
     StorageBackendType type();
 
     /**
+     * The credentials, encrypted.
+     *
+     * @return what signs in to the storage
+     */
+    EncryptedBlob credentials();
+
+    /**
      * What this configuration names, with nothing about how it signs in.
      *
      * <p>Two configurations with the same key are the same place with a different secret, which is what makes
-     * rotating a credential a write rather than a copy of everything stored there. Anything that would send
-     * the bytes somewhere else belongs in it: the kind of backend, the host or endpoint, the bucket or share,
-     * and the path underneath.
+     * rotating a credential a write rather than a copy of everything stored there. It is the
+     * {@link dev.chojo.ember.feature.storage.backend.StorageBackend#destination() destination} the backend
+     * built from it reports, so a configuration and a running backend never disagree about a place.
      *
      * @return the destination, as a comparable string
      */
     default String destinationKey() {
         return switch (this) {
-            case S3Variant v -> String.join("|", "S3", v.endpoint(), v.region(), v.bucket(), v.basePath());
-            case SmbVariant v ->
-                String.join("|", "SMB", v.host(), String.valueOf(v.port()), v.share(), v.domain(), v.basePath());
-            case SftpVariant v -> String.join("|", "SFTP", v.host(), String.valueOf(v.port()), v.basePath());
+            case S3Variant v -> BackendDestination.s3(v.endpoint(), v.bucket(), v.basePath());
+            case SmbVariant v -> BackendDestination.smb(v.host(), v.port(), v.share(), v.basePath());
+            case SftpVariant v -> BackendDestination.sftp(v.host(), v.port(), v.basePath());
         };
     }
 

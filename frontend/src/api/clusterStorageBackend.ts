@@ -4,7 +4,10 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
+import {queryParams} from './crud'
 import type {
+    AuditEntryResponse,
+    BackendRequest,
     components,
     MigrationResponse,
     PlacementResponse,
@@ -12,7 +15,6 @@ import type {
     PolicyResponse,
     ProbeResult,
 } from './generated/schema'
-import type {RemoteBackendRequest} from './storageBackend'
 
 type Schemas = components['schemas']
 
@@ -64,12 +66,12 @@ export async function probeClusterBackend(): Promise<ProbeResult> {
     return data
 }
 
-export async function probeClusterBackendConfig(request: RemoteBackendRequest): Promise<ProbeResult> {
+export async function probeClusterBackendConfig(request: BackendRequest): Promise<ProbeResult> {
     const {data} = await client.post<ProbeResult>('/cluster/storage/backend/probe-config', request)
     return data
 }
 
-export async function applyClusterBackend(request: RemoteBackendRequest): Promise<PolicyResponse> {
+export async function applyClusterBackend(request: BackendRequest): Promise<PolicyResponse> {
     const {data} = await client.post<PolicyResponse>('/cluster/storage/backend/apply', request)
     return data
 }
@@ -81,6 +83,17 @@ export async function dropClusterBackend(): Promise<void> {
 /** Every station of the association, where its files are and where they belong. */
 export async function getClusterPlacements(): Promise<PlacementResponse[]> {
     const {data} = await client.get<PlacementResponse[]>('/cluster/storage/backend/placements')
+    return data
+}
+
+/**
+ * The association's storage history: its own storage, what it decided about it, and the moves it made for
+ * its stations.
+ */
+export async function getClusterStorageAudit(before?: string, limit = 50): Promise<AuditEntryResponse[]> {
+    const {data} = await client.get<AuditEntryResponse[]>('/cluster/storage/audit', {
+        params: queryParams({limit, before: before || undefined}),
+    })
     return data
 }
 

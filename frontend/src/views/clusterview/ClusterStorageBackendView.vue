@@ -14,12 +14,14 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
+import StorageApplyConfirmModal from '@/components/storage/StorageApplyConfirmModal.vue'
 import StorageBackendForm from '@/components/storage/StorageBackendForm.vue'
+import StorageBackendHistory from '@/components/storage/StorageBackendHistory.vue'
+import StorageBackendSummaryCard from '@/components/storage/StorageBackendSummaryCard.vue'
 import StoragePlacementTable from '@/components/storage/StoragePlacementTable.vue'
 import ClusterStoragePolicyPanel from '@/views/clusterview/clusterstoragebackendview/ClusterStoragePolicyPanel.vue'
-import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
-import {describeFailure, type Failure} from '@/util/failure'
+import {useStorageBackendEditor} from '@/composables/useStorageBackendEditor'
 import {
     ClusterBackendReach,
     type ClusterBackendReachName,
@@ -27,132 +29,79 @@ import {
     dropClusterBackend,
     getClusterBackend,
     getClusterPlacements,
+    getClusterStorageAudit,
     moveStationStorage,
     probeClusterBackend,
     probeClusterBackendConfig,
     setClusterBackendPolicy,
 } from '@/api/clusterStorageBackend'
-import type {PlacementResponse, PolicyResponse, ProbeResult} from '@/api/generated/schema'
-import {
-    newS3,
-    newSftp,
-    newSmb,
-    s3FormFrom,
-    sftpFormFrom,
-    smbFormFrom,
-    type RemoteBackendForm,
-    type S3Form,
-    type SftpForm,
-    type SmbForm,
-} from '@/util/storageBackendForm'
+import type {AuditEntryResponse, PlacementResponse, PolicyResponse} from '@/api/generated/schema'
 
 const {t} = useI18n()
 
-const actionFailure = ref<Failure | null>(null)
-const success = ref('')
 const policy = ref<PolicyResponse | null>(null)
 const placements = ref<PlacementResponse[]>([])
+const auditEntries = ref<AuditEntryResponse[]>([])
 const movingUid = ref<string | null>(null)
-
 const reach = ref<ClusterBackendReachName>(ClusterBackendReach.NONE)
 const locked = ref(false)
-const selectedType = ref<'LOCAL' | 'S3' | 'SMB' | 'SFTP'>('S3')
-const s3 = ref<S3Form>(newS3())
-const smb = ref<SmbForm>(newSmb())
-const sftp = ref<SftpForm>(newSftp())
-const probeOutcome = ref<ProbeResult | null>(null)
 
-const hasBackend = computed(() => policy.value?.backend != null)
+const editor = useStorageBackendEditor({
+    probeSaved: probeClusterBackend,
+    probeTyped: (request) => probeClusterBackendConfig(request),
+    reload: () => loadAll(),
+}, 'S3')
+const {selectedType, s3, smb, sftp, savedOutcome, typedOutcome, success, pending, probing, saving, failure} = editor
 
 const {loading, failure: loadFailure, reload: loadAll} = useAsyncLoader(async () => {
     policy.value = await getClusterBackend()
     reach.value = policy.value.reach
     locked.value = policy.value.locked
-    seedForm()
+    editor.seed(policy.value.backend, 'S3')
     placements.value = await getClusterPlacements()
+    auditEntries.value = await getClusterStorageAudit()
 })
 
-function seedForm() {
-    const summary = policy.value?.backend
-    if (!summary) return
-    selectedType.value = summary.type
-    if (summary.type === 'S3') s3.value = s3FormFrom(summary)
-    if (summary.type === 'SMB') smb.value = smbFormFrom(summary)
-    if (summary.type === 'SFTP') sftp.value = sftpFormFrom(summary)
-}
+const hasBackend = computed(() => policy.value?.backend != null)
 
-function currentRequest(): RemoteBackendForm | null {
-    if (selectedType.value === 'S3') return s3.value
-    if (selectedType.value === 'SMB') return smb.value
-    if (selectedType.value === 'SFTP') return sftp.value
-    return null
-}
-
-const {running: probing, run: runProbe} = useAsyncAction(async (call: () => Promise<ProbeResult>) => {
-    try {
-        probeOutcome.value = await call()
-    } catch (e) {
-        probeOutcome.value = {
-            healthy: false,
-            error: describeFailure(e, t).message,
-            checkedAt: new Date().toISOString(),
-        }
-    }
-})
-
-function probeConfig() {
-    const request = currentRequest()
-    probeOutcome.value = null
-    if (request) runProbe(() => probeClusterBackendConfig(request))
-}
-
-function probeLive() {
-    probeOutcome.value = null
-    if (hasBackend.value) runProbe(() => probeClusterBackend())
-}
-
-const {running: saving, run: runAction} = useAsyncAction(async (act: () => Promise<string>) => {
-    actionFailure.value = null
-    success.value = ''
-    try {
-        success.value = await act()
-    } catch (e) {
-        actionFailure.value = describeFailure(e, t)
-        return
-    }
-    await loadAll()
+const summaryLines = computed(() => {
+    const backend = policy.value?.backend
+    return [backend ? t('clusterStorageBackend.summary.current', {type: backend.type}) : t('clusterStorageBackend.summary.none')]
 })
 
 function savePolicy() {
-    return runAction(async () => {
+    return editor.perform(async () => {
         await setClusterBackendPolicy({reach: reach.value, locked: locked.value})
         return t('clusterStorageBackend.feedback.policySaved')
     })
 }
 
 function saveBackend() {
-    const request = currentRequest()
-    if (!request) return
-    return runAction(async () => {
+    const request = editor.currentRequest()
+    return editor.perform(async () => {
         await applyClusterBackend(request)
         return t('clusterStorageBackend.feedback.backendSaved')
     })
 }
 
 function drop() {
-    return runAction(async () => {
+    editor.askFirst(t('clusterStorageBackend.confirm.drop'), async () => {
         await dropClusterBackend()
         return t('clusterStorageBackend.feedback.dropped')
     })
 }
 
 function move(stationUid: string) {
-    movingUid.value = stationUid
-    return runAction(async () => {
-        const result = await moveStationStorage(stationUid)
-        movingUid.value = null
-        return t('clusterStorageBackend.feedback.moved', {copied: result.copied, deleted: result.deleted})
-    }).finally(() => (movingUid.value = null))
+    const name = placements.value.find(placement => placement.stationUid === stationUid)?.name ?? ''
+    editor.askFirst(t('clusterStorageBackend.confirm.move', {station: name}), async () => {
+        movingUid.value = stationUid
+        try {
+            const result = await moveStationStorage(stationUid)
+            return t('clusterStorageBackend.feedback.moved', {copied: result.copied, deleted: result.deleted})
+        } finally {
+            movingUid.value = null
+        }
+    })
 }
 </script>
 
@@ -169,12 +118,19 @@ function move(stationUid: string) {
             </div>
 
             <FailureAlert :failure="loadFailure"/>
-            <FailureAlert :failure="actionFailure"/>
+            <FailureAlert :failure="failure"/>
             <Alert v-if="success" variant="success">{{ success }}</Alert>
 
             <Spinner v-if="loading" size="lg"/>
 
             <template v-else>
+                <StorageBackendSummaryCard
+                    :lines="summaryLines"
+                    :can-probe="hasBackend"
+                    :probing="probing"
+                    :probe-outcome="savedOutcome"
+                    @probe="editor.probeSaved"/>
+
                 <ClusterStoragePolicyPanel v-model:reach="reach" v-model:locked="locked"
                                            :saving="saving" :has-backend="hasBackend"
                                            @save="savePolicy" @drop="drop"/>
@@ -185,13 +141,11 @@ function move(stationUid: string) {
                     v-model:smb="smb"
                     v-model:sftp="sftp"
                     i18n-prefix="clusterStorageBackend"
+                    :types="['S3', 'SMB', 'SFTP']"
                     :probing="probing"
                     :saving="saving"
-                    show-live-probe
-                    :can-probe-live="hasBackend"
-                    :probe-outcome="probeOutcome"
-                    @probe-config="probeConfig"
-                    @probe-live="probeLive"
+                    :probe-outcome="typedOutcome"
+                    @probe-config="editor.probeTyped"
                     @apply="saveBackend"
                 />
 
@@ -200,7 +154,16 @@ function move(stationUid: string) {
                     <MutedText tag="p" size="sm">{{ t('clusterStorageBackend.placements.hint') }}</MutedText>
                     <StoragePlacementTable :placements="placements" :moving-uid="movingUid" @move="move"/>
                 </NeutralContainer>
+
+                <StorageBackendHistory :entries="auditEntries"/>
             </template>
         </div>
+
+        <StorageApplyConfirmModal
+            :title="t('clusterStorageBackend.confirm.title')"
+            :body="pending?.body ?? null"
+            :saving="saving"
+            @confirm="editor.confirmPending"
+            @cancel="editor.cancelPending"/>
     </ViewContent>
 </template>

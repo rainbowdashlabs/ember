@@ -39,6 +39,9 @@
 - **Association notifications in the app.** Association → Notifications now lists what the association has told you, opens each notice on its page and marks it read, and the bell in the association's menu shows how many are unread. Notices that are held back while the same one is still unread, such as reminders, arrive again once it is read here.
 - **Refusal messages name the value they are about.** When something is refused, the message shows the value it was about in the reader's language, such as how much of the association's storage is still free, how many things are still limited to a group, or which question an answer did not suit.
 - **Movement chains can skip the member's receipt.** Each chain on the movement chains page has a switch that confirms the member's receipt of a piece for them as soon as the movement gets there, instead of waiting for them. The movement's history marks that step as confirmed automatically, and other chains keep asking.
+- **Your association's storage keeps a history.** The association's storage screen now lists every change: the storage you set, what you decided, each move and each refused change. A move you make for a station shows up in that station's history too.
+- **Every storage screen asks before files move.** Moving a station's files or giving up your association's storage now waits for one confirmation, just like the station and instance screens already did. You see the same summary card and the same question on all three screens.
+- **Refused storage changes are written down.** When a storage change is refused, the history of the station, the association or the instance now says so and gives the reason you were shown.
 
 ### Security
 
@@ -61,6 +64,7 @@
 - **Any member could read and change other members' profiles.** A member of the station could read and overwrite the profile answers of any other member there by sending the request to the server directly. Profile answers are now read and changed only by the member, their guardian and those who may read or edit members.
 - **Association questions could be answered past their locks.** A station could write answers to its association's profile questions that were locked for the member, kept from the station or not asked of that member at all, and an association's member management could write answers to questions of any station. Every answer now passes the same locks as an answer to the station's own questions.
 - **Removing a group could open restricted content to everybody.** An appointment, template, news entry, form, quiz or wiki entry limited only to a group became visible to the whole station once that group was removed or turned into a tag. A group can now only be removed or turned into a tag once nothing is limited to it any more.
+- **The instance storage gets the same checks as a station's.** Saving the instance's storage now refuses incomplete credentials and any address this instance may not open a connection to, and a failed connection test keeps its exact reason in the instance log. If you keep the instance's files on a server inside your own network, set `federation.allowPrivateHosts` before you switch.
 
 ### Changes
 
@@ -179,6 +183,10 @@
 - **Archiving kept a member's answers to the association.** When you archived a member, their answers to the association's questions stayed, even where a question was not marked to be kept. They are now cleared like the station's own.
 - **"Keep when archived" was lost on new station questions.** Creating a question with this box ticked saved it without the setting. It now sticks from the start.
 - **Members were not told when the association changed their profile.** The association could fill in your profile from its member screen without you hearing about it. You now get a notification when it does.
+- **New credentials for an association's storage could be ignored.** In some cases, after you changed only the password of your association's storage, files were still written with the old one until Ember was restarted. The new credentials now apply at once.
+- **Old settings of an association's storage were never deleted.** When an association pointed its storage somewhere new or gave it up, the old settings and their credentials stayed behind for good. They are now deleted as soon as no station's files are on them.
+- **Saving an association's storage could leave it with none.** In rare cases a save that failed halfway left the association without any storage of its own. The storage it had now stays until the new one is saved.
+- **A refused move showed up as started.** When an association moved a station whose files were already in place, the station's history still listed the move as started. Only moves that really start are listed now.
 
 ## v26.19.5
 

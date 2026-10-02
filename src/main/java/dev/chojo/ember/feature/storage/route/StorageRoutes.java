@@ -13,17 +13,17 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.api.refusal.StorageRefusal;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.storage.core.BackendRequest;
+import dev.chojo.ember.feature.storage.core.BackendSummary;
+import dev.chojo.ember.feature.storage.core.MigrationResponse;
+import dev.chojo.ember.feature.storage.core.ProbeResult;
 import dev.chojo.ember.feature.storage.entity.StorageQuotaPreset;
 import dev.chojo.ember.feature.storage.service.InstanceStorageSettingsService;
-import dev.chojo.ember.feature.storage.service.InstanceStorageSettingsService.InstanceBackendRequest;
-import dev.chojo.ember.feature.storage.service.InstanceStorageSettingsService.InstanceBackendSummary;
 import dev.chojo.ember.feature.storage.service.InstanceStorageSettingsService.InstanceMigrateRequest;
-import dev.chojo.ember.feature.storage.service.InstanceStorageSettingsService.InstanceMigrationResultResponse;
 import dev.chojo.ember.feature.storage.service.InstanceStorageSettingsService.InstanceMigrationStatusResponse;
 import dev.chojo.ember.feature.storage.service.StorageAuditLogService;
 import dev.chojo.ember.feature.storage.service.StorageAuditLogService.AuditEntryResponse;
 import dev.chojo.ember.feature.storage.service.StorageBackendAuditService;
-import dev.chojo.ember.feature.storage.service.StorageBackendPayloads.ProbeResult;
 import dev.chojo.ember.feature.storage.service.StorageQuotaAdminService;
 import dev.chojo.ember.feature.storage.service.StorageQuotaAdminService.ApplyPresetRequest;
 import dev.chojo.ember.feature.storage.service.StorageQuotaAdminService.PresetRequest;
@@ -239,8 +239,7 @@ public class StorageRoutes implements Routes {
             methods = HttpMethod.GET,
             summary = "The storage the instance keeps its own files on",
             tags = {"Storage"},
-            responses =
-                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = InstanceBackendSummary.class)))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BackendSummary.class)))
     private void getInstanceBackend(Context ctx) {
         ctx.json(instanceStorage.summary());
     }
@@ -252,7 +251,7 @@ public class StorageRoutes implements Routes {
             tags = {"Storage"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ProbeResult.class)))
     private void probeInstanceBackend(Context ctx) {
-        ctx.json(instanceStorage.probe());
+        ctx.json(instanceStorage.probe(actor(ctx)));
     }
 
     /**
@@ -264,10 +263,10 @@ public class StorageRoutes implements Routes {
             methods = HttpMethod.POST,
             summary = "Check whether a storage not saved yet would answer",
             tags = {"Storage"},
-            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = InstanceBackendRequest.class)),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = BackendRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ProbeResult.class)))
     private void probeInstanceBackendConfig(Context ctx) {
-        ctx.json(instanceStorage.probe(ctx.bodyAsClass(InstanceBackendRequest.class)));
+        ctx.json(instanceStorage.probe(ctx.bodyAsClass(BackendRequest.class)));
     }
 
     /**
@@ -280,10 +279,7 @@ public class StorageRoutes implements Routes {
             summary = "Save the instance's storage and move its files onto it",
             tags = {"Storage"},
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = InstanceMigrateRequest.class)),
-            responses =
-                    @OpenApiResponse(
-                            status = "200",
-                            content = @OpenApiContent(from = InstanceMigrationResultResponse.class)))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MigrationResponse.class)))
     private void applyInstanceBackend(Context ctx) {
         var request = ctx.bodyAsClass(InstanceMigrateRequest.class);
         ctx.json(instanceStorage.apply(actor(ctx), request));
