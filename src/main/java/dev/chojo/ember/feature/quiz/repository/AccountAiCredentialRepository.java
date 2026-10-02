@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.quiz.repository;
 
 import dev.chojo.ember.feature.quiz.entity.AccountAiCredential;
+import dev.chojo.ember.feature.quiz.entity.AiVendor;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
@@ -25,7 +26,8 @@ public class AccountAiCredentialRepository {
      * The key an account keeps.
      *
      * @param accountId the account
-     * @return the stored credential, or empty when the account keeps none
+     * @return the stored credential, or empty when the account keeps none or keeps one for a provider
+     *         this instance does not know
      */
     public Optional<AccountAiCredential> find(int accountId) {
         return query("""
@@ -34,7 +36,8 @@ public class AccountAiCredentialRepository {
                 WHERE account_id = :account_id;""")
                 .single(call().bind("account_id", accountId))
                 .map(AccountAiCredential.map())
-                .first();
+                .first()
+                .flatMap(row -> row);
     }
 
     /**
@@ -45,14 +48,14 @@ public class AccountAiCredentialRepository {
      * @param model     the model to ask by default, or {@code null}
      * @param sealedKey the key, already sealed
      */
-    public void save(int accountId, String provider, @Nullable String model, String sealedKey) {
+    public void save(int accountId, AiVendor provider, @Nullable String model, String sealedKey) {
         query("""
                 INSERT INTO account_ai_credential(account_id, provider, model, api_key, updated_at)
                 VALUES (:account_id, :provider, :model, :api_key, now())
                 ON CONFLICT (account_id)
                 DO UPDATE SET provider = :provider, model = :model, api_key = :api_key, updated_at = now();""")
                 .single(call().bind("account_id", accountId)
-                        .bind("provider", provider)
+                        .bind("provider", provider.key())
                         .bind("model", model)
                         .bind("api_key", sealedKey))
                 .insert();

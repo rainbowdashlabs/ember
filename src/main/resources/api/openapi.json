@@ -4694,7 +4694,7 @@
           "in" : "path",
           "required" : true,
           "schema" : {
-            "type" : "string"
+            "$ref" : "#/components/schemas/AiVendor"
           }
         } ],
         "requestBody" : {
@@ -4720,7 +4720,7 @@
           "in" : "path",
           "required" : true,
           "schema" : {
-            "type" : "string"
+            "$ref" : "#/components/schemas/AiVendor"
           }
         } ]
       }
@@ -4759,7 +4759,7 @@
           "in" : "path",
           "required" : true,
           "schema" : {
-            "type" : "string"
+            "$ref" : "#/components/schemas/AiVendor"
           }
         } ],
         "requestBody" : {
@@ -41316,7 +41316,7 @@
         "type" : "object",
         "properties" : {
           "provider" : {
-            "type" : "string"
+            "$ref" : "#/components/schemas/AiVendor"
           },
           "model" : {
             "type" : [ "string", "null" ]
@@ -41330,7 +41330,11 @@
         "type" : "object",
         "properties" : {
           "provider" : {
-            "type" : [ "string", "null" ]
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/AiVendor"
+            }, {
+              "type" : "null"
+            } ]
           },
           "model" : {
             "type" : [ "string", "null" ]
@@ -41348,7 +41352,11 @@
         "type" : "object",
         "properties" : {
           "provider" : {
-            "type" : [ "string", "null" ]
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/AiVendor"
+            }, {
+              "type" : "null"
+            } ]
           },
           "model" : {
             "type" : [ "string", "null" ]
@@ -41422,6 +41430,10 @@
           }
         },
         "required" : [ "success" ]
+      },
+      "AiVendor" : {
+        "type" : "string",
+        "enum" : [ "OPENAI", "GEMINI", "CLAUDE", "DEEPSEEK", "MISTRAL" ]
       },
       "AnswerBody" : {
         "type" : "object",
@@ -42628,7 +42640,11 @@
         "type" : "object",
         "properties" : {
           "provider" : {
-            "type" : [ "string", "null" ]
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/AiVendor"
+            }, {
+              "type" : "null"
+            } ]
           },
           "model" : {
             "type" : [ "string", "null" ]
@@ -51729,7 +51745,11 @@
         "type" : "object",
         "properties" : {
           "provider" : {
-            "type" : [ "string", "null" ]
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/AiVendor"
+            }, {
+              "type" : "null"
+            } ]
           },
           "model" : {
             "type" : [ "string", "null" ]
@@ -66459,7 +66479,7 @@
             "format" : "uuid"
           },
           "provider" : {
-            "type" : "string"
+            "$ref" : "#/components/schemas/AiVendor"
           },
           "apiKey" : {
             "type" : "string"

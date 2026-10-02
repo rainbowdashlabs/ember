@@ -2989,7 +2989,7 @@ volumes:
                 step4: '4. Prüfe die Fragen, lehne einzelne ab oder lass sie neu generieren.',
                 step5: '5. Klicke auf "Ausgewählte übernehmen" um die guten Fragen zum Katalog hinzuzufügen.',
                 providers: 'Unterstützte Anbieter',
-                providersText: 'Aktuell werden OpenAI, Google Gemini und Anthropic Claude unterstützt.',
+                providersText: 'Aktuell werden OpenAI, Google Gemini, Anthropic Claude, DeepSeek und Mistral unterstützt. Den API-Schlüssel legst du im Entwicklerbereich des jeweiligen Anbieters an, bei DeepSeek unter platform.deepseek.com und bei Mistral unter console.mistral.ai.',
                 apiKey: 'API-Schlüssel',
                 apiKeyText: 'Deinen API-Schlüssel speicherst du in deinem Konto. Er wird verschlüsselt abgelegt und nie wieder an den Browser geschickt, du siehst nur seine letzten vier Zeichen. Er gilt in jedem Browser, in dem du angemeldet bist. Hast du keinen eigenen, nutzt die KI den Schlüssel, den deine Wache hinterlegt hat.',
                 tip: 'Tipp: Die KI liefert bessere Ergebnisse, wenn du einen guten Prompt mit Thema und Kontext angibst.',

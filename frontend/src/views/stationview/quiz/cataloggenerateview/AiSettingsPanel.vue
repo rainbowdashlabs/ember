@@ -20,14 +20,16 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import AiKeyField from './AiKeyField.vue'
-import type {AiCredentialSummary, ModelInfo} from '@/api/generated/schema'
+import {AiVendor, type AiCredentialSummary, type ModelInfo} from '@/api/generated/schema'
 import {ai as aiApi} from '@/api'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 
 const {t} = useI18n()
 
+const vendors = Object.values(AiVendor)
+
 const showAiSettings = ref(false)
-const aiProvider = ref('openai')
+const aiProvider = ref<AiVendor>(AiVendor.OPENAI)
 const aiModel = ref('')
 /** A key being typed in. It leaves the browser once, on save, and is never read back. */
 const aiApiKey = ref('')
@@ -98,7 +100,7 @@ watch(saveOnServer, async (val) => {
   } catch { void 0 }
 })
 
-function getProvider(): string { return aiProvider.value }
+function getProvider(): AiVendor { return aiProvider.value }
 function getModel(): string { return aiModel.value }
 
 loadSettings()
@@ -121,9 +123,7 @@ defineExpose({getProvider, getModel})
           <div>
             <FieldLabel hint class="mb-1">{{ t('quiz.ai.provider') }}</FieldLabel>
             <SelectInput v-model="aiProvider">
-              <option value="openai">{{ t('quiz.ai.providers.openai') }}</option>
-              <option value="gemini">{{ t('quiz.ai.providers.gemini') }}</option>
-              <option value="claude">{{ t('quiz.ai.providers.claude') }}</option>
+              <option v-for="vendor in vendors" :key="vendor" :value="vendor">{{ t(`quiz.ai.providers.${vendor}`) }}</option>
             </SelectInput>
           </div>
           <div>

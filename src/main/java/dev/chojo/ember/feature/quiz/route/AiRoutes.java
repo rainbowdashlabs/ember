@@ -10,6 +10,7 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.QuizRefusal;
+import dev.chojo.ember.feature.quiz.entity.AiVendor;
 import dev.chojo.ember.feature.quiz.entity.StationAiProvider;
 import dev.chojo.ember.feature.quiz.service.AiService;
 import dev.chojo.ember.feature.quiz.service.AiService.ModelInfo;
@@ -101,7 +102,7 @@ public class AiRoutes implements Routes {
             methods = HttpMethod.PUT,
             summary = "Save an AI provider configuration",
             tags = {"Quiz AI"},
-            pathParams = @OpenApiParam(name = "provider", type = String.class, required = true),
+            pathParams = @OpenApiParam(name = "provider", type = AiVendor.class, required = true),
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = AiProviderRequest.class)),
             responses = {
                 @OpenApiResponse(status = "200", content = @OpenApiContent(from = AiSuccessResponse.class)),
@@ -109,7 +110,7 @@ public class AiRoutes implements Routes {
             })
     private void saveProvider(Context ctx) {
         var session = StationSession.from(ctx);
-        String provider = ctx.pathParam("provider");
+        AiVendor provider = vendorOf(ctx);
         var req = ctx.bodyAsClass(AiProviderRequest.class);
         if (req.apiKey() == null || req.apiKey().isBlank()) {
             throw QuizRefusal.AI_PROVIDER_NEEDS_A_KEY.raise();
@@ -123,11 +124,11 @@ public class AiRoutes implements Routes {
             methods = HttpMethod.DELETE,
             summary = "Delete an AI provider configuration",
             tags = {"Quiz AI"},
-            pathParams = @OpenApiParam(name = "provider", type = String.class, required = true),
+            pathParams = @OpenApiParam(name = "provider", type = AiVendor.class, required = true),
             responses = @OpenApiResponse(status = "204"))
     private void deleteProvider(Context ctx) {
         var session = StationSession.from(ctx);
-        String provider = ctx.pathParam("provider");
+        AiVendor provider = vendorOf(ctx);
         aiService.deleteProvider(session.stationId(), provider);
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -137,7 +138,7 @@ public class AiRoutes implements Routes {
             methods = HttpMethod.POST,
             summary = "Fetch available models for an AI provider",
             tags = {"Quiz AI"},
-            pathParams = @OpenApiParam(name = "provider", type = String.class, required = true),
+            pathParams = @OpenApiParam(name = "provider", type = AiVendor.class, required = true),
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = TransientKeyRequest.class)),
             responses = {
                 @OpenApiResponse(status = "200", content = @OpenApiContent(from = ModelInfo[].class)),
@@ -145,7 +146,7 @@ public class AiRoutes implements Routes {
             })
     private void fetchModels(Context ctx) {
         var session = StationSession.from(ctx);
-        String provider = ctx.pathParam("provider");
+        AiVendor provider = vendorOf(ctx);
         var req = ctx.bodyAsClass(TransientKeyRequest.class);
         try {
             var models = aiService.fetchModels(session.stationId(), session.accountId(), provider, req.apiKey());
@@ -182,7 +183,7 @@ public class AiRoutes implements Routes {
             var results = aiService.generate(
                     session.stationId(),
                     session.accountId(),
-                    Objects.requireNonNullElse(req.provider(), "openai"),
+                    Objects.requireNonNullElse(req.provider(), AiVendor.OPENAI),
                     req.model(),
                     req.question(),
                     req.correctAnswer(),
@@ -243,6 +244,11 @@ public class AiRoutes implements Routes {
                 session.stationId(), session.accountId(), pathInt(ctx, "catalogId"), request));
     }
 
+    /** The provider the address names, refused by name when it is none this instance can call. */
+    private static AiVendor vendorOf(Context ctx) {
+        return AiVendor.fromName(ctx.pathParam("provider")).orElseThrow(QuizRefusal.AI_KEY_PROVIDER_UNKNOWN::raise);
+    }
+
     public record AiSuccessResponse(boolean success) {}
 
     public record JobIdResponse(String jobId) {}
@@ -256,7 +262,7 @@ public class AiRoutes implements Routes {
     public record TransientKeyRequest(@Nullable String apiKey) {}
 
     public record AiGenerateRequest(
-            @Nullable String provider,
+            @Nullable AiVendor provider,
             @Nullable String model,
             String question,
             String correctAnswer,

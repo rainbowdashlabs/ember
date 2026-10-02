@@ -12,6 +12,7 @@ import type {
     AiPromptRequest,
     AiProviderRequest,
     AiSettingsResponse,
+    AiVendor,
     BatchGenerateRequest,
     BatchResult,
     GeneratedQuestionWithMeta,
@@ -51,16 +52,16 @@ export async function savePrompt(prompt: string): Promise<void> {
     await client.put('/ai/settings/prompt', request)
 }
 
-export async function saveProvider(provider: string, apiKey: string, model?: string | null): Promise<void> {
+export async function saveProvider(provider: AiVendor, apiKey: string, model?: string | null): Promise<void> {
     const request: AiProviderRequest = {apiKey, model}
     await client.put(`/ai/providers/${provider}`, request)
 }
 
-export async function deleteProvider(provider: string): Promise<void> {
+export async function deleteProvider(provider: AiVendor): Promise<void> {
     await client.delete(`/ai/providers/${provider}`)
 }
 
-export async function fetchModels(provider: string, apiKey?: string | null): Promise<ModelInfo[]> {
+export async function fetchModels(provider: AiVendor, apiKey?: string | null): Promise<ModelInfo[]> {
     const request: TransientKeyRequest = {apiKey: apiKey ?? null}
     const res = await client.post<ModelInfo[]>(`/ai/providers/${provider}/models`, request)
     return res.data

@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.media.image.ImageProfile;
 import dev.chojo.ember.feature.media.service.ImageVariants;
 import dev.chojo.ember.feature.media.service.MediaStorageService;
 import dev.chojo.ember.feature.members.route.TransferRoutes;
+import dev.chojo.ember.feature.quiz.entity.AiVendor;
 import dev.chojo.ember.feature.quiz.repository.AccountAiCredentialRepository;
 import dev.chojo.ember.feature.quiz.repository.AiProviderRepository;
 import dev.chojo.ember.feature.quiz.service.AiCredentialService;
@@ -289,14 +290,14 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
         var credentials = new AiCredentialService(
                 new AccountAiCredentialRepository(), new AiProviderRepository(), TestStationKeys.cipher());
         Station source = stationRepo.create("Source AI");
-        credentials.saveStationKey(source.id(), "openai", "sk-travelling", "gpt-4o");
+        credentials.saveStationKey(source.id(), AiVendor.OPENAI, "sk-travelling", "gpt-4o");
 
         String token = rawToken(exportService.createTransferToken(source.id()));
         var importResult = importService.startRemoteImport(baseUrl, token);
         waitForImport(importResult.stationId());
 
         assertEquals(
-                List.of(new AiCredentialService.StationKey("openai", "gpt-4o", "sk-travelling")),
+                List.of(new AiCredentialService.StationKey(AiVendor.OPENAI, "gpt-4o", "sk-travelling")),
                 credentials.stationKeys(importResult.stationId()));
     }
 

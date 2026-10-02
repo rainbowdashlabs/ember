@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.quiz.service;
 
 import dev.chojo.ember.feature.quiz.entity.AccountAiCredential;
+import dev.chojo.ember.feature.quiz.entity.AiVendor;
 import dev.chojo.ember.feature.quiz.entity.StationAiProvider;
 import dev.chojo.ember.feature.quiz.repository.AccountAiCredentialRepository;
 import dev.chojo.ember.feature.quiz.repository.AiProviderRepository;
@@ -27,7 +28,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -50,34 +50,34 @@ class AiCredentialServiceTest {
 
     @Test
     void aStationKeyIsWrittenSealed() {
-        service.saveStationKey(3, "openai", " sk-station ", "gpt-4o");
+        service.saveStationKey(3, AiVendor.OPENAI, " sk-station ", "gpt-4o");
 
         var sealed = ArgumentCaptor.forClass(String.class);
-        verify(stations).upsert(eq(3), eq("openai"), sealed.capture(), eq("gpt-4o"));
+        verify(stations).upsert(eq(3), eq(AiVendor.OPENAI), sealed.capture(), eq("gpt-4o"));
         assertEquals("sk-station", cipher.unseal(sealed.getValue()));
     }
 
     @Test
     void aStationKeyIsReadWhetherSealedOrFromBeforeEncryption() {
-        when(stations.findByProvider(3, "openai"))
-                .thenReturn(Optional.of(new StationAiProvider(1, 3, "openai", cipher.seal("sk-sealed"), null)));
-        when(stations.findByProvider(4, "openai"))
-                .thenReturn(Optional.of(new StationAiProvider(2, 4, "openai", "sk-plain", null)));
-        when(stations.findByProvider(5, "openai"))
-                .thenReturn(Optional.of(new StationAiProvider(3, 5, "openai", "enc:v1:broken", null)));
+        when(stations.findByProvider(3, AiVendor.OPENAI))
+                .thenReturn(Optional.of(new StationAiProvider(1, 3, AiVendor.OPENAI, cipher.seal("sk-sealed"), null)));
+        when(stations.findByProvider(4, AiVendor.OPENAI))
+                .thenReturn(Optional.of(new StationAiProvider(2, 4, AiVendor.OPENAI, "sk-plain", null)));
+        when(stations.findByProvider(5, AiVendor.OPENAI))
+                .thenReturn(Optional.of(new StationAiProvider(3, 5, AiVendor.OPENAI, "enc:v1:broken", null)));
 
-        assertEquals("sk-sealed", service.stationKey(3, "openai").orElseThrow());
-        assertEquals("sk-plain", service.stationKey(4, "openai").orElseThrow());
-        assertTrue(service.stationKey(5, "openai").isEmpty());
-        assertTrue(service.stationKey(6, "openai").isEmpty());
+        assertEquals("sk-sealed", service.stationKey(3, AiVendor.OPENAI).orElseThrow());
+        assertEquals("sk-plain", service.stationKey(4, AiVendor.OPENAI).orElseThrow());
+        assertTrue(service.stationKey(5, AiVendor.OPENAI).isEmpty());
+        assertTrue(service.stationKey(6, AiVendor.OPENAI).isEmpty());
     }
 
     @Test
     void plaintextStationKeysAreSealedOnceAndOnlyWhileUnchanged() {
         when(stations.findWithoutPrefix(CredentialCipher.SEALED_PREFIX))
                 .thenReturn(List.of(
-                        new StationAiProvider(1, 3, "openai", "sk-one", null),
-                        new StationAiProvider(2, 4, "claude", "sk-two", null)));
+                        new StationAiProvider(1, 3, AiVendor.OPENAI, "sk-one", null),
+                        new StationAiProvider(2, 4, AiVendor.CLAUDE, "sk-two", null)));
         when(stations.replaceKeyIfUnchanged(eq(1), eq("sk-one"), anyString())).thenReturn(true);
         when(stations.replaceKeyIfUnchanged(eq(2), eq("sk-two"), anyString())).thenReturn(false);
 
@@ -95,43 +95,38 @@ class AiCredentialServiceTest {
 
     @Test
     void aNewKeyIsWrittenSealedWithoutItsSurroundingSpace() {
-        assertEquals(SaveOutcome.SAVED, service.save(7, "openai", " gpt-4o ", " sk-secret-1234 "));
+        assertEquals(SaveOutcome.SAVED, service.save(7, AiVendor.OPENAI, " gpt-4o ", " sk-secret-1234 "));
 
         var sealed = ArgumentCaptor.forClass(String.class);
-        verify(repository).save(eq(7), eq("openai"), eq("gpt-4o"), sealed.capture());
+        verify(repository).save(eq(7), eq(AiVendor.OPENAI), eq("gpt-4o"), sealed.capture());
         assertTrue(CredentialCipher.isSealed(sealed.getValue()));
         assertEquals("sk-secret-1234", cipher.unseal(sealed.getValue()));
-    }
-
-    @Test
-    void aProviderNobodyCanCallIsRefused() {
-        assertEquals(SaveOutcome.PROVIDER_UNKNOWN, service.save(7, "mystery", null, "sk-secret"));
-        verify(repository, never()).save(eq(7), anyString(), anyString(), anyString());
     }
 
     @Test
     void withoutANewKeyTheStoredOneIsKeptForTheSameProviderOnly() {
         String stored = cipher.seal("sk-kept-5678");
         when(repository.find(7))
-                .thenReturn(Optional.of(new AccountAiCredential(7, "openai", null, stored, Instant.now())));
+                .thenReturn(Optional.of(new AccountAiCredential(7, AiVendor.OPENAI, null, stored, Instant.now())));
 
-        assertEquals(SaveOutcome.SAVED, service.save(7, "openai", "", null));
-        verify(repository).save(7, "openai", null, stored);
+        assertEquals(SaveOutcome.SAVED, service.save(7, AiVendor.OPENAI, "", null));
+        verify(repository).save(7, AiVendor.OPENAI, null, stored);
 
-        assertEquals(SaveOutcome.KEY_MISSING, service.save(7, "claude", "", " "));
-        assertEquals(SaveOutcome.KEY_MISSING, service.save(8, "openai", "", null));
+        assertEquals(SaveOutcome.KEY_MISSING, service.save(7, AiVendor.CLAUDE, "", " "));
+        assertEquals(SaveOutcome.KEY_MISSING, service.save(8, AiVendor.OPENAI, "", null));
     }
 
     @Test
     void theSummaryShowsOnlyTheEnd() {
         when(repository.find(7))
-                .thenReturn(Optional.of(
-                        new AccountAiCredential(7, "claude", "sonnet", cipher.seal("sk-ant-9876"), Instant.now())));
+                .thenReturn(Optional.of(new AccountAiCredential(
+                        7, AiVendor.CLAUDE, "sonnet", cipher.seal("sk-ant-9876"), Instant.now())));
         when(repository.find(8))
-                .thenReturn(Optional.of(new AccountAiCredential(8, "claude", null, cipher.seal("abc"), Instant.now())));
+                .thenReturn(Optional.of(
+                        new AccountAiCredential(8, AiVendor.CLAUDE, null, cipher.seal("abc"), Instant.now())));
 
         assertEquals(
-                new AiCredentialSummary("claude", "sonnet", true, "9876"),
+                new AiCredentialSummary(AiVendor.CLAUDE, "sonnet", true, "9876"),
                 service.summary(7).orElseThrow());
         assertEquals("", service.summary(8).orElseThrow().keyEnding());
         assertTrue(service.summary(9).isEmpty());
@@ -145,24 +140,25 @@ class AiCredentialServiceTest {
                 }))
                 .seal("sk-lost");
         when(repository.find(7))
-                .thenReturn(Optional.of(new AccountAiCredential(7, "openai", null, sealedElsewhere, Instant.now())));
+                .thenReturn(
+                        Optional.of(new AccountAiCredential(7, AiVendor.OPENAI, null, sealedElsewhere, Instant.now())));
 
         assertEquals(
-                new AiCredentialSummary("openai", null, false, null),
+                new AiCredentialSummary(AiVendor.OPENAI, null, false, null),
                 service.summary(7).orElseThrow());
-        assertTrue(service.keyFor(7, "openai").isEmpty());
-        assertEquals(SaveOutcome.KEY_MISSING, service.save(7, "openai", null, null));
+        assertTrue(service.keyFor(7, AiVendor.OPENAI).isEmpty());
+        assertEquals(SaveOutcome.KEY_MISSING, service.save(7, AiVendor.OPENAI, null, null));
     }
 
     @Test
     void theKeyIsUsedForItsOwnProviderOnly() {
         when(repository.find(7))
-                .thenReturn(
-                        Optional.of(new AccountAiCredential(7, "gemini", null, cipher.seal("g-key"), Instant.now())));
+                .thenReturn(Optional.of(
+                        new AccountAiCredential(7, AiVendor.GEMINI, null, cipher.seal("g-key"), Instant.now())));
 
-        assertEquals("g-key", service.keyFor(7, "gemini").orElseThrow());
-        assertTrue(service.keyFor(7, "openai").isEmpty());
-        assertNotEquals(Optional.of("g-key"), service.keyFor(8, "gemini"));
+        assertEquals("g-key", service.keyFor(7, AiVendor.GEMINI).orElseThrow());
+        assertTrue(service.keyFor(7, AiVendor.OPENAI).isEmpty());
+        assertNotEquals(Optional.of("g-key"), service.keyFor(8, AiVendor.GEMINI));
     }
 
     @Test

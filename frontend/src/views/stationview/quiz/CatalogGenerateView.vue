@@ -14,6 +14,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import type { QuizCatalogDetail } from '@/api/generated/schema'
 import { quiz, ai as aiApi } from '@/api'
+import { AiVendor } from '@/api/generated/schema'
 import { useSession } from '@/composables/useSession'
 import { useConfigPanel } from '@/composables/useConfigPanel'
 import { describeFailure, type Failure } from '@/util/failure'
@@ -58,7 +59,7 @@ const aiSettingsRef = ref<InstanceType<typeof AiSettingsPanel> | null>(null)
 function getAiParams() {
   const panel = aiSettingsRef.value
   return {
-    provider: panel?.getProvider() ?? 'openai',
+    provider: panel?.getProvider() ?? AiVendor.OPENAI,
     model: panel?.getModel() || null,
   }
 }

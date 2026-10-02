@@ -46,6 +46,7 @@
 - **Abgelehnte Speicher-Änderungen werden festgehalten.** Wird eine Änderung am Speicher abgelehnt, steht das jetzt im Verlauf der Wache, des Verbands oder der Instanz, mit dem Grund, den du gesehen hast.
 - **Räum die Unterlagen Ausgeschiedener auf.** Ein neuer Schalter auf der Dokumentenseite zeigt nur Dokumente von Personen, die alle ausgeschieden sind, archiviert oder gelöscht. Hak einzelne an oder alle, die der Filter findet, und lösch sie nach einer einzigen Rückfrage in einem Zug.
 - **Der Verband sieht Dokumente so wie die Wache.** Auf der Seite einer Person im Verband sind Dokumente Kacheln, die du öffnest und in der Vorschau ansiehst, wie an der Wache. Ein Dokument, das du dort ablegst, nennt dich als die Person, die es abgelegt hat.
+- **DeepSeek und Mistral schreiben jetzt auch Quizfragen.** Du kannst DeepSeek oder Mistral jetzt als KI-Anbieter wählen, um Fragen und falsche Antworten zu generieren. Dein eigener Schlüssel und der Schlüssel der Wache funktionieren wie bei den anderen Anbietern.
 
 ### Sicherheit
 

@@ -6829,7 +6829,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    provider: string;
+                    provider: components["schemas"]["AiVendor"];
                 };
                 cookie?: never;
             };
@@ -6866,7 +6866,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    provider: string;
+                    provider: components["schemas"]["AiVendor"];
                 };
                 cookie?: never;
             };
@@ -6901,7 +6901,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    provider: string;
+                    provider: components["schemas"]["AiVendor"];
                 };
                 cookie?: never;
             };
@@ -54404,12 +54404,12 @@ export interface components {
         AiCredentialRequest: {
             apiKey?: string | null;
             model?: string | null;
-            provider?: string;
+            provider?: components["schemas"]["AiVendor"];
         };
         AiCredentialSummary: {
             keyEnding: string | null;
             model: string | null;
-            provider: string | null;
+            provider: components["schemas"]["AiVendor"] | null;
             usable: boolean;
         };
         AiGenerateRequest: {
@@ -54417,7 +54417,7 @@ export interface components {
             /** Format: int32 */
             count?: number | null;
             model?: string | null;
-            provider?: string | null;
+            provider?: components["schemas"]["AiVendor"] | null;
             question?: string;
         };
         AiGenerateResponse: {
@@ -54438,6 +54438,8 @@ export interface components {
         AiSuccessResponse: {
             success: boolean;
         };
+        /** @enum {string} */
+        AiVendor: "OPENAI" | "GEMINI" | "CLAUDE" | "DEEPSEEK" | "MISTRAL";
         AnswerBody: {
             answer?: components["schemas"]["SelfCheckAnswer"] | null;
             /** Format: int32 */
@@ -54845,7 +54847,7 @@ export interface components {
         };
         BatchGenerateRequest: {
             model?: string | null;
-            provider?: string | null;
+            provider?: components["schemas"]["AiVendor"] | null;
             /** Format: int32 */
             targetTotalOptions?: number | null;
         };
@@ -57983,7 +57985,7 @@ export interface components {
             entries?: components["schemas"]["GenerateEntry"][];
             locale?: string | null;
             model?: string | null;
-            provider?: string | null;
+            provider?: components["schemas"]["AiVendor"] | null;
             userPrompt?: string | null;
         };
         GenerationPollResponse: {
@@ -63116,7 +63118,7 @@ export interface components {
             /** Format: int32 */
             id: number;
             model: string | null;
-            provider: string;
+            provider: components["schemas"]["AiVendor"];
             /** Format: uuid */
             stationId: string;
         };
@@ -64732,6 +64734,7 @@ export type AiPromptRequest = components['schemas']['AiPromptRequest'];
 export type AiProviderRequest = components['schemas']['AiProviderRequest'];
 export type AiSettingsResponse = components['schemas']['AiSettingsResponse'];
 export type AiSuccessResponse = components['schemas']['AiSuccessResponse'];
+export type AiVendor = components['schemas']['AiVendor'];
 export type AnswerBody = components['schemas']['AnswerBody'];
 export type AnswerProblem = components['schemas']['AnswerProblem'];
 export type AnswerRequest = components['schemas']['AnswerRequest'];
@@ -66144,3 +66147,1255 @@ export type WithdrawalResponse = components['schemas']['WithdrawalResponse'];
 export type YoutubeFileRequest = components['schemas']['YoutubeFileRequest'];
 export type $defs = Record<string, never>;
 export type operations = Record<string, never>;
+
+export const AckKind = {
+    ASSERTED: "ASSERTED",
+    AUTO_CONFIRMED: "AUTO_CONFIRMED",
+    CONFIRMED: "CONFIRMED",
+    CORRECTED: "CORRECTED",
+    FORCED: "FORCED",
+} as const;
+
+export const Actual = {
+    INSTANCE_DEFAULT: "INSTANCE_DEFAULT",
+    ITS_OWN: "ITS_OWN",
+    THE_CLUSTERS: "THE_CLUSTERS",
+} as const;
+
+export const AiVendor = {
+    CLAUDE: "CLAUDE",
+    DEEPSEEK: "DEEPSEEK",
+    GEMINI: "GEMINI",
+    MISTRAL: "MISTRAL",
+    OPENAI: "OPENAI",
+} as const;
+
+export const ApplicationStatus = {
+    ACCEPTED: "ACCEPTED",
+    DENIED: "DENIED",
+    PENDING: "PENDING",
+    UNVERIFIED: "UNVERIFIED",
+} as const;
+
+export const AttemptStatus = {
+    GRADED: "GRADED",
+    IN_PROGRESS: "IN_PROGRESS",
+    SUBMITTED: "SUBMITTED",
+} as const;
+
+export const AttendanceStatus = {
+    ABSENT: "ABSENT",
+    DECLINED: "DECLINED",
+    PRESENT: "PRESENT",
+    UNCONFIRMED: "UNCONFIRMED",
+} as const;
+
+export const AuthBucket = {
+    AUTHENTICATED: "AUTHENTICATED",
+    FEDERATION: "FEDERATION",
+    UNAUTHENTICATED: "UNAUTHENTICATED",
+} as const;
+
+export const BlockAudience = {
+    MEMBERS: "MEMBERS",
+    PUBLIC: "PUBLIC",
+} as const;
+
+export const BlocklistKind = {
+    BASE_URL: "BASE_URL",
+    PUBLIC_KEY: "PUBLIC_KEY",
+} as const;
+
+export const BoardActivityType = {
+    COMMENT: "COMMENT",
+    HISTORY: "HISTORY",
+    TRANSITION: "TRANSITION",
+} as const;
+
+export const BoardShareMode = {
+    FULL: "FULL",
+    READ_ONLY: "READ_ONLY",
+} as const;
+
+export const BoardTicketHistoryAction = {
+    ASSIGNEE_CHANGED: "ASSIGNEE_CHANGED",
+    DESCRIPTION_CHANGED: "DESCRIPTION_CHANGED",
+    DUE_DATE_CHANGED: "DUE_DATE_CHANGED",
+    FIELD_CHANGED: "FIELD_CHANGED",
+    LABEL_ADDED: "LABEL_ADDED",
+    LABEL_REMOVED: "LABEL_REMOVED",
+    LINK_ADDED: "LINK_ADDED",
+    LINK_REMOVED: "LINK_REMOVED",
+    PRIORITY_CHANGED: "PRIORITY_CHANGED",
+    TITLE_CHANGED: "TITLE_CHANGED",
+} as const;
+
+export const CalloutVariant = {
+    INFO: "INFO",
+    SUCCESS: "SUCCESS",
+    TIP: "TIP",
+    WARNING: "WARNING",
+} as const;
+
+export const CancellationCause = {
+    MANUAL: "MANUAL",
+    THRESHOLD: "THRESHOLD",
+} as const;
+
+export const CapabilityType = {
+    BOARD_SHARE: "BOARD_SHARE",
+    EVENT_SHARE: "EVENT_SHARE",
+    INVENTORY_LEND: "INVENTORY_LEND",
+    KB_SHARE: "KB_SHARE",
+    NEWS_SHARE: "NEWS_SHARE",
+    PROTOCOL_SHARE: "PROTOCOL_SHARE",
+    QUIZ_SHARE: "QUIZ_SHARE",
+} as const;
+
+export const CellContentType = {
+    ACCORDION: "ACCORDION",
+    ACHIEVEMENTS: "ACHIEVEMENTS",
+    ADDRESS_CARD: "ADDRESS_CARD",
+    AUDIO_EMBED: "AUDIO_EMBED",
+    BLOG_SIGNUP: "BLOG_SIGNUP",
+    CALLOUT: "CALLOUT",
+    CODE_BLOCK: "CODE_BLOCK",
+    COUNTDOWN: "COUNTDOWN",
+    DIVIDER: "DIVIDER",
+    EMPTY: "EMPTY",
+    EXTERNAL_LINK_CARD: "EXTERNAL_LINK_CARD",
+    FEATURED_EVENT: "FEATURED_EVENT",
+    FILE_DOWNLOAD: "FILE_DOWNLOAD",
+    FORMS_CTA: "FORMS_CTA",
+    HERO_BANNER: "HERO_BANNER",
+    IMAGE: "IMAGE",
+    IMAGE_GALLERY: "IMAGE_GALLERY",
+    KB_ARTICLE: "KB_ARTICLE",
+    MAP: "MAP",
+    MARKDOWN: "MARKDOWN",
+    MEMBER_LIST_SPOTLIGHT: "MEMBER_LIST_SPOTLIGHT",
+    MEMBER_SPOTLIGHT: "MEMBER_SPOTLIGHT",
+    NESTED_ROWS: "NESTED_ROWS",
+    NEWS_TEASER: "NEWS_TEASER",
+    PAGE_LINK: "PAGE_LINK",
+    PARTNER_STATIONS: "PARTNER_STATIONS",
+    PAST_EVENT_RECAP: "PAST_EVENT_RECAP",
+    PDF: "PDF",
+    POLL_EMBED: "POLL_EMBED",
+    QUIZ_TEASER: "QUIZ_TEASER",
+    QUOTE: "QUOTE",
+    SPACER: "SPACER",
+    STATS_COUNTER: "STATS_COUNTER",
+    TABS: "TABS",
+    UPCOMING_EVENTS: "UPCOMING_EVENTS",
+    VIDEO: "VIDEO",
+} as const;
+
+export const CheckResult = {
+    CONFIRMED: "CONFIRMED",
+    EXTRA: "EXTRA",
+    LOST: "LOST",
+    NOT_IN_POSSESSION: "NOT_IN_POSSESSION",
+} as const;
+
+export const ClaimOrigin = {
+    BLOCK: "BLOCK",
+    LOAN: "LOAN",
+    OWN_NEED: "OWN_NEED",
+} as const;
+
+export const ClusterApplicationStatus = {
+    APPROVED: "APPROVED",
+    DENIED: "DENIED",
+    PENDING: "PENDING",
+    WITHDRAWN: "WITHDRAWN",
+} as const;
+
+export const ClusterBackendReach = {
+    EVERY_STATION: "EVERY_STATION",
+    NONE: "NONE",
+    OWN_FILES: "OWN_FILES",
+} as const;
+
+export const ClusterUserType = {
+    CLUSTER_ADMIN: "CLUSTER_ADMIN",
+    CLUSTER_USER: "CLUSTER_USER",
+} as const;
+
+export const Code = {
+    ARRIVAL_UNNAMED: "ARRIVAL_UNNAMED",
+    ENDS_IN_TRANSIT: "ENDS_IN_TRANSIT",
+    EXCHANGE_NEEDS_BOTH_DIRECTIONS: "EXCHANGE_NEEDS_BOTH_DIRECTIONS",
+    FLOW_IN_USE: "FLOW_IN_USE",
+    FLOW_NAME_REQUIRED: "FLOW_NAME_REQUIRED",
+    ILLEGAL_STEP_CUSTODY: "ILLEGAL_STEP_CUSTODY",
+    ITEM_ALREADY_NAMED: "ITEM_ALREADY_NAMED",
+    ONLY_ARRIVAL_NAMES_ITEM: "ONLY_ARRIVAL_NAMES_ITEM",
+    ORDER_MUST_NAME_EVERY_STEP: "ORDER_MUST_NAME_EVERY_STEP",
+    OUTGOING_NAMES_ITEM: "OUTGOING_NAMES_ITEM",
+    STEP_LABEL_REQUIRED: "STEP_LABEL_REQUIRED",
+    TOO_SHORT: "TOO_SHORT",
+} as const;
+
+export const ContainerEventKind = {
+    CREATED: "CREATED",
+    DELETED: "DELETED",
+    MOVED: "MOVED",
+    RENAMED: "RENAMED",
+} as const;
+
+export const ContentMode = {
+    RICH: "RICH",
+    SIMPLE: "SIMPLE",
+} as const;
+
+export const ConversionStatus = {
+    FAILED: "FAILED",
+    PENDING: "PENDING",
+    SUCCESS: "SUCCESS",
+} as const;
+
+export const CountUnit = {
+    DAYS: "DAYS",
+    HOURS: "HOURS",
+    LINE: "LINE",
+    YEARS: "YEARS",
+} as const;
+
+export const DeviceRequestPurpose = {
+    ENROL_PASSKEY: "ENROL_PASSKEY",
+    SIGN_IN: "SIGN_IN",
+    STEP_UP: "STEP_UP",
+} as const;
+
+export const DeviceStepUpStatus = {
+    APPROVED: "APPROVED",
+    CONFIRMED: "CONFIRMED",
+    EXPIRED: "EXPIRED",
+    PENDING: "PENDING",
+    REJECTED: "REJECTED",
+    UNKNOWN: "UNKNOWN",
+} as const;
+
+export const Dimension = {
+    AGE: "AGE",
+    FIELD: "FIELD",
+    GROUP: "GROUP",
+    TAG: "TAG",
+    USER_TYPE: "USER_TYPE",
+} as const;
+
+export const Direction = {
+    EXPORT: "EXPORT",
+    IMPORT: "IMPORT",
+} as const;
+
+export const DiscoveryVisibility = {
+    INSTANCE: "INSTANCE",
+    NONE: "NONE",
+    PUBLIC: "PUBLIC",
+} as const;
+
+export const EmailChangeResult = {
+    COMMITTED: "COMMITTED",
+    DUPLICATE: "DUPLICATE",
+    INVALID: "INVALID",
+    WAITING: "WAITING",
+} as const;
+
+export const EmailChangeStatus = {
+    COMMITTED: "COMMITTED",
+    WAITING: "WAITING",
+} as const;
+
+export const EmailQueueStatus = {
+    FAILED: "FAILED",
+    PENDING: "PENDING",
+    SENDING: "SENDING",
+    SENT: "SENT",
+} as const;
+
+export const EmptyReason = {
+    NOTHING_FREE: "NOTHING_FREE",
+    NOTHING_SHARED: "NOTHING_SHARED",
+} as const;
+
+export const EntrySource = {
+    EXPECTED: "EXPECTED",
+    EXTRA: "EXTRA",
+} as const;
+
+export const EventType = {
+    MONTHLY_FIRST: "MONTHLY_FIRST",
+    ONE_TIME: "ONE_TIME",
+    QUARTERLY: "QUARTERLY",
+    RECURRING: "RECURRING",
+    YEARLY: "YEARLY",
+} as const;
+
+export const Expected = {
+    INSTANCE_DEFAULT: "INSTANCE_DEFAULT",
+    ITS_OWN: "ITS_OWN",
+    THE_CLUSTERS: "THE_CLUSTERS",
+    WHEREVER_IT_IS: "WHEREVER_IT_IS",
+} as const;
+
+export const ExternalLinkImageDisplay = {
+    BANNER: "BANNER",
+    ICON: "ICON",
+} as const;
+
+export const FederationStatus = {
+    ACTIVE: "ACTIVE",
+    PENDING: "PENDING",
+    SUSPENDED: "SUSPENDED",
+} as const;
+
+export const FieldOrigin = {
+    CLUSTER: "CLUSTER",
+    STATION: "STATION",
+} as const;
+
+export const FieldType = {
+    AGE: "AGE",
+    BIRTH_DATE: "BIRTH_DATE",
+    BOOLEAN: "BOOLEAN",
+    CHOICE: "CHOICE",
+    DATE: "DATE",
+    EXPIRY_DATE: "EXPIRY_DATE",
+    LANE_ASSIGNEE: "LANE_ASSIGNEE",
+    LOCATION: "LOCATION",
+    LONG_TEXT: "LONG_TEXT",
+    MEMBER: "MEMBER",
+    MEMBER_LIST: "MEMBER_LIST",
+    MEMBER_LIST_OF_GROUP: "MEMBER_LIST_OF_GROUP",
+    MEMBER_LIST_OF_TAG: "MEMBER_LIST_OF_TAG",
+    MEMBER_LIST_OF_TYPE: "MEMBER_LIST_OF_TYPE",
+    MEMBER_OF_GROUP: "MEMBER_OF_GROUP",
+    MEMBER_OF_TAG: "MEMBER_OF_TAG",
+    MEMBER_OF_TYPE: "MEMBER_OF_TYPE",
+    NUMBER: "NUMBER",
+    SECTION: "SECTION",
+    SPACER: "SPACER",
+    TEXT: "TEXT",
+    TIME: "TIME",
+    URL: "URL",
+} as const;
+
+export const FilterTableType = {
+    ATTENDANCE: "ATTENDANCE",
+    EVENTS: "EVENTS",
+    FORMS: "FORMS",
+    INVENTORY: "INVENTORY",
+    MEMBERS: "MEMBERS",
+    NEWS: "NEWS",
+    QUIZ: "QUIZ",
+} as const;
+
+export const FormPurpose = {
+    CONTACT: "CONTACT",
+    INTERNAL: "INTERNAL",
+    POLL: "POLL",
+} as const;
+
+export const FormQuestionType = {
+    CHOICE: "CHOICE",
+    DATE: "DATE",
+    LIKERT: "LIKERT",
+    RANKING: "RANKING",
+    RATING: "RATING",
+    TEXT: "TEXT",
+} as const;
+
+export const FormStatus = {
+    CLOSED: "CLOSED",
+    DRAFT: "DRAFT",
+    OPEN: "OPEN",
+} as const;
+
+export const FormVisibility = {
+    PUBLIC: "PUBLIC",
+    UNLISTED: "UNLISTED",
+} as const;
+
+export const GalleryAspectMode = {
+    PRESERVE: "PRESERVE",
+    SQUARE: "SQUARE",
+} as const;
+
+export const GeocodingProvider = {
+    GEOAPIFY: "GEOAPIFY",
+    LOCATIONIQ: "LOCATIONIQ",
+    NOMINATIM: "NOMINATIM",
+    NONE: "NONE",
+} as const;
+
+export const IdentityType = {
+    ACCOUNT_ID: "ACCOUNT_ID",
+    MEMBER_ID: "MEMBER_ID",
+    MEMBER_UID: "MEMBER_UID",
+} as const;
+
+export const ImageFit = {
+    CONTAIN: "CONTAIN",
+    COVER: "COVER",
+    FILL: "FILL",
+} as const;
+
+export const InstanceUserType = {
+    ADMINISTRATOR: "ADMINISTRATOR",
+    USER: "USER",
+} as const;
+
+export const IntervalType = {
+    MONTHLY_FIRST: "MONTHLY_FIRST",
+    QUARTERLY: "QUARTERLY",
+    RECURRING: "RECURRING",
+    YEARLY: "YEARLY",
+} as const;
+
+export const InventoryCheckScope = {
+    CONTAINER: "CONTAINER",
+    MEMBER: "MEMBER",
+} as const;
+
+export const InventoryType = {
+    EXTERNAL: "EXTERNAL",
+    INTERNAL: "INTERNAL",
+    MIXED: "MIXED",
+} as const;
+
+export const ItemCustody = {
+    AT_STATION: "AT_STATION",
+    IN_TRANSIT: "IN_TRANSIT",
+    LOST: "LOST",
+    WITH_MEMBER: "WITH_MEMBER",
+    WITH_OWNER: "WITH_OWNER",
+    WITH_PARTNER: "WITH_PARTNER",
+} as const;
+
+export const ItemOwner = {
+    CLUSTER: "CLUSTER",
+    PARTNER_STATION: "PARTNER_STATION",
+    STATION: "STATION",
+} as const;
+
+export const KbAccessLevel = {
+    MANAGE: "MANAGE",
+    NONE: "NONE",
+    READ: "READ",
+    WRITE: "WRITE",
+} as const;
+
+export const KbFavouriteTarget = {
+    FILE: "FILE",
+    FOLDER: "FOLDER",
+    PARTNER_FILE: "PARTNER_FILE",
+    PARTNER_FOLDER: "PARTNER_FOLDER",
+} as const;
+
+export const KbFileType = {
+    IMAGE: "IMAGE",
+    LINK: "LINK",
+    MARKDOWN: "MARKDOWN",
+    OTHER: "OTHER",
+    PDF: "PDF",
+    PRESENTATION: "PRESENTATION",
+    TEXT: "TEXT",
+    YOUTUBE: "YOUTUBE",
+} as const;
+
+export const KbReach = {
+    FEDERATED: "FEDERATED",
+    INTERNAL: "INTERNAL",
+    NARROW: "NARROW",
+    PUBLIC: "PUBLIC",
+} as const;
+
+export const KbRefusalReason = {
+    NAME_TAKEN: "NAME_TAKEN",
+    NOT_FOUND: "NOT_FOUND",
+    NO_PERMISSION: "NO_PERMISSION",
+    SHARE_TOO_WIDE: "SHARE_TOO_WIDE",
+    TARGET_INSIDE: "TARGET_INSIDE",
+} as const;
+
+export const LanePreset = {
+    FEEDBACK: "FEEDBACK",
+    SIMPLE: "SIMPLE",
+} as const;
+
+export const LegalDocumentType = {
+    consent: "consent",
+    imprint: "imprint",
+    privacy: "privacy",
+    tos: "tos",
+} as const;
+
+export const LendingStatus = {
+    APPROVED: "APPROVED",
+    CLOSED: "CLOSED",
+    DECLINED: "DECLINED",
+    LENT: "LENT",
+    REQUESTED: "REQUESTED",
+    RETURNED: "RETURNED",
+} as const;
+
+export const LinkType = {
+    BLOCKED_BY: "BLOCKED_BY",
+    BLOCKS: "BLOCKS",
+    CAUSED_BY: "CAUSED_BY",
+    CAUSES: "CAUSES",
+    RELATES_TO: "RELATES_TO",
+} as const;
+
+export const LossReportRequirement = {
+    DOCUMENT: "DOCUMENT",
+    NOTE: "NOTE",
+    NOTHING: "NOTHING",
+} as const;
+
+export const MailDeliveryStatus = {
+    BLOCKED: "BLOCKED",
+    DEFERRED: "DEFERRED",
+    DELIVERED: "DELIVERED",
+    ERROR: "ERROR",
+    HARD_BOUNCE: "HARD_BOUNCE",
+    SOFT_BOUNCE: "SOFT_BOUNCE",
+    SPAM: "SPAM",
+    UNKNOWN: "UNKNOWN",
+} as const;
+
+export const MailImportOutcome = {
+    AUTHENTICATION_FAILED: "AUTHENTICATION_FAILED",
+    DUPLICATE: "DUPLICATE",
+    FAILED: "FAILED",
+    IMPORTED: "IMPORTED",
+    NO_ATTACHMENT: "NO_ATTACHMENT",
+    NO_RULE_MATCHED: "NO_RULE_MATCHED",
+    NO_SIGNATURE: "NO_SIGNATURE",
+    QUOTA_EXCEEDED: "QUOTA_EXCEEDED",
+    SENDER_NOT_ALLOWED: "SENDER_NOT_ALLOWED",
+    SIGNATURE_FAILED: "SIGNATURE_FAILED",
+    SIGNATURE_NOT_ALIGNED: "SIGNATURE_NOT_ALIGNED",
+    TOO_LARGE: "TOO_LARGE",
+    TOO_SMALL: "TOO_SMALL",
+    TYPE_NOT_ALLOWED: "TYPE_NOT_ALLOWED",
+} as const;
+
+export const MailProviderType = {
+    BREVO: "BREVO",
+    NONE: "NONE",
+    RAPIDMAIL: "RAPIDMAIL",
+    SMTP: "SMTP",
+    SWEEGO: "SWEEGO",
+    TWILIO: "TWILIO",
+} as const;
+
+export const MailReaches = {
+    GUARDIANS: "GUARDIANS",
+    NOBODY: "NOBODY",
+    SELF: "SELF",
+} as const;
+
+export const MailRuleAction = {
+    FLAG: "FLAG",
+    MARK_SEEN: "MARK_SEEN",
+    MOVE: "MOVE",
+    NOTHING: "NOTHING",
+} as const;
+
+export const MailSecurity = {
+    NONE: "NONE",
+    SSL: "SSL",
+    STARTTLS: "STARTTLS",
+} as const;
+
+export const MailTitleSource = {
+    FILE_NAME: "FILE_NAME",
+    SUBJECT: "SUBJECT",
+} as const;
+
+export const MapTileProvider = {
+    CUSTOM: "CUSTOM",
+    MAPBOX: "MAPBOX",
+    MAPTILER: "MAPTILER",
+    OSM: "OSM",
+    STADIA: "STADIA",
+    THUNDERFOREST: "THUNDERFOREST",
+} as const;
+
+export const Match = {
+    ALL: "ALL",
+    ANY: "ANY",
+} as const;
+
+export const MemberListSortBy = {
+    JOIN_DATE: "JOIN_DATE",
+    NAME: "NAME",
+    ORDER: "ORDER",
+    ROLE: "ROLE",
+} as const;
+
+export const MemberTableCellType = {
+    BIRTH_DATE: "BIRTH_DATE",
+    BOOLEAN: "BOOLEAN",
+    DATE: "DATE",
+    ENUM: "ENUM",
+    NUMBER: "NUMBER",
+    TEXT: "TEXT",
+} as const;
+
+export const MemberTableColumnKind = {
+    BUILTIN: "BUILTIN",
+    PROFILE_FIELD: "PROFILE_FIELD",
+    REGISTRATION_FIELD: "REGISTRATION_FIELD",
+} as const;
+
+export const Mode = {
+    ENCOURAGED: "ENCOURAGED",
+    OFF: "OFF",
+    OPTIONAL: "OPTIONAL",
+    PASSWORDLESS: "PASSWORDLESS",
+    PREFERRED: "PREFERRED",
+} as const;
+
+export const MovementParty = {
+    MEMBER: "MEMBER",
+    STORE: "STORE",
+} as const;
+
+export const MovementPurpose = {
+    EXCHANGE: "EXCHANGE",
+    ISSUE: "ISSUE",
+    REQUEST: "REQUEST",
+    RETURN: "RETURN",
+} as const;
+
+export const MovementState = {
+    CANCELLED: "CANCELLED",
+    DECLINED: "DECLINED",
+    DONE: "DONE",
+    OPEN: "OPEN",
+} as const;
+
+export const MultiLimitType = {
+    AT_LEAST: "AT_LEAST",
+    AT_MOST: "AT_MOST",
+    EXACTLY: "EXACTLY",
+    NONE: "NONE",
+} as const;
+
+export const NewsVisibilityRole = {
+    MANAGER: "MANAGER",
+    MEMBER: "MEMBER",
+    TEAM: "TEAM",
+} as const;
+
+export const NoteEntityType = {
+    EVENT: "EVENT",
+    ITEM: "ITEM",
+    MEMBER: "MEMBER",
+} as const;
+
+export const NotificationType = {
+    BOARD_TICKET_UPDATE: "BOARD_TICKET_UPDATE",
+    CLUSTER_APPLICATION_APPROVED: "CLUSTER_APPLICATION_APPROVED",
+    CLUSTER_APPLICATION_DENIED: "CLUSTER_APPLICATION_DENIED",
+    CLUSTER_APPLICATION_SUBMITTED: "CLUSTER_APPLICATION_SUBMITTED",
+    CLUSTER_APPLICATION_WITHDRAWN: "CLUSTER_APPLICATION_WITHDRAWN",
+    CLUSTER_FIELD_VALUE_CHANGED: "CLUSTER_FIELD_VALUE_CHANGED",
+    CLUSTER_ITEM_ISSUED: "CLUSTER_ITEM_ISSUED",
+    CLUSTER_ITEM_LOST: "CLUSTER_ITEM_LOST",
+    CLUSTER_MEMBER_ROLE_CHANGED: "CLUSTER_MEMBER_ROLE_CHANGED",
+    CLUSTER_MODULE_DENIED: "CLUSTER_MODULE_DENIED",
+    CLUSTER_QUOTA_CHANGED: "CLUSTER_QUOTA_CHANGED",
+    CLUSTER_STATION_RELEASED: "CLUSTER_STATION_RELEASED",
+    COMMENT_MENTION: "COMMENT_MENTION",
+    EVENT_CANCELLED: "EVENT_CANCELLED",
+    EVENT_DATE_DROPPED: "EVENT_DATE_DROPPED",
+    EVENT_DATE_RESTORED: "EVENT_DATE_RESTORED",
+    EVENT_MOVED: "EVENT_MOVED",
+    EVENT_REGISTRATION_STATUS: "EVENT_REGISTRATION_STATUS",
+    EVENT_REMINDER: "EVENT_REMINDER",
+    EXPIRY_REMINDER: "EXPIRY_REMINDER",
+    LENDING_NEW_MESSAGE: "LENDING_NEW_MESSAGE",
+    LENDING_NEW_REQUEST: "LENDING_NEW_REQUEST",
+    LENDING_STATUS_CHANGE: "LENDING_STATUS_CHANGE",
+    LOST_AND_FOUND_CLAIMED: "LOST_AND_FOUND_CLAIMED",
+    LOST_AND_FOUND_NEW: "LOST_AND_FOUND_NEW",
+    MAILBOX_SUSPENDED: "MAILBOX_SUSPENDED",
+    MAIL_IMPORT_UNBOUND: "MAIL_IMPORT_UNBOUND",
+    MEMBER_ADDED_TO_GROUP: "MEMBER_ADDED_TO_GROUP",
+    MOVEMENT_ADVANCED: "MOVEMENT_ADVANCED",
+    MOVEMENT_CANCELLED: "MOVEMENT_CANCELLED",
+    MOVEMENT_DECLINED: "MOVEMENT_DECLINED",
+    MOVEMENT_RAISED: "MOVEMENT_RAISED",
+    NEWS_COMMENT: "NEWS_COMMENT",
+    NEW_EVENT: "NEW_EVENT",
+    NEW_EVENTS_BATCH: "NEW_EVENTS_BATCH",
+    NEW_FORM: "NEW_FORM",
+    NEW_NEWS: "NEW_NEWS",
+    PROCEDURE_ASSIGNED: "PROCEDURE_ASSIGNED",
+    PROCEDURE_ITEM_CHECKED: "PROCEDURE_ITEM_CHECKED",
+    PROCEDURE_REOPENED: "PROCEDURE_REOPENED",
+    PROCEDURE_RESOLVED: "PROCEDURE_RESOLVED",
+    PROCUREMENT_FULFILLED: "PROCUREMENT_FULFILLED",
+    PROCUREMENT_REQUESTED: "PROCUREMENT_REQUESTED",
+    PROFILE_FIELD_CHANGED: "PROFILE_FIELD_CHANGED",
+    REGISTRATION_ANSWER_MISSING: "REGISTRATION_ANSWER_MISSING",
+    REGISTRATION_CLOSING: "REGISTRATION_CLOSING",
+    REGISTRATION_DEADLINE_EXPIRED: "REGISTRATION_DEADLINE_EXPIRED",
+    SELF_CHECK_ASSIGNED: "SELF_CHECK_ASSIGNED",
+    SELF_CHECK_ROW_REFUSED: "SELF_CHECK_ROW_REFUSED",
+    SELF_CHECK_SUBMITTED: "SELF_CHECK_SUBMITTED",
+    STORAGE_WARNING: "STORAGE_WARNING",
+    WAITLIST_INVITATION_ANSWERED: "WAITLIST_INVITATION_ANSWERED",
+    WAITLIST_NEW_ENTRY: "WAITLIST_NEW_ENTRY",
+    WAITLIST_PUBLIC_REGISTRATION: "WAITLIST_PUBLIC_REGISTRATION",
+} as const;
+
+export const OfferAnswer = {
+    DECLINED: "DECLINED",
+    LATER: "LATER",
+} as const;
+
+export const OnboardingLevel = {
+    INSTANCE: "INSTANCE",
+    MEMBER: "MEMBER",
+    STATION: "STATION",
+} as const;
+
+export const OnboardingTaskState = {
+    DISMISSED: "DISMISSED",
+    DONE: "DONE",
+    OPEN: "OPEN",
+    SKIPPED: "SKIPPED",
+} as const;
+
+export const OutputShape = {
+    FLAT: "FLAT",
+    ROWS: "ROWS",
+    SINGLE: "SINGLE",
+} as const;
+
+export const PageVisibility = {
+    DRAFT: "DRAFT",
+    PUBLIC: "PUBLIC",
+    UNLISTED: "UNLISTED",
+} as const;
+
+export const PeerSource = {
+    BOOTSTRAP: "BOOTSTRAP",
+    GOSSIP: "GOSSIP",
+    MANUAL: "MANUAL",
+} as const;
+
+export const PolicyScope = {
+    INSTANCE: "INSTANCE",
+    STATION: "STATION",
+} as const;
+
+export const PollStatus = {
+    APPROVED: "APPROVED",
+    EXPIRED: "EXPIRED",
+    PENDING: "PENDING",
+    REJECTED: "REJECTED",
+    UNKNOWN: "UNKNOWN",
+} as const;
+
+export const ProcedureStatus = {
+    OPEN: "OPEN",
+    RESOLVED: "RESOLVED",
+} as const;
+
+export const ProfileFieldScope = {
+    GUARDIAN: "GUARDIAN",
+    MANAGER: "MANAGER",
+    MEMBER: "MEMBER",
+    TEAM: "TEAM",
+    TRIAL: "TRIAL",
+} as const;
+
+export const ProfileFieldTarget = {
+    GROUP: "GROUP",
+    ROLE: "ROLE",
+} as const;
+
+export const PublicFormState = {
+    CLOSED: "CLOSED",
+    NOT_OPEN_YET: "NOT_OPEN_YET",
+    NOT_PUBLISHED: "NOT_PUBLISHED",
+    OPEN: "OPEN",
+} as const;
+
+export const PublicKbMode = {
+    ALLOW_ALL: "ALLOW_ALL",
+    DENY_ALL: "DENY_ALL",
+    OFF: "OFF",
+} as const;
+
+export const QuizQuestionType = {
+    CONNECT: "CONNECT",
+    ENUMERATION: "ENUMERATION",
+    FILL_IN_THE_BLANK: "FILL_IN_THE_BLANK",
+    FREE_ANSWER: "FREE_ANSWER",
+    IMAGE_TEXT: "IMAGE_TEXT",
+    MULTIPLE_CHOICE: "MULTIPLE_CHOICE",
+    ORDERING: "ORDERING",
+    TRUE_FALSE: "TRUE_FALSE",
+} as const;
+
+export const QuotaOrigin = {
+    CLUSTER_DEFAULT: "CLUSTER_DEFAULT",
+    CLUSTER_GRANT: "CLUSTER_GRANT",
+    INSTANCE_DEFAULT: "INSTANCE_DEFAULT",
+    INSTANCE_OVERRIDE: "INSTANCE_OVERRIDE",
+    UNLIMITED: "UNLIMITED",
+} as const;
+
+export const RatingIcon = {
+    HEART: "HEART",
+    NUMBER: "NUMBER",
+    STAR: "STAR",
+    THUMB_UP: "THUMB_UP",
+} as const;
+
+export const RegistrationStatus = {
+    ACCEPTED: "ACCEPTED",
+    DECLINED: "DECLINED",
+    DENIED: "DENIED",
+    PENDING: "PENDING",
+    WITHDRAWN: "WITHDRAWN",
+} as const;
+
+export const RestrictionMode = {
+    AND: "AND",
+    OR: "OR",
+} as const;
+
+export const RestrictionType = {
+    EVENT: "EVENT",
+    EVENT_TEMPLATE: "EVENT_TEMPLATE",
+    EVENT_TEMPLATE_VIEW: "EVENT_TEMPLATE_VIEW",
+    EVENT_VIEW: "EVENT_VIEW",
+    FORM: "FORM",
+    KB_FILE: "KB_FILE",
+    KB_FOLDER: "KB_FOLDER",
+    NEWS: "NEWS",
+    QUIZ_TEST: "QUIZ_TEST",
+} as const;
+
+export const RunStatus = {
+    CLOSED: "CLOSED",
+    OPEN: "OPEN",
+} as const;
+
+export const ScheduleMode = {
+    FIXED_DELAY: "FIXED_DELAY",
+    FIXED_RATE: "FIXED_RATE",
+    ONCE: "ONCE",
+} as const;
+
+export const Scope = {
+    CLUSTER: "CLUSTER",
+    INSTANCE: "INSTANCE",
+    STATION: "STATION",
+    USER: "USER",
+} as const;
+
+export const SelfCheckAnswer = {
+    DO_NOT_HAVE_IT: "DO_NOT_HAVE_IT",
+    HAVE_IT: "HAVE_IT",
+    HAVE_ONE: "HAVE_ONE",
+    NEVER_HAD: "NEVER_HAD",
+    TURNED_UP: "TURNED_UP",
+    WRONG_RECORD: "WRONG_RECORD",
+} as const;
+
+export const SelfCheckIdentifierFinding = {
+    A_CONTAINER: "A_CONTAINER",
+    FREE: "FREE",
+    HELD: "HELD",
+    NOTHING_TYPED: "NOTHING_TYPED",
+    NO_MATCH: "NO_MATCH",
+    SEVERAL: "SEVERAL",
+} as const;
+
+export const SelfCheckRaisedKind = {
+    EXCHANGE: "EXCHANGE",
+    LOSS: "LOSS",
+} as const;
+
+export const SelfCheckRaisedState = {
+    DROPPED: "DROPPED",
+    RAISED: "RAISED",
+    WAITING: "WAITING",
+} as const;
+
+export const SelfCheckRecordRemoval = {
+    BACK_TO_STORE: "BACK_TO_STORE",
+    DELETED: "DELETED",
+    NOTHING: "NOTHING",
+    RETURNED_TO_OWNER: "RETURNED_TO_OWNER",
+} as const;
+
+export const SelfCheckRowState = {
+    OUTSTANDING: "OUTSTANDING",
+    REFUSED: "REFUSED",
+    TAKEN: "TAKEN",
+} as const;
+
+export const SelfCheckSettlement = {
+    ANCHOR_GONE: "ANCHOR_GONE",
+    CONFIRMS_GAP: "CONFIRMS_GAP",
+    CONFIRMS_PIECE: "CONFIRMS_PIECE",
+    MARKS_FOUND: "MARKS_FOUND",
+    NEEDS_A_PIECE_NAMED: "NEEDS_A_PIECE_NAMED",
+    NEEDS_RECORD_PUT_RIGHT: "NEEDS_RECORD_PUT_RIGHT",
+    RECORDS_NOT_HELD: "RECORDS_NOT_HELD",
+} as const;
+
+export const SelfCheckState = {
+    DONE: "DONE",
+    OPEN: "OPEN",
+    OVERTAKEN: "OVERTAKEN",
+    SUBMITTED: "SUBMITTED",
+} as const;
+
+export const ShareGrant = {
+    GRANT: "GRANT",
+    WITHHOLD: "WITHHOLD",
+} as const;
+
+export const ShareScope = {
+    ALL_PARTNERS: "ALL_PARTNERS",
+    SPECIFIC: "SPECIFIC",
+} as const;
+
+export const SmtpEncryption = {
+    IMPLICIT_TLS: "IMPLICIT_TLS",
+    NONE: "NONE",
+    STARTTLS: "STARTTLS",
+} as const;
+
+export const StationModule = {
+    ATTENDANCE: "ATTENDANCE",
+    BOARDS: "BOARDS",
+    DOCUMENTS: "DOCUMENTS",
+    EVENTS: "EVENTS",
+    FORMS: "FORMS",
+    INVENTORY: "INVENTORY",
+    KNOWLEDGE_BASE: "KNOWLEDGE_BASE",
+    LOST_AND_FOUND: "LOST_AND_FOUND",
+    NEWS: "NEWS",
+    PROCEDURES: "PROCEDURES",
+    QUIZ: "QUIZ",
+    TEST_PROTOCOL: "TEST_PROTOCOL",
+    WAITING_LIST: "WAITING_LIST",
+} as const;
+
+export const StationPermission = {
+    ATTENDANCE_CONFIGURE: "ATTENDANCE_CONFIGURE",
+    ATTENDANCE_EDIT: "ATTENDANCE_EDIT",
+    ATTENDANCE_EXPORT: "ATTENDANCE_EXPORT",
+    ATTENDANCE_MANAGER: "ATTENDANCE_MANAGER",
+    ATTENDANCE_READ: "ATTENDANCE_READ",
+    BOARD_EDIT: "BOARD_EDIT",
+    BOARD_FEDERATE: "BOARD_FEDERATE",
+    BOARD_MANAGER: "BOARD_MANAGER",
+    BOARD_USE: "BOARD_USE",
+    CHECKLIST_MANAGE: "CHECKLIST_MANAGE",
+    CHECKLIST_MANAGER: "CHECKLIST_MANAGER",
+    CHECKLIST_READ: "CHECKLIST_READ",
+    DOCUMENT_EDIT: "DOCUMENT_EDIT",
+    DOCUMENT_EDIT_MEMBER: "DOCUMENT_EDIT_MEMBER",
+    DOCUMENT_MANAGER: "DOCUMENT_MANAGER",
+    DOCUMENT_READ: "DOCUMENT_READ",
+    DOCUMENT_READ_MEMBER: "DOCUMENT_READ_MEMBER",
+    EVENTS_FEDERATE: "EVENTS_FEDERATE",
+    EVENT_EDIT: "EVENT_EDIT",
+    EVENT_INTERNAL: "EVENT_INTERNAL",
+    EVENT_MANAGER: "EVENT_MANAGER",
+    EVENT_MANAGE_CATEGORY: "EVENT_MANAGE_CATEGORY",
+    EVENT_MANAGE_TEMPLATE: "EVENT_MANAGE_TEMPLATE",
+    EVENT_REGISTRATION: "EVENT_REGISTRATION",
+    INVENTORY_ASSIGN: "INVENTORY_ASSIGN",
+    INVENTORY_CHECK: "INVENTORY_CHECK",
+    INVENTORY_CREATE: "INVENTORY_CREATE",
+    INVENTORY_CREATE_EXTERNAL: "INVENTORY_CREATE_EXTERNAL",
+    INVENTORY_CREATE_INTERNAL: "INVENTORY_CREATE_INTERNAL",
+    INVENTORY_EDIT: "INVENTORY_EDIT",
+    INVENTORY_LENDING_MANAGER: "INVENTORY_LENDING_MANAGER",
+    INVENTORY_LENDING_REQUEST: "INVENTORY_LENDING_REQUEST",
+    INVENTORY_MANAGER: "INVENTORY_MANAGER",
+    INVENTORY_MOVEMENTS: "INVENTORY_MOVEMENTS",
+    INVENTORY_PROCUREMENT: "INVENTORY_PROCUREMENT",
+    INVENTORY_READ: "INVENTORY_READ",
+    INVENTORY_STORAGE: "INVENTORY_STORAGE",
+    KNOWLEDGE_EDIT: "KNOWLEDGE_EDIT",
+    KNOWLEDGE_FEDERATE: "KNOWLEDGE_FEDERATE",
+    KNOWLEDGE_MANAGER: "KNOWLEDGE_MANAGER",
+    LOGIN: "LOGIN",
+    LOST_AND_FOUND_CREATE: "LOST_AND_FOUND_CREATE",
+    LOST_AND_FOUND_MANAGE: "LOST_AND_FOUND_MANAGE",
+    LOST_AND_FOUND_MANAGER: "LOST_AND_FOUND_MANAGER",
+    MEMBER_CHANGES: "MEMBER_CHANGES",
+    MEMBER_EDIT: "MEMBER_EDIT",
+    MEMBER_EXPORT: "MEMBER_EXPORT",
+    MEMBER_FIELDS: "MEMBER_FIELDS",
+    MEMBER_GUARDIAN: "MEMBER_GUARDIAN",
+    MEMBER_MANAGER: "MEMBER_MANAGER",
+    MEMBER_MANAGE_GROUP: "MEMBER_MANAGE_GROUP",
+    MEMBER_MANAGE_TAGS: "MEMBER_MANAGE_TAGS",
+    MEMBER_NOTES: "MEMBER_NOTES",
+    MEMBER_READ: "MEMBER_READ",
+    MEMBER_SELF_UPLOAD: "MEMBER_SELF_UPLOAD",
+    NEWS_EDIT: "NEWS_EDIT",
+    NEWS_FEDERATE: "NEWS_FEDERATE",
+    NEWS_MANAGER: "NEWS_MANAGER",
+    PAGE_EDIT: "PAGE_EDIT",
+    PAGE_FORMS_VIEW: "PAGE_FORMS_VIEW",
+    PAGE_MANAGER: "PAGE_MANAGER",
+    PAGE_POLLS_VIEW: "PAGE_POLLS_VIEW",
+    POLL_CREATE: "POLL_CREATE",
+    POLL_MANAGER: "POLL_MANAGER",
+    POLL_VIEW_RESULTS: "POLL_VIEW_RESULTS",
+    PROCEDURE_EDIT: "PROCEDURE_EDIT",
+    PROCEDURE_MANAGER: "PROCEDURE_MANAGER",
+    PROCEDURE_READ: "PROCEDURE_READ",
+    PROTOCOL_CONFIGURE: "PROTOCOL_CONFIGURE",
+    PROTOCOL_CREATE: "PROTOCOL_CREATE",
+    PROTOCOL_MANAGER: "PROTOCOL_MANAGER",
+    PROTOCOL_TESTER: "PROTOCOL_TESTER",
+    STATION_ADMINISTRATOR: "STATION_ADMINISTRATOR",
+    STATION_FEDERATION: "STATION_FEDERATION",
+    STATION_GENERAL: "STATION_GENERAL",
+    STATION_IMPORT_EXPORT: "STATION_IMPORT_EXPORT",
+    STATION_LOOK_AND_FEEL: "STATION_LOOK_AND_FEEL",
+    STATION_MAIL: "STATION_MAIL",
+    STATION_MANAGER: "STATION_MANAGER",
+    STATION_MODULES: "STATION_MODULES",
+    STATION_STATISTICS: "STATION_STATISTICS",
+    TEST_CATALOG_EDIT: "TEST_CATALOG_EDIT",
+    TEST_CATALOG_VIEW: "TEST_CATALOG_VIEW",
+    TEST_CONFIGURE: "TEST_CONFIGURE",
+    TEST_MANAGER: "TEST_MANAGER",
+    TEST_RESULT_READ: "TEST_RESULT_READ",
+    TEST_REVIEW: "TEST_REVIEW",
+    USER: "USER",
+    WAITLIST_ADD: "WAITLIST_ADD",
+    WAITLIST_EDIT: "WAITLIST_EDIT",
+    WAITLIST_MANAGER: "WAITLIST_MANAGER",
+    WAITLIST_READ: "WAITLIST_READ",
+} as const;
+
+export const StationUserType = {
+    GUARDIAN: "GUARDIAN",
+    MANAGER: "MANAGER",
+    MEMBER: "MEMBER",
+    TEAM: "TEAM",
+    TRIAL: "TRIAL",
+} as const;
+
+export const Status = {
+    COMPLETED: "COMPLETED",
+    FAILED: "FAILED",
+    IN_PROGRESS: "IN_PROGRESS",
+} as const;
+
+export const StepActor = {
+    MEMBER: "MEMBER",
+    OWNER: "OWNER",
+    STATION: "STATION",
+} as const;
+
+export const StepSubject = {
+    INCOMING: "INCOMING",
+    OUTGOING: "OUTGOING",
+} as const;
+
+export const StepUpCategory = {
+    ACCOUNT_SECURITY: "ACCOUNT_SECURITY",
+    FEDERATION: "FEDERATION",
+    INSTANCE_CONFIG: "INSTANCE_CONFIG",
+    ROLE_CHANGE: "ROLE_CHANGE",
+} as const;
+
+export const StepUpProof = {
+    ANOTHER_DEVICE: "ANOTHER_DEVICE",
+    BACKUP_CODE: "BACKUP_CODE",
+    PASSKEY: "PASSKEY",
+    PASSWORD: "PASSWORD",
+    SECURITY_KEY: "SECURITY_KEY",
+    TOTP: "TOTP",
+} as const;
+
+export const StorageAuditAction = {
+    CREATED: "CREATED",
+    DELETED: "DELETED",
+    INSTANCE_DEFAULT_UPDATED: "INSTANCE_DEFAULT_UPDATED",
+    INSTANCE_MIGRATION_COMPLETED: "INSTANCE_MIGRATION_COMPLETED",
+    INSTANCE_MIGRATION_FAILED: "INSTANCE_MIGRATION_FAILED",
+    INSTANCE_MIGRATION_STARTED: "INSTANCE_MIGRATION_STARTED",
+    MIGRATION_COMPLETED: "MIGRATION_COMPLETED",
+    MIGRATION_FAILED: "MIGRATION_FAILED",
+    MIGRATION_STARTED: "MIGRATION_STARTED",
+    POLICY_CHANGED: "POLICY_CHANGED",
+    PROBE_FAILED: "PROBE_FAILED",
+    PROBE_OK: "PROBE_OK",
+    REJECTED: "REJECTED",
+    UPDATED: "UPDATED",
+} as const;
+
+export const StorageAuditOutcome = {
+    FAILED: "FAILED",
+    OK: "OK",
+} as const;
+
+export const StorageBackendType = {
+    LOCAL: "LOCAL",
+    S3: "S3",
+    SFTP: "SFTP",
+    SMB: "SMB",
+} as const;
+
+export const StorageCategory = {
+    BOARD_ATTACHMENTS: "BOARD_ATTACHMENTS",
+    DEMO_AVATAR: "DEMO_AVATAR",
+    DISCOVERY_KEY: "DISCOVERY_KEY",
+    DOCUMENT: "DOCUMENT",
+    IMAGE_AVATAR: "IMAGE_AVATAR",
+    IMAGE_KB_FILE_PICTURE: "IMAGE_KB_FILE_PICTURE",
+    IMAGE_KB_ICON: "IMAGE_KB_ICON",
+    IMAGE_KB_IMAGE: "IMAGE_KB_IMAGE",
+    IMAGE_LOGO_FRAGMENT: "IMAGE_LOGO_FRAGMENT",
+    IMAGE_LOST_AND_FOUND: "IMAGE_LOST_AND_FOUND",
+    IMAGE_QUIZ_QUESTION: "IMAGE_QUIZ_QUESTION",
+    IMAGE_STATION_LOGO: "IMAGE_STATION_LOGO",
+    INSTANCE_MEDIA_FILES: "INSTANCE_MEDIA_FILES",
+    KB_FILES: "KB_FILES",
+    MAP_TILE_CACHE: "MAP_TILE_CACHE",
+    MEDIA_FILES: "MEDIA_FILES",
+    MEDIA_IMAGES: "MEDIA_IMAGES",
+    MEMBER_DOCUMENTS: "MEMBER_DOCUMENTS",
+    MOVEMENT_DOCUMENTS: "MOVEMENT_DOCUMENTS",
+} as const;
+
+export const Strategy = {
+    ANONYMIZE: "ANONYMIZE",
+    CASCADE: "CASCADE",
+    DELETE_EXPLICIT: "DELETE_EXPLICIT",
+    NOT_APPLICABLE: "NOT_APPLICABLE",
+    NULL: "NULL",
+    RETAIN: "RETAIN",
+    RETAIN_UNLINKED: "RETAIN_UNLINKED",
+} as const;
+
+export const SwitchBlockerKind = {
+    ART: "ART",
+    EXCHANGE: "EXCHANGE",
+    PROCUREMENT: "PROCUREMENT",
+    REQUIREMENT: "REQUIREMENT",
+    SIZE: "SIZE",
+} as const;
+
+export const TargetKind = {
+    NEXT: "NEXT",
+    PAGE: "PAGE",
+    SUBMIT: "SUBMIT",
+} as const;
+
+export const TaskOutcome = {
+    FAILED: "FAILED",
+    NOT_RUN_YET: "NOT_RUN_YET",
+    RUNNING: "RUNNING",
+    SUCCEEDED: "SUCCEEDED",
+} as const;
+
+export const TestStatus = {
+    ACTIVE: "ACTIVE",
+    CLOSED: "CLOSED",
+    DRAFT: "DRAFT",
+} as const;
+
+export const ThemeFeel = {
+    CORNERS: "CORNERS",
+    ROUNDED: "ROUNDED",
+} as const;
+
+export const TicketPriority = {
+    HIGH: "HIGH",
+    HIGHEST: "HIGHEST",
+    LOW: "LOW",
+    LOWEST: "LOWEST",
+    MEDIUM: "MEDIUM",
+} as const;
+
+export const TokenPurpose = {
+    OTHER: "OTHER",
+    RESET: "RESET",
+    SETUP: "SETUP",
+} as const;
+
+export const TokenStanding = {
+    EXPIRED: "EXPIRED",
+    UNKNOWN: "UNKNOWN",
+    VALID: "VALID",
+} as const;
+
+export const TrackingStatus = {
+    IGNORED: "IGNORED",
+    TRACKED: "TRACKED",
+    UNVERIFIED: "UNVERIFIED",
+} as const;
+
+export const TrialOutcome = {
+    FAILED: "FAILED",
+    FOREIGN_CREDENTIAL: "FOREIGN_CREDENTIAL",
+    OK: "OK",
+} as const;
+
+export const TwoFactorEvent = {
+    ADMIN_RESET: "ADMIN_RESET",
+    BACKUP_CODE_REGENERATED: "BACKUP_CODE_REGENERATED",
+    BACKUP_CODE_USED: "BACKUP_CODE_USED",
+    DEVICE_REQUEST_APPROVED: "DEVICE_REQUEST_APPROVED",
+    ENROLLED: "ENROLLED",
+    LOGIN_VERIFIED: "LOGIN_VERIFIED",
+    PASSKEY_CODE_ISSUED: "PASSKEY_CODE_ISSUED",
+    PASSKEY_ENROLLED_VIA_DEVICE_CODE: "PASSKEY_ENROLLED_VIA_DEVICE_CODE",
+    PASSKEY_SIGN_IN: "PASSKEY_SIGN_IN",
+    PASSWORD_LOGIN_DISABLED: "PASSWORD_LOGIN_DISABLED",
+    PASSWORD_LOGIN_ENABLED: "PASSWORD_LOGIN_ENABLED",
+    PASSWORD_RETIRED: "PASSWORD_RETIRED",
+    POLICY_CHANGED: "POLICY_CHANGED",
+    REMOVED: "REMOVED",
+    SIGNED_IN_VIA_DEVICE_CODE: "SIGNED_IN_VIA_DEVICE_CODE",
+    STEPUP_FAILED: "STEPUP_FAILED",
+    STEPUP_VERIFIED: "STEPUP_VERIFIED",
+    STEPUP_VIA_DEVICE_CODE: "STEPUP_VIA_DEVICE_CODE",
+    TRUSTED_DEVICE_ADDED: "TRUSTED_DEVICE_ADDED",
+    TRUSTED_DEVICE_REVOKED: "TRUSTED_DEVICE_REVOKED",
+} as const;
+
+export const TwoFactorKind = {
+    BACKUP_CODES: "BACKUP_CODES",
+    TOTP: "TOTP",
+    WEBAUTHN: "WEBAUTHN",
+} as const;
+
+export const WaitingListAnswer = {
+    COMING: "COMING",
+    DATE_DOES_NOT_SUIT: "DATE_DOES_NOT_SUIT",
+    NOT_INTERESTED: "NOT_INTERESTED",
+} as const;
+
+export const WaitingListEntryStatus = {
+    INVITED: "INVITED",
+    JOINED: "JOINED",
+    PENDING: "PENDING",
+    TESTING: "TESTING",
+    WAITING: "WAITING",
+    WITHDRAWN: "WITHDRAWN",
+} as const;

@@ -10,6 +10,7 @@ import com.anthropic.client.okhttp.AnthropicOkHttpClient;
 import com.google.genai.Client;
 import com.openai.client.OpenAIClient;
 import com.openai.client.okhttp.OpenAIOkHttpClient;
+import dev.chojo.ember.feature.quiz.entity.AiVendor;
 import jakarta.inject.Singleton;
 
 /**
@@ -23,13 +24,17 @@ import jakarta.inject.Singleton;
 public class AiClientFactory {
 
     /**
-     * An OpenAI client for this key; the caller closes it.
+     * An OpenAI client for this key, pointed at the vendor's own address where it speaks the OpenAI
+     * API under one; the caller closes it.
      *
+     * @param vendor the vendor to call, one whose protocol is the OpenAI API
      * @param apiKey the key to authenticate with
      * @return a new client
      */
-    public OpenAIClient openAi(String apiKey) {
-        return OpenAIOkHttpClient.builder().apiKey(apiKey).build();
+    public OpenAIClient openAi(AiVendor vendor, String apiKey) {
+        var builder = OpenAIOkHttpClient.builder().apiKey(apiKey);
+        vendor.baseUrl().ifPresent(builder::baseUrl);
+        return builder.build();
     }
 
     /**
