@@ -2,6 +2,8 @@
 
 ## v26.20.0
 
+In diesem Release wächst Ember zu einem Ganzen zusammen. Wachen, Verbände und die Instanz folgen jetzt denselben Regeln für Profilfragen, Speicher, Benachrichtigungen, Dokumente und Gruppen: Was bei deiner Wache klappt, klappt eine Ebene höher genauso. Unterwegs haben wir über zwanzig Sicherheitslücken gefunden und geschlossen, von verborgenen Terminen bis zu Profilen, die jedes Mitglied lesen konnte. Formulare sind erwachsen geworden: Sie haben Seiten, Verzweigungen, eine Vorschau und Entwürfe, an denen du später weitermachst. Ablaufdaten erinnern dich rechtzeitig, und einzelne Termine einer Serie lassen sich absagen und zurückholen. Dein Verband bekommt eigene Benachrichtigungen, einen Speicherverlauf und Dokumente wie an der Wache. Wachen ohne Mailserver können endlich Leute mit Anmeldung aufnehmen, mit Einmalpasswörtern. Wenn du eine Vorlage oder ein Feld löschst, bleibt alles, was du eingetragen hast. Und wenn Ember etwas ablehnt, sagt es jetzt, warum, auf Deutsch und mit dem Wert, um den es geht. DeepSeek und Mistral schreiben jetzt auch Quizfragen.
+
 ### Neue Funktionen
 
 - **Ablaufdaten, die rechtzeitig erinnern.** Ein Profilfeld kann jetzt ein Datum halten, das abläuft, etwa einen Erste-Hilfe-Kurs oder einen Führerschein. Es wird gelb, wenn es bald so weit ist, und rot, wenn es abgelaufen ist, und das Mitglied und seine Mitgliederverwaltung bekommen vorher eine Erinnerung.

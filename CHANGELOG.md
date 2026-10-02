@@ -2,6 +2,8 @@
 
 ## v26.20.0
 
+This release is about making Ember one piece. Stations, associations and the instance now share the same rules for profile questions, storage, notifications, documents and groups, so what works at your station works the same way one level up. Along the way we found and closed more than twenty security gaps, from hidden appointments to profiles any member could read. Forms grew up: they have pages, branching, previews and drafts you can pick up again. Expiry dates remind you in time, and single dates of a series can be cancelled and restored. Your association gets its own notifications, a storage history and documents that look like the station's. Stations without a mail server can finally bring in people with a login, through one-time passwords. Deleting a template or a field no longer takes anything you entered with it. When Ember says no, it now says why, in your language and with the value it is about. DeepSeek and Mistral join the AI providers for quiz questions.
+
 ### New Features
 
 - **Expiry dates that remind you in time.** A profile field can now hold a date that runs out, like a first aid course or a driving licence. It turns yellow when the date is close and red once it has passed, and the member and their member management get a reminder ahead of time.
