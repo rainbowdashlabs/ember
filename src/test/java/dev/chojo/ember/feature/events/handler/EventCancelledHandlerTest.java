@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.notifications.entity.Notification;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
+import dev.chojo.ember.feature.notifications.entity.Recipient;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
@@ -99,11 +100,11 @@ class EventCancelledHandlerTest extends RepositoryTestBase {
         cancelled = new EventCancelledHandler(notifier, eventRegistrationRepo, occurrenceCalendar);
         restored = new EventDateRestoredHandler(notifier, eventRegistrationRepo);
         List.of(onTheDate, guardian, onAnotherDate, inThePast)
-                .forEach(member -> notificationRepo.acknowledgeAll(member.id()));
+                .forEach(member -> notificationRepo.acknowledgeAll(Recipient.stationMember(member.id())));
     }
 
     private static List<Notification> told(StationMember member, NotificationType type) {
-        return notificationRepo.findUnacknowledged(member.id()).stream()
+        return notificationRepo.findUnacknowledged(Recipient.stationMember(member.id())).stream()
                 .filter(notification -> notification.type() == type)
                 .toList();
     }
@@ -167,7 +168,9 @@ class EventCancelledHandlerTest extends RepositoryTestBase {
         restored.handle(new EventDateRestored(station.id(), eventId, "Cancel Handler Event", date.plusWeeks(5)));
 
         for (var member : List.of(onTheDate, guardian, onAnotherDate, inThePast)) {
-            assertTrue(notificationRepo.findUnacknowledged(member.id()).isEmpty());
+            assertTrue(notificationRepo
+                    .findUnacknowledged(Recipient.stationMember(member.id()))
+                    .isEmpty());
         }
     }
 

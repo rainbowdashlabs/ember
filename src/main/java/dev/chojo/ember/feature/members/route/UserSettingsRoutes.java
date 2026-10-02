@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.mail.service.StationMailSettingsService;
 import dev.chojo.ember.feature.members.service.UserSettingsService;
 import dev.chojo.ember.feature.notifications.entity.NotificationSetting;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
+import dev.chojo.ember.feature.notifications.service.NotificationPreferences;
 import io.javalin.http.Context;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
@@ -34,11 +35,16 @@ import java.util.Map;
 @Singleton
 public class UserSettingsRoutes implements Routes {
     private final UserSettingsService settingsService;
+    private final NotificationPreferences preferences;
     private final StationMailSettingsService mailSettings;
 
     @Inject
-    public UserSettingsRoutes(UserSettingsService settingsService, StationMailSettingsService mailSettings) {
+    public UserSettingsRoutes(
+            UserSettingsService settingsService,
+            NotificationPreferences preferences,
+            StationMailSettingsService mailSettings) {
         this.settingsService = settingsService;
+        this.preferences = preferences;
         this.mailSettings = mailSettings;
     }
 
@@ -58,7 +64,7 @@ public class UserSettingsRoutes implements Routes {
         StationSession session = StationSession.from(ctx);
         int memberId = session.member().id();
         var userSettings = settingsService.getSettings(memberId);
-        var notifSettings = settingsService.getNotificationSettings(memberId);
+        var notifSettings = preferences.settingsOf(memberId);
         ctx.json(toResponse(
                 userSettings.emailEnabled(),
                 userSettings.theme(),
@@ -101,9 +107,9 @@ public class UserSettingsRoutes implements Routes {
                         type, new NotificationSetting(memberId, type, toggle.app(), toggle.email(), toggle.feed()));
             }
         }
-        settingsService.updateNotificationSettings(memberId, notifMap);
+        preferences.updateSettings(memberId, notifMap);
 
-        var notifSettings = settingsService.getNotificationSettings(memberId);
+        var notifSettings = preferences.settingsOf(memberId);
         var finalSettings = settingsService.findOrCreate(memberId);
         ctx.json(toResponse(
                 finalSettings.emailEnabled(),

@@ -24,6 +24,7 @@ import dev.chojo.ember.feature.notifications.entity.NotificationData.Notificatio
 import dev.chojo.ember.feature.notifications.entity.NotificationLinks;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
+import dev.chojo.ember.feature.notifications.entity.Recipient;
 import dev.chojo.ember.feature.notifications.entity.StationAudience;
 import dev.chojo.ember.feature.notifications.service.Notifier;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -79,7 +80,7 @@ class DeletionWithdrawsNotificationsTest extends RepositoryTestBase {
                 NotificationType.COMMENT_MENTION,
                 new NotificationParams.CommentMention("Sturm", "Bea", "@With"),
                 NotificationLinks.news(11));
-        notificationRepo.acknowledge(mention, member.id());
+        notificationRepo.acknowledge(Recipient.stationMember(member.id()), mention);
         int otherArticle = create(
                 NotificationType.NEW_NEWS,
                 new NotificationParams.NewNews("Sturm", "Anna", "Es zog"),
@@ -105,7 +106,7 @@ class DeletionWithdrawsNotificationsTest extends RepositoryTestBase {
                 NotificationType.EVENT_REMINDER,
                 new NotificationParams.EventReminder("Probe", 2, LocalDate.of(2026, 5, 4)),
                 NotificationLinks.eventDate(21, LocalDate.of(2026, 5, 4)));
-        notificationRepo.acknowledge(reminder, member.id());
+        notificationRepo.acknowledge(Recipient.stationMember(member.id()), reminder);
         int otherAppointment = create(
                 NotificationType.NEW_EVENT,
                 new NotificationParams.NewEvent("Probe", "Am Abend"),
@@ -125,7 +126,7 @@ class DeletionWithdrawsNotificationsTest extends RepositoryTestBase {
     void deletingAFormTakesTheInvitationToFillIt() {
         int invitation = create(
                 NotificationType.NEW_FORM, new NotificationParams.NewForm("Umfrage"), NotificationLinks.form(31));
-        notificationRepo.acknowledge(invitation, member.id());
+        notificationRepo.acknowledge(Recipient.stationMember(member.id()), invitation);
         int otherForm = create(
                 NotificationType.NEW_FORM, new NotificationParams.NewForm("Umfrage"), NotificationLinks.form(32));
 
@@ -145,7 +146,7 @@ class DeletionWithdrawsNotificationsTest extends RepositoryTestBase {
                 NotificationType.COMMENT_MENTION,
                 new NotificationParams.CommentMention("Sturm", "Bea", "@With"),
                 newsComment(41, 501));
-        notificationRepo.acknowledge(mentionInIt, member.id());
+        notificationRepo.acknowledge(Recipient.stationMember(member.id()), mentionInIt);
         int aboutItsNeighbour = create(
                 NotificationType.NEWS_COMMENT,
                 new NotificationParams.NewsComment("Sturm", "Cem", "Danke"),
@@ -235,7 +236,7 @@ class DeletionWithdrawsNotificationsTest extends RepositoryTestBase {
     private static int create(NotificationType type, NotificationParams params, NotificationLink link) {
         notifications.notify(
                 StationAudience.member(member.id()), type, NotificationData.of(params, link), Delivery.EVERY_TIME);
-        return notificationRepo.findAll(member.id()).stream()
+        return notificationRepo.findRecent(Recipient.stationMember(member.id())).stream()
                 .mapToInt(Notification::id)
                 .max()
                 .orElseThrow();
@@ -256,7 +257,7 @@ class DeletionWithdrawsNotificationsTest extends RepositoryTestBase {
     }
 
     private static List<Integer> remaining() {
-        return notificationRepo.findAll(member.id()).stream()
+        return notificationRepo.findRecent(Recipient.stationMember(member.id())).stream()
                 .map(Notification::id)
                 .toList();
     }

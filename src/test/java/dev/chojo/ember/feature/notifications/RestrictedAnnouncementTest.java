@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.entity.UserTag;
 import dev.chojo.ember.feature.news.handler.NewsCreatedHandler;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
+import dev.chojo.ember.feature.notifications.entity.Recipient;
 import dev.chojo.ember.feature.notifications.service.Notifier;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
@@ -113,7 +114,7 @@ class RestrictedAnnouncementTest extends RepositoryTestBase {
     }
 
     private static long count(StationMember member, NotificationType type) {
-        return notificationRepo.findAll(member.id()).stream()
+        return notificationRepo.findRecent(Recipient.stationMember(member.id())).stream()
                 .filter(notification -> notification.type() == type)
                 .count();
     }

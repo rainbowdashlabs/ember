@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.mail.service.StationMailSettingsService.WebhookUr
 import dev.chojo.ember.feature.members.entity.UserSettings;
 import dev.chojo.ember.feature.members.route.UserSettingsRoutes;
 import dev.chojo.ember.feature.members.service.UserSettingsService;
+import dev.chojo.ember.feature.notifications.service.NotificationPreferences;
 import dev.chojo.ember.feature.station.entity.MailProviderType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.service.StationImportService;
@@ -196,9 +197,10 @@ class StationManageRoutesTest {
         var userSettings = mock(UserSettingsService.class);
         var own = mock(UserSettings.class);
         when(userSettings.getSettings(TestSessions.MEMBER_ID)).thenReturn(own);
-        when(userSettings.getNotificationSettings(TestSessions.MEMBER_ID)).thenReturn(Map.of());
+        var preferences = mock(NotificationPreferences.class);
+        when(preferences.settingsOf(TestSessions.MEMBER_ID)).thenReturn(Map.of());
         when(mail.firstEntry(STATION_ID)).thenReturn(Optional.empty());
-        var settingsHarness = RouteHarness.serving(new UserSettingsRoutes(userSettings, mail));
+        var settingsHarness = RouteHarness.serving(new UserSettingsRoutes(userSettings, preferences, mail));
 
         var answer = settingsHarness.request(client -> client.get(
                 PREFIX + "/settings", settingsHarness.as(TestSessions.member(STATION_ID, StationPermission.LOGIN))));

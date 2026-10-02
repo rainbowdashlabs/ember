@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
+import dev.chojo.ember.feature.notifications.entity.Recipient;
 import dev.chojo.ember.feature.notifications.entity.StationAudience;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -138,8 +139,8 @@ class NotifierTest extends RepositoryTestBase {
                 Delivery.EVERY_TIME);
 
         assertEquals(1, written);
-        assertEquals(1, notificationRepo.countUnacknowledgedForClusterMember(clusterAdmin.id()));
-        assertEquals(0, notificationRepo.countUnacknowledgedForClusterMember(clusterUser.id()));
+        assertEquals(1, notificationRepo.countUnacknowledged(Recipient.clusterMember(clusterAdmin.id())));
+        assertEquals(0, notificationRepo.countUnacknowledged(Recipient.clusterMember(clusterUser.id())));
         assertEquals(
                 0,
                 notifier.notify(
@@ -189,7 +190,7 @@ class NotifierTest extends RepositoryTestBase {
 
         notifier.notify(StationAudience.member(reader.id()), NotificationType.NEWS_COMMENT, data, Delivery.EVERY_TIME);
         notifier.withdrawAll(link);
-        assertTrue(notificationRepo.findAll(reader.id()).stream()
+        assertTrue(notificationRepo.findRecent(Recipient.stationMember(reader.id())).stream()
                 .noneMatch(n -> n.data().equals(data)));
     }
 
@@ -217,7 +218,7 @@ class NotifierTest extends RepositoryTestBase {
     }
 
     private static boolean told(StationMember member, NotificationData data) {
-        return notificationRepo.findUnacknowledged(member.id()).stream()
+        return notificationRepo.findUnacknowledged(Recipient.stationMember(member.id())).stream()
                 .anyMatch(n -> n.data().equals(data));
     }
 }

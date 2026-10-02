@@ -348,6 +348,40 @@ class NotificationInboxTest extends RepositoryTestBase {
         }
     }
 
+    /**
+     * One person with a station membership and a cluster membership reads two feeds, and marking
+     * something read in one never reaches a notification of the other, whatever id is named.
+     */
+    @Test
+    @Order(47)
+    void theStationFeedAndTheClusterFeedNeverReachEachOther() {
+        var cluster = clusterRepo.create("SeparateCluster", "keeps its feed apart", station.id());
+        var office = clusterRepo.addMember(cluster.id(), account1.id(), ClusterUserType.CLUSTER_USER);
+        try {
+            acknowledgeAll(member1.id());
+            var data = NotificationData.of(
+                    new NotificationParams.NewEvent("Apart", "kept"),
+                    new NotificationData.NotificationLink("dashboard-overview"));
+            tell(StationAudience.member(member1.id()), NotificationType.NEW_EVENT, data);
+            tell(ClusterAudience.members(List.of(office.id())), NotificationType.NEW_EVENT, data);
+            var stationOne = unread(member1.id()).getFirst();
+            var clusterOne = clusterUnread(office.id()).getFirst();
+
+            clusterAcknowledge(stationOne.id(), office.id());
+            acknowledge(clusterOne.id(), member1.id());
+            assertEquals(1, countUnread(member1.id()));
+            assertEquals(1, clusterCountUnread(office.id()));
+            assertTrue(recent(member1.id()).stream().noneMatch(n -> n.id() == clusterOne.id()));
+            assertTrue(clusterRecent(office.id()).stream().noneMatch(n -> n.id() == stationOne.id()));
+
+            assertEquals(1, clusterAcknowledgeAll(office.id()));
+            assertEquals(1, countUnread(member1.id()));
+            assertEquals(1, acknowledgeAll(member1.id()));
+        } finally {
+            clusterRepo.delete(cluster.id());
+        }
+    }
+
     @Test
     @Order(50)
     void aMemberWhoSwitchedTheAppOffIsNotTold() {

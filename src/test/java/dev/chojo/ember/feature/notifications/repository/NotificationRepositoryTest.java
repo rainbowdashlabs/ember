@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.notifications.entity.Notification;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
+import dev.chojo.ember.feature.notifications.entity.Recipient;
 import dev.chojo.ember.feature.notifications.entity.StationAudience;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -78,21 +79,21 @@ class NotificationRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(4)
     void findUnacknowledged() {
-        var unack = notificationRepo.findUnacknowledged(member.id());
+        var unack = notificationRepo.findUnacknowledged(reader());
         assertEquals(1, unack.size());
     }
 
     @Test
     @Order(5)
-    void findAll() {
-        var all = notificationRepo.findAll(member.id());
+    void findRecent() {
+        var all = notificationRepo.findRecent(reader());
         assertEquals(1, all.size());
     }
 
     @Test
     @Order(6)
     void countUnacknowledged() {
-        assertEquals(1, notificationRepo.countUnacknowledged(member.id()));
+        assertEquals(1, notificationRepo.countUnacknowledged(reader()));
     }
 
     @Test
@@ -119,14 +120,14 @@ class NotificationRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(10)
     void acknowledge() {
-        assertTrue(notificationRepo.acknowledge(notificationId, member.id()));
-        assertEquals(0, notificationRepo.countUnacknowledged(member.id()));
+        assertTrue(notificationRepo.acknowledge(reader(), notificationId));
+        assertEquals(0, notificationRepo.countUnacknowledged(reader()));
     }
 
     @Test
     @Order(11)
     void acknowledgeAlreadyAcknowledged() {
-        assertFalse(notificationRepo.acknowledge(notificationId, member.id()));
+        assertFalse(notificationRepo.acknowledge(reader(), notificationId));
     }
 
     @Test
@@ -134,10 +135,10 @@ class NotificationRepositoryTest extends RepositoryTestBase {
     void acknowledgeAll() {
         var data = NotificationData.of(new NotificationParams.NewEvent(null, null));
         create(member.id(), NotificationType.NEW_EVENT, data);
-        assertEquals(1, notificationRepo.countUnacknowledged(member.id()));
-        int count = notificationRepo.acknowledgeAll(member.id());
+        assertEquals(1, notificationRepo.countUnacknowledged(reader()));
+        int count = notificationRepo.acknowledgeAll(reader());
         assertEquals(1, count);
-        assertEquals(0, notificationRepo.countUnacknowledged(member.id()));
+        assertEquals(0, notificationRepo.countUnacknowledged(reader()));
     }
 
     @Test
@@ -199,25 +200,20 @@ class NotificationRepositoryTest extends RepositoryTestBase {
         assertNull(created.memberId(), "a cluster notification names no station member");
         assertEquals(clusterMember.id(), created.clusterMemberId());
 
+        var office = Recipient.clusterMember(clusterMember.id());
         assertTrue(existsForClusterMember(clusterMember.id(), NotificationType.CLUSTER_APPLICATION_SUBMITTED, data));
-        assertEquals(1, notificationRepo.countUnacknowledgedForClusterMember(clusterMember.id()));
-        assertEquals(
-                1,
-                notificationRepo
-                        .findUnacknowledgedForClusterMember(clusterMember.id())
-                        .size());
-        assertEquals(
-                1, notificationRepo.findAllForClusterMember(clusterMember.id()).size());
+        assertEquals(1, notificationRepo.countUnacknowledged(office));
+        assertEquals(1, notificationRepo.findUnacknowledged(office).size());
+        assertEquals(1, notificationRepo.findRecent(office).size());
 
         assertFalse(
-                notificationRepo.findAll(member.id()).stream().anyMatch(n -> n.id() == created.id()),
+                notificationRepo.findRecent(reader()).stream().anyMatch(n -> n.id() == created.id()),
                 "the station member's own feed is untouched");
+        assertFalse(notificationRepo.acknowledge(reader(), created.id()), "a station member cannot read it for them");
 
-        assertTrue(notificationRepo.acknowledgeForClusterMember(created.id(), clusterMember.id()));
-        assertFalse(
-                notificationRepo.acknowledgeForClusterMember(created.id(), clusterMember.id()),
-                "acknowledging twice changes nothing");
-        assertEquals(0, notificationRepo.countUnacknowledgedForClusterMember(clusterMember.id()));
+        assertTrue(notificationRepo.acknowledge(office, created.id()));
+        assertFalse(notificationRepo.acknowledge(office, created.id()), "acknowledging twice changes nothing");
+        assertEquals(0, notificationRepo.countUnacknowledged(office));
 
         createForClusterMember(
                 clusterMember.id(),
@@ -225,7 +221,7 @@ class NotificationRepositoryTest extends RepositoryTestBase {
                 NotificationData.of(
                         new NotificationParams.ClusterApplicationWithdrawn("Wache Nord"),
                         new NotificationData.NotificationLink("cluster-applications")));
-        assertEquals(1, notificationRepo.acknowledgeAllForClusterMember(clusterMember.id()));
+        assertEquals(1, notificationRepo.acknowledgeAll(office));
 
         clusterService.removeMember(clusterMember.id());
         accountRepo.delete(clusterAccount.id());
@@ -252,7 +248,7 @@ class NotificationRepositoryTest extends RepositoryTestBase {
 
         assertEquals(1, notificationRepo.deleteByTypeAndLink(NotificationType.LOST_AND_FOUND_NEW, about7));
 
-        var left = notificationRepo.findUnacknowledged(member.id()).stream()
+        var left = notificationRepo.findUnacknowledged(reader()).stream()
                 .filter(n -> n.type() == NotificationType.LOST_AND_FOUND_NEW)
                 .toList();
         assertEquals(1, left.size());
@@ -282,7 +278,7 @@ class NotificationRepositoryTest extends RepositoryTestBase {
                 member.id(),
                 NotificationType.EVENT_CANCELLED,
                 NotificationData.of(new NotificationParams.EventCancelled("Probe", "Krank", null, null), about21));
-        assertTrue(notificationRepo.acknowledge(read.id(), member.id()));
+        assertTrue(notificationRepo.acknowledge(reader(), read.id()));
         create(
                 member.id(),
                 NotificationType.NEW_EVENT,
@@ -331,24 +327,28 @@ class NotificationRepositoryTest extends RepositoryTestBase {
                         new NotificationData.NotificationLink("event-detail-date", Map.of("id", "32"))));
     }
 
+    private static Recipient reader() {
+        return Recipient.stationMember(member.id());
+    }
+
     private static Notification create(int memberId, NotificationType type, NotificationData data) {
         notificationRepo.insertForStation(StationAudience.member(memberId), type, data, Delivery.EVERY_TIME);
-        return newest(notificationRepo.findUnacknowledged(memberId));
+        return newest(notificationRepo.findUnacknowledged(Recipient.stationMember(memberId)));
     }
 
     private static Notification createForClusterMember(
             int clusterMemberId, NotificationType type, NotificationData data) {
         notificationRepo.insertForCluster(List.of(clusterMemberId), List.of(), type, data, Delivery.EVERY_TIME);
-        return newest(notificationRepo.findUnacknowledgedForClusterMember(clusterMemberId));
+        return newest(notificationRepo.findUnacknowledged(Recipient.clusterMember(clusterMemberId)));
     }
 
     private static boolean exists(int memberId, NotificationType type, NotificationData data) {
-        return notificationRepo.findUnacknowledged(memberId).stream()
+        return notificationRepo.findUnacknowledged(Recipient.stationMember(memberId)).stream()
                 .anyMatch(n -> n.type() == type && n.data().equals(data));
     }
 
     private static boolean existsForClusterMember(int clusterMemberId, NotificationType type, NotificationData data) {
-        return notificationRepo.findUnacknowledgedForClusterMember(clusterMemberId).stream()
+        return notificationRepo.findUnacknowledged(Recipient.clusterMember(clusterMemberId)).stream()
                 .anyMatch(n -> n.type() == type && n.data().equals(data));
     }
 

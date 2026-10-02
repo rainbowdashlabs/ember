@@ -12,6 +12,8 @@ import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.repository.NotificationSettingsRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 
@@ -25,6 +27,8 @@ import java.util.Map;
  */
 @Singleton
 public class NotificationPreferences {
+    private static final Logger log = LoggerFactory.getLogger(NotificationPreferences.class);
+
     private final NotificationSettingsRepository settingsRepository;
     private final ClusterRepository clusterRepository;
     private final EmailService emailService;
@@ -55,6 +59,17 @@ public class NotificationPreferences {
      */
     public Map<NotificationType, NotificationSetting> settingsOf(int memberId) {
         return settingsRepository.findByMemberAsMap(memberId);
+    }
+
+    /**
+     * Stores a station member's choices for the types named; the others keep what they had.
+     *
+     * @param memberId the station member
+     * @param settings their choices by type
+     */
+    public void updateSettings(int memberId, Map<NotificationType, NotificationSetting> settings) {
+        settingsRepository.upsertAll(memberId, settings);
+        log.info("Notification settings updated: member={}, count={}", memberId, settings.size());
     }
 
     /**

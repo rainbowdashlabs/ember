@@ -35,11 +35,7 @@ public class NotificationInbox {
      * @return newest first
      */
     public List<Notification> recent(Recipient recipient) {
-        return switch (recipient) {
-            case Recipient.OfStation station -> notificationRepository.findAll(station.memberId());
-            case Recipient.OfCluster cluster ->
-                notificationRepository.findAllForClusterMember(cluster.clusterMemberId());
-        };
+        return notificationRepository.findRecent(recipient);
     }
 
     /**
@@ -49,11 +45,7 @@ public class NotificationInbox {
      * @return newest first
      */
     public List<Notification> unread(Recipient recipient) {
-        return switch (recipient) {
-            case Recipient.OfStation station -> notificationRepository.findUnacknowledged(station.memberId());
-            case Recipient.OfCluster cluster ->
-                notificationRepository.findUnacknowledgedForClusterMember(cluster.clusterMemberId());
-        };
+        return notificationRepository.findUnacknowledged(recipient);
     }
 
     /**
@@ -63,11 +55,7 @@ public class NotificationInbox {
      * @return the count
      */
     public int countUnread(Recipient recipient) {
-        return switch (recipient) {
-            case Recipient.OfStation station -> notificationRepository.countUnacknowledged(station.memberId());
-            case Recipient.OfCluster cluster ->
-                notificationRepository.countUnacknowledgedForClusterMember(cluster.clusterMemberId());
-        };
+        return notificationRepository.countUnacknowledged(recipient);
     }
 
     /**
@@ -77,11 +65,7 @@ public class NotificationInbox {
      * @param id        the notification
      */
     public void acknowledge(Recipient recipient, int id) {
-        switch (recipient) {
-            case Recipient.OfStation station -> notificationRepository.acknowledge(id, station.memberId());
-            case Recipient.OfCluster cluster ->
-                notificationRepository.acknowledgeForClusterMember(id, cluster.clusterMemberId());
-        }
+        notificationRepository.acknowledge(recipient, id);
     }
 
     /**
@@ -91,11 +75,7 @@ public class NotificationInbox {
      * @return how many were marked
      */
     public int acknowledgeAll(Recipient recipient) {
-        return switch (recipient) {
-            case Recipient.OfStation station -> notificationRepository.acknowledgeAll(station.memberId());
-            case Recipient.OfCluster cluster ->
-                notificationRepository.acknowledgeAllForClusterMember(cluster.clusterMemberId());
-        };
+        return notificationRepository.acknowledgeAll(recipient);
     }
 
     /**

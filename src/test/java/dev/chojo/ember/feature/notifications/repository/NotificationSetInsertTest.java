@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.notifications.entity.Notification;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
+import dev.chojo.ember.feature.notifications.entity.Recipient;
 import dev.chojo.ember.feature.notifications.entity.StationAudience;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -184,11 +185,11 @@ class NotificationSetInsertTest extends RepositoryTestBase {
         assertEquals(0, insert(StationAudience.member(plain.id()), data, Delivery.ONCE_WHILE_UNREAD));
         assertEquals(1, rows(plain, data));
 
-        var written = notificationRepo.findUnacknowledged(plain.id()).stream()
+        var written = notificationRepo.findUnacknowledged(Recipient.stationMember(plain.id())).stream()
                 .filter(n -> n.data().equals(data))
                 .findFirst()
                 .orElseThrow();
-        notificationRepo.acknowledge(written.id(), plain.id());
+        notificationRepo.acknowledge(Recipient.stationMember(plain.id()), written.id());
 
         assertEquals(1, insert(StationAudience.member(plain.id()), data, Delivery.ONCE_WHILE_UNREAD));
     }
@@ -303,7 +304,7 @@ class NotificationSetInsertTest extends RepositoryTestBase {
                 2,
                 notificationRepo.insertForCluster(
                         both, List.of(), NotificationType.CLUSTER_APPLICATION_SUBMITTED, data, Delivery.EVERY_TIME));
-        assertEquals(2, notificationRepo.countUnacknowledgedForClusterMember(clusterMemberA.id()));
+        assertEquals(2, notificationRepo.countUnacknowledged(Recipient.clusterMember(clusterMemberA.id())));
     }
 
     private static StationMember member(String name) {
@@ -321,7 +322,7 @@ class NotificationSetInsertTest extends RepositoryTestBase {
     }
 
     private static long rows(StationMember member, NotificationData data) {
-        return notificationRepo.findUnacknowledged(member.id()).stream()
+        return notificationRepo.findUnacknowledged(Recipient.stationMember(member.id())).stream()
                 .filter(n -> n.data().equals(data))
                 .count();
     }
