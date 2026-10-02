@@ -169,6 +169,7 @@
 - **Das Archivieren über den Verband ließ die Zugänge des Mitglieds bestehen.** Ein Mitglied, das über die Mitgliederverwaltung des Verbands archiviert wurde, behielt seine Anmeldung, Rollen, Erziehungsberechtigten, Gruppen, Tags, Dokumente und Profilangaben, als wäre es nie ausgetreten. Das Archivieren dort tut jetzt genau dasselbe wie das Archivieren an der Wache und wird in denselben Fällen abgelehnt, etwa wenn noch Ausrüstung ausgegeben ist.
 - **Links in Mails des Verbands führten auf die falsche Seite.** Der Knopf in der Benachrichtigungsmail des Verbands öffnete eine Seite, die es nicht gibt, und die meisten Hinweise darin öffneten die Startseite einer Wache statt der Seite des Verbands, um die es ging. Sie öffnen jetzt die Seiten des Verbands, und zwar in dem Verband, um den es in der Mail geht.
 - **Manche Hinweise führten ins Leere.** Ein Hinweis auf eine Leihanfrage, eine Speicherwarnung oder importierte Post, die noch abgelegt werden muss, tat in der App beim Öffnen nichts und öffnete aus einer Mail oder einem Feed die Startseite. Er öffnet jetzt die Leihanfrage, die Speicherseite und die Mitgliederdokumente.
+- **Benachrichtigungseinstellungen ließen sich nicht mehr speichern.** Sobald der Schalter für Tausch-Anfragen auf der Seite der Benachrichtigungseinstellungen einmal betätigt war, scheiterte jede weitere Änderung auf dieser Seite beim Speichern. Der Schalter ist entfernt, da diese Hinweise längst zu Hinweisen über Bewegungen geworden sind, und die Seite speichert wieder.
 
 ## v26.19.5
 

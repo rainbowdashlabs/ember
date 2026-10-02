@@ -60,7 +60,6 @@ export const DEMO_SETTINGS: SettingsResponse = {
     COMMENT_MENTION: {app: true, email: true, feed: false},
     NEW_EVENT: {app: true, email: false, feed: false},
     EVENT_REGISTRATION_STATUS: {app: true, email: true, feed: true},
-    EXCHANGE_STATUS_CHANGE: {app: true, email: false, feed: false},
     MEMBER_ADDED_TO_GROUP: {app: true, email: false, feed: true},
     PROFILE_FIELD_CHANGED: {app: true, email: false, feed: false},
     PROCUREMENT_REQUESTED: {app: false, email: false, feed: false},

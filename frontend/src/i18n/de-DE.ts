@@ -6327,8 +6327,6 @@ export default {
         notifyEventsHint: 'Neue Termine werden erstellt.',
         notifyEventStatus: 'Anmeldungen',
         notifyEventStatusHint: 'Änderungen an Termin-Anmeldungen.',
-        notifyExchanges: 'Tausch-Anfragen',
-        notifyExchangesHint: 'Neue Tausch-Anfragen und Statusänderungen.',
         notifyGroups: 'Gruppen',
         notifyGroupsHint: 'Änderungen an deinen Gruppenmitgliedschaften.',
         notifyProfile: 'Profil',

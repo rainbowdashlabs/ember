@@ -169,6 +169,7 @@
 - **Archiving from the association left the member's access in place.** A member archived from the association's member management kept their login, roles, guardians, groups, tags, documents and profile answers, as if they had never left. Archiving there now does exactly what archiving at the station does, and is refused in the same cases, such as equipment still handed out.
 - **Links in association mail led to the wrong page.** The button in the association's notification mail opened a page that does not exist, and most notices in it opened a station's start page instead of the association's page they were about. They now open the association's own pages, in the association the mail is about.
 - **Some notices led nowhere.** Opening a notice about a lending request, a storage warning or imported mail waiting to be filed did nothing in the app, and in a mail or a feed opened the start page instead. They now open the lending request, the storage page and the member documents.
+- **Notification settings could stop saving.** Once the switch for exchange requests on the notification settings page had been touched, every later change on that page failed to save. The switch is gone, since those notices became movement notices long ago, and the page saves again.
 
 ## v26.19.5
 
