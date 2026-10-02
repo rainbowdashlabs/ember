@@ -9,6 +9,7 @@ import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.api.refusal.Refusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.events.EventAnswerRecorded;
 import dev.chojo.ember.event.events.EventRegistrationStatusChanged;
 import dev.chojo.ember.feature.events.entity.AwaitingAnswer;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
@@ -157,9 +158,10 @@ public class EventRegistrationService {
                 autoAccept ? RegistrationStatus.ACCEPTED : RegistrationStatus.PENDING);
         if (autoAccept) {
             registrationRepository.updateStatus(registration.id(), RegistrationStatus.ACCEPTED);
-            return registrationRepository.findById(registration.id()).orElse(registration);
         }
-        return registration;
+        var stored = registrationRepository.findById(registration.id()).orElse(registration);
+        recorded(stored);
+        return stored;
     }
 
     /**
@@ -262,9 +264,10 @@ public class EventRegistrationService {
             return false;
         }
         log.info("Updated registration {} status to {}", id, status);
-        registrationRepository
-                .findById(id)
-                .ifPresent(registration -> announce(registration.eventId(), registration.memberId(), status));
+        registrationRepository.findById(id).ifPresent(registration -> {
+            announce(registration.eventId(), registration.memberId(), status);
+            recorded(registration);
+        });
         return true;
     }
 
@@ -328,6 +331,7 @@ public class EventRegistrationService {
         if (!registrationRepository.recordAnswer(id, RegistrationStatus.WITHDRAWN)) return false;
         log.info("Withdrew registration {}", id);
         announceFreedPlace(registration.eventId(), registration.memberId(), registration.status());
+        recorded(id);
         return true;
     }
 
@@ -355,6 +359,7 @@ public class EventRegistrationService {
         if (registration.previousStatus() == RegistrationStatus.ACCEPTED) {
             announce(registration.eventId(), registration.memberId(), RegistrationStatus.ACCEPTED);
         }
+        recorded(id);
         return true;
     }
 
@@ -376,6 +381,7 @@ public class EventRegistrationService {
         if (!registrationRepository.recordAnswer(id, status)) return false;
         log.info("Recorded {} for registration {}", status, id);
         announceFreedPlace(registration.eventId(), registration.memberId(), registration.status());
+        recorded(id);
         return true;
     }
 
@@ -427,6 +433,36 @@ public class EventRegistrationService {
     }
 
     /**
+     * Tells whoever keeps a record of the date what a registration says now that it was written,
+     * read back as it was stored.
+     *
+     * @param registrationId the registration just written
+     */
+    private void recorded(int registrationId) {
+        registrationRepository.findById(registrationId).ifPresent(this::recorded);
+    }
+
+    /**
+     * Tells whoever keeps a record of the date what a registration says now that it was written.
+     *
+     * <p>Every answer is told, whoever gave it and whatever it says, because an attendance sheet
+     * opened for the date before the answer came in would otherwise only learn of it when somebody
+     * fills it in from the appointment by hand.
+     *
+     * @param registration the registration as it was stored
+     */
+    private void recorded(EventRegistration registration) {
+        eventRepository
+                .findById(registration.eventId())
+                .ifPresent(event -> eventBus.publish(new EventAnswerRecorded(
+                        event.stationId(),
+                        event.id(),
+                        registration.memberId(),
+                        registration.eventDate(),
+                        registration.status())));
+    }
+
+    /**
      * Records that a member will not attend an event occurrence.
      *
      * @param eventId   the event ID
@@ -446,6 +482,7 @@ public class EventRegistrationService {
         var result = registrationRepository.create(eventId, memberId, eventDate, status, createdBy);
         log.info("Recorded {} for member {} on event {} ({})", status, memberId, eventId, eventDate);
         announceFreedPlace(eventId, memberId, heldBefore);
+        recorded(result);
         return result;
     }
 

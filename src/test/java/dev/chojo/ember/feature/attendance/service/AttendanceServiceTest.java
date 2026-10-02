@@ -10,6 +10,7 @@ import dev.chojo.ember.api.refusal.AttendanceRefusal;
 import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.conf.file.elements.Attendance;
+import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
@@ -17,12 +18,15 @@ import dev.chojo.ember.feature.attendance.entity.AttendanceFieldValueEntry;
 import dev.chojo.ember.feature.attendance.entity.AttendanceSession;
 import dev.chojo.ember.feature.attendance.entity.SessionAudience;
 import dev.chojo.ember.feature.attendance.entity.TemplateGroup;
+import dev.chojo.ember.feature.attendance.handler.EventAnswerRecordedHandler;
 import dev.chojo.ember.feature.events.entity.CancellationCause;
 import dev.chojo.ember.feature.events.entity.EventFieldDefault;
 import dev.chojo.ember.feature.events.entity.EventFieldDraft;
 import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
+import dev.chojo.ember.feature.events.service.EventRegistrationService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
@@ -44,6 +48,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
@@ -1669,6 +1674,380 @@ class AttendanceServiceTest extends RepositoryTestBase {
         eventRepo.delete(event.id());
         stationMemberRepo.delete(quiet.id());
         accountRepo.delete(quietAccount.id());
+    }
+
+    /**
+     * A no given to an occasion that asked nobody to answer still arrives on the sheet the moment it
+     * is opened, the same as filling it in from the appointment later writes it.
+     */
+    @Test
+    @Order(65)
+    void aSheetOpenedForAnOccasionWithoutRegistrationArrivesWithItsDeclines() {
+        var declinerAccount = accountRepo.create("attend-optional-no@test.com", "Sagt", "Ab");
+        var decliner = stationMemberRepo.create(station.id(), declinerAccount.id());
+        var withdrawerAccount = accountRepo.create("attend-optional-back@test.com", "Zieht", "Zurück");
+        var withdrawer = stationMemberRepo.create(station.id(), withdrawerAccount.id());
+
+        var group = memberGroupRepo.create(station.id(), "Absagen ohne Pflicht");
+        memberGroupRepo.addMember(group.id(), decliner.id());
+        memberGroupRepo.addMember(group.id(), withdrawer.id());
+        var template = service.createTemplate(station.id(), "Absagen ohne Pflicht Vorlage");
+        service.setTemplateGroups(template.id(), List.of(new TemplateGroup(group.id(), 0)));
+
+        var event = eventRepo.create(
+                station.id(),
+                "Freiwilliger Abend mit Absagen",
+                "",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                Instant.now().plus(13, ChronoUnit.DAYS),
+                Instant.now().plus(13, ChronoUnit.DAYS).plus(2, ChronoUnit.HOURS),
+                template.id(),
+                false,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null);
+        eventRegistrationRepo.create(event.id(), decliner.id(), dayOf(event), RegistrationStatus.DECLINED, null);
+        eventRegistrationRepo.create(event.id(), withdrawer.id(), dayOf(event), RegistrationStatus.WITHDRAWN, null);
+
+        var session = openSheet(template.id(), null, null, event.id(), null);
+        try {
+            var entries = service.findEntries(session.id());
+            assertEquals(AttendanceEntry.AttendanceStatus.DECLINED, statusOf(entries, decliner.id()));
+            assertEquals(AttendanceEntry.AttendanceStatus.DECLINED, statusOf(entries, withdrawer.id()));
+            assertEquals(entries, service.syncFromEvent(session.id()), "filling it in later changes nothing");
+        } finally {
+            service.deleteSession(session.id());
+            service.deleteTemplate(template.id());
+            memberGroupRepo.delete(group.id());
+            eventRepo.delete(event.id());
+            stationMemberRepo.delete(decliner.id());
+            stationMemberRepo.delete(withdrawer.id());
+            accountRepo.delete(declinerAccount.id());
+            accountRepo.delete(withdrawerAccount.id());
+        }
+    }
+
+    /**
+     * A no given to one date of a repeating occasion that asked nobody to answer arrives on the sheet
+     * opened for that date, and on no other.
+     */
+    @Test
+    @Order(65)
+    void aSheetOpenedForADateOfARepeatingOccasionWithoutRegistrationArrivesWithItsDeclines() {
+        var declinerAccount = accountRepo.create("attend-series-no@test.com", "Serie", "Absage");
+        var decliner = stationMemberRepo.create(station.id(), declinerAccount.id());
+
+        var group = memberGroupRepo.create(station.id(), "Serie ohne Pflicht");
+        memberGroupRepo.addMember(group.id(), decliner.id());
+        var template = service.createTemplate(station.id(), "Serie ohne Pflicht Vorlage");
+        service.setTemplateGroups(template.id(), List.of(new TemplateGroup(group.id(), 0)));
+
+        Instant configuredLongAgo = Instant.parse("2024-09-05T18:00:00Z");
+        var weekly = eventRepo.create(
+                station.id(),
+                "Wöchentlicher Abend ohne Anmeldung",
+                "",
+                StationEvent.EventType.RECURRING,
+                4,
+                configuredLongAgo,
+                configuredLongAgo.plus(2, ChronoUnit.HOURS),
+                template.id(),
+                false,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null);
+        var zone = StationFormat.timezoneOf(stationRepo.findById(station.id()).orElseThrow());
+        LocalDate declined = LocalDate.now(zone).with(java.time.temporal.TemporalAdjusters.next(DayOfWeek.THURSDAY));
+        LocalDate weekAfter = declined.plusWeeks(1);
+        eventRegistrationRepo.create(weekly.id(), decliner.id(), declined, RegistrationStatus.DECLINED, null);
+
+        var sheet = service.createSession(template.id(), null, null, weekly.id(), null, null, null, declined);
+        var nextSheet = service.createSession(template.id(), null, null, weekly.id(), null, null, null, weekAfter);
+        try {
+            assertEquals(
+                    AttendanceEntry.AttendanceStatus.DECLINED,
+                    statusOf(service.findEntries(sheet.id()), decliner.id()));
+            assertEquals(
+                    AttendanceEntry.AttendanceStatus.UNCONFIRMED,
+                    statusOf(service.findEntries(nextSheet.id()), decliner.id()));
+        } finally {
+            service.deleteSession(sheet.id());
+            service.deleteSession(nextSheet.id());
+            service.deleteTemplate(template.id());
+            memberGroupRepo.delete(group.id());
+            eventRepo.delete(weekly.id());
+            stationMemberRepo.delete(decliner.id());
+            accountRepo.delete(declinerAccount.id());
+        }
+    }
+
+    /**
+     * A no given after the sheet was opened, by the member or by somebody answering for them, stands
+     * on it at once and not only once somebody fills the sheet in again.
+     */
+    @Test
+    @Order(65)
+    void aDeclineGivenAfterTheSheetWasOpenedReachesIt() {
+        var audience = newAudience("later-no", 3);
+        var event = occasionWithoutRegistration("Abend mit späten Absagen", audience.templateId(), 14);
+        var session = openSheet(audience.templateId(), null, null, event.id(), null);
+        try {
+            var registrations = answering();
+            registrations.decline(event.id(), audience.member(0).id(), dayOf(event), null);
+            registrations.decline(
+                    event.id(),
+                    audience.member(1).id(),
+                    dayOf(event),
+                    audience.member(2).id());
+
+            var entries = service.findEntries(session.id());
+            assertEquals(
+                    AttendanceEntry.AttendanceStatus.DECLINED,
+                    statusOf(entries, audience.member(0).id()));
+            assertEquals(
+                    AttendanceEntry.AttendanceStatus.DECLINED,
+                    statusOf(entries, audience.member(1).id()));
+            assertEquals(
+                    AttendanceEntry.AttendanceStatus.UNCONFIRMED,
+                    statusOf(entries, audience.member(2).id()));
+        } finally {
+            service.deleteSession(session.id());
+            eventRepo.delete(event.id());
+            remove(audience);
+        }
+    }
+
+    /** Giving back a place after the sheet was opened declines the row the same way a no does. */
+    @Test
+    @Order(65)
+    void aWithdrawalGivenAfterTheSheetWasOpenedReachesIt() {
+        var audience = newAudience("later-back", 1);
+        var event = occasionWithoutRegistration("Abend mit Rückzug", audience.templateId(), 15);
+        var session = openSheet(audience.templateId(), null, null, event.id(), null);
+        try {
+            var registrations = answering();
+            var place = registrations.register(event.id(), audience.member(0).id(), dayOf(event), true, null);
+            assertEquals(
+                    AttendanceEntry.AttendanceStatus.UNCONFIRMED,
+                    statusOf(
+                            service.findEntries(session.id()),
+                            audience.member(0).id()),
+                    "a yes leaves the row to be checked");
+
+            registrations.withdraw(place.id());
+
+            assertEquals(
+                    AttendanceEntry.AttendanceStatus.DECLINED,
+                    statusOf(
+                            service.findEntries(session.id()),
+                            audience.member(0).id()));
+        } finally {
+            service.deleteSession(session.id());
+            eventRepo.delete(event.id());
+            remove(audience);
+        }
+    }
+
+    /** A manager writing a no onto somebody's registration reaches the open sheet as well. */
+    @Test
+    @Order(65)
+    void aStatusChangedAfterTheSheetWasOpenedReachesIt() {
+        var audience = newAudience("later-status", 1);
+        var event = occasionWithoutRegistration("Abend mit geänderter Antwort", audience.templateId(), 16);
+        var session = openSheet(audience.templateId(), null, null, event.id(), null);
+        try {
+            var registrations = answering();
+            var place = registrations.register(event.id(), audience.member(0).id(), dayOf(event), false, null);
+
+            registrations.updateStatus(place.id(), RegistrationStatus.DECLINED);
+
+            assertEquals(
+                    AttendanceEntry.AttendanceStatus.DECLINED,
+                    statusOf(
+                            service.findEntries(session.id()),
+                            audience.member(0).id()));
+        } finally {
+            service.deleteSession(session.id());
+            eventRepo.delete(event.id());
+            remove(audience);
+        }
+    }
+
+    /** A mark somebody took on the sheet outlives a no given after it. */
+    @Test
+    @Order(65)
+    void aRowMarkedOnTheSheetOutlivesALaterDecline() {
+        var audience = newAudience("later-marked", 1);
+        var event = occasionWithoutRegistration("Abend mit gesetzter Marke", audience.templateId(), 17);
+        var session = openSheet(audience.templateId(), null, null, event.id(), null);
+        try {
+            var row = service.findEntries(session.id()).getFirst();
+            service.updateEntryStatus(row.id(), AttendanceEntry.AttendanceStatus.PRESENT);
+
+            answering().decline(event.id(), audience.member(0).id(), dayOf(event), null);
+
+            assertEquals(
+                    AttendanceEntry.AttendanceStatus.PRESENT,
+                    statusOf(
+                            service.findEntries(session.id()),
+                            audience.member(0).id()));
+        } finally {
+            service.deleteSession(session.id());
+            eventRepo.delete(event.id());
+            remove(audience);
+        }
+    }
+
+    /** A closed sheet stays as it was closed, whatever is answered afterwards. */
+    @Test
+    @Order(65)
+    void aClosedSheetIsLeftAloneByALaterDecline() {
+        var audience = newAudience("later-closed", 1);
+        var event = occasionWithoutRegistration("Abend mit geschlossener Liste", audience.templateId(), 18);
+        var session = openSheet(audience.templateId(), null, null, event.id(), null);
+        try {
+            service.lockSession(session.id());
+
+            answering().decline(event.id(), audience.member(0).id(), dayOf(event), null);
+
+            assertEquals(
+                    AttendanceEntry.AttendanceStatus.UNCONFIRMED,
+                    statusOf(
+                            service.findEntries(session.id()),
+                            audience.member(0).id()));
+        } finally {
+            service.deleteSession(session.id());
+            eventRepo.delete(event.id());
+            remove(audience);
+        }
+    }
+
+    /**
+     * A no given for one date of a repeating occasion reaches that date's sheet and leaves the sheet
+     * of another date alone.
+     */
+    @Test
+    @Order(65)
+    void aLaterDeclineReachesOnlyTheSheetOfItsOwnDate() {
+        var audience = newAudience("later-series", 1);
+        Instant configuredLongAgo = Instant.parse("2024-09-05T18:00:00Z");
+        var weekly = eventRepo.create(
+                station.id(),
+                "Wöchentlicher Abend mit späten Absagen",
+                "",
+                StationEvent.EventType.RECURRING,
+                4,
+                configuredLongAgo,
+                configuredLongAgo.plus(2, ChronoUnit.HOURS),
+                audience.templateId(),
+                false,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null);
+        var zone = StationFormat.timezoneOf(stationRepo.findById(station.id()).orElseThrow());
+        LocalDate thisWeek = LocalDate.now(zone).with(java.time.temporal.TemporalAdjusters.next(DayOfWeek.THURSDAY));
+        LocalDate nextWeek = thisWeek.plusWeeks(1);
+        var sheet = service.createSession(audience.templateId(), null, null, weekly.id(), null, null, null, thisWeek);
+        var nextSheet =
+                service.createSession(audience.templateId(), null, null, weekly.id(), null, null, null, nextWeek);
+        try {
+            answering().decline(weekly.id(), audience.member(0).id(), thisWeek, null);
+
+            assertEquals(
+                    AttendanceEntry.AttendanceStatus.DECLINED,
+                    statusOf(service.findEntries(sheet.id()), audience.member(0).id()));
+            assertEquals(
+                    AttendanceEntry.AttendanceStatus.UNCONFIRMED,
+                    statusOf(
+                            service.findEntries(nextSheet.id()),
+                            audience.member(0).id()));
+        } finally {
+            service.deleteSession(sheet.id());
+            service.deleteSession(nextSheet.id());
+            eventRepo.delete(weekly.id());
+            remove(audience);
+        }
+    }
+
+    /** A template whose one group holds new members, ready to open sheets from. */
+    private record Audience(int templateId, int groupId, List<Account> accounts, List<StationMember> members) {
+        StationMember member(int index) {
+            return members.get(index);
+        }
+    }
+
+    private Audience newAudience(String name, int size) {
+        var group = memberGroupRepo.create(station.id(), name + " Gruppe");
+        var accounts = new ArrayList<Account>();
+        var members = new ArrayList<StationMember>();
+        for (int index = 0; index < size; index++) {
+            var created = accountRepo.create("attend-" + name + "-" + index + "@test.com", "Mitglied", name);
+            var joined = stationMemberRepo.create(station.id(), created.id());
+            memberGroupRepo.addMember(group.id(), joined.id());
+            accounts.add(created);
+            members.add(joined);
+        }
+        var template = service.createTemplate(station.id(), name + " Vorlage");
+        service.setTemplateGroups(template.id(), List.of(new TemplateGroup(group.id(), 0)));
+        return new Audience(template.id(), group.id(), accounts, members);
+    }
+
+    private void remove(Audience audience) {
+        service.deleteTemplate(audience.templateId());
+        memberGroupRepo.delete(audience.groupId());
+        audience.members().forEach(joined -> stationMemberRepo.delete(joined.id()));
+        audience.accounts().forEach(created -> accountRepo.delete(created.id()));
+    }
+
+    private StationEvent occasionWithoutRegistration(String name, int templateId, int daysAhead) {
+        return eventRepo.create(
+                station.id(),
+                name,
+                "",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                Instant.now().plus(daysAhead, ChronoUnit.DAYS),
+                Instant.now().plus(daysAhead, ChronoUnit.DAYS).plus(2, ChronoUnit.HOURS),
+                templateId,
+                false,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null);
+    }
+
+    /** The registration service as the application wires it, telling open sheets about every answer. */
+    private static EventRegistrationService answering() {
+        return new EventRegistrationService(
+                eventRegistrationRepo,
+                new EventRegistrationFieldRepository(),
+                eventRepo,
+                new DomainEventBus(Set.of(new EventAnswerRecordedHandler(service))),
+                memberNameResolver);
+    }
+
+    private static AttendanceEntry.AttendanceStatus statusOf(List<AttendanceEntry> entries, int memberId) {
+        return entries.stream()
+                .filter(entry -> entry.memberId() == memberId)
+                .findFirst()
+                .orElseThrow()
+                .status();
     }
 
     /** An answer given for another day of a repeating occasion has nothing to say about this sheet. */

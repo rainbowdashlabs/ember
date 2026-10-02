@@ -47,6 +47,7 @@ import dev.chojo.ember.feature.account.route.AuthRoutes;
 import dev.chojo.ember.feature.account.route.AvatarRoutes;
 import dev.chojo.ember.feature.account.route.SessionRoutes;
 import dev.chojo.ember.feature.account.service.AuthCleanupSweeper;
+import dev.chojo.ember.feature.attendance.handler.EventAnswerRecordedHandler;
 import dev.chojo.ember.feature.attendance.route.AttendanceRoutes;
 import dev.chojo.ember.feature.beacon.route.BeaconAdminRoutes;
 import dev.chojo.ember.feature.beacon.route.BeaconIntakeRoutes;
@@ -648,6 +649,7 @@ public class EmberModule extends AbstractModule {
         eventBinder.addBinding().to(BoardTicketChangedHandler.class);
         eventBinder.addBinding().to(EventCancelledHandler.class);
         eventBinder.addBinding().to(EventDateRestoredHandler.class);
+        eventBinder.addBinding().to(EventAnswerRecordedHandler.class);
         eventBinder.addBinding().to(ProcedureAssignedHandler.class);
         eventBinder.addBinding().to(ProcedureResolvedHandler.class);
         eventBinder.addBinding().to(ProcedureReopenedHandler.class);

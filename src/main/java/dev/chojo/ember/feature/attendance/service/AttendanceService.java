@@ -1019,6 +1019,27 @@ public class AttendanceService {
     }
 
     /**
+     * Writes one member's answer to an appointment onto the sheet already open for that date, the
+     * same way filling the sheet in from the appointment writes it.
+     *
+     * <p>Sheets are opened ahead of an appointment, and answers keep coming in after that: a no
+     * given then only reached the sheet once somebody filled it in by hand. Only a row nobody has
+     * decided yet is written, so a mark taken on the sheet outlives a later answer, and a sheet that
+     * is closed is left as it was closed. A row the appointment declined is not opened again by a
+     * later yes, because nothing on the row tells that decline apart from one marked by hand.
+     *
+     * @param eventId   the appointment answered
+     * @param eventDate the date the answer is for
+     * @param memberId  whose answer it is
+     */
+    public void takeAnswer(int eventId, LocalDate eventDate, int memberId) {
+        var sheet = findSessionForEvent(eventId, eventDate).orElse(null);
+        if (sheet == null || !isSessionOpen(sheet.id())) return;
+        if (!expectedFor(sheet.templateId(), audienceOf(sheet)).contains(memberId)) return;
+        applyRegistrations(sheet.id(), eventId, Set.of(memberId));
+    }
+
+    /**
      * Marks everybody named in a field that attends by itself as present.
      *
      * <p>A field marked that way says that whoever stands in it was there: the leader of the
