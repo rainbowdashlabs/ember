@@ -19,8 +19,7 @@ import DataTable from '@/components/table/DataTable.vue'
 import Th from '@/components/table/Th.vue'
 import Td from '@/components/table/Td.vue'
 import TRow from '@/components/table/TRow.vue'
-import {QuestionTypes} from '@/api/forms'
-import type {FormQuestionInfo, FormResultGroup} from '@/api/generated/schema'
+import {FormQuestionType, type FormQuestionInfo, type FormResultGroup} from '@/api/generated/schema'
 import {averageRating, formatValue, matrixOf, tallyIn} from './groupedResults'
 import {groupedBarOption, groupedChartHeight, type GroupSeries} from './groupedChart'
 
@@ -48,7 +47,7 @@ const option = computed(() => matrix.value && props.series
     : null)
 const height = computed(() => matrix.value && props.series ? groupedChartHeight(matrix.value, props.series) : 0)
 
-const averages = computed(() => props.question.questionType === QuestionTypes.RATING
+const averages = computed(() => props.question.questionType === FormQuestionType.RATING
     ? props.groups.map((group, g) => {
       const tally = tallyIn(group, props.question.questionId)
       const value = formatValue(averageRating(tally), 'average', locale.value)

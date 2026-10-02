@@ -11,7 +11,7 @@ import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import FormPagesEditor from './pages/FormPagesEditor.vue'
 import FormPreview from './preview/FormPreview.vue'
 import type { FormLayoutEditor } from './useFormLayout'
-import type { QuestionType } from '@/api/forms'
+import type { FormQuestionType } from '@/api/generated/schema'
 
 /**
  * The pages and questions of the form, either being edited or, with the switch on, shown the way a
@@ -19,7 +19,7 @@ import type { QuestionType } from '@/api/forms'
  */
 defineProps<{
   layout: FormLayoutEditor
-  questionTypes: QuestionType[]
+  questionTypes: FormQuestionType[]
   shuffleQuestions: boolean
 }>()
 

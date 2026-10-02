@@ -12,7 +12,7 @@ import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import RegistrationStatusBadge from '../RegistrationStatusBadge.vue'
 import {isRefusal, type GivenAnswer} from '@/util/eventAnswers'
-import type {RegistrationStatusName} from '@/api/events'
+import type {RegistrationStatus} from '@/api/generated/schema'
 
 /**
  * What each person who has answered said, and the way to take it back.
@@ -45,7 +45,7 @@ const {t} = useI18n()
  * Reading this off the appointment alone once put "sign off" behind somebody who had already
  * refused.
  */
-function undoLabel(status: RegistrationStatusName): string {
+function undoLabel(status: RegistrationStatus): string {
   if (!isRefusal(status)) return t('eventsUpcoming.unregister')
   return props.requiresRegistration
       ? t('eventsUpcoming.undoDecline')

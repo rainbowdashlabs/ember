@@ -28,8 +28,18 @@ import { useFormLayout } from './builderview/useFormLayout'
 import { useUnsavedLayout } from './builderview/useUnsavedLayout'
 import ContentDraftBanner from '@/components/content/ContentDraftBanner.vue'
 import { AnswerLossDeclined, type Removals, useAnswerLossConsent } from './builderview/useAnswerLossConsent'
-import {FormPurpose, FormVisibility, QUESTION_TYPES_BY_PURPOSE, type FormPurposeName, type FormVisibilityName, type QuestionType} from '@/api/forms'
-import type {Form, FormQuestion, MemberGroup, MemberWithName, PageUsingForm, UserTag} from '@/api/generated/schema'
+import {QUESTION_TYPES_BY_PURPOSE} from '@/api/forms'
+import {
+  FormPurpose,
+  FormVisibility,
+  type Form,
+  type FormQuestion,
+  type FormQuestionType,
+  type MemberGroup,
+  type MemberWithName,
+  type PageUsingForm,
+  type UserTag,
+} from '@/api/generated/schema'
 import { optionKeysOf } from '@/util/formOptions'
 import { forms, memberGroups, userTags, stationMembers } from '@/api'
 import { describeFailure, FailureKind, type Failure } from '@/util/failure'
@@ -46,7 +56,7 @@ const formId = computed(() => route.params.id ? Number(route.params.id) : null)
  * The form's purpose. Loaded from the form when editing, derived from the
  * `?purpose=…` query when creating, defaults to INTERNAL.
  */
-const purpose = ref<FormPurposeName>(FormPurpose.INTERNAL)
+const purpose = ref<FormPurpose>(FormPurpose.INTERNAL)
 
 /** Route name to return to after save/cancel, derived from the current form's purpose. */
 const returnRouteName = computed(() => {
@@ -62,7 +72,7 @@ const allowEdit = ref(true)
 const forced = ref(false)
 const startAt = ref('')
 const endAt = ref('')
-const visibility = ref<FormVisibilityName>(FormVisibility.PUBLIC)
+const visibility = ref<FormVisibility>(FormVisibility.PUBLIC)
 const completionMessage = ref('')
 const completionLink = ref('')
 const completionLinkLabel = ref('')
@@ -87,7 +97,7 @@ watch(completionLink, link => {
  * way, opening the editor counted as a change, wrote the reach back and minted a link nobody had
  * asked for.
  */
-const storedVisibility = ref<FormVisibilityName | null>(null)
+const storedVisibility = ref<FormVisibility | null>(null)
 
 /**
  * The pages that still put this form on themselves after it was closed to its link alone.
@@ -168,7 +178,7 @@ function removals(): Removals {
   return {questionIds, options}
 }
 
-const questionTypes = computed<QuestionType[]>(() => QUESTION_TYPES_BY_PURPOSE[purpose.value])
+const questionTypes = computed<FormQuestionType[]>(() => QUESTION_TYPES_BY_PURPOSE[purpose.value])
 
 const { loading, failure: loadFailure } = useAsyncLoader(async () => {
   const [groups, tags, members] = await Promise.all([
@@ -183,7 +193,7 @@ const { loading, failure: loadFailure } = useAsyncLoader(async () => {
   if (!formId.value) {
     const queryPurpose = typeof route.query.purpose === 'string' ? route.query.purpose : null
     if (queryPurpose && queryPurpose in FormPurpose) {
-      purpose.value = queryPurpose as FormPurposeName
+      purpose.value = queryPurpose as FormPurpose
     }
     unsaved.settle(true)
     return

@@ -9,14 +9,13 @@ import QuestionCardCollapsedMobile from './QuestionCardCollapsedMobile.vue'
 import QuestionCardCollapsedDesktop from './QuestionCardCollapsedDesktop.vue'
 import QuestionInlineEditor from './QuestionInlineEditor.vue'
 import QuestionReportList from './QuestionReportList.vue'
-import type { QuizQuestionTypeName } from '@/api/quiz'
-import type { QuizCategory, QuizQuestion, QuizQuestionReport } from '@/api/generated/schema'
+import type { QuizCategory, QuizQuestion, QuizQuestionReport, QuizQuestionType } from '@/api/generated/schema'
 import type { Failure } from '@/util/failure'
 import { useBreakpoint } from '@/composables/useBreakpoint'
 
 const editorTitle = defineModel<string>('editorTitle', {required: true})
 const editorDescription = defineModel<string>('editorDescription', {required: true})
-const editorQuestionType = defineModel<QuizQuestionTypeName>('editorQuestionType', {required: true})
+const editorQuestionType = defineModel<QuizQuestionType>('editorQuestionType', {required: true})
 const editorCategoryId = defineModel<number | null>('editorCategoryId', {required: true})
 const editorPoints = defineModel<number>('editorPoints', {required: true})
 const editorAutoPoints = defineModel<boolean>('editorAutoPoints', {required: true})

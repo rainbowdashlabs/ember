@@ -6,11 +6,11 @@
 import {describe, expect, it} from 'vitest'
 import {questionChips} from './settingChips'
 import type {QuestionDraft} from './types'
-import type {QuestionType} from '@/api/forms'
+import type {FormQuestionType} from '@/api/generated/schema'
 
 const t = (key: string, named?: Record<string, unknown>) => named ? `${key} ${JSON.stringify(named)}` : key
 
-function question(questionType: QuestionType, config: Record<string, unknown>, shuffle = false): QuestionDraft {
+function question(questionType: FormQuestionType, config: Record<string, unknown>, shuffle = false): QuestionDraft {
     return {id: 'temp-1', questionType, title: '', description: '', required: false, shuffle, config, branch: null}
 }
 

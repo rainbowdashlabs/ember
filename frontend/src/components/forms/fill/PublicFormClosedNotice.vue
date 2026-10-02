@@ -7,7 +7,7 @@
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Alert from '@/components/feedback/Alert.vue'
-import {PublicFormState, type PublicFormStateName} from '@/api/publicForms'
+import {PublicFormState} from '@/api/generated/schema'
 import {formatDateTime} from '@/util/format'
 
 /**
@@ -19,7 +19,7 @@ import {formatDateTime} from '@/util/format'
  * to try again.
  */
 const props = defineProps<{
-  state: PublicFormStateName
+  state: PublicFormState
   /** When it stopped taking answers, where that is known. */
   closedSince?: string | null
 }>()

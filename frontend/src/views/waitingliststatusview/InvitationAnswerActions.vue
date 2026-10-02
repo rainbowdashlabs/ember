@@ -10,7 +10,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
-import type {WaitingListAnswerName} from '@/api/waitingList'
+import type {WaitingListAnswer} from '@/api/generated/schema'
 
 /**
  * The three things somebody can say back to an invitation, all one click and no sign-in.
@@ -22,7 +22,7 @@ const note = defineModel<string>('note', {required: true})
 
 const props = defineProps<{answering: boolean}>()
 
-const emit = defineEmits<{(e: 'answer', answer: WaitingListAnswerName): void}>()
+const emit = defineEmits<{(e: 'answer', answer: WaitingListAnswer): void}>()
 
 const {t} = useI18n()
 </script>

@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {describe, expect, it} from 'vitest'
-import type {QuestionType} from '@/api/forms'
+import type {FormQuestionType} from '@/api/generated/schema'
 import {emptyAnswer, isEmptyAnswer, storedAnswer} from './formAnswers'
 
 /**
@@ -12,7 +12,7 @@ import {emptyAnswer, isEmptyAnswer, storedAnswer} from './formAnswers'
  * empty until something is given.
  */
 describe('formAnswers', () => {
-    const types: QuestionType[] = ['CHOICE', 'TEXT', 'RATING', 'DATE', 'LIKERT']
+    const types: FormQuestionType[] = ['CHOICE', 'TEXT', 'RATING', 'DATE', 'LIKERT']
 
     it('starts every kind of question empty', () => {
         for (const type of types) expect(isEmptyAnswer(emptyAnswer(type, {}))).toBe(true)

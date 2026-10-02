@@ -4,8 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import { computed, ref, type Ref } from 'vue'
-import {QuizQuestionTypes, type QuizQuestionTypeName} from '@/api/quiz'
-import type {QuizQuestion} from '@/api/generated/schema'
+import {QuizQuestionType, type QuizQuestion} from '@/api/generated/schema'
 
 /**
  * Owns what the question list currently shows and which of its rows are ticked:
@@ -13,7 +12,7 @@ import type {QuizQuestion} from '@/api/generated/schema'
  */
 export function useQuestionListState(
     questions: Ref<QuizQuestion[]>,
-    typeLabel: (type: QuizQuestionTypeName) => string,
+    typeLabel: (type: QuizQuestionType) => string,
 ) {
   const filterType = ref<string>('')
   const filterCategory = ref<string>('')
@@ -50,7 +49,7 @@ export function useQuestionListState(
 
   const selectedQuestions = computed(() => questions.value.filter(q => selectedIds.value.has(q.id)))
   const hasSelection = computed(() => selectedIds.value.size > 0)
-  const selectedHasMc = computed(() => selectedQuestions.value.some(q => q.quizQuestionType === QuizQuestionTypes.MULTIPLE_CHOICE))
+  const selectedHasMc = computed(() => selectedQuestions.value.some(q => q.quizQuestionType === QuizQuestionType.MULTIPLE_CHOICE))
 
   return {
     filterType,

@@ -3,8 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {QuestionTypes, type QuestionType} from '@/api/forms'
-import type {FormAnswerValue} from '@/api/generated/schema'
+import {FormQuestionType, type FormAnswerValue} from '@/api/generated/schema'
 import {optionsOf} from '@/util/formOptions'
 
 /**
@@ -15,14 +14,14 @@ import {optionsOf} from '@/util/formOptions'
  * @param type   the kind of question
  * @param config the question's settings, which hold a ranking's options
  */
-export function emptyAnswer(type: QuestionType, config: Record<string, unknown>): FormAnswerValue {
+export function emptyAnswer(type: FormQuestionType, config: Record<string, unknown>): FormAnswerValue {
     switch (type) {
-        case QuestionTypes.CHOICE: return {type, selected: [], other: ''}
-        case QuestionTypes.TEXT: return {type, text: ''}
-        case QuestionTypes.RATING: return {type, rating: 0}
-        case QuestionTypes.DATE: return {type, date: ''}
-        case QuestionTypes.RANKING: return {type, order: optionsOf(config).map(option => option.key)}
-        case QuestionTypes.LIKERT: return {type, ratings: {}}
+        case FormQuestionType.CHOICE: return {type, selected: [], other: ''}
+        case FormQuestionType.TEXT: return {type, text: ''}
+        case FormQuestionType.RATING: return {type, rating: 0}
+        case FormQuestionType.DATE: return {type, date: ''}
+        case FormQuestionType.RANKING: return {type, order: optionsOf(config).map(option => option.key)}
+        case FormQuestionType.LIKERT: return {type, ratings: {}}
     }
 }
 
@@ -35,7 +34,7 @@ export function emptyAnswer(type: QuestionType, config: Record<string, unknown>)
  * @param config the question's settings
  * @param stored the answer as the server keeps it
  */
-export function storedAnswer(type: QuestionType, config: Record<string, unknown>, stored: string): FormAnswerValue {
+export function storedAnswer(type: FormQuestionType, config: Record<string, unknown>, stored: string): FormAnswerValue {
     try {
         const parsed = JSON.parse(stored)
         if (typeof parsed === 'object' && parsed !== null && (parsed.type ?? type) === type) {
@@ -61,12 +60,12 @@ function blank(value: string | undefined): boolean {
  */
 export function isEmptyAnswer(answer: FormAnswerValue | undefined): boolean {
     switch (answer?.type) {
-        case QuestionTypes.CHOICE: return answer.selected.length === 0 && blank(answer.other)
-        case QuestionTypes.TEXT: return blank(answer.text)
-        case QuestionTypes.RATING: return answer.rating < 1
-        case QuestionTypes.DATE: return blank(answer.date)
-        case QuestionTypes.RANKING: return answer.order.length === 0
-        case QuestionTypes.LIKERT: return Object.keys(answer.ratings).length === 0
+        case FormQuestionType.CHOICE: return answer.selected.length === 0 && blank(answer.other)
+        case FormQuestionType.TEXT: return blank(answer.text)
+        case FormQuestionType.RATING: return answer.rating < 1
+        case FormQuestionType.DATE: return blank(answer.date)
+        case FormQuestionType.RANKING: return answer.order.length === 0
+        case FormQuestionType.LIKERT: return Object.keys(answer.ratings).length === 0
         default: return true
     }
 }

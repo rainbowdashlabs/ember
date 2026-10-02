@@ -7,14 +7,14 @@
 import { useI18n } from 'vue-i18n'
 import SectionLabel from '@/components/typography/SectionLabel.vue'
 import AppIcon from '@/components/display/AppIcon.vue'
-import type { QuestionType } from '@/api/forms'
+import type { FormQuestionType } from '@/api/generated/schema'
 
 /**
  * The top line of a question's tile: the grip it is dragged by, its number, its kind, and in the slot
  * the menu in its corner.
  */
 defineProps<{
-  questionType: QuestionType
+  questionType: FormQuestionType
   /** The number the question is shown with, counted across every page. */
   number: number
 }>()

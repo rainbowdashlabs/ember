@@ -28,11 +28,12 @@ import {quiz, ai} from '@/api'
 import {type AiCredentials, loadAiCredentials} from '@/util/aiCredentials'
 import {useSession} from '@/composables/useSession'
 import {useConfigPanel} from '@/composables/useConfigPanel'
-import {isQuizQuestionOf, QuizQuestionTypes, type QuizQuestionOf} from '@/api/quiz'
+import {isQuizQuestionOf, type QuizQuestionOf} from '@/api/quiz'
+import {QuizQuestionType} from '@/api/generated/schema'
 import {reportCaughtError} from '@/util/devErrorReporter'
 import MutedIcon from '@/components/display/MutedIcon.vue'
 
-type MultipleChoiceQuestion = QuizQuestionOf<typeof QuizQuestionTypes.MULTIPLE_CHOICE>
+type MultipleChoiceQuestion = QuizQuestionOf<typeof QuizQuestionType.MULTIPLE_CHOICE>
 
 const {t} = useI18n()
 const route = useRoute()
@@ -132,7 +133,7 @@ async function generate() {
       return
     }
     const questions = await quiz.listQuestions(catalogId.value)
-    const mcQuestions = questions.filter((q): q is MultipleChoiceQuestion => isQuizQuestionOf(q, QuizQuestionTypes.MULTIPLE_CHOICE))
+    const mcQuestions = questions.filter((q): q is MultipleChoiceQuestion => isQuizQuestionOf(q, QuizQuestionType.MULTIPLE_CHOICE))
     let done = 0
 
     for (const q of mcQuestions) {

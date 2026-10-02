@@ -3,8 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {QuizQuestionTypes} from '@/api/quiz'
-import type {QuizQuestionRead} from '@/api/generated/schema'
+import {QuizQuestionType, type QuizQuestionRead} from '@/api/generated/schema'
 import { shuffle } from '@/util/shuffle'
 
 /**
@@ -13,20 +12,20 @@ import { shuffle } from '@/util/shuffle'
  */
 export function defaultAnswerFor(question: QuizQuestionRead): string {
   const config: Record<string, unknown> = question.config
-  if (question.quizQuestionType === QuizQuestionTypes.MULTIPLE_CHOICE) {
+  if (question.quizQuestionType === QuizQuestionType.MULTIPLE_CHOICE) {
     return JSON.stringify({ selected: [] })
   }
-  if (question.quizQuestionType === QuizQuestionTypes.ORDERING) {
+  if (question.quizQuestionType === QuizQuestionType.ORDERING) {
     const items = Array.isArray(config.items) ? config.items : []
     return JSON.stringify({ order: shuffle(items.map((_, i: number) => i)) })
   }
-  if (question.quizQuestionType === QuizQuestionTypes.TRUE_FALSE) {
+  if (question.quizQuestionType === QuizQuestionType.TRUE_FALSE) {
     return JSON.stringify({ value: null })
   }
-  if (question.quizQuestionType === QuizQuestionTypes.CONNECT) {
+  if (question.quizQuestionType === QuizQuestionType.CONNECT) {
     return JSON.stringify({ pairs: {} })
   }
-  if (question.quizQuestionType === QuizQuestionTypes.FILL_IN_THE_BLANK) {
+  if (question.quizQuestionType === QuizQuestionType.FILL_IN_THE_BLANK) {
     return JSON.stringify({ gaps: {} })
   }
   return JSON.stringify({ text: '' })

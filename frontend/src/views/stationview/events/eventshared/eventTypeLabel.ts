@@ -3,13 +3,13 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {EventTypes} from '@/api/events'
+import {EventType} from '@/api/generated/schema'
 
 const LABEL_KEYS: Record<string, string> = {
-    [EventTypes.RECURRING]: 'events.typeRecurring',
-    [EventTypes.MONTHLY_FIRST]: 'events.typeMonthlyFirst',
-    [EventTypes.QUARTERLY]: 'events.typeQuarterly',
-    [EventTypes.YEARLY]: 'events.typeYearly',
+    [EventType.RECURRING]: 'events.typeRecurring',
+    [EventType.MONTHLY_FIRST]: 'events.typeMonthlyFirst',
+    [EventType.QUARTERLY]: 'events.typeQuarterly',
+    [EventType.YEARLY]: 'events.typeYearly',
 }
 
 /**

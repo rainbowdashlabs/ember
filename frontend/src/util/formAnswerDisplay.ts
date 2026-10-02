@@ -3,8 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import { QuestionTypes } from '@/api/forms'
-import type { ChoiceAnswer, LikertAnswer, RankingAnswer } from '@/api/generated/schema'
+import { FormQuestionType, type ChoiceAnswer, type LikertAnswer, type RankingAnswer } from '@/api/generated/schema'
 import { optionLabel, optionsOf } from '@/util/formOptions'
 
 const EMPTY = '–'
@@ -50,11 +49,11 @@ export function formatAnswerDisplay(
   const parsed = parseValue(value)
   const cfg = parseConfig(config)
 
-  if (questionType === QuestionTypes.TEXT) return (parsed as { text?: string }).text || EMPTY
-  if (questionType === QuestionTypes.DATE) return (parsed as { date?: string }).date || EMPTY
-  if (questionType === QuestionTypes.RATING) return String((parsed as { rating?: number }).rating ?? EMPTY)
+  if (questionType === FormQuestionType.TEXT) return (parsed as { text?: string }).text || EMPTY
+  if (questionType === FormQuestionType.DATE) return (parsed as { date?: string }).date || EMPTY
+  if (questionType === FormQuestionType.RATING) return String((parsed as { rating?: number }).rating ?? EMPTY)
 
-  if (questionType === QuestionTypes.CHOICE) {
+  if (questionType === FormQuestionType.CHOICE) {
     const selected = (parsed as Partial<ChoiceAnswer>).selected ?? []
     const options = optionsOf(cfg)
     const labels = selected.map(key => optionLabel(options, key) ?? `#${key}`)
@@ -63,13 +62,13 @@ export function formatAnswerDisplay(
     return labels.join(', ') || EMPTY
   }
 
-  if (questionType === QuestionTypes.RANKING) {
+  if (questionType === FormQuestionType.RANKING) {
     const order = (parsed as Partial<RankingAnswer>).order ?? []
     const options = optionsOf(cfg)
     return order.map((key, rank) => `${rank + 1}. ${optionLabel(options, key) ?? ''}`).join(', ')
   }
 
-  if (questionType === QuestionTypes.LIKERT) {
+  if (questionType === FormQuestionType.LIKERT) {
     const ratings = (parsed as Partial<LikertAnswer>).ratings ?? {}
     const statements = optionsOf(cfg, 'statements')
     return statements

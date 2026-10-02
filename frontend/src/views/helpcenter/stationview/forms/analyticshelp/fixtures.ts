@@ -3,8 +3,15 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {QuestionTypes} from '@/api/forms'
-import type {FormAnalytics, FormQuestionInfo, FormResponseEntry, FormResultGroup, MemberGroup, UserTag} from '@/api/generated/schema'
+import {
+    FormQuestionType,
+    type FormAnalytics,
+    type FormQuestionInfo,
+    type FormResponseEntry,
+    type FormResultGroup,
+    type MemberGroup,
+    type UserTag,
+} from '@/api/generated/schema'
 import type {Translate} from '@/util/failure'
 import {numberedOptions} from '@/util/formOptions'
 
@@ -22,9 +29,9 @@ export function sampleResults(t: Translate): FormAnalytics {
         responseIds: [1],
         questions: [likedQuestion(t), {
             questionId: SATISFACTION_ID,
-            questionType: QuestionTypes.RATING,
+            questionType: FormQuestionType.RATING,
             title: t('helpCenter.sample.forms.satisfaction'),
-            config: {questionType: QuestionTypes.RATING, scale: 5},
+            config: {questionType: FormQuestionType.RATING, scale: 5},
         }],
         groups: [{
             key: 'all', label: '', responseCount: 12, tallies: [
@@ -47,8 +54,8 @@ export function sampleResponse(): FormResponseEntry {
 
 /** What the sample response answered, as the stored answer of each question. */
 export function sampleAnswerOf(questionId: number): string {
-    if (questionId === LIKED_ID) return JSON.stringify({type: QuestionTypes.CHOICE, selected: ['o0']})
-    if (questionId === SATISFACTION_ID) return JSON.stringify({type: QuestionTypes.RATING, rating: 4})
+    if (questionId === LIKED_ID) return JSON.stringify({type: FormQuestionType.CHOICE, selected: ['o0']})
+    if (questionId === SATISFACTION_ID) return JSON.stringify({type: FormQuestionType.RATING, rating: 4})
     return ''
 }
 
@@ -84,9 +91,9 @@ export function sampleGroupedResults(t: Translate): FormResultGroup[] {
 function likedQuestion(t: Translate): FormQuestionInfo {
     return {
         questionId: LIKED_ID,
-        questionType: QuestionTypes.CHOICE,
+        questionType: FormQuestionType.CHOICE,
         title: t('helpCenter.formsAnalytics.dummyQuestion'),
-        config: {questionType: QuestionTypes.CHOICE, options: numberedOptions(
+        config: {questionType: FormQuestionType.CHOICE, options: numberedOptions(
             t('helpCenter.formsAnalytics.dummyOptionDrills'),
             t('helpCenter.formsAnalytics.dummyOptionCommunity'),
             t('helpCenter.formsAnalytics.dummyOptionTrips'),

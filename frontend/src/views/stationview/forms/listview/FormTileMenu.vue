@@ -8,8 +8,7 @@ import {onBeforeUnmount, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import IconButton from '@/components/button/IconButton.vue'
 import DropdownMenuItem from '@/components/button/DropdownMenuItem.vue'
-import {FormPurpose, FormStatus} from '@/api/forms'
-import type {Form} from '@/api/generated/schema'
+import {FormPurpose, FormStatus, type Form} from '@/api/generated/schema'
 
 /**
  * Everything that can be done to a form, on the corner of its tile.

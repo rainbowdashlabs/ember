@@ -5,13 +5,14 @@
  */
 import {computed, reactive, ref, watch} from 'vue'
 import {events} from '@/api'
-import {EventTypes, needsDayOfWeek} from '@/api/events'
-import type {
-    AppointmentField,
-    EventFieldEntry,
-    EventRequest,
-    StationEvent,
-    TemplateDetailResponse,
+import {needsDayOfWeek} from '@/api/events'
+import {
+    EventType,
+    type AppointmentField,
+    type EventFieldEntry,
+    type EventRequest,
+    type StationEvent,
+    type TemplateDetailResponse,
 } from '@/api/generated/schema'
 import {toRestriction} from '@/components/input/restriction'
 import {createEventFormState, eventTypeNamed} from './eventFormState'
@@ -105,7 +106,7 @@ export function useEventForm() {
   function applyEvent(ev: StationEvent) {
     state.name = ev.name ?? ''
     state.description = ev.description ?? ''
-    state.eventType = ev.eventType ?? EventTypes.RECURRING
+    state.eventType = ev.eventType ?? EventType.RECURRING
     state.dayOfWeek = ev.dayOfWeek != null ? String(ev.dayOfWeek) : '1'
     state.startTime = instantToLocalInput(ev.startTime)
     state.endTime = instantToLocalInput(ev.endTime)
@@ -145,7 +146,7 @@ export function useEventForm() {
     return {
       name: state.name,
       description: state.description || null,
-      eventType: eventTypeNamed(state.eventType) ?? EventTypes.ONE_TIME,
+      eventType: eventTypeNamed(state.eventType) ?? EventType.ONE_TIME,
       dayOfWeek: needsDayOfWeek(state.eventType) ? Number(state.dayOfWeek) : null,
       startTime: state.startTime ? new Date(state.startTime).toISOString() : undefined,
       endTime: state.endTime ? new Date(state.endTime).toISOString() : undefined,
@@ -169,7 +170,7 @@ export function useEventForm() {
 
   /** Only a repeating appointment has an end to its repetition, so a one-off never sends one. */
   function repeats(): boolean {
-    return state.eventType !== EventTypes.ONE_TIME
+    return state.eventType !== EventType.ONE_TIME
   }
 
   function namedFields(): EventFieldEntry[] {

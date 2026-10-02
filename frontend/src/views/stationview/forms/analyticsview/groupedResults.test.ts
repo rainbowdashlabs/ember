@@ -5,14 +5,18 @@
  */
 /** @vitest-environment happy-dom */
 import {describe, expect, it} from 'vitest'
-import {QuestionTypes, type QuestionType} from '@/api/forms'
-import type {FormQuestionInfo, FormQuestionTally, FormResultGroup} from '@/api/generated/schema'
+import {
+    FormQuestionType,
+    type FormQuestionInfo,
+    type FormQuestionTally,
+    type FormResultGroup,
+} from '@/api/generated/schema'
 import {averageRating, formatValue, matrixOf} from './groupedResults'
 import {groupedBarOption, type GroupSeries} from './groupedChart'
 import {numberedOptions} from '@/util/formOptions'
 import {questionConfigOf} from '../builderview/questionDefaults'
 
-function question(questionType: QuestionType, config: Record<string, unknown>): FormQuestionInfo {
+function question(questionType: FormQuestionType, config: Record<string, unknown>): FormQuestionInfo {
     return {questionId: 1, questionType, title: 'Frage', config: questionConfigOf(questionType, config)}
 }
 
@@ -26,7 +30,7 @@ function group(key: string, tally: Omit<FormQuestionTally, 'questionId'>): FormR
  */
 describe('groupedResults', () => {
     it('compares choices as the share of each group rather than as raw counts', () => {
-        const choice = question(QuestionTypes.CHOICE, {options: numberedOptions('Ja', 'Nein'), allowOther: true})
+        const choice = question(FormQuestionType.CHOICE, {options: numberedOptions('Ja', 'Nein'), allowOther: true})
         const groups = [
             group('youth', {answerCount: 4, optionCounts: {o0: 3, o1: 1}, otherCount: 0}),
             group('active', {answerCount: 20, optionCounts: {o0: 5, o1: 14}, otherCount: 1}),
@@ -42,7 +46,7 @@ describe('groupedResults', () => {
     })
 
     it('leaves a share empty for a group that gave no answer', () => {
-        const rating = question(QuestionTypes.RATING, {scale: 3})
+        const rating = question(FormQuestionType.RATING, {scale: 3})
         const matrix = matrixOf(rating, [group('a', {answerCount: 2, ratingCounts: [0, 1, 1]}), group('b', {answerCount: 0, ratingCounts: [0, 0, 0]})], '')!
 
         expect(matrix.rows).toEqual(['1', '2', '3'])
@@ -50,7 +54,7 @@ describe('groupedResults', () => {
     })
 
     it('compares rankings by average points per answer', () => {
-        const ranking = question(QuestionTypes.RANKING, {options: numberedOptions('A', 'B')})
+        const ranking = question(FormQuestionType.RANKING, {options: numberedOptions('A', 'B')})
         const matrix = matrixOf(ranking, [group('x', {answerCount: 2, rankingScores: {o0: 4, o1: 2}})], '')!
 
         expect(matrix.unit).toBe('average')
@@ -58,7 +62,7 @@ describe('groupedResults', () => {
     })
 
     it('reads each option by its key, in the order the question lists them now', () => {
-        const reordered = question(QuestionTypes.CHOICE, {options: [{key: 'b', label: 'Nein'}, {key: 'a', label: 'Ja'}]})
+        const reordered = question(FormQuestionType.CHOICE, {options: [{key: 'b', label: 'Nein'}, {key: 'a', label: 'Ja'}]})
         const matrix = matrixOf(reordered, [group('x', {answerCount: 4, optionCounts: {a: 3, b: 1}})], '')!
 
         expect(matrix.rows).toEqual(['Nein', 'Ja'])
@@ -66,7 +70,7 @@ describe('groupedResults', () => {
     })
 
     it('averages Likert statements by statement key', () => {
-        const likert = question(QuestionTypes.LIKERT, {statements: numberedOptions('Essen', '')})
+        const likert = question(FormQuestionType.LIKERT, {statements: numberedOptions('Essen', '')})
         const matrix = matrixOf(likert, [group('x', {answerCount: 2, statementAverages: {o0: 4.5}})], '')!
 
         expect(matrix.rows).toEqual(['Essen', 'Option 2'])
@@ -74,7 +78,7 @@ describe('groupedResults', () => {
     })
 
     it('lists written answers instead of laying them out', () => {
-        expect(matrixOf(question(QuestionTypes.TEXT, {}), [group('x', {answerCount: 1, values: ['Gut']})], '')).toBeNull()
+        expect(matrixOf(question(FormQuestionType.TEXT, {}), [group('x', {answerCount: 1, values: ['Gut']})], '')).toBeNull()
     })
 
     it('averages a rating group from its counts', () => {
@@ -88,7 +92,7 @@ describe('groupedResults', () => {
     })
 
     it('draws one coloured series per group, labelled on every bar', () => {
-        const matrix = matrixOf(question(QuestionTypes.CHOICE, {options: numberedOptions('Ja')}), [
+        const matrix = matrixOf(question(FormQuestionType.CHOICE, {options: numberedOptions('Ja')}), [
             group('a', {answerCount: 1, optionCounts: {o0: 1}}),
             group('b', {answerCount: 2, optionCounts: {o0: 1}}),
         ], '')!

@@ -7,8 +7,7 @@
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Alert from '@/components/feedback/Alert.vue'
-import {CancellationCauses} from '@/api/events'
-import type {CancellationNotice} from '@/api/generated/schema'
+import {CancellationCause, type CancellationNotice} from '@/api/generated/schema'
 import {formatDateTime} from '@/util/format'
 
 /**
@@ -26,7 +25,7 @@ const {t} = useI18n()
 const heading = computed(() => props.seriesCancelled ? t('events.seriesCancelled') : t('events.dateCancelled'))
 
 const why = computed(() => {
-  if (props.cancellation.cause === CancellationCauses.THRESHOLD) return t('events.cancelledTooFewRegistrations')
+  if (props.cancellation.cause === CancellationCause.THRESHOLD) return t('events.cancelledTooFewRegistrations')
   return props.cancellation.reason ?? ''
 })
 </script>

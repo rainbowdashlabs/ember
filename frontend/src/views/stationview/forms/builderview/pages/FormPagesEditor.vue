@@ -9,7 +9,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import { VueDraggable } from 'vue-draggable-plus'
 import PageSection from './PageSection.vue'
 import { keepTargetsForward, type FormLayoutEditor } from '../useFormLayout'
-import type { QuestionType } from '@/api/forms'
+import type { FormQuestionType } from '@/api/generated/schema'
 
 /**
  * The pages of the form in the editor, one section each, with a button between them that puts a new
@@ -22,7 +22,7 @@ import type { QuestionType } from '@/api/forms'
  */
 defineProps<{
   layout: FormLayoutEditor
-  questionTypes: QuestionType[]
+  questionTypes: FormQuestionType[]
 }>()
 
 const { t } = useI18n()

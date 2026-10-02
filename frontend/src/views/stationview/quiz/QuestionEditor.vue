@@ -16,8 +16,8 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import FieldHint from '@/components/typography/FieldHint.vue'
 import ImageUploadField from './ImageUploadField.vue'
-import {isQuizQuestionType, QuizQuestionTypes, type QuizQuestionTypeName} from '@/api/quiz'
-import type {QuizCategory} from '@/api/generated/schema'
+import {isQuizQuestionType} from '@/api/quiz'
+import {QuizQuestionType, type QuizCategory} from '@/api/generated/schema'
 import McConfigEditor from './McConfigEditor.vue'
 import TfConfigEditor from './TfConfigEditor.vue'
 import FillBlankConfigEditor from './FillBlankConfigEditor.vue'
@@ -31,7 +31,7 @@ const { t } = useI18n()
 
 const title = defineModel<string>('title', {required: true})
 const description = defineModel<string>('description', {required: true})
-const questionType = defineModel<QuizQuestionTypeName>('questionType', {required: true})
+const questionType = defineModel<QuizQuestionType>('questionType', {required: true})
 const categoryId = defineModel<number | null>('categoryId', {required: true})
 const points = defineModel<number>('points', {required: true})
 const autoPoints = defineModel<boolean>('autoPoints', {required: true})
@@ -52,14 +52,14 @@ const emit = defineEmits<{
   removeImage: []
 }>()
 
-const allQuestionTypes: QuizQuestionTypeName[] = [
-  QuizQuestionTypes.MULTIPLE_CHOICE,
-  QuizQuestionTypes.FILL_IN_THE_BLANK,
-  QuizQuestionTypes.FREE_ANSWER,
-  QuizQuestionTypes.CONNECT,
-  QuizQuestionTypes.IMAGE_TEXT,
-  QuizQuestionTypes.TRUE_FALSE,
-  QuizQuestionTypes.ORDERING,
+const allQuestionTypes: QuizQuestionType[] = [
+  QuizQuestionType.MULTIPLE_CHOICE,
+  QuizQuestionType.FILL_IN_THE_BLANK,
+  QuizQuestionType.FREE_ANSWER,
+  QuizQuestionType.CONNECT,
+  QuizQuestionType.IMAGE_TEXT,
+  QuizQuestionType.TRUE_FALSE,
+  QuizQuestionType.ORDERING,
 ]
 
 const categoryIdStr = computed({
@@ -71,35 +71,35 @@ const calculatedPoints = computed(() => {
   const cfg = config.value
   const type = questionType.value
   switch (type) {
-    case QuizQuestionTypes.MULTIPLE_CHOICE: {
+    case QuizQuestionType.MULTIPLE_CHOICE: {
       const opts = (cfg.options as { text: string; correct: boolean }[]) || []
       const correctCount = opts.filter(o => o.correct).length
       const ppc = (cfg.pointsPerCorrect as number) || 1
       return correctCount * ppc
     }
-    case QuizQuestionTypes.FILL_IN_THE_BLANK: {
+    case QuizQuestionType.FILL_IN_THE_BLANK: {
       const answers = (cfg.answers as string[]) || []
       const ppcFill = (cfg.pointsPerCorrect as number) || 1
       return (answers.length || 1) * ppcFill
     }
-    case QuizQuestionTypes.FREE_ANSWER: {
+    case QuizQuestionType.FREE_ANSWER: {
       const answers = (cfg.answers as string[]) || []
       const ppcFree = (cfg.pointsPerCorrect as number) || 1
       return (answers.length || 1) * ppcFree
     }
-    case QuizQuestionTypes.CONNECT: {
+    case QuizQuestionType.CONNECT: {
       const pairs = (cfg.pairs as { left: string; right: string }[]) || []
       const ppcConn = (cfg.pointsPerCorrect as number) || 1
       return (pairs.length || 1) * ppcConn
     }
-    case QuizQuestionTypes.ORDERING: {
+    case QuizQuestionType.ORDERING: {
       const items = (cfg.items as string[]) || []
       const ppcOrd = (cfg.pointsPerCorrect as number) || 1
       return (items.length || 1) * ppcOrd
     }
-    case QuizQuestionTypes.TRUE_FALSE:
+    case QuizQuestionType.TRUE_FALSE:
       return 1
-    case QuizQuestionTypes.IMAGE_TEXT:
+    case QuizQuestionType.IMAGE_TEXT:
       return 1
     default:
       return 1
@@ -148,15 +148,15 @@ function onTypeChange(val: string | number | null | undefined) {
       </div>
     </div>
 
-    <ImageUploadField v-if="questionType === QuizQuestionTypes.IMAGE_TEXT" :image-preview="imagePreview" :auth-src="authImageSrc" @select-image="(e: Event) => emit('selectImage', e)" @remove-image="emit('removeImage')" />
+    <ImageUploadField v-if="questionType === QuizQuestionType.IMAGE_TEXT" :image-preview="imagePreview" :auth-src="authImageSrc" @select-image="(e: Event) => emit('selectImage', e)" @remove-image="emit('removeImage')" />
 
-    <McConfigEditor v-if="questionType === QuizQuestionTypes.MULTIPLE_CHOICE" v-model:config="config" :question-title="title" />
-    <FillBlankConfigEditor v-if="questionType === QuizQuestionTypes.FILL_IN_THE_BLANK" v-model:config="config" />
-    <FreeAnswerConfigEditor v-if="questionType === QuizQuestionTypes.FREE_ANSWER || questionType === QuizQuestionTypes.ENUMERATION" v-model:config="config" />
-    <ConnectConfigEditor v-if="questionType === QuizQuestionTypes.CONNECT" v-model:config="config" />
-    <ImageTextConfigEditor v-if="questionType === QuizQuestionTypes.IMAGE_TEXT" v-model:config="config" />
-    <TfConfigEditor v-if="questionType === QuizQuestionTypes.TRUE_FALSE" v-model:config="config" />
-    <OrderingConfigEditor v-if="questionType === QuizQuestionTypes.ORDERING" v-model:config="config" />
+    <McConfigEditor v-if="questionType === QuizQuestionType.MULTIPLE_CHOICE" v-model:config="config" :question-title="title" />
+    <FillBlankConfigEditor v-if="questionType === QuizQuestionType.FILL_IN_THE_BLANK" v-model:config="config" />
+    <FreeAnswerConfigEditor v-if="questionType === QuizQuestionType.FREE_ANSWER || questionType === QuizQuestionType.ENUMERATION" v-model:config="config" />
+    <ConnectConfigEditor v-if="questionType === QuizQuestionType.CONNECT" v-model:config="config" />
+    <ImageTextConfigEditor v-if="questionType === QuizQuestionType.IMAGE_TEXT" v-model:config="config" />
+    <TfConfigEditor v-if="questionType === QuizQuestionType.TRUE_FALSE" v-model:config="config" />
+    <OrderingConfigEditor v-if="questionType === QuizQuestionType.ORDERING" v-model:config="config" />
 
     <ButtonRow pair align="end" class="pt-3 border-t border-bg-light-accent dark:border-bg-dark-accent">
       <SecondaryButton @click="emit('cancel')">{{ t('common.cancel') }}</SecondaryButton>

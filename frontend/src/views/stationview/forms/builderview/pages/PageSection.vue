@@ -13,7 +13,7 @@ import PageHeaderEditor from './PageHeaderEditor.vue'
 import PageRouting from './PageRouting.vue'
 import { pageChoices } from '../pageChoice'
 import type { FormLayoutEditor } from '../useFormLayout'
-import type { QuestionType } from '@/api/forms'
+import type { FormQuestionType } from '@/api/generated/schema'
 
 /**
  * One page of the form in the editor: its title and description at the top, its questions, the
@@ -25,7 +25,7 @@ import type { QuestionType } from '@/api/forms'
 const props = defineProps<{
   layout: FormLayoutEditor
   pageIndex: number
-  questionTypes: QuestionType[]
+  questionTypes: FormQuestionType[]
 }>()
 
 const { t } = useI18n()

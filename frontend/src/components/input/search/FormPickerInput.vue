@@ -7,14 +7,14 @@
 import {onMounted, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import EntitySearchPicker from './EntitySearchPicker.vue'
-import {FormStatus, getFormPickerByUid, searchForms, type FormPurposeName} from '@/api/forms'
-import type {FormSearchResult} from '@/api/generated/schema'
+import {getFormPickerByUid, searchForms} from '@/api/forms'
+import {FormStatus, type FormPurpose, type FormSearchResult} from '@/api/generated/schema'
 
 const model = defineModel<string | null>()
 
 const props = defineProps<{
     /** Required: filters the picker to forms of this purpose (CONTACT or POLL). */
-    purpose: FormPurposeName
+    purpose: FormPurpose
     selectedDisplay?: string | null
     placeholder?: string
     disabled?: boolean

@@ -3,8 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {PageTargetKind, QuestionTypes} from '@/api/forms'
-import type {FormAnswerValue, PageTarget} from '@/api/generated/schema'
+import {PageTargetKind} from '@/api/forms'
+import {FormQuestionType, type FormAnswerValue, type PageTarget} from '@/api/generated/schema'
 
 /** A page as the walk needs it: its key and where it leads once done. */
 export interface PathPage {
@@ -49,7 +49,7 @@ function decidingQuestion(questions: readonly PathQuestion[], pageKey: string): 
 
 /** The single option picked in a choice answer, which is the only answer a page can branch on. */
 function pickedOption(answer: FormAnswerValue | undefined): string | null {
-    if (answer?.type !== QuestionTypes.CHOICE) return null
+    if (answer?.type !== FormQuestionType.CHOICE) return null
     return answer.selected.length === 1 ? (answer.selected[0] ?? null) : null
 }
 

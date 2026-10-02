@@ -4,8 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import { computed, ref, type Ref } from 'vue'
-import {QuizQuestionTypes} from '@/api/quiz'
-import type {QuizQuestionRead, QuizTestAttemptQuestion} from '@/api/generated/schema'
+import {QuizQuestionType, type QuizQuestionRead, type QuizTestAttemptQuestion} from '@/api/generated/schema'
 import { shuffle } from '@/util/shuffle'
 
 /**
@@ -32,7 +31,7 @@ export function useQuizQuestionOptions(
 
   const mcDisplayOrder = computed<number[]>(() => {
     if (!currentQuestion.value || !currentQuestionDetail.value) return []
-    if (currentQuestionDetail.value.quizQuestionType !== QuizQuestionTypes.MULTIPLE_CHOICE) return []
+    if (currentQuestionDetail.value.quizQuestionType !== QuizQuestionType.MULTIPLE_CHOICE) return []
     const opts = currentConfig.value.options
     return getDisplayOrder(`mc-${currentQuestion.value.questionId}`, Array.isArray(opts) ? opts.length : 0)
   })

@@ -7,6 +7,7 @@ import client from './client'
 import {createCrudResource} from './crud'
 import {documentFrom, type DocumentFile} from '@/util/documentFile'
 import {toIsoDate} from '@/util/format'
+import {EventType} from './generated/schema'
 import type {
     AbsentMemberResponse,
     AwaitingAnswer,
@@ -17,7 +18,6 @@ import type {
     CancellationNotice,
     CancelledEventDate,
     CategoryRequest,
-    components,
     CreateTemplateRequest,
     DatedEvent,
     EmbeddedEvent,
@@ -50,6 +50,7 @@ import type {
     EventRegistrationField,
     RegistrationResponse,
     RegistrationStatsResponse,
+    RegistrationStatus,
     RemoteAttachment,
     PartnerEventDetail,
     RegistrationTemplateField,
@@ -64,26 +65,6 @@ import type {
     WithdrawalResponse,
 } from './generated/schema'
 
-export type RegistrationStatusName = components['schemas']['RegistrationStatus']
-
-export const RegistrationStatus = {
-    PENDING: 'PENDING',
-    ACCEPTED: 'ACCEPTED',
-    DENIED: 'DENIED',
-    DECLINED: 'DECLINED',
-    WITHDRAWN: 'WITHDRAWN',
-} as const satisfies Record<RegistrationStatusName, RegistrationStatusName>
-
-export type EventTypeName = components['schemas']['EventType']
-
-export const EventTypes = {
-    ONE_TIME: 'ONE_TIME',
-    RECURRING: 'RECURRING',
-    MONTHLY_FIRST: 'MONTHLY_FIRST',
-    QUARTERLY: 'QUARTERLY',
-    YEARLY: 'YEARLY',
-} as const satisfies Record<EventTypeName, EventTypeName>
-
 /** An appointment as either the appointment itself or a list of appointments sends it. */
 export type AnyEvent = StationEvent | EventSummary
 
@@ -94,7 +75,7 @@ export type AnyEvent = StationEvent | EventSummary
 export type AllEventRestrictions = Record<number, EventRestrictions>
 
 export function isRecurringEvent(eventType?: string | null): boolean {
-    return eventType != null && eventType !== EventTypes.ONE_TIME
+    return eventType != null && eventType !== EventType.ONE_TIME
 }
 
 /**
@@ -120,7 +101,7 @@ export function multiDayEndDate(event: AnyEvent, startDay: string): string | nul
 }
 
 export function needsDayOfWeek(eventType?: string | null): boolean {
-    return eventType === EventTypes.RECURRING || eventType === EventTypes.MONTHLY_FIRST || eventType === EventTypes.QUARTERLY
+    return eventType === EventType.RECURRING || eventType === EventType.MONTHLY_FIRST || eventType === EventType.QUARTERLY
 }
 
 export interface EventListParams {
@@ -144,14 +125,6 @@ export interface OccurrenceParams {
     limit?: number
     offset?: number
 }
-
-export type CancellationCauseName = components['schemas']['CancellationCause']
-
-/** Who called a date off: a manager, or the check that too few had registered in time. */
-export const CancellationCauses = {
-    MANUAL: 'MANUAL',
-    THRESHOLD: 'THRESHOLD',
-} as const satisfies Record<CancellationCauseName, CancellationCauseName>
 
 /** Whether a page of appointments wants the ones that still come round or the ones that do not. */
 export const EventStates = {
@@ -440,7 +413,7 @@ export async function changeRegistrationAnswer(id: number, attending: boolean): 
     await client.put(`/events/registrations/${id}/answer`, {attending})
 }
 
-export async function updateRegistrationStatus(id: number, status: RegistrationStatusName): Promise<MessageResponse> {
+export async function updateRegistrationStatus(id: number, status: RegistrationStatus): Promise<MessageResponse> {
     const res = await client.put<MessageResponse>(`/events/registrations/${id}/status`, {status})
     return res.data
 }
@@ -595,7 +568,7 @@ export async function listMyFederatedRegistrations(): Promise<RemoteMemberRegist
  * <p>The status is theirs to decide: an appointment that asks for no confirmation accepts at once,
  * and showing a pending badge regardless would tell the member something nobody said.
  */
-export async function registerForFederatedEvent(stationUid: string, eventId: number, eventDate: string, memberId?: string): Promise<RegistrationStatusName> {
+export async function registerForFederatedEvent(stationUid: string, eventId: number, eventDate: string, memberId?: string): Promise<RegistrationStatus> {
     const res = await client.post<FederatedRegistrationAnswer>(`/federated/${stationUid}/events/${eventId}/register`, { eventDate, memberId: memberId ?? null })
     return res.data.status
 }
@@ -620,7 +593,7 @@ export async function listFederationRegistrations(eventId: number, date?: string
     return res.data
 }
 
-export async function updateFederationRegistrationStatus(registrationId: number, status: RegistrationStatusName): Promise<void> {
+export async function updateFederationRegistrationStatus(registrationId: number, status: RegistrationStatus): Promise<void> {
     await client.put(`/events/federation-registrations/${registrationId}/status`, { status })
 }
 

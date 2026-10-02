@@ -6,7 +6,6 @@
 import client from './client'
 import {createCrudResource, createScopedCrudResource} from './crud'
 import type {
-    components,
     PublicWaitlistFormResponse,
     PublicWaitlistRegistrationRequest,
     PublicWaitlistSummary,
@@ -30,25 +29,6 @@ import type {
     WaitingListVisibleFieldsRequest,
     WaitingListWithCount,
 } from './generated/schema'
-
-export type WaitingListEntryStatusName = components['schemas']['WaitingListEntryStatus']
-
-export const WaitingListEntryStatus = {
-    PENDING: 'PENDING',
-    WAITING: 'WAITING',
-    INVITED: 'INVITED',
-    TESTING: 'TESTING',
-    WITHDRAWN: 'WITHDRAWN',
-    JOINED: 'JOINED',
-} as const satisfies Record<WaitingListEntryStatusName, WaitingListEntryStatusName>
-
-export type WaitingListAnswerName = components['schemas']['WaitingListAnswer']
-
-export const WaitingListAnswers = {
-    COMING: 'COMING',
-    NOT_INTERESTED: 'NOT_INTERESTED',
-    DATE_DOES_NOT_SUIT: 'DATE_DOES_NOT_SUIT',
-} as const satisfies Record<WaitingListAnswerName, WaitingListAnswerName>
 
 /**
  * A guardian as the entry forms hold one while it is typed in: every part present, empty until

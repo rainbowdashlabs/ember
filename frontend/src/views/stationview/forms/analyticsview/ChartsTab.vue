@@ -23,8 +23,7 @@ import {
   DONUT_CENTER,
   DONUT_RADIUS,
 } from '@/util/chartLayout'
-import {QuestionTypes} from '@/api/forms'
-import type {FormQuestionInfo, FormQuestionTally, FormResultGroup} from '@/api/generated/schema'
+import {FormQuestionType, type FormQuestionInfo, type FormQuestionTally, type FormResultGroup} from '@/api/generated/schema'
 import {questionConfig, tallyIn} from './groupedResults'
 import {optionsOf} from '@/util/formOptions'
 import {formatDate} from '@/util/format'
@@ -118,10 +117,10 @@ function buildLikertChart(q: FormQuestionInfo) {
   }
 }
 const CHARTED: Record<string, (q: FormQuestionInfo) => EChartsCoreOption> = {
-  [QuestionTypes.CHOICE]: buildChoiceChart,
-  [QuestionTypes.RATING]: buildRatingChart,
-  [QuestionTypes.RANKING]: buildRankingChart,
-  [QuestionTypes.LIKERT]: buildLikertChart,
+  [FormQuestionType.CHOICE]: buildChoiceChart,
+  [FormQuestionType.RATING]: buildRatingChart,
+  [FormQuestionType.RANKING]: buildRankingChart,
+  [FormQuestionType.LIKERT]: buildLikertChart,
 }
 function optionFor(q: FormQuestionInfo): EChartsCoreOption {
   return CHARTED[q.questionType]?.(q) ?? {}
@@ -138,7 +137,7 @@ function isCharted(q: FormQuestionInfo): boolean {
  */
 function answersOf(q: FormQuestionInfo): string[] {
   const values = tallyOf(q)?.values ?? []
-  return q.questionType === QuestionTypes.DATE ? values.map(value => formatDate(value)) : values
+  return q.questionType === FormQuestionType.DATE ? values.map(value => formatDate(value)) : values
 }
 </script>
 <template>
@@ -150,7 +149,7 @@ function answersOf(q: FormQuestionInfo): string[] {
         :option="optionFor(q)"
         :has-data="answered(q)"
         :empty-text="t('forms.analytics.noAnswersYet')"
-        :height="q.questionType === QuestionTypes.RATING ? 220 : 280"
+        :height="q.questionType === FormQuestionType.RATING ? 220 : 280"
       >
         <MutedText tag="p" size="sm" data-testid="question-answered">
           {{ answeredLine(tallyOf(q), total, t) }}

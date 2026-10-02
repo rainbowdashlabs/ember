@@ -6,8 +6,7 @@
 /** @vitest-environment happy-dom */
 import {describe, expect, it} from 'vitest'
 import {ref} from 'vue'
-import {RegistrationStatus, type RegistrationStatusName} from '@/api/events'
-import type {EnrichedFederationRegistration, RegistrationResponse} from '@/api/generated/schema'
+import {RegistrationStatus, type EnrichedFederationRegistration, type RegistrationResponse} from '@/api/generated/schema'
 import {useSignupMemberSet} from './useSignupMemberSet'
 
 const TUESDAY = '2026-05-05'
@@ -19,11 +18,11 @@ function event(requiresRegistration: boolean) {
   return {requiresRegistration}
 }
 
-function signup(memberId: number, status: RegistrationStatusName, eventDate: string): Signup {
+function signup(memberId: number, status: RegistrationStatus, eventDate: string): Signup {
   return {memberId, eventDate, status}
 }
 
-function guest(status: RegistrationStatusName, eventDate: string): EnrichedFederationRegistration {
+function guest(status: RegistrationStatus, eventDate: string): EnrichedFederationRegistration {
   return {
     registration: {
       id: 1,

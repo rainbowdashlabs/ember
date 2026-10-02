@@ -7,9 +7,12 @@ import client from './client'
 import {documentFrom, type DocumentFile} from '@/util/documentFile'
 import type {ExportFormat, ExportSeparator} from '@/util/exportFormat'
 import {createCrudResource} from './crud'
+import {FormQuestionType} from './generated/schema'
 import type {
     ClearedFormResponses,
     components,
+    FormPurpose,
+    FormVisibility,
     EligibleMembers,
     Form,
     FormAnalytics,
@@ -42,76 +45,33 @@ import type {
     ResultGrouping,
 } from './generated/schema'
 
-export type FormStatusName = components['schemas']['FormStatus']
-
-export const FormStatus = {
-    DRAFT: 'DRAFT',
-    OPEN: 'OPEN',
-    CLOSED: 'CLOSED',
-} as const satisfies Record<FormStatusName, FormStatusName>
-
-export type QuestionType = components['schemas']['FormQuestionType']
-
-export const QuestionTypes = {
-    CHOICE: 'CHOICE',
-    TEXT: 'TEXT',
-    RATING: 'RATING',
-    DATE: 'DATE',
-    RANKING: 'RANKING',
-    LIKERT: 'LIKERT',
-} as const satisfies Record<QuestionType, QuestionType>
-
-export type FormPurposeName = components['schemas']['FormPurpose']
-
-export const FormPurpose = {
-    INTERNAL: 'INTERNAL',
-    CONTACT: 'CONTACT',
-    POLL: 'POLL',
-} as const satisfies Record<FormPurposeName, FormPurposeName>
-
-export type FormVisibilityName = components['schemas']['FormVisibility']
-
 /**
- * How far a form meant for people outside the station reaches. Public means its own address answers,
- * which is what a form on a public page needs; unlisted means the link it was sent with is the only
- * way in, so replacing that link ends every way in that was given out.
+ * Whitelist of question types allowed per form purpose, in the order the question-type picker offers
+ * them. Mirrors {@code FormQuestionType.allowedFor(FormPurpose)} on the backend; the editor hides
+ * non-whitelisted types in the picker.
  */
-export const FormVisibility = {
-    PUBLIC: 'PUBLIC',
-    UNLISTED: 'UNLISTED',
-} as const satisfies Record<FormVisibilityName, FormVisibilityName>
-
-/**
- * Whitelist of question types allowed per form purpose. Mirrors
- * {@code FormQuestionType.allowedFor(FormPurpose)} on the backend; the
- * editor hides non-whitelisted types in the question-type picker.
- */
-export const QUESTION_TYPES_BY_PURPOSE: Record<FormPurposeName, QuestionType[]> = {
+export const QUESTION_TYPES_BY_PURPOSE: Record<FormPurpose, FormQuestionType[]> = {
     INTERNAL: [
-        QuestionTypes.CHOICE,
-        QuestionTypes.TEXT,
-        QuestionTypes.RATING,
-        QuestionTypes.DATE,
-        QuestionTypes.RANKING,
-        QuestionTypes.LIKERT,
+        FormQuestionType.CHOICE,
+        FormQuestionType.TEXT,
+        FormQuestionType.RATING,
+        FormQuestionType.DATE,
+        FormQuestionType.RANKING,
+        FormQuestionType.LIKERT,
     ],
-    CONTACT: [QuestionTypes.TEXT, QuestionTypes.CHOICE, QuestionTypes.DATE],
+    CONTACT: [FormQuestionType.TEXT, FormQuestionType.CHOICE, FormQuestionType.DATE],
     POLL: [
-        QuestionTypes.CHOICE,
-        QuestionTypes.TEXT,
-        QuestionTypes.RATING,
-        QuestionTypes.DATE,
-        QuestionTypes.RANKING,
-        QuestionTypes.LIKERT,
+        FormQuestionType.CHOICE,
+        FormQuestionType.TEXT,
+        FormQuestionType.RATING,
+        FormQuestionType.DATE,
+        FormQuestionType.RANKING,
+        FormQuestionType.LIKERT,
     ],
 }
 
-export type MultiLimitType = components['schemas']['MultiLimitType']
-
-export type RatingIcon = components['schemas']['RatingIcon']
-
 /** The answer a question of the given kind takes. */
-export type AnswerOf<T extends QuestionType> = FormAnswerValueByType[T]
+export type AnswerOf<T extends FormQuestionType> = FormAnswerValueByType[T]
 
 /**
  * Whether an answer is one to a question of the given kind, which is what lets a screen drawing one
@@ -120,7 +80,7 @@ export type AnswerOf<T extends QuestionType> = FormAnswerValueByType[T]
  * @param answer the answer, possibly none at all
  * @param type   the kind of question
  */
-export function isAnswerOf<T extends QuestionType>(answer: FormAnswerValue | undefined, type: T): answer is AnswerOf<T> {
+export function isAnswerOf<T extends FormQuestionType>(answer: FormAnswerValue | undefined, type: T): answer is AnswerOf<T> {
     return answer?.type === type
 }
 
@@ -135,7 +95,7 @@ export const PageTargetKind = {
 
 const forms = createCrudResource<Form, FormRequest>('/forms')
 
-export async function listForms(purpose?: FormPurposeName): Promise<Form[]> {
+export async function listForms(purpose?: FormPurpose): Promise<Form[]> {
     return forms.list(purpose ? {purpose} : undefined)
 }
 
@@ -150,7 +110,7 @@ export async function listAvailableForms(): Promise<FormListEntry[]> {
  * something to show on first focus.
  */
 export async function searchForms(
-    purpose: FormPurposeName,
+    purpose: FormPurpose,
     query?: string,
     limit?: number,
 ): Promise<FormSearchResult[]> {
@@ -162,7 +122,7 @@ export async function searchForms(
 }
 
 /** Resolves a single form by its public UUID for picker display. Returns {@code null} when not found. */
-export async function getFormPickerByUid(purpose: FormPurposeName, uid: string): Promise<FormSearchResult | null> {
+export async function getFormPickerByUid(purpose: FormPurpose, uid: string): Promise<FormSearchResult | null> {
     const res = await client.get<FormSearchResult[]>('/forms/search', {params: {purpose, uid}})
     return res.data[0] ?? null
 }
@@ -429,7 +389,7 @@ export async function replaceFormShareLink(formId: number, currentToken: string 
 /** Sets whether a public form answers at its own address or only at the link it was sent with. */
 export async function setFormVisibility(
     formId: number,
-    visibility: FormVisibilityName,
+    visibility: FormVisibility,
 ): Promise<FormVisibilityResponse> {
     const request: FormVisibilityRequest = {visibility}
     const res = await client.put<FormVisibilityResponse>(`/forms/${formId}/visibility`, request)

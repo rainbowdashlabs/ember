@@ -8,7 +8,7 @@ import {useI18n} from 'vue-i18n'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
-import {RegistrationStatus} from '@/api/events'
+import {RegistrationStatus} from '@/api/generated/schema'
 
 /**
  * What somebody answered, in one badge.

@@ -8,8 +8,7 @@ import {useI18n} from 'vue-i18n'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import {EventTypes} from '@/api/events'
-import type {AttendanceTemplate, EventCategory} from '@/api/generated/schema'
+import {EventType, type AttendanceTemplate, type EventCategory} from '@/api/generated/schema'
 
 const {t} = useI18n()
 
@@ -41,11 +40,11 @@ const attendanceTemplateId = defineModel<string>('attendanceTemplateId', {requir
       <FieldLabel>{{ t('eventTemplates.eventType') }}</FieldLabel>
       <SelectInput v-model="eventType" class="w-full">
         <option value="">{{ t('eventTemplates.noDefault') }}</option>
-        <option :value="EventTypes.ONE_TIME">{{ t('events.typeOneTime') }}</option>
-        <option :value="EventTypes.RECURRING">{{ t('events.typeRecurring') }}</option>
-        <option :value="EventTypes.MONTHLY_FIRST">{{ t('events.typeMonthlyFirst') }}</option>
-        <option :value="EventTypes.QUARTERLY">{{ t('events.typeQuarterly') }}</option>
-        <option :value="EventTypes.YEARLY">{{ t('events.typeYearly') }}</option>
+        <option :value="EventType.ONE_TIME">{{ t('events.typeOneTime') }}</option>
+        <option :value="EventType.RECURRING">{{ t('events.typeRecurring') }}</option>
+        <option :value="EventType.MONTHLY_FIRST">{{ t('events.typeMonthlyFirst') }}</option>
+        <option :value="EventType.QUARTERLY">{{ t('events.typeQuarterly') }}</option>
+        <option :value="EventType.YEARLY">{{ t('events.typeYearly') }}</option>
       </SelectInput>
     </div>
     <div class="space-y-1">

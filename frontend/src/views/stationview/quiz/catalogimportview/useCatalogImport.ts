@@ -7,8 +7,13 @@ import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {ai, quiz, util} from '@/api'
 import {loadAiCredentials} from '@/util/aiCredentials'
-import {QuizQuestionTypes} from '@/api/quiz'
-import type {CatalogMetadata, CatalogTransfer, CatalogTransferCategory, CatalogTransferProblem} from '@/api/generated/schema'
+import {
+    QuizQuestionType,
+    type CatalogMetadata,
+    type CatalogTransfer,
+    type CatalogTransferCategory,
+    type CatalogTransferProblem,
+} from '@/api/generated/schema'
 import {createQuizCsvMapping, type ImportDraft} from '../csvimportview/quizCsvImport'
 import {NO_METADATA, readCatalogFile, toTransfer, usedCategories} from './catalogImport'
 import {describeFailure, type Failure} from '@/util/failure'
@@ -165,7 +170,7 @@ export function useCatalogImport(catalogId: () => number | null) {
         const catalogContext = t('quiz.csv.aiCatalogContext', {name: catalogName.value})
         const context = aiPrompt.value ? `${aiPrompt.value}\n${catalogContext}` : catalogContext
         const targets = drafts.value.filter(
-            draft => draft.question.quizQuestionType === QuizQuestionTypes.MULTIPLE_CHOICE,
+            draft => draft.question.quizQuestionType === QuizQuestionType.MULTIPLE_CHOICE,
         )
 
         for (const [index, draft] of targets.entries()) {

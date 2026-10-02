@@ -13,12 +13,12 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import GenPreviewCard from './GenPreviewCard.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import type {Failure} from '@/util/failure'
-import type {QuizQuestionTypeName} from '@/api/quiz'
+import type {QuizQuestionType} from '@/api/generated/schema'
 
 export interface GenPreview {
   title: string
   config: string
-  quizQuestionType: QuizQuestionTypeName
+  quizQuestionType: QuizQuestionType
   categoryId: number | null
   accepted: boolean
 }

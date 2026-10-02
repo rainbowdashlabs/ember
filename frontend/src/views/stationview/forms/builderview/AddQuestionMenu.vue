@@ -8,7 +8,7 @@ import { useI18n } from 'vue-i18n'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import DropdownMenuItem from '@/components/button/DropdownMenuItem.vue'
 import { useEditorActionsMenu } from '@/components/content/blockeditor/useEditorActionsMenu'
-import type { QuestionType } from '@/api/forms'
+import type { FormQuestionType } from '@/api/generated/schema'
 
 /**
  * Adds a question where the button stands, after asking which kind.
@@ -18,11 +18,11 @@ import type { QuestionType } from '@/api/forms'
  * then moving it up a step at a time was the slow way to put it there.
  */
 defineProps<{
-  questionTypes: QuestionType[]
+  questionTypes: FormQuestionType[]
 }>()
 
 const emit = defineEmits<{
-  add: [type: QuestionType]
+  add: [type: FormQuestionType]
 }>()
 
 const { t } = useI18n()
@@ -34,7 +34,7 @@ function toggle(event: MouseEvent) {
   open.value = !open.value
 }
 
-function add(type: QuestionType) {
+function add(type: FormQuestionType) {
   emit('add', type)
   close()
 }

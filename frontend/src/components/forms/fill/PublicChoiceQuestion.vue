@@ -6,8 +6,7 @@
 <script setup lang="ts">
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import {computed} from 'vue'
-import {QuestionTypes} from '@/api/forms'
-import type {ChoiceAnswer, Option, PublicFormQuestion} from '@/api/generated/schema'
+import {FormQuestionType, type ChoiceAnswer, type Option, type PublicFormQuestion} from '@/api/generated/schema'
 import {optionsOf} from '@/util/formOptions'
 
 const props = defineProps<{
@@ -25,7 +24,7 @@ function options(): Option[] {
 }
 
 /** The question's settings as a choice question has them, which is the only kind this field draws. */
-const choice = computed(() => (props.question.config.questionType === QuestionTypes.CHOICE ? props.question.config : null))
+const choice = computed(() => (props.question.config.questionType === FormQuestionType.CHOICE ? props.question.config : null))
 
 function isSelected(optionKey: string): boolean {
   return props.answer.selected.includes(optionKey)

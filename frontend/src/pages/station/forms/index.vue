@@ -5,7 +5,7 @@
  */
 <script setup lang="ts">
 import ListView from '~/views/stationview/forms/ListView.vue'
-import { FormPurpose } from '@/api/forms'
+import { FormPurpose } from '@/api/generated/schema'
 
 definePageMeta({
   layout: 'station',

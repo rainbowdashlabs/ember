@@ -12,8 +12,8 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import TrainingCatalogSelect from './trainingview/TrainingCatalogSelect.vue'
 import TrainingActiveSession from './trainingview/TrainingActiveSession.vue'
 import TrainingFinished from './trainingview/TrainingFinished.vue'
-import {isQuizQuestionOf, QuizQuestionTypes} from '@/api/quiz'
-import type {QuizCatalog, QuizQuestion} from '@/api/generated/schema'
+import {isQuizQuestionOf} from '@/api/quiz'
+import {QuizQuestionType, type QuizCatalog, type QuizQuestion} from '@/api/generated/schema'
 import { quiz } from '@/api'
 import { useConfigPanel } from '@/composables/useConfigPanel'
 import { moveWithin } from '@/util/reorder'
@@ -67,14 +67,14 @@ function shuffle<T>(array: T[]): T[] {
 }
 
 function initQuestionState(question: QuizQuestion) {
-  if (isQuizQuestionOf(question, QuizQuestionTypes.MULTIPLE_CHOICE)) {
+  if (isQuizQuestionOf(question, QuizQuestionType.MULTIPLE_CHOICE)) {
     mcDisplayOrder.value = shuffle((question.config.options ?? []).map((_, i) => i))
   } else {
     mcDisplayOrder.value = []
   }
-  if (isQuizQuestionOf(question, QuizQuestionTypes.ORDERING)) {
+  if (isQuizQuestionOf(question, QuizQuestionType.ORDERING)) {
     userOrderItems.value = shuffle((question.config.items ?? []).map((_, i) => i))
-  } else if (isQuizQuestionOf(question, QuizQuestionTypes.CONNECT)) {
+  } else if (isQuizQuestionOf(question, QuizQuestionType.CONNECT)) {
     userConnectPairs.value = {}
     connectRightOrder.value = shuffle((question.config.pairs ?? []).map((_, i) => i))
   } else {

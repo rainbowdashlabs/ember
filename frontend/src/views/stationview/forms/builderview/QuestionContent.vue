@@ -7,8 +7,7 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import FormOptionsEditor from './FormOptionsEditor.vue'
-import { QuestionTypes } from '@/api/forms'
-import type { Option } from '@/api/generated/schema'
+import { FormQuestionType, type Option } from '@/api/generated/schema'
 import { optionsOf, type OptionField } from '@/util/formOptions'
 import type { QuestionDraft } from './types'
 
@@ -23,11 +22,11 @@ const { t } = useI18n()
 /** Where this kind of question keeps its content and what its editor calls it, or null where it has none. */
 const content = computed<{field: OptionField, label: string, addLabel: string} | null>(() => {
   switch (question.value.questionType) {
-    case QuestionTypes.CHOICE:
+    case FormQuestionType.CHOICE:
       return {field: 'options', label: t('forms.choice.options'), addLabel: t('forms.choice.addOption')}
-    case QuestionTypes.RANKING:
+    case FormQuestionType.RANKING:
       return {field: 'options', label: t('forms.ranking.options'), addLabel: t('forms.ranking.addOption')}
-    case QuestionTypes.LIKERT:
+    case FormQuestionType.LIKERT:
       return {field: 'statements', label: t('forms.likert.statements'), addLabel: t('forms.likert.addStatement')}
     default:
       return null

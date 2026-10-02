@@ -8,6 +8,7 @@ import {createCrudResource, createScopedCrudResource} from './crud'
 import {uploadFile} from './upload'
 import {downloadAuthed} from '@/util/downloadAuthed'
 import {prepareImageUpload} from '@/util/imageUpload'
+import {QuizQuestionType} from './generated/schema'
 import type {
     CatalogListResponse,
     CatalogTransfer,
@@ -47,22 +48,9 @@ import type {
     ReplaceQuestionRequest,
 } from './generated/schema'
 
-export type QuizQuestionTypeName = components['schemas']['QuizQuestionType']
-
-export const QuizQuestionTypes = {
-    MULTIPLE_CHOICE: 'MULTIPLE_CHOICE',
-    FILL_IN_THE_BLANK: 'FILL_IN_THE_BLANK',
-    FREE_ANSWER: 'FREE_ANSWER',
-    CONNECT: 'CONNECT',
-    IMAGE_TEXT: 'IMAGE_TEXT',
-    TRUE_FALSE: 'TRUE_FALSE',
-    ORDERING: 'ORDERING',
-    ENUMERATION: 'ENUMERATION',
-} as const satisfies Record<QuizQuestionTypeName, QuizQuestionTypeName>
-
 /** Whether a value names a kind of question, as a picker or a file may hand over any text. */
-export function isQuizQuestionType(value: unknown): value is QuizQuestionTypeName {
-    return typeof value === 'string' && Object.hasOwn(QuizQuestionTypes, value)
+export function isQuizQuestionType(value: unknown): value is QuizQuestionType {
+    return typeof value === 'string' && Object.hasOwn(QuizQuestionType, value)
 }
 
 export type QuizTestStatusName = components['schemas']['TestStatus']
@@ -85,7 +73,7 @@ export const QuizAttemptStatus = {
  * A question of one kind, with the settings that kind has. The settings travel beside the kind
  * rather than naming it themselves, so {@link isQuizQuestionOf} is what tells them apart.
  */
-export type QuizQuestionOf<T extends QuizQuestionTypeName> = Omit<QuizQuestion, 'quizQuestionType' | 'config'> & {
+export type QuizQuestionOf<T extends QuizQuestionType> = Omit<QuizQuestion, 'quizQuestionType' | 'config'> & {
     quizQuestionType: T
     config: QuestionConfigByType[T]
 }
@@ -94,7 +82,7 @@ export type QuizQuestionOf<T extends QuizQuestionTypeName> = Omit<QuizQuestion, 
  * Whether a question is of the given kind, which is what lets a screen drawing one kind read its
  * settings as that kind's.
  */
-export function isQuizQuestionOf<T extends QuizQuestionTypeName>(
+export function isQuizQuestionOf<T extends QuizQuestionType>(
     question: QuizQuestion,
     type: T,
 ): question is QuizQuestionOf<T> {

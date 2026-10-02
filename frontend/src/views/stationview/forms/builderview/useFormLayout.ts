@@ -4,8 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import { computed, ref } from 'vue'
-import { PageTargetKind, QuestionTypes, type QuestionType } from '@/api/forms'
-import type { FormLayout, FormLayoutRequest, PageTarget } from '@/api/generated/schema'
+import { PageTargetKind } from '@/api/forms'
+import { FormQuestionType, type FormLayout, type FormLayoutRequest, type PageTarget } from '@/api/generated/schema'
 import { freshKey, optionKeysOf } from '@/util/formOptions'
 import { reachablePages } from '@/util/formPath'
 import { defaultConfig, questionConfigOf } from './questionDefaults'
@@ -48,7 +48,7 @@ export function keepTargetsForward(pages: PageDraft[]) {
 
 /** Whether a question can decide where its page leads: a choice that takes one answer. */
 export function canDecide(question: QuestionDraft): boolean {
-  return question.questionType === QuestionTypes.CHOICE && !question.config.multiSelect
+  return question.questionType === FormQuestionType.CHOICE && !question.config.multiSelect
 }
 
 /**
@@ -195,7 +195,7 @@ export function useFormLayout() {
     keepTargetsForward(pages.value)
   }
 
-  function addQuestion(pageIndex: number, type: QuestionType) {
+  function addQuestion(pageIndex: number, type: FormQuestionType) {
     pages.value[pageIndex]?.questions.push({
       id: freshTempId(),
       questionType: type,

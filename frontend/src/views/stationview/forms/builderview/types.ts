@@ -3,12 +3,11 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type { QuestionType } from '@/api/forms'
-import type { PageTarget } from '@/api/generated/schema'
+import type { FormQuestionType, PageTarget } from '@/api/generated/schema'
 
 export interface QuestionDraft {
   id: string
-  questionType: QuestionType
+  questionType: FormQuestionType
   title: string
   description: string
   required: boolean

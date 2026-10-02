@@ -5,8 +5,7 @@
  */
 import { ref, type Ref } from 'vue'
 import { useAsyncAction } from '@/composables/useAsyncAction'
-import {QuizQuestionTypes, type QuizQuestionTypeName} from '@/api/quiz'
-import type {QuizQuestion} from '@/api/generated/schema'
+import {QuizQuestionType, type QuizQuestion} from '@/api/generated/schema'
 import { quiz } from '@/api'
 import { defaultConfigFor } from './questionDefaultConfig'
 import { useQuestionImage } from './useQuestionImage'
@@ -30,7 +29,7 @@ export function useQuestionForm(
   const editingQuestion = ref<QuizQuestion | null>(null)
   const questionTitle = ref('')
   const questionDescription = ref('')
-  const questionType = ref<QuizQuestionTypeName>(QuizQuestionTypes.MULTIPLE_CHOICE)
+  const questionType = ref<QuizQuestionType>(QuizQuestionType.MULTIPLE_CHOICE)
   const questionCategoryId = ref<number | null>(null)
   const questionPoints = ref(1)
   const questionAutoPoints = ref(true)
@@ -44,12 +43,12 @@ export function useQuestionForm(
     editingQuestion.value = null
     questionTitle.value = ''
     questionDescription.value = ''
-    questionType.value = QuizQuestionTypes.MULTIPLE_CHOICE
+    questionType.value = QuizQuestionType.MULTIPLE_CHOICE
     questionCategoryId.value = null
     questionPoints.value = 1
     questionAutoPoints.value = true
     image.reset()
-    questionConfig.value = defaultConfigFor(QuizQuestionTypes.MULTIPLE_CHOICE)
+    questionConfig.value = defaultConfigFor(QuizQuestionType.MULTIPLE_CHOICE)
     expandedQuestion.value = 'new'
   }
 
@@ -70,7 +69,7 @@ export function useQuestionForm(
     expandedQuestion.value = q.id
   }
 
-  function onQuestionTypeChange(val: QuizQuestionTypeName) {
+  function onQuestionTypeChange(val: QuizQuestionType) {
     questionType.value = val
     questionConfig.value = defaultConfigFor(val)
   }
