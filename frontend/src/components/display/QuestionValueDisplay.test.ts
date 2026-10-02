@@ -7,7 +7,7 @@
 import {describe, expect, it} from 'vitest'
 import {mount} from '@vue/test-utils'
 import QuestionValueDisplay from './QuestionValueDisplay.vue'
-import {FieldTypes} from '@/api/fieldTypes'
+import {FieldType} from '@/api/generated/schema'
 
 /**
  * An answer as a station reads it.
@@ -23,48 +23,48 @@ describe('QuestionValueDisplay', () => {
 
     it('reads a yes stored as true, as the text true or as 1', () => {
         for (const value of [true, 'true', '1']) {
-            expect(show(value, FieldTypes.BOOLEAN)).toBe('Ja')
+            expect(show(value, FieldType.BOOLEAN)).toBe('Ja')
         }
-        expect(show('false', FieldTypes.BOOLEAN)).toBe('Nein')
-        expect(show(false, FieldTypes.BOOLEAN)).toBe('Nein')
+        expect(show('false', FieldType.BOOLEAN)).toBe('Nein')
+        expect(show(false, FieldType.BOOLEAN)).toBe('Nein')
     })
 
     it('calls a yes what the field calls it', () => {
         const wrapper = mount(QuestionValueDisplay, {
-            props: {value: true, fieldType: FieldTypes.BOOLEAN, yesLabel: 'Geprüft', noLabel: 'Offen'},
+            props: {value: true, fieldType: FieldType.BOOLEAN, yesLabel: 'Geprüft', noLabel: 'Offen'},
         })
         expect(wrapper.text()).toBe('Geprüft')
     })
 
     it('names the members an answer names', () => {
         const wrapper = mount(QuestionValueDisplay, {
-            props: {value: '[1,2]', fieldType: FieldTypes.MEMBER_LIST, memberNames: new Map([[1, 'Anna'], [2, 'Ben']])},
+            props: {value: '[1,2]', fieldType: FieldType.MEMBER_LIST, memberNames: new Map([[1, 'Anna'], [2, 'Ben']])},
         })
         expect(wrapper.text()).toBe('Anna, Ben')
     })
 
     it('writes a time the way a clock reads', () => {
-        expect(show('09:30:00', FieldTypes.TIME)).toBe('09:30')
+        expect(show('09:30:00', FieldType.TIME)).toBe('09:30')
     })
 
     it('writes a date the way it is read', () => {
-        expect(show('2019-11-03', FieldTypes.DATE)).toBe('03.11.2019')
+        expect(show('2019-11-03', FieldType.DATE)).toBe('03.11.2019')
     })
 
     /** Every birth date carried its age before there was a choice, so silence keeps it. */
     it('puts the age behind a birth date by default', () => {
-        expect(show('2019-11-03', FieldTypes.BIRTH_DATE)).toMatch(/^03\.11\.2019 \(\d+\)$/)
-        expect(show('2019-11-03', FieldTypes.BIRTH_DATE, {})).toMatch(/^03\.11\.2019 \(\d+\)$/)
+        expect(show('2019-11-03', FieldType.BIRTH_DATE)).toMatch(/^03\.11\.2019 \(\d+\)$/)
+        expect(show('2019-11-03', FieldType.BIRTH_DATE, {})).toMatch(/^03\.11\.2019 \(\d+\)$/)
     })
 
     /** A station that asks the age as a question of its own does not want it stated twice. */
     it('leaves the age off where the field says so', () => {
-        expect(show('2019-11-03', FieldTypes.BIRTH_DATE, {showAge: false})).toBe('03.11.2019')
+        expect(show('2019-11-03', FieldType.BIRTH_DATE, {showAge: false})).toBe('03.11.2019')
     })
 
     it('says nothing where there is no answer', () => {
-        expect(show('', FieldTypes.BIRTH_DATE)).toBe('–')
-        expect(show(null, FieldTypes.DATE)).toBe('–')
+        expect(show('', FieldType.BIRTH_DATE)).toBe('–')
+        expect(show(null, FieldType.DATE)).toBe('–')
     })
 
     /** An expiry date says in words how close it is, so it reads without its colour. */
@@ -76,7 +76,7 @@ describe('QuestionValueDisplay', () => {
         }
 
         function state(value: string, config?: Record<string, unknown>, bare = false) {
-            const wrapper = mount(QuestionValueDisplay, {props: {value, fieldType: FieldTypes.EXPIRY_DATE, config, bare}})
+            const wrapper = mount(QuestionValueDisplay, {props: {value, fieldType: FieldType.EXPIRY_DATE, config, bare}})
             return wrapper.find('[data-testid="expiry-state"]')
         }
 
@@ -105,6 +105,6 @@ describe('QuestionValueDisplay', () => {
 
     /** A date nobody can parse is left as written, because showing nothing would lose it. */
     it('keeps a date it cannot read as it was written', () => {
-        expect(show('irgendwann', FieldTypes.DATE)).toBe('irgendwann')
+        expect(show('irgendwann', FieldType.DATE)).toBe('irgendwann')
     })
 })

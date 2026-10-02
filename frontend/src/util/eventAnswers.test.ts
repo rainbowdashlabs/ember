@@ -5,9 +5,7 @@
  */
 /** @vitest-environment happy-dom */
 import {describe, expect, it} from 'vitest'
-import {RegistrationStatus, type RegistrationStatusName} from '@/api/events'
-import {FieldTypes} from '@/api/fieldTypes'
-import type {EventRegistrationField, RegistrationResponse} from '@/api/generated/schema'
+import {FieldType, RegistrationStatus, type EventRegistrationField, type RegistrationResponse} from '@/api/generated/schema'
 import {answerTotals, localAnswers, membersToRegister, rowsOnDate} from './eventAnswers'
 
 const SETTINGS = {required: false, managersOnly: false, selfRegistration: false, perDate: false}
@@ -17,7 +15,7 @@ const MEALS: EventRegistrationField = {
   eventId: 7,
   position: 0,
   name: 'Ernährung',
-  fieldType: FieldTypes.CHOICE,
+  fieldType: FieldType.CHOICE,
   config: {...SETTINGS, options: ['Mischkost', 'Vegetarisch'], required: true},
   overview: true,
 }
@@ -27,12 +25,12 @@ const GUESTS: EventRegistrationField = {
   eventId: 7,
   position: 1,
   name: 'Begleitung',
-  fieldType: FieldTypes.NUMBER,
+  fieldType: FieldType.NUMBER,
   config: SETTINGS,
   overview: true,
 }
 
-function registration(id: number, status: RegistrationStatusName, answers: Record<number, string>): RegistrationResponse {
+function registration(id: number, status: RegistrationStatus, answers: Record<number, string>): RegistrationResponse {
   return {
     id,
     eventId: 13,
@@ -90,7 +88,7 @@ describe('answerTotals', () => {
 
   it('has no total to show for free text', () => {
     const text: EventRegistrationField = {
-      ...MEALS, id: 3, name: 'Hinweis', fieldType: FieldTypes.TEXT, config: SETTINGS,
+      ...MEALS, id: 3, name: 'Hinweis', fieldType: FieldType.TEXT, config: SETTINGS,
     }
 
     const totals = answerTotals([text], [registration(1, RegistrationStatus.ACCEPTED, {3: 'Bitte früher'})])
@@ -105,7 +103,7 @@ function member(id: number) {
 }
 
 /** One member's registration on one date of a repeating appointment. */
-function onDate(id: number, memberId: number, eventDate: string, status: RegistrationStatusName): RegistrationResponse {
+function onDate(id: number, memberId: number, eventDate: string, status: RegistrationStatus): RegistrationResponse {
   return {...registration(id, status, {}), memberId, eventDate}
 }
 

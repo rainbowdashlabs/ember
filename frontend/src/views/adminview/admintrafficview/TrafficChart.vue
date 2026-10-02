@@ -11,8 +11,7 @@ import {use} from 'echarts/core'
 import {CanvasRenderer} from 'echarts/renderers'
 import {LineChart} from 'echarts/charts'
 import {DataZoomComponent, GridComponent, LegendComponent, TooltipComponent} from 'echarts/components'
-import {AuthBucket, type AuthBucketName} from '@/api/traffic'
-import type {HourlyTrafficRow} from '@/api/generated/schema'
+import {AuthBucket, type HourlyTrafficRow} from '@/api/generated/schema'
 import {bottomLegend, cartesianGrid, ZOOM_SLIDER_BOTTOM} from '@/util/chartLayout'
 import {useThemePaint} from '@/composables/useThemePaint'
 import {formatHourLabel} from '@/util/format'
@@ -43,7 +42,7 @@ const {dark: isDark} = useThemePaint()
 const textColor = computed(() => (isDark.value ? '#ccc' : '#333'))
 
 interface AuthSeries {
-  bucket: AuthBucketName
+  bucket: AuthBucket
   color: string
 }
 
@@ -61,7 +60,7 @@ const hours = computed(() => {
 
 const hourLabels = computed(() => hours.value.map(h => formatHourLabel(h)))
 
-function bucketSum(hour: string, auth: AuthBucketName, field: 'ingressBytes' | 'egressBytes' | 'requests'): number {
+function bucketSum(hour: string, auth: AuthBucket, field: 'ingressBytes' | 'egressBytes' | 'requests'): number {
   return props.rows
       .filter(r => r.hour === hour && r.auth === auth)
       .reduce((sum, r) => sum + (r[field] ?? 0), 0)

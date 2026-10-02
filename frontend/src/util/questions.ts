@@ -3,7 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {FieldTypes, isDateType, namesMembers, namesSeveralMembers} from '@/api/fieldTypes'
+import {isDateType, namesMembers, namesSeveralMembers} from '@/api/fieldTypes'
+import {FieldType} from '@/api/generated/schema'
 import {formatDate, formatTime} from '@/util/format'
 
 /**
@@ -43,8 +44,8 @@ export function questionKindOf(
     fieldType: string | undefined | null,
     step?: number | null,
 ): QuestionKindName | null {
-    if (!fieldType || fieldType === FieldTypes.SECTION || fieldType === FieldTypes.SPACER
-        || fieldType === FieldTypes.AGE) {
+    if (!fieldType || fieldType === FieldType.SECTION || fieldType === FieldType.SPACER
+        || fieldType === FieldType.AGE) {
         return null
     }
     if (namesMembers(fieldType)) {
@@ -52,17 +53,17 @@ export function questionKindOf(
     }
     if (isDateType(fieldType)) return QuestionKinds.DATE
     switch (fieldType) {
-        case FieldTypes.NUMBER:
+        case FieldType.NUMBER:
             return step != null && step < 1 ? QuestionKinds.DECIMAL : QuestionKinds.NUMBER
-        case FieldTypes.LONG_TEXT:
+        case FieldType.LONG_TEXT:
             return QuestionKinds.LONG_TEXT
-        case FieldTypes.TIME:
+        case FieldType.TIME:
             return QuestionKinds.TIME
-        case FieldTypes.BOOLEAN:
+        case FieldType.BOOLEAN:
             return QuestionKinds.BOOLEAN
-        case FieldTypes.CHOICE:
+        case FieldType.CHOICE:
             return QuestionKinds.CHOICE
-        case FieldTypes.URL:
+        case FieldType.URL:
             return QuestionKinds.URL
         default:
             return QuestionKinds.TEXT
@@ -135,7 +136,7 @@ export interface AnswerWords {
  */
 export function answerText(fieldType: string | null | undefined, value: unknown, words: AnswerWords): string {
     if (value == null || value === '') return ''
-    if (fieldType === FieldTypes.BOOLEAN) return isYes(value) ? words.yes : words.no
+    if (fieldType === FieldType.BOOLEAN) return isYes(value) ? words.yes : words.no
     if (namesMembers(fieldType)) {
         return memberIdsOf(value)
             .map(id => words.names?.get(Number(id)) ?? `#${id}`)
@@ -143,6 +144,6 @@ export function answerText(fieldType: string | null | undefined, value: unknown,
     }
     const text = String(value)
     if (isDateType(fieldType)) return formatDate(text) || text
-    if (fieldType === FieldTypes.TIME) return formatTime(text) || text
+    if (fieldType === FieldType.TIME) return formatTime(text) || text
     return text
 }

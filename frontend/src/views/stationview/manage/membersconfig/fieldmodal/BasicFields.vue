@@ -10,7 +10,7 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import FieldTypePicker from '@/components/input/FieldTypePicker.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import {FieldTypes, type FieldTypeName} from '@/api/fieldTypes'
+import {FieldType} from '@/api/generated/schema'
 import {useFieldsCapabilities} from '@/composables/useFieldsConfig'
 
 const props = defineProps<{
@@ -24,7 +24,7 @@ const props = defineProps<{
 }>()
 
 const name = defineModel<string>('name', {required: true})
-const fieldType = defineModel<FieldTypeName>('fieldType', {required: true})
+const fieldType = defineModel<FieldType>('fieldType', {required: true})
 const description = defineModel<string>('description', {required: true})
 
 const {t} = useI18n()
@@ -36,7 +36,7 @@ const {t} = useI18n()
 const capabilities = useFieldsCapabilities()
 
 /** A second date of birth is offered but not available: one per station is what makes it findable. */
-const unavailable = computed<FieldTypeName[]>(() => props.birthDateAvailable ? [] : [FieldTypes.BIRTH_DATE])
+const unavailable = computed<FieldType[]>(() => props.birthDateAvailable ? [] : [FieldType.BIRTH_DATE])
 </script>
 
 <template>

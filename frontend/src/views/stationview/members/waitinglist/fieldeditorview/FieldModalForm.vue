@@ -15,11 +15,12 @@ import LabelledField from '@/components/input/LabelledField.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import QuestionSettingsEditor from '@/components/input/questionsettings/QuestionSettingsEditor.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import { OfferedFieldTypes, type FieldTypeName } from '@/api/fieldTypes'
+import { OfferedFieldTypes } from '@/api/fieldTypes'
+import type { FieldType } from '@/api/generated/schema'
 import type { QuestionSettingsModel } from '@/components/input/questionsettings/questionSettings'
 
 const fieldName = defineModel<string>('fieldName', {required: true})
-const fieldType = defineModel<FieldTypeName>('fieldType', {required: true})
+const fieldType = defineModel<FieldType>('fieldType', {required: true})
 const fieldSettings = defineModel<QuestionSettingsModel>('fieldSettings', {required: true})
 const fieldPublic = defineModel<boolean>('fieldPublic', {required: true})
 

@@ -15,6 +15,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import LinkButton from '@/components/button/LinkButton.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import {passkeys} from '@/api'
+import {OfferAnswer} from '@/api/generated/schema'
 import {createWebAuthnCredential, getWebAuthnCredential, webauthnErrorKey} from '@/util/webauthn'
 import {decideSignInLanding} from '@/util/signInLanding'
 import {useStations} from '@/composables/useStations'
@@ -79,7 +80,7 @@ async function runTrial() {
   }
 }
 
-async function answer(kind: passkeys.OfferAnswerName) {
+async function answer(kind: OfferAnswer) {
   try {
     await passkeys.answerOffer(kind)
   } finally {
@@ -104,8 +105,8 @@ async function answer(kind: passkeys.OfferAnswerName) {
         <Alert v-if="error" variant="info">{{ error }}</Alert>
         <div class="space-y-2">
           <PrimaryButton class="w-full" @click="accept">{{ t('passkeys.offer.accept') }}</PrimaryButton>
-          <SecondaryButton class="w-full" @click="answer(passkeys.OfferAnswer.LATER)">{{ t('passkeys.offer.later') }}</SecondaryButton>
-          <LinkButton class="w-full" @click="answer(passkeys.OfferAnswer.DECLINED)">{{ t('passkeys.offer.decline') }}</LinkButton>
+          <SecondaryButton class="w-full" @click="answer(OfferAnswer.LATER)">{{ t('passkeys.offer.later') }}</SecondaryButton>
+          <LinkButton class="w-full" @click="answer(OfferAnswer.DECLINED)">{{ t('passkeys.offer.decline') }}</LinkButton>
         </div>
       </template>
 

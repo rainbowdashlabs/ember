@@ -4,12 +4,12 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {clusterMembers, managedMembers, profileFields} from '@/api'
-import {parseFieldConfig, type FieldOriginName} from '@/api/profileFields'
-import type {MemberProfileResponse} from '@/api/generated/schema'
+import {parseFieldConfig} from '@/api/profileFields'
+import type {FieldOrigin, MemberProfileResponse} from '@/api/generated/schema'
 import type {ProfileAnswersPort, ProfileAnswersSnapshot} from '@/composables/useProfileAnswers'
 
 /** The origin an association's screen sends as text, read back as one of the two there are. */
-function originOf(raw: string): FieldOriginName {
+function originOf(raw: string): FieldOrigin {
     return raw === 'CLUSTER' ? 'CLUSTER' : 'STATION'
 }
 

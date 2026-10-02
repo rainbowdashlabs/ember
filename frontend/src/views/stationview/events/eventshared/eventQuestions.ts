@@ -3,8 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {FieldTypes, memberConstraintOf, namesMembers, type FieldTypeName} from '@/api/fieldTypes'
-import type {EventFieldEntry, EventQuestionSettings} from '@/api/generated/schema'
+import {memberConstraintOf, namesMembers} from '@/api/fieldTypes'
+import {FieldType, type EventFieldEntry, type EventQuestionSettings} from '@/api/generated/schema'
 import type {QuestionSetting, QuestionSettingsModel} from '@/components/input/questionsettings/questionSettings'
 import {usableOptions} from '@/util/choiceOptions'
 
@@ -34,7 +34,7 @@ export function emptySettings(): EventQuestionSettings {
 
 /** A question nobody has written yet: a line of text without a name. */
 export function blankQuestion(): EventQuestionDraft {
-    return {name: '', fieldType: FieldTypes.TEXT, config: emptySettings(), value: '', overview: false, attendanceFieldId: null}
+    return {name: '', fieldType: FieldType.TEXT, config: emptySettings(), value: '', overview: false, attendanceFieldId: null}
 }
 
 /** The shared part of a question's settings, in the shape the shared settings editor edits. */
@@ -79,7 +79,7 @@ export function withSettingsModel(
  * members put themselves in only for a member field.
  */
 export function asSaved<T extends EventQuestionDraft>(question: T): T {
-    const type: FieldTypeName = question.fieldType ?? FieldTypes.TEXT
+    const type: FieldType = question.fieldType ?? FieldType.TEXT
     const settings = question.config ?? emptySettings()
     const constraint = memberConstraintOf(type)
     const options = usableOptions(settings.options ?? [])
@@ -88,14 +88,14 @@ export function asSaved<T extends EventQuestionDraft>(question: T): T {
         fieldType: type,
         config: {
             ...settings,
-            options: type === FieldTypes.CHOICE && options.length > 0 ? options : undefined,
+            options: type === FieldType.CHOICE && options.length > 0 ? options : undefined,
             groupId: constraint === 'group' ? settings.groupId : undefined,
             userType: constraint === 'userType' ? settings.userType : undefined,
             tagId: constraint === 'tag' ? settings.tagId : undefined,
             selfRegistration: namesMembers(type) && settings.selfRegistration,
             perDate: namesMembers(type) && settings.perDate,
-            min: type === FieldTypes.NUMBER ? settings.min : undefined,
-            max: type === FieldTypes.NUMBER ? settings.max : undefined,
+            min: type === FieldType.NUMBER ? settings.min : undefined,
+            max: type === FieldType.NUMBER ? settings.max : undefined,
         },
     }
 }

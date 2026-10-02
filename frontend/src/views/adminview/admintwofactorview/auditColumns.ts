@@ -3,8 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {TwoFactorEvent, TwoFactorKind} from '@/api/twoFactorAdmin'
-import type {TwoFactorAuditEntry} from '@/api/generated/schema'
+import {TwoFactorEvent, TwoFactorKind, type TwoFactorAuditEntry} from '@/api/generated/schema'
 import {ColumnTypes, enumOptions, type TableColumn} from '@/components/table/tableColumn'
 
 /** The columns of the two-factor audit log: when, whose account, who did it, what, with which factor, from where. */

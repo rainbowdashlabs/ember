@@ -15,18 +15,19 @@ import ModalActions from './fieldmodal/ModalActions.vue'
 import QuestionSettingsEditor from '@/components/input/questionsettings/QuestionSettingsEditor.vue'
 import WidthField from '@/components/profilefields/WidthField.vue'
 import {FieldWidths} from '@/components/profilefields/fieldLayout'
-import {FieldTypes, memberConstraintOf, namesMembers, type FieldTypeName} from '@/api/fieldTypes'
+import {memberConstraintOf, namesMembers} from '@/api/fieldTypes'
 import {
   defaultAsText,
   typedDefault,
   type QuestionSetting,
   type QuestionSettingsModel,
 } from '@/components/input/questionsettings/questionSettings'
-import type {
-  AttendanceFieldConfig,
-  AttendanceTemplateField,
-  MemberGroup,
-  TemplateFieldRequest,
+import {
+  FieldType,
+  type AttendanceFieldConfig,
+  type AttendanceTemplateField,
+  type MemberGroup,
+  type TemplateFieldRequest,
 } from '@/api/generated/schema'
 
 const props = defineProps<{
@@ -46,7 +47,7 @@ const {t} = useI18n()
 const open = defineModel<boolean>({default: false})
 
 const fieldName = ref('')
-const fieldType = ref<FieldTypeName>(FieldTypes.TEXT)
+const fieldType = ref<FieldType>(FieldType.TEXT)
 const settings = ref<QuestionSettingsModel>({})
 const autoAttend = ref(false)
 const fieldPosition = ref(0)
@@ -71,7 +72,7 @@ function buildConfig(): AttendanceFieldConfig {
     width: fieldWidth.value && fieldWidth.value !== FieldWidths.FULL ? fieldWidth.value : null,
     groupId: memberConstraintOf(type) === 'group' ? chosen.groupId ?? null : null,
     autoAttend: namesMembers(type) && autoAttend.value,
-    options: type === FieldTypes.CHOICE && options.length > 0 ? [...options] : null,
+    options: type === FieldType.CHOICE && options.length > 0 ? [...options] : null,
     defaultValue: offers.value.includes('default') ? typedDefault(type, chosen.defaultValue) ?? null : null,
   }
 }
@@ -80,7 +81,7 @@ watch([open, () => props.field], () => {
   if (!open.value) return
   const field = props.field
   fieldName.value = field?.name ?? ''
-  fieldType.value = field?.fieldType ?? FieldTypes.TEXT
+  fieldType.value = field?.fieldType ?? FieldType.TEXT
   settings.value = field
       ? {
           required: field.config.required,

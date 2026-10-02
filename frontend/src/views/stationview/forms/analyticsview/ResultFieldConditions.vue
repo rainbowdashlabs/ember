@@ -12,8 +12,7 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import MutedIconButton from '@/components/button/MutedIconButton.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import type {ResultFieldConditionState} from '@/api/forms'
-import {FieldTypes} from '@/api/fieldTypes'
-import type {ProfileField} from '@/api/generated/schema'
+import {FieldType, type ProfileField} from '@/api/generated/schema'
 
 /**
  * Conditions on profile answers: the answers that count for a choice or yes/no field, a range for a
@@ -36,7 +35,7 @@ function fieldOf(condition: ResultFieldConditionState): ProfileField | undefined
 }
 
 function answerOptions(field: ProfileField | undefined) {
-  if (field?.fieldType === FieldTypes.BOOLEAN) {
+  if (field?.fieldType === FieldType.BOOLEAN) {
     return [
       {value: 'true', label: t('forms.analytics.grouping.yes')},
       {value: 'false', label: t('forms.analytics.grouping.no')},
@@ -69,7 +68,7 @@ function bound(value: number | undefined): number | null {
     <div v-for="(condition, index) in conditions" :key="condition.fieldId" class="flex items-end gap-2">
       <div class="flex-1 space-y-1">
         <FieldLabel>{{ fieldOf(condition)?.name }}</FieldLabel>
-        <div v-if="fieldOf(condition)?.fieldType === FieldTypes.NUMBER" class="flex items-center gap-2">
+        <div v-if="fieldOf(condition)?.fieldType === FieldType.NUMBER" class="flex items-center gap-2">
           <NumberInput :model-value="condition.from ?? undefined" :placeholder="t('forms.analytics.grouping.from')"
                        @update:model-value="value => update(index, {from: bound(value)})"/>
           <NumberInput :model-value="condition.to ?? undefined" :placeholder="t('forms.analytics.grouping.to')"

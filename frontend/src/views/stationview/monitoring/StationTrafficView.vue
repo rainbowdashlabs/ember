@@ -13,8 +13,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import HelpCenterHint from '@/components/help/HelpCenterHint.vue'
 import {traffic} from '@/api'
-import type {AuthBucketName} from '@/api/traffic'
-import type {HourlyTrafficRow} from '@/api/generated/schema'
+import type {AuthBucket, HourlyTrafficRow} from '@/api/generated/schema'
 import TrafficChart from '@/views/adminview/admintrafficview/TrafficChart.vue'
 import TrafficTotals from '@/views/adminview/admintrafficview/TrafficTotals.vue'
 import TrafficWindowSelector from '@/views/adminview/admintrafficview/TrafficWindowSelector.vue'
@@ -24,7 +23,7 @@ const {t} = useI18n()
 
 const windowHours = ref(72)
 const metric = ref<'ingressBytes' | 'egressBytes' | 'requests' | 'inout'>('egressBytes')
-const authFilter = ref<AuthBucketName | ''>('')
+const authFilter = ref<AuthBucket | ''>('')
 
 const {config: rows, loading, reload: load} = useConfigPanel<HourlyTrafficRow[]>({
   initial: [],

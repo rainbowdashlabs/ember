@@ -10,7 +10,8 @@ import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import FieldAnswerInput from '@/components/input/FieldAnswerInput.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import type {MemberOption} from '@/components/input/select/memberOption'
-import {FieldTypes, isDateType} from '@/api/fieldTypes'
+import {isDateType} from '@/api/fieldTypes'
+import {FieldType} from '@/api/generated/schema'
 import {TODAY} from './questionSettings'
 
 /**
@@ -48,7 +49,7 @@ const hasDefault = computed({
   set: (on: boolean) => {
     if (!on) defaultValue.value = null
     else if (startsToday.value) defaultValue.value = TODAY
-    else defaultValue.value = props.fieldType === FieldTypes.BOOLEAN ? 'false' : ''
+    else defaultValue.value = props.fieldType === FieldType.BOOLEAN ? 'false' : ''
   },
 })
 

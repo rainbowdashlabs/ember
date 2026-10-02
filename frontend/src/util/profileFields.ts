@@ -4,9 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import type {Ref} from 'vue'
-import {ageSourceOf, parseFieldConfig, type FieldOriginName, type FieldSettings} from '@/api/profileFields'
-import {FieldTypes} from '@/api/fieldTypes'
-import type {MergedValue, ProfileFieldAssignment} from '@/api/generated/schema'
+import {ageSourceOf, parseFieldConfig, type FieldSettings} from '@/api/profileFields'
+import {FieldType, type FieldOrigin, type MergedValue, type ProfileFieldAssignment} from '@/api/generated/schema'
 import {computeAge} from '@/util/age'
 
 /**
@@ -27,7 +26,7 @@ export function calculatedAnswer(
     fields: readonly {id: number; name: string}[],
     rawValueOf: (fieldId: number) => unknown,
 ): string | null {
-    if (field.fieldType !== FieldTypes.AGE) return null
+    if (field.fieldType !== FieldType.AGE) return null
     const config = parseFieldConfig(field.config)
     const source = ageSourceOf(config, fields)
     if (!source) return ''
@@ -82,7 +81,7 @@ export function asAsked<T extends {required?: boolean; readonly?: boolean; width
  * <p>A station numbers its own fields and an association numbers its own, in separate tables, so the
  * id alone does not name a question on a profile that shows both.
  */
-export function profileKey(fieldId: number, origin: FieldOriginName): string {
+export function profileKey(fieldId: number, origin: FieldOrigin): string {
     return `${origin}:${fieldId}`
 }
 
@@ -94,7 +93,7 @@ export function profileKey(fieldId: number, origin: FieldOriginName): string {
  * hand-edited rows still load.
  */
 export function decodeMergedValues(
-    entries: ReadonlyArray<ProfileFieldValueEntry & {origin?: FieldOriginName}>,
+    entries: ReadonlyArray<ProfileFieldValueEntry & {origin?: FieldOrigin}>,
 ): Map<string, string> {
     const map = new Map<string, string>()
     for (const entry of entries) {

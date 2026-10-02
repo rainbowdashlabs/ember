@@ -7,29 +7,12 @@ import client from './client'
 import {documentFrom, type DocumentFile} from '@/util/documentFile'
 import type {ExportSeparator} from '@/util/exportFormat'
 import type {
-    components,
     MemberTable,
     MemberTableColumn,
     MemberTableHeader,
     MemberTablePreset,
     TableColumnsResponse,
 } from './generated/schema'
-
-export type MemberTableCellTypeName = components['schemas']['MemberTableCellType']
-
-/**
- * What a drawn column holds. Dates and birth dates arrive as `dd.mm.yyyy` from the station's own
- * questions and as ISO days from an appointment's; a boolean as the station's word for it or as
- * `true` and `false`.
- */
-export const MemberTableCellTypes = {
-    TEXT: 'TEXT',
-    NUMBER: 'NUMBER',
-    DATE: 'DATE',
-    BIRTH_DATE: 'BIRTH_DATE',
-    BOOLEAN: 'BOOLEAN',
-    ENUM: 'ENUM',
-} as const satisfies Record<MemberTableCellTypeName, MemberTableCellTypeName>
 
 /**
  * One column as a screen asks for it, named by what it points at rather than by what it says.

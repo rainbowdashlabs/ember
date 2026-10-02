@@ -13,8 +13,8 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import FieldAnswerInput from '@/components/input/FieldAnswerInput.vue'
 import QuestionValueDisplay from '@/components/display/QuestionValueDisplay.vue'
 import {fromMember, type MemberOption} from '@/components/input/select/memberOption'
-import {FieldTypes, isDateType, namesMembers} from '@/api/fieldTypes'
-import type {AttendanceTemplateField, MemberWithName} from '@/api/generated/schema'
+import {isDateType, namesMembers} from '@/api/fieldTypes'
+import {FieldType, type AttendanceTemplateField, type MemberWithName} from '@/api/generated/schema'
 import {memberIdsOf} from '@/util/questions'
 
 const {t} = useI18n()
@@ -40,7 +40,7 @@ const memberNames = computed(() => new Map(props.allMembers.map(member => [membe
  * where a typed one is saved once the typing stops.
  */
 function isImmediate(fieldType: string): boolean {
-  return fieldType === FieldTypes.BOOLEAN || fieldType === FieldTypes.CHOICE || isDateType(fieldType)
+  return fieldType === FieldType.BOOLEAN || fieldType === FieldType.CHOICE || isDateType(fieldType)
 }
 
 function getFieldValue(fieldId: number): string {

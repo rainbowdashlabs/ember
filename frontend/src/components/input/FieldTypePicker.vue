@@ -7,7 +7,8 @@
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SelectInput from './select/SelectInput.vue'
-import {fieldTypeLabel, isFieldType, type FieldTypeName} from '@/api/fieldTypes'
+import {fieldTypeLabel, isFieldType} from '@/api/fieldTypes'
+import type {FieldType} from '@/api/generated/schema'
 
 /**
  * The select a field's type is chosen in, whatever feature the field belongs to.
@@ -23,13 +24,13 @@ import {fieldTypeLabel, isFieldType, type FieldTypeName} from '@/api/fieldTypes'
  */
 defineOptions({inheritAttrs: false})
 
-const type = defineModel<FieldTypeName>({required: true})
+const type = defineModel<FieldType>({required: true})
 
 const props = defineProps<{
   /** The types this feature offers, in the order it offers them. */
-  types: readonly FieldTypeName[]
+  types: readonly FieldType[]
   /** Types offered but not available just now, such as a second date of birth. */
-  unavailable?: readonly FieldTypeName[]
+  unavailable?: readonly FieldType[]
   disabled?: boolean
   /** Whether the line saying what the chosen type is for is shown under the select. */
   describe?: boolean

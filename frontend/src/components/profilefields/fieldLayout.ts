@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {FieldTypes} from '@/api/fieldTypes'
+import {FieldType} from '@/api/generated/schema'
 
 /**
  * The little a layout decision needs to know about a field.
@@ -88,12 +88,12 @@ export function spanClass(field: LayoutField): string {
 
 /** Whether the entry is a heading between fields rather than a field. */
 export function isSection(field: LayoutField): boolean {
-    return field.fieldType === FieldTypes.SECTION
+    return field.fieldType === FieldType.SECTION
 }
 
 /** Whether the entry is a gap on a row: it keeps its width and shows nothing at all. */
 export function isSpacer(field: LayoutField): boolean {
-    return field.fieldType === FieldTypes.SPACER
+    return field.fieldType === FieldType.SPACER
 }
 
 /**
@@ -114,5 +114,5 @@ export function holdsAnswer(field: LayoutField): boolean {
  * into it.
  */
 export function valueFields<T extends LayoutField>(fields: T[]): T[] {
-    return fields.filter(field => holdsAnswer(field) && field.fieldType !== FieldTypes.AGE)
+    return fields.filter(field => holdsAnswer(field) && field.fieldType !== FieldType.AGE)
 }

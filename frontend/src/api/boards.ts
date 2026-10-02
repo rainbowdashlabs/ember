@@ -7,10 +7,10 @@ import client from './client'
 import { createCrudResource, createScopedCrudResource, type NoContent } from './crud'
 import { uploadFile } from './upload'
 import type { CommentSource } from './comments'
-import { StationPermission } from './generated/schema'
+import { FieldType, StationPermission } from './generated/schema'
 import { downloadAuthed } from '@/util/downloadAuthed'
 import { isYes } from '@/util/questions'
-import { FieldTypes, OfferedFieldTypes } from './fieldTypes'
+import { OfferedFieldTypes } from './fieldTypes'
 import type {
     AccessData,
     AccessRequest,
@@ -164,13 +164,13 @@ export type BoardFieldRaw = string | number | boolean
 /** The bare value a ticket holds for a field, or null where it holds none. */
 export function rawFieldValue(entry: TypedBoardFieldValue): BoardFieldRaw | null {
     if (entry.value === null) return null
-    if (entry.fieldType === FieldTypes.LANE_ASSIGNEE) return entry.value.memberId
+    if (entry.fieldType === FieldType.LANE_ASSIGNEE) return entry.value.memberId
     return entry.value.value
 }
 
 /** The value record the server binds for a field of the given type, built from what the screen holds. */
 export function fieldValueBody(fieldType: BoardFieldTypeName, raw: BoardFieldRaw): BoardFieldValue {
-    if (fieldType === FieldTypes.LANE_ASSIGNEE) return {memberId: Number(raw)}
+    if (fieldType === FieldType.LANE_ASSIGNEE) return {memberId: Number(raw)}
     return {value: raw}
 }
 
@@ -188,8 +188,8 @@ export function fieldValueText(raw: BoardFieldRaw | null | undefined): string {
  */
 export function fieldValueOfText(fieldType: BoardFieldTypeName, text: string): BoardFieldRaw | null {
     if (text === '') return null
-    if (fieldType === FieldTypes.BOOLEAN) return isYes(text)
-    if (fieldType === FieldTypes.NUMBER || fieldType === FieldTypes.LANE_ASSIGNEE) {
+    if (fieldType === FieldType.BOOLEAN) return isYes(text)
+    if (fieldType === FieldType.NUMBER || fieldType === FieldType.LANE_ASSIGNEE) {
         const number = Number(text)
         return Number.isNaN(number) ? null : number
     }
@@ -218,8 +218,8 @@ export function fieldDraftOf(field: TypedBoardField): BoardFieldDraft {
         options: [],
         laneId: null,
     }
-    if (field.fieldType === FieldTypes.CHOICE) return {...draft, options: field.config.options}
-    if (field.fieldType === FieldTypes.LANE_ASSIGNEE) return {...draft, laneId: field.config.laneId}
+    if (field.fieldType === FieldType.CHOICE) return {...draft, options: field.config.options}
+    if (field.fieldType === FieldType.LANE_ASSIGNEE) return {...draft, laneId: field.config.laneId}
     return draft
 }
 
@@ -228,8 +228,8 @@ export function fieldDraftOf(field: TypedBoardField): BoardFieldDraft {
  * server reads as that type's empty settings.
  */
 function fieldConfigOf(draft: BoardFieldDraft): BoardFieldConfig {
-    if (draft.fieldType === FieldTypes.CHOICE) return {required: draft.required, options: draft.options}
-    if (draft.fieldType === FieldTypes.LANE_ASSIGNEE && draft.laneId !== null) {
+    if (draft.fieldType === FieldType.CHOICE) return {required: draft.required, options: draft.options}
+    if (draft.fieldType === FieldType.LANE_ASSIGNEE && draft.laneId !== null) {
         return {required: draft.required, laneId: draft.laneId}
     }
     return {required: draft.required}

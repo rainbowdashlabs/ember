@@ -6,7 +6,7 @@
 <script lang="ts" setup>
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
-import {FieldTypes} from '@/api/fieldTypes'
+import {FieldType} from '@/api/generated/schema'
 import {parseFieldConfig, type FieldSettings} from '@/api/profileFields'
 import {computeAge} from '@/util/age'
 import {answerText, isYes} from '@/util/questions'
@@ -42,7 +42,7 @@ const {t} = useI18n()
 
 const empty = computed(() => props.value == null || props.value === '')
 
-const isBoolean = computed(() => props.fieldType === FieldTypes.BOOLEAN)
+const isBoolean = computed(() => props.fieldType === FieldType.BOOLEAN)
 const yes = computed(() => isYes(props.value))
 const booleanWord = computed(() =>
     yes.value ? (props.yesLabel || t('common.yes')) : (props.noLabel || t('common.no')))
@@ -56,7 +56,7 @@ const booleanWord = computed(() =>
  */
 const showsAge = computed(() => !props.bare && parseFieldConfig(props.config).showAge !== false)
 
-const showsExpiry = computed(() => !props.bare && props.fieldType === FieldTypes.EXPIRY_DATE && !empty.value)
+const showsExpiry = computed(() => !props.bare && props.fieldType === FieldType.EXPIRY_DATE && !empty.value)
 
 /**
  * The answer written out. A date nobody can parse is left as written, because showing nothing at
@@ -69,7 +69,7 @@ const text = computed(() => {
     no: t('common.no'),
     names: props.memberNames,
   })
-  if (props.fieldType !== FieldTypes.BIRTH_DATE || !showsAge.value) return written
+  if (props.fieldType !== FieldType.BIRTH_DATE || !showsAge.value) return written
   const age = computeAge(String(props.value), 'now')
   return age ? `${written} (${age})` : written
 })

@@ -16,8 +16,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import EventFieldValueInput from './EventFieldValueInput.vue'
 import {useAnswerMembers} from './useAnswerMembers'
-import {FieldTypes} from '@/api/fieldTypes'
-import type {EventRegistrationFieldValue, EventRegistrationField} from '@/api/generated/schema'
+import {FieldType, type EventRegistrationFieldValue, type EventRegistrationField} from '@/api/generated/schema'
 
 const props = defineProps<{
   fields: EventRegistrationField[]
@@ -101,7 +100,7 @@ watch(show, (open) => {
             @update:model-value="v => { answers[field.id] = v }"
         />
         <p
-            v-if="field.fieldType === FieldTypes.NUMBER && (field.config?.min != null || field.config?.max != null)"
+            v-if="field.fieldType === FieldType.NUMBER && (field.config?.min != null || field.config?.max != null)"
             class="text-xs text-(--text-muted) mt-1"
         >
           {{ t('events.registrationFields.range', {min: field.config?.min ?? '–', max: field.config?.max ?? '–'}) }}

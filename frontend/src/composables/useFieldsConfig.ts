@@ -10,10 +10,13 @@ import {useConfirmDelete} from '@/composables/useConfirmDelete'
 import {
     DATE_FIELD_TYPES, parseFieldConfig,
     type AssignmentTarget, type EditableField, type EditableFieldRequest, type FieldSettings,
-    type FieldSwitchName, type ProfileFieldScopeName,
+    type FieldSwitchName,
 } from '@/api/profileFields'
-import {FieldTypes, OfferedFieldTypes, type FieldTypeName} from '@/api/fieldTypes'
-import type {AssignmentRequest, MemberGroup, ProfileFieldAssignment, StationGroupResponse} from '@/api/generated/schema'
+import {OfferedFieldTypes} from '@/api/fieldTypes'
+import {
+    FieldType, type AssignmentRequest, type MemberGroup, type ProfileFieldAssignment, type ProfileFieldScope,
+    type StationGroupResponse,
+} from '@/api/generated/schema'
 import {asAsked} from '@/util/profileFields'
 import {moveWithin} from '@/util/reorder'
 import {describeFailure} from '@/util/failure'
@@ -42,14 +45,14 @@ export interface FieldsPort {
     /** Stops asking an audience. The question and its answers stay. */
     unassign(fieldId: number, target: AssignmentTarget): Promise<unknown>
     /** Writes a whole form's order at once, because dragging one question moves every one below it. */
-    reorder(role: ProfileFieldScopeName, fieldIds: number[]): Promise<unknown>
+    reorder(role: ProfileFieldScope, fieldIds: number[]): Promise<unknown>
     /** The kinds of member this owner may ask, in the order the forms are listed. */
-    roles: readonly ProfileFieldScopeName[]
+    roles: readonly ProfileFieldScope[]
     /**
      * Which field types this owner may choose, in the order the type picker offers them. A template
      * naming any other does not offer itself.
      */
-    types: readonly FieldTypeName[]
+    types: readonly FieldType[]
     /** The groups a question can be pointed at. An association has none: a group belongs to one station. */
     listGroups?: () => Promise<MemberGroup[]>
     /** The station groups a question can be pointed at, when this owner files its stations at all. */
@@ -139,7 +142,7 @@ export interface FieldsCapabilities {
      * The types this owner may choose, in the order the type picker offers them. A template naming any
      * other does not offer itself.
      */
-    types: readonly FieldTypeName[]
+    types: readonly FieldType[]
     /** Whether a question here can be put to a group of members, which only a station's can. */
     groups: boolean
 }
@@ -187,7 +190,7 @@ export function useFieldsConfig(port: FieldsPort) {
     /** The question whose audiences the right hand panel is showing. */
     const selectedFieldId = ref<number | null>(null)
     /** Whose form the preview draws, which is one of the roles rather than a group. */
-    const previewRole = ref<ProfileFieldScopeName>(port.roles[0] ?? 'MEMBER')
+    const previewRole = ref<ProfileFieldScope>(port.roles[0] ?? 'MEMBER')
     /**
      * Which station group's questions the screen is showing, {@code null} for the ones asked of every
      * station. An association's axis, and nothing to do with a station's member groups.
@@ -319,7 +322,7 @@ export function useFieldsConfig(port: FieldsPort) {
         questions.value.filter(f => assignmentsOf(f.id).length === 0))
 
     /** One audience's form, in the order that audience sees it. */
-    function formFor(role: ProfileFieldScopeName): FormEntry[] {
+    function formFor(role: ProfileFieldScope): FormEntry[] {
         return allAssignments.value
             .filter(a => a.targetKind === 'ROLE' && a.role === role)
             .map(a => ({field: allFields.value.find(f => f.id === a.fieldId), assignment: a}))
@@ -346,7 +349,7 @@ export function useFieldsConfig(port: FieldsPort) {
      * no such rule, and a second is a duplicate rather than a different question.
      */
     const birthDateField = computed(() =>
-        allFields.value.find(f => f.fieldType === FieldTypes.BIRTH_DATE) ?? null)
+        allFields.value.find(f => f.fieldType === FieldType.BIRTH_DATE) ?? null)
 
     function select(fieldId: number | null) {
         selectedFieldId.value = fieldId
@@ -516,7 +519,7 @@ export function useFieldsConfig(port: FieldsPort) {
      * order it is being shown, so there is nothing to fetch back; a refusal puts the old order back
      * and says so.
      */
-    async function onReorder(role: ProfileFieldScopeName, fromIndex: number, toIndex: number) {
+    async function onReorder(role: ProfileFieldScope, fromIndex: number, toIndex: number) {
         const ordered = moveWithin(formFor(role), fromIndex, toIndex).map(entry => entry.field.id)
         const before = allAssignments.value
         allAssignments.value = allAssignments.value.map(assignment =>
@@ -614,12 +617,12 @@ export function useFieldsConfig(port: FieldsPort) {
     async function applyTemplate(
         template: {fields: Array<{
             name: string
-            fieldType: FieldTypeName
+            fieldType: FieldType
             config: FieldSettings
             required?: boolean
             readonly?: boolean
         }>},
-        role: ProfileFieldScopeName,
+        role: ProfileFieldScope,
     ) {
         failure.value = null
         try {

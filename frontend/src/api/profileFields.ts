@@ -5,49 +5,36 @@
  */
 import client from './client'
 import {createCrudResource} from './crud'
-import {FieldTypes} from './fieldTypes'
-import type {
-    AssignmentRequest,
-    components,
-    MergedField,
-    MergedValue,
-    ProfileField,
-    ProfileFieldAssignment,
-    ProfileFieldConfig,
-    ProfileFieldRequest,
-    SetValuesRequest,
+import {
+    FieldType,
+    ProfileFieldScope,
+    type AssignmentRequest,
+    type MergedField,
+    type MergedValue,
+    type ProfileField,
+    type ProfileFieldAssignment,
+    type ProfileFieldConfig,
+    type ProfileFieldRequest,
+    type SetValuesRequest,
 } from './generated/schema'
-
-type Schemas = components['schemas']
 
 /**
  * Field types that hold a date and can therefore serve as the source of a calculated age. An expiry
  * date holds a date too, but nobody counts an age from the day a licence runs out.
  */
-export const DATE_FIELD_TYPES: readonly string[] = [FieldTypes.DATE, FieldTypes.BIRTH_DATE]
+export const DATE_FIELD_TYPES: readonly string[] = [FieldType.DATE, FieldType.BIRTH_DATE]
 
-/** The kinds of member a question can be put to. A group is a target of its own, not one of these. */
-export type ProfileFieldScopeName = Schemas['ProfileFieldScope']
-
-export const ProfileFieldScopes = {
-    TRIAL: 'TRIAL',
-    MEMBER: 'MEMBER',
-    GUARDIAN: 'GUARDIAN',
-    TEAM: 'TEAM',
-    MANAGER: 'MANAGER',
-} as const satisfies Record<ProfileFieldScopeName, ProfileFieldScopeName>
-
-/** The kind of member a picked value names, or nothing where it names none the server knows. */
-export function scopeOf(value: string | undefined): ProfileFieldScopeName | undefined {
+/**
+ * The kind of member a picked value names, or nothing where it names none the server knows. A group
+ * is a target of its own, not one of these kinds.
+ */
+export function scopeOf(value: string | undefined): ProfileFieldScope | undefined {
     return value !== undefined && isScope(value) ? value : undefined
 }
 
-function isScope(value: string): value is ProfileFieldScopeName {
-    return Object.hasOwn(ProfileFieldScopes, value)
+function isScope(value: string): value is ProfileFieldScope {
+    return Object.hasOwn(ProfileFieldScope, value)
 }
-
-/** Where a question on the member profile comes from: the station itself, or the association above it. */
-export type FieldOriginName = Schemas['FieldOrigin']
 
 /**
  * A field's settings as a screen holds them while they are written.
@@ -131,7 +118,7 @@ export const deleteField = fields.remove
  * <p>Dragging one field moves every field below it, and writing that a field at a time meant one request
  * per field for a single drag.
  */
-export async function reorderFields(role: ProfileFieldScopeName, fieldIds: number[]): Promise<void> {
+export async function reorderFields(role: ProfileFieldScope, fieldIds: number[]): Promise<void> {
     await client.put('/profile-fields/order', {role, fieldIds})
 }
 

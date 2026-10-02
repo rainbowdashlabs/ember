@@ -9,7 +9,6 @@ import {StorageDeniedError} from './auth'
 import type {PasskeyModeName} from './adminSettings'
 import type {
     CeremonyResponse,
-    components,
     CreationFinishRequest,
     DeviceCodeRequest,
     DeviceEnrollBeginRequest,
@@ -24,6 +23,7 @@ import type {
     DeviceStepUpPollRequest,
     DeviceStepUpPollResponse,
     LoginResponse,
+    OfferAnswer,
     OfferAnswerRequest,
     OfferResponse,
     PasskeyEntryResponse,
@@ -40,18 +40,6 @@ import type {
     TrialOutcome,
     TrialResponse,
 } from './generated/schema'
-
-export type DeviceRequestPurposeName = components['schemas']['DeviceRequestPurpose']
-
-/**
- * What approving a device request buys. The handshake is the same either way; only what the poll
- * hands over at the end of it differs.
- */
-export const DeviceRequestPurpose = {
-    ENROL_PASSKEY: 'ENROL_PASSKEY',
-    SIGN_IN: 'SIGN_IN',
-    STEP_UP: 'STEP_UP',
-} as const satisfies Record<DeviceRequestPurposeName, DeviceRequestPurposeName>
 
 export async function publicPasskeyMode(): Promise<PasskeyModeName> {
     const res = await client.get<PublicModeResponse>('/public/settings/passkeys')
@@ -124,15 +112,8 @@ export async function offerState(): Promise<boolean> {
     return res.data.offer
 }
 
-export type OfferAnswerName = components['schemas']['OfferAnswer']
-
 /** How a member answers the offer to set up a passkey: ask again later, or never again. */
-export const OfferAnswer = {
-    LATER: 'LATER',
-    DECLINED: 'DECLINED',
-} as const satisfies Record<OfferAnswerName, OfferAnswerName>
-
-export async function answerOffer(answer: OfferAnswerName): Promise<void> {
+export async function answerOffer(answer: OfferAnswer): Promise<void> {
     await client.post('/account/passkeys/offer-answer', {answer} satisfies OfferAnswerRequest)
 }
 

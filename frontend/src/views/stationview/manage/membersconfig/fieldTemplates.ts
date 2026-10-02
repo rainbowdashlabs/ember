@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import type {FieldSettings} from '@/api/profileFields'
-import type {FieldTypeName} from '@/api/fieldTypes'
+import type {FieldType} from '@/api/generated/schema'
 
 /**
  * One question a template writes down.
@@ -15,7 +15,7 @@ import type {FieldTypeName} from '@/api/fieldTypes'
  */
 export interface TemplateField {
   name: string
-  fieldType: FieldTypeName
+  fieldType: FieldType
   config: FieldSettings
   required?: boolean
   readonly?: boolean

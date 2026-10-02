@@ -7,7 +7,6 @@ import client from './client'
 import type {
     AccountSearchResult,
     AuditResponse,
-    components,
     MemberStatus,
     MemberStatusResponse,
     PoliciesResponse,
@@ -17,44 +16,6 @@ import type {
     UpsertPolicyRequest,
     UserTypesResponse,
 } from './generated/schema'
-
-type Schemas = components['schemas']
-
-export type TwoFactorEventName = Schemas['TwoFactorEvent']
-
-/** Everything the two-factor audit log records. */
-export const TwoFactorEvent = {
-    ENROLLED: 'ENROLLED',
-    REMOVED: 'REMOVED',
-    LOGIN_VERIFIED: 'LOGIN_VERIFIED',
-    STEPUP_VERIFIED: 'STEPUP_VERIFIED',
-    BACKUP_CODE_USED: 'BACKUP_CODE_USED',
-    BACKUP_CODE_REGENERATED: 'BACKUP_CODE_REGENERATED',
-    ADMIN_RESET: 'ADMIN_RESET',
-    TRUSTED_DEVICE_ADDED: 'TRUSTED_DEVICE_ADDED',
-    TRUSTED_DEVICE_REVOKED: 'TRUSTED_DEVICE_REVOKED',
-    POLICY_CHANGED: 'POLICY_CHANGED',
-    PASSKEY_SIGN_IN: 'PASSKEY_SIGN_IN',
-    PASSKEY_ENROLLED_VIA_DEVICE_CODE: 'PASSKEY_ENROLLED_VIA_DEVICE_CODE',
-    PASSKEY_CODE_ISSUED: 'PASSKEY_CODE_ISSUED',
-    PASSWORD_LOGIN_DISABLED: 'PASSWORD_LOGIN_DISABLED',
-    PASSWORD_LOGIN_ENABLED: 'PASSWORD_LOGIN_ENABLED',
-    PASSWORD_RETIRED: 'PASSWORD_RETIRED',
-    STEPUP_FAILED: 'STEPUP_FAILED',
-    SIGNED_IN_VIA_DEVICE_CODE: 'SIGNED_IN_VIA_DEVICE_CODE',
-    STEPUP_VIA_DEVICE_CODE: 'STEPUP_VIA_DEVICE_CODE',
-    DEVICE_REQUEST_APPROVED: 'DEVICE_REQUEST_APPROVED',
-    ONE_TIME_PASSWORD_ISSUED: 'ONE_TIME_PASSWORD_ISSUED',
-} as const satisfies Record<TwoFactorEventName, TwoFactorEventName>
-
-export type TwoFactorKindName = Schemas['TwoFactorKind']
-
-/** The second factors an account can hold. */
-export const TwoFactorKind = {
-    TOTP: 'TOTP',
-    WEBAUTHN: 'WEBAUTHN',
-    BACKUP_CODES: 'BACKUP_CODES',
-} as const satisfies Record<TwoFactorKindName, TwoFactorKindName>
 
 export async function listStationPolicies(): Promise<TwoFactorPolicyEntry[]> {
     const res = await client.get<PoliciesResponse>('/station/2fa/policies')

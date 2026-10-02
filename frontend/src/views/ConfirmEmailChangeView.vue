@@ -10,7 +10,7 @@ import {useRoute} from 'vue-router'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import {auth} from '@/api'
-import {EmailChangeStatus} from '@/api/auth'
+import {EmailChangeStatus} from '@/api/generated/schema'
 
 /**
  * Where the link in a change-of-address mail lands.
