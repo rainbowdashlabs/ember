@@ -20,9 +20,8 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import AiKeyField from './AiKeyField.vue'
-import type {AiCredentialSummary, ModelInfo} from '@/api/generated/schema'
+import {AiVendor, type AiCredentialSummary, type ModelInfo} from '@/api/generated/schema'
 import {ai as aiApi} from '@/api'
-import {AiVendor, type AiVendorName} from '@/api/ai'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 
 const {t} = useI18n()
@@ -30,7 +29,7 @@ const {t} = useI18n()
 const vendors = Object.values(AiVendor)
 
 const showAiSettings = ref(false)
-const aiProvider = ref<AiVendorName>(AiVendor.OPENAI)
+const aiProvider = ref<AiVendor>(AiVendor.OPENAI)
 const aiModel = ref('')
 /** A key being typed in. It leaves the browser once, on save, and is never read back. */
 const aiApiKey = ref('')
@@ -101,7 +100,7 @@ watch(saveOnServer, async (val) => {
   } catch { void 0 }
 })
 
-function getProvider(): AiVendorName { return aiProvider.value }
+function getProvider(): AiVendor { return aiProvider.value }
 function getModel(): string { return aiModel.value }
 
 loadSettings()

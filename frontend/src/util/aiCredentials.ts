@@ -3,7 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {AiVendor, type AiVendorName, getAiCredential, getSettings} from '@/api/ai'
+import {getAiCredential, getSettings} from '@/api/ai'
+import {AiVendor} from '@/api/generated/schema'
 
 /**
  * Which AI provider and model generation asks, and whether there is a key to ask with at all.
@@ -12,7 +13,7 @@ import {AiVendor, type AiVendorName, getAiCredential, getSettings} from '@/api/a
  * one, and the station's otherwise.
  */
 export interface AiCredentials {
-    provider: AiVendorName
+    provider: AiVendor
     model: string
     available: boolean
 }

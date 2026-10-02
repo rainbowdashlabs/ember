@@ -5,7 +5,8 @@
  *
  * The description is `src/main/resources/api/openapi.json`, which `./toolchain.sh be-api-spec` writes and
  * the backend's tests hold to the records. This turns it into `src/api/generated/schema.ts` with
- * openapi-typescript: every schema as a named type, the paths and their operations beside them.
+ * openapi-typescript: every schema as a named type, the paths and their operations beside them, and for
+ * every string enum a constant of the same name holding its values.
  *
  * Run it with `./toolchain.sh fe-api-types`, or `./toolchain.sh api-types` for both halves. The linter of
  * the same name checks that what is committed is what this writes, so the two cannot drift.
@@ -14,6 +15,7 @@
 import {readFileSync, writeFileSync, mkdirSync} from 'fs'
 import {dirname, join} from 'path'
 import openapiTS, {astToString} from 'openapi-typescript'
+import ts from 'typescript'
 import {SRC, GREEN, RESET} from './lint-utils.mjs'
 
 export const SPEC = new URL('../../src/main/resources/api/openapi.json', import.meta.url).pathname
@@ -30,6 +32,8 @@ const HEADER = `/*
  */
 `
 
+const SCHEMA_REFERENCE = /^components\['schemas'\]\['(.+)'\]$/
+
 /**
  * The file as it should stand for the committed API description.
  */
@@ -42,8 +46,83 @@ export async function renderApiTypes() {
         alphabetize: true,
         silent: true,
     })
-    const body = astToString(ast).replace(/[ \t]+$/gm, '')
+    const body = `${astToString(ast)}\n${renderEnumConstants(spec, ast)}`.replace(/[ \t]+$/gm, '')
     return `${HEADER}${body.endsWith('\n') ? body : `${body}\n`}`
+}
+
+/**
+ * One constant per string enum of the description, named like the root type of that enum, so a single
+ * import gives both the union and its values. Keys and values are the enum values, alphabetised, and
+ * the constants follow the alphabetical order of their names so the file stays deterministic.
+ *
+ * Fails when a constant's name is already taken by a value the generated types export, since quietly
+ * renaming it would break the rule that the constant and its type share one name.
+ */
+function renderEnumConstants(spec, ast) {
+    const rootTypeNames = rootTypeNamesBySchema(ast)
+    const takenValueNames = exportedValueNames(ast)
+    return Object.entries(spec.components?.schemas ?? {})
+        .filter(([schemaName, schema]) => isStringEnum(schema) && rootTypeNames.has(schemaName))
+        .map(([schemaName, schema]) => ({name: rootTypeNames.get(schemaName), values: schema.enum}))
+        .map(constant => {
+            if (takenValueNames.has(constant.name)) {
+                throw new Error(`The enum constant ${constant.name} collides with a value the generated types export`)
+            }
+            return constant
+        })
+        .sort((a, b) => compareText(a.name, b.name))
+        .map(({name, values}) => renderConstant(name, values))
+        .join('\n')
+}
+
+/**
+ * The name of the exported root type for each schema, as openapi-typescript chose it.
+ */
+function rootTypeNamesBySchema(ast) {
+    const names = new Map()
+    for (const node of ast) {
+        if (!ts.isTypeAliasDeclaration(node) || !ts.isTypeReferenceNode(node.type)) continue
+        if (!ts.isIdentifier(node.type.typeName)) continue
+        const schemaName = node.type.typeName.text.match(SCHEMA_REFERENCE)?.[1]
+        if (schemaName) names.set(schemaName, node.name.text)
+    }
+    return names
+}
+
+/**
+ * Every name the generated types already export as a value rather than as a type.
+ */
+function exportedValueNames(ast) {
+    const names = new Set()
+    for (const node of ast) {
+        if (ts.isVariableStatement(node)) {
+            node.declarationList.declarations
+                .filter(declaration => ts.isIdentifier(declaration.name))
+                .forEach(declaration => names.add(declaration.name.text))
+        } else if ((ts.isFunctionDeclaration(node) || ts.isEnumDeclaration(node) || ts.isClassDeclaration(node)) && node.name) {
+            names.add(node.name.text)
+        }
+    }
+    return names
+}
+
+function isStringEnum(schema) {
+    return Array.isArray(schema.enum) && schema.enum.length > 0 && schema.enum.every(value => typeof value === 'string')
+}
+
+function renderConstant(name, values) {
+    const entries = [...new Set(values)]
+        .sort(compareText)
+        .map(value => `    ${propertyKey(value)}: ${JSON.stringify(value)},`)
+    return `export const ${name} = {\n${entries.join('\n')}\n} as const;\n`
+}
+
+function propertyKey(value) {
+    return ts.isIdentifierText(value, ts.ScriptTarget.ESNext) ? value : JSON.stringify(value)
+}
+
+function compareText(a, b) {
+    return a < b ? -1 : a > b ? 1 : 0
 }
 
 if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split('/').pop())) {
