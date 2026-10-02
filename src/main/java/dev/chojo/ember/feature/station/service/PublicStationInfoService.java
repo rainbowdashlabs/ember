@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.form.service.FormService;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.news.service.NewsService;
 import dev.chojo.ember.feature.page.service.PageService;
+import dev.chojo.ember.feature.station.entity.PublicOffer;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
@@ -73,23 +74,19 @@ public class PublicStationInfoService {
     }
 
     /**
-     * Whether the station's public page has anything to open: its wiki, its calendar, a listed page,
-     * a waiting list or its blog. A form reached only by its link does not count, since the page
-     * itself would show nothing to go to.
+     * What of the station is on the public web. An association's own station offers its wiki at most.
+     * A form reached only by its link is no part of it, since the public page would show nothing to go
+     * to; a link to that page leads somewhere exactly when the offer is not empty.
      *
      * @param station the station
-     * @return whether a link to its public page leads somewhere
+     * @return each public part and whether the station has it
      */
-    public boolean hasPublicPage(Station station) {
-        return !offer(station).isEmpty();
-    }
-
-    private Offer offer(Station station) {
+    public PublicOffer offer(Station station) {
         boolean hasPublicKb = station.publicKbMode() != PublicKbMode.OFF;
         if (station.stationKind() == StationKind.CLUSTER_HOME) {
-            return new Offer(hasPublicKb, false, false, false, false);
+            return new PublicOffer(hasPublicKb, false, false, false, false);
         }
-        return new Offer(
+        return new PublicOffer(
                 hasPublicKb,
                 station.publicCalendarEnabled(),
                 station.publicPagesEnabled() && pageService.hasListedPages(station.id()),
@@ -97,7 +94,7 @@ public class PublicStationInfoService {
                 station.publicBlogEnabled() && newsService.hasPublicBlogEntries(station.id()));
     }
 
-    private PublicStationInfo publicInfo(Station station, Offer offer, @Nullable String landingPageSlug) {
+    private PublicStationInfo publicInfo(Station station, PublicOffer offer, @Nullable String landingPageSlug) {
         return new PublicStationInfo(
                 station.uid().toString(),
                 station.name(),
@@ -114,13 +111,6 @@ public class PublicStationInfoService {
                 station.defaultFeel() != null ? station.defaultFeel().name() : null,
                 station.customThemeColors(),
                 StationFormat.timezoneNameOf(station));
-    }
-
-    /** What of a station is on the public web. */
-    private record Offer(boolean knowledgeBase, boolean calendar, boolean pages, boolean waitlist, boolean blog) {
-        boolean isEmpty() {
-            return !knowledgeBase && !calendar && !pages && !waitlist && !blog;
-        }
     }
 
     /**

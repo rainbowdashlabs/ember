@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.form.service.FormService;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.news.service.NewsService;
 import dev.chojo.ember.feature.page.service.PageService;
+import dev.chojo.ember.feature.station.entity.PublicOffer;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.waitinglist.service.WaitingListService;
@@ -18,6 +19,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -58,7 +60,7 @@ class PublicStationPageTest {
     void aStationThatPublishesNothingHasNoPublicPage() {
         when(forms.hasOpenlyAddressedForms(STATION_ID)).thenReturn(true);
 
-        assertFalse(service.hasPublicPage(station(StationKind.REGULAR)));
+        assertTrue(service.offer(station(StationKind.REGULAR)).isEmpty());
     }
 
     @Test
@@ -78,8 +80,20 @@ class PublicStationPageTest {
         when(news.hasPublicBlogEntries(STATION_ID)).thenReturn(true);
 
         for (var station : List.of(wiki, calendar, page, waitlist, blog)) {
-            assertTrue(service.hasPublicPage(station));
+            assertFalse(service.offer(station).isEmpty());
         }
+        assertEquals(new PublicOffer(true, false, false, false, false), service.offer(wiki));
+        assertEquals(new PublicOffer(false, false, false, true, false), service.offer(waitlist));
+        assertEquals(new PublicOffer(false, false, false, false, true), service.offer(blog));
+    }
+
+    @Test
+    void aWaitingListOrBlogSwitchedOnWithNothingInItIsNoOffer() {
+        var waitlist = station(StationKind.REGULAR);
+        when(waitlist.publicWaitlistEnabled()).thenReturn(true);
+        when(waitlist.publicBlogEnabled()).thenReturn(true);
+
+        assertTrue(service.offer(waitlist).isEmpty());
     }
 
     @Test
@@ -87,9 +101,20 @@ class PublicStationPageTest {
         var home = station(StationKind.CLUSTER_HOME);
         when(home.publicCalendarEnabled()).thenReturn(true);
 
-        assertFalse(service.hasPublicPage(home));
+        assertTrue(service.offer(home).isEmpty());
 
         when(home.publicKbMode()).thenReturn(PublicKbMode.ALLOW_ALL);
-        assertTrue(service.hasPublicPage(home));
+        assertFalse(service.offer(home).isEmpty());
+    }
+
+    @Test
+    void theDiscoveryCardLeavesTheWikiOutUnlessTheStationShowsItThere() {
+        var everything = new PublicOffer(true, true, true, true, true);
+        var hidden = station(StationKind.REGULAR);
+        var shown = station(StationKind.REGULAR);
+        when(shown.discoveryShowKb()).thenReturn(true);
+
+        assertEquals(new PublicOffer(false, true, true, true, true), everything.inDiscoveryOf(hidden));
+        assertEquals(everything, everything.inDiscoveryOf(shown));
     }
 }

@@ -14,12 +14,14 @@ import dev.chojo.ember.feature.discovery.service.RemoteStationListingService;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
+import dev.chojo.ember.feature.station.entity.PublicOffer;
 import dev.chojo.ember.feature.station.entity.Station;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -29,6 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -58,10 +61,19 @@ class StationDiscoveryServiceTest {
     }
 
     private static FederationPartner partnerOf(UUID uid) {
-        var entry = mock(FederationPartner.class);
-        when(entry.partnerStationId()).thenReturn(uid);
-        when(entry.stationId()).thenReturn(3);
-        return entry;
+        return new FederationPartner(
+                1,
+                3,
+                uid,
+                null,
+                null,
+                null,
+                FederationPartner.FederationStatus.ACTIVE,
+                null,
+                Instant.now(),
+                Instant.now(),
+                null,
+                null);
     }
 
     private static Refusal refusalOf(Executable call) {
@@ -73,12 +85,15 @@ class StationDiscoveryServiceTest {
         stations = mock(StationService.class);
         federation = mock(FederationService.class);
         clusters = mock(ClusterRepository.class);
+        var publicInfo = mock(PublicStationInfoService.class);
+        when(publicInfo.offer(any())).thenReturn(new PublicOffer(false, false, false, false, false));
         service = new StationDiscoveryService(
                 stations,
                 mock(StationLogoService.class),
                 federation,
                 clusters,
-                mock(RemoteStationListingService.class));
+                mock(RemoteStationListingService.class),
+                publicInfo);
         own = station(3, OWN);
         partner = station(4, PARTNER);
         open = station(5, OPEN);
@@ -86,6 +101,7 @@ class StationDiscoveryServiceTest {
         when(open.longitude()).thenReturn(BigDecimal.TEN);
         when(open.discoveryShowKb()).thenReturn(true);
         when(open.publicKbMode()).thenReturn(PublicKbMode.ALLOW_ALL);
+        when(publicInfo.offer(open)).thenReturn(new PublicOffer(true, false, false, false, false));
         var partnerEntry = partnerOf(PARTNER);
         when(federation.findPartners(3)).thenReturn(List.of(partnerEntry));
     }
@@ -107,7 +123,9 @@ class StationDiscoveryServiceTest {
                 entries.stream().map(e -> e.stationUid()).toList());
         assertTrue(entries.getFirst().isOwnStation());
         assertTrue(entries.get(1).alreadyFederated());
-        assertTrue(entries.get(2).hasPublicKb());
+        assertTrue(entries.get(2).hasPublicWiki());
+        assertEquals("/public/station/" + OPEN, entries.get(2).publicPageUrl());
+        assertNull(entries.get(1).publicPageUrl());
         assertEquals(1.0, entries.get(2).latitude());
         assertEquals("Kreis", entries.get(2).clusterName());
         assertNull(entries.get(1).latitude());

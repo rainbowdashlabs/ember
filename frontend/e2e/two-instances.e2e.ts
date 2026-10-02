@@ -224,7 +224,7 @@ test.describe('Two instances', () => {
 
             await page.goto(`/discovery?q=${encodeURIComponent(name)}`)
             await expect(page.getByText(name, {exact: true})).toBeVisible()
-            await expect(page.getByText(`Auf der Instanz ${host}`)).toBeVisible()
+            await expect(page.getByText(`Instanz: ${host}`)).toBeVisible()
             await expect(page.getByRole('link', {name: `Zur Wache ${name} auf ${host}`}))
                 .toHaveAttribute('href', must(entry.publicPageUrl, 'the link to the station'))
         } finally {

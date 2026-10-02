@@ -47645,10 +47645,19 @@
           "logoUrl" : {
             "type" : [ "string", "null" ]
           },
-          "hasPublicKb" : {
+          "hasPublicWiki" : {
             "type" : "boolean"
           },
           "hasPublicCalendar" : {
+            "type" : "boolean"
+          },
+          "hasPublicBlog" : {
+            "type" : "boolean"
+          },
+          "waitingListOpen" : {
+            "type" : "boolean"
+          },
+          "acceptsFederation" : {
             "type" : "boolean"
           },
           "alreadyFederated" : {
@@ -47658,6 +47667,12 @@
             "type" : "boolean"
           },
           "publicSlug" : {
+            "type" : [ "string", "null" ]
+          },
+          "publicPageUrl" : {
+            "type" : [ "string", "null" ]
+          },
+          "addressLine" : {
             "type" : [ "string", "null" ]
           },
           "city" : {
@@ -47682,11 +47697,11 @@
           "instanceHost" : {
             "type" : [ "string", "null" ]
           },
-          "publicPageUrl" : {
+          "instanceUrl" : {
             "type" : [ "string", "null" ]
           }
         },
-        "required" : [ "stationUid", "name", "description", "hasLogo", "logoUrl", "hasPublicKb", "hasPublicCalendar", "alreadyFederated", "isOwnStation", "publicSlug", "city", "country", "latitude", "longitude", "clusterUid", "clusterName", "instanceHost", "publicPageUrl" ]
+        "required" : [ "stationUid", "name", "description", "hasLogo", "logoUrl", "hasPublicWiki", "hasPublicCalendar", "hasPublicBlog", "waitingListOpen", "acceptsFederation", "alreadyFederated", "isOwnStation", "publicSlug", "publicPageUrl", "addressLine", "city", "country", "latitude", "longitude", "clusterUid", "clusterName", "instanceHost", "instanceUrl" ]
       },
       "DiscoveryIdentity" : {
         "type" : "object",
@@ -47838,9 +47853,24 @@
           },
           "publicSlug" : {
             "type" : [ "string", "null" ]
+          },
+          "hasPublicWiki" : {
+            "type" : "boolean"
+          },
+          "hasPublicCalendar" : {
+            "type" : "boolean"
+          },
+          "hasPublicBlog" : {
+            "type" : "boolean"
+          },
+          "waitingListOpen" : {
+            "type" : "boolean"
+          },
+          "acceptsFederation" : {
+            "type" : "boolean"
           }
         },
-        "required" : [ "stationUid", "name", "slogan", "logoUrl", "country", "region", "city", "contactUrl", "tags", "memberCount", "publishedAt", "addressLine", "latitude", "longitude", "clusterUid", "clusterName", "publicSlug" ]
+        "required" : [ "stationUid", "name", "slogan", "logoUrl", "country", "region", "city", "contactUrl", "tags", "memberCount", "publishedAt", "addressLine", "latitude", "longitude", "clusterUid", "clusterName", "publicSlug", "hasPublicWiki", "hasPublicCalendar", "hasPublicBlog", "waitingListOpen", "acceptsFederation" ]
       },
       "DiscoveryStationsResponse" : {
         "type" : "object",

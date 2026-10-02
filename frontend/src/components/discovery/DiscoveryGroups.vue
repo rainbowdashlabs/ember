@@ -8,12 +8,12 @@ import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import DiscoveryGrid from '@/components/discovery/DiscoveryGrid.vue'
+import type {DiscoveryViewer} from '@/composables/useDiscoveryViewer'
 import type {DiscoveryEntry} from '@/api/generated/schema'
 
 const props = defineProps<{
   stations: DiscoveryEntry[]
-  canConnect: boolean
-  showInvite: boolean
+  viewer: DiscoveryViewer
 }>()
 
 const emit = defineEmits<{
@@ -52,8 +52,7 @@ const loose = computed(() => props.stations.filter(station => !station.clusterUi
     <section v-for="group in groups" :key="group.uid" class="space-y-3">
       <SectionHeader>{{ group.name }}</SectionHeader>
       <DiscoveryGrid
-          :can-connect="canConnect"
-          :show-invite="showInvite"
+          :viewer="viewer"
           :stations="group.stations"
           @connect="s => emit('connect', s)"
           @invite="s => emit('invite', s)"
@@ -63,8 +62,7 @@ const loose = computed(() => props.stations.filter(station => !station.clusterUi
     <section v-if="loose.length > 0" class="space-y-3">
       <SectionHeader v-if="groups.length > 0">{{ t('discovery.ungrouped') }}</SectionHeader>
       <DiscoveryGrid
-          :can-connect="canConnect"
-          :show-invite="showInvite"
+          :viewer="viewer"
           :stations="loose"
           @connect="s => emit('connect', s)"
           @invite="s => emit('invite', s)"

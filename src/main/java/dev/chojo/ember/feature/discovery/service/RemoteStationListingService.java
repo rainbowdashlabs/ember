@@ -66,8 +66,13 @@ public class RemoteStationListingService {
         String logoUrl = published.logoStored()
                 ? RemoteStationLogoService.publicAddress(published.instancePublicKey(), uid.get())
                 : null;
-        return Optional.of(
-                new RemoteStation(uid.get(), card, instance.get().getHost(), publicPageUrl(published), logoUrl));
+        return Optional.of(new RemoteStation(
+                uid.get(),
+                card,
+                instance.get().getHost(),
+                stripTrailingSlash(published.instanceBaseUrl()),
+                publicPageUrl(published),
+                logoUrl));
     }
 
     /**
@@ -115,6 +120,8 @@ public class RemoteStationListingService {
      * @param stationUid     the station's identifier
      * @param card           what the instance publishes about it
      * @param instanceHost   the host name of the instance it belongs to
+     * @param instanceUrl    the address that instance is known by here, with its port and without a
+     *                       trailing slash
      * @param publicPageUrl  the station's public page on that instance, or {@code null} where it has
      *                       none to show
      * @param logoUrl        where this instance serves its copy of the station's logo, or {@code null}
@@ -124,6 +131,7 @@ public class RemoteStationListingService {
             UUID stationUid,
             DiscoveryStationCard card,
             String instanceHost,
+            String instanceUrl,
             @Nullable String publicPageUrl,
             @Nullable String logoUrl) {}
 }

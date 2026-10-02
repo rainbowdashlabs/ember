@@ -7,97 +7,19 @@ import {describe, expect, it} from 'vitest'
 import {mount} from '@vue/test-utils'
 import DiscoveryGrid from './DiscoveryGrid.vue'
 import type {DiscoveryEntry} from '@/api/generated/schema'
+import {createDiscoveryEntry, createRemoteDiscoveryEntry, federationManager} from '@/test/mocks/discovery'
 
 /**
- * A card on the discovery page for a station of this instance and for one of another instance.
+ * The tiles on the discovery page, for stations of this instance and of other instances.
  *
  * @vitest-environment happy-dom
- *
- * <p>The remote card says where the station lives, leads to its page on that instance and offers
- * nothing that only works between stations of this instance.
  */
 describe('DiscoveryGrid', () => {
-    const RouterLink = {props: ['to'], template: '<a data-testid="local-link"><slot/></a>'}
-
-    function entry(overrides: Partial<DiscoveryEntry>): DiscoveryEntry {
-        return {
-            stationUid: '00000000-0000-0000-0000-000000000001',
-            name: 'Wache Hier',
-            description: null,
-            hasLogo: false,
-            logoUrl: null,
-            hasPublicKb: true,
-            hasPublicCalendar: false,
-            alreadyFederated: false,
-            isOwnStation: false,
-            publicSlug: 'wache-hier',
-            city: null,
-            country: null,
-            latitude: null,
-            longitude: null,
-            clusterUid: null,
-            clusterName: null,
-            instanceHost: null,
-            publicPageUrl: null,
-            ...overrides,
-        }
-    }
-
-    const remote = entry({
-        stationUid: '00000000-0000-0000-0000-000000000002',
-        name: 'Wache Dort',
-        hasPublicKb: false,
-        publicSlug: 'wache-dort',
-        instanceHost: 'feuer.example',
-        publicPageUrl: 'https://feuer.example/public/station/wache-dort',
-    })
+    const remote = createRemoteDiscoveryEntry()
 
     function grid(stations: DiscoveryEntry[]) {
-        return mount(DiscoveryGrid, {
-            props: {stations, canConnect: true, showInvite: true},
-            global: {stubs: {RouterLink, 'router-link': RouterLink}},
-        })
+        return mount(DiscoveryGrid, {props: {stations, viewer: federationManager()}})
     }
-
-    it('names the instance a remote station lives on, in words a screen reader reads too', () => {
-        const card = grid([remote])
-
-        expect(card.text()).toContain('Auf der Instanz feuer.example')
-        expect(card.find('[data-testid="icon"]').exists()).toBe(true)
-    })
-
-    it('links a remote station to its public page on its own instance, in the same tab', () => {
-        const link = grid([remote]).find('a[href^="https://"]')
-
-        expect(link.attributes('href')).toBe('https://feuer.example/public/station/wache-dort')
-        expect(link.attributes('target')).toBeUndefined()
-        expect(link.attributes('rel')).toBe('external noopener noreferrer')
-        expect(link.text()).toContain('Zur Wache')
-        expect(link.find('.sr-only').text()).toBe('Wache Dort auf feuer.example')
-    })
-
-    it('links a remote station whose instance names no public page nowhere', () => {
-        const card = grid([{...remote, publicPageUrl: null}])
-
-        expect(card.find('a').exists()).toBe(false)
-    })
-
-    it('offers a remote station neither a federation request nor an invite code', () => {
-        const card = grid([remote])
-
-        expect(card.text()).not.toContain('Verbinden')
-        expect(card.text()).not.toContain('Code anfordern')
-        expect(card.find('[data-testid="local-link"]').exists()).toBe(false)
-    })
-
-    it('keeps the federation actions and the local page for a station of this instance', () => {
-        const card = grid([entry({})])
-
-        expect(card.text()).toContain('Verbinden')
-        expect(card.text()).toContain('Code anfordern')
-        expect(card.find('[data-testid="local-link"]').exists()).toBe(true)
-        expect(card.text()).not.toContain('Auf der Instanz')
-    })
 
     it('shows the logo of a remote station from the copy this instance keeps of it', () => {
         const cached = '/api/v1/public/discovery/remote/ab12/00000000-0000-0000-0000-000000000002/logo?size=128'
@@ -108,21 +30,27 @@ describe('DiscoveryGrid', () => {
 
     it('shows the logo of a station of this instance from the address it is given', () => {
         const own = '/api/v1/public/stations/00000000-0000-0000-0000-000000000001/logo?size=128'
-        const logo = grid([entry({hasLogo: true, logoUrl: own})]).find('img')
+        const logo = grid([createDiscoveryEntry({hasLogo: true, logoUrl: own})]).find('img')
 
         expect(logo.attributes('src')).toBe(own)
     })
 
     it('shows the placeholder where no logo can be shown', () => {
-        const card = grid([remote])
-
-        expect(card.find('img').exists()).toBe(false)
+        expect(grid([remote]).find('img').exists()).toBe(false)
     })
 
     it('shows a local and a remote station under the same identifier side by side', () => {
-        const card = grid([entry({}), {...remote, stationUid: '00000000-0000-0000-0000-000000000001'}])
+        const card = grid([createDiscoveryEntry(), {...remote, stationUid: '00000000-0000-0000-0000-000000000001'}])
 
         expect(card.text()).toContain('Wache Hier')
         expect(card.text()).toContain('Wache Dort')
+    })
+
+    it('passes a request to federate on with the station it is for', async () => {
+        const wrapper = grid([remote])
+
+        await wrapper.find('button').trigger('click')
+
+        expect(wrapper.emitted('connect')).toEqual([[remote]])
     })
 })

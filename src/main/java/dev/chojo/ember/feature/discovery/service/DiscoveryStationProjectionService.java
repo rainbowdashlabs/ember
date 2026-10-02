@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.discovery.entity.DiscoveryStationCard;
 import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
+import dev.chojo.ember.feature.station.entity.PublicOffer;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.service.PublicStationInfoService;
@@ -79,11 +80,14 @@ public class DiscoveryStationProjectionService {
      * One station's card. Its cluster is carried so a reader can group the cards; a station outside
      * any cluster sends none, which means the same as a peer too old to know about clusters. The logo
      * address goes out only for a station that has a logo, and the public page only for one whose page
-     * shows something, so no reader is sent to an address that leads nowhere.
+     * shows something, so no reader is sent to an address that leads nowhere. The public offers are the
+     * ones this instance's own discovery page shows for the station.
      */
     private DiscoveryStationCard toCard(Station station, String baseUrl) {
         int memberCount = countMembers(station.id());
         Optional<Cluster> cluster = clusterRepository.findByStation(station.id());
+        PublicOffer offer = publicStationInfo.offer(station);
+        PublicOffer shown = offer.inDiscoveryOf(station);
         return new DiscoveryStationCard(
                 station.uid().toString(),
                 station.name(),
@@ -94,7 +98,7 @@ public class DiscoveryStationProjectionService {
                 station.country(),
                 null,
                 station.city(),
-                publicStationInfo.hasPublicPage(station)
+                !offer.isEmpty()
                         ? baseUrl + "/public/station/"
                                 + (station.publicSlug() != null ? station.publicSlug() : station.uid())
                         : null,
@@ -106,7 +110,12 @@ public class DiscoveryStationProjectionService {
                 station.longitude(),
                 cluster.map(c -> c.uid().toString()).orElse(null),
                 cluster.map(Cluster::name).orElse(null),
-                station.publicSlug());
+                station.publicSlug(),
+                shown.knowledgeBase(),
+                shown.calendar(),
+                shown.blog(),
+                shown.waitlist(),
+                station.acceptsFederation());
     }
 
     private int countMembers(int stationId) {

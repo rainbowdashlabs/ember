@@ -12,7 +12,7 @@ import dev.chojo.ember.feature.discovery.service.RemoteStationListingService;
 import dev.chojo.ember.feature.discovery.service.RemoteStationListingService.RemoteStation;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.service.FederationService;
-import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
+import dev.chojo.ember.feature.station.entity.PublicOffer;
 import dev.chojo.ember.feature.station.entity.Station;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -37,6 +37,7 @@ import java.util.stream.Collectors;
 @Singleton
 public class StationDiscoveryService {
     private static final String LOCAL_LOGO_PATH = "/api/v1/public/stations/";
+    private static final String LOCAL_PAGE_PATH = "/public/station/";
     private static final int LOGO_SIZE = 128;
 
     private final StationService stationService;
@@ -44,6 +45,7 @@ public class StationDiscoveryService {
     private final FederationService federationService;
     private final ClusterRepository clusterRepository;
     private final RemoteStationListingService remoteStations;
+    private final PublicStationInfoService publicStationInfo;
 
     @Inject
     public StationDiscoveryService(
@@ -51,12 +53,14 @@ public class StationDiscoveryService {
             StationLogoService logoService,
             FederationService federationService,
             ClusterRepository clusterRepository,
-            RemoteStationListingService remoteStations) {
+            RemoteStationListingService remoteStations,
+            PublicStationInfoService publicStationInfo) {
         this.stationService = stationService;
         this.logoService = logoService;
         this.federationService = federationService;
         this.clusterRepository = clusterRepository;
         this.remoteStations = remoteStations;
+        this.publicStationInfo = publicStationInfo;
     }
 
     /**
@@ -69,16 +73,17 @@ public class StationDiscoveryService {
      * @param stationId the asking station, or null where none is chosen
      */
     public List<DiscoveryEntry> list(boolean signedIn, @Nullable Integer stationId) {
-        List<DiscoveryEntry> entries = localEntries(signedIn, stationId);
+        List<FederationPartner> partners = stationId == null ? List.of() : federationService.findPartners(stationId);
+        List<DiscoveryEntry> entries = localEntries(signedIn, stationId, partners);
         for (var remote : remoteStations.list()) {
-            entries.add(toRemoteEntry(remote));
+            entries.add(toRemoteEntry(remote, partners));
         }
         return entries;
     }
 
-    private List<DiscoveryEntry> localEntries(boolean signedIn, @Nullable Integer stationId) {
+    private List<DiscoveryEntry> localEntries(
+            boolean signedIn, @Nullable Integer stationId, List<FederationPartner> partners) {
         int exclude = stationId == null ? 0 : stationId;
-        Set<UUID> partners = stationId == null ? Set.of() : partnerUids(stationId);
         var discoverable =
                 signedIn ? stationService.findDiscoverable(exclude) : stationService.findPubliclyDiscoverable(exclude);
         var withPublicContent = signedIn ? stationService.findWithPublicContent(exclude) : List.<Station>of();
@@ -145,33 +150,46 @@ public class StationDiscoveryService {
 
     /**
      * One card. The cluster is carried so the page can group the cards; a station outside any
-     * cluster carries none.
+     * cluster carries none. The public offers follow the same checks as the card this instance
+     * publishes to other instances, so a station looks the same wherever it is listed.
      */
-    private DiscoveryEntry toEntry(Station s, Set<UUID> partnerUids, boolean isOwnStation) {
+    private DiscoveryEntry toEntry(Station s, List<FederationPartner> partners, boolean isOwnStation) {
         Optional<Cluster> cluster = clusterRepository.findByStation(s.id());
         boolean hasLogo = logoService.exists(s.id());
+        PublicOffer offer = publicStationInfo.offer(s);
+        PublicOffer shown = offer.inDiscoveryOf(s);
         return new DiscoveryEntry(
                 s.uid(),
                 s.name(),
                 s.discoveryDescription(),
                 hasLogo,
                 hasLogo ? LOCAL_LOGO_PATH + s.uid() + "/logo?size=" + LOGO_SIZE : null,
-                s.discoveryShowKb() && s.publicKbMode() != PublicKbMode.OFF,
-                s.publicCalendarEnabled(),
-                partnerUids.contains(s.uid()),
+                shown.knowledgeBase(),
+                shown.calendar(),
+                shown.blog(),
+                shown.waitlist(),
+                s.acceptsFederation(),
+                partners.stream().anyMatch(p -> p.partnersWith(s.uid(), null)),
                 isOwnStation,
                 s.publicSlug(),
+                offer.isEmpty() ? null : LOCAL_PAGE_PATH + (s.publicSlug() != null ? s.publicSlug() : s.uid()),
+                s.addressLine(),
                 s.city(),
                 s.country(),
-                s.latitude() != null ? s.latitude().doubleValue() : null,
-                s.longitude() != null ? s.longitude().doubleValue() : null,
+                degrees(s.latitude()),
+                degrees(s.longitude()),
                 cluster.map(Cluster::uid).orElse(null),
                 cluster.map(Cluster::name).orElse(null),
                 null,
                 null);
     }
 
-    private static DiscoveryEntry toRemoteEntry(RemoteStation remote) {
+    /**
+     * A card of another instance, filled from what that instance publishes the same way a local card
+     * is filled from the station itself. A partnership counts when its row names the station and the
+     * instance the card was fetched from.
+     */
+    private static DiscoveryEntry toRemoteEntry(RemoteStation remote, List<FederationPartner> partners) {
         var card = remote.card();
         return new DiscoveryEntry(
                 remote.stationUid(),
@@ -179,11 +197,16 @@ public class StationDiscoveryService {
                 card.slogan(),
                 remote.logoUrl() != null,
                 remote.logoUrl(),
-                false,
-                false,
-                false,
+                card.hasPublicWiki(),
+                card.hasPublicCalendar(),
+                card.hasPublicBlog(),
+                card.waitingListOpen(),
+                card.acceptsFederation(),
+                partners.stream().anyMatch(p -> p.partnersWith(remote.stationUid(), remote.instanceUrl())),
                 false,
                 card.publicSlug(),
+                remote.publicPageUrl(),
+                card.addressLine(),
                 card.city(),
                 card.country(),
                 degrees(card.latitude()),
@@ -191,7 +214,7 @@ public class StationDiscoveryService {
                 remoteClusterUid(card.clusterUid()),
                 card.clusterName(),
                 remote.instanceHost(),
-                remote.publicPageUrl());
+                remote.instanceUrl());
     }
 
     private static @Nullable Double degrees(@Nullable BigDecimal coordinate) {
@@ -208,14 +231,26 @@ public class StationDiscoveryService {
     }
 
     /**
-     * One card on the discovery page.
+     * One card on the discovery page, filled the same way for a station of this instance and for one of
+     * another instance.
      *
-     * <p>{@code instanceHost} and {@code publicPageUrl} are set for a station of another instance only:
-     * the host name of that instance and the station's public page there.
+     * <p>{@code publicPageUrl} is the station's public page, set only where that page has something to
+     * open: a path on this instance for a local station, the full address on its own instance for a
+     * remote one. Each public part lies below it.
+     *
+     * <p>{@code instanceHost} and {@code instanceUrl} are set for a station of another instance only:
+     * the host name of that instance, and the address it is known by here, with its port.
      *
      * <p>{@code logoUrl} is where the page finds the logo, set exactly when {@code hasLogo} is. For a
      * station of another instance it is the copy this instance keeps, never the other instance's own
      * address, so no visitor's browser is sent there.
+     *
+     * @param hasPublicWiki     whether the tile links to the station's public wiki
+     * @param hasPublicCalendar whether it links to the public appointments
+     * @param hasPublicBlog     whether it links to the public blog
+     * @param waitingListOpen   whether a public waiting list takes registrations
+     * @param acceptsFederation whether the station may be asked to federate
+     * @param alreadyFederated  whether the asking station holds a partnership with it, in any state
      */
     public record DiscoveryEntry(
             UUID stationUid,
@@ -223,11 +258,16 @@ public class StationDiscoveryService {
             @Nullable String description,
             boolean hasLogo,
             @Nullable String logoUrl,
-            boolean hasPublicKb,
+            boolean hasPublicWiki,
             boolean hasPublicCalendar,
+            boolean hasPublicBlog,
+            boolean waitingListOpen,
+            boolean acceptsFederation,
             boolean alreadyFederated,
             boolean isOwnStation,
             @Nullable String publicSlug,
+            @Nullable String publicPageUrl,
+            @Nullable String addressLine,
             @Nullable String city,
             @Nullable String country,
             @Nullable Double latitude,
@@ -235,5 +275,5 @@ public class StationDiscoveryService {
             @Nullable UUID clusterUid,
             @Nullable String clusterName,
             @Nullable String instanceHost,
-            @Nullable String publicPageUrl) {}
+            @Nullable String instanceUrl) {}
 }

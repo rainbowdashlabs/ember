@@ -56611,6 +56611,8 @@ export interface components {
             peers?: components["schemas"]["PeerAnnouncement"][];
         };
         DiscoveryEntry: {
+            acceptsFederation: boolean;
+            addressLine: string | null;
             alreadyFederated: boolean;
             city: string | null;
             clusterName: string | null;
@@ -56619,9 +56621,11 @@ export interface components {
             country: string | null;
             description: string | null;
             hasLogo: boolean;
+            hasPublicBlog: boolean;
             hasPublicCalendar: boolean;
-            hasPublicKb: boolean;
+            hasPublicWiki: boolean;
             instanceHost: string | null;
+            instanceUrl: string | null;
             isOwnStation: boolean;
             latitude: number | null;
             logoUrl: string | null;
@@ -56631,6 +56635,7 @@ export interface components {
             publicSlug: string | null;
             /** Format: uuid */
             stationUid: string;
+            waitingListOpen: boolean;
         };
         DiscoveryIdentity: {
             baseUrl: string;
@@ -56669,12 +56674,16 @@ export interface components {
             pingIntervalMinutes: number;
         };
         DiscoveryStationCard: {
+            acceptsFederation: boolean;
             addressLine: string | null;
             city: string | null;
             clusterName: string | null;
             clusterUid: string | null;
             contactUrl: string | null;
             country: string | null;
+            hasPublicBlog: boolean;
+            hasPublicCalendar: boolean;
+            hasPublicWiki: boolean;
             latitude: number | null;
             logoUrl: string | null;
             longitude: number | null;
@@ -56686,6 +56695,7 @@ export interface components {
             slogan: string | null;
             stationUid: string;
             tags: string[];
+            waitingListOpen: boolean;
         };
         DiscoveryStationsResponse: {
             instance: components["schemas"]["DiscoveryIdentity"];

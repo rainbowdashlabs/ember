@@ -84,6 +84,16 @@ public record Station(
     }
 
     /**
+     * Whether other stations may ask this one to federate from the discovery page: a station somebody
+     * joins that is listed in discovery at all.
+     *
+     * @return true when a federation request to this station can be made
+     */
+    public boolean acceptsFederation() {
+        return discoveryVisibility != DiscoveryVisibility.NONE && stationKind == StationKind.REGULAR;
+    }
+
+    /**
      * A station as it is read where the question of nicknames does not arise.
      *
      * <p>Reading them is the ordinary case, so the places that build a station row by hand do not

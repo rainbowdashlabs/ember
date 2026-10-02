@@ -19,15 +19,14 @@ import StationMap, {type MapStation} from '@/components/map/StationMap.vue'
 import DiscoveryToolbar from '@/views/public/publicdiscoveryview/DiscoveryToolbar.vue'
 import {initialSearchTerm, searchDiscovery} from '@/views/public/publicdiscoveryview/discoverySearch'
 import {discovery} from '@/api'
-import {isRemoteEntry} from '@/api/discovery'
 import type {DiscoveryEntry} from '@/api/generated/schema'
-import {useSession} from '@/composables/useSession'
+import {useDiscoveryViewer} from '@/composables/useDiscoveryViewer'
 import {useFlashMessage} from '@/composables/useFlashMessage'
 import {describeFailure, type Failure} from '@/util/failure'
 import {apiUrl} from '@/util/apiUrl'
 
 const {t} = useI18n()
-const {canManageFederation} = useSession()
+const viewer = useDiscoveryViewer(true)
 const route = useRoute()
 
 /**
@@ -59,15 +58,10 @@ const mapStations = computed<MapStation[]>(() => shown.value
       latitude: s.latitude as number,
       longitude: s.longitude as number,
       subtitle: [s.city, s.country, s.instanceHost].filter(Boolean).join(', ') || null,
-      href: mapLink(s),
+      href: s.publicPageUrl,
       tint: s.isOwnStation ? 'local' : s.alreadyFederated ? 'near' : null,
     })),
 )
-
-function mapLink(station: DiscoveryEntry): string | null {
-  if (isRemoteEntry(station)) return station.publicPageUrl
-  return station.publicSlug ? `/public/station/${station.publicSlug}` : null
-}
 
 /**
  * Asking to federate, and refreshing the list afterwards, which are two things and not one.
@@ -122,7 +116,7 @@ async function handleInvite(station: DiscoveryEntry) {
         <EmptyState v-if="mapStations.length === 0" :message="t('stationDiscovery.noCoordinatesForFilter')"/>
         <StationMap v-else :stations="mapStations" height="520px"/>
       </NeutralContainer>
-      <DiscoveryGroups v-else :stations="shown" :can-connect="canManageFederation()" :show-invite="true" @connect="handleConnect" @invite="handleInvite"/>
+      <DiscoveryGroups v-else :stations="shown" :viewer="viewer" @connect="handleConnect" @invite="handleInvite"/>
     </AsyncSection>
   </div>
   </ViewContent>

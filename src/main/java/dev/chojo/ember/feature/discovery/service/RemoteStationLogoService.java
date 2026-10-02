@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.media.service.ImageVariants;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.entity.StorageScope;
 import dev.chojo.ember.util.Sha256;
+import dev.chojo.ember.util.WebOrigins;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -28,7 +29,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.regex.Pattern;
@@ -204,28 +204,10 @@ public class RemoteStationLogoService {
         try {
             URI base = new URI(baseUrl);
             URI logo = new URI(logoUrl);
-            if (!sameOrigin(base, logo)) return Optional.empty();
+            if (!WebOrigins.sameOrigin(base, logo)) return Optional.empty();
             return Optional.of(logo.getRawQuery() == null ? logoUrl + "?size=" + SIDE : logoUrl);
         } catch (URISyntaxException e) {
             return Optional.empty();
         }
-    }
-
-    private static boolean sameOrigin(URI base, URI logo) {
-        String scheme = base.getScheme();
-        String host = base.getHost();
-        if (scheme == null || host == null) return false;
-        return scheme.equalsIgnoreCase(logo.getScheme())
-                && host.toLowerCase(Locale.ROOT).equals(lower(logo.getHost()))
-                && port(base) == port(logo);
-    }
-
-    private static @Nullable String lower(@Nullable String text) {
-        return text == null ? null : text.toLowerCase(Locale.ROOT);
-    }
-
-    private static int port(URI uri) {
-        if (uri.getPort() != -1) return uri.getPort();
-        return "https".equalsIgnoreCase(uri.getScheme()) ? 443 : 80;
     }
 }

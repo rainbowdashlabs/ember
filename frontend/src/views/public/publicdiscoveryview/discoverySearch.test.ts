@@ -6,6 +6,7 @@
 import {describe, expect, it} from 'vitest'
 import {initialSearchTerm, searchDiscovery} from './discoverySearch'
 import type {DiscoveryEntry} from '@/api/generated/schema'
+import {createDiscoveryEntry} from '@/test/mocks/discovery'
 
 /**
  * The search on the public discovery page reaches the stations of other instances as it reaches
@@ -15,27 +16,7 @@ import type {DiscoveryEntry} from '@/api/generated/schema'
  */
 describe('searchDiscovery', () => {
     function entry(name: string, overrides: Partial<DiscoveryEntry> = {}): DiscoveryEntry {
-        return {
-            stationUid: name,
-            name,
-            description: null,
-            hasLogo: false,
-            logoUrl: null,
-            hasPublicKb: false,
-            hasPublicCalendar: false,
-            alreadyFederated: false,
-            isOwnStation: false,
-            publicSlug: null,
-            city: null,
-            country: null,
-            latitude: null,
-            longitude: null,
-            clusterUid: null,
-            clusterName: null,
-            instanceHost: null,
-            publicPageUrl: null,
-            ...overrides,
-        }
+        return createDiscoveryEntry({stationUid: name, name, publicSlug: null, ...overrides})
     }
 
     const local = entry('Wache Hier', {city: 'Südstadt'})

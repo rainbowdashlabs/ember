@@ -7,7 +7,6 @@
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
-import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import type {DiscoveredStationResponse} from '@/api/generated/schema'
 
 interface EnrichedStation extends DiscoveredStationResponse {
@@ -36,7 +35,6 @@ const {t} = useI18n()
         <PrimaryBadge v-if="station.distance != null">
           {{ t('lendingDistance.distanceKm', {distance: station.distance.toFixed(1)}) }}
         </PrimaryBadge>
-        <SecondaryBadge>{{ station.memberCount }}</SecondaryBadge>
       </div>
     </div>
     <p v-if="station.city || station.country" class="text-xs text-(--text-muted)">

@@ -25,6 +25,17 @@ import java.util.List;
  * <p>{@code logoUrl} is sent only for a station that has a logo, and {@code contactUrl} only for one
  * whose public page shows something. A reader takes a missing one as "nothing there"; peers that
  * predate this send both for every station.
+ *
+ * <p>The last five fields say which parts of the public page a tile may link to and whether the station
+ * takes federation requests. A peer that predates them sends none of them, and a reader takes each
+ * missing one as "no". The addresses of those parts are never taken from the card: a reader builds them
+ * from the instance it fetched the card from.
+ *
+ * @param hasPublicWiki     whether the station shows its public wiki in discovery
+ * @param hasPublicCalendar whether its appointments are public
+ * @param hasPublicBlog     whether its blog has public entries
+ * @param waitingListOpen   whether a public waiting list takes registrations
+ * @param acceptsFederation whether other stations may ask it to federate
  */
 public record DiscoveryStationCard(
         String stationUid,
@@ -43,7 +54,58 @@ public record DiscoveryStationCard(
         @Nullable BigDecimal longitude,
         @Nullable String clusterUid,
         @Nullable String clusterName,
-        @Nullable String publicSlug) {
+        @Nullable String publicSlug,
+        boolean hasPublicWiki,
+        boolean hasPublicCalendar,
+        boolean hasPublicBlog,
+        boolean waitingListOpen,
+        boolean acceptsFederation) {
+
+    /**
+     * A card from a peer that predates the public offers, which reads as "nothing public, no requests".
+     */
+    public DiscoveryStationCard(
+            String stationUid,
+            String name,
+            @Nullable String slogan,
+            @Nullable String logoUrl,
+            @Nullable String country,
+            @Nullable String region,
+            @Nullable String city,
+            @Nullable String contactUrl,
+            List<String> tags,
+            String memberCount,
+            Instant publishedAt,
+            @Nullable String addressLine,
+            @Nullable BigDecimal latitude,
+            @Nullable BigDecimal longitude,
+            @Nullable String clusterUid,
+            @Nullable String clusterName,
+            @Nullable String publicSlug) {
+        this(
+                stationUid,
+                name,
+                slogan,
+                logoUrl,
+                country,
+                region,
+                city,
+                contactUrl,
+                tags,
+                memberCount,
+                publishedAt,
+                addressLine,
+                latitude,
+                longitude,
+                clusterUid,
+                clusterName,
+                publicSlug,
+                false,
+                false,
+                false,
+                false,
+                false);
+    }
 
     /**
      * A card from a peer that predates the public address, which reads as "addressed by its identifier".
@@ -133,9 +195,13 @@ public record DiscoveryStationCard(
         return publicSlug != null && !publicSlug.isBlank() ? publicSlug : stationUid;
     }
 
+    /**
+     * Reads a stored card. Leniently, since a card stored before the public offers carries none of
+     * them, and each then reads as "no".
+     */
     public static DiscoveryStationCard parse(String json) {
         try {
-            return Json.MAPPER.readValue(json, DiscoveryStationCard.class);
+            return Json.LENIENT.readValue(json, DiscoveryStationCard.class);
         } catch (Exception e) {
             throw new RuntimeException("Failed to parse DiscoveryStationCard", e);
         }

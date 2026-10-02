@@ -12,29 +12,23 @@ import Alert from '@/components/feedback/Alert.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import DiscoveryGroups from '@/components/discovery/DiscoveryGroups.vue'
-import {discovery, federation} from '@/api'
+import {discovery} from '@/api'
 import type {DiscoveryEntry} from '@/api/generated/schema'
 import {useSession} from '@/composables/useSession'
+import {useDiscoveryViewer} from '@/composables/useDiscoveryViewer'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useFlashMessage} from '@/composables/useFlashMessage'
 import {describeFailure} from '@/util/failure'
 
 const {t} = useI18n()
-const {loaded, canManageFederation} = useSession()
+const {loaded} = useSession()
+const viewer = useDiscoveryViewer(false)
 
 const stations = ref<DiscoveryEntry[]>([])
 const {message: success, flash} = useFlashMessage(3000)
 
 const {loading, failure, reload: loadAll} = useAsyncLoader(async () => {
-  const [stationsList, partners] = await Promise.all([
-    discovery.listDiscoverable(),
-    federation.listPartners(),
-  ])
-  const partnerUids = new Set(partners.map(p => p.partner.partnerStationId))
-  stations.value = stationsList.map(s => ({
-    ...s,
-    alreadyFederated: s.alreadyFederated || partnerUids.has(s.stationUid),
-  }))
+  stations.value = await discovery.listDiscoverable()
 }, {autoLoad: false})
 
 /**
@@ -69,7 +63,7 @@ watch(loaded, (v) => { if (v) loadAll() }, {immediate: true})
     <Alert v-if="success" variant="success" class="mb-2">{{ success }}</Alert>
 
     <AsyncSection :empty="stations.length === 0" :empty-message="t('discovery.empty')" :loading="loading">
-      <DiscoveryGroups :stations="stations" :can-connect="canManageFederation()" :show-invite="false" @connect="handleConnect"/>
+      <DiscoveryGroups :stations="stations" :viewer="viewer" @connect="handleConnect"/>
     </AsyncSection>
   </ViewContent>
 </template>

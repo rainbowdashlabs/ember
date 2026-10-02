@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.discovery.service;
 import dev.chojo.ember.conf.Conf;
 import dev.chojo.ember.feature.discovery.entity.DiscoveryStationCard;
 import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
+import dev.chojo.ember.feature.station.entity.PublicOffer;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.service.PublicStationInfoService;
 import dev.chojo.ember.feature.station.service.StationLogoService;
@@ -46,7 +47,7 @@ class DiscoveryStationCardAddressTest extends RepositoryTestBase {
     static void setup() {
         logos = mock(StationLogoService.class);
         publicInfo = mock(PublicStationInfoService.class);
-        when(publicInfo.hasPublicPage(any())).thenReturn(true);
+        when(publicInfo.offer(any())).thenReturn(new PublicOffer(false, true, false, false, false));
         service =
                 new DiscoveryStationProjectionService(stationRepo, clusterRepo, new Conf(configDir), logos, publicInfo);
     }
@@ -60,8 +61,8 @@ class DiscoveryStationCardAddressTest extends RepositoryTestBase {
     @Test
     void aStationWithNothingPublicSendsNoPublicPage() {
         var station = publicStation("Wache Ohne Seite");
-        when(publicInfo.hasPublicPage(argThat(s -> s != null && s.id() == station.id())))
-                .thenReturn(false);
+        when(publicInfo.offer(argThat(s -> s != null && s.id() == station.id())))
+                .thenReturn(new PublicOffer(false, false, false, false, false));
 
         var card = cardOf(station.id(), station.uid().toString());
 
