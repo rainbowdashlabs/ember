@@ -266,12 +266,7 @@ public class ClusterMemberManagementRoutes implements Routes {
             entries.add(new FieldValueEntry(value.fieldId(), value.value(), parseOrigin(value.origin())));
         }
 
-        managementService.updateMemberProfile(
-                cluster.id(),
-                pathInt(ctx, "memberId"),
-                entries,
-                session.accountId(),
-                session.memberOpt().map(StationMember::id).orElse(0));
+        managementService.updateMemberProfile(cluster.id(), pathInt(ctx, "memberId"), entries, session.accountId());
         ctx.status(HttpStatus.NO_CONTENT);
     }
 

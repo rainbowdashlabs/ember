@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.documents.entity.Document;
 import dev.chojo.ember.feature.documents.repository.DocumentRepository;
 import dev.chojo.ember.feature.documents.service.DocumentService;
 import dev.chojo.ember.feature.members.entity.FieldValueEntry;
+import dev.chojo.ember.feature.members.entity.ProfileAuthor;
 import dev.chojo.ember.feature.members.entity.ProfileWriter;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
@@ -241,16 +242,16 @@ public class ClusterMemberManagementService {
      * @param clusterId      the cluster acting
      * @param memberId       the member
      * @param entries        the answers, each naming which table its question lives in
-     * @param actorAccountId the account behind the cluster manager, for the self-check
-     * @param changedBy      the member row to record as the author of the change
+     * @param actorAccountId the account behind the cluster manager, for the self-check and as the author of the
+     *                       change, recorded by their membership at the member's station where they have one
      */
-    public void updateMemberProfile(
-            int clusterId, int memberId, List<FieldValueEntry> entries, int actorAccountId, int changedBy) {
+    public void updateMemberProfile(int clusterId, int memberId, List<FieldValueEntry> entries, int actorAccountId) {
         StationMember member = requireMemberOfCluster(clusterId, memberId);
         requireNotSelf(member, actorAccountId);
         requireNotStationOwner(member);
 
-        profileFieldService.setValues(memberId, entries, changedBy, ProfileWriter.association());
+        profileFieldService.setValues(
+                memberId, entries, ProfileAuthor.account(actorAccountId), ProfileWriter.association());
         log.info("Cluster {} answered {} questions for member {}", clusterId, entries.size(), memberId);
     }
 

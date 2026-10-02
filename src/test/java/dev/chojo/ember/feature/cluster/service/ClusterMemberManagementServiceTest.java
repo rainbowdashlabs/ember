@@ -357,13 +357,15 @@ class ClusterMemberManagementServiceTest extends RepositoryTestBase {
                 clusterId,
                 peopled.member().id(),
                 List.of(new FieldValueEntry(field.id(), "\"4711\"", FieldOrigin.CLUSTER)),
-                strangerAccountId,
-                peopled.member().id());
+                strangerAccountId);
 
         var profile = service.getMemberProfile(clusterId, peopled.member().id());
         assertTrue(
                 profile.values().stream().anyMatch(v -> v.fieldId() == field.id() && v.origin() == FieldOrigin.CLUSTER),
                 "the answer is recorded against the cluster's own question");
+        var change = profileFieldChangeRepo.findByMember(peopled.member().id()).getFirst();
+        assertNull(change.changedBy());
+        assertTrue(change.changedByName().startsWith("Ver Waltung"), "the history names the manager by their account");
     }
 
     @Test
@@ -388,8 +390,7 @@ class ClusterMemberManagementServiceTest extends RepositoryTestBase {
                         clusterId,
                         peopled.member().id(),
                         List.of(new FieldValueEntry(field.id(), "\"12\"", FieldOrigin.STATION)),
-                        strangerAccountId,
-                        peopled.member().id()));
+                        strangerAccountId));
 
         assertEquals(MemberRefusal.PROFILE_FIELD_NOT_HERE_ON_ANSWER, refusal.refusal());
         assertTrue(profileFieldService.findValues(peopled.member().id()).isEmpty());
@@ -414,8 +415,7 @@ class ClusterMemberManagementServiceTest extends RepositoryTestBase {
                 List.of(
                         new FieldValueEntry(notAsked.id(), "\"Florian 1\"", FieldOrigin.STATION),
                         new FieldValueEntry(locked.id(), "\"Brandmeister\"", FieldOrigin.STATION)),
-                strangerAccountId,
-                peopled.member().id());
+                strangerAccountId);
 
         var answered = profileFieldService.findValues(peopled.member().id()).stream()
                 .map(ProfileFieldService.MergedValue::fieldId)
@@ -431,23 +431,13 @@ class ClusterMemberManagementServiceTest extends RepositoryTestBase {
 
         assertThrows(
                 RefusalResponse.class,
-                () -> service.updateMemberProfile(
-                        clusterId,
-                        peopled.member().id(),
-                        List.of(),
-                        ownAccountId,
-                        peopled.member().id()));
+                () -> service.updateMemberProfile(clusterId, peopled.member().id(), List.of(), ownAccountId));
 
         stationRepo.setOwner(peopled.station().id(), peopled.member().id());
         int strangerAccountId = freshAccount().id();
         assertThrows(
                 RefusalResponse.class,
-                () -> service.updateMemberProfile(
-                        clusterId,
-                        peopled.member().id(),
-                        List.of(),
-                        strangerAccountId,
-                        peopled.member().id()));
+                () -> service.updateMemberProfile(clusterId, peopled.member().id(), List.of(), strangerAccountId));
     }
 
     @Test
