@@ -218,7 +218,109 @@ public enum FederationRefusal implements Refusal {
     LENDING_PARTNER_DOES_NOT_LEND(49, HttpStatus.FORBIDDEN, "That station does not lend gear to yours"),
 
     /** Gear set aside for a lending request that the station only holds and does not own. */
-    LENDING_GEAR_NOT_THE_STATIONS(50, HttpStatus.FORBIDDEN, "That gear is not this station's to lend");
+    LENDING_GEAR_NOT_THE_STATIONS(50, HttpStatus.FORBIDDEN, "That gear is not this station's to lend"),
+
+    /** A request to federate from another instance that arrived without everything it is made of. */
+    PAIR_REQUEST_INCOMPLETE(51, HttpStatus.BAD_REQUEST, "The request to federate arrived without everything it needs"),
+
+    /** A request to federate from another instance with a field longer than it may be. */
+    PAIR_REQUEST_TOO_LARGE(52, HttpStatus.BAD_REQUEST, "The request to federate carries more than it may"),
+
+    /** A request to federate signed too long ago, or one that was already received once. */
+    PAIR_REQUEST_OUT_OF_TIME(53, HttpStatus.BAD_REQUEST, "The request to federate is too old or arrived twice"),
+
+    /** A request to federate from an instance this one has never met through discovery. */
+    PAIR_REQUEST_INSTANCE_UNKNOWN(
+            54,
+            HttpStatus.FORBIDDEN,
+            "The other instance does not know this instance yet. Ask the station for an invite code instead"),
+
+    /** A request to federate from an instance that is blocked or distrusted here. */
+    PAIR_REQUEST_INSTANCE_BLOCKED(
+            55, HttpStatus.FORBIDDEN, "The other instance does not take requests to federate from this instance"),
+
+    /** A request to federate whose instance signature does not fit the key of the instance it names. */
+    PAIR_REQUEST_INSTANCE_SIGNATURE_NOT_GOOD(
+            56, HttpStatus.FORBIDDEN, "The instance signature of the request to federate was not accepted"),
+
+    /** A request to federate whose station signature does not fit the station key it carries. */
+    PAIR_REQUEST_STATION_SIGNATURE_NOT_GOOD(
+            57, HttpStatus.FORBIDDEN, "The station signature of the request to federate was not accepted"),
+
+    /** A request to federate naming an address other than the one the instance is known by here. */
+    PAIR_REQUEST_ADDRESS_NOT_THE_INSTANCES(
+            58,
+            HttpStatus.FORBIDDEN,
+            "The request to federate named an address the other instance does not know this instance by"),
+
+    /** A request to federate between instances whose federation versions cannot talk to each other. */
+    PAIR_REQUEST_CONTRACT_MISMATCH(
+            59, HttpStatus.CONFLICT, "The two instances run federation versions that cannot talk to each other"),
+
+    /** Too many requests to federate from one instance in a short time. */
+    PAIR_REQUEST_TOO_MANY_FROM_INSTANCE(
+            60, HttpStatus.TOO_MANY_REQUESTS, "Too many requests to federate came from this instance. Try again later"),
+
+    /** Too many requests to federate for one station in a short time. */
+    PAIR_REQUEST_TOO_MANY_FOR_STATION(
+            61, HttpStatus.TOO_MANY_REQUESTS, "That station received too many requests to federate. Try again later"),
+
+    /**
+     * A request to federate with a station that is not here, not public or not open to federation.
+     * One code for all of them: a request from another instance must not learn which stations exist
+     * but keep themselves out of the listing.
+     */
+    PAIR_REQUEST_STATION_NOT_HERE(
+            62, HttpStatus.NOT_FOUND, "That station cannot be found or does not take requests to federate"),
+
+    /** A request to federate between two stations that are partners already. */
+    PAIR_REQUEST_ALREADY_PARTNERS(63, HttpStatus.CONFLICT, "These stations are already partners"),
+
+    /** A request to federate sent again while the first one still waits for its answer. */
+    PAIR_REQUEST_ALREADY_WAITING(64, HttpStatus.CONFLICT, "A request to this station is already waiting for an answer"),
+
+    /** A request to federate sent again within 30 days after the station declined the last one. */
+    PAIR_REQUEST_DECLINED_RECENTLY(
+            65,
+            HttpStatus.CONFLICT,
+            "That station declined a request from this station less than 30 days ago. Try again later"),
+
+    /** A request to federate sent to an instance that predates requests between instances. */
+    PAIR_REQUEST_PEER_TOO_OLD(
+            66,
+            HttpStatus.CONFLICT,
+            "The other instance must run a newer version of Ember to take requests to federate. Ask the station "
+                    + "for an invite code instead"),
+
+    /** A request to federate the other instance did not answer in time or at all. */
+    PAIR_REQUEST_PEER_UNREACHABLE(
+            67, HttpStatus.SERVICE_UNAVAILABLE, "The other instance did not answer. Try again later"),
+
+    /** A request to federate addressed to an instance at an address this one will not call. */
+    PAIR_REQUEST_PEER_ADDRESS_REFUSED(
+            68, HttpStatus.BAD_REQUEST, "The other instance is at an address this instance will not call"),
+
+    /** A request to federate the other instance turned down for a reason this instance cannot name. */
+    PAIR_REQUEST_REFUSED_BY_PEER(69, HttpStatus.BAD_GATEWAY, "The other instance did not take the request"),
+
+    /** A pairing code naming an instance this one has never met through discovery. */
+    PAIR_REQUEST_INSTANCE_NOT_KNOWN_HERE(
+            70,
+            HttpStatus.BAD_REQUEST,
+            "This instance does not know the instance that code comes from. Ask the station for an invite code "
+                    + "instead"),
+
+    /** An answer to a request to federate that this instance never sent or that was answered already. */
+    PAIR_ANSWER_NOT_EXPECTED(71, HttpStatus.NOT_FOUND, "No request to federate is waiting for this answer"),
+
+    /** An answer to a request to federate whose signature does not fit. */
+    PAIR_ANSWER_SIGNATURE_NOT_GOOD(72, HttpStatus.FORBIDDEN, "The signature of the answer was not accepted"),
+
+    /** A question about a request to federate that this instance never received. */
+    PAIR_STATUS_NOT_HERE(73, HttpStatus.NOT_FOUND, "No request to federate from that station is known here"),
+
+    /** A request to federate that a station would send to a station with its own identity. */
+    PAIR_REQUEST_TO_OWN_STATION(74, HttpStatus.BAD_REQUEST, "A station cannot federate with itself");
 
     private final Definition definition;
 

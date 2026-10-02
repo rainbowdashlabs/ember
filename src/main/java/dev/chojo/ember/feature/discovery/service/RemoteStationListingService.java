@@ -58,6 +58,23 @@ public class RemoteStationListingService {
         return stations;
     }
 
+    /**
+     * The card another trusted instance publishes for the given station, with the instance it was
+     * fetched from: the same cards {@link #list()} shows, so a station a visitor can see is one a
+     * request or a pairing code can be made for.
+     *
+     * @param stationUid the station
+     * @return the published card, or empty when no trusted instance publishes it
+     */
+    public Optional<PublishedRemoteStation> findPublished(UUID stationUid) {
+        var self = pingService.selfIdentity();
+        return cacheRepository.findPublishedElsewhere(self.publicKey(), self.baseUrl()).stream()
+                .filter(published ->
+                        stationUid.toString().equalsIgnoreCase(published.card().stationUid()))
+                .filter(published -> webAddress(published.instanceBaseUrl()).isPresent())
+                .findFirst();
+    }
+
     private static Optional<RemoteStation> toRemoteStation(PublishedRemoteStation published) {
         var card = published.card();
         var uid = parseUid(card.stationUid());

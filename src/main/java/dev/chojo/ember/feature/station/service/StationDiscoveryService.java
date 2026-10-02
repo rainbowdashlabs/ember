@@ -12,6 +12,8 @@ import dev.chojo.ember.feature.discovery.service.RemoteStationListingService;
 import dev.chojo.ember.feature.discovery.service.RemoteStationListingService.RemoteStation;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.service.FederationService;
+import dev.chojo.ember.feature.federation.service.OutgoingPairRequestService;
+import dev.chojo.ember.feature.federation.service.OutgoingPairRequestService.RemoteTarget;
 import dev.chojo.ember.feature.station.entity.PublicOffer;
 import dev.chojo.ember.feature.station.entity.Station;
 import jakarta.inject.Inject;
@@ -46,6 +48,7 @@ public class StationDiscoveryService {
     private final ClusterRepository clusterRepository;
     private final RemoteStationListingService remoteStations;
     private final PublicStationInfoService publicStationInfo;
+    private final OutgoingPairRequestService outgoingRequests;
 
     @Inject
     public StationDiscoveryService(
@@ -54,13 +57,15 @@ public class StationDiscoveryService {
             FederationService federationService,
             ClusterRepository clusterRepository,
             RemoteStationListingService remoteStations,
-            PublicStationInfoService publicStationInfo) {
+            PublicStationInfoService publicStationInfo,
+            OutgoingPairRequestService outgoingRequests) {
         this.stationService = stationService;
         this.logoService = logoService;
         this.federationService = federationService;
         this.clusterRepository = clusterRepository;
         this.remoteStations = remoteStations;
         this.publicStationInfo = publicStationInfo;
+        this.outgoingRequests = outgoingRequests;
     }
 
     /**
@@ -117,26 +122,39 @@ public class StationDiscoveryService {
     public String inviteCode(boolean signedIn, UUID stationUid) {
         if (stationUid == null) throw DiscoveryRefusal.INVITE_NEEDS_A_STATION.raise();
         var candidates = signedIn ? stationService.findDiscoverable(0) : stationService.findPubliclyDiscoverable(0);
-        var target = candidates.stream()
-                .filter(s -> s.uid().equals(stationUid))
-                .findFirst()
+        var local = candidates.stream().filter(s -> s.uid().equals(stationUid)).findFirst();
+        if (local.isPresent())
+            return federationService.generatePairingCode(local.get().uid());
+        return remoteStations
+                .findPublished(stationUid)
+                .map(remote -> federationService.generateRemotePairingCode(stationUid, remote.instanceBaseUrl()))
                 .orElseThrow(DiscoveryRefusal.STATION_NOT_OPEN_TO_INVITES::raise);
-        return federationService.generatePairingCode(target.uid());
     }
 
     /**
      * Asks a discoverable station to federate. The target has to accept, so what is created is a
      * pending request, and neither a second request nor one to a partner already paired is made.
      *
+     * <p>A station of another instance that the page lists is asked over the wire: the request goes
+     * to its instance, which keeps it until a manager there answers.
+     *
      * @param stationId  the asking station
      * @param stationUid the station asked
      */
     public void requestFederation(int stationId, UUID stationUid) {
         if (stationUid == null) throw DiscoveryRefusal.FEDERATION_REQUEST_NEEDS_A_STATION.raise();
-        var target = stationService.findDiscoverable(stationId).stream()
+        var local = stationService.findDiscoverable(stationId).stream()
                 .filter(s -> s.uid().equals(stationUid))
-                .findFirst()
-                .orElseThrow(DiscoveryRefusal.STATION_NOT_OPEN_TO_FEDERATION::raise);
+                .findFirst();
+        if (local.isEmpty()) {
+            var remote = remoteStations
+                    .findPublished(stationUid)
+                    .orElseThrow(DiscoveryRefusal.STATION_NOT_OPEN_TO_FEDERATION::raise);
+            outgoingRequests.send(
+                    stationId, new RemoteTarget(stationUid, remote.instanceBaseUrl(), remote.instancePublicKey()));
+            return;
+        }
+        var target = local.get();
         if (partnerUids(stationId).contains(target.uid())) {
             throw DiscoveryRefusal.ALREADY_FEDERATED.raise();
         }

@@ -56,7 +56,7 @@ public class FederationService {
         this.repository = repository;
         this.stationRepository = stationRepository;
         this.stationKeys = stationKeys;
-        this.instanceHost = extractHost(apiConfig.baseUrl());
+        this.instanceHost = addressOf(apiConfig.baseUrl());
     }
 
     /**
@@ -78,8 +78,11 @@ public class FederationService {
      * that does not sit on the standard port names something nobody can reach: the side entering
      * the code has only the code to go by, and would call the same host on a port it was never
      * told about.
+     *
+     * @param baseUrl the base URL of an instance
+     * @return its host, with the port where the URL names one
      */
-    private static String extractHost(String baseUrl) {
+    public static String addressOf(String baseUrl) {
         try {
             var uri = URI.create(baseUrl);
             if (uri.getHost() == null) return baseUrl;
@@ -94,11 +97,27 @@ public class FederationService {
      * Stateless - entering this creates a PENDING request that the target station must accept.
      */
     public String generatePairingCode(UUID stationUid) {
+        return pairingCode(stationUid, instanceHost);
+    }
+
+    /**
+     * A pairing code for a station of another instance, which names that instance's address
+     * instead of this one's. Entering it at a station sends that instance a request to federate.
+     *
+     * @param stationUid the station of the other instance
+     * @param baseUrl    where the other instance is reached
+     * @return the pairing code
+     */
+    public String generateRemotePairingCode(UUID stationUid, String baseUrl) {
+        return pairingCode(stationUid, addressOf(baseUrl));
+    }
+
+    private static String pairingCode(UUID stationUid, String host) {
         String encodedUid = Base64.getUrlEncoder()
                 .withoutPadding()
                 .encodeToString(stationUid.toString().getBytes(StandardCharsets.UTF_8));
         String encodedHost =
-                Base64.getUrlEncoder().withoutPadding().encodeToString(instanceHost.getBytes(StandardCharsets.UTF_8));
+                Base64.getUrlEncoder().withoutPadding().encodeToString(host.getBytes(StandardCharsets.UTF_8));
         return "ember-" + encodedUid + "-" + encodedHost;
     }
 

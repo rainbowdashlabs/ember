@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:e12b53c81dfab037c297c764228d23705f84a06da10a894bc90e39229a217af2",
-  "generatedAt": "2026-10-02T22:22:16Z",
+  "schemaHash": "sha256:dd9c05e42033382908f405361113dd797777c919566fc017f495f56af4827713",
+  "generatedAt": "2026-10-02T23:16:13Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -10282,6 +10282,125 @@
         "reason": "Federation metadata, no personal data"
       },
       "description": "Cached metadata for federated content (for browsing when remote is offline)."
+    },
+    "federation_pair_request": {
+      "feature": "federation",
+      "scope": "STATION",
+      "tableHash": "sha256:17a59fb9e1104935f675d7ef6f2ea37d2a702c6d19b89d564e37864f0f88f8b8",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Auto-generated primary key."
+        },
+        {
+          "name": "station_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The station of this instance: the one asked for an INCOMING request, the one asking for an OUTGOING one."
+        },
+        {
+          "name": "direction",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "INCOMING when a station of another instance asked a station here, OUTGOING when a station here asked one of another instance."
+        },
+        {
+          "name": "remote_station_uid",
+          "type": "uuid",
+          "nullable": false,
+          "verified": true,
+          "description": "The station of the other instance, as that instance knows it."
+        },
+        {
+          "name": "remote_station_name",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The name of the station of the other instance, as it was sent, shown as text only."
+        },
+        {
+          "name": "remote_base_url",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "Where the other instance is reached, with its port."
+        },
+        {
+          "name": "remote_instance_key",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The discovery key of the other instance, which signs every message about this request."
+        },
+        {
+          "name": "remote_public_key",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "The federation key of the station of the other instance: sent with an INCOMING request, received with the answer to an OUTGOING one. NULL until known."
+        },
+        {
+          "name": "remote_contract",
+          "type": "jsonb",
+          "nullable": true,
+          "verified": true,
+          "description": "The federation contract the other instance spoke when it sent the request or its answer. NULL until known."
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "PENDING until the asked station answers, then ACCEPTED or DECLINED."
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When the request was sent or received. A request sent again after a decline starts here anew."
+        },
+        {
+          "name": "answered_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When the request was answered. A decline keeps the same station from asking again for 30 days from here. NULL while pending."
+        },
+        {
+          "name": "checked_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When this instance last asked the other instance about an OUTGOING request. NULL until it has asked once, and for INCOMING requests."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "station_id",
+          "refTable": "station",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "IGNORED",
+        "reason": "A request is bound to the address of the instance it was exchanged with. A station that moves keeps its partners and asks again for anything still open."
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Federation metadata, no personal data"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Federation metadata, no personal data"
+      },
+      "description": "Requests to federate between a station of this instance and a station of another instance, in either direction, until they are answered and for a while after."
     },
     "federation_partner": {
       "feature": "federation",

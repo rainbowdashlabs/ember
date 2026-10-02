@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.discovery.service.RemoteStationListingService;
 import dev.chojo.ember.feature.discovery.service.RemoteStationListingService.RemoteStation;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.service.FederationService;
+import dev.chojo.ember.feature.federation.service.OutgoingPairRequestService;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.station.entity.PublicOffer;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -127,7 +128,8 @@ class StationDiscoveryRemoteStationsTest {
         logos = mock(StationLogoService.class);
         publicInfo = mock(PublicStationInfoService.class);
         when(publicInfo.offer(any())).thenReturn(NOTHING);
-        service = new StationDiscoveryService(stations, logos, federation, clusters, remote, publicInfo);
+        service = new StationDiscoveryService(
+                stations, logos, federation, clusters, remote, publicInfo, mock(OutgoingPairRequestService.class));
 
         when(stations.findPubliclyDiscoverable(0)).thenReturn(List.of(PUBLIC));
         when(stations.findDiscoverable(OWN_ID)).thenReturn(List.of(PUBLIC, PARTNER));

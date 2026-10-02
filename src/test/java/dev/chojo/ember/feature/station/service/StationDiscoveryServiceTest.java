@@ -10,9 +10,13 @@ import dev.chojo.ember.api.refusal.Refusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
+import dev.chojo.ember.feature.discovery.entity.DiscoveryStationCard;
+import dev.chojo.ember.feature.discovery.entity.PublishedRemoteStation;
 import dev.chojo.ember.feature.discovery.service.RemoteStationListingService;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.service.FederationService;
+import dev.chojo.ember.feature.federation.service.OutgoingPairRequestService;
+import dev.chojo.ember.feature.federation.service.OutgoingPairRequestService.RemoteTarget;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.station.entity.PublicOffer;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -45,7 +49,11 @@ class StationDiscoveryServiceTest {
 
     private StationService stations;
     private FederationService federation;
+    private static final UUID REMOTE = UUID.fromString("7f0c1f5e-3f4c-4b6f-9a51-0d1e2f3a4b5c");
+
     private ClusterRepository clusters;
+    private RemoteStationListingService remote;
+    private OutgoingPairRequestService outgoing;
     private StationDiscoveryService service;
     private Station own;
     private Station partner;
@@ -87,13 +95,10 @@ class StationDiscoveryServiceTest {
         clusters = mock(ClusterRepository.class);
         var publicInfo = mock(PublicStationInfoService.class);
         when(publicInfo.offer(any())).thenReturn(new PublicOffer(false, false, false, false, false));
+        remote = mock(RemoteStationListingService.class);
+        outgoing = mock(OutgoingPairRequestService.class);
         service = new StationDiscoveryService(
-                stations,
-                mock(StationLogoService.class),
-                federation,
-                clusters,
-                mock(RemoteStationListingService.class),
-                publicInfo);
+                stations, mock(StationLogoService.class), federation, clusters, remote, publicInfo, outgoing);
         own = station(3, OWN);
         partner = station(4, PARTNER);
         open = station(5, OPEN);
@@ -171,5 +176,46 @@ class StationDiscoveryServiceTest {
         assertEquals(
                 DiscoveryRefusal.FEDERATION_REQUEST_NEEDS_A_STATION,
                 refusalOf(() -> service.requestFederation(3, null)));
+    }
+
+    @Test
+    void aStationOfAnotherInstanceIsAskedThroughItsInstance() {
+        when(remote.findPublished(REMOTE)).thenReturn(Optional.of(published()));
+
+        service.requestFederation(3, REMOTE);
+
+        verify(outgoing).send(3, new RemoteTarget(REMOTE, "https://feuer.example:8443", "instance-key"));
+        verify(federation, never()).createPairRequest(anyInt(), anyInt());
+    }
+
+    @Test
+    void aStationOfAnotherInstanceIsInvitedWithACodeNamingItsInstance() {
+        when(remote.findPublished(REMOTE)).thenReturn(Optional.of(published()));
+        when(federation.generateRemotePairingCode(REMOTE, "https://feuer.example:8443"))
+                .thenReturn("REMOTE-CODE");
+
+        assertEquals("REMOTE-CODE", service.inviteCode(false, REMOTE));
+    }
+
+    private static PublishedRemoteStation published() {
+        var card = new DiscoveryStationCard(
+                REMOTE.toString(),
+                "Wache Fern",
+                null,
+                null,
+                "DE",
+                null,
+                null,
+                null,
+                List.of(),
+                "<10",
+                Instant.now(),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null);
+        return new PublishedRemoteStation("instance-key", "https://feuer.example:8443", card, false);
     }
 }
