@@ -26,6 +26,8 @@ import {
     TRANSFER_TOKEN_NOT_GOOD,
     TOO_MANY_ATTEMPTS,
     DEFAULT_NOT_SUITING,
+    ONE_TIME_PASSWORD_FOR_YOURSELF,
+    ONE_TIME_PASSWORD_PASSKEYS_ONLY,
 } from './shared'
 
 const ADDRESS_MISSING = 'Gib die Adresse an, an die geschrieben werden soll'
@@ -246,4 +248,14 @@ export default {
     'M-198': GROUP_NAME_TAKEN,
     'M-199': 'Diese Gruppe vergibt Berechtigungen, die du selbst nicht hast, sie wurde nicht entfernt',
     'M-200': 'Diese Gruppe vergibt Berechtigungen, die du selbst nicht hast, sie wurde nicht in einen Tag umgewandelt',
+    'M-201': MEMBER_NOT_HERE,
+    'M-202': ONE_TIME_PASSWORD_FOR_YOURSELF,
+    'M-203': 'Dieses Konto verwaltet die Instanz, ein Einmalpasswort kann dafür nur die Administration '
+        + 'der Instanz erstellen',
+    'M-204': 'Dieses Konto hat eine Rolle in einem Verband, ein Einmalpasswort kann dafür nur die Administration '
+        + 'der Instanz erstellen',
+    'M-205': 'Dieses Konto gehört auch zu einer anderen Wache, ein Einmalpasswort kann dafür nur die '
+        + 'Administration der Instanz erstellen',
+    'M-206': ONE_TIME_PASSWORD_PASSKEYS_ONLY,
+    'M-207': 'Dein Einmalpasswort ist abgelaufen. Bitte frag deine Administration nach einem neuen',
 }

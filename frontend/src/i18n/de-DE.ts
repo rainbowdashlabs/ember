@@ -4873,6 +4873,7 @@ export default {
                     SIGNED_IN_VIA_DEVICE_CODE: 'Über anderes Gerät angemeldet',
                     STEPUP_VIA_DEVICE_CODE: 'Über anderes Gerät bestätigt',
                     DEVICE_REQUEST_APPROVED: 'Geräteanfrage freigegeben',
+                    ONE_TIME_PASSWORD_ISSUED: 'Einmalpasswort erstellt',
                 },
                 factors: {
                     TOTP: 'Authenticator-App',

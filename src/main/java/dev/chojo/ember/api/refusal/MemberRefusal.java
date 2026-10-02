@@ -731,7 +731,42 @@ public enum MemberRefusal implements Refusal {
     GROUP_GRANTS_MORE_THAN_YOURS_ON_CONVERT(
             200,
             HttpStatus.FORBIDDEN,
-            "That group grants permissions you do not hold yourself, so it was not turned into a tag");
+            "That group grants permissions you do not hold yourself, so it was not turned into a tag"),
+
+    /** A one-time password asked for an account that is no member of the caller's station. */
+    ACCOUNT_NOT_HERE_ON_ONE_TIME_PASSWORD(201, HttpStatus.NOT_FOUND, Sentences.MEMBER_NOT_HERE),
+
+    /** A station administrator asking for a one-time password for their own account. */
+    ONE_TIME_PASSWORD_FOR_YOURSELF(
+            202,
+            HttpStatus.FORBIDDEN,
+            "You cannot issue a one-time password for your own account. Change your password in your account settings"),
+
+    /** A one-time password asked at a station for an account that administers the instance. */
+    ONE_TIME_PASSWORD_FOR_INSTANCE_ADMINISTRATOR(
+            203,
+            HttpStatus.FORBIDDEN,
+            "That account administers the instance, so only an instance administrator can issue it a one-time password"),
+
+    /** A one-time password asked at a station for an account that holds a role in an association. */
+    ONE_TIME_PASSWORD_FOR_ASSOCIATION_ACCOUNT(
+            204,
+            HttpStatus.FORBIDDEN,
+            "That account holds a role in an association, so only an instance administrator can issue it a one-time password"),
+
+    /** A one-time password asked at a station for an account that is or was a member of another station too. */
+    ONE_TIME_PASSWORD_FOR_SHARED_ACCOUNT(
+            205,
+            HttpStatus.FORBIDDEN,
+            "That account belongs to another station as well, so only an instance administrator can issue it a one-time password"),
+
+    /** A one-time password asked at a station for an account without a password on an instance that signs in with passkeys only. */
+    ONE_TIME_PASSWORD_PASSWORDS_SWITCHED_OFF(
+            206, HttpStatus.CONFLICT, "This instance signs in with passkeys only, so no one-time password was issued"),
+
+    /** A sign-in with a one-time password whose time is up. */
+    ONE_TIME_PASSWORD_EXPIRED(
+            207, HttpStatus.UNAUTHORIZED, "Your one-time password has expired. Ask your administration for a new one");
 
     private final Definition definition;
 

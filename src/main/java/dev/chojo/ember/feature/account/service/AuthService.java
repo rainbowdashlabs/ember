@@ -535,6 +535,36 @@ public class AuthService {
         return SetPasswordOutcome.OK;
     }
 
+    /**
+     * Lays a one-time password down as the account's password, on behalf of an administrator whose
+     * right to do so the caller has established.
+     *
+     * <p>Like any password set on somebody's behalf it ends every session, link and trusted device
+     * of the account, and tells everybody the account is written to. Unlike one, it is not held to
+     * the breach corpus: it was drawn at random a moment ago and is replaced at the first sign-in,
+     * which is where the password the person chooses is held to it. The hash, the demand to choose a
+     * new one and the deadline are written in one statement, so there is no moment in which the
+     * password works without the demand.
+     *
+     * @param account   the account, already resolved by the caller
+     * @param password  the one-time password in plain text
+     * @param expiresAt when it stops working
+     * @return {@link SetPasswordOutcome#OK}, or {@link SetPasswordOutcome#PASSWORDLESS_MODE} for an
+     *         account without a password on an instance that signs in with passkeys only
+     */
+    public SetPasswordOutcome issueOneTimePassword(Account account, String password, Instant expiresAt) {
+        boolean holdsAPassword = accountRepository.findCredential(account.id()).isPresent();
+        if (!holdsAPassword && passkeyModeService.effectiveMode() == PasskeySettings.Mode.PASSWORDLESS) {
+            log.info("[one-time-password] refused for account {}: the instance is passwordless", account.id());
+            return SetPasswordOutcome.PASSWORDLESS_MODE;
+        }
+        accountRepository.setOneTimePassword(account.id(), passwordHasher.hash(password), expiresAt);
+        invalidateAfterPasswordRotation(account.id(), null);
+        notifyPasswordSetOnBehalf(account);
+        log.info("One-time password issued for account {}, valid until {}", account.id(), expiresAt);
+        return SetPasswordOutcome.OK;
+    }
+
     private void notifyPasswordSetOnBehalf(Account account) {
         try {
             String locale = mailLocaleService.forAccount(account.id());
@@ -744,6 +774,11 @@ public class AuthService {
             log.info("Login refused for account {} ({}): password sign-in is switched off", account.id(), identifier);
             return LoginResult.failure("Password sign-in is switched off for this account. "
                     + "Sign in with your passkey, or reset your password to switch it back on.");
+        }
+
+        if (credOpt.get().oneTimePasswordExpired(Instant.now())) {
+            log.info("Login refused for account {} ({}): the one-time password has expired", account.id(), identifier);
+            return LoginResult.oneTimePasswordHasExpired();
         }
 
         if (account.hasRealEmail() && !account.emailVerified()) {

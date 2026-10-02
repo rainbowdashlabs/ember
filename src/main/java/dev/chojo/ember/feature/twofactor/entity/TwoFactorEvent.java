@@ -37,5 +37,10 @@ public enum TwoFactorEvent {
      * ones where the second never happens: a grant nobody claimed, or one a revoke voided, would
      * otherwise leave no record that anybody ever said yes.
      */
-    DEVICE_REQUEST_APPROVED
+    DEVICE_REQUEST_APPROVED,
+    /**
+     * An administrator issued the account a one-time password. The row names the station whose
+     * administration did it, and no station where an instance administrator did.
+     */
+    ONE_TIME_PASSWORD_ISSUED
 }

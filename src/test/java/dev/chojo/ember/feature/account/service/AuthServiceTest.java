@@ -1760,6 +1760,19 @@ class AuthServiceTest extends RepositoryTestBase {
         assertTrue(accountRepo.findSession(token).isEmpty());
     }
 
+    /** A passwordless instance mints no one-time password for an account that holds no password. */
+    @Test
+    @Order(98)
+    void aOneTimePasswordIsRefusedWherePasswordsCannotBeMinted() throws Exception {
+        var fresh = accountRepo.create("otp-passwordless-" + UUID.randomUUID() + "@test.com", "P", "L", true);
+
+        var outcome = passwordlessService().issueOneTimePassword(fresh, "k7mq-x2pd-9wtr-hb4z", Instant.now());
+
+        assertEquals(AuthService.SetPasswordOutcome.PASSWORDLESS_MODE, outcome);
+        assertTrue(accountRepo.findCredential(fresh.id()).isEmpty());
+        accountRepo.delete(fresh.id());
+    }
+
     @Test
     @Order(99)
     void cleanup() {

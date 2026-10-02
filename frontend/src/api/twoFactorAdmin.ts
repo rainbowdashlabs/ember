@@ -44,6 +44,7 @@ export const TwoFactorEvent = {
     SIGNED_IN_VIA_DEVICE_CODE: 'SIGNED_IN_VIA_DEVICE_CODE',
     STEPUP_VIA_DEVICE_CODE: 'STEPUP_VIA_DEVICE_CODE',
     DEVICE_REQUEST_APPROVED: 'DEVICE_REQUEST_APPROVED',
+    ONE_TIME_PASSWORD_ISSUED: 'ONE_TIME_PASSWORD_ISSUED',
 } as const satisfies Record<TwoFactorEventName, TwoFactorEventName>
 
 export type TwoFactorKindName = Schemas['TwoFactorKind']

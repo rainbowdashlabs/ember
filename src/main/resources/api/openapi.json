@@ -816,6 +816,45 @@
         }
       }
     },
+    "/api/v1/admin/accounts" : {
+      "get" : {
+        "summary" : "List every account of the instance, a page at a time",
+        "tags" : [ "Admin Accounts" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AccountOverviewPage"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "q",
+          "in" : "query",
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "page",
+          "in" : "query",
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "size",
+          "in" : "query",
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
     "/api/v1/admin/accounts/search" : {
       "get" : {
         "responses" : {
@@ -849,6 +888,43 @@
             }
           }
         }
+      }
+    },
+    "/api/v1/admin/accounts/{id}/one-time-password" : {
+      "post" : {
+        "summary" : "Issue a one-time password for any account but one's own",
+        "tags" : [ "Admin Accounts" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/IssuedOneTimePassword"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
       }
     },
     "/api/v1/admin/accounts/{id}/password/retire" : {
@@ -28158,6 +28234,53 @@
         }
       }
     },
+    "/api/v1/members/{accountId}/one-time-password" : {
+      "post" : {
+        "summary" : "Issue a one-time password for a member of this station alone",
+        "tags" : [ "Members" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/IssuedOneTimePassword"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Forbidden",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "accountId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
     "/api/v1/members/{stationUid}/{memberUid}/avatar" : {
       "get" : {
         "responses" : {
@@ -40636,6 +40759,95 @@
         },
         "required" : [ "id", "uid", "email", "username", "firstName", "lastName" ]
       },
+      "AccountOverview" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "uid" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "email" : {
+            "type" : [ "string", "null" ]
+          },
+          "loginName" : {
+            "type" : "string"
+          },
+          "instanceUserType" : {
+            "$ref" : "#/components/schemas/InstanceUserType"
+          },
+          "lastSignInAt" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "stations" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "associations" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/AssociationRole"
+            }
+          },
+          "hasPassword" : {
+            "type" : "boolean"
+          },
+          "passwordSignIn" : {
+            "type" : "boolean"
+          },
+          "oneTimePasswordExpiresAt" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "passkeys" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "twoFactor" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "id", "uid", "name", "email", "loginName", "instanceUserType", "lastSignInAt", "stations", "associations", "hasPassword", "passwordSignIn", "oneTimePasswordExpiresAt", "passkeys", "twoFactor" ]
+      },
+      "AccountOverviewPage" : {
+        "type" : "object",
+        "properties" : {
+          "accounts" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/AccountOverview"
+            }
+          },
+          "total" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "page" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "size" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "accounts", "total", "page", "size" ]
+      },
       "AccountSearchResult" : {
         "type" : "object",
         "properties" : {
@@ -41677,6 +41889,18 @@
             "type" : [ "boolean", "null" ]
           }
         }
+      },
+      "AssociationRole" : {
+        "type" : "object",
+        "properties" : {
+          "association" : {
+            "type" : "string"
+          },
+          "role" : {
+            "$ref" : "#/components/schemas/ClusterUserType"
+          }
+        },
+        "required" : [ "association", "role" ]
       },
       "AttachmentOrderRequest" : {
         "type" : "object",
@@ -53100,6 +53324,28 @@
             "type" : "boolean"
           }
         }
+      },
+      "IssuedOneTimePassword" : {
+        "type" : "object",
+        "properties" : {
+          "accountId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "loginName" : {
+            "type" : "string"
+          },
+          "password" : {
+            "type" : "string"
+          },
+          "expiresAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          }
+        },
+        "required" : [ "accountId", "name", "loginName", "password", "expiresAt" ]
       },
       "ItemAssignment" : {
         "type" : "object",
@@ -69013,11 +69259,15 @@
           "country" : {
             "type" : [ "string", "null" ]
           },
+          "stationId" : {
+            "type" : [ "string", "null" ],
+            "format" : "uuid"
+          },
           "createdAt" : {
             "$ref" : "#/components/schemas/Instant"
           }
         },
-        "required" : [ "id", "accountId", "actorId", "event", "factorKind", "userAgent", "country", "createdAt" ]
+        "required" : [ "id", "accountId", "actorId", "event", "factorKind", "userAgent", "country", "stationId", "createdAt" ]
       },
       "TwoFactorCoreConfigRequest" : {
         "type" : "object",
@@ -69065,7 +69315,7 @@
       },
       "TwoFactorEvent" : {
         "type" : "string",
-        "enum" : [ "ENROLLED", "REMOVED", "LOGIN_VERIFIED", "STEPUP_VERIFIED", "BACKUP_CODE_USED", "BACKUP_CODE_REGENERATED", "ADMIN_RESET", "TRUSTED_DEVICE_ADDED", "TRUSTED_DEVICE_REVOKED", "POLICY_CHANGED", "PASSKEY_SIGN_IN", "PASSKEY_ENROLLED_VIA_DEVICE_CODE", "PASSKEY_CODE_ISSUED", "PASSWORD_LOGIN_DISABLED", "PASSWORD_LOGIN_ENABLED", "PASSWORD_RETIRED", "STEPUP_FAILED", "SIGNED_IN_VIA_DEVICE_CODE", "STEPUP_VIA_DEVICE_CODE", "DEVICE_REQUEST_APPROVED" ]
+        "enum" : [ "ENROLLED", "REMOVED", "LOGIN_VERIFIED", "STEPUP_VERIFIED", "BACKUP_CODE_USED", "BACKUP_CODE_REGENERATED", "ADMIN_RESET", "TRUSTED_DEVICE_ADDED", "TRUSTED_DEVICE_REVOKED", "POLICY_CHANGED", "PASSKEY_SIGN_IN", "PASSKEY_ENROLLED_VIA_DEVICE_CODE", "PASSKEY_CODE_ISSUED", "PASSWORD_LOGIN_DISABLED", "PASSWORD_LOGIN_ENABLED", "PASSWORD_RETIRED", "STEPUP_FAILED", "SIGNED_IN_VIA_DEVICE_CODE", "STEPUP_VIA_DEVICE_CODE", "DEVICE_REQUEST_APPROVED", "ONE_TIME_PASSWORD_ISSUED" ]
       },
       "TwoFactorKind" : {
         "type" : "string",

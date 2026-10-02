@@ -70,3 +70,7 @@ export const TEST_MAIL_RECIPIENT_NOT_AN_ADDRESS = 'Das ist keine E-Mail-Adresse,
 export const QUESTION_DEFAULT_NOT_ACCEPTED = 'Eine Frage kann nicht mit einem Wert beginnen, den sie als Antwort nicht '
     + 'annehmen würde, es wurde nichts gespeichert'
 export const PARTNER_STATION_NOT_HERE = 'Diese Partnerwache gibt es nicht mehr'
+export const ONE_TIME_PASSWORD_FOR_YOURSELF = 'Für dein eigenes Konto kannst du kein Einmalpasswort erstellen. '
+    + 'Ändere dein Passwort in deinen Kontoeinstellungen'
+export const ONE_TIME_PASSWORD_PASSKEYS_ONLY = 'Auf dieser Instanz meldet man sich nur mit Passkeys an, '
+    + 'es wurde kein Einmalpasswort erstellt'

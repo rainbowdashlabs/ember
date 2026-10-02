@@ -1328,6 +1328,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/accounts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List every account of the instance, a page at a time */
+        get: {
+            parameters: {
+                query?: {
+                    page?: number;
+                    q?: string;
+                    size?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AccountOverviewPage"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/accounts/{id}/2fa/reset": {
         parameters: {
             query?: never;
@@ -1353,6 +1393,53 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["MessageResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/accounts/{id}/one-time-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Issue a one-time password for any account but one's own */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["IssuedOneTimePassword"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
                     };
                 };
             };
@@ -35672,6 +35759,62 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/members/{accountId}/one-time-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Issue a one-time password for a member of this station alone */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    accountId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["IssuedOneTimePassword"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/members/{stationUid}/{memberUid}/avatar": {
         parameters: {
             query?: never;
@@ -54051,6 +54194,34 @@ export interface components {
             uid: string | null;
             username: string | null;
         };
+        AccountOverview: {
+            associations: components["schemas"]["AssociationRole"][];
+            email: string | null;
+            hasPassword: boolean;
+            /** Format: int32 */
+            id: number;
+            instanceUserType: components["schemas"]["InstanceUserType"];
+            lastSignInAt: components["schemas"]["Instant"] | null;
+            loginName: string;
+            name: string;
+            oneTimePasswordExpiresAt: components["schemas"]["Instant"] | null;
+            /** Format: int32 */
+            passkeys: number;
+            passwordSignIn: boolean;
+            stations: string[];
+            twoFactor: boolean;
+            /** Format: uuid */
+            uid: string;
+        };
+        AccountOverviewPage: {
+            accounts: components["schemas"]["AccountOverview"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            size: number;
+            /** Format: int32 */
+            total: number;
+        };
         AccountSearchResult: {
             displayName: string;
             email: string | null;
@@ -54431,6 +54602,10 @@ export interface components {
             /** Format: int32 */
             memberId?: number | null;
             memberName?: string | null;
+        };
+        AssociationRole: {
+            association: string;
+            role: components["schemas"]["ClusterUserType"];
         };
         AttachmentOrderRequest: {
             attachmentIds?: number[];
@@ -58397,6 +58572,14 @@ export interface components {
             firstName?: string;
             lastName?: string;
             sendSetupMail?: boolean;
+        };
+        IssuedOneTimePassword: {
+            /** Format: int32 */
+            accountId: number;
+            expiresAt: components["schemas"]["Instant"];
+            loginName: string;
+            name: string;
+            password: string;
         };
         ItemAssignment: {
             /** Format: int32 */
@@ -63960,6 +64143,8 @@ export interface components {
             factorKind: components["schemas"]["TwoFactorKind"] | null;
             /** Format: int32 */
             id: number;
+            /** Format: uuid */
+            stationId: string | null;
             userAgent: string | null;
         };
         TwoFactorCoreConfigRequest: {
@@ -63982,7 +64167,7 @@ export interface components {
             trustedDeviceMaxDays: number;
         };
         /** @enum {string} */
-        TwoFactorEvent: "ENROLLED" | "REMOVED" | "LOGIN_VERIFIED" | "STEPUP_VERIFIED" | "BACKUP_CODE_USED" | "BACKUP_CODE_REGENERATED" | "ADMIN_RESET" | "TRUSTED_DEVICE_ADDED" | "TRUSTED_DEVICE_REVOKED" | "POLICY_CHANGED" | "PASSKEY_SIGN_IN" | "PASSKEY_ENROLLED_VIA_DEVICE_CODE" | "PASSKEY_CODE_ISSUED" | "PASSWORD_LOGIN_DISABLED" | "PASSWORD_LOGIN_ENABLED" | "PASSWORD_RETIRED" | "STEPUP_FAILED" | "SIGNED_IN_VIA_DEVICE_CODE" | "STEPUP_VIA_DEVICE_CODE" | "DEVICE_REQUEST_APPROVED";
+        TwoFactorEvent: "ENROLLED" | "REMOVED" | "LOGIN_VERIFIED" | "STEPUP_VERIFIED" | "BACKUP_CODE_USED" | "BACKUP_CODE_REGENERATED" | "ADMIN_RESET" | "TRUSTED_DEVICE_ADDED" | "TRUSTED_DEVICE_REVOKED" | "POLICY_CHANGED" | "PASSKEY_SIGN_IN" | "PASSKEY_ENROLLED_VIA_DEVICE_CODE" | "PASSKEY_CODE_ISSUED" | "PASSWORD_LOGIN_DISABLED" | "PASSWORD_LOGIN_ENABLED" | "PASSWORD_RETIRED" | "STEPUP_FAILED" | "SIGNED_IN_VIA_DEVICE_CODE" | "STEPUP_VIA_DEVICE_CODE" | "DEVICE_REQUEST_APPROVED" | "ONE_TIME_PASSWORD_ISSUED";
         /** @enum {string} */
         TwoFactorKind: "TOTP" | "WEBAUTHN" | "BACKUP_CODES";
         TwoFactorPolicyEntry: {
@@ -64519,6 +64704,8 @@ export type AccessRequest = components['schemas']['AccessRequest'];
 export type AccordionConfig = components['schemas']['AccordionConfig'];
 export type AccountActionRequest = components['schemas']['AccountActionRequest'];
 export type AccountInfo = components['schemas']['AccountInfo'];
+export type AccountOverview = components['schemas']['AccountOverview'];
+export type AccountOverviewPage = components['schemas']['AccountOverviewPage'];
 export type AccountSearchResult = components['schemas']['AccountSearchResult'];
 export type AchievementItem = components['schemas']['AchievementItem'];
 export type AchievementsConfig = components['schemas']['AchievementsConfig'];
@@ -64570,6 +64757,7 @@ export type AssignItemRequest = components['schemas']['AssignItemRequest'];
 export type AssignItemsRequest = components['schemas']['AssignItemsRequest'];
 export type AssignmentRequest = components['schemas']['AssignmentRequest'];
 export type AssignRequest = components['schemas']['AssignRequest'];
+export type AssociationRole = components['schemas']['AssociationRole'];
 export type AttachmentOrderRequest = components['schemas']['AttachmentOrderRequest'];
 export type AttachmentRequest = components['schemas']['AttachmentRequest'];
 export type AttemptStatus = components['schemas']['AttemptStatus'];
@@ -65116,6 +65304,7 @@ export type InventoryType = components['schemas']['InventoryType'];
 export type InviteCodeResponse = components['schemas']['InviteCodeResponse'];
 export type InviteEntry = components['schemas']['InviteEntry'];
 export type InviteRequest = components['schemas']['InviteRequest'];
+export type IssuedOneTimePassword = components['schemas']['IssuedOneTimePassword'];
 export type ItemAssignment = components['schemas']['ItemAssignment'];
 export type ItemBooleanValue = components['schemas']['ItemBooleanValue'];
 export type ItemCheckHistoryEntry = components['schemas']['ItemCheckHistoryEntry'];
