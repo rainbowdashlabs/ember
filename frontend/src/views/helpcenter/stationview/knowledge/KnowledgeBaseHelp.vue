@@ -12,7 +12,7 @@ import HelpPermissionGuard from '@/components/helpcenter/HelpPermissionGuard.vue
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import BulletList from '@/components/typography/BulletList.vue'
 import EditorSections from '@/views/helpcenter/stationview/knowledge/knowledgebasehelp/EditorSections.vue'
-import {StationPermission} from '@/api/types'
+import {StationPermission} from '@/api/generated/schema'
 
 const { t } = useI18n()
 </script>

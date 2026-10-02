@@ -24,9 +24,8 @@ import { useSession } from '@/composables/useSession'
 import { useConfirmAction } from '@/composables/useConfirmAction'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { procedures } from '@/api'
-import { StationPermission } from '@/api/types'
-import {ProcedureStatus, type ProcedureListParams, type ProcedureStatusName} from '@/api/procedures'
-import type {Procedure} from '@/api/generated/schema'
+import type {ProcedureListParams} from '@/api/procedures'
+import {ProcedureStatus, StationPermission, type Procedure} from '@/api/generated/schema'
 import { formatDate } from '@/util/format'
 
 const { t } = useI18n()
@@ -38,7 +37,7 @@ const canEdit = computed(() => hasPermission(StationPermission.PROCEDURE_EDIT))
 const items = ref<Procedure[]>([])
 
 const searchQuery = ref('')
-const statusFilter = ref<ProcedureStatusName | ''>(ProcedureStatus.OPEN)
+const statusFilter = ref<ProcedureStatus | ''>(ProcedureStatus.OPEN)
 const assigneeFilter = ref<string>(canEdit.value ? 'all' : 'me')
 
 const {loading, failure, reload} = useAsyncLoader(async (isCurrent) => {

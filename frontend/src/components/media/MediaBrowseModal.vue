@@ -14,12 +14,11 @@ import FilterBar from './mediabrowsemodal/FilterBar.vue'
 import FilesGrid from './mediabrowsemodal/FilesGrid.vue'
 import MediaFileEditModal from '@/components/media/MediaFileEditModal.vue'
 import {INSTANCE_MEDIA_SCOPE, mediaFileUrl, pruneMediaFiles, updateMediaFileMeta, uploadInstanceMediaFile, uploadMediaFile} from '@/api/media'
-import type {StationFile} from '@/api/generated/schema'
+import {StationPermission, type StationFile} from '@/api/generated/schema'
 import {useMediaLibrary} from '@/composables/useMediaLibrary'
 import {describeFailure} from '@/util/failure'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useSession} from '@/composables/useSession'
-import {StationPermission} from '@/api/types'
 import {formatSize} from '@/util/format'
 
 const open = defineModel<boolean>('open', {default: false})

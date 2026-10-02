@@ -14,7 +14,7 @@ import ErrorButton from '@/components/button/ErrorButton.vue'
 import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
 import {fromMember, type MemberOption} from '@/components/input/select/memberOption'
 import {stationManage, stationMembers} from '@/api'
-import {StationPermission} from '@/api/types'
+import {StationPermission} from '@/api/generated/schema'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import type {Failure} from '@/util/failure'
 

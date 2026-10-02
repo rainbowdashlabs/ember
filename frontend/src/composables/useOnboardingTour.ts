@@ -6,7 +6,7 @@
 import {computed, readonly} from 'vue'
 import {useRouter} from 'vue-router'
 import {useSession} from './useSession'
-import {StationPermission} from '@/api/types'
+import {StationPermission} from '@/api/generated/schema'
 import {onboardingState} from '@/util/onboardingState'
 
 const STORAGE_KEY = 'onboarding_tour_completed'

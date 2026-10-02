@@ -24,15 +24,13 @@ import InfoBadge from '@/components/badge/InfoBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import DetailLabel from '@/components/typography/DetailLabel.vue'
 import EventCancellationBanner from '@/views/stationview/events/eventdetailview/EventCancellationBanner.vue'
-import {StationPermission} from '@/api/types'
-import {CancellationCauses} from '@/api/events'
-import type {CancellationNotice} from '@/api/generated/schema'
+import {CancellationCause, StationPermission, type CancellationNotice} from '@/api/generated/schema'
 
 const {t} = useI18n()
 
 const sampleCancellation: CancellationNotice = {
   date: '2026-05-25',
-  cause: CancellationCauses.THRESHOLD,
+  cause: CancellationCause.THRESHOLD,
   reason: null,
   cancelledAt: null,
 }

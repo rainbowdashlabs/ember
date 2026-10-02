@@ -21,10 +21,8 @@ import {
     getPageShareLink,
     replacePageShareLink,
     setLandingPage,
-    type PageVisibilityName,
 } from '@/api/pageManage'
-import type {PageShareLinkResponse, StationPage} from '@/api/generated/schema'
-import {StationPermission} from '@/api/types'
+import {StationPermission, type PageShareLinkResponse, type PageVisibility, type StationPage} from '@/api/generated/schema'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useConfirmDelete} from '@/composables/useConfirmDelete'
@@ -148,7 +146,7 @@ const shareLink = ref<PageShareLinkResponse | null>(null)
 const shareFailure = ref<Failure | null>(null)
 const shareBusy = ref(false)
 
-async function onChooseVisibility(visibility: PageVisibilityName) {
+async function onChooseVisibility(visibility: PageVisibility) {
     const page = visibilityPage.value
     if (!page) return
     visibilityFailure.value = null

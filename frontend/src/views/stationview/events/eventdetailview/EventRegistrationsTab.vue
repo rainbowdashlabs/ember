@@ -18,9 +18,7 @@ import InfoBadge from '@/components/badge/InfoBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import {describeFailure, type Failure} from '@/util/failure'
-import {RegistrationStatus, type RegistrationStatusName} from '@/api/events'
-import type {EventRegistrationFieldValue, PartnerPlacesView, EventRegistrationField, RegistrationResponse, RegistrationStatsResponse, StationEvent} from '@/api/generated/schema'
-import {StationPermission} from '@/api/types'
+import {RegistrationStatus, StationPermission, type EventRegistrationFieldValue, type PartnerPlacesView, type EventRegistrationField, type RegistrationResponse, type RegistrationStatsResponse, type StationEvent} from '@/api/generated/schema'
 import {fromMember, type MemberOption} from '@/components/input/select/memberOption'
 import {events, stationMembers as stationMembersApi} from '@/api'
 import {useSession} from '@/composables/useSession'
@@ -173,7 +171,7 @@ async function reloadAndRefresh() {
  * <p>The two are answered for separately. A decision the server took, followed by a refresh that
  * failed, used to say the decision had been refused, and whoever read that pressed the button again.
  */
-async function decide(id: number, status: RegistrationStatusName) {
+async function decide(id: number, status: RegistrationStatus) {
   failure.value = null
   try {
     await events.updateRegistrationStatus(id, status)
@@ -358,7 +356,7 @@ const {running: savingAnswers, failure: answersFailure, run: saveAnswers} = useA
     })
 
 /** A partner station's sign-up, answered. A refusal here used to go nowhere at all. */
-async function decideFederated(regId: number, status: RegistrationStatusName) {
+async function decideFederated(regId: number, status: RegistrationStatus) {
   try {
     await events.updateFederationRegistrationStatus(regId, status)
   } catch (e) {

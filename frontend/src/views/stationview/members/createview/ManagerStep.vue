@@ -15,8 +15,7 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
 import {fromMember, userTypesOf} from '@/components/input/select/memberOption'
-import {StationUserType} from '@/api/types'
-import type {MemberWithName} from '@/api/generated/schema'
+import {StationUserType, type MemberWithName} from '@/api/generated/schema'
 
 const {t} = useI18n()
 

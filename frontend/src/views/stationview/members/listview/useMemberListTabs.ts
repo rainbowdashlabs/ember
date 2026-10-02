@@ -5,8 +5,7 @@
  */
 import { computed, ref, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { StationUserType } from '@/api/types'
-import type { ProfileField, ProfileFieldAssignment } from '@/api/generated/schema'
+import { StationUserType, type ProfileField, type ProfileFieldAssignment } from '@/api/generated/schema'
 import { fieldAudiences } from '@/composables/useFieldAudiences'
 import { emptyTableState, type DataTableState } from '@/composables/useDataTable'
 

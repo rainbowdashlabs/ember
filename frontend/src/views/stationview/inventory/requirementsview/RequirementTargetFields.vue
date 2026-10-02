@@ -8,7 +8,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import { StationUserType } from '@/api/types'
+import { STATION_USER_TYPES } from '@/util/stationUserTypes'
 import type { MemberGroup, StationGroupResponse } from '@/api/generated/schema'
 import { useInventoryRoutes } from '@/composables/useInventoryRoutes'
 import { userTypeFriendlyNames } from './types'
@@ -57,7 +57,7 @@ const byGroup = computed(() => !!routes.memberGroups)
       <FieldLabel>{{ t('inventory.requirements.userType') }}</FieldLabel>
       <SelectInput v-model="userType">
         <option value="" disabled>{{ t('inventory.requirements.selectUserType') }}</option>
-        <option v-for="(value, key) in StationUserType" :key="key" :value="value">
+        <option v-for="value in STATION_USER_TYPES" :key="value" :value="value">
           {{ userTypeFriendlyNames[value] ?? value }}
         </option>
       </SelectInput>

@@ -14,7 +14,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import {inventory, inventoryContainers, stationMembers} from '@/api'
-import {ItemOwner} from '@/api/inventory'
+import {ItemOwner, StationPermission} from '@/api/generated/schema'
 import type {
   HistoryResponse,
   InventoryItem,
@@ -23,7 +23,6 @@ import type {
   ItemLocationResponse,
   MemberWithName,
 } from '@/api/generated/schema'
-import {StationPermission} from '@/api/types'
 import {useSession} from '@/composables/useSession'
 import {useActsForOwner} from '@/composables/useActsForOwner'
 import {useInventoryRoutes} from '@/composables/useInventoryRoutes'

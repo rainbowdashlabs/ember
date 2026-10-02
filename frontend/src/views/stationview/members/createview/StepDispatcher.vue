@@ -11,8 +11,13 @@ import FieldsStep from './FieldsStep.vue'
 import GroupsStep from './GroupsStep.vue'
 import ManagerStep from './ManagerStep.vue'
 import DoneStep from './DoneStep.vue'
-import type { IssuedOneTimePassword, MemberGroup, MemberWithName, ProfileField } from '@/api/generated/schema'
-import {StationUserType} from '@/api/types'
+import {
+  StationUserType,
+  type IssuedOneTimePassword,
+  type MemberGroup,
+  type MemberWithName,
+  type ProfileField,
+} from '@/api/generated/schema'
 import type {Failure} from '@/util/failure'
 
 type Step = 'userType' | 'identity' | 'fields' | 'groups' | 'manager' | 'done'

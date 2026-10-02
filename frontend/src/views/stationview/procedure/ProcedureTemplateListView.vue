@@ -26,8 +26,7 @@ import { useConfirmAction } from '@/composables/useConfirmAction'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { describeFailure } from '@/util/failure'
 import { procedures } from '@/api'
-import { StationPermission } from '@/api/types'
-import type { ProcedureTemplate } from '@/api/generated/schema'
+import { StationPermission, type ProcedureTemplate } from '@/api/generated/schema'
 
 const { t } = useI18n()
 const router = useRouter()

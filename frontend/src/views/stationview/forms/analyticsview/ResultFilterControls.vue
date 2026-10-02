@@ -13,8 +13,8 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import ResultFieldConditions from './ResultFieldConditions.vue'
 import {ResultMatch, type ResultFilterState, type ResultMatchName} from '@/api/forms'
 import type {MemberGroup, ProfileField, UserTag} from '@/api/generated/schema'
-import {StationUserType, StationUserTypeLabels} from '@/api/types'
-import {userTypesOf} from '@/util/stationUserTypes'
+import {StationUserTypeLabels} from '@/api/types'
+import {STATION_USER_TYPES, userTypesOf} from '@/util/stationUserTypes'
 
 /**
  * Which respondents count: by user type, groups, tags, age and profile answers.
@@ -36,7 +36,7 @@ function patch(part: Partial<ResultFilterState>) {
   filter.value = {...filter.value, ...part}
 }
 
-const userTypeOptions = Object.values(StationUserType).map(type => ({value: type, label: StationUserTypeLabels[type]}))
+const userTypeOptions = STATION_USER_TYPES.map(type => ({value: type, label: StationUserTypeLabels[type]}))
 const groupOptions = computed(() => props.groups.map(group => ({value: String(group.id), label: group.name ?? ''})))
 const tagOptions = computed(() => props.tags.map(tag => ({value: String(tag.id), label: tag.name})))
 

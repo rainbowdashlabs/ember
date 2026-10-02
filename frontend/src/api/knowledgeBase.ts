@@ -7,7 +7,7 @@ import client from './client'
 import {ContentMode} from './news'
 import {createCrudResource} from './crud'
 import {noMentionables, stationMentionables, type CommentSource} from './comments'
-import {StationPermission} from './types'
+import {StationPermission} from './generated/schema'
 import {uploadFile as uploadMultipart} from './upload'
 import type {
     CommentResponse,

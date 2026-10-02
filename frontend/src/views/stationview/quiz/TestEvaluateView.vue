@@ -12,9 +12,8 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import {describeFailure} from '@/util/failure'
 import SuccessContainer from '@/components/container/SuccessContainer.vue'
-import {QuizAttemptStatus, QuizQuestionTypes} from '@/api/quiz'
-import type {QuizAttemptDetail, QuizQuestion, QuizTest, QuizTestAnswer} from '@/api/generated/schema'
-import {StationPermission} from '@/api/types'
+import {QuizAttemptStatus} from '@/api/quiz'
+import {QuizQuestionType, StationPermission, type QuizAttemptDetail, type QuizQuestion, type QuizTest, type QuizTestAnswer} from '@/api/generated/schema'
 import {quiz} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
@@ -184,7 +183,7 @@ const {loading, failure, reload} = useAsyncLoader(async () => {
     }
 
     const q = questionsMap.value.get(answer.questionId)
-    if (q && q.quizQuestionType === QuizQuestionTypes.FILL_IN_THE_BLANK && answer.graded && answer.points !== null) {
+    if (q && q.quizQuestionType === QuizQuestionType.FILL_IN_THE_BLANK && answer.graded && answer.points !== null) {
       const cfg = parseConfig(q.config)
       const answers_list = (cfg.answers as string[]) ?? []
       const parsed = parseAnswer(answer.answer)

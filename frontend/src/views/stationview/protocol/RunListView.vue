@@ -30,9 +30,16 @@ import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { describeFailure } from '@/util/failure'
 import { protocol, stationMembers, memberGroups, userTags } from '@/api'
-import type { MemberGroup, MemberWithName, TestProtocol, TestProtocolRun, UserTag } from '@/api/generated/schema'
-import { RunStatus } from '@/api/protocol'
-import {StationPermission, type RestrictionSelection} from '@/api/types'
+import {
+  RunStatus,
+  StationPermission,
+  type MemberGroup,
+  type MemberWithName,
+  type TestProtocol,
+  type TestProtocolRun,
+  type UserTag,
+} from '@/api/generated/schema'
+import type {RestrictionSelection} from '@/api/types'
 import { formatDate, todayIsoDate } from '@/util/format'
 
 const { t } = useI18n()

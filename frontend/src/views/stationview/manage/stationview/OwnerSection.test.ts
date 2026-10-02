@@ -7,7 +7,7 @@ import {beforeEach, describe, expect, it, vi} from 'vitest'
 import {flushPromises} from '@vue/test-utils'
 import {mountSuspended} from '@nuxt/test-utils/runtime'
 import OwnerSection from './OwnerSection.vue'
-import {StationPermission} from '@/api/types'
+import {StationPermission} from '@/api/generated/schema'
 
 const listMembers = vi.fn()
 const listAllPermissions = vi.fn()

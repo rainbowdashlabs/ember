@@ -11,7 +11,7 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import {describeFailure} from '@/util/failure'
 import { managedMembers as managedMembersApi } from '@/api'
-import type { ManagedMember } from '@/api/generated/schema'
+import { StationPermission, type ManagedMember } from '@/api/generated/schema'
 import { useSession } from '@/composables/useSession'
 import { useProfileAnswers } from '@/composables/useProfileAnswers'
 import { ownProfileAnswers } from '@/composables/profileAnswerPorts'
@@ -22,7 +22,6 @@ import IncompleteFieldsAlert from './indexview/IncompleteFieldsAlert.vue'
 import ProfileFieldsForm from './indexview/ProfileFieldsForm.vue'
 import MemberDocumentsPanel from '@/components/documents/MemberDocumentsPanel.vue'
 import {usePermissions} from '@/composables/usePermissions'
-import {StationPermission} from '@/api/types'
 
 const { t } = useI18n()
 const { sessionInfo } = useSession()

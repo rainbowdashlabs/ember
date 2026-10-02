@@ -3,10 +3,10 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {FederationTargetResponse, PartnerResponse} from '@/api/generated/schema'
-import {FieldTypes} from '@/api/fieldTypes'
+import {FieldType, StationUserType, type FederationTargetResponse, type PartnerResponse} from '@/api/generated/schema'
 import type {BoardFieldDraft} from '@/api/boards'
-import {StationUserType, StationUserTypeLabels} from '@/api/types'
+import {StationUserTypeLabels} from '@/api/types'
+import {STATION_USER_TYPES} from '@/util/stationUserTypes'
 import type {LaneDraft} from '@/views/stationview/boards/boardsettingsview/BoardLanesSection.vue'
 import type {RoleOption} from '@/views/stationview/boards/boardsettingsview/BoardFederationSection.vue'
 
@@ -29,8 +29,8 @@ export function demoLaneDrafts(): LaneDraft[] {
 /** Fresh field drafts, since the field rows edit the drafts they are given in place. */
 export function demoFieldDrafts(): BoardFieldDraft[] {
     return [
-        {name: 'Zeitaufwand (Stunden)', fieldType: FieldTypes.NUMBER, required: false, options: [], laneId: null},
-        {name: 'Kategorie', fieldType: FieldTypes.CHOICE, required: true, options: ['Ausrüstung', 'Ausbildung', 'Organisation'], laneId: null},
+        {name: 'Zeitaufwand (Stunden)', fieldType: FieldType.NUMBER, required: false, options: [], laneId: null},
+        {name: 'Kategorie', fieldType: FieldType.CHOICE, required: true, options: ['Ausrüstung', 'Ausbildung', 'Organisation'], laneId: null},
     ]
 }
 
@@ -63,7 +63,7 @@ export const demoAvailablePartners: PartnerResponse[] = [{
     },
 }]
 
-export const demoRoleOptions: RoleOption[] = Object.values(StationUserType)
+export const demoRoleOptions: RoleOption[] = STATION_USER_TYPES
     .map(userType => ({value: userType, label: StationUserTypeLabels[userType]}))
 
 /** The demo partner's station name. */

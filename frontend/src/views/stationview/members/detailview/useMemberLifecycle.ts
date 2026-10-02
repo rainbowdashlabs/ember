@@ -5,8 +5,7 @@
  */
 import { computed, ref, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { MemberWithName, MyInventoryItem } from '@/api/generated/schema'
-import {StationUserType} from '@/api/types'
+import { StationUserType, type MemberWithName, type MyInventoryItem } from '@/api/generated/schema'
 import { stationMembers } from '@/api'
 import { useAsyncAction } from '@/composables/useAsyncAction'
 import type { Failure } from '@/util/failure'

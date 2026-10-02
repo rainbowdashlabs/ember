@@ -4,8 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {ClusterPermission} from '@/api/clusters'
-import {StationModules, StationPermission} from '@/api/types'
-import type {StationModule} from '@/api/generated/schema'
+import {StationModule, StationPermission} from '@/api/generated/schema'
 import type {QuickSearchScope} from '@/composables/useQuickSearch'
 
 /**
@@ -39,7 +38,7 @@ export const PALETTE_ROUTES: PaletteRouteEntry[] = [
     {scope: 'station', to: '/station/dashboard/overview', labelKey: 'sidebar.dashboard', icon: 'gauge'},
     {scope: 'station', to: '/station/dashboard/statistics', labelKey: 'sidebar.statistics', icon: 'chart-line', permission: StationPermission.STATION_STATISTICS},
     {scope: 'station', to: '/station/requirements', labelKey: 'sidebar.requirements', icon: 'clipboard-check'},
-    {scope: 'station', to: '/station/news', labelKey: 'sidebar.news', icon: 'newspaper', module: StationModules.NEWS},
+    {scope: 'station', to: '/station/news', labelKey: 'sidebar.news', icon: 'newspaper', module: StationModule.NEWS},
 
     {scope: 'station', to: '/station/profile', labelKey: 'sidebar.profile', icon: 'user'},
     {scope: 'station', to: '/station/profile/absences', labelKey: 'sidebar.absences', icon: 'calendar-days'},
@@ -54,53 +53,53 @@ export const PALETTE_ROUTES: PaletteRouteEntry[] = [
     {scope: 'station', to: '/station/members/tags', labelKey: 'sidebar.tags', icon: 'hashtag', permission: StationPermission.MEMBER_MANAGE_TAGS},
     {scope: 'station', to: '/station/members/changes', labelKey: 'sidebar.changes', icon: 'bell', permission: StationPermission.MEMBER_CHANGES},
     {scope: 'station', to: '/station/members/former', labelKey: 'sidebar.formerMembers', icon: 'user-slash', permission: StationPermission.MEMBER_EDIT},
-    {scope: 'station', to: '/station/members/waiting-lists', labelKey: 'sidebar.waitingLists', icon: 'clipboard-list', module: StationModules.WAITING_LIST, anyPermission: [StationPermission.WAITLIST_READ, StationPermission.WAITLIST_EDIT, StationPermission.WAITLIST_MANAGER, StationPermission.WAITLIST_ADD]},
+    {scope: 'station', to: '/station/members/waiting-lists', labelKey: 'sidebar.waitingLists', icon: 'clipboard-list', module: StationModule.WAITING_LIST, anyPermission: [StationPermission.WAITLIST_READ, StationPermission.WAITLIST_EDIT, StationPermission.WAITLIST_MANAGER, StationPermission.WAITLIST_ADD]},
     {scope: 'station', to: '/station/members/config', labelKey: 'sidebar.membersConfig', icon: 'users-gear', permission: StationPermission.MEMBER_FIELDS},
     {scope: 'station', to: '/station/members/type-permissions', labelKey: 'sidebar.typePermissions', icon: 'shield', permission: StationPermission.MEMBER_MANAGER},
 
-    {scope: 'station', to: '/station/inventory', labelKey: 'sidebar.inventory', icon: 'boxes-stacked', module: StationModules.INVENTORY, anyPermission: [StationPermission.INVENTORY_READ, StationPermission.INVENTORY_EDIT, StationPermission.INVENTORY_MANAGER]},
-    {scope: 'station', to: '/station/inventory/my', labelKey: 'sidebar.myInventory', icon: 'boxes-stacked', module: StationModules.INVENTORY},
-    {scope: 'station', to: '/station/inventory/storage', labelKey: 'sidebar.inventoryStorage', icon: 'warehouse', module: StationModules.INVENTORY, permission: StationPermission.INVENTORY_READ},
-    {scope: 'station', to: '/station/inventory/assign', labelKey: 'sidebar.inventoryAssign', icon: 'user-plus', module: StationModules.INVENTORY, permission: StationPermission.INVENTORY_ASSIGN},
-    {scope: 'station', to: '/station/inventory/checks/member', labelKey: 'sidebar.inventoryCheckMember', icon: 'user-check', module: StationModules.INVENTORY, permission: StationPermission.INVENTORY_CHECK},
-    {scope: 'station', to: '/station/inventory/checks/container', labelKey: 'sidebar.inventoryCheckContainer', icon: 'box-open', module: StationModules.INVENTORY, permission: StationPermission.INVENTORY_CHECK},
-    {scope: 'station', to: '/station/inventory/members', labelKey: 'sidebar.inventoryMembers', icon: 'users', module: StationModules.INVENTORY, permission: StationPermission.INVENTORY_READ},
-    {scope: 'station', to: '/station/inventory/manage', labelKey: 'sidebar.inventoryManage', icon: 'box-open', module: StationModules.INVENTORY, permission: StationPermission.INVENTORY_CREATE},
-    {scope: 'station', to: '/station/inventory/movements', labelKey: 'sidebar.inventoryMovements', icon: 'rotate', module: StationModules.INVENTORY},
-    {scope: 'station', to: '/station/inventory/procurement', labelKey: 'sidebar.inventoryProcurement', icon: 'folder-plus', module: StationModules.INVENTORY, permission: StationPermission.INVENTORY_PROCUREMENT},
-    {scope: 'station', to: '/station/inventory/requirements', labelKey: 'sidebar.inventoryRequirements', icon: 'clipboard-list', module: StationModules.INVENTORY, permission: StationPermission.INVENTORY_READ},
-    {scope: 'station', to: '/station/inventory/lending', labelKey: 'sidebar.inventoryLending', icon: 'handshake', module: StationModules.INVENTORY, anyPermission: [StationPermission.INVENTORY_LENDING_REQUEST, StationPermission.INVENTORY_LENDING_MANAGER]},
-    {scope: 'station', to: '/station/inventory/lending/shares', labelKey: 'sidebar.inventoryLendingShares', icon: 'share-nodes', module: StationModules.INVENTORY, permission: StationPermission.INVENTORY_LENDING_MANAGER},
+    {scope: 'station', to: '/station/inventory', labelKey: 'sidebar.inventory', icon: 'boxes-stacked', module: StationModule.INVENTORY, anyPermission: [StationPermission.INVENTORY_READ, StationPermission.INVENTORY_EDIT, StationPermission.INVENTORY_MANAGER]},
+    {scope: 'station', to: '/station/inventory/my', labelKey: 'sidebar.myInventory', icon: 'boxes-stacked', module: StationModule.INVENTORY},
+    {scope: 'station', to: '/station/inventory/storage', labelKey: 'sidebar.inventoryStorage', icon: 'warehouse', module: StationModule.INVENTORY, permission: StationPermission.INVENTORY_READ},
+    {scope: 'station', to: '/station/inventory/assign', labelKey: 'sidebar.inventoryAssign', icon: 'user-plus', module: StationModule.INVENTORY, permission: StationPermission.INVENTORY_ASSIGN},
+    {scope: 'station', to: '/station/inventory/checks/member', labelKey: 'sidebar.inventoryCheckMember', icon: 'user-check', module: StationModule.INVENTORY, permission: StationPermission.INVENTORY_CHECK},
+    {scope: 'station', to: '/station/inventory/checks/container', labelKey: 'sidebar.inventoryCheckContainer', icon: 'box-open', module: StationModule.INVENTORY, permission: StationPermission.INVENTORY_CHECK},
+    {scope: 'station', to: '/station/inventory/members', labelKey: 'sidebar.inventoryMembers', icon: 'users', module: StationModule.INVENTORY, permission: StationPermission.INVENTORY_READ},
+    {scope: 'station', to: '/station/inventory/manage', labelKey: 'sidebar.inventoryManage', icon: 'box-open', module: StationModule.INVENTORY, permission: StationPermission.INVENTORY_CREATE},
+    {scope: 'station', to: '/station/inventory/movements', labelKey: 'sidebar.inventoryMovements', icon: 'rotate', module: StationModule.INVENTORY},
+    {scope: 'station', to: '/station/inventory/procurement', labelKey: 'sidebar.inventoryProcurement', icon: 'folder-plus', module: StationModule.INVENTORY, permission: StationPermission.INVENTORY_PROCUREMENT},
+    {scope: 'station', to: '/station/inventory/requirements', labelKey: 'sidebar.inventoryRequirements', icon: 'clipboard-list', module: StationModule.INVENTORY, permission: StationPermission.INVENTORY_READ},
+    {scope: 'station', to: '/station/inventory/lending', labelKey: 'sidebar.inventoryLending', icon: 'handshake', module: StationModule.INVENTORY, anyPermission: [StationPermission.INVENTORY_LENDING_REQUEST, StationPermission.INVENTORY_LENDING_MANAGER]},
+    {scope: 'station', to: '/station/inventory/lending/shares', labelKey: 'sidebar.inventoryLendingShares', icon: 'share-nodes', module: StationModule.INVENTORY, permission: StationPermission.INVENTORY_LENDING_MANAGER},
 
-    {scope: 'station', to: '/station/attendance/new', labelKey: 'sidebar.attendance', icon: 'clipboard-user', module: StationModules.ATTENDANCE, permission: StationPermission.ATTENDANCE_EDIT},
-    {scope: 'station', to: '/station/attendance/past', labelKey: 'sidebar.pastAttendance', icon: 'clock-rotate-left', module: StationModules.ATTENDANCE, permission: StationPermission.ATTENDANCE_READ},
-    {scope: 'station', to: '/station/attendance/report', labelKey: 'sidebar.attendanceReport', icon: 'chart-line', module: StationModules.ATTENDANCE, permission: StationPermission.ATTENDANCE_EXPORT},
-    {scope: 'station', to: '/station/attendance/config', labelKey: 'sidebar.attendanceConfig', icon: 'gear', module: StationModules.ATTENDANCE, permission: StationPermission.ATTENDANCE_CONFIGURE},
+    {scope: 'station', to: '/station/attendance/new', labelKey: 'sidebar.attendance', icon: 'clipboard-user', module: StationModule.ATTENDANCE, permission: StationPermission.ATTENDANCE_EDIT},
+    {scope: 'station', to: '/station/attendance/past', labelKey: 'sidebar.pastAttendance', icon: 'clock-rotate-left', module: StationModule.ATTENDANCE, permission: StationPermission.ATTENDANCE_READ},
+    {scope: 'station', to: '/station/attendance/report', labelKey: 'sidebar.attendanceReport', icon: 'chart-line', module: StationModule.ATTENDANCE, permission: StationPermission.ATTENDANCE_EXPORT},
+    {scope: 'station', to: '/station/attendance/config', labelKey: 'sidebar.attendanceConfig', icon: 'gear', module: StationModule.ATTENDANCE, permission: StationPermission.ATTENDANCE_CONFIGURE},
 
-    {scope: 'station', to: '/station/events/upcoming', labelKey: 'sidebar.events', icon: 'calendar-days', module: StationModules.EVENTS},
-    {scope: 'station', to: '/station/events/registrations', labelKey: 'sidebar.pendingRegistrations', icon: 'clipboard-list', module: StationModules.EVENTS, permission: StationPermission.EVENT_REGISTRATION},
-    {scope: 'station', to: '/station/events', labelKey: 'sidebar.manageEvents', icon: 'gears', module: StationModules.EVENTS, permission: StationPermission.EVENT_EDIT},
-    {scope: 'station', to: '/station/events/categories', labelKey: 'sidebar.eventCategories', icon: 'folder-plus', module: StationModules.EVENTS, permission: StationPermission.EVENT_MANAGE_CATEGORY},
-    {scope: 'station', to: '/station/events/templates', labelKey: 'sidebar.eventTemplates', icon: 'clipboard-list', module: StationModules.EVENTS, permission: StationPermission.EVENT_MANAGE_TEMPLATE},
+    {scope: 'station', to: '/station/events/upcoming', labelKey: 'sidebar.events', icon: 'calendar-days', module: StationModule.EVENTS},
+    {scope: 'station', to: '/station/events/registrations', labelKey: 'sidebar.pendingRegistrations', icon: 'clipboard-list', module: StationModule.EVENTS, permission: StationPermission.EVENT_REGISTRATION},
+    {scope: 'station', to: '/station/events', labelKey: 'sidebar.manageEvents', icon: 'gears', module: StationModule.EVENTS, permission: StationPermission.EVENT_EDIT},
+    {scope: 'station', to: '/station/events/categories', labelKey: 'sidebar.eventCategories', icon: 'folder-plus', module: StationModule.EVENTS, permission: StationPermission.EVENT_MANAGE_CATEGORY},
+    {scope: 'station', to: '/station/events/templates', labelKey: 'sidebar.eventTemplates', icon: 'clipboard-list', module: StationModule.EVENTS, permission: StationPermission.EVENT_MANAGE_TEMPLATE},
 
-    {scope: 'station', to: '/station/forms', labelKey: 'sidebar.forms', icon: 'square-poll-vertical', module: StationModules.FORMS},
-    {scope: 'station', to: '/station/forms/create', labelKey: 'sidebar.formsCreate', icon: 'plus', module: StationModules.FORMS, permission: StationPermission.POLL_CREATE},
+    {scope: 'station', to: '/station/forms', labelKey: 'sidebar.forms', icon: 'square-poll-vertical', module: StationModule.FORMS},
+    {scope: 'station', to: '/station/forms/create', labelKey: 'sidebar.formsCreate', icon: 'plus', module: StationModule.FORMS, permission: StationPermission.POLL_CREATE},
 
-    {scope: 'station', to: '/station/lost-and-found', labelKey: 'sidebar.lostAndFound', icon: 'box-open', module: StationModules.LOST_AND_FOUND},
+    {scope: 'station', to: '/station/lost-and-found', labelKey: 'sidebar.lostAndFound', icon: 'box-open', module: StationModule.LOST_AND_FOUND},
 
-    {scope: 'station', to: '/station/quiz/catalogs', labelKey: 'sidebar.quizCatalogs', icon: 'book', module: StationModules.QUIZ, permission: StationPermission.TEST_CATALOG_VIEW},
-    {scope: 'station', to: '/station/quiz/tests', labelKey: 'sidebar.quizTests', icon: 'file-lines', module: StationModules.QUIZ},
-    {scope: 'station', to: '/station/quiz/training', labelKey: 'sidebar.quizTraining', icon: 'brain', module: StationModules.QUIZ},
-    {scope: 'station', to: '/station/protocols', labelKey: 'sidebar.protocols', icon: 'clipboard-list', module: StationModules.TEST_PROTOCOL, permission: StationPermission.PROTOCOL_CREATE},
-    {scope: 'station', to: '/station/protocols/runs', labelKey: 'sidebar.protocolRuns', icon: 'clipboard-check', module: StationModules.TEST_PROTOCOL, anyPermission: [StationPermission.PROTOCOL_TESTER, StationPermission.PROTOCOL_MANAGER]},
+    {scope: 'station', to: '/station/quiz/catalogs', labelKey: 'sidebar.quizCatalogs', icon: 'book', module: StationModule.QUIZ, permission: StationPermission.TEST_CATALOG_VIEW},
+    {scope: 'station', to: '/station/quiz/tests', labelKey: 'sidebar.quizTests', icon: 'file-lines', module: StationModule.QUIZ},
+    {scope: 'station', to: '/station/quiz/training', labelKey: 'sidebar.quizTraining', icon: 'brain', module: StationModule.QUIZ},
+    {scope: 'station', to: '/station/protocols', labelKey: 'sidebar.protocols', icon: 'clipboard-list', module: StationModule.TEST_PROTOCOL, permission: StationPermission.PROTOCOL_CREATE},
+    {scope: 'station', to: '/station/protocols/runs', labelKey: 'sidebar.protocolRuns', icon: 'clipboard-check', module: StationModule.TEST_PROTOCOL, anyPermission: [StationPermission.PROTOCOL_TESTER, StationPermission.PROTOCOL_MANAGER]},
 
-    {scope: 'station', to: '/station/boards', labelKey: 'sidebar.boards', icon: 'table-columns', module: StationModules.BOARDS, permission: StationPermission.BOARD_USE},
-    {scope: 'station', to: '/station/boards/manage', labelKey: 'sidebar.boardManage', icon: 'gears', module: StationModules.BOARDS, permission: StationPermission.BOARD_EDIT},
+    {scope: 'station', to: '/station/boards', labelKey: 'sidebar.boards', icon: 'table-columns', module: StationModule.BOARDS, permission: StationPermission.BOARD_USE},
+    {scope: 'station', to: '/station/boards/manage', labelKey: 'sidebar.boardManage', icon: 'gears', module: StationModule.BOARDS, permission: StationPermission.BOARD_EDIT},
 
-    {scope: 'station', to: '/station/procedures', labelKey: 'sidebar.procedures', icon: 'list-check', module: StationModules.PROCEDURES, permission: StationPermission.PROCEDURE_READ},
-    {scope: 'station', to: '/station/procedures/templates', labelKey: 'sidebar.procedureTemplates', icon: 'clipboard-list', module: StationModules.PROCEDURES, permission: StationPermission.PROCEDURE_MANAGER},
+    {scope: 'station', to: '/station/procedures', labelKey: 'sidebar.procedures', icon: 'list-check', module: StationModule.PROCEDURES, permission: StationPermission.PROCEDURE_READ},
+    {scope: 'station', to: '/station/procedures/templates', labelKey: 'sidebar.procedureTemplates', icon: 'clipboard-list', module: StationModule.PROCEDURES, permission: StationPermission.PROCEDURE_MANAGER},
 
-    {scope: 'station', to: '/station/knowledge', labelKey: 'sidebar.knowledgeBase', icon: 'book-open', module: StationModules.KNOWLEDGE_BASE},
+    {scope: 'station', to: '/station/knowledge', labelKey: 'sidebar.knowledgeBase', icon: 'book-open', module: StationModule.KNOWLEDGE_BASE},
 
     {scope: 'station', to: '/station/pages', labelKey: 'sidebar.pages', icon: 'file-lines', permission: StationPermission.PAGE_EDIT},
     {scope: 'station', to: '/station/media', labelKey: 'sidebar.media', icon: 'folder-open', permission: StationPermission.PAGE_EDIT},

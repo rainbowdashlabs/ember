@@ -19,7 +19,7 @@ import ButtonRow from '@/components/button/ButtonRow.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import UserAvatar from '@/components/avatar/UserAvatar.vue'
 import ProseContent from '@/components/display/ProseContent.vue'
-import {StationPermission} from '@/api/types'
+import {StationPermission} from '@/api/generated/schema'
 
 const {t} = useI18n()
 

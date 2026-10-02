@@ -15,8 +15,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import NewMemberFields from './NewMemberFields.vue'
 import {clusterMembers} from '@/api'
-import type {ManagedStationResponse, StationUserType as StationUserTypeName} from '@/api/generated/schema'
-import {StationUserType} from '@/api/types'
+import {StationUserType, type ManagedStationResponse} from '@/api/generated/schema'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 
 /**
@@ -43,7 +42,7 @@ const firstName = ref('')
 const lastName = ref('')
 const email = ref('')
 const canLogin = ref(true)
-const userType = ref<StationUserTypeName>(StationUserType.MEMBER)
+const userType = ref<StationUserType>(StationUserType.MEMBER)
 
 const canSave = computed(() =>
     stationUid.value !== ''

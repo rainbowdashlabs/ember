@@ -14,9 +14,14 @@ import SignupChecklistDialog from './SignupChecklistDialog.vue'
 import SignupProcedureDialog from './SignupProcedureDialog.vue'
 import SignupSurveyDialog from './SignupSurveyDialog.vue'
 import {checklists, forms, procedures} from '@/api'
-import type {Procedure, ProcedureTemplate, StationEvent} from '@/api/generated/schema'
-import {FormPurpose} from '@/api/forms'
-import {StationModules, StationPermission} from '@/api/types'
+import {
+  FormPurpose,
+  StationModule,
+  StationPermission,
+  type Procedure,
+  type ProcedureTemplate,
+  type StationEvent,
+} from '@/api/generated/schema'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useSession} from '@/composables/useSession'
 import type {SignupMemberSet} from '@/composables/useSignupMemberSet'
@@ -49,14 +54,14 @@ const canCreateChecklist = computed(() => hasPermission(StationPermission.CHECKL
  * feature being switched on for this station at all. Checklists cannot be switched off, surveys can.
  */
 const canCreateSurvey = computed(() =>
-    hasPermission(StationPermission.POLL_CREATE) && isModuleEnabled(StationModules.FORMS))
+    hasPermission(StationPermission.POLL_CREATE) && isModuleEnabled(StationModule.FORMS))
 
 /**
  * A procedure is gated the same way a survey is, on a permission and on the feature being switched
  * on for this station. Checklists are the odd one out here: they have no module to switch off.
  */
 const canCreateProcedure = computed(() =>
-    hasPermission(StationPermission.PROCEDURE_EDIT) && isModuleEnabled(StationModules.PROCEDURES))
+    hasPermission(StationPermission.PROCEDURE_EDIT) && isModuleEnabled(StationModule.PROCEDURES))
 
 /**
  * Where the menu can do anything at all: an appointment that is signed up for, a date in view,

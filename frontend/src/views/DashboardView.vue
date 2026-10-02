@@ -12,7 +12,7 @@ import StationSwitcher from '@/components/navigation/StationSwitcher.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import {getDemoStatus} from '@/api/demo'
 import Alert from '@/components/feedback/Alert.vue'
-import {StationPermission, StationModules} from '@/api/types'
+import {StationModule, StationPermission} from '@/api/generated/schema'
 import {useSession} from '@/composables/useSession'
 import {useStations} from '@/composables/useStations'
 import {useSidebarCounts} from '@/composables/useSidebarCounts'
@@ -133,8 +133,8 @@ watch(sessionReady, (ready) => {
     return
   }
   refreshSidebarCounts()
-  if (isModuleEnabled(StationModules.BOARDS) && hasPermission(StationPermission.BOARD_USE)) refreshBoards()
-  if (isModuleEnabled(StationModules.BOARDS) && hasPermission(StationPermission.BOARD_USE) && canManageFederation()) refreshBookmarkedBoards()
+  if (isModuleEnabled(StationModule.BOARDS) && hasPermission(StationPermission.BOARD_USE)) refreshBoards()
+  if (isModuleEnabled(StationModule.BOARDS) && hasPermission(StationPermission.BOARD_USE) && canManageFederation()) refreshBookmarkedBoards()
   checkFirstLogin()
 }, {immediate: true})
 

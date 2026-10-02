@@ -14,13 +14,12 @@ import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import NewsList, { type UnifiedNewsItem } from './listview/NewsList.vue'
 import type {FederatedNewsListing} from '@/api/news'
-import type {NewsResponse} from '@/api/generated/schema'
+import {StationPermission, type NewsResponse} from '@/api/generated/schema'
 import { news } from '@/api'
 import { useSession } from '@/composables/useSession'
 import { useConfirmDelete } from '@/composables/useConfirmDelete'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { describeFailure } from '@/util/failure'
-import { StationPermission } from '@/api/types'
 
 const { t } = useI18n()
 defineProps<{

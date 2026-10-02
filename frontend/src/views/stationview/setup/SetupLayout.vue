@@ -12,7 +12,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
-import {StationPermission} from '@/api/types'
+import {StationPermission} from '@/api/generated/schema'
 import {useSession} from '@/composables/useSession'
 import {useSetupStatus} from '@/composables/useSetupStatus'
 import {

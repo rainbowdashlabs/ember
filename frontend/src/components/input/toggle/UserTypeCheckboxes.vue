@@ -5,23 +5,24 @@
  */
 <script setup lang="ts">
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
-import {StationUserType, StationUserTypeLabels} from '@/api/types'
-import type {StationUserType as StationUserTypeName} from '@/api/generated/schema'
+import {StationUserTypeLabels} from '@/api/types'
+import type {StationUserType} from '@/api/generated/schema'
+import {STATION_USER_TYPES} from '@/util/stationUserTypes'
 
 /**
  * One checkbox per user type, for choosing whom of a kind something is meant for. The chosen types
  * come back in the order they were ticked.
  */
-const chosen = defineModel<StationUserTypeName[]>({required: true})
+const chosen = defineModel<StationUserType[]>({required: true})
 
 const props = withDefaults(defineProps<{
   /** What each checkbox's test id starts with, followed by the type. */
   testIdPrefix?: string
 }>(), {testIdPrefix: 'user-type'})
 
-const offeredTypes = Object.values(StationUserType)
+const offeredTypes = STATION_USER_TYPES
 
-function toggle(type: StationUserTypeName) {
+function toggle(type: StationUserType) {
   chosen.value = chosen.value.includes(type)
       ? chosen.value.filter(entry => entry !== type)
       : [...chosen.value, type]

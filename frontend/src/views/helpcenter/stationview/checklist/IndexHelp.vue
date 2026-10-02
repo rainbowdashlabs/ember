@@ -15,7 +15,7 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
-import {StationPermission} from '@/api/types'
+import {StationPermission} from '@/api/generated/schema'
 
 const {t} = useI18n()
 </script>

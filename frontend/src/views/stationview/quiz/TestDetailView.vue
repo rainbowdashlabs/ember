@@ -14,7 +14,7 @@ import Modal from '@/components/feedback/Modal.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import {StationPermission} from '@/api/types'
+import {StationPermission} from '@/api/generated/schema'
 import type {
     FrozenQuestionDetail, MemberGroup, MemberWithName, QuizCatalog, QuizQuestion, QuizTestAttempt, QuizTestDetail,
     UserTag,

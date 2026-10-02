@@ -3,8 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {RequirementResponse} from '@/api/generated/schema'
-import {StationUserType, StationUserTypeLabels} from '@/api/types'
+import {StationUserType, type RequirementResponse} from '@/api/generated/schema'
+import {StationUserTypeLabels} from '@/api/types'
 import type {RequirementGroup} from '@/views/stationview/inventory/requirementsview/types'
 
 /** A requirement as the station wrote it itself, with nothing about it out of the ordinary. */

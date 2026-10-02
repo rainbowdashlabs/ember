@@ -17,7 +17,7 @@ import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import BulletList from '@/components/typography/BulletList.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import {StationPermission} from '@/api/types'
+import {StationPermission} from '@/api/generated/schema'
 
 const {t} = useI18n()
 </script>

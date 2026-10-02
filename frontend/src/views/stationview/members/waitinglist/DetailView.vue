@@ -24,7 +24,7 @@ import type {
   WaitingListField,
   WaitingListInvite,
 } from '@/api/generated/schema'
-import {StationPermission} from '@/api/types'
+import {StationPermission} from '@/api/generated/schema'
 import { waitingList, memberGroups } from '@/api'
 import { useSidebarCounts } from '@/composables/useSidebarCounts'
 import { useSession } from '@/composables/useSession'

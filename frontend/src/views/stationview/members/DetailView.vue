@@ -22,8 +22,7 @@ import { useMemberLifecycle } from './detailview/useMemberLifecycle'
 import { memberDisplayName } from './listview/useMemberData'
 import type { ChangeEntry } from '@/api/profileFieldChanges'
 import { canHaveGuardians, looksAfterMembers, relationsTabLabel } from './relations/relationSides'
-import {StationModules, StationPermission} from '@/api/types'
-import type {MemberGroup, MemberWithName, Permission, UserTag} from '@/api/generated/schema'
+import {StationModule, StationPermission, type MemberGroup, type MemberWithName, type Permission, type UserTag} from '@/api/generated/schema'
 import { memberGroups, profileFieldChanges, profileFields, stationMembers, userTags } from '@/api'
 import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
@@ -34,7 +33,7 @@ const route = useRoute()
 
 const { sessionInfo, hasPermission, isGuardian, canManageInventory, isModuleEnabled, canEditMemberAccounts } = useSession()
 const canEdit = computed(() => canEditMemberAccounts())
-const inventoryEnabled = computed(() => isModuleEnabled(StationModules.INVENTORY))
+const inventoryEnabled = computed(() => isModuleEnabled(StationModule.INVENTORY))
 const canReadInventory = computed(() => inventoryEnabled.value && hasPermission(StationPermission.INVENTORY_READ))
 const showInventoryManagement = computed(() => canReadInventory.value && canManageInventory())
 

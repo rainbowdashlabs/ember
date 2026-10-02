@@ -13,7 +13,7 @@ import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import BulletList from '@/components/typography/BulletList.vue'
-import {StationPermission} from '@/api/types'
+import {StationPermission} from '@/api/generated/schema'
 import PagesListDummy from './pageshelp/PagesListDummy.vue'
 import PageEditorSections from './pageshelp/PageEditorSections.vue'
 

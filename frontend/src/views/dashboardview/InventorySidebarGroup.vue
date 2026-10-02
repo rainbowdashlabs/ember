@@ -11,7 +11,7 @@ import SidebarLink from '@/components/navigation/SidebarLink.vue'
 import SidebarSubGroup from '@/components/navigation/SidebarSubGroup.vue'
 import InventorySidebarLinks from '@/views/dashboardview/inventorysidebargroup/InventorySidebarLinks.vue'
 import type {InventorySidebarLink} from '@/views/dashboardview/inventorysidebargroup/inventorySidebarLinks'
-import {StationPermission} from '@/api/types'
+import {StationPermission} from '@/api/generated/schema'
 import {useSession} from '@/composables/useSession'
 import {useSidebarCounts} from '@/composables/useSidebarCounts'
 

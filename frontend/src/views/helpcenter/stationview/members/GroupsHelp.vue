@@ -17,8 +17,7 @@ import GroupListPanel from '@/components/groups/GroupListPanel.vue'
 import GroupDetailPanel from '@/components/groups/GroupDetailPanel.vue'
 import GroupRulesFields from '@/views/stationview/members/groupsview/GroupRulesFields.vue'
 import GroupSetPanel from '@/views/stationview/members/groupsview/GroupSetPanel.vue'
-import {StationUserType} from '@/api/types'
-import type {StationUserType as StationUserTypeName} from '@/api/generated/schema'
+import {StationUserType} from '@/api/generated/schema'
 import {
   DEMO_GROUP_GRANTS,
   DEMO_PERMISSIONS,
@@ -36,7 +35,7 @@ const candidates = demoCandidates(t)
 const offeredUserTypes = [StationUserType.MEMBER]
 const grantedIds = new Set(DEMO_GROUP_GRANTS.map(grant => grant.id))
 const setId = ref<number | null>(1)
-const boundUserTypes = ref<StationUserTypeName[]>([StationUserType.MEMBER])
+const boundUserTypes = ref<StationUserType[]>([StationUserType.MEMBER])
 </script>
 
 <template>

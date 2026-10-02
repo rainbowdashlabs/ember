@@ -13,7 +13,7 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import type {Failure} from '@/util/failure'
 import StationImportSection from './stationview/StationImportSection.vue'
 import TransferSection from './stationview/TransferSection.vue'
-import {StationPermission} from '@/api/types'
+import {StationPermission} from '@/api/generated/schema'
 import {useSession} from '@/composables/useSession'
 
 const {t} = useI18n()

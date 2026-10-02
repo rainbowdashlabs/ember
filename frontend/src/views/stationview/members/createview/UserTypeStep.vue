@@ -8,7 +8,7 @@ import {useI18n} from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
-import {StationUserType} from '@/api/types'
+import {StationUserType} from '@/api/generated/schema'
 import MutedText from '@/components/typography/MutedText.vue'
 
 const {t} = useI18n()

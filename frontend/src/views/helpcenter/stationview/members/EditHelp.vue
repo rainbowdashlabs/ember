@@ -19,11 +19,16 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import {computed, ref} from 'vue'
 import MemberGroupChips from '@/views/stationview/members/editview/MemberGroupChips.vue'
-import {StationPermission, StationUserType} from '@/api/types'
+import {
+  StationPermission,
+  StationUserType,
+  type MemberGroup,
+  type MemberGroupSet,
+  type Permission,
+} from '@/api/generated/schema'
 import HelpPermissionGuard from '@/components/helpcenter/HelpPermissionGuard.vue'
 import OneTimePasswordSheet from '@/components/onetimepassword/OneTimePasswordSheet.vue'
 import {sampleSheet} from '@/views/helpcenter/adminview/accountshelp/sampleAccounts'
-import type {MemberGroup, MemberGroupSet, Permission} from '@/api/generated/schema'
 
 const {t} = useI18n()
 

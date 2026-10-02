@@ -6,7 +6,7 @@
 <script setup lang="ts">
 import {useI18n} from 'vue-i18n'
 import SidebarLink from '@/components/navigation/SidebarLink.vue'
-import {StationPermission} from '@/api/types'
+import {StationPermission} from '@/api/generated/schema'
 import {useSession} from '@/composables/useSession'
 
 const emit = defineEmits<{

@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {StationUserType} from '@/api/types'
+import {StationUserType} from '@/api/generated/schema'
 
 const GIVEN_GUARDIANS: readonly string[] = [StationUserType.TRIAL, StationUserType.MEMBER]
 const LOOKING_AFTER_OTHERS: readonly string[] =

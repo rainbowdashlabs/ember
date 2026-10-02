@@ -6,7 +6,7 @@
 import client from './client'
 import { createCrudResource, pageParams } from './crud'
 import { noMentionables, stationMentionables, type CommentSource } from './comments'
-import { StationPermission } from './types'
+import { StationPermission } from './generated/schema'
 import type {
     BlockAudience,
     BlockRowRequest,

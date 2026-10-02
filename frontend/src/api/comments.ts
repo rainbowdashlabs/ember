@@ -5,8 +5,7 @@
  */
 import client from './client'
 import { createCrudResource, createScopedCrudResource, type NoContent } from './crud'
-import type { CommentResponse, MemberCompletion, MemberGroup, StationPermission } from './generated/schema'
-import { StationPermission as Permission } from './types'
+import { StationPermission, type CommentResponse, type MemberCompletion, type MemberGroup } from './generated/schema'
 import { listCompletions } from './stationMembers'
 import { listGroups } from './memberGroups'
 import { apiErrorStatus } from '@/util/apiError'
@@ -105,7 +104,7 @@ export function eventCommentSource(eventId: number, eventDate?: string | null): 
         update: (commentId, content) => comments.update(commentId, {content}),
         remove: commentId => comments.remove(commentId),
         mentionables: () => stationMentionables({type: 'EVENT_VIEW', entityId: eventId}),
-        moderator: Permission.EVENT_MANAGER,
+        moderator: StationPermission.EVENT_MANAGER,
         eventId,
     }
 }

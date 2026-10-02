@@ -11,7 +11,6 @@ import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import HelpRoleToggle from '@/components/helpcenter/HelpRoleToggle.vue'
 import type {HelpPerspective} from '@/components/helpcenter/HelpRoleToggle.vue'
-import {StationPermission} from '@/api/types'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
@@ -23,9 +22,14 @@ import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import InventoryItemCard from '@/views/stationview/inventory/InventoryItemCard.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import SizeBadge from '@/components/badge/SizeBadge.vue'
-import {ItemCustody, ItemOwner} from '@/api/inventory'
-import {MovementState, StepActor} from '@/api/movements'
-import type {MyInventoryItem} from '@/api/generated/schema'
+import {
+  ItemCustody,
+  ItemOwner,
+  MovementState,
+  StationPermission,
+  StepActor,
+  type MyInventoryItem,
+} from '@/api/generated/schema'
 
 const {t} = useI18n()
 

@@ -16,14 +16,15 @@ import MemberEditTabs from './editview/MemberEditTabs.vue'
 import MemberAccessActions from './editview/MemberAccessActions.vue'
 import type {MemberEditData} from './editview/types'
 import {memberDisplayName} from './listview/useMemberData'
-import {StationPermission, StationUserType} from '@/api/types'
-import type {
-  MemberGroup,
-  MemberGroupSet,
-  MemberWithName,
-  MyInventoryItem,
-  Permission,
-  UserTag,
+import {
+  StationPermission,
+  StationUserType,
+  type MemberGroup,
+  type MemberGroupSet,
+  type MemberWithName,
+  type MyInventoryItem,
+  type Permission,
+  type UserTag,
 } from '@/api/generated/schema'
 import {profileFields, stationMembers, memberGroups, groupSets, userTags, inventory} from '@/api'
 import {useSession} from '@/composables/useSession'

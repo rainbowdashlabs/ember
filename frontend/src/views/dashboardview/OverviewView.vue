@@ -10,7 +10,7 @@ import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ErrorContainer from '@/components/container/ErrorContainer.vue'
-import {StationModules, StationPermission} from '@/api/types'
+import {StationModule, StationPermission} from '@/api/generated/schema'
 import {useSession} from '@/composables/useSession'
 import NotificationsPanel from './overviewview/NotificationsPanel.vue'
 import OpenMovementsPanel from './overviewview/OpenMovementsPanel.vue'
@@ -46,11 +46,11 @@ const profileIncomplete = computed(() => sessionInfo.value?.profileComplete === 
 
       <div class="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-6">
         <NotificationsPanel/>
-        <OpenMovementsPanel v-if="isModuleEnabled(StationModules.INVENTORY)"/>
-        <SelfChecksPanel v-if="isModuleEnabled(StationModules.INVENTORY)"/>
-        <AwaitingAnswerPanel v-if="isModuleEnabled(StationModules.EVENTS)"/>
-        <RegistrationsPanel v-if="isModuleEnabled(StationModules.EVENTS)"/>
-        <UpcomingEventsPanel v-if="isModuleEnabled(StationModules.EVENTS)"/>
+        <OpenMovementsPanel v-if="isModuleEnabled(StationModule.INVENTORY)"/>
+        <SelfChecksPanel v-if="isModuleEnabled(StationModule.INVENTORY)"/>
+        <AwaitingAnswerPanel v-if="isModuleEnabled(StationModule.EVENTS)"/>
+        <RegistrationsPanel v-if="isModuleEnabled(StationModule.EVENTS)"/>
+        <UpcomingEventsPanel v-if="isModuleEnabled(StationModule.EVENTS)"/>
       </div>
     </div>
   </ViewContent>

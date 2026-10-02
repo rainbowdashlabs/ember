@@ -10,14 +10,13 @@ import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import StationModuleToggle from '@/components/modules/StationModuleToggle.vue'
 import WizardFrame from './setuphelp/WizardFrame.vue'
-import {StationModules} from '@/api/types'
-import type {StationModule} from '@/api/generated/schema'
+import {StationModule} from '@/api/generated/schema'
 import {STATION_MODULE_OPTIONS} from '@/data/stationModules'
 
 const {t} = useI18n()
 
 /** What a new station typically starts with. */
-const ENABLED = new Set<StationModule>([StationModules.NEWS, StationModules.EVENTS, StationModules.KNOWLEDGE_BASE])
+const ENABLED = new Set<StationModule>([StationModule.NEWS, StationModule.EVENTS, StationModule.KNOWLEDGE_BASE])
 </script>
 
 <template>

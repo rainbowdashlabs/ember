@@ -11,7 +11,7 @@ import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import HelpPermissionGuard from '@/components/helpcenter/HelpPermissionGuard.vue'
 import FederatedBoardHeader from '@/views/stationview/federation/federatedboardview/FederatedBoardHeader.vue'
 import {priorityColor, priorityIcon} from '@/util/ticketPriority'
-import {StationPermission} from '@/api/types'
+import {StationPermission} from '@/api/generated/schema'
 
 const {t} = useI18n()
 

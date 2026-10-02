@@ -15,14 +15,15 @@ import ReportFilters from './reportview/ReportFilters.vue'
 import ReportPreview from './reportview/ReportPreview.vue'
 import ExportFormatModal from '@/components/documents/ExportFormatModal.vue'
 import type {ExportFormat, ExportSeparator} from '@/util/exportFormat'
-import {StationUserType, StationUserTypeLabels} from '@/api/types'
+import {StationUserTypeLabels} from '@/api/types'
 import {attendance, memberGroups} from '@/api'
-import type {
-  AttendanceReportPreset,
-  MemberGroup,
-  ReportData,
-  StationUserType as StationUserTypeName,
+import {
+  StationUserType,
+  type AttendanceReportPreset,
+  type MemberGroup,
+  type ReportData,
 } from '@/api/generated/schema'
+import {STATION_USER_TYPES} from '@/util/stationUserTypes'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useAsyncAction} from '@/composables/useAsyncAction'
@@ -39,7 +40,7 @@ const selectedUserTypes = ref<string[]>([])
 const selectedGroupIds = ref<string[]>([])
 
 const userTypeOptions = computed(() =>
-    Object.values(StationUserType).map(ut => ({value: ut, label: StationUserTypeLabels[ut] ?? ut})),
+    STATION_USER_TYPES.map(ut => ({value: ut, label: StationUserTypeLabels[ut] ?? ut})),
 )
 
 const groupOptions = computed(() =>
@@ -203,7 +204,7 @@ function runChosenExport(format: ExportFormat, separator: ExportSeparator) {
 }
 
 /** Whether a picked value names a user type, which the shared picker hands over as plain text. */
-function isStationUserType(value: string): value is StationUserTypeName {
+function isStationUserType(value: string): value is StationUserType {
   return Object.hasOwn(StationUserType, value)
 }
 

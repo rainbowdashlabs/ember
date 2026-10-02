@@ -4,12 +4,12 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import {StationUserType, StationUserTypeLabels} from '@/api/types'
+import {StationUserTypeLabels} from '@/api/types'
+import {STATION_USER_TYPES} from '@/util/stationUserTypes'
 import type {MemberGroup} from '@/api/generated/schema'
 import {IntakeAudience, type IntakeAudienceName} from './intakeAudience'
 
@@ -29,7 +29,7 @@ defineProps<{
 
 const {t} = useI18n()
 
-const userTypes = computed(() => Object.values(StationUserType))
+const userTypes = STATION_USER_TYPES
 
 function typeLabel(value: string): string {
   return StationUserTypeLabels[value as keyof typeof StationUserTypeLabels] ?? value

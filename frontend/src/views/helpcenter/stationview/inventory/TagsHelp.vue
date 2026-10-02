@@ -11,7 +11,7 @@ import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import HelpPermissionGuard from '@/components/helpcenter/HelpPermissionGuard.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import EditItemNaming from '@/views/stationview/inventory/detailview/edititemmodal/EditItemNaming.vue'
-import {StationPermission} from '@/api/types'
+import {StationPermission} from '@/api/generated/schema'
 import {itemName, tagNames, tags} from './tagshelp/fixtures'
 
 const {t} = useI18n()

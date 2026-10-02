@@ -15,7 +15,7 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import ScanButton from '@/components/scanner/ScanButton.vue'
 import DummyInventoryCards from '@/views/helpcenter/stationview/inventory/managehelp/DummyInventoryCards.vue'
-import {StationPermission} from '@/api/types'
+import {StationPermission} from '@/api/generated/schema'
 
 const {t} = useI18n()
 </script>

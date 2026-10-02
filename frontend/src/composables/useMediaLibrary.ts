@@ -5,9 +5,8 @@
  */
 import {computed, ref} from 'vue'
 import {listMediaFolders, listMediaTags, listMediaFiles, listInstanceMediaFiles} from '@/api/media'
-import type {FileListing, StationFileFolder, StationFileTag} from '@/api/generated/schema'
+import {StationPermission, type FileListing, type StationFileFolder, type StationFileTag} from '@/api/generated/schema'
 import {useSession} from '@/composables/useSession'
-import {StationPermission} from '@/api/types'
 
 /**
  * The permissions that open the whole library and the folders and tags that organise it. They

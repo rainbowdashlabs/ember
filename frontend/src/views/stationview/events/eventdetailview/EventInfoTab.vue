@@ -15,8 +15,7 @@ import EventGeneralInfoPanel from './EventGeneralInfoPanel.vue'
 import EventAttachmentsPanel from './EventAttachmentsPanel.vue'
 import {isRecurringEvent} from '@/api/events'
 import {eventCommentSource} from '@/api/comments'
-import type {AbsentMemberResponse, AppointmentField, StationEvent} from '@/api/generated/schema'
-import {StationPermission} from '@/api/types'
+import {StationPermission, type AbsentMemberResponse, type AppointmentField, type StationEvent} from '@/api/generated/schema'
 import type {MemberLike} from '@/components/input/select/memberOption'
 
 const props = defineProps<{

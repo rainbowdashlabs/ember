@@ -8,7 +8,7 @@ import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SidebarGroup from '@/components/navigation/SidebarGroup.vue'
 import SidebarLink from '@/components/navigation/SidebarLink.vue'
-import {StationModules, StationPermission} from '@/api/types'
+import {StationModule, StationPermission} from '@/api/generated/schema'
 import {useSession} from '@/composables/useSession'
 
 defineProps<{
@@ -29,7 +29,7 @@ const {hasPermission, isModuleEnabled} = useSession()
  * mail setting that files documents. Module off, no page.
  */
 const mailImport = computed(() =>
-    hasPermission(StationPermission.STATION_MAIL) && isModuleEnabled(StationModules.DOCUMENTS))
+    hasPermission(StationPermission.STATION_MAIL) && isModuleEnabled(StationModule.DOCUMENTS))
 
 const manageDefaultRoute = computed(() => {
   if (hasPermission(StationPermission.STATION_GENERAL)) return '/station/manage'

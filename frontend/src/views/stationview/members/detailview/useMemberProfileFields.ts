@@ -4,8 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import { computed, ref, type Ref } from 'vue'
-import type { FieldOriginName, ProfileQuestion } from '@/api/profileFields'
-import { StationUserType } from '@/api/types'
+import type { ProfileQuestion } from '@/api/profileFields'
+import { StationUserType, type FieldOrigin } from '@/api/generated/schema'
 import { calculatedAnswer, profileKey } from '@/util/profileFields'
 import { useFieldAudiences } from '@/composables/useFieldAudiences'
 
@@ -54,7 +54,7 @@ export function useMemberProfileFields(memberUserType: Ref<string>) {
     return calculated ?? rawValue(fieldId)
   }
 
-  function setValues(entries: { fieldId: number; value?: string | null; origin?: FieldOriginName }[]) {
+  function setValues(entries: { fieldId: number; value?: string | null; origin?: FieldOrigin }[]) {
     const map = new Map<string, string>()
     for (const v of entries) { map.set(profileKey(v.fieldId, v.origin ?? 'STATION'), v.value ?? '') }
     values.value = map
