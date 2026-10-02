@@ -218,7 +218,7 @@ public class EventTemplateService {
      */
     private static void requireUsableDefault(Question question, MemberEligibility keeping) {
         QuestionCheck.defaultValue(question, keeping).ifPresent(problem -> {
-            throw EventRefusal.EVENT_TEMPLATE_FIELD_DEFAULT_NOT_ACCEPTED.raise(problem.message());
+            throw EventRefusal.EVENT_TEMPLATE_FIELD_DEFAULT_NOT_ACCEPTED.raise(problem.question());
         });
     }
 

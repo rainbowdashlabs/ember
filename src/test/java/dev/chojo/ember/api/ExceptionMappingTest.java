@@ -7,7 +7,9 @@ package dev.chojo.ember.api;
 
 import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.api.refusal.BodyRefusal;
+import dev.chojo.ember.api.refusal.ClusterRefusal;
 import dev.chojo.ember.api.refusal.GeneralRefusal;
+import dev.chojo.ember.api.refusal.RefusalDetail;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository;
@@ -138,6 +140,30 @@ class ExceptionMappingTest {
         var body = json(response);
         assertEquals(BodyRefusal.BODY_UNEXPECTED_FIELD.code(), body.path("code").asString());
         assertTrue(body.path("message").asString().endsWith(": colour"), body.toString());
+        assertEquals("TEXT", body.path("detail").path("kind").asString());
+        assertEquals("colour", body.path("detail").path("text").asString());
+    }
+
+    @Test
+    void aRefusalCarriesTheValueItWasAboutBesideItsSentence() {
+        var response = answer(ctx -> {
+            throw ClusterRefusal.CLUSTER_QUOTA_GRANT_MORE_THAN_POOL.raise(RefusalDetail.room(512, 2048));
+        });
+
+        assertEquals(400, response.code());
+        var detail = json(response).path("detail");
+        assertEquals("ROOM", detail.path("kind").asString());
+        assertEquals(512, detail.path("freeBytes").asLong());
+        assertEquals(2048, detail.path("totalBytes").asLong());
+    }
+
+    @Test
+    void aRefusalWithoutAValueSendsNoDetail() {
+        var response = answer(ctx -> {
+            throw BodyRefusal.INPUT_NOT_USABLE.raise();
+        });
+
+        assertFalse(json(response).has("detail"));
     }
 
     @Test

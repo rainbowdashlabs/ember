@@ -388,7 +388,7 @@ public class BoardTicketDetailRoutes implements Routes {
         var value = BoardFieldValue.parse(field.fieldType(), ctx.body());
         if (value == null) throw BoardRefusal.TICKET_FIELD_VALUE_NOT_ACCEPTED.raise();
         QuestionCheck.answer(field.question(), value.answer()).ifPresent(problem -> {
-            throw BoardRefusal.TICKET_FIELD_VALUE_NOT_ACCEPTED.raise(problem.message());
+            throw BoardRefusal.TICKET_FIELD_VALUE_NOT_ACCEPTED.raise(problem.question());
         });
         ticketService.setFieldValue(ticketId, fieldId, value);
         ticketService.logHistory(

@@ -26,11 +26,13 @@ import dev.chojo.ember.api.refusal.PageRefusal;
 import dev.chojo.ember.api.refusal.ProcedureRefusal;
 import dev.chojo.ember.api.refusal.QuizRefusal;
 import dev.chojo.ember.api.refusal.Refusal;
+import dev.chojo.ember.api.refusal.RefusalDetail;
 import dev.chojo.ember.api.refusal.RetiredRefusals;
 import dev.chojo.ember.api.refusal.StationRefusal;
 import dev.chojo.ember.api.refusal.StorageRefusal;
 import dev.chojo.ember.api.refusal.SystemRefusal;
 import dev.chojo.ember.api.refusal.TestProtocolRefusal;
+import dev.chojo.ember.util.SizeParser;
 import io.javalin.http.HttpStatus;
 import org.junit.jupiter.api.Test;
 
@@ -235,6 +237,41 @@ class RefusalTest {
 
         assertEquals(BodyRefusal.BODY_UNEXPECTED_FIELD.message() + ": startsAt", raised.getMessage());
         assertEquals(BodyRefusal.BODY_UNEXPECTED_FIELD, raised.refusal());
+        assertEquals(RefusalDetail.text("startsAt"), raised.detail());
+    }
+
+    @Test
+    void raisingWithoutADetailCarriesNone() {
+        assertNull(FormRefusal.FORM_NOT_HERE.raise().detail());
+        assertNull(FormRefusal.FORM_NOT_HERE.raise((String) null).detail());
+    }
+
+    @Test
+    void aTypedDetailIsNamedInEnglishAndKeptAsAValue() {
+        var room = RefusalDetail.room(0, 1024L * 1024 * 1024);
+        var raised = ClusterRefusal.CLUSTER_QUOTA_GRANT_MORE_THAN_POOL.raise(room);
+
+        assertEquals(
+                ClusterRefusal.CLUSTER_QUOTA_GRANT_MORE_THAN_POOL.message() + ": 0 B free of "
+                        + SizeParser.formatBytes(1024L * 1024 * 1024),
+                raised.getMessage());
+        var body = (ErrorResponseWrapper) raised.body();
+        assertEquals(room, body.detail());
+        assertEquals(raised.getMessage(), body.message());
+    }
+
+    @Test
+    void aCountIsNamedWithItsUnit() {
+        assertEquals("3", RefusalDetail.count(3).inEnglish());
+        assertEquals(
+                "31 days", RefusalDetail.count(31, RefusalDetail.CountUnit.DAYS).inEnglish());
+        assertEquals(
+                "line 2", RefusalDetail.count(2, RefusalDetail.CountUnit.LINE).inEnglish());
+    }
+
+    @Test
+    void roomNeverGoesBelowNothing() {
+        assertEquals(new RefusalDetail.RoomDetail(0, 10), RefusalDetail.room(-5, 10));
     }
 
     @Test

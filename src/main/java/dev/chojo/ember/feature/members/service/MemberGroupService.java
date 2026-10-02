@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.members.service;
 
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.MemberRefusal;
+import dev.chojo.ember.api.refusal.RefusalDetail;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.Permission;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -73,7 +74,7 @@ public class MemberGroupService {
 
     private void requireNothingLimitedTo(int groupId, MemberRefusal refusal) {
         int limited = groupRepository.countContentLimitedTo(groupId);
-        if (limited > 0) throw refusal.raise(String.valueOf(limited));
+        if (limited > 0) throw refusal.raise(RefusalDetail.count(limited));
     }
 
     public List<StationMember> findMembers(int groupId) {

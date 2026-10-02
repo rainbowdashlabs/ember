@@ -616,7 +616,7 @@ public class ProfileFieldService {
                 .question()
                 .flatMap(QuestionCheck::defaultValue)
                 .ifPresent(problem -> {
-                    throw MemberRefusal.PROFILE_DEFAULT_NOT_ACCEPTED.raise(problem.message());
+                    throw MemberRefusal.PROFILE_DEFAULT_NOT_ACCEPTED.raise(problem.question());
                 });
     }
 

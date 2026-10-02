@@ -73,7 +73,7 @@ public final class ProfileAnswers {
             throw MemberRefusal.PROFILE_AGE_TAKES_NO_ANSWER.raise();
         }
         question.flatMap(asked -> QuestionCheck.answerIfGiven(asked, said)).ifPresent(problem -> {
-            throw MemberRefusal.PROFILE_ANSWER_NOT_ACCEPTED.raise(problem.message());
+            throw MemberRefusal.PROFILE_ANSWER_NOT_ACCEPTED.raise(problem.question());
         });
         return QuestionValues.write(type, said);
     }

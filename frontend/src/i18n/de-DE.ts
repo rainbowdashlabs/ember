@@ -10056,6 +10056,13 @@ export default {
     failure: {
         report: 'Diesen Fehler melden',
         staleAfterAction: 'Das hat geklappt, aber die Ansicht konnte danach nicht aktualisiert werden.',
+        detail: {
+            room: 'frei: {free} von {total}',
+            days: '{count} Tage',
+            hours: '{count} Stunden',
+            years: '{count} Jahre',
+            line: 'Zeile {count}',
+        },
         OFFLINE: {
             message: 'Keine Verbindung zum Server.',
             guidance: 'Prüfe deine Internetverbindung und versuche es dann noch einmal. Wenn andere Seiten funktionieren, ist Ember gerade nicht erreichbar und du kannst es in ein paar Minuten erneut versuchen.',

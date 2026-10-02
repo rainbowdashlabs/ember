@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.waitinglist.service;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.refusal.Refusal;
+import dev.chojo.ember.api.refusal.RefusalDetail;
 import dev.chojo.ember.api.refusal.WaitingListRefusal;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.WaitlistInvitationAnswered;
@@ -467,7 +468,7 @@ public class WaitingListService implements TaskSource {
             if (field == null) continue;
             QuestionCheck.answerIfGiven(field.question(), QuestionValues.read(answer.getValue()))
                     .ifPresent(problem -> {
-                        throw refusal.raise(problem.message());
+                        throw refusal.raise(problem.question());
                     });
         }
         for (var answer : fieldValues.entrySet()) {
@@ -883,7 +884,8 @@ public class WaitingListService implements TaskSource {
         if (minAge == null) return;
         ageFromSubmitted(list.id(), values).ifPresent(age -> {
             if (age < minAge) {
-                throw WaitingListRefusal.WAITING_LIST_REGISTRANT_TOO_YOUNG.raise("from age " + minAge);
+                throw WaitingListRefusal.WAITING_LIST_REGISTRANT_TOO_YOUNG.raise(
+                        RefusalDetail.count(minAge, RefusalDetail.CountUnit.YEARS));
             }
         });
     }

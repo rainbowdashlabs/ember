@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.documents.service;
 
 import dev.chojo.ember.api.refusal.Refusal;
+import dev.chojo.ember.api.refusal.RefusalDetail;
 import dev.chojo.ember.feature.documents.entity.Document;
 import dev.chojo.ember.feature.documents.repository.DocumentRepository;
 import dev.chojo.ember.feature.media.entity.MediaContent;
@@ -232,7 +233,7 @@ public class DocumentService {
      */
     public void requireNothingKeptForOnly(int memberId, Refusal refusal) {
         int kept = repository.countKeptForOnly(memberId);
-        if (kept > 0) throw refusal.raise(String.valueOf(kept));
+        if (kept > 0) throw refusal.raise(RefusalDetail.count(kept));
     }
 
     private void unbindReleased(int memberId) {

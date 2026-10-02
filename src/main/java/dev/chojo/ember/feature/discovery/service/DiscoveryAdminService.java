@@ -113,8 +113,7 @@ public class DiscoveryAdminService {
         var info = reachPeer(request.baseUrl());
         String publicKey = info.publicKey();
         if (publicKey == null) {
-            throw AdminRefusal.PEER_NAMED_NO_KEY.raise(
-                    "The address answered as a peer would, but named no key to recognise it by");
+            throw AdminRefusal.PEER_NAMED_NO_KEY.raise();
         }
         String expectedKey = request.expectedPublicKey();
         if (expectedKey != null && !expectedKey.isBlank() && !expectedKey.equals(publicKey)) {
@@ -138,7 +137,10 @@ public class DiscoveryAdminService {
     private DiscoveryInfoResponse reachPeer(String baseUrl) {
         var probe = httpClient.probe(baseUrl, "/api/v1/public/discovery/info", DiscoveryInfoResponse.class);
         var answer = probe.value();
-        if (answer == null) throw AdminRefusal.PEER_DID_NOT_ANSWER.raise(probe.problem());
+        if (answer == null) {
+            log.warn("Peer {} could not be reached: {}", baseUrl, probe.problem());
+            throw AdminRefusal.PEER_DID_NOT_ANSWER.raise();
+        }
         return answer;
     }
 

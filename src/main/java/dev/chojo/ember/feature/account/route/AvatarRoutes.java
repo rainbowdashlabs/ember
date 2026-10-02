@@ -147,7 +147,7 @@ public class AvatarRoutes implements Routes {
         }
         String contentType = file.contentType();
         if (contentType == null || !ALLOWED_AVATAR_TYPES.contains(contentType)) {
-            throw MemberRefusal.AVATAR_NOT_A_PICTURE.raise("PNG, JPEG and WebP are accepted");
+            throw MemberRefusal.AVATAR_NOT_A_PICTURE.raise("PNG, JPEG, WebP");
         }
         UUID accountUid = requireOwnAvatarUid(session);
         try (var content = file.content()) {

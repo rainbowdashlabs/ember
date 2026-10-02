@@ -86,7 +86,7 @@ public class EventFieldDefaultService {
             var question = questions.get(chosen.fieldId());
             if (question == null) continue;
             QuestionCheck.answerIfGiven(question, chosen.value()).ifPresent(problem -> {
-                throw EventRefusal.EVENT_FIELD_DEFAULT_NOT_ACCEPTED.raise(problem.message());
+                throw EventRefusal.EVENT_FIELD_DEFAULT_NOT_ACCEPTED.raise(problem.question());
             });
         }
     }

@@ -107,7 +107,7 @@ public class EventRegistrationFieldService {
         for (var field : fields) {
             var question = field.config().asQuestion(field.name(), field.fieldType());
             QuestionCheck.defaultValue(question, eligibility).ifPresent(problem -> {
-                throw refusal.raise(problem.message());
+                throw refusal.raise(problem.question());
             });
         }
     }
@@ -299,7 +299,7 @@ public class EventRegistrationFieldService {
             String value = answers.get(field.id());
             if (isBlank(value)) value = field.config().defaultValue();
             QuestionCheck.answer(field.question(), value, eligibility).ifPresent(problem -> {
-                throw EventRefusal.REGISTRATION_ANSWER_NOT_ACCEPTED.raise(problem.message());
+                throw EventRefusal.REGISTRATION_ANSWER_NOT_ACCEPTED.raise(problem.question());
             });
             if (isBlank(value)) continue;
             resolved.put(field.id(), QuestionValues.writeText(field.fieldType(), value));

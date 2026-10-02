@@ -7,6 +7,7 @@ package dev.chojo.ember.api.refusal;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import io.javalin.http.HttpResponseException;
+import org.jspecify.annotations.Nullable;
 
 /**
  * A named refusal on its way out of a route.
@@ -18,6 +19,7 @@ import io.javalin.http.HttpResponseException;
  */
 public class RefusalResponse extends HttpResponseException {
     private final Refusal refusal;
+    private final transient @Nullable RefusalDetail detail;
 
     /**
      * A refusal with the sentence it is answered with. Only {@link Refusal#raise()} and refusals that
@@ -27,8 +29,20 @@ public class RefusalResponse extends HttpResponseException {
      * @param message the sentence the reader is shown
      */
     protected RefusalResponse(Refusal refusal, String message) {
+        this(refusal, message, null);
+    }
+
+    /**
+     * A refusal with the sentence it is answered with and the value it was about.
+     *
+     * @param refusal what refused
+     * @param message the sentence the reader is shown, with the detail named in it
+     * @param detail  the value the refusal was about, or {@code null} when it named none
+     */
+    protected RefusalResponse(Refusal refusal, String message, @Nullable RefusalDetail detail) {
         super(refusal.status().getCode(), message);
         this.refusal = refusal;
+        this.detail = detail;
     }
 
     /**
@@ -38,7 +52,7 @@ public class RefusalResponse extends HttpResponseException {
      * @return the error body
      */
     public Object body() {
-        return ErrorResponseWrapper.of(refusal, getMessage());
+        return ErrorResponseWrapper.of(refusal, getMessage(), null, detail);
     }
 
     /**
@@ -48,5 +62,14 @@ public class RefusalResponse extends HttpResponseException {
      */
     public Refusal refusal() {
         return refusal;
+    }
+
+    /**
+     * The value this refusal was raised about.
+     *
+     * @return the detail, or {@code null} when it was raised without one
+     */
+    public @Nullable RefusalDetail detail() {
+        return detail;
     }
 }

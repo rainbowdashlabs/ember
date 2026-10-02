@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.inventory.service;
 
 import dev.chojo.ember.api.refusal.InventoryRefusal;
 import dev.chojo.ember.api.refusal.Refusal;
+import dev.chojo.ember.api.refusal.RefusalDetail;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryIntakeRow;
@@ -157,7 +158,8 @@ public class InventoryIntakeService {
     }
 
     private static RefusalResponse refusal(Refusal refusal, int line, @Nullable String number) {
-        return refusal.raise(number == null ? "line %d".formatted(line) : "line %d, %s".formatted(line, number));
+        return refusal.raise(
+                number == null ? RefusalDetail.count(line, RefusalDetail.CountUnit.LINE) : RefusalDetail.text(number));
     }
 
     private static @Nullable String blankToNull(@Nullable String value) {

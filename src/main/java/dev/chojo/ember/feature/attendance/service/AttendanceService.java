@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.attendance.service;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.refusal.AttendanceRefusal;
 import dev.chojo.ember.api.refusal.EventRefusal;
+import dev.chojo.ember.api.refusal.RefusalDetail;
 import dev.chojo.ember.conf.file.elements.Attendance;
 import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
@@ -248,7 +249,7 @@ public class AttendanceService {
             throw AttendanceRefusal.ATTENDANCE_FIELD_TYPE_NOT_OFFERED.raise();
         var field = new AttendanceTemplateField(0, 0, name, fieldType, config, 0);
         QuestionCheck.defaultValue(field.question()).ifPresent(problem -> {
-            throw AttendanceRefusal.ATTENDANCE_FIELD_DEFAULT_NOT_ACCEPTED.raise(problem.message());
+            throw AttendanceRefusal.ATTENDANCE_FIELD_DEFAULT_NOT_ACCEPTED.raise(problem.question());
         });
     }
 
@@ -729,7 +730,8 @@ public class AttendanceService {
             throw AttendanceRefusal.ATTENDANCE_SHEET_ENDS_BEFORE_IT_STARTS.raise();
         }
         if (Duration.between(startTime, endTime).compareTo(MAX_SESSION_LENGTH) > 0) {
-            throw AttendanceRefusal.ATTENDANCE_SHEET_TOO_LONG.raise(MAX_SESSION_LENGTH.toDays() + " days");
+            throw AttendanceRefusal.ATTENDANCE_SHEET_TOO_LONG.raise(
+                    RefusalDetail.count(MAX_SESSION_LENGTH.toDays(), RefusalDetail.CountUnit.DAYS));
         }
     }
 
@@ -773,7 +775,8 @@ public class AttendanceService {
             throw AttendanceRefusal.ATTENDANCE_COUNTED_HOURS_NEGATIVE.raise();
         }
         if (countedMinutes > MAX_COUNTED_MINUTES) {
-            throw AttendanceRefusal.ATTENDANCE_COUNTED_HOURS_TOO_MANY.raise(MAX_COUNTED_MINUTES / 60 + " hours");
+            throw AttendanceRefusal.ATTENDANCE_COUNTED_HOURS_TOO_MANY.raise(
+                    RefusalDetail.count(MAX_COUNTED_MINUTES / 60, RefusalDetail.CountUnit.HOURS));
         }
     }
 
@@ -808,7 +811,7 @@ public class AttendanceService {
             if (field == null) continue;
             QuestionCheck.answerIfGiven(field.question(), QuestionValues.read(entry.value()), memberEligibility)
                     .ifPresent(problem -> {
-                        throw AttendanceRefusal.ATTENDANCE_SHEET_ANSWER_NOT_ACCEPTED.raise(problem.message());
+                        throw AttendanceRefusal.ATTENDANCE_SHEET_ANSWER_NOT_ACCEPTED.raise(problem.question());
                     });
         }
         for (var entry : fields) {

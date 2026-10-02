@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.members.service;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.refusal.MemberRefusal;
+import dev.chojo.ember.api.refusal.RefusalDetail;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.form.entity.FormPurpose;
@@ -161,6 +162,7 @@ class MemberGroupServiceTest extends RepositoryTestBase {
 
         assertEquals(MemberRefusal.GROUP_STILL_LIMITS_CONTENT_ON_DELETE, refusal.refusal());
         assertTrue(refusal.getMessage().endsWith(": 2"), refusal.getMessage());
+        assertEquals(RefusalDetail.count(2), refusal.detail());
         assertTrue(service.findById(group.id()).isPresent());
     }
 
@@ -172,6 +174,7 @@ class MemberGroupServiceTest extends RepositoryTestBase {
         var refusal = assertThrows(RefusalResponse.class, () -> service.convertToTag(group.id()));
 
         assertEquals(MemberRefusal.GROUP_STILL_LIMITS_CONTENT_ON_CONVERT, refusal.refusal());
+        assertEquals(RefusalDetail.count(2), refusal.detail());
         assertTrue(service.findById(group.id()).isPresent());
         assertTrue(
                 userTagRepo.findByStation(station.id()).stream().noneMatch(t -> "Nur Maschinisten".equals(t.name())));

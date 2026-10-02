@@ -6,7 +6,8 @@
 /** @vitest-environment happy-dom */
 import {describe, expect, it} from 'vitest'
 import {createI18n} from 'vue-i18n'
-import {describeFailure, FailureKind, technicalSummary} from './failure'
+import de from '@/i18n/de-DE'
+import {describeFailure, FailureKind, formatRefusalDetail, technicalSummary} from './failure'
 
 /** Returns the key, so a test can see which message was chosen without depending on its wording. */
 const t = (key: string) => key
@@ -81,6 +82,73 @@ describe('a refusal said in the reader\'s language', () => {
 
         expect(failure.message).toBe('You have already answered this form')
         expect(failure.code).toBeUndefined()
+    })
+})
+
+/** The German the product ships, so the wording around a detail is checked as a reader sees it. */
+function german() {
+    const i18n = createI18n({legacy: false, locale: 'de-DE', fallbackLocale: 'de-DE', messages: {'de-DE': de, en: {}}})
+    return (key: string, named?: Record<string, unknown>) => i18n.global.t(key, named ?? {})
+}
+
+describe('the value a refusal was about', () => {
+    /** CU-145, the association's pool: the number that says what would still fit is the whole point. */
+    it('names what is left of the pool after our sentence', () => {
+        const failure = describeFailure(rejected(400, {
+            code: 'CU-145',
+            message: 'That is more room than the cluster has left to hand out, so nothing was changed: 0 B free of 1.0 GiB',
+            detail: {kind: 'ROOM', freeBytes: 0, totalBytes: 1024 ** 3},
+        }), german())
+
+        expect(failure.message).toBe(
+            'Das ist mehr Speicherplatz, als der Verbund noch vergeben kann, es wurde nichts geändert (frei: 0 B von 1.0 GiB)')
+    })
+
+    it('names a count as a number', () => {
+        const failure = describeFailure(rejected(409, {
+            code: 'M-194',
+            message: 'Content is still limited to this group: 3',
+            detail: {kind: 'COUNT', count: 3, unit: null},
+        }), german())
+
+        expect(failure.message).toMatch(/ \(3\)$/)
+    })
+
+    it('leaves the server\'s sentence alone, since it already names the value', () => {
+        const failure = describeFailure(rejected(400, {
+            code: 'Q-999',
+            message: 'Something nobody translated: 3',
+            detail: {kind: 'COUNT', count: 3, unit: null},
+        }), german())
+
+        expect(failure.message).toBe('Something nobody translated: 3')
+    })
+
+    it('says our sentence alone where the refusal named no value', () => {
+        const failure = describeFailure(rejected(400, {code: 'CU-145', message: 'That is more room'}), german())
+
+        expect(failure.message).toBe('Das ist mehr Speicherplatz, als der Verbund noch vergeben kann, es wurde nichts geändert')
+    })
+})
+
+describe('formatRefusalDetail', () => {
+    const t = german()
+
+    it('shows text as it was typed', () => {
+        expect(formatRefusalDetail({kind: 'TEXT', text: 'Ausgabe'}, t)).toBe('Ausgabe')
+    })
+
+    it('shows a count with the unit it was counted in', () => {
+        expect(formatRefusalDetail({kind: 'COUNT', count: 12, unit: null}, t)).toBe('12')
+        expect(formatRefusalDetail({kind: 'COUNT', count: 31, unit: 'DAYS'}, t)).toBe('31 Tage')
+        expect(formatRefusalDetail({kind: 'COUNT', count: 24, unit: 'HOURS'}, t)).toBe('24 Stunden')
+        expect(formatRefusalDetail({kind: 'COUNT', count: 16, unit: 'YEARS'}, t)).toBe('16 Jahre')
+        expect(formatRefusalDetail({kind: 'COUNT', count: 2, unit: 'LINE'}, t)).toBe('Zeile 2')
+    })
+
+    it('shows the room left in the units of the storage screens', () => {
+        expect(formatRefusalDetail({kind: 'ROOM', freeBytes: 512 * 1024 ** 2, totalBytes: 2 * 1024 ** 3}, t))
+            .toBe('frei: 512.0 MiB von 2.0 GiB')
     })
 })
 

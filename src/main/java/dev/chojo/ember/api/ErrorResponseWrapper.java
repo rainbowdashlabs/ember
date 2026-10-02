@@ -7,6 +7,7 @@ package dev.chojo.ember.api;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import dev.chojo.ember.api.refusal.Refusal;
+import dev.chojo.ember.api.refusal.RefusalDetail;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -25,6 +26,9 @@ import org.jspecify.annotations.Nullable;
  * @param reference a short code naming the log line this failure wrote, on a fault, and
  *         {@code null} on a refusal. It is the one thing a reader can hand an operator that finds
  *         the technical half of what happened, which is why the technical half is not in here
+ * @param detail the value a refusal was about, such as a count or what is left of a pool, and
+ *         {@code null} where it named none. The same value is already named in {@code message}; it
+ *         rides here on its own so a screen that shows its own sentence for the code can name it too
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record ErrorResponseWrapper(
@@ -32,9 +36,10 @@ public record ErrorResponseWrapper(
         @Nullable String message,
         @Nullable String code,
         @Nullable Long retryAfterSeconds,
-        @Nullable String reference) {
+        @Nullable String reference,
+        @Nullable RefusalDetail detail) {
     public ErrorResponseWrapper(String error, @Nullable String message, @Nullable Long retryAfterSeconds) {
-        this(error, message, null, retryAfterSeconds, null);
+        this(error, message, null, retryAfterSeconds, null, null);
     }
 
     public ErrorResponseWrapper(String error, @Nullable String message) {
@@ -81,7 +86,21 @@ public record ErrorResponseWrapper(
      * @return the body, carrying the refusal's code
      */
     public static ErrorResponseWrapper of(Refusal refusal, String message, @Nullable Long retryAfterSeconds) {
+        return of(refusal, message, retryAfterSeconds, null);
+    }
+
+    /**
+     * Creates the error response for a named refusal with everything it can carry.
+     *
+     * @param refusal what refused
+     * @param message the sentence to show
+     * @param retryAfterSeconds how long to wait before asking again, or {@code null}
+     * @param detail the value the refusal was about, or {@code null}
+     * @return the body, carrying the refusal's code
+     */
+    public static ErrorResponseWrapper of(
+            Refusal refusal, String message, @Nullable Long retryAfterSeconds, @Nullable RefusalDetail detail) {
         return new ErrorResponseWrapper(
-                refusal.status().getMessage(), message, refusal.code(), retryAfterSeconds, null);
+                refusal.status().getMessage(), message, refusal.code(), retryAfterSeconds, null, detail);
     }
 }

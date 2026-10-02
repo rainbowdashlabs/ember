@@ -325,7 +325,10 @@ public class MailboxService {
      */
     private void requireReachable(String host, MailSecurity security) {
         var objection = hostPolicy.objection(host, security);
-        if (objection.isPresent()) throw MailImportRefusal.MAILBOX_HOST_NOT_REACHABLE.raise(objection.get());
+        if (objection.isPresent()) {
+            log.info("Mailbox host refused: {}", objection.get());
+            throw MailImportRefusal.MAILBOX_HOST_NOT_REACHABLE.raise();
+        }
     }
 
     private void requireSomewhereToPutThePassword() {

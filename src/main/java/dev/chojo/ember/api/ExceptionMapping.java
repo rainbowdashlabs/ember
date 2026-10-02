@@ -123,10 +123,8 @@ public class ExceptionMapping {
         routes.exception(MismatchedInputException.class, (err, ctx) -> {
             log.warn("Rejected body on {} {}: {}", ctx.method(), ctx.path(), err.getMessage());
             if (err instanceof UnrecognizedPropertyException unknown) {
-                answerRefusal(
-                        ctx,
-                        BodyRefusal.BODY_UNEXPECTED_FIELD,
-                        BodyRefusal.BODY_UNEXPECTED_FIELD.message() + ": " + unknown.getPropertyName());
+                var refused = BodyRefusal.BODY_UNEXPECTED_FIELD.raise(unknown.getPropertyName());
+                ctx.json(refused.body()).status(refused.getStatus());
                 return;
             }
             answerRefusal(
@@ -153,7 +151,8 @@ public class ExceptionMapping {
                             refusal.message(),
                             refusal.code(),
                             null,
-                            ours ? reference : null))
+                            ours ? reference : null,
+                            null))
                     .status(refusal.status());
         });
     }

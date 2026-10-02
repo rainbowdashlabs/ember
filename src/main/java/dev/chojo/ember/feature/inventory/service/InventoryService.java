@@ -851,7 +851,7 @@ public class InventoryService {
             QuestionCheck.answerIfGiven(
                             definition.question(), written.getValue().asText())
                     .ifPresent(problem -> {
-                        throw InventoryRefusal.INVENTORY_ITEM_FIELD_VALUE_NOT_ACCEPTED.raise(problem.message());
+                        throw InventoryRefusal.INVENTORY_ITEM_FIELD_VALUE_NOT_ACCEPTED.raise(problem.question());
                     });
         }
     }

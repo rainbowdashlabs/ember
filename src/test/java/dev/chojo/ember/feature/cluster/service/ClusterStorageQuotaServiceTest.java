@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.cluster.service;
 
 import dev.chojo.ember.api.refusal.ClusterRefusal;
+import dev.chojo.ember.api.refusal.RefusalDetail;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.cluster.service.ClusterStorageQuotaService.Dimensions;
 import dev.chojo.ember.feature.storage.entity.ClusterQuotaDefaults;
@@ -50,6 +51,7 @@ class ClusterStorageQuotaServiceTest extends RepositoryTestBase {
         var refused = assertThrows(
                 RefusalResponse.class, () -> clusterStorageQuotaService.setTotal(clusterId, second.id(), 300L));
         assertEquals(ClusterRefusal.CLUSTER_QUOTA_GRANT_MORE_THAN_POOL, refused.refusal());
+        assertEquals(RefusalDetail.room(200L, 1_000L), refused.detail(), "it names what is left of the pool");
 
         clusterStorageQuotaService.setTotal(clusterId, second.id(), 200L);
         var overview = clusterStorageQuotaService.findOverview(clusterId);
@@ -86,6 +88,7 @@ class ClusterStorageQuotaServiceTest extends RepositoryTestBase {
         var refused = assertThrows(
                 RefusalResponse.class, () -> clusterStorageQuotaService.setTotal(clusterId, station.id(), 500L));
         assertEquals(ClusterRefusal.CLUSTER_QUOTA_GRANT_MORE_THAN_POOL, refused.refusal());
+        assertEquals(RefusalDetail.room(400L, 1_000L), refused.detail());
 
         clusterStorageQuotaService.setTotal(clusterId, station.id(), 400L);
         var overview = clusterStorageQuotaService.findOverview(clusterId);
@@ -299,6 +302,7 @@ class ClusterStorageQuotaServiceTest extends RepositoryTestBase {
                 RefusalResponse.class,
                 () -> clusterStorageQuotaService.applyPreset(clusterId, tier.id(), List.of(first.uid(), second.uid())));
         assertEquals(ClusterRefusal.CLUSTER_QUOTA_TIER_MORE_THAN_POOL, refused.refusal());
+        assertEquals(RefusalDetail.room(5 * GIB, 5 * GIB), refused.detail(), "nothing else was handed out yet");
 
         clusterStorageQuotaService.applyPreset(clusterId, tier.id(), List.of(first.uid()));
         var grant = clusterStorageQuotaRepo.findGrant(first.id()).orElseThrow();

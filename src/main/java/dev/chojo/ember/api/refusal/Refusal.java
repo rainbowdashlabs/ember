@@ -167,16 +167,31 @@ public sealed interface Refusal
      * The exception to throw for this refusal, naming the particular thing it was about.
      *
      * <p>The detail is the caller's own words back at them, a field name they sent or a value they
-     * chose, never anything of Ember's.
+     * chose, never anything of Ember's, and never a sentence: it is shown beside a sentence written in
+     * the reader's language.
      *
-     * @param detail what the refusal was about, in the reader's terms, or {@code null} when there is
+     * @param detail what the refusal was about, as the reader wrote it, or {@code null} when there is
      *               nothing to name
      * @return an exception carrying this refusal's status and code, and its sentence with the
      *         detail named
      */
     default RefusalResponse raise(@Nullable String detail) {
         if (detail == null) return raise();
-        return new RefusalResponse(this, message() + ": " + detail);
+        return raise(RefusalDetail.text(detail));
+    }
+
+    /**
+     * The exception to throw for this refusal, naming the value it was about.
+     *
+     * <p>The detail is appended to the English sentence, as every detail always was, and travels on
+     * its own beside it as well, so a screen showing its own sentence for the code can still name it.
+     *
+     * @param detail what the refusal was about
+     * @return an exception carrying this refusal's status and code, its sentence with the detail
+     *         named, and the detail itself
+     */
+    default RefusalResponse raise(RefusalDetail detail) {
+        return new RefusalResponse(this, message() + ": " + detail.inEnglish(), detail);
     }
 
     /**

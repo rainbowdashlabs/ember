@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.cluster.service;
 
 import dev.chojo.ember.api.refusal.ClusterRefusal;
+import dev.chojo.ember.api.refusal.RefusalDetail;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.ClusterQuotaChanged;
@@ -210,9 +211,10 @@ public class ClusterStorageQuotaService {
                     .filter(Objects::nonNull)
                     .mapToLong(Long::longValue)
                     .sum();
+            long pool = cluster.storagePoolBytes();
             long promised = others + preset.total() * stationIds.size();
-            if (promised > cluster.storagePoolBytes()) {
-                throw ClusterRefusal.CLUSTER_QUOTA_TIER_MORE_THAN_POOL.raise();
+            if (promised > pool) {
+                throw ClusterRefusal.CLUSTER_QUOTA_TIER_MORE_THAN_POOL.raise(RefusalDetail.room(pool - others, pool));
             }
         }
 
@@ -388,7 +390,7 @@ public class ClusterStorageQuotaService {
     }
 
     /**
-     * Refuses a promise the cluster cannot keep.
+     * Refuses a promise the cluster cannot keep, naming what is still free of the pool and how big it is.
      *
      * @param stationId the station about to be granted, weighed out of the sum so its old promise is replaced
      *                  rather than added to
@@ -398,7 +400,7 @@ public class ClusterStorageQuotaService {
         if (pool == null || totalBytes == null) return;
         long othersTotal = quotaRepository.sumGrantedTotals(cluster.id(), stationId);
         if (othersTotal + totalBytes > pool) {
-            throw ClusterRefusal.CLUSTER_QUOTA_GRANT_MORE_THAN_POOL.raise();
+            throw ClusterRefusal.CLUSTER_QUOTA_GRANT_MORE_THAN_POOL.raise(RefusalDetail.room(pool - othersTotal, pool));
         }
     }
 

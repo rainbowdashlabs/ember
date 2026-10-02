@@ -105,8 +105,9 @@ test.describe('Cluster storage', () => {
         await page.getByTestId('quota-field-total').fill('5')
         await page.getByTestId('station-room-save').click()
 
-        await expect(page.getByText('Das ist mehr Speicherplatz, als der Verbund noch vergeben kann'),
-            'the pool refuses the promise').toBeVisible({timeout: 15000})
+        const refusal = page.getByText('Das ist mehr Speicherplatz, als der Verbund noch vergeben kann')
+        await expect(refusal, 'the pool refuses the promise').toBeVisible({timeout: 15000})
+        await expect(refusal, 'and names what is still free of the pool').toContainText(/\(frei: \d+(\.\d)? [KMGT]?i?B von 1\.0 GiB\)/)
 
         await expect(page.getByTestId('cluster-pool-usage'), 'nothing was handed out').toContainText('0 B')
     })

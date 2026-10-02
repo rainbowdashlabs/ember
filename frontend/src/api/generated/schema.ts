@@ -55720,6 +55720,16 @@ export interface components {
             /** Format: int32 */
             sizeId?: number | null;
         };
+        CountDetail: {
+            /** Format: int64 */
+            count: number;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "COUNT";
+            unit: components["schemas"]["CountUnit"] | null;
+        };
         CountdownConfig: {
             label?: string;
             sublabel?: string;
@@ -55729,6 +55739,8 @@ export interface components {
             /** Format: int64 */
             count: number;
         };
+        /** @enum {string} */
+        CountUnit: "DAYS" | "HOURS" | "YEARS" | "LINE";
         CreateAndAssignRequest: {
             /** Format: int32 */
             inventoryId?: number;
@@ -56609,6 +56621,7 @@ export interface components {
         };
         ErrorResponseWrapper: {
             code?: string;
+            detail?: components["schemas"]["RefusalDetail"];
             error: string;
             message?: string;
             reference?: string;
@@ -61638,6 +61651,7 @@ export interface components {
             /** Format: int32 */
             alreadyPresent: number;
         };
+        RefusalDetail: components["schemas"]["CountDetail"] | components["schemas"]["RoomDetail"] | components["schemas"]["TextDetail"];
         RefusedEntry: {
             name: string | null;
             reason: components["schemas"]["KbRefusalReason"];
@@ -62106,6 +62120,17 @@ export interface components {
             /** Format: uuid */
             uid: string;
             userType: components["schemas"]["StationUserType"];
+        };
+        RoomDetail: {
+            /** Format: int64 */
+            freeBytes: number;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "ROOM";
+            /** Format: int64 */
+            totalBytes: number;
         };
         RuleRequest: {
             acceptedTypes?: string[];
@@ -63668,6 +63693,14 @@ export interface components {
             maxLength: number;
             multiline: boolean;
         };
+        TextDetail: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "TEXT";
+            text: string;
+        };
         /** @enum {string} */
         ThemeFeel: "ROUNDED" | "CORNERS";
         ThemeInfo: {
@@ -64722,8 +64755,10 @@ export type ConversionStatus = components['schemas']['ConversionStatus'];
 export type CorrectItemRequest = components['schemas']['CorrectItemRequest'];
 export type CorrectMovementRequest = components['schemas']['CorrectMovementRequest'];
 export type CorrectRowRequest = components['schemas']['CorrectRowRequest'];
+export type CountDetail = components['schemas']['CountDetail'];
 export type CountdownConfig = components['schemas']['CountdownConfig'];
 export type CountResponse = components['schemas']['CountResponse'];
+export type CountUnit = components['schemas']['CountUnit'];
 export type CreateAndAssignRequest = components['schemas']['CreateAndAssignRequest'];
 export type CreateBlockRequest = components['schemas']['CreateBlockRequest'];
 export type CreateBoardRequest = components['schemas']['CreateBoardRequest'];
@@ -65524,6 +65559,7 @@ export type Recommendation = components['schemas']['Recommendation'];
 export type RecommendedTag = components['schemas']['RecommendedTag'];
 export type RecordConsentRequest = components['schemas']['RecordConsentRequest'];
 export type RefreshResponse = components['schemas']['RefreshResponse'];
+export type RefusalDetail = components['schemas']['RefusalDetail'];
 export type RefusedEntry = components['schemas']['RefusedEntry'];
 export type RefuseRowRequest = components['schemas']['RefuseRowRequest'];
 export type RegisterRequest = components['schemas']['RegisterRequest'];
@@ -65589,6 +65625,7 @@ export type ResultFilter = components['schemas']['ResultFilter'];
 export type ResultGrouping = components['schemas']['ResultGrouping'];
 export type ReturnEverythingRequest = components['schemas']['ReturnEverythingRequest'];
 export type RichMember = components['schemas']['RichMember'];
+export type RoomDetail = components['schemas']['RoomDetail'];
 export type RuleRequest = components['schemas']['RuleRequest'];
 export type RuleResponse = components['schemas']['RuleResponse'];
 export type RunDetailResponse = components['schemas']['RunDetailResponse'];
@@ -65796,6 +65833,7 @@ export type TestTileResult = components['schemas']['TestTileResult'];
 export type Text = components['schemas']['Text'];
 export type TextAnswer = components['schemas']['TextAnswer'];
 export type TextConfig = components['schemas']['TextConfig'];
+export type TextDetail = components['schemas']['TextDetail'];
 export type ThemeFeel = components['schemas']['ThemeFeel'];
 export type ThemeInfo = components['schemas']['ThemeInfo'];
 export type TicketLabelMapping = components['schemas']['TicketLabelMapping'];

@@ -187,7 +187,7 @@ public class EventFieldService {
                 .orElse("");
         var keeping = NamedAlready.in(List.of(stored), eligibility);
         QuestionCheck.answerIfGiven(field.question(), value, keeping).ifPresent(problem -> {
-            throw EventRefusal.APPOINTMENT_DATE_ANSWER_NOT_ACCEPTED.raise(problem.message());
+            throw EventRefusal.APPOINTMENT_DATE_ANSWER_NOT_ACCEPTED.raise(problem.question());
         });
         repository.updateValueOn(fieldId, date, QuestionValues.writeText(field.fieldType(), value));
         fieldRegistrationService.reconcile(eventId);
@@ -209,7 +209,7 @@ public class EventFieldService {
     private static EventFieldDraft answered(EventFieldDraft field, MemberEligibility eligibility) {
         QuestionCheck.answerIfGiven(field.question(), field.value(), eligibility)
                 .ifPresent(problem -> {
-                    throw EventRefusal.APPOINTMENT_FIELD_VALUE_NOT_ACCEPTED.raise(problem.message());
+                    throw EventRefusal.APPOINTMENT_FIELD_VALUE_NOT_ACCEPTED.raise(problem.question());
                 });
         return field.withValue(QuestionValues.writeText(field.fieldType(), field.value()));
     }
@@ -341,9 +341,9 @@ public class EventFieldService {
         QuestionCheck.answerIfGiven(field.question(), QuestionValues.formatMember(memberId), eligibility)
                 .ifPresent(problem -> {
                     if (problem.code() == QuestionProblem.Code.NOT_ELIGIBLE) {
-                        throw EventRefusal.APPOINTMENT_FIELD_NOT_OPEN_TO_YOU.raise(problem.message());
+                        throw EventRefusal.APPOINTMENT_FIELD_NOT_OPEN_TO_YOU.raise(problem.question());
                     }
-                    throw EventRefusal.APPOINTMENT_FIELD_NARROWING_LOST.raise(problem.message());
+                    throw EventRefusal.APPOINTMENT_FIELD_NARROWING_LOST.raise(problem.question());
                 });
     }
 

@@ -45671,6 +45671,27 @@
           }
         }
       },
+      "CountDetail" : {
+        "type" : "object",
+        "properties" : {
+          "kind" : {
+            "type" : "string",
+            "enum" : [ "COUNT" ]
+          },
+          "count" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "unit" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/CountUnit"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        },
+        "required" : [ "kind", "count", "unit" ]
+      },
       "CountResponse" : {
         "type" : "object",
         "properties" : {
@@ -45680,6 +45701,10 @@
           }
         },
         "required" : [ "count" ]
+      },
+      "CountUnit" : {
+        "type" : "string",
+        "enum" : [ "DAYS", "HOURS", "YEARS", "LINE" ]
       },
       "CountdownConfig" : {
         "type" : "object",
@@ -48192,6 +48217,9 @@
           },
           "reference" : {
             "type" : "string"
+          },
+          "detail" : {
+            "$ref" : "#/components/schemas/RefusalDetail"
           }
         },
         "required" : [ "error" ]
@@ -62496,6 +62524,23 @@
         },
         "required" : [ "added", "alreadyPresent" ]
       },
+      "RefusalDetail" : {
+        "oneOf" : [ {
+          "$ref" : "#/components/schemas/CountDetail"
+        }, {
+          "$ref" : "#/components/schemas/RoomDetail"
+        }, {
+          "$ref" : "#/components/schemas/TextDetail"
+        } ],
+        "discriminator" : {
+          "propertyName" : "kind",
+          "mapping" : {
+            "COUNT" : "#/components/schemas/CountDetail",
+            "ROOM" : "#/components/schemas/RoomDetail",
+            "TEXT" : "#/components/schemas/TextDetail"
+          }
+        }
+      },
       "RefuseRowRequest" : {
         "type" : "object",
         "properties" : {
@@ -63946,6 +63991,24 @@
           }
         },
         "required" : [ "id", "stationId", "uid", "accountId", "name", "firstName", "lastName", "nickname", "email", "accountSetupPending", "setupMailExpiresAt", "mailReaches", "former", "userType", "joinDate", "roles", "groups", "tags", "profileValues", "profileComplete", "identity" ]
+      },
+      "RoomDetail" : {
+        "type" : "object",
+        "properties" : {
+          "kind" : {
+            "type" : "string",
+            "enum" : [ "ROOM" ]
+          },
+          "freeBytes" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "totalBytes" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        },
+        "required" : [ "kind", "freeBytes", "totalBytes" ]
       },
       "RuleRequest" : {
         "type" : "object",
@@ -68365,6 +68428,19 @@
           }
         },
         "required" : [ "kind", "multiline", "maxLength" ]
+      },
+      "TextDetail" : {
+        "type" : "object",
+        "properties" : {
+          "kind" : {
+            "type" : "string",
+            "enum" : [ "TEXT" ]
+          },
+          "text" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "kind", "text" ]
       },
       "ThemeFeel" : {
         "type" : "string",
