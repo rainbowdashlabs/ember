@@ -50,6 +50,7 @@ const editor = useStorageBackendEditor({
     probeSaved: probeClusterBackend,
     probeTyped: (request) => probeClusterBackendConfig(request),
     reload: () => loadAll(),
+    reloadHistory: async () => { auditEntries.value = await getClusterStorageAudit() },
 }, 'S3')
 const {selectedType, s3, smb, sftp, savedOutcome, typedOutcome, success, pending, probing, saving, failure} = editor
 

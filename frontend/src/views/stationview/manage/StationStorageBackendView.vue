@@ -45,6 +45,7 @@ const editor = useStorageBackendEditor({
     probeSaved: probeStationBackend,
     probeTyped: (request) => probeStationBackendConfig(request),
     reload: () => loadAll(),
+    reloadHistory: async () => { auditEntries.value = await getStationStorageAudit() },
 }, 'LOCAL')
 
 const {loading, failure: loadFailure, reload: loadAll} = useAsyncLoader(async () => {

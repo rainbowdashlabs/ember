@@ -104,4 +104,37 @@ describe('useStorageBackendEditor', () => {
         expect(editor.success.value).toBe('')
         expect(api.reload).not.toHaveBeenCalled()
     })
+
+    it('reads the history again after a refused change, and keeps what was typed', async () => {
+        const api = fakeApi({reloadHistory: vi.fn(async () => undefined)})
+        const editor = useStorageBackendEditor(api, 'S3')
+        editor.s3.value = {...editor.s3.value, bucket: 'typed'}
+
+        await editor.perform(async () => Promise.reject(new Error('refused')))
+
+        expect(api.reloadHistory).toHaveBeenCalledTimes(1)
+        expect(api.reload).not.toHaveBeenCalled()
+        expect(editor.s3.value.bucket).toBe('typed')
+        expect(editor.failure.value).not.toBeNull()
+    })
+
+    it('reads the history again after testing the saved storage, but not after testing what was typed', async () => {
+        const api = fakeApi({reloadHistory: vi.fn(async () => undefined)})
+        const editor = useStorageBackendEditor(api, 'S3')
+
+        await editor.probeTyped()
+        expect(api.reloadHistory).not.toHaveBeenCalled()
+
+        await editor.probeSaved()
+        expect(api.reloadHistory).toHaveBeenCalledTimes(1)
+    })
+
+    it('keeps the refusal when the history cannot be read again', async () => {
+        const api = fakeApi({reloadHistory: vi.fn(async () => Promise.reject(new Error('offline')))})
+        const editor = useStorageBackendEditor(api, 'S3')
+
+        await editor.perform(async () => Promise.reject(new Error('refused')))
+
+        expect(editor.failure.value).not.toBeNull()
+    })
 })
