@@ -241,8 +241,8 @@ test.describe('Cluster station groups', () => {
         const fieldId = (await asked.json()).id
 
         const memberId = await somebodyAt(page, own, own.stationUid, `Antwortet${Date.now()}`)
-        const answered = await page.request.put(`/api/v1/cluster/fields/member/${memberId}`,
-            {headers: own.headers, data: {values: {[fieldId]: 'true'}}})
+        const answered = await page.request.put(`/api/v1/cluster/members/manage/${memberId}/profile`,
+            {headers: own.headers, data: {values: [{fieldId, value: JSON.stringify('true'), origin: 'CLUSTER'}]}})
         expect(answered.ok(), `the answer was written (${await answered.text()})`).toBeTruthy()
 
         await putInGroup(page, own, group, [])
@@ -253,9 +253,11 @@ test.describe('Cluster station groups', () => {
         await putInGroup(page, own, group, [own.stationUid])
         await page.reload()
         await expect(page.getByText(question)).toBeVisible({timeout: 15000})
-        const values = await page.request.get(`/api/v1/cluster/fields/member/${memberId}`,
+        const {values} = await page.request.get(`/api/v1/cluster/members/manage/${memberId}/profile`,
             {headers: own.headers}).then(r => r.json())
-        expect(values.values[fieldId], 'the answer waited out the time nobody was asking').toBe('true')
+        const kept = values.find((value: {fieldId: number; origin: string}) =>
+            value.fieldId === fieldId && value.origin === 'CLUSTER')
+        expect(kept?.value, 'the answer waited out the time nobody was asking').toBe('true')
 
         await own.stationPage.context().close()
     })
