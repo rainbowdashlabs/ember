@@ -7,9 +7,12 @@ package dev.chojo.ember.feature.station.service;
 
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.service.AccountInviteService;
 import dev.chojo.ember.feature.account.service.AuthService;
+import dev.chojo.ember.feature.attendance.service.AttendanceAudienceService;
+import dev.chojo.ember.feature.attendance.service.AttendanceExportService;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.mail.entity.MailChainEntry;
 import dev.chojo.ember.feature.mail.entity.SmtpEncryption;
@@ -26,13 +29,20 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.awt.Color;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import javax.imageio.ImageIO;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -44,6 +54,7 @@ import static org.mockito.Mockito.mock;
 
 class SetupServiceTest extends RepositoryTestBase {
     private static SetupService setupService;
+    private static StationLogoService logoService;
 
     private Station station;
     private int inviterMemberId;
@@ -60,6 +71,7 @@ class SetupServiceTest extends RepositoryTestBase {
                         newGroupMemberships(),
                         new AccountInviteService(accountRepo, mock(AuthService.class))),
                 clusterRepo);
+        logoService = newStationLogoService();
         setupService = new SetupService(
                 stationRepo,
                 stationMailProviderRepo,
@@ -67,7 +79,8 @@ class SetupServiceTest extends RepositoryTestBase {
                 eventRepo,
                 knowledgeBaseRepo,
                 stationMemberRepo,
-                stationService);
+                stationService,
+                logoService);
     }
 
     @BeforeEach
@@ -164,6 +177,22 @@ class SetupServiceTest extends RepositoryTestBase {
         assertTrue(optionalComplete(SetupService.STEP_BRANDING));
     }
 
+    /**
+     * A logo that lives only in storage, with nothing left in the station's own record, is still the
+     * station's logo: the printed attendance sheet carries it and the setup counts branding as done.
+     */
+    @Test
+    void a_logo_kept_only_in_storage_is_printed_and_completes_branding() throws IOException {
+        int sessionId = emptySession();
+        assertFalse(carriesAPicture(attendanceSheet(sessionId)));
+
+        logoService.store(station.id(), redSquarePng(), "image/png");
+
+        assertTrue(stationRepo.findLogo(station.id()).isEmpty());
+        assertTrue(carriesAPicture(attendanceSheet(sessionId)));
+        assertTrue(optionalComplete(SetupService.STEP_BRANDING));
+    }
+
     @Test
     void first_event_step_not_applicable_when_events_module_disabled() {
         stationRepo.setDisabledModules(station.id(), Set.of(StationModule.EVENTS));
@@ -244,6 +273,57 @@ class SetupServiceTest extends RepositoryTestBase {
     @Test
     void unknown_station_throws() {
         assertThrows(NoSuchElementException.class, () -> setupService.getStatus(999_999));
+    }
+
+    /** An attendance session of this test's station that nobody is on yet. */
+    private int emptySession() {
+        int templateId =
+                attendanceRepo.createTemplate(station.id(), "Logo Template").id();
+        return attendanceRepo
+                .createSession(
+                        templateId,
+                        Instant.parse("2026-03-06T17:00:00Z"),
+                        Instant.parse("2026-03-06T19:00:00Z"),
+                        null,
+                        "Dienstabend",
+                        null)
+                .id();
+    }
+
+    /** The printed attendance sheet of the session. */
+    private static byte[] attendanceSheet(int sessionId) {
+        var exporter = new AttendanceExportService(
+                attendanceRepo,
+                accountRepo,
+                stationMemberRepo,
+                memberGroupRepo,
+                stationRepo,
+                new Api(),
+                new AttendanceAudienceService(attendanceRepo),
+                logoService);
+        return exporter.exportSessionPdf(sessionId, "Setup User", AttendanceExportService.SheetOptions.PLAIN)
+                .orElseThrow()
+                .bytes();
+    }
+
+    /** Whether the document places a raster image anywhere. */
+    private static boolean carriesAPicture(byte[] pdf) {
+        return new String(pdf, StandardCharsets.ISO_8859_1).contains("/Subtype /Image");
+    }
+
+    /** A small opaque square, raster so the logo store accepts it. */
+    private static byte[] redSquarePng() throws IOException {
+        var image = new BufferedImage(32, 32, BufferedImage.TYPE_INT_RGB);
+        var graphics = image.createGraphics();
+        try {
+            graphics.setColor(Color.RED);
+            graphics.fillRect(0, 0, 32, 32);
+        } finally {
+            graphics.dispose();
+        }
+        var out = new ByteArrayOutputStream();
+        ImageIO.write(image, "png", out);
+        return out.toByteArray();
     }
 
     private boolean stepComplete(String id) {

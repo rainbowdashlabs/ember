@@ -12,12 +12,13 @@ import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventCategoryRepository;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
+import dev.chojo.ember.feature.media.entity.MediaContent;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.question.QuestionText;
 import dev.chojo.ember.feature.question.QuestionValues;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
-import dev.chojo.ember.feature.station.repository.StationRepository.StationLogo;
+import dev.chojo.ember.feature.station.service.StationLogoService;
 import dev.chojo.ember.util.DocumentName;
 import dev.chojo.ember.util.DocumentPeriod;
 import dev.chojo.ember.util.DocumentWord;
@@ -62,6 +63,7 @@ public class EventExportService {
     private final StationRepository stationRepository;
     private final StationMemberRepository memberRepository;
     private final Api apiConfig;
+    private final StationLogoService logoService;
 
     @Inject
     public EventExportService(
@@ -71,7 +73,8 @@ public class EventExportService {
             EventFieldRepository eventFieldRepository,
             StationRepository stationRepository,
             StationMemberRepository memberRepository,
-            Api apiConfig) {
+            Api apiConfig,
+            StationLogoService logoService) {
         this.eventRepository = eventRepository;
         this.categoryRepository = categoryRepository;
         this.occurrenceCalendar = occurrenceCalendar;
@@ -79,6 +82,7 @@ public class EventExportService {
         this.stationRepository = stationRepository;
         this.memberRepository = memberRepository;
         this.apiConfig = apiConfig;
+        this.logoService = logoService;
     }
 
     public Optional<ExportedDocument> exportPdf(
@@ -133,7 +137,7 @@ public class EventExportService {
         data.put("categories", catGroups);
 
         try {
-            var logo = stationRepository.findLogo(stationId);
+            var logo = logoService.original(stationId);
             String locale = StationFormat.languageOf(station);
             String filename = DocumentName.of("pdf", DocumentWord.EVENTS.in(locale), spanLabel(from, to, zone, locale));
             return Optional.of(
@@ -276,7 +280,7 @@ public class EventExportService {
         return !from.isAfter(to) && (to.equals(exclusiveEnd) || to.equals(exclusiveEnd.minusDays(1)));
     }
 
-    private byte[] renderPdf(Map<String, Object> data, String templateName, StationLogo logo)
+    private byte[] renderPdf(Map<String, Object> data, String templateName, MediaContent logo)
             throws IOException, InterruptedException {
         return TypstCompiler.compileTemplate(
                 data,

@@ -45,7 +45,13 @@ class AttendanceReportServiceTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         service = new AttendanceReportService(
-                attendanceRepo, stationMemberRepo, accountRepo, stationRepo, memberGroupRepo, new Api());
+                attendanceRepo,
+                stationMemberRepo,
+                accountRepo,
+                stationRepo,
+                memberGroupRepo,
+                new Api(),
+                newStationLogoService());
         station = stationRepo.create("Report Station");
         account = accountRepo.create("report-hours@test.com", "Report", "Reader");
         member = stationMemberRepo.create(station.id(), account.id());

@@ -10,12 +10,13 @@ import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
+import dev.chojo.ember.feature.media.entity.MediaContent;
 import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.repository.ProfileFieldRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
-import dev.chojo.ember.feature.station.repository.StationRepository.StationLogo;
+import dev.chojo.ember.feature.station.service.StationLogoService;
 import dev.chojo.ember.util.CsvWriter;
 import dev.chojo.ember.util.DocumentName;
 import dev.chojo.ember.util.DocumentPeriod;
@@ -54,6 +55,7 @@ public class InventoryExportService {
     private final StationRepository stationRepository;
     private final ProfileFieldRepository profileFieldRepository;
     private final Api apiConfig;
+    private final StationLogoService logoService;
 
     @Inject
     public InventoryExportService(
@@ -62,13 +64,15 @@ public class InventoryExportService {
             AccountRepository accountRepository,
             StationRepository stationRepository,
             ProfileFieldRepository profileFieldRepository,
-            Api apiConfig) {
+            Api apiConfig,
+            StationLogoService logoService) {
         this.inventoryRepository = inventoryRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.accountRepository = accountRepository;
         this.stationRepository = stationRepository;
         this.profileFieldRepository = profileFieldRepository;
         this.apiConfig = apiConfig;
+        this.logoService = logoService;
     }
 
     /**
@@ -204,7 +208,7 @@ public class InventoryExportService {
                     asSpreadsheet(inventoryColumns, extraFieldNames, rows, locale, separator), filename));
         }
 
-        StationLogo logo = stationRepository.findLogo(stationId).orElse(null);
+        MediaContent logo = logoService.original(stationId).orElse(null);
         try {
             return Optional.of(
                     new ExportedDocument(renderPdf(data, locale + "/inventory-members.typ", logo), filename));
@@ -250,7 +254,7 @@ public class InventoryExportService {
         return CsvWriter.write(headers, lines, separator);
     }
 
-    private byte[] renderPdf(Map<String, Object> data, String templateName, StationLogo logo)
+    private byte[] renderPdf(Map<String, Object> data, String templateName, MediaContent logo)
             throws IOException, InterruptedException {
         return TypstCompiler.compileTemplate(
                 data,

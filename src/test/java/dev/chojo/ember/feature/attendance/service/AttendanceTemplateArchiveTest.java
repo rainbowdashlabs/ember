@@ -83,7 +83,13 @@ class AttendanceTemplateArchiveTest extends RepositoryTestBase {
                 memberEligibility,
                 new AttendanceTemplateGuards(attendanceRepo));
         reportService = new AttendanceReportService(
-                attendanceRepo, stationMemberRepo, accountRepo, stationRepo, memberGroupRepo, new Api());
+                attendanceRepo,
+                stationMemberRepo,
+                accountRepo,
+                stationRepo,
+                memberGroupRepo,
+                new Api(),
+                newStationLogoService());
         eventCrud = newEventServices(new DomainEventBus(Set.of())).crud();
         eventTemplates = new EventTemplateService(
                 new EventTemplateRepository(),

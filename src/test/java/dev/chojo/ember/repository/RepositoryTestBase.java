@@ -193,6 +193,7 @@ import dev.chojo.ember.feature.restriction.repository.RestrictionRepository;
 import dev.chojo.ember.feature.restriction.service.RestrictionService;
 import dev.chojo.ember.feature.station.repository.StationApplicationRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.station.service.StationLogoService;
 import dev.chojo.ember.feature.storage.backend.StorageBackendFactory;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
 import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
@@ -438,6 +439,17 @@ public abstract class RepositoryTestBase {
     protected static DocumentService newDocumentService(StorageService storage) {
         return new DocumentService(
                 memberDocumentRepo, storage, new ImageVariants(storage), stationRepo, newDocumentIntake());
+    }
+
+    /**
+     * A station logo store over this class's local storage and the shared station repository.
+     *
+     * @return the store
+     */
+    protected static StationLogoService newStationLogoService() {
+        var backend = localStorage();
+        var storage = new StorageService(new StorageBackendResolver(backend), backend);
+        return new StationLogoService(new ImageVariants(storage), stationRepo);
     }
 
     /**

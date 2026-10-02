@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.protocol.repository.TestProtocolRepository;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.station.service.StationLogoService;
 import dev.chojo.ember.util.DocumentNumber;
 import dev.chojo.ember.util.TypstCompiler;
 import jakarta.inject.Inject;
@@ -54,17 +55,20 @@ public class TestProtocolPdfService {
     private final StationMemberRepository memberRepository;
     private final AccountRepository accountRepository;
     private final StationRepository stationRepository;
+    private final StationLogoService logoService;
 
     @Inject
     public TestProtocolPdfService(
             TestProtocolRepository repository,
             StationMemberRepository memberRepository,
             AccountRepository accountRepository,
-            StationRepository stationRepository) {
+            StationRepository stationRepository,
+            StationLogoService logoService) {
         this.repository = repository;
         this.memberRepository = memberRepository;
         this.accountRepository = accountRepository;
         this.stationRepository = stationRepository;
+        this.logoService = logoService;
     }
 
     public byte[] exportRunMember(int runId, int memberId, String protocolName, LocalDate testDate) {
@@ -247,7 +251,7 @@ public class TestProtocolPdfService {
      * when not even that can be read.
      */
     private TypstCompiler.@Nullable StationLogo loadLogo(int stationId) {
-        var stationLogo = stationRepository.findLogo(stationId);
+        var stationLogo = logoService.original(stationId);
         if (stationLogo.isPresent()) {
             var logo = stationLogo.get();
             return new TypstCompiler.StationLogo(logo.data(), logo.contentType());

@@ -8,13 +8,14 @@ package dev.chojo.ember.feature.members.service;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.cluster.entity.StationKind;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
+import dev.chojo.ember.feature.media.entity.MediaContent;
 import dev.chojo.ember.feature.members.entity.MemberTable;
 import dev.chojo.ember.feature.members.entity.MemberTableCellType;
 import dev.chojo.ember.feature.members.entity.MemberTableColumnKind;
 import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.ThemeFeel;
-import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.station.service.StationLogoService;
 import dev.chojo.ember.util.CsvWriter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -87,9 +88,9 @@ class MemberTableRendererTest {
 
     @BeforeEach
     void setup() {
-        var stations = mock(StationRepository.class);
-        when(stations.findLogo(anyInt())).thenReturn(Optional.empty());
-        renderer = new MemberTableRenderer(stations, new Api());
+        var logos = mock(StationLogoService.class);
+        when(logos.original(anyInt())).thenReturn(Optional.empty());
+        renderer = new MemberTableRenderer(logos, new Api());
     }
 
     /** The header is the labels, and a row is its values, in the order the table put them. */
@@ -269,10 +270,9 @@ class MemberTableRendererTest {
      */
     @Test
     void aStationsBadgeReachesTheSheet() throws Exception {
-        var stations = mock(StationRepository.class);
-        when(stations.findLogo(anyInt()))
-                .thenReturn(Optional.of(new StationRepository.StationLogo(onePixelPng(), "image/png")));
-        var withBadge = new MemberTableRenderer(stations, new Api());
+        var logos = mock(StationLogoService.class);
+        when(logos.original(anyInt())).thenReturn(Optional.of(new MediaContent(onePixelPng(), "image/png")));
+        var withBadge = new MemberTableRenderer(logos, new Api());
 
         var table = new MemberTable(
                 List.of(builtin("name", "Name")), List.of(new MemberTable.MemberTableRow(1, List.of("Anna Beispiel"))));

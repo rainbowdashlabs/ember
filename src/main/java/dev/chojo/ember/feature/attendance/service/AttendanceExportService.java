@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.attendance.entity.AttendanceTemplate;
 import dev.chojo.ember.feature.attendance.entity.AttendanceTemplateField;
 import dev.chojo.ember.feature.attendance.entity.SessionAudience;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
+import dev.chojo.ember.feature.media.entity.MediaContent;
 import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
@@ -24,7 +25,7 @@ import dev.chojo.ember.feature.question.QuestionText;
 import dev.chojo.ember.feature.question.QuestionValues;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
-import dev.chojo.ember.feature.station.repository.StationRepository.StationLogo;
+import dev.chojo.ember.feature.station.service.StationLogoService;
 import dev.chojo.ember.util.DocumentName;
 import dev.chojo.ember.util.DocumentPeriod;
 import dev.chojo.ember.util.DocumentWord;
@@ -67,6 +68,7 @@ public class AttendanceExportService {
     private final StationRepository stationRepository;
     private final Api apiConfig;
     private final AttendanceAudienceService audienceService;
+    private final StationLogoService logoService;
 
     @Inject
     public AttendanceExportService(
@@ -76,8 +78,10 @@ public class AttendanceExportService {
             MemberGroupRepository memberGroupRepository,
             StationRepository stationRepository,
             Api apiConfig,
-            AttendanceAudienceService audienceService) {
+            AttendanceAudienceService audienceService,
+            StationLogoService logoService) {
         this.audienceService = audienceService;
+        this.logoService = logoService;
         this.attendanceRepository = attendanceRepository;
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
@@ -170,7 +174,7 @@ public class AttendanceExportService {
         }
 
         try {
-            var logo = stationRepository.findLogo(stationId);
+            var logo = logoService.original(stationId);
             String locale = StationFormat.languageOf(station);
             String filename = sheetFileName(session.get(), title, zone, locale);
             return Optional.of(
@@ -362,7 +366,7 @@ public class AttendanceExportService {
         return DATE_TIME_FMT.format(instant.atZone(zone));
     }
 
-    private byte[] renderPdf(Map<String, Object> data, String templateName, StationLogo logo)
+    private byte[] renderPdf(Map<String, Object> data, String templateName, MediaContent logo)
             throws IOException, InterruptedException {
         return TypstCompiler.compileTemplate(
                 data,

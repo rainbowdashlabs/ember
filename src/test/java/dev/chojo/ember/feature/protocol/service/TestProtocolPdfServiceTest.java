@@ -34,7 +34,8 @@ class TestProtocolPdfServiceTest extends RepositoryTestBase {
         } catch (Exception e) {
             assumeTrue(false, "typst binary not available, skipping PDF test");
         }
-        pdfService = new TestProtocolPdfService(testProtocolRepo, stationMemberRepo, accountRepo, stationRepo);
+        pdfService = new TestProtocolPdfService(
+                testProtocolRepo, stationMemberRepo, accountRepo, stationRepo, newStationLogoService());
     }
 
     private record Run(int runId, int memberId) {}

@@ -35,7 +35,13 @@ class AttendanceReportPresetTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         service = new AttendanceReportService(
-                attendanceRepo, stationMemberRepo, accountRepo, stationRepo, memberGroupRepo, new Api());
+                attendanceRepo,
+                stationMemberRepo,
+                accountRepo,
+                stationRepo,
+                memberGroupRepo,
+                new Api(),
+                newStationLogoService());
         station = stationRepo.create("Preset Station");
         firstGroupId = memberGroupRepo.create(station.id(), "First").id();
         secondGroupId = memberGroupRepo.create(station.id(), "Second").id();

@@ -53,7 +53,8 @@ class AttendanceExportServiceTest extends RepositoryTestBase {
                 memberGroupRepo,
                 stationRepo,
                 new Api(),
-                new AttendanceAudienceService(attendanceRepo));
+                new AttendanceAudienceService(attendanceRepo),
+                newStationLogoService());
         station = stationRepo.create("Signing Station");
         account = accountRepo.create("signing-sheet@test.com", "Anna", "Schmidt");
         member = stationMemberRepo.create(station.id(), account.id());

@@ -10,7 +10,7 @@ import dev.chojo.ember.feature.members.entity.MemberTable;
 import dev.chojo.ember.feature.members.entity.MemberTableColumnKind;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationFormat;
-import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.station.service.StationLogoService;
 import dev.chojo.ember.util.CsvWriter;
 import dev.chojo.ember.util.TypstCompiler;
 import jakarta.inject.Inject;
@@ -34,12 +34,12 @@ import java.util.stream.IntStream;
 public class MemberTableRenderer {
     private static final DateTimeFormatter STAMP = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
 
-    private final StationRepository stationRepository;
+    private final StationLogoService logoService;
     private final Api apiConfig;
 
     @Inject
-    public MemberTableRenderer(StationRepository stationRepository, Api apiConfig) {
-        this.stationRepository = stationRepository;
+    public MemberTableRenderer(StationLogoService logoService, Api apiConfig) {
+        this.logoService = logoService;
         this.apiConfig = apiConfig;
     }
 
@@ -84,7 +84,7 @@ public class MemberTableRenderer {
         data.put("columns", headerLabels(table));
         data.put("rows", rows);
 
-        var logo = stationRepository.findLogo(station.id()).orElse(null);
+        var logo = logoService.original(station.id()).orElse(null);
         return TypstCompiler.compileTemplate(
                 data,
                 StationFormat.languageOf(station) + "/member-table.typ",

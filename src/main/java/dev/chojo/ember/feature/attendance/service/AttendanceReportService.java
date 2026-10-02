@@ -14,13 +14,14 @@ import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
 import dev.chojo.ember.feature.attendance.entity.AttendanceReportPreset;
 import dev.chojo.ember.feature.attendance.entity.AttendanceSession;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
+import dev.chojo.ember.feature.media.entity.MediaContent;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
-import dev.chojo.ember.feature.station.repository.StationRepository.StationLogo;
+import dev.chojo.ember.feature.station.service.StationLogoService;
 import dev.chojo.ember.util.CsvWriter;
 import dev.chojo.ember.util.DocumentName;
 import dev.chojo.ember.util.DocumentPeriod;
@@ -70,6 +71,7 @@ public class AttendanceReportService {
     private final StationRepository stationRepository;
     private final MemberGroupRepository memberGroupRepository;
     private final Api apiConfig;
+    private final StationLogoService logoService;
 
     @Inject
     public AttendanceReportService(
@@ -78,13 +80,15 @@ public class AttendanceReportService {
             AccountRepository accountRepository,
             StationRepository stationRepository,
             MemberGroupRepository memberGroupRepository,
-            Api apiConfig) {
+            Api apiConfig,
+            StationLogoService logoService) {
         this.attendanceRepository = attendanceRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.accountRepository = accountRepository;
         this.stationRepository = stationRepository;
         this.memberGroupRepository = memberGroupRepository;
         this.apiConfig = apiConfig;
+        this.logoService = logoService;
     }
 
     /**
@@ -351,7 +355,7 @@ public class AttendanceReportService {
         data.put("hasLogo", false);
 
         try {
-            var logo = stationRepository.findLogo(stationId);
+            var logo = logoService.original(stationId);
             String locale = StationFormat.languageOf(station);
             String templateName = locale + "/"
                     + ("year".equals(period) ? "attendance-report-year.typ" : "attendance-report-period.typ");
@@ -528,7 +532,7 @@ public class AttendanceReportService {
         return StationFormat.timezoneOf(stationRepository.findById(stationId).orElse(null));
     }
 
-    private byte[] renderPdf(Map<String, Object> data, String templateName, StationLogo logo)
+    private byte[] renderPdf(Map<String, Object> data, String templateName, MediaContent logo)
             throws IOException, InterruptedException {
         return TypstCompiler.compileTemplate(
                 data,

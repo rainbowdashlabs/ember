@@ -202,6 +202,7 @@
 - **Der Speicherverlauf ist sofort aktuell.** Eine gescheiterte Änderung am Speicher oder ein Test deines gespeicherten Speichers fehlte im Verlauf der Speicherseite, bis du die Seite neu geladen hast. Beides erscheint jetzt sofort, und deine Eingaben bleiben im Formular.
 - **Mitgliederseiten im Verband zeigten keinen Namen.** Wenn du im Verband eine Person geöffnet hast, stand oben nur „Mitglied“ statt ihres Namens. Jetzt siehst du dort, um wen es geht.
 - **Gelöschte Vorlagen nehmen ihre Listen nicht mehr mit.** Hast du eine Anwesenheitsvorlage gelöscht, verschwanden alle Anwesenheitslisten, die mit ihr geführt wurden, samt der Anwesenheit aller darauf. Jetzt wird die Vorlage archiviert, und ihre Listen bleiben und zählen weiter in Auswertungen und Stunden.
+- **Manchen PDFs fehlte das Logo deiner Wache.** In manchen Fällen kamen Anwesenheitslisten und -berichte, die Terminliste, Inventarlisten, Prüfprotokolle und die Mitgliederliste ohne dein Logo heraus, und die Einrichtung der Wache fragte nach einem Logo, das du längst hochgeladen hattest. Jetzt finden sie dein Logo alle wieder.
 
 ## v26.19.5
 

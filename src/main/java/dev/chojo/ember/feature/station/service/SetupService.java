@@ -77,6 +77,7 @@ public class SetupService {
     private final KnowledgeBaseRepository knowledgeBaseRepository;
     private final StationMemberRepository stationMemberRepository;
     private final StationService stationService;
+    private final StationLogoService logoService;
 
     @Inject
     public SetupService(
@@ -86,7 +87,8 @@ public class SetupService {
             EventRepository eventRepository,
             KnowledgeBaseRepository knowledgeBaseRepository,
             StationMemberRepository stationMemberRepository,
-            StationService stationService) {
+            StationService stationService,
+            StationLogoService logoService) {
         this.stationRepository = stationRepository;
         this.mailProviderRepository = mailProviderRepository;
         this.memberGroupRepository = memberGroupRepository;
@@ -94,6 +96,7 @@ public class SetupService {
         this.knowledgeBaseRepository = knowledgeBaseRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.stationService = stationService;
+        this.logoService = logoService;
     }
 
     /**
@@ -200,7 +203,7 @@ public class SetupService {
 
     private boolean isBrandingComplete(int stationId, Station station) {
         if (notBlank(station.customThemeColors())) return true;
-        return stationRepository.findLogo(stationId).isPresent();
+        return logoService.exists(stationId);
     }
 
     /**
