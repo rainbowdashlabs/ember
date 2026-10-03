@@ -1,5 +1,13 @@
 # Changelog
 
+## v26.20.2
+
+The daily usage report goes out on every instance again.
+
+### Fixes
+
+- **Some instances never sent the daily usage report.** An instance whose report time fell within the last minutes of the day sent nothing, or skipped days. Report times now always fall early enough in the day to be sent.
+
 ## v26.20.1
 
 Stations of other instances show their logos on the discovery page. The logos come from this instance, so a visit to the page never reaches another instance. Links to a station's public page lead only to pages that exist. Tiles on the discovery page show what each station offers publicly and look the same for stations of every instance. The page opens with a map that names every station on it. Stations of other instances can be asked to federate like stations of this instance. Requests and their answers arrive as notifications.
