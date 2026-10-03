@@ -115,8 +115,10 @@ added at the top of a changelog are both kept, the release branch's above the fi
 conflict stops the rebase and opens an issue naming the branch and the files; the branch is then
 rebased by hand.
 
-The rebase rewrites the release branch's commits, so they lose their signatures, and open feature
-pull requests into the release branch need a rebase afterwards. The workflow can also be run by hand
+The rebase rewrites the release branch's commits, so they lose their signatures. Open pull requests
+into the release branch catch up by merging the release branch into their branch ("Update branch"
+on the pull request), never by a rebase: their own commits keep their history and signatures, and
+the squash merge leaves no merge commit on the release branch. The workflow can also be run by hand
 as `Release Sync`.
 
 ### Token
