@@ -2695,6 +2695,7 @@ export default {
         formFieldGone: 'Das Feld {field} gibt es im PDF nicht mehr.',
         generateOpen: 'Dokument erstellen',
         generateTitle: 'Dokument aus einer Vorlage erstellen',
+        generateMember: 'Für wen',
         noTemplates: 'Die Wache hat noch keine Vorlage.',
         template: 'Vorlage',
         chooseTemplate: 'Vorlage wählen',
