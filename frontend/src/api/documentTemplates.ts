@@ -7,6 +7,8 @@ import client from './client'
 import {uploadFile} from './upload'
 import type {
     BulkPreviewResponse,
+    DocumentTemplateCopy,
+    DocumentTemplateCopyRequest,
     DocumentTemplateRequest,
     DocumentTemplateResponse,
     DocumentTemplateSummary,
@@ -36,6 +38,13 @@ export interface TemplateSource {
     update(id: number, request: DocumentTemplateRequest): Promise<DocumentTemplateResponse>
     archive(id: number): Promise<DocumentTemplateResponse>
     restore(id: number): Promise<DocumentTemplateResponse>
+    /**
+     * Copies a template as a new one of the owner, a station's copy of its association's template
+     * included; a name another template carries is counted on.
+     *
+     * @param name what the copy is called, worded by the screen
+     */
+    duplicate(id: number, name: string): Promise<DocumentTemplateCopy>
     /** What a template of the owner can name. */
     catalogue(): Promise<PlaceholderCatalogueResponse>
     /** Reads a Word or OpenDocument text into a template body, its gaps in brackets as placeholders. */
@@ -84,6 +93,11 @@ function sourceAt(paths: TemplatePaths): TemplateSource {
         },
         async restore(id) {
             const res = await client.post<DocumentTemplateResponse>(at(id, '/restore'))
+            return res.data
+        },
+        async duplicate(id, name) {
+            const request: DocumentTemplateCopyRequest = {name}
+            const res = await client.post<DocumentTemplateCopy>(at(id, '/duplicate'), request)
             return res.data
         },
         async catalogue() {

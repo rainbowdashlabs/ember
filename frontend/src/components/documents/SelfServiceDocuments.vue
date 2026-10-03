@@ -16,12 +16,14 @@ import type {SelfServiceOffer} from '@/api/generated/schema'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {formatDate} from '@/util/format'
+import {recentlyUsedFirst} from './recentlyUsedFirst'
 import {showToast} from '@/util/toast'
 
 /**
  * The documents a member may generate for themselves, or a guardian for the member in their care:
  * each offered template with what still stands in its way, the data the profile lacks or the day it
- * can be generated again. A generated document is filed with the member it is about.
+ * can be generated again. A generated document is filed with the member it is about. The templates
+ * generated most recently for this member through self service come first.
  */
 const props = defineProps<{
   memberId: number
@@ -35,7 +37,7 @@ const {t} = useI18n()
 const offers = ref<SelfServiceOffer[]>([])
 
 const {loading, failure, reload} = useAsyncLoader(async () => {
-  offers.value = await documentTemplates.selfServiceOffers(props.memberId)
+  offers.value = recentlyUsedFirst(await documentTemplates.selfServiceOffers(props.memberId))
 })
 
 const generating = useAsyncAction(async (templateId: number) => {

@@ -16,6 +16,7 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import GeneratedPreview from '@/components/documents/GeneratedPreview.vue'
+import {recentlyUsedFirst} from '@/components/documents/recentlyUsedFirst'
 import {documentTemplates} from '@/api'
 import type {DocumentTemplateSummary, PreviewResponse} from '@/api/generated/schema'
 import {useAsyncAction} from '@/composables/useAsyncAction'
@@ -25,7 +26,8 @@ import {showToast} from '@/util/toast'
 /**
  * Generates a document from a template for one member: choose the template, look at the result with
  * the data it still lacks, and file it with the member. Missing data prints as lines to fill in, so a
- * manager may still file the document after the warning.
+ * manager may still file the document after the warning. The templates used most recently at the
+ * station come first.
  */
 const open = defineModel<boolean>({required: true})
 
@@ -45,7 +47,7 @@ const preview = ref<PreviewResponse | null>(null)
 const chosen = computed(() => templates.value.find(template => template.id === templateId.value) ?? null)
 
 const loader = useAsyncLoader(async () => {
-  templates.value = await documentTemplates.usableTemplates()
+  templates.value = recentlyUsedFirst(await documentTemplates.usableTemplates())
 })
 
 const drawing = useAsyncAction(async (id: number) => {

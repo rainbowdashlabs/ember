@@ -21,6 +21,7 @@ import SelfServicePanel from './templateeditview/SelfServicePanel.vue'
 import PreviewPanel from './templateeditview/PreviewPanel.vue'
 import EditorActions from './templateeditview/EditorActions.vue'
 import type {TemplateScreens} from './templateScreens'
+import {useTemplateDuplication} from './useTemplateDuplication'
 
 /**
  * Writes one template of a station or an association. A letter has its header, body and footer,
@@ -30,7 +31,8 @@ import type {TemplateScreens} from './templateScreens'
  * which has no members of its own.
  *
  * <p>The address names the template, or `new` for one that does not exist yet, with `?kind=PDF` for a
- * PDF template; saving a new one moves the address to it, so a reload opens what was just saved.
+ * PDF template; saving a new one moves the address to it, so a reload opens what was just saved. A
+ * saved template can be duplicated, which opens the editor on the copy.
  */
 const props = defineProps<{
   screens: TemplateScreens
@@ -48,6 +50,7 @@ const newKind = computed(() => route.query.kind === DocumentTemplateKind.PDF ? D
 
 const editor = useTemplateEditor(templateId, newKind, props.screens)
 const {draft, saved, loader, saving, archiving, uploading} = editor
+const duplication = useTemplateDuplication(props.screens)
 
 const isPdf = computed(() => draft.value.kind === DocumentTemplateKind.PDF)
 const tab = ref('general')
@@ -65,7 +68,7 @@ const pageTitle = computed(() => saved.value
     : t(`pages.${props.screens.editRoute}.title`))
 
 const failure = computed(() => loader.failure.value ?? saving.failure.value ?? archiving.failure.value
-    ?? uploading.failure.value ?? editor.pdfLoader.failure.value)
+    ?? uploading.failure.value ?? editor.pdfLoader.failure.value ?? duplication.failure.value)
 
 async function save() {
   const written = await saving.run()
@@ -79,6 +82,10 @@ async function save() {
 async function setArchived(archived: boolean) {
   const written = await archiving.run(archived)
   if (written) showToast(t(archived ? 'documentTemplates.archived' : 'documentTemplates.restored'), 'success')
+}
+
+function duplicate() {
+  if (saved.value) void duplication.run(saved.value)
 }
 
 async function upload(file: File) {
@@ -95,9 +102,11 @@ async function upload(file: File) {
       <EditorActions
           :saved="saved"
           :saving="saving.running.value"
+          :duplicating="duplication.running.value"
           :can-save="draft.name.trim().length > 0"
           :list-route="screens.listRoute"
           @save="save"
+          @duplicate="duplicate"
           @archive="setArchived"
       />
       <TabBar v-model="tab" :tabs="tabs"/>

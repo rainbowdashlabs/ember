@@ -7,10 +7,12 @@ import {ref} from 'vue'
 import {appointmentDocuments} from '@/api'
 import type {RequirementOwner} from '@/api/appointmentDocuments'
 import type {RequiredTemplate} from '@/api/generated/schema'
+import {recentlyUsedFirst} from '@/components/documents/recentlyUsedFirst'
 
 /**
  * The documents an appointment or an appointment template asks participants to bring, as the editor
- * holds them until it saves: the templates for appointments the station offers, and the ones chosen.
+ * holds them until it saves: the templates for appointments the station offers, the most recently used
+ * first, and the ones chosen.
  *
  * <p>An appointment made from an appointment template takes the template's documents into the
  * editor's list, the same way it takes its registration questions, so the save that creates the
@@ -26,7 +28,7 @@ export function useDocumentRequirements() {
             appointmentDocuments.offeredTemplates(),
             owner ? appointmentDocuments.listRequirements(owner) : Promise.resolve([]),
         ])
-        offered.value = offer
+        offered.value = recentlyUsedFirst(offer)
         chosen.value = current
     }
 

@@ -13,14 +13,16 @@ import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import type {DocumentTemplateResponse} from '@/api/generated/schema'
 
 /**
- * Saving, archiving and leaving the template, with the version it stands at.
+ * Saving, duplicating, archiving and leaving the template, with the version it stands at.
  *
  * <p>A template is archived rather than deleted, because the documents generated from it keep naming
- * it; an archived one comes back with the same button.
+ * it; an archived one comes back with the same button. Duplicating copies the template as it was last
+ * saved.
  */
 defineProps<{
   saved: DocumentTemplateResponse | null
   saving: boolean
+  duplicating: boolean
   canSave: boolean
   /** The route of the list the template belongs to. */
   listRoute: string
@@ -28,6 +30,7 @@ defineProps<{
 
 const emit = defineEmits<{
   save: []
+  duplicate: []
   archive: [archived: boolean]
 }>()
 
@@ -44,6 +47,10 @@ const router = useRouter()
     <ButtonRow align="end">
       <SecondaryButton :icon="['fas', 'arrow-left']" @click="router.push({name: listRoute})">
         {{ t('documentTemplates.backToList') }}
+      </SecondaryButton>
+      <SecondaryButton v-if="saved" :icon="['fas', 'copy']" :disabled="duplicating" data-testid="template-duplicate"
+                       @click="emit('duplicate')">
+        {{ t('documentTemplates.duplicate') }}
       </SecondaryButton>
       <SecondaryButton v-if="saved" :icon="['fas', saved.archivedAt ? 'box-open' : 'box-archive']" data-testid="template-archive"
                        @click="emit('archive', !saved.archivedAt)">

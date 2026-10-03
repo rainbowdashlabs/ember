@@ -17,12 +17,13 @@ vi.mock('@/api', () => ({
     },
 }))
 
-function template(templateId: number, name: string): RequiredTemplate {
-    return {templateId, name, kind: DocumentTemplateKind.PDF, version: 1, archived: false}
+function template(templateId: number, name: string, lastUsedAt: string | null = null): RequiredTemplate {
+    return {templateId, name, kind: DocumentTemplateKind.PDF, version: 1, archived: false, lastUsedAt}
 }
 
 const consent = template(1, 'Einverständnis')
 const health = template(2, 'Gesundheitsbogen')
+const photo = template(3, 'Fotoerlaubnis', '2026-10-01T09:00:00Z')
 
 describe('the documents an appointment asks for', () => {
     beforeEach(() => {
@@ -41,6 +42,15 @@ describe('the documents an appointment asks for', () => {
 
         await requirements.load(null)
         expect(requirements.chosen.value).toEqual([])
+    })
+
+    it('offers the templates used most recently first', async () => {
+        vi.mocked(appointmentDocuments.offeredTemplates).mockResolvedValue([consent, health, photo])
+        const requirements = useDocumentRequirements()
+
+        await requirements.load(null)
+
+        expect(requirements.offered.value.map(offered => offered.templateId)).toEqual([3, 1, 2])
     })
 
     it('takes the documents of an appointment template after the chosen ones, each once', async () => {

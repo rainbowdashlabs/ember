@@ -20,6 +20,7 @@ import {emptyRestriction} from '@/components/input/restriction'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {showToast} from '@/util/toast'
+import {recentlyUsedFirst} from '../recentlyUsedFirst'
 import {selectionFor} from './bulkGeneration'
 import BulkMemberChoice from './BulkMemberChoice.vue'
 import BulkPreviewSummary from './BulkPreviewSummary.vue'
@@ -30,7 +31,7 @@ import BulkTemplateChoice from './BulkTemplateChoice.vue'
  * (the ones chosen in the member list, or an audience of groups, user types and tags), look at the
  * document of the first member with the data every member still lacks, decide whether gaps are filed
  * as lines to fill in by hand, and start. The run goes on without the screen; its progress and results
- * stand on the templates page.
+ * stand on the templates page. The templates used most recently at the station come first.
  */
 const open = defineModel<boolean>({required: true})
 
@@ -63,7 +64,7 @@ const loader = useAsyncLoader(async () => {
     memberGroups.listGroups().catch(() => []),
     userTags.listTags().catch(() => []),
   ])
-  templates.value = usable
+  templates.value = recentlyUsedFirst(usable)
   groups.value = groupList
   tags.value = tagList
 })

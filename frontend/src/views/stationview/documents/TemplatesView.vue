@@ -22,14 +22,16 @@ import {useDataTable} from '@/composables/useDataTable'
 import {useSession} from '@/composables/useSession'
 import TemplateTable from './templatesview/TemplateTable.vue'
 import GenerationJobsPanel from './templatesview/GenerationJobsPanel.vue'
-import {templateColumns} from './templatesview/templateColumns'
+import {LAST_USED_COLUMN, templateColumns} from './templatesview/templateColumns'
 import type {TemplateScreens} from './templateScreens'
+import {useTemplateDuplication} from './useTemplateDuplication'
 
 /**
  * The document templates of a station or an association: letters written in Ember and uploaded PDFs
  * filled in place. An archived template generates nothing more and stays for the documents it made; the
  * switch lists those instead of the ones in use. A station's list also holds the templates of its
- * association, marked as such, which it uses but does not change.
+ * association, marked as such, which it uses but does not change. The list opens on the templates used
+ * last; any of them can be duplicated, and the editor opens on the copy.
  *
  * <p>At a station, whoever may file documents for members also generates a template for many members at
  * once here, and follows those runs below the list. An association has no members to generate for.
@@ -60,7 +62,10 @@ const table = useDataTable<DocumentTemplateSummary>({
   rows: templates,
   columns: computed(() => templateColumns(t, props.screens.useRoute !== null)),
   rowKey: template => template.id,
+  sort: {key: LAST_USED_COLUMN, direction: 'desc'},
 })
+
+const duplication = useTemplateDuplication(props.screens)
 
 function create(kind?: DocumentTemplateKind) {
   router.push({name: props.screens.editRoute, params: {id: 'new'}, query: kind ? {kind} : {}})
@@ -88,9 +93,10 @@ function create(kind?: DocumentTemplateKind) {
           <TableColumnPicker :table="table"/>
         </div>
       </div>
-      <FailureAlert :failure="failure"/>
+      <FailureAlert :failure="failure ?? duplication.failure.value"/>
       <Spinner v-if="loading" size="lg"/>
-      <TemplateTable v-else :table="table" :screens="screens"/>
+      <TemplateTable v-else :table="table" :screens="screens" :duplicating="duplication.running.value"
+                     @duplicate="duplication.run"/>
       <GenerationJobsPanel v-if="canGenerate" ref="jobsPanel"/>
     </div>
     <BulkGenerateModal v-if="bulkOpen" v-model="bulkOpen" @started="jobsPanel?.reload()"/>
