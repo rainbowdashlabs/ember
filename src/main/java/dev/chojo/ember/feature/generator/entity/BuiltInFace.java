@@ -33,6 +33,11 @@ public record BuiltInFace(
     }
 
     @Override
+    public boolean hasFile() {
+        return bundled();
+    }
+
+    @Override
     public boolean printsOnPdf() {
         return bundled() && outline == FontOutline.TRUETYPE;
     }

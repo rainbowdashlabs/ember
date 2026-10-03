@@ -4165,6 +4165,84 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/document-fonts/{id}/web": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Give a font style of the instance the web version the template editor loads instead */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DocumentFontsResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        /** Remove the web version of a font style of the instance */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DocumentFontsResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/document-fonts/sample": {
         parameters: {
             query?: never;
@@ -13739,6 +13817,133 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/cluster/document-fonts/{id}/web": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Give a font style of the association the web version the template editor loads instead */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DocumentFontsResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        /** Remove the web version of a font style of the association */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DocumentFontsResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cluster/document-fonts/file": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A font file of a family the association's templates reach, or of the default font, for the template editor */
+        get: {
+            parameters: {
+                query?: {
+                    family?: string;
+                    style?: string;
+                    v?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "font/ttf": string;
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/cluster/document-fonts/sample": {
         parameters: {
             query?: never;
@@ -18295,6 +18500,133 @@ export interface paths {
                 };
             };
         };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/document-fonts/{id}/web": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Give a font style of the station the web version the template editor loads instead */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DocumentFontsResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        /** Remove the web version of a font style of the station */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DocumentFontsResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/document-fonts/file": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A font file of a family the station's templates reach, or of the default font, for the template editor */
+        get: {
+            parameters: {
+                query?: {
+                    family?: string;
+                    style?: string;
+                    v?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "font/ttf": string;
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -59368,6 +59700,7 @@ export interface components {
         };
         DocumentFontsResponse: {
             defaultFamily: string;
+            defaultStyles: components["schemas"]["FontStyle"][];
             own: components["schemas"]["DocumentFontView"][];
             reachable: components["schemas"]["FontFamilyOption"][];
         };
@@ -59381,6 +59714,7 @@ export interface components {
             sizeBytes: number;
             style: components["schemas"]["FontStyle"];
             uploadedAt: components["schemas"]["Instant"];
+            web: components["schemas"]["WebFontView"] | null;
         };
         /** @enum {string} */
         DocumentLanguage: "DE" | "EN";
@@ -60437,6 +60771,7 @@ export interface components {
             parentId: number | null;
         };
         FontFamilyOption: {
+            editorVersion: string | null;
             family: string;
             origin: components["schemas"]["FontOrigin"];
             printsOnPdf: boolean;
@@ -67842,6 +68177,15 @@ export interface components {
             challengeToken?: string;
             credentialJson?: string;
         };
+        /** @enum {string} */
+        WebFontFormat: "WOFF2" | "WOFF" | "TRUETYPE" | "CFF";
+        WebFontView: {
+            fileName: string;
+            format: components["schemas"]["WebFontFormat"];
+            /** Format: int64 */
+            sizeBytes: number;
+            uploadedAt: components["schemas"]["Instant"];
+        };
         WebhookUrl: {
             deliveryWebhookUrl: string;
             signingSecretSet: boolean;
@@ -69387,6 +69731,8 @@ export type WebAuthnLoginFinishRequest = components['schemas']['WebAuthnLoginFin
 export type WebAuthnRegisterFinishRequest = components['schemas']['WebAuthnRegisterFinishRequest'];
 export type WebAuthnRegisterFinishResponse = components['schemas']['WebAuthnRegisterFinishResponse'];
 export type WebAuthnStepUpFinishRequest = components['schemas']['WebAuthnStepUpFinishRequest'];
+export type WebFontFormat = components['schemas']['WebFontFormat'];
+export type WebFontView = components['schemas']['WebFontView'];
 export type WebhookUrl = components['schemas']['WebhookUrl'];
 export type WebhookUrlResponse = components['schemas']['WebhookUrlResponse'];
 export type WeblinkRequest = components['schemas']['WeblinkRequest'];
@@ -70785,4 +71131,11 @@ export const WaitingListEntryStatus = {
     TESTING: "TESTING",
     WAITING: "WAITING",
     WITHDRAWN: "WITHDRAWN",
+} as const;
+
+export const WebFontFormat = {
+    CFF: "CFF",
+    TRUETYPE: "TRUETYPE",
+    WOFF: "WOFF",
+    WOFF2: "WOFF2",
 } as const;

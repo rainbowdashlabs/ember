@@ -38,7 +38,7 @@ import java.util.Optional;
  * of an association is served by handing in that association as the owner.
  *
  * <p>An association keeps its fonts in its home station, the way it keeps its other files there; the
- * instance keeps them in its own storage.
+ * instance keeps them in its own storage. The web version of a style lies beside its file.
  *
  * <p>A text that names no family, or one no longer reached, prints in the {@link DefaultFont}, which
  * every owner reaches alike and none keeps.
@@ -139,6 +139,17 @@ public class FontLibrary {
     }
 
     /**
+     * Reads the web version of an uploaded font style.
+     *
+     * @param font an uploaded font
+     * @return its web version, or empty where it has none or the stored file is gone
+     */
+    public Optional<byte[]> readWeb(DocumentFont font) {
+        if (font.web() == null) return Optional.empty();
+        return storage.readAllBytes(scopeOf(font.owner()), categoryOf(font.owner()), webKey(font.id()));
+    }
+
+    /**
      * @param owner who keeps fonts
      * @return where the owner's font files are kept
      */
@@ -164,6 +175,14 @@ public class FontLibrary {
      */
     static String key(int fontId) {
         return String.valueOf(fontId);
+    }
+
+    /**
+     * @param fontId a font
+     * @return the storage key of its web version
+     */
+    static String webKey(int fontId) {
+        return fontId + "-web";
     }
 
     private @Nullable Integer associationOf(int stationId) {

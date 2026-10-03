@@ -81,6 +81,25 @@ public final class TestFonts {
         return withOs2Short(font, 62, fsSelection);
     }
 
+    /**
+     * A stand-in for a web font: the signature of its format and a header that names the length of the
+     * file, followed by a marker that tells two of them apart. Nothing reads further than that.
+     *
+     * @param signature {@code wOF2} or {@code wOFF}
+     * @param marker    what tells it apart
+     * @return the file
+     */
+    public static byte[] webFont(String signature, String marker) {
+        byte[] tail = marker.getBytes(StandardCharsets.US_ASCII);
+        var buffer = ByteBuffer.allocate(48 + tail.length);
+        buffer.put(signature.getBytes(StandardCharsets.US_ASCII));
+        buffer.putInt(0x00010000);
+        buffer.putInt(48 + tail.length);
+        buffer.position(48);
+        buffer.put(tail);
+        return buffer.array();
+    }
+
     private static byte[] withOs2Short(byte[] font, int offset, int value) {
         var copy = font.clone();
         var buffer = ByteBuffer.wrap(copy);

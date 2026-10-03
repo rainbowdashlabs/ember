@@ -318,6 +318,6 @@ public enum StorageCategory {
     private static final class MimeLists {
         private static final List<String> ANY = List.of("*/*");
         private static final List<String> IMAGES = List.of("image/png", "image/jpeg", "image/webp", "image/gif");
-        private static final List<String> FONTS = List.of("font/ttf", "font/otf");
+        private static final List<String> FONTS = List.of("font/ttf", "font/otf", "font/woff2", "font/woff");
     }
 }

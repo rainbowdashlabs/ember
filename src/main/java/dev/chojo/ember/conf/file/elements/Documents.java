@@ -24,6 +24,7 @@ public class Documents {
      * directory, so later starts find it there. Ember takes the family whose regular style it finds there
      * and prints every text that names no font in it. An empty or missing directory leaves Liberation Sans
      * as the default, which is also the fallback for every character and style the default font lacks.
+     * The WOFF2 web files beside the font files are what the template editor shows the default font in.
      */
     @Overwrite(env = @Env)
     private String defaultFontDir = "data/default-font";

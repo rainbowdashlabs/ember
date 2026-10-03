@@ -32,6 +32,12 @@ public class ResponseHeaderPolicy {
      */
     private static final int FONT_SAMPLE_MAX_AGE_SECONDS = 7 * 24 * 60 * 60;
 
+    /**
+     * How long a browser keeps a font file the template editor loaded: five minutes, enough for the
+     * editor to open again without asking anew, short enough that the file does not linger.
+     */
+    private static final int FONT_FILE_MAX_AGE_SECONDS = 5 * 60;
+
     private final Demo demoConfig;
     private final StationRepository stationRepository;
 
@@ -93,7 +99,8 @@ public class ResponseHeaderPolicy {
      * not happened, while its tag still makes asking again a {@code 304} on all the days nothing
      * changed; a waiting-list entry behind its own link is nobody's to keep, so it is stored nowhere;
      * everything else under {@code /public/} is publicly cacheable; a picture of sample text in a font is
-     * kept privately for a week, per station and association it was asked for; only then are non-public
+     * kept privately for a week, a font file for the template editor for five minutes, both per station
+     * and association they were asked for; only then are non-public
      * binary resources given a short private cache. Error responses receive no caching headers, and the
      * binary-resource match is segment-precise so an authenticated path that merely contains
      * {@code image}/{@code logo} as a substring (e.g. the logout endpoint) is not mis-tagged as
@@ -139,6 +146,12 @@ public class ResponseHeaderPolicy {
 
         if (path.endsWith("/document-fonts/sample")) {
             ctx.header("Cache-Control", "private, max-age=" + FONT_SAMPLE_MAX_AGE_SECONDS);
+            ctx.header("Vary", "X-Station-Id, X-Cluster-Id");
+            return;
+        }
+
+        if (path.endsWith("/document-fonts/file")) {
+            ctx.header("Cache-Control", "private, max-age=" + FONT_FILE_MAX_AGE_SECONDS);
             ctx.header("Vary", "X-Station-Id, X-Cluster-Id");
             return;
         }

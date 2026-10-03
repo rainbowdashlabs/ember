@@ -15,5 +15,10 @@ public enum FontOutline {
     /** TrueType outlines: every {@code .ttf} file and some {@code .otf} files. */
     TRUETYPE,
     /** PostScript (CFF) outlines, as most {@code .otf} files have. */
-    CFF
+    CFF;
+
+    /** @return the media type a file of these outlines is stored and served as */
+    public String mediaType() {
+        return this == CFF ? "font/otf" : "font/ttf";
+    }
 }

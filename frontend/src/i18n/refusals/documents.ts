@@ -70,7 +70,7 @@ export default {
     'D-059': 'Die Lizenz dieser Schrift erlaubt nicht, sie in Dokumente einzubetten',
     'D-060': 'Diese Schriftfamilie hat in diesem Schnitt schon eine Schrift',
     'D-061': 'Eine Schrift braucht einen Familiennamen mit höchstens 60 Zeichen',
-    'D-062': 'Bestätige, dass die Schrift für diese Dokumente verwendet werden darf',
+    'D-062': 'Bestätige, dass die Schrift für diese Dokumente verwendet und im Vorlageneditor gezeigt werden darf',
     'D-063': 'Diese Schrift gibt es nicht',
     'D-064': 'Die Schrift wird von diesen Vorlagen verwendet und kann nicht gelöscht werden',
     'D-065': 'Für diese Schrift ist kein Platz mehr, sie wurde nicht hochgeladen',
@@ -97,4 +97,6 @@ export default {
     'D-101': 'Das PDF dieser Vorlage ließ sich nicht lesen, deshalb wurde keine Kopie angelegt',
     'D-102': 'Die ausstellende Person ist kein aktuelles Mitglied dieser Wache',
     'D-110': 'Diese Schrift ist hier nicht verfügbar, deshalb gibt es kein Beispiel davon',
+    'D-120': 'Diese Schrift lässt sich im Editor nicht zeigen, deshalb steht ihr Name an ihrer Stelle',
+    'D-121': 'Nur WOFF2-, WOFF-, TrueType- (.ttf) und OpenType-Dateien (.otf) können eine Webfassung sein',
 }

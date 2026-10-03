@@ -17,7 +17,10 @@ with zipfile.ZipFile(sys.argv[1], "w") as archive:
     archive.writestr(base + "Office (TTF)/BerlinTypeOffice-Bold.ttf", "bold")
     archive.writestr(base + "Desktop (OTF)/BerlinType-Regular.otf", "desktop")
     archive.writestr(base + "WEB/BerlinTypeWeb-Regular.woff2", "web")
+    archive.writestr(base + "WEB/BerlinTypeWeb-Bold.woff2", "web bold")
+    archive.writestr(base + "WEB/BerlinTypeWeb-Regular.woff", "old web")
     archive.writestr("__MACOSX/" + base + "Office (TTF)/._BerlinTypeOffice-Regular.ttf", "fork")
+    archive.writestr("__MACOSX/" + base + "WEB/._BerlinTypeWeb-Regular.woff2", "fork")
 EOF
 python3 - "$scratch/empty.zip" <<'EOF'
 import sys, zipfile
@@ -42,11 +45,22 @@ expect_equal "the archive is fetched and the command started" \
 started" "$output"
 expect_equal "the regular file is taken from the office files" "regular" "$(cat fonts/BerlinTypeOffice-Regular.ttf)"
 expect_equal "the bold file too" "bold" "$(cat fonts/BerlinTypeOffice-Bold.ttf)"
-expect_equal "nothing else is extracted" ".archive.sha256 .files.sha256 BerlinTypeOffice-Bold.ttf BerlinTypeOffice-Regular.ttf" \
+expect_equal "the regular web file is taken for the editor" "web" "$(cat fonts/BerlinTypeWeb-Regular.woff2)"
+expect_equal "the bold web file too" "web bold" "$(cat fonts/BerlinTypeWeb-Bold.woff2)"
+expect_equal "nothing else is extracted" \
+    ".archive.sha256 .files.sha256 BerlinTypeOffice-Bold.ttf BerlinTypeOffice-Regular.ttf BerlinTypeWeb-Bold.woff2 BerlinTypeWeb-Regular.woff2" \
     "$(cd fonts && ls -A | LC_ALL=C sort | tr '\n' ' ' | sed 's/ $//')"
 
 output=$(fetch fonts "file://$scratch/missing.zip" "$archive_sha")
 expect_equal "a later start finds the files and fetches nothing" "started" "$output"
+
+rm fonts/BerlinTypeWeb-Regular.woff2 fonts/BerlinTypeWeb-Bold.woff2
+(cd fonts && sha256sum BerlinTypeOffice-Regular.ttf BerlinTypeOffice-Bold.ttf > .files.sha256)
+output=$(fetch fonts "file://$scratch/font.zip" "$archive_sha")
+expect_equal "a directory fetched before the web files were taken is fetched once more" \
+    "default-font: fetched Berlin Type into fonts
+started" "$output"
+expect_equal "and then holds the web files" "web" "$(cat fonts/BerlinTypeWeb-Regular.woff2)"
 
 printf 'changed' > fonts/BerlinTypeOffice-Bold.ttf
 output=$(fetch fonts "file://$scratch/font.zip" "$archive_sha")

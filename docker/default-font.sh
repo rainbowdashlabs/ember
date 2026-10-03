@@ -4,8 +4,10 @@
 # The default font is Berlin Type, published by the State of Berlin for everybody to use but not ours to
 # hand out. It is therefore never committed and never baked into an image: every backend container fetches
 # it on its first start and keeps it in the directory the application reads the default font from, which
-# lies in the data directory, so a restart finds it there and fetches nothing. Only the two Office files,
-# regular and bold, are taken from the archive; the web files may only be used on a web page.
+# lies in the data directory, so a restart finds it there and fetches nothing. Four files are taken from
+# the archive: the two Office files, regular and bold, which documents print in, and the two WOFF2 web
+# files of the same styles, which only the template editor loads, since they may only be used on a web
+# page. A directory fetched before the web files were taken is fetched once more.
 #
 # Nothing here stops the application. A download that fails, an archive whose checksum does not match or a
 # directory that cannot be written says so in one line, and documents print in Liberation Sans until a
@@ -20,7 +22,7 @@ set -u
 url="${DEFAULT_FONT_URL:-https://wir.berlin/fileadmin/downloads/Wir.Berlin_Schrift.zip}"
 expected="$(printf '%s' "${DEFAULT_FONT_SHA256:-9a61571989f344ec0e255eda8e758df3be20c1dd13e1b7ec410ed2f5aa829dff}" | tr 'A-F' 'a-f')"
 dir="${DOCUMENTS_DEFAULTFONTDIR:-data/default-font}"
-files="BerlinTypeOffice-Regular.ttf BerlinTypeOffice-Bold.ttf"
+files="BerlinTypeOffice-Regular.ttf BerlinTypeOffice-Bold.ttf BerlinTypeWeb-Regular.woff2 BerlinTypeWeb-Bold.woff2"
 archive_sum="$dir/.archive.sha256"
 file_sums="$dir/.files.sha256"
 
@@ -31,6 +33,9 @@ say() {
 in_place() {
     [ -f "$archive_sum" ] && [ -f "$file_sums" ] || return 1
     [ "$(cat "$archive_sum")" = "$expected" ] || return 1
+    for name in $files; do
+        [ -f "$dir/$name" ] || return 1
+    done
     (cd "$dir" && sha256sum -c "${file_sums##*/}" >/dev/null 2>&1)
 }
 

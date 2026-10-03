@@ -222,9 +222,14 @@ public enum DocumentRefusal implements Refusal {
     /** A font uploaded without a family name, or with one too long. */
     DOCUMENT_FONT_FAMILY_INVALID(61, HttpStatus.BAD_REQUEST, "A font needs a family name of at most 60 characters"),
 
-    /** A font uploaded without the confirmation that it may be used. */
+    /**
+     * A font or a web version of one uploaded without the confirmation that it may be used for documents
+     * and shown in the template editor.
+     */
     DOCUMENT_FONT_LICENCE_NOT_CONFIRMED(
-            62, HttpStatus.BAD_REQUEST, "Confirm that the font may be used for these documents"),
+            62,
+            HttpStatus.BAD_REQUEST,
+            "Confirm that the font may be used for these documents and shown in the template editor"),
 
     /** A font that does not exist at the owner asking for it. */
     DOCUMENT_FONT_NOT_HERE(63, HttpStatus.NOT_FOUND, "There is no such font"),
@@ -331,7 +336,20 @@ public enum DocumentRefusal implements Refusal {
 
     /** A sample asked for of a font family the owner does not reach. */
     DOCUMENT_FONT_SAMPLE_UNKNOWN(
-            110, HttpStatus.NOT_FOUND, "This font is not available here, so there is no sample of it");
+            110, HttpStatus.NOT_FOUND, "This font is not available here, so there is no sample of it"),
+
+    /**
+     * A font file asked for by the template editor of a family the owner does not reach, of a style the
+     * default font has no web file of, or of a family whose file the server does not hold.
+     */
+    DOCUMENT_FONT_FILE_UNKNOWN(
+            120, HttpStatus.NOT_FOUND, "This font cannot be shown in the editor, so its name stands in for it"),
+
+    /** A web version of a font style that is no web font, TrueType or OpenType file, or one that cannot be read. */
+    DOCUMENT_WEB_FONT_NOT_A_FONT(
+            121,
+            HttpStatus.BAD_REQUEST,
+            "Only WOFF2, WOFF, TrueType (.ttf) and OpenType (.otf) files can be a web version");
 
     private final Definition definition;
 
