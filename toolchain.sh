@@ -238,6 +238,39 @@ Docker
   docker-app-logs       Follow what the containers print, which is where the first start is
                         watched: `up -d` returns long before the backend has finished building
 
+Release
+  ci-version            The version check CI runs, for the event it reads from EVENT_NAME, REF_TYPE,
+                        REF_NAME, BASE_REF and HEAD_REF: a release branch carries its own version,
+                        main and fixes one patch above the newest release, and no branch a version
+                        that is already released
+  ci-migration-order    The migration check CI runs on a release branch: main's patches unchanged,
+                        and at most one patch of its own, numbered above main's newest
+  ci-test [name]        The tests of the scripts under scripts/, or those whose file name contains
+                        the given word
+  release-check <pr>    Whether the release pull request is ready: release/vX.Y.Z into main at
+                        version X.Y.Z, unreleased, with a changelog block, CI green on its head, and
+                        main fast-forwardable to it. Changes nothing
+  release-feature <pr> [--dry-run]
+                        The feature release the Release workflow runs once the pull request is
+                        labelled: fast-forward main, tag, publish the GitHub release. --dry-run only
+                        prints what it would do
+  release-fix [--commit <sha>] [--wait] [--dry-run]
+                        The fix release the Release workflow runs: tag main's head (or the commit) with
+                        its version and publish the GitHub release; --wait waits for its CI run
+  release-next [--dry-run]
+                        What the Release workflow does after a release: open the pull request that
+                        bumps main to the next patch, and after a feature release open the next
+                        release branch with the pull request that bumps it to the next minor. Both
+                        are merged by hand. --dry-run neither pushes nor opens pull requests
+  release-sync [--dry-run]
+                        Rebase every open release branch onto main, renumbering its own patch above
+                        main's, and push it with a lease; a conflict opens an issue instead. The
+                        Release Sync workflow runs it after every push to main or a release branch
+                        and after each release. --dry-run neither pushes nor opens issues
+  db-renumber-patch [--dry-run] <from> <to>
+                        Rename this branch's unreleased patch, the version file and the tests naming
+                        it. Refuses a patch that is on main
+
 Combined
   verify                be-verify then fe-build
   api-types             be-api-spec then fe-api-types: the API description and the frontend types
@@ -267,7 +300,7 @@ e2e_distribution() {
 # The command names are hyphenated, and the first hyphen also reads as a group: `docker app` is
 # accepted for `docker-app`, and both reach the same arm below. Naming the group alone lists what
 # is in it.
-COMMAND_GROUPS=(fe be docker)
+COMMAND_GROUPS=(fe be docker ci release db)
 
 is_group() {
     local candidate
@@ -592,6 +625,16 @@ case "$cmd" in
     docker-app-logs)
         cd "$ROOT/docker"; run docker compose -f compose.dev.yaml --profile full logs -f "$@"
         ;;
+
+    ci-version)         cd "$ROOT"; run bash scripts/check-version.sh "$@" ;;
+    ci-migration-order) cd "$ROOT"; run bash scripts/check-migration-order.sh "$@" ;;
+    ci-test)            cd "$ROOT"; run bash scripts/test/run.sh "$@" ;;
+    release-check)      cd "$ROOT"; run bash scripts/release.sh check "$@" ;;
+    release-feature)    cd "$ROOT"; run bash scripts/release.sh feature "$@" ;;
+    release-fix)        cd "$ROOT"; run bash scripts/release.sh fix "$@" ;;
+    release-next)       cd "$ROOT"; run bash scripts/open-next-versions.sh "$@" ;;
+    release-sync)       cd "$ROOT"; run bash scripts/sync-release-branches.sh "$@" ;;
+    db-renumber-patch)  cd "$ROOT"; run bash scripts/renumber-patch.sh "$@" ;;
 
     verify)
         "$ROOT/toolchain.sh" be-verify
