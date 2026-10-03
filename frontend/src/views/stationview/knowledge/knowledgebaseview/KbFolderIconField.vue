@@ -28,7 +28,7 @@ function onSelect(event: Event) {
             :id="inputId"
             type="file"
             accept="image/png,image/jpeg,image/webp"
-            class="block w-full text-sm text-[var(--text)] file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-[var(--primary)] file:text-[var(--color-primary-text)] cursor-pointer"
+            class="block w-full text-sm text-[var(--text)] file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-[var(--color-primary)] file:text-[var(--color-primary-text)] cursor-pointer"
             @change="onSelect"
         />
     </div>

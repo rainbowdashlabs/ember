@@ -37,7 +37,7 @@ function href(attachment: NewsAttachment): string {
         <a
             :href="href(attachment)"
             :download="attachment.fileName"
-            class="inline-flex items-center gap-2 text-sm text-(--primary) hover:underline"
+            class="inline-flex items-center gap-2 text-sm text-(--color-primary) hover:underline"
         >
           <font-awesome-icon :icon="['fas', 'paperclip']" class="w-3.5 h-3.5"/>
           <span>{{ displayName(attachment) }}</span>

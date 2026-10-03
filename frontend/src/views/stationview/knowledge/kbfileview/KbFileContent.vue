@@ -134,7 +134,7 @@ async function downloadOther() {
       <div class="flex items-center gap-2">
         <font-awesome-icon :icon="['fas', 'link']" class="text-[var(--secondary)]"/>
         <a :href="file.linkUrl ?? ''" target="_blank" rel="noopener noreferrer"
-           class="text-[var(--primary)] hover:underline break-all">
+           class="text-[var(--color-primary)] hover:underline break-all">
           {{ file.linkUrl }}
         </a>
       </div>

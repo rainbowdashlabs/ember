@@ -82,7 +82,7 @@ export function usePublicKbItems(sources: PublicKbSources) {
         return {
             key: 'file-' + file.id,
             icon: fileIcon(file),
-            iconClass: 'text-[var(--primary)]',
+            iconClass: 'text-[var(--color-primary)]',
             picture: PICTURED_TYPES.has(file.fileType)
                 ? publicKb.filePictureUrl(sources.stationUid.value, file.id)
                 : undefined,

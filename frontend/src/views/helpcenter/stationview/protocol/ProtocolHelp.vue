@@ -29,7 +29,7 @@ const { t } = useI18n()
         <div class="font-medium">{{ t('helpCenter.sample.protocol.jugendflamme1') }}</div>
         <div class="ml-4 space-y-1">
           <div class="flex items-center gap-2">
-            <font-awesome-icon :icon="['fas', 'folder']" class="w-3 h-3 text-[var(--primary)]" />
+            <font-awesome-icon :icon="['fas', 'folder']" class="w-3 h-3 text-[var(--color-primary)]" />
             <span>{{ t('helpCenter.sample.protocol.emergencyCall') }}</span>
             <MutedText class="ml-auto">8P</MutedText>
           </div>
@@ -38,12 +38,12 @@ const { t } = useI18n()
             <div>{{ t('helpCenter.sample.protocol.numbersPoints') }}</div>
           </div>
           <div class="flex items-center gap-2">
-            <font-awesome-icon :icon="['fas', 'folder']" class="w-3 h-3 text-[var(--primary)]" />
+            <font-awesome-icon :icon="['fas', 'folder']" class="w-3 h-3 text-[var(--color-primary)]" />
             <span>{{ t('helpCenter.sample.protocol.knots') }}</span>
             <MutedText class="ml-auto">11P</MutedText>
           </div>
           <div class="flex items-center gap-2">
-            <font-awesome-icon :icon="['fas', 'folder']" class="w-3 h-3 text-[var(--primary)]" />
+            <font-awesome-icon :icon="['fas', 'folder']" class="w-3 h-3 text-[var(--color-primary)]" />
             <span>{{ t('helpCenter.sample.protocol.hoses') }}</span>
             <MutedText class="ml-auto">15P</MutedText>
           </div>

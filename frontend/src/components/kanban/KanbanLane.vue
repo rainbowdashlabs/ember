@@ -68,7 +68,7 @@ function onDragEnd(event: SortableEvent) {
 <template>
   <section
       class="md:flex-1 md:min-w-[14rem] md:max-w-[24rem] bg-bg-light-accent dark:bg-bg-dark-accent border border-[var(--border)] rounded-lg p-3 border-t-2"
-      :style="{ borderTopColor: lane.color ?? 'var(--primary)' }"
+      :style="{ borderTopColor: lane.color ?? 'var(--color-primary)' }"
       :aria-label="lane.name"
       :data-testid="`kanban-lane-${lane.id}`"
   >

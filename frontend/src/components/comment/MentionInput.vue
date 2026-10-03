@@ -135,7 +135,7 @@ function onPaste(e: ClipboardEvent) {
 
 .mention-editor :deep(.mention-chip) {
   display: inline;
-  color: var(--primary);
+  color: var(--color-primary);
   font-weight: 600;
   cursor: default;
   user-select: all;

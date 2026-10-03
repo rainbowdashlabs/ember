@@ -59,7 +59,7 @@ const {t} = useI18n()
                         @click="activeTagFilter = null">{{ t('stationPages.editor.allTags') }}</BaseButton>
             <div v-for="tag in tags" :key="tag.id" class="flex items-center">
                 <BaseButton compact class="!rounded-l-full !border !font-normal"
-                            :style="activeTagFilter === tag.id ? {borderColor: tag.color ?? 'var(--primary)', color: tag.color ?? 'var(--primary)'} : {}"
+                            :style="activeTagFilter === tag.id ? {borderColor: tag.color ?? 'var(--color-primary)', color: tag.color ?? 'var(--color-primary)'} : {}"
                             :class="activeTagFilter === tag.id ? '!font-medium' : '!border-(--border)'"
                             @click="activeTagFilter = activeTagFilter === tag.id ? null : tag.id">
                     <span class="inline-block w-2 h-2 rounded-full mr-1" :style="{background: tag.color ?? '#888'}"/>
