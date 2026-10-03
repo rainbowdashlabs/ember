@@ -1,0 +1,232 @@
+/*
+ *     SPDX-License-Identifier: AGPL-3.0-only
+ *
+ *     Copyright (C) RainbowDashLabs and Contributor
+ */
+package dev.chojo.ember.feature.system.service;
+
+import dev.chojo.ember.feature.content.entity.CellConfig;
+import dev.chojo.ember.feature.content.entity.CellContentType;
+import dev.chojo.ember.feature.content.entity.ContentCell;
+import dev.chojo.ember.feature.content.route.BlockCellRequest;
+import dev.chojo.ember.feature.content.route.BlockRowRequest;
+import dev.chojo.ember.feature.generator.entity.DocumentLanguage;
+import dev.chojo.ember.feature.generator.entity.DocumentTemplateKind;
+import dev.chojo.ember.feature.generator.entity.LetterPage;
+import dev.chojo.ember.feature.generator.entity.SignatureRole;
+import dev.chojo.ember.feature.generator.service.DocumentTemplateRequest;
+import dev.chojo.ember.feature.generator.service.DocumentTemplateService;
+import dev.chojo.ember.owner.Owner;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+
+/**
+ * A letter template in every demo station: a certificate that a member belongs to the youth fire
+ * brigade and takes part regularly, as a station hands it to a school.
+ *
+ * <p>It is laid out like a printed letter of a youth fire brigade: the station logo and the letterhead
+ * across the top, a sender line, the date, the certificate with the member's values where a printed form
+ * leaves gaps, a closing, the issuer's signature line, and three columns of contacts across the bottom.
+ * Every name, address, number and domain in it is invented and reads as such.
+ *
+ * <p>It is written through {@link DocumentTemplateService} like a template a manager saves, so it passes
+ * the same checks: every placeholder is one the station knows, the pronoun follows the gender question
+ * the member band asks, and the signature line stands in the body. It is legal, since a certificate is
+ * handed to others, and not offered for self service, since the youth warden issues and signs it.
+ *
+ * <p>A station that already has a template of this name keeps it, so seeding twice leaves one.
+ */
+@Singleton
+public class DemoDocumentTemplateSeeder implements DemoPerStationSeeder {
+    private static final Logger log = LoggerFactory.getLogger(DemoDocumentTemplateSeeder.class);
+
+    /** What the certificate is called in the list of templates. */
+    public static final String NAME = "Bescheinigung Mitgliedschaft";
+
+    private static final LetterPage PAGE = new LetterPage(40, 38, 22, 20, 11, null, null, null);
+
+    private static final String LETTERHEAD = """
+            **Kreisjugendfeuerwehr Musterstadt**\\
+            {{station.name}}""";
+
+    private static final String SENDER = "{{station.name}}, Musterstraße 1, 12345 Musterstadt";
+
+    private static final String DATE = "Musterstadt, den {{today}}";
+
+    private static final String TITLE =
+            "**Bescheinigung über die Mitgliedschaft und regelmäßige Teilnahme in der Jugendfeuerwehr**";
+
+    private static final String CERTIFICATE = """
+            Sehr geehrte Damen und Herren,
+
+            hiermit bestätige ich, dass {{member.fullName}}, geboren am {{member.birthDate}}, seit \
+            {{member.joinDate.monthYear}} aktives Mitglied der {{station.name}} ist.
+
+            {{member.firstName}} nimmt regelmäßig an unserem wöchentlichen Ausbildungs- und Übungsdienst \
+            teil, der montags von 17:30 bis 19:00 Uhr stattfindet. Darüber hinaus engagiert {{pronoun.subject}} \
+            sich bei Veranstaltungen der Öffentlichkeitsarbeit sowie bei weiteren Diensten, Ausbildungstagen \
+            und Wettbewerben, die zusätzlich, teils auch an Wochenenden, stattfinden. Der zeitliche Umfang \
+            beträgt damit durchschnittlich etwa 4 Stunden pro Woche.
+
+            Die Jugendfeuerwehr verbindet feuerwehrtechnische Ausbildung mit allgemeiner Jugendarbeit. Die \
+            Jugendlichen erlernen neben fachlichen Grundlagen und Erster Hilfe vor allem Teamfähigkeit, \
+            Verlässlichkeit und die Übernahme von Verantwortung. Die Mitgliedschaft ist ein verbindliches, \
+            auf Dauer angelegtes ehrenamtliches Engagement mit regelmäßiger Anwesenheit.
+
+            Ich bitte Sie, dieses Engagement bei der Planung zusätzlicher schulischer Verpflichtungen im \
+            Nachmittagsbereich zu berücksichtigen.
+
+            Für Rückfragen stehe ich Ihnen gern zur Verfügung.""";
+
+    private static final String CLOSING = """
+            Mit freundlichen Grüßen
+
+            Musterstadt, den {{today}}""";
+
+    private static final String SIGNER = """
+            Erika Musterfrau\\
+            Jugendwartin der {{station.name}}""";
+
+    private static final String WARDEN = """
+            Jugendfeuerwehrwartin\\
+            Erika Musterfrau\\
+            jugendwart@example.org""";
+
+    private static final String DEPUTY = """
+            Stellvertretender Jugendfeuerwehrwart\\
+            Max Mustermann\\
+            stellvertretung@example.org""";
+
+    private static final String ADDRESS = """
+            Kreisjugendfeuerwehr Musterstadt\\
+            {{station.name}}\\
+            Musterstraße 1\\
+            12345 Musterstadt
+
+            Telefon: 0221 4710 123\\
+            www.example.org""";
+
+    private final DocumentTemplateService templates;
+
+    @Inject
+    public DemoDocumentTemplateSeeder(DocumentTemplateService templates) {
+        this.templates = templates;
+    }
+
+    @Override
+    public int order() {
+        return MODULES;
+    }
+
+    @Override
+    public void seedStation(DemoRunContext run, DemoStationContext station) {
+        var owner = new Owner.Station(station.stationId());
+        boolean present = templates.list(owner, false).stream().anyMatch(template -> NAME.equals(template.name()));
+        if (present) return;
+        int author = Objects.requireNonNull(
+                station.adminMember().accountId(), "the station administrator is seeded with an account");
+        var template = templates.create(owner, certificate(), author);
+        log.info("Demo: Created document template {} for station {}", template.id(), station.stationId());
+    }
+
+    /**
+     * The certificate as the editor would send it.
+     *
+     * @return the template
+     */
+    public static DocumentTemplateRequest certificate() {
+        return new DocumentTemplateRequest(
+                DocumentTemplateKind.LETTER,
+                NAME,
+                null,
+                null,
+                null,
+                false,
+                null,
+                true,
+                false,
+                false,
+                null,
+                null,
+                DocumentLanguage.DE,
+                rows(List.of(List.of(cell(20, logo()), cell(40, empty()), cell(40, text(LETTERHEAD))))),
+                rows(List.of(List.of(cell(37.5, text(WARDEN)), cell(37.5, text(DEPUTY)), cell(25, text(ADDRESS))))),
+                rows(List.of(
+                        List.of(cell(100, text(SENDER))),
+                        List.of(cell(60, empty()), cell(40, text(DATE))),
+                        List.of(cell(100, text(TITLE))),
+                        List.of(cell(100, text(CERTIFICATE))),
+                        List.of(cell(100, text(CLOSING))),
+                        List.of(cell(50, signature(SIGNER)), cell(50, empty())))),
+                PAGE,
+                null,
+                null);
+    }
+
+    /**
+     * A block with what it shows and its settings, before it is given its width.
+     *
+     * @param type    the kind of block
+     * @param content its text, or what its picture shows
+     * @param config  its settings
+     */
+    private record Block(CellContentType type, String content, CellConfig config) {}
+
+    /**
+     * A block of a row with its share of the width.
+     *
+     * @param widthPercent how much of the row it takes
+     * @param block        the block
+     */
+    private record Cell(double widthPercent, Block block) {}
+
+    private static Cell cell(double widthPercent, Block block) {
+        return new Cell(widthPercent, block);
+    }
+
+    private static Block text(String markdown) {
+        return new Block(CellContentType.MARKDOWN, markdown, CellContentType.MARKDOWN.emptyConfig());
+    }
+
+    private static Block empty() {
+        return new Block(CellContentType.EMPTY, "", CellContentType.EMPTY.emptyConfig());
+    }
+
+    private static Block logo() {
+        return new Block(CellContentType.IMAGE, ContentCell.STATION_LOGO, CellContentType.IMAGE.emptyConfig());
+    }
+
+    private static Block signature(String below) {
+        return new Block(CellContentType.SIGNATURE, below, new CellConfig.SignatureConfig(SignatureRole.ISSUER));
+    }
+
+    /** The rows top to bottom, each its blocks left to right, numbered in that order. */
+    private static List<BlockRowRequest> rows(List<List<Cell>> rows) {
+        var placed = new ArrayList<BlockRowRequest>();
+        for (int index = 0; index < rows.size(); index++) {
+            placed.add(new BlockRowRequest(index, cells(rows.get(index))));
+        }
+        return placed;
+    }
+
+    private static List<BlockCellRequest> cells(List<Cell> cells) {
+        var placed = new ArrayList<BlockCellRequest>();
+        for (int index = 0; index < cells.size(); index++) {
+            var cell = cells.get(index);
+            var block = cell.block();
+            placed.add(new BlockCellRequest(
+                    index,
+                    cell.widthPercent(),
+                    block.type().name(),
+                    block.content(),
+                    CellConfig.MAPPER.valueToTree(block.config())));
+        }
+        return placed;
+    }
+}
