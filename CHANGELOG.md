@@ -1,5 +1,25 @@
 # Changelog
 
+## v26.21.0
+
+Stations turn letter templates into documents for their members. A template holds a letterhead with the station logo, pictures and text, and a body with placeholders for member data, guardians and the station. Documents name people by their official names. Pronouns follow a choice field of the station or use the first name. Managers generate a document on the member page after a preview that names missing data. Members and guardians generate documents marked for self service on the profile page, with a waiting time between two documents. Every generated document is filed in the member's documents as a PDF/A file and recorded with the version of its template. A Word or OpenDocument text fills the body of a template. The guardians of a member have an order, which documents follow.
+
+### New Features
+
+- **Letter templates for member documents.** A template holds a letterhead with the station logo, pictures from the media library or text, and a body with placeholders for member data, guardians and the station. Names in these documents are official names, and pronouns follow a choice field of the station or use the first name.
+- **Documents generated for a member.** On a member's page, a document is generated from a template after a preview that names any missing data, and filed in the member's documents as PDF/A. Each document is recorded with the template version and the SHA-256 of the file.
+- **Members generate their own documents.** Templates marked for self service appear on the profile page, for oneself and for each child. A document is generated once the profile holds the data it needs, and the same document again only after a waiting time of 30 days by default.
+- **Word and OpenDocument texts fill a template.** A .docx or .odt file fills the body of a letter template. Gaps written in brackets for a name or a date of birth become placeholders where their words are recognised.
+
+### Improvements
+
+- **Guardians have an order.** On the member page, the guardians of a member are put in order with the arrows or by dragging. Documents name the first one as guardian 1 and the second as guardian 2.
+- **Imports read files for what they are.** Wiki and legal document imports recognise Word, OpenDocument and EPUB files by their content, also under another file name.
+
+### Changes
+
+- **Station administrators manage document templates.** The station administrator permission now includes the new permission for document templates, which is also part of the documents permission.
+
 ## v26.20.1
 
 Stations of other instances show their logos on the discovery page. The logos come from this instance, so a visit to the page never reaches another instance. Links to a station's public page lead only to pages that exist. Tiles on the discovery page show what each station offers publicly and look the same for stations of every instance. The page opens with a map that names every station on it. Stations of other instances can be asked to federate like stations of this instance. Requests and their answers arrive as notifications.

@@ -1,5 +1,25 @@
 # Änderungsprotokoll
 
+## v26.21.0
+
+Wachen erstellen aus Briefvorlagen Dokumente für ihre Mitglieder. Eine Vorlage hat einen Briefkopf mit dem Logo der Wache, Bildern und Text und einen Text mit Platzhaltern für Mitgliederdaten, Erziehungsberechtigte und die Wache. Dokumente nennen Personen mit ihrem amtlichen Namen. Pronomen folgen einem Auswahlfeld der Wache oder verwenden den Vornamen. Die Verwaltung erstellt ein Dokument auf der Seite eines Mitglieds, nach einer Vorschau, die fehlende Angaben nennt. Mitglieder und Erziehungsberechtigte erstellen freigegebene Dokumente selbst im Profil, mit einer Wartezeit zwischen zwei Dokumenten. Jedes erstellte Dokument liegt als PDF/A-Datei bei den Dokumenten des Mitglieds und ist mit der Fassung seiner Vorlage vermerkt. Ein Word- oder OpenDocument-Text füllt den Text einer Vorlage. Die Erziehungsberechtigten eines Mitglieds haben eine Reihenfolge, der Dokumente folgen.
+
+### Neue Funktionen
+
+- **Briefvorlagen für Mitgliederdokumente.** Eine Vorlage hat einen Briefkopf mit dem Logo der Wache, Bildern aus der Mediathek oder Text und einen Text mit Platzhaltern für Mitgliederdaten, Erziehungsberechtigte und die Wache. Namen stehen in diesen Dokumenten immer amtlich, und Pronomen folgen einem Auswahlfeld der Wache oder verwenden den Vornamen.
+- **Dokumente für ein Mitglied erstellen.** Auf der Seite eines Mitglieds entsteht aus einer Vorlage ein Dokument, nach einer Vorschau, die fehlende Angaben nennt, und es liegt als PDF/A bei den Dokumenten des Mitglieds. Jedes Dokument ist mit der Fassung der Vorlage und dem SHA-256 der Datei vermerkt.
+- **Mitglieder erstellen Dokumente selbst.** Freigegebene Vorlagen erscheinen im Profil, für sich selbst und für jedes Kind. Erstellt wird, sobald das Profil die nötigen Angaben enthält, und dasselbe Dokument erst wieder nach einer Wartezeit, normal 30 Tage.
+- **Word- und OpenDocument-Texte füllen eine Vorlage.** Eine .docx- oder .odt-Datei füllt den Text einer Briefvorlage. Lücken in eckigen Klammern für einen Namen oder ein Geburtsdatum werden zu Platzhaltern, wo ihre Wörter bekannt sind.
+
+### Verbesserungen
+
+- **Erziehungsberechtigte haben eine Reihenfolge.** Auf der Seite eines Mitglieds lassen sich seine Erziehungsberechtigten mit den Pfeilen oder per Ziehen ordnen. Dokumente nennen die erste Person als Erziehungsberechtigte 1 und die zweite als Erziehungsberechtigte 2.
+- **Importe lesen Dateien als das, was sie sind.** Der Import ins Wiki und der Import rechtlicher Dokumente erkennen Word-, OpenDocument- und EPUB-Dateien an ihrem Inhalt, auch unter einem anderen Dateinamen.
+
+### Änderungen
+
+- **Wachadministration verwaltet Dokumentvorlagen.** Das Recht der Wachadministration umfasst jetzt das neue Recht für Dokumentvorlagen, das auch Teil des Rechts für Dokumente ist.
+
 ## v26.20.1
 
 Wachen anderer Instanzen zeigen auf der Discovery-Seite ihr Logo. Die Logos kommen von dieser Instanz, ein Besuch der Seite erreicht also nie eine andere Instanz. Links zur öffentlichen Seite einer Wache führen nur noch zu Seiten, die es gibt. Die Kacheln auf der Discovery-Seite zeigen, was eine Wache öffentlich anbietet, und sehen für Wachen jeder Instanz gleich aus. Die Seite beginnt mit einer Karte, auf der jede Wache mit Namen steht. Wachen anderer Instanzen lassen sich wie Wachen dieser Instanz um eine Partnerschaft bitten. Anfragen und Antworten kommen als Benachrichtigung an.
