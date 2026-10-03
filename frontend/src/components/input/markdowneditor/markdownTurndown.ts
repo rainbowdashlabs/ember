@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import TurndownService from 'turndown'
+import {extendTurndownWithBlockAlign} from './blockAlign'
 
 /**
  * Converts the editor's HTML back into the Markdown that is stored.
@@ -80,6 +81,8 @@ export function createMarkdownTurndown(): TurndownService {
       return `\n<iframe src="${src}" frameborder="0" allowfullscreen></iframe>\n`
     },
   })
+
+  extendTurndownWithBlockAlign(turndown)
 
   return turndown
 }

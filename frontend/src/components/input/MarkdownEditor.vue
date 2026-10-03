@@ -25,6 +25,7 @@ import { createMarkdownTurndown } from './markdowneditor/markdownTurndown'
 import { ResizableImage } from './markdowneditor/resizableImage'
 import type { EditorTokens } from './markdowneditor/editorTokens'
 import { extendTurndownWithTextFont, TextFont } from './markdowneditor/textFont'
+import { BlockAlign } from './markdowneditor/blockAlign'
 import type { FontFamilyOption } from '@/api/generated/schema'
 import { isYoutubeUrl, videoEmbedUrl } from '@/util/youtube'
 import EditorToolbar from './markdowneditor/EditorToolbar.vue'
@@ -100,7 +101,7 @@ const editor = useEditor({
     TableRow, TableHeader, TableCell,
     Highlight.configure({ multicolor: true }),
     Youtube.configure({ inline: false }),
-    ResizableImage, TextStyle, Color,
+    ResizableImage, TextStyle, Color, BlockAlign,
     ...(props.tokens?.extensions ?? []),
     ...(props.fonts ? [TextFont] : []),
   ],

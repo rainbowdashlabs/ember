@@ -26,6 +26,7 @@ Wachen erstellen aus eigenen Vorlagen und denen ihres Verbands Dokumente für ih
 - **Profilfelder des Verbands in Vorlagen.** Vorlagen nennen die Antworten auf die Profilfelder des Verbands sowie Name und Anschrift des Verbands. Vorlagen einer Wache bieten die Felder des Verbands an, die die Wache erreichen.
 - **Medien für Verbände.** Die Verwaltung eines Verbands hat eine Medienseite für die Bilder seiner Vorlagen, seines Wikis und seiner Neuigkeiten. Bilder, die eine Vorlage verwendet, bleiben beim Aufräumen ungenutzter Dateien erhalten.
 - **Wer Vorlagen schreibt, sieht alle Medien.** Wer Dokumentvorlagen schreibt, sieht und ordnet alle Dateien in den Medien der Wache, nicht nur die eigenen Uploads.
+- **Textausrichtung im Texteditor.** Absätze und Überschriften in Seiten, Neuigkeiten, Wiki-Artikeln und Briefen lassen sich über die Werkzeugleiste des Editors linksbündig, zentriert, rechtsbündig oder im Blocksatz ausrichten. Die Ausrichtung erscheint auf den veröffentlichten Seiten und in den PDFs von Briefen und Wiki.
 
 ### Änderungen
 

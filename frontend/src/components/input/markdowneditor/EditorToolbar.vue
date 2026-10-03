@@ -9,6 +9,7 @@ import { useI18n } from 'vue-i18n'
 import type { Editor } from '@tiptap/vue-3'
 import type { FontFamilyOption } from '@/api/generated/schema'
 import EditorFontPicker from './EditorFontPicker.vue'
+import { alignBlock, canAlign, isAligned, type BlockAlignment } from './blockAlign'
 
 const props = defineProps<{
   editor: Editor | undefined
@@ -67,6 +68,17 @@ interface ToolbarButton {
   active: () => boolean
   labelKey: string
   badge?: string
+  disabled?: () => boolean
+}
+
+function alignButton(alignment: BlockAlignment, icon: string, labelKey: string): ToolbarButton {
+  return {
+    icon: ['fas', icon],
+    action: () => { if (props.editor) alignBlock(props.editor, alignment) },
+    active: () => !!props.editor && canAlign(props.editor) && isAligned(props.editor, alignment),
+    labelKey,
+    disabled: () => !props.editor || !canAlign(props.editor),
+  }
 }
 
 const toolbarButtons: ToolbarButton[][] = [
@@ -82,6 +94,12 @@ const toolbarButtons: ToolbarButton[][] = [
     { icon: ['fas', 'heading'], action: () => setHeading(2), active: () => isActive('heading', { level: 2 }), labelKey: 'markdownEditor.heading2', badge: '2' },
     { icon: ['fas', 'heading'], action: () => setHeading(3), active: () => isActive('heading', { level: 3 }), labelKey: 'markdownEditor.heading3', badge: '3' },
     { icon: ['fas', 'paragraph'], action: () => cmd()?.clearNodes().setParagraph().run(), active: () => isActive('paragraph'), labelKey: 'markdownEditor.paragraph' },
+  ],
+  [
+    alignButton('left', 'align-left', 'markdownEditor.alignLeft'),
+    alignButton('center', 'align-center', 'markdownEditor.alignCenter'),
+    alignButton('right', 'align-right', 'markdownEditor.alignRight'),
+    alignButton('justify', 'align-justify', 'markdownEditor.alignJustify'),
   ],
   [
     { icon: ['fas', 'list-ul'], action: () => cmd()?.toggleBulletList().run(), active: () => isActive('bulletList'), labelKey: 'markdownEditor.bulletList' },
@@ -108,7 +126,9 @@ const toolbarButtons: ToolbarButton[][] = [
         :key="btn.labelKey"
         type="button"
         :title="t(btn.labelKey)"
-        :class="['p-1.5 rounded text-sm transition-colors', btn.active() ? 'text-primary bg-primary/10' : 'text-[var(--text)] hover:bg-[var(--bg-accent)]']"
+        :aria-label="t(btn.labelKey)"
+        :disabled="btn.disabled?.()"
+        :class="['p-1.5 rounded text-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed', btn.active() ? 'text-primary bg-primary/10' : 'text-[var(--text)] hover:bg-[var(--bg-accent)]']"
         @mousedown.prevent
         @click="btn.action()"
       >

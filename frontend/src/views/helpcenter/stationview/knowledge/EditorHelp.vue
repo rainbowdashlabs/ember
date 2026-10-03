@@ -21,6 +21,12 @@ Das ist ein **fetter Text**, das ist *kursiv* und das ist ~~durchgestrichen~~.
 
 Du kannst auch <u>unterstrichenen</u> und ==markierten== Text verwenden.
 
+<div data-align="center">
+
+Dieser Absatz steht zentriert.
+
+</div>
+
 ## Listen
 
 Hier eine Aufzählung:
@@ -102,6 +108,10 @@ Normaler Absatztext darunter.`)
 
     <HelpSection :title="t('helpCenter.kb.editor.headingsTitle')">
       <p>{{ t('helpCenter.kb.editor.headingsText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.kb.editor.alignTitle')">
+      <p>{{ t('helpCenter.kb.editor.alignText') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.kb.editor.listsTitle')">

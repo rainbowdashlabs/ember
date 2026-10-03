@@ -26,6 +26,7 @@ Stations turn their own templates and those of their association into documents 
 - **Association profile fields in templates.** Templates name the answers to the profile fields of the association, and the name and address of the association. A station's templates offer the association's fields that reach the station.
 - **Media for associations.** The administration of an association has a media page for the pictures of its templates, wiki and news. Pictures a template uses are kept when unused files are cleared.
 - **Template writers see the whole media library.** Whoever writes document templates sees and organises every file in the station's media, not only their own uploads.
+- **Text alignment in the text editor.** Paragraphs and headings in pages, news, wiki articles and letters are aligned left, centred, right or justified from the editor's toolbar. The alignment shows on the published pages and in the letter and wiki PDFs.
 
 ### Changes
 
