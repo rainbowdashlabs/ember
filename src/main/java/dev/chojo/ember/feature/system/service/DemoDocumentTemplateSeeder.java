@@ -60,7 +60,7 @@ public class DemoDocumentTemplateSeeder implements DemoPerStationSeeder {
     /** What the certificate is called in the list of templates. */
     public static final String NAME = "Bescheinigung Mitgliedschaft";
 
-    private static final LetterPage PAGE = new LetterPage(40, 38, 22, 20, 11, null, null, null);
+    private static final LetterPage PAGE = new LetterPage(15, 10, 22, 20, 11, null, null, null);
 
     private static final String LETTERHEAD = """
             **Kreisjugendfeuerwehr Musterstadt**\\
