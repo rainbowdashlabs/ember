@@ -14,6 +14,8 @@ defineProps<{
     isLast?: boolean
     canPasteCell?: boolean
     label?: string
+    /** Whether the row draws lines between its columns, or undefined where the editor offers none. */
+    columnLines?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -23,6 +25,7 @@ const emit = defineEmits<{
     'move-up': []
     'move-down': []
     'paste-cell': []
+    'toggle-lines': []
 }>()
 
 const {t} = useI18n()
@@ -65,6 +68,12 @@ defineExpose({close})
                 class="text-primary"
                 @click="emit('paste-cell'); close()"
             >{{ t('stationPages.editor.pasteCell') }}</DropdownMenuItem>
+            <DropdownMenuItem
+                v-if="columnLines !== undefined"
+                :icon="['fas', columnLines ? 'check' : 'grip-vertical']"
+                data-testid="row-column-lines"
+                @click="emit('toggle-lines'); close()"
+            >{{ t('stationPages.editor.columnLines') }}</DropdownMenuItem>
             <div class="border-t border-(--border) my-1"/>
             <DropdownMenuItem :icon="['fas', 'trash']" class="text-error" @click="emit('delete'); close()">{{ t('common.delete') }}</DropdownMenuItem>
         </div>

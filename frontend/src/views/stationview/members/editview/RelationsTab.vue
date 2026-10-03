@@ -41,6 +41,7 @@ const {
   loadDetails: loadManagerDetails,
   linkManager,
   removeManager,
+  reorderManagers,
   createManager,
 } = useMemberManagers(memberId, allMembers, fieldsForUserType, failure)
 
@@ -87,6 +88,7 @@ const { loading, failure: loadFailure } = useAsyncLoader(async () => {
         :get-manager-field-value="getManagerFieldValue"
         @link-manager="linkManager"
         @remove-manager="removeManager"
+        @reorder-managers="reorderManagers"
         @create-manager="createManager"
         @link-managed="linkManaged"
         @remove-managed="removeManaged"

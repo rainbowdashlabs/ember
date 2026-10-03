@@ -206,9 +206,17 @@ public enum StationPermission implements RouteRole {
     DOCUMENT_EDIT_MEMBER(DOCUMENT_READ_MEMBER, DOCUMENT_EDIT),
 
     /**
+     * Allows creating, changing and archiving the templates documents are generated from.
+     *
+     * <p>A template holds no member data of its own, so this reaches no member. Generating a document
+     * for somebody, and looking at one rendered for them, is {@link #DOCUMENT_EDIT_MEMBER}.
+     */
+    DOCUMENT_TEMPLATE_EDIT,
+
+    /**
      * Allows everything the document store has to offer.
      */
-    DOCUMENT_MANAGER(DOCUMENT_EDIT_MEMBER),
+    DOCUMENT_MANAGER(DOCUMENT_EDIT_MEMBER, DOCUMENT_TEMPLATE_EDIT),
 
     /**
      * Allows reading all member data.
@@ -524,6 +532,7 @@ public enum StationPermission implements RouteRole {
             ATTENDANCE_MANAGER,
             BOARD_MANAGER,
             CHECKLIST_MANAGER,
+            DOCUMENT_MANAGER,
             EVENT_MANAGER,
             INVENTORY_MANAGER,
             KNOWLEDGE_MANAGER,

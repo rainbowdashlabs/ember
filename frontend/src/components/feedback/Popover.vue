@@ -25,7 +25,8 @@ import {useDismiss} from '@/composables/useDismiss'
  * while the reader ticks through it.
  *
  * <p>The trigger comes in through the `trigger` slot, which is handed `toggle`, `open` and the
- * attributes that tie the trigger to its panel.
+ * attributes that tie the trigger to its panel. The content is handed `close`, for a dialog that is
+ * done once something deeper in it was chosen.
  */
 const props = withDefaults(defineProps<{
   label: string
@@ -111,7 +112,7 @@ function onPanelClick() {
           @focusout="onFocusOut"
       >
         <div role="presentation" @click="onPanelClick">
-          <slot/>
+          <slot :close="close"/>
         </div>
       </div>
     </Teleport>

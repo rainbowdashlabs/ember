@@ -23,6 +23,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   resendSetup: [member: RosterMember]
+  generateDocuments: [memberIds: number[]]
 }>()
 
 const c = props.config
@@ -34,7 +35,7 @@ const c = props.config
 
   <div v-if="!c.loading.value" class="space-y-4">
     <TabBar v-model="c.activeTab.value" :tabs="c.tabs.value"/>
-    <MemberFilterBar :config="config"/>
+    <MemberFilterBar :config="config" @generate-documents="(ids) => emit('generateDocuments', ids)"/>
     <MemberTable :config="config" @resend-setup="(member) => emit('resendSetup', member)"/>
   </div>
 

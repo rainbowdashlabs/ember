@@ -21,10 +21,13 @@ withDefaults(defineProps<{
     canPaste?: boolean
     /** Optional label shown at the top of the menu (e.g. the cell type). */
     label?: string
+    /** True where the editor lets a block be shown to some members only, which a letter does. */
+    restrictable?: boolean
 }>(), {
     canResize: false,
     canPaste: false,
     label: undefined,
+    restrictable: false,
 })
 
 const emit = defineEmits<{
@@ -33,6 +36,7 @@ const emit = defineEmits<{
     paste: []
     delete: []
     split: [columns: number]
+    visibility: []
 }>()
 
 const {t} = useI18n()
@@ -90,6 +94,8 @@ defineExpose({close})
             <DropdownMenuItem :icon="['fas', 'scissors']" @click="emit('cut'); close()">{{ t('stationPages.editor.cutCell') }}</DropdownMenuItem>
             <DropdownMenuItem v-if="canPaste" :icon="['fas', 'paste']" @click="emit('paste'); close()">{{ t('stationPages.editor.pasteCell') }}</DropdownMenuItem>
             <DropdownMenuItem :icon="['fas', 'table-columns']" @click="doSplit(2)">{{ t('stationPages.editor.splitCell') }}</DropdownMenuItem>
+            <DropdownMenuItem v-if="restrictable" :icon="['fas', 'eye']" data-testid="cell-visibility-open"
+                              @click="emit('visibility'); close()">{{ t('stationPages.editor.visibility') }}</DropdownMenuItem>
             <div class="border-t border-(--border) my-1"/>
             <DropdownMenuItem :icon="['fas', 'trash']" class="text-error" @click="emit('delete'); close()">{{ t('common.delete') }}</DropdownMenuItem>
         </div>

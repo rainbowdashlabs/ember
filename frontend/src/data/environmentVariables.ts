@@ -107,6 +107,22 @@ export const ENVIRONMENT_GROUPS: readonly EnvironmentGroup[] = [
         prefixes: ['updates', 'changelog', 'attendance', 'knowledgeBase', 'logging'],
     },
     {title: 'helpCenter.basics.configuration.envGroupMailImport', defaultOpen: false, prefixes: ['mailImport']},
+    {
+        title: 'helpCenter.basics.configuration.envGroupDocuments',
+        note: 'helpCenter.basics.configuration.envGroupDocumentsNote',
+        defaultOpen: false,
+        prefixes: ['documents'],
+    },
+    {
+        title: 'helpCenter.basics.configuration.envGroupDefaultFont',
+        note: 'helpCenter.basics.configuration.envGroupDefaultFontNote',
+        defaultOpen: false,
+        variables: [
+            {name: 'DEFAULT_FONT_DOWNLOAD', default: 'true'},
+            {name: 'DEFAULT_FONT_URL', default: 'https://wir.berlin/fileadmin/downloads/Wir.Berlin_Schrift.zip'},
+            {name: 'DEFAULT_FONT_SHA256', default: '9a61571989f344ec0e255eda8e758df3be20c1dd13e1b7ec410ed2f5aa829dff'},
+        ],
+    },
     {title: 'helpCenter.basics.configuration.envGroupFederation', defaultOpen: true, prefixes: ['federation']},
     {title: 'helpCenter.basics.configuration.envGroupTheming', defaultOpen: false, prefixes: ['theming']},
     {

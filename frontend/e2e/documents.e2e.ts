@@ -51,7 +51,7 @@ test.describe('Documents', () => {
     test('a document is put in the store and found by its title', async ({managerPage: page}) => {
         const title = unique('Vertrag')
 
-        await page.goto('/station/members/documents')
+        await page.goto('/station/documents/store')
         await uploadDocument(page, title, 'vertrag.txt', 'Diese Vereinbarung gilt ab sofort.')
 
         await page.getByPlaceholder('Titel oder Inhalt').fill(title)
@@ -67,7 +67,7 @@ test.describe('Documents', () => {
         const word = unique('Loeschzug').replace(/-/g, '')
         const title = unique('Protokoll')
 
-        await page.goto('/station/members/documents')
+        await page.goto('/station/documents/store')
         await uploadDocument(page, title, 'protokoll.txt', `Anwesend war der ${word} in voller Staerke.`)
 
         await page.getByPlaceholder('Titel oder Inhalt').fill(word)
@@ -97,13 +97,13 @@ test.describe('Documents', () => {
         const ownPaper = unique('Pruefbescheinigung')
         const onAMember = unique('Attest')
 
-        await page.goto('/station/members/documents')
+        await page.goto('/station/documents/store')
         await uploadDocument(page, ownPaper, 'pruefung.txt', 'Die Leiter wurde geprueft.')
 
         await openFirstMembersDocuments(page)
         await uploadDocument(page, onAMember, 'attest.txt', 'Bescheinigung ueber die Untersuchung.')
 
-        await page.goto('/station/members/documents')
+        await page.goto('/station/documents/store')
         await expect(page.getByText(ownPaper).first()).toBeVisible()
         await expect(page.getByText(onAMember).first()).toBeVisible()
 
@@ -123,7 +123,7 @@ test.describe('Documents', () => {
     test('chosen documents are removed in one go after a confirmation', async ({managerPage: page}) => {
         const title = unique('Altlast')
 
-        await page.goto('/station/members/documents')
+        await page.goto('/station/documents/store')
         await expect(page.getByTestId('documents-departed')).toBeVisible()
         await uploadDocument(page, title, 'altlast.txt', 'Kann weg.')
 
@@ -163,13 +163,13 @@ test.describe('Documents', () => {
             expect(kept.ok(), `the document was kept for the member (${await kept.text()})`).toBeTruthy()
 
             const ownPaper = `${base} Wache`
-            await page.goto('/station/members/documents')
+            await page.goto('/station/documents/store')
             await uploadDocument(page, ownPaper, 'wache.txt', 'Gehoert der Wache.')
 
             const deleted = await page.request.delete(`/api/v1/station-members/${memberId}`, {headers})
             expect(deleted.ok(), `the member was deleted (${await deleted.text()})`).toBeTruthy()
 
-            await page.goto('/station/members/documents')
+            await page.goto('/station/documents/store')
             await page.getByPlaceholder('Titel oder Inhalt').fill(base)
             const keptTile = page.getByTestId('document-tile').filter({hasText: keptTitle})
             await expect(keptTile, 'the kept document is still there').toBeVisible()

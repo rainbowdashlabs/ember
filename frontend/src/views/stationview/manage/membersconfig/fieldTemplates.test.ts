@@ -31,6 +31,7 @@ const SERVER_CONFIG_KEYS = [
   'repeatEveryDays',
   'remindMember',
   'remindManagement',
+  'pronouns',
 ]
 
 describe('fieldTemplates', () => {
@@ -40,6 +41,16 @@ describe('fieldTemplates', () => {
   it.each(fields)('$template: $name carries only settings the server names', field => {
     const unknown = Object.keys(field.config).filter(key => !SERVER_CONFIG_KEYS.includes(key))
     expect(unknown).toEqual([])
+  })
+
+  /** The gender question is a gender field whose two predefined answers carry their pronouns. */
+  it('makes the gender question a gender field with pronouns', () => {
+    const gender = fields.find(field => field.name === 'Geschlecht')
+
+    expect(gender?.fieldType).toBe(FieldType.GENDER)
+    expect(gender?.config.pronouns?.['Männlich']?.de?.subject).toBe('er')
+    expect(gender?.config.pronouns?.['Weiblich']?.de?.subject).toBe('sie')
+    expect(gender?.config.pronouns?.['Divers']).toBeUndefined()
   })
 
   /** An association may ask for expiry dates, so the templates holding one are offered to it as well. */

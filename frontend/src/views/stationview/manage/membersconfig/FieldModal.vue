@@ -20,7 +20,9 @@ import {
     ageSourceOf, parseFieldConfig,
     type EditableField, type FieldSettings, type EditableFieldRequest,
 } from '@/api/profileFields'
-import {holdsValue as typeHoldsValue, isDateType} from '@/api/fieldTypes'
+import GenderPronounsEditor from './fieldmodal/GenderPronounsEditor.vue'
+import {PRESETS, storedPronouns, type GenderPronouns} from './fieldmodal/genderPronouns'
+import {holdsValue as typeHoldsValue, isChoiceType, isDateType} from '@/api/fieldTypes'
 import {FieldType} from '@/api/generated/schema'
 import {
     defaultAsText, TODAY, typedDefault,
@@ -47,10 +49,19 @@ const props = defineProps<{
   dateFields: EditableField[]
   /** The field that already is the station's birth date, if any. */
   birthDateField: EditableField | null
+  /** The field that already is the owner's gender, if any. */
+  genderField: EditableField | null
 }>()
 
-const birthDateAvailable = computed(() =>
-    !props.birthDateField || props.birthDateField.id === props.field?.id)
+/** The types this field cannot take, because another field already is the one of its kind. */
+const unavailableTypes = computed<FieldType[]>(() => [
+  ...takenBy(props.birthDateField, FieldType.BIRTH_DATE),
+  ...takenBy(props.genderField, FieldType.GENDER),
+])
+
+function takenBy(other: EditableField | null, type: FieldType): FieldType[] {
+  return other && other.id !== props.field?.id ? [type] : []
+}
 
 const emit = defineEmits<{
   save: [data: EditableFieldRequest]
@@ -70,6 +81,7 @@ const fieldKeepOnArchive = ref(false)
 const fieldShowAge = ref(true)
 const fieldExpiry = ref<ExpirySettings>(expirySettingsOf({}))
 const fieldWidth = ref<string>(FieldWidths.FULL)
+const fieldPronouns = ref<GenderPronouns>({})
 const saving = ref(false)
 
 /**
@@ -126,6 +138,19 @@ watch(modelValue, (open) => {
   fieldShowAge.value = cfg.showAge !== false
   fieldExpiry.value = expirySettingsOf(cfg)
   fieldWidth.value = f?.width ?? FieldWidths.FULL
+  fieldPronouns.value = structuredClone(cfg.pronouns ?? {})
+})
+
+/**
+ * A new gender field starts with the two predefined answers and their pronouns. A choice field turned
+ * into one keeps its answers, and each is mapped in the pronoun editor.
+ */
+watch(fieldType, (type) => {
+  if (type !== FieldType.GENDER || (fieldSettings.value.options ?? []).length > 0) return
+  const male = t('membersConfig.gender.male')
+  const female = t('membersConfig.gender.female')
+  fieldSettings.value = {...fieldSettings.value, options: [male, female]}
+  fieldPronouns.value = {[male]: structuredClone(PRESETS.MALE), [female]: structuredClone(PRESETS.FEMALE)}
 })
 
 /**
@@ -140,7 +165,8 @@ function buildConfig(): FieldSettings {
   if (fieldNotifyOnChange.value) cfg.notifyOnChange = true
   if (fieldOverview.value) cfg.overview = true
   const options = fieldSettings.value.options ?? []
-  if (fieldType.value === FieldType.CHOICE && options.length > 0) cfg.options = [...options]
+  if (isChoiceType(fieldType.value) && options.length > 0) cfg.options = [...options]
+  if (fieldType.value === FieldType.GENDER) cfg.pronouns = storedPronouns(fieldPronouns.value, options)
   if (fieldType.value === FieldType.AGE) {
     const source = props.dateFields.find(f => f.id === fieldAgeSourceId.value)
     if (source) {
@@ -180,11 +206,13 @@ function submit() {
       <BasicFields v-model:name="fieldName" v-model:field-type="fieldType"
                    v-model:description="fieldDescription"
                    :named="!isSpacer"
-                   :birth-date-available="birthDateAvailable"/>
+                   :unavailable="unavailableTypes"/>
       <template v-if="holdsValue">
         <AgeFields v-if="isCalculated" v-model:source-id="fieldAgeSourceId" v-model:mode="fieldAgeMode"
                    :date-fields="dateFields"/>
         <QuestionSettingsEditor v-model="fieldSettings" :field-type="fieldType" :offers="offers"/>
+        <GenderPronounsEditor v-if="fieldType === FieldType.GENDER" v-model="fieldPronouns"
+                              :answers="fieldSettings.options ?? []"/>
         <BirthDateFields v-if="fieldType === FieldType.BIRTH_DATE" v-model:show-age="fieldShowAge"/>
         <ExpiryDateFields v-if="fieldType === FieldType.EXPIRY_DATE" v-model="fieldExpiry"/>
         <BehaviorToggles

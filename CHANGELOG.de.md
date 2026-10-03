@@ -1,5 +1,42 @@
 # Änderungsprotokoll
 
+## v26.21.0
+
+Wachen erstellen aus eigenen Vorlagen und denen ihres Verbands Dokumente für ihre Mitglieder. Eine Briefvorlage entsteht aus Bausteinen wie die Seiten der Wache, mit Platzhaltern für Mitgliederdaten, Erziehungsberechtigte und die Wache und mit Bausteinen, die nur manche Mitglieder bekommen. Eine PDF-Vorlage füllt ein hochgeladenes Formular wie eine Einverständniserklärung direkt aus, und ein Termin kann seine Teilnehmenden bitten, es mitzubringen. Briefe und Formulare lassen für jede Person, die unterschreibt, ein leeres Unterschriftsfeld. Dokumente nennen Personen mit ihrem amtlichen Namen, und Pronomen folgen dem neuen Profilfeld für das Geschlecht oder verwenden den Vornamen. Die Verwaltung erstellt ein Dokument auf der Seite eines Mitglieds, nach einer Vorschau, die fehlende Angaben nennt, oder im Hintergrund für viele Mitglieder auf einmal. Mitglieder und Erziehungsberechtigte erstellen freigegebene Dokumente selbst im neuen Menü Dokumente, mit einer Wartezeit zwischen zwei Dokumenten. Jedes erstellte Dokument liegt bei den Dokumenten des Mitglieds und ist mit der Fassung seiner Vorlage vermerkt. Vorlagen übernehmen ihren Text aus einem Word- oder OpenDocument-Dokument, drucken in Schriften, die die Instanz, ein Verband oder die Wache hochgeladen hat, und lassen sich als Ausgangspunkt für neue duplizieren. Die Erziehungsberechtigten eines Mitglieds haben eine Reihenfolge, der Dokumente folgen.
+
+### Neue Funktionen
+
+- **Briefvorlagen für Mitgliederdokumente.** Ein Brief entsteht aus Bausteinen wie die Seiten der Wache, mit Kopfzeile, Text und Fußzeile in Zeilen mit bis zu drei Spalten (vier in Kopf- und Fußzeile), mit Trennlinien und Abständen und mit Platzhaltern für Mitgliederdaten, Erziehungsberechtigte und die Wache. Ein Baustein lässt sich auf Gruppen, Mitgliedsarten oder Tags beschränken oder auf Mitglieder mit oder ohne zweite erziehungsberechtigte Person, und Pronomen folgen dem Geschlechtsfeld in der Sprache des Briefs.
+- **Geschlecht als Art von Profilfeld.** Ein Geschlechtsfeld ist eine Auswahl, deren Antworten die Pronomen tragen, mit denen Dokumente in jeder Sprache über das Mitglied schreiben, oder stattdessen den Vornamen. Eine Wache hat eines, das eigene oder das des Verbands, und ein bestehendes Auswahlfeld lässt sich zu einem umstellen, wobei alle Antworten bleiben.
+- **PDF-Vorlagen füllen hochgeladene Formulare.** Auf die Seiten eines hochgeladenen PDFs wie einer Einverständniserklärung kommen Textfelder, Kreuze und Unterschriftsfelder, und eigene Formularfelder des PDFs werden mit Mitgliederdaten gefüllt. Eine neue Fassung des PDFs behält die Felder, und schon erstellte Dokumente behalten die Fassung, aus der sie stammen.
+- **Leere Unterschriftsfelder für jede Person, die unterschreibt.** Briefe setzen Unterschriftszeilen mit einem kurzen Text darunter, PDF-Vorlagen Unterschriftsfelder, für die teilnehmende Person, die ausstellende Person, die erste oder zweite erziehungsberechtigte Person, alle Erziehungsberechtigten mit je einem eigenen Feld oder eine beliebige von ihnen. Gedruckt erscheinen die Felder als Linien zum Unterschreiben, in der Datei bleiben sie leer für eine spätere Unterschrift, und bei nur einer erziehungsberechtigten Person entfallen Zeile und Angaben der zweiten.
+- **Dokumente für ein Mitglied erstellen.** Auf der Seite eines Mitglieds entsteht aus einer Vorlage ein Dokument, nach einer Vorschau, die fehlende Angaben nennt, und es liegt bei den Dokumenten des Mitglieds. Briefe liegen als PDF/A vor, und jedes Dokument ist mit der Fassung der Vorlage und dem SHA-256 der Datei vermerkt, was Dokumente → Erstellte Dokumente auflistet.
+- **Mitglieder erstellen Dokumente selbst.** Freigegebene Vorlagen erscheinen unter Dokumente → Meine Dokumente, für sich selbst und für jedes Kind. Erstellt wird, sobald das Profil die nötigen Angaben enthält, und dasselbe Dokument erst wieder nach einer Wartezeit, normal 30 Tage.
+- **Dokumente für viele Mitglieder auf einmal.** Auf der Seite der Vorlagen oder für Mitglieder, die in der Mitgliederliste ausgewählt sind, entsteht aus einer Vorlage im Hintergrund ein Dokument für jedes Mitglied, nach einer Vorschau, die die fehlenden Angaben jedes Mitglieds nennt. Die Erstellung läuft weiter, wenn die Seite geschlossen wird, und nennt die Mitglieder, für die nichts abgelegt werden konnte, mit dem Grund.
+- **Dokumente zum Mitbringen zu Terminen.** Ein Termin oder eine Termin-Vorlage verlangt von den Teilnehmenden Dokumente aus Vorlagen für Termine, die Name, Zeiten und Ort des Termins ausfüllen. Alle Angemeldeten oder ihre Erziehungsberechtigten laden auf der Terminseite ein ausgefülltes Exemplar herunter, das auch bei den Dokumenten der teilnehmenden Person liegt.
+- **Verbände führen Vorlagen für ihre Wachen.** Ein Verband schreibt Brief- und PDF-Vorlagen in seiner Verwaltung, und seine Wachen verwenden sie neben ihren eigenen, ohne sie zu ändern. Jede Wache entscheidet, ob und welche ihrer Mitglieder eine davon selbst erstellen, und Platzhalter füllen sich aus der eigenen Wache des Mitglieds und dem Verband.
+- **Word- und OpenDocument-Texte füllen eine Vorlage.** Eine .docx- oder .odt-Datei füllt den Text einer Briefvorlage als Textbaustein, und ein Bild auf eigener Zeile wird zum Bildbaustein. Lücken in eckigen Klammern für einen Namen oder ein Geburtsdatum werden zu Platzhaltern, wo ihre Wörter bekannt sind.
+- **Vorlagen werden dupliziert und nach letzter Verwendung gelistet.** Eine Vorlage, auch eine des Verbands, wird aus der Liste der Vorlagen oder ihrem Editor zu einer neuen Vorlage der Wache dupliziert, mit allem, was sie enthält, und einer eigenen Kopie ihres PDFs. Die Liste beginnt mit den zuletzt verwendeten Vorlagen und sortiert auch nach dem Datum der Erstellung und der letzten Änderung, und jede Auswahl einer Vorlage bietet die zuletzt verwendeten zuerst an.
+- **Eigene Schriften für Dokumente.** Die Instanz, ein Verband und eine Wache laden eigene Schriften hoch, eine TrueType- oder OpenType-Datei pro Schnitt, und eine Schrift, deren Lizenz das Einbetten verbietet, wird abgelehnt. Briefe drucken Text, Kopf- und Fußzeile sowie einzeln markierte Wörter darin und PDF-Vorlagen jedes Textfeld, wobei die eigene Schrift der Wache die gleichnamige des Verbands oder der Instanz ersetzt.
+
+### Verbesserungen
+
+- **Erziehungsberechtigte haben eine Reihenfolge.** Auf der Seite eines Mitglieds lassen sich seine Erziehungsberechtigten mit den Pfeilen oder per Ziehen ordnen. Dokumente nennen die erste Person als Erziehungsberechtigte 1 und die zweite als Erziehungsberechtigte 2.
+- **Importe lesen Dateien als das, was sie sind.** Der Import ins Wiki und der Import rechtlicher Dokumente erkennen Word-, OpenDocument- und EPUB-Dateien an ihrem Inhalt, auch unter einem anderen Dateinamen.
+- **Profilfelder des Verbands in Vorlagen.** Vorlagen nennen die Antworten auf die Profilfelder des Verbands sowie Name und Anschrift des Verbands. Vorlagen einer Wache bieten die Felder des Verbands an, die die Wache erreichen.
+- **Medien für Verbände.** Die Verwaltung eines Verbands hat eine Medienseite für die Bilder seiner Vorlagen, seines Wikis und seiner Neuigkeiten. Bilder, die eine Vorlage verwendet, bleiben beim Aufräumen ungenutzter Dateien erhalten.
+- **Wer Vorlagen schreibt, sieht alle Medien.** Wer Dokumentvorlagen schreibt, sieht und ordnet alle Dateien in den Medien der Wache, nicht nur die eigenen Uploads.
+
+### Änderungen
+
+- **Dokumente haben ein eigenes Menü.** In der Seitenleiste gibt es die Gruppe Dokumente mit Meine Dokumente, der Ablage, den Vorlagen, den erstellten Dokumenten und den Schriftarten, wobei Ablage, Vorlagen und Schriftarten bisher unter Mitglieder lagen. Alte Adressen und die Links in früheren Benachrichtigungen führen auf die neuen Seiten.
+- **Wachadministration verwaltet Dokumentvorlagen.** Das Recht der Wachadministration umfasst jetzt das neue Recht für Dokumentvorlagen, das auch Teil des Rechts für Dokumente ist.
+- **Verbandsadministration verwaltet Vorlagen und Schriften.** Das Recht der Verbandsadministration umfasst das neue Verbandsrecht für Dokumentvorlagen und Schriften, das auch die Medien des Verbands öffnet.
+
+### Fehlerbehebungen
+
+- **Escape schloss den Textdialog nicht.** Im Textdialog der Editoren für Seiten, Neuigkeiten, Wiki und Vorlagen tat die Escape-Taste nichts, solange der Cursor im Text stand. Jetzt schließt sie den Dialog auch von dort.
+
 ## v26.20.2
 
 Der tägliche Nutzungsbericht geht wieder auf jeder Instanz hinaus.

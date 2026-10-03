@@ -47,7 +47,7 @@ const port: FieldsPort = {
 const config = useFieldsConfig(port)
 const {
   availableStationGroups, selectedStationGroupId,
-  birthDateField, dateFields, showFieldModal, editingField, loading, failure,
+  birthDateField, genderField, dateFields, showFieldModal, editingField, loading, failure,
   saveField, showDeleteModal, deleteTarget, confirmDelete,
 } = config
 
@@ -82,6 +82,7 @@ const activeStationGroup = computed({
       <ProfileFieldModal
           v-model="showFieldModal"
           :birth-date-field="birthDateField"
+          :gender-field="genderField"
           :date-fields="dateFields"
           :field="editingField"
           @save="saveField"

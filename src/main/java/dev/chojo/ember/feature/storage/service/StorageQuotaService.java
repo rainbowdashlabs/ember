@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.storage.entity.QuotaOrigin;
 import dev.chojo.ember.feature.storage.entity.StationQuotas;
 import dev.chojo.ember.feature.storage.entity.StationQuotas.ResolvedQuota;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
+import dev.chojo.ember.feature.storage.entity.StorageScope;
 import dev.chojo.ember.feature.storage.entity.StorageUsage;
 import dev.chojo.ember.feature.storage.repository.StorageUsageRepository;
 import jakarta.inject.Inject;
@@ -22,6 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.OptionalInt;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
@@ -152,6 +154,57 @@ public class StorageQuotaService {
      */
     public void onFileDeleted(int stationId, StorageCategory category, long fileBytes) {
         trackDelta(stationId, category, -fileBytes, -1);
+    }
+
+    /**
+     * The station whose room the files of a scope count against: a station its own, an association its
+     * home station's, which is the room the association was given. The instance and accounts are
+     * measured against nobody's room.
+     *
+     * @param scope where the files are kept
+     * @return the station, or empty where no room applies
+     */
+    public static OptionalInt roomOf(StorageScope scope) {
+        return switch (scope) {
+            case StorageScope.Station station -> OptionalInt.of(station.stationId());
+            case StorageScope.Association association -> OptionalInt.of(association.homeStationId());
+            case StorageScope.Instance ignored -> OptionalInt.empty();
+            case StorageScope.Account ignored -> OptionalInt.empty();
+        };
+    }
+
+    /**
+     * Checks whether a file fits the room of a scope, whatever kind of owner keeps it.
+     *
+     * @param scope         where the file is to be kept
+     * @param category      what it is kept as
+     * @param incomingBytes its size
+     * @throws StorageQuotaExceededException if it would exceed a quota
+     */
+    public void checkQuota(StorageScope scope, StorageCategory category, long incomingBytes) {
+        roomOf(scope).ifPresent(stationId -> checkQuota(stationId, category, incomingBytes));
+    }
+
+    /**
+     * Records a file kept for a scope, after checking that it fits.
+     *
+     * @param scope     where the file is kept
+     * @param category  what it is kept as
+     * @param fileBytes its size
+     */
+    public void onFileUploaded(StorageScope scope, StorageCategory category, long fileBytes) {
+        roomOf(scope).ifPresent(stationId -> onFileUploaded(stationId, category, fileBytes));
+    }
+
+    /**
+     * Records a file of a scope that was deleted.
+     *
+     * @param scope     where the file was kept
+     * @param category  what it was kept as
+     * @param fileBytes its size
+     */
+    public void onFileDeleted(StorageScope scope, StorageCategory category, long fileBytes) {
+        roomOf(scope).ifPresent(stationId -> onFileDeleted(stationId, category, fileBytes));
     }
 
     /**
@@ -364,7 +417,12 @@ public class StorageQuotaService {
             case IMAGE_LOST_AND_FOUND, IMAGE_QUIZ_QUESTION, IMAGE_KB_ICON, IMAGE_KB_IMAGE, IMAGE_LOGO_FRAGMENT ->
                 quota.images().bytes();
             case MEDIA_FILES, MEDIA_IMAGES -> quota.pages().bytes();
-            case MEMBER_DOCUMENTS, MOVEMENT_DOCUMENTS -> quota.kb().bytes();
+            case MEMBER_DOCUMENTS,
+                    MOVEMENT_DOCUMENTS,
+                    DOCUMENT_TEMPLATES,
+                    ASSOCIATION_DOCUMENT_TEMPLATES,
+                    FONTS,
+                    ASSOCIATION_FONTS -> quota.kb().bytes();
             case IMAGE_KB_FILE_PICTURE,
                     IMAGE_AVATAR,
                     IMAGE_STATION_LOGO,
@@ -373,7 +431,8 @@ public class StorageQuotaService {
                     MAP_TILE_CACHE,
                     DEMO_AVATAR,
                     IMAGE_DISCOVERY_LOGO,
-                    INSTANCE_MEDIA_FILES -> Long.MAX_VALUE;
+                    INSTANCE_MEDIA_FILES,
+                    INSTANCE_FONTS -> Long.MAX_VALUE;
         };
     }
 

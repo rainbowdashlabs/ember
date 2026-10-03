@@ -130,6 +130,7 @@ const dummyGroupIds = new Set([1, 3])
 
     <HelpSection :title="t('helpCenter.membersEdit.relationsTitle')">
       <p>{{ t('helpCenter.membersEdit.relationsText') }}</p>
+      <p>{{ t('helpCenter.membersEdit.guardianOrderText') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.membersEdit.relationsExampleTitle')">

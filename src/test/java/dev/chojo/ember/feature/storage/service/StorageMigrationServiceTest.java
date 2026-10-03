@@ -257,6 +257,27 @@ class StorageMigrationServiceTest extends RepositoryTestBase {
                         scope.prefix() + "/" + StorageCategory.BOARD_ATTACHMENTS.prefix() + "/c.txt")));
     }
 
+    /** An association keeps its files in its home station, so they move with that station's bytes. */
+    @Test
+    void anAssociationsFilesMoveWithItsHomeStation() {
+        Station station = newStation("Station Migration Verband");
+        var association = new StorageScope.Association(station.id(), station.uid());
+        storageService.store(
+                association,
+                StorageCategory.ASSOCIATION_FONTS,
+                "7",
+                "font".getBytes(StandardCharsets.UTF_8),
+                "font/ttf");
+
+        var result = moveOwn(station.id(), targetConfig());
+
+        assertEquals(1, result.copied());
+        assertEquals(
+                List.of("station/" + station.uid() + "/association/fonts/7"),
+                targetBackend.listByPrefix(association.prefix()));
+        assertTrue(storageService.exists(association, StorageCategory.ASSOCIATION_FONTS, "7"));
+    }
+
     /**
      * Applying the storage a station already stands on, with nothing changed but its password, names the
      * same place through a freshly built backend. Nothing is copied and nothing is deleted, since the

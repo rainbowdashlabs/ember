@@ -82,12 +82,25 @@ public class KbPdfPictures {
      * @return the rewritten body with the pictures it now points at
      */
     public Placed place(int stationId, String markdown) {
+        return place(stationId, markdown, "img-");
+    }
+
+    /**
+     * Places every picture of the station that the markdown shows, under names that start with the given
+     * prefix, so the pictures of several texts placed into one document do not take each other's names.
+     *
+     * @param stationId the station whose pictures may be placed
+     * @param markdown  the text
+     * @param prefix    what every picture's name starts with
+     * @return the rewritten text with the pictures it now points at
+     */
+    public Placed place(int stationId, String markdown, String prefix) {
         var stationUid = stationRepository.requireUid(stationId).toString();
         var namesByUrl = new LinkedHashMap<String, String>();
         var pictures = new LinkedHashMap<String, byte[]>();
         Function<String, String> localName = url -> namesByUrl.computeIfAbsent(url, u -> read(stationId, stationUid, u)
                 .map(picture -> {
-                    String local = "img-" + (pictures.size() + 1) + "." + picture.extension();
+                    String local = prefix + (pictures.size() + 1) + "." + picture.extension();
                     pictures.put(local, picture.data());
                     return local;
                 })

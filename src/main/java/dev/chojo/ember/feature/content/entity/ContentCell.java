@@ -5,8 +5,20 @@
  */
 package dev.chojo.ember.feature.content.entity;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import dev.chojo.ember.feature.restriction.RestrictionAudience;
+import org.jspecify.annotations.Nullable;
 
+/**
+ * One block of a row.
+ *
+ * @param restriction       who the block is shown to, or null for everybody. Only a letter evaluates it,
+ *                          against the member the letter is for; pages, news and articles never carry
+ *                          one, so their table keeps no column for it.
+ * @param guardianCondition which guardians that member must have for the block to be printed, or null
+ *                          for no such condition. Only a letter carries it, like the restriction.
+ */
 public record ContentCell(
         int id,
         int rowId,
@@ -14,7 +26,27 @@ public record ContentCell(
         double widthPercent,
         CellContentType contentType,
         String content,
-        CellConfig config) {
+        CellConfig config,
+        @JsonInclude(JsonInclude.Include.NON_NULL) @Nullable RestrictionAudience restriction,
+        @JsonInclude(JsonInclude.Include.NON_NULL) @Nullable GuardianCondition guardianCondition) {
+
+    /**
+     * What a picture block holds in place of a media hash to show the station's logo, read where the
+     * block is drawn, so a new logo reaches every block that shows it.
+     */
+    public static final String STATION_LOGO = "logo";
+
+    /** A block shown to everybody, which is every block of a page, a news entry or an article. */
+    public ContentCell(
+            int id,
+            int rowId,
+            int sortOrder,
+            double widthPercent,
+            CellContentType contentType,
+            String content,
+            CellConfig config) {
+        this(id, rowId, sortOrder, widthPercent, contentType, content, config, null, null);
+    }
 
     public static RowMapping<ContentCell> map() {
         return row -> {
@@ -31,10 +63,12 @@ public record ContentCell(
     }
 
     public ContentCell withContent(String content) {
-        return new ContentCell(id, rowId, sortOrder, widthPercent, contentType, content, config);
+        return new ContentCell(
+                id, rowId, sortOrder, widthPercent, contentType, content, config, restriction, guardianCondition);
     }
 
     public ContentCell withConfig(CellConfig config) {
-        return new ContentCell(id, rowId, sortOrder, widthPercent, contentType, content, config);
+        return new ContentCell(
+                id, rowId, sortOrder, widthPercent, contentType, content, config, restriction, guardianCondition);
     }
 }

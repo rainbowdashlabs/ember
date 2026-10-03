@@ -35,8 +35,6 @@ import {
     ContentMode,
     KbAccessLevel,
     KbFileType,
-    type BlockCellRequest,
-    type BlockRowRequest,
     type ContentRow,
     type KbFile,
     type MarkdownHtmlResponse,
@@ -45,6 +43,7 @@ import {useKbFileMetadata} from '@/views/stationview/knowledge/kbfileview/useKbF
 import {useKbMoveTarget} from '@/views/stationview/knowledge/knowledgebaseview/useKbMoveTarget'
 import {STATION_KB_ROUTES, type KbRoutes} from '@/views/stationview/knowledge/knowledgebaseview/useKbNavigation'
 import {getItem} from '@/api/storage'
+import {toBlockRequests, toEditRows} from '@/util/blockSwitch'
 import {useKbFileDownloads} from './kbfileview/useKbFileDownloads'
 import {formatDateTime} from '@/util/format'
 import {youtubeEmbedUrl as toYoutubeEmbedUrl} from '@/util/youtube'
@@ -258,27 +257,6 @@ function onContentInput() {
     hasUnsavedChanges.value = true
 }
 
-/**
- * The saved shape of a block tree turned into the shape the editor works on.
- */
-function toEditRows(saved: ContentRow[]): RowEditData[] {
-    return [...saved]
-        .sort((a, b) => a.sortOrder - b.sortOrder)
-        .map(r => ({
-            id: r.id,
-            sortOrder: r.sortOrder,
-            cells: [...r.cells]
-                .sort((a, b) => a.sortOrder - b.sortOrder)
-                .map(c => ({
-                    id: c.id,
-                    sortOrder: c.sortOrder,
-                    widthPercent: c.widthPercent,
-                    contentType: c.contentType,
-                    content: c.content,
-                    config: c.config as Record<string, unknown>,
-                })),
-        }))
-}
 
 async function enableBlocks() {
     if (!file.value) return
@@ -293,17 +271,7 @@ async function saveContent() {
     if (!file.value) return
     try {
         if (contentMode.value === ContentMode.RICH) {
-            const rows: BlockRowRequest[] = blockRows.value.map((r, ri) => ({
-                sortOrder: ri,
-                cells: r.cells.map((c, ci): BlockCellRequest => ({
-                    sortOrder: ci,
-                    widthPercent: c.widthPercent,
-                    contentType: c.contentType,
-                    content: c.content,
-                    config: c.config,
-                })),
-            }))
-            const blocks = await knowledgeBase.saveKbBlocks(file.value.id, rows)
+            const blocks = await knowledgeBase.saveKbBlocks(file.value.id, toBlockRequests(blockRows.value))
             blockRows.value = toEditRows(blocks.rows)
             readerRows.value = blocks.describedRows
             markdownData.value = await knowledgeBase.getMarkdownHtml(file.value.id)

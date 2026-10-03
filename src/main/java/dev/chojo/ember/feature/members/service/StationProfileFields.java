@@ -52,7 +52,10 @@ public class StationProfileFields implements ProfileFieldOwner {
             MemberRefusal.PROFILE_FIELD_DETAILS_MISSING_ON_CREATE,
             MemberRefusal.PROFILE_FIELD_TYPE_NOT_OFFERED,
             MemberRefusal.PROFILE_DEFAULT_NOT_ACCEPTED,
-            MemberRefusal.EXPIRY_SETTINGS_OUT_OF_RANGE);
+            MemberRefusal.EXPIRY_SETTINGS_OUT_OF_RANGE,
+            MemberRefusal.PROFILE_GENDER_ALREADY_ASKED,
+            MemberRefusal.PROFILE_GENDER_NOT_FROM_CHOICE,
+            MemberRefusal.PROFILE_PRONOUN_TOO_LONG);
 
     private final ProfileFieldRepository fieldRepository;
     private final MemberGroupRepository groupRepository;

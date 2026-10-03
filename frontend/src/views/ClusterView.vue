@@ -176,6 +176,37 @@ onMounted(() => {
       />
 
       <SidebarGroup
+          v-if="hasClusterPermission(ClusterPermission.CLUSTER_DOCUMENT_TEMPLATE_EDIT)"
+          :icon="['fas', 'file-signature']"
+          :label="t('clusterSidebar.documents')"
+      >
+        <SidebarLink
+            :icon="['fas', 'file-signature']"
+            name="cluster-document-templates"
+            to="/cluster/templates"
+            @navigate="close"
+        >
+          {{ t('clusterSidebar.documentTemplates') }}
+        </SidebarLink>
+        <SidebarLink
+            :icon="['fas', 'font']"
+            name="cluster-document-fonts"
+            to="/cluster/fonts"
+            @navigate="close"
+        >
+          {{ t('clusterSidebar.documentFonts') }}
+        </SidebarLink>
+        <SidebarLink
+            :icon="['fas', 'image']"
+            name="cluster-media"
+            to="/cluster/media"
+            @navigate="close"
+        >
+          {{ t('clusterSidebar.media') }}
+        </SidebarLink>
+      </SidebarGroup>
+
+      <SidebarGroup
           v-if="hasClusterPermission(ClusterPermission.CLUSTER_INVENTORY_READ)"
           :icon="['fas', 'boxes-stacked']"
           :label="t('clusterSidebar.inventory')"

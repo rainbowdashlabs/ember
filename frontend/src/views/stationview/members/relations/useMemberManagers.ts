@@ -10,6 +10,7 @@ import { StationUserType, type MemberWithName } from '@/api/generated/schema'
 import { members, profileFields, stationMembers } from '@/api'
 import { memberDisplayName } from '../listview/useMemberData'
 import { describeFailure, FailureKind, type Failure } from '@/util/failure'
+import { moveWithin } from '@/util/reorder'
 
 /**
  * Owns the managers linked to the viewed member: their profile snapshots plus
@@ -100,6 +101,18 @@ export function useMemberManagers(
     } catch (e) { failure.value = describeFailure(e, t) }
   }
 
+  /**
+   * Moves a guardian to another place. The first guardian is the one documents name as guardian 1,
+   * so the order is the member page's to set and is saved as soon as it changes.
+   */
+  async function reorderManagers(fromIndex: number, toIndex: number) {
+    failure.value = null
+    try {
+      const managerIds = moveWithin(managers.value, fromIndex, toIndex).map(m => m.id)
+      managers.value = await stationMembers.setManagers(memberId.value, { managerIds })
+    } catch (e) { failure.value = describeFailure(e, t) }
+  }
+
   async function removeManager(mgrId: number) {
     failure.value = null
     try {
@@ -169,6 +182,7 @@ export function useMemberManagers(
     loadDetails,
     linkManager,
     removeManager,
+    reorderManagers,
     createManager,
   }
 }

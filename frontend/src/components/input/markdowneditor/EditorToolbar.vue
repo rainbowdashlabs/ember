@@ -7,9 +7,13 @@
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { Editor } from '@tiptap/vue-3'
+import type { FontFamilyOption } from '@/api/generated/schema'
+import EditorFontPicker from './EditorFontPicker.vue'
 
 const props = defineProps<{
   editor: Editor | undefined
+  /** The families selected words can be set in; the menu offers no font where left out. */
+  fonts?: readonly FontFamilyOption[]
 }>()
 
 const emit = defineEmits<{
@@ -135,5 +139,7 @@ const toolbarButtons: ToolbarButton[][] = [
         </button>
       </div>
     </div>
+
+    <EditorFontPicker v-if="fonts" :editor="editor" :fonts="fonts" />
   </div>
 </template>

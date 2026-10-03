@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.repository.UserTagRepository;
 import dev.chojo.ember.feature.members.service.MemberPermissionResolver;
+import dev.chojo.ember.feature.restriction.RestrictionAudience;
 import dev.chojo.ember.feature.restriction.RestrictionMember;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
@@ -181,18 +182,43 @@ public class RestrictionService {
      * @return {@code true} where the entity has no restrictions or the member passes them
      */
     public boolean includes(RestrictionType type, int entityId, int memberId) {
-        var member = stationMemberRepository.findById(memberId).orElse(null);
+        var member = memberOf(memberId).orElse(null);
         if (member == null) return false;
-
-        List<Integer> groupIds = memberGroupRepository.findGroupsForMember(memberId).stream()
-                .map(MemberGroup::id)
-                .toList();
-        List<Integer> tagIds = userTagRepository.findTagsForMember(memberId).stream()
-                .map(UserTag::id)
-                .toList();
         RestrictionMode mode = restrictionRepository.findMode(type, entityId);
+        return restrictionRepository.matches(type, entityId, mode, member);
+    }
 
-        return restrictionRepository.matches(
-                type, entityId, mode, new RestrictionMember(memberId, member.userType(), groupIds, tagIds));
+    /**
+     * The current members of a station an audience takes in, with no manager bypass.
+     *
+     * @param stationId the station
+     * @param audience  the audience; one naming nobody takes in every current member
+     * @return the members' ids
+     */
+    public List<Integer> membersIn(int stationId, RestrictionAudience audience) {
+        return restrictionRepository.findStationMembers(stationId).stream()
+                .filter(audience::includes)
+                .map(RestrictionMember::memberId)
+                .toList();
+    }
+
+    /**
+     * What a restriction can name of a member: their user type, groups and tags.
+     *
+     * @param memberId the member
+     * @return the member as restrictions see them, or empty where there is no such member
+     */
+    public Optional<RestrictionMember> memberOf(int memberId) {
+        return stationMemberRepository
+                .findById(memberId)
+                .map(member -> new RestrictionMember(
+                        memberId,
+                        member.userType(),
+                        memberGroupRepository.findGroupsForMember(memberId).stream()
+                                .map(MemberGroup::id)
+                                .toList(),
+                        userTagRepository.findTagsForMember(memberId).stream()
+                                .map(UserTag::id)
+                                .toList()));
     }
 }

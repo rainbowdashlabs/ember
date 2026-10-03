@@ -22,6 +22,10 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.profileOverview.pagesText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.profileOverview.documentsTitle')">
+      <p>{{ t('helpCenter.profileOverview.documentsText') }}</p>
+    </HelpSection>
+
     <HelpTip>{{ t('helpCenter.profileOverview.overviewTip') }}</HelpTip>
   </HelpArticle>
 </template>

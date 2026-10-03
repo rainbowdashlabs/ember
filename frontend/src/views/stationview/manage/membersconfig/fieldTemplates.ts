@@ -5,6 +5,7 @@
  */
 import type {FieldSettings} from '@/api/profileFields'
 import type {FieldType} from '@/api/generated/schema'
+import {PRESETS} from './fieldmodal/genderPronouns'
 
 /**
  * One question a template writes down.
@@ -97,8 +98,11 @@ export const fieldTemplates: FieldTemplate[] = [
     name: 'Geschlecht', icon: 'rainbow', fields: [
       {
         name: 'Geschlecht',
-        fieldType: 'CHOICE',
-        config: {options: ['Männlich', 'Weiblich', 'Divers', 'Nicht-binär', 'Andere']},
+        fieldType: 'GENDER',
+        config: {
+          options: ['Männlich', 'Weiblich', 'Divers', 'Nicht-binär', 'Andere'],
+          pronouns: {Männlich: PRESETS.MALE, Weiblich: PRESETS.FEMALE},
+        },
         readonly: true,
       },
     ],

@@ -159,7 +159,7 @@ public class IcalEventRenderer {
 
         var fields = eventFieldService.findByEvent(
                 event.id(), ctx.calendar().dateInView(event).orElse(null));
-        var location = firstLocation(fields);
+        var location = AppointmentField.firstLocation(fields);
         if (location != null) {
             vevent.add(new Location(location));
         }
@@ -294,17 +294,6 @@ public class IcalEventRenderer {
 
     private String cancelledPrefix(String locale) {
         return notificationText.resolveLocalized(locale, "ical", "summary.cancelledPrefix", null) + " ";
-    }
-
-    private @Nullable String firstLocation(List<AppointmentField> fields) {
-        for (var field : fields) {
-            if (field.fieldType() == FieldType.LOCATION
-                    && field.value() != null
-                    && !field.value().isBlank()) {
-                return field.value().trim();
-            }
-        }
-        return null;
     }
 
     private void appendLine(StringBuilder sb, String locale, String labelKey, String value) {

@@ -733,6 +733,10 @@ volumes:
                 envGroupMetricsNote: 'Wie lange Statistik-Daten gespeichert werden. Kürzer = weniger Speicher, weniger Auswertungs-Historie.',
                 envGroupOperations: 'Betrieb & Aufbewahrung (Backend)',
                 envGroupMailImport: 'Dokumente aus Postfächern (Backend)',
+                envGroupDocuments: 'Erstellte Dokumente (Backend)',
+                envGroupDocumentsNote: 'Die Standardschrift erstellter Dokumente. Ohne sie druckt Ember in Liberation Sans.',
+                envGroupDefaultFont: 'Standardschrift (Container)',
+                envGroupDefaultFontNote: 'Diese Variablen liest der Backend-Container beim Start, bevor Ember startet. Er lädt die Schrift Berlin Type herunter, prüft die Datei und legt den normalen und den fetten Schnitt im Verzeichnis der Standardschrift ab (DOCUMENTS_DEFAULTFONTDIR, im Docker-Image /app/data/default-font). Liegen sie dort schon, lädt er nichts. Klappt der Download nicht, startet Ember trotzdem und druckt in Liberation Sans. Die Schrift ist nicht Teil von Ember und wird deshalb nicht mitgeliefert.',
                 envGroupFederation: 'Föderation (Backend)',
                 envGroupTheming: 'Design (Backend)',
                 envGroupTools: 'Externe Programme (Backend)',
@@ -963,8 +967,14 @@ volumes:
                         timeoutSeconds: 'Wie viele Sekunden auf einen Mailserver gewartet wird, bevor Ember aufgibt.',
                         logRetentionDays: 'Wie viele Tage das Protokoll des Imports aufbewahrt wird.',
                     },
+                    documents: {
+                        defaultFontDir: 'Verzeichnis, aus dem Ember beim Start die Standardschrift für erstellte Dokumente liest. Ember nimmt die Schriftfamilie, deren normalen Schnitt es dort findet, und druckt darin jeden Text, für den eine Vorlage keine Schrift wählt. Ist das Verzeichnis leer oder fehlt es, druckt Ember in Liberation Sans.',
+                    },
                 },
                 variables: {
+                    DEFAULT_FONT_DOWNLOAD: 'Ob der Container die Standardschrift beim Start herunterlädt. Auf false für eine Instanz ohne Internetzugang; dann druckt Ember in Liberation Sans, oder in einer Schrift, die du selbst in das Verzeichnis der Standardschrift legst.',
+                    DEFAULT_FONT_URL: 'Adresse des ZIP-Archivs mit der Standardschrift. Nur ändern, wenn das Land Berlin die Datei an eine andere Adresse legt oder du sie selbst bereitstellst.',
+                    DEFAULT_FONT_SHA256: 'SHA-256-Prüfsumme, die das Archiv haben muss. Ein Archiv mit einer anderen Prüfsumme wird nicht verwendet. Zusammen mit DEFAULT_FONT_URL ändern, wenn eine neue Version der Schrift erscheint.',
                     TYPST_BIN: 'Pfad zur Typst-Programmdatei. Typst wird für den PDF-Export von Protokollen und Berichten verwendet. Im Docker-Container ist es bereits vorinstalliert.',
                     PANDOC_BIN: 'Pfad zur Pandoc-Programmdatei. Pandoc wird für den Import und die Konvertierung von Dokumenten verwendet. Im Docker-Container ist es bereits vorinstalliert.',
                     QPDF_BIN: 'Pfad zur qpdf-Programmdatei. Wird zur verlustfreien Komprimierung von PDF-Uploads verwendet. Im Docker-Container vorinstalliert; wenn nicht vorhanden, wird die PDF-Kompression einfach übersprungen.',
@@ -1534,6 +1544,11 @@ volumes:
                 + 'und Ember erinnert rechtzeitig daran.',
             typeBoolean: 'Ja/Nein - Schalter.',
             typeEnum: 'Auswahl - Auswahl aus vorgegebenen Werten. Die Werte trägst du einzeln ein, einen pro Zeile; mit den Pfeilen änderst du ihre Reihenfolge.',
+            typeGender: 'Geschlecht - Eine Auswahl, deren Antworten sagen, mit welchen Pronomen Dokumente über '
+                + 'das Mitglied schreiben. Neu angelegt bringt sie männlich und weiblich mit, weitere Antworten '
+                + 'kommen dazu. Jede Antwort steht für er, sie, eigene Pronomen je Sprache oder den Vornamen. '
+                + 'Pro Wache gibt es ein Geschlechtsfeld, das eigene oder das des Verbands. Ein bestehendes '
+                + 'Auswahlfeld lässt sich zum Geschlecht umstellen; die gegebenen Antworten bleiben erhalten.',
             typeAge: 'Alter - Wird automatisch aus einem Datumsfeld berechnet.',
             typeSection: 'Überschrift - Kein Feld, sondern eine Zwischenüberschrift. Sie wird nach '
                 + 'nichts gefragt und steht in keinem Export.',
@@ -1665,15 +1680,213 @@ volumes:
                 + 'mit einem Link zu ihrem Profil. Dort entscheidest du, in welcher Gruppe sie bleiben.',
             tip: 'Gruppen werden auch für Anwesenheitsvorlagen, Sichtbarkeitseinschränkungen bei Neuigkeiten und Terminen sowie für gruppenspezifische Profilfelder verwendet.',
         },
+        documentTemplates: {
+            title: 'Dokumentvorlagen',
+            subtitle: 'Briefe und PDFs, aus denen Ember Dokumente für Mitglieder erstellt',
+            whatIs: 'Wofür Vorlagen da sind',
+            whatIsText: 'Eine Vorlage ist ein Brief mit Briefkopf und Text, in dem Platzhalter für die Daten eines '
+                + 'Mitglieds stehen: Name, Geburtsdatum, Mitglied seit, Profilfelder, Erziehungsberechtigte und die '
+                + 'Wache. Daraus erstellt Ember für ein Mitglied ein fertiges PDF, zum Beispiel eine '
+                + 'Teilnahmebescheinigung.',
+            whatIsPdfText: 'Eine PDF-Vorlage ist ein fertiges Formular, etwa eine Einverständniserklärung. Du lädst '
+                + 'es als PDF hoch und setzt Felder auf seine Seiten. Ember füllt sie für jedes Mitglied aus, das '
+                + 'Formular selbst bleibt unverändert.',
+            whatIsText2: 'Jedes erstellte Dokument landet in den Dokumenten des Mitglieds. Ember merkt sich, aus '
+                + 'welcher Fassung der Vorlage es stammt und wessen Daten darin stehen.',
+            generateTitle: 'Ein Dokument erstellen',
+            generateText: 'Auf der Seite eines Mitglieds öffnest du im Reiter Dokumente „Dokument erstellen", '
+                + 'wählst die Vorlage und siehst sofort eine Vorschau. Mit „Erstellen" wird das PDF abgelegt. Aus '
+                + 'dem Editor einer Vorlage geht das genauso, über die Vorschau.',
+            missingText: 'Fehlen Angaben, nennt Ember sie vor dem Erstellen. Du kannst trotzdem erstellen, die '
+                + 'Lücken stehen dann als Linien zum Ausfüllen im Dokument.',
+            selfServiceTitle: 'Selbst erstellen lassen',
+            selfServiceText: 'Ist eine Vorlage zum Selbst-Erstellen freigegeben, finden Mitglieder sie unter Dokumente → '
+                + 'Meine Dokumente neben ihren Dokumenten. Erziehungsberechtigte erstellen sie dort für jedes Kind. Fehlen Angaben im '
+                + 'Profil, erklärt Ember, welche, und erstellt erst, wenn sie eingetragen sind.',
+            cooldownText: 'Damit niemand dasselbe Dokument ständig neu erstellt, hat jede Vorlage eine Wartezeit, '
+                + 'normal 30 Tage. Danach ist es wieder möglich, und Ember zeigt bis dahin das Datum an.',
+            associationTitle: 'Vorlagen des Verbands',
+            associationText: 'Gehört die Wache zu einem Verband, stehen dessen Vorlagen mit dem Zeichen „Vom Verband" '
+                + 'in der Liste. Die Wache erstellt sie für ihre Mitglieder wie eigene Vorlagen, geändert werden sie '
+                + 'nur im Verband. Platzhalter wie der Name der Wache füllt Ember mit den Daten der Wache des Mitglieds.',
+            associationSelfServiceText: 'Ob Mitglieder eine Vorlage des Verbands selbst erstellen, entscheidet die '
+                + 'Wache: Ein Klick auf die Vorlage öffnet die Einstellung, dort schaltet sie das Selbst-Erstellen ein '
+                + 'und wählt, für wen. Das geht nur, wenn der Verband die Vorlage dafür anbietet.',
+            listTitle: 'Die Liste der Vorlagen',
+            listText: 'Die Liste beginnt mit den Vorlagen, aus denen an dieser Wache zuletzt ein Dokument erstellt '
+                + 'wurde. Vorlagen, die noch nie verwendet wurden, stehen am Ende. Über die Spalten sortierst du '
+                + 'stattdessen nach Name, „Erstellt", „Geändert" oder „Zuletzt verwendet" und filterst nach Tagen.',
+            listPickerText: 'Auch beim Erstellen für ein Mitglied, für viele Mitglieder und bei den mitzubringenden '
+                + 'Dokumenten eines Termins stehen die zuletzt verwendeten Vorlagen oben. Unter Meine Dokumente stehen '
+                + 'die Vorlagen oben, die zuletzt für dieses Mitglied selbst erstellt wurden.',
+            duplicateTitle: 'Vorlage duplizieren',
+            duplicateText: '„Duplizieren" in der Zeile einer Vorlage oder im Editor legt eine Kopie mit dem Namen '
+                + '„Kopie von …" an und öffnet sie im Editor. Die Kopie übernimmt alles, was gespeichert ist: Brief '
+                + 'oder PDF mit Feldern, Ablage, Selbst-Erstellen mit Wartezeit und Zielgruppe. Sie beginnt bei '
+                + 'Version 1. Erstellte Dokumente und Termine bleiben bei der alten Vorlage.',
+            duplicateAssociationText: 'Auch eine Vorlage des Verbands lässt sich duplizieren. Die Kopie gehört dann '
+                + 'der Wache, die sie frei ändern kann. Bilder aus den Medien des Verbands fehlen in der Kopie, bis du '
+                + 'sie ersetzt. Ember weist nach dem Duplizieren darauf hin.',
+            archiveTitle: 'Archivieren statt löschen',
+            archiveText: 'Vorlagen werden nicht gelöscht, sondern archiviert. Eine archivierte Vorlage erstellt '
+                + 'nichts mehr, bleibt aber für die Dokumente erhalten, die aus ihr entstanden sind. Mit „Wieder '
+                + 'verwenden" holst du sie zurück.',
+            rightsTitle: 'Wer was darf',
+            rightsText: 'Vorlagen schreiben darf, wer „Dokumentvorlagen" hat. Für ein Mitglied erstellen darf, wer '
+                + '„Mitgliederdokumente verwalten" hat. „Dokumente" umfasst beides.',
+            tip: 'Lege eine Vorlage einmal sauber an, mit Briefkopf und Logo. Danach ist jede Bescheinigung ein Klick.',
+            bulkTitle: 'Für mehrere Mitglieder erstellen',
+            bulkText: 'Über „Für mehrere Mitglieder erstellen" wählst du eine Vorlage und für wen sie erstellt wird: '
+                + 'nach Gruppen, Mitgliedstypen und Tags, oder ohne Auswahl für alle aktuellen Mitglieder. In der '
+                + 'Mitgliederliste geht das auch für ausgewählte Mitglieder, über „Exportieren" und „Dokumente '
+                + 'erstellen".',
+            bulkPreviewText: 'Die Vorschau zeigt das Dokument des ersten Mitglieds und nennt alle Mitglieder, bei '
+                + 'denen Angaben fehlen. Du entscheidest, ob für sie trotzdem ein Dokument mit Linien zum Ausfüllen '
+                + 'entsteht oder ob sie ausgelassen werden.',
+            bulkRunText: 'Die Erstellung läuft im Hintergrund weiter, auch wenn du die Seite verlässt. Unter der '
+                + 'Liste der Vorlagen siehst du den Fortschritt und danach, für wen nichts abgelegt wurde und warum.',
+            forAppointmentsTitle: 'Vorlagen für Termine',
+            forAppointmentsText: 'Ist eine Vorlage „Für Termine", kann ein Termin sie als mitzubringendes Dokument '
+                + 'verlangen. Nur dann bietet der Editor die Angaben des Termins als Platzhalter an: Name, Beginn, Ende '
+                + 'und Ort. Eine solche Vorlage ist immer ein rechtliches Dokument.',
+        },
+        documentFonts: {
+            title: 'Schriftarten',
+            subtitle: 'Eigene Schriften für die Dokumentvorlagen der Wache',
+            whatIs: 'Wofür Schriftarten da sind',
+            whatIsText: 'Ohne eigene Schrift druckt Ember Dokumente in der Standardschrift Berlin Type. Hier lädst '
+                + 'du die Schrift eurer Briefe hoch, zum Beispiel die Hausschrift des Verbands. Danach kann jede '
+                + 'Vorlage sie verwenden.',
+            defaultText: 'Berlin Type ist die Schrift des Landes Berlin und für alle frei nutzbar. Ember lädt sie '
+                + 'beim Start selbst herunter. Gelingt das nicht, druckt Ember in Liberation Sans. Berlin Type hat '
+                + 'keinen kursiven Schnitt, kursiver Text erscheint deshalb in Liberation Sans. In der '
+                + 'Schriftauswahl einer Vorlage heißt sie „Standard".',
+            reachText: 'Vorlagen der Wache sehen ihre eigenen Schriften, die des Verbands und die der Instanz. Gibt '
+                + 'es eine Schrift mit demselben Namen an mehreren Stellen, gilt die eigene der Wache, dann die des '
+                + 'Verbands, dann die der Instanz.',
+            uploadTitle: 'Eine Schrift hochladen',
+            uploadText: 'Wähle die Schriftdatei (.ttf oder .otf), gib den Familiennamen ein und wähle den Schnitt: '
+                + 'normal, fett, kursiv oder fett kursiv. Jeder Schnitt ist eine eigene Datei unter demselben '
+                + 'Familiennamen.',
+            licenceText: 'Beim Hochladen bestätigst du, dass ihr die Schrift für eure Dokumente verwenden dürft. '
+                + 'Schriften, deren Lizenz das Einbetten in Dokumente verbietet, nimmt Ember nicht an.',
+            useTitle: 'Eine Schrift verwenden',
+            useText: 'Im Editor eines Briefs wählst du unter Seite je eine Schrift für Text, Kopfzeile und '
+                + 'Fußzeile. Bei einer PDF-Vorlage wählst du für jedes Textfeld Schrift und Schnitt. Fehlt einer '
+                + 'Schrift ein Zeichen, druckt Ember es in Liberation Sans.',
+            previewText: 'Die Schriftdateien verlassen nie den Server. Der Editor zeigt die Vorschau deshalb in einer '
+                + 'Ersatzschrift, das erstellte Dokument steht in der gewählten Schrift.',
+            deleteTitle: 'Eine Schrift löschen',
+            deleteText: 'Solange eine Vorlage in Gebrauch eine Schrift verwendet, lässt sie sich nicht löschen. '
+                + 'Ember nennt dann die Vorlagen. Archivierte Vorlagen halten keine Schrift fest.',
+            tip: 'Lade alle vier Schnitte einer Schrift hoch. Fehlt einer, druckt Ember dort den normalen Schnitt.',
+        },
+        documentTemplateUse: {
+            title: 'Vorlage des Verbands',
+            subtitle: 'Wie die Wache eine Vorlage ihres Verbands verwendet',
+            whatIs: 'Was die Wache hier festlegt',
+            whatIsText: 'Die Vorlage gehört dem Verband und wird dort geschrieben. Die Verwaltung der Wache erstellt '
+                + 'sie für Mitglieder auf deren Seite, ohne etwas einzustellen. Hier legt die Wache nur fest, ob ihre '
+                + 'Mitglieder sie selbst erstellen.',
+            selfServiceTitle: 'Selbst erstellen lassen',
+            selfServiceText: 'Mit dem Schalter erscheint die Vorlage bei den Mitgliedern unter Meine Dokumente. Ohne Auswahl bei „Für '
+                + 'wen" gilt sie für alle Mitglieder, sonst nur für die gewählten Gruppen, Mitgliedsarten, Tags oder '
+                + 'Personen. Die Wartezeit legt der Verband fest.',
+            offeredText: 'Bietet der Verband die Vorlage nicht zum Selbst-Erstellen an, bleibt die Einstellung ohne '
+                + 'Wirkung, bis er es tut.',
+        },
+        documentTemplateEditor: {
+            title: 'Vorlage bearbeiten',
+            subtitle: 'Kopfzeile, Text, Fußzeile, PDF-Felder, Platzhalter und Pronomen einer Dokumentvorlage',
+            generalTitle: 'Allgemein',
+            generalText: 'Hier gibst du der Vorlage einen Namen und legst fest, unter welchem Titel und Dateinamen '
+                + 'die Dokumente abgelegt werden, mit welchen Tags, ob sie die Mitgliedschaft überdauern und ob sie '
+                + 'vor dem Mitglied verborgen sind.',
+            legalText: 'Ein rechtliches Dokument nennt Mitglieder nur mit ihrem amtlichen Namen. Den Rufnamen bietet '
+                + 'der Editor dann nicht an, und Ember erstellt kein rechtliches Dokument, das ihn enthält.',
+            letterheadTitle: 'Brief, Kopf- und Fußzeile',
+            letterheadText: 'Unter Brief stehen Kopfzeile, Text und Fußzeile so untereinander wie auf dem Papier. '
+                + 'Alle drei bestehen aus Zeilen mit Spalten, wie die Seiten der Wache: bis zu drei im Text, '
+                + 'bis zu vier in Kopf- und Fußzeile. Eine Spalte '
+                + 'hält einen Text, ein Bild aus der Mediathek oder das Logo der Wache, eine Trennlinie mit oder '
+                + 'ohne Beschriftung, einen Abstand, oder mehrere davon untereinander. Die Breite einer Spalte '
+                + 'ziehst du am Rand oder gibst sie im Menü ein. Über „Linien zwischen den Spalten" im Menü einer '
+                + 'Zeile steht zwischen ihren Spalten je eine senkrechte Linie. Kopf- und Fußzeile zeigen sich, wie '
+                + 'sie gedruckt werden, und öffnen sich zum Bearbeiten per Klick.',
+            pageText: 'Unter Seite stellst du die Ränder und die Schriftgröße ein. Kopf- und Fußzeile stehen im '
+                + 'oberen und unteren Rand, lass dort also genug Platz.',
+            bodyTitle: 'Text, Platzhalter und Sichtbarkeit',
+            bodyText: 'Einen Text schreibst du im gewohnten Editor. Darüber stehen die Bereiche der Platzhalter, '
+                + 'etwa Mitglied, Pronomen oder Wache. Wähle einen Bereich und klicke dich weiter, zum Beispiel '
+                + 'Mitglied › Profil › Medizinisches › Allergien, oder suche direkt nach einem Feld. Ein Klick setzt '
+                + 'das Feld an der Stelle des Cursors ein. Im Text erscheint es als farbiges Feld mit seinem Namen. '
+                + 'Bei Titel, Dateiname und PDF-Feldern öffnet „Platzhalter einfügen" dieselbe Auswahl. Über '
+                + '„Sichtbarkeit" im Menü eines Bausteins erscheint er nur für '
+                + 'bestimmte Gruppen, Mitgliedsarten oder Tags. Für andere Mitglieder fällt er weg, und eine Zeile '
+                + 'ohne Inhalt verschwindet ganz. Einen anderen Text für die übrigen Mitglieder schreibst du in einen '
+                + 'zweiten Baustein mit eigener Sichtbarkeit. Unter „Erziehungsberechtigte" legst du zusätzlich fest, '
+                + 'ob ein Baustein nur mit oder nur ohne zweite erziehungsberechtigte Person erscheint, etwa für '
+                + '„beide Erziehungsberechtigte".',
+            placeholdersText: 'Beim Erstellen füllt Ember jedes Feld mit den Daten des Mitglieds, so wie sie gerade '
+                + 'eingetragen sind. Namen sind immer die amtlichen Namen, nur der Rufname ist eine Ausnahme.',
+            fontText: 'Einzelne Wörter druckst du in einer anderen Schrift. Markiere sie und wähle im Menü des '
+                + 'Editors unter „Schriftart" eine Schrift. Zur Auswahl stehen alle Schriften der Wache, ihres '
+                + 'Verbands und der Instanz. Im Editor sehen die Wörter aus wie immer: Sie sind gepunktet '
+                + 'unterstrichen, und zeigst du mit der Maus darauf, steht dort der Name der Schrift. Erst im PDF '
+                + 'erscheint die Schrift selbst. „Schrift der Vorlage" setzt die Wörter zurück. Gibt es eine '
+                + 'Schrift später nicht mehr, druckt Ember die Wörter in der Schrift der Vorlage.',
+            importText: 'Hast du die Bescheinigung schon als Word- oder OpenDocument-Text, importiere sie. Lücken in '
+                + 'eckigen Klammern wie [Vorname Nachname] oder [Geburtsdatum] werden zu Platzhaltern, alles andere '
+                + 'bleibt Text. Der Text landet als ein Baustein im Brief, ein Bild auf eigener Zeile als eigener '
+                + 'Bildbaustein. Kopf- und Fußzeile richtest du danach selbst ein.',
+            signatureTitle: 'Unterschriften',
+            signatureText: 'Eine Unterschriftszeile setzt du im Text als eigenen Baustein. Wähle, wer unterschreibt: '
+                + 'die teilnehmende Person, die ausstellende Person, die erste oder zweite erziehungsberechtigte Person, '
+                + 'alle Erziehungsberechtigten mit je einer eigenen Linie oder eine beliebige von ihnen. Darunter '
+                + 'steht ein kurzer Text mit Platzhaltern, etwa Name und Funktion. Im Dokument steht eine Linie zum '
+                + 'Unterschreiben, und das PDF enthält dort ein leeres Unterschriftsfeld.',
+            signatureGuardiansText: 'Hat ein Mitglied nur eine erziehungsberechtigte Person, fällt die Zeile für die '
+                + 'zweite weg, und ihre Angaben bleiben leer, ohne als fehlend zu gelten. Fehlt jede '
+                + 'erziehungsberechtigte Person, nennt Ember die Angaben der ersten als fehlend.',
+            signatureTwiceText: 'Jede Person unterschreibt in einem Dokument höchstens einmal. Zwei Zeilen für '
+                + 'dieselbe Person sind nur als Alternativen möglich, deren Sichtbarkeit sich nie überschneidet. '
+                + 'Trifft beides doch auf ein Mitglied zu, erstellt Ember das Dokument für dieses Mitglied nicht.',
+            pdfTitle: 'PDF und Felder',
+            pdfText: 'Eine PDF-Vorlage füllt ein hochgeladenes Formular aus. Speichere die Vorlage, lade das PDF hoch '
+                + 'und setze Felder auf seine Seiten: ein Textfeld schreibt Text mit Platzhaltern, ein Ankreuzfeld setzt '
+                + 'ein Kreuz, wenn sein Wert Ja ist, und ein Unterschriftsfeld bleibt leer zum Unterschreiben.',
+            pdfFieldsText: 'Ziehe ein Feld an seine Stelle und an der Ecke auf die richtige Größe. Mit den '
+                + 'Pfeiltasten verschiebst du es genauer. Ein Text, der nicht passt, wird kleiner oder bricht in weitere '
+                + 'Zeilen um. Ein Unterschriftsfeld für alle Erziehungsberechtigten teilt sich beim Erstellen in je ein '
+                + 'Feld nebeneinander, eines für die zweite erziehungsberechtigte Person fällt bei nur einer weg.',
+            pdfFormText: 'Hat das PDF eigene Formularfelder, stehen sie darunter. Du füllst sie mit Platzhaltern oder '
+                + 'lässt sie, wie sie sind. Beim Erstellen werden alle Felder fest in die Seite übernommen.',
+            pdfVersionText: 'Kommt eine neue Fassung des Formulars, lade sie einfach hoch. Die Felder bleiben, wo sie '
+                + 'waren, und du prüfst sie über den neuen Seiten. Schon erstellte Dokumente bleiben, wie sie sind.',
+            pronounsTitle: 'Pronomen und Sprache',
+            pronounsText: 'Pronomen folgen dem Geschlechtsfeld der Wache: Jede Antwort dort sagt, welche Pronomen in '
+                + 'Dokumenten stehen, je Sprache, oder dass der Vorname steht. Ohne Antwort steht ebenfalls der '
+                + 'Vorname. Die Sprache der Vorlage stellst du unter Allgemein ein.',
+            pronounsNameText: 'Pronomen-Platzhalter gibt es als er/sie, ihn/sie, ihm/ihr und sein/ihr, jeweils auch '
+                + 'für den Satzanfang. Sein/ihr gibt es zusätzlich mit Endung, etwa seine/ihre oder seinen/ihren. '
+                + 'Steht der Vorname, wird beim Besitz „Lenas" geschrieben, ohne Endung.',
+            selfServiceTitle: 'Selbst erstellen',
+            selfServiceText: 'Gib die Vorlage frei, damit Mitglieder sie unter Meine Dokumente selbst erstellen. Lege fest, für '
+                + 'wen das gilt und wie viele Tage bis zum nächsten Mal vergehen müssen.',
+            previewTitle: 'Vorschau',
+            previewText: 'Die Vorschau zeigt den Brief so, wie er gedruckt wird. Ohne Mitglied stehen die Namen der '
+                + 'Platzhalter darin, mit einem Mitglied seine Daten. Fehlende Angaben werden genannt.',
+            tip: 'Speichere nach jeder Änderung: Erstellt wird immer aus der gespeicherten Fassung.',
+        },
         documents: {
-            title: 'Dokumente',
+            title: 'Ablage',
             subtitle: 'Die Ablage der Wache und die Dokumente einzelner Mitglieder',
             whatIs: 'Wofür die Ablage da ist',
             whatIsText: 'Hier liegen Dateien, die zu Mitgliedern gehören: Einverständnisse, '
                 + 'Nachweise, Verträge. Ein Dokument kann zu mehreren Mitgliedern gehören, und es '
                 + 'kann auch ganz ohne Zuordnung in der Ablage liegen.',
-            whatIsText2: 'Jedes Mitglied hat im Profil einen eigenen Reiter mit seinen Dokumenten. '
-                + 'Unter Mitglieder → Dokumente siehst du die gesamte Ablage, seitenweise, mit '
+            whatIsText2: 'Jedes Mitglied findet seine Dokumente im Profil und unter Dokumente → Meine Dokumente. '
+                + 'Unter Dokumente → Ablage siehst du die gesamte Ablage, seitenweise, mit '
                 + 'Suche und Filter auf ein Mitglied.',
             rightsTitle: 'Wer was darf',
             rightsRead: 'Die eigenen Dokumente darf jeder lesen, dafür braucht es kein Recht.',
@@ -1729,8 +1942,51 @@ volumes:
                 + 'auswählen" jedes, das der Filter findet, über alle Seiten. „Ausgewählte '
                 + 'löschen" entfernt sie nach einer Rückfrage in einem Zug, auch die zum Behalten '
                 + 'markierten. Dafür brauchst du „Mitgliederdokumente verwalten".',
+            filingRulesTitle: 'Dokumente aus Postfächern',
+            filingRulesText: 'Ember kann Anhänge aus E-Mail-Postfächern in die Ablage legen. Die Regeln dafür '
+                + 'gehören zu den Postfächern und stehen unter Verwalten → Post-Import. Wer sie ändern darf, '
+                + 'findet unter der Ablage einen Link dorthin.',
             tip: 'Ein Dokument, das mehrere betrifft, lädst du einmal hoch und ordnest es beim '
                 + 'Öffnen den weiteren Mitgliedern zu. So bleibt es eine Datei statt drei.',
+        },
+        documentsOverview: {
+            title: 'Dokumente',
+            subtitle: 'Deine Dokumente, die Ablage der Wache und die Vorlagen',
+            whatIs: 'Was du hier findest',
+            whatIsText: 'Unter Meine Dokumente siehst du deine eigenen Dokumente. Bist du für Kinder '
+                + 'verantwortlich, stehen ihre Dokumente darunter, jeweils mit ihrem Namen.',
+            createTitle: 'Selbst ein Dokument erstellen',
+            createText: 'Unter jeder Liste steht „Dokument erstellen" mit den Vorlagen, die die Wache dafür '
+                + 'freigegeben hat. Ein Klick erstellt das PDF und legt es gleich in die Liste. Fehlen Angaben in '
+                + 'deinem Profil, sagt Ember dir, welche.',
+            profileText: 'Im Profil siehst du deine Dokumente weiterhin. Erstellt werden sie hier.',
+            exampleTitle: 'So sieht ein Angebot aus',
+            exampleOffer: 'Teilnahmebescheinigung',
+            pagesTitle: 'Die Seiten im Bereich Dokumente',
+            pageOwn: 'Deine Dokumente und die deiner Kinder, mit allem, was du selbst erstellen kannst.',
+            pageStore: 'Die gesamte Ablage der Wache, mit Suche und Filtern.',
+            pageTemplates: 'Briefe und PDF-Formulare, aus denen Dokumente für Mitglieder entstehen.',
+            pageGenerated: 'Wer welches Dokument aus welcher Vorlage bekommen hat.',
+            pageFonts: 'Eigene Schriften für die Vorlagen.',
+            tip: 'Die Ablage, die Vorlagen und die Liste der erstellten Dokumente siehst du nur mit den passenden '
+                + 'Rechten. Deine eigenen Dokumente siehst du immer.',
+        },
+        generatedDocuments: {
+            title: 'Erstellte Dokumente',
+            subtitle: 'Wer welches Dokument aus welcher Vorlage bekommen hat',
+            whatIs: 'Was die Liste zeigt',
+            whatIsText: 'Jedes Dokument, das aus einer Vorlage erstellt wurde, steht hier: für wen, aus welcher '
+                + 'Vorlage und aus welcher Fassung, von wem und wann. Auch Vorlagen des Verbands sind dabei.',
+            versionText: 'Ändert jemand eine Vorlage, bleiben fertige Dokumente, wie sie sind. An der Version '
+                + 'siehst du, welche Fassung ein Mitglied hat.',
+            howTo: 'Suchen und filtern',
+            howToText: 'Sortiere über die Spaltenköpfe und filtere zum Beispiel nach einer Vorlage oder nach '
+                + 'selbst erstellten Dokumenten. Über das Spalten-Symbol blendest du Spalten ein und aus.',
+            goneText: 'Ist ein Mitglied gelöscht, steht dort „Nicht mehr da". „In den Dokumenten" sagt, ob das '
+                + 'Dokument noch abgelegt ist.',
+            rightsText: 'Die Liste sieht, wer „Mitgliederdokumente einsehen" hat.',
+            tip: 'Willst du ein Dokument erneut erstellen, öffne die Seite des Mitglieds und wähle „Dokument '
+                + 'erstellen".',
         },
         membersTags: {
             title: 'Tags',
@@ -2545,6 +2801,9 @@ volumes:
             cancelAutomaticText: 'Hat der Termin eine Mindestanzahl, prüft Ember jeden Termin einzeln. Kommen bis zur eingestellten Zahl von Tagen vorher zu wenige Zusagen zusammen, wird nur dieser Termin abgesagt. Einen so abgesagten Termin, den du wiederherstellst, sagt Ember nicht noch einmal ab.',
             attachmentsTitle: 'Dateien zum Termin',
             attachmentsText: 'Gibt der Termin Dateien mit, stehen sie unter den Angaben, jede mit ihrer Größe und einer Schaltfläche zum Herunterladen. Du siehst nur die Dateien, die für dich gedacht sind: eine interne Datei trägt ein Abzeichen „Intern" und erscheint nur bei den Leuten, die den Termin durchführen.',
+            documentsToBringTitle: 'Mitzubringende Dokumente',
+            documentsToBringText: 'Verlangt der Termin Dokumente, etwa eine Einverständniserklärung, stehen sie unter den Dateien, sobald du oder eines deiner Kinder angemeldet ist. Für jede angemeldete Person gibt es eine eigene Zeile.',
+            documentsToBringDownloadText: '„Herunterladen" füllt das Dokument mit den Daten der Person und des Termins aus und legt es zusätzlich bei ihren Dokumenten ab. Drucke es aus, unterschreibe es und bring es zum Termin mit. Ändert die Wache die Vorlage, wird beim nächsten Herunterladen ein neues Dokument erstellt.',
             commentsTitle: 'Kommentare',
             commentsText: 'Unter dem Termin findest du einen Kommentarbereich. Hier können alle Mitglieder Fragen stellen oder Hinweise geben. Deine eigenen Kommentare kannst du ändern und löschen, und wer Termine verwaltet, kann auch die Kommentare anderer löschen.',
             notesTitle: 'Notizen',
@@ -2607,6 +2866,8 @@ volumes:
             exampleText: 'Vier Blöcke untereinander: Name, Vorgaben für den Termin, Erinnerungen und eigene Felder.',
             defaultsTitle: 'Vorgaben für den Termin',
             defaultsText: 'Titel, Beschreibung, Kategorie und Termintyp werden beim Anwenden direkt übernommen. Mit den Schaltern legst du fest, ob sich Mitglieder anmelden müssen und ob du die Anmeldung bestätigst. Ein Limit begrenzt die Zahl der Plätze.',
+            documentsTitle: 'Mitzubringende Dokumente',
+            documentsText: 'Über dem Speichern wählst du Dokumentvorlagen „Für Termine", die jeder Termin aus dieser Vorlage von den Teilnehmenden verlangt. Ein Termin übernimmt die Liste beim Anlegen und lässt sich danach unabhängig ändern.',
             remindersTitle: 'Erinnerungen',
             remindersText: 'Eine Erinnerung sagt, wie viele Tage vor dem Termin die Mitglieder eine Nachricht bekommen. Du kannst mehrere anlegen, zum Beispiel sieben und einen Tag vorher.',
             fieldsTitle: 'Eigene Felder',
@@ -3904,6 +4165,72 @@ volumes:
             whoText: 'Die Einstellungen sieht nur, wer im Verband das Recht für allgemeine Einstellungen hat. Ohne dieses Recht taucht der Punkt in der Seitenleiste gar nicht erst auf.',
             tip: 'Der Name wird sofort übernommen, ein erneutes Anmelden ist nicht nötig.',
         },
+        clusterDocumentTemplates: {
+            title: 'Dokumentvorlagen des Verbands',
+            subtitle: 'Briefe und PDFs, die alle Wachen des Verbands für ihre Mitglieder verwenden',
+            whatIs: 'Wofür Vorlagen des Verbands da sind',
+            whatIsText: 'Eine Vorlage des Verbands wird einmal geschrieben und von allen seinen Wachen verwendet, '
+                + 'zum Beispiel eine Bescheinigung im Briefkopf des Verbands oder ein Formular wie eine '
+                + 'Einverständniserklärung. Der Editor ist derselbe wie bei einer Wache.',
+            stationsText: 'Die Wachen sehen die Vorlage in ihrer Liste mit dem Zeichen „Vom Verband" und erstellen '
+                + 'daraus Dokumente für ihre Mitglieder. Ändern kann sie nur der Verband. Jedes Dokument wird bei der '
+                + 'Wache des Mitglieds abgelegt.',
+            placeholdersTitle: 'Platzhalter',
+            placeholdersText: 'Platzhalter füllt Ember mit den Daten des Mitglieds und seiner eigenen Wache: Name, '
+                + 'Anschrift und Logo der Wache sind für jedes Mitglied die richtigen. Dazu kommen Name und Anschrift '
+                + 'des Verbands und die Profilfelder des Verbands. Erreicht ein Profilfeld eine Wache nicht, fehlt der '
+                + 'Wert dort.',
+            previewText: 'Der Verband hat keine eigenen Mitglieder. Die Vorschau zeigt deshalb die Platzhalter mit '
+                + 'ihrem Namen.',
+            selfServiceTitle: 'Selbst erstellen',
+            selfServiceText: 'Der Verband bietet eine Vorlage zum Selbst-Erstellen an und legt die Wartezeit fest. Ob '
+                + 'und für wen Mitglieder sie selbst erstellen, entscheidet jede Wache für sich.',
+            filesTitle: 'Bilder und Schriften',
+            picturesText: 'Bilder für Briefkopf und Text kommen aus den Medien des Verbands. Was dort von einer '
+                + 'Vorlage verwendet wird, bleibt erhalten.',
+            fontsText: 'Vorlagen des Verbands verwenden die Schriften des Verbands und der Instanz, aber keine '
+                + 'Schrift einer einzelnen Wache.',
+            listTitle: 'Liste und Kopien',
+            listText: 'Die Liste beginnt mit den Vorlagen, aus denen zuletzt an einer der Wachen ein Dokument '
+                + 'erstellt wurde. Über die Spalten sortierst du stattdessen nach Name, „Erstellt", „Geändert" oder '
+                + '„Zuletzt verwendet".',
+            duplicateText: '„Duplizieren" legt eine Kopie einer Vorlage des Verbands an, mit allem, was gespeichert '
+                + 'ist, und öffnet sie im Editor. Auch jede Wache kann eine Vorlage des Verbands duplizieren und '
+                + 'erhält damit eine eigene, die sie frei ändert.',
+            rightsTitle: 'Wer was darf',
+            rightsText: 'Vorlagen, Schriften und Medien des Verbands bearbeitet, wer im Verband „Dokumentvorlagen" '
+                + 'hat.',
+            tip: 'Lege Bescheinigungen, die alle Wachen gleich brauchen, im Verband an. Eine Änderung gilt dann für '
+                + 'alle Wachen auf einmal.',
+        },
+        clusterMedia: {
+            title: 'Medien des Verbands',
+            subtitle: 'Bilder und Dateien des Verbands',
+            whatIs: 'Wofür die Medien da sind',
+            whatIsText: 'Hier liegen die Bilder und Dateien des Verbands, etwa das Logo für den Briefkopf seiner '
+                + 'Vorlagen und die Bilder in seinem Wiki und seinen Neuigkeiten.',
+            uploadTitle: 'Hochladen und ordnen',
+            uploadText: 'Dateien werden hier hochgeladen, in Ordner sortiert und mit Tags versehen, genau wie in den '
+                + 'Medien einer Wache. Im Editor einer Vorlage stehen sie zur Auswahl.',
+            keptText: 'Ein Bild, das eine Vorlage verwendet, gilt als benutzt und wird beim Aufräumen nicht entfernt. '
+                + 'Die Dateien zählen zum Speicherplatz des Verbands.',
+        },
+        clusterDocumentFonts: {
+            title: 'Schriftarten des Verbands',
+            subtitle: 'Schriften, die alle Wachen des Verbands in ihren Dokumentvorlagen verwenden',
+            whatIs: 'Wofür Schriftarten da sind',
+            whatIsText: 'Eine Schrift, die der Verband hochlädt, steht allen seinen Wachen zur Verfügung, zum '
+                + 'Beispiel die Hausschrift für Bescheinigungen.',
+            reachText: 'Hat eine Wache eine eigene Schrift mit demselben Namen, verwendet sie ihre eigene. Schriften '
+                + 'der Instanz stehen zusätzlich allen zur Verfügung.',
+            uploadTitle: 'Eine Schrift hochladen',
+            uploadText: 'Wähle die Datei (.ttf oder .otf), den Familiennamen und den Schnitt. Du bestätigst, dass '
+                + 'der Verband die Schrift verwenden darf.',
+            roomText: 'Schriften des Verbands zählen zum Speicherplatz des Verbands.',
+            deleteTitle: 'Eine Schrift löschen',
+            deleteText: 'Solange eine Vorlage einer Wache die Schrift verwendet, lässt sie sich nicht löschen. Ember '
+                + 'nennt dann die Vorlagen.',
+        },
         clusterNotifications: {
             title: 'Benachrichtigungen des Verbands',
             subtitle: 'Lies, was dir der Verband meldet, und entscheide, ob er dich per E-Mail erreicht.',
@@ -4327,6 +4654,19 @@ volumes:
             deleteText: 'Entfernen lässt sich nur ein Verband, dem keine Wache mehr angehört. Löse zuerst alle Wachen vom Verband, danach kann er weg.',
             tip: 'Nur Administratoren dieser Instanz legen Verbände an. Wer den Verband danach verwaltet, wird im Verband selbst bestimmt.',
         },
+        adminDocumentFonts: {
+            title: 'Schriftarten der Instanz',
+            subtitle: 'Schriften, die jede Wache in ihren Dokumentvorlagen verwenden kann',
+            whatIs: 'Wofür Schriftarten da sind',
+            whatIsText: 'Eine Schrift, die hier hochgeladen wird, steht jeder Wache und jedem Verband dieser Instanz '
+                + 'für Dokumentvorlagen zur Verfügung.',
+            reachText: 'Hat ein Verband oder eine Wache eine Schrift mit demselben Namen, gilt deren eigene.',
+            uploadTitle: 'Eine Schrift hochladen',
+            uploadText: 'Wähle die Datei (.ttf oder .otf), den Familiennamen und den Schnitt und bestätige, dass die '
+                + 'Schrift so verwendet werden darf. Schriften der Instanz zählen zu keinem Speicherplatz.',
+            deleteTitle: 'Eine Schrift löschen',
+            deleteText: 'Solange eine Vorlage irgendeiner Wache die Schrift verwendet, lässt sie sich nicht löschen.',
+        },
         adminLegal: {
             title: 'Rechtliche Dokumente',
             subtitle: 'Datenschutz, Nutzungsbedingungen, Einwilligung und Impressum verwalten.',
@@ -4515,6 +4855,9 @@ volumes:
                 + 'Gruppen, zeigt Ember dir diese Gruppen vorher. Bestätigst du, wird es aus ihnen genommen.',
             relationsTitle: 'Beziehungen',
             relationsText: 'Im Beziehungen-Tab siehst du, welche Erziehungsberechtigte dem Mitglied zugeordnet sind. Du kannst bestehende zuweisen oder neue erstellen.',
+            guardianOrderText: 'Haben mehrere Erziehungsberechtigte ein Mitglied, legst du mit den Pfeilen oder per Ziehen fest, '
+                + 'wer zuerst steht. Die erste Person ist in Dokumenten „Erziehungsberechtigte 1", die zweite '
+                + '„Erziehungsberechtigte 2". Ember merkt sich auch, wann und von wem eine Zuordnung angelegt wurde.',
             relationsExampleTitle: 'So sieht der Beziehungen-Tab aus',
             formerTitle: 'Als ehemalig markieren',
             formerText: 'Auf der Detailseite kannst du ein Mitglied als ehemalig markieren. Alle zugewiesenen Gegenstände müssen vorher zurückgegeben sein.',
@@ -4609,6 +4952,9 @@ volumes:
             attachmentsText: 'Ein Termin kann Dateien mitgeben: den Laufzettel, das Formular zum Mitbringen, den Plan für den Termin. Du wählst sie aus den Medien der Wache oder lädst sie dort hoch, gibst ihnen bei Bedarf einen Anzeigenamen und bringst sie in die Reihenfolge, in der sie auf der Terminseite stehen sollen.',
             attachmentsInternalText: 'Mit dem Schalter „Intern" legst du fest, wer eine Datei bekommt. Ohne ihn sieht sie jeder, der den Termin sehen darf, Partnerwachen eingeschlossen. Mit ihm bleibt sie bei den Leuten, die den Termin durchführen: Wer Termine bearbeiten darf oder das Recht auf interne Termindaten hat, sieht sie, sonst niemand, und an Partnerwachen wird sie nicht weitergegeben.',
             attachmentsFilesText: 'Dateien liegen weiterhin in den Medien der Wache. Ein angehängtes Bild oder Dokument lässt sich dort nicht löschen, solange ein Termin es mitgibt, und derselbe Laufzettel kann an mehreren Terminen hängen, ohne mehrfach zu belegen.',
+            documentsTitle: 'Mitzubringende Dokumente',
+            documentsText: 'Unter „Mitzubringende Dokumente" wählst du Dokumentvorlagen, die als „Für Termine" markiert sind, etwa eine Einverständniserklärung. Jede angemeldete Person oder ihre Erziehungsberechtigten laden auf der Terminseite ein Exemplar herunter, ausgefüllt mit ihren Daten und denen des Termins.',
+            documentsTemplateText: 'Wird der Termin aus einer Termin-Vorlage erstellt, kommen deren Dokumente mit. Eine archivierte Vorlage bleibt in der Liste, bis du sie entfernst, lässt sich aber nicht neu hinzufügen.',
             title: 'Termin erstellen / bearbeiten',
             subtitle: 'Einen Termin einrichten oder ändern.',
             whatShown: 'Was kannst du hier tun?',
@@ -4979,6 +5325,10 @@ volumes:
             whatIsText: 'Im Profil siehst du deine persönlichen Daten, deine zugewiesene Ausrüstung, deine Abwesenheiten und deine Einstellungen. Hier kannst du dein Profil vervollständigen und deine Benachrichtigungen konfigurieren.',
             pagesTitle: 'Was findest du hier?',
             pagesText: 'Dein Profil mit allen Feldern, eine Übersicht deiner Abwesenheiten, die Profile deiner verwalteten Mitglieder, dein persönliches Inventar und die Benachrichtigungs-Einstellungen.',
+            documentsTitle: 'Deine Dokumente',
+            documentsText: 'Im Profil stehen deine Dokumente, als Erziehungsberechtigte auch die jedes Kindes. '
+                + 'Dokumente selbst erstellen, etwa eine Teilnahmebescheinigung, kannst du unter Dokumente → Meine '
+                + 'Dokumente. Der Link unter deinen Dokumenten führt dorthin.',
             overviewTip: 'Halte dein Profil aktuell - Pflichtfelder sind mit einem * markiert.',
         },
         manageOverview: {

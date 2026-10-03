@@ -93,6 +93,7 @@ const expiryDates = demoExpiryDates()
       <p>{{ t('helpCenter.membersConfig.typeExpiryDate') }}</p>
       <p>{{ t('helpCenter.membersConfig.typeBoolean') }}</p>
       <p>{{ t('helpCenter.membersConfig.typeEnum') }}</p>
+      <p>{{ t('helpCenter.membersConfig.typeGender') }}</p>
       <p>{{ t('helpCenter.membersConfig.typeAge') }}</p>
       <p>{{ t('helpCenter.membersConfig.typeSection') }}</p>
     </HelpSection>

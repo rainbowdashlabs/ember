@@ -10,13 +10,14 @@ import {useSession} from '@/composables/useSession'
 
 /**
  * The permissions that open the whole library and the folders and tags that organise it. They
- * belong to the three features that author content with the library: pages, news and the knowledge
- * base.
+ * belong to the four features that author content with the library: pages, news, the knowledge
+ * base and the letters of document templates.
  */
 const CONTENT_PERMISSIONS = [
     StationPermission.PAGE_EDIT,
     StationPermission.NEWS_EDIT,
     StationPermission.KNOWLEDGE_EDIT,
+    StationPermission.DOCUMENT_TEMPLATE_EDIT,
 ] as const
 
 /**

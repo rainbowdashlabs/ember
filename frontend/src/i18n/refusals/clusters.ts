@@ -4,6 +4,9 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {
+    GENDER_ALREADY_ASKED,
+    GENDER_NOT_FROM_CHOICE,
+    PRONOUN_TOO_LONG,
     CHANGE_SAVED_BUT_NOT_READ_BACK,
     EXPIRY_OUT_OF_RANGE,
     STATION_NEEDS_A_NAME,
@@ -206,4 +209,9 @@ export default {
     'CU-172': 'Ein Verband fragt keine Schnupperer, es wurde nichts gespeichert',
     'CU-173': GROUP_NAME_TAKEN,
     'CU-174': GROUP_NAME_TAKEN,
+    'CU-175': GENDER_ALREADY_ASKED,
+    'CU-176': GENDER_NOT_FROM_CHOICE,
+    'CU-177': PRONOUN_TOO_LONG,
+    'CU-178': CHOOSE_A_CLUSTER,
+    'CU-179': CHOOSE_A_CLUSTER,
 }

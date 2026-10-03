@@ -135,25 +135,6 @@ public class KnowledgeBaseRoutes implements Routes {
         this.browseService = browseService;
     }
 
-    private static @Nullable String detectPandocFormat(String filename, @Nullable String mimeType) {
-        if (filename != null) {
-            String lower = filename.toLowerCase();
-            if (lower.endsWith(".docx")) return "docx";
-            if (lower.endsWith(".odt")) return "odt";
-            if (lower.endsWith(".html") || lower.endsWith(".htm")) return "html";
-            if (lower.endsWith(".rtf")) return "rtf";
-            if (lower.endsWith(".epub")) return "epub";
-            if (lower.endsWith(".tex") || lower.endsWith(".latex")) return "latex";
-        }
-        if (mimeType != null) {
-            if (mimeType.contains("wordprocessingml") || mimeType.contains("msword")) return "docx";
-            if (mimeType.contains("opendocument.text")) return "odt";
-            if (mimeType.equals("text/html")) return "html";
-            if (mimeType.equals("text/rtf") || mimeType.equals("application/rtf")) return "rtf";
-        }
-        return null;
-    }
-
     /**
      * Reads the required multipart upload named {@code file}, answering {@code 400} when it is
      * missing or larger than the maximum upload size.
@@ -806,22 +787,33 @@ public class KnowledgeBaseRoutes implements Routes {
         if (folderIdStr != null && !folderIdStr.isBlank()) folderId = Integer.parseInt(folderIdStr);
         requireWriteInFolder(ctx, folderId);
 
-        String format = detectPandocFormat(file.filename(), file.contentType());
-        if (format == null) {
-            throw KnowledgeBaseRefusal.KB_IMPORT_KIND_UNKNOWN.raise();
-        }
+        String markdown = importedMarkdown(file);
+        ctx.json(service.createMarkdownFile(
+                session.stationId(),
+                folderId,
+                name.trim(),
+                description != null ? description : "",
+                markdown,
+                session.member().id()));
+    }
 
+    /**
+     * An uploaded document as markdown. What kind of document it is, is read from the file through the
+     * detection every import shares, so a renamed file is still read for what it is and an old binary
+     * Word file is refused as a kind the wiki cannot read rather than failing halfway.
+     */
+    private static String importedMarkdown(UploadedFile file) {
+        byte[] data;
         try (var content = file.content()) {
-            byte[] data = content.readAllBytes();
-            String markdown = PandocConverter.toMarkdown(data, format);
-            ctx.json(service.createMarkdownFile(
-                    session.stationId(),
-                    folderId,
-                    name.trim(),
-                    description != null ? description : "",
-                    markdown,
-                    session.member().id()));
-        } catch (Exception e) {
+            data = content.readAllBytes();
+        } catch (IOException e) {
+            throw KnowledgeBaseRefusal.KB_UPLOAD_NOT_READ.raise();
+        }
+        String format = PandocConverter.formatOf(data, file.filename(), file.contentType())
+                .orElseThrow(KnowledgeBaseRefusal.KB_IMPORT_KIND_UNKNOWN::raise);
+        try {
+            return PandocConverter.toMarkdown(data, format);
+        } catch (IOException e) {
             log.warn("Document conversion failed for KB import", e);
             throw KnowledgeBaseRefusal.KB_IMPORT_FAILED.raise();
         }

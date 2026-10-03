@@ -149,7 +149,7 @@ public class FormResultGrouping {
 
     private static List<Category> categoriesOf(ProfileField field, List<Respondent> respondents) {
         return switch (field.fieldType()) {
-            case CHOICE -> {
+            case CHOICE, GENDER -> {
                 var config = field.config();
                 List<String> options = config == null ? null : config.options();
                 yield Objects.requireNonNullElse(options, List.<String>of()).stream()

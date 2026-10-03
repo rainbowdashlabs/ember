@@ -7,6 +7,7 @@
 import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {renderMarkdown} from '@/util/markdown'
+import {useBlockEditorOptions} from '@/composables/useBlockEditorOptions'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import CellMarkdownEditor from './CellMarkdownEditor.vue'
@@ -20,21 +21,24 @@ import CellMarkdownEditor from './CellMarkdownEditor.vue'
  * means there is nothing to lose, and closing the dialog is simply closing it.
  *
  * <p>The page itself is still saved as it always was, so this decides only when the cell hears about
- * the typing, not when it reaches the server.
+ * the typing, not when it reaches the server. Where the editor names tokens, such as the placeholders
+ * of a letter, the rendered text shows them as chips.
  */
 const content = defineModel<string>('content', {required: true})
 
 const {t} = useI18n()
+const options = useBlockEditorOptions()
 
 const showModal = ref(false)
 
-const renderedHtml = computed(() => renderMarkdown(content.value))
+const renderedHtml = computed(() => renderMarkdown(options.value.tokens?.prepare(content.value) ?? content.value))
 </script>
 
 <template>
     <div
         class="flex-1 cursor-pointer rounded-theme border border-dashed border-transparent hover:border-(--border) p-2 transition-colors group"
         :title="t('stationPages.editor.editMarkdown')"
+        :aria-label="t('stationPages.editor.editMarkdown')"
         role="button"
         tabindex="0"
         @click="showModal = true"

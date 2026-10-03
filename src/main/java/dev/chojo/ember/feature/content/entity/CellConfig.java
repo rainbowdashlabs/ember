@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.content.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import dev.chojo.ember.feature.generator.entity.SignatureRole;
 import dev.chojo.ember.util.Json;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -600,6 +601,15 @@ public sealed interface CellConfig {
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     record CodeBlockConfig(@Nullable String language) implements CellConfig {}
+
+    /**
+     * A line to sign on in a letter, with an empty signature field on it for whoever signs. The short
+     * text printed below the line, with placeholders, lives in cell.content.
+     *
+     * @param signer who signs on the line; a block without one is refused when the letter is saved
+     */
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    record SignatureConfig(@Nullable SignatureRole signer) implements CellConfig {}
 
     /**
      * Cell that contains nested rows. The rows are stored opaquely as JSON nodes so the existing

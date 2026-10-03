@@ -2663,6 +2663,87 @@
         }
       }
     },
+    "/api/v1/admin/document-fonts" : {
+      "post" : {
+        "summary" : "Upload one style of a font family for the documents of every station",
+        "tags" : [ "Admin" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DocumentFontsResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get" : {
+        "summary" : "The fonts the instance offers every station",
+        "tags" : [ "Admin" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DocumentFontsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/document-fonts/{id}" : {
+      "delete" : {
+        "summary" : "Delete a font of the instance that no template in use prints with",
+        "tags" : [ "Admin" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DocumentFontsResponse"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
     "/api/v1/admin/feed-metrics" : {
       "get" : {
         "summary" : "Get the personal feed render histogram per day",
@@ -10496,6 +10577,469 @@
         }
       }
     },
+    "/api/v1/cluster/document-fonts" : {
+      "post" : {
+        "summary" : "Upload one style of a font family for the documents of the association and its stations",
+        "tags" : [ "Cluster" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DocumentFontsResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get" : {
+        "summary" : "The association's fonts, and every font family its templates can print in",
+        "tags" : [ "Cluster" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DocumentFontsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cluster/document-fonts/{id}" : {
+      "delete" : {
+        "summary" : "Delete a font of the association that no template in use prints with",
+        "tags" : [ "Cluster" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DocumentFontsResponse"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/cluster/document-placeholders" : {
+      "get" : {
+        "summary" : "The placeholders a document template of the association can name",
+        "tags" : [ "Cluster" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PlaceholderCatalogueResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cluster/document-template-import" : {
+      "post" : {
+        "summary" : "Read the body of a Word or OpenDocument text into a letter template of the association",
+        "tags" : [ "Cluster" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LetterImport"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cluster/document-template-preview" : {
+      "post" : {
+        "summary" : "Draw a document template of the association as the editor holds it, with its placeholders",
+        "tags" : [ "Cluster" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PreviewResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/DraftPreviewRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cluster/document-templates" : {
+      "post" : {
+        "summary" : "Create a document template of the association",
+        "tags" : [ "Cluster" ],
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DocumentTemplateResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/DocumentTemplateRequest"
+              }
+            }
+          }
+        }
+      },
+      "get" : {
+        "summary" : "The document templates of the association",
+        "tags" : [ "Cluster" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/DocumentTemplateSummary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "archived",
+          "in" : "query",
+          "schema" : {
+            "type" : "boolean"
+          }
+        } ]
+      }
+    },
+    "/api/v1/cluster/document-templates/{id}" : {
+      "get" : {
+        "summary" : "A document template of the association",
+        "tags" : [ "Cluster" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DocumentTemplateResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      },
+      "put" : {
+        "summary" : "Change a document template of the association, counting its version up",
+        "tags" : [ "Cluster" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DocumentTemplateResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/DocumentTemplateRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cluster/document-templates/{id}/archive" : {
+      "post" : {
+        "summary" : "Archive a document template of the association, which its stations then no longer use",
+        "tags" : [ "Cluster" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DocumentTemplateResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/cluster/document-templates/{id}/duplicate" : {
+      "post" : {
+        "summary" : "Copy a document template of the association as a new template of the association",
+        "tags" : [ "Cluster" ],
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DocumentTemplateCopy"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/DocumentTemplateCopyRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cluster/document-templates/{id}/pdf" : {
+      "post" : {
+        "summary" : "Upload a new version of the PDF a PDF template of the association fills, keeping its fields",
+        "tags" : [ "Cluster" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DocumentTemplateResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      },
+      "get" : {
+        "summary" : "The PDF a PDF template of the association fills now, as it was uploaded",
+        "tags" : [ "Cluster" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/cluster/document-templates/{id}/restore" : {
+      "post" : {
+        "summary" : "Take an archived document template of the association back into use",
+        "tags" : [ "Cluster" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DocumentTemplateResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
     "/api/v1/cluster/fields" : {
       "post" : {
         "summary" : "Add a question",
@@ -13267,6 +13811,843 @@
         }
       }
     },
+    "/api/v1/document-fonts" : {
+      "post" : {
+        "summary" : "Upload one style of a font family for the station's documents",
+        "tags" : [ "Documents" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DocumentFontsResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get" : {
+        "summary" : "The station's fonts, and every font family its templates can print in",
+        "tags" : [ "Documents" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DocumentFontsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/document-fonts/{id}" : {
+      "delete" : {
+        "summary" : "Delete a font of the station that no template in use prints with",
+        "tags" : [ "Documents" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DocumentFontsResponse"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/document-generation/jobs" : {
+      "get" : {
+        "summary" : "The latest runs that generate a template for many members, the newest first",
+        "tags" : [ "Documents" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/GenerationJobSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/document-generation/jobs/{jobId}" : {
+      "get" : {
+        "summary" : "A run that generates a template for many members, with how it went for each",
+        "tags" : [ "Documents" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GenerationJobResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "jobId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/document-generation/log" : {
+      "get" : {
+        "summary" : "Every document the station generated from a template, the newest first",
+        "tags" : [ "Documents" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/GeneratedDocumentEntry"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/document-generation/templates" : {
+      "get" : {
+        "summary" : "The document templates a manager can generate documents from",
+        "tags" : [ "Documents" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/DocumentTemplateSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/document-generation/templates/{templateId}/jobs" : {
+      "post" : {
+        "summary" : "Start generating a template for many members in the background",
+        "tags" : [ "Documents" ],
+        "responses" : {
+          "202" : {
+            "description" : "Accepted",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GenerationJobResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "templateId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/JobStartRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/document-generation/templates/{templateId}/jobs/preview" : {
+      "post" : {
+        "summary" : "Draw a template for the first of many members and list what every member lacks",
+        "tags" : [ "Documents" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/BulkPreviewResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "templateId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/MemberSelection"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/document-generation/templates/{templateId}/members/{memberId}" : {
+      "post" : {
+        "summary" : "Generate a document for a member and file it in their documents",
+        "tags" : [ "Documents" ],
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GeneratedDocumentResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "templateId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "memberId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/document-generation/templates/{templateId}/members/{memberId}/preview" : {
+      "post" : {
+        "summary" : "Draw a document for a member without filing it, listing the values that are missing",
+        "tags" : [ "Documents" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PreviewResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "templateId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "memberId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/document-placeholders" : {
+      "get" : {
+        "summary" : "The placeholders a document template of the station can name",
+        "tags" : [ "Documents" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PlaceholderCatalogueResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/document-requirements/templates" : {
+      "get" : {
+        "summary" : "The document templates appointments may ask participants to bring",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/RequiredTemplate"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/document-template-import" : {
+      "post" : {
+        "summary" : "Read the body of a Word or OpenDocument text into a letter template, gaps in brackets as placeholders",
+        "tags" : [ "Documents" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LetterImport"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/document-template-preview" : {
+      "post" : {
+        "summary" : "Draw a document template as the editor holds it, for a member or with its placeholders",
+        "tags" : [ "Documents" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PreviewResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/DraftPreviewRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/document-templates" : {
+      "post" : {
+        "summary" : "Create a document template",
+        "tags" : [ "Documents" ],
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DocumentTemplateResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/DocumentTemplateRequest"
+              }
+            }
+          }
+        }
+      },
+      "get" : {
+        "summary" : "The document templates of the station",
+        "tags" : [ "Documents" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/DocumentTemplateSummary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "archived",
+          "in" : "query",
+          "schema" : {
+            "type" : "boolean"
+          }
+        } ]
+      }
+    },
+    "/api/v1/document-templates/{id}" : {
+      "get" : {
+        "summary" : "A document template with its letter",
+        "tags" : [ "Documents" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DocumentTemplateResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      },
+      "put" : {
+        "summary" : "Change a document template, counting its version up",
+        "tags" : [ "Documents" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DocumentTemplateResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/DocumentTemplateRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/document-templates/{id}/archive" : {
+      "post" : {
+        "summary" : "Archive a document template, which then generates nothing more",
+        "tags" : [ "Documents" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DocumentTemplateResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/document-templates/{id}/duplicate" : {
+      "post" : {
+        "summary" : "Copy a template of the station, or one of its association, as a new template of the station",
+        "tags" : [ "Documents" ],
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DocumentTemplateCopy"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/DocumentTemplateCopyRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/document-templates/{id}/pdf" : {
+      "post" : {
+        "summary" : "Upload a new version of the PDF a PDF template fills, keeping its fields",
+        "tags" : [ "Documents" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DocumentTemplateResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      },
+      "get" : {
+        "summary" : "The PDF a PDF template fills now, as it was uploaded",
+        "tags" : [ "Documents" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/document-templates/{id}/restore" : {
+      "post" : {
+        "summary" : "Take an archived document template back into use",
+        "tags" : [ "Documents" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DocumentTemplateResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/document-templates/{id}/use" : {
+      "get" : {
+        "summary" : "How the station uses a template of its association",
+        "tags" : [ "Documents" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TemplateUseResponse"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      },
+      "put" : {
+        "summary" : "Set whether and for whom the station offers a template of its association for self service",
+        "tags" : [ "Documents" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TemplateUseResponse"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/TemplateUseRequest"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/documents" : {
       "post" : {
         "summary" : "Put a document in the store without binding it to anybody",
@@ -13780,6 +15161,83 @@
             "format" : "int32"
           }
         } ]
+      }
+    },
+    "/api/v1/event-templates/{id}/document-requirements" : {
+      "get" : {
+        "summary" : "The documents an appointment template hands to the appointments made from it",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/RequiredTemplate"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      },
+      "put" : {
+        "summary" : "Set the documents an appointment template hands to the appointments made from it",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/RequiredTemplate"
+                  }
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RequirementsRequest"
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/event-templates/{id}/fields" : {
@@ -16559,6 +18017,190 @@
         }, {
           "name" : "date",
           "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ]
+      }
+    },
+    "/api/v1/events/{id}/document-requirements" : {
+      "get" : {
+        "summary" : "The documents an appointment asks participants to bring",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/RequiredTemplate"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      },
+      "put" : {
+        "summary" : "Set the documents an appointment asks participants to bring",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/RequiredTemplate"
+                  }
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RequirementsRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/events/{id}/documents-to-bring" : {
+      "get" : {
+        "summary" : "The documents to bring for the reader and the members in their care who take part on a date",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/ParticipantDocuments"
+                  }
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "date",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ]
+      }
+    },
+    "/api/v1/events/{id}/documents-to-bring/{templateId}/members/{memberId}" : {
+      "post" : {
+        "summary" : "Generate a participant's copy of a document the appointment asks for and file it with them",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GeneratedDocumentResponse"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Forbidden",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "templateId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "memberId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "date",
+          "in" : "query",
           "required" : true,
           "schema" : {
             "type" : "string"
@@ -36636,6 +38278,91 @@
         } ]
       }
     },
+    "/api/v1/self-service/documents/{memberId}" : {
+      "get" : {
+        "summary" : "The documents the reader may generate for themselves or a member in their care",
+        "tags" : [ "Documents" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/SelfServiceOffer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "memberId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/self-service/documents/{memberId}/templates/{templateId}" : {
+      "post" : {
+        "summary" : "Generate a document for oneself or a member in one's care and file it with them",
+        "tags" : [ "Documents" ],
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GeneratedDocumentResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "429" : {
+            "description" : "Too Many Requests",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "memberId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "templateId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
     "/api/v1/session" : {
       "get" : {
         "summary" : "Get current session info",
@@ -43337,7 +45064,21 @@
           "content" : {
             "type" : "string"
           },
-          "config" : { }
+          "config" : { },
+          "restriction" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/RestrictionAudience"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "guardianCondition" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/GuardianCondition"
+            }, {
+              "type" : "null"
+            } ]
+          }
         }
       },
       "BlockRowRequest" : {
@@ -43352,6 +45093,9 @@
             "items" : {
               "$ref" : "#/components/schemas/BlockCellRequest"
             }
+          },
+          "columnLines" : {
+            "type" : [ "boolean", "null" ]
           }
         }
       },
@@ -44122,6 +45866,33 @@
         },
         "required" : [ "doneFolderIds", "doneFileIds", "refused", "refusedTotal" ]
       },
+      "BulkPreviewResponse" : {
+        "type" : "object",
+        "properties" : {
+          "memberCount" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "previewMemberId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "preview" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/PreviewResponse"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "gaps" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/MemberGaps"
+            }
+          }
+        },
+        "required" : [ "memberCount", "previewMemberId", "preview", "gaps" ]
+      },
       "BulkRetireResponse" : {
         "type" : "object",
         "properties" : {
@@ -44575,6 +46346,8 @@
         }, {
           "$ref" : "#/components/schemas/QuoteConfig"
         }, {
+          "$ref" : "#/components/schemas/SignatureConfig"
+        }, {
           "$ref" : "#/components/schemas/SpacerConfig"
         }, {
           "$ref" : "#/components/schemas/StatsCounterConfig"
@@ -44696,13 +46469,16 @@
           },
           "NESTED_ROWS" : {
             "$ref" : "#/components/schemas/NestedRowsConfig"
+          },
+          "SIGNATURE" : {
+            "$ref" : "#/components/schemas/SignatureConfig"
           }
         },
-        "required" : [ "EMPTY", "MARKDOWN", "IMAGE", "VIDEO", "CALLOUT", "QUOTE", "DIVIDER", "SPACER", "ACCORDION", "PDF", "FILE_DOWNLOAD", "COUNTDOWN", "FEATURED_EVENT", "UPCOMING_EVENTS", "KB_ARTICLE", "NEWS_TEASER", "PAGE_LINK", "MAP", "ADDRESS_CARD", "PARTNER_STATIONS", "MEMBER_SPOTLIGHT", "MEMBER_LIST_SPOTLIGHT", "STATS_COUNTER", "IMAGE_GALLERY", "HERO_BANNER", "PAST_EVENT_RECAP", "TABS", "ACHIEVEMENTS", "EXTERNAL_LINK_CARD", "BLOG_SIGNUP", "AUDIO_EMBED", "POLL_EMBED", "QUIZ_TEASER", "FORMS_CTA", "CODE_BLOCK", "NESTED_ROWS" ]
+        "required" : [ "EMPTY", "MARKDOWN", "IMAGE", "VIDEO", "CALLOUT", "QUOTE", "DIVIDER", "SPACER", "ACCORDION", "PDF", "FILE_DOWNLOAD", "COUNTDOWN", "FEATURED_EVENT", "UPCOMING_EVENTS", "KB_ARTICLE", "NEWS_TEASER", "PAGE_LINK", "MAP", "ADDRESS_CARD", "PARTNER_STATIONS", "MEMBER_SPOTLIGHT", "MEMBER_LIST_SPOTLIGHT", "STATS_COUNTER", "IMAGE_GALLERY", "HERO_BANNER", "PAST_EVENT_RECAP", "TABS", "ACHIEVEMENTS", "EXTERNAL_LINK_CARD", "BLOG_SIGNUP", "AUDIO_EMBED", "POLL_EMBED", "QUIZ_TEASER", "FORMS_CTA", "CODE_BLOCK", "NESTED_ROWS", "SIGNATURE" ]
       },
       "CellContentType" : {
         "type" : "string",
-        "enum" : [ "EMPTY", "MARKDOWN", "IMAGE", "VIDEO", "CALLOUT", "QUOTE", "DIVIDER", "SPACER", "ACCORDION", "PDF", "FILE_DOWNLOAD", "COUNTDOWN", "FEATURED_EVENT", "UPCOMING_EVENTS", "KB_ARTICLE", "NEWS_TEASER", "PAGE_LINK", "MAP", "ADDRESS_CARD", "PARTNER_STATIONS", "MEMBER_SPOTLIGHT", "MEMBER_LIST_SPOTLIGHT", "STATS_COUNTER", "IMAGE_GALLERY", "HERO_BANNER", "PAST_EVENT_RECAP", "TABS", "ACHIEVEMENTS", "EXTERNAL_LINK_CARD", "BLOG_SIGNUP", "AUDIO_EMBED", "POLL_EMBED", "QUIZ_TEASER", "FORMS_CTA", "CODE_BLOCK", "NESTED_ROWS" ]
+        "enum" : [ "EMPTY", "MARKDOWN", "IMAGE", "VIDEO", "CALLOUT", "QUOTE", "DIVIDER", "SPACER", "ACCORDION", "PDF", "FILE_DOWNLOAD", "COUNTDOWN", "FEATURED_EVENT", "UPCOMING_EVENTS", "KB_ARTICLE", "NEWS_TEASER", "PAGE_LINK", "MAP", "ADDRESS_CARD", "PARTNER_STATIONS", "MEMBER_SPOTLIGHT", "MEMBER_LIST_SPOTLIGHT", "STATS_COUNTER", "IMAGE_GALLERY", "HERO_BANNER", "PAST_EVENT_RECAP", "TABS", "ACHIEVEMENTS", "EXTERNAL_LINK_CARD", "BLOG_SIGNUP", "AUDIO_EMBED", "POLL_EMBED", "QUIZ_TEASER", "FORMS_CTA", "CODE_BLOCK", "NESTED_ROWS", "SIGNATURE" ]
       },
       "CellResponse" : {
         "type" : "object",
@@ -46266,6 +48042,12 @@
           },
           "config" : {
             "$ref" : "#/components/schemas/CellConfig"
+          },
+          "restriction" : {
+            "$ref" : "#/components/schemas/RestrictionAudience"
+          },
+          "guardianCondition" : {
+            "$ref" : "#/components/schemas/GuardianCondition"
           }
         },
         "required" : [ "id", "rowId", "sortOrder", "widthPercent", "contentType", "content", "config" ]
@@ -46294,9 +48076,12 @@
             "items" : {
               "$ref" : "#/components/schemas/ContentCell"
             }
+          },
+          "columnLines" : {
+            "type" : "boolean"
           }
         },
-        "required" : [ "id", "containerId", "sortOrder", "cells" ]
+        "required" : [ "id", "containerId", "sortOrder", "cells", "columnLines" ]
       },
       "ContentUpdateRequest" : {
         "type" : "object",
@@ -48233,6 +50018,60 @@
           }
         }
       },
+      "DocumentFontView" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "family" : {
+            "type" : "string"
+          },
+          "style" : {
+            "$ref" : "#/components/schemas/FontStyle"
+          },
+          "fileName" : {
+            "type" : "string"
+          },
+          "outline" : {
+            "$ref" : "#/components/schemas/FontOutline"
+          },
+          "sizeBytes" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "uploadedAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          }
+        },
+        "required" : [ "id", "family", "style", "fileName", "outline", "sizeBytes", "uploadedAt" ]
+      },
+      "DocumentFontsResponse" : {
+        "type" : "object",
+        "properties" : {
+          "own" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/DocumentFontView"
+            }
+          },
+          "reachable" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/FontFamilyOption"
+            }
+          },
+          "defaultFamily" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "own", "reachable", "defaultFamily" ]
+      },
+      "DocumentLanguage" : {
+        "type" : "string",
+        "enum" : [ "DE", "EN" ]
+      },
       "DocumentPage" : {
         "type" : "object",
         "properties" : {
@@ -48278,6 +50117,313 @@
           }
         },
         "required" : [ "html", "version" ]
+      },
+      "DocumentTemplateCopy" : {
+        "type" : "object",
+        "properties" : {
+          "template" : {
+            "$ref" : "#/components/schemas/DocumentTemplateResponse"
+          },
+          "fontsOutOfReach" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "picturesOutOfReach" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "template", "fontsOutOfReach", "picturesOutOfReach" ]
+      },
+      "DocumentTemplateCopyRequest" : {
+        "type" : "object",
+        "properties" : {
+          "name" : {
+            "type" : [ "string", "null" ]
+          }
+        }
+      },
+      "DocumentTemplateKind" : {
+        "type" : "string",
+        "enum" : [ "LETTER", "PDF" ]
+      },
+      "DocumentTemplateRequest" : {
+        "type" : "object",
+        "properties" : {
+          "kind" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/DocumentTemplateKind"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "name" : {
+            "type" : [ "string", "null" ]
+          },
+          "titlePattern" : {
+            "type" : [ "string", "null" ]
+          },
+          "fileNamePattern" : {
+            "type" : [ "string", "null" ]
+          },
+          "tags" : {
+            "type" : [ "array", "null" ],
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "hidden" : {
+            "type" : "boolean"
+          },
+          "keepOnArchive" : {
+            "type" : [ "boolean", "null" ]
+          },
+          "legal" : {
+            "type" : "boolean"
+          },
+          "forAppointments" : {
+            "type" : "boolean"
+          },
+          "selfService" : {
+            "type" : "boolean"
+          },
+          "cooldownDays" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "audience" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/RestrictionAudience"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "language" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/DocumentLanguage"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "header" : {
+            "type" : [ "array", "null" ],
+            "items" : {
+              "$ref" : "#/components/schemas/BlockRowRequest"
+            }
+          },
+          "footer" : {
+            "type" : [ "array", "null" ],
+            "items" : {
+              "$ref" : "#/components/schemas/BlockRowRequest"
+            }
+          },
+          "body" : {
+            "type" : [ "array", "null" ],
+            "items" : {
+              "$ref" : "#/components/schemas/BlockRowRequest"
+            }
+          },
+          "page" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/LetterPage"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "fields" : {
+            "type" : [ "array", "null" ],
+            "items" : {
+              "$ref" : "#/components/schemas/PdfField"
+            }
+          },
+          "formBindings" : {
+            "type" : [ "array", "null" ],
+            "items" : {
+              "$ref" : "#/components/schemas/FormBinding"
+            }
+          }
+        }
+      },
+      "DocumentTemplateResponse" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "kind" : {
+            "$ref" : "#/components/schemas/DocumentTemplateKind"
+          },
+          "titlePattern" : {
+            "type" : "string"
+          },
+          "fileNamePattern" : {
+            "type" : "string"
+          },
+          "tags" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "hidden" : {
+            "type" : "boolean"
+          },
+          "keepOnArchive" : {
+            "type" : "boolean"
+          },
+          "legal" : {
+            "type" : "boolean"
+          },
+          "forAppointments" : {
+            "type" : "boolean"
+          },
+          "selfService" : {
+            "type" : "boolean"
+          },
+          "cooldownDays" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "audience" : {
+            "$ref" : "#/components/schemas/RestrictionAudience"
+          },
+          "language" : {
+            "$ref" : "#/components/schemas/DocumentLanguage"
+          },
+          "header" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ContentRow"
+            }
+          },
+          "footer" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ContentRow"
+            }
+          },
+          "body" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ContentRow"
+            }
+          },
+          "page" : {
+            "$ref" : "#/components/schemas/LetterPage"
+          },
+          "pdf" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/PdfOriginal"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "fields" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/PdfField"
+            }
+          },
+          "formBindings" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/FormBinding"
+            }
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "updatedAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "archivedAt" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        },
+        "required" : [ "id", "name", "kind", "titlePattern", "fileNamePattern", "tags", "hidden", "keepOnArchive", "legal", "forAppointments", "selfService", "cooldownDays", "audience", "language", "header", "footer", "body", "page", "pdf", "fields", "formBindings", "version", "updatedAt", "archivedAt" ]
+      },
+      "DocumentTemplateSummary" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "kind" : {
+            "$ref" : "#/components/schemas/DocumentTemplateKind"
+          },
+          "legal" : {
+            "type" : "boolean"
+          },
+          "forAppointments" : {
+            "type" : "boolean"
+          },
+          "selfService" : {
+            "type" : "boolean"
+          },
+          "ofAssociation" : {
+            "type" : "boolean"
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "createdAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "updatedAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "lastUsedAt" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "archivedAt" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        },
+        "required" : [ "id", "name", "kind", "legal", "forAppointments", "selfService", "ofAssociation", "version", "createdAt", "updatedAt", "lastUsedAt", "archivedAt" ]
+      },
+      "DraftPreviewRequest" : {
+        "type" : "object",
+        "properties" : {
+          "template" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/DocumentTemplateRequest"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "templateId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "memberId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          }
+        }
       },
       "EligibleMembers" : {
         "type" : "object",
@@ -50585,6 +52731,28 @@
         "type" : "string",
         "enum" : [ "STATION", "CLUSTER" ]
       },
+      "FieldRect" : {
+        "type" : "object",
+        "properties" : {
+          "page" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "x" : {
+            "type" : "number"
+          },
+          "y" : {
+            "type" : "number"
+          },
+          "width" : {
+            "type" : "number"
+          },
+          "height" : {
+            "type" : "number"
+          }
+        },
+        "required" : [ "page", "x", "y", "width", "height" ]
+      },
       "FieldRequest" : {
         "type" : "object",
         "properties" : {
@@ -50599,7 +52767,7 @@
       },
       "FieldType" : {
         "type" : "string",
-        "enum" : [ "TEXT", "LONG_TEXT", "NUMBER", "DATE", "TIME", "BOOLEAN", "CHOICE", "URL", "MEMBER", "MEMBER_LIST", "BIRTH_DATE", "EXPIRY_DATE", "AGE", "SECTION", "SPACER", "LOCATION", "MEMBER_OF_GROUP", "MEMBER_LIST_OF_GROUP", "MEMBER_OF_TYPE", "MEMBER_LIST_OF_TYPE", "MEMBER_OF_TAG", "MEMBER_LIST_OF_TAG", "LANE_ASSIGNEE" ]
+        "enum" : [ "TEXT", "LONG_TEXT", "NUMBER", "DATE", "TIME", "BOOLEAN", "CHOICE", "GENDER", "URL", "MEMBER", "MEMBER_LIST", "BIRTH_DATE", "EXPIRY_DATE", "AGE", "SECTION", "SPACER", "LOCATION", "MEMBER_OF_GROUP", "MEMBER_LIST_OF_GROUP", "MEMBER_OF_TYPE", "MEMBER_LIST_OF_TYPE", "MEMBER_OF_TAG", "MEMBER_LIST_OF_TAG", "LANE_ASSIGNEE" ]
       },
       "FieldUpdateRequest" : {
         "type" : "object",
@@ -50958,6 +53126,39 @@
         },
         "required" : [ "id", "parentId", "name", "level" ]
       },
+      "FontFamilyOption" : {
+        "type" : "object",
+        "properties" : {
+          "family" : {
+            "type" : "string"
+          },
+          "origin" : {
+            "$ref" : "#/components/schemas/FontOrigin"
+          },
+          "styles" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/FontStyle"
+            }
+          },
+          "printsOnPdf" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "family", "origin", "styles", "printsOnPdf" ]
+      },
+      "FontOrigin" : {
+        "type" : "string",
+        "enum" : [ "STATION", "ASSOCIATION", "INSTANCE" ]
+      },
+      "FontOutline" : {
+        "type" : "string",
+        "enum" : [ "TRUETYPE", "CFF" ]
+      },
+      "FontStyle" : {
+        "type" : "string",
+        "enum" : [ "REGULAR", "BOLD", "ITALIC", "BOLD_ITALIC" ]
+      },
       "ForeignKey" : {
         "type" : "object",
         "properties" : {
@@ -51187,6 +53388,18 @@
         },
         "required" : [ "CHOICE", "TEXT", "RATING", "DATE", "RANKING", "LIKERT" ]
       },
+      "FormBinding" : {
+        "type" : "object",
+        "properties" : {
+          "fieldName" : {
+            "type" : "string"
+          },
+          "text" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "fieldName", "text" ]
+      },
       "FormDraft" : {
         "type" : "object",
         "properties" : {
@@ -51245,6 +53458,29 @@
             "type" : "string"
           }
         }
+      },
+      "FormField" : {
+        "type" : "object",
+        "properties" : {
+          "name" : {
+            "type" : "string"
+          },
+          "kind" : {
+            "$ref" : "#/components/schemas/FormFieldKind"
+          },
+          "rect" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/FieldRect"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        },
+        "required" : [ "name", "kind", "rect" ]
+      },
+      "FormFieldKind" : {
+        "type" : "string",
+        "enum" : [ "TEXT", "CHECK", "SIGNATURE", "OTHER" ]
       },
       "FormLayout" : {
         "type" : "object",
@@ -52159,6 +54395,73 @@
           }
         }
       },
+      "GeneratedDocumentEntry" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "generatedAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "templateId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "templateName" : {
+            "type" : "string"
+          },
+          "templateVersion" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "ofAssociation" : {
+            "type" : "boolean"
+          },
+          "memberId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "memberName" : {
+            "type" : [ "string", "null" ]
+          },
+          "generatedByName" : {
+            "type" : [ "string", "null" ]
+          },
+          "selfService" : {
+            "type" : "boolean"
+          },
+          "documentId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          }
+        },
+        "required" : [ "id", "generatedAt", "templateId", "templateName", "templateVersion", "ofAssociation", "memberId", "memberName", "generatedByName", "selfService", "documentId" ]
+      },
+      "GeneratedDocumentResponse" : {
+        "type" : "object",
+        "properties" : {
+          "documentId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "generationId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "title" : {
+            "type" : "string"
+          },
+          "missing" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/MissingValue"
+            }
+          }
+        },
+        "required" : [ "documentId", "generationId", "title", "missing" ]
+      },
       "GeneratedQuestionWithMeta" : {
         "type" : "object",
         "properties" : {
@@ -52177,6 +54480,66 @@
           }
         },
         "required" : [ "title", "config", "quizQuestionType", "categoryId" ]
+      },
+      "GenerationJobResponse" : {
+        "type" : "object",
+        "properties" : {
+          "job" : {
+            "$ref" : "#/components/schemas/GenerationJobSummary"
+          },
+          "members" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/JobMemberResult"
+            }
+          }
+        },
+        "required" : [ "job", "members" ]
+      },
+      "GenerationJobSummary" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "templateId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "templateName" : {
+            "type" : "string"
+          },
+          "startedByName" : {
+            "type" : "string"
+          },
+          "acceptMissing" : {
+            "type" : "boolean"
+          },
+          "startedAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "finishedAt" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "total" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "filed" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "failed" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "id", "templateId", "templateName", "startedByName", "acceptMissing", "startedAt", "finishedAt", "total", "filed", "failed" ]
       },
       "GenerationPollResponse" : {
         "type" : "object",
@@ -52343,6 +54706,10 @@
             "type" : "string"
           }
         }
+      },
+      "GuardianCondition" : {
+        "type" : "string",
+        "enum" : [ "SECOND_GUARDIAN", "NO_SECOND_GUARDIAN" ]
       },
       "GuardianEntry" : {
         "type" : "object",
@@ -54016,6 +56383,62 @@
         },
         "required" : [ "jobId" ]
       },
+      "JobMemberResult" : {
+        "type" : "object",
+        "properties" : {
+          "memberId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "status" : {
+            "$ref" : "#/components/schemas/JobMemberStatus"
+          },
+          "documentId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "refusalCode" : {
+            "type" : [ "string", "null" ]
+          },
+          "detail" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/RefusalDetail"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        },
+        "required" : [ "memberId", "name", "status", "documentId", "refusalCode", "detail" ]
+      },
+      "JobMemberStatus" : {
+        "type" : "string",
+        "enum" : [ "WAITING", "FILED", "FAILED" ]
+      },
+      "JobStartRequest" : {
+        "type" : "object",
+        "properties" : {
+          "memberIds" : {
+            "type" : [ "array", "null" ],
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          },
+          "audience" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/RestrictionAudience"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "acceptMissing" : {
+            "type" : "boolean"
+          }
+        }
+      },
       "KbAccessLevel" : {
         "type" : "string",
         "enum" : [ "NONE", "READ", "WRITE", "MANAGE" ]
@@ -54926,6 +57349,65 @@
           }
         },
         "required" : [ "requestItemId", "requestId", "itemId", "quantity", "assignedItemId", "status", "dateFrom", "dateTo", "requestingStationName" ]
+      },
+      "LetterImport" : {
+        "type" : "object",
+        "properties" : {
+          "rows" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ContentRow"
+            }
+          },
+          "recognised" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "unrecognised" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          }
+        },
+        "required" : [ "rows", "recognised", "unrecognised" ]
+      },
+      "LetterPage" : {
+        "type" : "object",
+        "properties" : {
+          "marginTopMm" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "marginBottomMm" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "marginLeftMm" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "marginRightMm" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "fontSizePt" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "bodyFont" : {
+            "type" : [ "string", "null" ]
+          },
+          "headerFont" : {
+            "type" : [ "string", "null" ]
+          },
+          "footerFont" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "marginTopMm", "marginBottomMm", "marginLeftMm", "marginRightMm", "fontSizePt", "bodyFont", "headerFont", "footerFont" ]
       },
       "Likert" : {
         "type" : "object",
@@ -56596,6 +59078,28 @@
           }
         }
       },
+      "MemberGaps" : {
+        "type" : "object",
+        "properties" : {
+          "memberId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "missing" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/MissingValue"
+            }
+          },
+          "refusalCode" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "memberId", "name", "missing", "refusalCode" ]
+      },
       "MemberGroup" : {
         "type" : "object",
         "properties" : {
@@ -57066,6 +59570,25 @@
         },
         "required" : [ "memberUid", "displayName", "userType", "nameColor", "displayTag", "displayTagColor", "avatarUrl" ]
       },
+      "MemberSelection" : {
+        "type" : "object",
+        "properties" : {
+          "memberIds" : {
+            "type" : [ "array", "null" ],
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          },
+          "audience" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/RestrictionAudience"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        }
+      },
       "MemberSpotlightConfig" : {
         "type" : "object",
         "properties" : {
@@ -57488,6 +60011,18 @@
           }
         },
         "required" : [ "missingSteps" ]
+      },
+      "MissingValue" : {
+        "type" : "object",
+        "properties" : {
+          "key" : {
+            "type" : "string"
+          },
+          "label" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "key", "label" ]
       },
       "Mode" : {
         "type" : "string",
@@ -59504,6 +62039,25 @@
         },
         "required" : [ "headers", "rows" ]
       },
+      "ParticipantDocuments" : {
+        "type" : "object",
+        "properties" : {
+          "memberId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "documents" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/RequiredDocumentStatus"
+            }
+          }
+        },
+        "required" : [ "memberId", "name", "documents" ]
+      },
       "PartnerEventDetail" : {
         "type" : "object",
         "properties" : {
@@ -59816,6 +62370,121 @@
           }
         }
       },
+      "PdfField" : {
+        "type" : "object",
+        "properties" : {
+          "kind" : {
+            "$ref" : "#/components/schemas/PdfFieldKind"
+          },
+          "rect" : {
+            "$ref" : "#/components/schemas/FieldRect"
+          },
+          "text" : {
+            "type" : [ "string", "null" ]
+          },
+          "fontSize" : {
+            "type" : "number"
+          },
+          "align" : {
+            "$ref" : "#/components/schemas/TextAlign"
+          },
+          "wrap" : {
+            "type" : "boolean"
+          },
+          "role" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/SignatureRole"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "fontFamily" : {
+            "type" : [ "string", "null" ]
+          },
+          "fontStyle" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/FontStyle"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        },
+        "required" : [ "kind", "rect", "text", "fontSize", "align", "wrap", "role", "fontFamily", "fontStyle" ]
+      },
+      "PdfFieldKind" : {
+        "type" : "string",
+        "enum" : [ "TEXT", "CHECK", "SIGNATURE" ]
+      },
+      "PdfInspection" : {
+        "type" : "object",
+        "properties" : {
+          "pages" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/PdfPage"
+            }
+          },
+          "formFields" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/FormField"
+            }
+          }
+        },
+        "required" : [ "pages", "formFields" ]
+      },
+      "PdfOriginal" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "templateId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "fileName" : {
+            "type" : "string"
+          },
+          "sizeBytes" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "sha256" : {
+            "type" : "string"
+          },
+          "inspection" : {
+            "$ref" : "#/components/schemas/PdfInspection"
+          },
+          "uploadedAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          }
+        },
+        "required" : [ "id", "templateId", "fileName", "sizeBytes", "sha256", "inspection", "uploadedAt" ]
+      },
+      "PdfPage" : {
+        "type" : "object",
+        "properties" : {
+          "x" : {
+            "type" : "number"
+          },
+          "y" : {
+            "type" : "number"
+          },
+          "width" : {
+            "type" : "number"
+          },
+          "height" : {
+            "type" : "number"
+          },
+          "rotation" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "x", "y", "width", "height", "rotation" ]
+      },
       "PeerAnnouncement" : {
         "type" : "object",
         "properties" : {
@@ -59965,6 +62634,56 @@
           }
         },
         "required" : [ "pageUid", "title", "slug", "updatedAt" ]
+      },
+      "Placeholder" : {
+        "type" : "object",
+        "properties" : {
+          "key" : {
+            "type" : "string"
+          },
+          "label" : {
+            "type" : "string"
+          },
+          "group" : {
+            "$ref" : "#/components/schemas/PlaceholderGroup"
+          },
+          "category" : {
+            "$ref" : "#/components/schemas/PlaceholderCategory"
+          },
+          "path" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "informal" : {
+            "type" : "boolean"
+          },
+          "eventOnly" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "key", "label", "group", "category", "path", "informal", "eventOnly" ]
+      },
+      "PlaceholderCatalogueResponse" : {
+        "type" : "object",
+        "properties" : {
+          "placeholders" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/Placeholder"
+            }
+          }
+        },
+        "required" : [ "placeholders" ]
+      },
+      "PlaceholderCategory" : {
+        "type" : "string",
+        "enum" : [ "MEMBER", "PRONOUNS", "GUARDIAN1", "GUARDIAN2", "STATION", "ASSOCIATION", "APPOINTMENT", "DOCUMENT" ]
+      },
+      "PlaceholderGroup" : {
+        "type" : "string",
+        "enum" : [ "MEMBER", "PROFILE", "GUARDIAN", "STATION", "ASSOCIATION", "EVENT", "DOCUMENT", "PRONOUN" ]
       },
       "PlaceholderValues" : {
         "type" : "object",
@@ -60160,6 +62879,27 @@
             "format" : "int64"
           }
         }
+      },
+      "PreviewResponse" : {
+        "type" : "object",
+        "properties" : {
+          "pdfBase64" : {
+            "type" : "string"
+          },
+          "missing" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/MissingValue"
+            }
+          },
+          "unprintable" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          }
+        },
+        "required" : [ "pdfBase64", "missing", "unprintable" ]
       },
       "PreviewResult" : {
         "type" : "object",
@@ -60888,9 +63628,18 @@
           },
           "remindManagement" : {
             "type" : [ "boolean", "null" ]
+          },
+          "pronouns" : {
+            "type" : [ "object", "null" ],
+            "additionalProperties" : {
+              "type" : "object",
+              "additionalProperties" : {
+                "$ref" : "#/components/schemas/PronounSet"
+              }
+            }
           }
         },
-        "required" : [ "description", "notifyOnChange", "overview", "options", "defaultValue", "computed", "sourceField", "sourceFieldId", "ageMode", "showAge", "warnFromDays", "reminderDays", "repeatEveryDays", "remindMember", "remindManagement" ]
+        "required" : [ "description", "notifyOnChange", "overview", "options", "defaultValue", "computed", "sourceField", "sourceFieldId", "ageMode", "showAge", "warnFromDays", "reminderDays", "repeatEveryDays", "remindMember", "remindManagement", "pronouns" ]
       },
       "ProfileFieldRequest" : {
         "type" : "object",
@@ -60942,6 +63691,24 @@
           }
         },
         "required" : [ "memberId", "fieldId", "value" ]
+      },
+      "PronounSet" : {
+        "type" : "object",
+        "properties" : {
+          "subject" : {
+            "type" : [ "string", "null" ]
+          },
+          "object" : {
+            "type" : [ "string", "null" ]
+          },
+          "dative" : {
+            "type" : [ "string", "null" ]
+          },
+          "possessive" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "subject", "object", "dative", "possessive" ]
       },
       "ProtocolChecksRequest" : {
         "type" : "object",
@@ -64039,6 +66806,36 @@
         },
         "required" : [ "requeued" ]
       },
+      "RequiredDocumentStatus" : {
+        "type" : "object",
+        "properties" : {
+          "templateId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "status" : {
+            "$ref" : "#/components/schemas/RequirementStatus"
+          },
+          "documentId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "generatedAt" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "outdated" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "templateId", "name", "status", "documentId", "generatedAt", "outdated" ]
+      },
       "RequiredInventoryItem" : {
         "type" : "object",
         "properties" : {
@@ -64078,6 +66875,36 @@
           }
         },
         "required" : [ "inventoryId", "inventoryName", "inventoryType", "hasSizes", "homogeneous", "sizes", "requiredQuantity", "assignedQuantity", "inExchangeQuantity" ]
+      },
+      "RequiredTemplate" : {
+        "type" : "object",
+        "properties" : {
+          "templateId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "kind" : {
+            "$ref" : "#/components/schemas/DocumentTemplateKind"
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "archived" : {
+            "type" : "boolean"
+          },
+          "lastUsedAt" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        },
+        "required" : [ "templateId", "name", "kind", "version", "archived", "lastUsedAt" ]
       },
       "RequirementItem" : {
         "type" : "object",
@@ -64162,6 +66989,22 @@
           }
         },
         "required" : [ "id", "inventoryId", "inventoryName", "userType", "groupId", "stationGroupId", "quantity", "position", "clusterName" ]
+      },
+      "RequirementStatus" : {
+        "type" : "string",
+        "enum" : [ "NOT_GENERATED", "GENERATED" ]
+      },
+      "RequirementsRequest" : {
+        "type" : "object",
+        "properties" : {
+          "templateIds" : {
+            "type" : [ "array", "null" ],
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          }
+        }
       },
       "RequirementsResponse" : {
         "type" : "object",
@@ -64536,7 +67379,7 @@
       },
       "RestrictionType" : {
         "type" : "string",
-        "enum" : [ "EVENT", "EVENT_VIEW", "EVENT_TEMPLATE", "EVENT_TEMPLATE_VIEW", "QUIZ_TEST", "FORM", "NEWS", "KB_FOLDER", "KB_FILE" ]
+        "enum" : [ "EVENT", "EVENT_VIEW", "EVENT_TEMPLATE", "EVENT_TEMPLATE_VIEW", "QUIZ_TEST", "FORM", "NEWS", "KB_FOLDER", "KB_FILE", "DOCUMENT_TEMPLATE", "DOCUMENT_TEMPLATE_STATION_USE" ]
       },
       "ResultFieldCondition" : {
         "type" : "object",
@@ -65644,6 +68487,42 @@
           }
         },
         "required" : [ "id", "memberId", "memberName", "dueOn", "state", "handedOutAt", "submittedAt", "handedOutByName", "checkId" ]
+      },
+      "SelfServiceOffer" : {
+        "type" : "object",
+        "properties" : {
+          "templateId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "legal" : {
+            "type" : "boolean"
+          },
+          "availableFrom" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "lastUsedAt" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "missing" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/MissingValue"
+            }
+          }
+        },
+        "required" : [ "templateId", "name", "legal", "availableFrom", "lastUsedAt", "missing" ]
       },
       "SendReportRequest" : {
         "type" : "object",
@@ -66816,6 +69695,18 @@
           }
         }
       },
+      "SignatureConfig" : {
+        "type" : "object",
+        "properties" : {
+          "signer" : {
+            "$ref" : "#/components/schemas/SignatureRole"
+          }
+        }
+      },
+      "SignatureRole" : {
+        "type" : "string",
+        "enum" : [ "PARTICIPANT", "GUARDIAN_1", "GUARDIAN_2", "EACH_GUARDIAN", "ANY_GUARDIAN", "ISSUER" ]
+      },
       "SigningSecretRequest" : {
         "type" : "object",
         "properties" : {
@@ -67690,7 +70581,7 @@
       },
       "StationPermission" : {
         "type" : "string",
-        "enum" : [ "USER", "LOGIN", "ATTENDANCE_READ", "ATTENDANCE_EDIT", "ATTENDANCE_CONFIGURE", "ATTENDANCE_EXPORT", "ATTENDANCE_MANAGER", "INVENTORY_CREATE_EXTERNAL", "INVENTORY_CREATE_INTERNAL", "INVENTORY_READ", "INVENTORY_CREATE", "INVENTORY_MOVEMENTS", "INVENTORY_PROCUREMENT", "INVENTORY_CHECK", "INVENTORY_LENDING_REQUEST", "INVENTORY_LENDING_MANAGER", "INVENTORY_EDIT", "INVENTORY_ASSIGN", "INVENTORY_STORAGE", "INVENTORY_MANAGER", "EVENT_MANAGE_TEMPLATE", "EVENT_MANAGE_CATEGORY", "EVENT_INTERNAL", "EVENT_EDIT", "EVENT_REGISTRATION", "EVENTS_FEDERATE", "EVENT_MANAGER", "DOCUMENT_READ", "DOCUMENT_READ_MEMBER", "DOCUMENT_EDIT", "DOCUMENT_EDIT_MEMBER", "DOCUMENT_MANAGER", "MEMBER_READ", "MEMBER_NOTES", "MEMBER_GUARDIAN", "MEMBER_CHANGES", "MEMBER_MANAGE_GROUP", "MEMBER_MANAGE_TAGS", "MEMBER_SELF_UPLOAD", "MEMBER_EDIT", "MEMBER_FIELDS", "MEMBER_EXPORT", "MEMBER_MANAGER", "WAITLIST_READ", "WAITLIST_ADD", "WAITLIST_EDIT", "WAITLIST_MANAGER", "NEWS_EDIT", "NEWS_FEDERATE", "NEWS_MANAGER", "POLL_VIEW_RESULTS", "POLL_CREATE", "POLL_MANAGER", "LOST_AND_FOUND_CREATE", "LOST_AND_FOUND_MANAGE", "LOST_AND_FOUND_MANAGER", "CHECKLIST_READ", "CHECKLIST_MANAGE", "CHECKLIST_MANAGER", "TEST_CATALOG_VIEW", "TEST_CATALOG_EDIT", "TEST_CONFIGURE", "TEST_RESULT_READ", "TEST_REVIEW", "TEST_MANAGER", "PROTOCOL_TESTER", "PROTOCOL_CREATE", "PROTOCOL_CONFIGURE", "PROTOCOL_MANAGER", "BOARD_USE", "BOARD_EDIT", "BOARD_FEDERATE", "BOARD_MANAGER", "PAGE_EDIT", "PAGE_FORMS_VIEW", "PAGE_POLLS_VIEW", "PAGE_MANAGER", "PROCEDURE_READ", "PROCEDURE_EDIT", "PROCEDURE_MANAGER", "KNOWLEDGE_EDIT", "KNOWLEDGE_FEDERATE", "KNOWLEDGE_MANAGER", "STATION_LOOK_AND_FEEL", "STATION_GENERAL", "STATION_MAIL", "STATION_FEDERATION", "STATION_MODULES", "STATION_IMPORT_EXPORT", "STATION_STATISTICS", "STATION_MANAGER", "STATION_ADMINISTRATOR" ]
+        "enum" : [ "USER", "LOGIN", "ATTENDANCE_READ", "ATTENDANCE_EDIT", "ATTENDANCE_CONFIGURE", "ATTENDANCE_EXPORT", "ATTENDANCE_MANAGER", "INVENTORY_CREATE_EXTERNAL", "INVENTORY_CREATE_INTERNAL", "INVENTORY_READ", "INVENTORY_CREATE", "INVENTORY_MOVEMENTS", "INVENTORY_PROCUREMENT", "INVENTORY_CHECK", "INVENTORY_LENDING_REQUEST", "INVENTORY_LENDING_MANAGER", "INVENTORY_EDIT", "INVENTORY_ASSIGN", "INVENTORY_STORAGE", "INVENTORY_MANAGER", "EVENT_MANAGE_TEMPLATE", "EVENT_MANAGE_CATEGORY", "EVENT_INTERNAL", "EVENT_EDIT", "EVENT_REGISTRATION", "EVENTS_FEDERATE", "EVENT_MANAGER", "DOCUMENT_READ", "DOCUMENT_READ_MEMBER", "DOCUMENT_EDIT", "DOCUMENT_EDIT_MEMBER", "DOCUMENT_TEMPLATE_EDIT", "DOCUMENT_MANAGER", "MEMBER_READ", "MEMBER_NOTES", "MEMBER_GUARDIAN", "MEMBER_CHANGES", "MEMBER_MANAGE_GROUP", "MEMBER_MANAGE_TAGS", "MEMBER_SELF_UPLOAD", "MEMBER_EDIT", "MEMBER_FIELDS", "MEMBER_EXPORT", "MEMBER_MANAGER", "WAITLIST_READ", "WAITLIST_ADD", "WAITLIST_EDIT", "WAITLIST_MANAGER", "NEWS_EDIT", "NEWS_FEDERATE", "NEWS_MANAGER", "POLL_VIEW_RESULTS", "POLL_CREATE", "POLL_MANAGER", "LOST_AND_FOUND_CREATE", "LOST_AND_FOUND_MANAGE", "LOST_AND_FOUND_MANAGER", "CHECKLIST_READ", "CHECKLIST_MANAGE", "CHECKLIST_MANAGER", "TEST_CATALOG_VIEW", "TEST_CATALOG_EDIT", "TEST_CONFIGURE", "TEST_RESULT_READ", "TEST_REVIEW", "TEST_MANAGER", "PROTOCOL_TESTER", "PROTOCOL_CREATE", "PROTOCOL_CONFIGURE", "PROTOCOL_MANAGER", "BOARD_USE", "BOARD_EDIT", "BOARD_FEDERATE", "BOARD_MANAGER", "PAGE_EDIT", "PAGE_FORMS_VIEW", "PAGE_POLLS_VIEW", "PAGE_MANAGER", "PROCEDURE_READ", "PROCEDURE_EDIT", "PROCEDURE_MANAGER", "KNOWLEDGE_EDIT", "KNOWLEDGE_FEDERATE", "KNOWLEDGE_MANAGER", "STATION_LOOK_AND_FEEL", "STATION_GENERAL", "STATION_MAIL", "STATION_FEDERATION", "STATION_MODULES", "STATION_IMPORT_EXPORT", "STATION_STATISTICS", "STATION_MANAGER", "STATION_ADMINISTRATOR" ]
       },
       "StationPermissionsRequest" : {
         "type" : "object",
@@ -68130,7 +71021,7 @@
       },
       "StorageCategory" : {
         "type" : "string",
-        "enum" : [ "MEDIA_FILES", "INSTANCE_MEDIA_FILES", "MEDIA_IMAGES", "KB_FILES", "MEMBER_DOCUMENTS", "MOVEMENT_DOCUMENTS", "BOARD_ATTACHMENTS", "IMAGE_AVATAR", "IMAGE_LOST_AND_FOUND", "IMAGE_LOGO_FRAGMENT", "IMAGE_STATION_LOGO", "IMAGE_QUIZ_QUESTION", "IMAGE_KB_ICON", "IMAGE_KB_IMAGE", "IMAGE_KB_FILE_PICTURE", "DOCUMENT", "DISCOVERY_KEY", "MAP_TILE_CACHE", "DEMO_AVATAR", "IMAGE_DISCOVERY_LOGO" ]
+        "enum" : [ "MEDIA_FILES", "INSTANCE_MEDIA_FILES", "MEDIA_IMAGES", "KB_FILES", "MEMBER_DOCUMENTS", "DOCUMENT_TEMPLATES", "ASSOCIATION_DOCUMENT_TEMPLATES", "FONTS", "ASSOCIATION_FONTS", "INSTANCE_FONTS", "MOVEMENT_DOCUMENTS", "BOARD_ATTACHMENTS", "IMAGE_AVATAR", "IMAGE_LOST_AND_FOUND", "IMAGE_LOGO_FRAGMENT", "IMAGE_STATION_LOGO", "IMAGE_QUIZ_QUESTION", "IMAGE_KB_ICON", "IMAGE_KB_IMAGE", "IMAGE_KB_FILE_PICTURE", "DOCUMENT", "DISCOVERY_KEY", "MAP_TILE_CACHE", "DEMO_AVATAR", "IMAGE_DISCOVERY_LOGO" ]
       },
       "StorageQuotaPreset" : {
         "type" : "object",
@@ -68911,6 +71802,53 @@
         },
         "required" : [ "displayName", "content", "optional" ]
       },
+      "TemplateUseRequest" : {
+        "type" : "object",
+        "properties" : {
+          "selfService" : {
+            "type" : "boolean"
+          },
+          "audience" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/RestrictionAudience"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        }
+      },
+      "TemplateUseResponse" : {
+        "type" : "object",
+        "properties" : {
+          "templateId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "kind" : {
+            "$ref" : "#/components/schemas/DocumentTemplateKind"
+          },
+          "legal" : {
+            "type" : "boolean"
+          },
+          "offered" : {
+            "type" : "boolean"
+          },
+          "cooldownDays" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "selfService" : {
+            "type" : "boolean"
+          },
+          "audience" : {
+            "$ref" : "#/components/schemas/RestrictionAudience"
+          }
+        },
+        "required" : [ "templateId", "name", "kind", "legal", "offered", "cooldownDays", "selfService", "audience" ]
+      },
       "TestProtocol" : {
         "type" : "object",
         "properties" : {
@@ -69157,6 +72095,10 @@
           }
         },
         "required" : [ "questionType" ]
+      },
+      "TextAlign" : {
+        "type" : "string",
+        "enum" : [ "LEFT", "CENTER", "RIGHT" ]
       },
       "TextAnswer" : {
         "type" : "object",

@@ -153,6 +153,22 @@ function translatedRefusal(code: string | undefined, t: Translate): string | und
 }
 
 /**
+ * A refusal recorded for later, such as the reason a background run could not file a member's
+ * document, said in the reader's language with the value it was about.
+ *
+ * <p>Only the code was kept, not the server's sentence, so a refusal nobody translated yet is named by
+ * its code, which still leads to the line that raised it.
+ *
+ * @param code   the code of the refusal
+ * @param detail what it was about, where it named something
+ * @param t      the translator
+ * @return the sentence
+ */
+export function refusalSentence(code: string, detail: RefusalDetail | null | undefined, t: Translate): string {
+    return withDetail(translatedRefusal(code, t) ?? code, detail ?? undefined, t)
+}
+
+/**
  * Our sentence for a refusal with the value it was about after it, in parentheses.
  *
  * <p>The server names the value in its English sentence as well, which is why only our own sentence

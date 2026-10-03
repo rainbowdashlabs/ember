@@ -150,7 +150,17 @@ public interface ProfileFieldOwner {
      * @param typeNotOffered     a type the owner does not ask
      * @param defaultNotAccepted a starting value the question would refuse as an answer
      * @param expiryOutOfRange   expiry settings that count backwards or repeat without a gap
+     * @param secondGender       a gender field where the station already has one, its own or its
+     *                           association's
+     * @param genderNotFromChoice a field of another type than a choice turned into a gender field
+     * @param pronounTooLong     a pronoun of a gender field longer than a pronoun may be
      */
     record DefinitionRefusals(
-            Refusal nameMissing, Refusal typeNotOffered, Refusal defaultNotAccepted, Refusal expiryOutOfRange) {}
+            Refusal nameMissing,
+            Refusal typeNotOffered,
+            Refusal defaultNotAccepted,
+            Refusal expiryOutOfRange,
+            Refusal secondGender,
+            Refusal genderNotFromChoice,
+            Refusal pronounTooLong) {}
 }

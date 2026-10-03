@@ -138,14 +138,21 @@ public class StorageMigrationService {
         var allCopiedKeys = new ArrayList<String>();
         var perCategoryKeys = new ArrayList<CategoryKeys>();
 
+        var association = new StorageScope.Association(scope.stationId(), scope.stationUid());
         for (StorageCategory category : StorageCategory.values()) {
             if (category.isLocalPinned()) continue;
-            if (category.scopeKind() != StorageScope.Kind.STATION) continue;
+            StorageScope owner =
+                    switch (category.scopeKind()) {
+                        case STATION -> scope;
+                        case ASSOCIATION -> association;
+                        case INSTANCE, ACCOUNT -> null;
+                    };
+            if (owner == null) continue;
 
-            StorageBackend source = resolver.forScope(scope, category);
+            StorageBackend source = resolver.forScope(owner, category);
             if (source.sharesDestinationWith(target)) continue;
 
-            String prefix = scope.prefix() + "/" + category.prefix();
+            String prefix = owner.prefix() + "/" + category.prefix();
             List<String> keys = source.listByPrefix(prefix);
             if (keys.isEmpty()) continue;
             log.info(

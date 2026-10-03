@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.cluster.repository.ClusterStationGroupRepository;
 import dev.chojo.ember.feature.members.entity.FieldDraft;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
+import dev.chojo.ember.feature.members.service.GenderFields;
 import dev.chojo.ember.feature.members.service.ProfileFieldCore;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.owner.Owner;
@@ -50,17 +51,20 @@ public class ClusterProfileFieldService {
     private final ClusterRepository clusterRepository;
     private final ClusterStationGroupRepository stationGroupRepository;
     private final ProfileFieldCore core;
+    private final GenderFields genders;
 
     @Inject
     public ClusterProfileFieldService(
             ClusterProfileFieldRepository fieldRepository,
             ClusterRepository clusterRepository,
             ClusterStationGroupRepository stationGroupRepository,
-            ProfileFieldCore core) {
+            ProfileFieldCore core,
+            GenderFields genders) {
         this.fieldRepository = fieldRepository;
         this.clusterRepository = clusterRepository;
         this.stationGroupRepository = stationGroupRepository;
         this.core = core;
+        this.genders = genders;
     }
 
     public List<ClusterProfileField> findByCluster(int clusterId) {
@@ -97,6 +101,8 @@ public class ClusterProfileFieldService {
             @Nullable Integer stationGroupId) {
         requireCluster(clusterId);
         String chosen = checkedName(clusterId, name, fieldType, config);
+        genders.requireAllowed(
+                new Owner.Association(clusterId), new FieldDraft(chosen, fieldType, config, false), null, 0);
         requireOwnGroup(clusterId, stationGroupId);
         requireReachesNobodyTwice(clusterId, null, chosen, stationGroupId);
         ClusterProfileField field = fieldRepository.create(
@@ -174,6 +180,11 @@ public class ClusterProfileFieldService {
         boolean unnamedSpacer = fieldType == FieldType.SPACER && (name == null || name.isBlank());
         String kept = unnamedSpacer ? existing.name() : name;
         String chosen = checkedName(clusterId, kept, fieldType, config);
+        genders.requireAllowed(
+                new Owner.Association(clusterId),
+                new FieldDraft(chosen, fieldType, config, false),
+                existing.fieldType(),
+                fieldId);
         requireOwnGroup(clusterId, stationGroupId);
         requireReachesNobodyTwice(clusterId, fieldId, chosen, stationGroupId);
         fieldRepository.update(

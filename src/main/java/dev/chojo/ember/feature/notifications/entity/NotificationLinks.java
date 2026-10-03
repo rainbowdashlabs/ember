@@ -106,12 +106,12 @@ public final class NotificationLinks {
     }
 
     /**
-     * The station's member documents, where mail that arrived without a member waits to be filed.
+     * The station's document store, where mail that arrived without a member waits to be filed.
      *
      * @return the link the mail import's notices carry
      */
-    public static NotificationLink memberDocuments() {
-        return new NotificationLink("member-documents", Map.of());
+    public static NotificationLink documentStore() {
+        return new NotificationLink("documents-store", Map.of());
     }
 
     /**

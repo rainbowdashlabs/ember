@@ -4,6 +4,9 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {
+    GENDER_ALREADY_ASKED,
+    GENDER_NOT_FROM_CHOICE,
+    PRONOUN_TOO_LONG,
     EXPIRY_OUT_OF_RANGE,
     PICTURE_NOT_HERE,
     STATION_NOT_HERE,
@@ -258,4 +261,7 @@ export default {
         + 'Administration der Instanz erstellen',
     'M-206': ONE_TIME_PASSWORD_PASSKEYS_ONLY,
     'M-207': 'Dein Einmalpasswort ist abgelaufen. Bitte frag deine Administration nach einem neuen',
+    'M-208': GENDER_ALREADY_ASKED,
+    'M-209': GENDER_NOT_FROM_CHOICE,
+    'M-210': PRONOUN_TOO_LONG,
 }

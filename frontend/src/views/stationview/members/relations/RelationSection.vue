@@ -8,14 +8,13 @@ import { ref, computed } from 'vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import EditButton from '@/components/button/EditButton.vue'
-import DeleteButton from '@/components/button/DeleteButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
+import DragList from '@/components/input/DragList.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SingleSelectDropdown from '@/components/input/select/SingleSelectDropdown.vue'
 import SetupMailChoice from '@/components/input/toggle/SetupMailChoice.vue'
-import ProfileFieldsDisplay from '@/components/profilefields/ProfileFieldsDisplay.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
+import RelationRow from './RelationRow.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import { useI18n } from 'vue-i18n'
@@ -52,6 +51,11 @@ const props = withDefaults(defineProps<{
   readonly?: boolean
   /** Whether somebody who is not a member yet can be invited straight into this relation. */
   allowCreate?: boolean
+  /**
+   * Whether the order of the people means something and the reader may set it, which is the case
+   * for guardians: the first one is guardian 1 on every document.
+   */
+  orderable?: boolean
   rowTestid?: string
   displayName: (m: MemberWithName) => string
   fieldsFor: (id: number) => ProfileQuestion[]
@@ -59,6 +63,7 @@ const props = withDefaults(defineProps<{
 }>(), {
   readonly: false,
   allowCreate: false,
+  orderable: false,
   rowTestid: undefined,
 })
 
@@ -66,8 +71,13 @@ const emit = defineEmits<{
   link: [id: number]
   remove: [id: number]
   edit: [id: number]
+  reorder: [fromIndex: number, toIndex: number]
   create: [data: { firstName: string; lastName: string; email: string; sendSetupMail: boolean }]
 }>()
+
+function placeOf(index: number): string | undefined {
+  return props.people.length > 1 ? t('memberDetail.guardianPlace', {place: index + 1}) : undefined
+}
 
 const { t } = useI18n()
 
@@ -125,24 +135,41 @@ function doCreate() {
       {{ labels.empty }}
     </MutedText>
 
-    <div class="space-y-3">
-      <div v-for="person in people" :key="person.id" :data-testid="rowTestid" class="rounded-lg px-4 py-3 bg-bg-light-accent/30 dark:bg-bg-dark-accent/30 space-y-2">
-        <div class="flex items-center justify-between">
-          <div>
-            <span class="font-semibold">{{ displayName(person) }}</span>
-            <MutedText v-if="person.email" class="ml-2">{{ person.email }}</MutedText>
-          </div>
-          <div v-if="!readonly" class="flex items-center gap-2">
-            <EditButton @click="emit('edit', person.id)" />
-            <DeleteButton @click="emit('remove', person.id)" />
-          </div>
-        </div>
-        <ProfileFieldsDisplay
-            v-if="fieldsFor(person.id).length > 0"
+    <DragList
+        v-if="orderable"
+        :items="people"
+        :key-fn="person => person.id"
+        :disabled="readonly"
+        class="space-y-3"
+        @reorder="(from, to) => emit('reorder', from, to)"
+    >
+      <template #default="{item: person, index}">
+        <RelationRow
+            :person="person"
+            :readonly="readonly"
+            :place="placeOf(index)"
+            :row-testid="rowTestid"
+            :display-name="displayName"
             :fields="fieldsFor(person.id)"
-            :get-value="field => fieldValue(person.id, field.id)"
+            :field-value="fieldId => fieldValue(person.id, fieldId)"
+            @edit="emit('edit', $event)"
+            @remove="emit('remove', $event)"
         />
-      </div>
+      </template>
+    </DragList>
+    <div v-else class="space-y-3">
+      <RelationRow
+          v-for="person in people"
+          :key="person.id"
+          :person="person"
+          :readonly="readonly"
+          :row-testid="rowTestid"
+          :display-name="displayName"
+          :fields="fieldsFor(person.id)"
+          :field-value="fieldId => fieldValue(person.id, fieldId)"
+          @edit="emit('edit', $event)"
+          @remove="emit('remove', $event)"
+      />
     </div>
 
     <div v-if="!readonly && showLink" class="space-y-2 pt-2 border-t border-bg-light-accent dark:border-bg-dark-accent">

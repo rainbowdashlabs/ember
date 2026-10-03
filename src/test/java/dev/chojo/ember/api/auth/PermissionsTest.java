@@ -169,6 +169,19 @@ class PermissionsTest {
         assertTrue(editor.contains(StationPermission.INVENTORY_CREATE), "which carries creating in it");
     }
 
+    /**
+     * Writing the association's templates reaches the media library of its own station, where their
+     * pictures are kept, and nothing of its members.
+     */
+    @Test
+    void theAssociationsTemplateRightReachesItsOwnStationsTemplatesAndPictures() {
+        Set<StationPermission> granted = ClusterPermission.atOwnStation(
+                ClusterPermission.expand(EnumSet.of(ClusterPermission.CLUSTER_DOCUMENT_TEMPLATE_EDIT)));
+
+        assertTrue(granted.contains(StationPermission.DOCUMENT_TEMPLATE_EDIT));
+        assertFalse(granted.contains(StationPermission.DOCUMENT_EDIT_MEMBER), "but no member's documents");
+    }
+
     /** Moving gear is one right at the association and two at a station, because a station splits them. */
     @Test
     void theRightToMoveGearReachesBothAssigningAndStorage() {

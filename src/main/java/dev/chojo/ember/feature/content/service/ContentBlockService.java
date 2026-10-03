@@ -5,21 +5,27 @@
  */
 package dev.chojo.ember.feature.content.service;
 
+import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.api.refusal.PageRefusal;
+import dev.chojo.ember.api.refusal.Refusal;
 import dev.chojo.ember.feature.content.entity.BlockAudience;
 import dev.chojo.ember.feature.content.entity.CellConfig;
 import dev.chojo.ember.feature.content.entity.CellContentType;
+import dev.chojo.ember.feature.content.entity.ContentCell;
 import dev.chojo.ember.feature.content.entity.ContentContainer;
 import dev.chojo.ember.feature.content.entity.ContentRow;
+import dev.chojo.ember.feature.content.entity.ContentRows;
+import dev.chojo.ember.feature.content.entity.GuardianCondition;
 import dev.chojo.ember.feature.content.repository.ContentContainerRepository;
+import dev.chojo.ember.feature.restriction.RestrictionAudience;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import tools.jackson.databind.JsonNode;
 
-import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -87,11 +93,7 @@ public class ContentBlockService {
                 .findById(containerId)
                 .map(ContentContainer::stationId)
                 .orElse(null);
-        for (var row : rows) {
-            for (var cell : row.cells()) {
-                requireFits(stationId, cell.contentType(), cell.config(), scope);
-            }
-        }
+        requireFits(stationId, rows, scope);
 
         repository.deleteRows(containerId);
         for (var row : rows) {
@@ -144,44 +146,71 @@ public class ContentBlockService {
         log.info("Deleted content container {} and its blocks", containerId);
     }
 
+    /**
+     * Refuses rows holding a block the scope does not take, or naming something its readers may not see.
+     *
+     * <p>The check {@link #save} runs before it writes anything, for a caller that keeps its rows
+     * elsewhere: a letter keeps its header, footer and body beside the template rather than in a container.
+     *
+     * @param stationId the station the rows are written at, or null for the instance
+     * @param rows      the rows
+     * @param scope     what is being authored
+     */
+    public void requireFits(@Nullable Integer stationId, List<RowData> rows, Scope scope) {
+        for (var row : rows) {
+            for (var cell : row.cells()) {
+                requireFits(stationId, cell.contentType(), cell.config(), scope);
+            }
+        }
+    }
+
     private void requireFits(@Nullable Integer stationId, CellContentType type, CellConfig config, Scope scope) {
-        requireAllowed(type, scope);
+        if (!scope.takes(type)) throw scope.notTaken(type).raise();
         for (var reference : references) {
             reference.requireReachable(stationId, scope.audience(), config);
         }
         requireNestedFits(stationId, config, scope);
     }
 
-    private void requireAllowed(CellContentType type, Scope scope) {
-        if (scope == Scope.PAGE || type.availableInArticles()) return;
-        throw PageRefusal.CONTENT_BLOCK_ONLY_ON_PAGES.raise();
-    }
-
     /**
      * Nested rows carry their cells inside a cell config rather than as rows of their own, so the
      * checks have to recurse into them or a withheld block slips through one level down. A cell
-     * naming a block that does not exist is not a withheld one, and is left to the config parser.
+     * naming a block that does not exist is not a withheld one, and is left out by the reader.
      */
     private void requireNestedFits(@Nullable Integer stationId, CellConfig config, Scope scope) {
         if (!(config instanceof CellConfig.NestedRowsConfig nested)) return;
-        var rows = nested.rows();
-        if (rows == null) return;
-        for (JsonNode row : rows) {
-            var cells = row.path("cells");
-            if (!cells.isArray()) continue;
-            for (JsonNode cell : cells) {
-                var type = knownType(cell.path("contentType"));
-                if (type != null) requireFits(stationId, type, CellConfig.parse(type, cell.path("config")), scope);
+        for (var row : ContentRows.read(nested.rows())) {
+            for (var cell : row.cells()) {
+                requireFits(stationId, cell.contentType(), cell.config(), scope);
             }
         }
     }
 
-    private static @Nullable CellContentType knownType(JsonNode name) {
-        if (!name.isString()) return null;
-        return Arrays.stream(CellContentType.values())
-                .filter(type -> type.name().equals(name.asString()))
-                .findFirst()
-                .orElse(null);
+    /**
+     * Rows as they are kept outside a container, each row with its lines between columns and each cell
+     * with what it says and who it is shown to.
+     *
+     * @param rows the rows as an author sent them
+     * @return the same rows as the records pages are read into, without ids
+     */
+    public static List<ContentRow> rowsOf(List<RowData> rows) {
+        var out = new ArrayList<ContentRow>();
+        for (var row : rows) {
+            var cells = row.cells().stream()
+                    .map(cell -> new ContentCell(
+                            0,
+                            0,
+                            cell.sortOrder(),
+                            cell.widthPercent(),
+                            cell.contentType(),
+                            cell.content(),
+                            cell.config(),
+                            cell.restriction(),
+                            cell.guardianCondition()))
+                    .toList();
+            out.add(new ContentRow(0, 0, row.sortOrder(), cells, row.columnLines()));
+        }
+        return List.copyOf(out);
     }
 
     /**
@@ -189,19 +218,36 @@ public class ContentBlockService {
      */
     public enum Scope {
         /**
-         * A public page, which may use every block, and whose blocks may only name what is public.
+         * A public page, which may use every block but those only a letter prints, and whose blocks may
+         * only name what is public.
          */
-        PAGE(BlockAudience.PUBLIC),
+        PAGE(BlockAudience.PUBLIC, PageRefusal.CONTENT_BLOCK_ONLY_ON_PAGES),
         /**
          * A news entry or a knowledge-base article, which may not use the page-only blocks, and whose
          * blocks may name what every member of the station may see.
          */
-        ARTICLE(BlockAudience.MEMBERS);
+        ARTICLE(BlockAudience.MEMBERS, PageRefusal.CONTENT_BLOCK_ONLY_ON_PAGES),
+        /**
+         * A letter template, printed for one member at a time: text, pictures, lines, gaps, signature
+         * lines and blocks stacked in a column, nothing that only works on a screen.
+         */
+        LETTER(BlockAudience.MEMBERS, DocumentRefusal.DOCUMENT_TEMPLATE_BLOCK_NOT_TAKEN);
+
+        private static final Set<CellContentType> LETTER_BLOCKS = EnumSet.of(
+                CellContentType.EMPTY,
+                CellContentType.MARKDOWN,
+                CellContentType.IMAGE,
+                CellContentType.DIVIDER,
+                CellContentType.SPACER,
+                CellContentType.SIGNATURE,
+                CellContentType.NESTED_ROWS);
 
         private final BlockAudience audience;
+        private final Refusal notTaken;
 
-        Scope(BlockAudience audience) {
+        Scope(BlockAudience audience, Refusal notTaken) {
             this.audience = audience;
+            this.notTaken = notTaken;
         }
 
         /**
@@ -210,10 +256,62 @@ public class ContentBlockService {
         public BlockAudience audience() {
             return audience;
         }
+
+        /**
+         * @param type a kind of block
+         * @return whether what is authored here may hold it
+         */
+        public boolean takes(CellContentType type) {
+            return switch (this) {
+                case PAGE -> !type.lettersOnly();
+                case ARTICLE -> type.availableInArticles();
+                case LETTER -> LETTER_BLOCKS.contains(type);
+            };
+        }
+
+        /**
+         * @param type a kind of block this scope does not take
+         * @return the refusal for it
+         */
+        public Refusal notTaken(CellContentType type) {
+            if (this != LETTER && type.lettersOnly()) return PageRefusal.CONTENT_BLOCK_ONLY_IN_LETTERS;
+            return notTaken;
+        }
     }
 
-    public record RowData(int sortOrder, List<CellData> cells) {}
+    /**
+     * One row as an author sent it.
+     *
+     * @param columnLines whether a line is drawn between its columns; only a letter keeps it
+     */
+    public record RowData(int sortOrder, List<CellData> cells, boolean columnLines) {
 
+        /** A row without lines between its columns. */
+        public RowData(int sortOrder, List<CellData> cells) {
+            this(sortOrder, cells, false);
+        }
+    }
+
+    /**
+     * One block as an author sent it.
+     *
+     * @param restriction       who the block is shown to, or null for everybody; only a letter keeps it
+     * @param guardianCondition which guardians the member must have for the block to be printed, or null;
+     *                          only a letter keeps it
+     */
     public record CellData(
-            int sortOrder, double widthPercent, CellContentType contentType, String content, CellConfig config) {}
+            int sortOrder,
+            double widthPercent,
+            CellContentType contentType,
+            String content,
+            CellConfig config,
+            @Nullable RestrictionAudience restriction,
+            @Nullable GuardianCondition guardianCondition) {
+
+        /** A block shown to everybody. */
+        public CellData(
+                int sortOrder, double widthPercent, CellContentType contentType, String content, CellConfig config) {
+            this(sortOrder, widthPercent, contentType, content, config, null, null);
+        }
+    }
 }

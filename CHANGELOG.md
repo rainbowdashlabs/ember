@@ -1,5 +1,42 @@
 # Changelog
 
+## v26.21.0
+
+Stations turn their own templates and those of their association into documents for their members. A letter template is written in blocks like the station's pages, with placeholders for member data, guardians and the station, and blocks some members get and others do not. A PDF template fills an uploaded form, such as a consent form, in place, and an appointment can ask its participants to bring it. Letters and forms leave an empty signature field for each signer. Documents name people by their official names, and pronouns follow the new gender profile field or use the first name. Managers generate a document on the member page after a preview that names missing data, or for many members at once in the background. Members and guardians generate documents marked for self service in the new Documents menu, with a waiting time between two documents. Every generated document is filed in the member's documents and recorded with the version of its template. Templates take their body from a Word or OpenDocument text, print in fonts that the instance, an association or the station uploaded, and are duplicated as the start of new ones. The guardians of a member have an order, which documents follow.
+
+### New Features
+
+- **Letter templates for member documents.** A letter is written in blocks like the station's pages, with a header, a body and a footer in rows of up to three columns (four in the header and footer), dividing lines and gaps, and placeholders for member data, guardians and the station. A block can be limited to some groups, member types or tags or to members with or without a second guardian, and pronouns follow the gender field in the letter's language.
+- **Gender as a profile field type.** A gender field is a choice whose answers carry the pronouns documents use for the member in each language, or the first name instead. A station has one, its own or its association's, and an existing choice field can become one with its answers kept.
+- **PDF templates fill uploaded forms.** An uploaded PDF such as a consent form gets text fields, check marks and signature fields placed on its pages, and the form fields it brings are filled from member data. A new version of the PDF keeps the fields, and documents generated before keep the version they were filled from.
+- **Empty signature fields for each signer.** Letters place signature lines with a short text below, and PDF templates signature fields, for the participant, the issuer, the first or second guardian, every guardian in a field of their own, or any one guardian. The fields print as lines to sign on and stay empty in the file for a later signature, and for a member with a single guardian the second guardian's line and data stay out.
+- **Documents generated for a member.** On a member's page, a document is generated from a template after a preview that names any missing data, and filed in the member's documents. Letters are filed as PDF/A, and every document is recorded with the template version and the SHA-256 of the file, which Documents → Generated documents lists.
+- **Members generate their own documents.** Templates marked for self service appear under Documents → My documents, for oneself and for each child. A document is generated once the profile holds the data it needs, and the same document again only after a waiting time of 30 days by default.
+- **Documents for many members at once.** From the templates page or for members chosen in the member list, a template is generated for many members in a background run, after a preview that names the missing data of each. The run goes on when the page is closed and lists the members whose document could not be filed, with the reason.
+- **Documents to bring to appointments.** An appointment or an appointment template asks participants to bring documents from templates marked for appointments, which fill in the appointment's name, times and place. Every registered participant or their guardian downloads a filled copy on the appointment page, which is also filed in the participant's documents.
+- **Associations keep templates for their stations.** An association writes letter and PDF templates in its administration, and its stations use them next to their own without changing them. Each station decides whether and which of its members generate one for themselves, and placeholders fill from the member's own station and the association.
+- **Word and OpenDocument texts fill a template.** A .docx or .odt file fills the body of a letter template as a text block, and a picture on a line of its own becomes a picture block. Gaps written in brackets for a name or a date of birth become placeholders where their words are recognised.
+- **Templates are duplicated and listed by last use.** A template, one of the association included, is duplicated from the template list or its editor into a new template of the station with everything it holds and a stored copy of its PDF. The template list opens with the templates used last and also sorts by the dates they were created and changed, and every choice of a template offers the most recently used first.
+- **Own fonts for documents.** The instance, an association and a station each upload fonts for documents, one TrueType or OpenType file per style, and a font whose licence forbids embedding is refused. Letters print their body, header, footer and single words picked in a text in them, and PDF templates each text field, with a station's own font taking the place of the association's or the instance's of the same name.
+
+### Improvements
+
+- **Guardians have an order.** On the member page, the guardians of a member are put in order with the arrows or by dragging. Documents name the first one as guardian 1 and the second as guardian 2.
+- **Imports read files for what they are.** Wiki and legal document imports recognise Word, OpenDocument and EPUB files by their content, also under another file name.
+- **Association profile fields in templates.** Templates name the answers to the profile fields of the association, and the name and address of the association. A station's templates offer the association's fields that reach the station.
+- **Media for associations.** The administration of an association has a media page for the pictures of its templates, wiki and news. Pictures a template uses are kept when unused files are cleared.
+- **Template writers see the whole media library.** Whoever writes document templates sees and organises every file in the station's media, not only their own uploads.
+
+### Changes
+
+- **Documents have their own menu.** The sidebar has a Documents group with My documents, the document store, templates, generated documents and fonts, where the store, templates and fonts used to sit under Members. Old addresses and the links in earlier notifications lead to the new pages.
+- **Station administrators manage document templates.** The station administrator permission now includes the new permission for document templates, which is also part of the documents permission.
+- **Association administrators manage templates and fonts.** The association administrator permission includes the new association permission for document templates and fonts, which also opens the association's media.
+
+### Fixes
+
+- **Escape did not close the text dialog.** In the text dialog of the page, news, wiki and template editors, the escape key did nothing while the cursor was in the text. It now closes the dialog from there too.
+
 ## v26.20.2
 
 The daily usage report goes out on every instance again.

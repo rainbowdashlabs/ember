@@ -79,7 +79,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.regex.Pattern;
@@ -1052,37 +1051,25 @@ public class AdminSettingsRoutes implements Routes {
     }
 
     /**
-     * Reads an uploaded document and returns it as markdown, converting a word processor file the
-     * same way the knowledge base does. Returns {@code null} when the request carries no file, so
-     * the caller can fall back to markdown in the body.
+     * Reads an uploaded document and returns it as markdown, converting a word processor file through
+     * the detection every import shares. A file of no kind Pandoc reads is taken as markdown or plain
+     * text already, unless it is an archive or an old binary office file, which is refused rather than
+     * read as text. Returns {@code null} when the request carries no file, so the caller can fall back
+     * to markdown in the body.
      */
     private static @Nullable String uploadedMarkdown(Context ctx) {
         var file = ctx.uploadedFile("file");
         if (file == null) return null;
         try (var content = file.content()) {
             byte[] data = content.readAllBytes();
-            String format = importFormat(file.filename());
-            if (format == null) return new String(data, StandardCharsets.UTF_8);
-            return PandocConverter.toMarkdown(data, format);
-        } catch (Exception e) {
+            var format = PandocConverter.formatOf(data, file.filename(), file.contentType());
+            if (format.isPresent()) return PandocConverter.toMarkdown(data, format.get());
+            if (PandocConverter.isContainer(data)) throw SystemRefusal.LEGAL_DOCUMENT_NOT_READ.raise();
+            return new String(data, StandardCharsets.UTF_8);
+        } catch (IOException e) {
             log.warn("Legal document conversion failed", e);
             throw SystemRefusal.LEGAL_DOCUMENT_NOT_READ.raise();
         }
-    }
-
-    /**
-     * The pandoc format of an uploaded file, or {@code null} when it is markdown or plain text
-     * already and needs no conversion.
-     */
-    private static @Nullable String importFormat(String filename) {
-        String lower = filename == null ? "" : filename.toLowerCase(Locale.ROOT);
-        if (lower.endsWith(".docx") || lower.endsWith(".doc")) return "docx";
-        if (lower.endsWith(".odt")) return "odt";
-        if (lower.endsWith(".rtf")) return "rtf";
-        if (lower.endsWith(".html") || lower.endsWith(".htm")) return "html";
-        if (lower.endsWith(".epub")) return "epub";
-        if (lower.endsWith(".tex") || lower.endsWith(".latex")) return "latex";
-        return null;
     }
 
     @OpenApi(

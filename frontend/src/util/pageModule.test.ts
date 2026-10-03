@@ -19,6 +19,10 @@ describe('the part of the product a page belongs to', () => {
         expect(pageModuleKeys('/station/boards/GEM/tickets/4')).toEqual(['pageModule.boards'])
     })
 
+    it('names the documents as a section of their own', () => {
+        expect(pageModuleKeys('/station/documents/templates/5')).toEqual(['pageModule.documents'])
+    })
+
     it('names the section and then the area for an association page', () => {
         expect(pageModuleKeys('/cluster/events/7')).toEqual(['pageModule.events', 'pageModule.cluster'])
     })

@@ -7,13 +7,17 @@ package dev.chojo.ember.util;
 
 import org.jspecify.annotations.Nullable;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 public final class TypstCompiler {
     private static final String TYPST_BIN = System.getenv().getOrDefault("TYPST_BIN", "typst");
@@ -69,6 +73,59 @@ public final class TypstCompiler {
             Map<String, String> resources,
             Map<String, byte[]> files)
             throws IOException, InterruptedException {
+        return compileTemplate(data, templateName, logo, resources, files, Output.PDF);
+    }
+
+    /**
+     * The same, producing the given kind of PDF. {@link Output#PDF_A_3B} is for a document that is
+     * kept as a record and may be signed later: Typst refuses to produce it where the document breaks
+     * the standard, so a template meant for it fails loudly rather than producing something that only
+     * looks archival.
+     */
+    public static byte[] compileTemplate(
+            Map<String, Object> data,
+            String templateName,
+            @Nullable StationLogo logo,
+            Map<String, String> resources,
+            Map<String, byte[]> files,
+            Output output)
+            throws IOException, InterruptedException {
+        return compileTemplate(data, templateName, logo, resources, files, output, Map.of());
+    }
+
+    /**
+     * The same, additionally offering Typst the given font files by name. They are written into a
+     * directory of their own that Typst searches before the system's fonts ({@code --font-path}), and it
+     * goes with the rest of the temporary files when the document is done. A template asks for them by
+     * the family names the files carry.
+     */
+    public static byte[] compileTemplate(
+            Map<String, Object> data,
+            String templateName,
+            @Nullable StationLogo logo,
+            Map<String, String> resources,
+            Map<String, byte[]> files,
+            Output output,
+            Map<String, byte[]> fonts)
+            throws IOException, InterruptedException {
+        return compileTemplate(data, templateName, logo, resources, files, output, fonts, List.of());
+    }
+
+    /**
+     * The same, additionally searching the given directories for fonts, after the files handed over and
+     * before the system's fonts. They are read where they are, which suits fonts every document of the
+     * instance may print in better than writing them out for each one.
+     */
+    public static byte[] compileTemplate(
+            Map<String, Object> data,
+            String templateName,
+            @Nullable StationLogo logo,
+            Map<String, String> resources,
+            Map<String, byte[]> files,
+            Output output,
+            Map<String, byte[]> fonts,
+            List<Path> fontDirectories)
+            throws IOException, InterruptedException {
         Path tempDir = Files.createTempDirectory("typst-template-");
         try {
             Path templateSource = Path.of("templates", "typst", templateName);
@@ -92,9 +149,13 @@ public final class TypstCompiler {
                 Files.write(templateDir.resolve(entry.getKey()), entry.getValue());
             }
             Files.copy(templateSource, templateFile);
+            var fontPath = new ArrayList<Path>();
+            Path fontDir = writeFonts(tempDir, fonts);
+            if (fontDir != null) fontPath.add(fontDir);
+            fontDirectories.forEach(directory -> fontPath.add(directory.toAbsolutePath()));
 
             Path outputFile = tempDir.resolve("output.pdf");
-            return runTypst(tempDir, templateFile, outputFile);
+            return runTypst(tempDir, templateFile, outputFile, output, fontPath);
         } finally {
             cleanup(tempDir);
         }
@@ -110,16 +171,43 @@ public final class TypstCompiler {
         };
     }
 
+    /**
+     * Writes font files into a directory of their own beside the document, each under its bare file
+     * name.
+     *
+     * @return the directory, or null where there are no fonts
+     */
+    private static @Nullable Path writeFonts(Path tempDir, Map<String, byte[]> fonts) throws IOException {
+        if (fonts.isEmpty()) return null;
+        Path fontDir = Files.createDirectory(tempDir.resolve("fonts"));
+        for (var entry : fonts.entrySet()) {
+            Files.write(fontDir.resolve(FilePaths.nameOf(Path.of(entry.getKey()))), entry.getValue());
+        }
+        return fontDir;
+    }
+
     private static byte[] runTypst(Path workDir, Path inputFile, Path outputFile)
             throws IOException, InterruptedException {
-        var process = new ProcessBuilder(TYPST_BIN, "compile", inputFile.toString(), outputFile.toString())
+        return runTypst(workDir, inputFile, outputFile, Output.PDF, List.of());
+    }
+
+    private static byte[] runTypst(Path workDir, Path inputFile, Path outputFile, Output output, List<Path> fontPath)
+            throws IOException, InterruptedException {
+        var command = new ArrayList<>(List.of(TYPST_BIN, "compile"));
+        if (output == Output.PDF_A_3B) command.addAll(List.of("--pdf-standard", "a-3b"));
+        if (!fontPath.isEmpty()) {
+            String joined = fontPath.stream().map(Path::toString).collect(Collectors.joining(File.pathSeparator));
+            command.addAll(List.of("--font-path", joined));
+        }
+        command.addAll(List.of(inputFile.toString(), outputFile.toString()));
+        var process = new ProcessBuilder(command)
                 .directory(workDir.toFile())
                 .redirectErrorStream(true)
                 .start();
-        String output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+        String printed = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
         int exitCode = process.waitFor();
         if (exitCode != 0) {
-            throw new IOException("typst compile failed (exit " + exitCode + "): " + output);
+            throw new IOException("typst compile failed (exit " + exitCode + "): " + printed);
         }
         return Files.readAllBytes(outputFile);
     }
@@ -137,4 +225,12 @@ public final class TypstCompiler {
     }
 
     public record StationLogo(byte[] data, String contentType) {}
+
+    /** The kind of PDF a template is compiled to. */
+    public enum Output {
+        /** A plain PDF, as every export produces. */
+        PDF,
+        /** PDF/A-3b, for a document kept as a record and signed later. */
+        PDF_A_3B
+    }
 }

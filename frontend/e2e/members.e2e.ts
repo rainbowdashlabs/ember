@@ -558,7 +558,7 @@ test.describe('Members', () => {
         await uploadCsv(page, 'Vorname;Nachname;Geschlecht\n'
             + 'Eine;Person;m\nZweite;Person;m\nDritte;Person;w\nVierte;Person;m\n')
 
-        await mapColumn(page, 'Geschlecht', {label: 'Geschlecht (Auswahl)'})
+        await mapColumn(page, 'Geschlecht', {label: 'Geschlecht (Geschlecht)'})
         await page.locator('[data-testid="mapping-row"][data-column="Geschlecht"]')
             .getByRole('button', {name: 'Werte zuordnen'}).click()
 
