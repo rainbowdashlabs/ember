@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {computed, ref} from 'vue'
+import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute} from 'vue-router'
 import MutedText from '@/components/typography/MutedText.vue'
@@ -18,6 +18,7 @@ import {discovery} from '@/api'
 import type {DiscoveryEntry} from '@/api/generated/schema'
 import {useDiscoveryViewer} from '@/composables/useDiscoveryViewer'
 import {useFlashMessage} from '@/composables/useFlashMessage'
+import {useSession} from '@/composables/useSession'
 import {describeFailure, type Failure} from '@/util/failure'
 import {apiUrl} from '@/util/apiUrl'
 
@@ -39,6 +40,25 @@ const {data: stations, status, refresh} = await useAsyncData(
 
 const loading = computed(() => status.value === 'pending')
 const failure = ref<Failure | null>(null)
+const {sessionInfo, loaded} = useSession()
+
+/**
+ * The list for the reader. The server render knows nobody, so it lists the stations as a stranger sees
+ * them; somebody signed in is listed again from the browser, which names the station they act for, so
+ * each tile says whether they may ask it and whether it is their own.
+ */
+async function reload() {
+  if (sessionInfo.value) {
+    stations.value = await discovery.listDiscoverable()
+  } else {
+    await refresh()
+  }
+}
+
+watch(loaded, (ready) => {
+  if (!ready || !sessionInfo.value) return
+  reload().catch((e) => { failure.value = describeFailure(e, t) })
+}, {immediate: true})
 const {message: success, flash} = useFlashMessage(3000)
 const inviteCode = ref('')
 const search = ref(initialSearchTerm(route.query.q))
@@ -60,7 +80,7 @@ async function handleConnect(station: DiscoveryEntry) {
   }
   flash(t('discovery.requestSent'))
   try {
-    await refresh()
+    await reload()
   } catch (e) {
     failure.value = {...describeFailure(e, t), message: t('failure.staleAfterAction')}
   }

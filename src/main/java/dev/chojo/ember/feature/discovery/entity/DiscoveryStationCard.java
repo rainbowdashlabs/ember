@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.discovery.entity;
 
+import dev.chojo.ember.feature.station.entity.StationAddresses;
 import dev.chojo.ember.util.Json;
 import org.jspecify.annotations.Nullable;
 import tools.jackson.databind.JsonNode;
@@ -62,52 +63,6 @@ public record DiscoveryStationCard(
         boolean acceptsFederation) {
 
     /**
-     * A card from a peer that predates the public offers, which reads as "nothing public, no requests".
-     */
-    public DiscoveryStationCard(
-            String stationUid,
-            String name,
-            @Nullable String slogan,
-            @Nullable String logoUrl,
-            @Nullable String country,
-            @Nullable String region,
-            @Nullable String city,
-            @Nullable String contactUrl,
-            List<String> tags,
-            String memberCount,
-            Instant publishedAt,
-            @Nullable String addressLine,
-            @Nullable BigDecimal latitude,
-            @Nullable BigDecimal longitude,
-            @Nullable String clusterUid,
-            @Nullable String clusterName,
-            @Nullable String publicSlug) {
-        this(
-                stationUid,
-                name,
-                slogan,
-                logoUrl,
-                country,
-                region,
-                city,
-                contactUrl,
-                tags,
-                memberCount,
-                publishedAt,
-                addressLine,
-                latitude,
-                longitude,
-                clusterUid,
-                clusterName,
-                publicSlug,
-                false,
-                false,
-                false,
-                false,
-                false);
-    }
-
-    /**
      * A card from a peer that predates the public address, which reads as "addressed by its identifier".
      */
     public DiscoveryStationCard(
@@ -144,7 +99,12 @@ public record DiscoveryStationCard(
                 longitude,
                 clusterUid,
                 clusterName,
-                null);
+                null,
+                false,
+                false,
+                false,
+                false,
+                false);
     }
 
     /**
@@ -185,14 +145,19 @@ public record DiscoveryStationCard(
                 longitude,
                 null,
                 null,
-                null);
+                null,
+                false,
+                false,
+                false,
+                false,
+                false);
     }
 
     /**
      * The address of the station's public page: its readable name where it has one, its identifier otherwise.
      */
     public String publicAddress() {
-        return publicSlug != null && !publicSlug.isBlank() ? publicSlug : stationUid;
+        return StationAddresses.pageAddress(publicSlug, stationUid);
     }
 
     /**

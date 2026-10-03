@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.waitinglist.repository;
 
+import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import dev.chojo.ember.feature.legal.entity.ConsentProof;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.waitinglist.entity.GuardianInput;
@@ -25,9 +26,11 @@ import org.jspecify.annotations.Nullable;
 import tools.jackson.databind.JsonNode;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
@@ -656,12 +659,24 @@ public class WaitingListRepository {
     }
 
     public boolean hasPublicWaitlists(int stationId) {
-        return query(
-                        "SELECT exists(SELECT 1 FROM waiting_list WHERE station_id = :station_id AND public = TRUE) AS exists;")
-                .single(call().bind("station_id", stationId))
-                .map(row -> row.getBoolean("exists"))
-                .first()
-                .orElse(false);
+        return withPublicWaitlists(List.of(stationId)).contains(stationId);
+    }
+
+    /**
+     * The stations among the given ones with at least one public waiting list.
+     *
+     * @param stationIds the stations asked about
+     * @return those of them with a public waiting list
+     */
+    public Set<Integer> withPublicWaitlists(Collection<Integer> stationIds) {
+        if (stationIds.isEmpty()) return Set.of();
+        return Set.copyOf(query("""
+                SELECT DISTINCT station_id
+                FROM waiting_list
+                WHERE station_id = ANY(:station_ids) AND public = TRUE;""")
+                .single(call().bind("station_ids", List.copyOf(stationIds), PostgreSqlTypes.INTEGER))
+                .map(row -> row.getInt("station_id"))
+                .all());
     }
 
     public WaitingListEntry createEntryWithStatus(

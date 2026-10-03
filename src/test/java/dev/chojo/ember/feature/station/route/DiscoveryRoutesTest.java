@@ -6,11 +6,13 @@
 package dev.chojo.ember.feature.station.route;
 
 import dev.chojo.ember.api.RouteHarness;
+import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.station.service.StationDiscoveryService;
 import dev.chojo.ember.feature.station.service.StationDiscoveryService.DiscoveryEntry;
+import dev.chojo.ember.feature.station.service.StationDiscoveryService.Viewer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.JsonNode;
@@ -25,7 +27,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -43,7 +44,7 @@ class DiscoveryRoutesTest {
     @BeforeEach
     void setup() {
         listing = mock(StationDiscoveryService.class);
-        when(listing.list(anyBoolean(), any())).thenReturn(List.of(local(), remote()));
+        when(listing.list(any())).thenReturn(List.of(local(), remote()));
         harness = RouteHarness.serving(new DiscoveryRoutes(listing));
     }
 
@@ -61,6 +62,8 @@ class DiscoveryRoutesTest {
                 true,
                 false,
                 false,
+                true,
+                true,
                 "hier",
                 "/public/station/hier",
                 "Hauptstraße 1",
@@ -88,6 +91,8 @@ class DiscoveryRoutesTest {
                 true,
                 false,
                 false,
+                false,
+                true,
                 "dort",
                 "https://feuer.example/public/station/dort",
                 "Nordweg 2",
@@ -144,7 +149,7 @@ class DiscoveryRoutesTest {
         assertEquals(
                 "https://feuer.example/public/station/dort",
                 body.get(1).get("publicPageUrl").asString());
-        verify(listing).list(false, null);
+        verify(listing).list(Viewer.anonymous());
     }
 
     @Test
@@ -152,6 +157,17 @@ class DiscoveryRoutesTest {
         var response = harness.request(client -> client.get(LIST, harness.as(signedIn())));
 
         assertEquals(200, response.code());
-        verify(listing).list(true, STATION_ID);
+        verify(listing).list(new Viewer(true, STATION_ID, false));
+    }
+
+    @Test
+    void aReaderWithTheFederationPermissionIsListedAsOneWhoMayAsk() {
+        var federator = TestSessions.member(STATION_ID, StationPermission.STATION_FEDERATION);
+
+        var response = harness.request(client -> client.get(LIST, harness.as(federator)));
+
+        assertEquals(200, response.code());
+        verify(listing).list(new Viewer(true, STATION_ID, true));
+        assertTrue(json(response).get(0).get("canRequest").asBoolean());
     }
 }

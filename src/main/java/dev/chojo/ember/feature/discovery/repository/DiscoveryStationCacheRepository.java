@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.discovery.repository;
 
 import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
+import de.chojo.sadu.queries.api.call.Call;
 import dev.chojo.ember.feature.discovery.entity.BlocklistKind;
 import dev.chojo.ember.feature.discovery.entity.CachedDiscoveryStation;
 import dev.chojo.ember.feature.discovery.entity.DiscoveryPeer;
@@ -19,6 +20,7 @@ import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
@@ -29,6 +31,29 @@ import static dev.chojo.ember.util.sql.SqlSupport.alias;
 public class DiscoveryStationCacheRepository {
     private static final String DISCOVERY_STATION_CACHE_COLUMNS =
             "instance_public_key, station_uid, payload, fetched_at";
+
+    /**
+     * The cards of peers that are reachable, not blocked, not distrusted and not on the blocklist by key
+     * or by address, leaving out what this instance published itself and cards naming a station of this
+     * instance.
+     */
+    private static final String PUBLISHED_ELSEWHERE = """
+            FROM discovery_station_cache c
+            JOIN discovery_peer p ON p.public_key = c.instance_public_key
+            WHERE p.reachable = TRUE
+              AND p.blocked = FALSE
+              AND p.reputation > :distrusted
+              AND p.public_key <> :own_key
+              AND p.base_url <> :own_base_url
+              AND NOT EXISTS (
+                  SELECT 1
+                  FROM discovery_blocklist b
+                  WHERE (b.kind = :key_kind AND b.value = p.public_key)
+                     OR (b.kind = :url_kind AND b.value = p.base_url))
+              AND NOT EXISTS (
+                  SELECT 1
+                  FROM station s
+                  WHERE s.uid::TEXT = c.station_uid)""";
 
     /**
      * Inserts or refreshes a cached station card for a peer.
@@ -120,6 +145,53 @@ public class DiscoveryStationCacheRepository {
     }
 
     /**
+     * Writes down that a card's logo was asked for and the copy kept here, if any, stays as it is.
+     */
+    public void touchLogoCheck(String instancePublicKey, String stationUid, Instant checkedAt) {
+        query("""
+                UPDATE discovery_station_cache
+                SET logo_checked_at = :checked_at
+                WHERE instance_public_key = :instance_public_key
+                  AND station_uid = :station_uid;""")
+                .single(call().bind("instance_public_key", instancePublicKey)
+                        .bind("station_uid", stationUid)
+                        .bind("checked_at", checkedAt, INSTANT_TIMESTAMP))
+                .update();
+    }
+
+    /**
+     * The peers whose card for the given station says a copy of its logo is kept here.
+     *
+     * @param stationUid the station's identifier as the peers sent it
+     * @return the peers' public keys
+     */
+    public List<String> findLogoHolders(String stationUid) {
+        return query("""
+                SELECT instance_public_key
+                FROM discovery_station_cache
+                WHERE station_uid = :station_uid AND logo_stored = TRUE;""")
+                .single(call().bind("station_uid", stationUid))
+                .map(row -> row.getString("instance_public_key"))
+                .all();
+    }
+
+    /**
+     * Forgets the copy of one card's logo, so it is asked for afresh on the next refresh.
+     */
+    public void forgetLogo(String instancePublicKey, String stationUid) {
+        query("""
+                UPDATE discovery_station_cache
+                SET logo_checked_at    = NULL,
+                    logo_stored        = FALSE,
+                    logo_etag          = NULL,
+                    logo_last_modified = NULL
+                WHERE instance_public_key = :instance_public_key
+                  AND station_uid = :station_uid;""")
+                .single(call().bind("instance_public_key", instancePublicKey).bind("station_uid", stationUid))
+                .update();
+    }
+
+    /**
      * Forgets every logo copy of a peer's cards, so they are asked for afresh once the peer is shown
      * again.
      */
@@ -159,30 +231,41 @@ public class DiscoveryStationCacheRepository {
     public List<PublishedRemoteStation> findPublishedElsewhere(String ownPublicKey, String ownBaseUrl) {
         return query("""
                 SELECT c.instance_public_key, p.base_url, c.payload, c.logo_stored
-                FROM discovery_station_cache c
-                JOIN discovery_peer p ON p.public_key = c.instance_public_key
-                WHERE p.reachable = TRUE
-                  AND p.blocked = FALSE
-                  AND p.reputation > :distrusted
-                  AND p.public_key <> :own_key
-                  AND p.base_url <> :own_base_url
-                  AND NOT EXISTS (
-                      SELECT 1
-                      FROM discovery_blocklist b
-                      WHERE (b.kind = :key_kind AND b.value = p.public_key)
-                         OR (b.kind = :url_kind AND b.value = p.base_url))
-                  AND NOT EXISTS (
-                      SELECT 1
-                      FROM station s
-                      WHERE s.uid::TEXT = c.station_uid)
-                ORDER BY LOWER(c.payload ->> 'name'), p.base_url, c.station_uid;""")
-                .single(call().bind("distrusted", DiscoveryPeer.DISTRUSTED_REPUTATION)
-                        .bind("own_key", ownPublicKey)
-                        .bind("own_base_url", ownBaseUrl)
-                        .bind("key_kind", BlocklistKind.PUBLIC_KEY.name())
-                        .bind("url_kind", BlocklistKind.BASE_URL.name()))
+                %s
+                ORDER BY LOWER(c.payload ->> 'name'), p.base_url, c.station_uid;""", PUBLISHED_ELSEWHERE)
+                .single(publishedElsewhere(ownPublicKey, ownBaseUrl))
                 .map(PublishedRemoteStation.map())
                 .all();
+    }
+
+    /**
+     * The cards other instances publish for one station, under the same conditions as
+     * {@link #findPublishedElsewhere(String, String)}: usually one, more where several instances claim
+     * the same identifier.
+     *
+     * @param ownPublicKey this instance's public key
+     * @param ownBaseUrl   the address this instance publishes as its own
+     * @param stationUid   the station
+     * @return its cards, by instance address
+     */
+    public List<PublishedRemoteStation> findPublishedElsewhere(
+            String ownPublicKey, String ownBaseUrl, UUID stationUid) {
+        return query("""
+                SELECT c.instance_public_key, p.base_url, c.payload, c.logo_stored
+                %s
+                  AND LOWER(c.station_uid) = :station_uid
+                ORDER BY p.base_url;""", PUBLISHED_ELSEWHERE)
+                .single(publishedElsewhere(ownPublicKey, ownBaseUrl).bind("station_uid", stationUid.toString()))
+                .map(PublishedRemoteStation.map())
+                .all();
+    }
+
+    private static Call publishedElsewhere(String ownPublicKey, String ownBaseUrl) {
+        return call().bind("distrusted", DiscoveryPeer.DISTRUSTED_REPUTATION)
+                .bind("own_key", ownPublicKey)
+                .bind("own_base_url", ownBaseUrl)
+                .bind("key_kind", BlocklistKind.PUBLIC_KEY.name())
+                .bind("url_kind", BlocklistKind.BASE_URL.name());
     }
 
     public List<CachedDiscoveryStation> findForPeer(String instancePublicKey) {

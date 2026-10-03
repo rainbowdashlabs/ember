@@ -62,10 +62,12 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -1020,6 +1022,16 @@ public class WaitingListService implements TaskSource {
 
     public boolean hasPublicWaitlists(int stationId) {
         return repository.hasPublicWaitlists(stationId);
+    }
+
+    /**
+     * The stations among the given ones with at least one public waiting list, in one query.
+     *
+     * @param stationIds the stations asked about
+     * @return those of them with a public waiting list
+     */
+    public Set<Integer> withPublicWaitlists(Collection<Integer> stationIds) {
+        return repository.withPublicWaitlists(stationIds);
     }
 
     /**

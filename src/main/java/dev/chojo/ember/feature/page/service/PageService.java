@@ -36,6 +36,7 @@ import tools.jackson.databind.JsonNode;
 
 import java.text.Normalizer;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -43,6 +44,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
 @Singleton
 public class PageService {
@@ -458,6 +460,16 @@ public class PageService {
      */
     public boolean hasListedPages(int stationId) {
         return pageRepository.anyListed(stationId);
+    }
+
+    /**
+     * The stations among the given ones that list at least one page publicly, in one query.
+     *
+     * @param stationIds the stations asked about
+     * @return those of them with a listed page
+     */
+    public Set<Integer> withListedPages(Collection<Integer> stationIds) {
+        return pageRepository.withListedPages(stationIds);
     }
 
     public Optional<Integer> getLandingPageId(int stationId) {

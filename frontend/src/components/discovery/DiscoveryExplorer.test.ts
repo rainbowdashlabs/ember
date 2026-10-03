@@ -10,7 +10,7 @@ import {createMemoryHistory, createRouter} from 'vue-router'
 import DiscoveryExplorer from './DiscoveryExplorer.vue'
 import DiscoveryTile from './DiscoveryTile.vue'
 import type {DiscoveryEntry} from '@/api/generated/schema'
-import {createDiscoveryEntry, createRemoteDiscoveryEntry, federationManager} from '@/test/mocks/discovery'
+import {createDiscoveryEntry, createRemoteDiscoveryEntry, invitingPage} from '@/test/mocks/discovery'
 
 /**
  * A discovery page: the map on top with the chosen station's tile below it, the search between the map and
@@ -55,7 +55,7 @@ describe('DiscoveryExplorer', () => {
         })
         await router.push(address)
         const wrapper = mount(DiscoveryExplorer, {
-            props: {stations, viewer: federationManager(), selectionKey: 'station', search},
+            props: {stations, viewer: invitingPage(), selectionKey: 'station', search},
             global: {plugins: [router], stubs: {StationMap: MapStub}},
         })
         await flushPromises()

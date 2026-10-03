@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.cluster.repository;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.api.auth.ClusterPermission;
 import dev.chojo.ember.api.auth.ClusterUserType;
@@ -23,7 +24,9 @@ import org.jspecify.annotations.Nullable;
 
 import java.util.Collection;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -75,6 +78,27 @@ public class ClusterRepository {
                 .single(call().bind("station_id", stationId))
                 .map(Cluster.map())
                 .first();
+    }
+
+    /**
+     * The clusters the given stations are members of, in one query.
+     *
+     * @param stationIds the stations
+     * @return each member station's cluster by station id; a station outside any cluster is left out
+     */
+    public Map<Integer, Cluster> findByStations(Collection<Integer> stationIds) {
+        if (stationIds.isEmpty()) return Map.of();
+        Map<Integer, Cluster> clusters = new HashMap<>();
+        query("""
+                SELECT s.id AS member_station_id, %s FROM cluster c
+                JOIN station s ON s.cluster_id = c.id
+                WHERE s.id = ANY(:station_ids);""", SqlSupport.alias("c", CLUSTER_COLUMNS))
+                .single(call().bind("station_ids", List.copyOf(stationIds), PostgreSqlTypes.INTEGER))
+                .map(row ->
+                        Map.entry(row.getInt("member_station_id"), Cluster.map().map(row)))
+                .all()
+                .forEach(entry -> clusters.put(entry.getKey(), entry.getValue()));
+        return clusters;
     }
 
     /**

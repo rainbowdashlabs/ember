@@ -21,6 +21,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -196,6 +197,21 @@ class NewsRepositoryTest extends RepositoryTestBase {
         assertTrue(newsRepo.hasPublicBlogEntries(station.id()));
         newsRepo.updatePublicBlog(newsId, false);
         assertFalse(newsRepo.hasPublicBlogEntries(station.id()));
+    }
+
+    @Test
+    @Order(43)
+    void saysWhichStationsHavePublicBlogEntries() {
+        var quiet = stationRepo.create("News Station Quiet");
+        newsRepo.updatePublicBlog(newsId, true);
+
+        assertEquals(Set.of(station.id()), newsRepo.withPublicBlogEntries(List.of(station.id(), quiet.id())));
+        newsRepo.updatePublicBlog(newsId, false);
+        assertTrue(newsRepo.withPublicBlogEntries(List.of(station.id(), quiet.id()))
+                .isEmpty());
+        assertTrue(newsRepo.withPublicBlogEntries(List.of()).isEmpty());
+
+        stationRepo.delete(quiet.id());
     }
 
     @Test

@@ -47963,6 +47963,12 @@
           "isOwnStation" : {
             "type" : "boolean"
           },
+          "canRequest" : {
+            "type" : "boolean"
+          },
+          "canInvite" : {
+            "type" : "boolean"
+          },
           "publicSlug" : {
             "type" : [ "string", "null" ]
           },
@@ -47998,7 +48004,7 @@
             "type" : [ "string", "null" ]
           }
         },
-        "required" : [ "stationUid", "name", "description", "hasLogo", "logoUrl", "hasPublicWiki", "hasPublicCalendar", "hasPublicBlog", "waitingListOpen", "acceptsFederation", "alreadyFederated", "isOwnStation", "publicSlug", "publicPageUrl", "addressLine", "city", "country", "latitude", "longitude", "clusterUid", "clusterName", "instanceHost", "instanceUrl" ]
+        "required" : [ "stationUid", "name", "description", "hasLogo", "logoUrl", "hasPublicWiki", "hasPublicCalendar", "hasPublicBlog", "waitingListOpen", "acceptsFederation", "alreadyFederated", "isOwnStation", "canRequest", "canInvite", "publicSlug", "publicPageUrl", "addressLine", "city", "country", "latitude", "longitude", "clusterUid", "clusterName", "instanceHost", "instanceUrl" ]
       },
       "DiscoveryIdentity" : {
         "type" : "object",

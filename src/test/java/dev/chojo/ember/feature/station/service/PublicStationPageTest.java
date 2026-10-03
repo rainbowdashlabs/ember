@@ -18,11 +18,14 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 /**
@@ -75,9 +78,9 @@ class PublicStationPageTest {
         when(waitlist.publicWaitlistEnabled()).thenReturn(true);
         var blog = station(StationKind.REGULAR);
         when(blog.publicBlogEnabled()).thenReturn(true);
-        when(pages.hasListedPages(STATION_ID)).thenReturn(true);
-        when(waitingLists.hasPublicWaitlists(STATION_ID)).thenReturn(true);
-        when(news.hasPublicBlogEntries(STATION_ID)).thenReturn(true);
+        when(pages.withListedPages(List.of(STATION_ID))).thenReturn(Set.of(STATION_ID));
+        when(waitingLists.withPublicWaitlists(List.of(STATION_ID))).thenReturn(Set.of(STATION_ID));
+        when(news.withPublicBlogEntries(List.of(STATION_ID))).thenReturn(Set.of(STATION_ID));
 
         for (var station : List.of(wiki, calendar, page, waitlist, blog)) {
             assertFalse(service.offer(station).isEmpty());
@@ -85,6 +88,34 @@ class PublicStationPageTest {
         assertEquals(new PublicOffer(true, false, false, false, false), service.offer(wiki));
         assertEquals(new PublicOffer(false, false, false, true, false), service.offer(waitlist));
         assertEquals(new PublicOffer(false, false, false, false, true), service.offer(blog));
+    }
+
+    @Test
+    void manyStationsAreAskedAboutEachKindInOneQueryAndOnlyWhereSwitchedOn() {
+        var page = station(StationKind.REGULAR);
+        when(page.publicPagesEnabled()).thenReturn(true);
+        var other = mock(Station.class);
+        when(other.id()).thenReturn(8);
+        when(other.stationKind()).thenReturn(StationKind.REGULAR);
+        when(other.publicKbMode()).thenReturn(PublicKbMode.OFF);
+        when(other.publicPagesEnabled()).thenReturn(true);
+        when(other.publicBlogEnabled()).thenReturn(true);
+        var home = mock(Station.class);
+        when(home.id()).thenReturn(9);
+        when(home.stationKind()).thenReturn(StationKind.CLUSTER_HOME);
+        when(home.publicKbMode()).thenReturn(PublicKbMode.ALLOW_ALL);
+        when(home.publicPagesEnabled()).thenReturn(true);
+        when(pages.withListedPages(List.of(STATION_ID, 8))).thenReturn(Set.of(8));
+        when(news.withPublicBlogEntries(List.of(8))).thenReturn(Set.of(8));
+
+        var offers = service.offers(List.of(page, other, home));
+
+        assertEquals(new PublicOffer(false, false, false, false, false), offers.get(STATION_ID));
+        assertEquals(new PublicOffer(false, false, true, false, true), offers.get(8));
+        assertEquals(new PublicOffer(true, false, false, false, false), offers.get(9));
+        verify(pages).withListedPages(List.of(STATION_ID, 8));
+        verify(waitingLists).withPublicWaitlists(List.of());
+        verifyNoMoreInteractions(pages);
     }
 
     @Test

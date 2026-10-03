@@ -3,32 +3,20 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {computed, type ComputedRef} from 'vue'
-import {useSession} from '@/composables/useSession'
-
 /**
- * Who is looking at the discovery tiles, as far as the buttons on them care.
- *
- * <p>`mayRequestFederation` holds for someone signed in on this instance with the federation permission at
- * their current station, `stationUid` names that station, and `offersInvite` says whether the page hands out
- * invite codes at all.
+ * What a discovery page offers whoever looks at its tiles. Whether a station may be asked to federate,
+ * whether its code may be had and whether it is the reader's own come with each entry from the server;
+ * the page only says whether it hands out invite codes at all.
  */
 export interface DiscoveryViewer {
-    mayRequestFederation: boolean
-    stationUid: string | null
     offersInvite: boolean
 }
 
 /**
- * The viewer of a discovery page, from the session.
+ * The viewer of a discovery page.
  *
  * @param offersInvite whether the page hands out invite codes
  */
-export function useDiscoveryViewer(offersInvite: boolean): ComputedRef<DiscoveryViewer> {
-    const {sessionInfo, canManageFederation} = useSession()
-    return computed(() => ({
-        mayRequestFederation: !!sessionInfo.value && canManageFederation(),
-        stationUid: sessionInfo.value?.stationId ?? null,
-        offersInvite,
-    }))
+export function useDiscoveryViewer(offersInvite: boolean): DiscoveryViewer {
+    return {offersInvite}
 }

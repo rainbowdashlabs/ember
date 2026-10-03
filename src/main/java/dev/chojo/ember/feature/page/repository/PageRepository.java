@@ -17,8 +17,10 @@ import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
@@ -143,14 +145,24 @@ public class PageRepository {
      * asks it on every render of every public page.
      */
     public boolean anyListed(int stationId) {
-        return query("""
-                SELECT EXISTS(
-                    SELECT 1 FROM station_page WHERE station_id = :station_id AND visibility = 'PUBLIC'
-                ) AS present;""")
-                .single(call().bind("station_id", stationId))
-                .map(row -> row.getBoolean("present"))
-                .first()
-                .orElse(false);
+        return withListedPages(List.of(stationId)).contains(stationId);
+    }
+
+    /**
+     * The stations among the given ones that list at least one page publicly.
+     *
+     * @param stationIds the stations asked about
+     * @return those of them with a listed page
+     */
+    public Set<Integer> withListedPages(Collection<Integer> stationIds) {
+        if (stationIds.isEmpty()) return Set.of();
+        return Set.copyOf(query("""
+                SELECT DISTINCT station_id
+                FROM station_page
+                WHERE station_id = ANY(:station_ids) AND visibility = 'PUBLIC';""")
+                .single(call().bind("station_ids", List.copyOf(stationIds), PostgreSqlTypes.INTEGER))
+                .map(row -> row.getInt("station_id"))
+                .all());
     }
 
     /**

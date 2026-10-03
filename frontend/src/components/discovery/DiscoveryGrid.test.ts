@@ -7,7 +7,7 @@ import {describe, expect, it} from 'vitest'
 import {mount} from '@vue/test-utils'
 import DiscoveryGrid from './DiscoveryGrid.vue'
 import type {DiscoveryEntry} from '@/api/generated/schema'
-import {createDiscoveryEntry, createRemoteDiscoveryEntry, federationManager} from '@/test/mocks/discovery'
+import {createDiscoveryEntry, createRemoteDiscoveryEntry, invitingPage} from '@/test/mocks/discovery'
 
 /**
  * The tiles on the discovery page, for stations of this instance and of other instances.
@@ -18,7 +18,7 @@ describe('DiscoveryGrid', () => {
     const remote = createRemoteDiscoveryEntry()
 
     function grid(stations: DiscoveryEntry[]) {
-        return mount(DiscoveryGrid, {props: {stations, viewer: federationManager()}})
+        return mount(DiscoveryGrid, {props: {stations, viewer: invitingPage()}})
     }
 
     it('shows the logo of a remote station from the copy this instance keeps of it', () => {

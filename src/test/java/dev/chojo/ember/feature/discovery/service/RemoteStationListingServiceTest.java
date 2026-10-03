@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.discovery.service;
 
+import dev.chojo.ember.feature.discovery.TestDiscoveryCards;
 import dev.chojo.ember.feature.discovery.entity.DiscoveryStationCard;
 import dev.chojo.ember.feature.discovery.entity.PublishedRemoteStation;
 import dev.chojo.ember.feature.discovery.protocol.DiscoveryIdentity;
@@ -13,8 +14,8 @@ import dev.chojo.ember.feature.discovery.service.RemoteStationListingService.Rem
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -44,24 +45,14 @@ class RemoteStationListingServiceTest {
     }
 
     private static DiscoveryStationCard card(String uid, String slug) {
-        return new DiscoveryStationCard(
-                uid,
-                "Wache Nord",
-                "Wir sind da",
-                "https://elsewhere.example/logo",
-                "DE",
-                null,
-                "Nordstadt",
-                "https://elsewhere.example/anything",
-                List.of(),
-                "<10",
-                Instant.now(),
-                null,
-                null,
-                null,
-                null,
-                null,
-                slug);
+        return TestDiscoveryCards.card(uid)
+                .name("Wache Nord")
+                .slogan("Wir sind da")
+                .logoUrl("https://elsewhere.example/logo")
+                .city("Nordstadt")
+                .contactUrl("https://elsewhere.example/anything")
+                .publicSlug(slug)
+                .build();
     }
 
     private static PublishedRemoteStation published(String baseUrl, DiscoveryStationCard card) {
@@ -111,24 +102,11 @@ class RemoteStationListingServiceTest {
 
     @Test
     void aStationWhoseCardNamesNoPublicPageIsNotLinked() {
-        var withoutPage = new DiscoveryStationCard(
-                STATION.toString(),
-                "Wache Nord",
-                null,
-                null,
-                "DE",
-                null,
-                "Nordstadt",
-                null,
-                List.of(),
-                "<10",
-                Instant.now(),
-                null,
-                null,
-                null,
-                null,
-                null,
-                "wache-nord");
+        var withoutPage = TestDiscoveryCards.card(STATION.toString())
+                .name("Wache Nord")
+                .city("Nordstadt")
+                .publicSlug("wache-nord")
+                .build();
 
         var listed = listing(published("https://feuer.example", withoutPage));
 
@@ -160,5 +138,15 @@ class RemoteStationListingServiceTest {
                 published("https://feuer.example", card(null, null)));
 
         assertTrue(listed.isEmpty(), listed.toString());
+    }
+
+    @Test
+    void aPublishedStationIsLookedUpByItsIdentifierOnAnInstanceThatCanBeLinked() {
+        var linked = published("https://feuer.example", card(STATION.toString(), null));
+        when(cache.findPublishedElsewhere(OWN_KEY, OWN_URL, STATION))
+                .thenReturn(List.of(published("ftp://feuer.example", card(STATION.toString(), null)), linked));
+
+        assertEquals(Optional.of(linked), service.findPublished(STATION));
+        assertTrue(service.findPublished(UUID.randomUUID()).isEmpty());
     }
 }

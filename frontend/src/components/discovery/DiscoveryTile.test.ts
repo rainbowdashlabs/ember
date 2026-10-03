@@ -8,7 +8,7 @@ import {mount} from '@vue/test-utils'
 import DiscoveryTile from './DiscoveryTile.vue'
 import type {DiscoveryEntry} from '@/api/generated/schema'
 import type {DiscoveryViewer} from '@/composables/useDiscoveryViewer'
-import {createDiscoveryEntry, createRemoteDiscoveryEntry, federationManager} from '@/test/mocks/discovery'
+import {createDiscoveryEntry, createRemoteDiscoveryEntry, invitingPage} from '@/test/mocks/discovery'
 
 /**
  * One tile on the discovery page, for a station of this instance and for one of another instance.
@@ -31,12 +31,12 @@ describe('DiscoveryTile', () => {
     const local = createDiscoveryEntry({...offers, publicPageUrl: '/public/station/wache-hier'})
     const remote = createRemoteDiscoveryEntry({...offers, name: 'Wache Hier'})
 
-    function tile(station: DiscoveryEntry, viewer: DiscoveryViewer = federationManager()) {
+    function tile(station: DiscoveryEntry, viewer: DiscoveryViewer = invitingPage()) {
         return mount(DiscoveryTile, {props: {station, viewer}})
     }
 
     function visibleText(station: DiscoveryEntry): string {
-        const wrapper = tile(station, {...federationManager(), offersInvite: false})
+        const wrapper = tile(station, {offersInvite: false})
         wrapper.findAll('.sr-only').forEach(hidden => hidden.element.remove())
         return wrapper.text().replace(/\s+/g, ' ')
     }
@@ -96,55 +96,45 @@ describe('DiscoveryTile', () => {
     })
 
     describe('the request to federate', () => {
-        const anonymous: DiscoveryViewer = {mayRequestFederation: false, stationUid: null, offersInvite: true}
-        const memberWithout: DiscoveryViewer = {mayRequestFederation: false, stationUid: 'x', offersInvite: true}
-
-        function offersConnect(station: DiscoveryEntry, viewer: DiscoveryViewer): boolean {
-            return tile(station, viewer).text().includes('Verbinden')
+        function offersConnect(station: DiscoveryEntry): boolean {
+            return tile(station).text().includes('Verbinden')
         }
 
-        it('is not offered to an anonymous visitor', () => {
-            expect(offersConnect(local, anonymous)).toBe(false)
-            expect(offersConnect(remote, anonymous)).toBe(false)
+        it('is offered on local and remote tiles alike where the server says the reader may ask', () => {
+            expect(offersConnect(local)).toBe(true)
+            expect(offersConnect(remote)).toBe(true)
         })
 
-        it('is not offered to a member without the federation permission', () => {
-            expect(offersConnect(local, memberWithout)).toBe(false)
-            expect(offersConnect(remote, memberWithout)).toBe(false)
+        it('is not offered where the server says the reader may not ask', () => {
+            expect(offersConnect({...local, canRequest: false})).toBe(false)
+            expect(offersConnect({...remote, canRequest: false})).toBe(false)
         })
 
-        it('is offered to a federation manager on local and remote tiles alike', () => {
-            expect(offersConnect(local, federationManager('other'))).toBe(true)
-            expect(offersConnect(remote, federationManager('other'))).toBe(true)
-        })
+        it('marks the reader\'s own station as theirs from the entry alone', () => {
+            const own = tile({...local, isOwnStation: true, canRequest: false, canInvite: false})
 
-        it('is never offered on the viewer\'s own station, even where the list does not say it is theirs', () => {
-            const own = tile(local, federationManager(local.stationUid))
-
-            expect(own.text()).not.toContain('Verbinden')
             expect(own.text()).toContain('Meine Wache')
-            expect(offersConnect({...local, isOwnStation: true}, federationManager())).toBe(false)
+            expect(own.text()).not.toContain('Verbinden')
+            expect(tile(local).text()).not.toContain('Meine Wache')
         })
 
-        it('is not offered where a partnership exists or the station takes no requests', () => {
-            expect(offersConnect({...remote, alreadyFederated: true}, federationManager())).toBe(false)
-            expect(offersConnect({...remote, acceptsFederation: false}, federationManager())).toBe(false)
-        })
+        it('marks a partner as connected', () => {
+            const partner = tile({...remote, alreadyFederated: true, canRequest: false, canInvite: false})
 
-        it('treats a remote station under the viewer\'s own identifier as somebody else', () => {
-            expect(offersConnect(remote, federationManager(remote.stationUid))).toBe(true)
+            expect(partner.text()).not.toContain('Verbinden')
+            expect(partner.text()).not.toContain('Code anfordern')
         })
     })
 
     it('hands out an invite code for a station of every instance alike', () => {
-        expect(tile(local, federationManager()).text()).toContain('Code anfordern')
-        expect(tile(remote, federationManager()).text()).toContain('Code anfordern')
-        expect(tile({...remote, acceptsFederation: false}, federationManager()).text()).not.toContain('Code anfordern')
-        expect(tile(local, {...federationManager(), offersInvite: false}).text()).not.toContain('Code anfordern')
+        expect(tile(local).text()).toContain('Code anfordern')
+        expect(tile(remote).text()).toContain('Code anfordern')
+        expect(tile({...remote, canInvite: false}).text()).not.toContain('Code anfordern')
+        expect(tile(local, {offersInvite: false}).text()).not.toContain('Code anfordern')
     })
 
     it('asks to federate with the station it shows', async () => {
-        const wrapper = tile(remote, federationManager())
+        const wrapper = tile(remote)
 
         await wrapper.findAll('button').find(b => b.text().includes('Verbinden'))!.trigger('click')
 

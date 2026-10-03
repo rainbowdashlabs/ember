@@ -20,6 +20,14 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.function.Predicate;
+
 /**
  * What a station tells the open web about itself, and whether it answers the open web at all.
  *
@@ -82,16 +90,44 @@ public class PublicStationInfoService {
      * @return each public part and whether the station has it
      */
     public PublicOffer offer(Station station) {
-        boolean hasPublicKb = station.publicKbMode() != PublicKbMode.OFF;
-        if (station.stationKind() == StationKind.CLUSTER_HOME) {
-            return new PublicOffer(hasPublicKb, false, false, false, false);
+        return Objects.requireNonNull(offers(List.of(station)).get(station.id()), "every station given has an offer");
+    }
+
+    /**
+     * What of each station is on the public web, the same as {@link #offer(Station)} answers for one,
+     * with one query per kind of content for all of them together. A station is only asked about a kind
+     * it has switched on.
+     *
+     * @param stations the stations
+     * @return each station's offer by station id
+     */
+    public Map<Integer, PublicOffer> offers(Collection<Station> stations) {
+        var regular = stations.stream()
+                .filter(station -> station.stationKind() != StationKind.CLUSTER_HOME)
+                .toList();
+        Set<Integer> pages = pageService.withListedPages(idsWhere(regular, Station::publicPagesEnabled));
+        Set<Integer> waitlists =
+                waitingListService.withPublicWaitlists(idsWhere(regular, Station::publicWaitlistEnabled));
+        Set<Integer> blogs = newsService.withPublicBlogEntries(idsWhere(regular, Station::publicBlogEnabled));
+        Map<Integer, PublicOffer> offers = new HashMap<>();
+        for (var station : stations) {
+            boolean hasPublicKb = station.publicKbMode() != PublicKbMode.OFF;
+            offers.put(
+                    station.id(),
+                    station.stationKind() == StationKind.CLUSTER_HOME
+                            ? new PublicOffer(hasPublicKb, false, false, false, false)
+                            : new PublicOffer(
+                                    hasPublicKb,
+                                    station.publicCalendarEnabled(),
+                                    pages.contains(station.id()),
+                                    waitlists.contains(station.id()),
+                                    blogs.contains(station.id())));
         }
-        return new PublicOffer(
-                hasPublicKb,
-                station.publicCalendarEnabled(),
-                station.publicPagesEnabled() && pageService.hasListedPages(station.id()),
-                station.publicWaitlistEnabled() && waitingListService.hasPublicWaitlists(station.id()),
-                station.publicBlogEnabled() && newsService.hasPublicBlogEntries(station.id()));
+        return offers;
+    }
+
+    private static List<Integer> idsWhere(List<Station> stations, Predicate<Station> switchedOn) {
+        return stations.stream().filter(switchedOn).map(Station::id).toList();
     }
 
     private PublicStationInfo publicInfo(Station station, PublicOffer offer, @Nullable String landingPageSlug) {

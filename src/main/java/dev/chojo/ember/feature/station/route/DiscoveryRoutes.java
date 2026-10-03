@@ -14,6 +14,7 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.federation.entity.InviteCodeResponse;
 import dev.chojo.ember.feature.station.service.StationDiscoveryService;
 import dev.chojo.ember.feature.station.service.StationDiscoveryService.DiscoveryEntry;
+import dev.chojo.ember.feature.station.service.StationDiscoveryService.Viewer;
 import io.javalin.http.Context;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
@@ -23,6 +24,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.UUID;
 
@@ -57,7 +59,14 @@ public class DiscoveryRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = DiscoveryEntry[].class)))
     private void listDiscoverable(Context ctx) {
         UserSession session = ctx.attribute(ApiServer.ATTR_SESSION);
-        ctx.json(discovery.list(session != null, session == null ? null : session.stationId()));
+        ctx.json(discovery.list(viewerOf(session)));
+    }
+
+    private static Viewer viewerOf(@Nullable UserSession session) {
+        if (session == null) return Viewer.anonymous();
+        Integer stationId = session.stationId();
+        return new Viewer(
+                true, stationId, stationId != null && session.hasPermission(StationPermission.STATION_FEDERATION));
     }
 
     @OpenApi(

@@ -18,7 +18,7 @@ import DiscoveryTileHeader from '@/components/discovery/DiscoveryTileHeader.vue'
 import DiscoveryOfferChips from '@/components/discovery/DiscoveryOfferChips.vue'
 import DiscoveryPageLink from '@/components/discovery/DiscoveryPageLink.vue'
 import IconButton from '@/components/button/IconButton.vue'
-import {isOnTheMap, isViewersStation, placeLine, showsConnect, showsInvite} from '@/components/discovery/tileRules'
+import {isOnTheMap, placeLine} from '@/components/discovery/tileRules'
 import type {DiscoveryViewer} from '@/composables/useDiscoveryViewer'
 import type {DiscoveryEntry} from '@/api/generated/schema'
 
@@ -44,7 +44,7 @@ const emit = defineEmits<{
 
 const {t} = useI18n()
 
-const own = computed(() => isViewersStation(props.station, props.viewer))
+const invitable = computed(() => props.viewer.offersInvite && props.station.canInvite)
 const place = computed(() => placeLine(props.station))
 const locatable = computed(() => !props.large && isOnTheMap(props.station))
 </script>
@@ -64,12 +64,12 @@ const locatable = computed(() => !props.large && isOnTheMap(props.station))
     <DiscoveryOfferChips :station="station"/>
 
     <ButtonRow class="mt-auto pt-2">
-      <PrimaryBadge v-if="own">{{ t('discovery.ownStation') }}</PrimaryBadge>
+      <PrimaryBadge v-if="station.isOwnStation">{{ t('discovery.ownStation') }}</PrimaryBadge>
       <SuccessBadge v-else-if="station.alreadyFederated">{{ t('discovery.alreadyConnected') }}</SuccessBadge>
-      <PrimaryButton v-if="showsConnect(station, viewer)" compact :icon="['fas', 'handshake']" @click="emit('connect', station)">
+      <PrimaryButton v-if="station.canRequest" compact :icon="['fas', 'handshake']" @click="emit('connect', station)">
         {{ t('discovery.connect') }}
       </PrimaryButton>
-      <SecondaryButton v-if="showsInvite(station, viewer)" compact :icon="['fas', 'link']" @click="emit('invite', station)">
+      <SecondaryButton v-if="invitable" compact :icon="['fas', 'link']" @click="emit('invite', station)">
         {{ t('discovery.getCode') }}
       </SecondaryButton>
       <DiscoveryPageLink v-if="station.publicPageUrl" :station="station" :href="station.publicPageUrl"/>

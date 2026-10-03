@@ -21,6 +21,8 @@ export function createDiscoveryEntry(overrides: Partial<DiscoveryEntry> = {}): D
         acceptsFederation: true,
         alreadyFederated: false,
         isOwnStation: false,
+        canRequest: true,
+        canInvite: true,
         publicSlug: 'wache-hier',
         publicPageUrl: null,
         addressLine: null,
@@ -49,7 +51,7 @@ export function createRemoteDiscoveryEntry(overrides: Partial<DiscoveryEntry> = 
     })
 }
 
-/** Somebody signed in at the given station who may ask other stations to federate. */
-export function federationManager(stationUid: string | null = null): DiscoveryViewer {
-    return {mayRequestFederation: true, stationUid, offersInvite: true}
+/** A page that hands out invite codes, as the public discovery page does. */
+export function invitingPage(): DiscoveryViewer {
+    return {offersInvite: true}
 }

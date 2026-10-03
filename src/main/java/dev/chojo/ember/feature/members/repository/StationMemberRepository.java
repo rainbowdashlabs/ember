@@ -24,6 +24,7 @@ import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -205,6 +206,27 @@ public class StationMemberRepository {
                 .single(call().bind("station_id", stationId).bind("include_former", includeFormer))
                 .map(StationMember.map())
                 .all();
+    }
+
+    /**
+     * How many current members each of the given stations has, in one query.
+     *
+     * @param stationIds the stations
+     * @return the count by station id; a station without current members is left out
+     */
+    public Map<Integer, Integer> countCurrent(Collection<Integer> stationIds) {
+        if (stationIds.isEmpty()) return Map.of();
+        Map<Integer, Integer> counts = new HashMap<>();
+        query("""
+                SELECT station_id, count(*) AS members
+                FROM station_member
+                WHERE station_id = ANY(:station_ids) AND former = FALSE
+                GROUP BY station_id;""")
+                .single(call().bind("station_ids", List.copyOf(stationIds), PostgreSqlTypes.INTEGER))
+                .map(row -> Map.entry(row.getInt("station_id"), row.getInt("members")))
+                .all()
+                .forEach(entry -> counts.put(entry.getKey(), entry.getValue()));
+        return counts;
     }
 
     /**

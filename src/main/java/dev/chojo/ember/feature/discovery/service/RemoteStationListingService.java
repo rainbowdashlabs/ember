@@ -8,6 +8,8 @@ package dev.chojo.ember.feature.discovery.service;
 import dev.chojo.ember.feature.discovery.entity.DiscoveryStationCard;
 import dev.chojo.ember.feature.discovery.entity.PublishedRemoteStation;
 import dev.chojo.ember.feature.discovery.repository.DiscoveryStationCacheRepository;
+import dev.chojo.ember.feature.station.entity.StationAddresses;
+import dev.chojo.ember.util.WebOrigins;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -33,8 +35,6 @@ import java.util.UUID;
  */
 @Singleton
 public class RemoteStationListingService {
-    private static final String PUBLIC_STATION_PATH = "/public/station/";
-
     private final DiscoveryStationCacheRepository cacheRepository;
     private final DiscoveryPingService pingService;
 
@@ -68,9 +68,7 @@ public class RemoteStationListingService {
      */
     public Optional<PublishedRemoteStation> findPublished(UUID stationUid) {
         var self = pingService.selfIdentity();
-        return cacheRepository.findPublishedElsewhere(self.publicKey(), self.baseUrl()).stream()
-                .filter(published ->
-                        stationUid.toString().equalsIgnoreCase(published.card().stationUid()))
+        return cacheRepository.findPublishedElsewhere(self.publicKey(), self.baseUrl(), stationUid).stream()
                 .filter(published -> webAddress(published.instanceBaseUrl()).isPresent())
                 .findFirst();
     }
@@ -87,7 +85,7 @@ public class RemoteStationListingService {
                 uid.get(),
                 card,
                 instance.get().getHost(),
-                stripTrailingSlash(published.instanceBaseUrl()),
+                WebOrigins.stripTrailingSlash(published.instanceBaseUrl()),
                 publicPageUrl(published),
                 logoUrl));
     }
@@ -99,7 +97,8 @@ public class RemoteStationListingService {
     private static @Nullable String publicPageUrl(PublishedRemoteStation published) {
         var named = published.card().contactUrl();
         if (named == null || named.isBlank()) return null;
-        return stripTrailingSlash(published.instanceBaseUrl()) + PUBLIC_STATION_PATH + pathSegment(published.card());
+        return StationAddresses.publicPageAt(
+                WebOrigins.stripTrailingSlash(published.instanceBaseUrl()), pathSegment(published.card()));
     }
 
     private static Optional<UUID> parseUid(String uid) {
@@ -125,10 +124,6 @@ public class RemoteStationListingService {
 
     private static String pathSegment(DiscoveryStationCard card) {
         return URLEncoder.encode(card.publicAddress(), StandardCharsets.UTF_8).replace("+", "%20");
-    }
-
-    private static String stripTrailingSlash(String url) {
-        return url.endsWith("/") ? url.substring(0, url.length() - 1) : url;
     }
 
     /**

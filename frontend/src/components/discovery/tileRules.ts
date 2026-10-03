@@ -3,44 +3,13 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {isRemoteEntry} from '@/api/discovery'
 import type {DiscoveryEntry} from '@/api/generated/schema'
-import type {DiscoveryViewer} from '@/composables/useDiscoveryViewer'
 
 /** One public part of a station a tile links to. */
 export interface OfferLink {
     key: 'waitingList' | 'wiki' | 'calendar' | 'blog'
     icon: string[]
     href: string
-}
-
-/**
- * Whether the tile shows the viewer's own station. The list a public page loads without a session cannot
- * say so itself, so the viewer's station is compared as well; a station of another instance is never it.
- */
-export function isViewersStation(entry: DiscoveryEntry, viewer: DiscoveryViewer): boolean {
-    return entry.isOwnStation || (!isRemoteEntry(entry) && entry.stationUid === viewer.stationUid)
-}
-
-function openToFederation(entry: DiscoveryEntry, viewer: DiscoveryViewer): boolean {
-    return entry.acceptsFederation && !entry.alreadyFederated && !isViewersStation(entry, viewer)
-}
-
-/**
- * The request to federate: for a viewer allowed to ask, never on their own station, on a station of this
- * instance and of another instance alike.
- */
-export function showsConnect(entry: DiscoveryEntry, viewer: DiscoveryViewer): boolean {
-    return viewer.mayRequestFederation && openToFederation(entry, viewer)
-}
-
-/**
- * The invite code, for a station of this instance and of another instance alike. The code of a station of
- * another instance names that instance's address, and entering it at a station sends that instance a
- * request to federate.
- */
-export function showsInvite(entry: DiscoveryEntry, viewer: DiscoveryViewer): boolean {
-    return viewer.offersInvite && openToFederation(entry, viewer)
 }
 
 /**

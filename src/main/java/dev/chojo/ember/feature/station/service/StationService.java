@@ -521,6 +521,19 @@ public class StationService {
     }
 
     /**
+     * One station discovery lists, by its identifier: for somebody signed in a station visible on the
+     * instance or to the public, for anybody else only a public one.
+     *
+     * @param uid      the station
+     * @param signedIn whether anybody is signed in
+     * @return the station, or empty where discovery does not list it for this reader
+     */
+    public Optional<Station> findDiscoverable(UUID uid, boolean signedIn) {
+        return stationRepository.findDiscoverableByUid(
+                uid, signedIn ? DiscoveryVisibility.INSTANCE : DiscoveryVisibility.PUBLIC, DiscoveryVisibility.PUBLIC);
+    }
+
+    /**
      * Finds stations discoverable without being signed in - only stations that opted into
      * public visibility.
      */

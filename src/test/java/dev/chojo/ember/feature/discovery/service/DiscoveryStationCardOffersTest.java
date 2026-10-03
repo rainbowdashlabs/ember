@@ -24,6 +24,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Path;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -31,6 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -62,7 +64,12 @@ class DiscoveryStationCardOffersTest extends RepositoryTestBase {
                 news,
                 mock(FormService.class));
         service = new DiscoveryStationProjectionService(
-                stationRepo, clusterRepo, new Conf(configDir), mock(StationLogoService.class), publicInfo);
+                stationRepo,
+                clusterRepo,
+                stationMemberRepo,
+                new Conf(configDir),
+                mock(StationLogoService.class),
+                publicInfo);
     }
 
     @BeforeEach
@@ -130,7 +137,8 @@ class DiscoveryStationCardOffersTest extends RepositoryTestBase {
 
         assertFalse(card().hasPublicBlog());
 
-        when(news.hasPublicBlogEntries(station.id())).thenReturn(true);
+        when(news.withPublicBlogEntries(argThat(ids -> ids.contains(station.id()))))
+                .thenReturn(Set.of(station.id()));
         assertTrue(card().hasPublicBlog());
 
         stationRepo.updatePublicBlogEnabled(station.id(), false);
@@ -143,7 +151,8 @@ class DiscoveryStationCardOffersTest extends RepositoryTestBase {
 
         assertFalse(card().waitingListOpen());
 
-        when(waitingLists.hasPublicWaitlists(station.id())).thenReturn(true);
+        when(waitingLists.withPublicWaitlists(argThat(ids -> ids.contains(station.id()))))
+                .thenReturn(Set.of(station.id()));
         var open = card();
         assertTrue(open.waitingListOpen());
         assertNotNull(open.contactUrl());

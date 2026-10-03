@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.station.service;
 
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
+import dev.chojo.ember.feature.discovery.TestDiscoveryCards;
 import dev.chojo.ember.feature.discovery.entity.DiscoveryStationCard;
 import dev.chojo.ember.feature.discovery.service.RemoteStationListingService;
 import dev.chojo.ember.feature.discovery.service.RemoteStationListingService.RemoteStation;
@@ -13,15 +14,19 @@ import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.federation.service.OutgoingPairRequestService;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
+import dev.chojo.ember.feature.station.TestPublicOffers;
 import dev.chojo.ember.feature.station.entity.PublicOffer;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.service.StationDiscoveryService.DiscoveryEntry;
+import dev.chojo.ember.feature.station.service.StationDiscoveryService.Viewer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -29,7 +34,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -56,7 +60,7 @@ class StationDiscoveryRemoteStationsTest {
     private FederationService federation;
     private RemoteStationListingService remote;
     private StationLogoService logos;
-    private PublicStationInfoService publicInfo;
+    private final Map<Integer, PublicOffer> offers = new HashMap<>();
     private StationDiscoveryService service;
 
     private static Station station(int id, String name) {
@@ -124,10 +128,9 @@ class StationDiscoveryRemoteStationsTest {
         federation = mock(FederationService.class);
         remote = mock(RemoteStationListingService.class);
         var clusters = mock(ClusterRepository.class);
-        when(clusters.findByStation(anyInt())).thenReturn(Optional.empty());
         logos = mock(StationLogoService.class);
-        publicInfo = mock(PublicStationInfoService.class);
-        when(publicInfo.offer(any())).thenReturn(NOTHING);
+        var publicInfo = mock(PublicStationInfoService.class);
+        TestPublicOffers.stub(publicInfo, station -> offers.getOrDefault(station.id(), NOTHING));
         service = new StationDiscoveryService(
                 stations, logos, federation, clusters, remote, publicInfo, mock(OutgoingPairRequestService.class));
 
@@ -146,7 +149,7 @@ class StationDiscoveryRemoteStationsTest {
 
     @Test
     void aVisitorSeesThePublicLocalStationsThenTheRemoteOnes() {
-        var entries = service.list(false, null);
+        var entries = service.list(Viewer.anonymous());
 
         assertEquals(List.of("Offene Wache", "Wache Nord"), names(entries));
         verify(stations, never()).findWithPublicContent(anyInt());
@@ -155,7 +158,7 @@ class StationDiscoveryRemoteStationsTest {
 
     @Test
     void aSignedInReaderKeepsTheirOwnStationFirstAndTheirPartnersMarked() {
-        var entries = service.list(true, OWN_ID);
+        var entries = service.list(new Viewer(true, OWN_ID, true));
 
         assertEquals(
                 List.of("Eigene Wache", "Offene Wache", "Partnerwache", "Wache mit Seiten", "Wache Nord"),
@@ -170,14 +173,14 @@ class StationDiscoveryRemoteStationsTest {
         when(stations.findDiscoverable(0)).thenReturn(List.of(PUBLIC));
         when(stations.findWithPublicContent(0)).thenReturn(List.of(WITH_CONTENT));
 
-        var entries = service.list(true, null);
+        var entries = service.list(new Viewer(true, null, false));
 
         assertEquals(List.of("Offene Wache", "Wache mit Seiten", "Wache Nord"), names(entries));
     }
 
     @Test
     void aRemoteStationCarriesItsInstanceAndLinkButNothingLocal() {
-        var entry = service.list(false, null).getLast();
+        var entry = service.list(Viewer.anonymous()).getLast();
 
         assertEquals(REMOTE_UID, entry.stationUid());
         assertEquals("feuer.example", entry.instanceHost());
@@ -200,7 +203,7 @@ class StationDiscoveryRemoteStationsTest {
     void aRemoteStationNamesThePublicOffersItsInstancePublishes() {
         when(remote.list()).thenReturn(List.of(remoteStation(card("Wache Nord", null, true), null)));
 
-        var entry = service.list(false, null).getLast();
+        var entry = service.list(Viewer.anonymous()).getLast();
 
         assertTrue(entry.hasPublicWiki());
         assertTrue(entry.hasPublicCalendar());
@@ -211,27 +214,13 @@ class StationDiscoveryRemoteStationsTest {
 
     @Test
     void aRemoteStationFromAnOlderInstanceOffersNothing() {
-        var older = new DiscoveryStationCard(
-                REMOTE_UID.toString(),
-                "Wache Alt",
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                List.of(),
-                "<10",
-                Instant.now(),
-                null,
-                null,
-                null,
-                null,
-                null,
-                null);
+        var older = TestDiscoveryCards.card(REMOTE_UID.toString())
+                .name("Wache Alt")
+                .country(null)
+                .build();
         when(remote.list()).thenReturn(List.of(remoteStation(older, null)));
 
-        var entry = service.list(false, null).getLast();
+        var entry = service.list(Viewer.anonymous()).getLast();
 
         assertFalse(entry.hasPublicWiki());
         assertFalse(entry.hasPublicCalendar());
@@ -252,11 +241,11 @@ class StationDiscoveryRemoteStationsTest {
         when(local.country()).thenReturn("DE");
         when(local.latitude()).thenReturn(new BigDecimal("52.5"));
         when(local.longitude()).thenReturn(new BigDecimal("13.4"));
-        when(publicInfo.offer(local)).thenReturn(new PublicOffer(true, true, true, true, true));
+        offers.put(local.id(), new PublicOffer(true, true, true, true, true));
         when(stations.findPubliclyDiscoverable(0)).thenReturn(List.of(local));
         when(remote.list()).thenReturn(List.of(remoteStation(card("Wache Nord", null, true), null)));
 
-        var entries = service.list(false, null);
+        var entries = service.list(Viewer.anonymous());
         var mine = entries.getFirst();
         var theirs = entries.getLast();
 
@@ -279,6 +268,8 @@ class StationDiscoveryRemoteStationsTest {
                 entry.acceptsFederation(),
                 entry.alreadyFederated(),
                 entry.isOwnStation(),
+                entry.canRequest(),
+                entry.canInvite(),
                 entry.publicSlug(),
                 null,
                 entry.addressLine(),
@@ -297,7 +288,7 @@ class StationDiscoveryRemoteStationsTest {
         var partner = partnerRow(REMOTE_UID, "https://FEUER.example:8443/");
         when(federation.findPartners(OWN_ID)).thenReturn(List.of(partner));
 
-        assertTrue(service.list(true, OWN_ID).getLast().alreadyFederated());
+        assertTrue(service.list(new Viewer(true, OWN_ID, true)).getLast().alreadyFederated());
     }
 
     @Test
@@ -306,7 +297,7 @@ class StationDiscoveryRemoteStationsTest {
         var here = partnerRow(REMOTE_UID, null);
         when(federation.findPartners(OWN_ID)).thenReturn(List.of(elsewhere, here));
 
-        assertFalse(service.list(true, OWN_ID).getLast().alreadyFederated());
+        assertFalse(service.list(new Viewer(true, OWN_ID, true)).getLast().alreadyFederated());
     }
 
     @Test
@@ -314,7 +305,7 @@ class StationDiscoveryRemoteStationsTest {
         String copy = "/api/v1/public/discovery/remote/ab/" + REMOTE_UID + "/logo?size=128";
         when(remote.list()).thenReturn(List.of(remoteStation(card("Wache Nord", null, false), copy)));
 
-        var entry = service.list(false, null).getLast();
+        var entry = service.list(Viewer.anonymous()).getLast();
 
         assertTrue(entry.hasLogo());
         assertEquals(copy, entry.logoUrl());
@@ -324,7 +315,7 @@ class StationDiscoveryRemoteStationsTest {
     void aLocalStationWithALogoIsGivenItsOwnAddress() {
         when(logos.exists(PUBLIC.id())).thenReturn(true);
 
-        var entry = service.list(false, null).getFirst();
+        var entry = service.list(Viewer.anonymous()).getFirst();
 
         assertTrue(entry.hasLogo());
         assertEquals("/api/v1/public/stations/" + PUBLIC.uid() + "/logo?size=128", entry.logoUrl());
@@ -332,7 +323,7 @@ class StationDiscoveryRemoteStationsTest {
 
     @Test
     void aLocalStationNamesNoInstance() {
-        var entry = service.list(false, null).getFirst();
+        var entry = service.list(Viewer.anonymous()).getFirst();
 
         assertNull(entry.instanceHost());
         assertNull(entry.instanceUrl());
@@ -343,10 +334,10 @@ class StationDiscoveryRemoteStationsTest {
     void aRemoteClusterThatIsNoIdentifierGroupsNothing() {
         when(remote.list()).thenReturn(List.of(remoteStation("Wache Nord", "kein-bezeichner")));
 
-        assertNull(service.list(false, null).getLast().clusterUid());
+        assertNull(service.list(Viewer.anonymous()).getLast().clusterUid());
 
         when(remote.list()).thenReturn(List.of(remoteStation("Wache Nord", null)));
 
-        assertNull(service.list(false, null).getLast().clusterUid());
+        assertNull(service.list(Viewer.anonymous()).getLast().clusterUid());
     }
 }

@@ -6,7 +6,9 @@
 package dev.chojo.ember.feature.discovery.service;
 
 import dev.chojo.ember.conf.Conf;
+import dev.chojo.ember.feature.discovery.TestDiscoveryCards;
 import dev.chojo.ember.feature.discovery.entity.DiscoveryStationCard;
+import dev.chojo.ember.feature.station.TestPublicOffers;
 import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
 import dev.chojo.ember.feature.station.entity.PublicOffer;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -20,13 +22,13 @@ import org.junit.jupiter.api.io.TempDir;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -36,9 +38,11 @@ import static org.mockito.Mockito.when;
 class DiscoveryStationCardAddressTest extends RepositoryTestBase {
     private static final AtomicInteger NAMES = new AtomicInteger();
 
+    private static final PublicOffer CALENDAR = new PublicOffer(false, true, false, false, false);
+    private static final Set<Integer> OFFERING_NOTHING = ConcurrentHashMap.newKeySet();
+
     private static DiscoveryStationProjectionService service;
     private static StationLogoService logos;
-    private static PublicStationInfoService publicInfo;
 
     @TempDir
     static Path configDir;
@@ -46,10 +50,14 @@ class DiscoveryStationCardAddressTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         logos = mock(StationLogoService.class);
-        publicInfo = mock(PublicStationInfoService.class);
-        when(publicInfo.offer(any())).thenReturn(new PublicOffer(false, true, false, false, false));
-        service =
-                new DiscoveryStationProjectionService(stationRepo, clusterRepo, new Conf(configDir), logos, publicInfo);
+        var publicInfo = mock(PublicStationInfoService.class);
+        TestPublicOffers.stub(
+                publicInfo,
+                station -> OFFERING_NOTHING.contains(station.id())
+                        ? new PublicOffer(false, false, false, false, false)
+                        : CALENDAR);
+        service = new DiscoveryStationProjectionService(
+                stationRepo, clusterRepo, stationMemberRepo, new Conf(configDir), logos, publicInfo);
     }
 
     private static Station publicStation(String name) {
@@ -61,8 +69,7 @@ class DiscoveryStationCardAddressTest extends RepositoryTestBase {
     @Test
     void aStationWithNothingPublicSendsNoPublicPage() {
         var station = publicStation("Wache Ohne Seite");
-        when(publicInfo.offer(argThat(s -> s != null && s.id() == station.id())))
-                .thenReturn(new PublicOffer(false, false, false, false, false));
+        OFFERING_NOTHING.add(station.id());
 
         var card = cardOf(station.id(), station.uid().toString());
 
@@ -149,24 +156,7 @@ class DiscoveryStationCardAddressTest extends RepositoryTestBase {
 
     @Test
     void aBlankPublicAddressCountsAsNone() {
-        var card = new DiscoveryStationCard(
-                "uid-blank",
-                "Wache",
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                List.of(),
-                "<10",
-                Instant.now(),
-                null,
-                null,
-                null,
-                null,
-                null,
-                " ");
+        var card = TestDiscoveryCards.card("uid-blank").publicSlug(" ").build();
 
         assertEquals("uid-blank", card.publicAddress());
     }

@@ -17,6 +17,8 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Locale;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -119,6 +121,55 @@ class DiscoveryStationCacheRepositoryTest extends RepositoryTestBase {
         discoveryStationCacheRepo.forgetLogos("k-cache-logo");
         assertEquals(fresh, discoveryStationCacheRepo.findLogosDue("k-cache-logo", now.minusSeconds(1)));
         assertFalse(publishedLogoStored("k-cache-logo"));
+    }
+
+    @Test
+    void aTouchedCheckKeepsTheCopyAndALostCopyIsForgotten() {
+        discoveryPeerRepo.upsert("k-cache-touch", "https://ct.example", "fp-ct", PeerSource.MANUAL, null);
+        discoveryPeerRepo.upsert("k-cache-touch-2", "https://ct2.example", "fp-ct2", PeerSource.MANUAL, null);
+        var now = Instant.parse("2026-05-01T12:00:00Z");
+        var tags = new PictureTags("\"v1\"", null);
+        discoveryStationCacheRepo.upsert("k-cache-touch", card("uid-t", "Touch"), now);
+        discoveryStationCacheRepo.upsert("k-cache-touch-2", card("uid-t", "Touch"), now);
+        discoveryStationCacheRepo.recordLogoCheck("k-cache-touch", "uid-t", now, true, tags);
+
+        discoveryStationCacheRepo.touchLogoCheck("k-cache-touch", "uid-t", now.plusSeconds(60));
+
+        assertTrue(discoveryStationCacheRepo
+                .findLogosDue("k-cache-touch", now.plusSeconds(59))
+                .isEmpty());
+        assertEquals(
+                List.of(new RemoteLogoCheck("uid-t", "https://logo", true, tags)),
+                discoveryStationCacheRepo.findLogosDue("k-cache-touch", now.plusSeconds(60)));
+        assertEquals(List.of("k-cache-touch"), discoveryStationCacheRepo.findLogoHolders("uid-t"));
+
+        discoveryStationCacheRepo.forgetLogo("k-cache-touch", "uid-t");
+
+        assertTrue(discoveryStationCacheRepo.findLogoHolders("uid-t").isEmpty());
+        assertEquals(
+                List.of(new RemoteLogoCheck("uid-t", "https://logo", false, PictureTags.NONE)),
+                discoveryStationCacheRepo.findLogosDue("k-cache-touch", now.minusSeconds(1)));
+    }
+
+    @Test
+    void oneStationIsLookedUpByItsIdentifierUnderTheSameConditions() {
+        UUID station = UUID.randomUUID();
+        discoveryPeerRepo.upsert("k-pub-uid-ok", "https://ok.uid.example", "fp-1", PeerSource.MANUAL, null);
+        discoveryPeerRepo.upsert("k-pub-uid-blocked", "https://blocked.uid.example", "fp-2", PeerSource.MANUAL, null);
+        discoveryPeerRepo.setBlocked("k-pub-uid-blocked", true);
+        discoveryStationCacheRepo.upsert(
+                "k-pub-uid-ok", card(station.toString().toUpperCase(Locale.ROOT), "Gross"), Instant.now());
+        discoveryStationCacheRepo.upsert("k-pub-uid-blocked", card(station.toString(), "Blocked"), Instant.now());
+        discoveryStationCacheRepo.upsert("k-pub-uid-ok", card("uid-other", "Other"), Instant.now());
+
+        var found = discoveryStationCacheRepo.findPublishedElsewhere("k-self", "https://self.example", station);
+
+        assertEquals(1, found.size());
+        assertEquals("k-pub-uid-ok", found.getFirst().instancePublicKey());
+        assertEquals("https://ok.uid.example", found.getFirst().instanceBaseUrl());
+        assertTrue(discoveryStationCacheRepo
+                .findPublishedElsewhere("k-pub-uid-ok", "https://self.example", station)
+                .isEmpty());
     }
 
     private static boolean publishedLogoStored(String key) {

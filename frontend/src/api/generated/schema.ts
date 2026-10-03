@@ -56990,6 +56990,8 @@ export interface components {
             acceptsFederation: boolean;
             addressLine: string | null;
             alreadyFederated: boolean;
+            canInvite: boolean;
+            canRequest: boolean;
             city: string | null;
             clusterName: string | null;
             /** Format: uuid */
