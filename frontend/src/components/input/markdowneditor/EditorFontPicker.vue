@@ -9,6 +9,7 @@ import {useI18n} from 'vue-i18n'
 import type {Editor} from '@tiptap/vue-3'
 import type {FontFamilyOption} from '@/api/generated/schema'
 import {familyChoices, sameFamily, type FamilyChoice} from '@/components/documents/fonts/fontOptions'
+import FloatingPanel from '@/components/feedback/FloatingPanel.vue'
 import {TEXT_FONT} from './textFont'
 
 /**
@@ -53,19 +54,19 @@ function choose(choice: FamilyChoice) {
 </script>
 
 <template>
-  <div class="relative">
-    <button type="button" :title="t('markdownEditor.font')" data-testid="editor-font"
-            :class="['p-1.5 rounded text-sm transition-colors inline-flex items-center gap-1', current ? 'text-primary bg-primary/10' : 'text-[var(--text)] hover:bg-[var(--bg-accent)]']"
-            @mousedown.prevent @click="open = !open">
-      <font-awesome-icon :icon="['fas', 'font']" class="w-3.5 h-3.5"/>
-      <span v-if="current" class="text-xs max-w-32 truncate">{{ current }}</span>
-    </button>
-    <div v-if="open" role="menu" class="absolute top-full left-0 mt-1 z-30 p-1 rounded-lg shadow-lg border border-[var(--border)] bg-[var(--bg)] min-w-56">
-      <button v-for="choice in choices" :key="choice.value" type="button" role="menuitemradio" :aria-checked="chosen(choice)"
-              :class="['block w-full text-left px-2 py-1 rounded text-sm', chosen(choice) ? 'text-primary bg-primary/10' : 'text-[var(--text)] hover:bg-[var(--bg-accent)]']"
-              @mousedown.prevent @click="choose(choice)">
-        {{ labelOf(choice) }}
+  <FloatingPanel v-model:open="open" :label="t('markdownEditor.font')" role="menu" align="start" panel-class="min-w-56 p-1">
+    <template #trigger="{triggerAttrs}">
+      <button type="button" :title="t('markdownEditor.font')" data-testid="editor-font" v-bind="triggerAttrs"
+              :class="['p-1.5 rounded text-sm transition-colors inline-flex items-center gap-1', current ? 'text-primary bg-primary/10' : 'text-[var(--text)] hover:bg-[var(--bg-accent)]']"
+              @mousedown.prevent @click="open = !open">
+        <font-awesome-icon :icon="['fas', 'font']" class="w-3.5 h-3.5"/>
+        <span v-if="current" class="text-xs max-w-32 truncate">{{ current }}</span>
       </button>
-    </div>
-  </div>
+    </template>
+    <button v-for="choice in choices" :key="choice.value" type="button" role="menuitemradio" :aria-checked="chosen(choice)"
+            :class="['block w-full text-left px-2 py-1 rounded text-sm', chosen(choice) ? 'text-primary bg-primary/10' : 'text-[var(--text)] hover:bg-[var(--bg-accent)]']"
+            @mousedown.prevent @click="choose(choice)">
+      {{ labelOf(choice) }}
+    </button>
+  </FloatingPanel>
 </template>

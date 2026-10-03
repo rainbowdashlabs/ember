@@ -7,6 +7,7 @@
 import { useI18n } from 'vue-i18n'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import DropdownMenuItem from '@/components/button/DropdownMenuItem.vue'
+import FloatingPanel from '@/components/feedback/FloatingPanel.vue'
 import { useEditorActionsMenu } from '@/components/content/blockeditor/useEditorActionsMenu'
 import type { FormQuestionType } from '@/api/generated/schema'
 
@@ -27,12 +28,7 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 
-const { open, rootRef, close } = useEditorActionsMenu()
-
-function toggle(event: MouseEvent) {
-  event.stopPropagation()
-  open.value = !open.value
-}
+const { open, toggle, close } = useEditorActionsMenu()
 
 function add(type: FormQuestionType) {
   emit('add', type)
@@ -41,14 +37,15 @@ function add(type: FormQuestionType) {
 </script>
 
 <template>
-  <div ref="rootRef" class="relative inline-block">
-    <SecondaryButton :icon="['fas', 'plus']" data-testid="add-question" @click="toggle">
-      {{ t('forms.addQuestion') }}
-    </SecondaryButton>
-    <div v-if="open" class="absolute left-0 top-full z-20 mt-1 w-56 rounded-theme border border-(--border) bg-(--bg) py-1 shadow-lg">
-      <DropdownMenuItem v-for="type in questionTypes" :key="type" :icon="['fas', 'plus']" @click="add(type)">
-        {{ t(`forms.questionTypes.${type}`) }}
-      </DropdownMenuItem>
-    </div>
-  </div>
+  <FloatingPanel v-model:open="open" :label="t('forms.addQuestion')" role="menu" align="start" panel-class="w-56 py-1"
+                 class="inline-block">
+    <template #trigger="{ triggerAttrs }">
+      <SecondaryButton :icon="['fas', 'plus']" data-testid="add-question" v-bind="triggerAttrs" @click="toggle">
+        {{ t('forms.addQuestion') }}
+      </SecondaryButton>
+    </template>
+    <DropdownMenuItem v-for="type in questionTypes" :key="type" :icon="['fas', 'plus']" @click="add(type)">
+      {{ t(`forms.questionTypes.${type}`) }}
+    </DropdownMenuItem>
+  </FloatingPanel>
 </template>

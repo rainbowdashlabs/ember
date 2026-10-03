@@ -170,7 +170,7 @@ function cursorPos() {
   const coords = editor.value.view.coordsAtPos(from)
   const rect = editorContainer.value?.getBoundingClientRect()
   if (!rect) return { top: 0, left: 0 }
-  return { top: coords.bottom - rect.top + 4, left: Math.max(0, Math.min(coords.left - rect.left, rect.width - 320)) }
+  return { top: coords.bottom - rect.top, left: coords.left - rect.left }
 }
 
 function openLinkDialog() {

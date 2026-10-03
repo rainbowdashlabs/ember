@@ -38,6 +38,7 @@ Wachen erstellen aus eigenen Vorlagen und denen ihres Verbands Dokumente für ih
 ### Fehlerbehebungen
 
 - **Escape schloss den Textdialog nicht.** Im Textdialog der Editoren für Seiten, Neuigkeiten, Wiki und Vorlagen tat die Escape-Taste nichts, solange der Cursor im Text stand. Jetzt schließt sie den Dialog auch von dort.
+- **Fenster im Editor wurden am Rand des Feldes abgeschnitten.** In manchen Fällen wurden die Farbauswahl, die Fenster für Links, Bilder und Videos im Texteditor und die Menüs von Zeilen und Bausteinen im Editor für Seiten vom Rand des Textfelds oder eines Dialogs abgeschnitten. Jetzt öffnen sie sich immer vollständig.
 
 ## v26.20.2
 
