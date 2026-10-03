@@ -31,6 +31,10 @@ Stations turn their own templates and those of their association into documents 
 - **Station administrators manage document templates.** The station administrator permission now includes the new permission for document templates, which is also part of the documents permission.
 - **Association administrators manage templates and fonts.** The association administrator permission includes the new association permission for document templates and fonts, which also opens the association's media.
 
+### Fixes
+
+- **Escape did not close the text dialog.** In the text dialog of the page, news, wiki and template editors, the escape key did nothing while the cursor was in the text. It now closes the dialog from there too.
+
 ## v26.20.1
 
 Stations of other instances show their logos on the discovery page. The logos come from this instance, so a visit to the page never reaches another instance. Links to a station's public page lead only to pages that exist. Tiles on the discovery page show what each station offers publicly and look the same for stations of every instance. The page opens with a map that names every station on it. Stations of other instances can be asked to federate like stations of this instance. Requests and their answers arrive as notifications.
