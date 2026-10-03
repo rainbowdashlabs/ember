@@ -47,22 +47,9 @@ the version file and every test that names it. It refuses a patch that is on `ma
 
 ## Changelog
 
-Every change a user or operator can notice gets a line in both `CHANGELOG.md` and `CHANGELOG.de.md`,
-under the version it ships with. Each version block opens with a short paragraph on what the release
-focuses on, followed by the sections it needs: New Features, Improvements, Security, Changes, Fixes.
-The wording is factual and impersonal. Refactors, tests, build changes and dependency updates get no
-line.
-
-## Commands
-
-Every build, test, lint and check runs through `./toolchain.sh <command>`. `./toolchain.sh help` lists
-them. A recurring command without a subcommand gets one added to `toolchain.sh`.
-
-## Commits and pull requests
-
-Commit messages and pull request titles are one short imperative line, such as
-`Show station logos on the discovery page`. A body of one or two sentences is added only when the
-reason is not obvious. Each feature or fix lands as one squashed commit.
+A change people will notice needs an entry under the version it ships with, in both `CHANGELOG.md`
+and `CHANGELOG.de.md`. A release needs a block for its version in `CHANGELOG.md`, because its release
+notes are taken from there.
 
 ## Releasing
 
