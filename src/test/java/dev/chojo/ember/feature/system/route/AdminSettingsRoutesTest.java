@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.system.route;
 
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.TestSessions;
+import dev.chojo.ember.api.TestUploads;
 import dev.chojo.ember.api.refusal.SystemRefusal;
 import dev.chojo.ember.conf.Conf;
 import dev.chojo.ember.feature.mail.service.EmailService;
@@ -38,13 +39,17 @@ import dev.chojo.ember.feature.system.service.SecuritySettingsService.TwoFactorC
 import dev.chojo.ember.feature.system.service.SecuritySettingsService.TwoFactorCoreConfigResponse;
 import dev.chojo.ember.feature.system.service.SecuritySettingsService.WebAuthnConfig;
 import io.javalin.testtools.HttpClient;
+import io.javalin.testtools.Request;
 import io.javalin.testtools.Response;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Objects;
+import java.util.function.Consumer;
 
 import static dev.chojo.ember.api.RouteHarness.PREFIX;
 import static dev.chojo.ember.api.RouteHarness.body;
@@ -350,5 +355,31 @@ class AdminSettingsRoutesTest {
         verify(applicationLog).facets(new LogFilter(null, null, null, null), false, null, 5);
         verify(applicationLog).clear();
         verify(applicationLog).updateConfig(new LoggingConfigRequest(true, "warn", 30));
+    }
+
+    /**
+     * A legal document is read for what its bytes are: a Word document, even renamed, becomes sections,
+     * and an old binary Word file is refused rather than read as text.
+     */
+    @Test
+    void aLegalImportReadsTheFileForWhatItIsAndRefusesTheOldWordFormat() throws IOException {
+        byte[] word;
+        try (var in = getClass().getResourceAsStream("/generator/certificate.docx")) {
+            word = Objects.requireNonNull(in, "the fixture").readAllBytes();
+        }
+        byte[] oldWord = {(byte) 0xD0, (byte) 0xCF, 0x11, (byte) 0xE0, 0, 0, 0, 0};
+
+        harness.run((server, client) -> {
+            var read = client.request(PREFIX + "/admin/legal/privacy/de/import", upload("datenschutz.odt", word));
+            assertEquals(200, read.code());
+            assertTrue(json(read).toString().contains("Bescheinigung"));
+            assertEquals(
+                    SystemRefusal.LEGAL_DOCUMENT_NOT_READ,
+                    refusalOf(client.request(PREFIX + "/admin/legal/privacy/de/import", upload("alt.doc", oldWord))));
+        });
+    }
+
+    private Consumer<Request.Builder> upload(String fileName, byte[] data) {
+        return harness.as(TestSessions.administrator()).andThen(TestUploads.multipart(fileName, data));
     }
 }
