@@ -26,6 +26,7 @@ import dev.chojo.ember.feature.generator.repository.DocumentTemplateRepository;
 import dev.chojo.ember.feature.generator.repository.PdfTemplateRepository;
 import dev.chojo.ember.feature.generator.repository.TemplateStationUseRepository;
 import dev.chojo.ember.feature.generator.service.TemplateStationUseService.TemplateUseRequest;
+import dev.chojo.ember.feature.generator.service.font.DefaultFont;
 import dev.chojo.ember.feature.generator.service.font.DocumentFontService;
 import dev.chojo.ember.feature.generator.service.font.FontLibrary;
 import dev.chojo.ember.feature.generator.service.font.TestFonts;
@@ -205,7 +206,7 @@ class AssociationTemplateTest extends RepositoryTestBase {
                 newPlaceholderResolver(clock),
                 catalogue,
                 new LetterRenderer(pictures, media, newStationLogoService(), library, newOwnerStores()),
-                new PdfTemplateRenderer(pdfs, new PdfStamper(new StampFonts()), library),
+                new PdfTemplateRenderer(pdfs, new PdfStamper(new StampFonts(DefaultFont.absent())), library),
                 stationRepo,
                 restrictionService,
                 clock);

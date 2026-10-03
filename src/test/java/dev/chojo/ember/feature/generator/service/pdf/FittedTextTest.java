@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.generator.service.pdf;
 
+import dev.chojo.ember.feature.generator.service.font.DefaultFont;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,7 +27,7 @@ class FittedTextTest {
     @BeforeEach
     void setup() throws IOException {
         document = new PDDocument();
-        chain = new StampFonts().chainFor(document);
+        chain = new StampFonts(DefaultFont.absent()).chainFor(document);
     }
 
     @AfterEach

@@ -174,6 +174,7 @@ import dev.chojo.ember.feature.generator.route.DocumentTemplateRoutes;
 import dev.chojo.ember.feature.generator.route.GenerationJobRoutes;
 import dev.chojo.ember.feature.generator.route.GenerationLogRoutes;
 import dev.chojo.ember.feature.generator.service.GenerationJobRunner;
+import dev.chojo.ember.feature.generator.service.font.DefaultFont;
 import dev.chojo.ember.feature.insights.route.StationInsightsRoutes;
 import dev.chojo.ember.feature.insights.service.PageHitRecorder;
 import dev.chojo.ember.feature.inventory.handler.ClusterItemIssuedHandler;
@@ -384,6 +385,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.sql.SQLException;
 import java.time.Duration;
 import java.time.Instant;
@@ -872,6 +874,12 @@ public class EmberModule extends AbstractModule {
     @Singleton
     MailImport mailImport(File config) {
         return config.mailImport();
+    }
+
+    @Provides
+    @Singleton
+    DefaultFont defaultFont(File config) {
+        return DefaultFont.readFrom(Path.of(config.documents().defaultFontDir()));
     }
 
     @Provides

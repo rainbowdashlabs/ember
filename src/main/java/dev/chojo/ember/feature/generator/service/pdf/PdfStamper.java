@@ -37,8 +37,9 @@ import java.util.function.UnaryOperator;
  * <p>The original is opened and never written back; what comes out is a new file. Everything drawn is
  * appended to the page's content with the page's earlier state wrapped and restored first, so whatever
  * the page left behind (a moved origin, a colour, a clip) cannot shift or hide a field. Text is
- * embedded as a font subset, in the family of uploaded fonts its field names with Liberation Sans for
- * every character that family lacks, and a text runs upright on a turned page. Nothing else in the file
+ * embedded as a font subset, in the family of uploaded fonts its field names, or the instance's default
+ * font where it names none, with Liberation Sans for every character that font lacks, and a text runs
+ * upright on a turned page. Nothing else in the file
  * changes, so a PDF/A comes out as a PDF/A; a PDF that was none is not made one.
  *
  * <p>A field on a page the PDF does not have, as after a new upload with fewer pages, is left out.

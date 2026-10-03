@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.generator.entity.PdfLayout;
 import dev.chojo.ember.feature.generator.entity.PlaceholderTokens;
 import dev.chojo.ember.feature.generator.entity.SignatureRole;
 import dev.chojo.ember.feature.generator.entity.TextAlign;
+import dev.chojo.ember.feature.generator.service.font.DefaultFont;
 import dev.chojo.ember.feature.generator.service.font.TestFonts;
 import dev.chojo.ember.util.PdfText;
 import org.apache.pdfbox.Loader;
@@ -23,8 +24,10 @@ import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.apache.pdfbox.pdmodel.interactive.form.PDSignatureField;
 import org.apache.pdfbox.text.TextPosition;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -41,8 +44,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Filling an uploaded PDF: where a text lands on plain, cropped and turned pages, the fallback for a
- * glyph the font lacks, check marks, the PDF's own form filled and flattened, and the empty signature
- * fields by role. Every result is read back from the file.
+ * glyph the font lacks, the default font, check marks, the PDF's own form filled and flattened, and the
+ * empty signature fields by role. Every result is read back from the file.
  */
 class PdfStamperTest {
     private static final Map<String, String> VALUES = Map.of(
@@ -51,7 +54,7 @@ class PdfStamperTest {
             "no", "Nein");
     private static final UnaryOperator<String> FILL = text -> PlaceholderTokens.fill(text, VALUES);
 
-    private final PdfStamper stamper = new PdfStamper(new StampFonts());
+    private final PdfStamper stamper = new PdfStamper(new StampFonts(DefaultFont.absent()));
 
     private static PdfField text(FieldRect rect, String text, TextAlign align, boolean wrap) {
         return new PdfField(PdfFieldKind.TEXT, rect, text, 12, align, wrap, null);
@@ -438,5 +441,51 @@ class PdfStamperTest {
                 (family, style) -> Optional.of(whole));
         assertTrue(stamped.unprintable().isEmpty());
         assertTrue(PdfFonts.namesIn(stamped.pdf()).contains(TestFonts.LISU_POSTSCRIPT));
+    }
+
+    private static PdfField noFamily(FieldRect rect, String text, FontStyle style) {
+        return new PdfField(PdfFieldKind.TEXT, rect, text, 12, TextAlign.LEFT, false, null, null, style);
+    }
+
+    private static PdfStamper.Stamped stampWithDefault(Path directory, PdfField field) throws IOException {
+        var stamper = new PdfStamper(new StampFonts(TestFonts.defaultFontIn(directory)));
+        return stamper.stamp(
+                TestPdfs.plain(1), new PdfLayout(List.of(field), List.of()), 0, FILL, StampFonts.FieldFonts.NONE);
+    }
+
+    private static boolean embedsLisu(PdfStamper.Stamped stamped) throws IOException {
+        return PdfFonts.namesIn(stamped.pdf()).stream().anyMatch(name -> name.endsWith(TestFonts.LISU_POSTSCRIPT));
+    }
+
+    /** A field naming no family draws in the default font, with Liberation Sans behind it. */
+    @Test
+    void aFieldNamingNoFamilyDrawsInTheDefaultFont(@TempDir Path directory) throws IOException {
+        var stamped = stampWithDefault(
+                directory, noFamily(new FieldRect(1, 100, 700, 300, 20), TestFonts.LISU_TEXT, FontStyle.REGULAR));
+
+        assertTrue(stamped.unprintable().isEmpty(), stamped.unprintable()::toString);
+        assertTrue(embedsLisu(stamped));
+    }
+
+    /** A family whose file cannot be had prints in the default font, as a field naming none would. */
+    @Test
+    void aFamilyThatIsGoneDrawsInTheDefaultFont(@TempDir Path directory) throws IOException {
+        var stamped = stampWithDefault(
+                directory,
+                inFamily(new FieldRect(1, 100, 700, 300, 20), TestFonts.LISU_TEXT, "Weg", FontStyle.REGULAR));
+
+        assertTrue(stamped.unprintable().isEmpty(), stamped.unprintable()::toString);
+        assertTrue(embedsLisu(stamped));
+    }
+
+    /** A style the default font lacks is drawn in Liberation Sans, never as another style of it. */
+    @Test
+    void aStyleTheDefaultFontLacksFallsBackToLiberationSans(@TempDir Path directory) throws IOException {
+        var stamped = stampWithDefault(
+                directory, noFamily(new FieldRect(1, 100, 700, 300, 20), TestFonts.LISU_TEXT, FontStyle.ITALIC));
+
+        assertEquals(
+                TestFonts.LISU_TEXT.codePoints().mapToObj(Character::toString).toList(), stamped.unprintable());
+        assertFalse(embedsLisu(stamped));
     }
 }

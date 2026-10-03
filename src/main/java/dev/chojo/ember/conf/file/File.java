@@ -11,6 +11,7 @@ import dev.chojo.ember.conf.file.elements.Auth;
 import dev.chojo.ember.conf.file.elements.Changelog;
 import dev.chojo.ember.conf.file.elements.Database;
 import dev.chojo.ember.conf.file.elements.Demo;
+import dev.chojo.ember.conf.file.elements.Documents;
 import dev.chojo.ember.conf.file.elements.Federation;
 import dev.chojo.ember.conf.file.elements.KnowledgeBase;
 import dev.chojo.ember.conf.file.elements.Logging;
@@ -45,9 +46,14 @@ public class File {
     private Updates updates = new Updates();
     private Changelog changelog = new Changelog();
     private MailImport mailImport = new MailImport();
+    private Documents documents = new Documents();
 
     public MailImport mailImport() {
         return mailImport;
+    }
+
+    public Documents documents() {
+        return documents;
     }
 
     public Changelog changelog() {

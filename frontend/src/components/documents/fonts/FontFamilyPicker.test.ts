@@ -43,6 +43,15 @@ describe('FontFamilyPicker', () => {
         expect((wrapper.find('select').element as HTMLSelectElement).value).toBe('Gelöscht')
     })
 
+    it('names the default font of the instance where it has one', () => {
+        const wrapper = mount(FontFamilyPicker, {
+            props: {modelValue: 'Gelöscht', label: 'Schrift', fonts: FONTS, defaultFamily: 'Berlin Type Office'},
+        })
+        const labels = wrapper.findAll('option').map(option => option.text())
+        expect(labels[0]).toBe('Standard (Berlin Type Office)')
+        expect(labels.at(-1)).toBe('Gelöscht (nicht mehr verfügbar, gedruckt in Berlin Type Office)')
+    })
+
     it('offers a PDF field only what it can embed', () => {
         expect(values(pick(null, true))).toEqual(['', 'Hausschrift'])
     })

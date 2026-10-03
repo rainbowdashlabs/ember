@@ -28,6 +28,7 @@ import dev.chojo.ember.feature.generator.repository.DocumentTemplateRepository;
 import dev.chojo.ember.feature.generator.repository.PdfTemplateRepository;
 import dev.chojo.ember.feature.generator.repository.TemplateStationUseRepository;
 import dev.chojo.ember.feature.generator.service.DocumentTemplateService.DocumentTemplateResponse;
+import dev.chojo.ember.feature.generator.service.font.DefaultFont;
 import dev.chojo.ember.feature.generator.service.pdf.PdfStamper;
 import dev.chojo.ember.feature.generator.service.pdf.StampFonts;
 import dev.chojo.ember.feature.generator.service.pdf.TestPdfs;
@@ -123,7 +124,7 @@ class PdfTemplateServiceTest extends RepositoryTestBase {
                 newPlaceholderResolver(clock),
                 catalogue,
                 new LetterRenderer(mock(KbPdfPictures.class), media, newStationLogoService(), fonts, newOwnerStores()),
-                new PdfTemplateRenderer(pdfs, new PdfStamper(new StampFonts()), fonts),
+                new PdfTemplateRenderer(pdfs, new PdfStamper(new StampFonts(DefaultFont.absent())), fonts),
                 stationRepo,
                 restrictionService,
                 clock);

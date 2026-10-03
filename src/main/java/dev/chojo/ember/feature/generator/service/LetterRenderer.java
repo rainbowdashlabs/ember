@@ -57,7 +57,8 @@ import java.util.Optional;
  * the station logo) placed next to the document as files. A picture that cannot be read is left out
  * rather than stopping the document. The template's language picks the {@code letter.typ} it is set in,
  * and its page the fonts of the body, the header and the footer ({@link LetterFonts}), whose files go
- * along to Typst in a font directory of their own.
+ * along to Typst in a font directory of their own; the default font of the instance is found in its own
+ * directory.
  *
  * <p>A signature block is drawn by {@code letter.typ} as an empty box on a line for each of its fields,
  * with its short text below, and {@link SignatureFields#replaceMarkers} turns each box into a real,
@@ -205,8 +206,10 @@ public class LetterRenderer {
         data.put("values", job.values());
         data.put("labels", job.labels());
         data.put("showLabels", job.showLabels());
-        var typeset = LetterFonts.of(fonts.reachable(job.owner()), job.letter().page(), fonts::read);
+        var typeset =
+                LetterFonts.of(fonts.reachable(job.owner()), job.letter().page(), fonts::read, fonts.defaultFont());
         data.put("fonts", typeset.families());
+        data.put("uprightFamilies", typeset.uprightFamilies());
         try {
             return SignatureFields.replaceMarkers(
                     TypstCompiler.compileTemplate(
@@ -216,7 +219,8 @@ public class LetterRenderer {
                             resources,
                             files,
                             TypstCompiler.Output.PDF_A_3B,
-                            typeset.files()),
+                            typeset.files(),
+                            typeset.directories()),
                     marker);
         } catch (IOException e) {
             log.error("A letter of {} could not be rendered", job.owner(), e);

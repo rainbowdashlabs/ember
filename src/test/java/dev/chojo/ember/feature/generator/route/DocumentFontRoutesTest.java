@@ -12,6 +12,7 @@ import dev.chojo.ember.api.auth.ClusterPermission;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.feature.generator.entity.FontStyle;
+import dev.chojo.ember.feature.generator.service.font.BundledFont;
 import dev.chojo.ember.feature.generator.service.font.DocumentFontService;
 import dev.chojo.ember.feature.generator.service.font.DocumentFontService.DocumentFontsResponse;
 import dev.chojo.ember.owner.Owner;
@@ -37,7 +38,8 @@ import static org.mockito.Mockito.when;
  * the owner comes from the session.
  */
 class DocumentFontRoutesTest {
-    private static final DocumentFontsResponse NONE = new DocumentFontsResponse(List.of(), List.of());
+    private static final DocumentFontsResponse NONE =
+            new DocumentFontsResponse(List.of(), List.of(), BundledFont.FAMILY);
     private static final byte[] FONT = {0, 1, 0, 0};
 
     private DocumentFontService service;

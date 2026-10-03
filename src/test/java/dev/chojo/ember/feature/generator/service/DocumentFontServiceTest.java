@@ -32,6 +32,7 @@ import dev.chojo.ember.feature.generator.repository.DocumentFontRepository;
 import dev.chojo.ember.feature.generator.repository.DocumentTemplateRepository;
 import dev.chojo.ember.feature.generator.repository.PdfTemplateRepository;
 import dev.chojo.ember.feature.generator.repository.TemplateStationUseRepository;
+import dev.chojo.ember.feature.generator.service.font.BundledFont;
 import dev.chojo.ember.feature.generator.service.font.DocumentFontService;
 import dev.chojo.ember.feature.generator.service.font.DocumentFontService.DocumentFontsResponse;
 import dev.chojo.ember.feature.generator.service.font.DocumentFontService.FontFamilyOption;
@@ -52,8 +53,10 @@ import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
@@ -438,12 +441,48 @@ class DocumentFontServiceTest extends RepositoryTestBase {
         assertTrue(names.stream().anyMatch(name -> name.contains("LiberationSans")), names::toString);
     }
 
+    /**
+     * A letter naming no font prints in the default font from its directory, still a PDF/A-3b, and its
+     * italic text goes on to the fonts behind it rather than failing.
+     */
+    @Test
+    void aLetterNamingNoFontPrintsInTheDefaultFont(@TempDir Path directory) throws IOException {
+        var withDefault = newFontLibrary(storage, TestFonts.defaultFontIn(directory));
+        var letter = new LetterContent(
+                List.of(row("Kopf")),
+                List.of(row("_" + TestFonts.LISU_TEXT + "_")),
+                List.of(row(TestFonts.LISU_TEXT + " Brief")),
+                LetterPage.defaults());
+        byte[] pdf = renderer(withDefault).render(job(letter));
+
+        var names = PdfFonts.namesIn(pdf);
+        assertTrue(names.stream().anyMatch(name -> name.endsWith(TestFonts.LISU_POSTSCRIPT)), names::toString);
+        assertTrue(PdfFonts.isPdfA(pdf));
+    }
+
+    /** The screens name the default font: Liberation Sans without one, the family read from the file with one. */
+    @Test
+    void theListNamesTheDefaultFont(@TempDir Path directory) {
+        assertEquals(BundledFont.FAMILY, fonts.list(station).defaultFamily());
+
+        var withDefault = new DocumentFontService(
+                new DocumentFontRepository(),
+                newFontLibrary(storage, TestFonts.defaultFontIn(directory)),
+                storage,
+                quota);
+        assertEquals(TestFonts.LISU_FAMILY, withDefault.list(station).defaultFamily());
+    }
+
     private static LetterRenderer renderer() {
+        return renderer(library);
+    }
+
+    private static LetterRenderer renderer(FontLibrary fonts) {
         var pictures = mock(KbPdfPictures.class);
         when(pictures.place(anyInt(), anyString(), anyString()))
                 .thenAnswer(call -> new KbPdfPictures.Placed(call.getArgument(1), Map.of()));
         return new LetterRenderer(
-                pictures, mock(MediaLibraryService.class), newStationLogoService(), library, newOwnerStores());
+                pictures, mock(MediaLibraryService.class), newStationLogoService(), fonts, newOwnerStores());
     }
 
     private static LetterRenderer.LetterJob job(LetterContent letter) {

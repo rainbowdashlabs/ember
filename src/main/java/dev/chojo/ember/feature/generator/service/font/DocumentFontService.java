@@ -108,21 +108,23 @@ public class DocumentFontService {
     /**
      * The fonts of an owner and those its templates can print in.
      *
-     * @param own       the owner's own fonts, by family and style
-     * @param reachable every family its templates can print in, its own and those it reaches
+     * @param own           the owner's own fonts, by family and style
+     * @param reachable     every family its templates can print in, its own and those it reaches
+     * @param defaultFamily the family a text that names none prints in
      */
-    public record DocumentFontsResponse(List<DocumentFontView> own, List<FontFamilyOption> reachable) {}
+    public record DocumentFontsResponse(
+            List<DocumentFontView> own, List<FontFamilyOption> reachable, String defaultFamily) {}
 
     /**
      * @param owner the owner
-     * @return its fonts and the families its templates can print in
+     * @return its fonts, the families its templates can print in and the default font
      */
     public DocumentFontsResponse list(Owner owner) {
         var own = fonts.findOwned(owner).stream().map(DocumentFontService::view).toList();
         var reachable = library.reachable(owner).families().stream()
                 .map(DocumentFontService::option)
                 .toList();
-        return new DocumentFontsResponse(own, reachable);
+        return new DocumentFontsResponse(own, reachable, library.defaultFont().printedFamily());
     }
 
     /**

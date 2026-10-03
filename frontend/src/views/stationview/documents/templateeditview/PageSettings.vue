@@ -18,6 +18,7 @@ const page = defineModel<LetterPage>({required: true})
 
 defineProps<{
   fonts: readonly FontFamilyOption[]
+  defaultFamily: string
 }>()
 
 const {t} = useI18n()
@@ -46,6 +47,6 @@ function set(key: Measure, value: number | undefined) {
         <NumberInput :model-value="page[field.key]" @update:model-value="value => set(field.key, value)"/>
       </LabelledField>
     </div>
-    <PageFonts v-model="page" :fonts="fonts"/>
+    <PageFonts v-model="page" :fonts="fonts" :default-family="defaultFamily"/>
   </NeutralContainer>
 </template>

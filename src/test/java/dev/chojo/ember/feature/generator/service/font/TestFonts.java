@@ -9,6 +9,8 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Objects;
 
 /**
@@ -42,6 +44,22 @@ public final class TestFonts {
     }
 
     /**
+     * A default font standing in for the one the containers fetch: Noto Sans Lisu, regular only, written
+     * into a directory.
+     *
+     * @param directory an empty directory
+     * @return the default font read from it
+     */
+    public static DefaultFont defaultFontIn(Path directory) {
+        try {
+            Files.write(directory.resolve("NotoSansLisu-Regular.ttf"), lisu());
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+        return DefaultFont.readFrom(directory);
+    }
+
+    /**
      * A copy of a font whose licence bits say something else, written into its OS/2 table.
      *
      * @param font   a TrueType or OpenType font
@@ -49,6 +67,21 @@ public final class TestFonts {
      * @return the copy
      */
     public static byte[] withFsType(byte[] font, int fsType) {
+        return withOs2Short(font, 8, fsType);
+    }
+
+    /**
+     * A copy of a font whose style bits say something else, written into its OS/2 table.
+     *
+     * @param font        a TrueType or OpenType font
+     * @param fsSelection the style bits, {@code 0x01} for italic and {@code 0x20} for bold
+     * @return the copy
+     */
+    public static byte[] withFsSelection(byte[] font, int fsSelection) {
+        return withOs2Short(font, 62, fsSelection);
+    }
+
+    private static byte[] withOs2Short(byte[] font, int offset, int value) {
         var copy = font.clone();
         var buffer = ByteBuffer.wrap(copy);
         int tables = Short.toUnsignedInt(buffer.getShort(4));
@@ -56,7 +89,7 @@ public final class TestFonts {
             int record = 12 + table * 16;
             String tag = new String(copy, record, 4, StandardCharsets.US_ASCII);
             if (tag.equals("OS/2")) {
-                buffer.putShort(buffer.getInt(record + 8) + 8, (short) fsType);
+                buffer.putShort(buffer.getInt(record + 8) + offset, (short) value);
                 return copy;
             }
         }

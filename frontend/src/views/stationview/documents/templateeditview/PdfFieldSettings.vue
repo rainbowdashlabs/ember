@@ -29,6 +29,7 @@ defineProps<{
   placeholders: Placeholder[]
   legal: boolean
   fonts: readonly FontFamilyOption[]
+  defaultFamily: string
 }>()
 
 const emit = defineEmits<{
@@ -77,7 +78,7 @@ function append(placeholder: Placeholder) {
       </div>
       <ToggleSetting :model-value="field.wrap" :label="t('documentTemplates.wrap')" :hint="t('documentTemplates.wrapHint')"
                      @update:model-value="wrap => field = {...field, wrap}"/>
-      <FieldFontSettings v-model="field" :fonts="fonts"/>
+      <FieldFontSettings v-model="field" :fonts="fonts" :default-family="defaultFamily"/>
     </template>
   </div>
 </template>

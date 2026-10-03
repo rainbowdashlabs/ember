@@ -6,6 +6,7 @@
 import {computed, ref, shallowRef, watch, type Ref} from 'vue'
 import {documents, memberGroups, stationMembers, userTags} from '@/api'
 import type {
+    DocumentFontsResponse,
     DocumentTemplateKind,
     DocumentTemplateResponse,
     FontFamilyOption,
@@ -16,6 +17,7 @@ import type {
 } from '@/api/generated/schema'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useAsyncAction} from '@/composables/useAsyncAction'
+import {DEFAULT_FONT} from '@/components/documents/fonts/fontOptions'
 import {draftOf, emptyDraft, requestOf, type TemplateDraft} from './templateDraft'
 import {placeholdersOfTemplate} from './placeholderpicker/placeholderTree'
 import type {TemplateScreens} from '../templateScreens'
@@ -49,8 +51,8 @@ async function stationChoices(): Promise<StationChoices> {
 
 /**
  * One template in the editor: the draft being written, what the owner's templates can name, the font
- * families they reach, the lists the audience and the preview choose from, and for a PDF template the
- * PDF it fills.
+ * families they reach and the default font a text naming none prints in, the lists the audience and the
+ * preview choose from, and for a PDF template the PDF it fills.
  *
  * <p>An association has no members, groups or document tags of its own, so its lists stay empty; its
  * stations choose the audience of its templates themselves.
@@ -74,7 +76,7 @@ export function useTemplateEditor(
     const catalogue = ref<Placeholder[]>([])
     const placeholders = computed(() => placeholdersOfTemplate(catalogue.value, draft.value.forAppointments))
     const choices = shallowRef<StationChoices>(noChoices())
-    const fonts = ref<FontFamilyOption[]>([])
+    const fontList = shallowRef<DocumentFontsResponse | null>(null)
 
     const labels = computed<ReadonlyMap<string, string>>(() =>
         new Map(catalogue.value.map(placeholder => [placeholder.key, placeholder.label])))
@@ -87,14 +89,14 @@ export function useTemplateEditor(
     }))
 
     const loader = useAsyncLoader(async () => {
-        const [offered, lists, fontList] = await Promise.all([
+        const [offered, lists, reached] = await Promise.all([
             source.catalogue(),
             screens.hasMembers ? stationChoices() : Promise.resolve(noChoices()),
-            screens.fonts.list().then(list => list.reachable).catch(() => []),
+            screens.fonts.list().catch(() => null),
         ])
         catalogue.value = offered.placeholders
         choices.value = lists
-        fonts.value = fontList
+        fontList.value = reached
         if (templateId.value === null) return
         saved.value = await source.get(templateId.value)
         draft.value = draftOf(saved.value)
@@ -147,7 +149,8 @@ export function useTemplateEditor(
         tags: computed(() => choices.value.tags),
         members: computed(() => choices.value.members),
         documentTags: computed(() => choices.value.documentTags),
-        fonts,
+        fonts: computed<readonly FontFamilyOption[]>(() => fontList.value?.reachable ?? []),
+        defaultFamily: computed(() => fontList.value?.defaultFamily ?? DEFAULT_FONT),
         loader,
         saving,
         archiving,

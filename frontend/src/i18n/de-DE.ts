@@ -2487,9 +2487,9 @@ export default {
         filingRules: 'Regeln für Anhänge aus Postfächern',
     },
     documentFonts: {
-        defaultFont: 'Standard (Liberation Sans)',
+        defaultFont: 'Standard ({family})',
         familyOption: '{family} ({origin})',
-        missingFamily: '{family} (nicht mehr verfügbar, gedruckt in Liberation Sans)',
+        missingFamily: '{family} (nicht mehr verfügbar, gedruckt in {defaultFamily})',
         origin: {
             STATION: 'Wache',
             ASSOCIATION: 'Verband',

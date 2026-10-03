@@ -35,6 +35,7 @@ const draft = defineModel<TemplateDraft>({required: true})
 const props = defineProps<{
   catalogue: Omit<LetterCatalogue, 'legal'>
   fonts: readonly FontFamilyOption[]
+  defaultFamily: string
   source: TemplateSource
 }>()
 
@@ -68,6 +69,6 @@ function imported(rows: ContentRow[]) {
       <LetterEdgeEditor v-model="draft.footer" :title="t('documentTemplates.footer')" :station-uid="stationUid"
                         :catalogue="catalogue" data-testid="letter-footer"/>
     </NeutralContainer>
-    <PageSettings v-model="draft.page" :fonts="fonts"/>
+    <PageSettings v-model="draft.page" :fonts="fonts" :default-family="defaultFamily"/>
   </div>
 </template>
