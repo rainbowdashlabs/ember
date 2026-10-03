@@ -63,6 +63,8 @@ export default {
     'D-051': 'Jede unterschreibende Person hat höchstens ein Unterschriftsfeld',
     'D-052': 'Die Vorlage füllt ein Formularfeld, das das PDF nicht hat oder das sich nicht füllen lässt',
     'D-053': 'Eine Vorlage hat höchstens 200 Felder',
-    'D-054': 'Eine Unterschrift lässt sich nur als Unterschriftsfeld setzen, nicht in einem Text',
-    'D-055': 'Ein Brief enthält nur Texte, Bilder und untereinander gestapelte Bausteine',
+    'D-055': 'Ein Brief enthält nur Texte, Bilder, Trennlinien, Abstände, Unterschriftszeilen und untereinander gestapelte Bausteine',
+    'D-070': 'Eine Unterschriftszeile kann nur im Text eines Briefs stehen',
+    'D-071': 'Eine Unterschriftszeile braucht die Person, die darauf unterschreibt',
+    'D-072': 'Für dieses Mitglied bitten zwei Unterschriftszeilen der Vorlage dieselbe Person um eine Unterschrift, es wurde nichts erstellt',
 }

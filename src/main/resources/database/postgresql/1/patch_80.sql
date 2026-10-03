@@ -142,11 +142,11 @@ COMMENT ON TABLE ember_schema.document_template_letter IS
     'The content of a letter template: its header, its footer, its body and its page.';
 COMMENT ON COLUMN ember_schema.document_template_letter.template_id IS 'References the document template.';
 COMMENT ON COLUMN ember_schema.document_template_letter.header IS
-    'The rows drawn at the top of every page, shaped like the rows of a page: each row up to three columns with their width, each holding a text with placeholders written as {{key}}, a picture from the media library by its content hash or the station logo, or blocks stacked in it. A block may carry a restriction saying which members it is printed for.';
+    'The rows drawn at the top of every page, shaped like the rows of a page: each row up to three columns with their width, optionally with a line between the columns (columnLines), each holding a text with placeholders written as {{key}}, a picture from the media library by its content hash or the station logo, a divider line with its label, a gap, or blocks stacked in it. A block may carry a restriction saying which members it is printed for, and a guardianCondition (SECOND_GUARDIAN or NO_SECOND_GUARDIAN) on whether the member has a second guardian.';
 COMMENT ON COLUMN ember_schema.document_template_letter.footer IS
     'The rows drawn at the bottom of every page, shaped like the header.';
 COMMENT ON COLUMN ember_schema.document_template_letter.body IS
-    'The rows of the letter itself, shaped like the header. A block whose restriction does not match the member is left out, and a row left with nothing is dropped.';
+    'The rows of the letter itself, shaped like the header, and also holding signature lines (SIGNATURE: the signer in the settings, the text below the line as its content), each an empty signature field per person who signs. A block whose restriction or guardian condition does not match the member is left out, and a row left with nothing is dropped.';
 COMMENT ON COLUMN ember_schema.document_template_letter.page IS
     'The page margins in millimetres and the body font size in points. The paper is always A4.';
 
@@ -203,7 +203,7 @@ CREATE TABLE IF NOT EXISTS ember_schema.document_template_field
     font_size   DOUBLE PRECISION NOT NULL,
     align       TEXT             NOT NULL CHECK (align IN ('LEFT', 'CENTER', 'RIGHT')),
     wrap        BOOLEAN          NOT NULL DEFAULT FALSE,
-    role        TEXT             NULL CHECK (role IN ('PARTICIPANT', 'GUARDIAN_1', 'GUARDIAN_2', 'ISSUER')),
+    role        TEXT             NULL CHECK (role IN ('PARTICIPANT', 'GUARDIAN_1', 'GUARDIAN_2', 'EACH_GUARDIAN', 'ANY_GUARDIAN', 'ISSUER')),
     CHECK ((kind = 'SIGNATURE') = (role IS NOT NULL))
 );
 
@@ -231,7 +231,7 @@ COMMENT ON COLUMN ember_schema.document_template_field.align IS 'LEFT, CENTER or
 COMMENT ON COLUMN ember_schema.document_template_field.wrap IS
     'Whether a long text runs onto further lines. Otherwise it stays on one line and shrinks to fit.';
 COMMENT ON COLUMN ember_schema.document_template_field.role IS
-    'Who signs in a SIGNATURE field: PARTICIPANT, GUARDIAN_1, GUARDIAN_2 or ISSUER. NULL for every other kind.';
+    'Who signs in a SIGNATURE field: PARTICIPANT, GUARDIAN_1, GUARDIAN_2 (left out for a member with fewer than two guardians), EACH_GUARDIAN (the box shared out into one field per guardian of the member), ANY_GUARDIAN (one field any guardian may sign) or ISSUER. NULL for every other kind.';
 
 CREATE TABLE IF NOT EXISTS ember_schema.document_template_form_binding
 (

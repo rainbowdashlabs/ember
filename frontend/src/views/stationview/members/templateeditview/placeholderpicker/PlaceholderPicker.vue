@@ -24,14 +24,11 @@ import PlaceholderMatches from './PlaceholderMatches.vue'
  * catalogue, so nothing here reads structure from a key.
  *
  * <p>A legal template is not offered the name a member is called by, and nothing that only an
- * appointment fills is offered while documents are generated for members alone. A signature field is
- * offered only where it can stand, which is the body of a letter.
+ * appointment fills is offered while documents are generated for members alone.
  */
 const props = defineProps<{
   placeholders: Placeholder[]
   legal: boolean
-  /** Whether signature fields are offered too. */
-  signatures?: boolean
   /** Whether the values of the appointment a document is generated for are offered too. */
   appointments?: boolean
 }>()
@@ -48,7 +45,6 @@ const trail = ref<string[]>([])
 
 const offered = computed(() => offeredPlaceholders(props.placeholders, {
   legal: props.legal,
-  signatures: props.signatures ?? false,
   appointments: props.appointments ?? false,
 }))
 const categories = computed(() => placeholderTree(offered.value))

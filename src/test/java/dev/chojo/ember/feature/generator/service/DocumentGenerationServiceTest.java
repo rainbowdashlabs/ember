@@ -14,6 +14,7 @@ import dev.chojo.ember.api.refusal.Refusal;
 import dev.chojo.ember.api.refusal.RefusalDetail;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.content.entity.ContentCell;
+import dev.chojo.ember.feature.content.entity.GuardianCondition;
 import dev.chojo.ember.feature.content.route.BlockRowRequest;
 import dev.chojo.ember.feature.documents.service.DocumentIntake;
 import dev.chojo.ember.feature.documents.service.DocumentService;
@@ -23,12 +24,14 @@ import dev.chojo.ember.feature.generator.entity.DocumentTemplateDraft;
 import dev.chojo.ember.feature.generator.entity.LetterContent;
 import dev.chojo.ember.feature.generator.entity.LetterPage;
 import dev.chojo.ember.feature.generator.entity.MissingValue;
+import dev.chojo.ember.feature.generator.entity.SignatureRole;
 import dev.chojo.ember.feature.generator.entity.SubjectRole;
 import dev.chojo.ember.feature.generator.repository.DocumentGenerationRepository;
 import dev.chojo.ember.feature.generator.repository.DocumentTemplateRepository;
 import dev.chojo.ember.feature.generator.repository.PdfTemplateRepository;
 import dev.chojo.ember.feature.generator.service.pdf.PdfStamper;
 import dev.chojo.ember.feature.generator.service.pdf.StampFonts;
+import dev.chojo.ember.feature.generator.service.pdf.TestPdfs;
 import dev.chojo.ember.feature.knowledgebase.service.KbPdfPictures;
 import dev.chojo.ember.feature.media.entity.MediaContent;
 import dev.chojo.ember.feature.media.entity.StationFile;
@@ -73,10 +76,14 @@ import java.util.Set;
 
 import javax.imageio.ImageIO;
 
+import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.divider;
 import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.image;
 import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.letter;
+import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.lined;
 import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.row;
 import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.rowsOf;
+import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.signature;
+import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.spacer;
 import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.text;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -349,11 +356,46 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
         }
     }
 
-    /** A letter gets the issuer's signature field where its body names it, empty, and stays PDF/A. */
+    private static int templateOf(String name, BlockRowRequest... body) {
+        return templates
+                .create(owner, letterOf(name, false, false, 0, List.of(body)).build(), manager.id())
+                .id();
+    }
+
+    /** The names of the signature fields of a filed document, in the order the form lists them. */
+    private static List<String> signatureFields(int documentId) throws IOException {
+        try (var document = Loader.loadPDF(fileOf(documentId))) {
+            var form = document.getDocumentCatalog().getAcroForm(null);
+            if (form == null) return List.of();
+            return form.getFields().stream()
+                    .filter(field -> field instanceof PDSignatureField)
+                    .map(field -> field.getPartialName())
+                    .toList();
+        }
+    }
+
+    /** A member with two guardians of their own, made for the test that needs one. */
+    private static StationMember withTwoGuardians(String name) {
+        var child = member("gen-" + name + "@test.com", name, "Zwei");
+        stationMemberRepo.addManager(
+                member("gen-" + name + "-a@test.com", "Erste", "Zwei").id(), child.id());
+        stationMemberRepo.addManager(
+                member("gen-" + name + "-b@test.com", "Zweite", "Zwei").id(), child.id());
+        return child;
+    }
+
+    /**
+     * A signature line holds the issuer's signature field, empty, with its short text under it, and the
+     * letter stays PDF/A. The marker that placed the field is gone.
+     */
     @Test
-    void aLetterPlacesTheIssuersSignatureFieldWhereItsBodyNamesIt() throws IOException {
-        int templateId = template(
-                "Unterschrieben", false, false, 0, "Für {{member.fullName}}\n\n{{signature.issuer}}\n\nJugendwartin");
+    void aSignatureLineHoldsAnEmptyFieldWithItsTextBelow() throws IOException {
+        int templateId = templateOf(
+                "Unterschrieben",
+                row(text("Für {{member.fullName}}")),
+                row(
+                        text("Berlin, {{today}}"),
+                        signature(SignatureRole.ISSUER, "{{generatedBy.fullName}}, Jugendwartin")));
 
         var generated = generation.generate(as(manager), templateId, lena.id());
 
@@ -363,12 +405,165 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
                     document.getDocumentCatalog().getAcroForm(null).getField("issuer");
             assertNull(field.getSignature());
             var widget = field.getWidgets().getFirst();
-            assertEquals(170, widget.getRectangle().getWidth(), 1);
+            assertTrue(widget.getRectangle().getWidth() > 200, "the line spans its column");
             assertTrue(document.getPage(0).getAnnotations().stream()
                     .noneMatch(annotation -> annotation instanceof PDAnnotationLink));
             String xmp = new String(document.getDocumentCatalog().getMetadata().toByteArray(), StandardCharsets.UTF_8);
             assertTrue(xmp.contains("pdfaid:part>3<") || xmp.contains("pdfaid:part=\"3\""), xmp);
         }
+        assertTrue(PdfText.extract(fileOf(generated.documentId())).contains("Nora Fülling, Jugendwartin"));
+    }
+
+    /** Every guardian signs in a field of their own; a member without any keeps a line for the first. */
+    @Test
+    void eachGuardianSignsInAFieldOfTheirOwn() throws IOException {
+        int templateId =
+                templateOf("Alle Eltern", row(signature(SignatureRole.EACH_GUARDIAN, "Erziehungsberechtigte")));
+        var kim = withTwoGuardians("Kim");
+
+        assertEquals(
+                List.of("guardian1", "guardian2"),
+                signatureFields(
+                        generation.generate(as(manager), templateId, kim.id()).documentId()));
+        assertEquals(
+                List.of("guardian1"),
+                signatureFields(
+                        generation.generate(as(manager), templateId, lena.id()).documentId()));
+        assertEquals(
+                List.of("guardian1"),
+                signatureFields(
+                        generation.generate(as(manager), templateId, max.id()).documentId()));
+    }
+
+    @Test
+    void anyOneGuardianSignsInASingleField() throws IOException {
+        int templateId = templateOf("Ein Elternteil", row(signature(SignatureRole.ANY_GUARDIAN, "")));
+
+        var generated = generation.generate(
+                as(manager), templateId, withTwoGuardians("Ole").id());
+
+        assertEquals(List.of("anyGuardian"), signatureFields(generated.documentId()));
+    }
+
+    @Test
+    void theParticipantSignsInTheirField() throws IOException {
+        int templateId = templateOf(
+                "Teilnahme unterschrieben", row(signature(SignatureRole.PARTICIPANT, "{{member.fullName}}")));
+
+        var generated = generation.generate(as(manager), templateId, lena.id());
+
+        assertEquals(List.of("participant"), signatureFields(generated.documentId()));
+    }
+
+    /**
+     * A member with one guardian is complete: the second guardian's values print empty, their line is
+     * left out, and a block on the second guardian follows suit. A member without any guardian misses
+     * the first one.
+     */
+    @Test
+    void aMemberWithOneGuardianIsComplete() throws IOException {
+        int templateId = templateOf(
+                "Ein oder zwei Elternteile",
+                row(text("Vertreten durch {{guardian1.fullName}} und {{guardian2.fullName}}.")),
+                row(text("Beide unterschreiben.", GuardianCondition.SECOND_GUARDIAN)),
+                row(text("Eine Unterschrift genügt.", GuardianCondition.NO_SECOND_GUARDIAN)),
+                row(
+                        signature(SignatureRole.GUARDIAN_1, "{{guardian1.fullName}}"),
+                        signature(SignatureRole.GUARDIAN_2, "{{guardian2.fullName}}")));
+        var kim = withTwoGuardians("Ina");
+
+        var forLena = generation.generate(as(manager), templateId, lena.id());
+        var forKim = generation.generate(as(manager), templateId, kim.id());
+        var forMax = generation.generate(as(manager), templateId, max.id());
+
+        assertTrue(forLena.missing().isEmpty());
+        assertEquals(List.of("guardian1"), signatureFields(forLena.documentId()));
+        String lenaText = PdfText.extract(fileOf(forLena.documentId()));
+        assertTrue(lenaText.contains("Eine Unterschrift genügt."), lenaText);
+        assertFalse(lenaText.contains("Beide"), lenaText);
+
+        assertTrue(forKim.missing().isEmpty());
+        assertEquals(List.of("guardian1", "guardian2"), signatureFields(forKim.documentId()));
+        String kimText = PdfText.extract(fileOf(forKim.documentId()));
+        assertTrue(kimText.contains("Erste Zwei und Zweite Zwei"), kimText);
+        assertTrue(kimText.contains("Beide unterschreiben."), kimText);
+
+        assertEquals(
+                List.of("guardian1.fullName"),
+                forMax.missing().stream().map(MissingValue::key).toList());
+    }
+
+    /**
+     * Two lines for the issuer may stand as alternatives; a member both apply to is refused, when the
+     * document is generated and when it is looked at.
+     */
+    @Test
+    void aSignerTwiceIsRefusedForTheMemberWhoGetsBoth() {
+        var guardians = new RestrictionAudience(
+                List.of(StationUserType.GUARDIAN), List.of(), List.of(), List.of(), RestrictionMode.AND);
+        int templateId = templateOf(
+                "Doppelt",
+                row(signature(SignatureRole.ISSUER, "Jugendwartin")),
+                row(signature(SignatureRole.ISSUER, "Für Eltern", guardians)));
+
+        refused(
+                DocumentRefusal.DOCUMENT_SIGNER_TWICE_FOR_MEMBER,
+                () -> generation.generate(as(manager), templateId, guardian.id()));
+        refused(
+                DocumentRefusal.DOCUMENT_SIGNER_TWICE_FOR_MEMBER,
+                () -> generation.preview(as(manager), templateId, guardian.id()));
+        assertTrue(generation
+                .preview(as(manager), templateId, lena.id())
+                .pdfBase64()
+                .startsWith("JVBER"));
+    }
+
+    /** A divider prints its label between two lines, and a row asking for lines has one between its columns. */
+    @Test
+    void dividersGapsAndLinesBetweenColumnsArePrinted() throws IOException {
+        int lined = templates
+                .create(
+                        owner,
+                        letter("Linien")
+                                .body(List.of(
+                                        lined(text("Links"), text("Rechts")),
+                                        row(spacer(48)),
+                                        row(divider("Termine")),
+                                        row(text("Darunter"))))
+                                .build(),
+                        manager.id())
+                .id();
+        int plain = templates
+                .create(
+                        owner,
+                        letter("Ohne Linien")
+                                .body(List.of(row(text("Links"), text("Rechts"))))
+                                .build(),
+                        manager.id())
+                .id();
+
+        byte[] withLines =
+                fileOf(generation.generate(as(manager), lined, lena.id()).documentId());
+        byte[] without =
+                fileOf(generation.generate(as(manager), plain, lena.id()).documentId());
+
+        String text = PdfText.extract(withLines);
+        assertTrue(text.contains("TERMINE"), text);
+        assertTrue(text.contains("Darunter"), text);
+        assertTrue(inkDownTheMiddle(withLines), "a line between the two columns");
+        assertFalse(inkDownTheMiddle(without), "no line where the row asks for none");
+    }
+
+    /** Whether anything is drawn down the middle of the page, near the top of the body. */
+    private static boolean inkDownTheMiddle(byte[] pdf) throws IOException {
+        var picture = TestPdfs.picture(pdf);
+        float scale = picture.getWidth() / 595.28f;
+        int x = Math.round(595.28f / 2 * scale);
+        int top = Math.round((40 - 1) / 25.4f * 72 * scale);
+        for (int y = top; y < top + Math.round(20 * scale); y++) {
+            if (((picture.getRGB(x, y) >> 16) & 0xff) < 230) return true;
+        }
+        return false;
     }
 
     @Test

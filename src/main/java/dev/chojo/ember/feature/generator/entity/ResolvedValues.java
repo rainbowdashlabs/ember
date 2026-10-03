@@ -11,7 +11,8 @@ import java.util.Map;
 /**
  * The values of the placeholders a template names, filled in for one member.
  *
- * @param values   the value of every key that has one
+ * @param values   the value of every key that has one, empty for the second guardian of a member who
+ *                 has a single guardian or none
  * @param missing  the keys the template names that have no value for this member, in template order
  * @param subjects every person whose data the values hold: the member, and each guardian named
  */

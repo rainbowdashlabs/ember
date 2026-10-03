@@ -34,6 +34,10 @@ export interface BlockEditorOptions {
     markdownTools?: Component
     /** What a block's visibility is chosen from; no block offers a visibility where left out. */
     restrictable?: BlockRestrictionChoices
+    /** Whether a block's visibility may also depend on the member having a second guardian. */
+    guardianCondition?: boolean
+    /** Whether a row may draw a line between its columns. */
+    columnLines?: boolean
     /** Whether a picture block may show the station's logo. */
     stationLogo?: boolean
 }

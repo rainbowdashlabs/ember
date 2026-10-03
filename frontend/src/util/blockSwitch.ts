@@ -9,8 +9,9 @@ import {toRestriction} from '@/components/input/restriction'
 
 /**
  * The saved shape of a block tree turned into the shape the editor works on. Ids of zero mark rows
- * and cells that do not exist yet, which is how the save path tells new from moved. A block's
- * restriction, which only a letter carries, comes along.
+ * and cells that do not exist yet, which is how the save path tells new from moved. A row's lines
+ * between its columns and a block's restriction and guardian condition, which only a letter carries,
+ * come along.
  */
 export function toEditRows(saved: ContentRow[]): RowEditData[] {
     return [...saved]
@@ -18,6 +19,7 @@ export function toEditRows(saved: ContentRow[]): RowEditData[] {
         .map(r => ({
             id: r.id,
             sortOrder: r.sortOrder,
+            ...(r.columnLines ? {columnLines: true} : {}),
             cells: [...r.cells]
                 .sort((a, b) => a.sortOrder - b.sortOrder)
                 .map(c => ({
@@ -28,17 +30,19 @@ export function toEditRows(saved: ContentRow[]): RowEditData[] {
                     content: c.content,
                     config: c.config as Record<string, unknown>,
                     ...(c.restriction ? {restriction: toRestriction(c.restriction)} : {}),
+                    ...(c.guardianCondition ? {guardianCondition: c.guardianCondition} : {}),
                 })),
         }))
 }
 
 /**
- * The rows the editor works on as the server takes them, numbered in the order they stand. A block's
- * restriction goes along where it has one.
+ * The rows the editor works on as the server takes them, numbered in the order they stand. A row's
+ * lines and a block's restriction and guardian condition go along where they are set.
  */
 export function toBlockRequests(rows: RowEditData[]): BlockRowRequest[] {
     return rows.map((r, ri) => ({
         sortOrder: ri,
+        ...(r.columnLines ? {columnLines: true} : {}),
         cells: r.cells.map((c, ci): BlockCellRequest => ({
             sortOrder: ci,
             widthPercent: c.widthPercent,
@@ -46,6 +50,7 @@ export function toBlockRequests(rows: RowEditData[]): BlockRowRequest[] {
             content: c.content,
             config: c.config,
             ...(c.restriction ? {restriction: c.restriction} : {}),
+            ...(c.guardianCondition ? {guardianCondition: c.guardianCondition} : {}),
         })),
     }))
 }

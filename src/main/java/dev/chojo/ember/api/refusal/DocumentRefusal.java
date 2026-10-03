@@ -178,7 +178,7 @@ public enum DocumentRefusal implements Refusal {
     DOCUMENT_TEMPLATE_FIELD_SIZE_OUT_OF_BOUNDS(
             50, HttpStatus.BAD_REQUEST, "The text size of a field lies between 4 and 72 points"),
 
-    /** Two signature fields for the same signer. */
+    /** Two signature fields for the same signer that would both stand in the document of every member. */
     DOCUMENT_TEMPLATE_SIGNER_TWICE(51, HttpStatus.BAD_REQUEST, "Each signer has at most one signature field"),
 
     /** A form field the template fills that the PDF does not have, or that cannot be filled. */
@@ -190,13 +190,24 @@ public enum DocumentRefusal implements Refusal {
     /** More fields than a template holds. */
     DOCUMENT_TEMPLATE_TOO_MANY_FIELDS(53, HttpStatus.BAD_REQUEST, "A template holds at most 200 fields"),
 
-    /** A signature field written as a placeholder where only a value can stand. */
-    DOCUMENT_TEMPLATE_SIGNATURE_IN_TEXT(
-            54, HttpStatus.BAD_REQUEST, "A signature can only be placed as a signature field, not inside a text"),
-
     /** A block a letter does not print, such as a video or a map. */
     DOCUMENT_TEMPLATE_BLOCK_NOT_TAKEN(
-            55, HttpStatus.BAD_REQUEST, "A letter holds texts, pictures and blocks stacked in a column only");
+            55,
+            HttpStatus.BAD_REQUEST,
+            "A letter holds texts, pictures, lines, gaps, signature lines and blocks stacked in a column only"),
+
+    /** A signature block in the header or the footer of a letter. */
+    DOCUMENT_TEMPLATE_SIGNATURE_OUTSIDE_BODY(
+            70, HttpStatus.BAD_REQUEST, "A signature line can only stand in the text of a letter"),
+
+    /** A signature block that does not say who signs on it. */
+    DOCUMENT_TEMPLATE_SIGNER_MISSING(71, HttpStatus.BAD_REQUEST, "A signature line needs the person who signs on it"),
+
+    /** Two signature blocks of a letter that ask the same person to sign in the document of one member. */
+    DOCUMENT_SIGNER_TWICE_FOR_MEMBER(
+            72,
+            HttpStatus.CONFLICT,
+            "For this member, two signature lines of the template ask the same person to sign, so nothing was produced");
 
     private final Definition definition;
 

@@ -20,7 +20,7 @@ import CellRestrictionChips from './CellRestrictionChips.vue'
 import CellVisibilityDialog from './CellVisibilityDialog.vue'
 import type {RowEditData} from './EditorRow.vue'
 import {isLayoutKind, type LayoutKindName} from '@/api/pageManage'
-import {CellContentType} from '@/api/generated/schema'
+import {CellContentType, type GuardianCondition} from '@/api/generated/schema'
 import type {RestrictionSelection} from '@/api/types'
 import {usePageClipboard} from '@/composables/usePageClipboard'
 import {useBlockEditorOptions} from '@/composables/useBlockEditorOptions'
@@ -38,6 +38,7 @@ export interface CellEditData {
     content: string
     config: Record<string, unknown>
     restriction?: RestrictionSelection | null
+    guardianCondition?: GuardianCondition | null
 }
 
 const cell = defineModel<CellEditData>('cell', {required: true})
@@ -97,13 +98,16 @@ function selfAsChild(widthPercent: number): CellEditData {
     return {
         id: 0, sortOrder: 0, widthPercent,
         contentType: cell.value.contentType, content: cell.value.content, config: cell.value.config,
-        restriction: cell.value.restriction,
+        restriction: cell.value.restriction, guardianCondition: cell.value.guardianCondition,
     }
 }
 
 /** The current cell turned into a nested-rows cell holding the given rows, shown to everybody. */
 function nestedAs(rows: RowEditData[]): CellEditData {
-    return {...cell.value, contentType: CellContentType.NESTED_ROWS, content: '', config: {rows}, restriction: undefined}
+    return {
+        ...cell.value, contentType: CellContentType.NESTED_ROWS, content: '', config: {rows},
+        restriction: undefined, guardianCondition: undefined,
+    }
 }
 
 /**
@@ -146,9 +150,12 @@ function wrapAndAddSibling(position: 'above' | 'below') {
         />
 
         <template v-if="options.restrictable">
-            <CellRestrictionChips :restriction="cell.restriction" :choices="options.restrictable"/>
+            <CellRestrictionChips :restriction="cell.restriction" :guardian-condition="cell.guardianCondition"
+                                  :choices="options.restrictable"/>
             <CellVisibilityDialog v-model="visibilityOpen" :restriction="cell.restriction" :choices="options.restrictable"
-                                  @update:restriction="updateField('restriction', $event)"/>
+                                  :guardian-condition="options.guardianCondition ? cell.guardianCondition ?? null : undefined"
+                                  @update:restriction="updateField('restriction', $event)"
+                                  @update:guardian-condition="updateField('guardianCondition', $event)"/>
         </template>
 
         <p v-if="showDepthWarning" class="text-[10px] text-error italic mb-2">

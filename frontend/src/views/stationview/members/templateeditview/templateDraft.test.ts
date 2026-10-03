@@ -9,6 +9,7 @@ import {
     CellContentType,
     DocumentLanguage,
     DocumentTemplateKind,
+    GuardianCondition,
     StationUserType,
     type DocumentTemplateResponse,
 } from '@/api/generated/schema'
@@ -36,9 +37,11 @@ const saved: DocumentTemplateResponse = {
         id: 0,
         containerId: 0,
         sortOrder: 0,
+        columnLines: true,
         cells: [
             {id: 0, rowId: 0, sortOrder: 0, widthPercent: 50, contentType: CellContentType.MARKDOWN, content: 'Hallo {{member.firstName}}', config: {}},
-            {id: 0, rowId: 0, sortOrder: 1, widthPercent: 50, contentType: CellContentType.MARKDOWN, content: 'Nur zur Probe', config: {}, restriction: trialOnly},
+            {id: 0, rowId: 0, sortOrder: 1, widthPercent: 50, contentType: CellContentType.MARKDOWN, content: 'Nur zur Probe', config: {}, restriction: trialOnly,
+                guardianCondition: GuardianCondition.SECOND_GUARDIAN},
         ],
     }],
     page: {...DEFAULT_PAGE},
@@ -61,7 +64,7 @@ describe('template drafts', () => {
         expect(draft.body).toEqual([])
     })
 
-    it('send what was read back unchanged, a block\'s visibility included', () => {
+    it('send what was read back unchanged, a block\'s visibility and a row\'s lines included', () => {
         const request = requestOf(draftOf(saved))
 
         expect(request.name).toBe('Bescheinigung')
@@ -72,6 +75,9 @@ describe('template drafts', () => {
         expect(cells.map(cell => cell.content)).toEqual(['Hallo {{member.firstName}}', 'Nur zur Probe'])
         expect(cells[0]?.restriction).toBeUndefined()
         expect(cells[1]?.restriction?.userTypes).toEqual([StationUserType.TRIAL])
+        expect(request.body?.[0]?.columnLines).toBe(true)
+        expect(cells[0]?.guardianCondition).toBeUndefined()
+        expect(cells[1]?.guardianCondition).toBe(GuardianCondition.SECOND_GUARDIAN)
     })
 
     it('leave empty patterns to the server', () => {

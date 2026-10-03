@@ -15,7 +15,7 @@ import PlaceholderPicker from './PlaceholderPicker.vue'
  * took, searches across every step, and starts over at the top once something was picked.
  */
 describe('PlaceholderPicker', () => {
-    function picker(props: {legal?: boolean, signatures?: boolean} = {}) {
+    function picker(props: {legal?: boolean} = {}) {
         return mount(PlaceholderPicker, {props: {placeholders: CATALOGUE, legal: false, ...props}})
     }
 
@@ -37,7 +37,6 @@ describe('PlaceholderPicker', () => {
 
         expect(wrapper.find(`[data-testid="placeholder-category-${PlaceholderCategory.MEMBER}"]`).text()).toBe('Mitglied')
         expect(wrapper.find('[data-testid="placeholder-category-APPOINTMENT"]').exists()).toBe(false)
-        expect(wrapper.find('[data-testid="placeholder-category-SIGNATURE"]').exists()).toBe(false)
         expect(wrapper.find('[data-testid="placeholder-picker-level"]').exists()).toBe(false)
     })
 
@@ -72,10 +71,6 @@ describe('PlaceholderPicker', () => {
         await choose(wrapper, 'Stammdaten')
 
         expect(entries(wrapper)).toEqual(['Vorname'])
-    })
-
-    it('offers a signature field where one can stand', () => {
-        expect(picker({signatures: true}).find('[data-testid="placeholder-category-SIGNATURE"]').exists()).toBe(true)
     })
 
     it('searches every step and names the path of each match', async () => {

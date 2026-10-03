@@ -41,15 +41,16 @@ public class PdfTemplateRenderer {
      *
      * @param stationId the station that keeps the PDF
      * @param content   the PDF and what is laid over it
+     * @param guardians how many guardians the member has, which decides how many of them sign
      * @param fill      fills the placeholders of a text
      * @return the filled-in PDF and the characters no font could print
      */
-    public PdfStamper.Stamped render(int stationId, PdfContent content, UnaryOperator<String> fill) {
+    public PdfStamper.Stamped render(int stationId, PdfContent content, int guardians, UnaryOperator<String> fill) {
         var original = content.original();
         if (original == null) throw DocumentRefusal.DOCUMENT_TEMPLATE_PDF_MISSING.raise();
         byte[] data = pdfs.read(stationId, original).orElseThrow(DocumentRefusal.DOCUMENT_RENDER_FAILED::raise);
         try {
-            return stamper.stamp(data, content.layout(), fill);
+            return stamper.stamp(data, content.layout(), guardians, fill);
         } catch (IOException e) {
             log.error("The PDF {} of station {} could not be filled", original.id(), stationId, e);
             throw DocumentRefusal.DOCUMENT_RENDER_FAILED.raise();

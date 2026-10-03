@@ -12,6 +12,8 @@ import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.content.entity.CellConfig;
 import dev.chojo.ember.feature.content.entity.CellContentType;
+import dev.chojo.ember.feature.content.entity.GuardianCondition;
+import dev.chojo.ember.feature.generator.entity.SignatureRole;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -155,13 +157,43 @@ class ContentBlockServiceTest extends RepositoryTestBase {
         var rows = ContentBlockService.rowsOf(List.of(new ContentBlockService.RowData(
                 3,
                 List.of(new ContentBlockService.CellData(
-                        1, 40.0, CellContentType.MARKDOWN, "Nur Mitglieder", CellConfig.EMPTY, audience)))));
+                        1,
+                        40.0,
+                        CellContentType.MARKDOWN,
+                        "Nur Mitglieder",
+                        CellConfig.EMPTY,
+                        audience,
+                        GuardianCondition.NO_SECOND_GUARDIAN)),
+                true)));
 
         var cell = rows.getFirst().cells().getFirst();
         assertEquals(3, rows.getFirst().sortOrder());
+        assertTrue(rows.getFirst().columnLines());
         assertEquals(40.0, cell.widthPercent());
         assertEquals("Nur Mitglieder", cell.content());
         assertEquals(audience, cell.restriction());
+        assertEquals(GuardianCondition.NO_SECOND_GUARDIAN, cell.guardianCondition());
+    }
+
+    /** A signature line is printed only, so only a letter holds one, and a letter holds lines and gaps too. */
+    @Test
+    void aSignatureLineIsForLettersOnly() {
+        var signature = new CellConfig.SignatureConfig(SignatureRole.ISSUER);
+        assertDoesNotThrow(() -> blocks.requireFits(
+                station.id(),
+                List.of(
+                        row(CellContentType.SIGNATURE, "", signature),
+                        row(CellContentType.DIVIDER, "", new CellConfig.DividerConfig("Termine")),
+                        row(CellContentType.SPACER, "", new CellConfig.SpacerConfig(20))),
+                ContentBlockService.Scope.LETTER));
+
+        for (var scope : List.of(ContentBlockService.Scope.PAGE, ContentBlockService.Scope.ARTICLE)) {
+            var refused = assertThrows(
+                    RefusalResponse.class,
+                    () -> blocks.requireFits(
+                            station.id(), List.of(row(CellContentType.SIGNATURE, "", signature)), scope));
+            assertEquals(PageRefusal.CONTENT_BLOCK_ONLY_IN_LETTERS, refused.refusal());
+        }
     }
 
     @Test

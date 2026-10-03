@@ -40,5 +40,4 @@ export const CATALOGUE: Placeholder[] = [
         ['Erziehungsberechtigte 1', 'Profil', 'Medizinisches', 'Allergien'],
         {label: 'Erziehungsberechtigte 1: Allergien', group: PlaceholderGroup.GUARDIAN}),
     placeholderOf('event.name', PlaceholderCategory.APPOINTMENT, ['Termin', 'Termin'], {eventOnly: true}),
-    placeholderOf('signature.issuer', PlaceholderCategory.SIGNATURE, ['Unterschrift', 'Ausstellende Person']),
 ]

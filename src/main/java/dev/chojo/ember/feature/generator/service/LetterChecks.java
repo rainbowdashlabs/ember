@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.generator.service;
 import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.api.refusal.RefusalDetail;
 import dev.chojo.ember.feature.content.entity.CellConfig;
+import dev.chojo.ember.feature.content.entity.CellContentType;
 import dev.chojo.ember.feature.content.entity.ContentCell;
 import dev.chojo.ember.feature.content.entity.ContentRow;
 import dev.chojo.ember.feature.content.entity.ContentRows;
@@ -15,6 +16,8 @@ import dev.chojo.ember.feature.content.route.BlockRowRequest;
 import dev.chojo.ember.feature.content.service.ContentBlockService;
 import dev.chojo.ember.feature.generator.entity.LetterContent;
 import dev.chojo.ember.feature.generator.entity.LetterPage;
+import dev.chojo.ember.feature.generator.entity.MemberView;
+import dev.chojo.ember.feature.generator.entity.SignatureRole;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -27,10 +30,15 @@ import java.util.stream.Stream;
 /**
  * Turns the rows the editor sends for a letter into a letter a station may keep.
  *
- * <p>A letter is written with the block editor pages use, narrowed to what prints: texts, pictures and
- * blocks stacked in a column ({@link ContentBlockService.Scope#LETTER}). A row holds at most three
- * columns, at any depth. A picture is the station logo or an image of the station's media library, and
- * the texts of the header and the footer are short.
+ * <p>A letter is written with the block editor pages use, narrowed to what prints: texts, pictures,
+ * lines, gaps, signature lines and blocks stacked in a column ({@link ContentBlockService.Scope#LETTER}).
+ * A row holds at most three columns, at any depth. A picture is the station logo or an image of the
+ * station's media library, and the texts of the header and the footer are short.
+ *
+ * <p>A signature line stands in the body only, names its signer and has a short text under it. Two
+ * lines may name the same signer as alternatives, for members of different audiences; what is refused
+ * here is only a pair that every member with some number of guardians would get together. Whether a
+ * pair meets in the document of one particular member is checked when it is generated for them.
  */
 @Singleton
 public class LetterChecks {
@@ -66,9 +74,9 @@ public class LetterChecks {
         var page = Objects.requireNonNullElse(request.page(), LetterPage.defaults());
         if (!page.withinBounds()) throw DocumentRefusal.DOCUMENT_TEMPLATE_PAGE_OUT_OF_BOUNDS.raise();
         var letter = new LetterContent(
-                rows(stationId, request.header(), MAX_LETTERHEAD_TEXT),
-                rows(stationId, request.footer(), MAX_LETTERHEAD_TEXT),
-                rows(stationId, request.body(), MAX_BODY_TEXT),
+                rows(stationId, request.header(), Part.LETTERHEAD),
+                rows(stationId, request.footer(), Part.LETTERHEAD),
+                rows(stationId, request.body(), Part.BODY),
                 page);
         long count = Stream.of(letter.header(), letter.footer(), letter.body())
                 .flatMap(LetterContent::blocks)
@@ -76,16 +84,44 @@ public class LetterChecks {
         if (count > MAX_BLOCKS) {
             throw DocumentRefusal.DOCUMENT_TEMPLATE_TEXT_TOO_LONG.raise(RefusalDetail.count(MAX_BLOCKS));
         }
+        requireSignersOnce(letter);
         return letter;
     }
 
-    private List<ContentRow> rows(int stationId, @Nullable List<BlockRowRequest> sent, int maxText) {
+    /**
+     * The parts of a letter, which differ in how long a text may be and whether a signature line stands
+     * in them.
+     *
+     * @param maxText    the longest text of a block
+     * @param signatures whether signature lines stand here
+     */
+    private record Part(int maxText, boolean signatures) {
+        static final Part LETTERHEAD = new Part(MAX_LETTERHEAD_TEXT, false);
+        static final Part BODY = new Part(MAX_BODY_TEXT, true);
+    }
+
+    private List<ContentRow> rows(int stationId, @Nullable List<BlockRowRequest> sent, Part part) {
         var data = BlockRowRequest.toRowData(Objects.requireNonNullElse(sent, List.of()));
         blocks.requireFits(stationId, data, ContentBlockService.Scope.LETTER);
         var rows = ContentBlockService.rowsOf(data);
         requireColumns(rows);
-        LetterContent.blocks(rows).forEach(cell -> requireBlock(stationId, cell, maxText));
+        if (!part.signatures()
+                && LetterContent.blocks(rows).anyMatch(cell -> cell.contentType() == CellContentType.SIGNATURE)) {
+            throw DocumentRefusal.DOCUMENT_TEMPLATE_SIGNATURE_OUTSIDE_BODY.raise();
+        }
+        LetterContent.blocks(rows).forEach(cell -> requireBlock(stationId, cell, part.maxText()));
         return rows;
+    }
+
+    /**
+     * Refuses two signature lines for one signer that every member with some number of guardians would
+     * get together, which no choice of audiences can keep apart.
+     */
+    private static void requireSignersOnce(LetterContent letter) {
+        for (int guardians = 0; guardians <= SignatureRole.GUARDIANS_CHECKED; guardians++) {
+            LetterLayout.requireSignersOnce(
+                    letter, MemberView.anyMember(guardians), DocumentRefusal.DOCUMENT_TEMPLATE_SIGNER_TWICE);
+        }
     }
 
     private static void requireColumns(List<ContentRow> rows) {
@@ -107,7 +143,17 @@ public class LetterChecks {
                 }
             }
             case IMAGE -> requirePicture(stationId, cell.content());
+            case SIGNATURE -> requireSignature(cell);
             default -> {}
+        }
+    }
+
+    private static void requireSignature(ContentCell cell) {
+        if (!(cell.config() instanceof CellConfig.SignatureConfig signature) || signature.signer() == null) {
+            throw DocumentRefusal.DOCUMENT_TEMPLATE_SIGNER_MISSING.raise();
+        }
+        if (cell.content().length() > MAX_LETTERHEAD_TEXT) {
+            throw DocumentRefusal.DOCUMENT_TEMPLATE_TEXT_TOO_LONG.raise(RefusalDetail.count(MAX_LETTERHEAD_TEXT));
         }
     }
 

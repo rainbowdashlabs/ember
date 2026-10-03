@@ -1,22 +1,7 @@
 #let data = json("data.json")
 
-#let signature(key) = box(
-  width: 6cm,
-  height: 1.6cm,
-  link(
-    "ember-signature:" + key.split(".").at(1),
-    box(width: 100%, height: 100%, stroke: (bottom: 0.6pt + black), inset: (bottom: 2pt), {
-      if data.showLabels {
-        align(bottom + left, text(size: 7pt, fill: luma(120), data.labels.at(key, default: key)))
-      }
-    }),
-  ),
-)
-
 #let placeholder(key) = {
-  if key.starts-with("signature.") {
-    signature(key)
-  } else if key in data.values {
+  if key in data.values {
     data.values.at(key)
   } else if data.showLabels {
     highlight(fill: luma(225), extent: 1pt)[\[#data.labels.at(key, default: key)\]]
@@ -57,18 +42,60 @@
   align(center, fit(image(c.file), limit))
 }
 
+#let rule = 0.5pt + luma(150)
+
+#let divider(c) = pad(y: 0.4em, if c.label == "" {
+  line(length: 100%, stroke: rule)
+} else {
+  grid(
+    columns: (1fr, auto, 1fr),
+    column-gutter: 0.6em,
+    align: horizon,
+    line(length: 100%, stroke: rule),
+    text(size: 0.8em, fill: luma(90), upper(c.label)),
+    line(length: 100%, stroke: rule),
+  )
+})
+
+#let signature(c, max-height) = grid(
+  columns: c.fields.len() * (1fr,),
+  column-gutter: 1.2em,
+  ..c.fields.map(field => [
+    #box(
+      width: 100%,
+      height: 1.6cm,
+      link(data.signatureMarker + field, box(width: 100%, height: 100%, stroke: (bottom: 0.6pt + black))),
+    )
+    #block(above: 0.3em, text(size: 0.85em, text-block(c, max-height)))
+  ]),
+)
+
+#let gutter = 0.8em
+
 #let rows(list, max-height, gap) = for (index, r) in list.enumerate() {
+  let lines = r.at("lines", default: false)
+  let last = r.cells.len() - 1
   block(
     width: 100%,
     above: if index == 0 { 0pt } else { gap },
     below: 0pt,
     grid(
       columns: r.cells.map(c => c.width * 1fr),
-      column-gutter: 0.8em,
+      column-gutter: if lines { 0pt } else { gutter },
+      inset: if lines {
+        (x, y) => (left: if x == 0 { 0pt } else { gutter / 2 }, right: if x == last { 0pt } else { gutter / 2 })
+      } else { 0pt },
+      stroke: if lines { (x, y) => if x > 0 { (left: rule) } } else { none },
       ..r.cells.map(c => if c.kind == "text" {
         text-block(c, max-height)
       } else if c.kind == "image" {
         picture(c, max-height)
+      } else if c.kind == "divider" {
+        divider(c)
+      } else if c.kind == "spacer" {
+        block(height: c.heightMm * 1mm)
+      } else if c.kind == "signature" {
+        signature(c, max-height)
       } else if c.kind == "rows" {
         rows(c.rows, max-height, gap)
       } else {

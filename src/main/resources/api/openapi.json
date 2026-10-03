@@ -43866,6 +43866,13 @@
             }, {
               "type" : "null"
             } ]
+          },
+          "guardianCondition" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/GuardianCondition"
+            }, {
+              "type" : "null"
+            } ]
           }
         }
       },
@@ -43881,6 +43888,9 @@
             "items" : {
               "$ref" : "#/components/schemas/BlockCellRequest"
             }
+          },
+          "columnLines" : {
+            "type" : [ "boolean", "null" ]
           }
         }
       },
@@ -45104,6 +45114,8 @@
         }, {
           "$ref" : "#/components/schemas/QuoteConfig"
         }, {
+          "$ref" : "#/components/schemas/SignatureConfig"
+        }, {
           "$ref" : "#/components/schemas/SpacerConfig"
         }, {
           "$ref" : "#/components/schemas/StatsCounterConfig"
@@ -45225,13 +45237,16 @@
           },
           "NESTED_ROWS" : {
             "$ref" : "#/components/schemas/NestedRowsConfig"
+          },
+          "SIGNATURE" : {
+            "$ref" : "#/components/schemas/SignatureConfig"
           }
         },
-        "required" : [ "EMPTY", "MARKDOWN", "IMAGE", "VIDEO", "CALLOUT", "QUOTE", "DIVIDER", "SPACER", "ACCORDION", "PDF", "FILE_DOWNLOAD", "COUNTDOWN", "FEATURED_EVENT", "UPCOMING_EVENTS", "KB_ARTICLE", "NEWS_TEASER", "PAGE_LINK", "MAP", "ADDRESS_CARD", "PARTNER_STATIONS", "MEMBER_SPOTLIGHT", "MEMBER_LIST_SPOTLIGHT", "STATS_COUNTER", "IMAGE_GALLERY", "HERO_BANNER", "PAST_EVENT_RECAP", "TABS", "ACHIEVEMENTS", "EXTERNAL_LINK_CARD", "BLOG_SIGNUP", "AUDIO_EMBED", "POLL_EMBED", "QUIZ_TEASER", "FORMS_CTA", "CODE_BLOCK", "NESTED_ROWS" ]
+        "required" : [ "EMPTY", "MARKDOWN", "IMAGE", "VIDEO", "CALLOUT", "QUOTE", "DIVIDER", "SPACER", "ACCORDION", "PDF", "FILE_DOWNLOAD", "COUNTDOWN", "FEATURED_EVENT", "UPCOMING_EVENTS", "KB_ARTICLE", "NEWS_TEASER", "PAGE_LINK", "MAP", "ADDRESS_CARD", "PARTNER_STATIONS", "MEMBER_SPOTLIGHT", "MEMBER_LIST_SPOTLIGHT", "STATS_COUNTER", "IMAGE_GALLERY", "HERO_BANNER", "PAST_EVENT_RECAP", "TABS", "ACHIEVEMENTS", "EXTERNAL_LINK_CARD", "BLOG_SIGNUP", "AUDIO_EMBED", "POLL_EMBED", "QUIZ_TEASER", "FORMS_CTA", "CODE_BLOCK", "NESTED_ROWS", "SIGNATURE" ]
       },
       "CellContentType" : {
         "type" : "string",
-        "enum" : [ "EMPTY", "MARKDOWN", "IMAGE", "VIDEO", "CALLOUT", "QUOTE", "DIVIDER", "SPACER", "ACCORDION", "PDF", "FILE_DOWNLOAD", "COUNTDOWN", "FEATURED_EVENT", "UPCOMING_EVENTS", "KB_ARTICLE", "NEWS_TEASER", "PAGE_LINK", "MAP", "ADDRESS_CARD", "PARTNER_STATIONS", "MEMBER_SPOTLIGHT", "MEMBER_LIST_SPOTLIGHT", "STATS_COUNTER", "IMAGE_GALLERY", "HERO_BANNER", "PAST_EVENT_RECAP", "TABS", "ACHIEVEMENTS", "EXTERNAL_LINK_CARD", "BLOG_SIGNUP", "AUDIO_EMBED", "POLL_EMBED", "QUIZ_TEASER", "FORMS_CTA", "CODE_BLOCK", "NESTED_ROWS" ]
+        "enum" : [ "EMPTY", "MARKDOWN", "IMAGE", "VIDEO", "CALLOUT", "QUOTE", "DIVIDER", "SPACER", "ACCORDION", "PDF", "FILE_DOWNLOAD", "COUNTDOWN", "FEATURED_EVENT", "UPCOMING_EVENTS", "KB_ARTICLE", "NEWS_TEASER", "PAGE_LINK", "MAP", "ADDRESS_CARD", "PARTNER_STATIONS", "MEMBER_SPOTLIGHT", "MEMBER_LIST_SPOTLIGHT", "STATS_COUNTER", "IMAGE_GALLERY", "HERO_BANNER", "PAST_EVENT_RECAP", "TABS", "ACHIEVEMENTS", "EXTERNAL_LINK_CARD", "BLOG_SIGNUP", "AUDIO_EMBED", "POLL_EMBED", "QUIZ_TEASER", "FORMS_CTA", "CODE_BLOCK", "NESTED_ROWS", "SIGNATURE" ]
       },
       "CellResponse" : {
         "type" : "object",
@@ -46798,6 +46813,9 @@
           },
           "restriction" : {
             "$ref" : "#/components/schemas/RestrictionAudience"
+          },
+          "guardianCondition" : {
+            "$ref" : "#/components/schemas/GuardianCondition"
           }
         },
         "required" : [ "id", "rowId", "sortOrder", "widthPercent", "contentType", "content", "config" ]
@@ -46826,9 +46844,12 @@
             "items" : {
               "$ref" : "#/components/schemas/ContentCell"
             }
+          },
+          "columnLines" : {
+            "type" : "boolean"
           }
         },
-        "required" : [ "id", "containerId", "sortOrder", "cells" ]
+        "required" : [ "id", "containerId", "sortOrder", "cells", "columnLines" ]
       },
       "ContentUpdateRequest" : {
         "type" : "object",
@@ -53217,6 +53238,10 @@
             "type" : "string"
           }
         }
+      },
+      "GuardianCondition" : {
+        "type" : "string",
+        "enum" : [ "SECOND_GUARDIAN", "NO_SECOND_GUARDIAN" ]
       },
       "GuardianEntry" : {
         "type" : "object",
@@ -61051,11 +61076,11 @@
       },
       "PlaceholderCategory" : {
         "type" : "string",
-        "enum" : [ "MEMBER", "PRONOUNS", "GUARDIAN1", "GUARDIAN2", "STATION", "APPOINTMENT", "DOCUMENT", "SIGNATURE" ]
+        "enum" : [ "MEMBER", "PRONOUNS", "GUARDIAN1", "GUARDIAN2", "STATION", "APPOINTMENT", "DOCUMENT" ]
       },
       "PlaceholderGroup" : {
         "type" : "string",
-        "enum" : [ "MEMBER", "PROFILE", "GUARDIAN", "STATION", "EVENT", "DOCUMENT", "PRONOUN", "SIGNATURE" ]
+        "enum" : [ "MEMBER", "PROFILE", "GUARDIAN", "STATION", "EVENT", "DOCUMENT", "PRONOUN" ]
       },
       "PlaceholderValues" : {
         "type" : "object",
@@ -67984,9 +68009,17 @@
           }
         }
       },
+      "SignatureConfig" : {
+        "type" : "object",
+        "properties" : {
+          "signer" : {
+            "$ref" : "#/components/schemas/SignatureRole"
+          }
+        }
+      },
       "SignatureRole" : {
         "type" : "string",
-        "enum" : [ "PARTICIPANT", "GUARDIAN_1", "GUARDIAN_2", "ISSUER" ]
+        "enum" : [ "PARTICIPANT", "GUARDIAN_1", "GUARDIAN_2", "EACH_GUARDIAN", "ANY_GUARDIAN", "ISSUER" ]
       },
       "SigningSecretRequest" : {
         "type" : "object",

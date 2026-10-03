@@ -38,7 +38,7 @@ const markdownHtml = computed(() => {
 })
 
 /** A row inside a nested-rows block. The server keeps these as written, cells and all. */
-interface NestedRow { cells: CellData[] }
+interface NestedRow { cells: CellData[], columnLines?: boolean }
 
 const nestedRows = computed<NestedRow[]>(() => {
     const raw = configOf(props.cell, CellContentType.NESTED_ROWS)?.rows
@@ -118,6 +118,7 @@ function youtubeEmbedUrl(url: string): string | null {
                 v-for="(child, ci) in (row.cells ?? [])" :key="ci"
                 :style="{flex: `0 0 calc(${child.widthPercent}% - 0.5rem)`}"
                 class="min-w-0"
+                :class="row.columnLines && ci > 0 ? 'border-l border-(--border) pl-2' : ''"
             >
                 <ContentCell :cell="child" :context="context"/>
             </div>

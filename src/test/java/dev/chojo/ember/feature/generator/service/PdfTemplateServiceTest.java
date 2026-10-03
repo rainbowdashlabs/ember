@@ -299,7 +299,15 @@ class PdfTemplateServiceTest extends RepositoryTestBase {
                 () -> withFields(
                         template, request("Prüfung", null, List.of(), List.of(new FormBinding("person", "x")), false)));
         refused(
-                DocumentRefusal.DOCUMENT_TEMPLATE_SIGNATURE_IN_TEXT,
+                DocumentRefusal.DOCUMENT_TEMPLATE_SIGNER_TWICE,
+                () -> withFields(
+                        template,
+                        request(
+                                "Prüfung",
+                                signature(NAME, SignatureRole.EACH_GUARDIAN),
+                                signature(NAME, SignatureRole.GUARDIAN_2))));
+        refused(
+                DocumentRefusal.DOCUMENT_TEMPLATE_PLACEHOLDER_UNKNOWN,
                 () -> withFields(template, request("Prüfung", text(NAME, "{{signature.issuer}}"))));
         refused(
                 DocumentRefusal.DOCUMENT_TEMPLATE_PLACEHOLDER_UNKNOWN,

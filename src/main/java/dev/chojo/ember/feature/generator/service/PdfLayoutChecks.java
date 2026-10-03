@@ -20,7 +20,6 @@ import dev.chojo.ember.feature.generator.entity.SignatureRole;
 import dev.chojo.ember.feature.generator.entity.TextAlign;
 import org.jspecify.annotations.Nullable;
 
-import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Objects;
@@ -30,8 +29,8 @@ import java.util.Objects;
  * PDF.
  *
  * <p>Every field lies on a page the PDF has, inside the part of it that is shown. A text or check
- * field has a text, a text field a size it can be read at, and a signature field a signer, each signer
- * once. A form field is filled only where the PDF has one of that name that can be filled. A binding
+ * field has a text, a text field a size it can be read at, and a signature field a signer, so that no
+ * member's document asks one person to sign in two fields. A form field is filled only where the PDF has one of that name that can be filled. A binding
  * with an empty text is no binding: the form field keeps what it shows.
  *
  * <p>A template without a PDF can have no fields yet, since there are no pages to hold them.
@@ -117,10 +116,9 @@ final class PdfLayoutChecks {
     }
 
     private static void requireEachSignerOnce(List<PdfField> fields) {
-        var seen = EnumSet.noneOf(SignatureRole.class);
-        for (var field : fields) {
-            var role = field.role();
-            if (role != null && !seen.add(role)) throw DocumentRefusal.DOCUMENT_TEMPLATE_SIGNER_TWICE.raise();
+        var roles = fields.stream().map(PdfField::role).filter(Objects::nonNull).toList();
+        if (!SignatureRole.distinctForEveryMember(roles)) {
+            throw DocumentRefusal.DOCUMENT_TEMPLATE_SIGNER_TWICE.raise();
         }
     }
 

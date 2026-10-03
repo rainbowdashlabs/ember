@@ -50,7 +50,7 @@ function cell<K extends CellContentType>(contentType: K, content: string,
 }
 
 function row(id: number, cells: ContentCell[]): ContentRow {
-    return {id, containerId: 1, sortOrder: id, cells: cells.map(entry => ({...entry, rowId: id}))}
+    return {id, containerId: 1, sortOrder: id, columnLines: false, cells: cells.map(entry => ({...entry, rowId: id}))}
 }
 
 /** Numbers the cells of the whole page in reading order, which is what the renderer sorts them by. */

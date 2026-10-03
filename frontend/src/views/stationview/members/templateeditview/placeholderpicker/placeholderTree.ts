@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {PlaceholderCategory, type Placeholder} from '@/api/generated/schema'
+import type {PlaceholderCategory, Placeholder} from '@/api/generated/schema'
 
 /** A step of the picker that leads further: a category, the profile, a heading of the form, a pronoun role. */
 export interface PlaceholderBranch {
@@ -30,8 +30,6 @@ export interface PlaceholderCategoryBranch extends PlaceholderBranch {
 export interface PlaceholderOffer {
     /** A legal template names people by their official names, so the name a member is called by is left out. */
     legal: boolean
-    /** Whether signature fields may stand here, which is the body of a letter only. */
-    signatures: boolean
     /** Whether documents are generated for an appointment, which is the only case its values are filled. */
     appointments: boolean
 }
@@ -45,8 +43,7 @@ export interface PlaceholderOffer {
 export function offeredPlaceholders(placeholders: readonly Placeholder[], offer: PlaceholderOffer): Placeholder[] {
     return placeholders.filter(placeholder =>
         !(offer.legal && placeholder.informal)
-        && (offer.appointments || !placeholder.eventOnly)
-        && (offer.signatures || placeholder.category !== PlaceholderCategory.SIGNATURE))
+        && (offer.appointments || !placeholder.eventOnly))
 }
 
 /**

@@ -8,7 +8,7 @@ import {PlaceholderCategory} from '@/api/generated/schema'
 import {CATALOGUE} from './fixtures'
 import {branchesAlong, offeredPlaceholders, placeholderTree, searchPlaceholders, type PlaceholderNode} from './placeholderTree'
 
-const EVERYTHING = {legal: false, signatures: true, appointments: true}
+const EVERYTHING = {legal: false, appointments: true}
 
 function names(nodes: PlaceholderNode[]) {
     return nodes.map(node => `${node.kind}:${node.name}`)
@@ -27,10 +27,6 @@ describe('the placeholders a place offers', () => {
     it('leaves the appointment out where documents are for members alone', () => {
         expect(keys(offeredPlaceholders(CATALOGUE, {...EVERYTHING, appointments: false}))).not.toContain('event.name')
     })
-
-    it('offers a signature field only where one can stand', () => {
-        expect(keys(offeredPlaceholders(CATALOGUE, {...EVERYTHING, signatures: false}))).not.toContain('signature.issuer')
-    })
 })
 
 describe('the path the picker walks', () => {
@@ -42,7 +38,6 @@ describe('the path the picker walks', () => {
             PlaceholderCategory.PRONOUNS,
             PlaceholderCategory.GUARDIAN1,
             PlaceholderCategory.APPOINTMENT,
-            PlaceholderCategory.SIGNATURE,
         ])
         expect(tree[0]?.name).toBe('Mitglied')
     })

@@ -40,7 +40,12 @@ public final class ContentRows {
         var out = new ArrayList<ContentRow>();
         int index = 0;
         for (JsonNode row : rows) {
-            out.add(new ContentRow(0, 0, index++, cells(row.path("cells"))));
+            out.add(new ContentRow(
+                    0,
+                    0,
+                    index++,
+                    cells(row.path("cells")),
+                    row.path("columnLines").asBoolean(false)));
         }
         return List.copyOf(out);
     }
@@ -86,7 +91,8 @@ public final class ContentRows {
                     type,
                     text(cell.path("content")),
                     CellConfig.parse(type, cell.path("config")),
-                    restriction(cell.path("restriction"))));
+                    restriction(cell.path("restriction")),
+                    guardianCondition(cell.path("guardianCondition"))));
         }
         return List.copyOf(out);
     }
@@ -95,6 +101,14 @@ public final class ContentRows {
         if (!name.isString()) return null;
         return Arrays.stream(CellContentType.values())
                 .filter(type -> type.name().equals(name.asString()))
+                .findFirst()
+                .orElse(null);
+    }
+
+    private static @Nullable GuardianCondition guardianCondition(JsonNode name) {
+        if (!name.isString()) return null;
+        return Arrays.stream(GuardianCondition.values())
+                .filter(condition -> condition.name().equals(name.asString()))
                 .findFirst()
                 .orElse(null);
     }

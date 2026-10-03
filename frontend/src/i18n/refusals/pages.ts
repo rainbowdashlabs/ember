@@ -51,4 +51,5 @@ export default {
     'P-033': 'Die Startseite kann nicht unter einer anderen Seite stehen, es wurde nichts geändert',
     'P-034': 'Seiten lassen sich höchstens drei Ebenen tief verschachteln, es wurde nichts gespeichert',
     'P-035': 'Dieser Block geht nur auf einer Seite, nicht in einer Neuigkeit oder einem Artikel, es wurde nichts gespeichert',
+    'P-036': 'Dieser Block geht nur in einer Briefvorlage, es wurde nichts gespeichert',
 }

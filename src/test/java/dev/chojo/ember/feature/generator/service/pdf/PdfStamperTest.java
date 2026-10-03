@@ -62,7 +62,11 @@ class PdfStamperTest {
     }
 
     private PdfStamper.Stamped stamp(byte[] original, PdfField... fields) throws IOException {
-        return stamper.stamp(original, new PdfLayout(List.of(fields), List.of()), FILL);
+        return stamp(original, 2, fields);
+    }
+
+    private PdfStamper.Stamped stamp(byte[] original, int guardians, PdfField... fields) throws IOException {
+        return stamper.stamp(original, new PdfLayout(List.of(fields), List.of()), guardians, FILL);
     }
 
     private static String drawn(List<TextPosition> positions) {
@@ -252,13 +256,61 @@ class PdfStamperTest {
         assertTrue(TestPdfs.darkAt(TestPdfs.picture(stamped.pdf()), 130, 100.3f), "the line to sign on");
     }
 
+    /** Every guardian signs in a field of their own, the box shared out side by side. */
+    @Test
+    void eachGuardianGetsAFieldOfTheirOwnInTheBox() throws IOException {
+        var box = new FieldRect(1, 100, 100, 300, 40);
+
+        var two = stamp(TestPdfs.plain(1), 2, signature(box, SignatureRole.EACH_GUARDIAN));
+        var one = stamp(TestPdfs.plain(1), 1, signature(box, SignatureRole.EACH_GUARDIAN));
+
+        try (var document = Loader.loadPDF(two.pdf())) {
+            var form = document.getDocumentCatalog().getAcroForm(null);
+            assertEquals(2, form.getFields().size());
+            var first = form.getField("guardian1").getWidgets().getFirst().getRectangle();
+            var second = form.getField("guardian2").getWidgets().getFirst().getRectangle();
+            assertEquals(100, first.getLowerLeftX(), 0.01);
+            assertEquals(400, second.getUpperRightX(), 0.01);
+            assertTrue(first.getUpperRightX() < second.getLowerLeftX(), "the two lines do not touch");
+        }
+        try (var document = Loader.loadPDF(one.pdf())) {
+            var form = document.getDocumentCatalog().getAcroForm(null);
+            assertEquals(1, form.getFields().size());
+            assertEquals(
+                    300,
+                    form.getField("guardian1")
+                            .getWidgets()
+                            .getFirst()
+                            .getRectangle()
+                            .getWidth(),
+                    0.01);
+        }
+    }
+
+    /** Any guardian signs in one field; a second guardian the member lacks has no field and no line. */
+    @Test
+    void oneGuardianSignsOnceAndAnAbsentSecondGuardianNotAtAll() throws IOException {
+        var stamped = stamp(
+                TestPdfs.plain(1),
+                1,
+                signature(new FieldRect(1, 60, 300, 150, 40), SignatureRole.ANY_GUARDIAN),
+                signature(new FieldRect(1, 300, 100, 150, 40), SignatureRole.GUARDIAN_2));
+
+        try (var document = Loader.loadPDF(stamped.pdf())) {
+            var form = document.getDocumentCatalog().getAcroForm(null);
+            assertEquals(1, form.getFields().size());
+            assertNotNull(form.getField("anyGuardian"));
+        }
+        assertFalse(TestPdfs.darkAt(TestPdfs.picture(stamped.pdf()), 370, 100.3f), "no line for nobody");
+    }
+
     /** The PDF's own form is filled and flattened; bound text is drawn like any field. */
     @Test
     void theFormOfThePdfIsFilledAndFlattened() throws IOException {
         var bindings =
                 List.of(new FormBinding("person.name", "{{member.fullName}}"), new FormBinding("agree", "{{yes}}"));
 
-        var stamped = stamper.stamp(TestPdfs.withForm(), new PdfLayout(List.of(), bindings), FILL);
+        var stamped = stamper.stamp(TestPdfs.withForm(), new PdfLayout(List.of(), bindings), 0, FILL);
 
         try (var document = Loader.loadPDF(stamped.pdf())) {
             var form = document.getDocumentCatalog().getAcroForm(null);
@@ -276,7 +328,7 @@ class PdfStamperTest {
     @Test
     void anUnboundFormKeepsWhatItShowsAndIsFlattenedAllTheSame() throws IOException {
         var stamped = stamper.stamp(
-                TestPdfs.withForm(), new PdfLayout(List.of(), List.of(new FormBinding("agree", "{{no}}"))), FILL);
+                TestPdfs.withForm(), new PdfLayout(List.of(), List.of(new FormBinding("agree", "{{no}}"))), 0, FILL);
 
         String text = Objects.requireNonNull(PdfText.extract(stamped.pdf()));
         assertTrue(text.contains("Alt"), text);

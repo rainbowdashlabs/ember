@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.generator.service;
 
 import dev.chojo.ember.feature.content.entity.CellContentType;
+import dev.chojo.ember.feature.content.entity.GuardianCondition;
 import dev.chojo.ember.feature.content.route.BlockCellRequest;
 import dev.chojo.ember.feature.content.route.BlockRowRequest;
 import dev.chojo.ember.feature.generator.entity.DocumentLanguage;
@@ -13,6 +14,7 @@ import dev.chojo.ember.feature.generator.entity.DocumentTemplateKind;
 import dev.chojo.ember.feature.generator.entity.FormBinding;
 import dev.chojo.ember.feature.generator.entity.LetterPage;
 import dev.chojo.ember.feature.generator.entity.PdfField;
+import dev.chojo.ember.feature.generator.entity.SignatureRole;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
 import org.jspecify.annotations.Nullable;
 import tools.jackson.databind.node.JsonNodeFactory;
@@ -74,6 +76,15 @@ final class TemplateRequestBuilder {
 
     /** One row of blocks side by side, sharing the width evenly. */
     static BlockRowRequest row(BlockCellRequest... cells) {
+        return new BlockRowRequest(0, placed(cells));
+    }
+
+    /** One row of blocks side by side, sharing the width evenly, with lines between them. */
+    static BlockRowRequest lined(BlockCellRequest... cells) {
+        return new BlockRowRequest(0, placed(cells), true);
+    }
+
+    private static List<BlockCellRequest> placed(BlockCellRequest... cells) {
         var placed = new ArrayList<BlockCellRequest>();
         for (int index = 0; index < cells.length; index++) {
             var cell = cells[index];
@@ -83,9 +94,10 @@ final class TemplateRequestBuilder {
                     cell.contentType(),
                     cell.content(),
                     cell.config(),
-                    cell.restriction()));
+                    cell.restriction(),
+                    cell.guardianCondition()));
         }
-        return new BlockRowRequest(0, placed);
+        return placed;
     }
 
     /** A text block. */
@@ -98,14 +110,54 @@ final class TemplateRequestBuilder {
         return block(CellContentType.MARKDOWN, text, audience);
     }
 
+    /** A text block printed only for members whose guardians meet the condition. */
+    static BlockCellRequest text(String text, GuardianCondition condition) {
+        return new BlockCellRequest(
+                0,
+                100.0,
+                CellContentType.MARKDOWN.name(),
+                text,
+                JsonNodeFactory.instance.objectNode(),
+                null,
+                condition);
+    }
+
     /** A picture block showing a picture of the media library, or the logo. */
     static BlockCellRequest image(String content) {
         return block(CellContentType.IMAGE, content, null);
     }
 
+    /** A signature line for the signer, with the text under it. */
+    static BlockCellRequest signature(@Nullable SignatureRole signer, String below) {
+        return signature(signer, below, null);
+    }
+
+    /** A signature line for the signer, with the text under it, printed only for the given audience. */
+    static BlockCellRequest signature(
+            @Nullable SignatureRole signer, String below, @Nullable RestrictionAudience audience) {
+        var config = JsonNodeFactory.instance.objectNode();
+        if (signer != null) config.put("signer", signer.name());
+        return new BlockCellRequest(0, 100.0, CellContentType.SIGNATURE.name(), below, config, audience, null);
+    }
+
+    /** A line across the column with a label. */
+    static BlockCellRequest divider(String label) {
+        var config = JsonNodeFactory.instance.objectNode();
+        config.put("label", label);
+        return new BlockCellRequest(0, 100.0, CellContentType.DIVIDER.name(), "", config);
+    }
+
+    /** A gap of the given height in pixels. */
+    static BlockCellRequest spacer(int heightPx) {
+        var config = JsonNodeFactory.instance.objectNode();
+        config.put("heightPx", heightPx);
+        return new BlockCellRequest(0, 100.0, CellContentType.SPACER.name(), "", config);
+    }
+
     /** A block of any kind with no settings. */
     static BlockCellRequest block(CellContentType type, String content, @Nullable RestrictionAudience audience) {
-        return new BlockCellRequest(0, 100.0, type.name(), content, JsonNodeFactory.instance.objectNode(), audience);
+        return new BlockCellRequest(
+                0, 100.0, type.name(), content, JsonNodeFactory.instance.objectNode(), audience, null);
     }
 
     TemplateRequestBuilder title(@Nullable String pattern) {

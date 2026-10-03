@@ -13,12 +13,13 @@ import dev.chojo.ember.feature.content.entity.CellConfig;
 import dev.chojo.ember.feature.content.entity.CellContentType;
 import dev.chojo.ember.feature.content.entity.ContentCell;
 import dev.chojo.ember.feature.content.entity.ContentRow;
+import dev.chojo.ember.feature.content.entity.GuardianCondition;
 import dev.chojo.ember.feature.content.route.BlockCellRequest;
 import dev.chojo.ember.feature.generator.entity.DocumentLanguage;
 import dev.chojo.ember.feature.generator.entity.LetterContent;
 import dev.chojo.ember.feature.generator.entity.LetterPage;
 import dev.chojo.ember.feature.generator.entity.Placeholder;
-import dev.chojo.ember.feature.generator.entity.PlaceholderGroup;
+import dev.chojo.ember.feature.generator.entity.SignatureRole;
 import dev.chojo.ember.feature.generator.repository.DocumentTemplateRepository;
 import dev.chojo.ember.feature.generator.repository.PdfTemplateRepository;
 import dev.chojo.ember.feature.media.entity.StationFile;
@@ -40,10 +41,14 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
+import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.divider;
 import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.image;
 import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.letter;
+import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.lined;
 import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.row;
 import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.rowsOf;
+import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.signature;
+import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.spacer;
 import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.text;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -296,37 +301,136 @@ class DocumentTemplateServiceTest extends RepositoryTestBase {
                         .body()));
     }
 
-    /** The issuer's signature field stands once, in the body of a letter, and nowhere else. */
+    /**
+     * A signature line stands in the body, names its signer and keeps a short text with placeholders
+     * under it. The placeholder that stood for the issuer's field before is no placeholder any more.
+     */
     @Test
-    void aSignatureFieldStandsOnceInTheBody() {
+    void aSignatureLineStandsInTheBodyWithItsSigner() {
         var signed = service.create(
-                owner, letter("Signiert", "Gruß", "{{signature.issuer}}").build(), authorId);
+                owner,
+                letter("Signiert")
+                        .body(List.of(
+                                row(text("Gruß")),
+                                row(signature(SignatureRole.ISSUER, "{{generatedBy.fullName}}, Jugendwart"))))
+                        .build(),
+                authorId);
 
-        assertEquals(List.of("Gruß", "{{signature.issuer}}"), texts(signed.body()));
+        var line = signed.body().get(1).cells().getFirst();
+        assertEquals(CellContentType.SIGNATURE, line.contentType());
+        assertEquals(new CellConfig.SignatureConfig(SignatureRole.ISSUER), line.config());
+        assertEquals(List.of("Gruß", "{{generatedBy.fullName}}, Jugendwart"), texts(signed.body()));
+        refused(
+                DocumentRefusal.DOCUMENT_TEMPLATE_PLACEHOLDER_UNKNOWN,
+                () -> service.create(
+                        owner, letter("Alt", "{{signature.issuer}}").build(), authorId));
+        refused(
+                DocumentRefusal.DOCUMENT_TEMPLATE_PLACEHOLDER_UNKNOWN,
+                () -> service.create(
+                        owner,
+                        letter("Unbekannt")
+                                .body(List.of(row(signature(SignatureRole.ISSUER, "{{nobody.knows}}"))))
+                                .build(),
+                        authorId));
+        refused(
+                DocumentRefusal.DOCUMENT_TEMPLATE_SIGNER_MISSING,
+                () -> service.create(
+                        owner,
+                        letter("Ohne").body(List.of(row(signature(null, "")))).build(),
+                        authorId));
+        refused(
+                DocumentRefusal.DOCUMENT_TEMPLATE_SIGNATURE_OUTSIDE_BODY,
+                () -> service.create(
+                        owner,
+                        letter("Fuß")
+                                .footer(List.of(row(signature(SignatureRole.ISSUER, ""))))
+                                .build(),
+                        authorId));
+        refused(
+                DocumentRefusal.DOCUMENT_TEMPLATE_TEXT_TOO_LONG,
+                () -> service.create(
+                        owner,
+                        letter("Lang")
+                                .body(List.of(row(signature(
+                                        SignatureRole.ISSUER, "x".repeat(LetterChecks.MAX_LETTERHEAD_TEXT + 1)))))
+                                .build(),
+                        authorId));
+        assertTrue(service.catalogue(owner).placeholders().stream()
+                .noneMatch(placeholder -> placeholder.key().startsWith("signature.")));
+    }
+
+    /**
+     * Two lines for one signer pass when their audiences keep them apart, and are refused when some
+     * member would always get both.
+     */
+    @Test
+    void aSignerTwiceIsRefusedOnlyWhereEveryMemberWouldGetBoth() {
+        var trial = new RestrictionAudience(
+                List.of(StationUserType.TRIAL), List.of(), List.of(), List.of(), RestrictionMode.AND);
+        var members = new RestrictionAudience(
+                List.of(StationUserType.MEMBER), List.of(), List.of(), List.of(), RestrictionMode.AND);
+
+        service.create(
+                owner,
+                letter("Alternativen")
+                        .body(List.of(
+                                row(signature(SignatureRole.ISSUER, "Probe", trial)),
+                                row(signature(SignatureRole.ISSUER, "Mitglied", members))))
+                        .build(),
+                authorId);
+        service.create(
+                owner,
+                letter("Zwei Erziehungsberechtigte")
+                        .body(List.of(
+                                row(signature(SignatureRole.GUARDIAN_1, ""), signature(SignatureRole.GUARDIAN_2, ""))))
+                        .build(),
+                authorId);
         refused(
                 DocumentRefusal.DOCUMENT_TEMPLATE_SIGNER_TWICE,
                 () -> service.create(
                         owner,
-                        letter("Zweimal", "{{signature.issuer}}", "{{signature.issuer}}")
+                        letter("Zweimal")
+                                .body(List.of(
+                                        row(signature(SignatureRole.ISSUER, "")),
+                                        row(signature(SignatureRole.ISSUER, ""))))
                                 .build(),
                         authorId));
         refused(
-                DocumentRefusal.DOCUMENT_TEMPLATE_PLACEHOLDER_UNKNOWN,
-                () -> service.create(
-                        owner, letter("Teilnehmer", "{{signature.participant}}").build(), authorId));
-        refused(
-                DocumentRefusal.DOCUMENT_TEMPLATE_SIGNATURE_IN_TEXT,
-                () -> service.create(
-                        owner, letter("Titel").title("{{signature.issuer}}").build(), authorId));
-        refused(
-                DocumentRefusal.DOCUMENT_TEMPLATE_SIGNATURE_IN_TEXT,
+                DocumentRefusal.DOCUMENT_TEMPLATE_SIGNER_TWICE,
                 () -> service.create(
                         owner,
-                        letter("Fuß").footer(rowsOf("{{signature.issuer}}")).build(),
+                        letter("Jede und eine")
+                                .body(List.of(row(
+                                        signature(SignatureRole.EACH_GUARDIAN, ""),
+                                        signature(SignatureRole.GUARDIAN_2, ""))))
+                                .build(),
                         authorId));
-        assertTrue(service.catalogue(owner).placeholders().stream()
-                .anyMatch(placeholder -> placeholder.key().equals("signature.issuer")
-                        && placeholder.group() == PlaceholderGroup.SIGNATURE));
+    }
+
+    @Test
+    void aLetterTakesLinesGapsAndLinesBetweenColumns() {
+        var created = service.create(
+                owner,
+                letter("Linien")
+                        .header(List.of(lined(text("links"), text("rechts"))))
+                        .body(List.of(
+                                row(divider("Termine")),
+                                row(spacer(40)),
+                                row(text("beide", GuardianCondition.SECOND_GUARDIAN))))
+                        .build(),
+                authorId);
+
+        assertTrue(created.header().getFirst().columnLines());
+        assertFalse(created.body().getFirst().columnLines());
+        assertEquals(
+                new CellConfig.DividerConfig("Termine"),
+                created.body().getFirst().cells().getFirst().config());
+        assertEquals(
+                new CellConfig.SpacerConfig(40),
+                created.body().get(1).cells().getFirst().config());
+        assertEquals(
+                GuardianCondition.SECOND_GUARDIAN,
+                created.body().get(2).cells().getFirst().guardianCondition());
     }
 
     @Test

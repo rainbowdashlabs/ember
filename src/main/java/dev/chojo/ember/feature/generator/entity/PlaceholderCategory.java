@@ -23,9 +23,7 @@ public enum PlaceholderCategory {
     /** The appointment a document is generated for. */
     APPOINTMENT(PlaceholderGroup.EVENT, "Termin", "Appointment"),
     /** The document itself. */
-    DOCUMENT(PlaceholderGroup.DOCUMENT, "Dokument", "Document"),
-    /** The signature fields a letter can place. */
-    SIGNATURE(PlaceholderGroup.SIGNATURE, "Unterschrift", "Signature");
+    DOCUMENT(PlaceholderGroup.DOCUMENT, "Dokument", "Document");
 
     private final PlaceholderGroup group;
     private final String german;

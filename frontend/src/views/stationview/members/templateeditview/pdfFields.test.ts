@@ -36,11 +36,24 @@ describe('PDF fields in the editor', () => {
         expect(first.role).toBe(SignatureRole.PARTICIPANT)
         expect(second.role).toBe(SignatureRole.GUARDIAN_1)
         expect(first.text).toBeNull()
-        expect(freeSigner([
+        const four = [
             {...first, role: SignatureRole.PARTICIPANT},
             {...first, role: SignatureRole.GUARDIAN_1},
             {...first, role: SignatureRole.GUARDIAN_2},
             {...first, role: SignatureRole.ISSUER},
+        ]
+        expect(freeSigner(four)).toBe(SignatureRole.ANY_GUARDIAN)
+        expect(freeSigner([...four, {...first, role: SignatureRole.ANY_GUARDIAN}])).toBeNull()
+    })
+
+    it('never offers every guardian beside the first or the second guardian', () => {
+        const field = newField(PdfFieldKind.SIGNATURE, 1, upright, [])
+
+        expect(freeSigner([
+            {...field, role: SignatureRole.PARTICIPANT},
+            {...field, role: SignatureRole.ISSUER},
+            {...field, role: SignatureRole.ANY_GUARDIAN},
+            {...field, role: SignatureRole.EACH_GUARDIAN},
         ])).toBeNull()
     })
 

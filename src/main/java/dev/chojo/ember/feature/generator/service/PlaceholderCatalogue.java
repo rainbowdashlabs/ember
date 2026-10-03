@@ -9,15 +9,12 @@ import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.api.refusal.RefusalDetail;
 import dev.chojo.ember.feature.generator.entity.BuiltInPlaceholder;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplateDraft;
-import dev.chojo.ember.feature.generator.entity.LetterContent;
-import dev.chojo.ember.feature.generator.entity.PdfContent;
 import dev.chojo.ember.feature.generator.entity.Placeholder;
 import dev.chojo.ember.feature.generator.entity.PlaceholderCategory;
 import dev.chojo.ember.feature.generator.entity.PlaceholderGroup;
 import dev.chojo.ember.feature.generator.entity.PlaceholderSubgroup;
 import dev.chojo.ember.feature.generator.entity.PlaceholderTokens;
 import dev.chojo.ember.feature.generator.entity.PronounKey;
-import dev.chojo.ember.feature.generator.entity.SignatureRole;
 import dev.chojo.ember.feature.generator.entity.TemplateContent;
 import dev.chojo.ember.feature.generator.service.OfferedFields.SectionedField;
 import dev.chojo.ember.feature.members.entity.ProfileField;
@@ -30,7 +27,6 @@ import jakarta.inject.Singleton;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -82,7 +78,6 @@ public class PlaceholderCatalogue {
                 .map(value -> value.in(language))
                 .forEach(out::add);
         PronounKey.all().stream().map(pronoun -> pronoun.in(language)).forEach(out::add);
-        out.add(signature(language));
         var offered = offered(stationId);
         offered.member().forEach(field -> out.add(answer(field, PROFILE, PlaceholderCategory.MEMBER, language)));
         for (int index = 0; index < GUARDIANS.size(); index++) {
@@ -92,19 +87,6 @@ public class PlaceholderCatalogue {
         }
         out.sort(Comparator.comparing(Placeholder::category));
         return out;
-    }
-
-    private static Placeholder signature(String language) {
-        boolean english = "en".equals(language);
-        String signer = english ? "Issuer" : "Ausstellende Person";
-        return new Placeholder(
-                SignatureRole.ISSUER.token(),
-                english ? "Signature field: issuer" : "Unterschriftsfeld: Ausstellende Person",
-                PlaceholderGroup.SIGNATURE,
-                PlaceholderCategory.SIGNATURE,
-                List.of(PlaceholderCategory.SIGNATURE.word(language), signer),
-                false,
-                false);
     }
 
     /**
@@ -167,10 +149,6 @@ public class PlaceholderCatalogue {
      * Refuses a template naming a placeholder the station does not have, and a legal one naming the
      * name a member is called by.
      *
-     * <p>A signature field stands only where a letter's body names it, each signer once: it is a box
-     * on the page, and in a title, a file name, the header or footer of a letter or a text on a PDF there
-     * is nowhere to put one. A PDF template places its signature fields as fields of their own.
-     *
      * @param stationId the station
      * @param draft     the template
      */
@@ -183,32 +161,7 @@ public class PlaceholderCatalogue {
                 throw DocumentRefusal.DOCUMENT_TEMPLATE_PLACEHOLDER_UNKNOWN.raise(RefusalDetail.text(key));
             }
         }
-        requireSignaturesInBody(draft);
         if (draft.legal()) requireOfficial(used);
-    }
-
-    private static void requireSignaturesInBody(DocumentTemplateDraft draft) {
-        List<String> body = draft.content() instanceof LetterContent letter
-                ? LetterContent.textsOf(letter.body()).toList()
-                : List.of();
-        Stream<String> outsideTheBody =
-                switch (draft.content()) {
-                    case LetterContent letter -> letter.letterheadTexts();
-                    case PdfContent pdf -> pdf.texts();
-                };
-        var elsewhere = Stream.concat(Stream.of(draft.titlePattern(), draft.fileNamePattern()), outsideTheBody)
-                .map(PlaceholderTokens::keysIn)
-                .flatMap(Set::stream);
-        if (elsewhere.anyMatch(SignatureRole::isToken)) {
-            throw DocumentRefusal.DOCUMENT_TEMPLATE_SIGNATURE_IN_TEXT.raise();
-        }
-        var signers = body.stream()
-                .flatMap(text -> PlaceholderTokens.occurrences(text).stream())
-                .filter(SignatureRole::isToken)
-                .toList();
-        if (signers.size() != new HashSet<>(signers).size()) {
-            throw DocumentRefusal.DOCUMENT_TEMPLATE_SIGNER_TWICE.raise();
-        }
     }
 
     /**

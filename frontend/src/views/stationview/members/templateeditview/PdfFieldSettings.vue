@@ -12,9 +12,10 @@ import NumberInput from '@/components/input/number/NumberInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import ToggleSetting from '@/components/input/toggle/ToggleSetting.vue'
-import {PdfFieldKind, TextAlign, type PdfField, type Placeholder, type SignatureRole} from '@/api/generated/schema'
+import SignerSelect from '@/components/documents/SignerSelect.vue'
+import {PdfFieldKind, TextAlign, type PdfField, type Placeholder} from '@/api/generated/schema'
 import PlaceholderPopover from './placeholderpicker/PlaceholderPopover.vue'
-import {DEFAULT_FONT_SIZE, SIGNERS} from './pdfFields'
+import {DEFAULT_FONT_SIZE} from './pdfFields'
 import {withPlaceholder} from './placeholderText'
 
 /**
@@ -51,14 +52,8 @@ function append(placeholder: Placeholder) {
       <SecondaryBadge>{{ t(`documentTemplates.fieldKind.${field.kind}`) }}</SecondaryBadge>
       <DeleteButton @click="emit('remove')"/>
     </div>
-    <template v-if="field.kind === PdfFieldKind.SIGNATURE">
-      <LabelledField :label="t('documentTemplates.signerLabel')" :help="t('documentTemplates.signerHelp')">
-        <SelectInput :model-value="field.role" data-testid="pdf-field-signer"
-                     @update:model-value="role => field = {...field, role: role as SignatureRole}">
-          <option v-for="role in SIGNERS" :key="role" :value="role">{{ t(`documentTemplates.signer.${role}`) }}</option>
-        </SelectInput>
-      </LabelledField>
-    </template>
+    <SignerSelect v-if="field.kind === PdfFieldKind.SIGNATURE" :model-value="field.role"
+                  @update:model-value="role => field = {...field, role: role ?? null}"/>
     <template v-else>
       <LabelledField :label="t(field.kind === PdfFieldKind.CHECK ? 'documentTemplates.checkWhen' : 'documentTemplates.fieldText')"
                      :help="t(field.kind === PdfFieldKind.CHECK ? 'documentTemplates.checkWhenHelp' : 'documentTemplates.fieldTextHelp')">
