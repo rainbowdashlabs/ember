@@ -3,12 +3,13 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {describe, expect, it} from 'vitest'
+import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 import {defineComponent, h} from 'vue'
 import {flushPromises, mount} from '@vue/test-utils'
 import {createMemoryHistory, createRouter} from 'vue-router'
 import DiscoveryExplorer from './DiscoveryExplorer.vue'
 import DiscoveryTile from './DiscoveryTile.vue'
+import {SEARCH_DELAY_MS} from './discoverySearch'
 import type {DiscoveryEntry} from '@/api/generated/schema'
 import {createDiscoveryEntry, createRemoteDiscoveryEntry, invitingPage} from '@/test/mocks/discovery'
 
@@ -47,6 +48,14 @@ describe('DiscoveryExplorer', () => {
     })
     const ohneOrt = createDiscoveryEntry({stationUid: '00000000-0000-0000-0000-00000000000c', name: 'Wache Ohne Ort'})
     const stations: DiscoveryEntry[] = [nord, sued, ohneOrt]
+
+    beforeEach(() => {
+        vi.useFakeTimers({toFake: ['setTimeout', 'clearTimeout']})
+    })
+
+    afterEach(() => {
+        vi.useRealTimers()
+    })
 
     async function explorer(address = '/discovery', search = '') {
         const router = createRouter({
@@ -145,10 +154,30 @@ describe('DiscoveryExplorer', () => {
         const {wrapper, router} = await explorer(`/discovery?station=${nord.stationUid}`)
 
         await wrapper.setProps({search: 'Süd'})
+        await vi.advanceTimersByTimeAsync(SEARCH_DELAY_MS)
         await flushPromises()
 
         expect(pins(wrapper)).toEqual(['Wache Süd'])
         expect(wrapper.text()).not.toContain('Wache Ohne Ort')
         expect(router.currentRoute.value.query.station).toBeUndefined()
+    })
+
+    it('waits for typing to pause before it filters', async () => {
+        const {wrapper} = await explorer()
+
+        await wrapper.setProps({search: 'Sü'})
+        await vi.advanceTimersByTimeAsync(SEARCH_DELAY_MS - 50)
+        await wrapper.setProps({search: 'Süd'})
+        await vi.advanceTimersByTimeAsync(SEARCH_DELAY_MS - 50)
+        expect(pins(wrapper)).toEqual(['Wache Nord', 'Wache Süd'])
+
+        await vi.advanceTimersByTimeAsync(50)
+        expect(pins(wrapper)).toEqual(['Wache Süd'])
+    })
+
+    it('filters by the term a link hands over right away', async () => {
+        const {wrapper} = await explorer('/discovery', 'Süd')
+
+        expect(pins(wrapper)).toEqual(['Wache Süd'])
     })
 })

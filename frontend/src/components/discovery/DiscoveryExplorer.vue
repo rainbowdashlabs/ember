@@ -7,18 +7,19 @@
 import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
+import {refDebounced} from '@vueuse/core'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import DiscoveryMapSection from '@/components/discovery/DiscoveryMapSection.vue'
 import DiscoveryToolbar from '@/components/discovery/DiscoveryToolbar.vue'
 import DiscoveryGroups from '@/components/discovery/DiscoveryGroups.vue'
-import {searchDiscovery} from '@/components/discovery/discoverySearch'
+import {SEARCH_DELAY_MS, searchDiscovery, searchIndex} from '@/components/discovery/discoverySearch'
 import type {DiscoveryViewer} from '@/composables/useDiscoveryViewer'
 import type {DiscoveryEntry} from '@/api/generated/schema'
 
 /**
  * A discovery page: the map on top, the chosen station's tile right below it, then the search, then the
  * list. The search filters the map and the list together, and a chosen station the search no longer
- * finds is closed.
+ * finds is closed. It takes effect once typing pauses, so the map is not redrawn for every keystroke.
  *
  * <p>The chosen station is kept in the page address under `selectionKey`, so a link can open the page
  * with a station already chosen. Choosing one from the list brings the map back into view.
@@ -41,7 +42,9 @@ const route = useRoute()
 const router = useRouter()
 const mapSection = ref<HTMLElement | null>(null)
 
-const shown = computed(() => searchDiscovery(props.stations, search.value))
+const settledSearch = refDebounced(search, SEARCH_DELAY_MS)
+const index = computed(() => searchIndex(props.stations))
+const shown = computed(() => searchDiscovery(index.value, settledSearch.value))
 
 const chosenUid = computed(() => {
   const value = route.query[props.selectionKey]

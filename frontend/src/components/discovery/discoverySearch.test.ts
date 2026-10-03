@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {describe, expect, it} from 'vitest'
-import {initialSearchTerm, searchDiscovery} from './discoverySearch'
+import {initialSearchTerm, searchDiscovery, searchIndex} from './discoverySearch'
 import type {DiscoveryEntry} from '@/api/generated/schema'
 import {createDiscoveryEntry} from '@/test/mocks/discovery'
 
@@ -27,18 +27,25 @@ describe('searchDiscovery', () => {
         description: 'Jugendfeuerwehr am Hafen',
     })
 
+    const index = searchIndex([local, remote])
+
     it('keeps every station for a blank term', () => {
-        expect(searchDiscovery([local, remote], '  ')).toEqual([local, remote])
+        expect(searchDiscovery(index, '  ')).toEqual([local, remote])
     })
 
     it('finds a remote station by name, place, association, description and instance', () => {
         for (const term of ['dort', 'NORDSTADT', 'kreis nord', 'hafen', 'feuer.example']) {
-            expect(searchDiscovery([local, remote], term)).toEqual([remote])
+            expect(searchDiscovery(index, term)).toEqual([remote])
         }
     })
 
     it('finds a local station the same way', () => {
-        expect(searchDiscovery([local, remote], 'süd')).toEqual([local])
+        expect(searchDiscovery(index, 'süd')).toEqual([local])
+    })
+
+    it('puts the text of each station together once, lowercased', () => {
+        expect(index.map(({entry}) => entry)).toEqual([local, remote])
+        expect(index[1]!.text).toBe('wache dort\njugendfeuerwehr am hafen\nnordstadt\nkreis nord\nfeuer.example')
     })
 
     it('reads the term a link hands over', () => {
