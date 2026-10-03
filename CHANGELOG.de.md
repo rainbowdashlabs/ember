@@ -11,6 +11,10 @@ Wachen anderer Instanzen zeigen auf der Discovery-Seite ihr Logo. Die Logos komm
 - **Partnerschaftsanfragen erreichen Wachen anderer Instanzen.** Eine Wache einer anderen Instanz lässt sich über die Discovery-Seite oder mit ihrem Verzeichnis-Code anfragen, genau wie eine Wache dieser Instanz. Ihre Verwaltung nimmt auf der Föderations-Seite an oder lehnt ab, gesendete Anfragen stehen dort mit ihrem Stand, und nach einer Ablehnung kann dieselbe Wache erst nach 30 Tagen wieder fragen.
 - **Benachrichtigungen zu Partnerschaftsanfragen.** Wer die Föderation einer Wache verwaltet, wird über neue Anfragen benachrichtigt, die anfragende Wache über die Antwort. Die Benachrichtigung führt zur Föderations-Seite und geht auch per Mail raus, wo Benachrichtigungen per Mail eingeschaltet sind.
 
+### Sicherheit
+
+- **Discovery-Antworten kommen nur von der gefragten Instanz.** Eine Antwort auf einen Discovery-Ping wurde von jeder Instanz angenommen, die den Einmalcode des Pings kannte, nicht nur von der Instanz, an die er ging. Antworten anderer Instanzen werden jetzt abgelehnt.
+
 ### Fehlerbehebungen
 
 - **Wachen anderer Instanzen hatten kein Logo.** Auf der Discovery-Seite erschienen Wachen anderer Instanzen ohne ihr Logo. Ihre Logos werden jetzt auf dieser Instanz aufbewahrt und von hier gezeigt, auch wenn die andere Instanz gerade nicht erreichbar ist.

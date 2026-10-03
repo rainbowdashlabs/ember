@@ -11,6 +11,10 @@ Stations of other instances show their logos on the discovery page. The logos co
 - **Federation requests reach stations of other instances.** A station of another instance can be asked to federate from the discovery page or with its pairing code, the same way as a station of this instance. Its managers accept or decline on the federation page, sent requests are listed there with their state, and after a decline the same station can ask again after 30 days.
 - **Federation requests and their answers are notified.** Whoever manages a station's federation is notified of a new request, and the asking station of the answer. The notification links to the federation page and also goes out by mail where notifications by mail are switched on.
 
+### Security
+
+- **Discovery answers come only from the instance asked.** An answer to a discovery ping was accepted from any instance that knew the ping's one-time code, not only from the instance the ping went to. Answers from any other instance are now refused.
+
 ### Fixes
 
 - **Stations of other instances showed no logo.** On the discovery page, stations of other instances appeared without their logo. Their logos are now kept on this instance and shown from there, even while the other instance is down.

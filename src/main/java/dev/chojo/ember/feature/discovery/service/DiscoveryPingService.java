@@ -198,7 +198,7 @@ public class DiscoveryPingService {
 
     /**
      * Inbound callback handler. Validates the signature against {@code from.publicKey}, checks
-     * that we actually sent a ping with that nonce and the window hasn't elapsed, and merges
+     * that we actually sent a ping with that nonce to that very peer and the window hasn't elapsed, and merges
      * the announced peers into the local registry.
      */
     public boolean handleCallback(String rawBody, DiscoveryCallbackMessage message, @Nullable String signatureHeader) {
@@ -225,6 +225,11 @@ public class DiscoveryPingService {
         var outboundPing = pingRepository.findByNonce(message.inReplyTo()).orElse(null);
         if (outboundPing == null || outboundPing.direction() != PingDirection.OUT) {
             log.debug("Callback nonce {} doesn't match an outbound ping", message.inReplyTo());
+            return false;
+        }
+        if (!outboundPing.peerKey().equals(message.from().publicKey())) {
+            log.debug("Callback nonce {} was sent to another peer", message.inReplyTo());
+            reputationService.recordInvalidAnnouncement(message.from().publicKey());
             return false;
         }
         if (now.isAfter(outboundPing.expiresAt())) {

@@ -132,6 +132,21 @@ class DiscoveryGossipDepthTest extends RepositoryTestBase {
         assertTrue(discoveryPeerRepo.findByPublicKey(stranger.publicKey()).isEmpty());
     }
 
+    @Test
+    void aPeerAnsweringAPingSentToAnotherPeerIsNotHeard() {
+        var b = new DiscoveryIdentity("https://b.example", newPublicKey(), "b");
+        var intruder = new DiscoveryIdentity("https://intruder.example", newPublicKey(), "intruder");
+        var announced = new DiscoveryIdentity("https://announced.example", newPublicKey(), "announced");
+        discoveryPeerRepo.upsert(b.publicKey(), b.baseUrl(), b.instanceId(), PeerSource.MANUAL, null);
+        var nonceForB = runPingCycle().get(b.baseUrl());
+
+        assertFalse(pingService.handleCallback("{}", callback(intruder, nonceForB, announced), "signature"));
+
+        assertTrue(discoveryPeerRepo.findByPublicKey(announced.publicKey()).isEmpty());
+        assertTrue(discoveryPeerRepo.findByPublicKey(intruder.publicKey()).isEmpty());
+        assertTrue(pingService.handleCallback("{}", callback(b, nonceForB, announced), "signature"));
+    }
+
     /**
      * Runs one ping cycle and returns the nonce each pinged base URL was sent.
      */
