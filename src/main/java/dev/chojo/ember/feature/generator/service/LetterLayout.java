@@ -5,65 +5,91 @@
  */
 package dev.chojo.ember.feature.generator.service;
 
+import dev.chojo.ember.api.refusal.Refusal;
 import dev.chojo.ember.feature.content.entity.CellConfig;
 import dev.chojo.ember.feature.content.entity.ContentCell;
 import dev.chojo.ember.feature.content.entity.ContentRow;
 import dev.chojo.ember.feature.content.entity.ContentRows;
 import dev.chojo.ember.feature.generator.entity.LetterContent;
-import dev.chojo.ember.feature.restriction.RestrictionAudience;
+import dev.chojo.ember.feature.generator.entity.MemberView;
+import dev.chojo.ember.feature.generator.entity.SignatureRole;
 import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Predicate;
+import java.util.Objects;
 
 /**
  * Walks the rows of a letter for one member and lays them out as {@code letter.typ} draws them.
  *
- * <p>A row becomes a grid with one column per cell, each as wide as its share of the row. A cell is a
- * text, a picture, or rows stacked in it, which are walked the same way. A block whose restriction the
- * member does not match is left out, and so is everything stacked inside it; its column stays, empty,
- * so the others keep their place. A row left with nothing to print is dropped.
+ * <p>A row becomes a grid with one column per cell, each as wide as its share of the row, with a line
+ * in every gap between two columns where the row asks for one. A cell is a text, a picture, a line, a
+ * gap, a signature line, or rows stacked in it, which are walked the same way. A block the member does
+ * not see ({@link MemberView#sees}) is left out, and so is everything stacked inside it; its column
+ * stays, empty, so the others keep their place. A row left with nothing to print is dropped.
+ *
+ * <p>A signature block holds a field for each person its signer asks to sign for the member
+ * ({@link SignatureRole#fieldNames}): one field mostly, one per guardian for every guardian, and none
+ * for a second guardian the member does not have, which leaves the block out.
  *
  * <p>The texts are numbered in one fixed order, the header first, then the footer, then the body, each
- * top to bottom and left to right, and every text counts whether it is printed or not. That is what lets
- * the texts be converted once per state of the template and found again by their number for every
- * member, whatever each member sees of them.
+ * top to bottom and left to right, and every text counts whether it is printed or not, the short text
+ * under a signature line included. That is what lets the texts be converted once per state of the
+ * template and found again by their number for every member, whatever each member sees of them.
  */
 final class LetterLayout {
-    /** Who sees everything: a preview without a member, and the conversion of the texts. */
-    static final Predicate<RestrictionAudience> EVERYBODY = audience -> true;
+    /** Millimetres per CSS pixel, which is what the editor states a picture's height and a gap in. */
+    static final double MM_PER_PIXEL = 25.4 / 96;
 
-    /** What the walk makes of the blocks it prints. */
+    /** The height of a gap whose block names none, as the editor shows it. */
+    private static final int DEFAULT_SPACER_PX = 32;
+
+    /**
+     * What the walk makes of the blocks it prints. A walk that only looks at what is printed, rather than
+     * drawing it, keeps the empty drawings these answer with.
+     */
     interface Blocks {
         /**
          * @param index the number of the text in the letter
          * @param cell  the text block
          * @return how the text is drawn, or null where there is nothing to draw
          */
-        @Nullable
-        Map<String, Object> text(int index, ContentCell cell);
+        default @Nullable Map<String, Object> text(int index, ContentCell cell) {
+            return Map.of();
+        }
 
         /**
          * @param cell the picture block
          * @return how the picture is drawn, or null where it cannot be read
          */
-        @Nullable
-        Map<String, Object> image(ContentCell cell);
+        default @Nullable Map<String, Object> image(ContentCell cell) {
+            return Map.of();
+        }
+
+        /**
+         * @param index  the number of the text under the line in the letter
+         * @param cell   the signature block
+         * @param fields the names of the signature fields on it, at least one
+         * @return how the signature line is drawn
+         */
+        default Map<String, Object> signature(int index, ContentCell cell, List<String> fields) {
+            return Map.of();
+        }
     }
 
-    private final Predicate<RestrictionAudience> shown;
+    private final MemberView view;
     private final Blocks blocks;
+    private final List<String> signatureFields = new ArrayList<>();
     private int nextText;
 
     /**
-     * @param shown  whether the member a letter is for belongs to a block's audience
+     * @param view   what of the letter the member sees
      * @param blocks what to make of the blocks that are printed
      */
-    LetterLayout(Predicate<RestrictionAudience> shown, Blocks blocks) {
-        this.shown = shown;
+    LetterLayout(MemberView view, Blocks blocks) {
+        this.view = view;
         this.blocks = blocks;
     }
 
@@ -85,12 +111,12 @@ final class LetterLayout {
      * The texts of a letter a member sees, which are the ones whose placeholders need a value.
      *
      * @param letter the letter
-     * @param shown  whether the member belongs to a block's audience
+     * @param view   what of the letter the member sees
      * @return the texts, in the order they are printed
      */
-    static List<String> visibleTexts(LetterContent letter, Predicate<RestrictionAudience> shown) {
+    static List<String> visibleTexts(LetterContent letter, MemberView view) {
         var texts = new ArrayList<String>();
-        new LetterLayout(shown, new Blocks() {
+        new LetterLayout(view, new Blocks() {
                     @Override
                     public Map<String, Object> text(int index, ContentCell cell) {
                         texts.add(cell.content());
@@ -98,12 +124,26 @@ final class LetterLayout {
                     }
 
                     @Override
-                    public Map<String, Object> image(ContentCell cell) {
+                    public Map<String, Object> signature(int index, ContentCell cell, List<String> fields) {
+                        texts.add(cell.content());
                         return Map.of();
                     }
                 })
                 .letter(letter);
         return texts;
+    }
+
+    /**
+     * Refuses a letter that asks one person to sign in two fields of a member's document.
+     *
+     * @param letter  the letter
+     * @param view    what of the letter the member sees
+     * @param refusal what to refuse with
+     */
+    static void requireSignersOnce(LetterContent letter, MemberView view, Refusal refusal) {
+        var layout = new LetterLayout(view, new Blocks() {});
+        layout.letter(letter);
+        if (!SignatureRole.distinct(layout.signatureFields)) throw refusal.raise();
     }
 
     private List<Map<String, Object>> rows(List<ContentRow> rows, boolean visible) {
@@ -112,13 +152,11 @@ final class LetterLayout {
             var cells = new ArrayList<Map<String, Object>>();
             boolean printed = false;
             for (var cell : row.cells()) {
-                var restriction = cell.restriction();
-                boolean cellVisible = visible && (restriction == null || shown.test(restriction));
-                var drawn = cell(cell, cellVisible);
+                var drawn = cell(cell, visible && view.sees(cell));
                 printed |= drawn != null;
                 cells.add(sized(drawn == null ? Map.of("kind", "empty") : drawn, cell.widthPercent()));
             }
-            if (printed) out.add(Map.of("cells", cells));
+            if (printed) out.add(Map.of("cells", cells, "lines", row.columnLines()));
         }
         return out;
     }
@@ -134,6 +172,12 @@ final class LetterLayout {
                 yield visible && !cell.content().isBlank() ? blocks.text(index, cell) : null;
             }
             case IMAGE -> visible ? blocks.image(cell) : null;
+            case DIVIDER -> visible ? divider(cell) : null;
+            case SPACER -> visible ? spacer(cell) : null;
+            case SIGNATURE -> {
+                int index = nextText++;
+                yield visible ? signature(index, cell) : null;
+            }
             case NESTED_ROWS -> {
                 var nested = cell.config() instanceof CellConfig.NestedRowsConfig config
                         ? rows(ContentRows.read(config.rows()), visible)
@@ -142,6 +186,30 @@ final class LetterLayout {
             }
             default -> null;
         };
+    }
+
+    private static Map<String, Object> divider(ContentCell cell) {
+        String label = cell.config() instanceof CellConfig.DividerConfig divider ? divider.label() : null;
+        return Map.of(
+                "kind",
+                "divider",
+                "label",
+                Objects.requireNonNullElse(label, "").strip());
+    }
+
+    private static Map<String, Object> spacer(ContentCell cell) {
+        Integer height = cell.config() instanceof CellConfig.SpacerConfig spacer ? spacer.heightPx() : null;
+        int pixels = height == null || height <= 0 ? DEFAULT_SPACER_PX : height;
+        return Map.of("kind", "spacer", "heightMm", pixels * MM_PER_PIXEL);
+    }
+
+    private @Nullable Map<String, Object> signature(int index, ContentCell cell) {
+        var signer = cell.config() instanceof CellConfig.SignatureConfig signature ? signature.signer() : null;
+        if (signer == null) return null;
+        var fields = signer.fieldNames(view.guardians());
+        if (fields.isEmpty()) return null;
+        signatureFields.addAll(fields);
+        return blocks.signature(index, cell, fields);
     }
 
     private static Map<String, Object> sized(Map<String, Object> drawn, double widthPercent) {

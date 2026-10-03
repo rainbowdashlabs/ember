@@ -142,7 +142,11 @@ public enum PageRefusal implements Refusal {
     CONTENT_BLOCK_ONLY_ON_PAGES(
             35,
             HttpStatus.BAD_REQUEST,
-            "That block can only be used on a page, not in a news entry or an article, so nothing was saved");
+            "That block can only be used on a page, not in a news entry or an article, so nothing was saved"),
+
+    /** A block that only a printed letter holds, such as a signature line, put into a page, news or an article. */
+    CONTENT_BLOCK_ONLY_IN_LETTERS(
+            36, HttpStatus.BAD_REQUEST, "That block can only be used in a letter template, so nothing was saved");
 
     private final Definition definition;
 

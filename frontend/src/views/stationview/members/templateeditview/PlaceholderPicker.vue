@@ -9,18 +9,9 @@ import {useI18n} from 'vue-i18n'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import {PlaceholderGroup, type Placeholder} from '@/api/generated/schema'
 
-/**
- * Picks a placeholder to insert, grouped by where its value comes from.
- *
- * <p>A legal template is not offered the name a member is called by, and nothing that only an
- * appointment fills is offered while documents are generated for members alone. A signature field is
- * offered only where it can stand, which is the body of a letter.
- */
 const props = defineProps<{
   placeholders: Placeholder[]
   legal: boolean
-  /** Whether signature fields are offered too. */
-  signatures?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -29,7 +20,6 @@ const emit = defineEmits<{
 
 const {t} = useI18n()
 
-/** Counts the picks, so the menu is drawn anew and shows its prompt again after each one. */
 const picks = ref(0)
 
 const GROUP_ORDER: readonly PlaceholderGroup[] = [
@@ -39,11 +29,9 @@ const GROUP_ORDER: readonly PlaceholderGroup[] = [
   PlaceholderGroup.GUARDIAN,
   PlaceholderGroup.STATION,
   PlaceholderGroup.DOCUMENT,
-  PlaceholderGroup.SIGNATURE,
 ]
 
 const groups = computed(() => GROUP_ORDER
-    .filter(group => props.signatures || group !== PlaceholderGroup.SIGNATURE)
     .map(group => ({
       group,
       entries: props.placeholders.filter(placeholder =>

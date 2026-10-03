@@ -56037,6 +56037,7 @@ export interface components {
             config?: unknown;
             content?: string;
             contentType?: string;
+            guardianCondition?: components["schemas"]["GuardianCondition"] | null;
             restriction?: components["schemas"]["RestrictionAudience"] | null;
             /** Format: int32 */
             sortOrder?: number;
@@ -56057,6 +56058,7 @@ export interface components {
         };
         BlockRowRequest: {
             cells?: components["schemas"]["BlockCellRequest"][];
+            columnLines?: boolean | null;
             /** Format: int32 */
             sortOrder?: number;
         };
@@ -56451,7 +56453,7 @@ export interface components {
             /** Format: int64 */
             totalBytes: number;
         };
-        CellConfig: components["schemas"]["AccordionConfig"] | components["schemas"]["AchievementsConfig"] | components["schemas"]["AddressCardConfig"] | components["schemas"]["AudioEmbedConfig"] | components["schemas"]["BlogSignupConfig"] | components["schemas"]["CalloutConfig"] | components["schemas"]["CodeBlockConfig"] | components["schemas"]["CountdownConfig"] | components["schemas"]["DividerConfig"] | components["schemas"]["ExternalLinkCardConfig"] | components["schemas"]["FeaturedEventConfig"] | components["schemas"]["FileDownloadConfig"] | components["schemas"]["FormsCtaConfig"] | components["schemas"]["HeroBannerConfig"] | components["schemas"]["ImageConfig"] | components["schemas"]["ImageGalleryConfig"] | components["schemas"]["KbArticleConfig"] | components["schemas"]["MapConfig"] | components["schemas"]["MarkdownConfig"] | components["schemas"]["MemberListConfig"] | components["schemas"]["MemberSpotlightConfig"] | components["schemas"]["NestedRowsConfig"] | components["schemas"]["NewsTeaserConfig"] | components["schemas"]["PageLinkConfig"] | components["schemas"]["PartnerStationsConfig"] | components["schemas"]["PastEventRecapConfig"] | components["schemas"]["PdfConfig"] | components["schemas"]["PollEmbedConfig"] | components["schemas"]["QuizTeaserConfig"] | components["schemas"]["QuoteConfig"] | components["schemas"]["SpacerConfig"] | components["schemas"]["StatsCounterConfig"] | components["schemas"]["TabsConfig"] | components["schemas"]["UpcomingEventsConfig"] | components["schemas"]["VideoConfig"];
+        CellConfig: components["schemas"]["AccordionConfig"] | components["schemas"]["AchievementsConfig"] | components["schemas"]["AddressCardConfig"] | components["schemas"]["AudioEmbedConfig"] | components["schemas"]["BlogSignupConfig"] | components["schemas"]["CalloutConfig"] | components["schemas"]["CodeBlockConfig"] | components["schemas"]["CountdownConfig"] | components["schemas"]["DividerConfig"] | components["schemas"]["ExternalLinkCardConfig"] | components["schemas"]["FeaturedEventConfig"] | components["schemas"]["FileDownloadConfig"] | components["schemas"]["FormsCtaConfig"] | components["schemas"]["HeroBannerConfig"] | components["schemas"]["ImageConfig"] | components["schemas"]["ImageGalleryConfig"] | components["schemas"]["KbArticleConfig"] | components["schemas"]["MapConfig"] | components["schemas"]["MarkdownConfig"] | components["schemas"]["MemberListConfig"] | components["schemas"]["MemberSpotlightConfig"] | components["schemas"]["NestedRowsConfig"] | components["schemas"]["NewsTeaserConfig"] | components["schemas"]["PageLinkConfig"] | components["schemas"]["PartnerStationsConfig"] | components["schemas"]["PastEventRecapConfig"] | components["schemas"]["PdfConfig"] | components["schemas"]["PollEmbedConfig"] | components["schemas"]["QuizTeaserConfig"] | components["schemas"]["QuoteConfig"] | components["schemas"]["SignatureConfig"] | components["schemas"]["SpacerConfig"] | components["schemas"]["StatsCounterConfig"] | components["schemas"]["TabsConfig"] | components["schemas"]["UpcomingEventsConfig"] | components["schemas"]["VideoConfig"];
         CellConfigByType: {
             ACCORDION: components["schemas"]["AccordionConfig"];
             ACHIEVEMENTS: components["schemas"]["AchievementsConfig"];
@@ -56484,6 +56486,7 @@ export interface components {
             POLL_EMBED: components["schemas"]["PollEmbedConfig"];
             QUIZ_TEASER: components["schemas"]["QuizTeaserConfig"];
             QUOTE: components["schemas"]["QuoteConfig"];
+            SIGNATURE: components["schemas"]["SignatureConfig"];
             SPACER: components["schemas"]["SpacerConfig"];
             STATS_COUNTER: components["schemas"]["StatsCounterConfig"];
             TABS: components["schemas"]["TabsConfig"];
@@ -56491,7 +56494,7 @@ export interface components {
             VIDEO: components["schemas"]["VideoConfig"];
         };
         /** @enum {string} */
-        CellContentType: "EMPTY" | "MARKDOWN" | "IMAGE" | "VIDEO" | "CALLOUT" | "QUOTE" | "DIVIDER" | "SPACER" | "ACCORDION" | "PDF" | "FILE_DOWNLOAD" | "COUNTDOWN" | "FEATURED_EVENT" | "UPCOMING_EVENTS" | "KB_ARTICLE" | "NEWS_TEASER" | "PAGE_LINK" | "MAP" | "ADDRESS_CARD" | "PARTNER_STATIONS" | "MEMBER_SPOTLIGHT" | "MEMBER_LIST_SPOTLIGHT" | "STATS_COUNTER" | "IMAGE_GALLERY" | "HERO_BANNER" | "PAST_EVENT_RECAP" | "TABS" | "ACHIEVEMENTS" | "EXTERNAL_LINK_CARD" | "BLOG_SIGNUP" | "AUDIO_EMBED" | "POLL_EMBED" | "QUIZ_TEASER" | "FORMS_CTA" | "CODE_BLOCK" | "NESTED_ROWS";
+        CellContentType: "EMPTY" | "MARKDOWN" | "IMAGE" | "VIDEO" | "CALLOUT" | "QUOTE" | "DIVIDER" | "SPACER" | "ACCORDION" | "PDF" | "FILE_DOWNLOAD" | "COUNTDOWN" | "FEATURED_EVENT" | "UPCOMING_EVENTS" | "KB_ARTICLE" | "NEWS_TEASER" | "PAGE_LINK" | "MAP" | "ADDRESS_CARD" | "PARTNER_STATIONS" | "MEMBER_SPOTLIGHT" | "MEMBER_LIST_SPOTLIGHT" | "STATS_COUNTER" | "IMAGE_GALLERY" | "HERO_BANNER" | "PAST_EVENT_RECAP" | "TABS" | "ACHIEVEMENTS" | "EXTERNAL_LINK_CARD" | "BLOG_SIGNUP" | "AUDIO_EMBED" | "POLL_EMBED" | "QUIZ_TEASER" | "FORMS_CTA" | "CODE_BLOCK" | "NESTED_ROWS" | "SIGNATURE";
         CellResponse: {
             checked: boolean;
             /** Format: int32 */
@@ -57037,6 +57040,7 @@ export interface components {
             config: components["schemas"]["CellConfig"];
             content: string;
             contentType: components["schemas"]["CellContentType"];
+            guardianCondition?: components["schemas"]["GuardianCondition"];
             /** Format: int32 */
             id: number;
             restriction?: components["schemas"]["RestrictionAudience"];
@@ -57050,6 +57054,7 @@ export interface components {
         ContentMode: "SIMPLE" | "RICH";
         ContentRow: {
             cells: components["schemas"]["ContentCell"][];
+            columnLines: boolean;
             /** Format: int32 */
             containerId: number;
             /** Format: int32 */
@@ -59229,6 +59234,8 @@ export interface components {
         GroupSetRequest: {
             name?: string;
         };
+        /** @enum {string} */
+        GuardianCondition: "SECOND_GUARDIAN" | "NO_SECOND_GUARDIAN";
         GuardianEntry: {
             email?: string;
             firstName?: string;
@@ -62023,7 +62030,7 @@ export interface components {
             placeholders: components["schemas"]["Placeholder"][];
         };
         /** @enum {string} */
-        PlaceholderGroup: "MEMBER" | "PROFILE" | "GUARDIAN" | "STATION" | "EVENT" | "DOCUMENT" | "PRONOUN" | "SIGNATURE";
+        PlaceholderGroup: "MEMBER" | "PROFILE" | "GUARDIAN" | "STATION" | "EVENT" | "DOCUMENT" | "PRONOUN";
         PlaceholderValues: {
             values?: {
                 [key: string]: string;
@@ -64356,8 +64363,11 @@ export interface components {
             /** Format: int32 */
             waitingListEntries: number;
         };
+        SignatureConfig: {
+            signer?: components["schemas"]["SignatureRole"];
+        };
         /** @enum {string} */
-        SignatureRole: "PARTICIPANT" | "GUARDIAN_1" | "GUARDIAN_2" | "ISSUER";
+        SignatureRole: "PARTICIPANT" | "GUARDIAN_1" | "GUARDIAN_2" | "EACH_GUARDIAN" | "ANY_GUARDIAN" | "ISSUER";
         SignInClaimRequest: {
             claimToken?: string;
         };
@@ -66607,6 +66617,7 @@ export type GroupRequest = components['schemas']['GroupRequest'];
 export type GroupRuleRefusedBody = components['schemas']['GroupRuleRefusedBody'];
 export type GroupRulesRequest = components['schemas']['GroupRulesRequest'];
 export type GroupSetRequest = components['schemas']['GroupSetRequest'];
+export type GuardianCondition = components['schemas']['GuardianCondition'];
 export type GuardianEntry = components['schemas']['GuardianEntry'];
 export type HandOutRequest = components['schemas']['HandOutRequest'];
 export type HandOutSelfChecksRequest = components['schemas']['HandOutSelfChecksRequest'];
@@ -67298,6 +67309,7 @@ export type SharePartner = components['schemas']['SharePartner'];
 export type ShareScope = components['schemas']['ShareScope'];
 export type ShareSetting = components['schemas']['ShareSetting'];
 export type SidebarCounts = components['schemas']['SidebarCounts'];
+export type SignatureConfig = components['schemas']['SignatureConfig'];
 export type SignatureRole = components['schemas']['SignatureRole'];
 export type SignInClaimRequest = components['schemas']['SignInClaimRequest'];
 export type SignInFinishRequest = components['schemas']['SignInFinishRequest'];
@@ -67671,6 +67683,7 @@ export const CellContentType = {
     POLL_EMBED: "POLL_EMBED",
     QUIZ_TEASER: "QUIZ_TEASER",
     QUOTE: "QUOTE",
+    SIGNATURE: "SIGNATURE",
     SPACER: "SPACER",
     STATS_COUNTER: "STATS_COUNTER",
     TABS: "TABS",
@@ -67933,6 +67946,11 @@ export const GeocodingProvider = {
     LOCATIONIQ: "LOCATIONIQ",
     NOMINATIM: "NOMINATIM",
     NONE: "NONE",
+} as const;
+
+export const GuardianCondition = {
+    NO_SECOND_GUARDIAN: "NO_SECOND_GUARDIAN",
+    SECOND_GUARDIAN: "SECOND_GUARDIAN",
 } as const;
 
 export const IdentityType = {
@@ -68339,7 +68357,6 @@ export const PlaceholderGroup = {
     MEMBER: "MEMBER",
     PROFILE: "PROFILE",
     PRONOUN: "PRONOUN",
-    SIGNATURE: "SIGNATURE",
     STATION: "STATION",
 } as const;
 
@@ -68527,6 +68544,8 @@ export const ShareScope = {
 } as const;
 
 export const SignatureRole = {
+    ANY_GUARDIAN: "ANY_GUARDIAN",
+    EACH_GUARDIAN: "EACH_GUARDIAN",
     GUARDIAN_1: "GUARDIAN_1",
     GUARDIAN_2: "GUARDIAN_2",
     ISSUER: "ISSUER",

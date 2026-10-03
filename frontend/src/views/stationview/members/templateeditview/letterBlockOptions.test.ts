@@ -16,14 +16,26 @@ const catalogue = {
 }
 
 describe('the block editor of a letter', () => {
-    it('offers texts and pictures in up to three columns, the logo and a visibility', () => {
-        const options = letterBlockOptions(catalogue, true)
+    it('offers texts, pictures, lines and gaps in up to three columns, the logo and a visibility', () => {
+        const options = letterBlockOptions(catalogue, false)
 
-        expect(options.allowedKinds).toEqual([CellContentType.MARKDOWN, CellContentType.IMAGE])
+        expect(options.allowedKinds).toEqual([
+            CellContentType.MARKDOWN,
+            CellContentType.IMAGE,
+            CellContentType.DIVIDER,
+            CellContentType.SPACER,
+        ])
         expect(options.maxColumns).toBe(LETTER_COLUMNS)
         expect(options.stationLogo).toBe(true)
         expect(options.restrictable).toBe(catalogue.choices)
+        expect(options.guardianCondition).toBe(true)
+        expect(options.columnLines).toBe(true)
         expect(options.markdownTools).toBeDefined()
+    })
+
+    it('offers signature lines in the body only', () => {
+        expect(letterBlockOptions(catalogue, true).allowedKinds).toContain(CellContentType.SIGNATURE)
+        expect(letterBlockOptions(catalogue, false).allowedKinds).not.toContain(CellContentType.SIGNATURE)
     })
 
     it('shows placeholders as chips with their labels', () => {

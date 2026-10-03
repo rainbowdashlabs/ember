@@ -12,12 +12,12 @@ import dev.chojo.ember.feature.content.entity.CellConfig;
 import dev.chojo.ember.feature.content.entity.ContentCell;
 import dev.chojo.ember.feature.generator.entity.DocumentLanguage;
 import dev.chojo.ember.feature.generator.entity.LetterContent;
+import dev.chojo.ember.feature.generator.entity.MemberView;
 import dev.chojo.ember.feature.generator.entity.PlaceholderTokens;
 import dev.chojo.ember.feature.generator.service.pdf.SignatureFields;
 import dev.chojo.ember.feature.knowledgebase.service.KbPdfPictures;
 import dev.chojo.ember.feature.media.entity.MediaContent;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
-import dev.chojo.ember.feature.restriction.RestrictionAudience;
 import dev.chojo.ember.feature.station.service.StationLogoService;
 import dev.chojo.ember.util.PandocConverter;
 import dev.chojo.ember.util.TypstCompiler;
@@ -32,9 +32,9 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Predicate;
 
 /**
  * Turns a letter template and the values of one member into a PDF/A-3b.
@@ -53,9 +53,9 @@ import java.util.function.Predicate;
  * the station logo) placed next to the document as files. A picture that cannot be read is left out
  * rather than stopping the document. The template's language picks the {@code letter.typ} it is set in.
  *
- * <p>A signature field a text names ({@code {{signature.issuer}}}) is drawn by {@code letter.typ} as an
- * empty box on a line, and {@link SignatureFields#replaceMarkers} turns it into a real, empty PDF
- * signature field afterwards.
+ * <p>A signature block is drawn by {@code letter.typ} as an empty box on a line for each of its fields,
+ * with its short text below, and {@link SignatureFields#replaceMarkers} turns each box into a real,
+ * empty PDF signature field afterwards.
  */
 @Singleton
 public class LetterRenderer {
@@ -63,9 +63,6 @@ public class LetterRenderer {
 
     /** Wide enough to print a letter's picture sharply, small enough to keep the PDF light. */
     private static final int PICTURE_WIDTH = 1024;
-
-    /** Millimetres per CSS pixel, which is what the editor states a picture's largest height in. */
-    private static final double MM_PER_PIXEL = 25.4 / 96;
 
     private static final Map<String, String> EXTENSIONS = Map.of(
             "image/png", "png",
@@ -94,7 +91,7 @@ public class LetterRenderer {
      * @param title      the title the PDF carries
      * @param letter     the letter
      * @param cacheKey   the template and version the texts belong to, or null for a draft that is not saved
-     * @param shown      whether the member the letter is for belongs to a block's audience
+     * @param view       what of the letter the member it is for sees
      * @param language   the language the letter is set in
      * @param values     the value of every placeholder that has one
      * @param labels     the words for every placeholder, shown in place of a value where labels are asked for
@@ -106,7 +103,7 @@ public class LetterRenderer {
             String title,
             LetterContent letter,
             @Nullable BodyKey cacheKey,
-            Predicate<RestrictionAudience> shown,
+            MemberView view,
             DocumentLanguage language,
             Map<String, String> values,
             Map<String, String> labels,
@@ -147,21 +144,32 @@ public class LetterRenderer {
         var texts = texts(job);
         var files = new HashMap<>(texts.pictures());
         var resources = new HashMap<String, String>();
-        var layout = new LetterLayout(job.shown(), new LetterLayout.Blocks() {
+        var layout = new LetterLayout(job.view(), new LetterLayout.Blocks() {
                     @Override
                     public Map<String, Object> text(int index, ContentCell cell) {
-                        String file = "block-" + index + ".typ";
-                        resources.put(file, texts.typst().getOrDefault(index, ""));
-                        return Map.of("kind", "text", "file", file);
+                        return Map.of("kind", "text", "file", textFile(index));
                     }
 
                     @Override
                     public @Nullable Map<String, Object> image(ContentCell cell) {
                         return picture(job.stationId(), cell, files);
                     }
+
+                    @Override
+                    public Map<String, Object> signature(int index, ContentCell cell, List<String> fields) {
+                        return Map.of("kind", "signature", "file", textFile(index), "fields", fields);
+                    }
+
+                    private String textFile(int index) {
+                        String file = "block-" + index + ".typ";
+                        resources.put(file, texts.typst().getOrDefault(index, ""));
+                        return file;
+                    }
                 })
                 .letter(job.letter());
+        String marker = SignatureFields.newMarker();
         var data = new LinkedHashMap<String, Object>(layout);
+        data.put("signatureMarker", marker);
         data.put("title", job.title());
         data.put(
                 "date",
@@ -177,13 +185,15 @@ public class LetterRenderer {
         data.put("labels", job.labels());
         data.put("showLabels", job.showLabels());
         try {
-            return SignatureFields.replaceMarkers(TypstCompiler.compileTemplate(
-                    data,
-                    job.language().code() + "/letter.typ",
-                    null,
-                    resources,
-                    files,
-                    TypstCompiler.Output.PDF_A_3B));
+            return SignatureFields.replaceMarkers(
+                    TypstCompiler.compileTemplate(
+                            data,
+                            job.language().code() + "/letter.typ",
+                            null,
+                            resources,
+                            files,
+                            TypstCompiler.Output.PDF_A_3B),
+                    marker);
         } catch (IOException e) {
             log.error("A letter of station {} could not be rendered", job.stationId(), e);
             throw DocumentRefusal.DOCUMENT_RENDER_FAILED.raise();
@@ -205,17 +215,21 @@ public class LetterRenderer {
     PreparedTexts prepare(int stationId, LetterContent letter) {
         var typst = new HashMap<Integer, String>();
         var files = new HashMap<String, byte[]>();
-        new LetterLayout(LetterLayout.EVERYBODY, new LetterLayout.Blocks() {
+        new LetterLayout(MemberView.EVERYBODY, new LetterLayout.Blocks() {
                     @Override
                     public Map<String, Object> text(int index, ContentCell cell) {
-                        var text = convert(stationId, cell.content(), "b" + index + "-");
-                        typst.put(index, text.typst());
-                        files.putAll(text.pictures());
-                        return Map.of();
+                        return prepared(index, cell);
                     }
 
                     @Override
-                    public Map<String, Object> image(ContentCell cell) {
+                    public Map<String, Object> signature(int index, ContentCell cell, List<String> fields) {
+                        return prepared(index, cell);
+                    }
+
+                    private Map<String, Object> prepared(int index, ContentCell cell) {
+                        var text = convert(stationId, cell.content(), "b" + index + "-");
+                        typst.put(index, text.typst());
+                        files.putAll(text.pictures());
                         return Map.of();
                     }
                 })
@@ -267,7 +281,7 @@ public class LetterRenderer {
         drawn.put("kind", "image");
         drawn.put("file", file);
         Integer maxHeight = cell.config() instanceof CellConfig.ImageConfig image ? image.maxHeight() : null;
-        if (maxHeight != null && maxHeight > 0) drawn.put("maxHeightMm", maxHeight * MM_PER_PIXEL);
+        if (maxHeight != null && maxHeight > 0) drawn.put("maxHeightMm", maxHeight * LetterLayout.MM_PER_PIXEL);
         return drawn;
     }
 

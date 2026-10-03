@@ -13,8 +13,19 @@ import PlaceholderPicker from './PlaceholderPicker.vue'
 /** The most columns a row of a letter holds, which is what the server takes. */
 export const LETTER_COLUMNS = 3
 
-/** The blocks a letter prints: texts and pictures, and blocks stacked in a column by splitting. */
-const LETTER_KINDS: readonly CellContentType[] = [CellContentType.MARKDOWN, CellContentType.IMAGE]
+/**
+ * The blocks the header and the footer of a letter print: texts, pictures, lines and gaps, and blocks
+ * stacked in a column by splitting.
+ */
+const LETTERHEAD_KINDS: readonly CellContentType[] = [
+    CellContentType.MARKDOWN,
+    CellContentType.IMAGE,
+    CellContentType.DIVIDER,
+    CellContentType.SPACER,
+]
+
+/** The blocks the body of a letter prints: those of the letterhead and signature lines. */
+const BODY_KINDS: readonly CellContentType[] = [...LETTERHEAD_KINDS, CellContentType.SIGNATURE]
 
 /** What the block editor of a letter knows of the station. */
 export interface LetterCatalogue {
@@ -25,27 +36,29 @@ export interface LetterCatalogue {
 }
 
 /**
- * The block editor as a letter uses it: texts and pictures in up to three columns, placeholders as
- * chips with their picker above every text, a visibility on every block, and the station logo as a
- * picture.
+ * The block editor as a letter uses it: texts, pictures, lines and gaps in up to three columns, with
+ * lines between the columns where a row asks for them, placeholders as chips with their picker above
+ * every text, a visibility on every block that may also depend on a second guardian, and the station
+ * logo as a picture.
  *
  * @param catalogue  what the station's letters can name and restrict blocks to
- * @param signatures whether the picker offers signature fields, which stand in the body only
+ * @param signatures whether signature lines are offered, which stand in the body only
  */
 export function letterBlockOptions(catalogue: LetterCatalogue, signatures: boolean): Partial<BlockEditorOptions> {
     const tools: FunctionalComponent<{insert: (content: Content) => void}> = props => h(PlaceholderPicker, {
         placeholders: catalogue.placeholders,
         legal: catalogue.legal,
-        signatures,
         onPick: (placeholder: Placeholder) => props.insert(placeholderContent(placeholder.key, placeholder.label)),
     })
     tools.props = ['insert']
     return {
-        allowedKinds: LETTER_KINDS,
+        allowedKinds: signatures ? BODY_KINDS : LETTERHEAD_KINDS,
         maxColumns: LETTER_COLUMNS,
         tokens: placeholderTokens(catalogue.labels),
         markdownTools: tools,
         restrictable: catalogue.choices,
+        guardianCondition: true,
+        columnLines: true,
         stationLogo: true,
     }
 }

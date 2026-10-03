@@ -1716,9 +1716,11 @@ volumes:
             letterheadTitle: 'Brief, Kopf- und Fußzeile',
             letterheadText: 'Unter Brief stehen Kopfzeile, Text und Fußzeile so untereinander wie auf dem Papier. '
                 + 'Alle drei bestehen aus Zeilen mit bis zu drei Spalten, wie die Seiten der Wache. Eine Spalte '
-                + 'hält einen Text, ein Bild aus der Mediathek oder das Logo der Wache, oder mehrere davon '
-                + 'untereinander. Die Breite einer Spalte ziehst du am Rand oder gibst sie im Menü ein. Kopf- und '
-                + 'Fußzeile zeigen sich, wie sie gedruckt werden, und öffnen sich zum Bearbeiten per Klick.',
+                + 'hält einen Text, ein Bild aus der Mediathek oder das Logo der Wache, eine Trennlinie mit oder '
+                + 'ohne Beschriftung, einen Abstand, oder mehrere davon untereinander. Die Breite einer Spalte '
+                + 'ziehst du am Rand oder gibst sie im Menü ein. Über „Linien zwischen den Spalten" im Menü einer '
+                + 'Zeile steht zwischen ihren Spalten je eine senkrechte Linie. Kopf- und Fußzeile zeigen sich, wie '
+                + 'sie gedruckt werden, und öffnen sich zum Bearbeiten per Klick.',
             pageText: 'Unter Seite stellst du die Ränder und die Schriftgröße ein. Kopf- und Fußzeile stehen im '
                 + 'oberen und unteren Rand, lass dort also genug Platz.',
             bodyTitle: 'Text, Platzhalter und Sichtbarkeit',
@@ -1727,23 +1729,35 @@ volumes:
                 + 'farbiges Feld mit seinem Namen. Über „Sichtbarkeit" im Menü eines Bausteins erscheint er nur für '
                 + 'bestimmte Gruppen, Mitgliedsarten oder Tags. Für andere Mitglieder fällt er weg, und eine Zeile '
                 + 'ohne Inhalt verschwindet ganz. Einen anderen Text für die übrigen Mitglieder schreibst du in einen '
-                + 'zweiten Baustein mit eigener Sichtbarkeit.',
+                + 'zweiten Baustein mit eigener Sichtbarkeit. Unter „Erziehungsberechtigte" legst du zusätzlich fest, '
+                + 'ob ein Baustein nur mit oder nur ohne zweite erziehungsberechtigte Person erscheint, etwa für '
+                + '„beide Erziehungsberechtigte".',
             placeholdersText: 'Beim Erstellen füllt Ember jedes Feld mit den Daten des Mitglieds, so wie sie gerade '
                 + 'eingetragen sind. Namen sind immer die amtlichen Namen, nur der Rufname ist eine Ausnahme.',
             importText: 'Hast du die Bescheinigung schon als Word- oder OpenDocument-Text, importiere sie. Lücken in '
                 + 'eckigen Klammern wie [Vorname Nachname] oder [Geburtsdatum] werden zu Platzhaltern, alles andere '
                 + 'bleibt Text. Der Text landet als ein Baustein im Brief, ein Bild auf eigener Zeile als eigener '
                 + 'Bildbaustein. Kopf- und Fußzeile richtest du danach selbst ein.',
-            signatureText: 'Unter „Unterschrift" gibt es ein Unterschriftsfeld für die ausstellende Person. Setze es '
-                + 'über ihren Namen und ihre Funktion. Im Dokument steht dort eine Linie zum Unterschreiben, und das PDF '
-                + 'enthält ein leeres Unterschriftsfeld.',
+            signatureTitle: 'Unterschriften',
+            signatureText: 'Eine Unterschriftszeile setzt du im Text als eigenen Baustein. Wähle, wer unterschreibt: '
+                + 'die teilnehmende Person, die ausstellende Person, die erste oder zweite erziehungsberechtigte Person, '
+                + 'alle Erziehungsberechtigten mit je einer eigenen Linie oder eine beliebige von ihnen. Darunter '
+                + 'steht ein kurzer Text mit Platzhaltern, etwa Name und Funktion. Im Dokument steht eine Linie zum '
+                + 'Unterschreiben, und das PDF enthält dort ein leeres Unterschriftsfeld.',
+            signatureGuardiansText: 'Hat ein Mitglied nur eine erziehungsberechtigte Person, fällt die Zeile für die '
+                + 'zweite weg, und ihre Angaben bleiben leer, ohne als fehlend zu gelten. Fehlt jede '
+                + 'erziehungsberechtigte Person, nennt Ember die Angaben der ersten als fehlend.',
+            signatureTwiceText: 'Jede Person unterschreibt in einem Dokument höchstens einmal. Zwei Zeilen für '
+                + 'dieselbe Person sind nur als Alternativen möglich, deren Sichtbarkeit sich nie überschneidet. '
+                + 'Trifft beides doch auf ein Mitglied zu, erstellt Ember das Dokument für dieses Mitglied nicht.',
             pdfTitle: 'PDF und Felder',
             pdfText: 'Eine PDF-Vorlage füllt ein hochgeladenes Formular aus. Speichere die Vorlage, lade das PDF hoch '
                 + 'und setze Felder auf seine Seiten: ein Textfeld schreibt Text mit Platzhaltern, ein Ankreuzfeld setzt '
                 + 'ein Kreuz, wenn sein Wert Ja ist, und ein Unterschriftsfeld bleibt leer zum Unterschreiben.',
             pdfFieldsText: 'Ziehe ein Feld an seine Stelle und an der Ecke auf die richtige Größe. Mit den '
                 + 'Pfeiltasten verschiebst du es genauer. Ein Text, der nicht passt, wird kleiner oder bricht in weitere '
-                + 'Zeilen um. Jede Person, die unterschreibt, hat höchstens ein Unterschriftsfeld.',
+                + 'Zeilen um. Ein Unterschriftsfeld für alle Erziehungsberechtigten teilt sich beim Erstellen in je ein '
+                + 'Feld nebeneinander, eines für die zweite erziehungsberechtigte Person fällt bei nur einer weg.',
             pdfFormText: 'Hat das PDF eigene Formularfelder, stehen sie darunter. Du füllst sie mit Platzhaltern oder '
                 + 'lässt sie, wie sie sind. Beim Erstellen werden alle Felder fest in die Seite übernommen.',
             pdfVersionText: 'Kommt eine neue Fassung des Formulars, lade sie einfach hoch. Die Felder bleiben, wo sie '

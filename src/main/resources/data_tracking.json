@@ -1,7 +1,7 @@
 {
   "version": 1,
   "schemaHash": "sha256:1c28af9639b7c563ba448e2c056d24990ef2e2a4754195b67c3715c8c4a05806",
-  "generatedAt": "2026-10-03T13:40:32Z",
+  "generatedAt": "2026-10-03T14:48:40Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -6703,7 +6703,7 @@
           "type": "text",
           "nullable": true,
           "verified": true,
-          "description": "Who signs in a SIGNATURE field: PARTICIPANT, GUARDIAN_1, GUARDIAN_2 or ISSUER. NULL for every other kind."
+          "description": "Who signs in a SIGNATURE field: PARTICIPANT, GUARDIAN_1, GUARDIAN_2 (left out for a member with fewer than two guardians), EACH_GUARDIAN (the box shared out into one field per guardian of the member), ANY_GUARDIAN (one field any guardian may sign) or ISSUER. NULL for every other kind."
         }
       ],
       "foreignKeys": [
@@ -6788,7 +6788,7 @@
           "type": "jsonb",
           "nullable": false,
           "verified": true,
-          "description": "The rows drawn at the top of every page, shaped like the rows of a page: each row up to three columns with their width, each holding a text with placeholders written as {{key}}, a picture from the media library by its content hash or the station logo, or blocks stacked in it. A block may carry a restriction saying which members it is printed for."
+          "description": "The rows drawn at the top of every page, shaped like the rows of a page: each row up to three columns with their width, optionally with a line between the columns (columnLines), each holding a text with placeholders written as {{key}}, a picture from the media library by its content hash or the station logo, a divider line with its label, a gap, or blocks stacked in it. A block may carry a restriction saying which members it is printed for, and a guardianCondition (SECOND_GUARDIAN or NO_SECOND_GUARDIAN) on whether the member has a second guardian."
         },
         {
           "name": "footer",
@@ -6802,7 +6802,7 @@
           "type": "jsonb",
           "nullable": false,
           "verified": true,
-          "description": "The rows of the letter itself, shaped like the header. A block whose restriction does not match the member is left out, and a row left with nothing is dropped."
+          "description": "The rows of the letter itself, shaped like the header, and also holding signature lines (SIGNATURE: the signer in the settings, the text below the line as its content), each an empty signature field per person who signs. A block whose restriction or guardian condition does not match the member is left out, and a row left with nothing is dropped."
         },
         {
           "name": "page",

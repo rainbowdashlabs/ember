@@ -18,7 +18,8 @@ import java.util.stream.Stream;
 /**
  * What a letter template says and how it looks: a header and a footer drawn on every page, the body,
  * and the page they are set on. All three are rows of blocks, the same rows pages are built from: a row
- * holds up to three columns, a column a text, a picture, or blocks stacked in it.
+ * holds up to three columns, a column a text, a picture, a line, a gap, or blocks stacked in it, and the
+ * body also signature lines.
  *
  * @param header the rows across the top of every page
  * @param footer the rows across the bottom of every page
@@ -50,13 +51,6 @@ public record LetterContent(List<ContentRow> header, List<ContentRow> footer, Li
     }
 
     /**
-     * @return the texts of the header and the footer, where a signature field has no place
-     */
-    public Stream<String> letterheadTexts() {
-        return Stream.of(header, footer).flatMap(LetterContent::textsOf);
-    }
-
-    /**
      * Every block of some rows that is no stack of others, the blocks stacked in a column included.
      *
      * @param rows the rows
@@ -73,11 +67,12 @@ public record LetterContent(List<ContentRow> header, List<ContentRow> footer, Li
 
     /**
      * @param rows some rows
-     * @return the text of every text block in them
+     * @return the text of every text block in them and the short text under every signature line
      */
     public static Stream<String> textsOf(List<ContentRow> rows) {
         return blocks(rows)
-                .filter(cell -> cell.contentType() == CellContentType.MARKDOWN)
+                .filter(cell -> cell.contentType() == CellContentType.MARKDOWN
+                        || cell.contentType() == CellContentType.SIGNATURE)
                 .map(ContentCell::content);
     }
 

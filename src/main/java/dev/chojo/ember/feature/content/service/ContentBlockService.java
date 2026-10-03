@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.content.entity.ContentCell;
 import dev.chojo.ember.feature.content.entity.ContentContainer;
 import dev.chojo.ember.feature.content.entity.ContentRow;
 import dev.chojo.ember.feature.content.entity.ContentRows;
+import dev.chojo.ember.feature.content.entity.GuardianCondition;
 import dev.chojo.ember.feature.content.repository.ContentContainerRepository;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
 import jakarta.inject.Inject;
@@ -164,7 +165,7 @@ public class ContentBlockService {
     }
 
     private void requireFits(@Nullable Integer stationId, CellContentType type, CellConfig config, Scope scope) {
-        if (!scope.takes(type)) throw scope.notTaken().raise();
+        if (!scope.takes(type)) throw scope.notTaken(type).raise();
         for (var reference : references) {
             reference.requireReachable(stationId, scope.audience(), config);
         }
@@ -186,7 +187,8 @@ public class ContentBlockService {
     }
 
     /**
-     * Rows as they are kept outside a container, each cell with what it says and who it is shown to.
+     * Rows as they are kept outside a container, each row with its lines between columns and each cell
+     * with what it says and who it is shown to.
      *
      * @param rows the rows as an author sent them
      * @return the same rows as the records pages are read into, without ids
@@ -203,9 +205,10 @@ public class ContentBlockService {
                             cell.contentType(),
                             cell.content(),
                             cell.config(),
-                            cell.restriction()))
+                            cell.restriction(),
+                            cell.guardianCondition()))
                     .toList();
-            out.add(new ContentRow(0, 0, row.sortOrder(), cells));
+            out.add(new ContentRow(0, 0, row.sortOrder(), cells, row.columnLines()));
         }
         return List.copyOf(out);
     }
@@ -215,7 +218,8 @@ public class ContentBlockService {
      */
     public enum Scope {
         /**
-         * A public page, which may use every block, and whose blocks may only name what is public.
+         * A public page, which may use every block but those only a letter prints, and whose blocks may
+         * only name what is public.
          */
         PAGE(BlockAudience.PUBLIC, PageRefusal.CONTENT_BLOCK_ONLY_ON_PAGES),
         /**
@@ -224,13 +228,19 @@ public class ContentBlockService {
          */
         ARTICLE(BlockAudience.MEMBERS, PageRefusal.CONTENT_BLOCK_ONLY_ON_PAGES),
         /**
-         * A letter template, printed for one member at a time: text, pictures and blocks stacked in a
-         * column, nothing that only works on a screen.
+         * A letter template, printed for one member at a time: text, pictures, lines, gaps, signature
+         * lines and blocks stacked in a column, nothing that only works on a screen.
          */
         LETTER(BlockAudience.MEMBERS, DocumentRefusal.DOCUMENT_TEMPLATE_BLOCK_NOT_TAKEN);
 
         private static final Set<CellContentType> LETTER_BLOCKS = EnumSet.of(
-                CellContentType.EMPTY, CellContentType.MARKDOWN, CellContentType.IMAGE, CellContentType.NESTED_ROWS);
+                CellContentType.EMPTY,
+                CellContentType.MARKDOWN,
+                CellContentType.IMAGE,
+                CellContentType.DIVIDER,
+                CellContentType.SPACER,
+                CellContentType.SIGNATURE,
+                CellContentType.NESTED_ROWS);
 
         private final BlockAudience audience;
         private final Refusal notTaken;
@@ -253,26 +263,41 @@ public class ContentBlockService {
          */
         public boolean takes(CellContentType type) {
             return switch (this) {
-                case PAGE -> true;
+                case PAGE -> !type.lettersOnly();
                 case ARTICLE -> type.availableInArticles();
                 case LETTER -> LETTER_BLOCKS.contains(type);
             };
         }
 
         /**
-         * @return the refusal for a block this scope does not take
+         * @param type a kind of block this scope does not take
+         * @return the refusal for it
          */
-        public Refusal notTaken() {
+        public Refusal notTaken(CellContentType type) {
+            if (this != LETTER && type.lettersOnly()) return PageRefusal.CONTENT_BLOCK_ONLY_IN_LETTERS;
             return notTaken;
         }
     }
 
-    public record RowData(int sortOrder, List<CellData> cells) {}
+    /**
+     * One row as an author sent it.
+     *
+     * @param columnLines whether a line is drawn between its columns; only a letter keeps it
+     */
+    public record RowData(int sortOrder, List<CellData> cells, boolean columnLines) {
+
+        /** A row without lines between its columns. */
+        public RowData(int sortOrder, List<CellData> cells) {
+            this(sortOrder, cells, false);
+        }
+    }
 
     /**
      * One block as an author sent it.
      *
-     * @param restriction who the block is shown to, or null for everybody; only a letter keeps it
+     * @param restriction       who the block is shown to, or null for everybody; only a letter keeps it
+     * @param guardianCondition which guardians the member must have for the block to be printed, or null;
+     *                          only a letter keeps it
      */
     public record CellData(
             int sortOrder,
@@ -280,12 +305,13 @@ public class ContentBlockService {
             CellContentType contentType,
             String content,
             CellConfig config,
-            @Nullable RestrictionAudience restriction) {
+            @Nullable RestrictionAudience restriction,
+            @Nullable GuardianCondition guardianCondition) {
 
         /** A block shown to everybody. */
         public CellData(
                 int sortOrder, double widthPercent, CellContentType contentType, String content, CellConfig config) {
-            this(sortOrder, widthPercent, contentType, content, config, null);
+            this(sortOrder, widthPercent, contentType, content, config, null, null);
         }
     }
 }

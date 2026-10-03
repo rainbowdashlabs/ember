@@ -5,17 +5,18 @@
  */
 package dev.chojo.ember.feature.generator.service;
 
+import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.feature.generator.entity.DocumentLanguage;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplate;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplateDraft;
 import dev.chojo.ember.feature.generator.entity.GenerationContext;
 import dev.chojo.ember.feature.generator.entity.LetterContent;
+import dev.chojo.ember.feature.generator.entity.MemberView;
 import dev.chojo.ember.feature.generator.entity.MissingValue;
 import dev.chojo.ember.feature.generator.entity.PdfContent;
 import dev.chojo.ember.feature.generator.entity.Placeholder;
 import dev.chojo.ember.feature.generator.entity.PlaceholderTokens;
 import dev.chojo.ember.feature.generator.entity.ResolvedValues;
-import dev.chojo.ember.feature.generator.entity.SignatureRole;
 import dev.chojo.ember.feature.generator.entity.TemplateContent;
 import dev.chojo.ember.feature.generator.service.pdf.PdfStamper;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
@@ -48,8 +49,7 @@ import java.util.stream.Stream;
  *
  * <p>A letter is drawn by {@link LetterRenderer}, where a placeholder without a value becomes a line to
  * fill in by hand. A PDF template fills its uploaded PDF through {@link PdfTemplateRenderer}, where the
- * form already has its own lines and a placeholder without a value stays empty. A signature field is no
- * value and is never missing.
+ * form already has its own lines and a placeholder without a value stays empty.
  *
  * <p>A legal template is checked again here, not only when it is saved: a document that names a member
  * by the name they are called by is refused, whatever state the template got into.
@@ -108,14 +108,14 @@ public class DocumentGeneratorService {
     }
 
     /**
-     * What a document is drawn from: the state of the template, which blocks of a letter the member sees,
-     * and the values of one member.
+     * What a document is drawn from: the state of the template, what of it the member sees, and the
+     * values of one member.
      *
      * @param source   the template
-     * @param shown    whether the member belongs to the audience of a block of a letter
+     * @param view     which blocks of a letter the member sees and how many guardians sign for them
      * @param resolved the values and what is missing
      */
-    public record Prepared(Source source, Predicate<RestrictionAudience> shown, ResolvedValues resolved) {}
+    public record Prepared(Source source, MemberView view, ResolvedValues resolved) {}
 
     /**
      * A template as the generator reads it, saved or still a draft in the editor.
@@ -141,22 +141,21 @@ public class DocumentGeneratorService {
 
         /**
          * The keys that stand for values in what a member sees of the template: the title, the file
-         * name, and of a letter only the blocks meant for them. Signature fields are no values.
+         * name, and of a letter only the blocks meant for them.
          *
-         * @param shown whether the member belongs to the audience of a block of a letter
+         * @param view what of a letter the member sees
          * @return the keys, in the order they first appear
          */
-        public Set<String> valueKeys(Predicate<RestrictionAudience> shown) {
+        public Set<String> valueKeys(MemberView view) {
             var texts =
                     switch (content) {
-                        case LetterContent letter -> LetterLayout.visibleTexts(letter, shown).stream();
+                        case LetterContent letter -> LetterLayout.visibleTexts(letter, view).stream();
                         case PdfContent pdf -> pdf.texts();
                     };
             var keys = new LinkedHashSet<String>();
             Stream.concat(Stream.of(titlePattern, fileNamePattern), texts)
                     .map(PlaceholderTokens::keysIn)
                     .forEach(keys::addAll);
-            keys.removeIf(SignatureRole::isToken);
             return keys;
         }
 
@@ -225,6 +224,10 @@ public class DocumentGeneratorService {
     /**
      * Reads the values of one member for a template.
      *
+     * <p>A letter whose signature lines would ask one person of this member's to sign twice is refused
+     * here: two lines for one signer may stand in a template as alternatives, but never meet in one
+     * document.
+     *
      * @param source   the template
      * @param memberId the member the document is about
      * @param context  who generates it and for which appointment
@@ -232,12 +235,16 @@ public class DocumentGeneratorService {
      */
     public Prepared prepare(Source source, int memberId, GenerationContext context) {
         var member = restrictions.memberOf(memberId).orElse(null);
-        Predicate<RestrictionAudience> shown =
-                member == null ? audience -> false : audience -> audience.includes(member);
-        var keys = source.valueKeys(shown);
+        Predicate<RestrictionAudience> audience =
+                member == null ? restriction -> false : restriction -> restriction.includes(member);
+        var view = MemberView.of(audience, resolver.guardians(memberId));
+        if (source.content() instanceof LetterContent letter) {
+            LetterLayout.requireSignersOnce(letter, view, DocumentRefusal.DOCUMENT_SIGNER_TWICE_FOR_MEMBER);
+        }
+        var keys = source.valueKeys(view);
         if (source.legal()) PlaceholderCatalogue.requireOfficial(keys);
         return new Prepared(
-                source, shown, resolver.resolve(source.stationId(), memberId, keys, source.language(), context));
+                source, view, resolver.resolve(source.stationId(), memberId, keys, source.language(), context));
     }
 
     /**
@@ -264,7 +271,7 @@ public class DocumentGeneratorService {
         var values = prepared.resolved().values();
         String title = title(source, values);
         var labels = labels(source.stationId(), prepared.resolved().missing());
-        var drawn = draw(source, prepared.shown(), title, values, labels, false);
+        var drawn = draw(source, prepared.view(), title, values, labels, false);
         return new Rendered(drawn.pdf(), title, fileName(source, values), prepared.resolved(), drawn.unprintable());
     }
 
@@ -288,13 +295,13 @@ public class DocumentGeneratorService {
         catalogue
                 .forStation(source.stationId())
                 .forEach(placeholder -> labels.put(placeholder.key(), placeholder.label()));
-        var drawn = draw(source, LetterLayout.EVERYBODY, title(source, values), values, labels, true);
+        var drawn = draw(source, MemberView.EVERYBODY, title(source, values), values, labels, true);
         return new PreviewResponse(encode(drawn.pdf()), List.of(), drawn.unprintable());
     }
 
     private PdfStamper.Stamped draw(
             Source source,
-            Predicate<RestrictionAudience> shown,
+            MemberView view,
             String title,
             Map<String, String> values,
             Map<String, String> labels,
@@ -307,7 +314,7 @@ public class DocumentGeneratorService {
                                 title,
                                 letter,
                                 source.cacheKey(),
-                                shown,
+                                view,
                                 source.language(),
                                 values,
                                 labels,
@@ -318,6 +325,7 @@ public class DocumentGeneratorService {
                 pdfs.render(
                         source.stationId(),
                         pdf,
+                        view.guardians(),
                         text -> PlaceholderTokens.replace(text, key -> {
                             String value = values.get(key);
                             if (value != null) return value;

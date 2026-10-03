@@ -28,7 +28,12 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.documentTemplateEditor.bodyText') }}</p>
       <p>{{ t('helpCenter.documentTemplateEditor.placeholdersText') }}</p>
       <p>{{ t('helpCenter.documentTemplateEditor.importText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.documentTemplateEditor.signatureTitle')">
       <p>{{ t('helpCenter.documentTemplateEditor.signatureText') }}</p>
+      <p>{{ t('helpCenter.documentTemplateEditor.signatureGuardiansText') }}</p>
+      <p>{{ t('helpCenter.documentTemplateEditor.signatureTwiceText') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.documentTemplateEditor.pdfTitle')">

@@ -22,6 +22,8 @@ export interface RowEditData {
     id: number
     sortOrder: number
     cells: CellEditData[]
+    /** Whether a line is drawn between the columns, which only a letter's editor offers. */
+    columnLines?: boolean
 }
 
 const row = defineModel<RowEditData>('row', {required: true})
@@ -47,6 +49,12 @@ const {copyRow, cutRow, pasteCell, hasClipboard, clipboardType} = usePageClipboa
 const options = useBlockEditorOptions()
 
 const canAddColumn = computed(() => row.value.cells.length < options.value.maxColumns)
+
+const columnLines = computed(() => options.value.columnLines ? !!row.value.columnLines : undefined)
+
+function toggleLines() {
+    row.value = {...row.value, columnLines: !row.value.columnLines}
+}
 
 function updateCells(cells: CellEditData[]) {
     row.value = {...row.value, cells}
@@ -183,6 +191,8 @@ function onPasteCell() {
             :is-first="isFirst"
             :is-last="isLast"
             :can-paste-cell="hasClipboard && clipboardType === 'cell'"
+            :column-lines="columnLines"
+            @toggle-lines="toggleLines"
             @copy="onCopy"
             @cut="onCut"
             @delete="$emit('delete')"
@@ -209,6 +219,7 @@ function onPasteCell() {
                     :left-percent="cell.widthPercent"
                     :right-percent="row.cells[ci + 1]?.widthPercent ?? 0"
                     :can-add-column="canAddColumn"
+                    :lined="!!columnLines"
                     @resize="onResize(ci, $event)"
                     @swap="swapCells(ci)"
                     @add-column="insertColumn(ci + 1)"

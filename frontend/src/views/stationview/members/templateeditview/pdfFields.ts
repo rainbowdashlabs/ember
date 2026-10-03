@@ -3,16 +3,9 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {PdfFieldKind, SignatureRole, TextAlign, type PdfField} from '@/api/generated/schema'
+import {PdfFieldKind, TextAlign, type PdfField, type SignatureRole} from '@/api/generated/schema'
+import {freeSignerOf} from '@/components/documents/signers'
 import {fieldRectOf, keptOnCanvas, scaleOf, screenBoxOf, type PageGeometry, type ScreenBox} from './pdfViewport'
-
-/** The signers in the order a new signature field takes the first free one. */
-export const SIGNERS: readonly SignatureRole[] = [
-    SignatureRole.PARTICIPANT,
-    SignatureRole.GUARDIAN_1,
-    SignatureRole.GUARDIAN_2,
-    SignatureRole.ISSUER,
-]
 
 /** How large a new field is, in points as the reader sees the page. */
 const NEW_SIZE: Readonly<Record<PdfFieldKind, {width: number; height: number}>> = {
@@ -24,9 +17,9 @@ const NEW_SIZE: Readonly<Record<PdfFieldKind, {width: number; height: number}>> 
 /** The text size a new text field starts at, in points. */
 export const DEFAULT_FONT_SIZE = 10
 
-/** The first signer without a signature field yet, or null where every one has one. */
+/** The first signer whose field asks nobody already asked to sign, or null where none is left. */
 export function freeSigner(fields: readonly PdfField[]): SignatureRole | null {
-    return SIGNERS.find(role => !fields.some(field => field.role === role)) ?? null
+    return freeSignerOf(fields.map(field => field.role))
 }
 
 /**

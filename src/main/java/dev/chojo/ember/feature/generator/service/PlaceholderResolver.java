@@ -64,7 +64,8 @@ import java.util.stream.Collectors;
  *
  * <p>The guardians are taken in the order the member page sets: the one marked first is
  * {@code guardian1}. A guardian whose data a template names is one of the people the document is
- * about, and is listed among its data subjects.
+ * about, and is listed among its data subjects. The values of a second guardian the member does not
+ * have are empty and not missing; a member without any guardian misses the first guardian's values.
  */
 @Singleton
 public class PlaceholderResolver {
@@ -124,6 +125,10 @@ public class PlaceholderResolver {
         var values = new LinkedHashMap<String, String>();
         var missing = new ArrayList<String>();
         for (String key : keys) {
+            if (reading.ofAbsentSecondGuardian(key)) {
+                values.put(key, "");
+                continue;
+            }
             String value = reading.value(key).map(String::strip).orElse("");
             if (value.isEmpty()) {
                 missing.add(key);
@@ -132,6 +137,14 @@ public class PlaceholderResolver {
             }
         }
         return new ResolvedValues(values, missing, reading.subjects(keys));
+    }
+
+    /**
+     * @param memberId a member
+     * @return how many guardians the member has
+     */
+    public int guardians(int memberId) {
+        return members.findManagers(memberId).size();
     }
 
     /**
@@ -350,6 +363,15 @@ public class PlaceholderResolver {
         private Optional<StationMember> guardian(int index) {
             if (guardians == null) guardians = members.findManagers(memberId);
             return index < guardians.size() ? Optional.of(guardians.get(index)) : Optional.empty();
+        }
+
+        /**
+         * Whether a key reads the second guardian of a member who has none, which prints empty rather than
+         * counting as missing: a member with one guardian is complete.
+         */
+        boolean ofAbsentSecondGuardian(String key) {
+            return key.startsWith(PlaceholderCatalogue.GUARDIANS.get(1))
+                    && guardian(1).isEmpty();
         }
 
         private @Nullable String guardianName(int index, Function<Integer, @Nullable String> name) {

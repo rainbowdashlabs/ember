@@ -30,7 +30,7 @@ import java.util.function.UnaryOperator;
 
 /**
  * Fills an uploaded PDF in place: the texts and crosses of its fields drawn onto its pages, its own
- * form fields filled and flattened, and an empty signature field for every signer.
+ * form fields filled and flattened, and an empty signature field for every signer the member has.
  *
  * <p>The original is opened and never written back; what comes out is a new file. Everything drawn is
  * appended to the page's content with the page's earlier state wrapped and restored first, so whatever
@@ -43,6 +43,9 @@ import java.util.function.UnaryOperator;
 @Singleton
 public class PdfStamper {
     private static final float LINE_WIDTH = 0.6f;
+
+    /** The gap in points between the fields a signature box is shared out into. */
+    private static final double SIGNATURE_GAP = 12;
 
     private final StampFonts fonts;
 
@@ -62,33 +65,66 @@ public class PdfStamper {
     /**
      * Fills a PDF.
      *
-     * @param original the PDF as it was uploaded
-     * @param layout   the fields and the form fields' values
-     * @param fill     fills the placeholders of a text
+     * <p>A signature field asks for as many fields as its signer has people to sign for the member
+     * ({@link SignatureRole#fieldNames}): where that is several, the box is shared out side by side, and
+     * where it is none, as for a second guardian the member does not have, the box stays as the PDF has
+     * it.
+     *
+     * @param original  the PDF as it was uploaded
+     * @param layout    the fields and the form fields' values
+     * @param guardians how many guardians the member has
+     * @param fill      fills the placeholders of a text
      * @return the filled-in PDF
      * @throws IOException where the PDF cannot be read or written
      */
-    public Stamped stamp(byte[] original, PdfLayout layout, UnaryOperator<String> fill) throws IOException {
+    public Stamped stamp(byte[] original, PdfLayout layout, int guardians, UnaryOperator<String> fill)
+            throws IOException {
         try (var document = PdfFiles.open(original)) {
             var chain = fonts.chainFor(document);
             var unprintable = new LinkedHashSet<String>();
             var byPage = new TreeMap<Integer, List<Placed>>();
+            var signatures = new ArrayList<SignatureBox>();
             for (var text : FormFiller.fill(document, layout.bindings(), fill)) {
                 place(byPage, text.rect(), new Mark.Text(text.text(), text.size(), text.align(), text.wrap()));
             }
             for (var field : layout.fields()) {
-                place(byPage, field.rect(), markOf(field, fill));
+                var role = field.role();
+                if (role == null) {
+                    place(byPage, field.rect(), markOf(field, fill));
+                    continue;
+                }
+                for (var box : signatureBoxes(field.rect(), role.fieldNames(guardians))) {
+                    place(byPage, box.rect(), new Mark.Line());
+                    signatures.add(box);
+                }
             }
             for (var page : byPage.entrySet()) {
                 if (page.getKey() > document.getNumberOfPages()) continue;
                 draw(document, document.getPage(page.getKey() - 1), page.getValue(), chain, unprintable);
             }
-            for (var field : layout.fields()) {
-                var role = field.role();
-                if (role != null) addSignatureField(document, field.rect(), role);
+            for (var box : signatures) {
+                addSignatureField(document, box);
             }
             return new Stamped(PdfFiles.save(document), List.copyOf(unprintable));
         }
+    }
+
+    /** One signature field with the part of its box it takes. */
+    private record SignatureBox(FieldRect rect, String name) {}
+
+    /**
+     * Shares a signature box out among the fields it holds, side by side with a small gap between them.
+     */
+    private static List<SignatureBox> signatureBoxes(FieldRect rect, List<String> names) {
+        int count = names.size();
+        double gap = count > 1 ? Math.min(SIGNATURE_GAP, rect.width() / (count * 4)) : 0;
+        double width = (rect.width() - gap * (count - 1)) / Math.max(1, count);
+        var boxes = new ArrayList<SignatureBox>();
+        for (int index = 0; index < count; index++) {
+            var part = new FieldRect(rect.page(), rect.x() + index * (width + gap), rect.y(), width, rect.height());
+            boxes.add(new SignatureBox(part, names.get(index)));
+        }
+        return boxes;
     }
 
     /** What is drawn into one box. */
@@ -208,10 +244,11 @@ public class PdfStamper {
         return capHeight > 0.4f && capHeight < 1f ? capHeight : 0.7f;
     }
 
-    private static void addSignatureField(PDDocument document, FieldRect rect, SignatureRole role) throws IOException {
+    private static void addSignatureField(PDDocument document, SignatureBox box) throws IOException {
+        var rect = box.rect();
         if (rect.page() > document.getNumberOfPages()) return;
         PDPage page = document.getPage(rect.page() - 1);
-        var box = new PDRectangle((float) rect.x(), (float) rect.y(), (float) rect.width(), (float) rect.height());
-        SignatureFields.add(document, page, box, role);
+        var area = new PDRectangle((float) rect.x(), (float) rect.y(), (float) rect.width(), (float) rect.height());
+        SignatureFields.add(document, page, area, box.name());
     }
 }
