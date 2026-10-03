@@ -34,9 +34,13 @@ export function showsConnect(entry: DiscoveryEntry, viewer: DiscoveryViewer): bo
     return viewer.mayRequestFederation && openToFederation(entry, viewer)
 }
 
-/** The invite code, which only a station of this instance hands out for now. */
+/**
+ * The invite code, for a station of this instance and of another instance alike. The code of a station of
+ * another instance names that instance's address, and entering it at a station sends that instance a
+ * request to federate.
+ */
 export function showsInvite(entry: DiscoveryEntry, viewer: DiscoveryViewer): boolean {
-    return viewer.offersInvite && !isRemoteEntry(entry) && openToFederation(entry, viewer)
+    return viewer.offersInvite && openToFederation(entry, viewer)
 }
 
 /**

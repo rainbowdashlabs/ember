@@ -19,6 +19,7 @@ import {useDiscoveryViewer} from '@/composables/useDiscoveryViewer'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useFlashMessage} from '@/composables/useFlashMessage'
 import {describeFailure} from '@/util/failure'
+import {apiErrorBody} from '@/util/apiError'
 
 /**
  * The chosen station's place in the address. Not `station`, which on a station page names the station
@@ -42,14 +43,16 @@ const {loading, failure, reload: loadAll} = useAsyncLoader(async () => {
  * Asks a station to federate, then reads the list back.
  *
  * <p>The read is answered for separately: a request that went out and a list that then failed to
- * refresh used to report a request that did not, and the reader asks the same station twice.
+ * refresh used to report a request that did not, and the reader asks the same station twice. A named
+ * refusal keeps its own sentence, since it says what to do next, such as asking for an invite code.
  */
 async function handleConnect(station: DiscoveryEntry) {
   try {
     await discovery.requestFederation(station.stationUid)
     flash(t('discovery.requestSent'))
   } catch (e) {
-    failure.value = {...describeFailure(e, t), message: t('discovery.requestError')}
+    const described = describeFailure(e, t)
+    failure.value = apiErrorBody(e)?.code ? described : {...described, message: t('discovery.requestError')}
     return
   }
   await loadAll()

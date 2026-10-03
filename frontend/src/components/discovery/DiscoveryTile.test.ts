@@ -136,9 +136,10 @@ describe('DiscoveryTile', () => {
         })
     })
 
-    it('hands out an invite code for a station of this instance only', () => {
+    it('hands out an invite code for a station of every instance alike', () => {
         expect(tile(local, federationManager()).text()).toContain('Code anfordern')
-        expect(tile(remote, federationManager()).text()).not.toContain('Code anfordern')
+        expect(tile(remote, federationManager()).text()).toContain('Code anfordern')
+        expect(tile({...remote, acceptsFederation: false}, federationManager()).text()).not.toContain('Code anfordern')
         expect(tile(local, {...federationManager(), offersInvite: false}).text()).not.toContain('Code anfordern')
     })
 

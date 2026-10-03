@@ -15,9 +15,9 @@ import {
     stationManagerOf,
     test,
 } from './fixtures/peer'
-import {proveFreshly} from './fixtures/auth'
+import {apiHeaders, proveFreshly} from './fixtures/auth'
 import {unique} from './fixtures/unique'
-import type {APIRequestContext} from '@playwright/test'
+import {request, type APIRequestContext, type Page} from '@playwright/test'
 import {must} from './fixtures/must'
 
 /** What a station says about a partner. Only the parts a story here reads. */
@@ -445,6 +445,15 @@ async function knowEachOther(homeAdminApi: APIRequestContext): Promise<void> {
     expect(fetched.ok(), await fetched.text()).toBe(true)
 }
 
+/** The first instance's backend, asked as whoever the page is signed in as and for the station it chose. */
+async function asThePage(page: Page): Promise<APIRequestContext> {
+    return request.newContext({
+        baseURL: homeBaseUrl(),
+        storageState: await page.context().storageState(),
+        extraHTTPHeaders: await apiHeaders(page),
+    })
+}
+
 /** Whether the signed-in member of this context was told something of the given kind. */
 async function wasTold(api: APIRequestContext, type: string): Promise<boolean> {
     const response = await api.get('/api/v1/notifications')
@@ -462,17 +471,20 @@ async function wasTold(api: APIRequestContext, type: string): Promise<boolean> {
  * an answer whose push did not arrive.
  */
 test.describe('Federation requests between instances', () => {
-    test('a station asks a station of the other instance and both become partners', async ({
+    test('a station asks a station of the other instance from its tile and both become partners', async ({
         peerAdminApi,
         homeAdminApi,
-        homeManagerApi,
+        managerPage: page,
     }) => {
         const asked = await stationOnPeer(peerAdminApi, 'E2E-Anfragewache')
         try {
             await knowEachOther(homeAdminApi)
 
-            const sent = await homeManagerApi.post('/api/v1/discovery/request', {data: {stationUid: asked.uid}})
-            expect(sent.ok(), await sent.text()).toBe(true)
+            await page.goto(`/discovery?q=${encodeURIComponent(asked.name)}`)
+            await expect(page.getByText(asked.name, {exact: true}).first()).toBeVisible()
+            await page.getByRole('button', {name: 'Verbinden', exact: true}).click()
+            await expect(page.getByText('Föderationsanfrage gesendet!')).toBeVisible()
+            const homeManagerApi = await asThePage(page)
 
             expect(await wasTold(asked.api, 'FEDERATION_REQUEST_RECEIVED'), 'the asked station is told').toBe(true)
             const waiting = await asked.api.get('/api/v1/federation/remote-requests')
@@ -502,6 +514,7 @@ test.describe('Federation requests between instances', () => {
 
             expect(await wasTold(homeManagerApi, 'FEDERATION_REQUEST_ACCEPTED'), 'the asking station is told')
                 .toBe(true)
+            await homeManagerApi.dispose()
         } finally {
             await asked.api.dispose()
         }
@@ -513,12 +526,14 @@ test.describe('Federation requests between instances', () => {
         managerPage: page,
     }) => {
         const asked = await stationOnPeer(peerAdminApi, 'E2E-Codewache')
-        const visitor = await instanceRequest(homeBaseUrl())
         try {
             await knowEachOther(homeAdminApi)
-            const invited = await visitor.post('/api/v1/public/discovery/invite', {data: {stationUid: asked.uid}})
-            expect(invited.ok(), await invited.text()).toBe(true)
-            const {inviteCode} = await invited.json()
+            await page.goto(`/discovery?q=${encodeURIComponent(asked.name)}`)
+            await expect(page.getByText(asked.name, {exact: true}).first()).toBeVisible()
+            await page.getByRole('button', {name: 'Code anfordern'}).click()
+            const shownCode = page.locator('code').filter({hasText: 'ember-'})
+            await expect(shownCode).toBeVisible()
+            const inviteCode = must(await shownCode.textContent(), 'the pairing code the page shows').trim()
 
             await page.goto('/station/federate')
             await page.getByRole('button', {name: 'Partner hinzufügen'}).click()
@@ -534,7 +549,6 @@ test.describe('Federation requests between instances', () => {
             expect(waiting.ok(), await waiting.text()).toBe(true)
             expect(await waiting.json()).toHaveLength(1)
         } finally {
-            await visitor.dispose()
             await asked.api.dispose()
         }
     })
