@@ -41,7 +41,8 @@ async function writeText(area: Locator, parts: string[]) {
             await area.page().keyboard.type(part)
         }
     }
-    await area.page().keyboard.press('Escape')
+    await dialog.getByRole('button', {name: 'Schließen'}).click()
+    await expect(dialog).toBeHidden()
 }
 
 /**
