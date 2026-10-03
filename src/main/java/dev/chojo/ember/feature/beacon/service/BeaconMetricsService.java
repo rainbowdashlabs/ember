@@ -18,7 +18,6 @@ import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
@@ -39,7 +38,6 @@ import java.util.List;
 public class BeaconMetricsService implements TaskSource {
 
     private static final Logger log = LoggerFactory.getLogger(BeaconMetricsService.class);
-    private static final Duration CHECK_INTERVAL = Duration.ofMinutes(10);
 
     private final BeaconSettings config;
     private final Demo demo;
@@ -189,7 +187,7 @@ public class BeaconMetricsService implements TaskSource {
         announceSlot();
         return List.of(new ScheduledTask(
                 "beacon-metrics",
-                Schedule.fixedDelay(CHECK_INTERVAL, CHECK_INTERVAL),
+                Schedule.fixedDelay(BeaconMetricsScheduler.CHECK_INTERVAL, BeaconMetricsScheduler.CHECK_INTERVAL),
                 () -> watch(updates.currentVersion())));
     }
 }

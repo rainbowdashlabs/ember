@@ -61,6 +61,26 @@ class BeaconSlotTest extends RepositoryTestBase {
         assertTrue(scheduler.due(slot.plusSeconds(60)));
     }
 
+    /**
+     * Whatever minute an instance draws, its slot falls on its own day with a check to come before
+     * midnight. A minute near midnight once pushed the slot into the next day, every day, and the
+     * instance never reported.
+     */
+    @Test
+    void everySlotFallsOnItsOwnDayBeforeTheLastCheck() {
+        var day = LocalDate.of(2026, 10, 3);
+        var lastCheck =
+                day.plusDays(1).atStartOfDay().toInstant(ZoneOffset.UTC).minus(BeaconMetricsScheduler.CHECK_INTERVAL);
+        for (int index = 0; index < 5000; index++) {
+            settings.set(BeaconMetricsIdentity.SETTING_KEY, "slot-" + index);
+            var slot = scheduler.slotOn(day);
+            assertEquals(day, LocalDate.ofInstant(slot, ZoneOffset.UTC), "slot-" + index);
+            assertTrue(slot.isBefore(lastCheck), "slot-" + index);
+            settings.set(BeaconMetricsScheduler.LAST_SENT_KEY, Instant.EPOCH.toString());
+            assertTrue(scheduler.due(slot.plusSeconds(60)), "slot-" + index);
+        }
+    }
+
     /** Once it has gone, it does not go again that day however often the process restarts. */
     @Test
     void itDoesNotGoTwiceInADay() {

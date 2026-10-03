@@ -37,6 +37,14 @@ Wachen erstellen aus eigenen Vorlagen und denen ihres Verbands Dokumente für ih
 
 - **Escape schloss den Textdialog nicht.** Im Textdialog der Editoren für Seiten, Neuigkeiten, Wiki und Vorlagen tat die Escape-Taste nichts, solange der Cursor im Text stand. Jetzt schließt sie den Dialog auch von dort.
 
+## v26.20.2
+
+Der tägliche Nutzungsbericht geht wieder auf jeder Instanz hinaus.
+
+### Fehlerbehebungen
+
+- **Manche Instanzen schickten den täglichen Nutzungsbericht nie.** Eine Instanz, deren Berichtszeit in die letzten Minuten des Tages fiel, schickte nichts oder ließ Tage aus. Berichtszeiten liegen jetzt immer früh genug am Tag, um verschickt zu werden.
+
 ## v26.20.1
 
 Wachen anderer Instanzen zeigen auf der Discovery-Seite ihr Logo. Die Logos kommen von dieser Instanz, ein Besuch der Seite erreicht also nie eine andere Instanz. Links zur öffentlichen Seite einer Wache führen nur noch zu Seiten, die es gibt. Die Kacheln auf der Discovery-Seite zeigen, was eine Wache öffentlich anbietet, und sehen für Wachen jeder Instanz gleich aus. Die Seite beginnt mit einer Karte, auf der jede Wache mit Namen steht. Wachen anderer Instanzen lassen sich wie Wachen dieser Instanz um eine Partnerschaft bitten. Anfragen und Antworten kommen als Benachrichtigung an.
