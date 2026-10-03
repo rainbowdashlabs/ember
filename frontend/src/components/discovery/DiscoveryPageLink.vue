@@ -5,8 +5,7 @@
  */
 <script setup lang="ts">
 import {useI18n} from 'vue-i18n'
-import AppIcon from '@/components/display/AppIcon.vue'
-import DiscoveryLink from '@/components/discovery/DiscoveryLink.vue'
+import AppLink from '@/components/navigation/AppLink.vue'
 import {isRemoteEntry} from '@/api/discovery'
 import type {DiscoveryEntry} from '@/api/generated/schema'
 
@@ -23,10 +22,9 @@ const {t} = useI18n()
 </script>
 
 <template>
-  <DiscoveryLink :href="href" :external="isRemoteEntry(station)">
-    <AppIcon :icon="['fas', 'globe']" aria-hidden="true"/>
+  <AppLink :href="href" :icon="['fas', 'globe']" :external="isRemoteEntry(station)" same-tab class="text-sm">
     {{ t('discovery.visitStation') }}
     <span v-if="station.instanceHost" class="sr-only">{{ t('discovery.visitStationOn', {name: station.name, host: station.instanceHost}) }}</span>
     <span v-else class="sr-only">{{ station.name }}</span>
-  </DiscoveryLink>
+  </AppLink>
 </template>

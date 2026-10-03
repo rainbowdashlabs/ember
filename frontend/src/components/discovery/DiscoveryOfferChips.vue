@@ -8,7 +8,7 @@ import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import AppIcon from '@/components/display/AppIcon.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
-import DiscoveryLink from '@/components/discovery/DiscoveryLink.vue'
+import AppLink from '@/components/navigation/AppLink.vue'
 import {offerLinks} from '@/components/discovery/tileRules'
 import {isRemoteEntry} from '@/api/discovery'
 import type {DiscoveryEntry} from '@/api/generated/schema'
@@ -29,13 +29,13 @@ const links = computed(() => offerLinks(props.station))
 <template>
   <ul v-if="links.length > 0" class="flex flex-wrap gap-1.5">
     <li v-for="link in links" :key="link.key">
-      <DiscoveryLink :href="link.href" :external="isRemoteEntry(station)">
+      <AppLink :href="link.href" :external="isRemoteEntry(station)" same-tab class="text-sm">
         <SecondaryBadge>
           <AppIcon :icon="link.icon" aria-hidden="true" class="mr-1"/>
           {{ t(`discovery.offer.${link.key}`) }}
         </SecondaryBadge>
         <span class="sr-only">{{ t('discovery.offerOf', {name: station.name}) }}</span>
-      </DiscoveryLink>
+      </AppLink>
     </li>
   </ul>
 </template>

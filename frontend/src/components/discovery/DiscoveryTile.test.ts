@@ -81,6 +81,13 @@ describe('DiscoveryTile', () => {
         expect(home.every(a => a.attributes('rel') === undefined)).toBe(true)
     })
 
+    it('opens the links to another instance in the same tab', () => {
+        const away = tile(remote).findAll('a')
+
+        expect(away.length).toBeGreaterThan(0)
+        expect(away.every(a => a.attributes('target') === undefined)).toBe(true)
+    })
+
     it('shows no chips and no link to a station that publishes nothing', () => {
         const bare = tile(createDiscoveryEntry())
 
