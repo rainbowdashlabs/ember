@@ -51,7 +51,7 @@ jobs:
 
   verify-test-backend:
     runs-on: ubuntu-latest
-    name: ${{ matrix.name }}
+    name: Verify Backend Tests (${{ matrix.suite }})
     # Only to catch a job that has genuinely wedged, which would otherwise sit for six hours. It is
     # far above anything a slow run has taken, on purpose: a run that is merely slow should finish
     # and go green rather than turn red and need starting again by hand.
@@ -61,14 +61,10 @@ jobs:
       matrix:
         include:
           - suite: testRepositories
-            name: Verify Repository Tests
           - suite: testServices
-            name: Verify Service Tests
             tools: true
           - suite: testOther
-            name: Verify Other Tests
           - suite: testTracking
-            name: Verify Data Tracking
     steps:
       - uses: actions/checkout@v7
       - name: Set up JDK
@@ -138,6 +134,21 @@ jobs:
         with:
           name: jacoco-${{ matrix.suite }}
           path: build/jacoco/${{ matrix.suite }}.exec
+
+  # One name for however many suites there are, so adding or splitting one leaves branch protection
+  # alone. `always()`, or a skipped job would never report and the check could never pass.
+  verify-test-backend-complete:
+    runs-on: ubuntu-latest
+    name: Verify Backend Tests
+    needs: [ verify-test-backend ]
+    if: always()
+    steps:
+      - name: Say whether the suites passed
+        env:
+          RESULT: ${{ needs.verify-test-backend.result }}
+        run: |
+          echo "The backend test suites came to: $RESULT"
+          [ "$RESULT" = "success" ] || exit 1
 
   verify-coverage:
     runs-on: ubuntu-latest
