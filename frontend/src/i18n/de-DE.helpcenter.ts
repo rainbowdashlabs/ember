@@ -735,6 +735,8 @@ volumes:
                 envGroupMailImport: 'Dokumente aus Postfächern (Backend)',
                 envGroupDocuments: 'Erstellte Dokumente (Backend)',
                 envGroupDocumentsNote: 'Die Standardschrift erstellter Dokumente. Ohne sie druckt Ember in Liberation Sans.',
+                envGroupDefaultFont: 'Standardschrift (Container)',
+                envGroupDefaultFontNote: 'Diese Variablen liest der Backend-Container beim Start, bevor Ember startet. Er lädt die Schrift Berlin Type herunter, prüft die Datei und legt den normalen und den fetten Schnitt im Verzeichnis der Standardschrift ab (DOCUMENTS_DEFAULTFONTDIR, im Docker-Image /app/data/default-font). Liegen sie dort schon, lädt er nichts. Klappt der Download nicht, startet Ember trotzdem und druckt in Liberation Sans. Die Schrift ist nicht Teil von Ember und wird deshalb nicht mitgeliefert.',
                 envGroupFederation: 'Föderation (Backend)',
                 envGroupTheming: 'Design (Backend)',
                 envGroupTools: 'Externe Programme (Backend)',
@@ -970,6 +972,9 @@ volumes:
                     },
                 },
                 variables: {
+                    DEFAULT_FONT_DOWNLOAD: 'Ob der Container die Standardschrift beim Start herunterlädt. Auf false für eine Instanz ohne Internetzugang; dann druckt Ember in Liberation Sans, oder in einer Schrift, die du selbst in das Verzeichnis der Standardschrift legst.',
+                    DEFAULT_FONT_URL: 'Adresse des ZIP-Archivs mit der Standardschrift. Nur ändern, wenn das Land Berlin die Datei an eine andere Adresse legt oder du sie selbst bereitstellst.',
+                    DEFAULT_FONT_SHA256: 'SHA-256-Prüfsumme, die das Archiv haben muss. Ein Archiv mit einer anderen Prüfsumme wird nicht verwendet. Zusammen mit DEFAULT_FONT_URL ändern, wenn eine neue Version der Schrift erscheint.',
                     TYPST_BIN: 'Pfad zur Typst-Programmdatei. Typst wird für den PDF-Export von Protokollen und Berichten verwendet. Im Docker-Container ist es bereits vorinstalliert.',
                     PANDOC_BIN: 'Pfad zur Pandoc-Programmdatei. Pandoc wird für den Import und die Konvertierung von Dokumenten verwendet. Im Docker-Container ist es bereits vorinstalliert.',
                     QPDF_BIN: 'Pfad zur qpdf-Programmdatei. Wird zur verlustfreien Komprimierung von PDF-Uploads verwendet. Im Docker-Container vorinstalliert; wenn nicht vorhanden, wird die PDF-Kompression einfach übersprungen.',

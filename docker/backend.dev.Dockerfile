@@ -8,10 +8,13 @@ WORKDIR /home/gradle/project
 
 # Runtime tools the app shells out to (typst for PDF rendering, pandoc, libreoffice
 # for the legacy Word path, libwebp for image processing, qpdf for PDF wrangling).
-RUN apk add --no-cache typst pandoc libreoffice-impress font-liberation libwebp-tools qpdf
+RUN apk add --no-cache typst pandoc libreoffice-impress font-liberation libwebp-tools qpdf curl unzip
+
+COPY --chmod=755 docker/default-font.sh /usr/local/bin/default-font
 
 ENV DOCKER=true
 ENV GRADLE_USER_HOME=/home/gradle/.gradle
+ENV DOCUMENTS_DEFAULTFONTDIR=/home/gradle/project/data/default-font
 
 EXPOSE 8080
 
@@ -22,4 +25,5 @@ EXPOSE 8080
 # Application plugin's run task is the foreground process so docker compose
 # stop / restart cycles it cleanly. Source edits on the host trigger a
 # fresh, incremental rebuild on the next restart.
+ENTRYPOINT ["default-font"]
 CMD ["./gradlew", "run", "--no-daemon", "-x", "test"]
