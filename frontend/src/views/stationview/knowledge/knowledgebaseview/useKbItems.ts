@@ -343,7 +343,7 @@ export function useKbItems(sources: KbItemSources, handlers: KbItemHandlers) {
         return {
             key: 'shared-folder-' + stationUid + '-' + shared.id,
             icon: ['fas', 'folder'],
-            iconClass: 'text-[var(--accent)]',
+            iconClass: 'text-[var(--color-primary-accent)]',
             title: shared.name,
             description: shared.description || undefined,
             typeLabel: t('kb.typeFolder'),
@@ -395,7 +395,7 @@ export function useKbItems(sources: KbItemSources, handlers: KbItemHandlers) {
         return {
             key: 'favourite-' + favourite.id,
             icon: folder ? ['fas', 'folder'] : fileIcon({fileType}),
-            iconClass: folder ? 'text-[var(--accent)]' : 'text-[var(--color-primary)]',
+            iconClass: folder ? 'text-[var(--color-primary-accent)]' : 'text-[var(--color-primary)]',
             picture: pictured ? knowledgeBase.filePictureUrl(favourite.entryId) : undefined,
             title: favourite.title,
             typeLabel: folder ? t('kb.typeFolder') : fileTypeLabel(fileType),
@@ -480,7 +480,7 @@ export function useKbItems(sources: KbItemSources, handlers: KbItemHandlers) {
         return {
             key: 'folder-' + folder.id,
             icon: ['fas', 'folder'],
-            iconClass: 'text-[var(--accent)]',
+            iconClass: 'text-[var(--color-primary-accent)]',
             imageUrl: folder.iconUrl ? knowledgeBase.folderIconUrl(folder.id) : undefined,
             title: folder.name,
             description: folder.description || undefined,

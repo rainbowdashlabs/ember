@@ -132,7 +132,7 @@ async function downloadOther() {
   <template v-else-if="file.fileType === KbFileType.LINK">
     <NeutralContainer class="space-y-4">
       <div class="flex items-center gap-2">
-        <font-awesome-icon :icon="['fas', 'link']" class="text-[var(--secondary)]"/>
+        <font-awesome-icon :icon="['fas', 'link']" class="text-[var(--color-secondary)]"/>
         <a :href="file.linkUrl ?? ''" target="_blank" rel="noopener noreferrer"
            class="text-[var(--color-primary)] hover:underline break-all">
           {{ file.linkUrl }}

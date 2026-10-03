@@ -2,11 +2,11 @@
 
 ## v26.21.0
 
-Accents in the theme colour show where they were missing.
+Theme colours show where they were missing.
 
 ### Fixes
 
-- **Some accents in the theme colour were missing.** In the editor, the wiki, boards, protocols, the media library and some menus, links, highlights and marks that should show in the theme colour were shown without it. They now show in the theme colour.
+- **Some theme colours were missing.** On many pages, highlights, links, backgrounds under the mouse pointer, progress bars, error messages and success marks were shown without their colour. They now show in the theme colours.
 
 ## v26.20.2
 

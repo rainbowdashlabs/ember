@@ -24,21 +24,6 @@ const SRC = join(import.meta.dirname, '..')
 /** Variables a library sets on its own elements at runtime, so no source file defines them. */
 const LIBRARY_PREFIXES = ['--reka-']
 
-/** TODO: give these a definition or move their uses to a theme colour, then drop them from here. */
-const KNOWN_UNDEFINED = new Set([
-    '--accent',
-    '--bg-dark',
-    '--bg-dark-accent',
-    '--bg-hover',
-    '--bg-light',
-    '--bg-light-accent',
-    '--bg-muted',
-    '--error',
-    '--secondary',
-    '--success',
-    '--surface-hover',
-])
-
 const DEFINITION = /(?:^|[\s{;'"`])(--[a-z][\w-]*)['"`]?\s*:/gm
 const RUNTIME_DEFINITION = /setProperty\(\s*['"`](--[a-z][\w-]*)/g
 const USE = /\(\s*(--[a-z][\w-]*)\s*[),]/g
@@ -77,18 +62,6 @@ describe('CSS custom properties', () => {
     const missing = undefinedVariables()
 
     it('reads no variable that is defined nowhere', () => {
-        const unexpected = [...missing].filter(([name]) => !KNOWN_UNDEFINED.has(name))
-
-        expect(Object.fromEntries(unexpected)).toEqual({})
-    })
-
-    it('reads the primary colour under the name the theme gives it', () => {
-        expect(missing.has('--primary')).toBe(false)
-    })
-
-    it('lists only known gaps that are still open', () => {
-        const closed = [...KNOWN_UNDEFINED].filter(name => !missing.has(name))
-
-        expect(closed).toEqual([])
+        expect(Object.fromEntries(missing)).toEqual({})
     })
 })

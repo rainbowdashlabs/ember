@@ -74,7 +74,7 @@ function onPick(result: SearchResultResponse) {
                     v-if="canManage"
                     :icon="['fas', 'xmark']"
                     :label="t('common.remove')"
-                    class="!p-0 text-[10px] opacity-0 group-hover/rf:opacity-100 text-[var(--error)]"
+                    class="!p-0 text-[10px] opacity-0 group-hover/rf:opacity-100 text-[var(--color-error)]"
                     @click.prevent="emit('removeRelated', rf.id)"
                 />
             </router-link>

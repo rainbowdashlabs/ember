@@ -143,7 +143,7 @@ function toggleStation(id: string) {
         </tr>
         </thead>
         <tbody>
-        <tr v-for="tier in props.tiers" :key="tier.id" class="border-b border-(--border) hover:bg-(--bg-hover)"
+        <tr v-for="tier in props.tiers" :key="tier.id" class="border-b border-(--border) hover:bg-(--bg-accent)"
             data-testid="tier-row">
           <td class="p-2 font-medium">{{ tier.name }}</td>
           <td class="text-right p-2">{{ formatBytes(tier.total) }}</td>
@@ -187,7 +187,7 @@ function toggleStation(id: string) {
       <p class="text-sm mb-3 mt-3">{{ t('storageMonitoring.selectStationsToApply') }}</p>
       <div class="max-h-64 overflow-y-auto space-y-1">
         <label v-for="station in props.stations" :key="station.stationId"
-               class="flex items-center gap-2 p-1 hover:bg-(--bg-hover) rounded cursor-pointer">
+               class="flex items-center gap-2 p-1 hover:bg-(--bg-accent) rounded cursor-pointer">
           <ToggleInput :model-value="selectedStations.includes(station.stationId)"
                        @update:model-value="toggleStation(station.stationId)"/>
           <span>{{ station.stationName }}</span>

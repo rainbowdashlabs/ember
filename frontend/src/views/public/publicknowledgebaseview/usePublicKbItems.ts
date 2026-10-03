@@ -57,7 +57,7 @@ export function usePublicKbItems(sources: PublicKbSources) {
         return {
             key: 'folder-' + folder.id,
             icon: ['fas', 'folder'],
-            iconClass: 'text-[var(--accent)]',
+            iconClass: 'text-[var(--color-primary-accent)]',
             imageUrl: folder.iconUrl
                 ? publicKb.folderIconUrl(sources.stationUid.value, folder.id)
                 : undefined,

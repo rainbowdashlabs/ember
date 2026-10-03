@@ -97,7 +97,7 @@ function pick(row: Row) {
                 data-testid="kb-folder-picker-root"
                 @click="model = null"
             >
-                <font-awesome-icon :icon="['fas', 'house']" class="text-xs text-(--accent)"/>
+                <font-awesome-icon :icon="['fas', 'house']" class="text-xs text-(--color-primary-accent)"/>
                 {{ t('kb.root') }}
             </BareButton>
 
@@ -114,7 +114,7 @@ function pick(row: Row) {
                 :data-testid="`kb-folder-option-${row.id}`"
                 @click="pick(row)"
             >
-                <font-awesome-icon :icon="['fas', 'folder']" class="text-xs text-(--accent)"/>
+                <font-awesome-icon :icon="['fas', 'folder']" class="text-xs text-(--color-primary-accent)"/>
                 <span class="truncate">{{ row.name }}</span>
             </BareButton>
 

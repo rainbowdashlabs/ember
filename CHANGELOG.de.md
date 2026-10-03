@@ -2,11 +2,11 @@
 
 ## v26.21.0
 
-Akzente in der Themenfarbe erscheinen dort, wo sie fehlten.
+Themenfarben erscheinen dort, wo sie fehlten.
 
 ### Fehlerbehebungen
 
-- **Manche Akzente in der Themenfarbe fehlten.** Im Editor, im Wiki, in Boards, Protokollen, der Mediathek und manchen Menüs erschienen Links, Hervorhebungen und Markierungen, die in der Themenfarbe stehen sollten, ohne sie. Jetzt erscheinen sie in der Themenfarbe.
+- **Manche Themenfarben fehlten.** Auf vielen Seiten erschienen Hervorhebungen, Links, Hintergründe unter dem Mauszeiger, Fortschrittsbalken, Fehlermeldungen und Erfolgsmarkierungen ohne ihre Farbe. Jetzt erscheinen sie in den Themenfarben.
 
 ## v26.20.2
 

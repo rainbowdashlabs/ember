@@ -142,6 +142,6 @@ function onPaste(e: ClipboardEvent) {
 }
 
 .mention-editor :deep(.bulk-mention) {
-  color: var(--secondary);
+  color: var(--color-secondary-badge);
 }
 </style>

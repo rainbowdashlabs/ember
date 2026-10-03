@@ -114,7 +114,7 @@ const chartOption = computed(() => {
           <span class="font-medium">{{ t('storageMonitoring.totalUsage') }}</span>
           <span class="text-sm text-[var(--text-muted)]">{{ formatBytes(usage.totalBytes) }} / {{ formatBytes(usage.quotaBytes) }} ({{ usage.quotaUsedPercent }}%)</span>
         </div>
-        <div class="bg-[var(--bg-muted)] rounded-full h-4 overflow-hidden">
+        <div class="bg-[var(--bg-accent)] rounded-full h-4 overflow-hidden">
           <div :class="barColor(usage.quotaUsedPercent)" :style="{width: Math.min(100, usage.quotaUsedPercent) + '%'}" class="h-full rounded-full transition-all"/>
         </div>
       </NeutralContainer>
@@ -149,7 +149,7 @@ const chartOption = computed(() => {
             <td class="text-right p-2">{{ categoryQuota(cat.category) ? formatBytes(categoryQuota(cat.category)) : '-' }}</td>
             <td class="text-right p-2">{{ cat.fileCount }}</td>
             <td class="p-2">
-              <div v-if="categoryQuota(cat.category)" class="bg-[var(--bg-muted)] rounded-full h-2 overflow-hidden">
+              <div v-if="categoryQuota(cat.category)" class="bg-[var(--bg-accent)] rounded-full h-2 overflow-hidden">
                 <div :class="barColor(quotaPercent(cat.category, cat.totalBytes))" :style="{width: Math.min(100, quotaPercent(cat.category, cat.totalBytes)) + '%'}" class="h-full rounded-full"/>
               </div>
               <span v-else class="text-xs text-[var(--text-muted)]">{{ t('storageMonitoring.trackedOnly') }}</span>

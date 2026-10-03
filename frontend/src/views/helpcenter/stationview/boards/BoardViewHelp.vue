@@ -119,7 +119,7 @@ const noAssigneeFilter = new Set<string>()
                 <div>
                     <div class="text-xs text-(--text-muted) mb-1">{{ t('helpCenter.boardView.checklistProgressPartial') }}</div>
                     <div class="flex items-center gap-2">
-                        <div class="flex-1 h-1.5 bg-[var(--bg-muted)] rounded-full overflow-hidden">
+                        <div class="flex-1 h-1.5 bg-[var(--bg-accent)] rounded-full overflow-hidden">
                             <div class="h-full rounded-full bg-primary" style="width: 66%"/>
                         </div>
                         <span class="text-xs text-[var(--text-muted)] whitespace-nowrap">2/3</span>
@@ -128,7 +128,7 @@ const noAssigneeFilter = new Set<string>()
                 <div>
                     <div class="text-xs text-(--text-muted) mb-1">{{ t('helpCenter.boardView.checklistProgressDone') }}</div>
                     <div class="flex items-center gap-2">
-                        <div class="flex-1 h-1.5 bg-[var(--bg-muted)] rounded-full overflow-hidden">
+                        <div class="flex-1 h-1.5 bg-[var(--bg-accent)] rounded-full overflow-hidden">
                             <div class="h-full rounded-full bg-green-500" style="width: 100%"/>
                         </div>
                         <span class="text-xs text-[var(--text-muted)] whitespace-nowrap">4/4</span>

@@ -59,7 +59,7 @@ function isForeignKeyColumn(column: string): boolean {
     </div>
     <div
         v-if="matchedColumns.length"
-        class="text-xs font-mono text-(--accent) mt-0.5 truncate flex items-center gap-1 flex-wrap"
+        class="text-xs font-mono text-(--color-primary-badge) mt-0.5 truncate flex items-center gap-1 flex-wrap"
     >
       <span>↳</span>
       <span v-for="col in matchedColumns" :key="col" class="inline-flex items-center gap-0.5">

@@ -61,8 +61,8 @@ const { t } = useI18n()
 
     <NeutralContainer>
       <div class="space-y-2">
-        <div class="flex items-center gap-2 p-2 rounded-lg border-2 border-[var(--success)]" style="background: color-mix(in srgb, var(--success) 10%, transparent)">
-          <font-awesome-icon :icon="['fas', 'square-check']" class="w-5 h-5 text-[var(--success)]" />
+        <div class="flex items-center gap-2 p-2 rounded-lg border-2 border-[var(--color-success)]" style="background: color-mix(in srgb, var(--color-success) 10%, transparent)">
+          <font-awesome-icon :icon="['fas', 'square-check']" class="w-5 h-5 text-[var(--color-success)]" />
           <span class="text-sm">{{ t('helpCenter.sample.protocol.where') }}</span>
           <MutedText class="ml-auto">1P</MutedText>
         </div>

@@ -80,7 +80,7 @@ const samplePicture = 'data:image/svg+xml,' + encodeURIComponent(
   <section class="space-y-4">
     <SectionHeader>Dropdown Menu Items</SectionHeader>
     <NeutralContainer class="p-0! max-w-xs overflow-hidden">
-      <DropdownMenuItem :icon="['fas', 'folder']" icon-class="text-(--accent)">Neuer Ordner</DropdownMenuItem>
+      <DropdownMenuItem :icon="['fas', 'folder']" icon-class="text-(--color-primary-accent)">Neuer Ordner</DropdownMenuItem>
       <DropdownMenuItem :icon="['fas', 'file-lines']">Neue Datei</DropdownMenuItem>
       <DropdownMenuItem :icon="['fas', 'upload']">Hochladen</DropdownMenuItem>
       <DropdownMenuItem :icon="['fab', 'youtube']" icon-class="text-red-600">YouTube</DropdownMenuItem>

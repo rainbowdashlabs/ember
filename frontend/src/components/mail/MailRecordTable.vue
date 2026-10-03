@@ -24,8 +24,8 @@ defineProps<{
 const {t} = useI18n()
 
 function toneOf(mail: MailRecord): string {
-  if (isTroubled(mail)) return 'border-l-4 border-l-(--error)'
-  return mail.deliveryStatus === MailDeliveryStatus.DELIVERED ? 'border-l-4 border-l-(--success)' : ''
+  if (isTroubled(mail)) return 'border-l-4 border-l-(--color-error)'
+  return mail.deliveryStatus === MailDeliveryStatus.DELIVERED ? 'border-l-4 border-l-(--color-success)' : ''
 }
 </script>
 
@@ -36,10 +36,10 @@ function toneOf(mail: MailRecord): string {
     </template>
     <template #cell-status="{row, text}">
       {{ text }}
-      <div v-if="isStuck(row)" class="text-xs text-(--error)">{{ t('mailDashboard.unreachable') }}</div>
+      <div v-if="isStuck(row)" class="text-xs text-(--color-error-badge)">{{ t('mailDashboard.unreachable') }}</div>
     </template>
     <template #cell-detail="{text}">
-      <span class="text-xs text-(--error) break-words">{{ text }}</span>
+      <span class="text-xs text-(--color-error-badge) break-words">{{ text }}</span>
     </template>
     <template v-if="$slots.actions" #actions="{row}">
       <slot :row="row" name="actions"/>
