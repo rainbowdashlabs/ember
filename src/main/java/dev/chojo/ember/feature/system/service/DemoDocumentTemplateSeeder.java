@@ -16,9 +16,14 @@ import dev.chojo.ember.feature.generator.entity.LetterPage;
 import dev.chojo.ember.feature.generator.entity.SignatureRole;
 import dev.chojo.ember.feature.generator.service.DocumentTemplateRequest;
 import dev.chojo.ember.feature.generator.service.DocumentTemplateService;
+import dev.chojo.ember.feature.members.entity.MemberGroup;
+import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
+import dev.chojo.ember.feature.restriction.RestrictionAudience;
+import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.owner.Owner;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,6 +44,10 @@ import java.util.Objects;
  * the same checks: every placeholder is one the station knows, the pronoun follows the gender question
  * the member band asks, and the signature line stands in the body. It is legal, since a certificate is
  * handed to others, and not offered for self service, since the youth warden issues and signs it.
+ *
+ * <p>The training times differ by group: the beginners train on Tuesdays, the advanced on Mondays. Each
+ * time is a block of its own, shown only to members of its group, so one template prints the right day
+ * for each member.
  *
  * <p>A station that already has a template of this name keeps it, so seeding twice leaves one.
  */
@@ -66,11 +75,22 @@ public class DemoDocumentTemplateSeeder implements DemoPerStationSeeder {
             Sehr geehrte Damen und Herren,
 
             hiermit bestätige ich, dass {{member.fullName}}, geboren am {{member.birthDate}}, seit \
-            {{member.joinDate.monthYear}} aktives Mitglied der {{station.name}} ist.
+            {{member.joinDate.monthYear}} aktives Mitglied der {{station.name}} ist.""";
 
+    private static final String BEGINNERS_GROUP = "Anfänger";
+
+    private static final String ADVANCED_GROUP = "Fortgeschritten";
+
+    private static final String BEGINNERS_PRACTICE = """
             {{member.firstName}} nimmt regelmäßig an unserem wöchentlichen Ausbildungs- und Übungsdienst \
-            teil, der montags von 17:30 bis 19:00 Uhr stattfindet. Darüber hinaus engagiert {{pronoun.subject}} \
-            sich bei Veranstaltungen der Öffentlichkeitsarbeit sowie bei weiteren Diensten, Ausbildungstagen \
+            teil, der dienstags von 16:30 bis 18:00 Uhr stattfindet.""";
+
+    private static final String ADVANCED_PRACTICE = """
+            {{member.firstName}} nimmt regelmäßig an unserem wöchentlichen Ausbildungs- und Übungsdienst \
+            teil, der montags von 17:30 bis 19:00 Uhr stattfindet.""";
+
+    private static final String ENGAGEMENT = """
+            Darüber hinaus engagiert {{pronoun.subject}} sich bei Veranstaltungen der Öffentlichkeitsarbeit sowie bei weiteren Diensten, Ausbildungstagen \
             und Wettbewerben, die zusätzlich, teils auch an Wochenenden, stattfinden. Der zeitliche Umfang \
             beträgt damit durchschnittlich etwa 4 Stunden pro Woche.
 
@@ -113,10 +133,12 @@ public class DemoDocumentTemplateSeeder implements DemoPerStationSeeder {
             www.example.org""";
 
     private final DocumentTemplateService templates;
+    private final MemberGroupRepository groups;
 
     @Inject
-    public DemoDocumentTemplateSeeder(DocumentTemplateService templates) {
+    public DemoDocumentTemplateSeeder(DocumentTemplateService templates, MemberGroupRepository groups) {
         this.templates = templates;
+        this.groups = groups;
     }
 
     @Override
@@ -131,16 +153,30 @@ public class DemoDocumentTemplateSeeder implements DemoPerStationSeeder {
         if (present) return;
         int author = Objects.requireNonNull(
                 station.adminMember().accountId(), "the station administrator is seeded with an account");
-        var template = templates.create(owner, certificate(), author);
+        var stationGroups = groups.findByStation(station.stationId());
+        var template = templates.create(
+                owner,
+                certificate(groupId(stationGroups, BEGINNERS_GROUP), groupId(stationGroups, ADVANCED_GROUP)),
+                author);
         log.info("Demo: Created document template {} for station {}", template.id(), station.stationId());
+    }
+
+    private static int groupId(List<MemberGroup> stationGroups, String name) {
+        return stationGroups.stream()
+                .filter(group -> name.equals(group.name()))
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("the member band seeds the group " + name))
+                .id();
     }
 
     /**
      * The certificate as the editor would send it.
      *
+     * @param beginnersGroup the group whose members train on Tuesdays
+     * @param advancedGroup  the group whose members train on Mondays
      * @return the template
      */
-    public static DocumentTemplateRequest certificate() {
+    public static DocumentTemplateRequest certificate(int beginnersGroup, int advancedGroup) {
         return new DocumentTemplateRequest(
                 DocumentTemplateKind.LETTER,
                 NAME,
@@ -162,6 +198,9 @@ public class DemoDocumentTemplateSeeder implements DemoPerStationSeeder {
                         List.of(cell(60, empty()), cell(40, text(DATE))),
                         List.of(cell(100, text(TITLE))),
                         List.of(cell(100, text(CERTIFICATE))),
+                        List.of(cell(100, forGroup(text(BEGINNERS_PRACTICE), beginnersGroup))),
+                        List.of(cell(100, forGroup(text(ADVANCED_PRACTICE), advancedGroup))),
+                        List.of(cell(100, text(ENGAGEMENT))),
                         List.of(cell(100, text(CLOSING))),
                         List.of(cell(50, signature(SIGNER)), cell(50, empty())))),
                 PAGE,
@@ -174,9 +213,19 @@ public class DemoDocumentTemplateSeeder implements DemoPerStationSeeder {
      *
      * @param type    the kind of block
      * @param content its text, or what its picture shows
-     * @param config  its settings
+     * @param config      its settings
+     * @param restriction who the block is shown to, or null for everybody
      */
-    private record Block(CellContentType type, String content, CellConfig config) {}
+    private record Block(
+            CellContentType type,
+            String content,
+            CellConfig config,
+            @Nullable RestrictionAudience restriction) {
+
+        private Block(CellContentType type, String content, CellConfig config) {
+            this(type, content, config, null);
+        }
+    }
 
     /**
      * A block of a row with its share of the width.
@@ -206,6 +255,12 @@ public class DemoDocumentTemplateSeeder implements DemoPerStationSeeder {
         return new Block(CellContentType.SIGNATURE, below, new CellConfig.SignatureConfig(SignatureRole.ISSUER));
     }
 
+    /** The block shown only to the members of one group. */
+    private static Block forGroup(Block block, int groupId) {
+        var members = new RestrictionAudience(List.of(), List.of(groupId), List.of(), List.of(), RestrictionMode.AND);
+        return new Block(block.type(), block.content(), block.config(), members);
+    }
+
     /** The rows top to bottom, each its blocks left to right, numbered in that order. */
     private static List<BlockRowRequest> rows(List<List<Cell>> rows) {
         var placed = new ArrayList<BlockRowRequest>();
@@ -225,7 +280,9 @@ public class DemoDocumentTemplateSeeder implements DemoPerStationSeeder {
                     cell.widthPercent(),
                     block.type().name(),
                     block.content(),
-                    CellConfig.MAPPER.valueToTree(block.config())));
+                    CellConfig.MAPPER.valueToTree(block.config()),
+                    block.restriction(),
+                    null));
         }
         return placed;
     }

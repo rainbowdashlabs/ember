@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.generator.entity.LetterContent;
 import dev.chojo.ember.feature.generator.entity.SignatureRole;
 import dev.chojo.ember.feature.generator.service.DocumentTemplateService.DocumentTemplateSummary;
 import dev.chojo.ember.feature.generator.service.GeneratorTestBase;
+import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.MemberGroupSetRepository;
 import dev.chojo.ember.owner.Owner;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -53,7 +54,7 @@ class DemoDocumentTemplateSeederTest extends RepositoryTestBase {
                         stationRepo)
                 .seed(run);
         wiring = GeneratorTestBase.wire(run.primaryStation().station());
-        seeder = new DemoDocumentTemplateSeeder(wiring.templates());
+        seeder = new DemoDocumentTemplateSeeder(wiring.templates(), memberGroupRepo);
         seeder.seed(run);
     }
 
@@ -81,7 +82,11 @@ class DemoDocumentTemplateSeederTest extends RepositoryTestBase {
         int id = certificates(station).getFirst().id();
         int author = Objects.requireNonNull(station.adminMember().accountId());
 
-        var saved = wiring.templates().update(owner, id, DemoDocumentTemplateSeeder.certificate(), author);
+        var request = DemoDocumentTemplateSeeder.certificate(
+                station.members().groupAnfaenger().id(),
+                station.members().groupFortgeschritten().id());
+
+        var saved = wiring.templates().update(owner, id, request, author);
 
         assertTrue(saved.legal(), "a certificate handed to others is legal");
         assertFalse(saved.selfService(), "the youth warden issues and signs it");
@@ -117,6 +122,27 @@ class DemoDocumentTemplateSeederTest extends RepositoryTestBase {
         assertTrue(text.contains("jugendwart@example.org"), text);
         assertTrue(text.contains("er sich") || text.contains("sie sich"), "the pronoun follows the gender: " + text);
         assertFalse(text.contains("Berlin"), "no real city and no real brigade, Berliner included: " + text);
+    }
+
+    /** Beginners read their Tuesday training, the advanced their Monday one, and neither the other's. */
+    @Test
+    void eachGroupReadsItsOwnTrainingTimes() {
+        var station = run.primaryStation();
+        String beginner = certificateFor(station, station.members().anfaenger().getFirst());
+        String advanced =
+                certificateFor(station, station.members().fortgeschritten().getFirst());
+
+        assertTrue(beginner.contains("dienstags von 16:30 bis 18:00 Uhr"), beginner);
+        assertFalse(beginner.contains("montags"), beginner);
+        assertTrue(advanced.contains("montags von 17:30 bis 19:00 Uhr"), advanced);
+        assertFalse(advanced.contains("dienstags"), advanced);
+    }
+
+    private static String certificateFor(DemoStationContext station, StationMember member) {
+        var session = stationSession(station.adminMember(), StationPermission.DOCUMENT_EDIT_MEMBER);
+        var generated = wiring.generation()
+                .generate(session, certificates(station).getFirst().id(), member.id());
+        return wiring.textOf(generated.documentId());
     }
 
     private static List<DocumentTemplateSummary> certificates(DemoStationContext station) {
