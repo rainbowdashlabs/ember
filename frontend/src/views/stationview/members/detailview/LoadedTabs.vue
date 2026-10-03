@@ -14,7 +14,7 @@ import ProfileTab from './ProfileTab.vue'
 import PermissionsTab from './PermissionsTab.vue'
 import MemberRelationsPanel from '../relations/MemberRelationsPanel.vue'
 import InventoryTab from './InventoryTab.vue'
-import MemberDocumentsPanel from '@/components/documents/MemberDocumentsPanel.vue'
+import DocumentsTab from './DocumentsTab.vue'
 import type { ChangeEntry } from '@/api/profileFieldChanges'
 import type { ProfileQuestion } from '@/api/profileFields'
 import type {
@@ -128,10 +128,9 @@ const activeTab = ref('profile')
     @hand-out-new="(inventoryId, sizeId) => $emit('hand-out-new', inventoryId, sizeId)"
   />
 
-  <MemberDocumentsPanel
+  <DocumentsTab
     v-if="activeTab === 'documents'"
     :member-id="memberId"
-    :can-upload="canEdit"
     :can-edit="canEdit"
     :all-members="allMembers"
   />

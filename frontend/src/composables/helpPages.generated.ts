@@ -220,6 +220,8 @@ export const HELP_PAGES: HelpPage[] = [
     {route: 'help-members-import-team', path: '/helpcenter/station/members/import-team', i18nPrefix: ['helpCenter.membersImportTeam', 'helpCenter.sample.members']},
     {route: 'help-members-list', path: '/helpcenter/station/members/list', i18nPrefix: ['helpCenter.exampleFields', 'helpCenter.membersList']},
     {route: 'help-members-tags', path: '/helpcenter/station/members/tags', i18nPrefix: 'helpCenter.membersTags'},
+    {route: 'help-member-document-template-edit', path: '/helpcenter/station/members/template-editor', i18nPrefix: 'helpCenter.documentTemplateEditor'},
+    {route: 'help-member-document-templates', path: '/helpcenter/station/members/templates', i18nPrefix: 'helpCenter.documentTemplates'},
     {route: 'help-members-type-permissions', path: '/helpcenter/station/members/type-permissions', i18nPrefix: 'helpCenter.typePermissions'},
     {route: 'help-waiting-lists', path: '/helpcenter/station/members/waiting-lists', i18nPrefix: ['helpCenter.sample.members', 'helpCenter.waitingList']},
     {route: 'help-station-feeds', path: '/helpcenter/station/monitoring/feeds', i18nPrefix: 'helpCenter.stationFeeds'},

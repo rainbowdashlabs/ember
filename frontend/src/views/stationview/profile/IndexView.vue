@@ -20,7 +20,7 @@ import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import AccountCard from './indexview/AccountCard.vue'
 import IncompleteFieldsAlert from './indexview/IncompleteFieldsAlert.vue'
 import ProfileFieldsForm from './indexview/ProfileFieldsForm.vue'
-import MemberDocumentsPanel from '@/components/documents/MemberDocumentsPanel.vue'
+import OwnDocuments from './indexview/OwnDocuments.vue'
 import {usePermissions} from '@/composables/usePermissions'
 
 const { t } = useI18n()
@@ -123,9 +123,9 @@ watch(memberId, (newId) => {
             @update="setValue"
         />
 
-        <MemberDocumentsPanel :member-id="memberId" :can-upload="canUploadOwn"/>
+        <OwnDocuments :member-id="memberId" :can-upload="canUploadOwn"/>
 
-        <MemberDocumentsPanel
+        <OwnDocuments
             v-for="child in managed"
             :key="child.id"
             :can-upload="false"

@@ -5,7 +5,7 @@
  */
 <script setup lang="ts">
 import { computed, ref, onBeforeUnmount, watch, nextTick, onMounted } from 'vue'
-import {EditorContent, useEditor} from '@tiptap/vue-3'
+import {EditorContent, useEditor, type Content} from '@tiptap/vue-3'
 import StarterKit from '@tiptap/starter-kit'
 import Underline from '@tiptap/extension-underline'
 import Link from '@tiptap/extension-link'
@@ -23,6 +23,7 @@ import { useSession } from '@/composables/useSession'
 import MediaBrowseModal from '@/components/media/MediaBrowseModal.vue'
 import { createMarkdownTurndown } from './markdowneditor/markdownTurndown'
 import { ResizableImage } from './markdowneditor/resizableImage'
+import type { EditorTokens } from './markdowneditor/editorTokens'
 import { isYoutubeUrl, videoEmbedUrl } from '@/util/youtube'
 import EditorToolbar from './markdowneditor/EditorToolbar.vue'
 import EditorTableBar from './markdowneditor/EditorTableBar.vue'
@@ -41,12 +42,18 @@ const props = defineProps<{
    * and its pictures cannot come out of one of them.
    */
   mediaScope?: string
+  /**
+   * Tokens the stored markdown carries that this editor shows as nodes of their own, such as the
+   * placeholders of a document template. Read once, when the editor is made.
+   */
+  tokens?: EditorTokens
 }>()
 
 const { sessionInfo } = useSession()
 const stationUid = computed(() => props.mediaScope ?? sessionInfo.value?.stationId ?? '')
 
 const turndown = createMarkdownTurndown()
+props.tokens?.extendTurndown(turndown)
 
 const isUpdatingFromProp = ref(false)
 const isInTable = ref(false)
@@ -86,6 +93,7 @@ const editor = useEditor({
     Highlight.configure({ multicolor: true }),
     Youtube.configure({ inline: false }),
     ResizableImage, TextStyle, Color,
+    ...(props.tokens?.extensions ?? []),
   ],
   content: '',
   editorProps: {
@@ -119,7 +127,7 @@ function updateState(ed: { isActive: (n: string, a?: Record<string, unknown>) =>
 async function setEditorContent(md: string) {
   if (!editor.value) return
   isUpdatingFromProp.value = true
-  let html = renderMarkdown(md)
+  let html = renderMarkdown(props.tokens ? props.tokens.prepare(md) : md)
   html = html.replace(/<p>(<img [^>]*>)<\/p>/g, '$1')
   editor.value.commands.setContent(html, { emitUpdate: false })
   await nextTick()
@@ -135,6 +143,16 @@ watch(modelValue, async (md, oldMd) => {
 })
 
 onBeforeUnmount(() => { editor.value?.destroy() })
+
+/**
+ * Puts content in at the cursor, for a screen that offers things to insert beside the toolbar, such
+ * as the placeholder picker of a document template.
+ */
+function insert(content: Content) {
+  editor.value?.chain().focus().insertContent(content).run()
+}
+
+defineExpose({ insert })
 
 function cursorPos() {
   if (!editor.value) return { top: 0, left: 0 }
@@ -294,4 +312,6 @@ function applyVideo(url: string) {
 .markdown-editor-content .tiptap pre code { background: none; border: none; padding: 0; font-size: 0.875em; color: var(--text); font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace; }
 .markdown-editor-content .tiptap code { background: var(--bg-accent); border: 1px solid var(--border); border-radius: 0.25rem; padding: 0.1em 0.3em; font-size: 0.875em; font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace; }
 .markdown-editor-content .tiptap hr { border: none; border-top: 2px solid color-mix(in srgb, var(--text) 25%, transparent); margin: 1.5em 0; }
+.markdown-editor-content .tiptap .placeholder-chip { display: inline-block; padding: 0 0.45em; margin: 0 0.1em; border-radius: 9999px; font-size: 0.85em; background: color-mix(in srgb, var(--primary) 18%, transparent); border: 1px solid color-mix(in srgb, var(--primary) 45%, transparent); white-space: nowrap; }
+.markdown-editor-content .tiptap .placeholder-chip.ProseMirror-selectednode { outline: 2px solid var(--primary); }
 </style>

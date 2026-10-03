@@ -1665,6 +1665,74 @@ volumes:
                 + 'mit einem Link zu ihrem Profil. Dort entscheidest du, in welcher Gruppe sie bleiben.',
             tip: 'Gruppen werden auch für Anwesenheitsvorlagen, Sichtbarkeitseinschränkungen bei Neuigkeiten und Terminen sowie für gruppenspezifische Profilfelder verwendet.',
         },
+        documentTemplates: {
+            title: 'Dokumentvorlagen',
+            subtitle: 'Briefe, aus denen Ember Dokumente für Mitglieder erstellt',
+            whatIs: 'Wofür Vorlagen da sind',
+            whatIsText: 'Eine Vorlage ist ein Brief mit Briefkopf und Text, in dem Platzhalter für die Daten eines '
+                + 'Mitglieds stehen: Name, Geburtsdatum, Mitglied seit, Profilfelder, Erziehungsberechtigte und die '
+                + 'Wache. Daraus erstellt Ember für ein Mitglied ein fertiges PDF, zum Beispiel eine '
+                + 'Teilnahmebescheinigung.',
+            whatIsText2: 'Jedes erstellte Dokument landet in den Dokumenten des Mitglieds. Ember merkt sich, aus '
+                + 'welcher Fassung der Vorlage es stammt und wessen Daten darin stehen.',
+            generateTitle: 'Ein Dokument erstellen',
+            generateText: 'Auf der Seite eines Mitglieds öffnest du im Reiter Dokumente „Dokument erstellen", '
+                + 'wählst die Vorlage und siehst sofort eine Vorschau. Mit „Erstellen" wird das PDF abgelegt. Aus '
+                + 'dem Editor einer Vorlage geht das genauso, über die Vorschau.',
+            missingText: 'Fehlen Angaben, nennt Ember sie vor dem Erstellen. Du kannst trotzdem erstellen, die '
+                + 'Lücken stehen dann als Linien zum Ausfüllen im Dokument.',
+            selfServiceTitle: 'Selbst erstellen lassen',
+            selfServiceText: 'Ist eine Vorlage zum Selbst-Erstellen freigegeben, finden Mitglieder sie in ihrem Profil '
+                + 'neben ihren Dokumenten. Erziehungsberechtigte erstellen sie dort für jedes Kind. Fehlen Angaben im '
+                + 'Profil, erklärt Ember, welche, und erstellt erst, wenn sie eingetragen sind.',
+            cooldownText: 'Damit niemand dasselbe Dokument ständig neu erstellt, hat jede Vorlage eine Wartezeit, '
+                + 'normal 30 Tage. Danach ist es wieder möglich, und Ember zeigt bis dahin das Datum an.',
+            archiveTitle: 'Archivieren statt löschen',
+            archiveText: 'Vorlagen werden nicht gelöscht, sondern archiviert. Eine archivierte Vorlage erstellt '
+                + 'nichts mehr, bleibt aber für die Dokumente erhalten, die aus ihr entstanden sind. Mit „Wieder '
+                + 'verwenden" holst du sie zurück.',
+            rightsTitle: 'Wer was darf',
+            rightsText: 'Vorlagen schreiben darf, wer „Dokumentvorlagen" hat. Für ein Mitglied erstellen darf, wer '
+                + '„Mitgliederdokumente verwalten" hat. „Dokumente" umfasst beides.',
+            tip: 'Lege eine Vorlage einmal sauber an, mit Briefkopf und Logo. Danach ist jede Bescheinigung ein Klick.',
+        },
+        documentTemplateEditor: {
+            title: 'Vorlage bearbeiten',
+            subtitle: 'Briefkopf, Text, Platzhalter und Pronomen einer Dokumentvorlage',
+            generalTitle: 'Allgemein',
+            generalText: 'Hier gibst du der Vorlage einen Namen und legst fest, unter welchem Titel und Dateinamen '
+                + 'die Dokumente abgelegt werden, mit welchen Tags, ob sie die Mitgliedschaft überdauern und ob sie '
+                + 'vor dem Mitglied verborgen sind.',
+            legalText: 'Ein rechtliches Dokument nennt Mitglieder nur mit ihrem amtlichen Namen. Den Rufnamen bietet '
+                + 'der Editor dann nicht an, und Ember erstellt kein rechtliches Dokument, das ihn enthält.',
+            letterheadTitle: 'Briefkopf',
+            letterheadText: 'Kopf- und Fußzeile haben bis zu drei Felder nebeneinander. Ein Feld zeigt ein Bild aus '
+                + 'der Mediathek, das Logo der Wache oder ein paar Zeilen Text, auch mit Platzhaltern wie der Adresse '
+                + 'der Wache. Jedes Feld lässt sich links, mittig oder rechts ausrichten.',
+            pageText: 'Unter Seite stellst du die Ränder und die Schriftgröße ein. Kopf- und Fußzeile stehen im '
+                + 'oberen und unteren Rand, lass dort also genug Platz.',
+            bodyTitle: 'Text und Platzhalter',
+            bodyText: 'Den Text schreibst du im gewohnten Editor. Über „Platzhalter einfügen" setzt du an der '
+                + 'Stelle des Cursors ein Feld ein, etwa Vorname oder Geburtsdatum. Im Text erscheint es als '
+                + 'farbiges Feld mit seinem Namen.',
+            placeholdersText: 'Beim Erstellen füllt Ember jedes Feld mit den Daten des Mitglieds, so wie sie gerade '
+                + 'eingetragen sind. Namen sind immer die amtlichen Namen, nur der Rufname ist eine Ausnahme.',
+            importText: 'Hast du die Bescheinigung schon als Word- oder OpenDocument-Text, importiere sie. Lücken in '
+                + 'eckigen Klammern wie [Vorname Nachname] oder [Geburtsdatum] werden zu Platzhaltern, alles andere '
+                + 'bleibt Text. Kopf- und Fußzeile richtest du danach im Briefkopf ein.',
+            pronounsTitle: 'Pronomen',
+            pronounsText: 'Wähle ein Auswahlfeld, etwa „Geschlecht", und lege für jede Antwort fest, ob „er", „sie" '
+                + 'oder der Vorname geschrieben wird. Für ein leeres Feld gibt es eine eigene Wahl.',
+            pronounsNameText: 'Pronomen-Platzhalter gibt es als er/sie, ihn/sie, ihm/ihr und sein/ihr, jeweils auch '
+                + 'für den Satzanfang. Steht der Vorname, wird beim Besitz „Lenas" geschrieben.',
+            selfServiceTitle: 'Selbst erstellen',
+            selfServiceText: 'Gib die Vorlage frei, damit Mitglieder sie im Profil selbst erstellen. Lege fest, für '
+                + 'wen das gilt und wie viele Tage bis zum nächsten Mal vergehen müssen.',
+            previewTitle: 'Vorschau',
+            previewText: 'Die Vorschau zeigt den Brief so, wie er gedruckt wird. Ohne Mitglied stehen die Namen der '
+                + 'Platzhalter darin, mit einem Mitglied seine Daten. Fehlende Angaben werden genannt.',
+            tip: 'Speichere nach jeder Änderung: Erstellt wird immer aus der gespeicherten Fassung.',
+        },
         documents: {
             title: 'Dokumente',
             subtitle: 'Die Ablage der Wache und die Dokumente einzelner Mitglieder',
@@ -4515,6 +4583,9 @@ volumes:
                 + 'Gruppen, zeigt Ember dir diese Gruppen vorher. Bestätigst du, wird es aus ihnen genommen.',
             relationsTitle: 'Beziehungen',
             relationsText: 'Im Beziehungen-Tab siehst du, welche Erziehungsberechtigte dem Mitglied zugeordnet sind. Du kannst bestehende zuweisen oder neue erstellen.',
+            guardianOrderText: 'Haben mehrere Erziehungsberechtigte ein Mitglied, legst du mit den Pfeilen oder per Ziehen fest, '
+                + 'wer zuerst steht. Die erste Person ist in Dokumenten „Erziehungsberechtigte 1", die zweite '
+                + '„Erziehungsberechtigte 2". Ember merkt sich auch, wann und von wem eine Zuordnung angelegt wurde.',
             relationsExampleTitle: 'So sieht der Beziehungen-Tab aus',
             formerTitle: 'Als ehemalig markieren',
             formerText: 'Auf der Detailseite kannst du ein Mitglied als ehemalig markieren. Alle zugewiesenen Gegenstände müssen vorher zurückgegeben sein.',
@@ -4979,6 +5050,11 @@ volumes:
             whatIsText: 'Im Profil siehst du deine persönlichen Daten, deine zugewiesene Ausrüstung, deine Abwesenheiten und deine Einstellungen. Hier kannst du dein Profil vervollständigen und deine Benachrichtigungen konfigurieren.',
             pagesTitle: 'Was findest du hier?',
             pagesText: 'Dein Profil mit allen Feldern, eine Übersicht deiner Abwesenheiten, die Profile deiner verwalteten Mitglieder, dein persönliches Inventar und die Benachrichtigungs-Einstellungen.',
+            documentsTitle: 'Dokumente selbst erstellen',
+            documentsText: 'Unter deinen Dokumenten stehen die Dokumente, die du selbst erstellen kannst, etwa eine '
+                + 'Teilnahmebescheinigung. Als Erziehungsberechtigte findest du sie auch bei jedem Kind. Fehlt im Profil '
+                + 'noch etwas, steht dort, was. Ein erstelltes Dokument liegt danach sofort bei den Dokumenten. Dasselbe '
+                + 'Dokument lässt sich erst nach einer Wartezeit wieder erstellen, das Datum steht dabei.',
             overviewTip: 'Halte dein Profil aktuell - Pflichtfelder sind mit einem * markiert.',
         },
         manageOverview: {
