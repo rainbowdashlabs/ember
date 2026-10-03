@@ -241,11 +241,25 @@ Docker
 Release
   ci-version            The version check CI runs, for the event it reads from EVENT_NAME, REF_TYPE,
                         REF_NAME, BASE_REF and HEAD_REF: a release branch carries its own version,
-                        main and fixes one patch above the newest release, nothing a released one
+                        main and fixes one patch above the newest release, and no branch a version
+                        that is already released
   ci-migration-order    The migration check CI runs on a release branch: main's patches unchanged,
                         and at most one patch of its own, numbered above main's newest
   ci-test [name]        The tests of the scripts under scripts/, or those whose file name contains
                         the given word
+  release-check <pr>    Whether the release pull request is ready: release/vX.Y.Z into main at
+                        version X.Y.Z, unreleased, with a changelog block, CI green on its head, and
+                        main fast-forwardable to it. Changes nothing
+  release-feature <pr> [--dry-run]
+                        The feature release the Release workflow runs once the pull request is
+                        labelled: fast-forward main, tag, publish the GitHub release. --dry-run only
+                        prints what it would do
+  release-fix [--commit <sha>] [--wait] [--dry-run]
+                        The fix release the Release workflow runs: tag main's head (or the commit) with
+                        its version and publish the GitHub release; --wait waits for its CI run
+  db-renumber-patch [--dry-run] <from> <to>
+                        Rename this branch's unreleased patch, the version file and the tests naming
+                        it. Refuses a patch that is on main
 
 Combined
   verify                be-verify then fe-build
@@ -276,7 +290,7 @@ e2e_distribution() {
 # The command names are hyphenated, and the first hyphen also reads as a group: `docker app` is
 # accepted for `docker-app`, and both reach the same arm below. Naming the group alone lists what
 # is in it.
-COMMAND_GROUPS=(fe be docker ci)
+COMMAND_GROUPS=(fe be docker ci release db)
 
 is_group() {
     local candidate
@@ -605,6 +619,10 @@ case "$cmd" in
     ci-version)         cd "$ROOT"; run bash scripts/check-version.sh "$@" ;;
     ci-migration-order) cd "$ROOT"; run bash scripts/check-migration-order.sh "$@" ;;
     ci-test)            cd "$ROOT"; run bash scripts/test/run.sh "$@" ;;
+    release-check)      cd "$ROOT"; run bash scripts/release.sh check "$@" ;;
+    release-feature)    cd "$ROOT"; run bash scripts/release.sh feature "$@" ;;
+    release-fix)        cd "$ROOT"; run bash scripts/release.sh fix "$@" ;;
+    db-renumber-patch)  cd "$ROOT"; run bash scripts/renumber-patch.sh "$@" ;;
 
     verify)
         "$ROOT/toolchain.sh" be-verify

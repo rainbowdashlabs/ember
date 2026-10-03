@@ -377,7 +377,7 @@ jobs:
           echo "src/main/resources/database/version to that one number."
           exit 1
       # A release branch carries its own name's version, main and fixes one patch above the newest
-      # release, and nothing a version that is already tagged.
+      # release, and no branch a version that is already tagged.
       - name: Check the project version against the released tags
         env:
           EVENT_NAME: ${{ github.event_name }}
