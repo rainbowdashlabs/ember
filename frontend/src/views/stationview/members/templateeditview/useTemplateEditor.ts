@@ -4,10 +4,11 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {computed, ref, shallowRef, watch, type Ref} from 'vue'
-import {documents, documentTemplates, memberGroups, stationMembers, userTags} from '@/api'
+import {documentFonts, documents, documentTemplates, memberGroups, stationMembers, userTags} from '@/api'
 import type {
     DocumentTemplateKind,
     DocumentTemplateResponse,
+    FontFamilyOption,
     MemberGroup,
     MemberWithName,
     Placeholder,
@@ -19,7 +20,8 @@ import {draftOf, emptyDraft, requestOf, type TemplateDraft} from './templateDraf
 
 /**
  * One template in the editor: the draft being written, what the station's templates can name, the
- * lists the audience and the preview choose from, and for a PDF template the PDF it fills.
+ * font families they reach, the lists the audience and the preview choose from, and for a PDF template
+ * the PDF it fills.
  *
  * <p>The lists that need rights the editor of templates may not hold (the members, the document tags)
  * are read where they can be and stay empty where they cannot: they only make choosing easier and are
@@ -40,6 +42,7 @@ export function useTemplateEditor(templateId: Ref<number | null>, newKind: Ref<D
     const tags = ref<UserTag[]>([])
     const members = ref<MemberWithName[]>([])
     const documentTags = ref<string[]>([])
+    const fonts = ref<FontFamilyOption[]>([])
 
     const labels = computed<ReadonlyMap<string, string>>(() =>
         new Map(placeholders.value.map(placeholder => [placeholder.key, placeholder.label])))
@@ -52,14 +55,16 @@ export function useTemplateEditor(templateId: Ref<number | null>, newKind: Ref<D
     }))
 
     const loader = useAsyncLoader(async () => {
-        const [catalogue, groupList, tagList, memberList, tagNames] = await Promise.all([
+        const [catalogue, groupList, tagList, memberList, tagNames, fontList] = await Promise.all([
             documentTemplates.getCatalogue(),
             memberGroups.listGroups().catch(() => []),
             userTags.listTags().catch(() => []),
             stationMembers.listMembers().catch(() => []),
             documents.listTags().catch(() => []),
+            documentFonts.stationFontSource.list().then(list => list.reachable).catch(() => []),
         ])
         placeholders.value = catalogue.placeholders
+        fonts.value = fontList
         groups.value = groupList
         tags.value = tagList
         members.value = memberList.filter(member => !member.formerAt)
@@ -116,6 +121,7 @@ export function useTemplateEditor(templateId: Ref<number | null>, newKind: Ref<D
         tags,
         members,
         documentTags,
+        fonts,
         loader,
         saving,
         archiving,

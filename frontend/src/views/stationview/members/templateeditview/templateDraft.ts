@@ -45,7 +45,16 @@ export interface TemplateDraft {
 }
 
 /** The page a new template starts with: A4 with room for the letterhead, 10 point text. */
-export const DEFAULT_PAGE: LetterPage = {marginTopMm: 40, marginBottomMm: 30, marginLeftMm: 20, marginRightMm: 20, fontSizePt: 10}
+export const DEFAULT_PAGE: LetterPage = {
+    marginTopMm: 40,
+    marginBottomMm: 30,
+    marginLeftMm: 20,
+    marginRightMm: 20,
+    fontSizePt: 10,
+    bodyFont: null,
+    headerFont: null,
+    footerFont: null,
+}
 
 /** A new template of a kind: nothing written yet, a wait of 30 days, every member as the audience. */
 export function emptyDraft(kind: DocumentTemplateKind = DocumentTemplateKind.LETTER): TemplateDraft {

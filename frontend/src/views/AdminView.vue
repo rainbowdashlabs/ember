@@ -105,6 +105,9 @@ onMounted(() => {
         <SidebarLink data-onboarding="nav.admin.legal" :icon="['fas', 'scale-balanced']" name="admin-legal" to="/admin/settings/legal" @navigate="close">
           {{ t('sidebar.legal') }}
         </SidebarLink>
+        <SidebarLink :icon="['fas', 'font']" name="admin-document-fonts" to="/admin/settings/fonts" @navigate="close">
+          {{ t('sidebar.documentFonts') }}
+        </SidebarLink>
       </SidebarGroup>
 
       <SidebarGroup :icon="['fas', 'users']" :label="t('sidebar.accounts')"

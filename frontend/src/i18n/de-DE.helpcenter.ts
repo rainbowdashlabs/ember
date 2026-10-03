@@ -1704,6 +1704,32 @@ volumes:
                 + '„Mitgliederdokumente verwalten" hat. „Dokumente" umfasst beides.',
             tip: 'Lege eine Vorlage einmal sauber an, mit Briefkopf und Logo. Danach ist jede Bescheinigung ein Klick.',
         },
+        documentFonts: {
+            title: 'Schriftarten',
+            subtitle: 'Eigene Schriften für die Dokumentvorlagen der Wache',
+            whatIs: 'Wofür Schriftarten da sind',
+            whatIsText: 'Ohne eigene Schrift druckt Ember Dokumente in Liberation Sans. Hier lädst du die Schrift '
+                + 'eurer Briefe hoch, zum Beispiel die Hausschrift des Verbands. Danach kann jede Vorlage sie verwenden.',
+            reachText: 'Vorlagen der Wache sehen ihre eigenen Schriften, die des Verbands und die der Instanz. Gibt '
+                + 'es eine Schrift mit demselben Namen an mehreren Stellen, gilt die eigene der Wache, dann die des '
+                + 'Verbands, dann die der Instanz.',
+            uploadTitle: 'Eine Schrift hochladen',
+            uploadText: 'Wähle die Schriftdatei (.ttf oder .otf), gib den Familiennamen ein und wähle den Schnitt: '
+                + 'normal, fett, kursiv oder fett kursiv. Jeder Schnitt ist eine eigene Datei unter demselben '
+                + 'Familiennamen.',
+            licenceText: 'Beim Hochladen bestätigst du, dass ihr die Schrift für eure Dokumente verwenden dürft. '
+                + 'Schriften, deren Lizenz das Einbetten in Dokumente verbietet, nimmt Ember nicht an.',
+            useTitle: 'Eine Schrift verwenden',
+            useText: 'Im Editor eines Briefs wählst du unter Seite je eine Schrift für Text, Kopfzeile und '
+                + 'Fußzeile. Bei einer PDF-Vorlage wählst du für jedes Textfeld Schrift und Schnitt. Fehlt einer '
+                + 'Schrift ein Zeichen, druckt Ember es in Liberation Sans.',
+            previewText: 'Die Schriftdateien verlassen nie den Server. Der Editor zeigt die Vorschau deshalb in einer '
+                + 'Ersatzschrift, das erstellte Dokument steht in der gewählten Schrift.',
+            deleteTitle: 'Eine Schrift löschen',
+            deleteText: 'Solange eine Vorlage in Gebrauch eine Schrift verwendet, lässt sie sich nicht löschen. '
+                + 'Ember nennt dann die Vorlagen. Archivierte Vorlagen halten keine Schrift fest.',
+            tip: 'Lade alle vier Schnitte einer Schrift hoch. Fehlt einer, druckt Ember dort den normalen Schnitt.',
+        },
         documentTemplateEditor: {
             title: 'Vorlage bearbeiten',
             subtitle: 'Kopfzeile, Text, Fußzeile, PDF-Felder, Platzhalter und Pronomen einer Dokumentvorlage',
@@ -4002,6 +4028,22 @@ volumes:
             whoText: 'Die Einstellungen sieht nur, wer im Verband das Recht für allgemeine Einstellungen hat. Ohne dieses Recht taucht der Punkt in der Seitenleiste gar nicht erst auf.',
             tip: 'Der Name wird sofort übernommen, ein erneutes Anmelden ist nicht nötig.',
         },
+        clusterDocumentFonts: {
+            title: 'Schriftarten des Verbands',
+            subtitle: 'Schriften, die alle Wachen des Verbands in ihren Dokumentvorlagen verwenden',
+            whatIs: 'Wofür Schriftarten da sind',
+            whatIsText: 'Eine Schrift, die der Verband hochlädt, steht allen seinen Wachen zur Verfügung, zum '
+                + 'Beispiel die Hausschrift für Bescheinigungen.',
+            reachText: 'Hat eine Wache eine eigene Schrift mit demselben Namen, verwendet sie ihre eigene. Schriften '
+                + 'der Instanz stehen zusätzlich allen zur Verfügung.',
+            uploadTitle: 'Eine Schrift hochladen',
+            uploadText: 'Wähle die Datei (.ttf oder .otf), den Familiennamen und den Schnitt. Du bestätigst, dass '
+                + 'der Verband die Schrift verwenden darf.',
+            roomText: 'Schriften des Verbands zählen zum Speicherplatz des Verbands.',
+            deleteTitle: 'Eine Schrift löschen',
+            deleteText: 'Solange eine Vorlage einer Wache die Schrift verwendet, lässt sie sich nicht löschen. Ember '
+                + 'nennt dann die Vorlagen.',
+        },
         clusterNotifications: {
             title: 'Benachrichtigungen des Verbands',
             subtitle: 'Lies, was dir der Verband meldet, und entscheide, ob er dich per E-Mail erreicht.',
@@ -4424,6 +4466,19 @@ volumes:
             deleteTitle: 'Einen Verband entfernen',
             deleteText: 'Entfernen lässt sich nur ein Verband, dem keine Wache mehr angehört. Löse zuerst alle Wachen vom Verband, danach kann er weg.',
             tip: 'Nur Administratoren dieser Instanz legen Verbände an. Wer den Verband danach verwaltet, wird im Verband selbst bestimmt.',
+        },
+        adminDocumentFonts: {
+            title: 'Schriftarten der Instanz',
+            subtitle: 'Schriften, die jede Wache in ihren Dokumentvorlagen verwenden kann',
+            whatIs: 'Wofür Schriftarten da sind',
+            whatIsText: 'Eine Schrift, die hier hochgeladen wird, steht jeder Wache und jedem Verband dieser Instanz '
+                + 'für Dokumentvorlagen zur Verfügung.',
+            reachText: 'Hat ein Verband oder eine Wache eine Schrift mit demselben Namen, gilt deren eigene.',
+            uploadTitle: 'Eine Schrift hochladen',
+            uploadText: 'Wähle die Datei (.ttf oder .otf), den Familiennamen und den Schnitt und bestätige, dass die '
+                + 'Schrift so verwendet werden darf. Schriften der Instanz zählen zu keinem Speicherplatz.',
+            deleteTitle: 'Eine Schrift löschen',
+            deleteText: 'Solange eine Vorlage irgendeiner Wache die Schrift verwendet, lässt sie sich nicht löschen.',
         },
         adminLegal: {
             title: 'Rechtliche Dokumente',

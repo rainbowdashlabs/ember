@@ -83,6 +83,8 @@ watch(
                     name="help-cluster-news" @navigate="close"/>
       <SidebarGroup :icon="['fas', 'calendar']" :label="t('clusterSidebar.events')" to="/helpcenter/cluster/events"
                     name="help-cluster-events" @navigate="close"/>
+      <SidebarGroup :icon="['fas', 'font']" :label="t('clusterSidebar.documentFonts')" to="/helpcenter/cluster/fonts"
+                    name="help-cluster-document-fonts" @navigate="close"/>
 
       <SidebarGroup :icon="['fas', 'boxes-stacked']" :label="t('clusterSidebar.inventory')">
         <SidebarLink :icon="['fas', 'boxes-stacked']" name="help-cluster-inventory"

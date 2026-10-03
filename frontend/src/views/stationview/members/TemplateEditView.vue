@@ -94,9 +94,11 @@ async function upload(file: File) {
       />
       <TabBar v-model="tab" :tabs="tabs"/>
       <GeneralPanel v-if="tab === 'general'" v-model="draft" :document-tags="editor.documentTags.value"/>
-      <LetterPanel v-if="tab === 'letter'" v-model="draft" :catalogue="editor.letterCatalogue.value"/>
+      <LetterPanel v-if="tab === 'letter'" v-model="draft" :catalogue="editor.letterCatalogue.value"
+                   :fonts="editor.fonts.value"/>
       <PdfPanel v-if="tab === 'pdf'" v-model="draft" :saved="saved" :source="editor.pdf.value"
-                :placeholders="editor.placeholders.value" :labels="editor.labels.value" @upload="upload"/>
+                :placeholders="editor.placeholders.value" :labels="editor.labels.value" :fonts="editor.fonts.value"
+                @upload="upload"/>
       <SelfServicePanel
           v-if="tab === 'selfService'"
           v-model="draft"

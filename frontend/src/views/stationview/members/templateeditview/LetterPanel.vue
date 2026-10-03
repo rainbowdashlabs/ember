@@ -10,7 +10,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import ContentBlockEditor from '@/components/content/ContentBlockEditor.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import type {ContentRow} from '@/api/generated/schema'
+import type {ContentRow, FontFamilyOption} from '@/api/generated/schema'
 import {provideBlockEditorOptions} from '@/composables/useBlockEditorOptions'
 import {useSession} from '@/composables/useSession'
 import {toEditRows} from '@/util/blockSwitch'
@@ -30,6 +30,7 @@ const draft = defineModel<TemplateDraft>({required: true})
 
 const props = defineProps<{
   catalogue: Omit<LetterCatalogue, 'legal'>
+  fonts: readonly FontFamilyOption[]
 }>()
 
 const {t} = useI18n()
@@ -62,6 +63,6 @@ function imported(rows: ContentRow[]) {
       <LetterEdgeEditor v-model="draft.footer" :title="t('documentTemplates.footer')" :station-uid="stationUid"
                         :catalogue="catalogue" data-testid="letter-footer"/>
     </NeutralContainer>
-    <PageSettings v-model="draft.page"/>
+    <PageSettings v-model="draft.page" :fonts="fonts"/>
   </div>
 </template>

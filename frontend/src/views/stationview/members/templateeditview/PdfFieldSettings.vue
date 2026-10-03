@@ -12,7 +12,15 @@ import NumberInput from '@/components/input/number/NumberInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import ToggleSetting from '@/components/input/toggle/ToggleSetting.vue'
-import {PdfFieldKind, TextAlign, type PdfField, type Placeholder, type SignatureRole} from '@/api/generated/schema'
+import {
+  PdfFieldKind,
+  TextAlign,
+  type FontFamilyOption,
+  type PdfField,
+  type Placeholder,
+  type SignatureRole,
+} from '@/api/generated/schema'
+import FieldFontSettings from './FieldFontSettings.vue'
 import PlaceholderPicker from './PlaceholderPicker.vue'
 import {DEFAULT_FONT_SIZE, SIGNERS} from './pdfFields'
 import {withPlaceholder} from './placeholderText'
@@ -26,6 +34,7 @@ const field = defineModel<PdfField>({required: true})
 defineProps<{
   placeholders: Placeholder[]
   legal: boolean
+  fonts: readonly FontFamilyOption[]
 }>()
 
 const emit = defineEmits<{
@@ -80,6 +89,7 @@ function append(placeholder: Placeholder) {
       </div>
       <ToggleSetting :model-value="field.wrap" :label="t('documentTemplates.wrap')" :hint="t('documentTemplates.wrapHint')"
                      @update:model-value="wrap => field = {...field, wrap}"/>
+      <FieldFontSettings v-model="field" :fonts="fonts"/>
     </template>
   </div>
 </template>

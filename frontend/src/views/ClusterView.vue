@@ -176,6 +176,15 @@ onMounted(() => {
       />
 
       <SidebarGroup
+          v-if="hasClusterPermission(ClusterPermission.CLUSTER_DOCUMENT_TEMPLATE_EDIT)"
+          :icon="['fas', 'font']"
+          :label="t('clusterSidebar.documentFonts')"
+          to="/cluster/fonts"
+          name="cluster-document-fonts"
+          @navigate="close"
+      />
+
+      <SidebarGroup
           v-if="hasClusterPermission(ClusterPermission.CLUSTER_INVENTORY_READ)"
           :icon="['fas', 'boxes-stacked']"
           :label="t('clusterSidebar.inventory')"

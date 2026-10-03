@@ -10,14 +10,21 @@ import LabelledField from '@/components/input/LabelledField.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import type {LetterPage} from '@/api/generated/schema'
+import type {FontFamilyOption, LetterPage} from '@/api/generated/schema'
+import PageFonts from './PageFonts.vue'
 
-/** The margins of the A4 page in millimetres and the size of the body text in points. */
+/** The margins of the A4 page in millimetres, the size of the body text in points, and the fonts. */
 const page = defineModel<LetterPage>({required: true})
+
+defineProps<{
+  fonts: readonly FontFamilyOption[]
+}>()
 
 const {t} = useI18n()
 
-const fields: readonly {key: keyof LetterPage, label: string}[] = [
+type Measure = 'marginTopMm' | 'marginBottomMm' | 'marginLeftMm' | 'marginRightMm' | 'fontSizePt'
+
+const fields: readonly {key: Measure, label: string}[] = [
   {key: 'marginTopMm', label: 'documentTemplates.marginTop'},
   {key: 'marginBottomMm', label: 'documentTemplates.marginBottom'},
   {key: 'marginLeftMm', label: 'documentTemplates.marginLeft'},
@@ -25,7 +32,7 @@ const fields: readonly {key: keyof LetterPage, label: string}[] = [
   {key: 'fontSizePt', label: 'documentTemplates.fontSize'},
 ]
 
-function set(key: keyof LetterPage, value: number | undefined) {
+function set(key: Measure, value: number | undefined) {
   page.value = {...page.value, [key]: value ?? page.value[key]}
 }
 </script>
@@ -39,5 +46,6 @@ function set(key: keyof LetterPage, value: number | undefined) {
         <NumberInput :model-value="page[field.key]" @update:model-value="value => set(field.key, value)"/>
       </LabelledField>
     </div>
+    <PageFonts v-model="page" :fonts="fonts"/>
   </NeutralContainer>
 </template>
