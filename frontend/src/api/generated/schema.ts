@@ -59022,6 +59022,17 @@ export interface components {
             nextDate: components["schemas"]["LocalDate"] | null;
             previousDate: components["schemas"]["LocalDate"] | null;
         };
+        DateFormatOption: {
+            english: string;
+            german: string;
+            kind: components["schemas"]["DateKind"];
+            preset: components["schemas"]["DatePreset"];
+            written: string;
+        };
+        /** @enum {string} */
+        DateKind: "DATE" | "DATE_TIME";
+        /** @enum {string} */
+        DatePreset: "SHORT" | "LONG" | "MEDIUM" | "MONTH_YEAR" | "YEAR" | "WEEKDAY" | "DATE_TIME" | "TIME";
         DateValue: {
             value: string;
         };
@@ -63782,6 +63793,7 @@ export interface components {
         };
         Placeholder: {
             category: components["schemas"]["PlaceholderCategory"];
+            dateKind: components["schemas"]["DateKind"] | null;
             eventOnly: boolean;
             group: components["schemas"]["PlaceholderGroup"];
             informal: boolean;
@@ -63790,6 +63802,8 @@ export interface components {
             path: string[];
         };
         PlaceholderCatalogueResponse: {
+            dateFormats: components["schemas"]["DateFormatOption"][];
+            language: components["schemas"]["DocumentLanguage"];
             placeholders: components["schemas"]["Placeholder"][];
         };
         /** @enum {string} */
@@ -68187,6 +68201,9 @@ export type Date = components['schemas']['Date'];
 export type DateAnswer = components['schemas']['DateAnswer'];
 export type DateConfig = components['schemas']['DateConfig'];
 export type DatedEvent = components['schemas']['DatedEvent'];
+export type DateFormatOption = components['schemas']['DateFormatOption'];
+export type DateKind = components['schemas']['DateKind'];
+export type DatePreset = components['schemas']['DatePreset'];
 export type DateValue = components['schemas']['DateValue'];
 export type DayCount = components['schemas']['DayCount'];
 export type DeclineBody = components['schemas']['DeclineBody'];
@@ -69609,6 +69626,22 @@ export const CountUnit = {
     HOURS: "HOURS",
     LINE: "LINE",
     YEARS: "YEARS",
+} as const;
+
+export const DateKind = {
+    DATE: "DATE",
+    DATE_TIME: "DATE_TIME",
+} as const;
+
+export const DatePreset = {
+    DATE_TIME: "DATE_TIME",
+    LONG: "LONG",
+    MEDIUM: "MEDIUM",
+    MONTH_YEAR: "MONTH_YEAR",
+    SHORT: "SHORT",
+    TIME: "TIME",
+    WEEKDAY: "WEEKDAY",
+    YEAR: "YEAR",
 } as const;
 
 export const DeviceRequestPurpose = {

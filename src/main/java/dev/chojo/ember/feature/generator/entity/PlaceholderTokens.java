@@ -15,14 +15,21 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * How a placeholder is written in a template: {@code {{key}}}, with spaces inside the braces allowed.
+ * How a placeholder is written in a template: {@code {{key}}}, or {@code {{key|format}}} for a date in a
+ * format of its own ({@link PlaceholderKey}), with spaces inside the braces allowed.
  *
- * <p>Keys are letters, digits, dots and underscores, which is what lets a key travel into Typst inside a
- * string without escaping and keeps anything else between double braces ordinary text.
+ * <p>Keys are letters, digits, dots and underscores. A format takes anything but braces, bars, quotes,
+ * backslashes and line breaks, up to twice the length an own format may have, so a mistyped one is read
+ * as a placeholder and refused by name rather than printed as text. Neither ever holds a quote or a
+ * backslash, which is what lets a key travel into Typst inside a string without escaping.
+ *
+ * <p>The key a text names is the key and, where there is one, a bar and the format without the spaces
+ * around it; that is the key every value and label is looked up by.
  */
 public final class PlaceholderTokens {
-    /** One placeholder; group 1 is its key. */
-    public static final Pattern TOKEN = Pattern.compile("\\{\\{\\s*([A-Za-z0-9_.]+)\\s*}}");
+    /** One placeholder; group 1 is its key and group 2 its format, where it has one. */
+    public static final Pattern TOKEN = Pattern.compile(
+            "\\{\\{\\s*([A-Za-z0-9_.]+)\\s*(?:\\|([^{}|\"\\\\\\r\\n]{0," + DateFormat.MAX_LENGTH * 2 + "}))?}}");
 
     private PlaceholderTokens() {}
 
@@ -42,9 +49,14 @@ public final class PlaceholderTokens {
         var keys = new ArrayList<String>();
         Matcher matcher = TOKEN.matcher(text);
         while (matcher.find()) {
-            keys.add(matcher.group(1));
+            keys.add(keyOf(matcher));
         }
         return keys;
+    }
+
+    private static String keyOf(Matcher matcher) {
+        String format = matcher.group(2);
+        return PlaceholderKey.written(matcher.group(1), format == null ? null : format.strip());
     }
 
     /**
@@ -58,7 +70,7 @@ public final class PlaceholderTokens {
         Matcher matcher = TOKEN.matcher(text);
         var out = new StringBuilder();
         while (matcher.find()) {
-            matcher.appendReplacement(out, Matcher.quoteReplacement(replacement.apply(matcher.group(1))));
+            matcher.appendReplacement(out, Matcher.quoteReplacement(replacement.apply(keyOf(matcher))));
         }
         matcher.appendTail(out);
         return out.toString();

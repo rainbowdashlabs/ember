@@ -77,7 +77,7 @@ public class DemoDocumentTemplateSeeder implements DemoPerStationSeeder {
             Sehr geehrte Damen und Herren,
 
             hiermit bestätige ich, dass {{member.fullName}}, geboren am {{member.birthDate}}, seit \
-            {{member.joinDate.monthYear}} aktives Mitglied der {{station.name}} ist.""";
+            {{member.joinDate|monthYear}} aktives Mitglied der {{station.name}} ist.""";
 
     private static final String BEGINNERS_GROUP = "Anfänger";
 

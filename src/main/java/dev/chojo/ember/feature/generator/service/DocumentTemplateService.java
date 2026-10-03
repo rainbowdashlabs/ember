@@ -7,6 +7,9 @@ package dev.chojo.ember.feature.generator.service;
 
 import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.feature.content.entity.ContentRow;
+import dev.chojo.ember.feature.generator.entity.DateFormat;
+import dev.chojo.ember.feature.generator.entity.DateKind;
+import dev.chojo.ember.feature.generator.entity.DatePreset;
 import dev.chojo.ember.feature.generator.entity.DocumentLanguage;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplate;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplateDraft;
@@ -37,6 +40,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -309,7 +313,10 @@ public class DocumentTemplateService {
      * @return the catalogue
      */
     public PlaceholderCatalogueResponse catalogue(Owner owner) {
-        return new PlaceholderCatalogueResponse(catalogue.forOwner(owner));
+        return new PlaceholderCatalogueResponse(
+                catalogue.forOwner(owner),
+                Arrays.stream(DatePreset.values()).map(DateFormatOption::of).toList(),
+                catalogue.language(owner));
     }
 
     /**
@@ -483,6 +490,32 @@ public class DocumentTemplateService {
      * What a template of the owner can name.
      *
      * @param placeholders every placeholder, in the order the picker shows them
+     * @param dateFormats  the ready-made formats a date can print in, in the order the picker offers them
+     * @param language     the language the labels are written in, which a template prints in until it
+     *                     names its own
      */
-    public record PlaceholderCatalogueResponse(List<Placeholder> placeholders) {}
+    public record PlaceholderCatalogueResponse(
+            List<Placeholder> placeholders, List<DateFormatOption> dateFormats, DocumentLanguage language) {}
+
+    /**
+     * A ready-made date format as the editor offers it, with its tokens in both languages, so the editor
+     * shows an example of it in the language of the template.
+     *
+     * @param preset  the format
+     * @param written how a key names it after the bar
+     * @param kind    what a date needs to take it: a day, or a day with a time of day
+     * @param german  the format in the tokens of an own format, for a German template
+     * @param english the same for an English template
+     */
+    public record DateFormatOption(DatePreset preset, String written, DateKind kind, String german, String english) {
+        static DateFormatOption of(DatePreset preset) {
+            var format = DateFormat.of(preset);
+            return new DateFormatOption(
+                    preset,
+                    preset.written(),
+                    format.readsClock() ? DateKind.DATE_TIME : DateKind.DATE,
+                    preset.pattern(DocumentLanguage.DE),
+                    preset.pattern(DocumentLanguage.EN));
+        }
+    }
 }

@@ -9,8 +9,11 @@ import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.service.ClusterService;
 import dev.chojo.ember.feature.generator.entity.BuiltInPlaceholder;
 import dev.chojo.ember.feature.generator.entity.DataSubject;
+import dev.chojo.ember.feature.generator.entity.DateFormat;
+import dev.chojo.ember.feature.generator.entity.DateKind;
 import dev.chojo.ember.feature.generator.entity.DocumentLanguage;
 import dev.chojo.ember.feature.generator.entity.GenerationContext;
+import dev.chojo.ember.feature.generator.entity.PlaceholderKey;
 import dev.chojo.ember.feature.generator.entity.PronounKey;
 import dev.chojo.ember.feature.generator.entity.ResolvedValues;
 import dev.chojo.ember.feature.generator.entity.SubjectRole;
@@ -18,7 +21,6 @@ import dev.chojo.ember.feature.members.entity.FieldOrigin;
 import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.entity.OwnedProfileField;
 import dev.chojo.ember.feature.members.entity.ProfileField;
-import dev.chojo.ember.feature.members.entity.ProfileFieldValue;
 import dev.chojo.ember.feature.members.entity.PronounSet;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.ProfileFieldRepository;
@@ -39,17 +41,16 @@ import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
 import java.time.Clock;
-import java.time.Instant;
 import java.time.LocalDate;
 import java.time.Period;
 import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.time.temporal.TemporalAccessor;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -70,6 +71,11 @@ import java.util.stream.Stream;
  * language. The pronouns follow the member's answer to the station's gender field ({@link GenderFields}),
  * in the template's language.
  *
+ * <p>A date prints in the format its key names after a bar ({@link PlaceholderKey}, {@link DateFormat}),
+ * the names of months and weekdays in the template's language. Without one a day prints as
+ * {@code 03.10.2026}, and the start and end of an appointment add the time of day. A format that cannot
+ * print the value, which saving a template refuses, leaves it missing.
+ *
  * <p>Values are always read at the member's own station, whoever keeps the template: {@code station.*}
  * names that station and {@code association.*} the association it belongs to, so one template of an
  * association names the right station for every member. An answer to a question of the association is
@@ -82,8 +88,14 @@ import java.util.stream.Stream;
  */
 @Singleton
 public class PlaceholderResolver {
-    private static final DateTimeFormatter DAY = DateTimeFormatter.ofPattern("dd.MM.yyyy");
-    private static final DateTimeFormatter CLOCK = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
+    private static final Set<BuiltInPlaceholder> WITHOUT_MEMBER = EnumSet.of(
+            BuiltInPlaceholder.STATION_NAME,
+            BuiltInPlaceholder.STATION_ADDRESS,
+            BuiltInPlaceholder.STATION_POSTAL_CODE,
+            BuiltInPlaceholder.STATION_CITY,
+            BuiltInPlaceholder.ASSOCIATION_NAME,
+            BuiltInPlaceholder.ASSOCIATION_ADDRESS,
+            BuiltInPlaceholder.TODAY);
 
     private final StationRepository stations;
     private final StationMemberRepository members;
@@ -186,9 +198,11 @@ public class PlaceholderResolver {
      *
      * @param owner    the station or the association that keeps the template
      * @param language the language the template writes in
-     * @return today's date and the data of the station and the association, which need no member
+     * @param keys     the keys the template names, a date with the format it names
+     * @return today's date and the data of the station and the association, which need no member, by
+     *         the keys that name them
      */
-    public Map<String, String> withoutMember(Owner owner, DocumentLanguage language) {
+    public Map<String, String> withoutMember(Owner owner, DocumentLanguage language, Set<String> keys) {
         var station = owner instanceof Owner.Station own
                 ? stations.findById(own.stationId()).orElse(null)
                 : null;
@@ -201,16 +215,10 @@ public class PlaceholderResolver {
         var reading =
                 new Reading(new Subject(station, association.orElse(null), 0, language, GenerationContext.NOBODY));
         var values = new HashMap<String, String>();
-        for (var placeholder : List.of(
-                BuiltInPlaceholder.STATION_NAME,
-                BuiltInPlaceholder.STATION_ADDRESS,
-                BuiltInPlaceholder.STATION_POSTAL_CODE,
-                BuiltInPlaceholder.STATION_CITY,
-                BuiltInPlaceholder.ASSOCIATION_NAME,
-                BuiltInPlaceholder.ASSOCIATION_ADDRESS,
-                BuiltInPlaceholder.TODAY,
-                BuiltInPlaceholder.TODAY_LONG)) {
-            reading.value(placeholder.key()).ifPresent(value -> values.put(placeholder.key(), value));
+        for (String key : keys) {
+            boolean needsNoMember =
+                    BuiltInPlaceholder.of(key).filter(WITHOUT_MEMBER::contains).isPresent();
+            if (needsNoMember) reading.value(key).ifPresent(value -> values.put(key, value));
         }
         return values;
     }
@@ -239,6 +247,7 @@ public class PlaceholderResolver {
         private final @Nullable Cluster association;
         private final int memberId;
         private final GenerationContext context;
+        private final DocumentLanguage documentLanguage;
         private final String language;
         private final ZoneId zone;
         private final Map<Integer, Optional<StationMember>> memberships = new HashMap<>();
@@ -253,15 +262,63 @@ public class PlaceholderResolver {
             this.association = subject.association();
             this.memberId = subject.memberId();
             this.context = subject.context();
-            this.language = subject.language().code();
+            this.documentLanguage = subject.language();
+            this.language = documentLanguage.code();
             this.zone = StationFormat.timezoneOf(station);
         }
 
-        Optional<String> value(String key) {
-            var builtIn = BuiltInPlaceholder.of(key);
+        Optional<String> value(String written) {
+            var key = PlaceholderKey.parse(written);
+            String format = key.format();
+            if (format != null) {
+                return DateFormat.of(format)
+                        .flatMap(printed -> dated(key.base()).flatMap(date -> printed.format(date, documentLanguage)));
+            }
+            var builtIn = BuiltInPlaceholder.of(key.base());
             if (builtIn.isPresent()) return Optional.ofNullable(builtIn(builtIn.get()));
-            var pronoun = PronounKey.parse(key);
+            var pronoun = PronounKey.parse(key.base());
             if (pronoun.isPresent()) return Optional.ofNullable(pronoun(pronoun.get()));
+            return answerOf(key.base()).map(this::written);
+        }
+
+        /**
+         * The date a key reads, a day or a day with a time of day in the station's time zone: a date of the
+         * member, today, the start or end of the appointment, or an answer to a profile question of a date
+         * type.
+         */
+        private Optional<TemporalAccessor> dated(String key) {
+            var builtIn = BuiltInPlaceholder.of(key);
+            if (builtIn.isPresent()) return dated(builtIn.get());
+            return answerOf(key)
+                    .filter(answer -> DateKind.of(answer.type()) != null)
+                    .flatMap(answer -> day(QuestionValues.read(answer.stored())));
+        }
+
+        private Optional<TemporalAccessor> dated(BuiltInPlaceholder placeholder) {
+            var event = Optional.ofNullable(context.event());
+            return switch (placeholder) {
+                case MEMBER_BIRTH_DATE -> birthDate().map(day -> day);
+                case MEMBER_JOIN_DATE -> membership(memberId).map(StationMember::joinDate);
+                case TODAY -> Optional.of(today());
+                case EVENT_START -> event.map(facts -> facts.start().atZone(zone));
+                case EVENT_END -> event.map(facts -> facts.end().atZone(zone));
+                default -> Optional.empty();
+            };
+        }
+
+        /** A date of a built-in placeholder in the format its kind prints in where the key names none. */
+        private @Nullable String standard(BuiltInPlaceholder placeholder) {
+            var kind = Objects.requireNonNull(placeholder.dateKind(), "only a date is printed as one");
+            return dated(placeholder)
+                    .flatMap(date -> DateFormat.of(kind.standard()).format(date, documentLanguage))
+                    .orElse(null);
+        }
+
+        /**
+         * The answer a key reads: the member's or a guardian's to a question of the station or the
+         * association, empty where the guardian, the question or the answer is not there.
+         */
+        private Optional<Answer> answerOf(String key) {
             int whose = memberId;
             String asked = key;
             for (int index = 0; index < PlaceholderCatalogue.GUARDIANS.size(); index++) {
@@ -288,19 +345,11 @@ public class PlaceholderResolver {
                 case MEMBER_LAST_NAME -> names.parts(memberId).lastName();
                 case MEMBER_FULL_NAME -> names.official(memberId);
                 case MEMBER_CALLED_NAME -> names.called(memberId);
-                case MEMBER_BIRTH_DATE -> birthDate().map(DAY::format).orElse(null);
+                case MEMBER_BIRTH_DATE, MEMBER_JOIN_DATE, EVENT_START, EVENT_END, TODAY -> standard(placeholder);
                 case MEMBER_AGE ->
                     birthDate()
                             .map(born ->
                                     String.valueOf(Period.between(born, today()).getYears()))
-                            .orElse(null);
-                case MEMBER_JOIN_DATE ->
-                    membership(memberId)
-                            .map(member -> DAY.format(member.joinDate()))
-                            .orElse(null);
-                case MEMBER_JOIN_MONTH ->
-                    membership(memberId)
-                            .map(member -> monthYear(member.joinDate()))
                             .orElse(null);
                 case MEMBER_USER_TYPE ->
                     membership(memberId)
@@ -322,11 +371,7 @@ public class PlaceholderResolver {
                 case ASSOCIATION_NAME -> association == null ? null : association.name();
                 case ASSOCIATION_ADDRESS -> associationAddress();
                 case EVENT_NAME -> event(GenerationContext.EventFacts::name);
-                case EVENT_START -> event(facts -> clock(facts.start()));
-                case EVENT_END -> event(facts -> clock(facts.end()));
                 case EVENT_LOCATION -> event(GenerationContext.EventFacts::location);
-                case TODAY -> DAY.format(today());
-                case TODAY_LONG -> longDay(today());
                 case ISSUER_FULL_NAME -> issuer().map(names::official).orElse(null);
                 case ISSUER_FUNCTION -> context.issuer().function();
                 case GENERATED_BY -> {
@@ -381,29 +426,28 @@ public class PlaceholderResolver {
             }
         }
 
-        private Optional<String> answer(int whose, String fieldKey) {
-            return fieldIdOf(fieldKey).flatMap(fieldId -> field(fieldId)
-                    .flatMap(field -> formatted(
-                            field.fieldType(),
-                            profileFields.findValue(whose, fieldId).map(ProfileFieldValue::value))));
+        private Optional<Answer> answer(int whose, String fieldKey) {
+            return fieldIdOf(fieldKey).flatMap(fieldId -> field(fieldId).flatMap(field -> profileFields
+                    .findValue(whose, fieldId)
+                    .map(value -> new Answer(field.fieldType(), value.value()))));
         }
 
         /**
          * An answer to a question of the association, where the question reaches the station: the
          * association's adapter holds both the question and the answers.
          */
-        private Optional<String> associationAnswer(int whose, String fieldKey) {
+        private Optional<Answer> associationAnswer(int whose, String fieldKey) {
             return fieldIdOf(fieldKey).flatMap(fieldId -> associationField(fieldId)
-                    .flatMap(field -> formatted(
-                            field.type(),
-                            fieldOwners.owner(FieldOrigin.CLUSTER).answersOf(whose).stream()
-                                    .filter(value -> value.fieldId() == fieldId)
-                                    .findFirst()
-                                    .map(ProfileFieldValue::value))));
+                    .flatMap(field -> fieldOwners.owner(FieldOrigin.CLUSTER).answersOf(whose).stream()
+                            .filter(value -> value.fieldId() == fieldId)
+                            .findFirst()
+                            .map(value -> new Answer(field.type(), value.value()))));
         }
 
-        private Optional<String> formatted(FieldType type, Optional<String> stored) {
-            return stored.map(value -> QuestionText.format(type, value, memberNames(type, value), language));
+        /** An answer as exports print it. */
+        private String written(Answer answer) {
+            return QuestionText.format(
+                    answer.type(), answer.stored(), memberNames(answer.type(), answer.stored()), language);
         }
 
         private static Optional<Integer> fieldIdOf(String fieldKey) {
@@ -522,22 +566,13 @@ public class PlaceholderResolver {
         private LocalDate today() {
             return LocalDate.now(clock.withZone(zone));
         }
-
-        private String clock(Instant instant) {
-            return CLOCK.format(instant.atZone(zone));
-        }
-
-        private String monthYear(LocalDate date) {
-            return DateTimeFormatter.ofPattern("MMMM yyyy", locale()).format(date);
-        }
-
-        private String longDay(LocalDate date) {
-            String pattern = "en".equals(language) ? "MMMM d, yyyy" : "d. MMMM yyyy";
-            return DateTimeFormatter.ofPattern(pattern, locale()).format(date);
-        }
-
-        private Locale locale() {
-            return "en".equals(language) ? Locale.ENGLISH : Locale.GERMAN;
-        }
     }
+
+    /**
+     * An answer to a profile question as it is stored.
+     *
+     * @param type   the type of the question
+     * @param stored the answer
+     */
+    private record Answer(FieldType type, String stored) {}
 }

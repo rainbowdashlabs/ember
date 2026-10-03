@@ -7,7 +7,8 @@ import {h, type FunctionalComponent} from 'vue'
 import type {Content} from '@tiptap/vue-3'
 import {CellContentType, type FontFamilyOption, type Placeholder} from '@/api/generated/schema'
 import type {BlockEditorOptions, BlockRestrictionChoices} from '@/composables/useBlockEditorOptions'
-import {placeholderContent, placeholderTokens} from '@/components/input/markdowneditor/placeholderChip'
+import {placeholderContent, placeholderTokens, type PlaceholderLabels} from '@/components/input/markdowneditor/placeholderChip'
+import type {PlaceholderChoice} from './placeholderpicker/placeholderKey'
 import PlaceholderPicker from './placeholderpicker/PlaceholderPicker.vue'
 
 /** The most columns a row of a letter's body holds, which is what the server takes. */
@@ -33,7 +34,7 @@ const BODY_KINDS: readonly CellContentType[] = [...LETTERHEAD_KINDS, CellContent
 /** What the block editor of a letter knows of the station. */
 export interface LetterCatalogue {
     placeholders: Placeholder[]
-    labels: ReadonlyMap<string, string>
+    labels: PlaceholderLabels
     legal: boolean
     choices: BlockRestrictionChoices
     /** The font families the template reaches: the instance's, the association's and the station's. */
@@ -54,7 +55,7 @@ export function letterBlockOptions(catalogue: LetterCatalogue, signatures: boole
     const tools: FunctionalComponent<{insert: (content: Content) => void}> = props => h(PlaceholderPicker, {
         placeholders: catalogue.placeholders,
         legal: catalogue.legal,
-        onPick: (placeholder: Placeholder) => props.insert(placeholderContent(placeholder.key, placeholder.label)),
+        onPick: (choice: PlaceholderChoice) => props.insert(placeholderContent(choice.key, choice.label)),
     })
     tools.props = ['insert']
     return {

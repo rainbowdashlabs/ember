@@ -6,10 +6,27 @@
 import {mergeAttributes, Node} from '@tiptap/vue-3'
 import type TurndownService from 'turndown'
 import type {EditorTokens} from './editorTokens'
+import {DATE_FORMAT_MAX_LENGTH} from '@/util/dateFormatPattern'
 import {escapeHtml} from './escapeHtml'
 
-/** How a placeholder is written in the stored markdown: `{{key}}`, spaces inside the braces allowed. */
-const TOKEN = /\{\{\s*([A-Za-z0-9_.]+)\s*}}/g
+/**
+ * How a placeholder is written in the stored markdown: `{{key}}`, or `{{key|format}}` for a date in a
+ * format of its own, spaces inside the braces allowed. It reads what the server reads, a format up to
+ * twice the length the server takes, so a mistyped one stays a chip and is refused by name on saving.
+ */
+const TOKEN = new RegExp(String.raw`\{\{\s*([A-Za-z0-9_.]+)\s*(?:\|([^{}|"\\\r\n]{0,${DATE_FORMAT_MAX_LENGTH * 2}}))?}}`, 'g')
+
+/** What every key is called, from the catalogue: a map, or anything that answers like one. */
+export type PlaceholderLabels = Pick<ReadonlyMap<string, string>, 'get'>
+
+/**
+ * @param base   the key of the value
+ * @param format its format as written, or undefined where it has none
+ * @returns the key as the chip carries it: the format without the spaces around it
+ */
+function keyOf(base: string, format: string | undefined): string {
+    return format === undefined ? base : `${base}|${format.trim()}`
+}
 
 /**
  * A placeholder in a document template, shown in the editor as a chip with its label and stored as
@@ -56,11 +73,13 @@ export const PlaceholderChip = Node.create({
  *
  * @param labels the label of every key, from the station's catalogue
  */
-export function placeholderTokens(labels: ReadonlyMap<string, string>): EditorTokens {
+export function placeholderTokens(labels: PlaceholderLabels): EditorTokens {
     return {
         extensions: [PlaceholderChip],
-        prepare: (markdown: string) => markdown.replace(TOKEN, (_match, key: string) =>
-            `<span class="placeholder-chip" data-placeholder="${escapeHtml(key)}">${escapeHtml(labels.get(key) ?? key)}</span>`),
+        prepare: (markdown: string) => markdown.replace(TOKEN, (_match, base: string, format: string | undefined) => {
+            const key = keyOf(base, format)
+            return `<span class="placeholder-chip" data-placeholder="${escapeHtml(key)}">${escapeHtml(labels.get(key) ?? key)}</span>`
+        }),
         extendTurndown: (turndown: TurndownService) => {
             turndown.addRule('placeholderChip', {
                 filter: (node) => node.nodeName === 'SPAN' && (node as HTMLElement).hasAttribute('data-placeholder'),
@@ -77,8 +96,11 @@ export function placeholderTokens(labels: ReadonlyMap<string, string>): EditorTo
  * @param text   the text with `{{key}}` in it
  * @param labels the label of every key, from the station's catalogue
  */
-export function labelledText(text: string, labels: ReadonlyMap<string, string>): string {
-    return text.replace(TOKEN, (_match, key: string) => labels.get(key) ?? key)
+export function labelledText(text: string, labels: PlaceholderLabels): string {
+    return text.replace(TOKEN, (_match, base: string, format: string | undefined) => {
+        const key = keyOf(base, format)
+        return labels.get(key) ?? key
+    })
 }
 
 /**

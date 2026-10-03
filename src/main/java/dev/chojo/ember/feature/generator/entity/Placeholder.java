@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.generator.entity;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.List;
 
 /**
@@ -20,6 +22,8 @@ import java.util.List;
  * @param informal  whether only informal templates may use it, which is the case for the name a member
  *                  is called by: a legal document names people by their official names
  * @param eventOnly whether it has a value only where a document is generated for an appointment
+ * @param dateKind  what kind of date it holds, which decides the formats it can print in, or null where
+ *                  it holds no date and takes no format
  */
 public record Placeholder(
         String key,
@@ -28,4 +32,5 @@ public record Placeholder(
         PlaceholderCategory category,
         List<String> path,
         boolean informal,
-        boolean eventOnly) {}
+        boolean eventOnly,
+        @Nullable DateKind dateKind) {}

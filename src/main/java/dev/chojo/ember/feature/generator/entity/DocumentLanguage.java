@@ -20,6 +20,11 @@ public enum DocumentLanguage {
         return name().toLowerCase(Locale.ROOT);
     }
 
+    /** @return the locale the names of months and weekdays are written in */
+    public Locale locale() {
+        return this == EN ? Locale.ENGLISH : Locale.GERMAN;
+    }
+
     /**
      * @param code a language code such as a station's ({@code de}, {@code en})
      * @return the language of that code, German for anything else

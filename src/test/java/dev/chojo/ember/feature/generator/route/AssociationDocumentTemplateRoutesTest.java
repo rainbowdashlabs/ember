@@ -10,6 +10,7 @@ import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.TestUploads;
 import dev.chojo.ember.api.auth.ClusterPermission;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.feature.generator.entity.DocumentLanguage;
 import dev.chojo.ember.feature.generator.service.DocumentGenerationService;
 import dev.chojo.ember.feature.generator.service.DocumentGeneratorService.PreviewResponse;
 import dev.chojo.ember.feature.generator.service.DocumentTemplateCopyService;
@@ -66,7 +67,8 @@ class AssociationDocumentTemplateRoutesTest {
         when(templates.create(any(), any(), anyInt())).thenReturn(template);
         when(templates.update(any(), anyInt(), any(), anyInt())).thenReturn(template);
         when(templates.setArchived(any(), anyInt(), anyBoolean(), anyInt())).thenReturn(template);
-        when(templates.catalogue(any())).thenReturn(new PlaceholderCatalogueResponse(List.of()));
+        when(templates.catalogue(any()))
+                .thenReturn(new PlaceholderCatalogueResponse(List.of(), List.of(), DocumentLanguage.DE));
         when(generation.previewAssociationDraft(any(), any(), any(), any()))
                 .thenReturn(new PreviewResponse("JVBER", List.of(), List.of(), null));
         when(imports.read(any(LetterImportService.Importer.class), any()))

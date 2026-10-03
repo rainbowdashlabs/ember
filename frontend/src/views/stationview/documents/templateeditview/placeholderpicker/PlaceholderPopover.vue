@@ -8,6 +8,7 @@ import {useI18n} from 'vue-i18n'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Popover from '@/components/feedback/Popover.vue'
 import type {Placeholder} from '@/api/generated/schema'
+import type {PlaceholderChoice} from './placeholderKey'
 import PlaceholderPicker from './PlaceholderPicker.vue'
 
 /**
@@ -20,13 +21,13 @@ defineProps<{
 }>()
 
 const emit = defineEmits<{
-  pick: [placeholder: Placeholder]
+  pick: [choice: PlaceholderChoice]
 }>()
 
 const {t} = useI18n()
 
-function pick(placeholder: Placeholder, close: () => void) {
-  emit('pick', placeholder)
+function pick(choice: PlaceholderChoice, close: () => void) {
+  emit('pick', choice)
   close()
 }
 </script>
@@ -41,7 +42,7 @@ function pick(placeholder: Placeholder, close: () => void) {
       </SecondaryButton>
     </template>
     <template #default="{close}">
-      <PlaceholderPicker :placeholders="placeholders" :legal="legal" @pick="placeholder => pick(placeholder, close)"/>
+      <PlaceholderPicker :placeholders="placeholders" :legal="legal" @pick="choice => pick(choice, close)"/>
     </template>
   </Popover>
 </template>

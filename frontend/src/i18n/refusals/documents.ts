@@ -97,4 +97,6 @@ export default {
     'D-101': 'Das PDF dieser Vorlage ließ sich nicht lesen, deshalb wurde keine Kopie angelegt',
     'D-102': 'Die ausstellende Person ist kein aktuelles Mitglied dieser Wache',
     'D-110': 'Diese Schrift ist hier nicht verfügbar, deshalb gibt es kein Beispiel davon',
+    'D-111': 'Ein Datum der Vorlage hat ein Format, das sich nicht drucken lässt',
+    'D-112': 'Nur ein Datum bekommt in einer Vorlage ein Format',
 }

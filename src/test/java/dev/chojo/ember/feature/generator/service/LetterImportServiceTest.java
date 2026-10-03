@@ -92,7 +92,7 @@ class LetterImportServiceTest extends RepositoryTestBase {
         String body = text(imported);
         assertTrue(body.contains("Berlin, den {{today}}"), body);
         assertTrue(body.contains("dass {{member.fullName}}, geboren am {{member.birthDate}}"), body);
-        assertTrue(body.contains("seit {{member.joinDate.monthYear}} Mitglied"), body);
+        assertTrue(body.contains("seit {{member.joinDate|monthYear}} Mitglied"), body);
         assertTrue(body.contains("{{member.firstName}} kommt"), body);
         assertTrue(body.contains("engagiert {{pronoun.subject}} sich. {{pronoun.subject.start}} besucht"), body);
         assertTrue(body.contains("die {{profile." + schoolField + "}}."), body);
