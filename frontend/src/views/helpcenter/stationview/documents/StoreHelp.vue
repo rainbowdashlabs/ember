@@ -33,6 +33,12 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.documents.generateRightsText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.documents.bulkTitle')">
+      <p>{{ t('helpCenter.documents.bulkText') }}</p>
+      <p>{{ t('helpCenter.documents.bulkPreviewText') }}</p>
+      <p>{{ t('helpCenter.documents.bulkRunText') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.documents.unboundTitle')">
       <p>{{ t('helpCenter.documents.unboundText') }}</p>
     </HelpSection>

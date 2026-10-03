@@ -39,7 +39,7 @@ const departed = defineModel<boolean>('departed', {required: true})
 defineProps<{
   memberOptions: MemberOption[]
   canUpload?: boolean
-  /** Whether the reader may generate documents from templates for members. */
+  /** Whether the reader may generate documents from templates for members, one or many at once. */
   canGenerate?: boolean
   /** Whether the reader may read the documents of members, without which nobody who left is listed. */
   readsMembers?: boolean
@@ -49,6 +49,7 @@ const emit = defineEmits<{
   searchInput: []
   upload: []
   generate: []
+  bulk: []
 }>()
 
 const {t} = useI18n()
@@ -96,6 +97,9 @@ const {t} = useI18n()
           <SecondaryButton v-if="canGenerate" :icon="['fas', 'file-circle-plus']" data-testid="store-generate"
                            @click="emit('generate')">
             {{ t('documentTemplates.generateOpen') }}
+          </SecondaryButton>
+          <SecondaryButton v-if="canGenerate" :icon="['fas', 'users']" data-testid="store-bulk" @click="emit('bulk')">
+            {{ t('documentTemplates.bulk.open') }}
           </SecondaryButton>
         </ButtonRow>
       </div>

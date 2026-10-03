@@ -15,13 +15,10 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ToggleSetting from '@/components/input/toggle/ToggleSetting.vue'
 import TableColumnPicker from '@/components/table/TableColumnPicker.vue'
-import BulkGenerateModal from '@/components/documents/bulk/BulkGenerateModal.vue'
-import {DocumentTemplateKind, StationPermission, type DocumentTemplateSummary} from '@/api/generated/schema'
+import {DocumentTemplateKind, type DocumentTemplateSummary} from '@/api/generated/schema'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useDataTable} from '@/composables/useDataTable'
-import {useSession} from '@/composables/useSession'
 import TemplateTable from './templatesview/TemplateTable.vue'
-import GenerationJobsPanel from './templatesview/GenerationJobsPanel.vue'
 import {LAST_USED_COLUMN, templateColumns} from './templatesview/templateColumns'
 import type {TemplateScreens} from './templateScreens'
 import {useTemplateDuplication} from './useTemplateDuplication'
@@ -31,10 +28,8 @@ import {useTemplateDuplication} from './useTemplateDuplication'
  * filled in place. An archived template generates nothing more and stays for the documents it made; the
  * switch lists those instead of the ones in use. A station's list also holds the templates of its
  * association, marked as such, which it uses but does not change. The list opens on the templates used
- * last; any of them can be duplicated, and the editor opens on the copy.
- *
- * <p>At a station, whoever may file documents for members also generates a template for many members at
- * once here, and follows those runs below the list. An association has no members to generate for.
+ * last; any of them can be duplicated, and the editor opens on the copy. Documents are generated from
+ * them in the document store and on a member's page, not here.
  */
 const props = defineProps<{
   screens: TemplateScreens
@@ -42,11 +37,6 @@ const props = defineProps<{
 
 const {t} = useI18n()
 const router = useRouter()
-const {hasPermission} = useSession()
-
-const canGenerate = computed(() => props.screens.hasMembers && hasPermission(StationPermission.DOCUMENT_EDIT_MEMBER))
-const bulkOpen = ref(false)
-const jobsPanel = ref<InstanceType<typeof GenerationJobsPanel> | null>(null)
 
 const showArchived = ref(false)
 const templates = ref<DocumentTemplateSummary[]>([])
@@ -83,10 +73,6 @@ function create(kind?: DocumentTemplateKind) {
           <SecondaryButton :icon="['fas', 'file-pdf']" data-testid="template-new-pdf" @click="create(DocumentTemplateKind.PDF)">
             {{ t('documentTemplates.createPdf') }}
           </SecondaryButton>
-          <SecondaryButton v-if="canGenerate" :icon="['fas', 'users']" data-testid="template-bulk"
-                           @click="bulkOpen = true">
-            {{ t('documentTemplates.bulk.open') }}
-          </SecondaryButton>
         </ButtonRow>
         <div class="flex flex-wrap items-center gap-3">
           <ToggleSetting v-model="showArchived" :label="t('documentTemplates.showArchived')"/>
@@ -97,8 +83,6 @@ function create(kind?: DocumentTemplateKind) {
       <Spinner v-if="loading" size="lg"/>
       <TemplateTable v-else :table="table" :screens="screens" :duplicating="duplication.running.value"
                      @duplicate="duplication.run"/>
-      <GenerationJobsPanel v-if="canGenerate" ref="jobsPanel"/>
     </div>
-    <BulkGenerateModal v-if="bulkOpen" v-model="bulkOpen" @started="jobsPanel?.reload()"/>
   </ViewContent>
 </template>

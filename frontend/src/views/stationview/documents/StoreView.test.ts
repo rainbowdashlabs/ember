@@ -20,6 +20,7 @@ vi.mock('@/api', () => ({
         uploadForStation: vi.fn(),
     },
     stationMembers: {listMembers: vi.fn(async () => [])},
+    documentTemplates: {listJobs: vi.fn(async () => [])},
 }))
 
 const permissions = {held: true}
@@ -84,8 +85,8 @@ async function mountStore() {
 }
 
 /**
- * Generating a document from the store: offered to whoever may file documents for members, and the
- * document generated is shown in the store straight away, opened on the first page.
+ * Generating from the store, for one member or for many: offered to whoever may file documents for
+ * members, and a single document generated is shown in the store straight away, opened on the first page.
  */
 describe('StoreView generating', () => {
     beforeEach(() => {
@@ -98,6 +99,7 @@ describe('StoreView generating', () => {
         const view = await mountStore()
 
         expect(view.find('[data-testid="store-generate"]').exists()).toBe(true)
+        expect(view.find('[data-testid="store-bulk"]').exists()).toBe(true)
     })
 
     it('offers no generating without the right', async () => {
@@ -105,6 +107,7 @@ describe('StoreView generating', () => {
         const view = await mountStore()
 
         expect(view.find('[data-testid="store-generate"]').exists()).toBe(false)
+        expect(view.find('[data-testid="store-bulk"]').exists()).toBe(false)
     })
 
     it('fetches the list again and opens the document generated', async () => {

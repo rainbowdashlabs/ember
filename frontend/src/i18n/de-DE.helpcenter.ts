@@ -1736,16 +1736,6 @@ volumes:
             rightsText: 'Vorlagen schreiben darf, wer „Dokumentvorlagen" hat. Für ein Mitglied erstellen darf, wer '
                 + '„Mitgliederdokumente verwalten" hat. „Dokumente" umfasst beides.',
             tip: 'Lege eine Vorlage einmal sauber an, mit Briefkopf und Logo. Danach ist jede Bescheinigung ein Klick.',
-            bulkTitle: 'Für mehrere Mitglieder erstellen',
-            bulkText: 'Über „Für mehrere Mitglieder erstellen" wählst du eine Vorlage und für wen sie erstellt wird: '
-                + 'nach Gruppen, Mitgliedstypen und Tags, oder ohne Auswahl für alle aktuellen Mitglieder. In der '
-                + 'Mitgliederliste geht das auch für ausgewählte Mitglieder, über „Exportieren" und „Dokumente '
-                + 'erstellen".',
-            bulkPreviewText: 'Die Vorschau zeigt das Dokument des ersten Mitglieds und nennt alle Mitglieder, bei '
-                + 'denen Angaben fehlen. Du entscheidest, ob für sie trotzdem ein Dokument mit Linien zum Ausfüllen '
-                + 'entsteht oder ob sie ausgelassen werden.',
-            bulkRunText: 'Die Erstellung läuft im Hintergrund weiter, auch wenn du die Seite verlässt. Unter der '
-                + 'Liste der Vorlagen siehst du den Fortschritt und danach, für wen nichts abgelegt wurde und warum.',
             forAppointmentsTitle: 'Vorlagen für Termine',
             forAppointmentsText: 'Ist eine Vorlage „Für Termine", kann ein Termin sie als mitzubringendes Dokument '
                 + 'verlangen. Nur dann bietet der Editor die Angaben des Termins als Platzhalter an: Name, Beginn, Ende '
@@ -1919,6 +1909,16 @@ volumes:
                 + '„Erstellen" liegt es beim Mitglied, und die Ablage öffnet es gleich.',
             generateRightsText: 'Den Button sieht, wer „Mitgliederdokumente verwalten" hat. Vorlagen für Termine '
                 + 'stehen hier nicht zur Wahl, weil ihnen ohne Termin die Angaben fehlen.',
+            bulkTitle: 'Für mehrere Mitglieder erstellen',
+            bulkText: 'Über „Für mehrere Mitglieder erstellen" in der Leiste oben wählst du eine Vorlage und für wen '
+                + 'sie erstellt wird: nach Gruppen, Mitgliedstypen und Tags, oder ohne Auswahl für alle aktuellen '
+                + 'Mitglieder. In der Mitgliederliste geht das auch für ausgewählte Mitglieder, über „Exportieren" '
+                + 'und „Dokumente erstellen".',
+            bulkPreviewText: 'Die Vorschau zeigt das Dokument des ersten Mitglieds und nennt alle Mitglieder, bei '
+                + 'denen Angaben fehlen. Du entscheidest, ob für sie trotzdem ein Dokument mit Linien zum Ausfüllen '
+                + 'entsteht oder ob sie ausgelassen werden.',
+            bulkRunText: 'Die Erstellung läuft im Hintergrund weiter, auch wenn du die Seite verlässt. Unter der '
+                + 'Liste der Ablage siehst du den Fortschritt und danach, für wen nichts abgelegt wurde und warum.',
             unboundTitle: 'Die Ablage der Wache finden',
             unboundText: 'Auf der Seite gibt es den Schalter „Nur ohne Mitglied". Er zeigt genau '
                 + 'die Dokumente, die zu niemandem gehören, also Verträge, Prüfberichte und was '

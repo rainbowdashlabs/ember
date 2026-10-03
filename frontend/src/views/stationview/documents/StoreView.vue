@@ -23,6 +23,8 @@ import DocumentGrid from '@/components/documents/DocumentGrid.vue'
 import DocumentModal from '@/components/documents/DocumentModal.vue'
 import DocumentUploadModal from '@/components/documents/DocumentUploadModal.vue'
 import GenerateDocumentModal from '@/components/documents/GenerateDocumentModal.vue'
+import BulkGenerateModal from '@/components/documents/bulk/BulkGenerateModal.vue'
+import GenerationJobsPanel from './storeview/GenerationJobsPanel.vue'
 import {usePermissions} from '@/composables/usePermissions'
 import {documents as documentsApi, stationMembers} from '@/api'
 import type {DocumentFilter, DocumentUpload} from '@/api/documents'
@@ -33,6 +35,9 @@ import {describeFailure} from '@/util/failure'
 /**
  * The document store of the station: everything that was ever put in, whether it belongs to
  * somebody or to nobody, a page at a time and searchable by what the documents say.
+ *
+ * <p>Whoever may file documents for members also generates them here from a template: for one member,
+ * opened in the store once filed, or for many at once in a background run, followed below the list.
  */
 const {t} = useI18n()
 const {hasPermission} = usePermissions()
@@ -52,6 +57,8 @@ const members = ref<MemberWithName[]>([])
 
 const showUpload = ref(false)
 const showGenerate = ref(false)
+const showBulk = ref(false)
+const jobsPanel = ref<InstanceType<typeof GenerationJobsPanel> | null>(null)
 const showDocument = ref(false)
 const opened = ref<MemberDocumentResponse | null>(null)
 
@@ -261,6 +268,7 @@ async function selectAll() {
           @search-input="onSearch"
           @upload="showUpload = true"
           @generate="showGenerate = true"
+          @bulk="showBulk = true"
       />
 
       <DocumentPruneBar
@@ -289,6 +297,7 @@ async function selectAll() {
         <SecondaryButton :disabled="page + 1 >= pages" @click="page += 1">{{ t('common.next') }}</SecondaryButton>
       </ButtonRow>
 
+      <GenerationJobsPanel v-if="canEdit" ref="jobsPanel"/>
       <FilingRulesLink/>
     </div>
 
@@ -309,6 +318,7 @@ async function selectAll() {
         @upload="upload"
     />
     <GenerateDocumentModal v-if="showGenerate" v-model="showGenerate" :members="memberOptions" @filed="showFiled"/>
+    <BulkGenerateModal v-if="showBulk" v-model="showBulk" @started="jobsPanel?.reload()"/>
     <DocumentModal
         v-model="showDocument"
         :document="opened"

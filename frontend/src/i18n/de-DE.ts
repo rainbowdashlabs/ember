@@ -2717,7 +2717,7 @@ export default {
             memberCount: 'Wird für {count} Mitglieder erstellt. Die Vorschau zeigt das erste Mitglied.',
             gapsIntro: 'Bei {count} Mitgliedern fehlt etwas:',
             gapMissing: 'es fehlen {values}',
-            started: 'Die Erstellung für {count} Mitglieder läuft. Fortschritt und Ergebnis stehen unter Vorlagen.',
+            started: 'Die Erstellung für {count} Mitglieder läuft. Fortschritt und Ergebnis stehen in der Ablage.',
             jobsTitle: 'Erstellungen für mehrere Mitglieder',
             startedBy: 'gestartet von {name} am {date}',
             running: 'Läuft',
