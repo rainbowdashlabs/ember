@@ -9,8 +9,8 @@ import {useI18n} from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import MemberDocumentsPanel from '@/components/documents/MemberDocumentsPanel.vue'
 import {StationModule, StationPermission, type MemberWithName} from '@/api/generated/schema'
+import GenerateDocumentModal from '@/components/documents/GenerateDocumentModal.vue'
 import {useSession} from '@/composables/useSession'
-import GenerateDocumentModal from './GenerateDocumentModal.vue'
 
 /**
  * The documents of a member, and the button that generates one from a template and files it with

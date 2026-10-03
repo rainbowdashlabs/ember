@@ -1695,10 +1695,11 @@ volumes:
                 + 'welcher Fassung der Vorlage es stammt und wessen Daten darin stehen.',
             generateTitle: 'Ein Dokument erstellen',
             generateText: 'Auf der Seite eines Mitglieds öffnest du im Reiter Dokumente „Dokument erstellen", '
-                + 'wählst die Vorlage und siehst sofort eine Vorschau. Mit „Erstellen" wird das PDF abgelegt. Aus '
-                + 'dem Editor einer Vorlage geht das genauso, über die Vorschau.',
+                + 'wählst die Vorlage und siehst sofort eine Vorschau. Mit „Erstellen" wird das PDF abgelegt. Unter '
+                + 'Dokumente → Ablage gibt es „Dokument erstellen" auch, dort wählst du zusätzlich das Mitglied.',
             missingText: 'Fehlen Angaben, nennt Ember sie vor dem Erstellen. Du kannst trotzdem erstellen, die '
-                + 'Lücken stehen dann als Linien zum Ausfüllen im Dokument.',
+                + 'Lücken stehen dann als Linien zum Ausfüllen im Dokument. Vorlagen für Termine stehen beim '
+                + 'Erstellen für ein Mitglied nicht zur Wahl, ihnen fehlen ohne Termin die Angaben.',
             selfServiceTitle: 'Selbst erstellen lassen',
             selfServiceText: 'Ist eine Vorlage zum Selbst-Erstellen freigegeben, finden Mitglieder sie unter Dokumente → '
                 + 'Meine Dokumente neben ihren Dokumenten. Erziehungsberechtigte erstellen sie dort für jedes Kind. Fehlen Angaben im '
@@ -1735,16 +1736,6 @@ volumes:
             rightsText: 'Vorlagen schreiben darf, wer „Dokumentvorlagen" hat. Für ein Mitglied erstellen darf, wer '
                 + '„Mitgliederdokumente verwalten" hat. „Dokumente" umfasst beides.',
             tip: 'Lege eine Vorlage einmal sauber an, mit Briefkopf und Logo. Danach ist jede Bescheinigung ein Klick.',
-            bulkTitle: 'Für mehrere Mitglieder erstellen',
-            bulkText: 'Über „Für mehrere Mitglieder erstellen" wählst du eine Vorlage und für wen sie erstellt wird: '
-                + 'nach Gruppen, Mitgliedstypen und Tags, oder ohne Auswahl für alle aktuellen Mitglieder. In der '
-                + 'Mitgliederliste geht das auch für ausgewählte Mitglieder, über „Exportieren" und „Dokumente '
-                + 'erstellen".',
-            bulkPreviewText: 'Die Vorschau zeigt das Dokument des ersten Mitglieds und nennt alle Mitglieder, bei '
-                + 'denen Angaben fehlen. Du entscheidest, ob für sie trotzdem ein Dokument mit Linien zum Ausfüllen '
-                + 'entsteht oder ob sie ausgelassen werden.',
-            bulkRunText: 'Die Erstellung läuft im Hintergrund weiter, auch wenn du die Seite verlässt. Unter der '
-                + 'Liste der Vorlagen siehst du den Fortschritt und danach, für wen nichts abgelegt wurde und warum.',
             forAppointmentsTitle: 'Vorlagen für Termine',
             forAppointmentsText: 'Ist eine Vorlage „Für Termine", kann ein Termin sie als mitzubringendes Dokument '
                 + 'verlangen. Nur dann bietet der Editor die Angaben des Termins als Platzhalter an: Name, Beginn, Ende '
@@ -1878,7 +1869,9 @@ volumes:
                 + 'wen das gilt und wie viele Tage bis zum nächsten Mal vergehen müssen.',
             previewTitle: 'Vorschau',
             previewText: 'Die Vorschau zeigt den Brief so, wie er gedruckt wird. Ohne Mitglied stehen die Namen der '
-                + 'Platzhalter darin, mit einem Mitglied seine Daten. Fehlende Angaben werden genannt.',
+                + 'Platzhalter darin, mit einem Mitglied seine Daten. Fehlende Angaben werden genannt. Abgelegt '
+                + 'wird hier nichts: Dokumente erstellst du unter Dokumente → Ablage oder auf der Seite eines '
+                + 'Mitglieds.',
             tip: 'Speichere nach jeder Änderung: Erstellt wird immer aus der gespeicherten Fassung.',
         },
         documents: {
@@ -1913,6 +1906,22 @@ volumes:
                 + 'abschalten, dann verschwindet die Seite aus der Navigation. Der Datenexport '
                 + 'eines Mitglieds enthält seine Dokumente trotzdem: eine abgeschaltete Seite ist '
                 + 'kein Grund, jemandem seine eigenen Daten vorzuenthalten.',
+            generateTitle: 'Ein Dokument aus einer Vorlage erstellen',
+            generateText: 'Mit „Dokument erstellen" in der Leiste oben wählst du eine Vorlage und das Mitglied, '
+                + 'für das sie gedacht ist. Die Vorschau zeigt das Dokument und nennt fehlende Angaben. Mit '
+                + '„Erstellen" liegt es beim Mitglied, und die Ablage öffnet es gleich.',
+            generateRightsText: 'Den Button sieht, wer „Mitgliederdokumente verwalten" hat. Vorlagen für Termine '
+                + 'stehen hier nicht zur Wahl, weil ihnen ohne Termin die Angaben fehlen.',
+            bulkTitle: 'Für mehrere Mitglieder erstellen',
+            bulkText: 'Über „Für mehrere Mitglieder erstellen" in der Leiste oben wählst du eine Vorlage und für wen '
+                + 'sie erstellt wird: nach Gruppen, Mitgliedstypen und Tags, oder ohne Auswahl für alle aktuellen '
+                + 'Mitglieder. In der Mitgliederliste geht das auch für ausgewählte Mitglieder, über „Exportieren" '
+                + 'und „Dokumente erstellen".',
+            bulkPreviewText: 'Die Vorschau zeigt das Dokument des ersten Mitglieds und nennt alle Mitglieder, bei '
+                + 'denen Angaben fehlen. Du entscheidest, ob für sie trotzdem ein Dokument mit Linien zum Ausfüllen '
+                + 'entsteht oder ob sie ausgelassen werden.',
+            bulkRunText: 'Die Erstellung läuft im Hintergrund weiter, auch wenn du die Seite verlässt. Unter der '
+                + 'Liste der Ablage siehst du den Fortschritt und danach, für wen nichts abgelegt wurde und warum.',
             unboundTitle: 'Die Ablage der Wache finden',
             unboundText: 'Auf der Seite gibt es den Schalter „Nur ohne Mitglied". Er zeigt genau '
                 + 'die Dokumente, die zu niemandem gehören, also Verträge, Prüfberichte und was '

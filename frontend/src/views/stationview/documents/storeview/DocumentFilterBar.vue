@@ -7,7 +7,9 @@
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
 import type {MemberOption} from '@/components/input/select/memberOption'
@@ -37,6 +39,8 @@ const departed = defineModel<boolean>('departed', {required: true})
 defineProps<{
   memberOptions: MemberOption[]
   canUpload?: boolean
+  /** Whether the reader may generate documents from templates for members, one or many at once. */
+  canGenerate?: boolean
   /** Whether the reader may read the documents of members, without which nobody who left is listed. */
   readsMembers?: boolean
 }>()
@@ -44,6 +48,8 @@ defineProps<{
 const emit = defineEmits<{
   searchInput: []
   upload: []
+  generate: []
+  bulk: []
 }>()
 
 const {t} = useI18n()
@@ -84,9 +90,18 @@ const {t} = useI18n()
         >
           {{ t('documents.onlyDeparted') }}
         </SelectionToggleButton>
-        <PrimaryButton v-if="canUpload" :icon="['fas', 'upload']" @click="emit('upload')">
-          {{ t('documents.upload') }}
-        </PrimaryButton>
+        <ButtonRow>
+          <PrimaryButton v-if="canUpload" :icon="['fas', 'upload']" @click="emit('upload')">
+            {{ t('documents.upload') }}
+          </PrimaryButton>
+          <SecondaryButton v-if="canGenerate" :icon="['fas', 'file-circle-plus']" data-testid="store-generate"
+                           @click="emit('generate')">
+            {{ t('documentTemplates.generateOpen') }}
+          </SecondaryButton>
+          <SecondaryButton v-if="canGenerate" :icon="['fas', 'users']" data-testid="store-bulk" @click="emit('bulk')">
+            {{ t('documentTemplates.bulk.open') }}
+          </SecondaryButton>
+        </ButtonRow>
       </div>
     </div>
     <MutedText size="sm">{{ t('documents.searchHint') }}</MutedText>

@@ -12,11 +12,13 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import LabelledField from '@/components/input/LabelledField.vue'
+import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
+import type {MemberOption} from '@/components/input/select/memberOption'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import GeneratedPreview from '@/components/documents/GeneratedPreview.vue'
-import {recentlyUsedFirst} from '@/components/documents/recentlyUsedFirst'
+import GeneratedPreview from './GeneratedPreview.vue'
+import {recentlyUsedFirst} from './recentlyUsedFirst'
 import {documentTemplates} from '@/api'
 import type {DocumentTemplateSummary, PreviewResponse} from '@/api/generated/schema'
 import {useAsyncAction} from '@/composables/useAsyncAction'
@@ -28,43 +30,58 @@ import {showToast} from '@/util/toast'
  * the data it still lacks, and file it with the member. Missing data prints as lines to fill in, so a
  * manager may still file the document after the warning. The templates used most recently at the
  * station come first.
+ *
+ * <p>A member's page hands the member in. The document store has nobody in front of it, so there the
+ * member is chosen in the dialog, from the members handed in instead.
+ *
+ * <p>Templates for appointments are not offered: generated for a member alone, the appointment's own
+ * values would all print as gaps.
  */
 const open = defineModel<boolean>({required: true})
 
-const props = defineProps<{
-  memberId: number
-}>()
+const props = withDefaults(defineProps<{
+  /** The member the document is for, where the screen already names them. */
+  memberId?: number | null
+  /** The members to choose from, where no member is handed in. */
+  members?: MemberOption[]
+}>(), {
+  memberId: null,
+  members: () => [],
+})
 
 const emit = defineEmits<{
-  filed: []
+  filed: [documentId: number]
 }>()
 
 const {t} = useI18n()
 
 const templates = ref<DocumentTemplateSummary[]>([])
 const templateId = ref<number | null>(null)
+const chosenMember = ref('')
 const preview = ref<PreviewResponse | null>(null)
 const chosen = computed(() => templates.value.find(template => template.id === templateId.value) ?? null)
+const memberId = computed(() => props.memberId ?? (chosenMember.value ? Number(chosenMember.value) : null))
 
 const loader = useAsyncLoader(async () => {
-  templates.value = recentlyUsedFirst(await documentTemplates.usableTemplates())
+  const usable = await documentTemplates.usableTemplates()
+  templates.value = recentlyUsedFirst(usable.filter(template => !template.forAppointments))
 })
 
-const drawing = useAsyncAction(async (id: number) => {
-  preview.value = await documentTemplates.previewForMember(id, props.memberId)
+const drawing = useAsyncAction(async (id: number, member: number) => {
+  preview.value = await documentTemplates.previewForMember(id, member)
 })
 
 const filing = useAsyncAction(async () => {
-  if (templateId.value === null) return
-  await documentTemplates.generateForMember(templateId.value, props.memberId)
+  if (templateId.value === null || memberId.value === null) return
+  const filed = await documentTemplates.generateForMember(templateId.value, memberId.value)
   showToast(t('documentTemplates.generated'), 'success')
-  emit('filed')
+  emit('filed', filed.documentId)
   open.value = false
 })
 
-watch(templateId, id => {
+watch([templateId, memberId], ([id, member]) => {
   preview.value = null
-  if (id !== null) drawing.run(id)
+  if (id !== null && member !== null) drawing.run(id, member)
 })
 </script>
 
@@ -84,6 +101,9 @@ watch(templateId, id => {
             {{ template.ofAssociation ? t('documentTemplates.namedOfAssociation', {name: template.name}) : template.name }}
           </option>
         </SelectInput>
+      </LabelledField>
+      <LabelledField v-if="props.memberId === null" :label="t('documentTemplates.generateMember')">
+        <MemberSelectInput v-model="chosenMember" :members="props.members" data-testid="generate-member"/>
       </LabelledField>
       <GeneratedPreview v-if="preview && chosen" :preview="preview" :title="chosen.name"/>
       <ButtonRow pair align="end">

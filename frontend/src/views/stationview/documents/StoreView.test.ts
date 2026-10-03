@@ -6,6 +6,7 @@
 import {beforeEach, describe, expect, it, vi} from 'vitest'
 import {flushPromises, type VueWrapper} from '@vue/test-utils'
 import {mountSuspended} from '@nuxt/test-utils/runtime'
+import DocumentModal from '@/components/documents/DocumentModal.vue'
 import StoreView from './StoreView.vue'
 
 const listStation = vi.fn()
@@ -19,10 +20,13 @@ vi.mock('@/api', () => ({
         uploadForStation: vi.fn(),
     },
     stationMembers: {listMembers: vi.fn(async () => [])},
+    documentTemplates: {listJobs: vi.fn(async () => [])},
 }))
 
+const permissions = {held: true}
+
 vi.mock('@/composables/usePermissions', () => ({
-    usePermissions: () => ({hasPermission: () => true}),
+    usePermissions: () => ({hasPermission: () => permissions.held}),
 }))
 
 function documentTitled(id: number, title: string) {
@@ -46,6 +50,7 @@ function boxes(view: VueWrapper) {
 describe('StoreView', () => {
     beforeEach(() => {
         vi.clearAllMocks()
+        permissions.held = true
         listStation.mockResolvedValueOnce({documents: [documentTitled(1, 'Anderes'), documentTitled(2, 'Altlast')], total: 2})
     })
 
@@ -68,5 +73,54 @@ describe('StoreView', () => {
 
         expect(boxes(view)).toHaveLength(1)
         expect(boxes(view)[0]!.element.disabled).toBe(false)
+    })
+})
+
+const generateDialog = {name: 'GenerateDocumentModal', template: '<div data-testid="generate-stub"/>', emits: ['filed']}
+
+async function mountStore() {
+    const view = await mountSuspended(StoreView, {global: {stubs: {GenerateDocumentModal: generateDialog}}})
+    await flushPromises()
+    return view
+}
+
+/**
+ * Generating from the store, for one member or for many: offered to whoever may file documents for
+ * members, and a single document generated is shown in the store straight away, opened on the first page.
+ */
+describe('StoreView generating', () => {
+    beforeEach(() => {
+        vi.clearAllMocks()
+        permissions.held = true
+        listStation.mockResolvedValue({documents: [documentTitled(1, 'Anderes')], total: 1})
+    })
+
+    it('offers generating to whoever may file documents for members', async () => {
+        const view = await mountStore()
+
+        expect(view.find('[data-testid="store-generate"]').exists()).toBe(true)
+        expect(view.find('[data-testid="store-bulk"]').exists()).toBe(true)
+    })
+
+    it('offers no generating without the right', async () => {
+        permissions.held = false
+        const view = await mountStore()
+
+        expect(view.find('[data-testid="store-generate"]').exists()).toBe(false)
+        expect(view.find('[data-testid="store-bulk"]').exists()).toBe(false)
+    })
+
+    it('fetches the list again and opens the document generated', async () => {
+        const view = await mountStore()
+        await view.find('[data-testid="store-generate"]').trigger('click')
+
+        listStation.mockResolvedValueOnce({documents: [documentTitled(5, 'Ausweis'), documentTitled(1, 'Anderes')], total: 2})
+        view.findComponent(generateDialog).vm.$emit('filed', 5)
+        await flushPromises()
+
+        expect(listStation).toHaveBeenCalledTimes(2)
+        const dialog = view.findComponent(DocumentModal)
+        expect(dialog.props('modelValue')).toBe(true)
+        expect(dialog.props('document')).toMatchObject({id: 5, title: 'Ausweis'})
     })
 })
