@@ -177,15 +177,13 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
                 ProfileFieldScope.MEMBER,
                 0,
                 true);
-        var fieldGeschlecht = askOf(
-                stationId,
-                "Geschlecht",
-                FieldType.CHOICE,
-                "{\"overview\":true,\"options\":[\"männlich\",\"weiblich\",\"divers\"]}",
-                false,
-                ProfileFieldScope.MEMBER,
-                1,
-                true);
+        var fieldGeschlecht =
+                askOf(stationId, "Geschlecht", FieldType.GENDER, """
+                {"overview":true,"options":["männlich","weiblich","divers"],"pronouns":{
+                  "männlich":{"de":{"subject":"er","object":"ihn","dative":"ihm","possessive":"sein"},
+                              "en":{"subject":"he","object":"him","possessive":"his"}},
+                  "weiblich":{"de":{"subject":"sie","object":"sie","dative":"ihr","possessive":"ihr"},
+                              "en":{"subject":"she","object":"her","possessive":"her"}}}}""", false, ProfileFieldScope.MEMBER, 1, true);
 
         var fieldGeburtstag = askOf(
                 stationId,
