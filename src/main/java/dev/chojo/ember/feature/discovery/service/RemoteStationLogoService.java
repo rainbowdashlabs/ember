@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.media.image.ImageProfile;
 import dev.chojo.ember.feature.media.service.ImageVariants;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.entity.StorageScope;
+import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.util.Sha256;
 import dev.chojo.ember.util.WebOrigins;
 import jakarta.inject.Inject;
@@ -31,6 +32,9 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Semaphore;
 import java.util.regex.Pattern;
 
 /**
@@ -45,7 +49,8 @@ import java.util.regex.Pattern;
  * what came in is ever served.
  *
  * <p>A logo that could not be fetched leaves the copy kept before in place. Where the other instance
- * says there is none, or names an address that is not its own, the copy goes.
+ * says there is none, or names an address that is not its own, the copy goes. A peer's due logos are
+ * fetched {@value #PARALLEL_FETCHES} at a time.
  *
  * <p>Copies are kept per instance and station, under a short fingerprint of the instance's public key
  * followed by the station identifier, since two instances may publish a station under the same
@@ -57,6 +62,7 @@ public class RemoteStationLogoService {
     public static final Duration RECHECK_AFTER = DiscoveryStationRefreshScheduler.REFRESH_INTERVAL;
 
     static final int MAX_LOGO_BYTES = 1024 * 1024;
+    static final int PARALLEL_FETCHES = 4;
     static final int SIDE = 256;
     private static final int DISPLAY_SIZE = 128;
     private static final int FINGERPRINT_CHARS = 32;
@@ -70,13 +76,29 @@ public class RemoteStationLogoService {
     private final DiscoveryHttpClient httpClient;
     private final ImageVariants images;
     private final DiscoveryStationCacheRepository cacheRepository;
+    private final Executor executor;
 
     @Inject
     public RemoteStationLogoService(
-            DiscoveryHttpClient httpClient, ImageVariants images, DiscoveryStationCacheRepository cacheRepository) {
+            DiscoveryHttpClient httpClient,
+            ImageVariants images,
+            DiscoveryStationCacheRepository cacheRepository,
+            TaskScheduler scheduler) {
+        this(httpClient, images, cacheRepository, scheduler.executor());
+    }
+
+    /**
+     * Builds the service on the given executor, so a test can run the fetches one after the other.
+     */
+    RemoteStationLogoService(
+            DiscoveryHttpClient httpClient,
+            ImageVariants images,
+            DiscoveryStationCacheRepository cacheRepository,
+            Executor executor) {
         this.httpClient = httpClient;
         this.images = images;
         this.cacheRepository = cacheRepository;
+        this.executor = executor;
     }
 
     /**
@@ -101,15 +123,35 @@ public class RemoteStationLogoService {
      * @param now  the time the cards were stored
      */
     public void refresh(DiscoveryPeer peer, Instant now) {
-        for (var check : cacheRepository.findLogosDue(peer.publicKey(), now.minus(RECHECK_AFTER))) {
-            try {
-                refresh(peer, check, now);
-            } catch (RuntimeException e) {
-                log.warn("Could not refresh the logo of station {} on {}", check.stationUid(), peer.baseUrl(), e);
-            }
+        var due = cacheRepository.findLogosDue(peer.publicKey(), now.minus(RECHECK_AFTER));
+        var slots = new Semaphore(PARALLEL_FETCHES);
+        var fetches = due.stream()
+                .map(check -> CompletableFuture.runAsync(() -> refreshGuarded(peer, check, now, slots), executor))
+                .toList();
+        fetches.forEach(CompletableFuture::join);
+    }
+
+    private void refreshGuarded(DiscoveryPeer peer, RemoteLogoCheck check, Instant now, Semaphore slots) {
+        try {
+            slots.acquire();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return;
+        }
+        try {
+            refresh(peer, check, now);
+        } catch (RuntimeException e) {
+            log.warn("Could not refresh the logo of station {} on {}", check.stationUid(), peer.baseUrl(), e);
+        } finally {
+            slots.release();
         }
     }
 
+    /**
+     * Asks for one logo. The copy kept here is trusted to be what the card's row says: it is asked
+     * for with the tags it came with, and a copy that went missing from storage is caught where it
+     * is read, not looked for on every refresh.
+     */
     private void refresh(DiscoveryPeer peer, RemoteLogoCheck check, Instant now) {
         var stationKey = key(peer.publicKey(), check.stationUid());
         if (stationKey.isEmpty()) return;
@@ -119,29 +161,20 @@ public class RemoteStationLogoService {
             drop(peer, check, key, now);
             return;
         }
-        boolean kept = check.stored() && images.exists(PROFILE, SCOPE, CATEGORY, key);
-        var fetched = httpClient.fetchPicture(address.get(), kept ? check.tags() : PictureTags.NONE, MAX_LOGO_BYTES);
-        switch (fetched) {
-            case PictureFetch.Fetched picture -> {
-                if (store(key, picture.data())) {
-                    cacheRepository.recordLogoCheck(peer.publicKey(), check.stationUid(), now, true, picture.tags());
-                } else {
-                    keepAsItWas(peer, check, now, kept);
-                }
-            }
-            case PictureFetch.Absent _ -> drop(peer, check, key, now);
-            case PictureFetch.Unchanged _, PictureFetch.Failed _ -> keepAsItWas(peer, check, now, kept);
+        var known = check.stored() ? check.tags() : PictureTags.NONE;
+        var fetched = httpClient.fetchPicture(address.get(), known, MAX_LOGO_BYTES);
+        if (fetched instanceof PictureFetch.Fetched picture && store(key, picture.data())) {
+            cacheRepository.recordLogoCheck(peer.publicKey(), check.stationUid(), now, true, picture.tags());
+        } else if (fetched instanceof PictureFetch.Absent) {
+            drop(peer, check, key, now);
+        } else {
+            cacheRepository.touchLogoCheck(peer.publicKey(), check.stationUid(), now);
         }
     }
 
     private void drop(DiscoveryPeer peer, RemoteLogoCheck check, String key, Instant now) {
         images.delete(SCOPE, CATEGORY, key);
         cacheRepository.recordLogoCheck(peer.publicKey(), check.stationUid(), now, false, PictureTags.NONE);
-    }
-
-    private void keepAsItWas(DiscoveryPeer peer, RemoteLogoCheck check, Instant now, boolean kept) {
-        cacheRepository.recordLogoCheck(
-                peer.publicKey(), check.stationUid(), now, kept, kept ? check.tags() : PictureTags.NONE);
     }
 
     private boolean store(String key, byte[] data) {
@@ -164,7 +197,21 @@ public class RemoteStationLogoService {
      */
     public Optional<MediaContent> read(String fingerprint, UUID stationUid, int size) {
         if (!FINGERPRINT.matcher(fingerprint).matches()) return Optional.empty();
-        return images.read(PROFILE, SCOPE, CATEGORY, fingerprint + "/" + stationUid, size);
+        var copy = images.read(PROFILE, SCOPE, CATEGORY, fingerprint + "/" + stationUid, size);
+        if (copy.isEmpty()) forgetLost(fingerprint, stationUid.toString());
+        return copy;
+    }
+
+    /**
+     * A copy a card's row says is kept but storage does not hold is a fault: it is logged and the row
+     * forgets the copy, so the next refresh fetches the logo afresh instead of asking whether it changed.
+     */
+    private void forgetLost(String fingerprint, String stationUid) {
+        for (var instanceKey : cacheRepository.findLogoHolders(stationUid)) {
+            if (!fingerprint(instanceKey).equals(fingerprint)) continue;
+            log.warn("The logo copy of station {} from instance {} is missing from storage", stationUid, fingerprint);
+            cacheRepository.forgetLogo(instanceKey, stationUid);
+        }
     }
 
     /**

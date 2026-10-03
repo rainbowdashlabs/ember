@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.discovery.protocol.DiscoveryStationsResponse;
 import dev.chojo.ember.feature.media.service.ImageVariants;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
 import dev.chojo.ember.feature.storage.service.StorageService;
+import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import dev.chojo.ember.util.Json;
 import dev.chojo.ember.util.TestRemoteUrlValidator;
@@ -96,7 +97,7 @@ class RemoteStationLogoTest extends RepositoryTestBase {
                 mock(DiscoverySigningService.class), TestRemoteUrlValidator.permissiveOutbound());
         var backend = localStorage();
         var images = new ImageVariants(new StorageService(new StorageBackendResolver(backend), backend));
-        logos = new RemoteStationLogoService(http, images, discoveryStationCacheRepo);
+        logos = new RemoteStationLogoService(http, images, discoveryStationCacheRepo, new TaskScheduler());
         fetcher = new DiscoveryStationFetcher(
                 http,
                 discoveryPeerRepo,
@@ -323,6 +324,42 @@ class RemoteStationLogoTest extends RepositoryTestBase {
         assertFalse(check(FIRST).stored());
         fetcher.refresh(peer);
         assertTrue(keeps(FIRST));
+    }
+
+    @Test
+    void aCopyMissingFromStorageIsForgottenAndFetchedAfresh() throws IOException {
+        answers.put("/logo/first", new Answer(200, "image/png", picture(64, 64, "png"), Map.of("ETag", "\"v1\"")));
+        lists(FIRST, base + "/logo/first");
+        fetcher.refresh(peer);
+        logos.forget(key, FIRST.toString());
+        assertTrue(check(FIRST).stored(), "the row still says a copy is kept");
+
+        assertFalse(keeps(FIRST));
+
+        var forgotten = check(FIRST);
+        assertFalse(forgotten.stored());
+        assertEquals(PictureTags.NONE, forgotten.tags());
+        fetcher.refresh(peer);
+        assertTrue(keeps(FIRST));
+        assertTrue(tagsAskedWith.isEmpty(), "a copy that went missing is not asked for as unchanged");
+    }
+
+    @Test
+    void severalDueLogosOfOnePeerAreAllFetched() throws IOException {
+        List<UUID> stations = new ArrayList<>();
+        for (int i = 0; i < RemoteStationLogoService.PARALLEL_FETCHES * 2 + 1; i++) {
+            UUID station = UUID.randomUUID();
+            stations.add(station);
+            answers.put("/logo/" + station, Answer.of("image/png", picture(16, 16, "png")));
+            lists(station, base + "/logo/" + station);
+        }
+
+        fetcher.refresh(peer);
+
+        assertEquals(stations.size(), asked.size());
+        for (UUID station : stations) {
+            assertTrue(keeps(station), "a copy is kept for " + station);
+        }
     }
 
     @Test
