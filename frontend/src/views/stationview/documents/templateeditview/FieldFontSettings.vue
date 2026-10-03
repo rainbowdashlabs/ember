@@ -21,6 +21,7 @@ const field = defineModel<PdfField>({required: true})
 
 const props = defineProps<{
   fonts: readonly FontFamilyOption[]
+  defaultFamily: string
 }>()
 
 const {t} = useI18n()
@@ -41,7 +42,8 @@ function styleLabel(option: FontStyle): string {
   <div class="space-y-3" data-testid="pdf-field-font">
     <div class="grid gap-3 sm:grid-cols-2">
       <FontFamilyPicker :model-value="field.fontFamily" :label="t('documentFonts.fieldFont')" :fonts="fonts" pdf-only
-                        test-id="pdf-field-family" @update:model-value="name => field = {...field, fontFamily: name}"/>
+                        :default-family="defaultFamily" test-id="pdf-field-family"
+                        @update:model-value="name => field = {...field, fontFamily: name}"/>
       <LabelledField :label="t('documentFonts.styleLabel')">
         <SelectInput :model-value="style" class="w-full" data-testid="pdf-field-style"
                      @update:model-value="value => field = {...field, fontStyle: value as FontStyle}">
@@ -49,6 +51,6 @@ function styleLabel(option: FontStyle): string {
         </SelectInput>
       </LabelledField>
     </div>
-    <FontPreview :family="field.fontFamily" :font-style="printedStyle(family, style)"/>
+    <FontPreview :family="field.fontFamily" :default-family="defaultFamily" :font-style="printedStyle(family, style)"/>
   </div>
 </template>

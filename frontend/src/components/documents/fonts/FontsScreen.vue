@@ -14,6 +14,7 @@ import type {FontSource, FontUpload} from '@/api/documentFonts'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {showToast} from '@/util/toast'
+import {DEFAULT_FONT} from './fontOptions'
 import FontUploadForm from './FontUploadForm.vue'
 import OwnFontList from './OwnFontList.vue'
 import ReachedFamilyList from './ReachedFamilyList.vue'
@@ -30,7 +31,7 @@ const props = defineProps<{
 
 const {t} = useI18n()
 
-const fonts = ref<DocumentFontsResponse>({own: [], reachable: []})
+const fonts = ref<DocumentFontsResponse>({own: [], reachable: [], defaultFamily: DEFAULT_FONT})
 const pending = ref<DocumentFontView | null>(null)
 
 const {loading, failure} = useAsyncLoader(async () => {

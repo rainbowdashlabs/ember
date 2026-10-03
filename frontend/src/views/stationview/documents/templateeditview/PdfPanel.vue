@@ -43,6 +43,7 @@ const props = defineProps<{
   placeholders: Placeholder[]
   labels: ReadonlyMap<string, string>
   fonts: readonly FontFamilyOption[]
+  defaultFamily: string
 }>()
 
 const emit = defineEmits<{
@@ -116,7 +117,8 @@ function removeChosen() {
                         @loaded="count => pageCount = count" @drawn="drawn => geometry = drawn"
                         @select="index => selected = index" @change="change"/>
         <PdfFieldSettings v-if="chosen" :model-value="chosen" :placeholders="placeholders" :legal="draft.legal"
-                          :fonts="fonts" @update:model-value="changeChosen" @remove="removeChosen"/>
+                          :fonts="fonts" :default-family="defaultFamily" @update:model-value="changeChosen"
+                          @remove="removeChosen"/>
         <MutedText v-else size="sm" tag="p">{{ t('documentTemplates.chooseField') }}</MutedText>
       </div>
       <FormBindingsPanel v-if="pdf && pdf.inspection.formFields.length > 0" v-model="draft.formBindings"

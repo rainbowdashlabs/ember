@@ -11,14 +11,17 @@ import {FontStyle} from '@/api/generated/schema'
 import {DEFAULT_FONT, previewStyle} from './fontOptions'
 
 /**
- * A line of sample text for a family. Uploaded fonts never reach the browser, so the line is set in
- * the browser's own sans serif font with the style's weight and slant, and says which font the document
- * prints instead.
+ * A line of sample text for a family. Neither uploaded fonts nor the default font ever reach the
+ * browser, so the line is set in the browser's own sans serif font with the style's weight and slant,
+ * and says which font the document prints instead.
  */
 const props = withDefaults(defineProps<{
   family: string | null
+  /** The family a text naming none prints in. */
+  defaultFamily?: string
   fontStyle?: FontStyle
 }>(), {
+  defaultFamily: DEFAULT_FONT,
   fontStyle: FontStyle.REGULAR,
 })
 
@@ -30,6 +33,6 @@ const drawn = computed(() => previewStyle(props.fontStyle))
 <template>
   <div class="space-y-1 rounded-md border border-dashed border-(--border) px-3 py-2" data-testid="font-preview">
     <p class="font-sans text-base" :style="drawn">{{ t('documentFonts.sample') }}</p>
-    <MutedText size="xs" tag="p">{{ t('documentFonts.previewNote', {family: family ?? DEFAULT_FONT}) }}</MutedText>
+    <MutedText size="xs" tag="p">{{ t('documentFonts.previewNote', {family: family ?? defaultFamily}) }}</MutedText>
   </div>
 </template>
