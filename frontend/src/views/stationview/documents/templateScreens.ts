@@ -33,9 +33,9 @@ export interface TemplateScreens {
 export const STATION_TEMPLATE_SCREENS: TemplateScreens = {
     source: stationTemplateSource,
     fonts: stationFontSource,
-    listRoute: 'member-document-templates',
-    editRoute: 'member-document-template-edit',
-    useRoute: 'member-document-template-use',
+    listRoute: 'documents-templates',
+    editRoute: 'documents-template-edit',
+    useRoute: 'documents-template-use',
     hasMembers: true,
 }
 

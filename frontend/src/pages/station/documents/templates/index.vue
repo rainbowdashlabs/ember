@@ -5,14 +5,14 @@
  */
 <script setup lang="ts">
 import TemplatesView from '~/views/stationview/documents/TemplatesView.vue'
-import {ASSOCIATION_TEMPLATE_SCREENS} from '~/views/stationview/documents/templateScreens'
+import {STATION_TEMPLATE_SCREENS} from '~/views/stationview/documents/templateScreens'
 
 definePageMeta({
-  layout: 'cluster',
-  name: 'cluster-document-templates',
+  layout: 'station',
+  name: 'documents-templates',
 })
 </script>
 
 <template>
-  <TemplatesView :screens="ASSOCIATION_TEMPLATE_SCREENS" />
+  <TemplatesView :screens="STATION_TEMPLATE_SCREENS" />
 </template>

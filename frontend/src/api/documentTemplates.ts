@@ -10,6 +10,7 @@ import type {
     DocumentTemplateRequest,
     DocumentTemplateResponse,
     DocumentTemplateSummary,
+    GeneratedDocumentEntry,
     GeneratedDocumentResponse,
     GenerationJobResponse,
     GenerationJobSummary,
@@ -176,6 +177,12 @@ export async function startJob(templateId: number, request: JobStartRequest): Pr
 /** The latest runs of the station, the newest first. */
 export async function listJobs(): Promise<GenerationJobSummary[]> {
     const res = await client.get<GenerationJobSummary[]>('/document-generation/jobs')
+    return res.data
+}
+
+/** Every document the station generated from a template, the newest first. */
+export async function generationLog(): Promise<GeneratedDocumentEntry[]> {
+    const res = await client.get<GeneratedDocumentEntry[]>('/document-generation/log')
     return res.data
 }
 

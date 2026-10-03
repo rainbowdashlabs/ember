@@ -4,15 +4,17 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import TemplatesView from '~/views/stationview/members/TemplatesView.vue'
-import {STATION_TEMPLATE_SCREENS} from '~/views/stationview/members/templateScreens'
-
+/**
+ * The document templates moved out of the members into the documents menu. This keeps the address
+ * they used to live at working, because somebody has it bookmarked.
+ */
 definePageMeta({
   layout: 'station',
-  name: 'member-document-templates',
+  name: 'member-document-templates-legacy',
+  redirect: '/station/documents/templates',
 })
 </script>
 
 <template>
-  <TemplatesView :screens="STATION_TEMPLATE_SCREENS" />
+  <div/>
 </template>

@@ -12,9 +12,10 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import DocumentFilterBar from './documentsview/DocumentFilterBar.vue'
-import DocumentPruneBar from './documentsview/DocumentPruneBar.vue'
-import {useDocumentPruning} from './documentsview/useDocumentPruning'
+import DocumentFilterBar from './storeview/DocumentFilterBar.vue'
+import DocumentPruneBar from './storeview/DocumentPruneBar.vue'
+import FilingRulesLink from './storeview/FilingRulesLink.vue'
+import {useDocumentPruning} from './storeview/useDocumentPruning'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import {showToast} from '@/util/toast'
 import {fromMember} from '@/components/input/select/memberOption'
@@ -220,8 +221,8 @@ async function selectAll() {
 </script>
 
 <template>
-  <ViewContent :title="t('pages.station-members-documents.title')"
-               :subtitle="t('pages.station-members-documents.subtitle')">
+  <ViewContent :title="t('pages.documents-store.title')"
+               :subtitle="t('pages.documents-store.subtitle')">
     <div class="space-y-4">
       <FailureAlert :failure="failure"/>
 
@@ -262,6 +263,8 @@ async function selectAll() {
         <MutedText size="sm" class="text-center">{{ t('documents.pageOf', {page: page + 1, pages}) }}</MutedText>
         <SecondaryButton :disabled="page + 1 >= pages" @click="page += 1">{{ t('common.next') }}</SecondaryButton>
       </ButtonRow>
+
+      <FilingRulesLink/>
     </div>
 
     <ConfirmDeleteModal

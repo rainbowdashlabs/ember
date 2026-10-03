@@ -50,21 +50,6 @@ function close() {
                  @navigate="close">
       {{ t('sidebar.tags') }}
     </SidebarLink>
-    <SidebarLink v-if="isModuleEnabled(StationModule.DOCUMENTS) && hasPermission(StationPermission.DOCUMENT_READ)"
-                 :icon="['fas', 'file']" name="member-documents" to="/station/members/documents"
-                 @navigate="close">
-      {{ t('sidebar.documents') }}
-    </SidebarLink>
-    <SidebarLink v-if="isModuleEnabled(StationModule.DOCUMENTS) && hasPermission(StationPermission.DOCUMENT_TEMPLATE_EDIT)"
-                 :icon="['fas', 'file-signature']" name="member-document-templates" to="/station/members/templates"
-                 @navigate="close">
-      {{ t('sidebar.documentTemplates') }}
-    </SidebarLink>
-    <SidebarLink v-if="isModuleEnabled(StationModule.DOCUMENTS) && hasPermission(StationPermission.DOCUMENT_TEMPLATE_EDIT)"
-                 :icon="['fas', 'font']" name="member-document-fonts" to="/station/members/fonts"
-                 @navigate="close">
-      {{ t('sidebar.documentFonts') }}
-    </SidebarLink>
     <SidebarLink v-if="canManageMembers()" data-onboarding="nav.members.type-permissions" :icon="['fas', 'shield']" name="members-type-permissions" to="/station/members/type-permissions"
                  @navigate="close">
       {{ t('sidebar.typePermissions') }}

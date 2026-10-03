@@ -567,6 +567,7 @@ export default {
         checklists: 'Checklisten',
         dashboard: 'Dashboard',
         discovery: 'Verzeichnis',
+        documents: 'Dokumente',
         events: 'Termine',
         federation: 'Föderation',
         forms: 'Umfragen',
@@ -639,7 +640,10 @@ export default {
         inventoryLendingShares: 'Ausleih-Angebot',
         tags: 'Tags',
         documents: 'Dokumente',
+        ownDocuments: 'Meine Dokumente',
+        documentStore: 'Ablage',
         documentTemplates: 'Vorlagen',
+        generatedDocuments: 'Erstellte Dokumente',
         documentFonts: 'Schriftarten',
         typePermissions: 'Typberechtigungen',
         formerMembers: 'Ehemalige',
@@ -1055,15 +1059,23 @@ export default {
             title: 'Anwesenheits Konfiguration',
             subtitle: 'Anwesenheitsfelder und Einstellungen verwalten',
         },
-        'station-members-documents': {
-            title: 'Dokumente',
+        'documents-own': {
+            title: 'Meine Dokumente',
+            subtitle: 'Deine Dokumente und die deiner Kinder, und Dokumente, die du selbst erstellen kannst',
+        },
+        'documents-store': {
+            title: 'Ablage',
             subtitle: 'Die Dokumentenablage der Wache',
         },
-        'member-document-templates': {
+        'documents-generated': {
+            title: 'Erstellte Dokumente',
+            subtitle: 'Wer welches Dokument aus welcher Vorlage bekommen hat',
+        },
+        'documents-templates': {
             title: 'Dokumentvorlagen',
             subtitle: 'Briefe und PDFs, aus denen Dokumente für Mitglieder erstellt werden',
         },
-        'member-document-fonts': {
+        'documents-fonts': {
             title: 'Schriftarten',
             subtitle: 'Die Schriften, in denen die Dokumentvorlagen der Wache gedruckt werden',
         },
@@ -1075,12 +1087,12 @@ export default {
             title: 'Schriftarten',
             subtitle: 'Die Schriften, die jeder Wache für Dokumentvorlagen zur Verfügung stehen',
         },
-        'member-document-template-edit': {
+        'documents-template-edit': {
             title: 'Neue Dokumentvorlage',
             titleNamed: 'Vorlage: {name}',
             subtitle: 'Briefkopf, Text, PDF-Felder und Platzhalter einer Vorlage',
         },
-        'member-document-template-use': {
+        'documents-template-use': {
             title: 'Vorlage des Verbands',
             titleNamed: 'Vorlage des Verbands: {name}',
             subtitle: 'Ob und für wen die Wache diese Vorlage zum Selbst-Erstellen anbietet',
@@ -1989,6 +2001,7 @@ export default {
     },
     profile: {
         documentsOf: 'Dokumente von {name}',
+        createDocuments: 'Dokumente erstellen unter Meine Dokumente',
         avatar: 'Profilbild',
         uploadAvatar: 'Bild hochladen',
         avatarHint: 'PNG, JPEG oder WebP.',
@@ -2471,6 +2484,7 @@ export default {
         pruneTitle: 'Dokumente löschen',
         pruneMessage: 'Die {count} ausgewählten Dokumente werden endgültig gelöscht, auch die zum Behalten markierten.',
         pruned: '{count} Dokumente gelöscht.',
+        filingRules: 'Regeln für Anhänge aus Postfächern',
     },
     documentFonts: {
         defaultFont: 'Standard (Liberation Sans)',
@@ -2515,6 +2529,16 @@ export default {
             + 'Namen ersetzt sie.',
         deleteConfirm: 'Den Schnitt {style} der Schrift {family} löschen?',
         deleted: 'Schrift gelöscht.',
+    },
+    generatedDocuments: {
+        member: 'Mitglied',
+        template: 'Vorlage',
+        generatedBy: 'Erstellt von',
+        generatedAt: 'Erstellt am',
+        selfService: 'Selbst erstellt',
+        filed: 'In den Dokumenten',
+        gone: 'Nicht mehr da',
+        empty: 'Noch wurde kein Dokument aus einer Vorlage erstellt.',
     },
     documentTemplates: {
         tabGeneral: 'Allgemein',
@@ -2593,7 +2617,7 @@ export default {
         fontSize: 'Schriftgröße (pt)',
         selfServiceTitle: 'Selbst erstellen',
         selfService: 'Mitglieder können es selbst erstellen',
-        selfServiceHint: 'Für sich selbst und als Erziehungsberechtigte für jedes Kind, im eigenen Profil.',
+        selfServiceHint: 'Für sich selbst und als Erziehungsberechtigte für jedes Kind, unter Dokumente und Meine Dokumente.',
         selfServiceOffered: 'Den Wachen zum Selbst-Erstellen anbieten',
         selfServiceOfferedHint: 'Jede Wache entscheidet selbst, ob und für wen ihre Mitglieder die Vorlage selbst erstellen. Die Wartezeit gilt für alle.',
         ofAssociation: 'Vom Verband',

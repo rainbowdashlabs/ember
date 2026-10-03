@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import TemplateEditorHelp from '~/views/helpcenter/stationview/members/TemplateEditorHelp.vue'
+import TemplateEditorHelp from '~/views/helpcenter/stationview/documents/TemplateEditorHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter-cluster',

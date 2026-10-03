@@ -4,14 +4,17 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import TemplateUseView from '~/views/stationview/members/TemplateUseView.vue'
-
+/**
+ * How the station uses a template of its association moved with the templates into the documents
+ * menu. This keeps the address of every such template working, because somebody has one bookmarked.
+ */
 definePageMeta({
   layout: 'station',
-  name: 'member-document-template-use',
+  name: 'member-document-template-use-legacy',
+  redirect: to => `/station/documents/templates/use/${to.params.id}`,
 })
 </script>
 
 <template>
-  <TemplateUseView />
+  <div/>
 </template>

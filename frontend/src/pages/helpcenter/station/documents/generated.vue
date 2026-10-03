@@ -4,14 +4,14 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import TemplatesHelp from '~/views/helpcenter/stationview/members/TemplatesHelp.vue'
+import GeneratedHelp from '~/views/helpcenter/stationview/documents/GeneratedHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',
-  name: 'help-member-document-templates',
+  name: 'help-documents-generated',
 })
 </script>
 
 <template>
-  <TemplatesHelp />
+  <GeneratedHelp />
 </template>

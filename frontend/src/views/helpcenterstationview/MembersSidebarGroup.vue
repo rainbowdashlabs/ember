@@ -59,22 +59,6 @@ const {t} = useI18n()
                  to="/helpcenter/station/members/changes" @navigate="close">
       {{ t('sidebar.changes') }}
     </SidebarLink>
-    <SidebarExpandableLink :icon="['fas', 'file']" name="help-member-documents"
-                           to="/helpcenter/station/members/documents" @navigate="close">
-      <template #label>{{ t('sidebar.documents') }}</template>
-      <SidebarLink :icon="['fas', 'file-signature']" name="help-member-document-templates"
-                   to="/helpcenter/station/members/templates" @navigate="close">
-        {{ t('sidebar.documentTemplates') }}
-      </SidebarLink>
-      <SidebarLink :icon="['fas', 'pen']" name="help-member-document-template-edit"
-                   to="/helpcenter/station/members/template-editor" @navigate="close">
-        {{ t('sidebar.edit') }}
-      </SidebarLink>
-      <SidebarLink :icon="['fas', 'font']" name="help-member-document-fonts"
-                   to="/helpcenter/station/members/fonts" @navigate="close">
-        {{ t('sidebar.documentFonts') }}
-      </SidebarLink>
-    </SidebarExpandableLink>
     <SidebarLink :icon="['fas', 'user-slash']" name="help-members-former"
                  to="/helpcenter/station/members/former" @navigate="close">
       {{ t('sidebar.formerMembers') }}

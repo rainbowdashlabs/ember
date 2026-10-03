@@ -1690,8 +1690,8 @@ volumes:
             missingText: 'Fehlen Angaben, nennt Ember sie vor dem Erstellen. Du kannst trotzdem erstellen, die '
                 + 'Lücken stehen dann als Linien zum Ausfüllen im Dokument.',
             selfServiceTitle: 'Selbst erstellen lassen',
-            selfServiceText: 'Ist eine Vorlage zum Selbst-Erstellen freigegeben, finden Mitglieder sie in ihrem Profil '
-                + 'neben ihren Dokumenten. Erziehungsberechtigte erstellen sie dort für jedes Kind. Fehlen Angaben im '
+            selfServiceText: 'Ist eine Vorlage zum Selbst-Erstellen freigegeben, finden Mitglieder sie unter Dokumente → '
+                + 'Meine Dokumente neben ihren Dokumenten. Erziehungsberechtigte erstellen sie dort für jedes Kind. Fehlen Angaben im '
                 + 'Profil, erklärt Ember, welche, und erstellt erst, wenn sie eingetragen sind.',
             cooldownText: 'Damit niemand dasselbe Dokument ständig neu erstellt, hat jede Vorlage eine Wartezeit, '
                 + 'normal 30 Tage. Danach ist es wieder möglich, und Ember zeigt bis dahin das Datum an.',
@@ -1759,7 +1759,7 @@ volumes:
                 + 'sie für Mitglieder auf deren Seite, ohne etwas einzustellen. Hier legt die Wache nur fest, ob ihre '
                 + 'Mitglieder sie selbst erstellen.',
             selfServiceTitle: 'Selbst erstellen lassen',
-            selfServiceText: 'Mit dem Schalter erscheint die Vorlage im Profil der Mitglieder. Ohne Auswahl bei „Für '
+            selfServiceText: 'Mit dem Schalter erscheint die Vorlage bei den Mitgliedern unter Meine Dokumente. Ohne Auswahl bei „Für '
                 + 'wen" gilt sie für alle Mitglieder, sonst nur für die gewählten Gruppen, Mitgliedsarten, Tags oder '
                 + 'Personen. Die Wartezeit legt der Verband fest.',
             offeredText: 'Bietet der Verband die Vorlage nicht zum Selbst-Erstellen an, bleibt die Einstellung ohne '
@@ -1834,7 +1834,7 @@ volumes:
                 + 'für den Satzanfang. Sein/ihr gibt es zusätzlich mit Endung, etwa seine/ihre oder seinen/ihren. '
                 + 'Steht der Vorname, wird beim Besitz „Lenas" geschrieben, ohne Endung.',
             selfServiceTitle: 'Selbst erstellen',
-            selfServiceText: 'Gib die Vorlage frei, damit Mitglieder sie im Profil selbst erstellen. Lege fest, für '
+            selfServiceText: 'Gib die Vorlage frei, damit Mitglieder sie unter Meine Dokumente selbst erstellen. Lege fest, für '
                 + 'wen das gilt und wie viele Tage bis zum nächsten Mal vergehen müssen.',
             previewTitle: 'Vorschau',
             previewText: 'Die Vorschau zeigt den Brief so, wie er gedruckt wird. Ohne Mitglied stehen die Namen der '
@@ -1842,14 +1842,14 @@ volumes:
             tip: 'Speichere nach jeder Änderung: Erstellt wird immer aus der gespeicherten Fassung.',
         },
         documents: {
-            title: 'Dokumente',
+            title: 'Ablage',
             subtitle: 'Die Ablage der Wache und die Dokumente einzelner Mitglieder',
             whatIs: 'Wofür die Ablage da ist',
             whatIsText: 'Hier liegen Dateien, die zu Mitgliedern gehören: Einverständnisse, '
                 + 'Nachweise, Verträge. Ein Dokument kann zu mehreren Mitgliedern gehören, und es '
                 + 'kann auch ganz ohne Zuordnung in der Ablage liegen.',
-            whatIsText2: 'Jedes Mitglied hat im Profil einen eigenen Reiter mit seinen Dokumenten. '
-                + 'Unter Mitglieder → Dokumente siehst du die gesamte Ablage, seitenweise, mit '
+            whatIsText2: 'Jedes Mitglied findet seine Dokumente im Profil und unter Dokumente → Meine Dokumente. '
+                + 'Unter Dokumente → Ablage siehst du die gesamte Ablage, seitenweise, mit '
                 + 'Suche und Filter auf ein Mitglied.',
             rightsTitle: 'Wer was darf',
             rightsRead: 'Die eigenen Dokumente darf jeder lesen, dafür braucht es kein Recht.',
@@ -1905,8 +1905,51 @@ volumes:
                 + 'auswählen" jedes, das der Filter findet, über alle Seiten. „Ausgewählte '
                 + 'löschen" entfernt sie nach einer Rückfrage in einem Zug, auch die zum Behalten '
                 + 'markierten. Dafür brauchst du „Mitgliederdokumente verwalten".',
+            filingRulesTitle: 'Dokumente aus Postfächern',
+            filingRulesText: 'Ember kann Anhänge aus E-Mail-Postfächern in die Ablage legen. Die Regeln dafür '
+                + 'gehören zu den Postfächern und stehen unter Verwalten → Post-Import. Wer sie ändern darf, '
+                + 'findet unter der Ablage einen Link dorthin.',
             tip: 'Ein Dokument, das mehrere betrifft, lädst du einmal hoch und ordnest es beim '
                 + 'Öffnen den weiteren Mitgliedern zu. So bleibt es eine Datei statt drei.',
+        },
+        documentsOverview: {
+            title: 'Dokumente',
+            subtitle: 'Deine Dokumente, die Ablage der Wache und die Vorlagen',
+            whatIs: 'Was du hier findest',
+            whatIsText: 'Unter Meine Dokumente siehst du deine eigenen Dokumente. Bist du für Kinder '
+                + 'verantwortlich, stehen ihre Dokumente darunter, jeweils mit ihrem Namen.',
+            createTitle: 'Selbst ein Dokument erstellen',
+            createText: 'Unter jeder Liste steht „Dokument erstellen" mit den Vorlagen, die die Wache dafür '
+                + 'freigegeben hat. Ein Klick erstellt das PDF und legt es gleich in die Liste. Fehlen Angaben in '
+                + 'deinem Profil, sagt Ember dir, welche.',
+            profileText: 'Im Profil siehst du deine Dokumente weiterhin. Erstellt werden sie hier.',
+            exampleTitle: 'So sieht ein Angebot aus',
+            exampleOffer: 'Teilnahmebescheinigung',
+            pagesTitle: 'Die Seiten im Bereich Dokumente',
+            pageOwn: 'Deine Dokumente und die deiner Kinder, mit allem, was du selbst erstellen kannst.',
+            pageStore: 'Die gesamte Ablage der Wache, mit Suche und Filtern.',
+            pageTemplates: 'Briefe und PDF-Formulare, aus denen Dokumente für Mitglieder entstehen.',
+            pageGenerated: 'Wer welches Dokument aus welcher Vorlage bekommen hat.',
+            pageFonts: 'Eigene Schriften für die Vorlagen.',
+            tip: 'Die Ablage, die Vorlagen und die Liste der erstellten Dokumente siehst du nur mit den passenden '
+                + 'Rechten. Deine eigenen Dokumente siehst du immer.',
+        },
+        generatedDocuments: {
+            title: 'Erstellte Dokumente',
+            subtitle: 'Wer welches Dokument aus welcher Vorlage bekommen hat',
+            whatIs: 'Was die Liste zeigt',
+            whatIsText: 'Jedes Dokument, das aus einer Vorlage erstellt wurde, steht hier: für wen, aus welcher '
+                + 'Vorlage und aus welcher Fassung, von wem und wann. Auch Vorlagen des Verbands sind dabei.',
+            versionText: 'Ändert jemand eine Vorlage, bleiben fertige Dokumente, wie sie sind. An der Version '
+                + 'siehst du, welche Fassung ein Mitglied hat.',
+            howTo: 'Suchen und filtern',
+            howToText: 'Sortiere über die Spaltenköpfe und filtere zum Beispiel nach einer Vorlage oder nach '
+                + 'selbst erstellten Dokumenten. Über das Spalten-Symbol blendest du Spalten ein und aus.',
+            goneText: 'Ist ein Mitglied gelöscht, steht dort „Nicht mehr da". „In den Dokumenten" sagt, ob das '
+                + 'Dokument noch abgelegt ist.',
+            rightsText: 'Die Liste sieht, wer „Mitgliederdokumente einsehen" hat.',
+            tip: 'Willst du ein Dokument erneut erstellen, öffne die Seite des Mitglieds und wähle „Dokument '
+                + 'erstellen".',
         },
         membersTags: {
             title: 'Tags',
@@ -5238,11 +5281,10 @@ volumes:
             whatIsText: 'Im Profil siehst du deine persönlichen Daten, deine zugewiesene Ausrüstung, deine Abwesenheiten und deine Einstellungen. Hier kannst du dein Profil vervollständigen und deine Benachrichtigungen konfigurieren.',
             pagesTitle: 'Was findest du hier?',
             pagesText: 'Dein Profil mit allen Feldern, eine Übersicht deiner Abwesenheiten, die Profile deiner verwalteten Mitglieder, dein persönliches Inventar und die Benachrichtigungs-Einstellungen.',
-            documentsTitle: 'Dokumente selbst erstellen',
-            documentsText: 'Unter deinen Dokumenten stehen die Dokumente, die du selbst erstellen kannst, etwa eine '
-                + 'Teilnahmebescheinigung. Als Erziehungsberechtigte findest du sie auch bei jedem Kind. Fehlt im Profil '
-                + 'noch etwas, steht dort, was. Ein erstelltes Dokument liegt danach sofort bei den Dokumenten. Dasselbe '
-                + 'Dokument lässt sich erst nach einer Wartezeit wieder erstellen, das Datum steht dabei.',
+            documentsTitle: 'Deine Dokumente',
+            documentsText: 'Im Profil stehen deine Dokumente, als Erziehungsberechtigte auch die jedes Kindes. '
+                + 'Dokumente selbst erstellen, etwa eine Teilnahmebescheinigung, kannst du unter Dokumente → Meine '
+                + 'Dokumente. Der Link unter deinen Dokumenten führt dorthin.',
             overviewTip: 'Halte dein Profil aktuell - Pflichtfelder sind mit einem * markiert.',
         },
         manageOverview: {

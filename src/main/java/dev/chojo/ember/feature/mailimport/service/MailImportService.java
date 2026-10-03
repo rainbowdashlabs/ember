@@ -191,7 +191,7 @@ public class MailImportService {
                     StationAudience.holders(mailbox.stationId(), StationPermission.DOCUMENT_READ),
                     NotificationType.MAIL_IMPORT_UNBOUND,
                     NotificationData.of(
-                            new NotificationParams.MailImportUnbound(unbound), NotificationLinks.memberDocuments()),
+                            new NotificationParams.MailImportUnbound(unbound), NotificationLinks.documentStore()),
                     Delivery.EVERY_TIME);
         } catch (Exception e) {
             log.warn("Could not say what arrived unbound for station {}", mailbox.stationId(), e);

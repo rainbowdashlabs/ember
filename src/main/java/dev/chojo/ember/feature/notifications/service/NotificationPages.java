@@ -44,7 +44,7 @@ final class NotificationPages {
             Map.entry("inventory-self-check-review", "/station/inventory/checks/self/{id}"),
             Map.entry("members-detail", "/station/members/detail/{id}"),
             Map.entry("members-list", "/station/members/list"),
-            Map.entry("member-documents", "/station/members/documents"),
+            Map.entry("documents-store", "/station/documents/store"),
             Map.entry("waiting-lists", "/station/members/waiting-lists"),
             Map.entry("profile", "/station/profile"),
             Map.entry("profile-managed", "/station/profile/managed"),

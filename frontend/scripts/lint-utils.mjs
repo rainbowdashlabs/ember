@@ -80,7 +80,7 @@ export function parseRoutes() {
         const metaBlock = content.match(/definePageMeta\(\{([\s\S]*?)\}\)/)
         const nameMatch = metaBlock && metaBlock[1].match(/name:\s*'([^']+)'/)
         if (!nameMatch) continue
-        if (/redirect:\s*'/.test(metaBlock[1])) continue
+        if (/\bredirect:/.test(metaBlock[1])) continue
         const compMatch = content.match(/import\s+\w+\s+from\s+'[~@]\/(views\/[^']+)'/)
         routes.push({
             name: nameMatch[1],

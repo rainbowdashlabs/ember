@@ -56,6 +56,10 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.documents.pruneText2') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.documents.filingRulesTitle')">
+      <p>{{ t('helpCenter.documents.filingRulesText') }}</p>
+    </HelpSection>
+
     <HelpTip>{{ t('helpCenter.documents.tip') }}</HelpTip>
   </HelpArticle>
 </template>

@@ -4,15 +4,17 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import TemplateEditView from '~/views/stationview/members/TemplateEditView.vue'
-import {STATION_TEMPLATE_SCREENS} from '~/views/stationview/members/templateScreens'
-
+/**
+ * The template editor moved with the templates into the documents menu. This keeps the address of
+ * every template working, because somebody has one bookmarked.
+ */
 definePageMeta({
   layout: 'station',
-  name: 'member-document-template-edit',
+  name: 'member-document-template-edit-legacy',
+  redirect: to => ({path: `/station/documents/templates/${to.params.id}`, query: to.query}),
 })
 </script>
 
 <template>
-  <TemplateEditView :screens="STATION_TEMPLATE_SCREENS" />
+  <div/>
 </template>

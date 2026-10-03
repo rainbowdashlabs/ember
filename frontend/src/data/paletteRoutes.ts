@@ -57,6 +57,12 @@ export const PALETTE_ROUTES: PaletteRouteEntry[] = [
     {scope: 'station', to: '/station/members/config', labelKey: 'sidebar.membersConfig', icon: 'users-gear', permission: StationPermission.MEMBER_FIELDS},
     {scope: 'station', to: '/station/members/type-permissions', labelKey: 'sidebar.typePermissions', icon: 'shield', permission: StationPermission.MEMBER_MANAGER},
 
+    {scope: 'station', to: '/station/documents', labelKey: 'sidebar.ownDocuments', icon: 'file', module: StationModule.DOCUMENTS},
+    {scope: 'station', to: '/station/documents/store', labelKey: 'sidebar.documentStore', icon: 'box-archive', module: StationModule.DOCUMENTS, permission: StationPermission.DOCUMENT_READ},
+    {scope: 'station', to: '/station/documents/templates', labelKey: 'sidebar.documentTemplates', icon: 'file-signature', module: StationModule.DOCUMENTS, permission: StationPermission.DOCUMENT_TEMPLATE_EDIT},
+    {scope: 'station', to: '/station/documents/generated', labelKey: 'sidebar.generatedDocuments', icon: 'clock-rotate-left', module: StationModule.DOCUMENTS, permission: StationPermission.DOCUMENT_READ_MEMBER},
+    {scope: 'station', to: '/station/documents/fonts', labelKey: 'sidebar.documentFonts', icon: 'font', module: StationModule.DOCUMENTS, permission: StationPermission.DOCUMENT_TEMPLATE_EDIT},
+
     {scope: 'station', to: '/station/inventory', labelKey: 'sidebar.inventory', icon: 'boxes-stacked', module: StationModule.INVENTORY, anyPermission: [StationPermission.INVENTORY_READ, StationPermission.INVENTORY_EDIT, StationPermission.INVENTORY_MANAGER]},
     {scope: 'station', to: '/station/inventory/my', labelKey: 'sidebar.myInventory', icon: 'boxes-stacked', module: StationModule.INVENTORY},
     {scope: 'station', to: '/station/inventory/storage', labelKey: 'sidebar.inventoryStorage', icon: 'warehouse', module: StationModule.INVENTORY, permission: StationPermission.INVENTORY_READ},
