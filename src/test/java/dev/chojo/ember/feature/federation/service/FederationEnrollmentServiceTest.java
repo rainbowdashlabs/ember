@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.federation.route.RemoteFederationRoutes.Handshake
 import dev.chojo.ember.feature.federation.route.RemoteFederationRoutes.HandshakeResponse;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import dev.chojo.ember.util.TestFederationServices;
 import dev.chojo.ember.util.TestStationKeys;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -114,8 +115,8 @@ class FederationEnrollmentServiceTest extends RepositoryTestBase {
         signingService = new FederationSigningService();
         var urlValidator = new RemoteUrlValidator(new Federation(), new Demo());
         keys = TestStationKeys.store();
-        serviceHere = new FederationService(federationRepo, stationRepo, keys, api(HOST_HERE));
-        serviceThere = new FederationService(federationRepo, stationRepo, keys, api(HOST_THERE));
+        serviceHere = TestFederationServices.of(federationRepo, stationRepo, keys, api(HOST_HERE));
+        serviceThere = TestFederationServices.of(federationRepo, stationRepo, keys, api(HOST_THERE));
         httpClient = mock(FederationHttpClient.class);
         var signer = new StationSigner(keys, signingService);
         outgoingRequests = mock(OutgoingPairRequestService.class);

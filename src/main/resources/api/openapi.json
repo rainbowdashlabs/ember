@@ -32553,6 +32553,56 @@
                 }
               }
             }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PairRequestRefusal"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Forbidden",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PairRequestRefusal"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PairRequestRefusal"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PairRequestRefusal"
+                }
+              }
+            }
+          },
+          "429" : {
+            "description" : "Too Many Requests",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PairRequestRefusal"
+                }
+              }
+            }
           }
         },
         "requestBody" : {
@@ -32580,6 +32630,36 @@
                 }
               }
             }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PairRequestRefusal"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Forbidden",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PairRequestRefusal"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PairRequestRefusal"
+                }
+              }
+            }
           }
         },
         "requestBody" : {
@@ -32604,6 +32684,36 @@
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/PairRequestAnswer"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PairRequestRefusal"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Forbidden",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PairRequestRefusal"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PairRequestRefusal"
                 }
               }
             }
@@ -59287,6 +59397,10 @@
           }
         }
       },
+      "PairRequestReason" : {
+        "type" : "string",
+        "enum" : [ "INCOMPLETE", "TOO_LARGE", "OUT_OF_TIME", "INSTANCE_UNKNOWN", "INSTANCE_BLOCKED", "INSTANCE_SIGNATURE_NOT_GOOD", "STATION_SIGNATURE_NOT_GOOD", "ADDRESS_NOT_THE_INSTANCES", "CONTRACT_MISMATCH", "TOO_MANY_FROM_INSTANCE", "TOO_MANY_FOR_STATION", "STATION_NOT_HERE", "ALREADY_PARTNERS", "ALREADY_WAITING", "DECLINED_RECENTLY", "STATUS_NOT_HERE", "ANSWER_NOT_EXPECTED", "ANSWER_SIGNATURE_NOT_GOOD" ]
+      },
       "PairRequestReceipt" : {
         "type" : "object",
         "properties" : {
@@ -59295,6 +59409,28 @@
           }
         },
         "required" : [ "stationName" ]
+      },
+      "PairRequestRefusal" : {
+        "type" : "object",
+        "properties" : {
+          "error" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "reason" : {
+            "$ref" : "#/components/schemas/PairRequestReason"
+          },
+          "retryAfterSeconds" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        },
+        "required" : [ "error", "message", "code", "reason" ]
       },
       "PairRequestResponse" : {
         "type" : "object",

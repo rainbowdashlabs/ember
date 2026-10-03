@@ -6,7 +6,6 @@
 package dev.chojo.ember.feature.inventory.service;
 
 import dev.chojo.ember.api.refusal.RefusalResponse;
-import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.equipment.repository.EquipmentAvailabilityRepository;
@@ -30,7 +29,7 @@ import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import dev.chojo.ember.util.TestStationKeys;
+import dev.chojo.ember.util.TestFederationServices;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -66,7 +65,7 @@ class BorrowedGearServiceTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         federationRepo = new FederationRepository();
-        federationService = new FederationService(federationRepo, stationRepo, TestStationKeys.store(), new Api());
+        federationService = TestFederationServices.of(federationRepo, stationRepo);
         var transport = new FederationTestTransport(mock(FederationHttpClient.class), federationRepo, stationRepo);
         lending = new LendingService(
                 new LendingRepository(),

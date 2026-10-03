@@ -9,13 +9,13 @@ import dev.chojo.ember.api.refusal.DiscoveryRefusal;
 import dev.chojo.ember.api.refusal.FederationRefusal;
 import dev.chojo.ember.api.refusal.Refusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
-import dev.chojo.ember.auth.signing.DatabaseReplayStore;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.FederationRequestAnswered;
 import dev.chojo.ember.feature.federation.contract.FederationContractVersions;
 import dev.chojo.ember.feature.federation.entity.PairRequest;
 import dev.chojo.ember.feature.federation.entity.PairRequestDirection;
+import dev.chojo.ember.feature.federation.entity.PairRequestReason;
 import dev.chojo.ember.feature.federation.entity.PairRequestStatus;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.repository.PairRequestRepository;
@@ -24,21 +24,24 @@ import dev.chojo.ember.feature.federation.service.PairRequestHttpClient.Delivery
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.lifecycle.Schedule;
 import dev.chojo.ember.lifecycle.ScheduledTask;
+import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.lifecycle.TaskSource;
+import dev.chojo.ember.util.WebOrigins;
 import io.javalin.http.HttpStatus;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
-import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 /**
  * Requests to federate that stations here send to stations of other instances.
@@ -47,6 +50,11 @@ import java.util.UUID;
  * other instance has taken it, so a request that never arrived is never shown as waiting. The other
  * instance's refusal reaches the person who sent it under its own name; an instance that predates
  * these requests is told apart from one that refused, because only the second can be asked again.
+ *
+ * <p>Where a request stands is asked in the background, never while somebody waits: when the
+ * federation page opens, for the requests not asked about for a while, and on a schedule for every
+ * request still waiting. The scheduled round asks the instances in parallel, each instance's requests
+ * one after the other.
  */
 @Singleton
 public class OutgoingPairRequestService implements TaskSource {
@@ -59,17 +67,20 @@ public class OutgoingPairRequestService implements TaskSource {
     static final Duration SCHEDULED_ASK_AFTER = Duration.ofMinutes(10);
 
     private static final String REPLAY_SCOPE = "federation-pair-answer";
+    private static final PairRequestGuards.StandingRefusals STANDING = new PairRequestGuards.StandingRefusals(
+            DiscoveryRefusal.ALREADY_FEDERATED, DiscoveryRefusal.FEDERATION_REQUEST_ALREADY_SENT);
 
     private final PairRequestRepository requests;
     private final FederationRepository partners;
     private final StationRepository stations;
     private final PairRequestPeers peers;
     private final PairRequestSignatures signatures;
+    private final PairRequestGuards guards;
     private final PairRequestHttpClient httpClient;
     private final StationSigner signer;
     private final RemoteUrlValidator urlValidator;
     private final FederationService federationService;
-    private final DatabaseReplayStore replayStore;
+    private final TaskScheduler scheduler;
     private final DomainEventBus eventBus;
     private final String localBaseUrl;
 
@@ -80,25 +91,27 @@ public class OutgoingPairRequestService implements TaskSource {
             StationRepository stations,
             PairRequestPeers peers,
             PairRequestSignatures signatures,
+            PairRequestGuards guards,
             PairRequestHttpClient httpClient,
             StationSigner signer,
             RemoteUrlValidator urlValidator,
             FederationService federationService,
-            DatabaseReplayStore replayStore,
+            TaskScheduler scheduler,
             DomainEventBus eventBus,
             Api apiConfig) {
-        this.eventBus = eventBus;
         this.requests = requests;
         this.partners = partners;
         this.stations = stations;
         this.peers = peers;
         this.signatures = signatures;
+        this.guards = guards;
         this.httpClient = httpClient;
         this.signer = signer;
         this.urlValidator = urlValidator;
         this.federationService = federationService;
-        this.replayStore = replayStore;
-        this.localBaseUrl = stripTrailingSlash(apiConfig.baseUrl());
+        this.scheduler = scheduler;
+        this.eventBus = eventBus;
+        this.localBaseUrl = WebOrigins.stripTrailingSlash(apiConfig.baseUrl());
     }
 
     /**
@@ -113,30 +126,67 @@ public class OutgoingPairRequestService implements TaskSource {
                 this::askAllDue));
     }
 
+    /**
+     * Asks about every due request: every instance at once, each instance's requests one after the
+     * other, and each asking station's identity read once.
+     */
     private void askAllDue() {
-        for (var request : requests.findPendingOutgoingDue(Instant.now().minus(SCHEDULED_ASK_AFTER))) {
-            ask(request);
+        var due = requests.findPendingOutgoingDue(Instant.now().minus(SCHEDULED_ASK_AFTER));
+        Map<Integer, UUID> stationUids = new HashMap<>();
+        for (var request : due) {
+            stationUids.computeIfAbsent(request.stationId(), stations::requireUid);
+        }
+        var byInstance = due.stream().collect(Collectors.groupingBy(PairRequest::remoteBaseUrl));
+        var rounds = byInstance.values().stream()
+                .map(batch -> CompletableFuture.runAsync(
+                        () -> batch.forEach(request -> ask(request, stationUids.get(request.stationId()))),
+                        scheduler.executor()))
+                .toList();
+        for (var round : rounds) {
+            round.exceptionally(failure -> {
+                        log.warn("Asking about requests to federate failed", failure);
+                        return null;
+                    })
+                    .join();
         }
     }
 
     /**
      * What a station here asked of other instances: everything still waiting, and what was answered
-     * within the last 30 days. Requests not asked about for a while are asked about first, so the
-     * page shows an answer that has arrived over there even when its push did not reach here.
+     * within the last 30 days, as stored. Requests not asked about for a while are handed to the
+     * background to be asked about, so an answer that arrived over there while its push did not
+     * reach here shows the next time the page is read.
      *
      * @param stationId the asking station
      * @return the requests, newest first
      */
     public List<PairRequest> outgoing(int stationId) {
-        var answeredSince = Instant.now().minus(PairRequest.DECLINE_COOLDOWN);
-        var due = Instant.now().minus(ASK_AGAIN_AFTER);
-        for (var request : requests.findOutgoing(stationId, answeredSince)) {
-            var checked = request.checkedAt();
-            if (request.status() == PairRequestStatus.PENDING && (checked == null || checked.isBefore(due))) {
-                ask(request);
-            }
+        var listed = requests.findOutgoing(stationId, Instant.now().minus(PairRequest.DECLINE_COOLDOWN));
+        var askedBefore = Instant.now().minus(ASK_AGAIN_AFTER);
+        var due = listed.stream().filter(request -> isDue(request, askedBefore)).toList();
+        if (!due.isEmpty()) {
+            UUID stationUid = stations.requireUid(stationId);
+            scheduler.background(
+                    "federation-pair-request-page-status", () -> due.forEach(request -> ask(request, stationUid)));
         }
-        return requests.findOutgoing(stationId, answeredSince);
+        return listed;
+    }
+
+    private static boolean isDue(PairRequest request, Instant askedBefore) {
+        Instant checked = request.checkedAt();
+        return request.status() == PairRequestStatus.PENDING && (checked == null || checked.isBefore(askedBefore));
+    }
+
+    /**
+     * The requests a station here sent that still wait for their answer.
+     *
+     * @param stationId the asking station
+     * @return the waiting requests
+     */
+    public List<PairRequest> waiting(int stationId) {
+        return requests.findOutgoing(stationId, Instant.now()).stream()
+                .filter(request -> request.status() == PairRequestStatus.PENDING)
+                .toList();
     }
 
     /**
@@ -146,8 +196,8 @@ public class OutgoingPairRequestService implements TaskSource {
      * @param answer the signed answer
      */
     public void receiveAnswer(PairRequestAnswer answer) {
-        requireComplete(answer);
-        IncomingPairRequestService.requireInTime(answer.issuedAt());
+        PairRequestGuards.requireComplete(answer);
+        PairRequestGuards.requireInTime(answer.issuedAt());
         var request = stations.findByUid(answer.requesterStationUid())
                 .flatMap(station ->
                         requests.find(station.id(), PairRequestDirection.OUTGOING, answer.targetStationUid()))
@@ -161,9 +211,8 @@ public class OutgoingPairRequestService implements TaskSource {
      * pushed. Nothing that goes wrong here is the asking person's doing, so it is logged and the
      * request stays as it was.
      */
-    private void ask(PairRequest request) {
+    private void ask(PairRequest request, UUID stationUid) {
         requests.markChecked(request.id());
-        UUID stationUid = stations.requireUid(request.stationId());
         var query = signatures.query(request.stationId(), stationUid, request.remoteStationUid());
         var answer = httpClient
                 .askStatus(request.remoteBaseUrl(), query)
@@ -171,8 +220,8 @@ public class OutgoingPairRequestService implements TaskSource {
                         && request.remoteStationUid().equals(found.targetStationUid()));
         if (answer.isEmpty()) return;
         try {
-            requireComplete(answer.get());
-            IncomingPairRequestService.requireInTime(answer.get().issuedAt());
+            PairRequestGuards.requireComplete(answer.get());
+            PairRequestGuards.requireInTime(answer.get().issuedAt());
             apply(request, answer.get());
         } catch (RefusalResponse refused) {
             log.warn(
@@ -187,14 +236,7 @@ public class OutgoingPairRequestService implements TaskSource {
         if (!signatures.holds(answer, request.remoteInstanceKey())) {
             throw FederationRefusal.PAIR_ANSWER_SIGNATURE_NOT_GOOD.raise();
         }
-        if (!replayStore.firstSighting(
-                REPLAY_SCOPE,
-                answer.nonce(),
-                answer.issuedAt()
-                        .plus(IncomingPairRequestService.MAX_DRIFT)
-                        .plus(IncomingPairRequestService.MAX_DRIFT))) {
-            throw FederationRefusal.PAIR_REQUEST_OUT_OF_TIME.raise();
-        }
+        guards.requireFirstSighting(REPLAY_SCOPE, answer.nonce(), answer.issuedAt());
         switch (answer.status()) {
             case PENDING -> {}
             case DECLINED -> {
@@ -228,37 +270,6 @@ public class OutgoingPairRequestService implements TaskSource {
         log.info("Station {} is now federated with station {}", request.stationId(), request.remoteStationUid());
     }
 
-    private static void requireComplete(PairRequestAnswer answer) {
-        boolean accepted = answer.status() == PairRequestStatus.ACCEPTED;
-        if (answer.requesterStationUid() == null
-                || answer.targetStationUid() == null
-                || answer.status() == null
-                || answer.issuedAt() == null
-                || isBlank(answer.stationName())
-                || isBlank(answer.baseUrl())
-                || isBlank(answer.nonce())
-                || isBlank(answer.instanceSignature())
-                || (accepted && (isBlank(answer.publicKey()) || answer.contract() == null))) {
-            throw FederationRefusal.PAIR_REQUEST_INCOMPLETE.raise();
-        }
-        if (answer.stationName().length() > IncomingPairRequestService.MAX_NAME_LENGTH
-                || answer.baseUrl().length() > IncomingPairRequestService.MAX_URL_LENGTH
-                || answer.nonce().length() > IncomingPairRequestService.MAX_TOKEN_LENGTH
-                || answer.instanceSignature().length() > IncomingPairRequestService.MAX_KEY_LENGTH
-                || lengthOf(answer.publicKey()) > IncomingPairRequestService.MAX_KEY_LENGTH
-                || lengthOf(answer.stationSignature()) > IncomingPairRequestService.MAX_KEY_LENGTH) {
-            throw FederationRefusal.PAIR_REQUEST_TOO_LARGE.raise();
-        }
-    }
-
-    private static int lengthOf(@Nullable String value) {
-        return value == null ? 0 : value.length();
-    }
-
-    private static boolean isBlank(@Nullable String value) {
-        return value == null || value.isBlank();
-    }
-
     /**
      * Sends a request to a station of another instance that the discovery page lists.
      *
@@ -271,7 +282,7 @@ public class OutgoingPairRequestService implements TaskSource {
         if (station.uid().equals(target.stationUid())) {
             throw FederationRefusal.PAIR_REQUEST_TO_OWN_STATION.raise();
         }
-        requireNothingStanding(stationId, target.stationUid());
+        guards.requireNothingStanding(stationId, PairRequestDirection.OUTGOING, target.stationUid(), STANDING);
         if (!urlValidator.isAllowed(target.baseUrl())) {
             throw FederationRefusal.PAIR_REQUEST_PEER_ADDRESS_REFUSED.raise();
         }
@@ -314,25 +325,10 @@ public class OutgoingPairRequestService implements TaskSource {
         return send(stationId, new RemoteTarget(stationUid, peer.baseUrl(), peer.publicKey()));
     }
 
-    private void requireNothingStanding(int stationId, UUID targetStationUid) {
-        if (partners.findPartnerByStationAndRemoteUid(stationId, targetStationUid)
-                .isPresent()) {
-            throw DiscoveryRefusal.ALREADY_FEDERATED.raise();
-        }
-        var earlier = requests.find(stationId, PairRequestDirection.OUTGOING, targetStationUid);
-        if (earlier.isEmpty()) return;
-        if (earlier.get().status() == PairRequestStatus.PENDING) {
-            throw DiscoveryRefusal.FEDERATION_REQUEST_ALREADY_SENT.raise();
-        }
-        if (earlier.get().coolingDown(Instant.now())) {
-            throw FederationRefusal.PAIR_REQUEST_DECLINED_RECENTLY.raise();
-        }
-    }
-
     /**
-     * The refusal the asking person is shown for a request the other instance did not take. Its own
-     * refusal where it named one of the request refusals, and otherwise what the failure says about
-     * the other instance: a route it does not have is an instance that predates these requests.
+     * The refusal the asking person is shown for a request the other instance did not take: the one
+     * its reason stands for where it named one, and otherwise what the failure says about the other
+     * instance. A route it does not have is an instance that predates these requests.
      */
     static Refusal refusalFor(Delivery delivery) {
         return switch (delivery) {
@@ -340,28 +336,20 @@ public class OutgoingPairRequestService implements TaskSource {
             case Delivery.Failed failed ->
                 switch (failed.failure()) {
                     case ADDRESS_REFUSED -> FederationRefusal.PAIR_REQUEST_PEER_ADDRESS_REFUSED;
-                    case UNREACHABLE -> FederationRefusal.PAIR_REQUEST_PEER_UNREACHABLE;
+                    case TIMED_OUT, UNREACHABLE -> FederationRefusal.PAIR_REQUEST_PEER_UNREACHABLE;
                 };
-            case Delivery.Answered answered ->
-                requestRefusal(answered.code())
-                        .orElseGet(() -> answered.status() == HttpStatus.NOT_FOUND.getCode()
-                                        || answered.status() == HttpStatus.METHOD_NOT_ALLOWED.getCode()
-                                ? FederationRefusal.PAIR_REQUEST_PEER_TOO_OLD
-                                : FederationRefusal.PAIR_REQUEST_REFUSED_BY_PEER);
+            case Delivery.Answered answered -> refusalFor(answered);
         };
     }
 
-    private static Optional<Refusal> requestRefusal(@Nullable String code) {
-        if (code == null) return Optional.empty();
-        return Arrays.stream(FederationRefusal.values())
-                .filter(refusal -> refusal.name().startsWith("PAIR_REQUEST_"))
-                .filter(refusal -> refusal.code().equals(code))
-                .map(Refusal.class::cast)
-                .findFirst();
-    }
-
-    static String stripTrailingSlash(String url) {
-        return url.endsWith("/") ? url.substring(0, url.length() - 1) : url;
+    private static Refusal refusalFor(Delivery.Answered answered) {
+        PairRequestReason reason = answered.reason();
+        if (reason != null) return reason.refusal();
+        boolean noSuchRoute = answered.status() == HttpStatus.NOT_FOUND.getCode()
+                || answered.status() == HttpStatus.METHOD_NOT_ALLOWED.getCode();
+        return noSuchRoute
+                ? FederationRefusal.PAIR_REQUEST_PEER_TOO_OLD
+                : FederationRefusal.PAIR_REQUEST_REFUSED_BY_PEER;
     }
 
     /**

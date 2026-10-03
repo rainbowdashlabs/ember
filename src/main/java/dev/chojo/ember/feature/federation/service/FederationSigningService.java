@@ -163,6 +163,26 @@ public class FederationSigningService {
     }
 
     /**
+     * Whether an enrollment signature fits the key it came with, where the key is still in the form
+     * it travelled in. Never throws: a missing part, a key that does not decode and a signature that
+     * does not read all answer {@code false}, since each comes from the other side.
+     *
+     * @param payload    what was signed
+     * @param signature  the signature, as sent
+     * @param encodedKey the Base64 public key, as sent
+     * @return true when the signature fits
+     */
+    public boolean enrollmentSignatureHolds(String payload, @Nullable String signature, @Nullable String encodedKey) {
+        if (signature == null || encodedKey == null) return false;
+        try {
+            return verifyEnrollmentPayload(payload, signature, decodePublicKey(encodedKey));
+        } catch (RuntimeException e) {
+            log.warn("An enrollment signature came with a key or in a form that could not be read");
+            return false;
+        }
+    }
+
+    /**
      * Decodes a Base64-encoded RSA public key. Rejects keys weaker than
      * {@value #MIN_RSA_KEY_BITS} bits so a partner cannot register a trivially
      * factorable key.

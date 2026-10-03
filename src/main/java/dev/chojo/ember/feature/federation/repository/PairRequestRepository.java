@@ -207,6 +207,23 @@ public class PairRequestRepository {
     }
 
     /**
+     * Removes the requests answered before the given moment. Once the cooldown after a decline has
+     * passed, an answered request keeps nobody from anything and is only shown for that long.
+     *
+     * @param answeredBefore the latest answer that is removed
+     * @return how many requests were removed
+     */
+    public int deleteAnsweredBefore(Instant answeredBefore) {
+        return query("""
+                DELETE FROM federation_pair_request
+                WHERE status IN ('ACCEPTED', 'DECLINED')
+                  AND answered_at < :before;""")
+                .single(call().bind("before", answeredBefore, INSTANT_TIMESTAMP))
+                .delete()
+                .rows();
+    }
+
+    /**
      * The requests waiting for a station here to answer, oldest first.
      *
      * @param stationId the asked station

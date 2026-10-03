@@ -8,7 +8,6 @@ package dev.chojo.ember.feature.federation.service;
 import dev.chojo.ember.api.refusal.FederationRefusal;
 import dev.chojo.ember.api.refusal.Refusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
-import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.federation.entity.CapabilityType;
 import dev.chojo.ember.feature.federation.entity.Direction;
 import dev.chojo.ember.feature.federation.entity.ShareGrant;
@@ -19,7 +18,7 @@ import dev.chojo.ember.feature.federation.repository.InventoryShareRepository;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import dev.chojo.ember.util.TestStationKeys;
+import dev.chojo.ember.util.TestFederationServices;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -65,7 +64,7 @@ class InventoryShareServiceTest extends RepositoryTestBase {
     static void setup() {
         shareRepo = new InventoryShareRepository();
         federationRepo = new FederationRepository();
-        federationService = new FederationService(federationRepo, stationRepo, TestStationKeys.store(), new Api());
+        federationService = TestFederationServices.of(federationRepo, stationRepo);
         service = new InventoryShareService(shareRepo, federationService, inventoryRepo, artRepo);
 
         owner = stationRepo.create("ShareSvcOwner");

@@ -28,6 +28,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.net.http.HttpTimeoutException;
 import java.time.Duration;
+import java.util.Map;
 import java.util.Optional;
 
 import javax.net.ssl.SSLException;
@@ -344,25 +345,14 @@ public class DiscoveryHttpClient {
      * @return what the beacon answered, or empty where it could not be reached
      */
     public Optional<Answer> beaconPost(String baseUrl, String path, Object body) {
-        try {
-            String json = mapper.writeValueAsString(body);
-            var request = HttpRequest.newBuilder()
-                    .uri(URI.create(OutboundHttp.join(baseUrl, path)))
-                    .timeout(REQUEST_TIMEOUT)
-                    .header("Content-Type", "application/json")
-                    .header(DiscoverySigningService.SIGNATURE_HEADER, signingService.sign(json))
-                    .header(DiscoverySigningService.BEACON_KEY_HEADER, signingService.publicKeyBase64())
-                    .POST(HttpRequest.BodyPublishers.ofString(json))
-                    .build();
-            var response = outbound.send(request, HttpResponse.BodyHandlers.ofString());
-            return Optional.of(new Answer(response.statusCode(), response.body()));
-        } catch (RefusedDestinationException e) {
-            log.warn("Beacon POST {} on {} refused: {}", path, baseUrl, e.getMessage());
-            return Optional.empty();
-        } catch (Exception e) {
-            log.debug("Beacon POST {} on {} failed: {}", path, baseUrl, e.getMessage(), e);
-            return Optional.empty();
-        }
+        String json = mapper.writeValueAsString(body);
+        var headers = Map.of(
+                DiscoverySigningService.SIGNATURE_HEADER, signingService.sign(json),
+                DiscoverySigningService.BEACON_KEY_HEADER, signingService.publicKeyBase64());
+        return switch (outbound.postJson(OutboundHttp.join(baseUrl, path), json, REQUEST_TIMEOUT, headers)) {
+            case OutboundHttp.JsonPost.Answered answered -> Optional.of(new Answer(answered.status(), answered.body()));
+            case OutboundHttp.JsonPost.Failed _ -> Optional.empty();
+        };
     }
 
     /**

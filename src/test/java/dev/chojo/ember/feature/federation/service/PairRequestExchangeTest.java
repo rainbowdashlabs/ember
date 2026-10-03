@@ -27,6 +27,7 @@ import dev.chojo.ember.feature.federation.entity.FederationContract;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.entity.PairRequest;
 import dev.chojo.ember.feature.federation.entity.PairRequestDirection;
+import dev.chojo.ember.feature.federation.entity.PairRequestReason;
 import dev.chojo.ember.feature.federation.entity.PairRequestStatus;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.repository.PairRequestRepository;
@@ -40,7 +41,9 @@ import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.lifecycle.Schedule;
 import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import dev.chojo.ember.util.TestFederationServices;
 import dev.chojo.ember.util.TestStationKeys;
+import dev.chojo.ember.util.WebOrigins;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -55,6 +58,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.Executor;
 import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -135,17 +139,18 @@ class PairRequestExchangeTest extends RepositoryTestBase {
         var signatures = new PairRequestSignatures(signer, federationSigning, discovery);
         var urls = new RemoteUrlValidator(new Federation(), new Demo());
         var peers = new PairRequestPeers(peerRepo, new DiscoveryBlocklistRepository());
-        var federation = new FederationService(partners, stationRepo, stationKeys, api(baseUrl));
-        var replayStore = new DatabaseReplayStore(new SignedRequestNonceRepository());
+        var federation = TestFederationServices.of(partners, stationRepo, stationKeys, api(baseUrl));
+        var guards =
+                new PairRequestGuards(new DatabaseReplayStore(new SignedRequestNonceRepository()), partners, requests);
         var incoming = new IncomingPairRequestService(
                 requests,
                 partners,
                 stationRepo,
                 peers,
                 signatures,
+                guards,
                 rateLimiter,
                 urls,
-                replayStore,
                 federation,
                 signer,
                 httpClient,
@@ -158,23 +163,26 @@ class PairRequestExchangeTest extends RepositoryTestBase {
                 stationRepo,
                 peers,
                 signatures,
+                guards,
                 httpClient,
                 signer,
                 urls,
                 federation,
-                replayStore,
+                scheduler,
                 events,
                 api(baseUrl));
         return new Side(baseUrl, discovery, signatures, incoming, outgoing);
     }
 
-    /** Runs the work handed to the background at once, so a test sees what it did. */
+    /** Runs the work handed to the background or to the executor at once, so a test sees what it did. */
     private static TaskScheduler inline() {
         var scheduler = mock(TaskScheduler.class);
         when(scheduler.background(anyString(), any())).thenAnswer(invocation -> {
             invocation.getArgument(1, Runnable.class).run();
             return true;
         });
+        Executor direct = Runnable::run;
+        when(scheduler.executor()).thenReturn(direct);
         return scheduler;
     }
 
@@ -235,7 +243,8 @@ class PairRequestExchangeTest extends RepositoryTestBase {
         try {
             return call.get();
         } catch (RefusalResponse refused) {
-            return new Delivery.Answered(refused.getStatus(), refused.refusal().code(), refused.getMessage());
+            return new Delivery.Answered(
+                    refused.getStatus(), PairRequestReason.of(refused.refusal()).orElse(null), refused.getMessage());
         }
     }
 
@@ -278,16 +287,7 @@ class PairRequestExchangeTest extends RepositoryTestBase {
                 "",
                 "");
         String payload = PairRequestSignatures.payloadOf(withKey);
-        return new PairRequestMessage(
-                withKey.requesterStationUid(),
-                withKey.requesterStationName(),
-                withKey.requesterPublicKey(),
-                withKey.requesterBaseUrl(),
-                withKey.requesterInstanceKey(),
-                withKey.targetStationUid(),
-                withKey.contract(),
-                withKey.issuedAt(),
-                withKey.nonce(),
+        return withKey.withSignatures(
                 new StationSigner(stationKeys, federationSigning).signEnrollment(asking.id(), payload),
                 instance.sign(payload));
     }
@@ -473,7 +473,7 @@ class PairRequestExchangeTest extends RepositoryTestBase {
     void anOversizedNameIsRefusedBeforeAnythingReadsIt() {
         assertEquals(
                 FederationRefusal.PAIR_REQUEST_TOO_LARGE,
-                refusedThere(freshRequest("W".repeat(IncomingPairRequestService.MAX_NAME_LENGTH + 1))));
+                refusedThere(freshRequest("W".repeat(PairRequestGuards.MAX_NAME_LENGTH + 1))));
     }
 
     @Test
@@ -514,6 +514,10 @@ class PairRequestExchangeTest extends RepositoryTestBase {
         assertEquals(
                 FederationRefusal.PAIR_REQUEST_ADDRESS_NOT_THE_INSTANCES,
                 refusedThere(withParts("https://104.16.9.9", FederationContractVersions.current(), Instant.now())));
+        assertEquals(
+                FederationRefusal.PAIR_REQUEST_ADDRESS_NOT_THE_INSTANCES,
+                refusedThere(
+                        withParts("https://93.184.216.34:8443", FederationContractVersions.current(), Instant.now())));
     }
 
     @Test
@@ -533,20 +537,37 @@ class PairRequestExchangeTest extends RepositoryTestBase {
     @Test
     void anInstanceThatDoesNotAnswerIsNamedSo() {
         when(httpClient.send(eq(URL_THERE), any()))
-                .thenReturn(new Delivery.Failed(PairRequestHttpClient.Failure.UNREACHABLE));
+                .thenReturn(new Delivery.Failed(OutboundHttp.PostFailure.UNREACHABLE));
 
         assertEquals(FederationRefusal.PAIR_REQUEST_PEER_UNREACHABLE, refusalOf(this::send));
+        assertEquals(
+                FederationRefusal.PAIR_REQUEST_PEER_UNREACHABLE,
+                OutgoingPairRequestService.refusalFor(new Delivery.Failed(OutboundHttp.PostFailure.TIMED_OUT)));
     }
 
     @Test
     void aRefusalTheOtherInstanceDoesNotNameIsItsOwn() {
         assertEquals(
                 FederationRefusal.PAIR_REQUEST_REFUSED_BY_PEER,
-                OutgoingPairRequestService.refusalFor(new Delivery.Answered(500, "G-001", "")));
+                OutgoingPairRequestService.refusalFor(new Delivery.Answered(500, null, "")));
         assertEquals(
                 FederationRefusal.PAIR_REQUEST_PEER_ADDRESS_REFUSED,
+                OutgoingPairRequestService.refusalFor(new Delivery.Failed(OutboundHttp.PostFailure.ADDRESS_REFUSED)));
+    }
+
+    @Test
+    void theReasonTheOtherInstanceNamesIsShownUnderOurOwnRefusal() {
+        for (var reason : PairRequestReason.values()) {
+            assertEquals(
+                    reason.refusal(), OutgoingPairRequestService.refusalFor(new Delivery.Answered(409, reason, "")));
+            assertEquals(Optional.of(reason), PairRequestReason.of(reason.refusal()));
+        }
+        assertEquals(
+                FederationRefusal.PAIR_REQUEST_STATION_NOT_HERE,
                 OutgoingPairRequestService.refusalFor(
-                        new Delivery.Failed(PairRequestHttpClient.Failure.ADDRESS_REFUSED)));
+                        new Delivery.Answered(404, PairRequestReason.STATION_NOT_HERE, "")));
+        assertTrue(PairRequestReason.of(FederationRefusal.PAIR_REQUEST_PEER_TOO_OLD)
+                .isEmpty());
     }
 
     @Test
@@ -557,7 +578,7 @@ class PairRequestExchangeTest extends RepositoryTestBase {
 
     @Test
     void aPairingCodeOfAKnownInstanceSendsTheSameRequest() {
-        var sent = here.outgoing().sendToCode(asking.id(), asked.uid(), FederationService.addressOf(URL_THERE));
+        var sent = here.outgoing().sendToCode(asking.id(), asked.uid(), WebOrigins.hostAndPort(URL_THERE));
 
         assertEquals(PairRequestStatus.PENDING, sent.status());
         assertEquals(there.instanceKey(), sent.remoteInstanceKey());
@@ -634,8 +655,23 @@ class PairRequestExchangeTest extends RepositoryTestBase {
         there.incoming().accept(asked.id(), receivedThere().id());
         assertEquals(PairRequestStatus.PENDING, sentHere().orElseThrow().status());
 
-        assertTrue(here.outgoing().outgoing(asking.id()).isEmpty());
+        var shown = here.outgoing().outgoing(asking.id());
+
+        assertEquals(PairRequestStatus.PENDING, shown.getFirst().status(), "the page is answered from what is stored");
         assertBothSidesActive();
+        assertTrue(here.outgoing().outgoing(asking.id()).isEmpty());
+    }
+
+    @Test
+    void aRequestAskedAboutAMomentAgoIsNotAskedAgainWhenThePageOpens() {
+        send();
+        here.outgoing().outgoing(asking.id());
+        var checked = sentHere().orElseThrow().checkedAt();
+
+        here.outgoing().outgoing(asking.id());
+
+        assertEquals(checked, sentHere().orElseThrow().checkedAt());
+        assertEquals(1, here.outgoing().waiting(asking.id()).size());
     }
 
     @Test

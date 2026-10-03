@@ -22,6 +22,7 @@ import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.quiz.entity.CatalogMetadata;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import dev.chojo.ember.util.TestFederationServices;
 import dev.chojo.ember.util.TestStationKeys;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -50,7 +51,7 @@ class FederationServiceTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         federationRepo = new FederationRepository();
-        service = new FederationService(federationRepo, stationRepo, TestStationKeys.store(), new Api());
+        service = TestFederationServices.of(federationRepo, stationRepo);
 
         stationA = stationRepo.create("FedSvcTestStationA");
         stationB = stationRepo.create("FedSvcTestStationB");

@@ -30,6 +30,7 @@ import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.federation.service.IncomingPairRequestService;
 import dev.chojo.ember.feature.federation.service.OutgoingPairRequestService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseFederationService;
+import dev.chojo.ember.util.WebOrigins;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -662,7 +663,7 @@ public class FederationRoutes implements Routes {
             return new RemotePairRequestResponse(
                     request.id(),
                     request.remoteStationName(),
-                    FederationService.addressOf(request.remoteBaseUrl()),
+                    WebOrigins.hostAndPort(request.remoteBaseUrl()),
                     request.createdAt());
         }
     }
@@ -688,7 +689,7 @@ public class FederationRoutes implements Routes {
             return new OutgoingPairRequestResponse(
                     request.id(),
                     request.remoteStationName(),
-                    FederationService.addressOf(request.remoteBaseUrl()),
+                    WebOrigins.hostAndPort(request.remoteBaseUrl()),
                     request.status(),
                     request.createdAt(),
                     request.answeredAt());

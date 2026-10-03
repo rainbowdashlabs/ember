@@ -5,7 +5,6 @@
  */
 package dev.chojo.ember.feature.federation.service;
 
-import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.federation.contract.FederationContractVersions;
 import dev.chojo.ember.feature.federation.entity.FederationContract;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
@@ -14,7 +13,7 @@ import dev.chojo.ember.feature.federation.route.RemoteFederationRoutes;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import dev.chojo.ember.util.TestStationKeys;
+import dev.chojo.ember.util.TestFederationServices;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -56,7 +55,7 @@ class FederationContractRefreshServiceTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         federationRepo = new FederationRepository();
-        federationService = new FederationService(federationRepo, stationRepo, TestStationKeys.store(), new Api());
+        federationService = TestFederationServices.of(federationRepo, stationRepo);
         httpClient = mock(FederationHttpClient.class);
 
         station = stationRepo.create("ContractRefreshStation");

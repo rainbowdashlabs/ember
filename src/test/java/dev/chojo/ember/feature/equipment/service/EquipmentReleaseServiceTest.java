@@ -5,7 +5,6 @@
  */
 package dev.chojo.ember.feature.equipment.service;
 
-import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.equipment.EquipmentTestSupport;
@@ -14,7 +13,6 @@ import dev.chojo.ember.feature.federation.entity.Direction;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.repository.LendingRepository;
-import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata;
@@ -23,7 +21,7 @@ import dev.chojo.ember.feature.inventory.entity.LineTarget;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import dev.chojo.ember.util.TestStationKeys;
+import dev.chojo.ember.util.TestFederationServices;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -58,7 +56,7 @@ class EquipmentReleaseServiceTest extends RepositoryTestBase {
         trailer = inventoryRepo.createItem(drawer.id(), "REL-01", "Anhaenger", null, InventoryItemMetadata.empty());
 
         var federationRepo = new FederationRepository();
-        var federationService = new FederationService(federationRepo, stationRepo, TestStationKeys.store(), new Api());
+        var federationService = TestFederationServices.of(federationRepo, stationRepo);
         var keyPair = federationService.generateKeyPair();
         federationService.acceptInvite(
                 station.id(), partner.id(), federationService.encodePublicKey(keyPair), null, null);

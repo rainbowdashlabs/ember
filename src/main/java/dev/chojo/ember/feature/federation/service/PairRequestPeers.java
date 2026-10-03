@@ -9,6 +9,7 @@ import dev.chojo.ember.feature.discovery.entity.BlocklistKind;
 import dev.chojo.ember.feature.discovery.entity.DiscoveryPeer;
 import dev.chojo.ember.feature.discovery.repository.DiscoveryBlocklistRepository;
 import dev.chojo.ember.feature.discovery.repository.DiscoveryPeerRepository;
+import dev.chojo.ember.util.WebOrigins;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
@@ -54,7 +55,7 @@ public class PairRequestPeers {
      */
     public Optional<DiscoveryPeer> atAddress(String address) {
         return peers.findUsable().stream()
-                .filter(peer -> FederationService.addressOf(peer.baseUrl()).equalsIgnoreCase(address))
+                .filter(peer -> WebOrigins.hostAndPort(peer.baseUrl()).equalsIgnoreCase(address))
                 .filter(this::usable)
                 .findFirst();
     }

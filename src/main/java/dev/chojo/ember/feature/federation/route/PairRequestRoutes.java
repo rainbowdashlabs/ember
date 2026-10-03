@@ -7,8 +7,11 @@ package dev.chojo.ember.feature.federation.route;
 
 import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.federation.entity.FederationContract;
+import dev.chojo.ember.feature.federation.entity.PairRequestReason;
 import dev.chojo.ember.feature.federation.entity.PairRequestStatus;
+import dev.chojo.ember.feature.federation.route.PairRequestRefused.PairRequestRefusal;
 import dev.chojo.ember.feature.federation.service.IncomingPairRequestService;
 import dev.chojo.ember.feature.federation.service.OutgoingPairRequestService;
 import io.javalin.http.Context;
@@ -25,6 +28,7 @@ import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.UUID;
+import java.util.function.Supplier;
 
 /**
  * Requests to federate between stations of two instances that are not partners yet.
@@ -70,9 +74,17 @@ public class PairRequestRoutes implements Routes {
             summary = "Receive a signed request to federate from a station of another instance",
             tags = {"Discovery"},
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = PairRequestMessage.class)),
-            responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = PairRequestReceipt.class)))
+            responses = {
+                @OpenApiResponse(status = "201", content = @OpenApiContent(from = PairRequestReceipt.class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = PairRequestRefusal.class)),
+                @OpenApiResponse(status = "403", content = @OpenApiContent(from = PairRequestRefusal.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = PairRequestRefusal.class)),
+                @OpenApiResponse(status = "409", content = @OpenApiContent(from = PairRequestRefusal.class)),
+                @OpenApiResponse(status = "429", content = @OpenApiContent(from = PairRequestRefusal.class))
+            })
     private void receive(Context ctx) {
-        ctx.status(HttpStatus.CREATED).json(incoming.receive(ctx.bodyAsClass(PairRequestMessage.class)));
+        var message = ctx.bodyAsClass(PairRequestMessage.class);
+        ctx.status(HttpStatus.CREATED).json(withReason(ctx, () -> incoming.receive(message)));
     }
 
     /** The instance that sent a request asks where it stands. */
@@ -82,9 +94,15 @@ public class PairRequestRoutes implements Routes {
             summary = "Answer the asking instance where its request to federate stands",
             tags = {"Discovery"},
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = PairRequestStatusQuery.class)),
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = PairRequestAnswer.class)))
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = PairRequestAnswer.class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = PairRequestRefusal.class)),
+                @OpenApiResponse(status = "403", content = @OpenApiContent(from = PairRequestRefusal.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = PairRequestRefusal.class))
+            })
     private void status(Context ctx) {
-        ctx.json(incoming.status(ctx.bodyAsClass(PairRequestStatusQuery.class)));
+        var query = ctx.bodyAsClass(PairRequestStatusQuery.class);
+        ctx.json(withReason(ctx, () -> incoming.status(query)));
     }
 
     /** The instance that was asked tells this one what its station answered. */
@@ -94,10 +112,35 @@ public class PairRequestRoutes implements Routes {
             summary = "Receive the signed answer to a request to federate",
             tags = {"Discovery"},
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = PairRequestAnswer.class)),
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)))
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = PairRequestRefusal.class)),
+                @OpenApiResponse(status = "403", content = @OpenApiContent(from = PairRequestRefusal.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = PairRequestRefusal.class))
+            })
     private void answer(Context ctx) {
-        outgoing.receiveAnswer(ctx.bodyAsClass(PairRequestAnswer.class));
-        ctx.json(new MessageResponse("Answer taken"));
+        var answer = ctx.bodyAsClass(PairRequestAnswer.class);
+        ctx.json(withReason(ctx, () -> {
+            outgoing.receiveAnswer(answer);
+            return new MessageResponse("Answer taken");
+        }));
+    }
+
+    /**
+     * Runs the service call and turns a refusal it raises into one that names its
+     * {@link PairRequestReason}, which is what the other instance reads.
+     */
+    private static <T> T withReason(Context ctx, Supplier<T> call) {
+        try {
+            return call.get();
+        } catch (RefusalResponse refused) {
+            var reason = PairRequestReason.of(refused.refusal());
+            if (reason.isEmpty()) throw refused;
+            var answered = new PairRequestRefused(refused, reason.get());
+            var wait = answered.retryAfterSeconds();
+            if (wait != null) ctx.header("Retry-After", Long.toString(wait));
+            throw answered;
+        }
     }
 
     /**
@@ -126,7 +169,30 @@ public class PairRequestRoutes implements Routes {
             Instant issuedAt,
             String nonce,
             String stationSignature,
-            String instanceSignature) {}
+            String instanceSignature) {
+
+        /**
+         * The same request carrying the given signatures.
+         *
+         * @param stationSignature  the asking station's signature
+         * @param instanceSignature the asking instance's discovery signature
+         * @return the signed request
+         */
+        public PairRequestMessage withSignatures(String stationSignature, String instanceSignature) {
+            return new PairRequestMessage(
+                    requesterStationUid,
+                    requesterStationName,
+                    requesterPublicKey,
+                    requesterBaseUrl,
+                    requesterInstanceKey,
+                    targetStationUid,
+                    contract,
+                    issuedAt,
+                    nonce,
+                    stationSignature,
+                    instanceSignature);
+        }
+    }
 
     /**
      * What the asked instance answers once it has taken a request.
@@ -151,7 +217,20 @@ public class PairRequestRoutes implements Routes {
             Instant issuedAt,
             String nonce,
             String stationSignature,
-            String instanceSignature) {}
+            String instanceSignature) {
+
+        /**
+         * The same question carrying the given signatures.
+         *
+         * @param stationSignature  the asking station's signature
+         * @param instanceSignature the asking instance's discovery signature
+         * @return the signed question
+         */
+        public PairRequestStatusQuery withSignatures(String stationSignature, String instanceSignature) {
+            return new PairRequestStatusQuery(
+                    requesterStationUid, targetStationUid, issuedAt, nonce, stationSignature, instanceSignature);
+        }
+    }
 
     /**
      * The asked station's answer, pushed to the asking instance and handed back when it asks.
@@ -179,5 +258,28 @@ public class PairRequestRoutes implements Routes {
             Instant issuedAt,
             String nonce,
             @Nullable String stationSignature,
-            String instanceSignature) {}
+            String instanceSignature) {
+
+        /**
+         * The same answer carrying the given signatures.
+         *
+         * @param stationSignature  the asked station's signature, for an acceptance only
+         * @param instanceSignature the asked instance's discovery signature
+         * @return the signed answer
+         */
+        public PairRequestAnswer withSignatures(@Nullable String stationSignature, String instanceSignature) {
+            return new PairRequestAnswer(
+                    requesterStationUid,
+                    targetStationUid,
+                    status,
+                    stationName,
+                    baseUrl,
+                    publicKey,
+                    contract,
+                    issuedAt,
+                    nonce,
+                    stationSignature,
+                    instanceSignature);
+        }
+    }
 }

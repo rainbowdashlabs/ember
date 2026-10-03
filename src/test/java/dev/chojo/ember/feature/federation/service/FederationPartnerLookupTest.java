@@ -5,14 +5,13 @@
  */
 package dev.chojo.ember.feature.federation.service;
 
-import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.federation.entity.ChangeType;
 import dev.chojo.ember.feature.federation.entity.ContentType;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import dev.chojo.ember.util.TestStationKeys;
+import dev.chojo.ember.util.TestFederationServices;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,7 +34,7 @@ class FederationPartnerLookupTest extends RepositoryTestBase {
 
     @BeforeEach
     void setup() {
-        service = new FederationService(federationRepo, stationRepo, TestStationKeys.store(), new Api());
+        service = TestFederationServices.of(federationRepo, stationRepo);
         asking = stationRepo.create("LookupAsking");
         asked = stationRepo.create("LookupAsked");
     }

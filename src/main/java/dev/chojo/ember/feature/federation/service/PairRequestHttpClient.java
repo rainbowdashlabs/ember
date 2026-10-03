@@ -5,25 +5,23 @@
  */
 package dev.chojo.ember.feature.federation.service;
 
+import dev.chojo.ember.feature.federation.entity.PairRequestReason;
 import dev.chojo.ember.feature.federation.route.PairRequestRoutes;
 import dev.chojo.ember.feature.federation.route.PairRequestRoutes.PairRequestAnswer;
 import dev.chojo.ember.feature.federation.route.PairRequestRoutes.PairRequestMessage;
 import dev.chojo.ember.feature.federation.route.PairRequestRoutes.PairRequestReceipt;
 import dev.chojo.ember.feature.federation.route.PairRequestRoutes.PairRequestStatusQuery;
+import dev.chojo.ember.feature.federation.service.OutboundHttp.JsonPost;
+import dev.chojo.ember.feature.federation.service.OutboundHttp.PostFailure;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
-import java.net.URI;
-import java.net.http.HttpRequest;
-import java.net.http.HttpRequest.BodyPublishers;
-import java.net.http.HttpResponse;
-import java.net.http.HttpTimeoutException;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.Optional;
 
 /**
@@ -99,36 +97,30 @@ public class PairRequestHttpClient {
 
     private Delivery post(String baseUrl, String path, Object body) {
         String url = OutboundHttp.join(baseUrl, "/api/v1" + path);
-        try {
-            var request = HttpRequest.newBuilder()
-                    .uri(URI.create(url))
-                    .timeout(TIMEOUT)
-                    .header("Content-Type", "application/json")
-                    .POST(BodyPublishers.ofString(mapper.writeValueAsString(body)))
-                    .build();
-            var response = outbound.send(request, HttpResponse.BodyHandlers.ofString());
-            return new Delivery.Answered(response.statusCode(), refusalCode(response.body()), response.body());
-        } catch (RefusedDestinationException e) {
-            log.warn("Request to federate to {} refused: {}", url, e.getMessage());
-            return new Delivery.Failed(Failure.ADDRESS_REFUSED);
-        } catch (HttpTimeoutException e) {
-            log.warn("Request to federate to {} timed out", url);
-            return new Delivery.Failed(Failure.UNREACHABLE);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            return new Delivery.Failed(Failure.UNREACHABLE);
-        } catch (Exception e) {
-            log.warn("Request to federate to {} failed: {}", url, e.getMessage());
-            return new Delivery.Failed(Failure.UNREACHABLE);
-        }
+        return switch (outbound.postJson(url, mapper.writeValueAsString(body), TIMEOUT)) {
+            case JsonPost.Answered answered ->
+                new Delivery.Answered(answered.status(), reasonIn(answered.body()), answered.body());
+            case JsonPost.Failed failed -> {
+                log.warn("A message about a request to federate did not reach {}: {}", url, failed.failure());
+                yield new Delivery.Failed(failed.failure());
+            }
+        };
     }
 
-    private @Nullable String refusalCode(@Nullable String body) {
+    /**
+     * The reason the other instance named for its refusal. A name outside the closed set reads as
+     * none, the same as a body that names nothing.
+     */
+    private @Nullable PairRequestReason reasonIn(@Nullable String body) {
         if (body == null || body.isBlank()) return null;
         try {
-            JsonNode node = mapper.readTree(body);
-            var code = node.path("code");
-            return code.isString() ? code.asString() : null;
+            var reason = mapper.readTree(body).path("reason");
+            if (!reason.isString()) return null;
+            String named = reason.asString();
+            return Arrays.stream(PairRequestReason.values())
+                    .filter(value -> value.name().equals(named))
+                    .findFirst()
+                    .orElse(null);
         } catch (RuntimeException notJson) {
             return null;
         }
@@ -143,24 +135,16 @@ public class PairRequestHttpClient {
          * The other instance answered.
          *
          * @param status what it answered with
-         * @param code   the code of its refusal, where it named one
+         * @param reason why it refused, where it named a reason
          * @param body   what it said
          */
-        record Answered(int status, @Nullable String code, String body) implements Delivery {
+        record Answered(int status, @Nullable PairRequestReason reason, String body) implements Delivery {
             public boolean successful() {
                 return status >= 200 && status < 300;
             }
         }
 
         /** No answer could be had. */
-        record Failed(Failure failure) implements Delivery {}
-    }
-
-    /** Why no answer could be had. */
-    public enum Failure {
-        /** The address is not one this instance calls. */
-        ADDRESS_REFUSED,
-        /** Nothing answered in time. */
-        UNREACHABLE
+        record Failed(PostFailure failure) implements Delivery {}
     }
 }

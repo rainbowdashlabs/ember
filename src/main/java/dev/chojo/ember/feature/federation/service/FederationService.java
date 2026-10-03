@@ -26,13 +26,13 @@ import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.util.RandomTokens;
+import dev.chojo.ember.util.WebOrigins;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
@@ -40,7 +40,6 @@ import java.time.Instant;
 import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 
 @Singleton
@@ -64,24 +63,7 @@ public class FederationService {
         this.stationRepository = stationRepository;
         this.stationKeys = stationKeys;
         this.eventBus = eventBus;
-        this.instanceHost = addressOf(apiConfig.baseUrl());
-    }
-
-    /**
-     * A service that tells nobody about requests to federate, for callers that only work with
-     * partnerships that already stand.
-     *
-     * @param repository        the federation storage
-     * @param stationRepository the station storage
-     * @param stationKeys       the stations' federation keys
-     * @param apiConfig         the address this instance goes by
-     */
-    public FederationService(
-            FederationRepository repository,
-            StationRepository stationRepository,
-            StationKeyStore stationKeys,
-            Api apiConfig) {
-        this(repository, stationRepository, stationKeys, new DomainEventBus(Set.of()), apiConfig);
+        this.instanceHost = WebOrigins.hostAndPort(apiConfig.baseUrl());
     }
 
     /**
@@ -94,27 +76,6 @@ public class FederationService {
      */
     public String ensureStationKey(int stationId) {
         return stationKeys.ensurePublicKey(stationId);
-    }
-
-    /**
-     * The address this instance goes by in a code, taken from the one it publishes.
-     *
-     * <p>The port comes with it when the base URL names one. Without it a code from an instance
-     * that does not sit on the standard port names something nobody can reach: the side entering
-     * the code has only the code to go by, and would call the same host on a port it was never
-     * told about.
-     *
-     * @param baseUrl the base URL of an instance
-     * @return its host, with the port where the URL names one
-     */
-    public static String addressOf(String baseUrl) {
-        try {
-            var uri = URI.create(baseUrl);
-            if (uri.getHost() == null) return baseUrl;
-            return uri.getPort() == -1 ? uri.getHost() : uri.getHost() + ":" + uri.getPort();
-        } catch (Exception e) {
-            return baseUrl;
-        }
     }
 
     /**
@@ -134,7 +95,7 @@ public class FederationService {
      * @return the pairing code
      */
     public String generateRemotePairingCode(UUID stationUid, String baseUrl) {
-        return pairingCode(stationUid, addressOf(baseUrl));
+        return pairingCode(stationUid, WebOrigins.hostAndPort(baseUrl));
     }
 
     private static String pairingCode(UUID stationUid, String host) {

@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.federation.service;
 
 import com.sun.net.httpserver.HttpServer;
 import dev.chojo.ember.feature.federation.entity.FederationContract;
+import dev.chojo.ember.feature.federation.entity.PairRequestReason;
 import dev.chojo.ember.feature.federation.entity.PairRequestStatus;
 import dev.chojo.ember.feature.federation.route.PairRequestRoutes.PairRequestAnswer;
 import dev.chojo.ember.feature.federation.route.PairRequestRoutes.PairRequestMessage;
@@ -93,23 +94,34 @@ class PairRequestHttpClientTest {
     }
 
     @Test
-    void aRefusalCarriesItsCode() {
+    void aRefusalCarriesItsReason() {
         answers.put(
                 "/api/v1/public/discovery/pair-request",
-                new Answer(409, "{\"error\": \"Conflict\", \"code\": \"X-065\"}"));
+                new Answer(409, "{\"error\": \"Conflict\", \"code\": \"X-065\", \"reason\": \"DECLINED_RECENTLY\"}"));
 
         var delivery = assertInstanceOf(Delivery.Answered.class, client.send(baseUrl(), message()));
 
         assertEquals(409, delivery.status());
-        assertEquals("X-065", delivery.code());
+        assertEquals(PairRequestReason.DECLINED_RECENTLY, delivery.reason());
     }
 
     @Test
-    void aMissingRouteIsAnAnswerWithoutACode() {
+    void aReasonOutsideTheClosedSetIsNone() {
+        answers.put(
+                "/api/v1/public/discovery/pair-request",
+                new Answer(409, "{\"code\": \"X-065\", \"reason\": \"SOMETHING_NEWER\"}"));
+
+        var delivery = assertInstanceOf(Delivery.Answered.class, client.send(baseUrl(), message()));
+
+        assertEquals(null, delivery.reason());
+    }
+
+    @Test
+    void aMissingRouteIsAnAnswerWithoutAReason() {
         var delivery = assertInstanceOf(Delivery.Answered.class, client.send(baseUrl(), message()));
 
         assertEquals(404, delivery.status());
-        assertEquals(null, delivery.code());
+        assertEquals(null, delivery.reason());
     }
 
     @Test
@@ -119,7 +131,7 @@ class PairRequestHttpClientTest {
 
         var delivery = assertInstanceOf(Delivery.Failed.class, client.send(gone, message()));
 
-        assertEquals(PairRequestHttpClient.Failure.UNREACHABLE, delivery.failure());
+        assertEquals(OutboundHttp.PostFailure.UNREACHABLE, delivery.failure());
     }
 
     @Test

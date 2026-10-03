@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.federation.route;
 
+import dev.chojo.ember.api.RateLimits;
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.refusal.FederationRefusal;
 import dev.chojo.ember.feature.federation.entity.PairRequestStatus;
@@ -18,6 +19,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
+import java.util.Optional;
 import java.util.UUID;
 
 import static dev.chojo.ember.api.RouteHarness.PREFIX;
@@ -25,6 +27,7 @@ import static dev.chojo.ember.api.RouteHarness.body;
 import static dev.chojo.ember.api.RouteHarness.json;
 import static dev.chojo.ember.api.RouteHarness.refusalOf;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -139,5 +142,67 @@ class PairRequestRoutesTest {
         var answer = harness.request(client -> client.post(PREFIX + "/public/discovery/pair-request", body(REQUEST)));
 
         assertEquals(FederationRefusal.PAIR_REQUEST_DECLINED_RECENTLY, refusalOf(answer));
+    }
+
+    @Test
+    void aRefusedRequestNamesItsReasonForTheOtherInstance() {
+        when(incoming.receive(any(PairRequestMessage.class)))
+                .thenThrow(FederationRefusal.PAIR_REQUEST_DECLINED_RECENTLY.raise());
+
+        var answer = harness.request(client -> client.post(PREFIX + "/public/discovery/pair-request", body(REQUEST)));
+
+        assertEquals(409, answer.code());
+        var refusal = json(answer);
+        assertEquals("DECLINED_RECENTLY", refusal.path("reason").asString());
+        assertEquals(
+                FederationRefusal.PAIR_REQUEST_DECLINED_RECENTLY.code(),
+                refusal.path("code").asString());
+    }
+
+    @Test
+    void aLimitedRequestSaysHowLongToWait() {
+        when(incoming.receive(any(PairRequestMessage.class))).thenAnswer(invocation -> {
+            RateLimits.enforce(FederationRefusal.PAIR_REQUEST_TOO_MANY_FOR_STATION, Optional.of(60L));
+            return new PairRequestReceipt("never");
+        });
+
+        var answer = harness.request(client -> client.post(PREFIX + "/public/discovery/pair-request", body(REQUEST)));
+
+        assertEquals(429, answer.code());
+        assertEquals("60", RouteHarness.header(answer, "Retry-After"));
+        var refusal = json(answer);
+        assertEquals("TOO_MANY_FOR_STATION", refusal.path("reason").asString());
+        assertEquals(60, refusal.path("retryAfterSeconds").asInt());
+    }
+
+    @Test
+    void aQuestionAndAnAnswerRefusedNameTheirReasons() {
+        when(incoming.status(any(PairRequestStatusQuery.class)))
+                .thenThrow(FederationRefusal.PAIR_STATUS_NOT_HERE.raise());
+        doThrow(FederationRefusal.PAIR_ANSWER_SIGNATURE_NOT_GOOD.raise())
+                .when(outgoing)
+                .receiveAnswer(any(PairRequestAnswer.class));
+
+        var question = harness.request(
+                client -> client.post(PREFIX + "/public/discovery/pair-request/status", body(QUESTION)));
+        var answer =
+                harness.request(client -> client.post(PREFIX + "/public/discovery/pair-request/answer", body(ANSWER)));
+
+        assertEquals("STATUS_NOT_HERE", json(question).path("reason").asString());
+        assertEquals("ANSWER_SIGNATURE_NOT_GOOD", json(answer).path("reason").asString());
+    }
+
+    @Test
+    void aRefusalThatIsNoReasonOnTheWireIsAnsweredAsUsual() {
+        when(incoming.receive(any(PairRequestMessage.class)))
+                .thenThrow(FederationRefusal.FEDERATION_STATION_NOT_HERE.raise());
+
+        var answer = harness.request(client -> client.post(PREFIX + "/public/discovery/pair-request", body(REQUEST)));
+
+        var refusal = json(answer);
+        assertEquals(
+                FederationRefusal.FEDERATION_STATION_NOT_HERE.code(),
+                refusal.path("code").asString());
+        assertTrue(refusal.path("reason").isMissingNode());
     }
 }

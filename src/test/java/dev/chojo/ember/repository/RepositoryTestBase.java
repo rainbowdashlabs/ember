@@ -19,7 +19,6 @@ import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StepUpGuard;
 import dev.chojo.ember.auth.TokenHasher;
-import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
@@ -104,7 +103,6 @@ import dev.chojo.ember.feature.federation.repository.InventoryShareRepository;
 import dev.chojo.ember.feature.federation.repository.LendingRepository;
 import dev.chojo.ember.feature.federation.service.FederationFanout;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
-import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.federation.service.InventoryShareService;
 import dev.chojo.ember.feature.federation.service.LendingService;
 import dev.chojo.ember.feature.feed.repository.FeedMetricsRepository;
@@ -220,8 +218,8 @@ import dev.chojo.ember.feature.traffic.repository.StationTrafficRepository;
 import dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository;
 import dev.chojo.ember.feature.waitinglist.repository.WaitingListRepository;
 import dev.chojo.ember.lifecycle.TaskScheduler;
+import dev.chojo.ember.util.TestFederationServices;
 import dev.chojo.ember.util.TestRemoteUrlValidator;
-import dev.chojo.ember.util.TestStationKeys;
 import dev.chojo.ember.util.sql.Transactions;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -573,7 +571,7 @@ public abstract class RepositoryTestBase {
         inventoryTagRepo = new InventoryTagRepository();
         inventoryShareService = new InventoryShareService(
                 new InventoryShareRepository(),
-                new FederationService(new FederationRepository(), stationRepo, TestStationKeys.store(), new Api()),
+                TestFederationServices.of(new FederationRepository(), stationRepo),
                 inventoryRepo,
                 artRepo);
         inventoryTagService = new InventoryTagService(inventoryTagRepo, inventoryRepo, inventoryShareService);
@@ -606,7 +604,7 @@ public abstract class RepositoryTestBase {
                 clusterRepo,
                 stationRepo,
                 clusterItemHandoverService,
-                new FederationService(new FederationRepository(), stationRepo, TestStationKeys.store(), new Api()),
+                TestFederationServices.of(new FederationRepository(), stationRepo),
                 clusterGovernanceService,
                 clusterProfileFieldService,
                 clusterStorageQuotaRepo,
@@ -1079,7 +1077,7 @@ public abstract class RepositoryTestBase {
         var lending = new LendingService(
                 new LendingRepository(),
                 transport.transport(),
-                new FederationService(federationRepo, stationRepo, TestStationKeys.store(), new Api()),
+                TestFederationServices.of(federationRepo, stationRepo),
                 new FederationFanout(new TaskScheduler()),
                 stationRepo,
                 inventoryRepo,

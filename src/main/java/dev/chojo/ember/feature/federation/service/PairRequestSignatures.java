@@ -82,18 +82,7 @@ public class PairRequestSignatures {
                 "",
                 "");
         String payload = payloadOf(unsigned);
-        return new PairRequestMessage(
-                unsigned.requesterStationUid(),
-                unsigned.requesterStationName(),
-                unsigned.requesterPublicKey(),
-                unsigned.requesterBaseUrl(),
-                unsigned.requesterInstanceKey(),
-                unsigned.targetStationUid(),
-                unsigned.contract(),
-                unsigned.issuedAt(),
-                unsigned.nonce(),
-                signer.signEnrollment(stationId, payload),
-                discoverySigning.sign(payload));
+        return unsigned.withSignatures(signer.signEnrollment(stationId, payload), discoverySigning.sign(payload));
     }
 
     /**
@@ -108,13 +97,7 @@ public class PairRequestSignatures {
         var unsigned = new PairRequestStatusQuery(
                 stationUid, targetStationUid, Instant.now(), RandomTokens.urlSafe(24), "", "");
         String payload = payloadOf(unsigned);
-        return new PairRequestStatusQuery(
-                unsigned.requesterStationUid(),
-                unsigned.targetStationUid(),
-                unsigned.issuedAt(),
-                unsigned.nonce(),
-                signer.signEnrollment(stationId, payload),
-                discoverySigning.sign(payload));
+        return unsigned.withSignatures(signer.signEnrollment(stationId, payload), discoverySigning.sign(payload));
     }
 
     /**
@@ -152,18 +135,8 @@ public class PairRequestSignatures {
                 null,
                 "");
         String payload = payloadOf(unsigned);
-        return new PairRequestAnswer(
-                unsigned.requesterStationUid(),
-                unsigned.targetStationUid(),
-                unsigned.status(),
-                unsigned.stationName(),
-                unsigned.baseUrl(),
-                unsigned.publicKey(),
-                unsigned.contract(),
-                unsigned.issuedAt(),
-                unsigned.nonce(),
-                accepted ? signer.signEnrollment(stationId, payload) : null,
-                discoverySigning.sign(payload));
+        return unsigned.withSignatures(
+                accepted ? signer.signEnrollment(stationId, payload) : null, discoverySigning.sign(payload));
     }
 
     /**
@@ -183,7 +156,8 @@ public class PairRequestSignatures {
      * @return true when it does
      */
     public boolean stationSignatureHolds(PairRequestMessage message) {
-        return stationHolds(payloadOf(message), message.stationSignature(), message.requesterPublicKey());
+        return federationSigning.enrollmentSignatureHolds(
+                payloadOf(message), message.stationSignature(), message.requesterPublicKey());
     }
 
     /**
@@ -197,7 +171,7 @@ public class PairRequestSignatures {
     public boolean holds(PairRequestStatusQuery query, String stationKey, String instanceKey) {
         String payload = payloadOf(query);
         return instanceHolds(payload, query.instanceSignature(), instanceKey)
-                && stationHolds(payload, query.stationSignature(), stationKey);
+                && federationSigning.enrollmentSignatureHolds(payload, query.stationSignature(), stationKey);
     }
 
     /**
@@ -212,9 +186,7 @@ public class PairRequestSignatures {
         String payload = payloadOf(answer);
         if (!instanceHolds(payload, answer.instanceSignature(), instanceKey)) return false;
         if (answer.status() != PairRequestStatus.ACCEPTED) return true;
-        String publicKey = answer.publicKey();
-        String signature = answer.stationSignature();
-        return publicKey != null && signature != null && stationHolds(payload, signature, publicKey);
+        return federationSigning.enrollmentSignatureHolds(payload, answer.stationSignature(), answer.publicKey());
     }
 
     static String payloadOf(PairRequestMessage message) {
@@ -267,17 +239,6 @@ public class PairRequestSignatures {
             return discoverySigning.verify(payload, signature, instanceKey);
         } catch (RuntimeException e) {
             log.warn("A request to federate carried an instance signature that could not be read");
-            return false;
-        }
-    }
-
-    private boolean stationHolds(String payload, @Nullable String signature, @Nullable String publicKey) {
-        if (signature == null || publicKey == null) return false;
-        try {
-            return federationSigning.verifyEnrollmentPayload(
-                    payload, signature, federationSigning.decodePublicKey(publicKey));
-        } catch (RuntimeException e) {
-            log.warn("A request to federate carried a station key that could not be read");
             return false;
         }
     }

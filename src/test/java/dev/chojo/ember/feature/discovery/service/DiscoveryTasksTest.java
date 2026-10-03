@@ -8,14 +8,18 @@ package dev.chojo.ember.feature.discovery.service;
 import dev.chojo.ember.auth.signing.DatabaseReplayStore;
 import dev.chojo.ember.feature.discovery.repository.DiscoveryPeerRepository;
 import dev.chojo.ember.feature.discovery.repository.DiscoveryPingRepository;
+import dev.chojo.ember.feature.federation.entity.PairRequest;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
+import dev.chojo.ember.feature.federation.repository.PairRequestRepository;
 import dev.chojo.ember.lifecycle.Schedule;
 import dev.chojo.ember.lifecycle.ScheduledTask;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
+import java.time.Instant;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -55,14 +59,20 @@ class DiscoveryTasksTest {
     }
 
     @Test
-    void theMaintenanceSweepsNoncesAndDecaysReputations() {
+    void theMaintenanceSweepsNoncesAndSettledRequestsAndDecaysReputations() {
         var pings = mock(DiscoveryPingRepository.class);
         var peers = mock(DiscoveryPeerRepository.class);
-        var tasks = new DiscoveryMaintenanceScheduler(pings, peers, mock(DatabaseReplayStore.class)).scheduledTasks();
+        var pairRequests = mock(PairRequestRepository.class);
+        var tasks = new DiscoveryMaintenanceScheduler(pings, peers, mock(DatabaseReplayStore.class), pairRequests)
+                .scheduledTasks();
+        var before = Instant.now().minus(PairRequest.DECLINE_COOLDOWN);
 
         tasks.forEach(task -> task.work().run());
 
         verify(pings).deleteExpired();
+        verify(pairRequests)
+                .deleteAnsweredBefore(argThat(cutoff -> !cutoff.isBefore(before)
+                        && !cutoff.isAfter(Instant.now().minus(PairRequest.DECLINE_COOLDOWN))));
         verify(peers).decayReputation(5);
         assertTask(
                 tasks.get(0),

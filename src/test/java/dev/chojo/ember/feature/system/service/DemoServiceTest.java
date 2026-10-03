@@ -47,7 +47,6 @@ import dev.chojo.ember.feature.federation.service.FederationContractRefreshServi
 import dev.chojo.ember.feature.federation.service.FederationEntityResolver;
 import dev.chojo.ember.feature.federation.service.FederationFanout;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
-import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.federation.service.InventoryShareService;
 import dev.chojo.ember.feature.federation.service.LendingService;
 import dev.chojo.ember.feature.federation.service.OutboundHttp;
@@ -113,6 +112,7 @@ import dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository;
 import dev.chojo.ember.feature.twofactor.service.TotpService;
 import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import dev.chojo.ember.util.TestFederationServices;
 import dev.chojo.ember.util.TestStationKeys;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
@@ -175,7 +175,8 @@ class DemoServiceTest extends RepositoryTestBase {
         var newsFederationRepo = new NewsFederationRepository();
         var lendingRepo = new LendingRepository();
 
-        var federationService = new FederationService(federationRepo, stationRepo, TestStationKeys.store(), apiConfig);
+        var federationService =
+                TestFederationServices.of(federationRepo, stationRepo, TestStationKeys.store(), apiConfig);
         var contractRefreshRef = new AtomicReference<FederationContractRefreshService>();
         var federationHttpClient = new FederationHttpClient(
                 TestStationKeys.signer(),

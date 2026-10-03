@@ -48,7 +48,7 @@ import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import dev.chojo.ember.util.TestStationKeys;
+import dev.chojo.ember.util.TestFederationServices;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
@@ -107,7 +107,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
         attachmentService = new EventAttachmentService(new EventAttachmentRepository(), media);
         federationRepo = new FederationRepository();
         EventFederationRepository eventFederationRepo = new EventFederationRepository();
-        federationService = new FederationService(federationRepo, stationRepo, TestStationKeys.store(), new Api());
+        federationService = TestFederationServices.of(federationRepo, stationRepo);
         httpClient = mock(FederationHttpClient.class);
         var eventBus = new DomainEventBus(Set.of());
         crudService = newEventServices(eventBus).crud();

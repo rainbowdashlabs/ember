@@ -42692,6 +42692,51 @@ export interface paths {
                         "application/json": components["schemas"]["PairRequestReceipt"];
                     };
                 };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PairRequestRefusal"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PairRequestRefusal"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PairRequestRefusal"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PairRequestRefusal"];
+                    };
+                };
+                /** @description Too Many Requests */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PairRequestRefusal"];
+                    };
+                };
             };
         };
         delete?: never;
@@ -42732,6 +42777,33 @@ export interface paths {
                         "application/json": components["schemas"]["MessageResponse"];
                     };
                 };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PairRequestRefusal"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PairRequestRefusal"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PairRequestRefusal"];
+                    };
+                };
             };
         };
         delete?: never;
@@ -42770,6 +42842,33 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["PairRequestAnswer"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PairRequestRefusal"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PairRequestRefusal"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PairRequestRefusal"];
                     };
                 };
             };
@@ -60918,8 +61017,18 @@ export interface components {
             /** Format: uuid */
             targetStationUid?: string;
         };
+        /** @enum {string} */
+        PairRequestReason: "INCOMPLETE" | "TOO_LARGE" | "OUT_OF_TIME" | "INSTANCE_UNKNOWN" | "INSTANCE_BLOCKED" | "INSTANCE_SIGNATURE_NOT_GOOD" | "STATION_SIGNATURE_NOT_GOOD" | "ADDRESS_NOT_THE_INSTANCES" | "CONTRACT_MISMATCH" | "TOO_MANY_FROM_INSTANCE" | "TOO_MANY_FOR_STATION" | "STATION_NOT_HERE" | "ALREADY_PARTNERS" | "ALREADY_WAITING" | "DECLINED_RECENTLY" | "STATUS_NOT_HERE" | "ANSWER_NOT_EXPECTED" | "ANSWER_SIGNATURE_NOT_GOOD";
         PairRequestReceipt: {
             stationName: string;
+        };
+        PairRequestRefusal: {
+            code: string;
+            error: string;
+            message: string;
+            reason: components["schemas"]["PairRequestReason"];
+            /** Format: int64 */
+            retryAfterSeconds?: number;
         };
         PairRequestResponse: {
             createdAt: string;
@@ -65990,7 +66099,9 @@ export type PageVisibilityRequest = components['schemas']['PageVisibilityRequest
 export type Pair = components['schemas']['Pair'];
 export type PairRequestAnswer = components['schemas']['PairRequestAnswer'];
 export type PairRequestMessage = components['schemas']['PairRequestMessage'];
+export type PairRequestReason = components['schemas']['PairRequestReason'];
 export type PairRequestReceipt = components['schemas']['PairRequestReceipt'];
+export type PairRequestRefusal = components['schemas']['PairRequestRefusal'];
 export type PairRequestResponse = components['schemas']['PairRequestResponse'];
 export type PairRequestStatus = components['schemas']['PairRequestStatus'];
 export type PairRequestStatusQuery = components['schemas']['PairRequestStatusQuery'];
@@ -67292,6 +67403,27 @@ export const PageVisibility = {
     DRAFT: "DRAFT",
     PUBLIC: "PUBLIC",
     UNLISTED: "UNLISTED",
+} as const;
+
+export const PairRequestReason = {
+    ADDRESS_NOT_THE_INSTANCES: "ADDRESS_NOT_THE_INSTANCES",
+    ALREADY_PARTNERS: "ALREADY_PARTNERS",
+    ALREADY_WAITING: "ALREADY_WAITING",
+    ANSWER_NOT_EXPECTED: "ANSWER_NOT_EXPECTED",
+    ANSWER_SIGNATURE_NOT_GOOD: "ANSWER_SIGNATURE_NOT_GOOD",
+    CONTRACT_MISMATCH: "CONTRACT_MISMATCH",
+    DECLINED_RECENTLY: "DECLINED_RECENTLY",
+    INCOMPLETE: "INCOMPLETE",
+    INSTANCE_BLOCKED: "INSTANCE_BLOCKED",
+    INSTANCE_SIGNATURE_NOT_GOOD: "INSTANCE_SIGNATURE_NOT_GOOD",
+    INSTANCE_UNKNOWN: "INSTANCE_UNKNOWN",
+    OUT_OF_TIME: "OUT_OF_TIME",
+    STATION_NOT_HERE: "STATION_NOT_HERE",
+    STATION_SIGNATURE_NOT_GOOD: "STATION_SIGNATURE_NOT_GOOD",
+    STATUS_NOT_HERE: "STATUS_NOT_HERE",
+    TOO_LARGE: "TOO_LARGE",
+    TOO_MANY_FOR_STATION: "TOO_MANY_FOR_STATION",
+    TOO_MANY_FROM_INSTANCE: "TOO_MANY_FROM_INSTANCE",
 } as const;
 
 export const PairRequestStatus = {

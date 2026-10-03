@@ -7,13 +7,12 @@ package dev.chojo.ember.feature.federation.service;
 
 import dev.chojo.ember.api.refusal.FederationRefusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
-import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.federation.entity.CapabilityType;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import dev.chojo.ember.util.TestStationKeys;
+import dev.chojo.ember.util.TestFederationServices;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -38,7 +37,7 @@ class ClusterFederationTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         federationRepository = new FederationRepository();
-        service = new FederationService(federationRepository, stationRepo, TestStationKeys.store(), new Api());
+        service = TestFederationServices.of(federationRepository, stationRepo);
     }
 
     private Station freshStation() {

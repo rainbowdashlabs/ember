@@ -28,7 +28,6 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpRequest.BodyPublisher;
 import java.net.http.HttpRequest.BodyPublishers;
 import java.net.http.HttpResponse;
-import java.net.http.HttpTimeoutException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -116,31 +115,36 @@ public class FederationHttpClient {
      */
     public HandshakeAttempt handshake(String remoteBaseUrl, RemoteFederationRoutes.HandshakeRequest body) {
         String url = apiUrl(remoteBaseUrl) + RemoteFederationRoutes.HANDSHAKE.path();
-        try {
-            var request = HttpRequest.newBuilder()
-                    .uri(URI.create(url))
-                    .timeout(HANDSHAKE_TIMEOUT)
-                    .header("Content-Type", "application/json")
-                    .POST(BodyPublishers.ofString(mapper.writeValueAsString(body)))
-                    .build();
-            var response = outbound.send(request, HttpResponse.BodyHandlers.ofString());
-            var status = handshakeStatus(response.statusCode());
-            if (status != HandshakeStatus.ESTABLISHED) {
-                log.warn("Federation handshake with {} answered HTTP {}", remoteBaseUrl, response.statusCode());
-                return new HandshakeAttempt(status, null);
+        return switch (outbound.postJson(url, mapper.writeValueAsString(body), HANDSHAKE_TIMEOUT)) {
+            case OutboundHttp.JsonPost.Failed failed -> {
+                log.warn("Federation handshake with {} had no answer: {}", remoteBaseUrl, failed.failure());
+                yield new HandshakeAttempt(handshakeStatus(failed.failure()), null);
             }
+            case OutboundHttp.JsonPost.Answered answered -> handshakeAnswer(remoteBaseUrl, answered);
+        };
+    }
+
+    private HandshakeAttempt handshakeAnswer(String remoteBaseUrl, OutboundHttp.JsonPost.Answered answered) {
+        var status = handshakeStatus(answered.status());
+        if (status != HandshakeStatus.ESTABLISHED) {
+            log.warn("Federation handshake with {} answered HTTP {}", remoteBaseUrl, answered.status());
+            return new HandshakeAttempt(status, null);
+        }
+        try {
             return new HandshakeAttempt(
-                    status, mapper.readValue(response.body(), RemoteFederationRoutes.HandshakeResponse.class));
-        } catch (RefusedDestinationException e) {
-            log.warn("Federation handshake URL {} refused: {}", url, e.getMessage());
-            return new HandshakeAttempt(HandshakeStatus.HOST_REFUSED, null);
-        } catch (HttpTimeoutException e) {
-            log.warn("Federation handshake with {} timed out", remoteBaseUrl, e);
-            return new HandshakeAttempt(HandshakeStatus.TIMEOUT, null);
-        } catch (Exception e) {
-            log.warn("Federation handshake with {} failed", remoteBaseUrl, e);
+                    status, mapper.readValue(answered.body(), RemoteFederationRoutes.HandshakeResponse.class));
+        } catch (RuntimeException e) {
+            log.warn("Federation handshake answer of {} could not be read", remoteBaseUrl, e);
             return new HandshakeAttempt(HandshakeStatus.UNREACHABLE, null);
         }
+    }
+
+    private static HandshakeStatus handshakeStatus(OutboundHttp.PostFailure failure) {
+        return switch (failure) {
+            case ADDRESS_REFUSED -> HandshakeStatus.HOST_REFUSED;
+            case TIMED_OUT -> HandshakeStatus.TIMEOUT;
+            case UNREACHABLE -> HandshakeStatus.UNREACHABLE;
+        };
     }
 
     /**

@@ -7,7 +7,6 @@ package dev.chojo.ember.feature.federation.service;
 
 import dev.chojo.ember.api.refusal.FederationRefusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
-import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.equipment.EquipmentTestSupport;
@@ -35,7 +34,7 @@ import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import dev.chojo.ember.util.TestStationKeys;
+import dev.chojo.ember.util.TestFederationServices;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
@@ -85,7 +84,7 @@ class LendingServiceTest extends RepositoryTestBase {
         lendingRepo = new LendingRepository();
         federationRepo = new FederationRepository();
         shareRepo = new InventoryShareRepository();
-        federationService = new FederationService(federationRepo, stationRepo, TestStationKeys.store(), new Api());
+        federationService = TestFederationServices.of(federationRepo, stationRepo);
         shareService = new InventoryShareService(shareRepo, federationService, inventoryRepo, artRepo);
         httpClient = mock(FederationHttpClient.class);
         service = newLendingService(

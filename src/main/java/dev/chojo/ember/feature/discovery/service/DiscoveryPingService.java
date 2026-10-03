@@ -22,6 +22,7 @@ import dev.chojo.ember.feature.discovery.repository.DiscoveryPingRepository;
 import dev.chojo.ember.feature.federation.service.RemoteUrlValidator;
 import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.util.RandomTokens;
+import dev.chojo.ember.util.WebOrigins;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -249,8 +250,7 @@ public class DiscoveryPingService {
     }
 
     public String selfBaseUrl() {
-        var base = conf.main().api().baseUrl();
-        return base.endsWith("/") ? base.substring(0, base.length() - 1) : base;
+        return WebOrigins.stripTrailingSlash(conf.main().api().baseUrl());
     }
 
     /**

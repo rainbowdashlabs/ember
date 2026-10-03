@@ -303,15 +303,8 @@ public class FederationEnrollmentService {
     }
 
     private boolean signatureHolds(HandshakeRequest request) {
-        try {
-            return signingService.verifyEnrollmentPayload(
-                    enrollmentPayload(request),
-                    request.signature(),
-                    signingService.decodePublicKey(request.publicKey()));
-        } catch (RuntimeException e) {
-            log.warn("Federation handshake carried a public key that could not be read", e);
-            return false;
-        }
+        return signingService.enrollmentSignatureHolds(
+                enrollmentPayload(request), request.signature(), request.publicKey());
     }
 
     /** The refusal a reader is shown for each way a handshake can fail. */
