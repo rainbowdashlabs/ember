@@ -41,6 +41,7 @@ Stations turn their own templates and those of their association into documents 
 
 - **Escape did not close the text dialog.** In the text dialog of the page, news, wiki and template editors, the escape key did nothing while the cursor was in the text. It now closes the dialog from there too.
 - **Editor panels were cut off at the edge of the field.** In some cases the colour choice, the link, image and video panels of the text editor and the menus of rows and blocks in the page editor were cut off by the edge of the text field or of a dialog. They now always open in full.
+- **Field templates were asked of trial members.** Fields added from a profile field template were put to the form that was shown, which on opening was the one for trial members. Fields from a template are now created without an audience, and each is put to the right forms afterwards.
 - **Some theme colours were missing.** On many pages, highlights, links, backgrounds under the mouse pointer, progress bars, error messages and success marks were shown without their colour. They now show in the theme colours.
 - **Several spaces in a row became one.** Several spaces typed in a row in the text editor shrank to a single space once saved, on pages, in letters and in wiki PDFs. They now stay as typed, in the editor, on the page and in print.
 - **Text beside a picture started lower.** In a row of blocks on pages and in the page editor, text next to a picture began a little below the top of the picture. It now starts level with it.

@@ -6,7 +6,7 @@
 /** @vitest-environment happy-dom */
 import {mount} from '@vue/test-utils'
 import {defineComponent} from 'vue'
-import {describe, expect, it} from 'vitest'
+import {describe, expect, it, vi} from 'vitest'
 import type {EditableField, EditableFieldRequest} from '@/api/profileFields'
 import {OfferedFieldTypes} from '@/api/fieldTypes'
 import {FieldType, type ProfileFieldAssignment, type ProfileFieldScope} from '@/api/generated/schema'
@@ -130,9 +130,36 @@ describe('useFieldsConfig', () => {
       fields: [{name: 'Geburtsdatum', fieldType: FieldType.BIRTH_DATE, config: {}, required: true, readonly: true}],
     }
 
-    await config.applyTemplate(birthDate, 'MEMBER')
+    await config.applyTemplate(birthDate)
 
     expect(created).toHaveLength(1)
     expect(created[0]).toMatchObject({required: true, readonly: true, config: {}})
+  })
+
+  /**
+   * A template only writes its questions; which audiences they are asked of is decided per question.
+   * It used to put them to whichever form was shown, which on opening was the trial members'.
+   */
+  it('writes a template\'s questions without putting them to an audience', async () => {
+    const created: EditableFieldRequest[] = []
+    const assign = vi.fn(async () => undefined)
+    let api: ReturnType<typeof useFieldsConfig> | null = null
+    mount(defineComponent({
+      setup() {
+        api = useFieldsConfig({...portOf([], [], created), assign})
+        return () => null
+      },
+    }))
+    const firstAid = {
+      fields: [
+        {name: 'Erste Hilfe Kurs', fieldType: FieldType.DATE, config: {}},
+        {name: 'Erste Hilfe gültig bis', fieldType: FieldType.EXPIRY_DATE, config: {}},
+      ],
+    }
+
+    await api!.applyTemplate(firstAid)
+
+    expect(created.map(request => request.name)).toEqual(['Erste Hilfe Kurs', 'Erste Hilfe gültig bis'])
+    expect(assign).not.toHaveBeenCalled()
   })
 })
