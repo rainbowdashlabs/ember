@@ -14,8 +14,15 @@ expect_fail "a tag that differs from the version" "cut from a build that says 26
 expect_pass "main at the commit of its release" check EVENT_NAME=push REF_NAME=main
 
 git commit -q --allow-empty -m "Change without a bump"
-expect_fail "main past its release without a bump" "should be 26.20.1, one patch above the newest release v26.20.0" \
+expect_pass "main past its release without a bump, as dependency updates leave it" \
     check EVENT_NAME=push REF_NAME=main
+expect_pass "a dependency update without a bump" check EVENT_NAME=push REF_NAME=renovate/thing
+expect_pass "a dependency update pull request into main without a bump" \
+    check EVENT_NAME=pull_request BASE_REF=main HEAD_REF=renovate/thing
+expect_fail "a fix without a bump" "should be 26.20.1, one patch above the newest release v26.20.0" \
+    check EVENT_NAME=push REF_NAME=fix/thing
+expect_fail "a fix pull request into main without a bump" "should be 26.20.1" \
+    check EVENT_NAME=pull_request BASE_REF=main HEAD_REF=fix/thing
 
 set_version 26.20.1
 commit_all "Bump"
@@ -31,6 +38,8 @@ expect_fail "a fix two patches above the release" "should be 26.20.1" \
     check EVENT_NAME=push REF_NAME=fix/thing
 expect_fail "a pull request into main two patches above the release" "should be 26.20.1" \
     check EVENT_NAME=pull_request BASE_REF=main HEAD_REF=fix/thing
+expect_fail "a dependency update two patches above the release" "should be 26.20.1" \
+    check EVENT_NAME=push REF_NAME=renovate/thing
 
 set_version 26.21.0
 commit_all "Open the release"
@@ -51,8 +60,9 @@ expect_fail "a pull request into any other branch" "not into develop" \
     check EVENT_NAME=pull_request BASE_REF=develop HEAD_REF=feature/thing
 
 expect_pass "a feature while no release branch is open" check EVENT_NAME=push REF_NAME=feature/thing
+git push -q origin 'v26.20.0^{commit}:refs/heads/release/v26.20.0'
 git push -q origin HEAD:refs/heads/release/v26.21.0
-expect_pass "a feature at the open release branch's version" check EVENT_NAME=push REF_NAME=feature/thing
+expect_pass "a feature at the open release branch's version, a released one left over" check EVENT_NAME=push REF_NAME=feature/thing
 set_version 26.20.1
 commit_all "Feature on the wrong version"
 expect_fail "a feature at another version than the open release branch" \

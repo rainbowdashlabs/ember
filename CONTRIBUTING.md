@@ -12,7 +12,8 @@
 A feature never goes into `main` directly, and a fix never goes into a release branch: it reaches the
 release branch by the rebase described below. A pull request into any other branch fails CI.
 
-Dependency updates from Renovate go into `main` and follow the rules for fixes.
+Dependency updates from Renovate go into `main` without a version bump. They collect there and ship
+with the next fix, which bumps the patch as usual.
 
 ## Versions
 

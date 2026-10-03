@@ -7,8 +7,11 @@
 #   tag vX.Y.Z                          the tag equals the version
 #   release/vX.Y.Z, or a pull request   the version is X.Y.Z
 #     into it or from it into main
-#   main, fix/**, renovate/**, or a     the version is one patch above the newest release reachable
-#     pull request into main            from this commit
+#   fix/**, or a pull request into      the version is one patch above the newest release reachable
+#     main                              from this commit
+#   main, renovate/**, or a pull        the same, or still the newest release: dependency updates
+#     request from renovate/** into     collect on main without a bump until the next fix
+#     main
 #   feature/**                          the version is the one of the open release branch, when there
 #                                       is exactly one
 #   a pull request into anything else   refused
@@ -57,9 +60,22 @@ require_next_patch() {
     require_unreleased
 }
 
+require_next_patch_or_newest() {
+    local newest
+    newest=$(newest_release_reachable_from HEAD)
+    if [ -n "$newest" ] && [ "$version" = "$newest" ]; then
+        echo "Version $version is the newest release v$newest; dependency updates collect here until the next fix bumps the patch."
+        return
+    fi
+    require_next_patch
+}
+
 require_open_release_version() {
     local branches
-    branches=$(git ls-remote --heads origin 'release/v*' | sed 's|.*refs/heads/||')
+    branches=$(git ls-remote --heads origin 'release/v*' | sed 's|.*refs/heads/||' |
+        while read -r branch; do
+            if [ -z "$(released_commit "${branch#release/v}")" ]; then echo "$branch"; fi
+        done)
     case $(printf '%s' "$branches" | grep -c . || true) in
         0) echo "No release branch is open, so the version is only checked against the releases." ;;
         1)
@@ -92,6 +108,7 @@ case "${EVENT_NAME:-push}" in
             main)
                 case "$head" in
                     release/v*) require_release_branch_version "$head" ;;
+                    renovate/*) require_next_patch_or_newest ;;
                     *) require_next_patch ;;
                 esac
                 ;;
@@ -101,7 +118,8 @@ case "${EVENT_NAME:-push}" in
         ;;
     *)
         case "$REF_NAME" in
-            main | fix/* | renovate/*) require_next_patch ;;
+            main | renovate/*) require_next_patch_or_newest ;;
+            fix/*) require_next_patch ;;
             release/v*) require_release_branch_version "$REF_NAME" ;;
             feature/*) require_open_release_version ;;
             *) require_unreleased ;;
