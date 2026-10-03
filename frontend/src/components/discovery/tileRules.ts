@@ -42,8 +42,3 @@ export function discoveryKey(entry: DiscoveryEntry): string {
 export function isOnTheMap(entry: DiscoveryEntry): boolean {
     return typeof entry.latitude === 'number' && typeof entry.longitude === 'number'
 }
-
-/** The station's address as one line, from the parts it published. */
-export function placeLine(entry: DiscoveryEntry): string {
-    return [entry.addressLine, entry.city, entry.country].filter(Boolean).join(', ')
-}
