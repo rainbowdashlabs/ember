@@ -19,7 +19,8 @@ import PlaceholderTextInput from './placeholderpicker/PlaceholderTextInput.vue'
 /**
  * What a template is called and how the documents it makes are filed: under which title and file
  * name, both of which take placeholders, with which tags, whether they outlast the membership and whether they are hidden from the
- * member. A legal template uses official names only and keeps its documents by default. The language
+ * member. A legal template uses official names only and keeps its documents by default; a template for
+ * appointments, which appointments ask participants to bring, is always legal. The language
  * picks the pronouns of the gender field and the words the document prints, the station's by default.
  */
 const draft = defineModel<TemplateDraft>({required: true})
@@ -38,6 +39,11 @@ const LANGUAGES: readonly DocumentLanguage[] = [DocumentLanguage.DE, DocumentLan
 function setLegal(legal: boolean) {
   draft.value.legal = legal
   if (legal) draft.value.keepOnArchive = true
+}
+
+function setForAppointments(forAppointments: boolean) {
+  draft.value.forAppointments = forAppointments
+  if (forAppointments) setLegal(true)
 }
 
 function setLanguage(language: string | number | null | undefined) {
@@ -70,8 +76,11 @@ function setLanguage(language: string | number | null | undefined) {
     <LabelledField :label="t('documents.tags')" hint>
       <TagPicker v-model="draft.tags" :suggestions="documentTags" :placeholder="t('documents.tagsPlaceholder')"/>
     </LabelledField>
+    <ToggleSetting :model-value="draft.forAppointments" :label="t('documentTemplates.forAppointments')"
+                   :hint="t('documentTemplates.forAppointmentsHint')" data-testid="template-for-appointments"
+                   @update:model-value="setForAppointments"/>
     <ToggleSetting :model-value="draft.legal" :label="t('documentTemplates.legal')" :hint="t('documentTemplates.legalHint')"
-                   data-testid="template-legal" @update:model-value="setLegal"/>
+                   :disabled="draft.forAppointments" data-testid="template-legal" @update:model-value="setLegal"/>
     <ToggleSetting v-model="draft.keepOnArchive" :label="t('documents.keepOnArchive')" :hint="t('documents.keepOnArchiveHint')"/>
     <ToggleSetting v-model="draft.hidden" :label="t('documents.hide')" :hint="t('documentTemplates.hiddenHint')"/>
   </NeutralContainer>

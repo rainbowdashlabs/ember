@@ -1703,6 +1703,20 @@ volumes:
             rightsText: 'Vorlagen schreiben darf, wer „Dokumentvorlagen" hat. Für ein Mitglied erstellen darf, wer '
                 + '„Mitgliederdokumente verwalten" hat. „Dokumente" umfasst beides.',
             tip: 'Lege eine Vorlage einmal sauber an, mit Briefkopf und Logo. Danach ist jede Bescheinigung ein Klick.',
+            bulkTitle: 'Für mehrere Mitglieder erstellen',
+            bulkText: 'Über „Für mehrere Mitglieder erstellen" wählst du eine Vorlage und für wen sie erstellt wird: '
+                + 'nach Gruppen, Mitgliedstypen und Tags, oder ohne Auswahl für alle aktuellen Mitglieder. In der '
+                + 'Mitgliederliste geht das auch für ausgewählte Mitglieder, über „Exportieren" und „Dokumente '
+                + 'erstellen".',
+            bulkPreviewText: 'Die Vorschau zeigt das Dokument des ersten Mitglieds und nennt alle Mitglieder, bei '
+                + 'denen Angaben fehlen. Du entscheidest, ob für sie trotzdem ein Dokument mit Linien zum Ausfüllen '
+                + 'entsteht oder ob sie ausgelassen werden.',
+            bulkRunText: 'Die Erstellung läuft im Hintergrund weiter, auch wenn du die Seite verlässt. Unter der '
+                + 'Liste der Vorlagen siehst du den Fortschritt und danach, für wen nichts abgelegt wurde und warum.',
+            forAppointmentsTitle: 'Vorlagen für Termine',
+            forAppointmentsText: 'Ist eine Vorlage „Für Termine", kann ein Termin sie als mitzubringendes Dokument '
+                + 'verlangen. Nur dann bietet der Editor die Angaben des Termins als Platzhalter an: Name, Beginn, Ende '
+                + 'und Ort. Eine solche Vorlage ist immer ein rechtliches Dokument.',
         },
         documentFonts: {
             title: 'Schriftarten',
@@ -2686,6 +2700,9 @@ volumes:
             cancelAutomaticText: 'Hat der Termin eine Mindestanzahl, prüft Ember jeden Termin einzeln. Kommen bis zur eingestellten Zahl von Tagen vorher zu wenige Zusagen zusammen, wird nur dieser Termin abgesagt. Einen so abgesagten Termin, den du wiederherstellst, sagt Ember nicht noch einmal ab.',
             attachmentsTitle: 'Dateien zum Termin',
             attachmentsText: 'Gibt der Termin Dateien mit, stehen sie unter den Angaben, jede mit ihrer Größe und einer Schaltfläche zum Herunterladen. Du siehst nur die Dateien, die für dich gedacht sind: eine interne Datei trägt ein Abzeichen „Intern" und erscheint nur bei den Leuten, die den Termin durchführen.',
+            documentsToBringTitle: 'Mitzubringende Dokumente',
+            documentsToBringText: 'Verlangt der Termin Dokumente, etwa eine Einverständniserklärung, stehen sie unter den Dateien, sobald du oder eines deiner Kinder angemeldet ist. Für jede angemeldete Person gibt es eine eigene Zeile.',
+            documentsToBringDownloadText: '„Herunterladen" füllt das Dokument mit den Daten der Person und des Termins aus und legt es zusätzlich bei ihren Dokumenten ab. Drucke es aus, unterschreibe es und bring es zum Termin mit. Ändert die Wache die Vorlage, wird beim nächsten Herunterladen ein neues Dokument erstellt.',
             commentsTitle: 'Kommentare',
             commentsText: 'Unter dem Termin findest du einen Kommentarbereich. Hier können alle Mitglieder Fragen stellen oder Hinweise geben. Deine eigenen Kommentare kannst du ändern und löschen, und wer Termine verwaltet, kann auch die Kommentare anderer löschen.',
             notesTitle: 'Notizen',
@@ -2748,6 +2765,8 @@ volumes:
             exampleText: 'Vier Blöcke untereinander: Name, Vorgaben für den Termin, Erinnerungen und eigene Felder.',
             defaultsTitle: 'Vorgaben für den Termin',
             defaultsText: 'Titel, Beschreibung, Kategorie und Termintyp werden beim Anwenden direkt übernommen. Mit den Schaltern legst du fest, ob sich Mitglieder anmelden müssen und ob du die Anmeldung bestätigst. Ein Limit begrenzt die Zahl der Plätze.',
+            documentsTitle: 'Mitzubringende Dokumente',
+            documentsText: 'Über dem Speichern wählst du Dokumentvorlagen „Für Termine", die jeder Termin aus dieser Vorlage von den Teilnehmenden verlangt. Ein Termin übernimmt die Liste beim Anlegen und lässt sich danach unabhängig ändern.',
             remindersTitle: 'Erinnerungen',
             remindersText: 'Eine Erinnerung sagt, wie viele Tage vor dem Termin die Mitglieder eine Nachricht bekommen. Du kannst mehrere anlegen, zum Beispiel sieben und einen Tag vorher.',
             fieldsTitle: 'Eigene Felder',
@@ -4782,6 +4801,9 @@ volumes:
             attachmentsText: 'Ein Termin kann Dateien mitgeben: den Laufzettel, das Formular zum Mitbringen, den Plan für den Termin. Du wählst sie aus den Medien der Wache oder lädst sie dort hoch, gibst ihnen bei Bedarf einen Anzeigenamen und bringst sie in die Reihenfolge, in der sie auf der Terminseite stehen sollen.',
             attachmentsInternalText: 'Mit dem Schalter „Intern" legst du fest, wer eine Datei bekommt. Ohne ihn sieht sie jeder, der den Termin sehen darf, Partnerwachen eingeschlossen. Mit ihm bleibt sie bei den Leuten, die den Termin durchführen: Wer Termine bearbeiten darf oder das Recht auf interne Termindaten hat, sieht sie, sonst niemand, und an Partnerwachen wird sie nicht weitergegeben.',
             attachmentsFilesText: 'Dateien liegen weiterhin in den Medien der Wache. Ein angehängtes Bild oder Dokument lässt sich dort nicht löschen, solange ein Termin es mitgibt, und derselbe Laufzettel kann an mehreren Terminen hängen, ohne mehrfach zu belegen.',
+            documentsTitle: 'Mitzubringende Dokumente',
+            documentsText: 'Unter „Mitzubringende Dokumente" wählst du Dokumentvorlagen, die als „Für Termine" markiert sind, etwa eine Einverständniserklärung. Jede angemeldete Person oder ihre Erziehungsberechtigten laden auf der Terminseite ein Exemplar herunter, ausgefüllt mit ihren Daten und denen des Termins.',
+            documentsTemplateText: 'Wird der Termin aus einer Termin-Vorlage erstellt, kommen deren Dokumente mit. Eine archivierte Vorlage bleibt in der Liste, bis du sie entfernst, lässt sich aber nicht neu hinzufügen.',
             title: 'Termin erstellen / bearbeiten',
             subtitle: 'Einen Termin einrichten oder ändern.',
             whatShown: 'Was kannst du hier tun?',

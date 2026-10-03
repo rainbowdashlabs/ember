@@ -15,20 +15,31 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ToggleSetting from '@/components/input/toggle/ToggleSetting.vue'
 import TableColumnPicker from '@/components/table/TableColumnPicker.vue'
+import BulkGenerateModal from '@/components/documents/bulk/BulkGenerateModal.vue'
 import {documentTemplates} from '@/api'
-import {DocumentTemplateKind, type DocumentTemplateSummary} from '@/api/generated/schema'
+import {DocumentTemplateKind, StationPermission, type DocumentTemplateSummary} from '@/api/generated/schema'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useDataTable} from '@/composables/useDataTable'
+import {useSession} from '@/composables/useSession'
 import TemplateTable from './templatesview/TemplateTable.vue'
+import GenerationJobsPanel from './templatesview/GenerationJobsPanel.vue'
 import {templateColumns} from './templatesview/templateColumns'
 
 /**
  * The document templates of the station: letters written in Ember and uploaded PDFs filled in place.
  * An archived template generates nothing more and stays for the documents it made; the switch lists
  * those instead of the ones in use.
+ *
+ * <p>Whoever may file documents for members also generates a template for many members at once here,
+ * and follows those runs below the list.
  */
 const {t} = useI18n()
 const router = useRouter()
+const {hasPermission} = useSession()
+
+const canGenerate = computed(() => hasPermission(StationPermission.DOCUMENT_EDIT_MEMBER))
+const bulkOpen = ref(false)
+const jobsPanel = ref<InstanceType<typeof GenerationJobsPanel> | null>(null)
 
 const showArchived = ref(false)
 const templates = ref<DocumentTemplateSummary[]>([])
@@ -60,6 +71,10 @@ const table = useDataTable<DocumentTemplateSummary>({
                            @click="router.push({name: 'member-document-template-edit', params: {id: 'new'}, query: {kind: DocumentTemplateKind.PDF}})">
             {{ t('documentTemplates.createPdf') }}
           </SecondaryButton>
+          <SecondaryButton v-if="canGenerate" :icon="['fas', 'users']" data-testid="template-bulk"
+                           @click="bulkOpen = true">
+            {{ t('documentTemplates.bulk.open') }}
+          </SecondaryButton>
         </ButtonRow>
         <div class="flex flex-wrap items-center gap-3">
           <ToggleSetting v-model="showArchived" :label="t('documentTemplates.showArchived')"/>
@@ -69,6 +84,8 @@ const table = useDataTable<DocumentTemplateSummary>({
       <FailureAlert :failure="failure"/>
       <Spinner v-if="loading" size="lg"/>
       <TemplateTable v-else :table="table"/>
+      <GenerationJobsPanel v-if="canGenerate" ref="jobsPanel"/>
     </div>
+    <BulkGenerateModal v-if="bulkOpen" v-model="bulkOpen" @started="jobsPanel?.reload()"/>
   </ViewContent>
 </template>

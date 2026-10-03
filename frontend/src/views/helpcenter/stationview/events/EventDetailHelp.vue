@@ -191,6 +191,11 @@ const sampleCancellation: CancellationNotice = {
       <p>{{ t('helpCenter.eventDetail.attachmentsText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.eventDetail.documentsToBringTitle')">
+      <p>{{ t('helpCenter.eventDetail.documentsToBringText') }}</p>
+      <p>{{ t('helpCenter.eventDetail.documentsToBringDownloadText') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.eventDetail.commentsTitle')">
       <p>{{ t('helpCenter.eventDetail.commentsText') }}</p>
     </HelpSection>

@@ -27,6 +27,7 @@ const saved: DocumentTemplateResponse = {
     hidden: false,
     keepOnArchive: true,
     legal: true,
+    forAppointments: true,
     selfService: true,
     cooldownDays: 14,
     audience: {userTypes: [StationUserType.MEMBER], groupIds: [], tagIds: [], memberIds: [], mode: 'OR'},
@@ -71,6 +72,7 @@ describe('template drafts', () => {
         expect(request.titlePattern).toBe('Bescheinigung {{today}}')
         expect(request.audience?.mode).toBe('OR')
         expect(request.language).toBe(DocumentLanguage.EN)
+        expect(request.forAppointments).toBe(true)
         const cells = request.body?.[0]?.cells ?? []
         expect(cells.map(cell => cell.content)).toEqual(['Hallo {{member.firstName}}', 'Nur zur Probe'])
         expect(cells[0]?.restriction).toBeUndefined()

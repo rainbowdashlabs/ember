@@ -6,9 +6,16 @@
 import {describe, expect, it} from 'vitest'
 import {PlaceholderCategory} from '@/api/generated/schema'
 import {CATALOGUE} from './fixtures'
-import {branchesAlong, offeredPlaceholders, placeholderTree, searchPlaceholders, type PlaceholderNode} from './placeholderTree'
+import {
+    branchesAlong,
+    offeredPlaceholders,
+    placeholdersOfTemplate,
+    placeholderTree,
+    searchPlaceholders,
+    type PlaceholderNode,
+} from './placeholderTree'
 
-const EVERYTHING = {legal: false, appointments: true}
+const EVERYTHING = {legal: false}
 
 function names(nodes: PlaceholderNode[]) {
     return nodes.map(node => `${node.kind}:${node.name}`)
@@ -24,8 +31,16 @@ describe('the placeholders a place offers', () => {
         expect(keys(offeredPlaceholders(CATALOGUE, EVERYTHING))).toContain('member.calledName')
     })
 
-    it('leaves the appointment out where documents are for members alone', () => {
-        expect(keys(offeredPlaceholders(CATALOGUE, {...EVERYTHING, appointments: false}))).not.toContain('event.name')
+})
+
+describe('the placeholders a template can name', () => {
+    it('leaves the appointment out of a template that is not for appointments', () => {
+        expect(keys(placeholdersOfTemplate(CATALOGUE, false))).not.toContain('event.name')
+        expect(keys(placeholdersOfTemplate(CATALOGUE, false))).toContain('member.calledName')
+    })
+
+    it('offers the appointment to a template for appointments', () => {
+        expect(keys(placeholdersOfTemplate(CATALOGUE, true))).toEqual(keys(CATALOGUE))
     })
 })
 

@@ -6,11 +6,16 @@
 import client from './client'
 import {uploadFile} from './upload'
 import type {
+    BulkPreviewResponse,
     DocumentTemplateRequest,
     DocumentTemplateResponse,
     DocumentTemplateSummary,
     GeneratedDocumentResponse,
+    GenerationJobResponse,
+    GenerationJobSummary,
+    JobStartRequest,
     LetterImport,
+    MemberSelection,
     PlaceholderCatalogueResponse,
     PreviewResponse,
     SelfServiceOffer,
@@ -106,6 +111,30 @@ export async function selfServiceOffers(memberId: number): Promise<SelfServiceOf
 
 export async function generateForSelf(memberId: number, templateId: number): Promise<GeneratedDocumentResponse> {
     const res = await client.post<GeneratedDocumentResponse>(`/self-service/documents/${memberId}/templates/${templateId}`)
+    return res.data
+}
+
+/** Draws a template for the first of many members and lists what every member lacks. */
+export async function previewJob(templateId: number, selection: MemberSelection): Promise<BulkPreviewResponse> {
+    const res = await client.post<BulkPreviewResponse>(`/document-generation/templates/${templateId}/jobs/preview`, selection)
+    return res.data
+}
+
+/** Starts generating a template for many members in the background. */
+export async function startJob(templateId: number, request: JobStartRequest): Promise<GenerationJobResponse> {
+    const res = await client.post<GenerationJobResponse>(`/document-generation/templates/${templateId}/jobs`, request)
+    return res.data
+}
+
+/** The latest runs of the station, the newest first. */
+export async function listJobs(): Promise<GenerationJobSummary[]> {
+    const res = await client.get<GenerationJobSummary[]>('/document-generation/jobs')
+    return res.data
+}
+
+/** A run with how it went for each of its members. */
+export async function getJob(jobId: number): Promise<GenerationJobResponse> {
+    const res = await client.get<GenerationJobResponse>(`/document-generation/jobs/${jobId}`)
     return res.data
 }
 

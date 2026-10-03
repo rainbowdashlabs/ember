@@ -30,7 +30,8 @@ import type {
  * Everything a template is edited through, once it has been loaded.
  *
  * <p>Its own component because the view around it is the loading, the error and the way back, and
- * the template itself is five sections that have nothing to do with any of those.
+ * the template itself is five sections that have nothing to do with any of those. What the view adds
+ * of its own, such as the documents to bring, stands in the slot above the save button.
  */
 defineProps<{
   categories: EventCategory[]
@@ -102,6 +103,8 @@ const {t} = useI18n()
   </NeutralContainer>
 
   <RegistrationFieldsEditor v-if="requiresRegistration" v-model="registrationFields"/>
+
+  <slot/>
 
   <SaveButton :disabled="!name.trim()" :action="save"/>
 </template>

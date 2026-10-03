@@ -9,6 +9,7 @@ import {mount} from '@vue/test-utils'
 import {PlaceholderCategory} from '@/api/generated/schema'
 import {CATALOGUE} from './fixtures'
 import PlaceholderPicker from './PlaceholderPicker.vue'
+import {placeholdersOfTemplate} from './placeholderTree'
 
 /**
  * The picker walks a placeholder's path from the categories at the top, goes back along the steps it
@@ -36,8 +37,16 @@ describe('PlaceholderPicker', () => {
         const wrapper = picker()
 
         expect(wrapper.find(`[data-testid="placeholder-category-${PlaceholderCategory.MEMBER}"]`).text()).toBe('Mitglied')
-        expect(wrapper.find('[data-testid="placeholder-category-APPOINTMENT"]').exists()).toBe(false)
         expect(wrapper.find('[data-testid="placeholder-picker-level"]').exists()).toBe(false)
+    })
+
+    it('shows the appointment only where the template is for appointments', () => {
+        const appointment = `[data-testid="placeholder-category-${PlaceholderCategory.APPOINTMENT}"]`
+        expect(picker().find(appointment).text()).toBe('Termin')
+        const forMembers = mount(PlaceholderPicker, {
+            props: {placeholders: placeholdersOfTemplate(CATALOGUE, false), legal: false},
+        })
+        expect(forMembers.find(appointment).exists()).toBe(false)
     })
 
     it('walks down a path and back along its steps', async () => {

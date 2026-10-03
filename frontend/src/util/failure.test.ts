@@ -7,7 +7,7 @@
 import {describe, expect, it} from 'vitest'
 import {createI18n} from 'vue-i18n'
 import de from '@/i18n/de-DE'
-import {describeFailure, FailureKind, formatRefusalDetail, technicalSummary} from './failure'
+import {describeFailure, FailureKind, formatRefusalDetail, refusalSentence, technicalSummary} from './failure'
 
 /** Returns the key, so a test can see which message was chosen without depending on its wording. */
 const t = (key: string) => key
@@ -128,6 +128,17 @@ describe('the value a refusal was about', () => {
         const failure = describeFailure(rejected(400, {code: 'CU-145', message: 'That is more room'}), german())
 
         expect(failure.message).toBe('Das ist mehr Speicherplatz, als der Verbund noch vergeben kann, es wurde nichts geändert')
+    })
+})
+
+describe('refusalSentence', () => {
+    it('says a recorded refusal in German with what it was about', () => {
+        expect(refusalSentence('D-091', {kind: 'TEXT', text: 'Schule'}, german()))
+            .toBe('Für dieses Mitglied fehlen Daten, die die Vorlage braucht, es wurde kein Dokument abgelegt (Schule)')
+    })
+
+    it('names an untranslated refusal by its code', () => {
+        expect(refusalSentence('X-999', null, translating)).toBe('X-999')
     })
 })
 

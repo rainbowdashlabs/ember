@@ -36,6 +36,8 @@ export interface MemberListPort {
     routes: {detail?: string; edit?: string}
     canExport: ComputedRef<boolean>
     canEdit: ComputedRef<boolean>
+    /** Whether the members chosen for an export can also be handed to a run that generates documents. */
+    canGenerateDocuments?: ComputedRef<boolean>
     /** The name of the file an export produces, without an extension. */
     exportFileName: string
     /**
@@ -221,6 +223,7 @@ export function useMemberListConfig(port: MemberListPort) {
         exporting, performExport,
         canExport: port.canExport,
         canEdit: port.canEdit,
+        canGenerateDocuments: port.canGenerateDocuments ?? computed(() => false),
         detailRouteOf, navigateToDetail, navigateToEdit,
     }
 }

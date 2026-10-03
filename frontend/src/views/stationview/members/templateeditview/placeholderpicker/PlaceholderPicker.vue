@@ -23,14 +23,13 @@ import PlaceholderMatches from './PlaceholderMatches.vue'
  * <p>Picking a placeholder hands it on and starts over at the top. The steps come from the station's
  * catalogue, so nothing here reads structure from a key.
  *
- * <p>A legal template is not offered the name a member is called by, and nothing that only an
- * appointment fills is offered while documents are generated for members alone.
+ * <p>A legal template is not offered the name a member is called by. Whether the values of an
+ * appointment are offered is decided with the placeholders handed in, by whether the template is for
+ * appointments.
  */
 const props = defineProps<{
   placeholders: Placeholder[]
   legal: boolean
-  /** Whether the values of the appointment a document is generated for are offered too. */
-  appointments?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -43,10 +42,7 @@ const root = ref<HTMLElement | null>(null)
 const query = ref('')
 const trail = ref<string[]>([])
 
-const offered = computed(() => offeredPlaceholders(props.placeholders, {
-  legal: props.legal,
-  appointments: props.appointments ?? false,
-}))
+const offered = computed(() => offeredPlaceholders(props.placeholders, {legal: props.legal}))
 const categories = computed(() => placeholderTree(offered.value))
 const branches = computed(() => branchesAlong(categories.value, trail.value))
 const steps = computed(() => branches.value.map(branch => branch.name))

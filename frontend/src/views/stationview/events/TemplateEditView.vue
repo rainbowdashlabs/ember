@@ -15,6 +15,8 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import TemplateEditBody from './templateeditview/TemplateEditBody.vue'
+import DocumentRequirementsEditor from './eventshared/DocumentRequirementsEditor.vue'
+import {useDocumentRequirements} from './eventshared/useDocumentRequirements'
 import {emptyRestriction, toRestriction} from '@/components/input/restriction'
 import type {RestrictionSelection} from '@/api/types'
 import type {
@@ -40,6 +42,7 @@ const router = useRouter()
 const {loaded} = useSession()
 
 const templateId = computed(() => Number(route.params.id))
+const documentRequirements = useDocumentRequirements()
 
 const categories = ref<EventCategory[]>([])
 const attendanceTemplates = ref<AttendanceTemplate[]>([])
@@ -134,6 +137,7 @@ const {loading, failure} = useAsyncLoader(async () => {
 
     const fieldResults = await Promise.all(attTpls.map(t => attendance.listTemplateFields(t.id)))
     attendanceFields.value = fieldResults.flat()
+    await documentRequirements.load({kind: 'event-templates', id: templateId.value})
 
     seedForm(detail)
   } catch (e) {
@@ -177,6 +181,7 @@ async function save() {
         templateId.value,
         registrationFields.value.filter(f => f.name?.trim()).map(asSaved),
     )
+    await documentRequirements.save({kind: 'event-templates', id: templateId.value})
   } catch (e) {
     reportCaughtError(e, 'TemplateEditView.save')
     failure.value = describeFailure(e, t)
@@ -221,7 +226,12 @@ async function save() {
           :groups="groups"
           :tags="tags"
           :save="save"
-      />
+      >
+        <DocumentRequirementsEditor
+            v-model="documentRequirements.chosen.value"
+            :offered="documentRequirements.offered.value"
+        />
+      </TemplateEditBody>
     </div>
   </ViewContent>
 </template>

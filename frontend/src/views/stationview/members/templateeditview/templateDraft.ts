@@ -31,6 +31,8 @@ export interface TemplateDraft {
     hidden: boolean
     keepOnArchive: boolean
     legal: boolean
+    /** Whether appointments may ask participants to bring it, which makes it legal. */
+    forAppointments: boolean
     selfService: boolean
     cooldownDays: number
     audience: RestrictionSelection
@@ -67,6 +69,7 @@ export function emptyDraft(kind: DocumentTemplateKind = DocumentTemplateKind.LET
         hidden: false,
         keepOnArchive: false,
         legal: false,
+        forAppointments: false,
         selfService: false,
         cooldownDays: 30,
         audience: emptyRestriction(),
@@ -91,6 +94,7 @@ export function draftOf(template: DocumentTemplateResponse): TemplateDraft {
         hidden: template.hidden,
         keepOnArchive: template.keepOnArchive,
         legal: template.legal,
+        forAppointments: template.forAppointments,
         selfService: template.selfService,
         cooldownDays: template.cooldownDays,
         audience: toRestriction(template.audience),
@@ -115,6 +119,7 @@ export function requestOf(draft: TemplateDraft): DocumentTemplateRequest {
         hidden: draft.hidden,
         keepOnArchive: draft.keepOnArchive,
         legal: draft.legal,
+        forAppointments: draft.forAppointments,
         selfService: draft.selfService,
         cooldownDays: draft.cooldownDays,
         audience: draft.audience,

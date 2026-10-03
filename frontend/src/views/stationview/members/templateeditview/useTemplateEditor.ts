@@ -17,6 +17,7 @@ import type {
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {draftOf, emptyDraft, requestOf, type TemplateDraft} from './templateDraft'
+import {placeholdersOfTemplate} from './placeholderpicker/placeholderTree'
 
 /**
  * One template in the editor: the draft being written, what the station's templates can name, the
@@ -26,6 +27,9 @@ import {draftOf, emptyDraft, requestOf, type TemplateDraft} from './templateDraf
  * <p>The lists that need rights the editor of templates may not hold (the members, the document tags)
  * are read where they can be and stay empty where they cannot: they only make choosing easier and are
  * no reason to keep anybody from writing a template.
+ *
+ * <p>The values of an appointment are offered only while the template is for appointments, since only
+ * a document generated for an appointment fills them.
  *
  * <p>A new PDF of a PDF template becomes the template's current version and only that: the fields in
  * the draft stay as they are, saved or not, to be checked over the new pages.
@@ -37,7 +41,8 @@ export function useTemplateEditor(templateId: Ref<number | null>, newKind: Ref<D
     const draft = ref<TemplateDraft>(emptyDraft(newKind.value))
     const saved = ref<DocumentTemplateResponse | null>(null)
     const pdf = shallowRef<Blob | null>(null)
-    const placeholders = ref<Placeholder[]>([])
+    const catalogue = ref<Placeholder[]>([])
+    const placeholders = computed(() => placeholdersOfTemplate(catalogue.value, draft.value.forAppointments))
     const groups = ref<MemberGroup[]>([])
     const tags = ref<UserTag[]>([])
     const members = ref<MemberWithName[]>([])
@@ -45,7 +50,7 @@ export function useTemplateEditor(templateId: Ref<number | null>, newKind: Ref<D
     const fonts = ref<FontFamilyOption[]>([])
 
     const labels = computed<ReadonlyMap<string, string>>(() =>
-        new Map(placeholders.value.map(placeholder => [placeholder.key, placeholder.label])))
+        new Map(catalogue.value.map(placeholder => [placeholder.key, placeholder.label])))
 
     /** What a letter's blocks can name and be restricted to. */
     const letterCatalogue = computed(() => ({
@@ -55,7 +60,7 @@ export function useTemplateEditor(templateId: Ref<number | null>, newKind: Ref<D
     }))
 
     const loader = useAsyncLoader(async () => {
-        const [catalogue, groupList, tagList, memberList, tagNames, fontList] = await Promise.all([
+        const [offered, groupList, tagList, memberList, tagNames, fontList] = await Promise.all([
             documentTemplates.getCatalogue(),
             memberGroups.listGroups().catch(() => []),
             userTags.listTags().catch(() => []),
@@ -63,7 +68,7 @@ export function useTemplateEditor(templateId: Ref<number | null>, newKind: Ref<D
             documents.listTags().catch(() => []),
             documentFonts.stationFontSource.list().then(list => list.reachable).catch(() => []),
         ])
-        placeholders.value = catalogue.placeholders
+        catalogue.value = offered.placeholders
         fonts.value = fontList
         groups.value = groupList
         tags.value = tagList

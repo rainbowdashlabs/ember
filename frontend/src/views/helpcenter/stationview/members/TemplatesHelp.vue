@@ -25,6 +25,16 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.documentTemplates.missingText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.documentTemplates.bulkTitle')">
+      <p>{{ t('helpCenter.documentTemplates.bulkText') }}</p>
+      <p>{{ t('helpCenter.documentTemplates.bulkPreviewText') }}</p>
+      <p>{{ t('helpCenter.documentTemplates.bulkRunText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.documentTemplates.forAppointmentsTitle')">
+      <p>{{ t('helpCenter.documentTemplates.forAppointmentsText') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.documentTemplates.selfServiceTitle')">
       <p>{{ t('helpCenter.documentTemplates.selfServiceText') }}</p>
       <p>{{ t('helpCenter.documentTemplates.cooldownText') }}</p>

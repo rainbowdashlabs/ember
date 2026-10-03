@@ -30,20 +30,27 @@ export interface PlaceholderCategoryBranch extends PlaceholderBranch {
 export interface PlaceholderOffer {
     /** A legal template names people by their official names, so the name a member is called by is left out. */
     legal: boolean
-    /** Whether documents are generated for an appointment, which is the only case its values are filled. */
-    appointments: boolean
 }
 
 /**
  * The placeholders a place in the editor offers.
  *
- * @param placeholders every placeholder of the station
+ * @param placeholders the placeholders the template can name
  * @param offer        what may stand there
  */
 export function offeredPlaceholders(placeholders: readonly Placeholder[], offer: PlaceholderOffer): Placeholder[] {
-    return placeholders.filter(placeholder =>
-        !(offer.legal && placeholder.informal)
-        && (offer.appointments || !placeholder.eventOnly))
+    return placeholders.filter(placeholder => !(offer.legal && placeholder.informal))
+}
+
+/**
+ * The placeholders a template can name: the values of an appointment only where the template is for
+ * appointments, since only then a document is generated for one and they are filled.
+ *
+ * @param placeholders    every placeholder of the station
+ * @param forAppointments whether appointments may ask for the template
+ */
+export function placeholdersOfTemplate(placeholders: readonly Placeholder[], forAppointments: boolean): Placeholder[] {
+    return placeholders.filter(placeholder => forAppointments || !placeholder.eventOnly)
 }
 
 /**
