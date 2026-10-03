@@ -17,6 +17,11 @@ version. A pull request into any other branch fails CI.
 Dependency updates from Renovate go into `main` without a version bump of their own. They carry the
 version `main` carries and ship with the next fix release.
 
+Pull requests are labelled automatically: by the branch they come from (`t:feature`, `t:fix`,
+`t:deps`, `t:release`, `t:chore`, `t:other`) and by what they change (`a:backend`, `a:frontend`,
+`a:database`, `a:api`, `a:i18n`, `a:tests`, `a:e2e`, `a:docs`, `ci`). The rules are in
+`.github/labeler.yml`.
+
 ## Versions
 
 The version lives in `build.gradle.kts`. CI checks it on every push and pull request.

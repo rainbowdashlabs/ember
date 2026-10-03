@@ -1,0 +1,70 @@
+"t:feature":
+  - head-branch: "^feature/"
+"t:fix":
+  - head-branch: "^fix/"
+"t:deps":
+  - head-branch: "^renovate/"
+"t:release":
+  - head-branch: "^release/v"
+"t:chore":
+  - head-branch: "^chore/"
+"t:other":
+  - head-branch: "^(?!feature/|fix/|renovate/|release/v|chore/).*$"
+
+"a:backend":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/main/java/**"
+          - "src/main/resources/**"
+          - "build.gradle.kts"
+          - "settings.gradle.kts"
+          - "gradle/**"
+          - "templates/**"
+"a:frontend":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "frontend/src/**"
+          - "frontend/package.json"
+          - "frontend/package-lock.json"
+          - "frontend/nuxt.config.ts"
+          - "frontend/eslint/**"
+          - "frontend/eslint.config.mjs"
+"a:database":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/main/resources/database/**"
+          - "src/main/resources/data_tracking.json"
+"a:api":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/main/resources/api/openapi.json"
+          - "frontend/src/api/generated/**"
+"a:i18n":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "frontend/src/i18n/**"
+          - "src/main/resources/i18n/**"
+"a:tests":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/test/**"
+          - "frontend/src/**/*.test.ts"
+          - "frontend/src/test/**"
+"a:e2e":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "frontend/e2e/**"
+"a:docs":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "CHANGELOG.md"
+          - "CHANGELOG.de.md"
+          - "CONTRIBUTING.md"
+          - "README.md"
+"ci":
+  - changed-files:
+      - any-glob-to-any-file:
+          - ".github/**"
+          - "scripts/**"
+          - "toolchain.sh"
+          - "docker/**"
