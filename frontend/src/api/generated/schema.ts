@@ -18234,6 +18234,42 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/document-generation/log": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every document the station generated from a template, the newest first */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GeneratedDocumentEntry"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/document-generation/templates": {
         parameters: {
             query?: never;
@@ -60496,6 +60532,24 @@ export interface components {
             startDate?: string;
             startTime?: string | null;
         };
+        GeneratedDocumentEntry: {
+            /** Format: int32 */
+            documentId: number | null;
+            generatedAt: components["schemas"]["Instant"];
+            generatedByName: string | null;
+            /** Format: int32 */
+            id: number;
+            /** Format: int32 */
+            memberId: number | null;
+            memberName: string | null;
+            ofAssociation: boolean;
+            selfService: boolean;
+            /** Format: int32 */
+            templateId: number;
+            templateName: string;
+            /** Format: int32 */
+            templateVersion: number;
+        };
         GeneratedDocumentResponse: {
             /** Format: int32 */
             documentId: number;
@@ -68064,6 +68118,7 @@ export type GalleryItem = components['schemas']['GalleryItem'];
 export type GdprDeletionContext = components['schemas']['GdprDeletionContext'];
 export type GdprExportContext = components['schemas']['GdprExportContext'];
 export type GenerateDatesRequest = components['schemas']['GenerateDatesRequest'];
+export type GeneratedDocumentEntry = components['schemas']['GeneratedDocumentEntry'];
 export type GeneratedDocumentResponse = components['schemas']['GeneratedDocumentResponse'];
 export type GeneratedQuestionWithMeta = components['schemas']['GeneratedQuestionWithMeta'];
 export type GenerateEntry = components['schemas']['GenerateEntry'];

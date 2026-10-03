@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.generator.repository;
 
 import dev.chojo.ember.feature.generator.entity.DataSubject;
 import dev.chojo.ember.feature.generator.entity.DocumentGeneration;
+import dev.chojo.ember.feature.generator.entity.GenerationLogEntry;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
@@ -95,6 +96,26 @@ public class DocumentGenerationRepository {
                 ORDER BY role DESC, member_id;""")
                 .single(call().bind("id", generationId))
                 .map(DataSubject.map())
+                .all();
+    }
+
+    /**
+     * Every document generated at a station, with the template each came from.
+     *
+     * @param stationId the station the documents were filed at
+     * @return the entries, the newest first
+     */
+    public List<GenerationLogEntry> forStation(int stationId) {
+        return query("""
+                SELECT g.id, g.generated_at, g.template_id, t.name AS template_name, g.template_version,
+                       t.cluster_id IS NOT NULL AS of_association, g.member_id, g.generated_by, g.self_service,
+                       g.document_id
+                FROM document_generation g
+                JOIN document_template t ON t.id = g.template_id
+                WHERE g.station_id = :station_id
+                ORDER BY g.generated_at DESC, g.id DESC;""")
+                .single(call().bind("station_id", stationId))
+                .map(GenerationLogEntry.map())
                 .all();
     }
 
