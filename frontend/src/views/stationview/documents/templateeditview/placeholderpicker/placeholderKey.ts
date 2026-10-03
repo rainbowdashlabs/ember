@@ -19,21 +19,10 @@ export interface PlaceholderChoice {
 export const FORMAT_SEPARATOR = '|'
 
 /**
- * The two keys of the first letter templates that named a date in one format each. Templates saved with
- * them keep working on the server, and the editor names them like the date in that format.
- */
-const EARLIER_KEYS: ReadonlyMap<string, PlaceholderKey> = new Map([
-    ['member.joinDate.monthYear', {base: 'member.joinDate', format: 'monthYear'}],
-    ['today.long', {base: 'today', format: 'long'}],
-])
-
-/**
  * @param written a key as a template writes it
  * @returns the key read into the key of its value and its format
  */
 export function parsePlaceholderKey(written: string): PlaceholderKey {
-    const earlier = EARLIER_KEYS.get(written)
-    if (earlier) return earlier
     const bar = written.indexOf(FORMAT_SEPARATOR)
     if (bar < 0) return {base: written, format: null}
     return {base: written.slice(0, bar), format: written.slice(bar + 1)}

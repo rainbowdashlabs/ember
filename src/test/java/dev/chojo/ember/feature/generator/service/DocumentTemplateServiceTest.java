@@ -297,14 +297,17 @@ class DocumentTemplateServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * A date takes a ready-made format or an own one wherever placeholders stand, and the two keys that
-     * named a date in one format before are still taken. A format that cannot print its value is refused.
+     * A date takes a ready-made format or an own one wherever placeholders stand. A format that cannot
+     * print its value is refused, and so is a key of an earlier draft that named a date in one format.
      */
     @Test
     void datesTakeAFormatThatCanPrintThem() {
+        refused(
+                DocumentRefusal.DOCUMENT_TEMPLATE_PLACEHOLDER_UNKNOWN,
+                () -> service.create(owner, letter("Alt", "{{today.long}}").build(), authorId));
         var formatted = service.create(
                 owner,
-                letter("Formate", "{{member.birthDate|long}}", "{{today| TTTT, T. MMM JJ }}", "{{today.long}}")
+                letter("Formate", "{{member.birthDate|long}}", "{{today| TTTT, T. MMM JJ }}")
                         .title("Seit {{member.joinDate|monthYear}}")
                         .build(),
                 authorId);

@@ -160,16 +160,16 @@ class PlaceholderResolverTest extends RepositoryTestBase {
         assertEquals("Nora Fülling", values.get("generatedBy.fullName"));
     }
 
-    /** The keys that named a date in one format before read as that date in that format. */
+    /** A ready-made format prints the date in the template's language. */
     @Test
-    void theEarlierKeysOfOneFormatStillPrint() {
-        var german = values(lena, "today.long", "member.joinDate.monthYear");
-        var english = values(lena, DocumentLanguage.EN, "today.long", "member.joinDate.monthYear");
+    void aFormatPrintsInTheTemplatesLanguage() {
+        var german = values(lena, "today|long", "member.joinDate|monthYear");
+        var english = values(lena, DocumentLanguage.EN, "today|long", "member.joinDate|monthYear");
 
-        assertEquals("2. Oktober 2026", german.get("today.long"));
-        assertEquals("Oktober 2024", german.get("member.joinDate.monthYear"));
-        assertEquals("October 2, 2026", english.get("today.long"));
-        assertEquals("October 2024", english.get("member.joinDate.monthYear"));
+        assertEquals("2. Oktober 2026", german.get("today|long"));
+        assertEquals("Oktober 2024", german.get("member.joinDate|monthYear"));
+        assertEquals("October 2, 2026", english.get("today|long"));
+        assertEquals("October 2024", english.get("member.joinDate|monthYear"));
     }
 
     @Test

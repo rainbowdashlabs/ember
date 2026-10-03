@@ -31,10 +31,10 @@ class PlaceholderTokensTest {
     }
 
     @Test
-    void theEarlierKeysReadAsADateInAFormat() {
+    void aKeyReadsAsADateAndItsFormat() {
         assertEquals(
-                new PlaceholderKey("member.joinDate", "monthYear"), PlaceholderKey.parse("member.joinDate.monthYear"));
-        assertEquals(new PlaceholderKey("today", "long"), PlaceholderKey.parse("today.long"));
+                new PlaceholderKey("member.joinDate", "monthYear"), PlaceholderKey.parse("member.joinDate|monthYear"));
+        assertEquals(new PlaceholderKey("today.long", null), PlaceholderKey.parse("today.long"));
         assertEquals(new PlaceholderKey("today", null), PlaceholderKey.parse("today"));
         assertEquals(
                 BuiltInPlaceholder.TODAY, BuiltInPlaceholder.of("today|year").orElseThrow());

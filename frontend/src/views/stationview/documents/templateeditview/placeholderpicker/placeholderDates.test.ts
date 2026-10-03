@@ -24,11 +24,6 @@ describe('the labels of keys', () => {
         expect(labels.get('member.firstName')).toBe('Vorname')
         expect(labels.get('member.shoeSize')).toBeUndefined()
     })
-
-    it('name the earlier keys of one format like the date in that format', () => {
-        expect(labels.get('today.long')).toBe('Heutiges Datum (3. Oktober 2026)')
-        expect(labels.get('member.joinDate.monthYear')).toBe('Mitglied seit (Oktober 2026)')
-    })
 })
 
 describe('the formats a placeholder offers', () => {
