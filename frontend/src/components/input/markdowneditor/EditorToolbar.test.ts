@@ -12,7 +12,7 @@ import EditorToolbar from './EditorToolbar.vue'
 enableAutoUnmount(afterEach)
 
 const FONTS: FontFamilyOption[] = [
-    {family: 'Hausschrift', origin: FontOrigin.ASSOCIATION, styles: [FontStyle.REGULAR], printsOnPdf: true, sample: 'v1'},
+    {family: 'Hausschrift', origin: FontOrigin.ASSOCIATION, styles: [FontStyle.REGULAR], printsOnPdf: true, sample: 'v1', editorVersion: 'e1'},
 ]
 
 /**

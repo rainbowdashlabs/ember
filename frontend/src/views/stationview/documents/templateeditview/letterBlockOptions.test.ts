@@ -13,7 +13,7 @@ const catalogue = {
     labels: new Map([['member.firstName', 'Vorname']]),
     legal: false,
     choices: {groups: [], tags: []},
-    fonts: [{family: 'Hausschrift', origin: FontOrigin.INSTANCE, styles: [FontStyle.REGULAR], printsOnPdf: true, sample: 'v1'}],
+    fonts: [{family: 'Hausschrift', origin: FontOrigin.INSTANCE, styles: [FontStyle.REGULAR], printsOnPdf: true, sample: 'v1', editorVersion: 'e1'}],
 }
 
 describe('the block editor of a letter', () => {

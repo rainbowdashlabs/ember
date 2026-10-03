@@ -24,6 +24,7 @@ const {t} = useI18n()
     <HelpSection :title="t('helpCenter.documentFonts.uploadTitle')">
       <p>{{ t('helpCenter.documentFonts.uploadText') }}</p>
       <p>{{ t('helpCenter.documentFonts.licenceText') }}</p>
+      <p>{{ t('helpCenter.documentFonts.webText') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.documentFonts.useTitle')">

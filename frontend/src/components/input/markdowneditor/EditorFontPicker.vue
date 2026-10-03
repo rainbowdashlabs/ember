@@ -19,8 +19,8 @@ import {TEXT_FONT} from './textFont'
  * sample text the server draws in it. A family the words name but the template no longer reaches stays
  * listed and marked, as in the page's font pickers.
  *
- * <p>The font files never reach the browser, so the words keep the editor's look; the button names the
- * family at the cursor instead.
+ * <p>In the template editor the words show in the chosen family once its files are loaded; the button
+ * names the family at the cursor either way, which is the only hint where no file could be loaded.
  */
 const props = defineProps<{
   editor: Editor | undefined

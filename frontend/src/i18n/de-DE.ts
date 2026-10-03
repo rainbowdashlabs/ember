@@ -2520,9 +2520,11 @@ export default {
         chooseFile: 'Schriftdatei wählen',
         familyLabel: 'Familienname',
         familyHelp: 'Unter diesem Namen wählen Vorlagen die Schrift aus.',
-        licenceLabel: 'Wir dürfen diese Schrift für unsere Dokumente verwenden',
-        licenceHint: 'Für die Lizenz der Schrift seid ihr selbst verantwortlich. Schriften, deren Lizenz das '
-            + 'Einbetten in Dokumente verbietet, nimmt Ember nicht an.',
+        licenceLabel: 'Wir dürfen diese Schrift für unsere Dokumente verwenden und sie im Vorlageneditor allen '
+            + 'zeigen, die Vorlagen bearbeiten',
+        licenceHint: 'Für die Lizenz der Schrift seid ihr selbst verantwortlich. Der Vorlageneditor lädt die Schrift, '
+            + 'damit Text dort in ihr erscheint. Schriften, deren Lizenz das Einbetten in Dokumente verbietet, nimmt '
+            + 'Ember nicht an.',
         upload: 'Hochladen',
         uploaded: 'Schrift hochgeladen.',
         ownTitle: 'Eigene Schriften',
@@ -2535,6 +2537,18 @@ export default {
             + 'belegen keinen Speicherplatz.',
         deleteConfirm: 'Den Schnitt {style} der Schrift {family} löschen?',
         deleted: 'Schrift gelöscht.',
+        webLine: 'Webfassung {name}, {size}, hochgeladen am {date}',
+        webNone: 'Keine Webfassung, der Vorlageneditor zeigt die Druckdatei.',
+        webUpload: 'Webfassung hochladen',
+        webReplace: 'Webfassung ersetzen',
+        webRemove: 'Webfassung entfernen',
+        webTitle: 'Webfassung für {family}, {style}',
+        webHint: 'Der Vorlageneditor zeigt diesen Schnitt in der Webfassung statt in der Druckdatei. Dokumente '
+            + 'drucken weiter mit der Druckdatei. Eine Datei als WOFF2, WOFF, TrueType (.ttf) oder OpenType (.otf), '
+            + 'höchstens 10 MB. Eine vorhandene Webfassung wird ersetzt.',
+        webChooseFile: 'Webfassung wählen',
+        webUploaded: 'Webfassung hochgeladen.',
+        webRemoved: 'Webfassung entfernt.',
     },
     generatedDocuments: {
         member: 'Mitglied',

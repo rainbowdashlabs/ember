@@ -736,7 +736,7 @@ volumes:
                 envGroupDocuments: 'Erstellte Dokumente (Backend)',
                 envGroupDocumentsNote: 'Die Standardschrift erstellter Dokumente. Ohne sie druckt Ember in Liberation Sans.',
                 envGroupDefaultFont: 'Standardschrift (Container)',
-                envGroupDefaultFontNote: 'Diese Variablen liest der Backend-Container beim Start, bevor Ember startet. Er lädt die Schrift Berlin Type herunter, prüft die Datei und legt den normalen und den fetten Schnitt im Verzeichnis der Standardschrift ab (DOCUMENTS_DEFAULTFONTDIR, im Docker-Image /app/data/default-font). Liegen sie dort schon, lädt er nichts. Klappt der Download nicht, startet Ember trotzdem und druckt in Liberation Sans. Die Schrift ist nicht Teil von Ember und wird deshalb nicht mitgeliefert.',
+                envGroupDefaultFontNote: 'Diese Variablen liest der Backend-Container beim Start, bevor Ember startet. Er lädt die Schrift Berlin Type herunter, prüft die Datei und legt den normalen und den fetten Schnitt im Verzeichnis der Standardschrift ab (DOCUMENTS_DEFAULTFONTDIR, im Docker-Image /app/data/default-font), dazu dieselben zwei Schnitte als Webschrift, in der der Editor einer Vorlage den Text zeigt. Liegen sie dort schon, lädt er nichts. Klappt der Download nicht, startet Ember trotzdem und druckt in Liberation Sans. Die Schrift ist nicht Teil von Ember und wird deshalb nicht mitgeliefert.',
                 envGroupFederation: 'Föderation (Backend)',
                 envGroupTheming: 'Design (Backend)',
                 envGroupTools: 'Externe Programme (Backend)',
@@ -1770,15 +1770,23 @@ volumes:
             uploadText: 'Wähle die Schriftdatei (.ttf oder .otf), gib den Familiennamen ein und wähle den Schnitt: '
                 + 'normal, fett, kursiv oder fett kursiv. Jeder Schnitt ist eine eigene Datei unter demselben '
                 + 'Familiennamen.',
-            licenceText: 'Beim Hochladen bestätigst du, dass ihr die Schrift für eure Dokumente verwenden dürft. '
-                + 'Schriften, deren Lizenz das Einbetten in Dokumente verbietet, nimmt Ember nicht an.',
+            licenceText: 'Beim Hochladen bestätigst du, dass ihr die Schrift für eure Dokumente verwenden und sie im '
+                + 'Vorlageneditor allen zeigen dürft, die Vorlagen bearbeiten. Schriften, deren Lizenz das Einbetten '
+                + 'in Dokumente verbietet, nimmt Ember nicht an.',
+            webText: 'Zu jedem Schnitt kannst du eine Webfassung hochladen, als WOFF2, WOFF, .ttf oder .otf. Viele '
+                + 'Schriften gibt es mit einer eigenen Lizenz für Webseiten. Der Vorlageneditor zeigt den Schnitt dann '
+                + 'in der Webfassung, Dokumente drucken weiter mit der hochgeladenen Schriftdatei. Die Webfassung '
+                + 'zählt zum Speicherplatz, lässt sich ersetzen und entfernen und verschwindet mit ihrem Schnitt.',
             useTitle: 'Eine Schrift verwenden',
             useText: 'Im Editor eines Briefs wählst du unter Seite je eine Schrift für Text, Kopfzeile und '
                 + 'Fußzeile. Bei einer PDF-Vorlage wählst du für jedes Textfeld Schrift und Schnitt. Fehlt einer '
                 + 'Schrift ein Zeichen, druckt Ember es in Liberation Sans.',
-            previewText: 'Die Schriftdateien verlassen nie den Server. Jede Schriftauswahl zeigt deshalb neben dem '
-                + 'Namen und der Herkunft einer Schrift eine Zeile Beispieltext, die der Server in ihr zeichnet, so '
-                + 'wie sie im Dokument steht. Dieselbe Zeile steht auf dieser Seite bei jeder Schrift.',
+            previewText: 'Jede Schriftauswahl zeigt neben dem Namen und der Herkunft einer Schrift eine Zeile '
+                + 'Beispieltext, die der Server in ihr zeichnet, so wie sie im Dokument steht. Dieselbe Zeile steht '
+                + 'auf dieser Seite bei jeder Schrift. Die Schriftdateien selbst lädt nur der Editor einer Vorlage, '
+                + 'solange du darin arbeitest, damit der Text dort in seiner Schrift erscheint. Libertinus Serif, '
+                + 'New Computer Modern und DejaVu Sans Mono haben keine Datei, die Ember weitergeben kann. Im '
+                + 'Editor stehen sie deshalb nur mit ihrem Namen.',
             deleteTitle: 'Eine Schrift löschen',
             deleteText: 'Solange eine Vorlage in Gebrauch eine Schrift verwendet, lässt sie sich nicht löschen. '
                 + 'Ember nennt dann die Vorlagen. Archivierte Vorlagen halten keine Schrift fest.',
@@ -1835,7 +1843,8 @@ volumes:
                 + 'sie gedruckt werden, und öffnen sich zum Bearbeiten per Klick.',
             pageText: 'Unter Seite stellst du die Ränder und die Schriftgröße ein. Kopf- und Fußzeile stehen im '
                 + 'oberen und unteren Rand, lass dort also genug Platz. Dort wählst du auch die Schriften für Text, '
-                + 'Kopf- und Fußzeile. Die Auswahl zeigt jede Schrift mit ihrer Herkunft und einer Zeile Beispieltext.',
+                + 'Kopf- und Fußzeile. Die Auswahl zeigt jede Schrift mit ihrer Herkunft und einer Zeile Beispieltext. '
+                + 'Text, Kopf- und Fußzeile erscheinen im Editor in der gewählten Schrift.',
             bodyTitle: 'Text, Platzhalter und Sichtbarkeit',
             bodyText: 'Einen Text schreibst du im gewohnten Editor. Darüber stehen die Bereiche der Platzhalter, '
                 + 'etwa Mitglied, Pronomen oder Wache. Wähle einen Bereich und klicke dich weiter, zum Beispiel '
@@ -1852,10 +1861,11 @@ volumes:
                 + 'eingetragen sind. Namen sind immer die amtlichen Namen, nur der Rufname ist eine Ausnahme.',
             fontText: 'Einzelne Wörter druckst du in einer anderen Schrift. Markiere sie und wähle im Menü des '
                 + 'Editors unter „Schriftart" eine Schrift. Zur Auswahl stehen alle Schriften der Wache, ihres '
-                + 'Verbands und der Instanz und die mitgelieferten, jede mit einer Zeile Beispieltext. Im Editor sehen die Wörter aus wie immer: Sie sind gepunktet '
-                + 'unterstrichen, und zeigst du mit der Maus darauf, steht dort der Name der Schrift. Erst im PDF '
-                + 'erscheint die Schrift selbst. „Schrift der Vorlage" setzt die Wörter zurück. Gibt es eine '
-                + 'Schrift später nicht mehr, druckt Ember die Wörter in der Schrift der Vorlage.',
+                + 'Verbands und der Instanz und die mitgelieferten, jede mit einer Zeile Beispieltext. Im Editor '
+                + 'erscheinen die Wörter in ihrer Schrift. Lässt sich eine Schrift dort nicht zeigen, etwa eine der '
+                + 'Schriften nur für Briefe, sind die Wörter gepunktet unterstrichen, und zeigst du mit der Maus '
+                + 'darauf, steht dort der Name der Schrift. „Schrift der Vorlage" setzt die Wörter zurück. Gibt es '
+                + 'eine Schrift später nicht mehr, druckt Ember die Wörter in der Schrift der Vorlage.',
             alignText: 'Absätze und Überschriften richtest du mit den vier Ausrichtungs-Buttons der Werkzeugleiste '
                 + 'aus: linksbündig, zentriert, rechtsbündig oder im Blocksatz. So steht etwa ein Titel mittig oder '
                 + 'ein Ort mit Datum rechts, im Editor wie im PDF.',
@@ -4276,7 +4286,8 @@ volumes:
                 + 'der Instanz stehen zusätzlich allen zur Verfügung.',
             uploadTitle: 'Eine Schrift hochladen',
             uploadText: 'Wähle die Datei (.ttf oder .otf), den Familiennamen und den Schnitt. Du bestätigst, dass '
-                + 'der Verband die Schrift verwenden darf.',
+                + 'der Verband die Schrift verwenden und im Vorlageneditor zeigen darf. Zu jedem Schnitt lässt sich '
+                + 'eine Webfassung hochladen, in der der Vorlageneditor ihn zeigt.',
             roomText: 'Schriften des Verbands zählen zum Speicherplatz des Verbands.',
             deleteTitle: 'Eine Schrift löschen',
             deleteText: 'Solange eine Vorlage einer Wache die Schrift verwendet, lässt sie sich nicht löschen. Ember '
@@ -4714,7 +4725,9 @@ volumes:
             reachText: 'Hat ein Verband oder eine Wache eine Schrift mit demselben Namen, gilt deren eigene.',
             uploadTitle: 'Eine Schrift hochladen',
             uploadText: 'Wähle die Datei (.ttf oder .otf), den Familiennamen und den Schnitt und bestätige, dass die '
-                + 'Schrift so verwendet werden darf. Schriften der Instanz zählen zu keinem Speicherplatz.',
+                + 'Schrift so verwendet und im Vorlageneditor gezeigt werden darf. Zu jedem Schnitt lässt sich eine '
+                + 'Webfassung hochladen, in der der Vorlageneditor ihn zeigt. Schriften der Instanz zählen zu keinem '
+                + 'Speicherplatz.',
             deleteTitle: 'Eine Schrift löschen',
             deleteText: 'Solange eine Vorlage irgendeiner Wache die Schrift verwendet, lässt sie sich nicht löschen.',
         },

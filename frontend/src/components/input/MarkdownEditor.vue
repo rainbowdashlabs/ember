@@ -20,6 +20,7 @@ import { Color } from '@tiptap/extension-color'
 import { TextStyle } from '@tiptap/extension-text-style'
 import { renderMarkdown } from '@/util/markdown'
 import { useSession } from '@/composables/useSession'
+import { useEditorFontAreaAttrs, useInjectedEditorFonts } from '@/composables/useEditorFonts'
 import MediaBrowseModal from '@/components/media/MediaBrowseModal.vue'
 import { createMarkdownTurndown } from './markdowneditor/markdownTurndown'
 import { ResizableImage } from './markdowneditor/resizableImage'
@@ -53,10 +54,15 @@ const props = defineProps<{
   tokens?: EditorTokens
   /**
    * The font families selected words can be set in, such as those a document template reaches. The
-   * menu offers a font only where they are given. Read once, when the editor is made.
+   * menu offers a font only where they are given. Read once, when the editor is made. Inside the
+   * template editor the text and the words show in the families they print in, from the fonts it loads.
    */
   fonts?: readonly FontFamilyOption[]
 }>()
+
+const editorFonts = useInjectedEditorFonts()
+const fontArea = useEditorFontAreaAttrs()
+const areaAttrs = computed(() => fontArea?.value ?? {})
 
 const { sessionInfo } = useSession()
 const stationUid = computed(() => props.mediaScope ?? sessionInfo.value?.stationId ?? '')
@@ -104,7 +110,7 @@ const editor = useEditor({
     Youtube.configure({ inline: false }),
     ResizableImage, TextStyle, Color, TextSize, BlockAlign,
     ...(props.tokens?.extensions ?? []),
-    ...(props.fonts ? [TextFont] : []),
+    ...(props.fonts ? [TextFont.configure({ shown: family => editorFonts?.shown(family) ?? false })] : []),
   ],
   content: '',
   editorProps: {
@@ -253,7 +259,8 @@ function applyVideo(url: string) {
 </script>
 
 <template>
-  <div ref="editorContainer" class="markdown-editor rounded-lg border border-[var(--border)] bg-[var(--bg)] relative">
+  <div ref="editorContainer" class="markdown-editor rounded-lg border border-[var(--border)] bg-[var(--bg)] relative"
+       v-bind="areaAttrs">
     <EditorToolbar
       :editor="editor"
       :fonts="fonts"

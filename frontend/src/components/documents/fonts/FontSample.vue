@@ -10,8 +10,9 @@ import {FontStyle} from '@/api/generated/schema'
 import {useFontSamples} from '@/composables/useFontSamples'
 
 /**
- * A line of sample text in a family, as a picture the server draws, since no font file ever reaches
- * the browser. The glyphs are black on a transparent ground and turned light in the dark theme.
+ * A line of sample text in a family, as a picture the server draws, so a list of families needs none of
+ * their files; only the template editor loads those. The glyphs are black on a transparent ground and
+ * turned light in the dark theme.
  * Nothing shows where no screen above says where samples are drawn, or where the picture cannot be had.
  */
 const props = withDefaults(defineProps<{

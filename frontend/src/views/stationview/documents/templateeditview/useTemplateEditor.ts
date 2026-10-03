@@ -18,8 +18,10 @@ import type {
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {provideFontSamples} from '@/composables/useFontSamples'
+import {useEditorFonts} from '@/composables/useEditorFonts'
 import {DEFAULT_FONT} from '@/components/documents/fonts/fontOptions'
 import {draftOf, emptyDraft, requestOf, type TemplateDraft} from './templateDraft'
+import {letterFamilies} from './letterFonts'
 import {placeholdersOfTemplate} from './placeholderpicker/placeholderTree'
 import type {TemplateScreens} from '../templateScreens'
 
@@ -56,6 +58,8 @@ async function stationChoices(): Promise<StationChoices> {
  * preview choose from, and for a PDF template the PDF it fills.
  *
  * <p>The font pickers below draw their samples through the owner's font source, which this provides.
+ * While the editor is open, the font files of the families the letter uses are loaded through the same
+ * source, so its text shows in them ({@link useEditorFonts}); they go when the editor closes.
  *
  * <p>An association has no members, groups or document tags of its own, so its lists stay empty; its
  * stations choose the audience of its templates themselves.
@@ -82,6 +86,8 @@ export function useTemplateEditor(
     const fontList = shallowRef<DocumentFontsResponse | null>(null)
     const fonts = computed<readonly FontFamilyOption[]>(() => fontList.value?.reachable ?? [])
     provideFontSamples(screens.fonts.sample)
+    const usedFamilies = computed(() => letterFamilies(draft.value))
+    useEditorFonts(screens.fonts.file, () => fontList.value, () => usedFamilies.value)
 
     const labels = computed<ReadonlyMap<string, string>>(() =>
         new Map(catalogue.value.map(placeholder => [placeholder.key, placeholder.label])))

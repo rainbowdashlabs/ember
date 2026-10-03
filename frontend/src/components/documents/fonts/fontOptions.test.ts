@@ -9,11 +9,11 @@ import {FontOrigin, FontOutline, FontStyle, type DocumentFontView, type FontFami
 import {choiceValue, familyChoices, familyOf, fontEntries, groupByFamily, printedStyle, reachedFamily} from './fontOptions'
 
 function family(name: string, styles: FontStyle[] = [FontStyle.REGULAR], printsOnPdf = true): FontFamilyOption {
-    return {family: name, origin: FontOrigin.STATION, styles, printsOnPdf, sample: 'v1'}
+    return {family: name, origin: FontOrigin.STATION, styles, printsOnPdf, sample: 'v1', editorVersion: 'e1'}
 }
 
 function font(id: number, name: string, style: FontStyle): DocumentFontView {
-    return {id, family: name, style, fileName: `${name}.ttf`, outline: FontOutline.TRUETYPE, sizeBytes: 1, uploadedAt: '2026-10-03T00:00:00Z'}
+    return {id, family: name, style, fileName: `${name}.ttf`, outline: FontOutline.TRUETYPE, sizeBytes: 1, uploadedAt: '2026-10-03T00:00:00Z', web: null}
 }
 
 describe('familyChoices', () => {
