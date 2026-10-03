@@ -1739,8 +1739,13 @@ volumes:
             title: 'Schriftarten',
             subtitle: 'Eigene Schriften für die Dokumentvorlagen der Wache',
             whatIs: 'Wofür Schriftarten da sind',
-            whatIsText: 'Ohne eigene Schrift druckt Ember Dokumente in Liberation Sans. Hier lädst du die Schrift '
-                + 'eurer Briefe hoch, zum Beispiel die Hausschrift des Verbands. Danach kann jede Vorlage sie verwenden.',
+            whatIsText: 'Ohne eigene Schrift druckt Ember Dokumente in der Standardschrift Berlin Type. Hier lädst '
+                + 'du die Schrift eurer Briefe hoch, zum Beispiel die Hausschrift des Verbands. Danach kann jede '
+                + 'Vorlage sie verwenden.',
+            defaultText: 'Berlin Type ist die Schrift des Landes Berlin und für alle frei nutzbar. Ember lädt sie '
+                + 'beim Start selbst herunter. Gelingt das nicht, druckt Ember in Liberation Sans. Berlin Type hat '
+                + 'keinen kursiven Schnitt, kursiver Text erscheint deshalb in Liberation Sans. In der '
+                + 'Schriftauswahl einer Vorlage heißt sie „Standard".',
             reachText: 'Vorlagen der Wache sehen ihre eigenen Schriften, die des Verbands und die der Instanz. Gibt '
                 + 'es eine Schrift mit demselben Namen an mehreren Stellen, gilt die eigene der Wache, dann die des '
                 + 'Verbands, dann die der Instanz.',
