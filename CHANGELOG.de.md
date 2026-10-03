@@ -2,12 +2,14 @@
 
 ## v26.20.1
 
-Wachen anderer Instanzen zeigen auf der Discovery-Seite ihr Logo. Die Logos kommen von dieser Instanz, ein Besuch der Seite erreicht also nie eine andere Instanz. Links zur öffentlichen Seite einer Wache führen nur noch zu Seiten, die es gibt. Die Kacheln auf der Discovery-Seite zeigen, was eine Wache öffentlich anbietet, und sehen für Wachen jeder Instanz gleich aus. Die Seite beginnt mit einer Karte, auf der jede Wache mit Namen steht.
+Wachen anderer Instanzen zeigen auf der Discovery-Seite ihr Logo. Die Logos kommen von dieser Instanz, ein Besuch der Seite erreicht also nie eine andere Instanz. Links zur öffentlichen Seite einer Wache führen nur noch zu Seiten, die es gibt. Die Kacheln auf der Discovery-Seite zeigen, was eine Wache öffentlich anbietet, und sehen für Wachen jeder Instanz gleich aus. Die Seite beginnt mit einer Karte, auf der jede Wache mit Namen steht. Wachen anderer Instanzen lassen sich wie Wachen dieser Instanz um eine Partnerschaft bitten. Anfragen und Antworten kommen als Benachrichtigung an.
 
 ### Verbesserungen
 
 - **Kacheln zeigen, was öffentlich ist.** Auf der Discovery-Seite hat jede Kachel Chips für eine offene Warteliste, das Wiki, den Kalender und den Blog, die jeweils direkt dorthin führen, und zeigt die Adresse der Wache, wenn sie veröffentlicht ist. Wachen anderer Instanzen sehen aus wie Wachen dieser Instanz, nur die Adresse ihres Servers steht dabei.
 - **Die Discovery-Seite beginnt mit der Karte.** Die Karte steht oben auf der Seite, jede Markierung trägt den Namen ihrer Wache, und die Suche darunter filtert Karte und Liste zugleich. Ein Klick auf eine Markierung öffnet die Kachel der Wache direkt unter der Karte, und die Adresse der Seite behält die Auswahl zum Teilen.
+- **Partnerschaftsanfragen erreichen Wachen anderer Instanzen.** Eine Wache einer anderen Instanz lässt sich über die Discovery-Seite oder mit ihrem Verzeichnis-Code anfragen, genau wie eine Wache dieser Instanz. Ihre Verwaltung nimmt auf der Föderations-Seite an oder lehnt ab, gesendete Anfragen stehen dort mit ihrem Stand, und nach einer Ablehnung kann dieselbe Wache erst nach 30 Tagen wieder fragen.
+- **Benachrichtigungen zu Partnerschaftsanfragen.** Wer die Föderation einer Wache verwaltet, wird über neue Anfragen benachrichtigt, die anfragende Wache über die Antwort. Die Benachrichtigung führt zur Föderations-Seite und geht auch per Mail raus, wo Benachrichtigungen per Mail eingeschaltet sind.
 
 ### Fehlerbehebungen
 

@@ -2,12 +2,14 @@
 
 ## v26.20.1
 
-Stations of other instances show their logos on the discovery page. The logos come from this instance, so a visit to the page never reaches another instance. Links to a station's public page lead only to pages that exist. Tiles on the discovery page show what each station offers publicly and look the same for stations of every instance. The page opens with a map that names every station on it.
+Stations of other instances show their logos on the discovery page. The logos come from this instance, so a visit to the page never reaches another instance. Links to a station's public page lead only to pages that exist. Tiles on the discovery page show what each station offers publicly and look the same for stations of every instance. The page opens with a map that names every station on it. Stations of other instances can be asked to federate like stations of this instance. Requests and their answers arrive as notifications.
 
 ### Improvements
 
 - **Station tiles show what is public.** On the discovery page, each tile has chips for an open waiting list, the wiki, the calendar and the blog, each leading straight there, and shows the station's address when it is published. Stations of other instances look the same as stations of this instance, apart from the address of their server.
 - **The discovery page opens with the map.** The map sits on top of the page with every station's name on its marker, and the search below it filters the map and the list together. A click on a marker opens that station's tile right below the map, and the page address keeps the choice for sharing.
+- **Federation requests reach stations of other instances.** A station of another instance can be asked to federate from the discovery page or with its pairing code, the same way as a station of this instance. Its managers accept or decline on the federation page, sent requests are listed there with their state, and after a decline the same station can ask again after 30 days.
+- **Federation requests and their answers are notified.** Whoever manages a station's federation is notified of a new request, and the asking station of the answer. The notification links to the federation page and also goes out by mail where notifications by mail are switched on.
 
 ### Fixes
 

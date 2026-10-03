@@ -408,6 +408,138 @@ test.describe('Two instances', () => {
     })
 })
 
+/** A station the second instance made for a story, with its manager signed in there. */
+interface PeerStation {
+    uid: string
+    name: string
+    api: APIRequestContext
+}
+
+/**
+ * A fresh station of the second instance, run by a seeded manager of that instance.
+ *
+ * Fresh because the seeded stations of the two instances share their identities, and a station
+ * asked to federate with one of those would be asked to federate with itself.
+ */
+async function stationOnPeer(peerAdminApi: APIRequestContext, prefix: string): Promise<PeerStation> {
+    const name = unique(prefix)
+    const manager = await stationManagerOf(peerBaseUrl())
+    const created = await peerAdminApi.post('/api/v1/stations', {data: {name, managerEmail: manager.email}})
+    expect(created.status()).toBe(201)
+    const {id: uid} = await created.json()
+    const api = await instanceRequestAs(peerBaseUrl(), {email: manager.email, stationId: uid})
+    return {uid, name, api}
+}
+
+/**
+ * The first instance takes the second as a discovery peer and fetches what it publishes.
+ *
+ * Adding the peer pings it, and the ping is what introduces the first instance to the second: a
+ * request to federate is only taken from an instance the receiver knows from discovery.
+ */
+async function knowEachOther(homeAdminApi: APIRequestContext): Promise<void> {
+    await proveFreshly(homeAdminApi)
+    const added = await homeAdminApi.post('/api/v1/admin/discovery/peers', {data: {baseUrl: peerInternalUrl()}})
+    expect(added.ok(), await added.text()).toBe(true)
+    const fetched = await homeAdminApi.post('/api/v1/admin/discovery/discover-now')
+    expect(fetched.ok(), await fetched.text()).toBe(true)
+}
+
+/** Whether the signed-in member of this context was told something of the given kind. */
+async function wasTold(api: APIRequestContext, type: string): Promise<boolean> {
+    const response = await api.get('/api/v1/notifications')
+    expect(response.ok(), await response.text()).toBe(true)
+    return ((await response.json()) as {type: string}[]).some(entry => entry.type === type)
+}
+
+/**
+ * Asking a station of another instance to federate, the way a station of the same instance is asked.
+ *
+ * <p>The request goes from the first instance to the second, where the asked station's managers are
+ * told and answer. The answer cannot be pushed back here: the second instance knows the first only
+ * by the address the browser uses, which no container can reach. The first instance asks for it
+ * instead when its federation page lists what it sent, which is the same way a real instance learns
+ * an answer whose push did not arrive.
+ */
+test.describe('Federation requests between instances', () => {
+    test('a station asks a station of the other instance and both become partners', async ({
+        peerAdminApi,
+        homeAdminApi,
+        homeManagerApi,
+    }) => {
+        const asked = await stationOnPeer(peerAdminApi, 'E2E-Anfragewache')
+        try {
+            await knowEachOther(homeAdminApi)
+
+            const sent = await homeManagerApi.post('/api/v1/discovery/request', {data: {stationUid: asked.uid}})
+            expect(sent.ok(), await sent.text()).toBe(true)
+
+            expect(await wasTold(asked.api, 'FEDERATION_REQUEST_RECEIVED'), 'the asked station is told').toBe(true)
+            const waiting = await asked.api.get('/api/v1/federation/remote-requests')
+            expect(waiting.ok(), await waiting.text()).toBe(true)
+            const requests: {id: number; instanceHost: string}[] = await waiting.json()
+            expect(requests).toHaveLength(1)
+            const request = must(requests[0], 'the request waiting at the asked station')
+            expect(request.instanceHost).toBe(new URL(homePublishedUrl()).host)
+
+            await proveFreshly(asked.api)
+            const accepted = await asked.api.post(`/api/v1/federation/remote-requests/${request.id}/accept`)
+            expect(accepted.ok(), await accepted.text()).toBe(true)
+
+            const outgoing = await homeManagerApi.get('/api/v1/federation/outgoing-requests')
+            expect(outgoing.ok(), await outgoing.text()).toBe(true)
+            const stillSent: {stationName: string}[] = await outgoing.json()
+            expect(stillSent.map(entry => entry.stationName)).not.toContain(asked.name)
+
+            const here = await partnerWith(homeManagerApi, asked.uid)
+            expect(here.status).toBe('ACTIVE')
+            expect(here.remoteHost).toBe(peerInternalUrl())
+            const there = await partnersOf(asked.api)
+            expect(there).toHaveLength(1)
+            const theirs = must(there[0], 'the partner the asked station now holds')
+            expect(theirs.status).toBe('ACTIVE')
+            expect(theirs.remoteHost).toBe(homePublishedUrl())
+
+            expect(await wasTold(homeManagerApi, 'FEDERATION_REQUEST_ACCEPTED'), 'the asking station is told')
+                .toBe(true)
+        } finally {
+            await asked.api.dispose()
+        }
+    })
+
+    test('a pairing code from the public page asks a station of the other instance', async ({
+        peerAdminApi,
+        homeAdminApi,
+        managerPage: page,
+    }) => {
+        const asked = await stationOnPeer(peerAdminApi, 'E2E-Codewache')
+        const visitor = await instanceRequest(homeBaseUrl())
+        try {
+            await knowEachOther(homeAdminApi)
+            const invited = await visitor.post('/api/v1/public/discovery/invite', {data: {stationUid: asked.uid}})
+            expect(invited.ok(), await invited.text()).toBe(true)
+            const {inviteCode} = await invited.json()
+
+            await page.goto('/station/federate')
+            await page.getByRole('button', {name: 'Partner hinzufügen'}).click()
+            await page.getByPlaceholder('Einladungscode einfügen...').fill(inviteCode)
+            await page.getByRole('button', {name: 'Verbinden', exact: true}).click()
+
+            await expect(page.getByText('Föderationsanfrage gesendet!')).toBeVisible()
+            const sentRow = page.locator('main').getByText(asked.name, {exact: true})
+            await expect(sentRow).toBeVisible()
+            await expect(page.locator('main').getByText('Wartet auf Antwort').first()).toBeVisible()
+
+            const waiting = await asked.api.get('/api/v1/federation/remote-requests')
+            expect(waiting.ok(), await waiting.text()).toBe(true)
+            expect(await waiting.json()).toHaveLength(1)
+        } finally {
+            await visitor.dispose()
+            await asked.api.dispose()
+        }
+    })
+})
+
 /**
  * Lending between two installations works the way it works between two stations of one.
  *
