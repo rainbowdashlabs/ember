@@ -40,7 +40,7 @@ const progressPct = computed(() => Math.round((position.value / STEP_ORDER.lengt
       </span>
     </div>
     <div class="h-1 bg-(--bg-accent) rounded-full overflow-hidden">
-      <div class="h-full bg-(--accent)" :style="{width: progressPct + '%'}"/>
+      <div class="h-full bg-(--color-primary)" :style="{width: progressPct + '%'}"/>
     </div>
     <p class="text-sm text-(--text-muted)">{{ t(`setup.steps.${stepId}.hint`) }}</p>
 

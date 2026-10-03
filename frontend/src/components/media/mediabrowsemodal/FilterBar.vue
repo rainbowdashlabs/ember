@@ -35,7 +35,7 @@ const {t} = useI18n()
     </BaseButton>
     <BaseButton v-for="tag in props.tags" :key="tag.id" compact
                 class="!rounded-full !border !font-normal"
-                :style="activeTagFilter === tag.id ? {borderColor: tag.color ?? 'var(--primary)', color: tag.color ?? 'var(--primary)'} : {}"
+                :style="activeTagFilter === tag.id ? {borderColor: tag.color ?? 'var(--color-primary)', color: tag.color ?? 'var(--color-primary)'} : {}"
                 :class="activeTagFilter === tag.id ? '' : '!border-(--border) !text-(--text-muted)'"
                 @click="activeTagFilter = activeTagFilter === tag.id ? null : tag.id">
       <span class="inline-block w-2 h-2 rounded-full mr-1" :style="{background: tag.color ?? '#888'}"/>

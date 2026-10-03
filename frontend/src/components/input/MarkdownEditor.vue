@@ -102,7 +102,7 @@ const editor = useEditor({
   extensions: [
     StarterKit.configure({ heading: { levels: [1, 2, 3] }, link: false, underline: false }),
     Underline,
-    Link.configure({ openOnClick: false, autolink: true, HTMLAttributes: { class: 'text-[var(--primary)] underline cursor-text' } }),
+    Link.configure({ openOnClick: false, autolink: true, HTMLAttributes: { class: 'text-[var(--color-primary)] underline cursor-text' } }),
     Placeholder.configure({ placeholder: props.placeholder ?? '' }),
     Table.configure({ resizable: true }),
     TableRow, TableHeader, TableCell,
@@ -324,7 +324,7 @@ function applyVideo(url: string) {
 .markdown-editor-content .tiptap table { border-collapse: collapse; table-layout: fixed; width: 100%; margin: 1em 0; }
 .markdown-editor-content .tiptap th, .markdown-editor-content .tiptap td { border: 1px solid var(--border); padding: 0.4em 0.6em; vertical-align: top; overflow-wrap: break-word; }
 .markdown-editor-content .tiptap th { font-weight: bold; background: var(--bg-accent); }
-.markdown-editor-content .tiptap .selectedCell { background: color-mix(in srgb, var(--primary) 15%, transparent); }
+.markdown-editor-content .tiptap .selectedCell { background: color-mix(in srgb, var(--color-primary) 15%, transparent); }
 .markdown-editor-content .tiptap mark { padding: 0.1em 0.2em; border-radius: 2px; }
 .markdown-editor-content .tiptap img { max-width: 100%; height: auto; border-radius: 4px; margin: 0.5em 0; }
 .markdown-editor-content .tiptap pre { background: var(--bg-accent); border: 1px solid var(--border); border-radius: 0.5rem; padding: 0.75rem 1rem; margin: 0.75em 0; overflow-x: auto; }

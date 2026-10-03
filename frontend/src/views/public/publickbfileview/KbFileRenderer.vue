@@ -54,9 +54,9 @@ const {t} = useI18n()
 
   <NeutralContainer v-else-if="props.file.fileType === KbFileType.LINK" class="space-y-4">
     <div class="flex items-center gap-2">
-      <font-awesome-icon :icon="['fas', 'link']" class="text-[var(--secondary)]"/>
+      <font-awesome-icon :icon="['fas', 'link']" class="text-[var(--color-secondary)]"/>
       <a :href="props.file.linkUrl ?? ''" target="_blank" rel="noopener noreferrer"
-         class="text-[var(--primary)] hover:underline break-all">
+         class="text-[var(--color-primary)] hover:underline break-all">
         {{ props.file.linkUrl }}
       </a>
     </div>

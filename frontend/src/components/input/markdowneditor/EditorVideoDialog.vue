@@ -46,7 +46,7 @@ function onInput() {
     </div>
 
     <p v-if="detectedProvider" class="text-xs text-[var(--text-muted)]">
-      <font-awesome-icon :icon="['fas', 'check']" class="text-[var(--success)] mr-1" />
+      <font-awesome-icon :icon="['fas', 'check']" class="text-[var(--color-success)] mr-1" />
       {{ t('markdownEditor.providerDetected', {provider: detectedProvider}) }}
     </p>
     <p class="text-[10px] text-[var(--text-muted)]">{{ t('markdownEditor.videoProviders') }}</p>

@@ -182,7 +182,7 @@ const stuckTable = useMailRecordTable('mail-stuck', () => data.value?.stuckMails
         <SubHeader>{{ t('mailDashboard.blocksTitle') }}</SubHeader>
         <MutedText tag="p" size="sm">{{ t('mailDashboard.blocksHint') }}</MutedText>
         <div v-for="block in data.blocks" :key="`${block.provider}-${block.recipientDomain}`"
-             class="rounded-lg border border-(--error) p-3 space-y-1">
+             class="rounded-lg border border-(--color-error) p-3 space-y-1">
           <div class="flex items-start justify-between gap-2 flex-wrap">
             <div class="text-sm font-medium">
               {{ t('mailDashboard.blockRow', {provider: block.provider, domain: block.recipientDomain}) }}
@@ -194,7 +194,7 @@ const stuckTable = useMailRecordTable('mail-stuck', () => data.value?.stuckMails
           <div class="text-xs text-(--text-muted)">
             {{ t('mailDashboard.blockUntil', {when: new Date(block.expiresAt).toLocaleString(locale)}) }}
           </div>
-          <div v-if="block.reason" class="text-xs text-(--error) break-words">{{ block.reason }}</div>
+          <div v-if="block.reason" class="text-xs text-(--color-error-badge) break-words">{{ block.reason }}</div>
         </div>
       </template>
 

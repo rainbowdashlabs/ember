@@ -25,14 +25,14 @@ const {t} = useI18n()
     <FieldLabel>{{ t('inventory.check.exchangeHandedIn') }}</FieldLabel>
     <ButtonRow pair>
       <SecondaryButton
-          :class="{'ring-2 ring-(--accent)': handedIn === true}"
+          :class="{'ring-2 ring-(--color-primary)': handedIn === true}"
           data-testid="rapid-exchange-handed-in"
           @click="handedIn = true"
       >
         {{ t('inventory.check.exchangeHandedInYes') }}
       </SecondaryButton>
       <SecondaryButton
-          :class="{'ring-2 ring-(--accent)': handedIn === false}"
+          :class="{'ring-2 ring-(--color-primary)': handedIn === false}"
           data-testid="rapid-exchange-kept"
           @click="handedIn = false"
       >

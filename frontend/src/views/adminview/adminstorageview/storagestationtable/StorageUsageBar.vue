@@ -16,7 +16,7 @@ defineProps<{
 
 <template>
   <div v-if="!station.usesOwnBackend" class="flex items-center gap-2">
-    <div class="flex-1 bg-(--bg-muted) rounded-full h-3 overflow-hidden flex">
+    <div class="flex-1 bg-(--bg-accent) rounded-full h-3 overflow-hidden flex">
       <div v-for="cat in station.categories.filter(c => c.category !== 'IMAGE_AVATAR' && c.totalBytes > 0)" :key="cat.category"
            :style="{width: (station.quotaBytes > 0 ? cat.totalBytes / station.quotaBytes * 100 : 0) + '%', backgroundColor: categoryColorMap[cat.category] || '#9ca3af'}"
            :title="categoryLabel(cat.category) + ': ' + formatBytes(cat.totalBytes)"

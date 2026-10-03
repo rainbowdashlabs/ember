@@ -65,7 +65,7 @@ function escapeHtml(text: string): string {
     </div>
     <div v-else class="flex flex-col gap-1 px-2 pb-3">
       <BaseButton v-for="result in searchResults" :key="result.entry.route"
-                  class="!text-left !block !py-2 hover:bg-[var(--bg-hover)]"
+                  class="!text-left !block !py-2 hover:bg-[var(--bg-accent)]"
                   data-testid="help-search-result"
                   full-width
                   @click="navigateToResult(result.entry.path)">

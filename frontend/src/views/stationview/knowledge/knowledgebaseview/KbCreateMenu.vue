@@ -61,7 +61,7 @@ function doImportDocument() { closeDropdown(); emit('importDocument') }
                 v-if="showDropdown"
                 class="absolute left-0 top-full mt-1 z-20 min-w-48 rounded-lg border border-bg-light-accent dark:border-bg-dark-accent bg-bg-light dark:bg-bg-dark shadow-lg py-1"
             >
-                <DropdownMenuItem :icon="['fas', 'folder']" icon-class="text-[var(--accent)]" @click="doCreateFolder">
+                <DropdownMenuItem :icon="['fas', 'folder']" icon-class="text-[var(--color-primary-accent)]" @click="doCreateFolder">
                     {{ t('kb.newFolder') }}
                 </DropdownMenuItem>
                 <DropdownMenuItem :icon="['fas', 'file-lines']" @click="doCreateMarkdown">
@@ -73,7 +73,7 @@ function doImportDocument() { closeDropdown(); emit('importDocument') }
                 <DropdownMenuItem :icon="['fab', 'youtube']" icon-class="text-red-600" @click="doYoutube">
                     {{ t('kb.addYoutube') }}
                 </DropdownMenuItem>
-                <DropdownMenuItem :icon="['fas', 'link']" icon-class="text-[var(--secondary)]" @click="doLink">
+                <DropdownMenuItem :icon="['fas', 'link']" icon-class="text-[var(--color-secondary)]" @click="doLink">
                     {{ t('kb.addLink') }}
                 </DropdownMenuItem>
                 <DropdownMenuItem :icon="['fas', 'file-import']" @click="doImportDocument">

@@ -151,7 +151,7 @@ function describeHistory(entry: ChecklistNoteHistoryEntry): string {
           <FailureAlert v-else-if="historyFailure" :failure="historyFailure"/>
           <div v-else-if="history.length === 0" class="text-sm text-(--text-muted)">{{ t('checklist.noteHistoryEmpty') }}</div>
           <ul v-else class="space-y-2 max-h-60 overflow-y-auto text-sm">
-            <li v-for="entry in history" :key="entry.id" class="border-l-2 border-(--primary) pl-2">
+            <li v-for="entry in history" :key="entry.id" class="border-l-2 border-(--color-primary) pl-2">
               <div class="text-(--text-muted) text-xs">
                 {{ t('checklist.noteHistoryEntry', {
                   who: entry.changedByName ?? t('checklist.noteHistoryDeletedActor'),

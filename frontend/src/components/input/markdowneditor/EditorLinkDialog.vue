@@ -76,7 +76,7 @@ function selectResult(result: SearchResultResponse) {
 
     <div v-if="linkSearchResults.length > 0" class="max-h-32 overflow-y-auto rounded border border-[var(--border)] divide-y divide-[var(--border)]">
       <button v-for="result in linkSearchResults" :key="result.file.id" type="button" class="w-full text-left px-2 py-1 text-xs hover:bg-[var(--bg-accent)] transition-colors flex items-center gap-2 cursor-pointer" @click="selectResult(result)">
-        <font-awesome-icon :icon="['fas', 'file-lines']" class="w-3 h-3 text-[var(--primary)] flex-shrink-0" />
+        <font-awesome-icon :icon="['fas', 'file-lines']" class="w-3 h-3 text-[var(--color-primary)] flex-shrink-0" />
         <div class="min-w-0 flex-1">
           <div class="font-medium truncate">{{ result.file.name }}</div>
           <div class="text-[10px] text-[var(--text-muted)] truncate">{{ result.folderPath }}</div>

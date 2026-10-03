@@ -36,7 +36,7 @@ const {t} = useI18n()
 function rowClass(row: TrackingRow): string {
   const edge = row.entry.stationTransfer.status === TrackingStatus.UNVERIFIED ? 'border-l-4 border-l-error'
       : row.unverifiedColumns > 0 ? 'border-l-4 border-l-warning' : ''
-  return [edge, props.selected.has(row.name) ? 'bg-(--accent)/5' : ''].join(' ')
+  return [edge, props.selected.has(row.name) ? 'bg-(--color-primary)/5' : ''].join(' ')
 }
 </script>
 

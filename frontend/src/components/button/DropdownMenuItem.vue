@@ -39,7 +39,7 @@ const entryClass = computed(() => [
 
 const glyphClass = computed(() => [
   'w-4',
-  props.iconClass ?? (props.destructive ? 'text-error' : 'text-[var(--primary)]'),
+  props.iconClass ?? (props.destructive ? 'text-error' : 'text-[var(--color-primary)]'),
 ])
 </script>
 

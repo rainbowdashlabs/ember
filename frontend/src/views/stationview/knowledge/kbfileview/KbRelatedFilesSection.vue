@@ -66,15 +66,15 @@ function onPick(result: SearchResultResponse) {
                 v-for="rf in relatedFiles"
                 :key="rf.id"
                 :to="{name: 'kb-file', params: {id: rf.id}}"
-                class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-sm bg-[var(--bg-accent)] border border-[var(--border)] hover:border-[var(--primary)] transition-colors group/rf"
+                class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-sm bg-[var(--bg-accent)] border border-[var(--border)] hover:border-[var(--color-primary)] transition-colors group/rf"
             >
-                <font-awesome-icon :icon="['fas', 'file-lines']" class="text-xs text-[var(--primary)]"/>
+                <font-awesome-icon :icon="['fas', 'file-lines']" class="text-xs text-[var(--color-primary)]"/>
                 {{ rf.name }}
                 <IconButton
                     v-if="canManage"
                     :icon="['fas', 'xmark']"
                     :label="t('common.remove')"
-                    class="!p-0 text-[10px] opacity-0 group-hover/rf:opacity-100 text-[var(--error)]"
+                    class="!p-0 text-[10px] opacity-0 group-hover/rf:opacity-100 text-[var(--color-error)]"
                     @click.prevent="emit('removeRelated', rf.id)"
                 />
             </router-link>
@@ -97,7 +97,7 @@ function onPick(result: SearchResultResponse) {
                     v-for="bl in backlinks"
                     :key="bl.id"
                     :to="{name: 'kb-file', params: {id: bl.id}}"
-                    class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-sm bg-[var(--bg-accent)] border border-[var(--border)] hover:border-[var(--primary)] transition-colors"
+                    class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-sm bg-[var(--bg-accent)] border border-[var(--border)] hover:border-[var(--color-primary)] transition-colors"
                 >
                     <font-awesome-icon :icon="['fas', 'file-lines']" class="text-xs text-[var(--text-muted)]"/>
                     {{ bl.name }}

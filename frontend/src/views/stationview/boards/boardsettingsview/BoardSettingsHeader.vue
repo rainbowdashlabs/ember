@@ -27,7 +27,7 @@ const { t } = useI18n()
         <div class="flex items-center gap-3">
             <IconButton :icon="['fas', 'chevron-left']" :label="t('common.back')" @click="emit('back')" />
             <SectionHeader>{{ t('boards.settings') }}</SectionHeader>
-            <span class="text-xs font-mono text-[var(--text-muted)] bg-[var(--bg-muted)] px-1.5 py-0.5 rounded">{{ shortKey }}</span>
+            <span class="text-xs font-mono text-[var(--text-muted)] bg-[var(--bg-accent)] px-1.5 py-0.5 rounded">{{ shortKey }}</span>
         </div>
         <span v-if="saving" class="text-xs text-[var(--text-muted)] flex items-center gap-1">
             <Spinner size="sm" /> {{ t('common.saving') }}

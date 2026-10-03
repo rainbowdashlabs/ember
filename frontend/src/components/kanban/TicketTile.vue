@@ -75,7 +75,7 @@ const isOverdue = computed(() => {
 
 <template>
     <div
-        class="bg-[var(--bg)] border border-[var(--border)] rounded-lg p-3 cursor-pointer hover:border-[var(--accent)] transition-colors shadow-sm"
+        class="bg-[var(--bg)] border border-[var(--border)] rounded-lg p-3 cursor-pointer hover:border-[var(--color-primary)] transition-colors shadow-sm"
         role="presentation"
         @click="emit('click', ticket)"
     >
@@ -95,7 +95,7 @@ const isOverdue = computed(() => {
         </div>
 
         <div v-if="hasChecklist" class="flex items-center gap-2 mb-2">
-            <div class="flex-1 h-1.5 bg-[var(--bg-muted)] rounded-full overflow-hidden">
+            <div class="flex-1 h-1.5 bg-[var(--bg-accent)] rounded-full overflow-hidden">
                 <div
                     class="h-full rounded-full transition-all"
                     :class="checklistPercent === 100 ? 'bg-green-500' : 'bg-primary'"
