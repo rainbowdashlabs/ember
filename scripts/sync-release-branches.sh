@@ -3,7 +3,8 @@
 #
 # Usage: sync-release-branches.sh [--dry-run]
 #
-# For each release/v* branch on origin that main has moved past:
+# A release branch whose version is already tagged is never touched, even when it was not deleted
+# after its release. For each other release/v* branch on origin that main has moved past:
 #   1. When main gained a patch at or above the branch's own patch number, the branch's own patch is
 #      renumbered above main's newest in every commit of the branch, through renumber-patch.sh.
 #   2. The branch is rebased onto main. Conflicts that only ever come from releasing in parallel are
@@ -191,6 +192,10 @@ failed=0
 
 for branch in $(git for-each-ref --format='%(refname:strip=3)' 'refs/remotes/origin/release/v*'); do
     old=$(git rev-parse "origin/$branch")
+    if [ -n "$(released_commit "${branch#release/v}")" ]; then
+        echo "$branch is released as ${branch#release/}; it is left alone."
+        continue
+    fi
     if git merge-base --is-ancestor "$MAIN_REF" "$old"; then
         echo "$branch already contains main."
         continue

@@ -88,4 +88,14 @@ expect_equal "an issue names the branch and the file" "yes" \
     "$(grep -q 'issue create --title Rebase of release/v26.21.0 onto main needs a hand' "$GH_LOG" &&
         grep -qx -- '- Code.java' "$GH_LOG" && echo yes)"
 
+git push -q origin --delete release/v26.21.0
+git checkout -q -B release/v26.20.0 v26.20.0
+git commit -q --allow-empty -m "Left behind after the release"
+git push -q origin release/v26.20.0
+leftover_head=$(git rev-parse HEAD)
+git checkout -q main
+expect_pass "a released branch left over is skipped" sync
+expect_equal "the released branch is left as it was" "$leftover_head" \
+    "$(git ls-remote origin refs/heads/release/v26.20.0 | cut -f1)"
+
 finish
