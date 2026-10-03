@@ -95,6 +95,7 @@
     grid(
       columns: r.cells.map(c => c.width * 1fr),
       column-gutter: if lines { 0pt } else { gutter },
+      align: top,
       inset: if lines {
         (x, y) => (left: if x == 0 { 0pt } else { gutter / 2 }, right: if x == last { 0pt } else { gutter / 2 })
       } else { 0pt },
