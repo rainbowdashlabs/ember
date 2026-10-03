@@ -312,6 +312,20 @@ a:not(:has(button)):not(.row-link):hover {
     margin-bottom: 0.75rem;
 }
 
+/**
+ * Text in a cell of a row starts and ends flush with the cell, so it lines up with a picture beside it.
+ * The spacing between its paragraphs, and every text outside a row, stays as it is.
+ */
+.row-cell > .markdown-content > :first-child,
+.row-cell > .markdown-content > [data-align]:first-child > :first-child {
+    margin-top: 0;
+}
+
+.row-cell > .markdown-content > :last-child,
+.row-cell > .markdown-content > [data-align]:last-child > :last-child {
+    margin-bottom: 0;
+}
+
 .markdown-content ul,
 .markdown-content ol {
     margin-top: 0.5rem;

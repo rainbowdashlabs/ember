@@ -43,6 +43,7 @@ Stations turn their own templates and those of their association into documents 
 - **Editor panels were cut off at the edge of the field.** In some cases the colour choice, the link, image and video panels of the text editor and the menus of rows and blocks in the page editor were cut off by the edge of the text field or of a dialog. They now always open in full.
 - **Some theme colours were missing.** On many pages, highlights, links, backgrounds under the mouse pointer, progress bars, error messages and success marks were shown without their colour. They now show in the theme colours.
 - **Several spaces in a row became one.** Several spaces typed in a row in the text editor shrank to a single space once saved, on pages, in letters and in wiki PDFs. They now stay as typed, in the editor, on the page and in print.
+- **Text beside a picture started lower.** In a row of blocks on pages and in the page editor, text next to a picture began a little below the top of the picture. It now starts level with it.
 
 ## v26.20.2
 
