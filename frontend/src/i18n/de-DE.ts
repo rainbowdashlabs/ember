@@ -2621,6 +2621,7 @@ export default {
         selfServiceOffered: 'Den Wachen zum Selbst-Erstellen anbieten',
         selfServiceOfferedHint: 'Jede Wache entscheidet selbst, ob und für wen ihre Mitglieder die Vorlage selbst erstellen. Die Wartezeit gilt für alle.',
         ofAssociation: 'Vom Verband',
+        namedOfAssociation: '{name} (Vom Verband)',
         previewOfAssociation: 'Der Verband hat keine eigenen Mitglieder. Die Vorschau zeigt die Platzhalter mit ihrem Namen; die Werte stehen erst im Dokument, das eine Wache für ein Mitglied erstellt.',
         use: {
             intro: 'Diese Vorlage gehört dem Verband und wird dort geändert. Die Verwaltung der Wache erstellt sie für Mitglieder auf deren Seite. Hier legt die Wache fest, ob ihre Mitglieder sie selbst erstellen.',
