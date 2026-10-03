@@ -5,12 +5,12 @@
  */
 package dev.chojo.ember.feature.generator.service;
 
+import dev.chojo.ember.feature.content.route.BlockRowRequest;
+import dev.chojo.ember.feature.generator.entity.DocumentLanguage;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplateKind;
 import dev.chojo.ember.feature.generator.entity.FormBinding;
 import dev.chojo.ember.feature.generator.entity.LetterPage;
-import dev.chojo.ember.feature.generator.entity.Letterhead;
 import dev.chojo.ember.feature.generator.entity.PdfField;
-import dev.chojo.ember.feature.generator.entity.PronounSource;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
 import org.jspecify.annotations.Nullable;
 
@@ -38,9 +38,10 @@ import java.util.List;
  * @param selfService     whether members may generate it for themselves and their children
  * @param cooldownDays    the days between two self service documents for one member
  * @param audience        who may generate it through self service
- * @param pronounSource   the choice field the pronouns follow, or null for the first name throughout
- * @param letterhead      the header and the footer of a letter
- * @param bodyMarkdown    the body of a letter, placeholders written as {@code {{key}}}
+ * @param language        the language the documents are written in, the station's where left out
+ * @param header          the rows across the top of every page of a letter
+ * @param footer          the rows across the bottom of every page of a letter
+ * @param body            the rows of a letter, placeholders written as {@code {{key}}} in its texts
  * @param page            the margins and the size of the body text of a letter
  * @param fields          the fields drawn on the pages of a PDF template
  * @param formBindings    what the form fields of a PDF template's PDF are filled with
@@ -57,9 +58,10 @@ public record DocumentTemplateRequest(
         boolean selfService,
         @Nullable Integer cooldownDays,
         @Nullable RestrictionAudience audience,
-        @Nullable PronounSource pronounSource,
-        @Nullable Letterhead letterhead,
-        @Nullable String bodyMarkdown,
+        @Nullable DocumentLanguage language,
+        @Nullable List<BlockRowRequest> header,
+        @Nullable List<BlockRowRequest> footer,
+        @Nullable List<BlockRowRequest> body,
         @Nullable LetterPage page,
         @Nullable List<PdfField> fields,
         @Nullable List<FormBinding> formBindings) {}

@@ -6,18 +6,18 @@
 package dev.chojo.ember.feature.generator.service;
 
 import dev.chojo.ember.api.refusal.DocumentRefusal;
+import dev.chojo.ember.feature.content.entity.ContentRow;
+import dev.chojo.ember.feature.generator.entity.DocumentLanguage;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplate;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplateKind;
 import dev.chojo.ember.feature.generator.entity.FormBinding;
 import dev.chojo.ember.feature.generator.entity.LetterContent;
 import dev.chojo.ember.feature.generator.entity.LetterPage;
-import dev.chojo.ember.feature.generator.entity.Letterhead;
 import dev.chojo.ember.feature.generator.entity.PdfContent;
 import dev.chojo.ember.feature.generator.entity.PdfField;
 import dev.chojo.ember.feature.generator.entity.PdfLayout;
 import dev.chojo.ember.feature.generator.entity.PdfOriginal;
 import dev.chojo.ember.feature.generator.entity.Placeholder;
-import dev.chojo.ember.feature.generator.entity.PronounSource;
 import dev.chojo.ember.feature.generator.entity.TemplateContent;
 import dev.chojo.ember.feature.generator.repository.DocumentTemplateRepository;
 import dev.chojo.ember.feature.generator.repository.PdfTemplateRepository;
@@ -201,19 +201,13 @@ public class DocumentTemplateService {
     }
 
     /**
-     * The placeholders an owner's templates can name, and the choice questions pronouns can follow.
+     * The placeholders an owner's templates can name.
      *
      * @param owner the owner
      * @return the catalogue
      */
     public PlaceholderCatalogueResponse catalogue(Owner.Station owner) {
-        var choices = catalogue.choiceFields(owner.stationId()).stream()
-                .map(field -> new ChoiceField(
-                        field.id(),
-                        field.name(),
-                        Objects.requireNonNullElse(field.config().options(), List.of())))
-                .toList();
-        return new PlaceholderCatalogueResponse(catalogue.forStation(owner.stationId()), choices);
+        return new PlaceholderCatalogueResponse(catalogue.forStation(owner.stationId()));
     }
 
     private void writeContent(int templateId, TemplateContent content) {
@@ -247,9 +241,10 @@ public class DocumentTemplateService {
                 template.selfService(),
                 template.cooldownDays(),
                 audience,
-                template.pronounSource(),
-                letter.letterhead(),
-                letter.bodyMarkdown(),
+                template.language(),
+                letter.header(),
+                letter.footer(),
+                letter.body(),
                 letter.page(),
                 pdf.original(),
                 pdf.layout().fields(),
@@ -309,9 +304,10 @@ public class DocumentTemplateService {
      * @param selfService     whether members may generate it for themselves
      * @param cooldownDays    the days between two self service documents for one member
      * @param audience        who may generate it through self service
-     * @param pronounSource   the choice field the pronouns follow, or null
-     * @param letterhead      the header and the footer of a letter
-     * @param bodyMarkdown    the body of a letter
+     * @param language        the language its documents are written in
+     * @param header          the rows across the top of every page of a letter
+     * @param footer          the rows across the bottom of every page of a letter
+     * @param body            the rows of a letter
      * @param page            the margins and the size of the body text of a letter
      * @param pdf             the PDF a PDF template fills now, or null for a letter or before an upload
      * @param fields          the fields drawn on the pages of a PDF template
@@ -333,9 +329,10 @@ public class DocumentTemplateService {
             boolean selfService,
             int cooldownDays,
             RestrictionAudience audience,
-            @Nullable PronounSource pronounSource,
-            Letterhead letterhead,
-            String bodyMarkdown,
+            DocumentLanguage language,
+            List<ContentRow> header,
+            List<ContentRow> footer,
+            List<ContentRow> body,
             LetterPage page,
             @Nullable PdfOriginal pdf,
             List<PdfField> fields,
@@ -348,16 +345,6 @@ public class DocumentTemplateService {
      * What a template of the owner can name.
      *
      * @param placeholders every placeholder, in the order the picker shows them
-     * @param choiceFields the choice questions pronouns can follow, with their answers
      */
-    public record PlaceholderCatalogueResponse(List<Placeholder> placeholders, List<ChoiceField> choiceFields) {}
-
-    /**
-     * A choice question pronouns can follow.
-     *
-     * @param id      the question
-     * @param name    what it is called
-     * @param options its answers, as they are stored
-     */
-    public record ChoiceField(int id, String name, List<String> options) {}
+    public record PlaceholderCatalogueResponse(List<Placeholder> placeholders) {}
 }

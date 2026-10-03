@@ -127,7 +127,8 @@ class DocumentGenerationRoutesTest {
                     200,
                     client.post(
                                     PREFIX + "/document-template-preview",
-                                    body("{\"template\": {\"bodyMarkdown\": \"{{today}}\"}}"),
+                                    body("{\"template\": {\"body\": [{\"sortOrder\": 0, \"cells\": [{\"sortOrder\": 0,"
+                                            + " \"contentType\": \"MARKDOWN\", \"content\": \"{{today}}\"}]}]}}"),
                                     editor)
                             .code());
             assertEquals(

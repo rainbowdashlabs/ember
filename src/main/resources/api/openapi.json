@@ -45519,25 +45519,6 @@
         },
         "required" : [ "type", "selected" ]
       },
-      "ChoiceField" : {
-        "type" : "object",
-        "properties" : {
-          "id" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "name" : {
-            "type" : "string"
-          },
-          "options" : {
-            "type" : "array",
-            "items" : {
-              "type" : "string"
-            }
-          }
-        },
-        "required" : [ "id", "name", "options" ]
-      },
       "ChoiceOption" : {
         "type" : "object",
         "properties" : {
@@ -48784,6 +48765,10 @@
           }
         }
       },
+      "DocumentLanguage" : {
+        "type" : "string",
+        "enum" : [ "DE", "EN" ]
+      },
       "DocumentPage" : {
         "type" : "object",
         "properties" : {
@@ -48882,22 +48867,30 @@
               "type" : "null"
             } ]
           },
-          "pronounSource" : {
+          "language" : {
             "anyOf" : [ {
-              "$ref" : "#/components/schemas/PronounSource"
+              "$ref" : "#/components/schemas/DocumentLanguage"
             }, {
               "type" : "null"
             } ]
           },
-          "letterhead" : {
-            "anyOf" : [ {
-              "$ref" : "#/components/schemas/Letterhead"
-            }, {
-              "type" : "null"
-            } ]
+          "header" : {
+            "type" : [ "array", "null" ],
+            "items" : {
+              "$ref" : "#/components/schemas/BlockRowRequest"
+            }
           },
-          "bodyMarkdown" : {
-            "type" : [ "string", "null" ]
+          "footer" : {
+            "type" : [ "array", "null" ],
+            "items" : {
+              "$ref" : "#/components/schemas/BlockRowRequest"
+            }
+          },
+          "body" : {
+            "type" : [ "array", "null" ],
+            "items" : {
+              "$ref" : "#/components/schemas/BlockRowRequest"
+            }
           },
           "page" : {
             "anyOf" : [ {
@@ -48964,18 +48957,26 @@
           "audience" : {
             "$ref" : "#/components/schemas/RestrictionAudience"
           },
-          "pronounSource" : {
-            "anyOf" : [ {
-              "$ref" : "#/components/schemas/PronounSource"
-            }, {
-              "type" : "null"
-            } ]
+          "language" : {
+            "$ref" : "#/components/schemas/DocumentLanguage"
           },
-          "letterhead" : {
-            "$ref" : "#/components/schemas/Letterhead"
+          "header" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ContentRow"
+            }
           },
-          "bodyMarkdown" : {
-            "type" : "string"
+          "footer" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ContentRow"
+            }
+          },
+          "body" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ContentRow"
+            }
           },
           "page" : {
             "$ref" : "#/components/schemas/LetterPage"
@@ -49014,7 +49015,7 @@
             } ]
           }
         },
-        "required" : [ "id", "name", "kind", "titlePattern", "fileNamePattern", "tags", "hidden", "keepOnArchive", "legal", "selfService", "cooldownDays", "audience", "pronounSource", "letterhead", "bodyMarkdown", "page", "pdf", "fields", "formBindings", "version", "updatedAt", "archivedAt" ]
+        "required" : [ "id", "name", "kind", "titlePattern", "fileNamePattern", "tags", "hidden", "keepOnArchive", "legal", "selfService", "cooldownDays", "audience", "language", "header", "footer", "body", "page", "pdf", "fields", "formBindings", "version", "updatedAt", "archivedAt" ]
       },
       "DocumentTemplateSummary" : {
         "type" : "object",
@@ -55800,37 +55801,14 @@
         },
         "required" : [ "requestItemId", "requestId", "itemId", "quantity", "assignedItemId", "status", "dateFrom", "dateTo", "requestingStationName" ]
       },
-      "LetterCell" : {
-        "type" : "object",
-        "properties" : {
-          "kind" : {
-            "$ref" : "#/components/schemas/LetterCellKind"
-          },
-          "mediaHash" : {
-            "type" : [ "string", "null" ]
-          },
-          "text" : {
-            "type" : [ "string", "null" ]
-          },
-          "align" : {
-            "$ref" : "#/components/schemas/TextAlign"
-          },
-          "imageHeightMm" : {
-            "type" : "integer",
-            "format" : "int32"
-          }
-        },
-        "required" : [ "kind", "mediaHash", "text", "align", "imageHeightMm" ]
-      },
-      "LetterCellKind" : {
-        "type" : "string",
-        "enum" : [ "EMPTY", "IMAGE", "LOGO", "TEXT" ]
-      },
       "LetterImport" : {
         "type" : "object",
         "properties" : {
-          "bodyMarkdown" : {
-            "type" : "string"
+          "rows" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ContentRow"
+            }
           },
           "recognised" : {
             "type" : "array",
@@ -55845,7 +55823,7 @@
             }
           }
         },
-        "required" : [ "bodyMarkdown", "recognised", "unrecognised" ]
+        "required" : [ "rows", "recognised", "unrecognised" ]
       },
       "LetterPage" : {
         "type" : "object",
@@ -55872,24 +55850,6 @@
           }
         },
         "required" : [ "marginTopMm", "marginBottomMm", "marginLeftMm", "marginRightMm", "fontSizePt" ]
-      },
-      "Letterhead" : {
-        "type" : "object",
-        "properties" : {
-          "header" : {
-            "type" : "array",
-            "items" : {
-              "$ref" : "#/components/schemas/LetterCell"
-            }
-          },
-          "footer" : {
-            "type" : "array",
-            "items" : {
-              "$ref" : "#/components/schemas/LetterCell"
-            }
-          }
-        },
-        "required" : [ "header", "footer" ]
       },
       "Likert" : {
         "type" : "object",
@@ -61076,15 +61036,9 @@
             "items" : {
               "$ref" : "#/components/schemas/Placeholder"
             }
-          },
-          "choiceFields" : {
-            "type" : "array",
-            "items" : {
-              "$ref" : "#/components/schemas/ChoiceField"
-            }
           }
         },
-        "required" : [ "placeholders", "choiceFields" ]
+        "required" : [ "placeholders" ]
       },
       "PlaceholderGroup" : {
         "type" : "string",
@@ -62097,10 +62051,6 @@
         },
         "required" : [ "memberId", "fieldId", "value" ]
       },
-      "PronounForm" : {
-        "type" : "string",
-        "enum" : [ "ER", "SIE", "NAME" ]
-      },
       "PronounSet" : {
         "type" : "object",
         "properties" : {
@@ -62118,25 +62068,6 @@
           }
         },
         "required" : [ "subject", "object", "dative", "possessive" ]
-      },
-      "PronounSource" : {
-        "type" : "object",
-        "properties" : {
-          "fieldId" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "answers" : {
-            "type" : "object",
-            "additionalProperties" : {
-              "$ref" : "#/components/schemas/PronounForm"
-            }
-          },
-          "fallback" : {
-            "$ref" : "#/components/schemas/PronounForm"
-          }
-        },
-        "required" : [ "fieldId", "answers", "fallback" ]
       },
       "ProtocolChecksRequest" : {
         "type" : "object",

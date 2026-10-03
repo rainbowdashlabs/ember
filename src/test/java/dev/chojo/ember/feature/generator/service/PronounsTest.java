@@ -5,33 +5,55 @@
  */
 package dev.chojo.ember.feature.generator.service;
 
-import dev.chojo.ember.feature.generator.entity.PronounForm;
+import dev.chojo.ember.feature.generator.entity.PossessiveEnding;
+import dev.chojo.ember.feature.generator.entity.PronounKey;
+import dev.chojo.ember.feature.generator.entity.PronounRole;
+import dev.chojo.ember.feature.members.entity.PronounSet;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * The four forms in both columns and with the name, in German and in English.
+ * The words a pronoun key writes: from a gender answer's pronouns in the template's language, with the
+ * ending a possessive takes, or the first name and its genitive where there are none.
  */
 class PronounsTest {
+    private static final PronounSet ER = new PronounSet("er", "ihn", "ihm", "sein");
+    private static final PronounSet SIE = new PronounSet("sie", "sie", "ihr", "ihr");
+    private static final PronounSet HE = new PronounSet("he", "him", null, "his");
+
+    private static PronounKey key(PronounRole role, boolean start, PossessiveEnding ending) {
+        return new PronounKey(role, start, ending);
+    }
+
+    private static PronounKey key(PronounRole role) {
+        return key(role, false, PossessiveEnding.NONE);
+    }
 
     @Test
-    void theGermanColumns() {
-        assertEquals("er", Pronouns.of(PronounForm.ER, Pronouns.Case.SUBJECT, "Max", "de", false));
-        assertEquals("ihn", Pronouns.of(PronounForm.ER, Pronouns.Case.OBJECT, "Max", "de", false));
-        assertEquals("ihm", Pronouns.of(PronounForm.ER, Pronouns.Case.DATIVE, "Max", "de", false));
-        assertEquals("sein", Pronouns.of(PronounForm.ER, Pronouns.Case.POSSESSIVE, "Max", "de", false));
-        assertEquals("sie", Pronouns.of(PronounForm.SIE, Pronouns.Case.SUBJECT, "Lena", "de", false));
-        assertEquals("sie", Pronouns.of(PronounForm.SIE, Pronouns.Case.OBJECT, "Lena", "de", false));
-        assertEquals("ihr", Pronouns.of(PronounForm.SIE, Pronouns.Case.DATIVE, "Lena", "de", false));
-        assertEquals("Ihr", Pronouns.of(PronounForm.SIE, Pronouns.Case.POSSESSIVE, "Lena", "de", true));
+    void theGermanForms() {
+        assertEquals("er", Pronouns.of(key(PronounRole.SUBJECT), ER, "Max", "de"));
+        assertEquals("ihn", Pronouns.of(key(PronounRole.OBJECT), ER, "Max", "de"));
+        assertEquals("ihm", Pronouns.of(key(PronounRole.DATIVE), ER, "Max", "de"));
+        assertEquals("sein", Pronouns.of(key(PronounRole.POSSESSIVE), ER, "Max", "de"));
+        assertEquals("ihr", Pronouns.of(key(PronounRole.DATIVE), SIE, "Lena", "de"));
+        assertEquals("Ihr", Pronouns.of(key(PronounRole.POSSESSIVE, true, PossessiveEnding.NONE), SIE, "Lena", "de"));
+    }
+
+    @Test
+    void aPossessiveTakesItsEndingAndTheNameDoesNot() {
+        assertEquals("seinen", Pronouns.of(key(PronounRole.POSSESSIVE, false, PossessiveEnding.EN), ER, "Max", "de"));
+        assertEquals("ihre", Pronouns.of(key(PronounRole.POSSESSIVE, false, PossessiveEnding.E), SIE, "Lena", "de"));
+        assertEquals("Seinem", Pronouns.of(key(PronounRole.POSSESSIVE, true, PossessiveEnding.EM), ER, "Max", "de"));
+        assertEquals("Lenas", Pronouns.of(key(PronounRole.POSSESSIVE, false, PossessiveEnding.ES), null, "Lena", "de"));
     }
 
     @Test
     void theNameStandsForEveryPronounAndItsGenitiveForThePossessive() {
-        assertEquals("Lena", Pronouns.of(PronounForm.NAME, Pronouns.Case.SUBJECT, "Lena", "de", true));
-        assertEquals("Lena", Pronouns.of(PronounForm.NAME, Pronouns.Case.DATIVE, "Lena", "de", false));
-        assertEquals("Lenas", Pronouns.of(PronounForm.NAME, Pronouns.Case.POSSESSIVE, "Lena", "de", false));
+        assertEquals("Lena", Pronouns.of(key(PronounRole.SUBJECT, true, PossessiveEnding.NONE), null, "Lena", "de"));
+        assertEquals("Lena", Pronouns.of(key(PronounRole.DATIVE), null, "Lena", "de"));
+        assertEquals("Lenas", Pronouns.of(key(PronounRole.POSSESSIVE), null, "Lena", "de"));
     }
 
     @Test
@@ -44,11 +66,28 @@ class PronounsTest {
     }
 
     @Test
-    void theEnglishColumns() {
-        assertEquals("He", Pronouns.of(PronounForm.ER, Pronouns.Case.SUBJECT, "Max", "en", true));
-        assertEquals("her", Pronouns.of(PronounForm.SIE, Pronouns.Case.DATIVE, "Lena", "en", false));
-        assertEquals("his", Pronouns.of(PronounForm.ER, Pronouns.Case.POSSESSIVE, "Max", "en", false));
-        assertEquals("Lena's", Pronouns.of(PronounForm.NAME, Pronouns.Case.POSSESSIVE, "Lena", "en", false));
+    void englishHasNoDativeOfItsOwnAndTheObjectStandsForIt() {
+        assertEquals("He", Pronouns.of(key(PronounRole.SUBJECT, true, PossessiveEnding.NONE), HE, "Max", "en"));
+        assertEquals("him", Pronouns.of(key(PronounRole.DATIVE), HE, "Max", "en"));
+        assertEquals("his", Pronouns.of(key(PronounRole.POSSESSIVE), HE, "Max", "en"));
+        assertEquals("Lena's", Pronouns.of(key(PronounRole.POSSESSIVE), null, "Lena", "en"));
         assertEquals("James'", Pronouns.genitive("James", "en"));
+    }
+
+    @Test
+    void keysAreReadBackAsWritten() {
+        for (var pronoun : PronounKey.all()) {
+            assertEquals(pronoun, PronounKey.parse(pronoun.key()).orElseThrow());
+        }
+        assertEquals(
+                "pronoun.possessive.start.en",
+                key(PronounRole.POSSESSIVE, true, PossessiveEnding.EN).key());
+        assertTrue(PronounKey.parse("pronoun.subject.en").isEmpty(), "only a possessive takes an ending");
+        assertTrue(PronounKey.parse("pronoun.genitive").isEmpty());
+        assertTrue(PronounKey.parse("pronoun.possessive.start.en.e").isEmpty());
+        assertTrue(PronounKey.parse("member.firstName").isEmpty());
+        assertEquals(
+                "seinen / ihren / Vornamens",
+                key(PronounRole.POSSESSIVE, false, PossessiveEnding.EN).in("de").label());
     }
 }

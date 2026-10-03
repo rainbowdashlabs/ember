@@ -8,16 +8,16 @@ package dev.chojo.ember.feature.generator.service;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import dev.chojo.ember.api.refusal.DocumentRefusal;
-import dev.chojo.ember.feature.generator.entity.LetterCell;
-import dev.chojo.ember.feature.generator.entity.LetterCellKind;
+import dev.chojo.ember.feature.content.entity.CellConfig;
+import dev.chojo.ember.feature.content.entity.ContentCell;
+import dev.chojo.ember.feature.generator.entity.DocumentLanguage;
 import dev.chojo.ember.feature.generator.entity.LetterContent;
 import dev.chojo.ember.feature.generator.entity.PlaceholderTokens;
 import dev.chojo.ember.feature.generator.service.pdf.SignatureFields;
 import dev.chojo.ember.feature.knowledgebase.service.KbPdfPictures;
 import dev.chojo.ember.feature.media.entity.MediaContent;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
-import dev.chojo.ember.feature.station.entity.StationFormat;
-import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.restriction.RestrictionAudience;
 import dev.chojo.ember.feature.station.service.StationLogoService;
 import dev.chojo.ember.util.PandocConverter;
 import dev.chojo.ember.util.TypstCompiler;
@@ -32,27 +32,28 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Predicate;
 
 /**
  * Turns a letter template and the values of one member into a PDF/A-3b.
  *
  * <p>Member values never pass through markdown. A name with a {@code *}, an {@code _} or a {@code #} in
- * it would become emphasis or a heading there, and converting the body anew for every member would run
- * Pandoc once per document. Instead the body is converted to Typst once per state of the template, with
- * every placeholder left as a call to {@code ph("key")}, and the values travel in {@code data.json},
- * where Typst reads them as strings and prints them as they are. The conversion is kept by template
- * and version, so a new version is converted on its first use and the old one falls out of the cache.
+ * it would become emphasis or a heading there, and converting the texts anew for every member would run
+ * Pandoc once per text and document. Instead every text block of the letter is converted to Typst once
+ * per state of the template, with every placeholder left as a call to {@code ph("key")}, and the values
+ * travel in {@code data.json}, where Typst reads them as strings and prints them as they are. The
+ * conversion is kept by template and version, so a new version is converted on its first use and the old
+ * one falls out of the cache.
  *
- * <p>The letterhead is drawn by {@code letter.typ} from the same data: its texts with their placeholders
- * filled in here, its pictures (from the media library, or the station logo) placed next to the
- * document as files. A picture that cannot be read leaves its cell empty rather than stopping the
- * document.
+ * <p>The rows of the header, the footer and the body are laid out for the member by {@link LetterLayout}:
+ * a block the member is not meant to see is left out. {@code letter.typ} draws the rows as grids from
+ * {@code data.json}, the texts from their converted files and the pictures (from the media library, or
+ * the station logo) placed next to the document as files. A picture that cannot be read is left out
+ * rather than stopping the document. The template's language picks the {@code letter.typ} it is set in.
  *
- * <p>A signature field the body names ({@code {{signature.issuer}}}) is drawn by {@code letter.typ} as an
+ * <p>A signature field a text names ({@code {{signature.issuer}}}) is drawn by {@code letter.typ} as an
  * empty box on a line, and {@link SignatureFields#replaceMarkers} turns it into a real, empty PDF
  * signature field afterwards.
  */
@@ -60,8 +61,11 @@ import java.util.Optional;
 public class LetterRenderer {
     private static final Logger log = LoggerFactory.getLogger(LetterRenderer.class);
 
-    /** Wide enough to print a letterhead picture sharply, small enough to keep the PDF light. */
+    /** Wide enough to print a letter's picture sharply, small enough to keep the PDF light. */
     private static final int PICTURE_WIDTH = 1024;
+
+    /** Millimetres per CSS pixel, which is what the editor states a picture's largest height in. */
+    private static final double MM_PER_PIXEL = 25.4 / 96;
 
     private static final Map<String, String> EXTENSIONS = Map.of(
             "image/png", "png",
@@ -73,29 +77,25 @@ public class LetterRenderer {
     private final KbPdfPictures pictures;
     private final MediaLibraryService mediaLibrary;
     private final StationLogoService logos;
-    private final StationRepository stations;
-    private final Cache<BodyKey, PreparedBody> bodies =
+    private final Cache<BodyKey, PreparedTexts> converted =
             Caffeine.newBuilder().maximumSize(128).build();
 
     @Inject
-    public LetterRenderer(
-            KbPdfPictures pictures,
-            MediaLibraryService mediaLibrary,
-            StationLogoService logos,
-            StationRepository stations) {
+    public LetterRenderer(KbPdfPictures pictures, MediaLibraryService mediaLibrary, StationLogoService logos) {
         this.pictures = pictures;
         this.mediaLibrary = mediaLibrary;
         this.logos = logos;
-        this.stations = stations;
     }
 
     /**
      * What a letter is rendered from.
      *
-     * @param stationId  the station whose pictures and language the letter uses
+     * @param stationId  the station whose pictures the letter uses
      * @param title      the title the PDF carries
      * @param letter     the letter
-     * @param cacheKey   the template and version the body belongs to, or null for a draft that is not saved
+     * @param cacheKey   the template and version the texts belong to, or null for a draft that is not saved
+     * @param shown      whether the member the letter is for belongs to a block's audience
+     * @param language   the language the letter is set in
      * @param values     the value of every placeholder that has one
      * @param labels     the words for every placeholder, shown in place of a value where labels are asked for
      * @param showLabels whether a placeholder without a value shows its label rather than a line to fill in
@@ -106,13 +106,15 @@ public class LetterRenderer {
             String title,
             LetterContent letter,
             @Nullable BodyKey cacheKey,
+            Predicate<RestrictionAudience> shown,
+            DocumentLanguage language,
             Map<String, String> values,
             Map<String, String> labels,
             boolean showLabels,
             LocalDate date) {}
 
     /**
-     * Which state of a template a body belongs to.
+     * Which state of a template the converted texts belong to.
      *
      * @param templateId the template
      * @param version    its version
@@ -120,12 +122,20 @@ public class LetterRenderer {
     public record BodyKey(int templateId, int version) {}
 
     /**
-     * The body as Typst, with the pictures it shows.
+     * Every text of a letter as Typst, by its number, with the pictures they show.
      *
-     * @param typst    the markup, placeholders written as {@code #ph("key");}
+     * @param typst    the markup of each text, placeholders written as {@code #ph("key");}
      * @param pictures the picture files by the name the markup uses
      */
-    record PreparedBody(String typst, Map<String, byte[]> pictures) {}
+    record PreparedTexts(Map<Integer, String> typst, Map<String, byte[]> pictures) {}
+
+    /**
+     * One text as Typst, with the pictures it shows.
+     *
+     * @param typst    the markup
+     * @param pictures the picture files by the name the markup uses
+     */
+    record Converted(String typst, Map<String, byte[]> pictures) {}
 
     /**
      * Renders a letter.
@@ -134,9 +144,24 @@ public class LetterRenderer {
      * @return the PDF/A-3b
      */
     public byte[] render(LetterJob job) {
-        var body = body(job);
-        var files = new HashMap<>(body.pictures());
-        var data = new LinkedHashMap<String, Object>();
+        var texts = texts(job);
+        var files = new HashMap<>(texts.pictures());
+        var resources = new HashMap<String, String>();
+        var layout = new LetterLayout(job.shown(), new LetterLayout.Blocks() {
+                    @Override
+                    public Map<String, Object> text(int index, ContentCell cell) {
+                        String file = "block-" + index + ".typ";
+                        resources.put(file, texts.typst().getOrDefault(index, ""));
+                        return Map.of("kind", "text", "file", file);
+                    }
+
+                    @Override
+                    public @Nullable Map<String, Object> image(ContentCell cell) {
+                        return picture(job.stationId(), cell, files);
+                    }
+                })
+                .letter(job.letter());
+        var data = new LinkedHashMap<String, Object>(layout);
         data.put("title", job.title());
         data.put(
                 "date",
@@ -148,19 +173,15 @@ public class LetterRenderer {
                         "day",
                         job.date().getDayOfMonth()));
         data.put("page", job.letter().page());
-        data.put("header", cells(job, job.letter().letterhead().header(), "h", files));
-        data.put("footer", cells(job, job.letter().letterhead().footer(), "f", files));
         data.put("values", job.values());
         data.put("labels", job.labels());
         data.put("showLabels", job.showLabels());
-        String language =
-                StationFormat.languageOf(stations.findById(job.stationId()).orElse(null));
         try {
             return SignatureFields.replaceMarkers(TypstCompiler.compileTemplate(
                     data,
-                    language + "/letter.typ",
+                    job.language().code() + "/letter.typ",
                     null,
-                    Map.of("body.typ", body.typst()),
+                    resources,
                     files,
                     TypstCompiler.Output.PDF_A_3B));
         } catch (IOException e) {
@@ -172,20 +193,44 @@ public class LetterRenderer {
         }
     }
 
-    private PreparedBody body(LetterJob job) {
+    private PreparedTexts texts(LetterJob job) {
         var key = job.cacheKey();
-        if (key == null) return prepare(job.stationId(), job.letter().bodyMarkdown());
-        return bodies.get(key, ignored -> prepare(job.stationId(), job.letter().bodyMarkdown()));
+        if (key == null) return prepare(job.stationId(), job.letter());
+        return converted.get(key, ignored -> prepare(job.stationId(), job.letter()));
     }
 
     /**
-     * Converts a body to Typst with its placeholders as lookups.
+     * Converts every text of a letter, whoever sees it, numbered the way {@link LetterLayout} numbers them.
+     */
+    PreparedTexts prepare(int stationId, LetterContent letter) {
+        var typst = new HashMap<Integer, String>();
+        var files = new HashMap<String, byte[]>();
+        new LetterLayout(LetterLayout.EVERYBODY, new LetterLayout.Blocks() {
+                    @Override
+                    public Map<String, Object> text(int index, ContentCell cell) {
+                        var text = convert(stationId, cell.content(), "b" + index + "-");
+                        typst.put(index, text.typst());
+                        files.putAll(text.pictures());
+                        return Map.of();
+                    }
+
+                    @Override
+                    public Map<String, Object> image(ContentCell cell) {
+                        return Map.of();
+                    }
+                })
+                .letter(letter);
+        return new PreparedTexts(typst, files);
+    }
+
+    /**
+     * Converts one text to Typst with its placeholders as lookups.
      *
      * <p>Each placeholder is swapped for a plain word of letters and digits before the conversion, which
      * Pandoc passes through untouched wherever it stands, and swapped for the lookup afterwards.
      */
-    PreparedBody prepare(int stationId, String markdown) {
-        var placed = pictures.place(stationId, markdown);
+    Converted convert(int stationId, String markdown, String picturePrefix) {
+        var placed = pictures.place(stationId, markdown, picturePrefix);
         var keys = new ArrayList<String>();
         String marked = PlaceholderTokens.replace(placed.markdown(), key -> {
             keys.add(key);
@@ -195,74 +240,45 @@ public class LetterRenderer {
         try {
             typst = PandocConverter.markdownToTypst(marked);
         } catch (IOException e) {
-            log.error("A letter body of station {} could not be converted", stationId, e);
+            log.error("A text of a letter of station {} could not be converted", stationId, e);
             throw DocumentRefusal.DOCUMENT_RENDER_FAILED.raise();
         }
         for (int index = 0; index < keys.size(); index++) {
             typst = typst.replace(marker(index), "#ph(\"" + keys.get(index) + "\");");
         }
-        return new PreparedBody(typst, placed.pictures());
+        return new Converted(typst, placed.pictures());
     }
 
     private static String marker(int index) {
         return "EMBERPLACEHOLDER" + index + "MARK";
     }
 
-    private List<Map<String, Object>> cells(
-            LetterJob job, List<LetterCell> row, String side, Map<String, byte[]> files) {
-        var out = new ArrayList<Map<String, Object>>();
-        for (int index = 0; index < row.size(); index++) {
-            out.add(cell(job, row.get(index), side + index, files));
-        }
-        return out;
-    }
-
-    private Map<String, Object> cell(LetterJob job, LetterCell cell, String name, Map<String, byte[]> files) {
+    /**
+     * Places a picture block's picture next to the document, or nothing where it cannot be read.
+     */
+    private @Nullable Map<String, Object> picture(int stationId, ContentCell cell, Map<String, byte[]> files) {
+        var picture = read(stationId, cell.content()).orElse(null);
+        if (picture == null) return null;
+        String extension = EXTENSIONS.get(picture.contentType());
+        if (extension == null) return null;
+        String file = "image-" + files.size() + "." + extension;
+        files.put(file, picture.data());
         var drawn = new LinkedHashMap<String, Object>();
-        drawn.put("align", cell.align().name().toLowerCase(Locale.ROOT));
-        drawn.put("heightMm", cell.imageHeightMm());
-        drawn.put("lines", List.of());
-        drawn.put("kind", "empty");
-        switch (cell.kind()) {
-            case TEXT -> {
-                drawn.put("kind", "text");
-                drawn.put("lines", lines(job, cell.text()));
-            }
-            case IMAGE, LOGO ->
-                picture(job.stationId(), cell).ifPresent(picture -> {
-                    String extension = EXTENSIONS.get(picture.contentType());
-                    if (extension == null) return;
-                    String file = "letterhead-" + name + "." + extension;
-                    files.put(file, picture.data());
-                    drawn.put("kind", "image");
-                    drawn.put("file", file);
-                });
-            case EMPTY -> {}
-        }
+        drawn.put("kind", "image");
+        drawn.put("file", file);
+        Integer maxHeight = cell.config() instanceof CellConfig.ImageConfig image ? image.maxHeight() : null;
+        if (maxHeight != null && maxHeight > 0) drawn.put("maxHeightMm", maxHeight * MM_PER_PIXEL);
         return drawn;
     }
 
-    private Optional<MediaContent> picture(int stationId, LetterCell cell) {
+    private Optional<MediaContent> read(int stationId, String content) {
         try {
-            if (cell.kind() == LetterCellKind.LOGO) {
-                return logos.original(stationId);
-            }
-            String hash = cell.mediaHash();
-            if (hash == null) return Optional.empty();
-            return mediaLibrary.readVariant(stationId, hash, PICTURE_WIDTH, "image/webp");
+            if (ContentCell.STATION_LOGO.equals(content)) return logos.original(stationId);
+            if (content.isBlank()) return Optional.empty();
+            return mediaLibrary.readVariant(stationId, content, PICTURE_WIDTH, "image/webp");
         } catch (RuntimeException e) {
-            log.warn("A letterhead picture of station {} could not be read", stationId, e);
+            log.warn("A picture of a letter of station {} could not be read", stationId, e);
             return Optional.empty();
         }
-    }
-
-    private static List<String> lines(LetterJob job, @Nullable String text) {
-        if (text == null || text.isEmpty()) return List.of();
-        String filled = PlaceholderTokens.replace(text, key -> {
-            String value = job.values().get(key);
-            if (value != null) return value;
-            return job.showLabels() ? "[" + job.labels().getOrDefault(key, key) + "]" : "";
-        });
-        return List.of(filled.replace("\r\n", "\n").split("\n", -1));
     }
 }

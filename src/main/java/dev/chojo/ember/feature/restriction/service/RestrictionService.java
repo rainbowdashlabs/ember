@@ -181,18 +181,29 @@ public class RestrictionService {
      * @return {@code true} where the entity has no restrictions or the member passes them
      */
     public boolean includes(RestrictionType type, int entityId, int memberId) {
-        var member = stationMemberRepository.findById(memberId).orElse(null);
+        var member = memberOf(memberId).orElse(null);
         if (member == null) return false;
-
-        List<Integer> groupIds = memberGroupRepository.findGroupsForMember(memberId).stream()
-                .map(MemberGroup::id)
-                .toList();
-        List<Integer> tagIds = userTagRepository.findTagsForMember(memberId).stream()
-                .map(UserTag::id)
-                .toList();
         RestrictionMode mode = restrictionRepository.findMode(type, entityId);
+        return restrictionRepository.matches(type, entityId, mode, member);
+    }
 
-        return restrictionRepository.matches(
-                type, entityId, mode, new RestrictionMember(memberId, member.userType(), groupIds, tagIds));
+    /**
+     * What a restriction can name of a member: their user type, groups and tags.
+     *
+     * @param memberId the member
+     * @return the member as restrictions see them, or empty where there is no such member
+     */
+    public Optional<RestrictionMember> memberOf(int memberId) {
+        return stationMemberRepository
+                .findById(memberId)
+                .map(member -> new RestrictionMember(
+                        memberId,
+                        member.userType(),
+                        memberGroupRepository.findGroupsForMember(memberId).stream()
+                                .map(MemberGroup::id)
+                                .toList(),
+                        userTagRepository.findTagsForMember(memberId).stream()
+                                .map(UserTag::id)
+                                .toList()));
     }
 }

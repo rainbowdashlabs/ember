@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.generator.repository;
 
+import dev.chojo.ember.feature.generator.entity.DocumentLanguage;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplateDraft;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplateKind;
 import dev.chojo.ember.feature.generator.entity.FieldRect;
@@ -62,7 +63,7 @@ class PdfTemplateRepositoryTest extends RepositoryTestBase {
                 false,
                 30,
                 RestrictionMode.AND,
-                null,
+                DocumentLanguage.DE,
                 new PdfContent(null, PdfLayout.empty()));
         var template = templates.create(station.id(), draft, author);
         assertEquals(DocumentTemplateKind.PDF, template.kind());

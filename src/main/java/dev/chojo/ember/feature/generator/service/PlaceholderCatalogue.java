@@ -9,17 +9,16 @@ import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.api.refusal.RefusalDetail;
 import dev.chojo.ember.feature.generator.entity.BuiltInPlaceholder;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplateDraft;
-import dev.chojo.ember.feature.generator.entity.LetterCell;
 import dev.chojo.ember.feature.generator.entity.LetterContent;
 import dev.chojo.ember.feature.generator.entity.PdfContent;
 import dev.chojo.ember.feature.generator.entity.Placeholder;
 import dev.chojo.ember.feature.generator.entity.PlaceholderGroup;
 import dev.chojo.ember.feature.generator.entity.PlaceholderTokens;
+import dev.chojo.ember.feature.generator.entity.PronounKey;
 import dev.chojo.ember.feature.generator.entity.SignatureRole;
 import dev.chojo.ember.feature.generator.entity.TemplateContent;
 import dev.chojo.ember.feature.members.entity.ProfileField;
 import dev.chojo.ember.feature.members.repository.ProfileFieldRepository;
-import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
@@ -32,7 +31,6 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Stream;
 
@@ -72,6 +70,7 @@ public class PlaceholderCatalogue {
         Arrays.stream(BuiltInPlaceholder.values())
                 .map(value -> value.in(language))
                 .forEach(out::add);
+        PronounKey.all().stream().map(pronoun -> pronoun.in(language)).forEach(out::add);
         out.add(new Placeholder(
                 SignatureRole.ISSUER.token(),
                 "en".equals(language) ? "Signature field: issuer" : "Unterschriftsfeld: Ausstellende Person",
@@ -122,24 +121,12 @@ public class PlaceholderCatalogue {
     }
 
     /**
-     * The choice questions of the station, which are the ones pronouns can follow.
-     *
-     * @param stationId the station
-     * @return the questions with their answers
-     */
-    public List<ProfileField> choiceFields(int stationId) {
-        return profileFields.findByStation(stationId).stream()
-                .filter(field -> field.fieldType() == FieldType.CHOICE)
-                .toList();
-    }
-
-    /**
      * Refuses a template naming a placeholder the station does not have, and a legal one naming the
      * name a member is called by.
      *
      * <p>A signature field stands only where a letter's body names it, each signer once: it is a box
-     * on the page, and in a title, a file name, a letterhead cell or a text on a PDF there is nowhere to
-     * put one. A PDF template places its signature fields as fields of their own.
+     * on the page, and in a title, a file name, the header or footer of a letter or a text on a PDF there
+     * is nowhere to put one. A PDF template places its signature fields as fields of their own.
      *
      * @param stationId the station
      * @param draft     the template
@@ -158,11 +145,12 @@ public class PlaceholderCatalogue {
     }
 
     private static void requireSignaturesInBody(DocumentTemplateDraft draft) {
-        String body = draft.content() instanceof LetterContent letter ? letter.bodyMarkdown() : "";
+        List<String> body = draft.content() instanceof LetterContent letter
+                ? LetterContent.textsOf(letter.body()).toList()
+                : List.of();
         Stream<String> outsideTheBody =
                 switch (draft.content()) {
-                    case LetterContent letter ->
-                        letter.letterhead().cells().map(LetterCell::text).filter(Objects::nonNull);
+                    case LetterContent letter -> letter.letterheadTexts();
                     case PdfContent pdf -> pdf.texts();
                 };
         var elsewhere = Stream.concat(Stream.of(draft.titlePattern(), draft.fileNamePattern()), outsideTheBody)
@@ -171,7 +159,8 @@ public class PlaceholderCatalogue {
         if (elsewhere.anyMatch(SignatureRole::isToken)) {
             throw DocumentRefusal.DOCUMENT_TEMPLATE_SIGNATURE_IN_TEXT.raise();
         }
-        var signers = PlaceholderTokens.occurrences(body).stream()
+        var signers = body.stream()
+                .flatMap(text -> PlaceholderTokens.occurrences(text).stream())
                 .filter(SignatureRole::isToken)
                 .toList();
         if (signers.size() != new HashSet<>(signers).size()) {

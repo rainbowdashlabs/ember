@@ -1706,28 +1706,34 @@ volumes:
         },
         documentTemplateEditor: {
             title: 'Vorlage bearbeiten',
-            subtitle: 'Briefkopf, Text, PDF-Felder, Platzhalter und Pronomen einer Dokumentvorlage',
+            subtitle: 'Kopfzeile, Text, Fußzeile, PDF-Felder, Platzhalter und Pronomen einer Dokumentvorlage',
             generalTitle: 'Allgemein',
             generalText: 'Hier gibst du der Vorlage einen Namen und legst fest, unter welchem Titel und Dateinamen '
                 + 'die Dokumente abgelegt werden, mit welchen Tags, ob sie die Mitgliedschaft überdauern und ob sie '
                 + 'vor dem Mitglied verborgen sind.',
             legalText: 'Ein rechtliches Dokument nennt Mitglieder nur mit ihrem amtlichen Namen. Den Rufnamen bietet '
                 + 'der Editor dann nicht an, und Ember erstellt kein rechtliches Dokument, das ihn enthält.',
-            letterheadTitle: 'Briefkopf',
-            letterheadText: 'Kopf- und Fußzeile haben bis zu drei Felder nebeneinander. Ein Feld zeigt ein Bild aus '
-                + 'der Mediathek, das Logo der Wache oder ein paar Zeilen Text, auch mit Platzhaltern wie der Adresse '
-                + 'der Wache. Jedes Feld lässt sich links, mittig oder rechts ausrichten.',
+            letterheadTitle: 'Brief, Kopf- und Fußzeile',
+            letterheadText: 'Unter Brief stehen Kopfzeile, Text und Fußzeile so untereinander wie auf dem Papier. '
+                + 'Alle drei bestehen aus Zeilen mit bis zu drei Spalten, wie die Seiten der Wache. Eine Spalte '
+                + 'hält einen Text, ein Bild aus der Mediathek oder das Logo der Wache, oder mehrere davon '
+                + 'untereinander. Die Breite einer Spalte ziehst du am Rand oder gibst sie im Menü ein. Kopf- und '
+                + 'Fußzeile zeigen sich, wie sie gedruckt werden, und öffnen sich zum Bearbeiten per Klick.',
             pageText: 'Unter Seite stellst du die Ränder und die Schriftgröße ein. Kopf- und Fußzeile stehen im '
                 + 'oberen und unteren Rand, lass dort also genug Platz.',
-            bodyTitle: 'Text und Platzhalter',
-            bodyText: 'Den Text schreibst du im gewohnten Editor. Über „Platzhalter einfügen" setzt du an der '
+            bodyTitle: 'Text, Platzhalter und Sichtbarkeit',
+            bodyText: 'Einen Text schreibst du im gewohnten Editor. Über „Platzhalter einfügen" setzt du an der '
                 + 'Stelle des Cursors ein Feld ein, etwa Vorname oder Geburtsdatum. Im Text erscheint es als '
-                + 'farbiges Feld mit seinem Namen.',
+                + 'farbiges Feld mit seinem Namen. Über „Sichtbarkeit" im Menü eines Bausteins erscheint er nur für '
+                + 'bestimmte Gruppen, Mitgliedsarten oder Tags. Für andere Mitglieder fällt er weg, und eine Zeile '
+                + 'ohne Inhalt verschwindet ganz. Einen anderen Text für die übrigen Mitglieder schreibst du in einen '
+                + 'zweiten Baustein mit eigener Sichtbarkeit.',
             placeholdersText: 'Beim Erstellen füllt Ember jedes Feld mit den Daten des Mitglieds, so wie sie gerade '
                 + 'eingetragen sind. Namen sind immer die amtlichen Namen, nur der Rufname ist eine Ausnahme.',
             importText: 'Hast du die Bescheinigung schon als Word- oder OpenDocument-Text, importiere sie. Lücken in '
                 + 'eckigen Klammern wie [Vorname Nachname] oder [Geburtsdatum] werden zu Platzhaltern, alles andere '
-                + 'bleibt Text. Kopf- und Fußzeile richtest du danach im Briefkopf ein.',
+                + 'bleibt Text. Der Text landet als ein Baustein im Brief, ein Bild auf eigener Zeile als eigener '
+                + 'Bildbaustein. Kopf- und Fußzeile richtest du danach selbst ein.',
             signatureText: 'Unter „Unterschrift" gibt es ein Unterschriftsfeld für die ausstellende Person. Setze es '
                 + 'über ihren Namen und ihre Funktion. Im Dokument steht dort eine Linie zum Unterschreiben, und das PDF '
                 + 'enthält ein leeres Unterschriftsfeld.',
@@ -1742,11 +1748,13 @@ volumes:
                 + 'lässt sie, wie sie sind. Beim Erstellen werden alle Felder fest in die Seite übernommen.',
             pdfVersionText: 'Kommt eine neue Fassung des Formulars, lade sie einfach hoch. Die Felder bleiben, wo sie '
                 + 'waren, und du prüfst sie über den neuen Seiten. Schon erstellte Dokumente bleiben, wie sie sind.',
-            pronounsTitle: 'Pronomen',
-            pronounsText: 'Wähle ein Auswahlfeld, etwa „Geschlecht", und lege für jede Antwort fest, ob „er", „sie" '
-                + 'oder der Vorname geschrieben wird. Für ein leeres Feld gibt es eine eigene Wahl.',
+            pronounsTitle: 'Pronomen und Sprache',
+            pronounsText: 'Pronomen folgen dem Geschlechtsfeld der Wache: Jede Antwort dort sagt, welche Pronomen in '
+                + 'Dokumenten stehen, je Sprache, oder dass der Vorname steht. Ohne Antwort steht ebenfalls der '
+                + 'Vorname. Die Sprache der Vorlage stellst du unter Allgemein ein.',
             pronounsNameText: 'Pronomen-Platzhalter gibt es als er/sie, ihn/sie, ihm/ihr und sein/ihr, jeweils auch '
-                + 'für den Satzanfang. Steht der Vorname, wird beim Besitz „Lenas" geschrieben.',
+                + 'für den Satzanfang. Sein/ihr gibt es zusätzlich mit Endung, etwa seine/ihre oder seinen/ihren. '
+                + 'Steht der Vorname, wird beim Besitz „Lenas" geschrieben, ohne Endung.',
             selfServiceTitle: 'Selbst erstellen',
             selfServiceText: 'Gib die Vorlage frei, damit Mitglieder sie im Profil selbst erstellen. Lege fest, für '
                 + 'wen das gilt und wie viele Tage bis zum nächsten Mal vergehen müssen.',

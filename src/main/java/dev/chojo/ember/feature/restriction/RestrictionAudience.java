@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.restriction;
 
 import dev.chojo.ember.api.auth.StationUserType;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -32,6 +33,23 @@ public record RestrictionAudience(
     /** An audience naming nobody, which every member passes. */
     public static RestrictionAudience empty() {
         return new RestrictionAudience(List.of(), List.of(), List.of(), List.of(), RestrictionMode.AND);
+    }
+
+    /**
+     * Whether a member belongs to this audience, by the same rule a stored restriction set follows.
+     *
+     * @param member the member and what a restriction can name of them
+     * @return whether the member matches; an audience naming nobody takes in everybody
+     */
+    public boolean includes(RestrictionMember member) {
+        var selection = toSelection();
+        var restrictions = new ArrayList<Restriction>();
+        selection.userTypes().forEach(type -> restrictions.add(new Restriction(0, type, null, null, null)));
+        selection.groupIds().forEach(id -> restrictions.add(new Restriction(0, null, id, null, null)));
+        selection.tagIds().forEach(id -> restrictions.add(new Restriction(0, null, null, id, null)));
+        selection.memberIds().forEach(id -> restrictions.add(new Restriction(0, null, null, null, id)));
+        return new RestrictionSet(restrictions, selection.mode())
+                .matches(member.userType(), member.groupIds(), member.tagIds(), member.memberId());
     }
 
     public static RestrictionAudience of(RestrictionSet set) {

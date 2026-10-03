@@ -33,6 +33,7 @@ import dev.chojo.ember.feature.generator.service.pdf.TestPdfs;
 import dev.chojo.ember.feature.knowledgebase.service.KbPdfPictures;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.members.service.GenderFields;
 import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -101,18 +102,26 @@ class PdfTemplateServiceTest extends RepositoryTestBase {
         var templateRepository = new DocumentTemplateRepository();
         var pdfTemplates = new PdfTemplateRepository();
         var media = mock(MediaLibraryService.class);
-        var checks = new TemplateChecks(templateRepository, pdfTemplates, media, profileFieldRepo, catalogue);
+        var checks = new TemplateChecks(
+                templateRepository, pdfTemplates, new LetterChecks(contentBlocks(), media), stationRepo, catalogue);
         templates =
                 new DocumentTemplateService(templateRepository, pdfTemplates, checks, restrictionService, catalogue);
         pdfs = new PdfTemplateService(
                 templates, templateRepository, pdfTemplates, newDocumentIntake(), storage, stationRepo);
         var generator = new DocumentGeneratorService(
                 templates,
-                new PlaceholderResolver(stationRepo, stationMemberRepo, memberNameResolver, profileFieldRepo, clock),
+                new PlaceholderResolver(
+                        stationRepo,
+                        stationMemberRepo,
+                        memberNameResolver,
+                        profileFieldRepo,
+                        new GenderFields(profileFieldCore, stationRepo),
+                        clock),
                 catalogue,
-                new LetterRenderer(mock(KbPdfPictures.class), media, newStationLogoService(), stationRepo),
+                new LetterRenderer(mock(KbPdfPictures.class), media, newStationLogoService()),
                 new PdfTemplateRenderer(pdfs, new PdfStamper(new StampFonts())),
                 stationRepo,
+                restrictionService,
                 clock);
         log = new DocumentGenerationRepository();
         generation =
@@ -145,24 +154,15 @@ class PdfTemplateServiceTest extends RepositoryTestBase {
 
     private static DocumentTemplateRequest request(
             String name, String title, List<PdfField> fields, List<FormBinding> bindings, boolean selfService) {
-        return new DocumentTemplateRequest(
-                DocumentTemplateKind.PDF,
-                name,
-                title,
-                null,
-                null,
-                false,
-                null,
-                true,
-                selfService,
-                30,
-                RestrictionAudience.empty(),
-                null,
-                null,
-                null,
-                null,
-                fields,
-                bindings);
+        return TemplateRequestBuilder.pdf(name)
+                .title(title)
+                .legal()
+                .selfService(selfService)
+                .cooldown(30)
+                .audience(RestrictionAudience.empty())
+                .fields(fields)
+                .formBindings(bindings)
+                .build();
     }
 
     private static DocumentTemplateRequest request(String name, PdfField... fields) {
@@ -223,26 +223,7 @@ class PdfTemplateServiceTest extends RepositoryTestBase {
     @Test
     void onlyAPdfThatOpensWithoutAPasswordIsTaken() throws IOException {
         var letter = templates.create(
-                owner,
-                new DocumentTemplateRequest(
-                        null,
-                        "Brief für PDF",
-                        null,
-                        null,
-                        null,
-                        false,
-                        null,
-                        false,
-                        false,
-                        null,
-                        null,
-                        null,
-                        null,
-                        "",
-                        null,
-                        null,
-                        null),
-                manager.id());
+                owner, TemplateRequestBuilder.letter("Brief für PDF").build(), manager.id());
         var template = templates.create(owner, request("Geschützt"), manager.id());
         byte[] locked = TestPdfs.protectedBy("owner", "user");
 

@@ -7,17 +7,19 @@ package dev.chojo.ember.feature.generator.service;
 
 import dev.chojo.ember.feature.generator.entity.BuiltInPlaceholder;
 import dev.chojo.ember.feature.generator.entity.DataSubject;
+import dev.chojo.ember.feature.generator.entity.DocumentLanguage;
 import dev.chojo.ember.feature.generator.entity.GenerationContext;
-import dev.chojo.ember.feature.generator.entity.PronounForm;
-import dev.chojo.ember.feature.generator.entity.PronounSource;
+import dev.chojo.ember.feature.generator.entity.PronounKey;
 import dev.chojo.ember.feature.generator.entity.ResolvedValues;
 import dev.chojo.ember.feature.generator.entity.SubjectRole;
 import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.entity.ProfileField;
 import dev.chojo.ember.feature.members.entity.ProfileFieldValue;
+import dev.chojo.ember.feature.members.entity.PronounSet;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.ProfileFieldRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.members.service.GenderFields;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.question.QuestionText;
@@ -56,8 +58,9 @@ import java.util.stream.Collectors;
  * <p>Names are official names: the register's first name and surname, for the member, the guardians
  * and whoever generates the document. Only {@code member.calledName} reads the name a member is called
  * by, and only an informal template may name it. Profile answers are written the way exports write
- * them ({@link QuestionText#format}), so a date reads as a day and yes as a word of the station's
- * language.
+ * them ({@link QuestionText#format}), so a date reads as a day and yes as a word of the template's
+ * language. The pronouns follow the member's answer to the station's gender field ({@link GenderFields}),
+ * in the template's language.
  *
  * <p>The guardians are taken in the order the member page sets: the one marked first is
  * {@code guardian1}. A guardian whose data a template names is one of the people the document is
@@ -72,6 +75,7 @@ public class PlaceholderResolver {
     private final StationMemberRepository members;
     private final MemberNameResolver names;
     private final ProfileFieldRepository profileFields;
+    private final GenderFields genders;
     private final Clock clock;
 
     @Inject
@@ -79,8 +83,9 @@ public class PlaceholderResolver {
             StationRepository stations,
             StationMemberRepository members,
             MemberNameResolver names,
-            ProfileFieldRepository profileFields) {
-        this(stations, members, names, profileFields, Clock.systemUTC());
+            ProfileFieldRepository profileFields,
+            GenderFields genders) {
+        this(stations, members, names, profileFields, genders, Clock.systemUTC());
     }
 
     /**
@@ -91,11 +96,13 @@ public class PlaceholderResolver {
             StationMemberRepository members,
             MemberNameResolver names,
             ProfileFieldRepository profileFields,
+            GenderFields genders,
             Clock clock) {
         this.stations = stations;
         this.members = members;
         this.names = names;
         this.profileFields = profileFields;
+        this.genders = genders;
         this.clock = clock;
     }
 
@@ -105,18 +112,15 @@ public class PlaceholderResolver {
      * @param stationId the station that files the document
      * @param memberId  the member it is about
      * @param keys      the keys the template names
-     * @param pronouns  the field the pronouns follow, or null for the first name throughout
+     * @param language  the language the template writes in, which picks the pronouns and how dates and
+     *                  answers are written
      * @param context   who generates it and for which appointment
      * @return the values, the keys without one, and whose data went in
      */
     public ResolvedValues resolve(
-            int stationId,
-            int memberId,
-            Set<String> keys,
-            @Nullable PronounSource pronouns,
-            GenerationContext context) {
+            int stationId, int memberId, Set<String> keys, DocumentLanguage language, GenerationContext context) {
         var station = stations.findById(stationId).orElse(null);
-        var reading = new Reading(new Subject(station, memberId, pronouns, context));
+        var reading = new Reading(new Subject(station, memberId, language, context));
         var values = new LinkedHashMap<String, String>();
         var missing = new ArrayList<String>();
         for (String key : keys) {
@@ -134,11 +138,12 @@ public class PlaceholderResolver {
      * The values a template can only show by their labels, for a preview without a member.
      *
      * @param stationId the station
+     * @param language  the language the template writes in
      * @return today's date and the station's own data, which need no member
      */
-    public Map<String, String> withoutMember(int stationId) {
+    public Map<String, String> withoutMember(int stationId, DocumentLanguage language) {
         var station = stations.findById(stationId).orElse(null);
-        var reading = new Reading(new Subject(station, 0, null, new GenerationContext(null, null)));
+        var reading = new Reading(new Subject(station, 0, language, new GenerationContext(null, null)));
         var values = new HashMap<String, String>();
         for (var placeholder : List.of(
                 BuiltInPlaceholder.STATION_NAME,
@@ -157,14 +162,11 @@ public class PlaceholderResolver {
      *
      * @param station  the station that files the document, or null where it is gone
      * @param memberId the member the document is about, 0 for none
-     * @param pronouns the field the pronouns follow, or null
+     * @param language the language the template writes in
      * @param context  who generates it and for which appointment
      */
     private record Subject(
-            @Nullable Station station,
-            int memberId,
-            @Nullable PronounSource pronouns,
-            GenerationContext context) {}
+            @Nullable Station station, int memberId, DocumentLanguage language, GenerationContext context) {}
 
     /**
      * Everything read for one member while their values are filled in, each piece read once.
@@ -172,26 +174,28 @@ public class PlaceholderResolver {
     private final class Reading {
         private final @Nullable Station station;
         private final int memberId;
-        private final @Nullable PronounSource pronouns;
         private final GenerationContext context;
         private final String language;
         private final ZoneId zone;
         private final Map<Integer, Optional<StationMember>> memberships = new HashMap<>();
         private final Map<Integer, Optional<ProfileField>> fields = new HashMap<>();
         private @Nullable List<StationMember> guardians;
+        private boolean pronounsRead;
+        private @Nullable PronounSet pronouns;
 
         Reading(Subject subject) {
             this.station = subject.station();
             this.memberId = subject.memberId();
-            this.pronouns = subject.pronouns();
             this.context = subject.context();
-            this.language = StationFormat.languageOf(station);
+            this.language = subject.language().code();
             this.zone = StationFormat.timezoneOf(station);
         }
 
         Optional<String> value(String key) {
             var builtIn = BuiltInPlaceholder.of(key);
             if (builtIn.isPresent()) return Optional.ofNullable(builtIn(builtIn.get()));
+            var pronoun = PronounKey.parse(key);
+            if (pronoun.isPresent()) return Optional.ofNullable(pronoun(pronoun.get()));
             if (key.startsWith(PlaceholderCatalogue.PROFILE)) {
                 return answer(memberId, key.substring(PlaceholderCatalogue.PROFILE.length()));
             }
@@ -253,14 +257,6 @@ public class PlaceholderResolver {
                     Integer by = context.generatedBy();
                     yield by == null ? null : names.official(by);
                 }
-                case PRONOUN_SUBJECT -> pronoun(Pronouns.Case.SUBJECT, false);
-                case PRONOUN_OBJECT -> pronoun(Pronouns.Case.OBJECT, false);
-                case PRONOUN_DATIVE -> pronoun(Pronouns.Case.DATIVE, false);
-                case PRONOUN_POSSESSIVE -> pronoun(Pronouns.Case.POSSESSIVE, false);
-                case PRONOUN_SUBJECT_START -> pronoun(Pronouns.Case.SUBJECT, true);
-                case PRONOUN_OBJECT_START -> pronoun(Pronouns.Case.OBJECT, true);
-                case PRONOUN_DATIVE_START -> pronoun(Pronouns.Case.DATIVE, true);
-                case PRONOUN_POSSESSIVE_START -> pronoun(Pronouns.Case.POSSESSIVE, true);
             };
         }
 
@@ -273,12 +269,23 @@ public class PlaceholderResolver {
             return first != null ? first : parts.frozen();
         }
 
-        private @Nullable String pronoun(Pronouns.Case grammar, boolean sentenceStart) {
+        /**
+         * The word for a pronoun, from the member's answer to the station's gender field in the template's
+         * language, or the first name where that gives none.
+         */
+        private @Nullable String pronoun(PronounKey pronoun) {
             String first = firstName(memberId);
             if (first == null) return null;
-            PronounForm form =
-                    pronouns == null ? PronounForm.NAME : pronouns.formOf(storedAnswer(memberId, pronouns.fieldId()));
-            return Pronouns.of(form, grammar, first, language, sentenceStart);
+            if (!pronounsRead) {
+                pronouns = genderPronouns().orElse(null);
+                pronounsRead = true;
+            }
+            return Pronouns.of(pronoun, pronouns, first, language);
+        }
+
+        private Optional<PronounSet> genderPronouns() {
+            return genders.askedAt(stationId()).flatMap(field -> field.config()
+                    .pronounsOf(genders.answerOf(memberId, field).orElse(null), language));
         }
 
         private Optional<LocalDate> birthDate() {

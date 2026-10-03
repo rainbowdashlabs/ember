@@ -7,23 +7,16 @@ package dev.chojo.ember.feature.generator.service;
 
 import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.api.refusal.RefusalDetail;
+import dev.chojo.ember.feature.generator.entity.DocumentLanguage;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplate;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplateDraft;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplateKind;
-import dev.chojo.ember.feature.generator.entity.LetterCell;
-import dev.chojo.ember.feature.generator.entity.LetterCellKind;
-import dev.chojo.ember.feature.generator.entity.LetterContent;
-import dev.chojo.ember.feature.generator.entity.LetterPage;
-import dev.chojo.ember.feature.generator.entity.Letterhead;
-import dev.chojo.ember.feature.generator.entity.PronounSource;
 import dev.chojo.ember.feature.generator.entity.TemplateContent;
-import dev.chojo.ember.feature.generator.entity.TextAlign;
 import dev.chojo.ember.feature.generator.repository.DocumentTemplateRepository;
 import dev.chojo.ember.feature.generator.repository.PdfTemplateRepository;
-import dev.chojo.ember.feature.media.service.MediaLibraryService;
-import dev.chojo.ember.feature.members.repository.ProfileFieldRepository;
-import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
+import dev.chojo.ember.feature.station.entity.StationFormat;
+import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -36,7 +29,8 @@ import java.util.Objects;
  *
  * <p>Every check names its own refusal, so the editor can say which part of the template is wrong.
  * Placeholders are checked against the catalogue of the station by {@link PlaceholderCatalogue}: a
- * placeholder the catalogue does not know would only ever print as a gap.
+ * placeholder the catalogue does not know would only ever print as a gap. A letter's rows are checked
+ * by {@link LetterChecks}, a PDF template's fields by {@link PdfLayoutChecks}.
  */
 @Singleton
 public class TemplateChecks {
@@ -46,11 +40,8 @@ public class TemplateChecks {
     /** The longest title or file name pattern. */
     static final int MAX_PATTERN = 240;
 
-    /** The longest text a letterhead cell may hold. */
+    /** The longest text a field on a PDF may hold. */
     static final int MAX_CELL_TEXT = 600;
-
-    /** The longest body, which is generous for a letter of several pages. */
-    static final int MAX_BODY = 200_000;
 
     /** The most tags a template files a document with. */
     static final int MAX_TAGS = 20;
@@ -63,21 +54,21 @@ public class TemplateChecks {
 
     private final DocumentTemplateRepository templates;
     private final PdfTemplateRepository pdfTemplates;
-    private final MediaLibraryService mediaLibrary;
-    private final ProfileFieldRepository profileFields;
+    private final LetterChecks letters;
+    private final StationRepository stations;
     private final PlaceholderCatalogue catalogue;
 
     @Inject
     public TemplateChecks(
             DocumentTemplateRepository templates,
             PdfTemplateRepository pdfTemplates,
-            MediaLibraryService mediaLibrary,
-            ProfileFieldRepository profileFields,
+            LetterChecks letters,
+            StationRepository stations,
             PlaceholderCatalogue catalogue) {
         this.templates = templates;
         this.pdfTemplates = pdfTemplates;
-        this.mediaLibrary = mediaLibrary;
-        this.profileFields = profileFields;
+        this.letters = letters;
+        this.stations = stations;
         this.catalogue = catalogue;
     }
 
@@ -117,7 +108,6 @@ public class TemplateChecks {
         String titlePattern = pattern(request.titlePattern(), name + " {{today}}");
         String fileNamePattern = pattern(request.fileNamePattern(), name + " {{member.lastName}} {{today}}");
         var content = content(stationId, request, existing);
-        var pronouns = pronouns(stationId, request.pronounSource());
         int cooldown = Objects.requireNonNullElse(request.cooldownDays(), DEFAULT_COOLDOWN_DAYS);
         if (cooldown < 0) throw DocumentRefusal.DOCUMENT_TEMPLATE_COOLDOWN_NEGATIVE.raise();
         var audience = Objects.requireNonNullElse(request.audience(), RestrictionAudience.empty());
@@ -132,10 +122,17 @@ public class TemplateChecks {
                 request.selfService(),
                 cooldown,
                 audience.mode(),
-                pronouns,
+                language(stationId, request.language()),
                 content);
         catalogue.requireKnown(stationId, draft);
         return draft;
+    }
+
+    /** The language asked for, or the station's where none was. */
+    private DocumentLanguage language(int stationId, @Nullable DocumentLanguage asked) {
+        if (asked != null) return asked;
+        return DocumentLanguage.of(
+                StationFormat.languageOf(stations.findById(stationId).orElse(null)));
     }
 
     /**
@@ -147,7 +144,7 @@ public class TemplateChecks {
                 ? existing.kind()
                 : Objects.requireNonNullElse(request.kind(), DocumentTemplateKind.LETTER);
         return switch (kind) {
-            case LETTER -> letter(stationId, request);
+            case LETTER -> letters.letter(stationId, request);
             case PDF -> {
                 var original = existing == null
                         ? null
@@ -197,65 +194,6 @@ public class TemplateChecks {
         }
         tags.forEach(tag -> requireLength(tag, MAX_TAG));
         return tags;
-    }
-
-    private LetterContent letter(int stationId, DocumentTemplateRequest request) {
-        var page = Objects.requireNonNullElse(request.page(), LetterPage.defaults());
-        if (!page.withinBounds()) throw DocumentRefusal.DOCUMENT_TEMPLATE_PAGE_OUT_OF_BOUNDS.raise();
-        String body = Objects.requireNonNullElse(request.bodyMarkdown(), "");
-        requireLength(body, MAX_BODY);
-        var letterhead = Objects.requireNonNullElse(request.letterhead(), Letterhead.empty());
-        return new LetterContent(
-                new Letterhead(cells(stationId, letterhead.header()), cells(stationId, letterhead.footer())),
-                body,
-                page);
-    }
-
-    private List<LetterCell> cells(int stationId, List<LetterCell> row) {
-        if (row.size() > Letterhead.MAX_CELLS) throw DocumentRefusal.DOCUMENT_TEMPLATE_TOO_MANY_CELLS.raise();
-        return row.stream().map(cell -> cell(stationId, cell)).toList();
-    }
-
-    /**
-     * A cell as it is kept: only what its kind reads, with a picture that is really an image of the
-     * station's library.
-     */
-    private LetterCell cell(int stationId, @Nullable LetterCell cell) {
-        if (cell == null || cell.kind() == null) return LetterCell.empty();
-        var align = Objects.requireNonNullElse(cell.align(), TextAlign.LEFT);
-        int height = cell.imageHeightMm() > 0 ? cell.imageHeightMm() : LetterCell.DEFAULT_IMAGE_HEIGHT_MM;
-        return switch (cell.kind()) {
-            case EMPTY -> new LetterCell(LetterCellKind.EMPTY, null, null, align, height);
-            case LOGO -> new LetterCell(LetterCellKind.LOGO, null, null, align, height);
-            case IMAGE ->
-                new LetterCell(LetterCellKind.IMAGE, requirePicture(stationId, cell.mediaHash()), null, align, height);
-            case TEXT -> {
-                String text = Objects.requireNonNullElse(cell.text(), "");
-                requireLength(text, MAX_CELL_TEXT);
-                yield new LetterCell(LetterCellKind.TEXT, null, text, align, height);
-            }
-        };
-    }
-
-    private String requirePicture(int stationId, @Nullable String hash) {
-        if (hash == null || hash.isBlank()) throw DocumentRefusal.DOCUMENT_TEMPLATE_PICTURE_NOT_HERE.raise();
-        boolean image = mediaLibrary
-                .findByHash(stationId, hash)
-                .map(file -> file.mimeType().startsWith("image/"))
-                .orElse(false);
-        if (!image) throw DocumentRefusal.DOCUMENT_TEMPLATE_PICTURE_NOT_HERE.raise();
-        return hash;
-    }
-
-    private @Nullable PronounSource pronouns(int stationId, @Nullable PronounSource source) {
-        if (source == null) return null;
-        boolean choice = profileFields
-                .findById(source.fieldId())
-                .filter(field -> field.stationId() == stationId)
-                .map(field -> field.fieldType() == FieldType.CHOICE)
-                .orElse(false);
-        if (!choice) throw DocumentRefusal.DOCUMENT_TEMPLATE_PRONOUN_FIELD_NOT_CHOICE.raise();
-        return source;
     }
 
     private static void requireLength(String text, int max) {

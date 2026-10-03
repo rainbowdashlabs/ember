@@ -5,10 +5,16 @@
  */
 package dev.chojo.ember.feature.generator.repository;
 
+import dev.chojo.ember.feature.content.entity.CellConfig;
+import dev.chojo.ember.feature.content.entity.CellContentType;
+import dev.chojo.ember.feature.content.entity.ContentCell;
+import dev.chojo.ember.feature.content.entity.ContentRow;
 import dev.chojo.ember.feature.generator.entity.DataSubject;
 import dev.chojo.ember.feature.generator.entity.DocumentGeneration;
+import dev.chojo.ember.feature.generator.entity.DocumentLanguage;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplateDraft;
 import dev.chojo.ember.feature.generator.entity.LetterContent;
+import dev.chojo.ember.feature.generator.entity.LetterPage;
 import dev.chojo.ember.feature.generator.entity.SubjectRole;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -66,7 +72,7 @@ class DocumentGenerationRepositoryTest extends RepositoryTestBase {
                 false,
                 30,
                 RestrictionMode.AND,
-                null,
+                DocumentLanguage.EN,
                 LetterContent.blank());
     }
 
@@ -124,5 +130,21 @@ class DocumentGenerationRepositoryTest extends RepositoryTestBase {
         assertTrue(templates.update(-1, draft("Nichts"), guardian).isEmpty());
         assertEquals(LetterContent.blank(), templates.findLetter(templateId).orElseThrow());
         assertEquals(List.of("a"), templates.findById(templateId).orElseThrow().tags());
+        assertEquals(
+                DocumentLanguage.EN,
+                templates.findById(templateId).orElseThrow().language());
+    }
+
+    @Test
+    void aLetterKeepsItsRowsAsWritten() {
+        var cell = new ContentCell(0, 0, 0, 50.0, CellContentType.MARKDOWN, "Hallo", CellConfig.EMPTY);
+        var row = new ContentRow(0, 0, 0, List.of(cell));
+        var second = new ContentRow(0, 0, 1, List.of(cell));
+        var letter = new LetterContent(List.of(row), List.of(), List.of(row, second), LetterPage.defaults());
+        int letterId = templates.create(station.id(), draft("Zeilen"), guardian).id();
+
+        templates.writeLetter(letterId, letter);
+
+        assertEquals(letter, templates.findLetter(letterId).orElseThrow());
     }
 }

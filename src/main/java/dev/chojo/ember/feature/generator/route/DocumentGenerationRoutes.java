@@ -115,7 +115,7 @@ public class DocumentGenerationRoutes implements Routes {
 
     private static DocumentTemplateRequest emptyTemplate() {
         return new DocumentTemplateRequest(
-                null, null, null, null, null, false, null, false, false, null, null, null, null, null, null, null,
+                null, null, null, null, null, false, null, false, false, null, null, null, null, null, null, null, null,
                 null);
     }
 

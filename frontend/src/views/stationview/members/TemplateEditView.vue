@@ -15,18 +15,16 @@ import {DocumentTemplateKind} from '@/api/generated/schema'
 import {showToast} from '@/util/toast'
 import {useTemplateEditor} from './templateeditview/useTemplateEditor'
 import GeneralPanel from './templateeditview/GeneralPanel.vue'
-import LetterheadPanel from './templateeditview/LetterheadPanel.vue'
-import BodyPanel from './templateeditview/BodyPanel.vue'
+import LetterPanel from './templateeditview/LetterPanel.vue'
 import PdfPanel from './templateeditview/PdfPanel.vue'
-import PronounPanel from './templateeditview/PronounPanel.vue'
 import SelfServicePanel from './templateeditview/SelfServicePanel.vue'
 import PreviewPanel from './templateeditview/PreviewPanel.vue'
 import EditorActions from './templateeditview/EditorActions.vue'
 
 /**
- * Writes one template. A letter has its letterhead and its body; a PDF template has its uploaded PDF
- * with the fields placed on it. Both have what they are called and how their documents are filed, the
- * pronouns, self service, and a look at the result for any member.
+ * Writes one template. A letter has its header, body and footer, written as blocks; a PDF template has
+ * its uploaded PDF with the fields placed on it. Both have what they are called, their language and
+ * how their documents are filed, self service, and a look at the result for any member.
  *
  * <p>The address names the template, or `new` for one that does not exist yet, with `?kind=PDF` for a
  * PDF template; saving a new one moves the address to it, so a reload opens what was just saved.
@@ -50,8 +48,7 @@ const tabs = computed(() => [
   {key: 'general', label: t('documentTemplates.tabGeneral')},
   ...(isPdf.value
     ? [{key: 'pdf', label: t('documentTemplates.tabPdf')}]
-    : [{key: 'letterhead', label: t('documentTemplates.tabLetterhead')}, {key: 'body', label: t('documentTemplates.tabBody')}]),
-  {key: 'pronouns', label: t('documentTemplates.tabPronouns')},
+    : [{key: 'letter', label: t('documentTemplates.tabLetter')}]),
   {key: 'selfService', label: t('documentTemplates.tabSelfService')},
   {key: 'preview', label: t('documentTemplates.tabPreview')},
 ])
@@ -97,11 +94,9 @@ async function upload(file: File) {
       />
       <TabBar v-model="tab" :tabs="tabs"/>
       <GeneralPanel v-if="tab === 'general'" v-model="draft" :document-tags="editor.documentTags.value"/>
-      <LetterheadPanel v-if="tab === 'letterhead'" v-model="draft" :placeholders="editor.placeholders.value"/>
-      <BodyPanel v-if="tab === 'body'" v-model="draft" :placeholders="editor.placeholders.value" :labels="editor.labels.value"/>
+      <LetterPanel v-if="tab === 'letter'" v-model="draft" :catalogue="editor.letterCatalogue.value"/>
       <PdfPanel v-if="tab === 'pdf'" v-model="draft" :saved="saved" :source="editor.pdf.value"
                 :placeholders="editor.placeholders.value" :labels="editor.labels.value" @upload="upload"/>
-      <PronounPanel v-if="tab === 'pronouns'" v-model="draft" :choice-fields="editor.choiceFields.value"/>
       <SelfServicePanel
           v-if="tab === 'selfService'"
           v-model="draft"

@@ -3,8 +3,52 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {CellContentType} from '@/api/generated/schema'
+import {CellContentType, type BlockCellRequest, type BlockRowRequest, type ContentRow} from '@/api/generated/schema'
 import type {RowEditData} from '@/components/content/blockeditor/EditorRow.vue'
+import {toRestriction} from '@/components/input/restriction'
+
+/**
+ * The saved shape of a block tree turned into the shape the editor works on. Ids of zero mark rows
+ * and cells that do not exist yet, which is how the save path tells new from moved. A block's
+ * restriction, which only a letter carries, comes along.
+ */
+export function toEditRows(saved: ContentRow[]): RowEditData[] {
+    return [...saved]
+        .sort((a, b) => a.sortOrder - b.sortOrder)
+        .map(r => ({
+            id: r.id,
+            sortOrder: r.sortOrder,
+            cells: [...r.cells]
+                .sort((a, b) => a.sortOrder - b.sortOrder)
+                .map(c => ({
+                    id: c.id,
+                    sortOrder: c.sortOrder,
+                    widthPercent: c.widthPercent,
+                    contentType: c.contentType,
+                    content: c.content,
+                    config: c.config as Record<string, unknown>,
+                    ...(c.restriction ? {restriction: toRestriction(c.restriction)} : {}),
+                })),
+        }))
+}
+
+/**
+ * The rows the editor works on as the server takes them, numbered in the order they stand. A block's
+ * restriction goes along where it has one.
+ */
+export function toBlockRequests(rows: RowEditData[]): BlockRowRequest[] {
+    return rows.map((r, ri) => ({
+        sortOrder: ri,
+        cells: r.cells.map((c, ci): BlockCellRequest => ({
+            sortOrder: ci,
+            widthPercent: c.widthPercent,
+            contentType: c.contentType,
+            content: c.content,
+            config: c.config,
+            ...(c.restriction ? {restriction: c.restriction} : {}),
+        })),
+    }))
+}
 
 /**
  * What a body becomes when it is switched from the plain text field to the page editor: one row

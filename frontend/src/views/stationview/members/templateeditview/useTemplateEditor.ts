@@ -6,7 +6,6 @@
 import {computed, ref, shallowRef, watch, type Ref} from 'vue'
 import {documents, documentTemplates, memberGroups, stationMembers, userTags} from '@/api'
 import type {
-    ChoiceField,
     DocumentTemplateKind,
     DocumentTemplateResponse,
     MemberGroup,
@@ -37,7 +36,6 @@ export function useTemplateEditor(templateId: Ref<number | null>, newKind: Ref<D
     const saved = ref<DocumentTemplateResponse | null>(null)
     const pdf = shallowRef<Blob | null>(null)
     const placeholders = ref<Placeholder[]>([])
-    const choiceFields = ref<ChoiceField[]>([])
     const groups = ref<MemberGroup[]>([])
     const tags = ref<UserTag[]>([])
     const members = ref<MemberWithName[]>([])
@@ -45,6 +43,13 @@ export function useTemplateEditor(templateId: Ref<number | null>, newKind: Ref<D
 
     const labels = computed<ReadonlyMap<string, string>>(() =>
         new Map(placeholders.value.map(placeholder => [placeholder.key, placeholder.label])))
+
+    /** What a letter's blocks can name and be restricted to. */
+    const letterCatalogue = computed(() => ({
+        placeholders: placeholders.value,
+        labels: labels.value,
+        choices: {groups: groups.value, tags: tags.value},
+    }))
 
     const loader = useAsyncLoader(async () => {
         const [catalogue, groupList, tagList, memberList, tagNames] = await Promise.all([
@@ -55,7 +60,6 @@ export function useTemplateEditor(templateId: Ref<number | null>, newKind: Ref<D
             documents.listTags().catch(() => []),
         ])
         placeholders.value = catalogue.placeholders
-        choiceFields.value = catalogue.choiceFields
         groups.value = groupList
         tags.value = tagList
         members.value = memberList.filter(member => !member.formerAt)
@@ -107,7 +111,7 @@ export function useTemplateEditor(templateId: Ref<number | null>, newKind: Ref<D
         uploading,
         placeholders,
         labels,
-        choiceFields,
+        letterCatalogue,
         groups,
         tags,
         members,

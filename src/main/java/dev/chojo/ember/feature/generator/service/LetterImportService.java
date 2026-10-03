@@ -7,9 +7,15 @@ package dev.chojo.ember.feature.generator.service;
 
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.refusal.DocumentRefusal;
+import dev.chojo.ember.feature.content.entity.CellContentType;
+import dev.chojo.ember.feature.content.entity.ContentCell;
+import dev.chojo.ember.feature.content.entity.ContentRow;
 import dev.chojo.ember.feature.documents.service.DocumentDoor;
 import dev.chojo.ember.feature.documents.service.DocumentIntake;
 import dev.chojo.ember.feature.generator.entity.BuiltInPlaceholder;
+import dev.chojo.ember.feature.generator.entity.PossessiveEnding;
+import dev.chojo.ember.feature.generator.entity.PronounKey;
+import dev.chojo.ember.feature.generator.entity.PronounRole;
 import dev.chojo.ember.feature.media.image.ImageFormat;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import dev.chojo.ember.util.PandocConverter;
@@ -37,9 +43,9 @@ import java.util.regex.Pattern;
  *
  * <p>Which of the two a file is, is read from the file itself through {@link PandocConverter#formatOf},
  * the one detection every document import shares; anything else is refused. Pandoc turns the body into
- * markdown; the header and the footer are not part of it and are set up in the letterhead builder once.
- * The pictures of the body go into the station's media library, so the body points at them the way a
- * picture inserted in the editor does.
+ * markdown; the header and the footer are not part of it and are set up in the editor once. The body
+ * arrives as one text block, split where a picture stands on a line of its own: the pictures go into the
+ * station's media library and become picture blocks, and a picture inside a paragraph stays in its text.
  *
  * <p>Gaps written in brackets, the way a form marks them ({@code [Vorname Nachname]},
  * {@code [Geburtsdatum]}, {@code [er/sie]}), become placeholders where their words are recognised:
@@ -57,8 +63,13 @@ public class LetterImportService {
     private static final Pattern GAP =
             Pattern.compile("\\\\\\[([^\\[\\]\\\\\\n]{1,60})\\\\]|\\[([^\\[\\]\\n]{1,60})](?![(\\[])");
 
-    /** The words of a gap the built-in placeholders stand for, written in lower case. */
-    private static final Map<String, BuiltInPlaceholder> WORDS = words();
+    /** A picture of the media library standing on a line of its own; group 1 is its content hash. */
+    private static final Pattern PICTURE_LINE = Pattern.compile(
+            "^[ \\t]*!\\[[^\\]\\n]*]\\(/api/v1/public/media/[^/\\s)]+/([^/\\s)]+)\\)(?:\\{[^}\\n]*})?[ \\t]*$",
+            Pattern.MULTILINE);
+
+    /** The placeholder keys the words of a gap stand for, the words written in lower case. */
+    private static final Map<String, String> WORDS = words();
 
     private final MediaLibraryService mediaLibrary;
     private final PlaceholderCatalogue catalogue;
@@ -75,30 +86,38 @@ public class LetterImportService {
     /**
      * A document read in as the body of a template.
      *
-     * @param bodyMarkdown the body, with placeholders where gaps were recognised
+     * @param rows         the body as rows of one block each, with placeholders where gaps were recognised
      * @param recognised   the gaps that became placeholders, as they were written
      * @param unrecognised the gaps that stayed text, as they were written
      */
-    public record LetterImport(String bodyMarkdown, List<String> recognised, List<String> unrecognised) {}
+    public record LetterImport(List<ContentRow> rows, List<String> recognised, List<String> unrecognised) {}
 
-    private static Map<String, BuiltInPlaceholder> words() {
-        var words = new LinkedHashMap<String, BuiltInPlaceholder>();
-        words.put("vorname nachname", BuiltInPlaceholder.MEMBER_FULL_NAME);
-        words.put("vor- und nachname", BuiltInPlaceholder.MEMBER_FULL_NAME);
-        words.put("name", BuiltInPlaceholder.MEMBER_FULL_NAME);
-        words.put("vorname", BuiltInPlaceholder.MEMBER_FIRST_NAME);
-        words.put("nachname", BuiltInPlaceholder.MEMBER_LAST_NAME);
-        words.put("geburtsdatum", BuiltInPlaceholder.MEMBER_BIRTH_DATE);
-        words.put("alter", BuiltInPlaceholder.MEMBER_AGE);
-        words.put("eintrittsdatum", BuiltInPlaceholder.MEMBER_JOIN_DATE);
-        words.put("monat/jahr", BuiltInPlaceholder.MEMBER_JOIN_MONTH);
-        words.put("datum", BuiltInPlaceholder.TODAY);
-        words.put("er/sie", BuiltInPlaceholder.PRONOUN_SUBJECT);
-        words.put("ihn/sie", BuiltInPlaceholder.PRONOUN_OBJECT);
-        words.put("ihm/ihr", BuiltInPlaceholder.PRONOUN_DATIVE);
-        words.put("sein/ihr", BuiltInPlaceholder.PRONOUN_POSSESSIVE);
-        words.put("seine/ihre", BuiltInPlaceholder.PRONOUN_POSSESSIVE);
+    private static Map<String, String> words() {
+        var words = new LinkedHashMap<String, String>();
+        words.put("vorname nachname", BuiltInPlaceholder.MEMBER_FULL_NAME.key());
+        words.put("vor- und nachname", BuiltInPlaceholder.MEMBER_FULL_NAME.key());
+        words.put("name", BuiltInPlaceholder.MEMBER_FULL_NAME.key());
+        words.put("vorname", BuiltInPlaceholder.MEMBER_FIRST_NAME.key());
+        words.put("nachname", BuiltInPlaceholder.MEMBER_LAST_NAME.key());
+        words.put("geburtsdatum", BuiltInPlaceholder.MEMBER_BIRTH_DATE.key());
+        words.put("alter", BuiltInPlaceholder.MEMBER_AGE.key());
+        words.put("eintrittsdatum", BuiltInPlaceholder.MEMBER_JOIN_DATE.key());
+        words.put("monat/jahr", BuiltInPlaceholder.MEMBER_JOIN_MONTH.key());
+        words.put("datum", BuiltInPlaceholder.TODAY.key());
+        words.put("er/sie", pronoun(PronounRole.SUBJECT, PossessiveEnding.NONE));
+        words.put("ihn/sie", pronoun(PronounRole.OBJECT, PossessiveEnding.NONE));
+        words.put("ihm/ihr", pronoun(PronounRole.DATIVE, PossessiveEnding.NONE));
+        words.put("sein/ihr", pronoun(PronounRole.POSSESSIVE, PossessiveEnding.NONE));
+        words.put("seine/ihre", pronoun(PronounRole.POSSESSIVE, PossessiveEnding.E));
+        words.put("seinen/ihren", pronoun(PronounRole.POSSESSIVE, PossessiveEnding.EN));
+        words.put("seinem/ihrem", pronoun(PronounRole.POSSESSIVE, PossessiveEnding.EM));
+        words.put("seiner/ihrer", pronoun(PronounRole.POSSESSIVE, PossessiveEnding.ER));
+        words.put("seines/ihres", pronoun(PronounRole.POSSESSIVE, PossessiveEnding.ES));
         return Map.copyOf(words);
+    }
+
+    private static String pronoun(PronounRole role, PossessiveEnding ending) {
+        return new PronounKey(role, false, ending).key();
     }
 
     /**
@@ -194,17 +213,44 @@ public class LetterImportService {
             }
         }
         matcher.appendTail(out);
-        return new LetterImport(out.toString(), new ArrayList<>(recognised), new ArrayList<>(unrecognised));
+        return new LetterImport(blocks(out.toString()), new ArrayList<>(recognised), new ArrayList<>(unrecognised));
+    }
+
+    /**
+     * The body as rows of one block each: the text in between as text blocks, and a picture standing on a
+     * line of its own as a picture block, which the letter can then size and place by itself.
+     */
+    static List<ContentRow> blocks(String markdown) {
+        var rows = new ArrayList<ContentRow>();
+        Matcher matcher = PICTURE_LINE.matcher(markdown);
+        int from = 0;
+        while (matcher.find()) {
+            addText(rows, markdown.substring(from, matcher.start()));
+            rows.add(row(rows.size(), CellContentType.IMAGE, matcher.group(1)));
+            from = matcher.end();
+        }
+        addText(rows, markdown.substring(from));
+        return List.copyOf(rows);
+    }
+
+    private static void addText(List<ContentRow> rows, String text) {
+        String stripped = text.strip();
+        if (!stripped.isEmpty()) rows.add(row(rows.size(), CellContentType.MARKDOWN, stripped));
+    }
+
+    private static ContentRow row(int sortOrder, CellContentType type, String content) {
+        return new ContentRow(
+                0, 0, sortOrder, List.of(new ContentCell(0, 0, 0, 100.0, type, content, type.emptyConfig())));
     }
 
     private static @Nullable String keyOf(String gap, Map<String, String> fields) {
         String words = gap.strip().replaceAll("\\s+", " ");
         String lower = words.toLowerCase(Locale.ROOT);
-        if (lower.equals("er/sie") && Character.isUpperCase(words.charAt(0))) {
-            return BuiltInPlaceholder.PRONOUN_SUBJECT_START.key();
-        }
-        var builtIn = WORDS.get(lower);
-        if (builtIn != null) return builtIn.key();
-        return fields.get(lower);
+        var key = WORDS.get(lower);
+        if (key == null) return fields.get(lower);
+        var pronoun = PronounKey.parse(key);
+        boolean capital = Character.isUpperCase(words.charAt(0));
+        if (pronoun.isEmpty() || !capital) return key;
+        return new PronounKey(pronoun.get().role(), true, pronoun.get().ending()).key();
     }
 }

@@ -25,22 +25,63 @@
   }
 }
 
-#let cell(c) = {
-  let body = if c.kind == "image" {
-    image(c.file, height: c.heightMm * 1mm)
-  } else if c.kind == "text" {
-    c.lines.map(line => text(line)).join(linebreak())
-  } else {
-    []
-  }
-  let where = if c.align == "center" { center } else if c.align == "right" { right } else { left }
-  align(where + horizon, body)
+#let caption(body) = block(
+  width: 100%,
+  above: 0.5em,
+  below: 1.2em,
+  text(size: 8.5pt, fill: luma(90), style: "italic", body),
+)
+
+#let fit(it, max-height) = layout(region => {
+  let natural = measure(it)
+  if natural.width == 0pt or natural.height == 0pt { return it }
+  let scale = calc.min(1, region.width / natural.width, max-height / natural.height)
+  block(width: natural.width * scale, breakable: false, it)
+})
+
+#let text-block(c, max-height) = [
+  #show image: it => fit(it, max-height)
+  #eval(
+    read(c.file),
+    mode: "markup",
+    scope: (
+      ph: placeholder,
+      horizontalrule: line(length: 100%, stroke: 0.5pt + luma(180)),
+      caption: caption,
+    ),
+  )
+]
+
+#let picture(c, max-height) = {
+  let limit = if c.at("maxHeightMm", default: none) == none { max-height } else { c.maxHeightMm * 1mm }
+  align(center, fit(image(c.file), limit))
 }
 
-#let row(cells, size) = if cells.len() == 0 { none } else {
+#let rows(list, max-height, gap) = for (index, r) in list.enumerate() {
+  block(
+    width: 100%,
+    above: if index == 0 { 0pt } else { gap },
+    below: 0pt,
+    grid(
+      columns: r.cells.map(c => c.width * 1fr),
+      column-gutter: 0.8em,
+      ..r.cells.map(c => if c.kind == "text" {
+        text-block(c, max-height)
+      } else if c.kind == "image" {
+        picture(c, max-height)
+      } else if c.kind == "rows" {
+        rows(c.rows, max-height, gap)
+      } else {
+        []
+      }),
+    ),
+  )
+}
+
+#let letterhead(list, size) = if list.len() == 0 { none } else {
   set text(size: size)
-  set par(leading: 0.45em)
-  grid(columns: (1fr,) * cells.len(), column-gutter: 0.8em, ..cells.map(cell))
+  set par(leading: 0.45em, spacing: 0.6em)
+  rows(list, 18mm, 0.4em)
 }
 
 #set document(
@@ -55,38 +96,13 @@
     left: data.page.marginLeftMm * 1mm,
     right: data.page.marginRightMm * 1mm,
   ),
-  header: row(data.header, 8.5pt),
+  header: letterhead(data.header, 8.5pt),
   header-ascent: 12%,
-  footer: row(data.footer, 7.5pt),
+  footer: letterhead(data.footer, 7.5pt),
   footer-descent: 12%,
 )
 #set text(font: "Liberation Sans", size: data.page.fontSizePt * 1pt, lang: "en")
 #set par(justify: false, leading: 0.65em)
 #show link: set text(fill: rgb("#c71100"))
 
-#let picture-max-height = 9cm
-#let fit-picture(it) = layout(region => {
-  let natural = measure(it)
-  if natural.width == 0pt or natural.height == 0pt { return it }
-  let scale = calc.min(1, region.width / natural.width, picture-max-height / natural.height)
-  block(width: natural.width * scale, breakable: false, it)
-})
-#let caption(body) = block(
-  width: 100%,
-  above: 0.5em,
-  below: 1.2em,
-  text(size: 8.5pt, fill: luma(90), style: "italic", body),
-)
-
-#[
-  #show image: fit-picture
-  #eval(
-    read("body.typ"),
-    mode: "markup",
-    scope: (
-      ph: placeholder,
-      horizontalrule: line(length: 100%, stroke: 0.5pt + luma(180)),
-      caption: caption,
-    ),
-  )
-]
+#rows(data.body, 9cm, 1em)

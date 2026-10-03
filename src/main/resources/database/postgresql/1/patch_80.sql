@@ -57,9 +57,8 @@ CREATE TABLE IF NOT EXISTS ember_schema.document_template
     self_service               BOOLEAN     NOT NULL DEFAULT FALSE,
     self_service_cooldown_days INTEGER     NOT NULL DEFAULT 30 CHECK (self_service_cooldown_days >= 0),
     restriction_mode           TEXT        NOT NULL DEFAULT 'AND' CHECK (restriction_mode IN ('AND', 'OR')),
-    pronoun_field_id           INTEGER     NULL REFERENCES ember_schema.profile_field (id) ON DELETE SET NULL,
-    pronoun_mapping            JSONB       NULL,
-    version                    INTEGER     NOT NULL DEFAULT 1,
+    language                   TEXT        NOT NULL DEFAULT 'DE' CHECK (language IN ('DE', 'EN')),
+    version                   INTEGER     NOT NULL DEFAULT 1,
     created_at                 TIMESTAMPTZ NOT NULL DEFAULT now(),
     created_by                 INTEGER     NULL REFERENCES ember_schema.station_member (id) ON DELETE SET NULL,
     updated_at                 TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -94,10 +93,8 @@ COMMENT ON COLUMN ember_schema.document_template.self_service_cooldown_days IS
     'How many days must pass before a member may generate the document again through self service. 0 means no wait.';
 COMMENT ON COLUMN ember_schema.document_template.restriction_mode IS
     'AND or OR, how the parts of document_template_restriction combine.';
-COMMENT ON COLUMN ember_schema.document_template.pronoun_field_id IS
-    'The choice profile field the pronouns of the template follow. NULL where the pronouns always use the first name, also once that field was deleted.';
-COMMENT ON COLUMN ember_schema.document_template.pronoun_mapping IS
-    'Which pronoun (ER, SIE or NAME) each answer of the pronoun field stands for, and the one used for an empty or unmapped answer. NULL where the template names no pronoun field.';
+COMMENT ON COLUMN ember_schema.document_template.language IS
+    'DE or EN, the language the documents are written in: it picks the pronouns of the gender profile field, how dates are written, and the words the letter prints itself.';
 COMMENT ON COLUMN ember_schema.document_template.version IS
     'Counts up with every change, so the generation log says which state of the template a document came from.';
 COMMENT ON COLUMN ember_schema.document_template.created_at IS 'When the template was created.';
@@ -134,19 +131,22 @@ COMMENT ON COLUMN ember_schema.document_template_restriction.member_id IS
 
 CREATE TABLE IF NOT EXISTS ember_schema.document_template_letter
 (
-    template_id   INTEGER PRIMARY KEY REFERENCES ember_schema.document_template (id) ON DELETE CASCADE,
-    letterhead    JSONB   NOT NULL,
-    body_markdown TEXT    NOT NULL,
-    page          JSONB   NOT NULL
+    template_id INTEGER PRIMARY KEY REFERENCES ember_schema.document_template (id) ON DELETE CASCADE,
+    header      JSONB   NOT NULL,
+    footer      JSONB   NOT NULL,
+    body        JSONB   NOT NULL,
+    page        JSONB   NOT NULL
 );
 
 COMMENT ON TABLE ember_schema.document_template_letter IS
-    'The content of a letter template: its letterhead, its body and its page.';
+    'The content of a letter template: its header, its footer, its body and its page.';
 COMMENT ON COLUMN ember_schema.document_template_letter.template_id IS 'References the document template.';
-COMMENT ON COLUMN ember_schema.document_template_letter.letterhead IS
-    'The header and the footer, each a row of up to three cells. A cell is empty, a picture from the media library by its content hash, the station logo, or a short text with placeholders, aligned left, centre or right.';
-COMMENT ON COLUMN ember_schema.document_template_letter.body_markdown IS
-    'The body as markdown, with placeholders written as {{key}}. Pictures point at the station media library.';
+COMMENT ON COLUMN ember_schema.document_template_letter.header IS
+    'The rows drawn at the top of every page, shaped like the rows of a page: each row up to three columns with their width, each holding a text with placeholders written as {{key}}, a picture from the media library by its content hash or the station logo, or blocks stacked in it. A block may carry a restriction saying which members it is printed for.';
+COMMENT ON COLUMN ember_schema.document_template_letter.footer IS
+    'The rows drawn at the bottom of every page, shaped like the header.';
+COMMENT ON COLUMN ember_schema.document_template_letter.body IS
+    'The rows of the letter itself, shaped like the header. A block whose restriction does not match the member is left out, and a row left with nothing is dropped.';
 COMMENT ON COLUMN ember_schema.document_template_letter.page IS
     'The page margins in millimetres and the body font size in points. The paper is always A4.';
 

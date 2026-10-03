@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.generator.service;
 
+import dev.chojo.ember.feature.generator.entity.DocumentLanguage;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplate;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplateDraft;
 import dev.chojo.ember.feature.generator.entity.GenerationContext;
@@ -13,11 +14,12 @@ import dev.chojo.ember.feature.generator.entity.MissingValue;
 import dev.chojo.ember.feature.generator.entity.PdfContent;
 import dev.chojo.ember.feature.generator.entity.Placeholder;
 import dev.chojo.ember.feature.generator.entity.PlaceholderTokens;
-import dev.chojo.ember.feature.generator.entity.PronounSource;
 import dev.chojo.ember.feature.generator.entity.ResolvedValues;
 import dev.chojo.ember.feature.generator.entity.SignatureRole;
 import dev.chojo.ember.feature.generator.entity.TemplateContent;
 import dev.chojo.ember.feature.generator.service.pdf.PdfStamper;
+import dev.chojo.ember.feature.restriction.RestrictionAudience;
+import dev.chojo.ember.feature.restriction.service.RestrictionService;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
@@ -33,7 +35,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 /**
  * Turns a template into the PDF of one member, without filing it.
@@ -66,6 +70,7 @@ public class DocumentGeneratorService {
     private final LetterRenderer letters;
     private final PdfTemplateRenderer pdfs;
     private final StationRepository stations;
+    private final RestrictionService restrictions;
     private final Clock clock;
 
     @Inject
@@ -75,8 +80,9 @@ public class DocumentGeneratorService {
             PlaceholderCatalogue catalogue,
             LetterRenderer letters,
             PdfTemplateRenderer pdfs,
-            StationRepository stations) {
-        this(templates, resolver, catalogue, letters, pdfs, stations, Clock.systemUTC());
+            StationRepository stations,
+            RestrictionService restrictions) {
+        this(templates, resolver, catalogue, letters, pdfs, stations, restrictions, Clock.systemUTC());
     }
 
     /**
@@ -89,6 +95,7 @@ public class DocumentGeneratorService {
             LetterRenderer letters,
             PdfTemplateRenderer pdfs,
             StationRepository stations,
+            RestrictionService restrictions,
             Clock clock) {
         this.templates = templates;
         this.resolver = resolver;
@@ -96,16 +103,19 @@ public class DocumentGeneratorService {
         this.letters = letters;
         this.pdfs = pdfs;
         this.stations = stations;
+        this.restrictions = restrictions;
         this.clock = clock;
     }
 
     /**
-     * What a document is drawn from: the state of the template and the values of one member.
+     * What a document is drawn from: the state of the template, which blocks of a letter the member sees,
+     * and the values of one member.
      *
      * @param source   the template
+     * @param shown    whether the member belongs to the audience of a block of a letter
      * @param resolved the values and what is missing
      */
-    public record Prepared(Source source, ResolvedValues resolved) {}
+    public record Prepared(Source source, Predicate<RestrictionAudience> shown, ResolvedValues resolved) {}
 
     /**
      * A template as the generator reads it, saved or still a draft in the editor.
@@ -115,9 +125,9 @@ public class DocumentGeneratorService {
      * @param titlePattern    the title, with placeholders
      * @param fileNamePattern the file name, with placeholders
      * @param content         the letter, or the PDF with what is laid over it
-     * @param pronouns        the field the pronouns follow, or null
+     * @param language        the language its documents are written in
      * @param legal           whether it makes a legal document
-     * @param cacheKey        the template and version a letter's body is kept under, or null for a draft
+     * @param cacheKey        the template and version a letter's texts are kept under, or null for a draft
      */
     public record Source(
             int stationId,
@@ -125,18 +135,27 @@ public class DocumentGeneratorService {
             String titlePattern,
             String fileNamePattern,
             TemplateContent content,
-            @Nullable PronounSource pronouns,
+            DocumentLanguage language,
             boolean legal,
             LetterRenderer.@Nullable BodyKey cacheKey) {
 
-        /** The keys the template names anywhere. */
-        public Set<String> keys() {
-            return PlaceholderCatalogue.keysOf(titlePattern, fileNamePattern, content);
-        }
-
-        /** The keys that stand for values, which leaves out the signature fields of a letter. */
-        public Set<String> valueKeys() {
-            var keys = new LinkedHashSet<>(keys());
+        /**
+         * The keys that stand for values in what a member sees of the template: the title, the file
+         * name, and of a letter only the blocks meant for them. Signature fields are no values.
+         *
+         * @param shown whether the member belongs to the audience of a block of a letter
+         * @return the keys, in the order they first appear
+         */
+        public Set<String> valueKeys(Predicate<RestrictionAudience> shown) {
+            var texts =
+                    switch (content) {
+                        case LetterContent letter -> LetterLayout.visibleTexts(letter, shown).stream();
+                        case PdfContent pdf -> pdf.texts();
+                    };
+            var keys = new LinkedHashSet<String>();
+            Stream.concat(Stream.of(titlePattern, fileNamePattern), texts)
+                    .map(PlaceholderTokens::keysIn)
+                    .forEach(keys::addAll);
             keys.removeIf(SignatureRole::isToken);
             return keys;
         }
@@ -181,7 +200,7 @@ public class DocumentGeneratorService {
                 template.titlePattern(),
                 template.fileNamePattern(),
                 templates.contentOf(template),
-                template.pronounSource(),
+                template.language(),
                 template.legal(),
                 new LetterRenderer.BodyKey(template.id(), template.version()));
     }
@@ -198,7 +217,7 @@ public class DocumentGeneratorService {
                 draft.titlePattern(),
                 draft.fileNamePattern(),
                 draft.content(),
-                draft.pronounSource(),
+                draft.language(),
                 draft.legal(),
                 null);
     }
@@ -212,9 +231,13 @@ public class DocumentGeneratorService {
      * @return the values and what is missing
      */
     public Prepared prepare(Source source, int memberId, GenerationContext context) {
-        var keys = source.valueKeys();
+        var member = restrictions.memberOf(memberId).orElse(null);
+        Predicate<RestrictionAudience> shown =
+                member == null ? audience -> false : audience -> audience.includes(member);
+        var keys = source.valueKeys(shown);
         if (source.legal()) PlaceholderCatalogue.requireOfficial(keys);
-        return new Prepared(source, resolver.resolve(source.stationId(), memberId, keys, source.pronouns(), context));
+        return new Prepared(
+                source, shown, resolver.resolve(source.stationId(), memberId, keys, source.language(), context));
     }
 
     /**
@@ -241,7 +264,7 @@ public class DocumentGeneratorService {
         var values = prepared.resolved().values();
         String title = title(source, values);
         var labels = labels(source.stationId(), prepared.resolved().missing());
-        var drawn = draw(source, title, values, labels, false);
+        var drawn = draw(source, prepared.shown(), title, values, labels, false);
         return new Rendered(drawn.pdf(), title, fileName(source, values), prepared.resolved(), drawn.unprintable());
     }
 
@@ -260,17 +283,22 @@ public class DocumentGeneratorService {
             var rendered = render(prepared);
             return new PreviewResponse(encode(rendered.pdf()), missing(prepared), rendered.unprintable());
         }
-        var values = resolver.withoutMember(source.stationId());
+        var values = resolver.withoutMember(source.stationId(), source.language());
         var labels = new LinkedHashMap<String, String>();
         catalogue
                 .forStation(source.stationId())
                 .forEach(placeholder -> labels.put(placeholder.key(), placeholder.label()));
-        var drawn = draw(source, title(source, values), values, labels, true);
+        var drawn = draw(source, LetterLayout.EVERYBODY, title(source, values), values, labels, true);
         return new PreviewResponse(encode(drawn.pdf()), List.of(), drawn.unprintable());
     }
 
     private PdfStamper.Stamped draw(
-            Source source, String title, Map<String, String> values, Map<String, String> labels, boolean showLabels) {
+            Source source,
+            Predicate<RestrictionAudience> shown,
+            String title,
+            Map<String, String> values,
+            Map<String, String> labels,
+            boolean showLabels) {
         return switch (source.content()) {
             case LetterContent letter ->
                 new PdfStamper.Stamped(
@@ -279,6 +307,8 @@ public class DocumentGeneratorService {
                                 title,
                                 letter,
                                 source.cacheKey(),
+                                shown,
+                                source.language(),
                                 values,
                                 labels,
                                 showLabels,

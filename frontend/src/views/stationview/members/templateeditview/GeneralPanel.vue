@@ -9,6 +9,8 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import LabelledField from '@/components/input/LabelledField.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import TagPicker from '@/components/input/TagPicker.vue'
+import SelectInput from '@/components/input/select/SelectInput.vue'
+import {DocumentLanguage} from '@/api/generated/schema'
 import ToggleSetting from '@/components/input/toggle/ToggleSetting.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import type {TemplateDraft} from './templateDraft'
@@ -16,7 +18,8 @@ import type {TemplateDraft} from './templateDraft'
 /**
  * What a template is called and how the documents it makes are filed: under which title and file
  * name, with which tags, whether they outlast the membership and whether they are hidden from the
- * member. A legal template uses official names only and keeps its documents by default.
+ * member. A legal template uses official names only and keeps its documents by default. The language
+ * picks the pronouns of the gender field and the words the document prints, the station's by default.
  */
 const draft = defineModel<TemplateDraft>({required: true})
 
@@ -27,9 +30,15 @@ defineProps<{
 
 const {t} = useI18n()
 
+const LANGUAGES: readonly DocumentLanguage[] = [DocumentLanguage.DE, DocumentLanguage.EN]
+
 function setLegal(legal: boolean) {
   draft.value.legal = legal
   if (legal) draft.value.keepOnArchive = true
+}
+
+function setLanguage(language: string | number | null | undefined) {
+  draft.value.language = LANGUAGES.find(candidate => candidate === language) ?? null
 }
 </script>
 
@@ -44,6 +53,14 @@ function setLegal(legal: boolean) {
     </LabelledField>
     <LabelledField :label="t('documentTemplates.fileNamePattern')" :help="t('documentTemplates.fileNamePatternHelp')" hint>
       <TextInput v-model="draft.fileNamePattern" :placeholder="t('documentTemplates.fileNamePatternPlaceholder')"/>
+    </LabelledField>
+    <LabelledField :label="t('documentTemplates.language')" :help="t('documentTemplates.languageHelp')" hint>
+      <SelectInput :model-value="draft.language ?? ''" data-testid="template-language" @update:model-value="setLanguage">
+        <option value="">{{ t('documentTemplates.languageStation') }}</option>
+        <option v-for="language in LANGUAGES" :key="language" :value="language">
+          {{ t(`documentTemplates.languageName.${language}`) }}
+        </option>
+      </SelectInput>
     </LabelledField>
     <LabelledField :label="t('documents.tags')" hint>
       <TagPicker v-model="draft.tags" :suggestions="documentTags" :placeholder="t('documents.tagsPlaceholder')"/>

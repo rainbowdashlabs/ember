@@ -30,7 +30,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * @param selfService      whether members may generate it for themselves and their children
  * @param cooldownDays     how many days a member waits before generating it again through self service
  * @param restrictionMode  how the parts of the self service audience combine
- * @param pronounSource    the field the pronouns follow, or null where they always use the first name
+ * @param language         the language its documents are written in
  * @param version          counts up with every change
  * @param createdAt        when it was created
  * @param updatedAt        when it was last changed
@@ -50,7 +50,7 @@ public record DocumentTemplate(
         boolean selfService,
         int cooldownDays,
         RestrictionMode restrictionMode,
-        @Nullable PronounSource pronounSource,
+        DocumentLanguage language,
         int version,
         Instant createdAt,
         Instant updatedAt,
@@ -59,8 +59,8 @@ public record DocumentTemplate(
     /** The columns {@link #map()} reads, in a form a query can splice in. */
     public static final String COLUMNS = """
             id, station_id, kind, name, title_pattern, file_name_pattern, tags, hidden, keep_on_archive, legal,
-            self_service, self_service_cooldown_days, restriction_mode, pronoun_field_id,
-            pronoun_mapping::text AS pronoun_mapping, version, created_at, updated_at, archived_at""";
+            self_service, self_service_cooldown_days, restriction_mode, language, version, created_at, updated_at,
+            archived_at""";
 
     /** Whether the template is archived and generates nothing more. */
     public boolean archived() {
@@ -82,7 +82,7 @@ public record DocumentTemplate(
                 row.getBoolean("self_service"),
                 row.getInt("self_service_cooldown_days"),
                 row.getEnum("restriction_mode", RestrictionMode.class),
-                PronounSource.of(row.getObject("pronoun_field_id", Integer.class), row.getString("pronoun_mapping")),
+                row.getEnum("language", DocumentLanguage.class),
                 row.getInt("version"),
                 row.get("created_at", INSTANT_TIMESTAMP),
                 row.get("updated_at", INSTANT_TIMESTAMP),

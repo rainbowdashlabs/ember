@@ -9,11 +9,12 @@ import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.TestUploads;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.refusal.DocumentRefusal;
+import dev.chojo.ember.feature.generator.entity.DocumentLanguage;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplate;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplateKind;
 import dev.chojo.ember.feature.generator.entity.LetterPage;
-import dev.chojo.ember.feature.generator.entity.Letterhead;
 import dev.chojo.ember.feature.generator.service.DocumentTemplateRequest;
 import dev.chojo.ember.feature.generator.service.DocumentTemplateService;
 import dev.chojo.ember.feature.generator.service.DocumentTemplateService.DocumentTemplateResponse;
@@ -66,9 +67,10 @@ class DocumentTemplateRoutesTest {
             false,
             30,
             RestrictionAudience.empty(),
-            null,
-            Letterhead.empty(),
-            "",
+            DocumentLanguage.DE,
+            List.of(),
+            List.of(),
+            List.of(),
             LetterPage.defaults(),
             null,
             List.of(),
@@ -90,7 +92,7 @@ class DocumentTemplateRoutesTest {
         when(service.create(any(), any(), anyInt())).thenReturn(TEMPLATE);
         when(service.update(any(), anyInt(), any(), anyInt())).thenReturn(TEMPLATE);
         when(service.setArchived(any(), anyInt(), anyBoolean(), anyInt())).thenReturn(TEMPLATE);
-        when(service.catalogue(any())).thenReturn(new PlaceholderCatalogueResponse(List.of(), List.of()));
+        when(service.catalogue(any())).thenReturn(new PlaceholderCatalogueResponse(List.of()));
         pdfs = mock(PdfTemplateService.class);
         harness = RouteHarness.serving(new DocumentTemplateRoutes(service, mock(LetterImportService.class), pdfs));
     }
@@ -110,7 +112,7 @@ class DocumentTemplateRoutesTest {
                 false,
                 30,
                 RestrictionMode.AND,
-                null,
+                DocumentLanguage.DE,
                 1,
                 Instant.EPOCH,
                 Instant.EPOCH,
@@ -134,7 +136,12 @@ class DocumentTemplateRoutesTest {
                             .asString());
             assertEquals(
                     201,
-                    client.post(PREFIX + "/document-templates", body("{\"name\": \"Neu\", \"legal\": true}"), editor)
+                    client.post(PREFIX + "/document-templates", body("""
+                                    {"name": "Neu", "legal": true, "language": "EN",
+                                     "body": [{"sortOrder": 0, "cells": [{"sortOrder": 0, "contentType": "MARKDOWN",
+                                       "content": "Nur zur Probe", "config": {},
+                                       "restriction": {"userTypes": ["TRIAL"], "groupIds": [], "tagIds": [],
+                                                       "memberIds": [], "mode": "AND"}}]}]}"""), editor)
                             .code());
             assertEquals(
                     200,
@@ -155,6 +162,10 @@ class DocumentTemplateRoutesTest {
         verify(service).create(eq(OWNER), request.capture(), anyInt());
         assertEquals("Neu", request.getValue().name());
         assertEquals(true, request.getValue().legal());
+        assertEquals(DocumentLanguage.EN, request.getValue().language());
+        var cell = request.getValue().body().getFirst().cells().getFirst();
+        assertEquals("Nur zur Probe", cell.content());
+        assertEquals(List.of(StationUserType.TRIAL), cell.restriction().userTypes());
         verify(service).setArchived(eq(OWNER), eq(8), eq(true), anyInt());
         verify(service).setArchived(eq(OWNER), eq(8), eq(false), anyInt());
     }

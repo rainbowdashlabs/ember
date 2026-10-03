@@ -13,20 +13,17 @@ import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.api.refusal.Refusal;
 import dev.chojo.ember.api.refusal.RefusalDetail;
 import dev.chojo.ember.api.refusal.RefusalResponse;
+import dev.chojo.ember.feature.content.entity.ContentCell;
+import dev.chojo.ember.feature.content.route.BlockRowRequest;
 import dev.chojo.ember.feature.documents.service.DocumentIntake;
 import dev.chojo.ember.feature.documents.service.DocumentService;
 import dev.chojo.ember.feature.generator.entity.DataSubject;
+import dev.chojo.ember.feature.generator.entity.DocumentLanguage;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplateDraft;
-import dev.chojo.ember.feature.generator.entity.LetterCell;
-import dev.chojo.ember.feature.generator.entity.LetterCellKind;
 import dev.chojo.ember.feature.generator.entity.LetterContent;
 import dev.chojo.ember.feature.generator.entity.LetterPage;
-import dev.chojo.ember.feature.generator.entity.Letterhead;
 import dev.chojo.ember.feature.generator.entity.MissingValue;
-import dev.chojo.ember.feature.generator.entity.PronounForm;
-import dev.chojo.ember.feature.generator.entity.PronounSource;
 import dev.chojo.ember.feature.generator.entity.SubjectRole;
-import dev.chojo.ember.feature.generator.entity.TextAlign;
 import dev.chojo.ember.feature.generator.repository.DocumentGenerationRepository;
 import dev.chojo.ember.feature.generator.repository.DocumentTemplateRepository;
 import dev.chojo.ember.feature.generator.repository.PdfTemplateRepository;
@@ -37,7 +34,9 @@ import dev.chojo.ember.feature.media.entity.MediaContent;
 import dev.chojo.ember.feature.media.entity.StationFile;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
+import dev.chojo.ember.feature.members.entity.PronounSet;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.members.service.GenderFields;
 import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
@@ -73,6 +72,11 @@ import java.util.Set;
 
 import javax.imageio.ImageIO;
 
+import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.image;
+import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.letter;
+import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.row;
+import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.rowsOf;
+import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.text;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -109,7 +113,6 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
     private static StationMember max;
     private static StationMember guardian;
     private static StationMember stranger;
-    private static int genderField;
     private static int schoolField;
 
     @BeforeAll
@@ -126,7 +129,7 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
         stationMemberRepo.addManager(guardian.id(), lena.id());
         stationMemberRepo.setUserType(guardian.id(), StationUserType.GUARDIAN);
 
-        var choices = new ProfileFieldConfig(
+        var genders = new ProfileFieldConfig(
                 null,
                 false,
                 false,
@@ -142,9 +145,9 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
                 null,
                 null,
                 null,
-                null);
-        genderField = profileFieldRepo
-                .create(station.id(), "Geschlecht", FieldType.CHOICE, choices, false, false, null)
+                Map.of("weiblich", Map.of("de", new PronounSet("sie", "sie", "ihr", "ihr"))));
+        int genderField = profileFieldRepo
+                .create(station.id(), "Geschlecht", FieldType.GENDER, genders, false, false, null)
                 .id();
         schoolField = profileFieldRepo
                 .create(station.id(), "Schule", FieldType.TEXT, ProfileFieldConfig.empty(), false, false, null)
@@ -165,28 +168,28 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
         when(media.readVariant(eq(station.id()), eq(PICTURE), any(), any()))
                 .thenReturn(Optional.of(new MediaContent(png(), "image/png")));
         var pictures = mock(KbPdfPictures.class);
-        when(pictures.place(anyInt(), anyString()))
+        when(pictures.place(anyInt(), anyString(), anyString()))
                 .thenAnswer(call -> new KbPdfPictures.Placed(call.getArgument(1), Map.of()));
 
         var catalogue = new PlaceholderCatalogue(profileFieldRepo, stationRepo);
         var templateRepository = new DocumentTemplateRepository();
         var pdfTemplates = new PdfTemplateRepository();
-        var checks = new TemplateChecks(templateRepository, pdfTemplates, media, profileFieldRepo, catalogue);
+        var checks = new TemplateChecks(
+                templateRepository, pdfTemplates, new LetterChecks(contentBlocks(), media), stationRepo, catalogue);
         templates =
                 new DocumentTemplateService(templateRepository, pdfTemplates, checks, restrictionService, catalogue);
         pdfRenderer = new PdfTemplateRenderer(
                 new PdfTemplateService(
                         templates, templateRepository, pdfTemplates, newDocumentIntake(), storage, stationRepo),
                 new PdfStamper(new StampFonts()));
-        var resolver =
-                new PlaceholderResolver(stationRepo, stationMemberRepo, memberNameResolver, profileFieldRepo, clock);
         var generator = new DocumentGeneratorService(
                 templates,
-                resolver,
+                resolver(),
                 catalogue,
-                new LetterRenderer(pictures, media, logos, stationRepo),
+                new LetterRenderer(pictures, media, logos),
                 pdfRenderer,
                 stationRepo,
+                restrictionService,
                 clock);
         log = new DocumentGenerationRepository();
         generation =
@@ -209,6 +212,16 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
                 station.id(), accountRepo.create(email, first, last).id());
     }
 
+    private static PlaceholderResolver resolver() {
+        return new PlaceholderResolver(
+                stationRepo,
+                stationMemberRepo,
+                memberNameResolver,
+                profileFieldRepo,
+                new GenderFields(profileFieldCore, stationRepo),
+                clock);
+    }
+
     private static byte[] png() throws IOException {
         var image = new BufferedImage(40, 20, BufferedImage.TYPE_INT_RGB);
         var out = new ByteArrayOutputStream();
@@ -216,17 +229,11 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
         return out.toByteArray();
     }
 
-    private static final Letterhead LETTERHEAD = new Letterhead(
-            List.of(
-                    new LetterCell(LetterCellKind.LOGO, null, null, TextAlign.LEFT, 15),
-                    new LetterCell(LetterCellKind.IMAGE, PICTURE, null, TextAlign.CENTER, 15),
-                    new LetterCell(LetterCellKind.TEXT, null, "Jugendfeuerwehr\n{{station.name}}", TextAlign.RIGHT, 0)),
-            List.of(new LetterCell(
-                    LetterCellKind.TEXT,
-                    null,
-                    "{{station.address}}, {{station.postalCode}} {{station.city}}",
-                    TextAlign.LEFT,
-                    0)));
+    private static final List<BlockRowRequest> HEADER =
+            List.of(row(image(ContentCell.STATION_LOGO), image(PICTURE), text("Jugendfeuerwehr\n\n{{station.name}}")));
+
+    private static final List<BlockRowRequest> FOOTER =
+            rowsOf("{{station.address}}, {{station.postalCode}} {{station.city}}");
 
     private static final String BODY = """
             # Bescheinigung
@@ -235,25 +242,25 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
 
             {{pronoun.subject.start}} engagiert sich regelmäßig.""";
 
+    private static TemplateRequestBuilder letterOf(
+            String name, boolean selfServiceOn, boolean hidden, int cooldown, List<BlockRowRequest> body) {
+        return letter(name)
+                .title("%s {{member.fullName}} {{today}}".formatted(name))
+                .fileName("%s {{member.lastName}}".formatted(name))
+                .tags(List.of("Bescheinigung"))
+                .hidden(hidden)
+                .legal()
+                .selfService(selfServiceOn)
+                .cooldown(cooldown)
+                .audience(RestrictionAudience.empty())
+                .header(HEADER)
+                .footer(FOOTER)
+                .body(body);
+    }
+
     private static int template(String name, boolean selfServiceOn, boolean hidden, int cooldown, String body) {
-        var request = new DocumentTemplateRequest(
-                null,
-                name,
-                "%s {{member.fullName}} {{today}}".formatted(name),
-                "%s {{member.lastName}}".formatted(name),
-                List.of("Bescheinigung"),
-                hidden,
-                null,
-                true,
-                selfServiceOn,
-                cooldown,
-                RestrictionAudience.empty(),
-                new PronounSource(genderField, Map.of("weiblich", PronounForm.SIE), PronounForm.NAME),
-                LETTERHEAD,
-                body,
-                null,
-                null,
-                null);
+        var request =
+                letterOf(name, selfServiceOn, hidden, cooldown, rowsOf(body)).build();
         return templates.create(owner, request, manager.id()).id();
     }
 
@@ -392,6 +399,41 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
         assertEquals(List.of(new MissingValue("profile." + schoolField, "Schule")), generated.missing());
     }
 
+    /**
+     * A block meant for other members is left out of a member's letter, and so are the data it asks
+     * for: they are not missing for a member who never sees them.
+     */
+    @Test
+    void aBlockForOtherMembersIsLeftOutWithTheDataItAsksFor() throws IOException {
+        var trialOnly = new RestrictionAudience(
+                List.of(StationUserType.TRIAL), List.of(), List.of(), List.of(), RestrictionMode.AND);
+        var request = letterOf(
+                        "Bedingt",
+                        false,
+                        false,
+                        0,
+                        List.of(
+                                row(text("Für alle: {{member.fullName}}")),
+                                row(text("Nur zur Probe an der {{profile.%d}}".formatted(schoolField), trialOnly))))
+                .build();
+        int templateId = templates.create(owner, request, manager.id()).id();
+
+        var generated = generation.generate(as(manager), templateId, max.id());
+
+        String text = PdfText.extract(fileOf(generated.documentId()));
+        assertTrue(text.contains("Für alle: Max Weiß"), text);
+        assertFalse(text.contains("Nur zur Probe"), text);
+        assertTrue(generated.missing().isEmpty(), "the school is asked for in a block Max does not see");
+
+        stationMemberRepo.setUserType(max.id(), StationUserType.TRIAL);
+        try {
+            var forTrial = generation.preview(as(manager), templateId, max.id());
+            assertEquals(List.of(new MissingValue("profile." + schoolField, "Schule")), forTrial.missing());
+        } finally {
+            stationMemberRepo.setUserType(max.id(), StationUserType.MEMBER);
+        }
+    }
+
     @Test
     void guardiansWhoseDataGoesInAreDataSubjects() {
         int templateId =
@@ -424,16 +466,17 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
 
     private static DocumentGeneratorService generatorOf() {
         var pictures = mock(KbPdfPictures.class);
-        when(pictures.place(anyInt(), anyString()))
+        when(pictures.place(anyInt(), anyString(), anyString()))
                 .thenAnswer(call -> new KbPdfPictures.Placed(call.getArgument(1), Map.of()));
         var catalogue = new PlaceholderCatalogue(profileFieldRepo, stationRepo);
         return new DocumentGeneratorService(
                 templates,
-                new PlaceholderResolver(stationRepo, stationMemberRepo, memberNameResolver, profileFieldRepo, clock),
+                resolver(),
                 catalogue,
-                new LetterRenderer(pictures, mock(MediaLibraryService.class), newStationLogoService(), stationRepo),
+                new LetterRenderer(pictures, mock(MediaLibraryService.class), newStationLogoService()),
                 pdfRenderer,
                 stationRepo,
+                restrictionService,
                 clock);
     }
 
@@ -477,8 +520,12 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
                 false,
                 0,
                 RestrictionMode.AND,
-                null,
-                new LetterContent(Letterhead.empty(), "{{member.calledName}}", LetterPage.defaults()));
+                DocumentLanguage.DE,
+                new LetterContent(
+                        List.of(),
+                        List.of(),
+                        LetterImportService.blocks("{{member.calledName}}"),
+                        LetterPage.defaults()));
         var repository = new DocumentTemplateRepository();
         int templateId = repository.create(station.id(), draft, manager.id()).id();
         repository.writeLetter(templateId, (LetterContent) draft.content());
@@ -501,24 +548,9 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
     /** The editor draws an unsaved template with its placeholders shown by their labels. */
     @Test
     void aDraftIsDrawnWithItsLabelsOrForAMemberByWhoeverMayFileForThem() {
-        var draft = new DocumentTemplateRequest(
-                null,
-                "Entwurf",
-                null,
-                null,
-                null,
-                false,
-                null,
-                false,
-                false,
-                null,
-                null,
-                null,
-                LETTERHEAD,
-                "Für {{member.fullName}} am {{today}}",
-                null,
-                null,
-                null);
+        var draft = letter("Entwurf", "Für {{member.fullName}} am {{today}}")
+                .header(HEADER)
+                .build();
 
         var labelled =
                 generation.previewDraft(as(manager, StationPermission.DOCUMENT_TEMPLATE_EDIT), draft, null, null);
@@ -621,29 +653,16 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
         templates.update(
                 owner,
                 forGuardians,
-                new DocumentTemplateRequest(
-                        null,
-                        "Nur Eltern",
-                        null,
-                        null,
-                        null,
-                        false,
-                        null,
-                        false,
-                        true,
-                        30,
-                        new RestrictionAudience(
+                letter("Nur Eltern", "{{member.fullName}}")
+                        .selfService(true)
+                        .cooldown(30)
+                        .audience(new RestrictionAudience(
                                 List.of(StationUserType.GUARDIAN),
                                 List.of(),
                                 List.of(),
                                 List.of(),
-                                RestrictionMode.AND),
-                        null,
-                        null,
-                        "{{member.fullName}}",
-                        null,
-                        null,
-                        null),
+                                RestrictionMode.AND))
+                        .build(),
                 manager.id());
 
         refused(

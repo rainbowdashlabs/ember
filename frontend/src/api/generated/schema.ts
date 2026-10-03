@@ -56595,12 +56595,6 @@ export interface components {
              */
             type: "CHOICE";
         };
-        ChoiceField: {
-            /** Format: int32 */
-            id: number;
-            name: string;
-            options: string[];
-        };
         ChoiceOption: {
             correct: boolean;
             text: string;
@@ -57746,6 +57740,8 @@ export interface components {
         DividerConfig: {
             label?: string;
         };
+        /** @enum {string} */
+        DocumentLanguage: "DE" | "EN";
         DocumentPage: {
             documents: components["schemas"]["MemberDocumentResponse"][];
             /** Format: int32 */
@@ -57764,20 +57760,21 @@ export interface components {
         DocumentTemplateKind: "LETTER" | "PDF";
         DocumentTemplateRequest: {
             audience?: components["schemas"]["RestrictionAudience"] | null;
-            bodyMarkdown?: string | null;
+            body?: components["schemas"]["BlockRowRequest"][] | null;
             /** Format: int32 */
             cooldownDays?: number | null;
             fields?: components["schemas"]["PdfField"][] | null;
             fileNamePattern?: string | null;
+            footer?: components["schemas"]["BlockRowRequest"][] | null;
             formBindings?: components["schemas"]["FormBinding"][] | null;
+            header?: components["schemas"]["BlockRowRequest"][] | null;
             hidden?: boolean;
             keepOnArchive?: boolean | null;
             kind?: components["schemas"]["DocumentTemplateKind"] | null;
+            language?: components["schemas"]["DocumentLanguage"] | null;
             legal?: boolean;
-            letterhead?: components["schemas"]["Letterhead"] | null;
             name?: string | null;
             page?: components["schemas"]["LetterPage"] | null;
-            pronounSource?: components["schemas"]["PronounSource"] | null;
             selfService?: boolean;
             tags?: string[] | null;
             titlePattern?: string | null;
@@ -57785,23 +57782,24 @@ export interface components {
         DocumentTemplateResponse: {
             archivedAt: components["schemas"]["Instant"] | null;
             audience: components["schemas"]["RestrictionAudience"];
-            bodyMarkdown: string;
+            body: components["schemas"]["ContentRow"][];
             /** Format: int32 */
             cooldownDays: number;
             fields: components["schemas"]["PdfField"][];
             fileNamePattern: string;
+            footer: components["schemas"]["ContentRow"][];
             formBindings: components["schemas"]["FormBinding"][];
+            header: components["schemas"]["ContentRow"][];
             hidden: boolean;
             /** Format: int32 */
             id: number;
             keepOnArchive: boolean;
             kind: components["schemas"]["DocumentTemplateKind"];
+            language: components["schemas"]["DocumentLanguage"];
             legal: boolean;
-            letterhead: components["schemas"]["Letterhead"];
             name: string;
             page: components["schemas"]["LetterPage"];
             pdf: components["schemas"]["PdfOriginal"] | null;
-            pronounSource: components["schemas"]["PronounSource"] | null;
             selfService: boolean;
             tags: string[];
             titlePattern: string;
@@ -60212,23 +60210,9 @@ export interface components {
             requestItemId: number;
             status: string;
         };
-        LetterCell: {
-            align: components["schemas"]["TextAlign"];
-            /** Format: int32 */
-            imageHeightMm: number;
-            kind: components["schemas"]["LetterCellKind"];
-            mediaHash: string | null;
-            text: string | null;
-        };
-        /** @enum {string} */
-        LetterCellKind: "EMPTY" | "IMAGE" | "LOGO" | "TEXT";
-        Letterhead: {
-            footer: components["schemas"]["LetterCell"][];
-            header: components["schemas"]["LetterCell"][];
-        };
         LetterImport: {
-            bodyMarkdown: string;
             recognised: string[];
+            rows: components["schemas"]["ContentRow"][];
             unrecognised: string[];
         };
         LetterPage: {
@@ -62036,7 +62020,6 @@ export interface components {
             label: string;
         };
         PlaceholderCatalogueResponse: {
-            choiceFields: components["schemas"]["ChoiceField"][];
             placeholders: components["schemas"]["Placeholder"][];
         };
         /** @enum {string} */
@@ -62393,21 +62376,11 @@ export interface components {
             memberId: number;
             value: string;
         };
-        /** @enum {string} */
-        PronounForm: "ER" | "SIE" | "NAME";
         PronounSet: {
             dative: string | null;
             object: string | null;
             possessive: string | null;
             subject: string | null;
-        };
-        PronounSource: {
-            answers: {
-                [key: string]: components["schemas"]["PronounForm"];
-            };
-            fallback: components["schemas"]["PronounForm"];
-            /** Format: int32 */
-            fieldId: number;
         };
         ProtocolChecksRequest: {
             checks?: {
@@ -66263,7 +66236,6 @@ export type ChecklistSummaryResponse = components['schemas']['ChecklistSummaryRe
 export type CheckResult = components['schemas']['CheckResult'];
 export type Choice = components['schemas']['Choice'];
 export type ChoiceAnswer = components['schemas']['ChoiceAnswer'];
-export type ChoiceField = components['schemas']['ChoiceField'];
 export type ChoiceOption = components['schemas']['ChoiceOption'];
 export type ChoiceOptionView = components['schemas']['ChoiceOptionView'];
 export type ChosenLanding = components['schemas']['ChosenLanding'];
@@ -66436,6 +66408,7 @@ export type DiscoveryVisibility = components['schemas']['DiscoveryVisibility'];
 export type DispatchRequest = components['schemas']['DispatchRequest'];
 export type DisplayTag = components['schemas']['DisplayTag'];
 export type DividerConfig = components['schemas']['DividerConfig'];
+export type DocumentLanguage = components['schemas']['DocumentLanguage'];
 export type DocumentPage = components['schemas']['DocumentPage'];
 export type DocumentPlaceholder = components['schemas']['DocumentPlaceholder'];
 export type DocumentResponse = components['schemas']['DocumentResponse'];
@@ -66756,9 +66729,6 @@ export type LendingRequestItem = components['schemas']['LendingRequestItem'];
 export type LendingRequestResponse = components['schemas']['LendingRequestResponse'];
 export type LendingStatus = components['schemas']['LendingStatus'];
 export type LentOutItem = components['schemas']['LentOutItem'];
-export type LetterCell = components['schemas']['LetterCell'];
-export type LetterCellKind = components['schemas']['LetterCellKind'];
-export type Letterhead = components['schemas']['Letterhead'];
 export type LetterImport = components['schemas']['LetterImport'];
 export type LetterPage = components['schemas']['LetterPage'];
 export type Likert = components['schemas']['Likert'];
@@ -67064,9 +67034,7 @@ export type ProfileFieldRequest = components['schemas']['ProfileFieldRequest'];
 export type ProfileFieldScope = components['schemas']['ProfileFieldScope'];
 export type ProfileFieldTarget = components['schemas']['ProfileFieldTarget'];
 export type ProfileFieldValue = components['schemas']['ProfileFieldValue'];
-export type PronounForm = components['schemas']['PronounForm'];
 export type PronounSet = components['schemas']['PronounSet'];
-export type PronounSource = components['schemas']['PronounSource'];
 export type ProtocolChecksRequest = components['schemas']['ProtocolChecksRequest'];
 export type ProtocolDetailResponse = components['schemas']['ProtocolDetailResponse'];
 export type ProtocolItemRequest = components['schemas']['ProtocolItemRequest'];
@@ -67815,6 +67783,11 @@ export const DiscoveryVisibility = {
     PUBLIC: "PUBLIC",
 } as const;
 
+export const DocumentLanguage = {
+    DE: "DE",
+    EN: "EN",
+} as const;
+
 export const DocumentTemplateKind = {
     LETTER: "LETTER",
     PDF: "PDF",
@@ -68071,13 +68044,6 @@ export const LendingStatus = {
     LENT: "LENT",
     REQUESTED: "REQUESTED",
     RETURNED: "RETURNED",
-} as const;
-
-export const LetterCellKind = {
-    EMPTY: "EMPTY",
-    IMAGE: "IMAGE",
-    LOGO: "LOGO",
-    TEXT: "TEXT",
 } as const;
 
 export const LinkType = {
@@ -68406,12 +68372,6 @@ export const ProfileFieldScope = {
 export const ProfileFieldTarget = {
     GROUP: "GROUP",
     ROLE: "ROLE",
-} as const;
-
-export const PronounForm = {
-    ER: "ER",
-    NAME: "NAME",
-    SIE: "SIE",
 } as const;
 
 export const PublicFormState = {

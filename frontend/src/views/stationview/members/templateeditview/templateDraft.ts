@@ -5,24 +5,22 @@
  */
 import {
     DocumentTemplateKind,
-    TextAlign,
-    LetterCellKind,
+    type DocumentLanguage,
     type DocumentTemplateRequest,
     type DocumentTemplateResponse,
     type FormBinding,
-    type LetterCell,
-    type Letterhead,
     type LetterPage,
     type PdfField,
-    type PronounSource,
 } from '@/api/generated/schema'
 import type {RestrictionSelection} from '@/api/types'
+import type {RowEditData} from '@/components/content/blockeditor/EditorRow.vue'
 import {emptyRestriction, toRestriction} from '@/components/input/restriction'
+import {toBlockRequests, toEditRows} from '@/util/blockSwitch'
 
 /**
- * A template as the editor holds it while it is written. A letter uses the letterhead, the body and the
- * page; a PDF template the fields on its pages and the values of its form fields. Both carry both, so
- * the kind is the only thing that decides which part the screens show.
+ * A template as the editor holds it while it is written. A letter uses its header, footer and body
+ * rows and the page; a PDF template the fields on its pages and the values of its form fields. Both
+ * carry both, so the kind is the only thing that decides which part the screens show.
  */
 export interface TemplateDraft {
     kind: DocumentTemplateKind
@@ -36,24 +34,18 @@ export interface TemplateDraft {
     selfService: boolean
     cooldownDays: number
     audience: RestrictionSelection
-    pronounSource: PronounSource | null
-    letterhead: Letterhead
-    bodyMarkdown: string
+    /** The language documents are written in, or null for the station's until the template is saved. */
+    language: DocumentLanguage | null
+    header: RowEditData[]
+    footer: RowEditData[]
+    body: RowEditData[]
     page: LetterPage
     fields: PdfField[]
     formBindings: FormBinding[]
 }
 
-/** How many cells a header or a footer holds at most, which is what the server takes. */
-export const MAX_CELLS = 3
-
 /** The page a new template starts with: A4 with room for the letterhead, 10 point text. */
 export const DEFAULT_PAGE: LetterPage = {marginTopMm: 40, marginBottomMm: 30, marginLeftMm: 20, marginRightMm: 20, fontSizePt: 10}
-
-/** A cell holding nothing, which is what a new cell starts as. */
-export function emptyCell(): LetterCell {
-    return {kind: LetterCellKind.EMPTY, mediaHash: null, text: null, align: TextAlign.LEFT, imageHeightMm: 18}
-}
 
 /** A new template of a kind: nothing written yet, a wait of 30 days, every member as the audience. */
 export function emptyDraft(kind: DocumentTemplateKind = DocumentTemplateKind.LETTER): TemplateDraft {
@@ -69,9 +61,10 @@ export function emptyDraft(kind: DocumentTemplateKind = DocumentTemplateKind.LET
         selfService: false,
         cooldownDays: 30,
         audience: emptyRestriction(),
-        pronounSource: null,
-        letterhead: {header: [], footer: []},
-        bodyMarkdown: '',
+        language: null,
+        header: [],
+        footer: [],
+        body: [],
         page: {...DEFAULT_PAGE},
         fields: [],
         formBindings: [],
@@ -92,9 +85,10 @@ export function draftOf(template: DocumentTemplateResponse): TemplateDraft {
         selfService: template.selfService,
         cooldownDays: template.cooldownDays,
         audience: toRestriction(template.audience),
-        pronounSource: template.pronounSource ?? null,
-        letterhead: {header: [...template.letterhead.header], footer: [...template.letterhead.footer]},
-        bodyMarkdown: template.bodyMarkdown,
+        language: template.language,
+        header: toEditRows(template.header),
+        footer: toEditRows(template.footer),
+        body: toEditRows(template.body),
         page: {...template.page},
         fields: template.fields.map(field => ({...field, rect: {...field.rect}})),
         formBindings: template.formBindings.map(binding => ({...binding})),
@@ -115,9 +109,10 @@ export function requestOf(draft: TemplateDraft): DocumentTemplateRequest {
         selfService: draft.selfService,
         cooldownDays: draft.cooldownDays,
         audience: draft.audience,
-        pronounSource: draft.pronounSource,
-        letterhead: draft.letterhead,
-        bodyMarkdown: draft.bodyMarkdown,
+        language: draft.language,
+        header: toBlockRequests(draft.header),
+        footer: toBlockRequests(draft.footer),
+        body: toBlockRequests(draft.body),
         page: draft.page,
         fields: draft.fields,
         formBindings: draft.formBindings.filter(binding => binding.text.trim().length > 0),

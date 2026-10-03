@@ -8,6 +8,9 @@ package dev.chojo.ember.feature.generator.service;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
+import dev.chojo.ember.feature.content.entity.CellContentType;
+import dev.chojo.ember.feature.content.entity.ContentCell;
+import dev.chojo.ember.feature.generator.entity.LetterContent;
 import dev.chojo.ember.feature.media.entity.StationFile;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
@@ -24,6 +27,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -81,7 +85,7 @@ class LetterImportServiceTest extends RepositoryTestBase {
     void gapsBecomePlaceholdersWhereTheirWordsAreKnown(String file) throws IOException {
         var imported = service.read(session, file, null, fixture(file));
 
-        String body = imported.bodyMarkdown();
+        String body = text(imported);
         assertTrue(body.contains("Berlin, den {{today}}"), body);
         assertTrue(body.contains("dass {{member.fullName}}, geboren am {{member.birthDate}}"), body);
         assertTrue(body.contains("seit {{member.joinDate.monthYear}} Mitglied"), body);
@@ -99,8 +103,15 @@ class LetterImportServiceTest extends RepositoryTestBase {
     void picturesOfTheBodyGoIntoTheMediaLibrary(String file) throws IOException {
         var imported = service.read(session, file, null, fixture(file));
 
-        assertTrue(imported.bodyMarkdown().contains("/api/v1/public/media/" + session.stationUid() + "/" + HASH));
-        assertFalse(imported.bodyMarkdown().contains("extracted/"));
+        var pictures = LetterContent.blocks(imported.rows())
+                .filter(cell -> cell.contentType() == CellContentType.IMAGE)
+                .map(ContentCell::content)
+                .toList();
+        String text = text(imported);
+        assertTrue(
+                pictures.contains(HASH) || text.contains("/api/v1/public/media/" + session.stationUid() + "/" + HASH),
+                "the picture is a block of its own, or stays in its paragraph");
+        assertFalse(text.contains("extracted/"));
         verify(media, atLeastOnce())
                 .upload(eq(session.stationId()), any(), eq(session.member().id()), anyString(), eq("image/png"), any());
     }
@@ -110,7 +121,32 @@ class LetterImportServiceTest extends RepositoryTestBase {
     void theFormatIsReadFromTheFileNotFromItsName() throws IOException {
         var imported = service.read(session, "bescheinigung.odt", null, fixture("certificate.docx"));
 
-        assertTrue(imported.bodyMarkdown().contains("{{member.fullName}}"));
+        assertTrue(text(imported).contains("{{member.fullName}}"));
+    }
+
+    /** A picture on a line of its own becomes a picture block; the text around it stays text. */
+    @Test
+    void aPictureStandingAloneBecomesABlockOfItsOwn() {
+        var rows = LetterImportService.blocks("""
+                Vorher mit ![klein](/api/v1/public/media/abc/%s) im Satz.
+
+                ![Logo](/api/v1/public/media/abc/%s){width="3cm"}
+
+                Nachher""".formatted("e".repeat(64), HASH));
+
+        var cells = rows.stream().map(row -> row.cells().getFirst()).toList();
+        assertEquals(3, cells.size());
+        assertEquals(CellContentType.MARKDOWN, cells.getFirst().contentType());
+        assertTrue(cells.getFirst().content().contains("im Satz"));
+        assertEquals(CellContentType.IMAGE, cells.get(1).contentType());
+        assertEquals(HASH, cells.get(1).content());
+        assertEquals("Nachher", cells.get(2).content());
+        assertTrue(LetterImportService.blocks("  \n").isEmpty());
+    }
+
+    /** The texts of an import in order, one after the other. */
+    private static String text(LetterImportService.LetterImport imported) {
+        return LetterContent.textsOf(imported.rows()).collect(Collectors.joining("\n\n"));
     }
 
     @Test

@@ -3,15 +3,51 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {Page} from '@playwright/test'
+import type {Locator, Page} from '@playwright/test'
 import {test, expect} from './fixtures/auth'
 import {ownMember} from './fixtures/ownMember'
 import {unique} from './fixtures/unique'
 
 /**
- * Sets up the certificate of membership the way a station would: a letterhead with the logo and two
- * lines of text, a body with the member's name and a pronoun as chips, open for self service with
- * the usual wait of 30 days.
+ * Adds a row of the given number of columns at the top of a block editor.
+ *
+ * @param area    the part of the letter the editor writes
+ * @param columns how many columns the row has
+ */
+async function addRow(area: Locator, columns: number) {
+    await area.getByRole('button', {name: 'Zeile hinzufügen'}).first().click()
+    await area.page().getByTestId(`add-row-columns-${columns}`).click()
+}
+
+/**
+ * Writes a text block: picks the text kind in an empty block, opens its editor and types, putting the
+ * placeholders in with the picker above the text.
+ *
+ * @param area  the part of the letter the editor writes
+ * @param parts the words, and the placeholders by their key written as `{key}`
+ */
+async function writeText(area: Locator, parts: string[]) {
+    await area.getByRole('button', {name: 'Text', exact: true}).first().click()
+    await area.getByRole('button', {name: 'Text bearbeiten'}).last().click()
+    const dialog = area.page().getByRole('dialog')
+    const text = dialog.locator('.markdown-editor-content .tiptap')
+    for (const part of parts) {
+        const key = /^\{(.+)}$/.exec(part)?.[1]
+        if (key) {
+            await dialog.getByTestId('placeholder-picker').selectOption(key)
+        } else {
+            await text.click()
+            await area.page().keyboard.press('End')
+            await area.page().keyboard.type(part)
+        }
+    }
+    await area.page().keyboard.press('Escape')
+}
+
+/**
+ * Sets up the certificate of membership the way a station would: a header with the logo beside the
+ * station's name, a body with the member's name and a pronoun as chips, open for self service with the
+ * usual wait of 30 days.
  *
  * @param page a page of somebody who may write templates
  * @param name what the template is called
@@ -22,28 +58,23 @@ async function setUpCertificate(page: Page, name: string) {
     await page.waitForURL(/\/station\/members\/template-editor\/new/)
     await page.getByTestId('template-name').fill(name)
 
-    await page.getByRole('tab', {name: 'Briefkopf'}).click()
+    await page.getByRole('tab', {name: 'Brief'}).click()
     const header = page.getByTestId('letter-header')
-    await header.getByTestId('letter-cell-add').click()
-    await header.getByTestId('letter-cell-kind').last().selectOption('LOGO')
-    await header.getByTestId('letter-cell-add').click()
-    await header.getByTestId('letter-cell-kind').last().selectOption('TEXT')
-    await header.getByTestId('letter-cell-text').fill('Jugendfeuerwehr\nBescheinigung der Wache')
-    await header.getByTestId('placeholder-picker').last().selectOption('station.name')
+    await header.getByTestId('letter-edge-open').click()
+    await addRow(header, 2)
+    await header.getByRole('button', {name: 'Bild', exact: true}).first().click()
+    await header.getByTestId('cell-image-logo').click()
+    await writeText(header, ['Jugendfeuerwehr ', '{station.name}'])
+    await header.getByTestId('letter-edge-done').click()
+    await expect(header.locator('.placeholder-chip')).toHaveCount(1)
 
-    await page.getByRole('tab', {name: 'Text'}).click()
-    const body = page.locator('.markdown-editor-content .tiptap')
-    await body.click()
-    await page.keyboard.type('Hiermit bestätigen wir, dass ')
-    await page.getByTestId('placeholder-picker').first().selectOption('member.fullName')
-    await body.click()
-    await page.keyboard.press('End')
-    await page.keyboard.type(' aktives Mitglied ist. ')
-    await page.getByTestId('placeholder-picker').first().selectOption('pronoun.subject.start')
-    await body.click()
-    await page.keyboard.press('End')
-    await page.keyboard.type(' nimmt regelmäßig teil.')
-    await expect(page.locator('.markdown-editor-content .placeholder-chip')).toHaveCount(2)
+    const body = page.getByTestId('letter-body')
+    await addRow(body, 1)
+    await writeText(body, [
+        'Hiermit bestätigen wir, dass ', '{member.fullName}', ' aktives Mitglied ist. ',
+        '{pronoun.subject.start}', ' nimmt regelmäßig teil.',
+    ])
+    await expect(body.locator('.placeholder-chip')).toHaveCount(2)
 
     await page.getByRole('tab', {name: 'Selbst erstellen'}).click()
     await page.getByTestId('template-self-service').getByRole('switch').click()

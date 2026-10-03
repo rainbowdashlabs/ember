@@ -6,7 +6,6 @@
 package dev.chojo.ember.feature.generator.entity;
 
 import dev.chojo.ember.feature.restriction.RestrictionMode;
-import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -23,7 +22,7 @@ import java.util.List;
  * @param selfService     whether members may generate it for themselves
  * @param cooldownDays    the days between two self service generations for one member
  * @param restrictionMode how the parts of the self service audience combine
- * @param pronounSource   the field the pronouns follow, or null
+ * @param language        the language its documents are written in
  * @param content         the letter, or the fields laid over the PDF
  */
 public record DocumentTemplateDraft(
@@ -37,7 +36,7 @@ public record DocumentTemplateDraft(
         boolean selfService,
         int cooldownDays,
         RestrictionMode restrictionMode,
-        @Nullable PronounSource pronounSource,
+        DocumentLanguage language,
         TemplateContent content) {
 
     /** @return the kind of template the draft makes */

@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:b8efd7781f965959d216ab4a308383f23b9bb070cfbaa78094c40d675a31c751",
-  "generatedAt": "2026-10-03T13:14:19Z",
+  "schemaHash": "sha256:1c28af9639b7c563ba448e2c056d24990ef2e2a4754195b67c3715c8c4a05806",
+  "generatedAt": "2026-10-03T13:40:32Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -6407,7 +6407,7 @@
       "description": "Every person whose data went into a generated document: the member it is about and the guardians it names."
     },
     "document_template": {
-      "tableHash": "sha256:dafc5d9441f40734006ad8d8ed7f57932d920285e0b356977695fb388850eb19",
+      "tableHash": "sha256:6772ea016088285a395368b402688e58a7d5d8b68ca49b302896e8ad880781b0",
       "columns": [
         {
           "name": "id",
@@ -6501,18 +6501,11 @@
           "description": "AND or OR, how the parts of document_template_restriction combine."
         },
         {
-          "name": "pronoun_field_id",
-          "type": "int4",
-          "nullable": true,
+          "name": "language",
+          "type": "text",
+          "nullable": false,
           "verified": true,
-          "description": "The choice profile field the pronouns of the template follow. NULL where the pronouns always use the first name, also once that field was deleted."
-        },
-        {
-          "name": "pronoun_mapping",
-          "type": "jsonb",
-          "nullable": true,
-          "verified": true,
-          "description": "Which pronoun (ER, SIE or NAME) each answer of the pronoun field stands for, and the one used for an empty or unmapped answer. NULL where the template names no pronoun field."
+          "description": "DE or EN, the language the documents are written in: it picks the pronouns of the gender profile field, how dates are written, and the words the letter prints itself."
         },
         {
           "name": "version",
@@ -6561,12 +6554,6 @@
         {
           "column": "created_by",
           "refTable": "station_member",
-          "refColumn": "id",
-          "onDelete": "SET NULL"
-        },
-        {
-          "column": "pronoun_field_id",
-          "refTable": "profile_field",
           "refColumn": "id",
           "onDelete": "SET NULL"
         },
@@ -6787,7 +6774,7 @@
       "description": "What the form fields an uploaded PDF brings are filled with. Form fields without a row keep what they show; all of them are flattened."
     },
     "document_template_letter": {
-      "tableHash": "sha256:773fafe6c79360ae207b24d0a550e9bef1c886dae94535e5a9822c6346527b08",
+      "tableHash": "sha256:8e830741016d942b94158a575712e61bbedf61b71bc2535e27fa58b1680371b2",
       "columns": [
         {
           "name": "template_id",
@@ -6797,18 +6784,25 @@
           "description": "References the document template."
         },
         {
-          "name": "letterhead",
+          "name": "header",
           "type": "jsonb",
           "nullable": false,
           "verified": true,
-          "description": "The header and the footer, each a row of up to three cells. A cell is empty, a picture from the media library by its content hash, the station logo, or a short text with placeholders, aligned left, centre or right."
+          "description": "The rows drawn at the top of every page, shaped like the rows of a page: each row up to three columns with their width, each holding a text with placeholders written as {{key}}, a picture from the media library by its content hash or the station logo, or blocks stacked in it. A block may carry a restriction saying which members it is printed for."
         },
         {
-          "name": "body_markdown",
-          "type": "text",
+          "name": "footer",
+          "type": "jsonb",
           "nullable": false,
           "verified": true,
-          "description": "The body as markdown, with placeholders written as {{key}}. Pictures point at the station media library."
+          "description": "The rows drawn at the bottom of every page, shaped like the header."
+        },
+        {
+          "name": "body",
+          "type": "jsonb",
+          "nullable": false,
+          "verified": true,
+          "description": "The rows of the letter itself, shaped like the header. A block whose restriction does not match the member is left out, and a row left with nothing is dropped."
         },
         {
           "name": "page",
@@ -6837,7 +6831,7 @@
         "status": "IGNORED",
         "reason": "Template content written by the station, not per-member data"
       },
-      "description": "The content of a letter template: its letterhead, its body and its page."
+      "description": "The content of a letter template: its header, its footer, its body and its page."
     },
     "document_template_pdf": {
       "tableHash": "sha256:2230b32904807a7af57953d1ea09535b2bc40cf1a1106e6e558851b53e55b427",

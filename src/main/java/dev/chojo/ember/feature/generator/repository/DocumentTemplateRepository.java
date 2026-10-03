@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.generator.repository;
 
 import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import de.chojo.sadu.queries.api.call.Call;
+import dev.chojo.ember.feature.content.entity.ContentRows;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplate;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplateDraft;
 import dev.chojo.ember.feature.generator.entity.LetterContent;
@@ -40,12 +41,11 @@ public class DocumentTemplateRepository {
         return query("""
                         INSERT INTO document_template(station_id, kind, name, title_pattern, file_name_pattern, tags,
                                                       hidden, keep_on_archive, legal, self_service,
-                                                      self_service_cooldown_days, restriction_mode, pronoun_field_id,
-                                                      pronoun_mapping,
+                                                      self_service_cooldown_days, restriction_mode, language,
                                                       created_by, updated_by)
                         VALUES (:station_id, :kind, :name, :title_pattern, :file_name_pattern, :tags,
                                 :hidden, :keep_on_archive, :legal, :self_service,
-                                :cooldown_days, :restriction_mode, :pronoun_field_id, :pronoun_mapping::jsonb,
+                                :cooldown_days, :restriction_mode, :language,
                                 :author, :author)
                         RETURNING %s;""", DocumentTemplate.COLUMNS)
                 .single(bindDraft(call().bind("station_id", stationId).bind("kind", draft.kind()), draft)
@@ -76,9 +76,8 @@ public class DocumentTemplateRepository {
                             self_service               = :self_service,
                             self_service_cooldown_days = :cooldown_days,
                             restriction_mode           = :restriction_mode,
-                            pronoun_field_id           = :pronoun_field_id,
-                            pronoun_mapping            = :pronoun_mapping::jsonb,
-                            version                    = version + 1,
+                            language                   = :language,
+                            version                   = version + 1,
                             updated_at                 = now(),
                             updated_by                 = :author
                         WHERE id = :id
@@ -110,7 +109,6 @@ public class DocumentTemplateRepository {
     }
 
     private static Call bindDraft(Call call, DocumentTemplateDraft draft) {
-        var pronouns = draft.pronounSource();
         return call.bind("name", draft.name())
                 .bind("title_pattern", draft.titlePattern())
                 .bind("file_name_pattern", draft.fileNamePattern())
@@ -121,8 +119,7 @@ public class DocumentTemplateRepository {
                 .bind("self_service", draft.selfService())
                 .bind("cooldown_days", draft.cooldownDays())
                 .bind("restriction_mode", draft.restrictionMode())
-                .bind("pronoun_field_id", pronouns == null ? null : pronouns.fieldId())
-                .bind("pronoun_mapping", pronouns == null ? null : pronouns.mappingJson());
+                .bind("language", draft.language());
     }
 
     /**
@@ -133,15 +130,17 @@ public class DocumentTemplateRepository {
      */
     public void writeLetter(int templateId, LetterContent letter) {
         query("""
-                INSERT INTO document_template_letter(template_id, letterhead, body_markdown, page)
-                VALUES (:template_id, :letterhead::jsonb, :body, :page::jsonb)
+                INSERT INTO document_template_letter(template_id, header, footer, body, page)
+                VALUES (:template_id, :header::jsonb, :footer::jsonb, :body::jsonb, :page::jsonb)
                 ON CONFLICT (template_id) DO UPDATE
-                    SET letterhead    = excluded.letterhead,
-                        body_markdown = excluded.body_markdown,
-                        page          = excluded.page;""")
+                    SET header = excluded.header,
+                        footer = excluded.footer,
+                        body   = excluded.body,
+                        page   = excluded.page;""")
                 .single(call().bind("template_id", templateId)
-                        .bind("letterhead", letter.letterhead().toJson())
-                        .bind("body", letter.bodyMarkdown())
+                        .bind("header", ContentRows.toJson(letter.header()))
+                        .bind("footer", ContentRows.toJson(letter.footer()))
+                        .bind("body", ContentRows.toJson(letter.body()))
                         .bind("page", letter.page().toJson()))
                 .insert();
     }
@@ -182,7 +181,7 @@ public class DocumentTemplateRepository {
      */
     public Optional<LetterContent> findLetter(int templateId) {
         return query("""
-                SELECT letterhead::text AS letterhead, body_markdown, page::text AS page
+                SELECT header::text AS header, footer::text AS footer, body::text AS body, page::text AS page
                 FROM document_template_letter
                 WHERE template_id = :template_id;""")
                 .single(call().bind("template_id", templateId))

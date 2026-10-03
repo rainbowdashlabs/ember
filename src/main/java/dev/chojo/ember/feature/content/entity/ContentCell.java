@@ -27,6 +27,12 @@ public record ContentCell(
         CellConfig config,
         @JsonInclude(JsonInclude.Include.NON_NULL) @Nullable RestrictionAudience restriction) {
 
+    /**
+     * What a picture block holds in place of a media hash to show the station's logo, read where the
+     * block is drawn, so a new logo reaches every block that shows it.
+     */
+    public static final String STATION_LOGO = "logo";
+
     /** A block shown to everybody, which is every block of a page, a news entry or an article. */
     public ContentCell(
             int id,

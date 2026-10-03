@@ -5,49 +5,50 @@
  */
 package dev.chojo.ember.feature.generator.service;
 
-import dev.chojo.ember.feature.generator.entity.PronounForm;
+import dev.chojo.ember.feature.generator.entity.PronounKey;
+import dev.chojo.ember.feature.members.entity.PronounSet;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Locale;
 
 /**
- * The pronouns a template writes for a member, by form and by grammatical case.
+ * The word a template writes for a member where it names a pronoun.
  *
- * <p>Where the form is {@link PronounForm#NAME}, the official first name stands wherever a pronoun
- * would, and its genitive stands for the possessive: "Lenas", and "Max'" for a name ending in a hissing
- * sound. A pronoun at the start of a sentence is written with a capital; a name already has one.
+ * <p>The words come from the member's answer to the gender field, in the template's language. Where
+ * there are none, because the member gave no answer, the answer carries no pronouns, or none for this
+ * language, the official first name stands wherever a pronoun would, and its genitive stands for the
+ * possessive: "Lenas", and "Max'" for a name ending in a hissing sound. A possessive's ending is added
+ * to a pronoun only ("seinen"); the name takes none. A pronoun at the start of a sentence is written
+ * with a capital; a name already has one.
  */
 public final class Pronouns {
 
     private Pronouns() {}
 
-    /** The four places a pronoun stands in a sentence. */
-    public enum Case {
-        /** Er, sie: the one doing something. */
-        SUBJECT,
-        /** Ihn, sie: the one something is done to. */
-        OBJECT,
-        /** Ihm, ihr: the one something is given to. */
-        DATIVE,
-        /** Sein, ihr: the one something belongs to. */
-        POSSESSIVE
-    }
-
     /**
      * The word that stands for a member.
      *
-     * @param form          which column of pronouns the member is written with
-     * @param grammar       where in the sentence it stands
-     * @param firstName     the member's official first name
-     * @param language      {@code de} or {@code en}
-     * @param sentenceStart whether it opens a sentence
+     * @param pronoun   which pronoun the template names
+     * @param words     the member's pronouns in the template's language, or null to use the name
+     * @param firstName the member's official first name
+     * @param language  {@code de} or {@code en}
      * @return the word
      */
-    public static String of(PronounForm form, Case grammar, String firstName, String language, boolean sentenceStart) {
-        if (form == PronounForm.NAME) {
-            return grammar == Case.POSSESSIVE ? genitive(firstName, language) : firstName;
+    public static String of(PronounKey pronoun, @Nullable PronounSet words, String firstName, String language) {
+        if (words == null) {
+            return switch (pronoun.role()) {
+                case POSSESSIVE -> genitive(firstName, language);
+                case SUBJECT, OBJECT, DATIVE -> firstName;
+            };
         }
-        String word = "en".equals(language) ? english(form, grammar) : german(form, grammar);
-        return sentenceStart ? capitalised(word) : word;
+        String word =
+                switch (pronoun.role()) {
+                    case SUBJECT -> words.subjectWord();
+                    case OBJECT -> words.objectWord();
+                    case DATIVE -> words.dativeWord();
+                    case POSSESSIVE -> words.possessiveWord() + pronoun.ending().suffix();
+                };
+        return pronoun.sentenceStart() ? capitalised(word) : word;
     }
 
     /**
@@ -67,25 +68,6 @@ public final class Pronouns {
                 || lower.endsWith("z")
                 || lower.endsWith("ce");
         return hissing ? name + "'" : name + "s";
-    }
-
-    private static String german(PronounForm form, Case grammar) {
-        boolean masculine = form == PronounForm.ER;
-        return switch (grammar) {
-            case SUBJECT -> masculine ? "er" : "sie";
-            case OBJECT -> masculine ? "ihn" : "sie";
-            case DATIVE -> masculine ? "ihm" : "ihr";
-            case POSSESSIVE -> masculine ? "sein" : "ihr";
-        };
-    }
-
-    private static String english(PronounForm form, Case grammar) {
-        boolean masculine = form == PronounForm.ER;
-        return switch (grammar) {
-            case SUBJECT -> masculine ? "he" : "she";
-            case OBJECT, DATIVE -> masculine ? "him" : "her";
-            case POSSESSIVE -> masculine ? "his" : "her";
-        };
     }
 
     private static String capitalised(String word) {

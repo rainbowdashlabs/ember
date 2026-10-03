@@ -95,22 +95,18 @@ public enum DocumentRefusal implements Refusal {
             HttpStatus.BAD_REQUEST,
             "A legal document uses official names only, not the name a member is called by"),
 
-    /** A header or footer of more than three cells. */
-    DOCUMENT_TEMPLATE_TOO_MANY_CELLS(28, HttpStatus.BAD_REQUEST, "A header or footer holds at most three cells"),
+    /** A row of a letter, or of blocks stacked in one of its columns, of more than three columns. */
+    DOCUMENT_TEMPLATE_TOO_MANY_CELLS(28, HttpStatus.BAD_REQUEST, "A row of a letter holds at most three columns"),
 
-    /** A letterhead picture that is not an image in the station's media library. */
+    /** A picture block of a letter that is neither the station logo nor an image in the media library. */
     DOCUMENT_TEMPLATE_PICTURE_NOT_HERE(
-            29, HttpStatus.BAD_REQUEST, "A picture of the letterhead is not an image in the media library"),
+            29, HttpStatus.BAD_REQUEST, "A picture of the letter is not an image in the media library"),
 
     /** Page margins or a text size outside what a letter may have. */
     DOCUMENT_TEMPLATE_PAGE_OUT_OF_BOUNDS(
             30,
             HttpStatus.BAD_REQUEST,
             "Margins lie between 5 and 80 millimetres and the text size between 8 and 16 points"),
-
-    /** Pronouns following a field that is not a choice field of the station. */
-    DOCUMENT_TEMPLATE_PRONOUN_FIELD_NOT_CHOICE(
-            31, HttpStatus.BAD_REQUEST, "Pronouns can only follow a choice field of this station"),
 
     /** A self service wait below zero days. */
     DOCUMENT_TEMPLATE_COOLDOWN_NEGATIVE(

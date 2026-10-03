@@ -10,16 +10,17 @@ import FileInput from '@/components/input/FileInput.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import {documentTemplates} from '@/api'
-import type {LetterImport} from '@/api/generated/schema'
+import type {ContentRow, LetterImport} from '@/api/generated/schema'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 
 /**
  * Fills the body from a Word (.docx) or OpenDocument (.odt) text and says which gaps became
- * placeholders and which stayed text, so the rest can be replaced by hand. The letterhead is not part
- * of the import; it is set up once in the letterhead tab.
+ * placeholders and which stayed text, so the rest can be replaced by hand. The text arrives as one
+ * text block, with a picture standing on its own line as a picture block. The header and the footer
+ * are not part of the import; they are set up once above and below the body.
  */
 const emit = defineEmits<{
-  imported: [body: string]
+  imported: [rows: ContentRow[]]
 }>()
 
 const {t} = useI18n()
@@ -27,7 +28,7 @@ const result = ref<LetterImport | null>(null)
 
 const importing = useAsyncAction(async (file: File) => {
   result.value = await documentTemplates.importLetter(file)
-  emit('imported', result.value.bodyMarkdown)
+  emit('imported', result.value.rows)
 })
 </script>
 

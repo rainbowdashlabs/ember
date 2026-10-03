@@ -73,12 +73,7 @@ public class MediaReferenceRegistry {
             "SELECT description AS body FROM station_event WHERE station_id = :station_id;",
             "SELECT description AS body FROM event_template WHERE station_id = :station_id;",
             """
-            SELECT l.letterhead::text AS body
-            FROM document_template_letter l
-            JOIN document_template t ON t.id = l.template_id
-            WHERE t.station_id = :station_id;""",
-            """
-            SELECT l.body_markdown AS body
+            SELECT concat_ws(' ', l.header::text, l.footer::text, l.body::text) AS body
             FROM document_template_letter l
             JOIN document_template t ON t.id = l.template_id
             WHERE t.station_id = :station_id;""");
