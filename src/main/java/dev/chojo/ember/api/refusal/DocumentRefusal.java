@@ -346,8 +346,7 @@ public enum DocumentRefusal implements Refusal {
             111, HttpStatus.BAD_REQUEST, "A date in the template has a format that cannot be printed"),
 
     /** A template giving a format to a placeholder that holds no date. */
-    DOCUMENT_TEMPLATE_FORMAT_NOT_A_DATE(
-            112, HttpStatus.BAD_REQUEST, "Only a date can be given a format in a template"),
+    DOCUMENT_TEMPLATE_FORMAT_NOT_A_DATE(112, HttpStatus.BAD_REQUEST, "Only a date can be given a format in a template"),
 
     /**
      * A font file asked for by the template editor of a family the owner does not reach, of a style the
