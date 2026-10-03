@@ -8,6 +8,7 @@ import {useI18n} from 'vue-i18n'
 import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
+import DateTokenTable from './templateeditorhelp/DateTokenTable.vue'
 
 const {t} = useI18n()
 </script>
@@ -36,6 +37,12 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.documentTemplateEditor.fontText') }}</p>
       <p>{{ t('helpCenter.documentTemplateEditor.alignText') }}</p>
       <p>{{ t('helpCenter.documentTemplateEditor.importText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.documentTemplateEditor.datesTitle')">
+      <p>{{ t('helpCenter.documentTemplateEditor.datesText') }}</p>
+      <p>{{ t('helpCenter.documentTemplateEditor.datesOwnText') }}</p>
+      <DateTokenTable/>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.documentTemplateEditor.signatureTitle')">

@@ -296,6 +296,43 @@ class DocumentTemplateServiceTest extends RepositoryTestBase {
                         .body()));
     }
 
+    /**
+     * A date takes a ready-made format or an own one wherever placeholders stand, and the two keys that
+     * named a date in one format before are still taken. A format that cannot print its value is refused.
+     */
+    @Test
+    void datesTakeAFormatThatCanPrintThem() {
+        var formatted = service.create(
+                owner,
+                letter("Formate", "{{member.birthDate|long}}", "{{today| TTTT, T. MMM JJ }}", "{{today.long}}")
+                        .title("Seit {{member.joinDate|monthYear}}")
+                        .build(),
+                authorId);
+
+        assertEquals("Seit {{member.joinDate|monthYear}}", formatted.titlePattern());
+        refused(
+                DocumentRefusal.DOCUMENT_TEMPLATE_DATE_FORMAT_INVALID,
+                () -> service.create(
+                        owner, letter("Unbekannt", "{{today|TT.QQ.JJJJ}}").build(), authorId));
+        refused(
+                DocumentRefusal.DOCUMENT_TEMPLATE_DATE_FORMAT_INVALID,
+                () -> service.create(
+                        owner, letter("Uhrzeit", "{{member.birthDate|hh:mm}}").build(), authorId));
+        refused(
+                DocumentRefusal.DOCUMENT_TEMPLATE_DATE_FORMAT_INVALID,
+                () -> service.create(
+                        owner,
+                        letter("Lang", "{{today|" + "TT.".repeat(14) + "}}").build(),
+                        authorId));
+        refused(
+                DocumentRefusal.DOCUMENT_TEMPLATE_DATE_FORMAT_INVALID,
+                () -> service.create(owner, letter("Leer", "{{today|}}").build(), authorId));
+        refused(
+                DocumentRefusal.DOCUMENT_TEMPLATE_FORMAT_NOT_A_DATE,
+                () -> service.create(
+                        owner, letter("Name", "{{member.firstName|long}}").build(), authorId));
+    }
+
     /** A legal document names a member by the register name only. */
     @Test
     void aLegalTemplateRefusesTheCalledName() {

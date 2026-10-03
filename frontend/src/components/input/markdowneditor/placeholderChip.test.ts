@@ -36,6 +36,25 @@ describe('placeholder chips', () => {
         expect(markdown).toBe('Hallo {{member.firstName}}!')
     })
 
+    it('keep the format of a date through the editor and back, without the spaces around it', () => {
+        const dated = new Map([['member.birthDate|T. MMMM JJJJ', 'Geburtsdatum (3. Oktober 2026)']])
+        const tokens = placeholderTokens(dated)
+        const turndown = createMarkdownTurndown()
+        tokens.extendTurndown(turndown)
+
+        const html = tokens.prepare('Am {{ member.birthDate | T. MMMM JJJJ }} und {{today|long}}.')
+
+        expect(html).toBe('Am <span class="placeholder-chip" data-placeholder="member.birthDate|T. MMMM JJJJ">'
+            + 'Geburtsdatum (3. Oktober 2026)</span> und '
+            + '<span class="placeholder-chip" data-placeholder="today|long">today|long</span>.')
+        expect(turndown.turndown(`<p>${html}</p>`)).toBe('Am {{member.birthDate|T. MMMM JJJJ}} und {{today|long}}.')
+        expect(labelledText('{{member.birthDate|T. MMMM JJJJ}}', dated)).toBe('Geburtsdatum (3. Oktober 2026)')
+    })
+
+    it('leave a format the server could never read as text', () => {
+        expect(placeholderTokens(labels).prepare('{{member.firstName|"x}}')).toBe('{{member.firstName|"x}}')
+    })
+
     it('are inserted with their key and label', () => {
         expect(placeholderContent('member.firstName', 'Vorname'))
             .toEqual({type: 'placeholderChip', attrs: {key: 'member.firstName', label: 'Vorname'}})

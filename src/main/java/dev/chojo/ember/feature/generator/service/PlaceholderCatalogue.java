@@ -9,10 +9,14 @@ import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.api.refusal.RefusalDetail;
 import dev.chojo.ember.feature.cluster.service.ClusterProfileFieldService;
 import dev.chojo.ember.feature.generator.entity.BuiltInPlaceholder;
+import dev.chojo.ember.feature.generator.entity.DateFormat;
+import dev.chojo.ember.feature.generator.entity.DateKind;
+import dev.chojo.ember.feature.generator.entity.DocumentLanguage;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplateDraft;
 import dev.chojo.ember.feature.generator.entity.Placeholder;
 import dev.chojo.ember.feature.generator.entity.PlaceholderCategory;
 import dev.chojo.ember.feature.generator.entity.PlaceholderGroup;
+import dev.chojo.ember.feature.generator.entity.PlaceholderKey;
 import dev.chojo.ember.feature.generator.entity.PlaceholderSubgroup;
 import dev.chojo.ember.feature.generator.entity.PlaceholderTokens;
 import dev.chojo.ember.feature.generator.entity.PronounKey;
@@ -129,12 +133,27 @@ public class PlaceholderCatalogue {
         }
     }
 
+    /**
+     * @param owner the station or the association that keeps the template
+     * @return the language the labels of its catalogue are written in: the station's, or that of the
+     *         association's home station
+     */
+    public DocumentLanguage language(Owner owner) {
+        return DocumentLanguage.of(
+                switch (owner) {
+                    case Owner.Station station -> languageOf(station.stationId());
+                    case Owner.Association association -> languageOf(stores.libraryOf(association));
+                    case Owner.Instance ignored -> "de";
+                });
+    }
+
     private Asked asked(Owner owner) {
+        String language = language(owner).code();
         return switch (owner) {
             case Owner.Station station -> {
                 int stationId = station.stationId();
                 yield new Asked(
-                        languageOf(stationId),
+                        language,
                         OfferedFields.of(
                                 profileFields.findByStation(stationId),
                                 profileFields.findAssignmentsByStation(stationId)),
@@ -145,13 +164,13 @@ public class PlaceholderCatalogue {
             }
             case Owner.Association association ->
                 new Asked(
-                        languageOf(stores.libraryOf(association)),
+                        language,
                         OfferedFields.NONE,
                         OfferedFields.ofAssociation(
                                 associationFields.findByCluster(association.clusterId()),
                                 associationFields.findAssignmentsByCluster(association.clusterId())),
                         true);
-            case Owner.Instance ignored -> new Asked("de", OfferedFields.NONE, OfferedFields.NONE, false);
+            case Owner.Instance ignored -> new Asked(language, OfferedFields.NONE, OfferedFields.NONE, false);
         };
     }
 
@@ -178,7 +197,8 @@ public class PlaceholderCatalogue {
                 category,
                 List.copyOf(path),
                 false,
-                false);
+                false,
+                DateKind.of(field.fieldType()));
     }
 
     /**
@@ -208,8 +228,10 @@ public class PlaceholderCatalogue {
 
     /**
      * Refuses a template naming a placeholder its owner does not have, a legal one naming the name a
-     * member is called by, and one naming the values of an appointment without being meant for
-     * appointments, where they would never be filled.
+     * member is called by, one naming the values of an appointment without being meant for
+     * appointments, where they would never be filled, and one giving a format that cannot print its
+     * value: a format to a value that holds no date, or one that is no ready-made format and no valid own
+     * one, or one with a time of day for a date without.
      *
      * @param owner the station or the association that keeps the template
      * @param draft the template
@@ -219,7 +241,8 @@ public class PlaceholderCatalogue {
         if (used.isEmpty()) return;
         var known = byKey(owner);
         for (String key : used) {
-            var placeholder = known.get(key);
+            var written = PlaceholderKey.parse(key);
+            var placeholder = known.get(written.base());
             if (placeholder == null) {
                 throw DocumentRefusal.DOCUMENT_TEMPLATE_PLACEHOLDER_UNKNOWN.raise(RefusalDetail.text(key));
             }
@@ -227,8 +250,33 @@ public class PlaceholderCatalogue {
                 throw DocumentRefusal.DOCUMENT_TEMPLATE_APPOINTMENT_VALUES_OUTSIDE.raise(
                         RefusalDetail.text(placeholder.label()));
             }
+            String format = written.format();
+            if (format != null) requirePrintable(placeholder, format);
         }
         if (draft.legal()) requireOfficial(used);
+    }
+
+    private static void requirePrintable(Placeholder placeholder, String format) {
+        var kind = placeholder.dateKind();
+        if (kind == null) {
+            throw DocumentRefusal.DOCUMENT_TEMPLATE_FORMAT_NOT_A_DATE.raise(RefusalDetail.text(placeholder.label()));
+        }
+        if (DateFormat.of(format).filter(kind::takes).isEmpty()) {
+            throw DocumentRefusal.DOCUMENT_TEMPLATE_DATE_FORMAT_INVALID.raise(RefusalDetail.text(format));
+        }
+    }
+
+    /**
+     * The words a placeholder is shown by where it has no value, such as in the list of missing values
+     * or a preview without a member: the label of its value, whatever format it prints in.
+     *
+     * @param known the placeholders of the owner by key
+     * @param key   a key as a template writes it
+     * @return the label, or the key itself where the owner has no such placeholder
+     */
+    public static String labelOf(Map<String, Placeholder> known, String key) {
+        var placeholder = known.get(PlaceholderKey.parse(key).base());
+        return placeholder == null ? key : placeholder.label();
     }
 
     /**

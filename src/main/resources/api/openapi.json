@@ -49169,6 +49169,35 @@
         },
         "required" : [ "kind" ]
       },
+      "DateFormatOption" : {
+        "type" : "object",
+        "properties" : {
+          "preset" : {
+            "$ref" : "#/components/schemas/DatePreset"
+          },
+          "written" : {
+            "type" : "string"
+          },
+          "kind" : {
+            "$ref" : "#/components/schemas/DateKind"
+          },
+          "german" : {
+            "type" : "string"
+          },
+          "english" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "preset", "written", "kind", "german", "english" ]
+      },
+      "DateKind" : {
+        "type" : "string",
+        "enum" : [ "DATE", "DATE_TIME" ]
+      },
+      "DatePreset" : {
+        "type" : "string",
+        "enum" : [ "SHORT", "LONG", "MEDIUM", "MONTH_YEAR", "YEAR", "WEEKDAY", "DATE_TIME", "TIME" ]
+      },
       "DateValue" : {
         "type" : "object",
         "properties" : {
@@ -62891,9 +62920,16 @@
           },
           "eventOnly" : {
             "type" : "boolean"
+          },
+          "dateKind" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/DateKind"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
-        "required" : [ "key", "label", "group", "category", "path", "informal", "eventOnly" ]
+        "required" : [ "key", "label", "group", "category", "path", "informal", "eventOnly", "dateKind" ]
       },
       "PlaceholderCatalogueResponse" : {
         "type" : "object",
@@ -62903,9 +62939,18 @@
             "items" : {
               "$ref" : "#/components/schemas/Placeholder"
             }
+          },
+          "dateFormats" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/DateFormatOption"
+            }
+          },
+          "language" : {
+            "$ref" : "#/components/schemas/DocumentLanguage"
           }
         },
-        "required" : [ "placeholders" ]
+        "required" : [ "placeholders", "dateFormats", "language" ]
       },
       "PlaceholderCategory" : {
         "type" : "string",

@@ -13,6 +13,8 @@ import dev.chojo.ember.feature.content.entity.ContentRow;
 import dev.chojo.ember.feature.documents.service.DocumentDoor;
 import dev.chojo.ember.feature.documents.service.DocumentIntake;
 import dev.chojo.ember.feature.generator.entity.BuiltInPlaceholder;
+import dev.chojo.ember.feature.generator.entity.DatePreset;
+import dev.chojo.ember.feature.generator.entity.PlaceholderKey;
 import dev.chojo.ember.feature.generator.entity.PossessiveEnding;
 import dev.chojo.ember.feature.generator.entity.PronounKey;
 import dev.chojo.ember.feature.generator.entity.PronounRole;
@@ -143,7 +145,9 @@ public class LetterImportService {
         words.put("geburtsdatum", BuiltInPlaceholder.MEMBER_BIRTH_DATE.key());
         words.put("alter", BuiltInPlaceholder.MEMBER_AGE.key());
         words.put("eintrittsdatum", BuiltInPlaceholder.MEMBER_JOIN_DATE.key());
-        words.put("monat/jahr", BuiltInPlaceholder.MEMBER_JOIN_MONTH.key());
+        words.put(
+                "monat/jahr",
+                PlaceholderKey.written(BuiltInPlaceholder.MEMBER_JOIN_DATE.key(), DatePreset.MONTH_YEAR.written()));
         words.put("datum", BuiltInPlaceholder.TODAY.key());
         words.put("er/sie", pronoun(PronounRole.SUBJECT, PossessiveEnding.NONE));
         words.put("ihn/sie", pronoun(PronounRole.OBJECT, PossessiveEnding.NONE));

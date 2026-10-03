@@ -8,7 +8,7 @@ import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import type {PageViewport} from 'pdfjs-dist'
 import PdfCanvas from '@/components/documents/PdfCanvas.vue'
-import {labelledText} from '@/components/input/markdowneditor/placeholderChip'
+import {labelledText, type PlaceholderLabels} from '@/components/input/markdowneditor/placeholderChip'
 import {PdfFieldKind, type PdfField} from '@/api/generated/schema'
 import PdfFieldBox from './PdfFieldBox.vue'
 import {movedBy, resizedBy} from './pdfFields'
@@ -26,7 +26,7 @@ const props = defineProps<{
   page: number
   fields: PdfField[]
   selected: number | null
-  labels: ReadonlyMap<string, string>
+  labels: PlaceholderLabels
 }>()
 
 const emit = defineEmits<{

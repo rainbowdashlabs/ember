@@ -331,7 +331,17 @@ public enum DocumentRefusal implements Refusal {
 
     /** A sample asked for of a font family the owner does not reach. */
     DOCUMENT_FONT_SAMPLE_UNKNOWN(
-            110, HttpStatus.NOT_FOUND, "This font is not available here, so there is no sample of it");
+            110, HttpStatus.NOT_FOUND, "This font is not available here, so there is no sample of it"),
+
+    /**
+     * A template printing a date in a format that is no ready-made one and no valid own one, or in one
+     * with a time of day for a date that has none.
+     */
+    DOCUMENT_TEMPLATE_DATE_FORMAT_INVALID(
+            111, HttpStatus.BAD_REQUEST, "A date in the template has a format that cannot be printed"),
+
+    /** A template giving a format to a placeholder that holds no date. */
+    DOCUMENT_TEMPLATE_FORMAT_NOT_A_DATE(112, HttpStatus.BAD_REQUEST, "Only a date can be given a format in a template");
 
     private final Definition definition;
 

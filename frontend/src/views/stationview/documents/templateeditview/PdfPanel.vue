@@ -11,6 +11,7 @@ import Alert from '@/components/feedback/Alert.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
+import type {PlaceholderLabels} from '@/components/input/markdowneditor/placeholderChip'
 import type {
   DocumentTemplateResponse,
   FontFamilyOption,
@@ -41,7 +42,7 @@ const props = defineProps<{
   saved: DocumentTemplateResponse | null
   source: Blob | null
   placeholders: Placeholder[]
-  labels: ReadonlyMap<string, string>
+  labels: PlaceholderLabels
   fonts: readonly FontFamilyOption[]
   defaultFamily: string
 }>()

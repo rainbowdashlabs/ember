@@ -17,7 +17,6 @@ import dev.chojo.ember.feature.generator.entity.LetterContent;
 import dev.chojo.ember.feature.generator.entity.MemberView;
 import dev.chojo.ember.feature.generator.entity.MissingValue;
 import dev.chojo.ember.feature.generator.entity.PdfContent;
-import dev.chojo.ember.feature.generator.entity.Placeholder;
 import dev.chojo.ember.feature.generator.entity.PlaceholderTokens;
 import dev.chojo.ember.feature.generator.entity.ResolvedValues;
 import dev.chojo.ember.feature.generator.entity.SignatureRole;
@@ -337,7 +336,7 @@ public class DocumentGeneratorService {
     public List<MissingValue> missing(Prepared prepared) {
         var labels = catalogue.byKey(prepared.source().owner());
         return prepared.resolved().missing().stream()
-                .map(key -> new MissingValue(key, labelOf(labels, key)))
+                .map(key -> new MissingValue(key, PlaceholderCatalogue.labelOf(labels, key)))
                 .toList();
     }
 
@@ -376,9 +375,9 @@ public class DocumentGeneratorService {
                     rendered.unprintable(),
                     prepared.issuer().preview());
         }
-        var values = resolver.withoutMember(source.owner(), source.language());
-        var labels = new LinkedHashMap<String, String>();
-        catalogue.forOwner(source.owner()).forEach(placeholder -> labels.put(placeholder.key(), placeholder.label()));
+        var keys = PlaceholderCatalogue.keysOf(source.titlePattern(), source.fileNamePattern(), source.content());
+        var values = resolver.withoutMember(source.owner(), source.language(), keys);
+        var labels = labels(source.owner(), List.copyOf(keys));
         Integer stationId = source.owner() instanceof Owner.Station station ? station.stationId() : null;
         var drawn = draw(source, stationId, MemberView.EVERYBODY, title(source, values), values, labels, true);
         return new PreviewResponse(encode(drawn.pdf()), List.of(), drawn.unprintable(), null);
@@ -428,13 +427,8 @@ public class DocumentGeneratorService {
     private Map<String, String> labels(Owner owner, List<String> keys) {
         var known = catalogue.byKey(owner);
         var labels = new LinkedHashMap<String, String>();
-        keys.forEach(key -> labels.put(key, labelOf(known, key)));
+        keys.forEach(key -> labels.put(key, PlaceholderCatalogue.labelOf(known, key)));
         return labels;
-    }
-
-    private static String labelOf(Map<String, Placeholder> known, String key) {
-        var placeholder = known.get(key);
-        return placeholder == null ? key : placeholder.label();
     }
 
     private static String title(Source source, Map<String, String> values) {

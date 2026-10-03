@@ -18,6 +18,7 @@ import FieldFontSettings from './FieldFontSettings.vue'
 import PlaceholderPopover from './placeholderpicker/PlaceholderPopover.vue'
 import {DEFAULT_FONT_SIZE} from './pdfFields'
 import {withPlaceholder} from './placeholderText'
+import type {PlaceholderChoice} from './placeholderpicker/placeholderKey'
 
 /**
  * What the chosen field does: the text it prints and how, the value whose yes ticks it, or who signs
@@ -44,8 +45,8 @@ function setText(text: string | undefined) {
   field.value = {...field.value, text: text ?? ''}
 }
 
-function append(placeholder: Placeholder) {
-  setText(withPlaceholder(field.value.text ?? '', placeholder.key))
+function append(choice: PlaceholderChoice) {
+  setText(withPlaceholder(field.value.text ?? '', choice.key))
 }
 </script>
 

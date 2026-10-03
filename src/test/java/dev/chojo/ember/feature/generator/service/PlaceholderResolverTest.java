@@ -8,6 +8,8 @@ package dev.chojo.ember.feature.generator.service;
 import dev.chojo.ember.MovableClock;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.generator.entity.DataSubject;
+import dev.chojo.ember.feature.generator.entity.DateFormat;
+import dev.chojo.ember.feature.generator.entity.DatePreset;
 import dev.chojo.ember.feature.generator.entity.DocumentIssuer;
 import dev.chojo.ember.feature.generator.entity.DocumentLanguage;
 import dev.chojo.ember.feature.generator.entity.GenerationContext;
@@ -27,6 +29,7 @@ import tools.jackson.databind.node.StringNode;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -51,6 +54,7 @@ class PlaceholderResolverTest extends RepositoryTestBase {
     private static StationMember anna;
     private static StationMember bernd;
     private static StationMember manager;
+    private static int birthField;
     private static int phoneField;
     private static int consentField;
 
@@ -71,7 +75,7 @@ class PlaceholderResolverTest extends RepositoryTestBase {
         stationMemberRepo.addManager(bernd.id(), lena.id());
         stationMemberRepo.addManager(anna.id(), lena.id());
 
-        int birthField = field("Geburtsdatum", FieldType.BIRTH_DATE, null, null);
+        birthField = field("Geburtsdatum", FieldType.BIRTH_DATE, null, null);
         int genderField = field(
                 "Geschlecht",
                 FieldType.GENDER,
@@ -144,28 +148,99 @@ class PlaceholderResolverTest extends RepositoryTestBase {
                 "member.birthDate",
                 "member.age",
                 "member.joinDate",
-                "member.joinDate.monthYear",
                 "member.userType",
                 "today",
-                "today.long",
                 "generatedBy.fullName");
 
         assertEquals("17.05.2012", values.get("member.birthDate"));
         assertEquals("14", values.get("member.age"));
         assertEquals("01.10.2024", values.get("member.joinDate"));
-        assertEquals("Oktober 2024", values.get("member.joinDate.monthYear"));
         assertEquals("Mitglied", values.get("member.userType"));
         assertEquals("02.10.2026", values.get("today"));
-        assertEquals("2. Oktober 2026", values.get("today.long"));
         assertEquals("Nora Fülling", values.get("generatedBy.fullName"));
     }
 
+    /** The keys that named a date in one format before read as that date in that format. */
     @Test
-    void anEnglishTemplateWritesItsDatesInEnglish() {
-        var values = values(lena, DocumentLanguage.EN, "today.long", "member.joinDate.monthYear");
+    void theEarlierKeysOfOneFormatStillPrint() {
+        var german = values(lena, "today.long", "member.joinDate.monthYear");
+        var english = values(lena, DocumentLanguage.EN, "today.long", "member.joinDate.monthYear");
 
-        assertEquals("October 2, 2026", values.get("today.long"));
-        assertEquals("October 2024", values.get("member.joinDate.monthYear"));
+        assertEquals("2. Oktober 2026", german.get("today.long"));
+        assertEquals("Oktober 2024", german.get("member.joinDate.monthYear"));
+        assertEquals("October 2, 2026", english.get("today.long"));
+        assertEquals("October 2024", english.get("member.joinDate.monthYear"));
+    }
+
+    @Test
+    void everyReadyMadeFormatPrintsInTheTemplatesLanguage() {
+        var keys = Arrays.stream(DatePreset.values())
+                .filter(preset -> !DateFormat.of(preset).readsClock())
+                .map(preset -> "today|" + preset.written())
+                .toArray(String[]::new);
+
+        assertEquals(
+                List.of(
+                        "02.10.2026",
+                        "2. Oktober 2026",
+                        "2. Okt. 2026",
+                        "Oktober 2026",
+                        "2026",
+                        "Freitag, 2. Oktober 2026"),
+                List.copyOf(values(lena, keys).values()));
+        assertEquals(
+                List.of(
+                        "02.10.2026",
+                        "October 2, 2026",
+                        "Oct 2, 2026",
+                        "October 2026",
+                        "2026",
+                        "Friday, October 2, 2026"),
+                List.copyOf(values(lena, DocumentLanguage.EN, keys).values()));
+    }
+
+    @Test
+    void anOwnFormatPrintsItsTokensWithWordsInTheTemplatesLanguage() {
+        String key = "member.birthDate|TTT, T.M.JJ / TT.MM.JJJJ - MMM MMMM";
+
+        assertEquals("Do., 17.5.12 / 17.05.2012 - Mai Mai", values(lena, key).get(key));
+        assertEquals(
+                "Thu, 17.5.12 / 17.05.2012 - May May",
+                values(lena, DocumentLanguage.EN, key).get(key));
+    }
+
+    @Test
+    void anAnswerOfADateTypeTakesAFormatAndOtherValuesDoNot() {
+        String birth = "profile." + birthField + "|long";
+        String name = "member.firstName|long";
+
+        var resolved = resolver.resolve(
+                station.id(),
+                lena.id(),
+                new LinkedHashSet<>(List.of(birth, name, "member.birthDate|hh:mm")),
+                DocumentLanguage.DE,
+                GenerationContext.by(manager.id(), DocumentIssuer.NONE));
+
+        assertEquals("17. Mai 2012", resolved.values().get(birth));
+        assertEquals(List.of(name, "member.birthDate|hh:mm"), resolved.missing());
+    }
+
+    @Test
+    void theTimesOfAnAppointmentTakeTheFormatsWithATimeOfDay() {
+        var event = new GenerationContext.EventFacts(
+                "Berlin Marathon", Instant.parse("2026-09-27T07:00:00Z"), Instant.parse("2026-09-27T14:00:00Z"), null);
+
+        var values = resolver.resolve(
+                        station.id(),
+                        lena.id(),
+                        new LinkedHashSet<>(List.of("event.start|time", "event.end|weekday", "event.end|T.M. h:mm")),
+                        DocumentLanguage.DE,
+                        new GenerationContext(manager.id(), event, DocumentIssuer.NONE))
+                .values();
+
+        assertEquals("09:00", values.get("event.start|time"));
+        assertEquals("Sonntag, 27. September 2026", values.get("event.end|weekday"));
+        assertEquals("27.9. 16:00", values.get("event.end|T.M. h:mm"));
     }
 
     @Test
@@ -327,11 +402,14 @@ class PlaceholderResolverTest extends RepositoryTestBase {
 
     @Test
     void aPreviewWithoutAMemberKnowsTheStationAndTheDay() {
-        var values = resolver.withoutMember(new Owner.Station(station.id()), DocumentLanguage.DE);
+        var values = resolver.withoutMember(
+                new Owner.Station(station.id()),
+                DocumentLanguage.DE,
+                Set.of("station.name", "today", "today|monthYear", "member.fullName", "member.birthDate|long"));
 
-        assertEquals("Resolver Wache", values.get("station.name"));
-        assertEquals("02.10.2026", values.get("today"));
-        assertTrue(values.keySet().stream().noneMatch(key -> key.startsWith("member.")));
+        assertEquals(
+                Map.of("station.name", "Resolver Wache", "today", "02.10.2026", "today|monthYear", "Oktober 2026"),
+                values);
     }
 
     @Test

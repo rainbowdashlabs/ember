@@ -113,7 +113,7 @@ public record PronounKey(PronounRole role, boolean sentenceStart, PossessiveEndi
                 ? List.of(category, role.title(language), place(english), forms.toString())
                 : List.of(category, role.title(language), label);
         return new Placeholder(
-                key(), label, PlaceholderGroup.PRONOUN, PlaceholderCategory.PRONOUNS, path, false, false);
+                key(), label, PlaceholderGroup.PRONOUN, PlaceholderCategory.PRONOUNS, path, false, false, null);
     }
 
     private String place(boolean english) {

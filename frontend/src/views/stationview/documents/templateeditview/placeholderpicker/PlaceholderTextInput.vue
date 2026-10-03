@@ -27,6 +27,6 @@ defineProps<{
   <div class="flex items-center gap-2">
     <TextInput v-model="text" class="flex-1" :placeholder="prompt"/>
     <PlaceholderPopover :placeholders="placeholders" :legal="legal"
-                        @pick="placeholder => text = withPlaceholder(text, placeholder.key)"/>
+                        @pick="choice => text = withPlaceholder(text, choice.key)"/>
   </div>
 </template>

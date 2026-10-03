@@ -1863,6 +1863,35 @@ volumes:
                 + 'eckigen Klammern wie [Vorname Nachname] oder [Geburtsdatum] werden zu Platzhaltern, alles andere '
                 + 'bleibt Text. Der Text landet als ein Baustein im Brief, ein Bild auf eigener Zeile als eigener '
                 + 'Bildbaustein. Kopf- und Fußzeile richtest du danach selbst ein.',
+            datesTitle: 'Datumsformate',
+            datesText: 'Wählst du ein Datum aus, etwa Geburtsdatum, Mitglied seit, das heutige Datum oder ein '
+                + 'Datumsfeld im Profil, fragt die Auswahl zum Schluss nach dem Format. Jedes Format zeigt ein '
+                + 'Beispiel: 03.10.2026, 3. Oktober 2026, 3. Okt. 2026, Oktober 2026, 2026 oder Samstag, '
+                + '3. Oktober 2026. Beginn und Ende eines Termins gibt es auch mit Uhrzeit. Im Text steht das '
+                + 'Format gleich beim Feld, etwa „Geburtsdatum (3. Oktober 2026)". Ein Datum ohne Format sieht '
+                + 'aus wie 03.10.2026.',
+            datesOwnText: 'Unter „Eigenes Format" schreibst du das Format selbst, mit den Zeichen aus der Tabelle. '
+                + 'Dazwischen dürfen Leerzeichen, Punkt, Komma, Doppelpunkt, Schrägstrich und Bindestrich stehen, '
+                + 'höchstens 40 Zeichen. Darunter siehst du gleich, wie es aussieht. Monate und Wochentage stehen '
+                + 'in der Sprache der Vorlage.',
+            dateTokensSign: 'Zeichen',
+            dateTokensMeaning: 'Bedeutung',
+            dateTokensExample: 'Beispiel',
+            dateTokens: {
+                day: 'Tag ohne führende Null',
+                dayTwoDigits: 'Tag mit zwei Ziffern',
+                weekdayShort: 'Wochentag, kurz',
+                weekday: 'Wochentag, ausgeschrieben',
+                month: 'Monat als Zahl ohne führende Null',
+                monthTwoDigits: 'Monat mit zwei Ziffern',
+                monthShort: 'Monat, kurz',
+                monthName: 'Monat, ausgeschrieben',
+                yearTwoDigits: 'Jahr mit zwei Ziffern',
+                year: 'Jahr mit vier Ziffern',
+                hour: 'Stunde ohne führende Null, nur bei Terminen',
+                hourTwoDigits: 'Stunde mit zwei Ziffern, nur bei Terminen',
+                minute: 'Minute mit zwei Ziffern, nur bei Terminen',
+            },
             signatureTitle: 'Unterschriften',
             signatureText: 'Eine Unterschriftszeile setzt du im Text als eigenen Baustein. Wähle, wer unterschreibt: '
                 + 'die teilnehmende Person, die ausstellende Person, die erste oder zweite erziehungsberechtigte Person, '

@@ -3,7 +3,14 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {PlaceholderCategory, PlaceholderGroup, type Placeholder} from '@/api/generated/schema'
+import {
+    DateKind,
+    DatePreset,
+    PlaceholderCategory,
+    PlaceholderGroup,
+    type DateFormatOption,
+    type Placeholder,
+} from '@/api/generated/schema'
 
 /**
  * A placeholder of a station's catalogue for the picker's tests.
@@ -22,9 +29,30 @@ export function placeholderOf(key: string, category: PlaceholderCategory, path: 
         path,
         informal: false,
         eventOnly: false,
+        dateKind: null,
         ...extra,
     }
 }
+
+/** A day of the member, which takes the date formats. */
+export const BIRTH_DATE = placeholderOf('member.birthDate', PlaceholderCategory.MEMBER, ['Mitglied', 'Stammdaten', 'Geburtsdatum'],
+    {dateKind: DateKind.DATE})
+
+/** A day with a time of day, which also takes the formats that print hours and minutes. */
+export const APPOINTMENT_START = placeholderOf('event.start', PlaceholderCategory.APPOINTMENT, ['Termin', 'Beginn des Termins'],
+    {eventOnly: true, dateKind: DateKind.DATE_TIME})
+
+/** The ready-made formats as the server sends them, in its order. */
+export const DATE_FORMATS: DateFormatOption[] = [
+    {preset: DatePreset.SHORT, written: 'short', kind: DateKind.DATE, german: 'TT.MM.JJJJ', english: 'TT.MM.JJJJ'},
+    {preset: DatePreset.LONG, written: 'long', kind: DateKind.DATE, german: 'T. MMMM JJJJ', english: 'MMMM T, JJJJ'},
+    {preset: DatePreset.MEDIUM, written: 'medium', kind: DateKind.DATE, german: 'T. MMM JJJJ', english: 'MMM T, JJJJ'},
+    {preset: DatePreset.MONTH_YEAR, written: 'monthYear', kind: DateKind.DATE, german: 'MMMM JJJJ', english: 'MMMM JJJJ'},
+    {preset: DatePreset.YEAR, written: 'year', kind: DateKind.DATE, german: 'JJJJ', english: 'JJJJ'},
+    {preset: DatePreset.WEEKDAY, written: 'weekday', kind: DateKind.DATE, german: 'TTTT, T. MMMM JJJJ', english: 'TTTT, MMMM T, JJJJ'},
+    {preset: DatePreset.DATE_TIME, written: 'dateTime', kind: DateKind.DATE_TIME, german: 'TT.MM.JJJJ hh:mm', english: 'TT.MM.JJJJ hh:mm'},
+    {preset: DatePreset.TIME, written: 'time', kind: DateKind.DATE_TIME, german: 'hh:mm', english: 'hh:mm'},
+]
 
 /** A catalogue as a station sends it, in its order: the member, pronouns, a guardian, appointment, signature. */
 export const CATALOGUE: Placeholder[] = [
