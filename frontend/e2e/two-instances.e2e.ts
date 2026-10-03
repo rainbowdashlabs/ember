@@ -498,10 +498,12 @@ test.describe('Federation requests between instances', () => {
             const accepted = await asked.api.post(`/api/v1/federation/remote-requests/${request.id}/accept`)
             expect(accepted.ok(), await accepted.text()).toBe(true)
 
-            const outgoing = await homeManagerApi.get('/api/v1/federation/outgoing-requests')
-            expect(outgoing.ok(), await outgoing.text()).toBe(true)
-            const stillSent: {stationName: string}[] = await outgoing.json()
-            expect(stillSent.map(entry => entry.stationName)).not.toContain(asked.name)
+            await expect.poll(async () => {
+                const outgoing = await homeManagerApi.get('/api/v1/federation/outgoing-requests')
+                expect(outgoing.ok(), await outgoing.text()).toBe(true)
+                const stillSent: {stationName: string}[] = await outgoing.json()
+                return stillSent.map(entry => entry.stationName)
+            }, {message: 'the answer is fetched in the background once the list is read'}).not.toContain(asked.name)
 
             const here = await partnerWith(homeManagerApi, asked.uid)
             expect(here.status).toBe('ACTIVE')
