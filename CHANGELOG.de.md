@@ -45,6 +45,7 @@ Wachen erstellen aus eigenen Vorlagen und denen ihres Verbands Dokumente für ih
 - **Manche Themenfarben fehlten.** Auf vielen Seiten erschienen Hervorhebungen, Links, Hintergründe unter dem Mauszeiger, Fortschrittsbalken, Fehlermeldungen und Erfolgsmarkierungen ohne ihre Farbe. Jetzt erscheinen sie in den Themenfarben.
 - **Mehrere Leerzeichen wurden zu einem.** Mehrere hintereinander getippte Leerzeichen im Texteditor schrumpften nach dem Speichern zu einem einzigen, auf Seiten, in Briefen und in Wiki-PDFs. Jetzt bleiben sie wie getippt, im Editor, auf der Seite und im Druck.
 - **Text neben einem Bild begann tiefer.** In einer Zeile von Bausteinen auf Seiten und im Editor für Seiten begann Text neben einem Bild etwas unterhalb der Oberkante des Bildes. Jetzt beginnt er auf gleicher Höhe.
+- **Die Mitgliederliste in Sichtbarkeitsfiltern war abgeschnitten.** Wo eine Einschränkung von Sichtbarkeit oder Zugriff eine Auswahl von Mitgliedern anbietet, öffnete sich die Liste nur so breit wie ihr Knopf, sodass Suche und Namen nicht zu lesen waren. Jetzt öffnet sie sich breit genug für die Namen und bleibt im Fenster.
 
 ## v26.20.2
 

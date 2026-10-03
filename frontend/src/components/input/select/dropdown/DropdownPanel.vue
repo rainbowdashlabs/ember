@@ -24,7 +24,10 @@ import {PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigger} from 'reka-u
 const open = defineModel<boolean>('open', {default: false})
 
 withDefaults(defineProps<{
-  /** Makes the panel exactly as wide as its trigger, for a trigger that fills its field. */
+  /**
+   * Sizes the panel from its trigger, for a trigger that fills its field. See
+   * {@link PANEL_WIDTH_FROM_TRIGGER}.
+   */
   matchWidth?: boolean
   /** Size and spacing of the panel, such as its width and its greatest height. */
   panelClass?: string
@@ -38,6 +41,14 @@ withDefaults(defineProps<{
 const emit = defineEmits<{
   openAutoFocus: [event: Event]
 }>()
+
+/**
+ * The width of a panel sized from its trigger: at least the trigger and at least 16rem, growing with
+ * its content up to 24rem or the trigger, whichever is wider, and never wider than the window less
+ * the collision padding on both sides. A field wider than 24rem keeps a panel exactly its width; a
+ * narrow chip in a filter bar no longer squeezes its panel down to a few letters.
+ */
+const PANEL_WIDTH_FROM_TRIGGER = 'w-max min-w-[min(max(16rem,var(--reka-popover-trigger-width)),100vw_-_1rem)] max-w-[min(max(24rem,var(--reka-popover-trigger-width)),100vw_-_1rem)]'
 
 /** Where the focus lands as the panel opens: its search, or else the entry the list highlights. */
 const LANDING = 'input[type="text"], input[type="search"], [role="option"][tabindex="0"], [role="listbox"][tabindex="0"]'
@@ -68,7 +79,7 @@ function landInTheList(event: Event) {
           :side-offset="4"
           :collision-padding="8"
           :data-testid="testId"
-          :class="[matchWidth ? 'w-(--reka-popover-trigger-width)' : '', panelClass]"
+          :class="[matchWidth ? PANEL_WIDTH_FROM_TRIGGER : '', panelClass]"
           class="z-[90] flex flex-col overflow-hidden rounded-theme border border-(--border) bg-(--bg) text-(--text) shadow-lg outline-none data-[state=open]:animate-fade-in data-[state=closed]:animate-fade-out"
           @open-auto-focus="landInTheList"
       >

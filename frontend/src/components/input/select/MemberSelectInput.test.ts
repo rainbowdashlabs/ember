@@ -263,4 +263,32 @@ describe('MemberSelectInput', () => {
         expect(resolveFn).toHaveBeenCalledWith('1')
         expect(wrapper.get('[data-testid="member-select-trigger"]').text()).toContain('Anna Zimmer')
     })
+
+    /**
+     * A filter bar's chip is a narrow trigger, and a panel only as wide as it cut every name and the
+     * search short. The test runner lays nothing out, so the width rule is read off the panel's classes.
+     */
+    describe('width', () => {
+        function widthRule(prefix: string): string | undefined {
+            return panel().classes().find(name => name.startsWith(`${prefix}-[`))?.slice(prefix.length + 2, -1)
+        }
+
+        it('is not tied to the width of a narrow trigger', async () => {
+            await openMenu({multiple: true})
+            expect(panel().classes()).not.toContain('w-(--reka-popover-trigger-width)')
+            expect(panel().classes()).toContain('w-max')
+            expect(widthRule('min-w')).toContain('max(16rem,var(--reka-popover-trigger-width))')
+        })
+
+        it('never grows wider than the window less its padding', async () => {
+            await openMenu({multiple: true})
+            expect(widthRule('min-w')).toMatch(/^min\(.*,100vw_-_1rem\)$/)
+            expect(widthRule('max-w')).toMatch(/^min\(.*,100vw_-_1rem\)$/)
+        })
+
+        it('keeps a name on one line and cuts it short only where it runs out of room', async () => {
+            await openMenu({multiple: true})
+            expect(page().findAll('[data-testid="member-name"]').every(name => name.classes('truncate'))).toBe(true)
+        })
+    })
 })
