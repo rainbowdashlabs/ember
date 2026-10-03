@@ -80,6 +80,18 @@ expect_equal "the fix tag points at main" "$(git rev-parse HEAD)" \
     "$(git ls-remote origin 'refs/tags/v26.21.1^{}' | cut -f1)"
 expect_fail "a fix release of a released version" "already released as v26.21.1" release fix
 
+git checkout -q -b fix/long-changelog
+set_version 26.21.2
+{
+    printf '# Changelog\n\n## v26.21.2\n\n### Fixes\n\n- **Fixed again.** It works.\n'
+    for index in $(seq 1 2000); do printf '\n## v1.0.%s\n\n- **An old line.** It was long ago.\n' "$index"; done
+} > CHANGELOG.md
+commit_all "Fix with a long history"
+git push -q origin fix/long-changelog:main
+expect_pass "a fix release whose changelog is longer than a pipe holds" release fix --wait
+expect_equal "its release notes are only its own block" \
+    "$(printf '# Fixes\n\n- **Fixed again.** It works.')" "$(cat "$GH_LOG.notes")"
+
 git commit -q --allow-empty -m "Not on main"
 expect_fail "a fix release of a commit not on main" "is not on main" release fix --commit HEAD
 
