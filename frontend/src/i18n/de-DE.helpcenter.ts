@@ -1828,6 +1828,12 @@ volumes:
                 + '„beide Erziehungsberechtigte".',
             placeholdersText: 'Beim Erstellen füllt Ember jedes Feld mit den Daten des Mitglieds, so wie sie gerade '
                 + 'eingetragen sind. Namen sind immer die amtlichen Namen, nur der Rufname ist eine Ausnahme.',
+            fontText: 'Einzelne Wörter druckst du in einer anderen Schrift. Markiere sie und wähle im Menü des '
+                + 'Editors unter „Schriftart" eine Schrift. Zur Auswahl stehen alle Schriften der Wache, ihres '
+                + 'Verbands und der Instanz. Im Editor sehen die Wörter aus wie immer: Sie sind gepunktet '
+                + 'unterstrichen, und zeigst du mit der Maus darauf, steht dort der Name der Schrift. Erst im PDF '
+                + 'erscheint die Schrift selbst. „Schrift der Vorlage" setzt die Wörter zurück. Gibt es eine '
+                + 'Schrift später nicht mehr, druckt Ember die Wörter in der Schrift der Vorlage.',
             importText: 'Hast du die Bescheinigung schon als Word- oder OpenDocument-Text, importiere sie. Lücken in '
                 + 'eckigen Klammern wie [Vorname Nachname] oder [Geburtsdatum] werden zu Platzhaltern, alles andere '
                 + 'bleibt Text. Der Text landet als ein Baustein im Brief, ein Bild auf eigener Zeile als eigener '

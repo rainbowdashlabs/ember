@@ -24,6 +24,8 @@ import MediaBrowseModal from '@/components/media/MediaBrowseModal.vue'
 import { createMarkdownTurndown } from './markdowneditor/markdownTurndown'
 import { ResizableImage } from './markdowneditor/resizableImage'
 import type { EditorTokens } from './markdowneditor/editorTokens'
+import { extendTurndownWithTextFont, TextFont } from './markdowneditor/textFont'
+import type { FontFamilyOption } from '@/api/generated/schema'
 import { isYoutubeUrl, videoEmbedUrl } from '@/util/youtube'
 import EditorToolbar from './markdowneditor/EditorToolbar.vue'
 import EditorTableBar from './markdowneditor/EditorTableBar.vue'
@@ -47,6 +49,11 @@ const props = defineProps<{
    * placeholders of a document template. Read once, when the editor is made.
    */
   tokens?: EditorTokens
+  /**
+   * The font families selected words can be set in, such as those a document template reaches. The
+   * menu offers a font only where they are given. Read once, when the editor is made.
+   */
+  fonts?: readonly FontFamilyOption[]
 }>()
 
 const { sessionInfo } = useSession()
@@ -54,6 +61,7 @@ const stationUid = computed(() => props.mediaScope ?? sessionInfo.value?.station
 
 const turndown = createMarkdownTurndown()
 props.tokens?.extendTurndown(turndown)
+if (props.fonts) extendTurndownWithTextFont(turndown)
 
 const isUpdatingFromProp = ref(false)
 const isInTable = ref(false)
@@ -94,6 +102,7 @@ const editor = useEditor({
     Youtube.configure({ inline: false }),
     ResizableImage, TextStyle, Color,
     ...(props.tokens?.extensions ?? []),
+    ...(props.fonts ? [TextFont] : []),
   ],
   content: '',
   editorProps: {
@@ -245,6 +254,7 @@ function applyVideo(url: string) {
   <div ref="editorContainer" class="markdown-editor rounded-lg border border-[var(--border)] bg-[var(--bg)] relative">
     <EditorToolbar
       :editor="editor"
+      :fonts="fonts"
       @open-link="openLinkDialog"
       @open-image="openImageDialog"
       @open-video="openVideoDialog"
@@ -313,4 +323,5 @@ function applyVideo(url: string) {
 .markdown-editor-content .tiptap code { background: var(--bg-accent); border: 1px solid var(--border); border-radius: 0.25rem; padding: 0.1em 0.3em; font-size: 0.875em; font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace; }
 .markdown-editor-content .tiptap hr { border: none; border-top: 2px solid color-mix(in srgb, var(--text) 25%, transparent); margin: 1.5em 0; }
 .markdown-editor-content .tiptap .placeholder-chip.ProseMirror-selectednode { outline: 2px solid var(--primary); }
+.markdown-editor-content .tiptap .text-font { text-decoration: underline dotted var(--primary); text-underline-offset: 3px; cursor: help; }
 </style>

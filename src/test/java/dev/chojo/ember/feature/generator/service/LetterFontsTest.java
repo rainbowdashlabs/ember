@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.generator.service;
 
+import dev.chojo.ember.feature.generator.entity.LetterContent;
 import dev.chojo.ember.feature.generator.entity.LetterPage;
 import dev.chojo.ember.feature.generator.entity.ReachableFonts;
 import dev.chojo.ember.feature.generator.service.font.BundledFont;
@@ -24,7 +25,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class LetterFontsTest {
 
     private static LetterFonts fontsOf(LetterPage page, DefaultFont defaultFont) {
-        return LetterFonts.of(ReachableFonts.none(), page, font -> Optional.empty(), defaultFont);
+        return LetterFonts.of(
+                ReachableFonts.none(),
+                new LetterContent(List.of(), List.of(), List.of(), page),
+                font -> Optional.empty(),
+                defaultFont);
     }
 
     /** Without a default font every part prints in Liberation Sans, exactly as before. */

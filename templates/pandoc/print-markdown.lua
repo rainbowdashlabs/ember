@@ -15,8 +15,14 @@
 ---
 --- Captions: the exporter marks the line under a picture as `<figcaption>`, which becomes a call
 --- to the template's `caption` function so it prints set apart from the text around it.
+---
+--- Fonts: a letter sets words in a family of their own as `<span data-font="Family">`. With the
+--- `font-spans` variable set, the pair becomes a call to the template's `font` function, which picks
+--- the family when the letter is printed. Without it the tag is dropped and the words are kept, since
+--- no other template defines that function.
 
 local PIXEL = 0.75
+local FONT_SPANS = PANDOC_WRITER_OPTIONS.variables["font-spans"] ~= nil
 
 local function is_printable(src)
   return src ~= nil and src:match("^img%-%d+%.%a+$") ~= nil
@@ -45,6 +51,15 @@ local function typst_string(text)
   return '"' .. text:gsub("\\", "\\\\"):gsub('"', '\\"') .. '"'
 end
 
+local function unescape(text)
+  return (text:gsub("&quot;", '"'):gsub("&lt;", "<"):gsub("&gt;", ">"):gsub("&amp;", "&"))
+end
+
+local function font_family(tag)
+  local family = FONT_SPANS and attribute(tag, "data%-font")
+  return family and unescape(family):match("^%s*(.-)%s*$")
+end
+
 local function opener(name, tag)
   if name == "u" then return "#underline[" end
   if name == "mark" then
@@ -52,6 +67,8 @@ local function opener(name, tag)
     return fill and ("#highlight(fill: " .. fill .. ")[") or "#highlight["
   end
   if name == "span" then
+    local family = font_family(tag)
+    if family then return "#font(" .. typst_string(family) .. ")[" end
     local fill = typst_color(css(attribute(tag, "style"), "color"))
     return fill and ("#text(fill: " .. fill .. ")[") or nil
   end

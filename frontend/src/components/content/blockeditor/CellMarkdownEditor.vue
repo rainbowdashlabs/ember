@@ -14,7 +14,8 @@ import {useBlockEditorOptions} from '@/composables/useBlockEditorOptions'
  * so the written area scrolls on its own instead of growing and pushing the dialog open.
  *
  * <p>Where the surrounding editor names tokens and tools, such as a letter's placeholders and their
- * picker, the text shows the tokens as chips and the tools stand above it, inserting at the cursor.
+ * picker, the text shows the tokens as chips and the tools stand above it, inserting at the cursor. Where
+ * it names font families, such as those a letter reaches, the menu offers them for the selected words.
  */
 const content = defineModel<string>('content', {required: true})
 
@@ -29,7 +30,7 @@ function insert(inserted: Content) {
 <template>
     <div class="cell-markdown-editor flex-1 flex flex-col gap-3">
         <component :is="options.markdownTools" v-if="options.markdownTools" :insert="insert"/>
-        <MarkdownEditor ref="editor" v-model="content" :tokens="options.tokens"/>
+        <MarkdownEditor ref="editor" v-model="content" :tokens="options.tokens" :fonts="options.textFonts"/>
     </div>
 </template>
 

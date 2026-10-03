@@ -31,6 +31,11 @@
   block(width: natural.width * scale, breakable: false, it)
 })
 
+#let font-span(family, body) = {
+  let names = data.spanFonts.at(family, default: none)
+  if names == none { body } else { text(font: names, body) }
+}
+
 #let text-block(c, max-height) = [
   #show image: it => fit(it, max-height)
   #eval(
@@ -38,6 +43,7 @@
     mode: "markup",
     scope: (
       ph: placeholder,
+      font: font-span,
       horizontalrule: line(length: 100%, stroke: 0.5pt + luma(180)),
       caption: caption,
     ),

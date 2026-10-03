@@ -50,9 +50,10 @@ public record LetterContent(List<ContentRow> header, List<ContentRow> footer, Li
         return Stream.of(header, footer, body).flatMap(LetterContent::textsOf);
     }
 
+    /** The families of the page, then those its texts set words in ({@link FontSpans}). */
     @Override
     public Stream<String> fontFamilies() {
-        return page.fontFamilies();
+        return Stream.concat(page.fontFamilies(), texts().flatMap(FontSpans::familiesIn));
     }
 
     /**

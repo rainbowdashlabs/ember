@@ -77,15 +77,17 @@ export function useTemplateEditor(
     const placeholders = computed(() => placeholdersOfTemplate(catalogue.value, draft.value.forAppointments))
     const choices = shallowRef<StationChoices>(noChoices())
     const fontList = shallowRef<DocumentFontsResponse | null>(null)
+    const fonts = computed<readonly FontFamilyOption[]>(() => fontList.value?.reachable ?? [])
 
     const labels = computed<ReadonlyMap<string, string>>(() =>
         new Map(catalogue.value.map(placeholder => [placeholder.key, placeholder.label])))
 
-    /** What a letter's blocks can name and be restricted to. */
+    /** What a letter's blocks can name, set words in and be restricted to. */
     const letterCatalogue = computed(() => ({
         placeholders: placeholders.value,
         labels: labels.value,
         choices: {groups: choices.value.groups, tags: choices.value.tags},
+        fonts: fonts.value,
     }))
 
     const loader = useAsyncLoader(async () => {
@@ -149,7 +151,7 @@ export function useTemplateEditor(
         tags: computed(() => choices.value.tags),
         members: computed(() => choices.value.members),
         documentTags: computed(() => choices.value.documentTags),
-        fonts: computed<readonly FontFamilyOption[]>(() => fontList.value?.reachable ?? []),
+        fonts,
         defaultFamily: computed(() => fontList.value?.defaultFamily ?? DEFAULT_FONT),
         loader,
         saving,
