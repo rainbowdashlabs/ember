@@ -38,7 +38,9 @@ import java.util.Objects;
  * <p>It is laid out like a printed letter of a youth fire brigade: the station logo and the letterhead
  * across the top, a sender line, the date, the certificate with the member's values where a printed form
  * leaves gaps, a closing, the issuer's signature line, and three columns of contacts across the bottom.
- * Every name, address, number and domain in it is invented and reads as such.
+ * Every name, address, number and domain in it is invented and reads as such, except the youth warden:
+ * the template names a carer of the station as its issuer with her function, and the signature line
+ * and the first column of contacts print her name and function from there.
  *
  * <p>It is written through {@link DocumentTemplateService} like a template a manager saves, so it passes
  * the same checks: every placeholder is one the station knows, the pronoun follows the gender question
@@ -110,13 +112,19 @@ public class DemoDocumentTemplateSeeder implements DemoPerStationSeeder {
             Musterstadt, den {{today}}""";
 
     private static final String SIGNER = """
-            Erika Musterfrau\\
-            Jugendwartin der {{station.name}}""";
+            {{issuer.fullName}}\\
+            {{issuer.function}} der {{station.name}}""";
 
     private static final String WARDEN = """
-            Jugendfeuerwehrwartin\\
-            Erika Musterfrau\\
+            {{issuer.function}}\\
+            {{issuer.fullName}}\\
             jugendwart@example.org""";
+
+    /** Where the youth warden who issues the certificate stands among the station's carers: Anna Schmidt. */
+    private static final int WARDEN_PLACE = 1;
+
+    /** What the youth warden does, in the form that goes with her first name. */
+    static final String WARDEN_FUNCTION = "Jugendfeuerwehrwartin";
 
     private static final String DEPUTY = """
             Stellvertretender Jugendfeuerwehrwart\\
@@ -154,9 +162,11 @@ public class DemoDocumentTemplateSeeder implements DemoPerStationSeeder {
         int author = Objects.requireNonNull(
                 station.adminMember().accountId(), "the station administrator is seeded with an account");
         var stationGroups = groups.findByStation(station.stationId());
+        var warden = station.members().betreuer().get(WARDEN_PLACE);
         var template = templates.create(
                 owner,
-                certificate(groupId(stationGroups, BEGINNERS_GROUP), groupId(stationGroups, ADVANCED_GROUP)),
+                certificate(
+                        groupId(stationGroups, BEGINNERS_GROUP), groupId(stationGroups, ADVANCED_GROUP), warden.id()),
                 author);
         log.info("Demo: Created document template {} for station {}", template.id(), station.stationId());
     }
@@ -174,9 +184,10 @@ public class DemoDocumentTemplateSeeder implements DemoPerStationSeeder {
      *
      * @param beginnersGroup the group whose members train on Tuesdays
      * @param advancedGroup  the group whose members train on Mondays
+     * @param warden         the youth warden of the station, who issues and signs the certificate
      * @return the template
      */
-    public static DocumentTemplateRequest certificate(int beginnersGroup, int advancedGroup) {
+    public static DocumentTemplateRequest certificate(int beginnersGroup, int advancedGroup, int warden) {
         return new DocumentTemplateRequest(
                 DocumentTemplateKind.LETTER,
                 NAME,
@@ -191,6 +202,8 @@ public class DemoDocumentTemplateSeeder implements DemoPerStationSeeder {
                 null,
                 null,
                 DocumentLanguage.DE,
+                warden,
+                WARDEN_FUNCTION,
                 rows(List.of(List.of(cell(20, logo()), cell(40, empty()), cell(40, text(LETTERHEAD))))),
                 rows(List.of(List.of(cell(37.5, text(WARDEN)), cell(37.5, text(DEPUTY)), cell(25, text(ADDRESS))))),
                 rows(List.of(

@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.generator.service.BulkGenerationService.BulkPrevi
 import dev.chojo.ember.feature.generator.service.BulkGenerationService.GenerationJobResponse;
 import dev.chojo.ember.feature.generator.service.BulkGenerationService.GenerationJobSummary;
 import dev.chojo.ember.feature.generator.service.BulkGenerationService.MemberSelection;
+import dev.chojo.ember.feature.generator.service.DocumentIssuerService.IssuerChoice;
 import dev.chojo.ember.feature.generator.service.DocumentTemplateService;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
 import io.javalin.http.Context;
@@ -71,9 +72,28 @@ public class GenerationJobRoutes implements Routes {
      *                      current member, read only where no members are named
      * @param acceptMissing whether a member with incomplete data still gets a document, its gaps left to
      *                      fill in by hand
+     * @param issuer        the member to issue every document instead of the template's issuer, or null to
+     *                      keep the template's
      */
     public record JobStartRequest(
-            @Nullable List<Integer> memberIds, @Nullable RestrictionAudience audience, boolean acceptMissing) {}
+            @Nullable List<Integer> memberIds,
+            @Nullable RestrictionAudience audience,
+            boolean acceptMissing,
+            @Nullable IssuerChoice issuer) {}
+
+    /**
+     * A run to look at before it starts.
+     *
+     * @param memberIds the members one by one, or null to choose by audience
+     * @param audience  the audience whose current members the run would generate for, or null for every
+     *                  current member, read only where no members are named
+     * @param issuer    the member to issue every document instead of the template's issuer, or null to keep
+     *                  the template's
+     */
+    public record JobPreviewRequest(
+            @Nullable List<Integer> memberIds,
+            @Nullable RestrictionAudience audience,
+            @Nullable IssuerChoice issuer) {}
 
     @OpenApi(
             path = "/api/v1/document-generation/templates/{templateId}/jobs/preview",
@@ -81,15 +101,16 @@ public class GenerationJobRoutes implements Routes {
             summary = "Draw a template for the first of many members and list what every member lacks",
             tags = {"Documents"},
             pathParams = @OpenApiParam(name = "templateId", type = Integer.class, required = true),
-            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = MemberSelection.class)),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = JobPreviewRequest.class)),
             responses = {
                 @OpenApiResponse(status = "200", content = @OpenApiContent(from = BulkPreviewResponse.class)),
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void preview(Context ctx) {
         var session = StationSession.from(ctx);
-        var selection = ctx.bodyAsClass(MemberSelection.class);
-        ctx.json(bulk.preview(session, requireOwnedTemplate(ctx), selection));
+        var request = ctx.bodyAsClass(JobPreviewRequest.class);
+        var selection = new MemberSelection(request.memberIds(), request.audience());
+        ctx.json(bulk.preview(session, requireOwnedTemplate(ctx), selection, request.issuer()));
     }
 
     @OpenApi(
@@ -108,7 +129,8 @@ public class GenerationJobRoutes implements Routes {
         var request = ctx.bodyAsClass(JobStartRequest.class);
         var selection = new MemberSelection(request.memberIds(), request.audience());
         ctx.status(HttpStatus.ACCEPTED)
-                .json(bulk.start(session, requireOwnedTemplate(ctx), selection, request.acceptMissing()));
+                .json(bulk.start(
+                        session, requireOwnedTemplate(ctx), selection, request.acceptMissing(), request.issuer()));
     }
 
     @OpenApi(

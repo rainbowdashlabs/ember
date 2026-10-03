@@ -31,7 +31,19 @@ import static org.mockito.Mockito.when;
  */
 class GenerationLogRoutesTest {
     private static final GeneratedDocumentEntry ENTRY = new GeneratedDocumentEntry(
-            7, Instant.EPOCH, 8, "Bescheinigung", 2, true, 11, "Erika Muster", "Nora Fülling", false, 21);
+            7,
+            Instant.EPOCH,
+            8,
+            "Bescheinigung",
+            2,
+            true,
+            11,
+            "Erika Muster",
+            "Nora Fülling",
+            false,
+            21,
+            "Nora Fülling",
+            "Jugendwartin");
 
     private GenerationLogService log;
     private RouteHarness harness;

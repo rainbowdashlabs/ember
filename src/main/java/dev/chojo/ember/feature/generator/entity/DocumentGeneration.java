@@ -29,6 +29,12 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * @param pdfOriginalId   the uploaded PDF it was filled from, or null for a letter
  * @param eventId         the appointment that asked for it, or null where none did or it is gone
  * @param eventDate       the date of that appointment, or null where none asked for it
+ * @param issuerId        the member who issues it and to whom its signature field {@code issuer}
+ *                        belongs, or null where it names no issuer, none could be named, or they are gone
+ * @param issuerFunction  what the issuer does at the station, as printed, or null
+ * @param issuerFixed     whether the issuer is the one the template names, whose signature may be
+ *                        applied without the issuer signing each document by hand
+ * @param issuerSigns     whether the document carries the signature field of the issuer
  */
 public record DocumentGeneration(
         int id,
@@ -43,7 +49,11 @@ public record DocumentGeneration(
         String fileSha256,
         @Nullable Integer pdfOriginalId,
         @Nullable Integer eventId,
-        @Nullable LocalDate eventDate) {
+        @Nullable LocalDate eventDate,
+        @Nullable Integer issuerId,
+        @Nullable String issuerFunction,
+        boolean issuerFixed,
+        boolean issuerSigns) {
 
     public static RowMapping<DocumentGeneration> map() {
         return row -> new DocumentGeneration(
@@ -59,6 +69,10 @@ public record DocumentGeneration(
                 row.getString("file_sha256"),
                 row.getObject("pdf_original_id", Integer.class),
                 row.getObject("event_id", Integer.class),
-                row.getObject("event_date", LocalDate.class));
+                row.getObject("event_date", LocalDate.class),
+                row.getObject("issuer_id", Integer.class),
+                row.getString("issuer_function"),
+                row.getBoolean("issuer_fixed"),
+                row.getBoolean("issuer_signs"));
     }
 }

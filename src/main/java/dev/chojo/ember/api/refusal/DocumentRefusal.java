@@ -315,7 +315,13 @@ public enum DocumentRefusal implements Refusal {
 
     /** A PDF template being copied whose stored PDF cannot be read. */
     DOCUMENT_TEMPLATE_COPY_PDF_GONE(
-            101, HttpStatus.CONFLICT, "The PDF of this template could not be read, so no copy was made");
+            101, HttpStatus.CONFLICT, "The PDF of this template could not be read, so no copy was made"),
+
+    /**
+     * An issuer named for a template, for how a station uses one of its association, or for one document
+     * or run, who is no current member of the station. An association names none, since it has no members.
+     */
+    DOCUMENT_ISSUER_NOT_HERE(102, HttpStatus.BAD_REQUEST, "The issuing person is no current member of this station");
 
     private final Definition definition;
 

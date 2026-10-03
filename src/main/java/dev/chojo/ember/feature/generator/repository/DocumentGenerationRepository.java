@@ -27,7 +27,8 @@ public class DocumentGenerationRepository {
 
     private static final String COLUMNS = """
             id, station_id, template_id, template_version, member_id, generated_by, generated_at, self_service,
-            document_id, file_sha256, pdf_original_id, event_id, event_date""";
+            document_id, file_sha256, pdf_original_id, event_id, event_date, issuer_id, issuer_function, issuer_fixed,
+            issuer_signs""";
 
     /**
      * Writes one entry of the log with the people whose data went into the document.
@@ -40,10 +41,12 @@ public class DocumentGenerationRepository {
         var written = query("""
                         INSERT INTO document_generation(station_id, template_id, template_version, member_id,
                                                         generated_by, generated_at, self_service, document_id,
-                                                        file_sha256, pdf_original_id, event_id, event_date)
+                                                        file_sha256, pdf_original_id, event_id, event_date,
+                                                        issuer_id, issuer_function, issuer_fixed, issuer_signs)
                         VALUES (:station_id, :template_id, :template_version, :member_id,
                                 :generated_by, :generated_at, :self_service, :document_id, :file_hash,
-                                :pdf_original_id, :event_id, :event_date)
+                                :pdf_original_id, :event_id, :event_date, :issuer_id, :issuer_function,
+                                :issuer_fixed, :issuer_signs)
                         RETURNING %s;""", COLUMNS)
                 .single(call().bind("station_id", entry.stationId())
                         .bind("generated_at", entry.generatedAt(), INSTANT_TIMESTAMP)
@@ -56,7 +59,11 @@ public class DocumentGenerationRepository {
                         .bind("file_hash", entry.fileSha256())
                         .bind("pdf_original_id", entry.pdfOriginalId())
                         .bind("event_id", entry.eventId())
-                        .bind("event_date", entry.eventDate()))
+                        .bind("event_date", entry.eventDate())
+                        .bind("issuer_id", entry.issuerId())
+                        .bind("issuer_function", entry.issuerFunction())
+                        .bind("issuer_fixed", entry.issuerFixed())
+                        .bind("issuer_signs", entry.issuerSigns()))
                 .map(DocumentGeneration.map())
                 .first()
                 .orElseThrow();
@@ -109,7 +116,7 @@ public class DocumentGenerationRepository {
         return query("""
                 SELECT g.id, g.generated_at, g.template_id, t.name AS template_name, g.template_version,
                        t.cluster_id IS NOT NULL AS of_association, g.member_id, g.generated_by, g.self_service,
-                       g.document_id
+                       g.document_id, g.issuer_id, g.issuer_function
                 FROM document_generation g
                 JOIN document_template t ON t.id = g.template_id
                 WHERE g.station_id = :station_id

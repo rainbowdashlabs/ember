@@ -89,7 +89,8 @@ class AppointmentDocumentServiceTest extends GeneratorTestBase {
                 new GuardianPolicy(stationMemberRepo),
                 eventRegistrationRepo,
                 eventFieldRepo,
-                memberNameResolver);
+                memberNameResolver,
+                wiring.issuers());
     }
 
     private static StationEvent event(String name) {

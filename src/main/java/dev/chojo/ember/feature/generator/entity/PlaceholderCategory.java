@@ -24,6 +24,8 @@ public enum PlaceholderCategory {
     ASSOCIATION(PlaceholderGroup.ASSOCIATION, "Verband", "Association"),
     /** The appointment a document is generated for. */
     APPOINTMENT(PlaceholderGroup.EVENT, "Termin", "Appointment"),
+    /** The member who issues the document for the station. */
+    ISSUER(PlaceholderGroup.ISSUER, "Ausstellende Person", "Issuer"),
     /** The document itself. */
     DOCUMENT(PlaceholderGroup.DOCUMENT, "Dokument", "Document");
 

@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.generator.service;
 
 import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.api.refusal.RefusalDetail;
+import dev.chojo.ember.feature.generator.entity.DocumentIssuer;
 import dev.chojo.ember.feature.generator.entity.DocumentLanguage;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplate;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplateDraft;
@@ -36,7 +37,7 @@ import java.util.Objects;
  * placeholder the catalogue does not know would only ever print as a gap. A letter's rows are checked
  * by {@link LetterChecks}, its pictures against the owner's media library, a PDF template's fields by
  * {@link PdfLayoutChecks}. A font family the template names has to be one the owner reaches
- * ({@link FontLibrary}).
+ * ({@link FontLibrary}). The issuer has to be a current member of the station ({@link DocumentIssuerService}).
  *
  * <p>A template for appointments is a legal one whatever the request says, since its copies are handed
  * to participants to sign. It stays one for as long as an appointment or an appointment template
@@ -69,6 +70,7 @@ public class TemplateChecks {
     private final PlaceholderCatalogue catalogue;
     private final FontLibrary fonts;
     private final OwnerStores stores;
+    private final DocumentIssuerService issuers;
 
     @Inject
     public TemplateChecks(
@@ -78,7 +80,8 @@ public class TemplateChecks {
             StationRepository stations,
             PlaceholderCatalogue catalogue,
             FontLibrary fonts,
-            OwnerStores stores) {
+            OwnerStores stores,
+            DocumentIssuerService issuers) {
         this.templates = templates;
         this.pdfTemplates = pdfTemplates;
         this.letters = letters;
@@ -86,6 +89,7 @@ public class TemplateChecks {
         this.catalogue = catalogue;
         this.fonts = fonts;
         this.stores = stores;
+        this.issuers = issuers;
     }
 
     /**
@@ -103,7 +107,9 @@ public class TemplateChecks {
         if (existing != null && !request.forAppointments() && templates.requiredByAppointments(existing.id())) {
             throw DocumentRefusal.DOCUMENT_TEMPLATE_REQUIRED_BY_APPOINTMENTS.raise();
         }
-        return build(owner, request, requireName(owner, request.name(), exceptId), existing);
+        var issuer = issuers.checked(
+                owner, request.issuerId(), request.issuerFunction(), existing == null ? null : existing.issuerId());
+        return build(owner, request, requireName(owner, request.name(), exceptId), existing, issuer);
     }
 
     /**
@@ -119,11 +125,20 @@ public class TemplateChecks {
     public DocumentTemplateDraft preview(
             Owner owner, DocumentTemplateRequest request, @Nullable DocumentTemplate saved) {
         String name = request.name();
-        return build(owner, request, name == null || name.isBlank() ? "Vorschau" : name.strip(), saved);
+        return build(
+                owner,
+                request,
+                name == null || name.isBlank() ? "Vorschau" : name.strip(),
+                saved,
+                DocumentIssuerService.drafted(request.issuerId(), request.issuerFunction()));
     }
 
     private DocumentTemplateDraft build(
-            Owner owner, DocumentTemplateRequest request, String name, @Nullable DocumentTemplate existing) {
+            Owner owner,
+            DocumentTemplateRequest request,
+            String name,
+            @Nullable DocumentTemplate existing,
+            DocumentIssuer issuer) {
         String titlePattern = pattern(request.titlePattern(), name + " {{today}}");
         String fileNamePattern = pattern(request.fileNamePattern(), name + " {{member.lastName}} {{today}}");
         var content = content(owner, request, existing);
@@ -144,6 +159,8 @@ public class TemplateChecks {
                 cooldown,
                 audience.mode(),
                 language(owner, request.language()),
+                issuer.memberId(),
+                issuer.function(),
                 content);
         catalogue.requireKnown(owner, draft);
         fonts.requireReachable(owner, content);

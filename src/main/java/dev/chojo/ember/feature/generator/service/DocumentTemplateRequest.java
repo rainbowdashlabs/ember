@@ -40,6 +40,9 @@ import java.util.List;
  * @param cooldownDays    the days between two self service documents for one member
  * @param audience        who may generate it through self service
  * @param language        the language the documents are written in, the station's where left out
+ * @param issuerId        the member of the station who issues the documents, or null for nobody; a
+ *                        template of an association names none
+ * @param issuerFunction  what the issuer does at the station, or null where nothing is said
  * @param header          the rows across the top of every page of a letter
  * @param footer          the rows across the bottom of every page of a letter
  * @param body            the rows of a letter, placeholders written as {@code {{key}}} in its texts
@@ -61,6 +64,8 @@ public record DocumentTemplateRequest(
         @Nullable Integer cooldownDays,
         @Nullable RestrictionAudience audience,
         @Nullable DocumentLanguage language,
+        @Nullable Integer issuerId,
+        @Nullable String issuerFunction,
         @Nullable List<BlockRowRequest> header,
         @Nullable List<BlockRowRequest> footer,
         @Nullable List<BlockRowRequest> body,

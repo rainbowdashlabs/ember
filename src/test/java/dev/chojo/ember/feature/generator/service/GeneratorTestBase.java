@@ -59,6 +59,7 @@ public abstract class GeneratorTestBase extends RepositoryTestBase {
      * @param generation what draws and files a document
      * @param documents  the member documents
      * @param log        the generation log
+     * @param issuers    who issues the documents of a template
      */
     public record Wiring(
             Station station,
@@ -68,7 +69,8 @@ public abstract class GeneratorTestBase extends RepositoryTestBase {
             DocumentGeneratorService generator,
             DocumentGenerationService generation,
             DocumentService documents,
-            DocumentGenerationRepository log) {
+            DocumentGenerationRepository log,
+            DocumentIssuerService issuers) {
 
         StationMember member(String email, String first, String last) {
             return stationMemberRepo.create(
@@ -107,6 +109,8 @@ public abstract class GeneratorTestBase extends RepositoryTestBase {
         var templateRepository = new DocumentTemplateRepository();
         var pdfTemplates = new PdfTemplateRepository();
         var fonts = newFontLibrary(storage);
+        var uses = new TemplateStationUseRepository();
+        var issuers = new DocumentIssuerService(stationMemberRepo, uses);
         var checks = new TemplateChecks(
                 templateRepository,
                 pdfTemplates,
@@ -114,15 +118,10 @@ public abstract class GeneratorTestBase extends RepositoryTestBase {
                 stationRepo,
                 catalogue,
                 fonts,
-                newOwnerStores());
+                newOwnerStores(),
+                issuers);
         var templates = new DocumentTemplateService(
-                templateRepository,
-                pdfTemplates,
-                new TemplateStationUseRepository(),
-                checks,
-                restrictionService,
-                catalogue,
-                newOwnerStores());
+                templateRepository, pdfTemplates, uses, checks, restrictionService, catalogue, newOwnerStores());
         var pdfRenderer = new PdfTemplateRenderer(
                 new PdfTemplateService(
                         templates, templateRepository, pdfTemplates, newDocumentIntake(), storage, newOwnerStores()),
@@ -138,9 +137,9 @@ public abstract class GeneratorTestBase extends RepositoryTestBase {
                 restrictionService,
                 clock);
         var log = new DocumentGenerationRepository();
-        var generation =
-                new DocumentGenerationService(templates, generator, documents, newDocumentIntake(), log, checks, clock);
-        return new Wiring(station, owner, clock, templates, generator, generation, documents, log);
+        var generation = new DocumentGenerationService(
+                templates, generator, documents, newDocumentIntake(), log, checks, issuers, clock);
+        return new Wiring(station, owner, clock, templates, generator, generation, documents, log, issuers);
     }
 
     static StationSession as(StationMember member, StationPermission... permissions) {

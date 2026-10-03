@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.generator.repository;
 
 import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
+import dev.chojo.ember.feature.generator.entity.DocumentIssuer;
 import dev.chojo.ember.feature.generator.entity.GenerationJob;
 import dev.chojo.ember.feature.generator.entity.GenerationJobMember;
 import dev.chojo.ember.feature.generator.entity.JobMemberStatus;
@@ -27,7 +28,7 @@ public class GenerationJobRepository {
 
     private static final String JOB = """
             SELECT j.id, j.station_id, j.template_id, t.name AS template_name, j.started_by, j.accept_missing,
-                   j.started_at, j.finished_at,
+                   j.issuer_id, j.issuer_function, j.issuer_fixed, j.started_at, j.finished_at,
                    count(m.member_id)::int                                AS total,
                    (count(m.member_id) FILTER (WHERE m.status = 'FILED'))::int  AS filed,
                    (count(m.member_id) FILTER (WHERE m.status = 'FAILED'))::int AS failed
@@ -42,18 +43,30 @@ public class GenerationJobRepository {
      * @param templateId    the template
      * @param startedBy     the manager who starts it
      * @param acceptMissing whether a member with incomplete data still gets a document
+     * @param issuer        who issues every document of the run
      * @param memberIds     the members in the order they are generated
      * @return the run's id
      */
-    public int create(int stationId, int templateId, int startedBy, boolean acceptMissing, List<Integer> memberIds) {
+    public int create(
+            int stationId,
+            int templateId,
+            int startedBy,
+            boolean acceptMissing,
+            DocumentIssuer issuer,
+            List<Integer> memberIds) {
         int jobId = query("""
-                        INSERT INTO document_generation_job(station_id, template_id, started_by, accept_missing)
-                        VALUES (:station_id, :template_id, :started_by, :accept_missing)
+                        INSERT INTO document_generation_job(station_id, template_id, started_by, accept_missing,
+                                                            issuer_id, issuer_function, issuer_fixed)
+                        VALUES (:station_id, :template_id, :started_by, :accept_missing,
+                                :issuer_id, :issuer_function, :issuer_fixed)
                         RETURNING id;""")
                 .single(call().bind("station_id", stationId)
                         .bind("template_id", templateId)
                         .bind("started_by", startedBy)
-                        .bind("accept_missing", acceptMissing))
+                        .bind("accept_missing", acceptMissing)
+                        .bind("issuer_id", issuer.memberId())
+                        .bind("issuer_function", issuer.function())
+                        .bind("issuer_fixed", issuer.fixed()))
                 .map(row -> row.getInt("id"))
                 .first()
                 .orElseThrow();

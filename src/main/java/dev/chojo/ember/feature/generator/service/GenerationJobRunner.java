@@ -116,7 +116,7 @@ public class GenerationJobRunner implements TaskSource {
 
     private void work(GenerationJob job, DocumentTemplate template) {
         var source = generator.sourceOf(template);
-        var context = GenerationContext.by(job.startedBy());
+        var context = GenerationContext.by(job.startedBy(), job.issuer());
         for (int memberId : jobs.waiting(job.id())) {
             try {
                 if (template.archived()) throw DocumentRefusal.DOCUMENT_TEMPLATE_ARCHIVED.raise();

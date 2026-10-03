@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:a15512a1137ec7b4968fc0373e2d53d9a172fc092db8f635c179c831bbae7008",
-  "generatedAt": "2026-10-03T17:20:23Z",
+  "schemaHash": "sha256:d3086be593ca10bbef247d5d2b4e001b84afa152666d5eddc0212da0b04ad059",
+  "generatedAt": "2026-10-03T19:37:13Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -6325,7 +6325,7 @@
       "description": "A font uploaded for documents, one file per family and style. Owned by the instance (station_id and cluster_id both NULL), an association (cluster_id) or a station (station_id). A station reaches its own fonts, its association's and the instance's; on a family name found at several, the nearest owner wins. The file is kept in the owner's storage under fonts/<id> and never sent to a browser."
     },
     "document_generation": {
-      "tableHash": "sha256:d1286e8ad1be47feddded112e5f57034cf767cd103eff88e9f5ded5fc2fe05d6",
+      "tableHash": "sha256:432d4f9379816a510702311d3709173ce94e38bfd59b604700e8fca381e4f0ac",
       "columns": [
         {
           "name": "id",
@@ -6417,6 +6417,34 @@
           "nullable": true,
           "verified": true,
           "description": "The day of the appointment the document was generated for, which tells the dates of a repeating appointment apart. NULL where event_id never was set."
+        },
+        {
+          "name": "issuer_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The member who issues the document, whose name it prints and to whom the signature field named issuer belongs. NULL where the document names no issuer or none could be named, and once that member was deleted."
+        },
+        {
+          "name": "issuer_function",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "What the issuer does at the station, as the document printed it. NULL where it names no issuer function."
+        },
+        {
+          "name": "issuer_fixed",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Whether the issuer is the one the template names for the station, as for every document of self service and every document to bring, rather than another member a manager picked for this one document. A signature of the template's issuer may be applied without the issuer signing each document by hand."
+        },
+        {
+          "name": "issuer_signs",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Whether the document carries the empty signature field named issuer, which issuer_id is to sign."
         }
       ],
       "foreignKeys": [
@@ -6434,6 +6462,12 @@
         },
         {
           "column": "generated_by",
+          "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
+        {
+          "column": "issuer_id",
           "refTable": "station_member",
           "refColumn": "id",
           "onDelete": "SET NULL"
@@ -6476,6 +6510,10 @@
           {
             "type": "MEMBER_ID",
             "column": "generated_by"
+          },
+          {
+            "type": "MEMBER_ID",
+            "column": "issuer_id"
           }
         ]
       },
@@ -6491,13 +6529,18 @@
             "column": "generated_by",
             "strategy": "NULL",
             "reason": "FK ON DELETE SET NULL keeps the log, who generated it unlinked"
+          },
+          {
+            "column": "issuer_id",
+            "strategy": "NULL",
+            "reason": "FK ON DELETE SET NULL keeps the log, who issued it unlinked"
           }
         ]
       },
       "description": "Every document generated from a template: which template and which state of it, about whom, by whom, when, and the file that came out."
     },
     "document_generation_job": {
-      "tableHash": "sha256:d6b55b624e70e108739c176486081692f20a120d58086f482f1d685625d1ca15",
+      "tableHash": "sha256:eadca6a9e0d576b193f62ed1dd22e146abfa104fd88de5807f1218c723c8c900",
       "columns": [
         {
           "name": "id",
@@ -6535,6 +6578,27 @@
           "description": "Whether a member whose data the template needs is incomplete still gets a document, the gaps left to fill in by hand. Without it, such a member is listed as failed."
         },
         {
+          "name": "issuer_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The member who issues every document of the run, taken when the run was started: the template's issuer or another member the manager picked. NULL where there was none, and once that member was deleted, which every document still waiting then lacks."
+        },
+        {
+          "name": "issuer_function",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "What the issuer does at the station, printed in every document of the run. NULL where none is given."
+        },
+        {
+          "name": "issuer_fixed",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Whether the issuer of the run is the one the template names for the station rather than one the manager picked."
+        },
+        {
           "name": "started_at",
           "type": "timestamptz",
           "nullable": false,
@@ -6550,6 +6614,12 @@
         }
       ],
       "foreignKeys": [
+        {
+          "column": "issuer_id",
+          "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
         {
           "column": "started_by",
           "refTable": "station_member",
@@ -6584,6 +6654,11 @@
             "column": "started_by",
             "strategy": "CASCADE",
             "reason": "FK ON DELETE CASCADE removes the runs a deleted member started; their documents stay"
+          },
+          {
+            "column": "issuer_id",
+            "strategy": "NULL",
+            "reason": "FK ON DELETE SET NULL keeps the run; the documents still waiting miss the issuer"
           }
         ]
       },
@@ -6753,7 +6828,7 @@
       "description": "Every person whose data went into a generated document: the member it is about and the guardians it names."
     },
     "document_template": {
-      "tableHash": "sha256:057d70f22ae2115c8f520691ffb4075dc1d737a427b40ed7f744b0f816d0f6a5",
+      "tableHash": "sha256:edfe71b4fb70ec7f632164fe5d5ce9dad4020a65f8911f1b1d98ed69f46e03fa",
       "columns": [
         {
           "name": "id",
@@ -6868,6 +6943,20 @@
           "description": "DE or EN, the language the documents are written in: it picks the pronouns of the gender profile field, how dates are written, and the words the letter prints itself."
         },
         {
+          "name": "issuer_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The member of the station who issues the documents of a station's template: their official name fills issuer.fullName and the signature field for the issuer is theirs. NULL where nobody is named, for a template of an association (each station names its own in document_template_station_use), and once that member was deleted, which the template then shows as missing."
+        },
+        {
+          "name": "issuer_function",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "What the issuer does at the station, such as the title of their office, which fills issuer.function. NULL where none is given."
+        },
+        {
           "name": "version",
           "type": "int4",
           "nullable": false,
@@ -6924,6 +7013,12 @@
           "onDelete": "SET NULL"
         },
         {
+          "column": "issuer_id",
+          "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
+        {
           "column": "station_id",
           "refTable": "station",
           "refColumn": "id",
@@ -6950,6 +7045,10 @@
           {
             "type": "ACCOUNT_ID",
             "column": "updated_by"
+          },
+          {
+            "type": "MEMBER_ID",
+            "column": "issuer_id"
           }
         ]
       },
@@ -6965,6 +7064,11 @@
             "column": "updated_by",
             "strategy": "NULL",
             "reason": "FK ON DELETE SET NULL keeps the template, its last editor unlinked"
+          },
+          {
+            "column": "issuer_id",
+            "strategy": "NULL",
+            "reason": "FK ON DELETE SET NULL keeps the template, which then shows its issuer as missing"
           }
         ]
       },
@@ -7442,7 +7546,7 @@
       "description": "Who may generate a self service template of a station for themselves. Empty means every member. A template of an association has none; each station sets its own audience in document_template_station_use_restriction. Shaped like event_restriction."
     },
     "document_template_station_use": {
-      "tableHash": "sha256:e36c1873cfe370fde08f4acd59a8415bc64cbf1eb7c11718badf43f6889f251c",
+      "tableHash": "sha256:270694aa1eab9b293ad832d652d74ebc90db20579c7b7c102bc9830c97be197d",
       "columns": [
         {
           "name": "id",
@@ -7480,6 +7584,20 @@
           "description": "AND or OR, how the parts of document_template_station_use_restriction combine."
         },
         {
+          "name": "issuer_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The member of the station who issues the documents of the association's template at this station, as document_template.issuer_id does for a station's own template. NULL where the station named nobody, and once that member was deleted, which the template then shows as missing."
+        },
+        {
+          "name": "issuer_function",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "What the issuer does at the station, which fills issuer.function. NULL where none is given."
+        },
+        {
           "name": "updated_at",
           "type": "timestamptz",
           "nullable": false,
@@ -7488,6 +7606,12 @@
         }
       ],
       "foreignKeys": [
+        {
+          "column": "issuer_id",
+          "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
         {
           "column": "station_id",
           "refTable": "station",
@@ -7506,12 +7630,23 @@
         "reason": "Says how the station uses the templates of its association, which stay with the association; a station that moves leaves its association and starts without them"
       },
       "gdprExport": {
-        "status": "IGNORED",
-        "reason": "Template settings of a station, not per-member"
+        "status": "TRACKED",
+        "identityColumns": [
+          {
+            "type": "MEMBER_ID",
+            "column": "issuer_id"
+          }
+        ]
       },
       "gdprDeletion": {
-        "status": "IGNORED",
-        "reason": "Template settings of a station, not per-member"
+        "status": "TRACKED",
+        "strategies": [
+          {
+            "column": "issuer_id",
+            "strategy": "NULL",
+            "reason": "FK ON DELETE SET NULL keeps how the station uses the template, which then shows its issuer as missing"
+          }
+        ]
       },
       "description": "How a station uses a template of its association. Its managers generate every template of the association in use; whether its members generate one through self service, and who of them, the station decides here. A template without a row is not offered for self service at that station."
     },

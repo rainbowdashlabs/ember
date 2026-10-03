@@ -37,7 +37,8 @@ import java.util.List;
  * care) who holds a place, pending or accepted, on the date. Nobody else gets a copy here: a member of
  * another appointment, or of another date of this one, is refused. A copy is never hidden from the
  * participant, whatever the template says, since it is theirs to print and sign. Data the participant's
- * profile lacks is left as a gap to fill in by hand, which is what a form to print is for.
+ * profile lacks is left as a gap to fill in by hand, which is what a form to print is for. The copy is
+ * issued by the template's issuer at the station.
  *
  * <p>The status per participant and document is what the signing of these documents builds on later:
  * for now a copy is generated or it is not, and a copy from an older version of the template is marked
@@ -53,6 +54,7 @@ public class AppointmentDocumentService {
     private final EventRegistrationRepository registrations;
     private final EventFieldRepository fields;
     private final MemberNameResolver names;
+    private final DocumentIssuerService issuers;
 
     @Inject
     public AppointmentDocumentService(
@@ -63,7 +65,8 @@ public class AppointmentDocumentService {
             GuardianPolicy guardians,
             EventRegistrationRepository registrations,
             EventFieldRepository fields,
-            MemberNameResolver names) {
+            MemberNameResolver names,
+            DocumentIssuerService issuers) {
         this.requirements = requirements;
         this.templates = templates;
         this.generator = generator;
@@ -72,6 +75,7 @@ public class AppointmentDocumentService {
         this.registrations = registrations;
         this.fields = fields;
         this.names = names;
+        this.issuers = issuers;
     }
 
     /**
@@ -143,7 +147,8 @@ public class AppointmentDocumentService {
         boolean required = inUse(event.id()).stream().anyMatch(template -> template.templateId() == templateId);
         if (!required) throw DocumentRefusal.DOCUMENT_REQUIREMENT_NOT_REQUIRED.raise();
         var template = templates.requireInUse(session.stationId(), templateId);
-        var context = new GenerationContext(session.member().id(), facts(event, date));
+        var context = new GenerationContext(
+                session.member().id(), facts(event, date), issuers.ofTemplate(template, session.stationId()));
         var prepared = generator.prepare(generator.sourceOf(template), memberId, context);
         return generation.file(
                 template, memberId, session.member().id(), GenerationOrigin.appointment(event.id(), date), prepared);

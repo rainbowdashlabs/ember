@@ -13,6 +13,7 @@ import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.feature.generator.service.DocumentGenerationService;
 import dev.chojo.ember.feature.generator.service.DocumentGenerationService.GeneratedDocumentResponse;
 import dev.chojo.ember.feature.generator.service.DocumentGeneratorService.PreviewResponse;
+import dev.chojo.ember.feature.generator.service.DocumentIssuerService.IssuerChoice;
 import dev.chojo.ember.feature.generator.service.DocumentTemplateService;
 import dev.chojo.ember.feature.generator.service.SelfServiceDocumentService;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -64,10 +65,11 @@ class DocumentGenerationRoutesTest {
         when(members.findById(11)).thenReturn(Optional.of(member(11, 3)));
         when(members.findById(12)).thenReturn(Optional.of(member(12, 4)));
         when(generation.usable(OWNER)).thenReturn(List.of());
-        when(generation.preview(any(), eq(8), eq(11))).thenReturn(new PreviewResponse("JVBER", List.of(), List.of()));
+        when(generation.preview(any(), eq(8), eq(11), any()))
+                .thenReturn(new PreviewResponse("JVBER", List.of(), List.of(), null));
         when(generation.previewDraft(any(), any(), any(), any()))
-                .thenReturn(new PreviewResponse("JVBER", List.of(), List.of()));
-        when(generation.generate(any(), eq(8), eq(11))).thenReturn(FILED);
+                .thenReturn(new PreviewResponse("JVBER", List.of(), List.of(), null));
+        when(generation.generate(any(), eq(8), eq(11), any())).thenReturn(FILED);
         when(selfService.offers(any(), eq(11))).thenReturn(List.of());
         when(selfService.generate(any(), eq(8), eq(11))).thenReturn(FILED);
         harness = RouteHarness.serving(new DocumentGenerationRoutes(generation, selfService, templates, members));
@@ -93,6 +95,13 @@ class DocumentGenerationRoutesTest {
             assertEquals(201, generated.code());
             assertEquals(40, json(generated).path("documentId").asInt());
             assertEquals(
+                    201,
+                    client.post(
+                                    PREFIX + "/document-generation/templates/8/members/11",
+                                    body("{\"issuer\": {\"memberId\": 14, \"function\": \"Kassenwart\"}}"),
+                                    filer)
+                            .code());
+            assertEquals(
                     404,
                     client.post(PREFIX + "/document-generation/templates/8/members/12", null, filer)
                             .code());
@@ -101,8 +110,9 @@ class DocumentGenerationRoutesTest {
                     refusalOf(client.post(PREFIX + "/document-generation/templates/9/members/11", null, filer)));
         });
 
-        verify(generation).generate(any(), eq(8), eq(11));
-        verify(generation, never()).generate(any(), anyInt(), eq(12));
+        verify(generation).generate(any(), eq(8), eq(11), isNull());
+        verify(generation).generate(any(), eq(8), eq(11), eq(new IssuerChoice(14, "Kassenwart")));
+        verify(generation, never()).generate(any(), anyInt(), eq(12), any());
     }
 
     @Test

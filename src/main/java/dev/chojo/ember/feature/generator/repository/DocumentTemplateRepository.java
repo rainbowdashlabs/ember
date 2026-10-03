@@ -53,11 +53,12 @@ public class DocumentTemplateRepository {
                         INSERT INTO document_template(station_id, cluster_id, kind, name, title_pattern,
                                                       file_name_pattern, tags, hidden, keep_on_archive, legal,
                                                       for_appointments, self_service, self_service_cooldown_days,
-                                                      restriction_mode, language, created_by, updated_by)
+                                                      restriction_mode, language, issuer_id, issuer_function,
+                                                      created_by, updated_by)
                         VALUES (:station_id, :cluster_id, :kind, :name, :title_pattern,
                                 :file_name_pattern, :tags, :hidden, :keep_on_archive, :legal,
                                 :for_appointments, :self_service, :cooldown_days, :restriction_mode,
-                                :language, :author, :author)
+                                :language, :issuer_id, :issuer_function, :author, :author)
                         RETURNING %s;""", DocumentTemplate.COLUMNS)
                 .single(bindDraft(owned(owner).bind("kind", draft.kind()), draft)
                         .bind("author", authorId))
@@ -89,6 +90,8 @@ public class DocumentTemplateRepository {
                             self_service_cooldown_days = :cooldown_days,
                             restriction_mode           = :restriction_mode,
                             language                   = :language,
+                            issuer_id                  = :issuer_id,
+                            issuer_function            = :issuer_function,
                             version                   = version + 1,
                             updated_at                 = now(),
                             updated_by                 = :author
@@ -132,7 +135,9 @@ public class DocumentTemplateRepository {
                 .bind("self_service", draft.selfService())
                 .bind("cooldown_days", draft.cooldownDays())
                 .bind("restriction_mode", draft.restrictionMode())
-                .bind("language", draft.language());
+                .bind("language", draft.language())
+                .bind("issuer_id", draft.issuerId())
+                .bind("issuer_function", draft.issuerFunction());
     }
 
     /**

@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.generator.entity;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -22,7 +23,8 @@ import java.util.Optional;
  *
  * <p>The values of a person stand in the picker below the {@link PlaceholderSubgroup#DETAILS details}
  * of the member or the guardian, the others right below their category. A guardian's value is named
- * shortly there, and its label puts the guardian in front.
+ * shortly there, and its label puts the guardian in front; so does the label of a value of the issuer
+ * ({@link DocumentIssuer}), "Ausstellende Person: Name".
  */
 public enum BuiltInPlaceholder {
     MEMBER_FIRST_NAME("member.firstName", PlaceholderCategory.MEMBER, "Vorname", "First name"),
@@ -56,6 +58,8 @@ public enum BuiltInPlaceholder {
     EVENT_START("event.start", PlaceholderCategory.APPOINTMENT, "Beginn des Termins", "Appointment start"),
     EVENT_END("event.end", PlaceholderCategory.APPOINTMENT, "Ende des Termins", "Appointment end"),
     EVENT_LOCATION("event.location", PlaceholderCategory.APPOINTMENT, "Ort des Termins", "Appointment location"),
+    ISSUER_FULL_NAME("issuer.fullName", PlaceholderCategory.ISSUER, "Name", "Name"),
+    ISSUER_FUNCTION("issuer.function", PlaceholderCategory.ISSUER, "Funktion", "Function"),
     TODAY("today", PlaceholderCategory.DOCUMENT, "Heutiges Datum", "Today's date"),
     TODAY_LONG(
             "today.long", PlaceholderCategory.DOCUMENT, "Heutiges Datum, ausgeschrieben", "Today's date, written out"),
@@ -90,9 +94,10 @@ public enum BuiltInPlaceholder {
         var path = guardian || group == PlaceholderGroup.MEMBER
                 ? List.of(categoryWord, PlaceholderSubgroup.DETAILS.word(language), name)
                 : List.of(categoryWord, name);
+        boolean namedByWhose = guardian || group == PlaceholderGroup.ISSUER;
         return new Placeholder(
                 key,
-                guardian ? categoryWord + ": " + name : name,
+                namedByWhose ? categoryWord + ": " + name : name,
                 group,
                 category,
                 path,
@@ -106,5 +111,16 @@ public enum BuiltInPlaceholder {
      */
     public static Optional<BuiltInPlaceholder> of(String key) {
         return Arrays.stream(values()).filter(value -> value.key.equals(key)).findFirst();
+    }
+
+    /**
+     * @param keys the keys a document names
+     * @return whether one of them is a value of the issuer
+     */
+    public static boolean namesIssuer(Collection<String> keys) {
+        return keys.stream()
+                .map(BuiltInPlaceholder::of)
+                .flatMap(Optional::stream)
+                .anyMatch(placeholder -> placeholder.category == PlaceholderCategory.ISSUER);
     }
 }

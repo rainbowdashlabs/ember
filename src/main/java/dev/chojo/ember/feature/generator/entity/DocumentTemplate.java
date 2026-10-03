@@ -37,6 +37,9 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * @param cooldownDays     how many days a member waits before generating it again through self service
  * @param restrictionMode  how the parts of the self service audience combine
  * @param language         the language its documents are written in
+ * @param issuerId         the member of the station who issues its documents, or null where it names
+ *                         nobody, for a template of an association, and once that member was deleted
+ * @param issuerFunction   what the issuer does at the station, or null where nothing is said
  * @param version          counts up with every change
  * @param createdAt        when it was created
  * @param updatedAt        when it was last changed
@@ -58,6 +61,8 @@ public record DocumentTemplate(
         int cooldownDays,
         RestrictionMode restrictionMode,
         DocumentLanguage language,
+        @Nullable Integer issuerId,
+        @Nullable String issuerFunction,
         int version,
         Instant createdAt,
         Instant updatedAt,
@@ -66,8 +71,13 @@ public record DocumentTemplate(
     /** The columns {@link #map()} reads, in a form a query can splice in. */
     public static final String COLUMNS = """
             id, station_id, cluster_id, kind, name, title_pattern, file_name_pattern, tags, hidden, keep_on_archive,
-            legal, for_appointments, self_service, self_service_cooldown_days, restriction_mode, language, version,
-            created_at, updated_at, archived_at""";
+            legal, for_appointments, self_service, self_service_cooldown_days, restriction_mode, language, issuer_id,
+            issuer_function, version, created_at, updated_at, archived_at""";
+
+    /** @return the issuer the template names itself, nobody for a template of an association */
+    public DocumentIssuer issuer() {
+        return DocumentIssuer.ofTemplate(issuerId, issuerFunction);
+    }
 
     /** Whether the template is archived and generates nothing more. */
     public boolean archived() {
@@ -96,6 +106,8 @@ public record DocumentTemplate(
                 row.getInt("self_service_cooldown_days"),
                 row.getEnum("restriction_mode", RestrictionMode.class),
                 row.getEnum("language", DocumentLanguage.class),
+                row.getObject("issuer_id", Integer.class),
+                row.getString("issuer_function"),
                 row.getInt("version"),
                 row.get("created_at", INSTANT_TIMESTAMP),
                 row.get("updated_at", INSTANT_TIMESTAMP),

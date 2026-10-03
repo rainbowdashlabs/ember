@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.documents.service.DocumentService;
 import dev.chojo.ember.feature.generator.entity.FontStyle;
 import dev.chojo.ember.feature.generator.entity.LetterPage;
+import dev.chojo.ember.feature.generator.entity.MissingValue;
 import dev.chojo.ember.feature.generator.entity.Placeholder;
 import dev.chojo.ember.feature.generator.repository.DocumentFontRepository;
 import dev.chojo.ember.feature.generator.repository.DocumentGenerationRepository;
@@ -188,6 +189,7 @@ class AssociationTemplateTest extends RepositoryTestBase {
         var pdfTemplates = new PdfTemplateRepository();
         var uses = new TemplateStationUseRepository();
         FontLibrary library = newFontLibrary(storage);
+        var issuers = new DocumentIssuerService(stationMemberRepo, uses);
         var checks = new TemplateChecks(
                 templateRepository,
                 pdfTemplates,
@@ -195,10 +197,11 @@ class AssociationTemplateTest extends RepositoryTestBase {
                 stationRepo,
                 catalogue,
                 library,
-                newOwnerStores());
+                newOwnerStores(),
+                issuers);
         templates = new DocumentTemplateService(
                 templateRepository, pdfTemplates, uses, checks, restrictionService, catalogue, newOwnerStores());
-        stationUses = new TemplateStationUseService(templates, uses, restrictionService);
+        stationUses = new TemplateStationUseService(templates, uses, restrictionService, issuers);
         pdfs = new PdfTemplateService(
                 templates, templateRepository, pdfTemplates, newDocumentIntake(), storage, newOwnerStores());
         var generator = new DocumentGeneratorService(
@@ -211,8 +214,8 @@ class AssociationTemplateTest extends RepositoryTestBase {
                 restrictionService,
                 clock);
         log = new DocumentGenerationRepository();
-        generation =
-                new DocumentGenerationService(templates, generator, documents, newDocumentIntake(), log, checks, clock);
+        generation = new DocumentGenerationService(
+                templates, generator, documents, newDocumentIntake(), log, checks, issuers, clock);
         selfService = new SelfServiceDocumentService(
                 templateRepository,
                 templates,
@@ -224,6 +227,7 @@ class AssociationTemplateTest extends RepositoryTestBase {
                 new GuardianPolicy(stationMemberRepo),
                 documents,
                 stationRepo,
+                issuers,
                 clock);
         var quota = new StorageQuotaService(storageUsageRepo, new Storage(), new DomainEventBus(Set.of()));
         fonts = new DocumentFontService(new DocumentFontRepository(), library, storage, quota);
@@ -244,7 +248,7 @@ class AssociationTemplateTest extends RepositoryTestBase {
     }
 
     private static String previewText(StationMember viewer, StationMember member, int templateId) throws IOException {
-        var preview = generation.preview(as(viewer), templateId, member.id());
+        var preview = generation.preview(as(viewer), templateId, member.id(), null);
         return PdfText.extract(Base64.getDecoder().decode(preview.pdfBase64()));
     }
 
@@ -328,7 +332,8 @@ class AssociationTemplateTest extends RepositoryTestBase {
         assertTrue(forLena.contains("Ausweis JF-4711"), forLena);
         assertTrue(previewText(southManager, ben, templateId).contains("Vorlagen Wache Süd"));
 
-        var filed = generation.generate(as(manager, StationPermission.DOCUMENT_EDIT_MEMBER), templateId, lena.id());
+        var filed =
+                generation.generate(as(manager, StationPermission.DOCUMENT_EDIT_MEMBER), templateId, lena.id(), null);
         var entry = log.findById(filed.generationId()).orElseThrow();
         assertEquals(north.id(), entry.stationId());
         assertEquals(templateId, entry.templateId());
@@ -342,7 +347,7 @@ class AssociationTemplateTest extends RepositoryTestBase {
                 .id();
         refused(
                 DocumentRefusal.DOCUMENT_TEMPLATE_NOT_HERE,
-                () -> generation.generate(as(manager), elsewhere, lena.id()));
+                () -> generation.generate(as(manager), elsewhere, lena.id(), null));
     }
 
     /** The association offers a template; each station switches it on for an audience of its own. */
@@ -359,7 +364,7 @@ class AssociationTemplateTest extends RepositoryTestBase {
         int notOffered = associationLetter("Nur für Verwalter", "{{member.fullName}}");
 
         assertFalse(offeredTo(lena, offered), "nothing until the station decides");
-        var everybody = new TemplateUseRequest(true, null);
+        var everybody = new TemplateUseRequest(true, null, null, null);
         assertTrue(stationUses.setUse(north.id(), offered, everybody).selfService());
         assertTrue(offeredTo(lena, offered));
         assertFalse(offeredTo(ben, offered), "another station has not switched it on");
@@ -369,7 +374,7 @@ class AssociationTemplateTest extends RepositoryTestBase {
 
         var guardiansOnly = new RestrictionAudience(
                 List.of(StationUserType.GUARDIAN), List.of(), List.of(), List.of(), RestrictionMode.AND);
-        var narrowed = stationUses.setUse(north.id(), offered, new TemplateUseRequest(true, guardiansOnly));
+        var narrowed = stationUses.setUse(north.id(), offered, new TemplateUseRequest(true, guardiansOnly, null, null));
         assertEquals(List.of(StationUserType.GUARDIAN), narrowed.audience().userTypes());
         assertFalse(offeredTo(lena, offered));
         refused(
@@ -385,6 +390,52 @@ class AssociationTemplateTest extends RepositoryTestBase {
                 () -> selfService.generate(as(lena), offered, lena.id()));
     }
 
+    /**
+     * An association has no members to name, so each station names the issuer of the association's
+     * template for itself; a station that named nobody misses the issuer.
+     */
+    @Test
+    void eachStationNamesTheIssuerOfAnAssociationsTemplate() throws IOException {
+        int templateId = templates
+                .create(
+                        association,
+                        letter("Verbandsurkunde", "Ausgestellt von {{issuer.fullName}}, {{issuer.function}}")
+                                .selfService(true)
+                                .build(),
+                        author)
+                .id();
+        refused(
+                DocumentRefusal.DOCUMENT_ISSUER_NOT_HERE,
+                () -> templates.create(
+                        association,
+                        letter("Mit Aussteller", "x").issuer(manager.id(), null).build(),
+                        author));
+        var issuerMissing = new MissingValue("issuer.fullName", "Ausstellende Person: Name");
+        assertTrue(generation
+                .preview(as(manager), templateId, lena.id(), null)
+                .missing()
+                .contains(issuerMissing));
+
+        var use = stationUses.setUse(
+                north.id(), templateId, new TemplateUseRequest(true, null, manager.id(), "Jugendwartin"));
+        refused(
+                DocumentRefusal.DOCUMENT_ISSUER_NOT_HERE,
+                () -> stationUses.setUse(north.id(), templateId, new TemplateUseRequest(true, null, ben.id(), null)));
+
+        assertEquals(manager.id(), use.issuerId());
+        assertEquals("Jugendwartin", stationUses.useOf(north.id(), templateId).issuerFunction());
+        String forLena = previewText(manager, lena, templateId);
+        assertTrue(forLena.contains("Ausgestellt von Nora Fülling, Jugendwartin"), forLena);
+        var filed = selfService.generate(as(lena), templateId, lena.id());
+        var entry = log.findById(filed.generationId()).orElseThrow();
+        assertEquals(manager.id(), entry.issuerId());
+        assertTrue(entry.issuerFixed());
+        assertTrue(generation
+                .preview(as(southManager), templateId, ben.id(), null)
+                .missing()
+                .contains(issuerMissing));
+    }
+
     private static boolean offeredTo(StationMember member, int templateId) {
         return selfService.offers(as(member), member.id()).stream().anyMatch(offer -> offer.templateId() == templateId);
     }
@@ -396,7 +447,7 @@ class AssociationTemplateTest extends RepositoryTestBase {
                 .id();
         refused(
                 DocumentRefusal.DOCUMENT_TEMPLATE_USE_NOT_ASSOCIATION,
-                () -> stationUses.setUse(north.id(), own, new TemplateUseRequest(true, null)));
+                () -> stationUses.setUse(north.id(), own, new TemplateUseRequest(true, null, null, null)));
         refused(DocumentRefusal.DOCUMENT_TEMPLATE_NOT_HERE, () -> stationUses.useOf(alone.id(), own));
     }
 
@@ -417,7 +468,8 @@ class AssociationTemplateTest extends RepositoryTestBase {
                 DocumentRefusal.DOCUMENT_TEMPLATE_KEPT_BY_ASSOCIATION,
                 () -> pdfs.current(new Owner.Station(north.id()), created.id()));
 
-        var filed = generation.generate(as(manager, StationPermission.DOCUMENT_EDIT_MEMBER), created.id(), lena.id());
+        var filed =
+                generation.generate(as(manager, StationPermission.DOCUMENT_EDIT_MEMBER), created.id(), lena.id(), null);
         assertNotNull(memberDocumentRepo.findById(filed.documentId()).orElseThrow());
     }
 

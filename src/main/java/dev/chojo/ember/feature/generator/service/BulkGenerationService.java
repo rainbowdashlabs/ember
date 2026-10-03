@@ -18,6 +18,7 @@ import dev.chojo.ember.feature.generator.entity.JobMemberStatus;
 import dev.chojo.ember.feature.generator.entity.MissingValue;
 import dev.chojo.ember.feature.generator.repository.GenerationJobRepository;
 import dev.chojo.ember.feature.generator.service.DocumentGeneratorService.PreviewResponse;
+import dev.chojo.ember.feature.generator.service.DocumentIssuerService.IssuerChoice;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
 import dev.chojo.ember.feature.restriction.service.RestrictionService;
@@ -45,6 +46,7 @@ import java.util.Objects;
  * station's current members it matches. Before a run starts, a preview draws the document of the first
  * member and lists for every member what data is missing or what keeps their document from being drawn,
  * so the manager can decide whether gaps are filed as lines to fill in by hand or keep a member out.
+ * The manager may pick another issuer for the whole run; the run keeps the issuer it was started with.
  *
  * <p>The run itself is written to the database and handed to {@link GenerationJobRunner}, so the request
  * answers at once and the run's progress and results can be read again after a reload or a restart.
@@ -66,6 +68,7 @@ public class BulkGenerationService {
     private final RestrictionService restrictions;
     private final MemberNameResolver names;
     private final DocumentService documents;
+    private final DocumentIssuerService issuers;
 
     @Inject
     public BulkGenerationService(
@@ -75,7 +78,8 @@ public class BulkGenerationService {
             GenerationJobRunner runner,
             RestrictionService restrictions,
             MemberNameResolver names,
-            DocumentService documents) {
+            DocumentService documents,
+            DocumentIssuerService issuers) {
         this.templates = templates;
         this.generator = generator;
         this.jobs = jobs;
@@ -83,6 +87,7 @@ public class BulkGenerationService {
         this.restrictions = restrictions;
         this.names = names;
         this.documents = documents;
+        this.issuers = issuers;
     }
 
     /**
@@ -182,13 +187,16 @@ public class BulkGenerationService {
      * @param session    the manager
      * @param templateId the template, already checked to be the station's
      * @param selection  whom the run would generate for
+     * @param issuer     the member the manager picked to issue the documents, or null for the template's
      * @return the preview
      */
-    public BulkPreviewResponse preview(StationSession session, int templateId, MemberSelection selection) {
+    public BulkPreviewResponse preview(
+            StationSession session, int templateId, MemberSelection selection, @Nullable IssuerChoice issuer) {
         var template = templates.requireInUse(session.stationId(), templateId);
         var memberIds = chosen(session.stationId(), selection);
         var source = generator.sourceOf(template);
-        var context = GenerationContext.by(session.member().id());
+        var context =
+                GenerationContext.by(session.member().id(), issuers.forManager(template, session.stationId(), issuer));
         var gaps = new ArrayList<MemberGaps>();
         Integer first = null;
         for (int memberId : memberIds) {
@@ -216,15 +224,21 @@ public class BulkGenerationService {
      * @param templateId    the template, already checked to be the station's
      * @param selection     whom the run generates for
      * @param acceptMissing whether members with incomplete data get a document with gaps
+     * @param issuer        the member the manager picked to issue the documents, or null for the template's
      * @return the run as it starts
      */
     public GenerationJobResponse start(
-            StationSession session, int templateId, MemberSelection selection, boolean acceptMissing) {
+            StationSession session,
+            int templateId,
+            MemberSelection selection,
+            boolean acceptMissing,
+            @Nullable IssuerChoice issuer) {
         documents.requireKept(session.stationId(), DocumentDoor.STATION);
         var template = templates.requireInUse(session.stationId(), templateId);
         var memberIds = chosen(session.stationId(), selection);
-        int jobId = Transactions.call(() ->
-                jobs.create(session.stationId(), template.id(), session.member().id(), acceptMissing, memberIds));
+        var issuedBy = issuers.forManager(template, session.stationId(), issuer);
+        int jobId = Transactions.call(() -> jobs.create(
+                session.stationId(), template.id(), session.member().id(), acceptMissing, issuedBy, memberIds));
         log.info("Run {} of template {} started for {} members", jobId, template.id(), memberIds.size());
         runner.submit(jobId);
         return job(session.stationId(), jobId);

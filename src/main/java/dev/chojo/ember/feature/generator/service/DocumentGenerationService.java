@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.generator.entity.GenerationOrigin;
 import dev.chojo.ember.feature.generator.entity.MissingValue;
 import dev.chojo.ember.feature.generator.repository.DocumentGenerationRepository;
 import dev.chojo.ember.feature.generator.service.DocumentGeneratorService.PreviewResponse;
+import dev.chojo.ember.feature.generator.service.DocumentIssuerService.IssuerChoice;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.owner.Owner;
 import jakarta.inject.Inject;
@@ -43,7 +44,12 @@ import java.util.List;
  * the member; one a manager generates follows the template.
  *
  * <p>Every document is written to the generation log with the template's version, the SHA-256 of the
- * file and everybody whose data went into it, which is what a signature later binds to.
+ * file and everybody whose data went into it, which is what a signature later binds to. The log also
+ * names the issuer the document names, whether that is the template's own issuer and whether the
+ * document carries the issuer's signature field, so whatever signs it later knows who signs there.
+ *
+ * <p>A manager may pick another issuer for one document ({@link DocumentIssuerService}); every other way
+ * of generating takes the template's.
  *
  * <p>A manager may generate a document whose values are not all there; the gaps print as lines to fill
  * in by hand on a letter and stay empty on a filled-in PDF, and the screen has warned before. Self service refuses that instead
@@ -60,6 +66,7 @@ public class DocumentGenerationService {
     private final DocumentIntake intake;
     private final DocumentGenerationRepository generations;
     private final TemplateChecks checks;
+    private final DocumentIssuerService issuers;
     private final Clock clock;
 
     @Inject
@@ -69,8 +76,9 @@ public class DocumentGenerationService {
             DocumentService documents,
             DocumentIntake intake,
             DocumentGenerationRepository generations,
-            TemplateChecks checks) {
-        this(templates, generator, documents, intake, generations, checks, Clock.systemUTC());
+            TemplateChecks checks,
+            DocumentIssuerService issuers) {
+        this(templates, generator, documents, intake, generations, checks, issuers, Clock.systemUTC());
     }
 
     /**
@@ -83,6 +91,7 @@ public class DocumentGenerationService {
             DocumentIntake intake,
             DocumentGenerationRepository generations,
             TemplateChecks checks,
+            DocumentIssuerService issuers,
             Clock clock) {
         this.templates = templates;
         this.generator = generator;
@@ -90,6 +99,7 @@ public class DocumentGenerationService {
         this.intake = intake;
         this.generations = generations;
         this.checks = checks;
+        this.issuers = issuers;
         this.clock = clock;
     }
 
@@ -121,14 +131,18 @@ public class DocumentGenerationService {
      * @param session    the manager
      * @param templateId the template, the station's own or one of its association
      * @param memberId   the member, already checked to be of the station
+     * @param issuer     the member the manager picked to issue it, or null for the template's issuer
      * @return the document and what is missing
      */
-    public PreviewResponse preview(StationSession session, int templateId, int memberId) {
+    public PreviewResponse preview(
+            StationSession session, int templateId, int memberId, @Nullable IssuerChoice issuer) {
         var template = templates.requireInUse(session.stationId(), templateId);
-        return generator.preview(
-                generator.sourceOf(template),
-                memberId,
-                GenerationContext.by(session.member().id()));
+        return generator.preview(generator.sourceOf(template), memberId, managerContext(session, template, issuer));
+    }
+
+    private GenerationContext managerContext(
+            StationSession session, DocumentTemplate template, @Nullable IssuerChoice issuer) {
+        return GenerationContext.by(session.member().id(), issuers.forManager(template, session.stationId(), issuer));
     }
 
     /**
@@ -154,7 +168,9 @@ public class DocumentGenerationService {
                 request,
                 templateId,
                 memberId,
-                GenerationContext.by(session.member().id()));
+                GenerationContext.by(
+                        session.member().id(),
+                        DocumentIssuerService.drafted(request.issuerId(), request.issuerFunction())));
     }
 
     /**
@@ -173,7 +189,7 @@ public class DocumentGenerationService {
             @Nullable Integer templateId,
             @Nullable Integer memberId) {
         if (memberId != null) throw DocumentRefusal.DOCUMENT_ASSOCIATION_PREVIEW_WITH_MEMBER.raise();
-        return previewDraft(owner, request, templateId, null, new GenerationContext(null, null));
+        return previewDraft(owner, request, templateId, null, GenerationContext.NOBODY);
     }
 
     private PreviewResponse previewDraft(
@@ -193,14 +209,14 @@ public class DocumentGenerationService {
      * @param session    the manager
      * @param templateId the template, the station's own or one of its association
      * @param memberId   the member, already checked to be of the station
+     * @param issuer     the member the manager picked to issue it, or null for the template's issuer
      * @return the filed document and what was missing
      */
-    public GeneratedDocumentResponse generate(StationSession session, int templateId, int memberId) {
+    public GeneratedDocumentResponse generate(
+            StationSession session, int templateId, int memberId, @Nullable IssuerChoice issuer) {
         var template = templates.requireInUse(session.stationId(), templateId);
-        var prepared = generator.prepare(
-                generator.sourceOf(template),
-                memberId,
-                GenerationContext.by(session.member().id()));
+        var prepared =
+                generator.prepare(generator.sourceOf(template), memberId, managerContext(session, template, issuer));
         return file(template, memberId, session.member().id(), GenerationOrigin.MANAGER, prepared);
     }
 
@@ -222,6 +238,7 @@ public class DocumentGenerationService {
             GenerationOrigin origin,
             DocumentGeneratorService.Prepared prepared) {
         int stationId = prepared.stationId();
+        var issuer = prepared.issuer();
         documents.requireKept(stationId, DocumentDoor.STATION);
         var rendered = generator.render(prepared);
         var upload = new DocumentIntake.Upload(rendered.fileName(), PDF, rendered.pdf());
@@ -252,7 +269,11 @@ public class DocumentGenerationService {
                         sha256(rendered.pdf()),
                         prepared.source().pdfOriginalId(),
                         origin.eventId(),
-                        origin.eventDate()),
+                        origin.eventDate(),
+                        issuer.memberOfRecord(),
+                        issuer.named() ? issuer.issuer().function() : null,
+                        issuer.issuer().fixed(),
+                        issuer.signs()),
                 rendered.resolved().subjects());
         log.info(
                 "Document {} generated from template {} (version {}) for member {}",

@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.generator.entity;
 
 import dev.chojo.ember.feature.restriction.RestrictionMode;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -24,6 +25,8 @@ import java.util.List;
  * @param cooldownDays    the days between two self service generations for one member
  * @param restrictionMode how the parts of the self service audience combine
  * @param language        the language its documents are written in
+ * @param issuerId        the member of the station who issues its documents, or null for nobody
+ * @param issuerFunction  what the issuer does at the station, or null where nothing is said
  * @param content         the letter, or the fields laid over the PDF
  */
 public record DocumentTemplateDraft(
@@ -39,6 +42,8 @@ public record DocumentTemplateDraft(
         int cooldownDays,
         RestrictionMode restrictionMode,
         DocumentLanguage language,
+        @Nullable Integer issuerId,
+        @Nullable String issuerFunction,
         TemplateContent content) {
 
     /** @return the kind of template the draft makes */

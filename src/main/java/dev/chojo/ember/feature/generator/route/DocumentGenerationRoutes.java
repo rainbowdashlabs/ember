@@ -13,6 +13,7 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.generator.service.DocumentGenerationService;
 import dev.chojo.ember.feature.generator.service.DocumentGenerationService.GeneratedDocumentResponse;
 import dev.chojo.ember.feature.generator.service.DocumentGeneratorService.PreviewResponse;
+import dev.chojo.ember.feature.generator.service.DocumentIssuerService.IssuerChoice;
 import dev.chojo.ember.feature.generator.service.DocumentTemplateRequest;
 import dev.chojo.ember.feature.generator.service.DocumentTemplateService;
 import dev.chojo.ember.feature.generator.service.DocumentTemplateService.DocumentTemplateSummary;
@@ -117,7 +118,7 @@ public class DocumentGenerationRoutes implements Routes {
     static DocumentTemplateRequest emptyTemplate() {
         return new DocumentTemplateRequest(
                 null, null, null, null, null, false, null, false, false, false, null, null, null, null, null, null,
-                null, null, null);
+                null, null, null, null, null);
     }
 
     @OpenApi(
@@ -131,6 +132,21 @@ public class DocumentGenerationRoutes implements Routes {
         ctx.json(generation.usable(StationSession.from(ctx).owner()));
     }
 
+    /**
+     * How a manager wants a document generated, beyond the template and the member.
+     *
+     * @param issuer the member to issue it instead of the template's issuer, or null to keep the template's
+     */
+    public record ManagerGenerationRequest(@Nullable IssuerChoice issuer) {
+
+        /** Nothing asked beyond the template's own settings. */
+        static final ManagerGenerationRequest AS_THE_TEMPLATE_SAYS = new ManagerGenerationRequest(null);
+
+        static ManagerGenerationRequest of(Context ctx) {
+            return ctx.body().isBlank() ? AS_THE_TEMPLATE_SAYS : ctx.bodyAsClass(ManagerGenerationRequest.class);
+        }
+    }
+
     @OpenApi(
             path = "/api/v1/document-generation/templates/{templateId}/members/{memberId}/preview",
             methods = HttpMethod.POST,
@@ -140,11 +156,16 @@ public class DocumentGenerationRoutes implements Routes {
                 @OpenApiParam(name = "templateId", type = Integer.class, required = true),
                 @OpenApiParam(name = "memberId", type = Integer.class, required = true)
             },
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = PreviewResponse.class)))
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ManagerGenerationRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = PreviewResponse.class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
     private void preview(Context ctx) {
         var session = StationSession.from(ctx);
         int memberId = requireOwnedMember(ctx, RouteSupport.pathInt(ctx, "memberId"));
-        ctx.json(generation.preview(session, requireOwnedTemplate(ctx), memberId));
+        var request = ManagerGenerationRequest.of(ctx);
+        ctx.json(generation.preview(session, requireOwnedTemplate(ctx), memberId, request.issuer()));
     }
 
     @OpenApi(
@@ -156,6 +177,7 @@ public class DocumentGenerationRoutes implements Routes {
                 @OpenApiParam(name = "templateId", type = Integer.class, required = true),
                 @OpenApiParam(name = "memberId", type = Integer.class, required = true)
             },
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ManagerGenerationRequest.class)),
             responses = {
                 @OpenApiResponse(status = "201", content = @OpenApiContent(from = GeneratedDocumentResponse.class)),
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
@@ -163,7 +185,9 @@ public class DocumentGenerationRoutes implements Routes {
     private void generate(Context ctx) {
         var session = StationSession.from(ctx);
         int memberId = requireOwnedMember(ctx, RouteSupport.pathInt(ctx, "memberId"));
-        ctx.status(HttpStatus.CREATED).json(generation.generate(session, requireOwnedTemplate(ctx), memberId));
+        var request = ManagerGenerationRequest.of(ctx);
+        ctx.status(HttpStatus.CREATED)
+                .json(generation.generate(session, requireOwnedTemplate(ctx), memberId, request.issuer()));
     }
 
     @OpenApi(

@@ -115,7 +115,8 @@ class DocumentTemplateServiceTest extends RepositoryTestBase {
                         stationRepo,
                         catalogue,
                         newFontLibrary(new StorageService(new StorageBackendResolver(localStorage()), localStorage())),
-                        newOwnerStores()),
+                        newOwnerStores(),
+                        new DocumentIssuerService(stationMemberRepo, new TemplateStationUseRepository())),
                 restrictionService,
                 catalogue,
                 newOwnerStores());

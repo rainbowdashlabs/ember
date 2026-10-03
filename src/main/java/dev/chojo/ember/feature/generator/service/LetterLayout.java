@@ -141,9 +141,21 @@ final class LetterLayout {
      * @param refusal what to refuse with
      */
     static void requireSignersOnce(LetterContent letter, MemberView view, Refusal refusal) {
+        if (!SignatureRole.distinct(signatureFields(letter, view))) throw refusal.raise();
+    }
+
+    /**
+     * The signature fields a member's letter carries.
+     *
+     * @param letter the letter
+     * @param view   what of the letter the member sees
+     * @return the names of the fields, in the order they are printed, a name twice where two lines ask
+     *         for it
+     */
+    static List<String> signatureFields(LetterContent letter, MemberView view) {
         var layout = new LetterLayout(view, new Blocks() {});
         layout.letter(letter);
-        if (!SignatureRole.distinct(layout.signatureFields)) throw refusal.raise();
+        return List.copyOf(layout.signatureFields);
     }
 
     private List<Map<String, Object>> rows(List<ContentRow> rows, boolean visible) {

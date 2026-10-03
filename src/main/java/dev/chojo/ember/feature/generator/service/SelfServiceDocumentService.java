@@ -47,6 +47,9 @@ import java.util.stream.Stream;
  *
  * <p>Only documents generated here count towards the wait; one a manager filed does not keep the
  * member from generating their own.
+ *
+ * <p>The document is always issued by the template's issuer at the station; an issuer that cannot be
+ * named is missing data like any other.
  */
 @Singleton
 public class SelfServiceDocumentService {
@@ -62,6 +65,7 @@ public class SelfServiceDocumentService {
     private final GuardianPolicy guardians;
     private final DocumentService documents;
     private final StationRepository stations;
+    private final DocumentIssuerService issuers;
     private final Clock clock;
 
     @Inject
@@ -75,7 +79,8 @@ public class SelfServiceDocumentService {
             RestrictionService restrictions,
             GuardianPolicy guardians,
             DocumentService documents,
-            StationRepository stations) {
+            StationRepository stations,
+            DocumentIssuerService issuers) {
         this(
                 templates,
                 templateService,
@@ -87,6 +92,7 @@ public class SelfServiceDocumentService {
                 guardians,
                 documents,
                 stations,
+                issuers,
                 Clock.systemUTC());
     }
 
@@ -104,6 +110,7 @@ public class SelfServiceDocumentService {
             GuardianPolicy guardians,
             DocumentService documents,
             StationRepository stations,
+            DocumentIssuerService issuers,
             Clock clock) {
         this.templates = templates;
         this.templateService = templateService;
@@ -115,6 +122,7 @@ public class SelfServiceDocumentService {
         this.guardians = guardians;
         this.documents = documents;
         this.stations = stations;
+        this.issuers = issuers;
         this.clock = clock;
     }
 
@@ -173,10 +181,7 @@ public class SelfServiceDocumentService {
         if (openAgain != null) {
             throw DocumentRefusal.DOCUMENT_SELF_SERVICE_COOLING_DOWN.raise(RefusalDetail.text(day(session, openAgain)));
         }
-        var prepared = generator.prepare(
-                generator.sourceOf(template),
-                memberId,
-                GenerationContext.by(session.member().id()));
+        var prepared = prepare(session, template, memberId);
         var missing = generator.missing(prepared);
         if (!missing.isEmpty()) {
             String labels = missing.stream().map(MissingValue::label).collect(Collectors.joining(", "));
@@ -185,11 +190,17 @@ public class SelfServiceDocumentService {
         return generation.file(template, memberId, session.member().id(), GenerationOrigin.SELF_SERVICE, prepared);
     }
 
-    private SelfServiceOffer offer(StationSession session, DocumentTemplate template, int memberId) {
-        var prepared = generator.prepare(
+    /** The values of a document for the member, issued by the template's issuer at the station. */
+    private DocumentGeneratorService.Prepared prepare(StationSession session, DocumentTemplate template, int memberId) {
+        var issuer = issuers.ofTemplate(template, session.stationId());
+        return generator.prepare(
                 generator.sourceOf(template),
                 memberId,
-                GenerationContext.by(session.member().id()));
+                GenerationContext.by(session.member().id(), issuer));
+    }
+
+    private SelfServiceOffer offer(StationSession session, DocumentTemplate template, int memberId) {
+        var prepared = prepare(session, template, memberId);
         var lastUsed = generations.lastSelfService(template.id(), memberId);
         return new SelfServiceOffer(
                 template.id(),
