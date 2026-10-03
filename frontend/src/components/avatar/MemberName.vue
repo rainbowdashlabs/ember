@@ -20,9 +20,12 @@ const props = withDefaults(defineProps<{
   identity: PersonIdentity | null | undefined
   size?: 'sm' | 'md' | 'lg'
   detail?: string | null
+  /** Keeps the name on one line, cut short with an ellipsis only where the space runs out. */
+  truncate?: boolean
 }>(), {
   size: 'sm',
   detail: null,
+  truncate: false,
 })
 
 const {sessionInfo} = useSession()
@@ -42,11 +45,11 @@ const displayName = computed(() => {
 </script>
 
 <template>
-  <span class="inline-flex items-center gap-1.5">
+  <span class="inline-flex items-center gap-1.5" :class="{'min-w-0 max-w-full': truncate}">
     <UserAvatar :identity="identity" :name="displayName" :size="size"/>
     <span class="inline-flex min-w-0 flex-col">
-      <span class="inline-flex items-center gap-1.5">
-        <span data-testid="member-name" :style="identity?.nameColor ? { color: identity.nameColor } : {}"><slot>{{ displayName }}</slot></span>
+      <span class="inline-flex items-center gap-1.5" :class="{'min-w-0': truncate}">
+        <span data-testid="member-name" :class="{truncate}" :style="identity?.nameColor ? { color: identity.nameColor } : {}"><slot>{{ displayName }}</slot></span>
         <DisplayTagBadge v-if="identity?.displayTag" :tag="identity.displayTag"/>
         <StationBadge v-if="isExternal && identity?.name" :station-name="identity?.stationName ?? ''" />
       </span>

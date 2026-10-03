@@ -44,6 +44,7 @@ Stations turn their own templates and those of their association into documents 
 - **Some theme colours were missing.** On many pages, highlights, links, backgrounds under the mouse pointer, progress bars, error messages and success marks were shown without their colour. They now show in the theme colours.
 - **Several spaces in a row became one.** Several spaces typed in a row in the text editor shrank to a single space once saved, on pages, in letters and in wiki PDFs. They now stay as typed, in the editor, on the page and in print.
 - **Text beside a picture started lower.** In a row of blocks on pages and in the page editor, text next to a picture began a little below the top of the picture. It now starts level with it.
+- **The member list in visibility filters was cut off.** Where a visibility or access restriction offers a choice of members, the list opened only as wide as its button, so the search and the names could not be read. It now opens wide enough for the names and stays inside the window.
 
 ## v26.20.2
 
