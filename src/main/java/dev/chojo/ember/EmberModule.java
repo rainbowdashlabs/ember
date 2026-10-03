@@ -166,6 +166,7 @@ import dev.chojo.ember.feature.form.handler.FormPublishedHandler;
 import dev.chojo.ember.feature.form.route.FormRoutes;
 import dev.chojo.ember.feature.form.route.PublicFormRoutes;
 import dev.chojo.ember.feature.form.service.FormFeedDetails;
+import dev.chojo.ember.feature.generator.route.DocumentGenerationRoutes;
 import dev.chojo.ember.feature.generator.route.DocumentTemplateRoutes;
 import dev.chojo.ember.feature.insights.route.StationInsightsRoutes;
 import dev.chojo.ember.feature.insights.service.PageHitRecorder;
@@ -428,6 +429,7 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(MemberTableRoutes.class);
         routesBinder.addBinding().to(DocumentRoutes.class);
         routesBinder.addBinding().to(DocumentTemplateRoutes.class);
+        routesBinder.addBinding().to(DocumentGenerationRoutes.class);
         routesBinder.addBinding().to(MailImportRoutes.class);
         routesBinder.addBinding().to(AdminMonitoringCountRoutes.class);
         bind(MailFilingService.MemberNaming.class).to(StationMemberNaming.class);

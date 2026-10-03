@@ -17389,6 +17389,129 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/document-generation/templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The document templates a manager can generate documents from */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DocumentTemplateSummary"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/document-generation/templates/{templateId}/members/{memberId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Generate a document for a member and file it in their documents */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    memberId: number;
+                    templateId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GeneratedDocumentResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/document-generation/templates/{templateId}/members/{memberId}/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Draw a document for a member without filing it, listing the values that are missing */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    memberId: number;
+                    templateId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PreviewResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/document-placeholders": {
         parameters: {
             query?: never;
@@ -17451,6 +17574,55 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["LetterImport"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/document-template-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Draw a document template as the editor holds it, for a member or with its placeholders */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["DraftPreviewRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PreviewResponse"];
                     };
                 };
                 /** @description Bad Request */
@@ -48892,6 +49064,101 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/self-service/documents/{memberId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The documents the reader may generate for themselves or a member in their care */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    memberId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SelfServiceOffer"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/self-service/documents/{memberId}/templates/{templateId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Generate a document for oneself or a member in one's care and file it with them */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    memberId: number;
+                    templateId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GeneratedDocumentResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Too Many Requests */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/session": {
         parameters: {
             query?: never;
@@ -57470,6 +57737,11 @@ export interface components {
             /** Format: int32 */
             version: number;
         };
+        DraftPreviewRequest: {
+            /** Format: int32 */
+            memberId?: number | null;
+            template?: components["schemas"]["DocumentTemplateRequest"] | null;
+        };
         EligibleMembers: {
             eligibleManagedMemberIds: number[];
             selfEligible: boolean;
@@ -58765,6 +59037,14 @@ export interface components {
             intervalType?: components["schemas"]["IntervalType"];
             startDate?: string;
             startTime?: string | null;
+        };
+        GeneratedDocumentResponse: {
+            /** Format: int32 */
+            documentId: number;
+            /** Format: int32 */
+            generationId: number;
+            missing: components["schemas"]["MissingValue"][];
+            title: string;
         };
         GeneratedQuestionWithMeta: {
             /** Format: int32 */
@@ -60771,6 +61051,10 @@ export interface components {
         MissingStepsResponse: {
             missingSteps: string[];
         };
+        MissingValue: {
+            key: string;
+            label: string;
+        };
         /** @enum {string} */
         Mode: "OFF" | "OPTIONAL" | "ENCOURAGED" | "PREFERRED" | "PASSWORDLESS";
         ModelInfo: {
@@ -61692,6 +61976,10 @@ export interface components {
             perImage?: number;
             /** Format: int64 */
             total?: number;
+        };
+        PreviewResponse: {
+            missing: components["schemas"]["MissingValue"][];
+            pdfBase64: string;
         };
         PreviewResult: {
             members: components["schemas"]["MemberPreview"][];
@@ -63565,6 +63853,14 @@ export interface components {
             memberName: string;
             state: components["schemas"]["SelfCheckState"];
             submittedAt: components["schemas"]["Instant"] | null;
+        };
+        SelfServiceOffer: {
+            availableFrom: components["schemas"]["Instant"] | null;
+            legal: boolean;
+            missing: components["schemas"]["MissingValue"][];
+            name: string;
+            /** Format: int32 */
+            templateId: number;
         };
         SendableItem: {
             /** Format: int32 */
@@ -65993,6 +66289,7 @@ export type DocumentTemplateKind = components['schemas']['DocumentTemplateKind']
 export type DocumentTemplateRequest = components['schemas']['DocumentTemplateRequest'];
 export type DocumentTemplateResponse = components['schemas']['DocumentTemplateResponse'];
 export type DocumentTemplateSummary = components['schemas']['DocumentTemplateSummary'];
+export type DraftPreviewRequest = components['schemas']['DraftPreviewRequest'];
 export type EligibleMembers = components['schemas']['EligibleMembers'];
 export type EmailChangeResponse = components['schemas']['EmailChangeResponse'];
 export type EmailChangeResult = components['schemas']['EmailChangeResult'];
@@ -66165,6 +66462,7 @@ export type GalleryItem = components['schemas']['GalleryItem'];
 export type GdprDeletionContext = components['schemas']['GdprDeletionContext'];
 export type GdprExportContext = components['schemas']['GdprExportContext'];
 export type GenerateDatesRequest = components['schemas']['GenerateDatesRequest'];
+export type GeneratedDocumentResponse = components['schemas']['GeneratedDocumentResponse'];
 export type GeneratedQuestionWithMeta = components['schemas']['GeneratedQuestionWithMeta'];
 export type GenerateEntry = components['schemas']['GenerateEntry'];
 export type GenerateQuestionsRequest = components['schemas']['GenerateQuestionsRequest'];
@@ -66434,6 +66732,7 @@ export type MetricsBatch = components['schemas']['MetricsBatch'];
 export type MetricsSubject = components['schemas']['MetricsSubject'];
 export type MigrationResponse = components['schemas']['MigrationResponse'];
 export type MissingStepsResponse = components['schemas']['MissingStepsResponse'];
+export type MissingValue = components['schemas']['MissingValue'];
 export type Mode = components['schemas']['Mode'];
 export type ModelInfo = components['schemas']['ModelInfo'];
 export type ModulesResponse = components['schemas']['ModulesResponse'];
@@ -66577,6 +66876,7 @@ export type PollEmbedConfig = components['schemas']['PollEmbedConfig'];
 export type PollStatus = components['schemas']['PollStatus'];
 export type PoolRequest = components['schemas']['PoolRequest'];
 export type PresetRequest = components['schemas']['PresetRequest'];
+export type PreviewResponse = components['schemas']['PreviewResponse'];
 export type PreviewResult = components['schemas']['PreviewResult'];
 export type ProbeRequest = components['schemas']['ProbeRequest'];
 export type ProbeResult = components['schemas']['ProbeResult'];
@@ -66811,6 +67111,7 @@ export type SelfCheckSettlement = components['schemas']['SelfCheckSettlement'];
 export type SelfCheckState = components['schemas']['SelfCheckState'];
 export type SelfCheckSummary = components['schemas']['SelfCheckSummary'];
 export type SelfCheckTask = components['schemas']['SelfCheckTask'];
+export type SelfServiceOffer = components['schemas']['SelfServiceOffer'];
 export type SendableItem = components['schemas']['SendableItem'];
 export type SendReportRequest = components['schemas']['SendReportRequest'];
 export type SendRequest = components['schemas']['SendRequest'];

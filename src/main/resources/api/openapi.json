@@ -13267,6 +13267,107 @@
         }
       }
     },
+    "/api/v1/document-generation/templates" : {
+      "get" : {
+        "summary" : "The document templates a manager can generate documents from",
+        "tags" : [ "Documents" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/DocumentTemplateSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/document-generation/templates/{templateId}/members/{memberId}" : {
+      "post" : {
+        "summary" : "Generate a document for a member and file it in their documents",
+        "tags" : [ "Documents" ],
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GeneratedDocumentResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "templateId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "memberId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/document-generation/templates/{templateId}/members/{memberId}/preview" : {
+      "post" : {
+        "summary" : "Draw a document for a member without filing it, listing the values that are missing",
+        "tags" : [ "Documents" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PreviewResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "templateId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "memberId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
     "/api/v1/document-placeholders" : {
       "get" : {
         "summary" : "The placeholders a document template of the station can name",
@@ -13307,6 +13408,43 @@
                 "schema" : {
                   "$ref" : "#/components/schemas/ErrorResponseWrapper"
                 }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/document-template-preview" : {
+      "post" : {
+        "summary" : "Draw a document template as the editor holds it, for a member or with its placeholders",
+        "tags" : [ "Documents" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PreviewResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/DraftPreviewRequest"
               }
             }
           }
@@ -36870,6 +37008,91 @@
         } ]
       }
     },
+    "/api/v1/self-service/documents/{memberId}" : {
+      "get" : {
+        "summary" : "The documents the reader may generate for themselves or a member in their care",
+        "tags" : [ "Documents" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/SelfServiceOffer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "memberId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/self-service/documents/{memberId}/templates/{templateId}" : {
+      "post" : {
+        "summary" : "Generate a document for oneself or a member in one's care and file it with them",
+        "tags" : [ "Documents" ],
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GeneratedDocumentResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "429" : {
+            "description" : "Too Many Requests",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "memberId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "templateId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
     "/api/v1/session" : {
       "get" : {
         "summary" : "Get current session info",
@@ -48716,6 +48939,22 @@
         },
         "required" : [ "id", "name", "kind", "legal", "selfService", "version", "updatedAt", "archivedAt" ]
       },
+      "DraftPreviewRequest" : {
+        "type" : "object",
+        "properties" : {
+          "template" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/DocumentTemplateRequest"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "memberId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          }
+        }
+      },
       "EligibleMembers" : {
         "type" : "object",
         "properties" : {
@@ -52595,6 +52834,29 @@
             }
           }
         }
+      },
+      "GeneratedDocumentResponse" : {
+        "type" : "object",
+        "properties" : {
+          "documentId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "generationId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "title" : {
+            "type" : "string"
+          },
+          "missing" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/MissingValue"
+            }
+          }
+        },
+        "required" : [ "documentId", "generationId", "title", "missing" ]
       },
       "GeneratedQuestionWithMeta" : {
         "type" : "object",
@@ -58021,6 +58283,18 @@
         },
         "required" : [ "missingSteps" ]
       },
+      "MissingValue" : {
+        "type" : "object",
+        "properties" : {
+          "key" : {
+            "type" : "string"
+          },
+          "label" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "key", "label" ]
+      },
       "Mode" : {
         "type" : "string",
         "enum" : [ "OFF", "OPTIONAL", "ENCOURAGED", "PREFERRED", "PASSWORDLESS" ]
@@ -60735,6 +61009,21 @@
             "format" : "int64"
           }
         }
+      },
+      "PreviewResponse" : {
+        "type" : "object",
+        "properties" : {
+          "pdfBase64" : {
+            "type" : "string"
+          },
+          "missing" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/MissingValue"
+            }
+          }
+        },
+        "required" : [ "pdfBase64", "missing" ]
       },
       "PreviewResult" : {
         "type" : "object",
@@ -66242,6 +66531,35 @@
           }
         },
         "required" : [ "id", "memberId", "memberName", "dueOn", "state", "handedOutAt", "submittedAt", "handedOutByName", "checkId" ]
+      },
+      "SelfServiceOffer" : {
+        "type" : "object",
+        "properties" : {
+          "templateId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "legal" : {
+            "type" : "boolean"
+          },
+          "availableFrom" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "missing" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/MissingValue"
+            }
+          }
+        },
+        "required" : [ "templateId", "name", "legal", "availableFrom", "missing" ]
       },
       "SendReportRequest" : {
         "type" : "object",
