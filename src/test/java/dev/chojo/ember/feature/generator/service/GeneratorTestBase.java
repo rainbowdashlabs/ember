@@ -45,7 +45,7 @@ import static org.mockito.Mockito.when;
  * tests of what is built on top of generating one document: runs for many members and the documents
  * appointments ask for. Letters are drawn through Pandoc and Typst and read back as text.
  */
-abstract class GeneratorTestBase extends RepositoryTestBase {
+public abstract class GeneratorTestBase extends RepositoryTestBase {
     static final Instant NOW = Instant.parse("2026-10-02T10:00:00Z");
 
     /**
@@ -60,7 +60,7 @@ abstract class GeneratorTestBase extends RepositoryTestBase {
      * @param documents  the member documents
      * @param log        the generation log
      */
-    record Wiring(
+    public record Wiring(
             Station station,
             Owner.Station owner,
             MovableClock clock,
@@ -76,7 +76,7 @@ abstract class GeneratorTestBase extends RepositoryTestBase {
         }
 
         /** The text of a filed document. */
-        String textOf(int documentId) {
+        public String textOf(int documentId) {
             var document = memberDocumentRepo.findById(documentId).orElseThrow();
             return Objects.requireNonNull(
                     PdfText.extract(documents.read(document).orElseThrow()));
@@ -84,8 +84,17 @@ abstract class GeneratorTestBase extends RepositoryTestBase {
     }
 
     static Wiring wire(String stationName) {
+        return wire(stationRepo.create(stationName));
+    }
+
+    /**
+     * The generator wired for an existing station, such as one a seeder built.
+     *
+     * @param station the station
+     * @return its generator
+     */
+    public static Wiring wire(Station station) {
         var clock = new MovableClock(NOW);
-        var station = stationRepo.create(stationName);
         var owner = new Owner.Station(station.id());
         var backend = localStorage();
         var storage = new StorageService(new StorageBackendResolver(backend), backend);
