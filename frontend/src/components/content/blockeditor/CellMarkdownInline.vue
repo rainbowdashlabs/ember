@@ -38,6 +38,7 @@ const renderedHtml = computed(() => renderMarkdown(options.value.tokens?.prepare
     <div
         class="flex-1 cursor-pointer rounded-theme border border-dashed border-transparent hover:border-(--border) p-2 transition-colors group"
         :title="t('stationPages.editor.editMarkdown')"
+        :aria-label="t('stationPages.editor.editMarkdown')"
         role="button"
         tabindex="0"
         @click="showModal = true"
