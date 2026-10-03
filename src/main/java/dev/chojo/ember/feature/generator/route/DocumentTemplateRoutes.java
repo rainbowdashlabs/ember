@@ -6,9 +6,11 @@
 package dev.chojo.ember.feature.generator.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
+import dev.chojo.ember.api.FileResponse;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.feature.generator.service.DocumentTemplateRequest;
 import dev.chojo.ember.feature.generator.service.DocumentTemplateService;
 import dev.chojo.ember.feature.generator.service.DocumentTemplateService.DocumentTemplateResponse;
@@ -16,6 +18,7 @@ import dev.chojo.ember.feature.generator.service.DocumentTemplateService.Documen
 import dev.chojo.ember.feature.generator.service.DocumentTemplateService.PlaceholderCatalogueResponse;
 import dev.chojo.ember.feature.generator.service.LetterImportService;
 import dev.chojo.ember.feature.generator.service.LetterImportService.LetterImport;
+import dev.chojo.ember.feature.generator.service.PdfTemplateService;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -38,11 +41,14 @@ import jakarta.inject.Singleton;
 public class DocumentTemplateRoutes implements Routes {
     private final DocumentTemplateService templates;
     private final LetterImportService imports;
+    private final PdfTemplateService pdfs;
 
     @Inject
-    public DocumentTemplateRoutes(DocumentTemplateService templates, LetterImportService imports) {
+    public DocumentTemplateRoutes(
+            DocumentTemplateService templates, LetterImportService imports, PdfTemplateService pdfs) {
         this.templates = templates;
         this.imports = imports;
+        this.pdfs = pdfs;
     }
 
     @Override
@@ -57,6 +63,43 @@ public class DocumentTemplateRoutes implements Routes {
                 prefix + "/document-templates/{id}/archive", this::archive, StationPermission.DOCUMENT_TEMPLATE_EDIT);
         routes.post(
                 prefix + "/document-templates/{id}/restore", this::restore, StationPermission.DOCUMENT_TEMPLATE_EDIT);
+        routes.get(prefix + "/document-templates/{id}/pdf", this::pdf, StationPermission.DOCUMENT_TEMPLATE_EDIT);
+        routes.post(prefix + "/document-templates/{id}/pdf", this::uploadPdf, StationPermission.DOCUMENT_TEMPLATE_EDIT);
+    }
+
+    @OpenApi(
+            path = "/api/v1/document-templates/{id}/pdf",
+            methods = HttpMethod.GET,
+            summary = "The PDF a PDF template fills now, as it was uploaded",
+            tags = {"Documents"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            responses = {
+                @OpenApiResponse(status = "200"),
+                @OpenApiResponse(status = "409", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void pdf(Context ctx) {
+        var download = pdfs.current(StationSession.from(ctx).owner(), templateId(ctx))
+                .orElseThrow(DocumentRefusal.DOCUMENT_TEMPLATE_PDF_MISSING::raise);
+        FileResponse.send(ctx, "application/pdf", download.fileName(), download.data());
+    }
+
+    @OpenApi(
+            path = "/api/v1/document-templates/{id}/pdf",
+            methods = HttpMethod.POST,
+            summary = "Upload a new version of the PDF a PDF template fills, keeping its fields",
+            tags = {"Documents"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = DocumentTemplateResponse.class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void uploadPdf(Context ctx) {
+        var session = StationSession.from(ctx);
+        ctx.json(pdfs.upload(
+                session.owner(),
+                templateId(ctx),
+                ctx.uploadedFile("file"),
+                session.member().id()));
     }
 
     @OpenApi(

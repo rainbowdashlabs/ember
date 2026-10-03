@@ -48,6 +48,18 @@ public enum StorageCategory {
             false,
             Optional.empty()),
     /**
+     * The PDFs a station's PDF templates fill in, every uploaded version kept as it arrived. Measured
+     * against the same room as the member documents they become.
+     */
+    DOCUMENT_TEMPLATES(
+            "document-templates",
+            StorageScope.Kind.STATION,
+            true,
+            QuotaMode.ENFORCED,
+            List.of("application/pdf"),
+            false,
+            Optional.empty()),
+    /**
      * Evidence attached to one movement, kept by the station that raised it and read by the owner it went to.
      */
     MOVEMENT_DOCUMENTS(

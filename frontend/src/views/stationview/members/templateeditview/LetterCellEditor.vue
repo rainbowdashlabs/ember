@@ -13,7 +13,7 @@ import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import MediaBrowseButton from '@/components/media/MediaBrowseButton.vue'
 import {mediaImageUrlAt} from '@/api/media'
-import {LetterCellAlign, LetterCellKind, type LetterCell, type Placeholder, type StationFile} from '@/api/generated/schema'
+import {TextAlign, LetterCellKind, type LetterCell, type Placeholder, type StationFile} from '@/api/generated/schema'
 import {useSession} from '@/composables/useSession'
 import PlaceholderPicker from './PlaceholderPicker.vue'
 
@@ -38,7 +38,7 @@ const {sessionInfo} = useSession()
 const stationUid = computed(() => sessionInfo.value?.stationId ?? '')
 
 const kinds = [LetterCellKind.EMPTY, LetterCellKind.TEXT, LetterCellKind.IMAGE, LetterCellKind.LOGO]
-const aligns = [LetterCellAlign.LEFT, LetterCellAlign.CENTER, LetterCellAlign.RIGHT]
+const aligns = [TextAlign.LEFT, TextAlign.CENTER, TextAlign.RIGHT]
 
 const showsPicture = computed(() => cell.value.kind === LetterCellKind.IMAGE || cell.value.kind === LetterCellKind.LOGO)
 
@@ -47,7 +47,7 @@ function setKind(kind: string | number | null | undefined) {
 }
 
 function setAlign(align: string | number | null | undefined) {
-  cell.value = {...cell.value, align: align as LetterCellAlign}
+  cell.value = {...cell.value, align: align as TextAlign}
 }
 
 function pickPicture(payload: {file: StationFile}) {

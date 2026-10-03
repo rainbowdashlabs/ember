@@ -51,6 +51,7 @@ class DocumentGenerationRepositoryTest extends RepositoryTestBase {
                                 .id())
                 .id();
         templateId = templates.create(station.id(), draft("Log"), guardian).id();
+        templates.writeLetter(templateId, LetterContent.blank());
     }
 
     private static DocumentTemplateDraft draft(String name) {
@@ -71,7 +72,17 @@ class DocumentGenerationRepositoryTest extends RepositoryTestBase {
 
     private static DocumentGeneration entry(boolean selfService) {
         return new DocumentGeneration(
-                0, station.id(), templateId, 3, child, guardian, Instant.EPOCH, selfService, null, "ab".repeat(32));
+                0,
+                station.id(),
+                templateId,
+                3,
+                child,
+                guardian,
+                Instant.EPOCH,
+                selfService,
+                null,
+                "ab".repeat(32),
+                null);
     }
 
     @Test
@@ -96,13 +107,13 @@ class DocumentGenerationRepositoryTest extends RepositoryTestBase {
 
         log.log(
                 new DocumentGeneration(
-                        0, station.id(), otherTemplate, 1, child, child, Instant.EPOCH, false, null, "00"),
+                        0, station.id(), otherTemplate, 1, child, child, Instant.EPOCH, false, null, "00", null),
                 List.of());
         assertNull(log.lastSelfService(otherTemplate, child));
 
         var bySelf = log.log(
                 new DocumentGeneration(
-                        0, station.id(), otherTemplate, 1, child, child, Instant.EPOCH, true, null, "01"),
+                        0, station.id(), otherTemplate, 1, child, child, Instant.EPOCH, true, null, "01", null),
                 List.of());
         assertEquals(bySelf.generatedAt(), log.lastSelfService(otherTemplate, child));
     }

@@ -6307,6 +6307,7 @@ export default {
             instanceMediaFiles: 'Mediathek-Dateien (Instanz)',
             documents: 'Mitglieder-Dokumente',
             movementDocuments: 'Inventar-Belege',
+            documentTemplates: 'PDF-Vorlagen',
             stationLogo: 'Wachen-Logos',
             images: 'Bilder (gesamt)',
             avatars: 'Profilbilder',

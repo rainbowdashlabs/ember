@@ -8,12 +8,19 @@ package dev.chojo.ember.feature.generator.service;
 import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplate;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplateKind;
+import dev.chojo.ember.feature.generator.entity.FormBinding;
 import dev.chojo.ember.feature.generator.entity.LetterContent;
 import dev.chojo.ember.feature.generator.entity.LetterPage;
 import dev.chojo.ember.feature.generator.entity.Letterhead;
+import dev.chojo.ember.feature.generator.entity.PdfContent;
+import dev.chojo.ember.feature.generator.entity.PdfField;
+import dev.chojo.ember.feature.generator.entity.PdfLayout;
+import dev.chojo.ember.feature.generator.entity.PdfOriginal;
 import dev.chojo.ember.feature.generator.entity.Placeholder;
 import dev.chojo.ember.feature.generator.entity.PronounSource;
+import dev.chojo.ember.feature.generator.entity.TemplateContent;
 import dev.chojo.ember.feature.generator.repository.DocumentTemplateRepository;
+import dev.chojo.ember.feature.generator.repository.PdfTemplateRepository;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
 import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.feature.restriction.service.RestrictionService;
@@ -44,6 +51,7 @@ public class DocumentTemplateService {
     private static final Logger log = LoggerFactory.getLogger(DocumentTemplateService.class);
 
     private final DocumentTemplateRepository templates;
+    private final PdfTemplateRepository pdfTemplates;
     private final TemplateChecks checks;
     private final RestrictionService restrictions;
     private final PlaceholderCatalogue catalogue;
@@ -51,10 +59,12 @@ public class DocumentTemplateService {
     @Inject
     public DocumentTemplateService(
             DocumentTemplateRepository templates,
+            PdfTemplateRepository pdfTemplates,
             TemplateChecks checks,
             RestrictionService restrictions,
             PlaceholderCatalogue catalogue) {
         this.templates = templates;
+        this.pdfTemplates = pdfTemplates;
         this.checks = checks;
         this.restrictions = restrictions;
         this.catalogue = catalogue;
@@ -101,13 +111,20 @@ public class DocumentTemplateService {
     }
 
     /**
-     * What a template's letter says, an empty one where none was written.
+     * What a template is made of: what its letter says, an empty one where none was written, or the PDF
+     * it fills now with what is laid over it.
      *
      * @param template the template
-     * @return the letter
+     * @return the content
      */
-    public LetterContent letterOf(DocumentTemplate template) {
-        return templates.findLetter(template.id()).orElseGet(LetterContent::blank);
+    public TemplateContent contentOf(DocumentTemplate template) {
+        return switch (template.kind()) {
+            case LETTER -> templates.findLetter(template.id()).orElseGet(LetterContent::blank);
+            case PDF ->
+                new PdfContent(
+                        pdfTemplates.findCurrentOriginal(template.id()).orElse(null),
+                        pdfTemplates.findLayout(template.id()));
+        };
     }
 
     /**
@@ -133,6 +150,7 @@ public class DocumentTemplateService {
         var draft = checks.draft(owner.stationId(), request, null);
         var template = Transactions.call(() -> {
             var written = templates.create(owner.stationId(), draft, authorId);
+            writeContent(written.id(), draft.content());
             writeAudience(written.id(), request.audience());
             return written;
         });
@@ -151,12 +169,13 @@ public class DocumentTemplateService {
      */
     public DocumentTemplateResponse update(
             Owner.Station owner, int templateId, DocumentTemplateRequest request, int authorId) {
-        requireOwned(owner, templateId);
-        var draft = checks.draft(owner.stationId(), request, templateId);
+        var existing = requireOwned(owner, templateId);
+        var draft = checks.draft(owner.stationId(), request, existing);
         var template = Transactions.call(() -> {
             var written = templates
                     .update(templateId, draft, authorId)
                     .orElseThrow(DocumentRefusal.DOCUMENT_TEMPLATE_NOT_HERE::raise);
+            writeContent(templateId, draft.content());
             writeAudience(templateId, request.audience());
             return written;
         });
@@ -197,13 +216,22 @@ public class DocumentTemplateService {
         return new PlaceholderCatalogueResponse(catalogue.forStation(owner.stationId()), choices);
     }
 
+    private void writeContent(int templateId, TemplateContent content) {
+        switch (content) {
+            case LetterContent letter -> templates.writeLetter(templateId, letter);
+            case PdfContent pdf -> pdfTemplates.writeLayout(templateId, pdf.layout());
+        }
+    }
+
     private void writeAudience(int templateId, @Nullable RestrictionAudience audience) {
         var chosen = Objects.requireNonNullElse(audience, RestrictionAudience.empty());
         restrictions.setRestrictions(RestrictionType.DOCUMENT_TEMPLATE, templateId, chosen.toSelection());
     }
 
     private DocumentTemplateResponse response(DocumentTemplate template) {
-        var letter = letterOf(template);
+        var content = contentOf(template);
+        var letter = content instanceof LetterContent written ? written : LetterContent.blank();
+        var pdf = content instanceof PdfContent filled ? filled : new PdfContent(null, PdfLayout.empty());
         var audience = RestrictionAudience.of(restrictions.findRestrictionSet(
                 RestrictionType.DOCUMENT_TEMPLATE, template.id(), template.restrictionMode()));
         return new DocumentTemplateResponse(
@@ -223,6 +251,9 @@ public class DocumentTemplateService {
                 letter.letterhead(),
                 letter.bodyMarkdown(),
                 letter.page(),
+                pdf.original(),
+                pdf.layout().fields(),
+                pdf.layout().bindings(),
                 template.version(),
                 template.updatedAt(),
                 template.archivedAt());
@@ -279,9 +310,12 @@ public class DocumentTemplateService {
      * @param cooldownDays    the days between two self service documents for one member
      * @param audience        who may generate it through self service
      * @param pronounSource   the choice field the pronouns follow, or null
-     * @param letterhead      the header and the footer
-     * @param bodyMarkdown    the body
-     * @param page            the margins and the size of the body text
+     * @param letterhead      the header and the footer of a letter
+     * @param bodyMarkdown    the body of a letter
+     * @param page            the margins and the size of the body text of a letter
+     * @param pdf             the PDF a PDF template fills now, or null for a letter or before an upload
+     * @param fields          the fields drawn on the pages of a PDF template
+     * @param formBindings    what the form fields of a PDF template's PDF are filled with
      * @param version         how often it was changed, counted from one
      * @param updatedAt       when it was last changed
      * @param archivedAt      when it was archived, or null while it is in use
@@ -303,6 +337,9 @@ public class DocumentTemplateService {
             Letterhead letterhead,
             String bodyMarkdown,
             LetterPage page,
+            @Nullable PdfOriginal pdf,
+            List<PdfField> fields,
+            List<FormBinding> formBindings,
             int version,
             Instant updatedAt,
             @Nullable Instant archivedAt) {}

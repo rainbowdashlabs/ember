@@ -22,5 +22,7 @@ public enum PlaceholderGroup {
     /** The document itself: the day it is generated and who generates it. */
     DOCUMENT,
     /** A pronoun for the member, following the template's pronoun source. */
-    PRONOUN
+    PRONOUN,
+    /** Not a value but an empty signature field, placed where a letter names it. */
+    SIGNATURE
 }

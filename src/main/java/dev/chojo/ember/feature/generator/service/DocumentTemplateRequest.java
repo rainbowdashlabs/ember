@@ -5,8 +5,11 @@
  */
 package dev.chojo.ember.feature.generator.service;
 
+import dev.chojo.ember.feature.generator.entity.DocumentTemplateKind;
+import dev.chojo.ember.feature.generator.entity.FormBinding;
 import dev.chojo.ember.feature.generator.entity.LetterPage;
 import dev.chojo.ember.feature.generator.entity.Letterhead;
+import dev.chojo.ember.feature.generator.entity.PdfField;
 import dev.chojo.ember.feature.generator.entity.PronounSource;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
 import org.jspecify.annotations.Nullable;
@@ -16,11 +19,15 @@ import java.util.List;
 /**
  * A document template as the editor sends it, to create one or to change one.
  *
- * <p>What is left out takes the value a new template starts with: a title and a file name built from
- * the template's name and the day, no tags, a document kept past the membership exactly where the
- * template is legal, a wait of 30 days between two self service documents, every member as the
- * audience, an empty letter on the default page.
+ * <p>What is left out takes the value a new template starts with: a letter, a title and a file name
+ * built from the template's name and the day, no tags, a document kept past the membership exactly
+ * where the template is legal, a wait of 30 days between two self service documents, every member as
+ * the audience, an empty letter on the default page, no fields.
  *
+ * <p>The kind is chosen when the template is created and stays; a change reads only the part of the
+ * request its kind has: the letter of a letter, the fields of a PDF template.
+ *
+ * @param kind            what the template is made of, read when it is created
  * @param name            what the template is called
  * @param titlePattern    the title a generated document is filed under, with placeholders
  * @param fileNamePattern the file name a generated document is filed under, with placeholders
@@ -32,11 +39,14 @@ import java.util.List;
  * @param cooldownDays    the days between two self service documents for one member
  * @param audience        who may generate it through self service
  * @param pronounSource   the choice field the pronouns follow, or null for the first name throughout
- * @param letterhead      the header and the footer
- * @param bodyMarkdown    the body, placeholders written as {@code {{key}}}
- * @param page            the margins and the size of the body text
+ * @param letterhead      the header and the footer of a letter
+ * @param bodyMarkdown    the body of a letter, placeholders written as {@code {{key}}}
+ * @param page            the margins and the size of the body text of a letter
+ * @param fields          the fields drawn on the pages of a PDF template
+ * @param formBindings    what the form fields of a PDF template's PDF are filled with
  */
 public record DocumentTemplateRequest(
+        @Nullable DocumentTemplateKind kind,
         @Nullable String name,
         @Nullable String titlePattern,
         @Nullable String fileNamePattern,
@@ -50,4 +60,6 @@ public record DocumentTemplateRequest(
         @Nullable PronounSource pronounSource,
         @Nullable Letterhead letterhead,
         @Nullable String bodyMarkdown,
-        @Nullable LetterPage page) {}
+        @Nullable LetterPage page,
+        @Nullable List<PdfField> fields,
+        @Nullable List<FormBinding> formBindings) {}

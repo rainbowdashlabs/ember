@@ -18,7 +18,6 @@ import dev.chojo.ember.feature.documents.service.DocumentService;
 import dev.chojo.ember.feature.generator.entity.DataSubject;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplateDraft;
 import dev.chojo.ember.feature.generator.entity.LetterCell;
-import dev.chojo.ember.feature.generator.entity.LetterCellAlign;
 import dev.chojo.ember.feature.generator.entity.LetterCellKind;
 import dev.chojo.ember.feature.generator.entity.LetterContent;
 import dev.chojo.ember.feature.generator.entity.LetterPage;
@@ -27,8 +26,12 @@ import dev.chojo.ember.feature.generator.entity.MissingValue;
 import dev.chojo.ember.feature.generator.entity.PronounForm;
 import dev.chojo.ember.feature.generator.entity.PronounSource;
 import dev.chojo.ember.feature.generator.entity.SubjectRole;
+import dev.chojo.ember.feature.generator.entity.TextAlign;
 import dev.chojo.ember.feature.generator.repository.DocumentGenerationRepository;
 import dev.chojo.ember.feature.generator.repository.DocumentTemplateRepository;
+import dev.chojo.ember.feature.generator.repository.PdfTemplateRepository;
+import dev.chojo.ember.feature.generator.service.pdf.PdfStamper;
+import dev.chojo.ember.feature.generator.service.pdf.StampFonts;
 import dev.chojo.ember.feature.knowledgebase.service.KbPdfPictures;
 import dev.chojo.ember.feature.media.entity.MediaContent;
 import dev.chojo.ember.feature.media.entity.StationFile;
@@ -49,6 +52,8 @@ import dev.chojo.ember.repository.RepositoryTestBase;
 import dev.chojo.ember.util.PdfText;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
+import org.apache.pdfbox.pdmodel.interactive.annotation.PDAnnotationLink;
+import org.apache.pdfbox.pdmodel.interactive.form.PDSignatureField;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
@@ -93,6 +98,7 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
     private static MovableClock clock;
     private static DocumentTemplateService templates;
     private static DocumentGenerationService generation;
+    private static PdfTemplateRenderer pdfRenderer;
     private static SelfServiceDocumentService selfService;
     private static DocumentService documents;
     private static DocumentGenerationRepository log;
@@ -163,8 +169,14 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
 
         var catalogue = new PlaceholderCatalogue(profileFieldRepo, stationRepo);
         var templateRepository = new DocumentTemplateRepository();
-        var checks = new TemplateChecks(templateRepository, media, profileFieldRepo, catalogue);
-        templates = new DocumentTemplateService(templateRepository, checks, restrictionService, catalogue);
+        var pdfTemplates = new PdfTemplateRepository();
+        var checks = new TemplateChecks(templateRepository, pdfTemplates, media, profileFieldRepo, catalogue);
+        templates =
+                new DocumentTemplateService(templateRepository, pdfTemplates, checks, restrictionService, catalogue);
+        pdfRenderer = new PdfTemplateRenderer(
+                new PdfTemplateService(
+                        templates, templateRepository, pdfTemplates, newDocumentIntake(), storage, stationRepo),
+                new PdfStamper(new StampFonts()));
         var resolver =
                 new PlaceholderResolver(stationRepo, stationMemberRepo, memberNameResolver, profileFieldRepo, clock);
         var generator = new DocumentGeneratorService(
@@ -172,6 +184,7 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
                 resolver,
                 catalogue,
                 new LetterRenderer(pictures, media, logos, stationRepo),
+                pdfRenderer,
                 stationRepo,
                 clock);
         log = new DocumentGenerationRepository();
@@ -204,15 +217,14 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
 
     private static final Letterhead LETTERHEAD = new Letterhead(
             List.of(
-                    new LetterCell(LetterCellKind.LOGO, null, null, LetterCellAlign.LEFT, 15),
-                    new LetterCell(LetterCellKind.IMAGE, PICTURE, null, LetterCellAlign.CENTER, 15),
-                    new LetterCell(
-                            LetterCellKind.TEXT, null, "Jugendfeuerwehr\n{{station.name}}", LetterCellAlign.RIGHT, 0)),
+                    new LetterCell(LetterCellKind.LOGO, null, null, TextAlign.LEFT, 15),
+                    new LetterCell(LetterCellKind.IMAGE, PICTURE, null, TextAlign.CENTER, 15),
+                    new LetterCell(LetterCellKind.TEXT, null, "Jugendfeuerwehr\n{{station.name}}", TextAlign.RIGHT, 0)),
             List.of(new LetterCell(
                     LetterCellKind.TEXT,
                     null,
                     "{{station.address}}, {{station.postalCode}} {{station.city}}",
-                    LetterCellAlign.LEFT,
+                    TextAlign.LEFT,
                     0)));
 
     private static final String BODY = """
@@ -224,6 +236,7 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
 
     private static int template(String name, boolean selfServiceOn, boolean hidden, int cooldown, String body) {
         var request = new DocumentTemplateRequest(
+                null,
                 name,
                 "%s {{member.fullName}} {{today}}".formatted(name),
                 "%s {{member.lastName}}".formatted(name),
@@ -237,6 +250,8 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
                 new PronounSource(genderField, Map.of("weiblich", PronounForm.SIE), PronounForm.NAME),
                 LETTERHEAD,
                 body,
+                null,
+                null,
                 null);
         return templates.create(owner, request, manager.id()).id();
     }
@@ -324,6 +339,37 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
         }
     }
 
+    /** A letter gets the issuer's signature field where its body names it, empty, and stays PDF/A. */
+    @Test
+    void aLetterPlacesTheIssuersSignatureFieldWhereItsBodyNamesIt() throws IOException {
+        int templateId = template(
+                "Unterschrieben", false, false, 0, "Für {{member.fullName}}\n\n{{signature.issuer}}\n\nJugendwartin");
+
+        var generated = generation.generate(as(manager), templateId, lena.id());
+
+        assertTrue(generated.missing().isEmpty());
+        try (var document = Loader.loadPDF(fileOf(generated.documentId()))) {
+            var field = (PDSignatureField)
+                    document.getDocumentCatalog().getAcroForm(null).getField("issuer");
+            assertNull(field.getSignature());
+            var widget = field.getWidgets().getFirst();
+            assertEquals(170, widget.getRectangle().getWidth(), 1);
+            assertTrue(document.getPage(0).getAnnotations().stream()
+                    .noneMatch(annotation -> annotation instanceof PDAnnotationLink));
+            String xmp = new String(document.getDocumentCatalog().getMetadata().toByteArray(), StandardCharsets.UTF_8);
+            assertTrue(xmp.contains("pdfaid:part>3<") || xmp.contains("pdfaid:part=\"3\""), xmp);
+        }
+    }
+
+    @Test
+    void aLetterWithoutASignatureFieldHasNoForm() throws IOException {
+        var generated = generation.generate(as(manager), certificate("Ohne Unterschrift"), lena.id());
+
+        try (var document = Loader.loadPDF(fileOf(generated.documentId()))) {
+            assertNull(document.getDocumentCatalog().getAcroForm(null));
+        }
+    }
+
     @Test
     void everyMemberGetsTheirOwnDocument() throws IOException {
         int templateId = certificate("Jeder");
@@ -385,6 +431,7 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
                 new PlaceholderResolver(stationRepo, stationMemberRepo, memberNameResolver, profileFieldRepo, clock),
                 catalogue,
                 new LetterRenderer(pictures, mock(MediaLibraryService.class), newStationLogoService(), stationRepo),
+                pdfRenderer,
                 stationRepo,
                 clock);
     }
@@ -431,9 +478,9 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
                 RestrictionMode.AND,
                 null,
                 new LetterContent(Letterhead.empty(), "{{member.calledName}}", LetterPage.defaults()));
-        int templateId = new DocumentTemplateRepository()
-                .create(station.id(), draft, manager.id())
-                .id();
+        var repository = new DocumentTemplateRepository();
+        int templateId = repository.create(station.id(), draft, manager.id()).id();
+        repository.writeLetter(templateId, (LetterContent) draft.content());
 
         refused(
                 DocumentRefusal.DOCUMENT_TEMPLATE_CALLED_NAME_IN_LEGAL,
@@ -454,6 +501,7 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
     @Test
     void aDraftIsDrawnWithItsLabelsOrForAMemberByWhoeverMayFileForThem() {
         var draft = new DocumentTemplateRequest(
+                null,
                 "Entwurf",
                 null,
                 null,
@@ -467,12 +515,16 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
                 null,
                 LETTERHEAD,
                 "Für {{member.fullName}} am {{today}}",
+                null,
+                null,
                 null);
 
-        var labelled = generation.previewDraft(as(manager, StationPermission.DOCUMENT_TEMPLATE_EDIT), draft, null);
+        var labelled =
+                generation.previewDraft(as(manager, StationPermission.DOCUMENT_TEMPLATE_EDIT), draft, null, null);
         var forMember = generation.previewDraft(
                 as(manager, StationPermission.DOCUMENT_TEMPLATE_EDIT, StationPermission.DOCUMENT_EDIT_MEMBER),
                 draft,
+                null,
                 lena.id());
 
         String text = PdfText.extract(Base64.getDecoder().decode(labelled.pdfBase64()));
@@ -481,7 +533,8 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
         assertTrue(forMember.missing().isEmpty());
         refused(
                 DocumentRefusal.DOCUMENT_GENERATE_NOT_YOURS,
-                () -> generation.previewDraft(as(manager, StationPermission.DOCUMENT_TEMPLATE_EDIT), draft, lena.id()));
+                () -> generation.previewDraft(
+                        as(manager, StationPermission.DOCUMENT_TEMPLATE_EDIT), draft, null, lena.id()));
     }
 
     @Test
@@ -568,6 +621,7 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
                 owner,
                 forGuardians,
                 new DocumentTemplateRequest(
+                        null,
                         "Nur Eltern",
                         null,
                         null,
@@ -586,6 +640,8 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
                         null,
                         null,
                         "{{member.fullName}}",
+                        null,
+                        null,
                         null),
                 manager.id());
 

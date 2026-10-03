@@ -85,11 +85,13 @@ public class DocumentGenerationRoutes implements Routes {
     /**
      * A template the editor holds, to be drawn before it is saved.
      *
-     * @param template the template as the editor holds it
-     * @param memberId the member to draw it for, or null to show the placeholders by their labels
+     * @param template   the template as the editor holds it
+     * @param templateId the saved template it changes, whose PDF a PDF template fills, or null for a new one
+     * @param memberId   the member to draw it for, or null to show the placeholders by their labels
      */
     public record DraftPreviewRequest(
             @Nullable DocumentTemplateRequest template,
+            @Nullable Integer templateId,
             @Nullable Integer memberId) {}
 
     @OpenApi(
@@ -108,12 +110,13 @@ public class DocumentGenerationRoutes implements Routes {
         Integer memberId = request.memberId();
         if (memberId != null) requireOwnedMember(ctx, memberId);
         var template = Objects.requireNonNullElseGet(request.template(), DocumentGenerationRoutes::emptyTemplate);
-        ctx.json(generation.previewDraft(session, template, memberId));
+        ctx.json(generation.previewDraft(session, template, request.templateId(), memberId));
     }
 
     private static DocumentTemplateRequest emptyTemplate() {
         return new DocumentTemplateRequest(
-                null, null, null, null, false, null, false, false, null, null, null, null, null, null);
+                null, null, null, null, null, false, null, false, false, null, null, null, null, null, null, null,
+                null);
     }
 
     @OpenApi(

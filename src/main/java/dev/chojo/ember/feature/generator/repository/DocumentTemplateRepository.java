@@ -9,7 +9,6 @@ import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import de.chojo.sadu.queries.api.call.Call;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplate;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplateDraft;
-import dev.chojo.ember.feature.generator.entity.DocumentTemplateKind;
 import dev.chojo.ember.feature.generator.entity.LetterContent;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -30,7 +29,7 @@ import static de.chojo.sadu.queries.api.query.Query.query;
 public class DocumentTemplateRepository {
 
     /**
-     * Writes a new template and the content of its letter.
+     * Writes a new template, without its content.
      *
      * @param stationId the station that owns it
      * @param draft     what it says
@@ -38,7 +37,7 @@ public class DocumentTemplateRepository {
      * @return the template as written
      */
     public DocumentTemplate create(int stationId, DocumentTemplateDraft draft, int authorId) {
-        var template = query("""
+        return query("""
                         INSERT INTO document_template(station_id, kind, name, title_pattern, file_name_pattern, tags,
                                                       hidden, keep_on_archive, legal, self_service,
                                                       self_service_cooldown_days, restriction_mode, pronoun_field_id,
@@ -49,17 +48,15 @@ public class DocumentTemplateRepository {
                                 :cooldown_days, :restriction_mode, :pronoun_field_id, :pronoun_mapping::jsonb,
                                 :author, :author)
                         RETURNING %s;""", DocumentTemplate.COLUMNS)
-                .single(bindDraft(call().bind("station_id", stationId).bind("kind", DocumentTemplateKind.LETTER), draft)
+                .single(bindDraft(call().bind("station_id", stationId).bind("kind", draft.kind()), draft)
                         .bind("author", authorId))
                 .map(DocumentTemplate.map())
                 .first()
                 .orElseThrow();
-        writeLetter(template.id(), draft.letter());
-        return template;
     }
 
     /**
-     * Rewrites a template and its letter, counting its version up.
+     * Rewrites a template, without its content, counting its version up.
      *
      * @param templateId the template
      * @param draft      what it says now
@@ -67,7 +64,7 @@ public class DocumentTemplateRepository {
      * @return the template as written, or empty where it does not exist
      */
     public Optional<DocumentTemplate> update(int templateId, DocumentTemplateDraft draft, int authorId) {
-        var template = query("""
+        return query("""
                         UPDATE document_template
                         SET name                       = :name,
                             title_pattern              = :title_pattern,
@@ -89,8 +86,27 @@ public class DocumentTemplateRepository {
                 .single(bindDraft(call().bind("id", templateId), draft).bind("author", authorId))
                 .map(DocumentTemplate.map())
                 .first();
-        template.ifPresent(written -> writeLetter(written.id(), draft.letter()));
-        return template;
+    }
+
+    /**
+     * Counts a template's version up for a change that is not written through {@link #update}, such as
+     * a new upload of its PDF.
+     *
+     * @param templateId the template
+     * @param authorId   the member who changed it
+     * @return the template as it now stands, or empty where it does not exist
+     */
+    public Optional<DocumentTemplate> countVersion(int templateId, int authorId) {
+        return query("""
+                        UPDATE document_template
+                        SET version    = version + 1,
+                            updated_at = now(),
+                            updated_by = :author
+                        WHERE id = :id
+                        RETURNING %s;""", DocumentTemplate.COLUMNS)
+                .single(call().bind("id", templateId).bind("author", authorId))
+                .map(DocumentTemplate.map())
+                .first();
     }
 
     private static Call bindDraft(Call call, DocumentTemplateDraft draft) {
@@ -109,7 +125,13 @@ public class DocumentTemplateRepository {
                 .bind("pronoun_mapping", pronouns == null ? null : pronouns.mappingJson());
     }
 
-    private void writeLetter(int templateId, LetterContent letter) {
+    /**
+     * Writes what a letter template says, replacing what it said before.
+     *
+     * @param templateId the template
+     * @param letter     the letter
+     */
+    public void writeLetter(int templateId, LetterContent letter) {
         query("""
                 INSERT INTO document_template_letter(template_id, letterhead, body_markdown, page)
                 VALUES (:template_id, :letterhead::jsonb, :body, :page::jsonb)

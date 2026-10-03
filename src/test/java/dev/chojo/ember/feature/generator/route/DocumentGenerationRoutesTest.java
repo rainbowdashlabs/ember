@@ -63,8 +63,9 @@ class DocumentGenerationRoutesTest {
         when(members.findById(11)).thenReturn(Optional.of(member(11, 3)));
         when(members.findById(12)).thenReturn(Optional.of(member(12, 4)));
         when(generation.usable(OWNER)).thenReturn(List.of());
-        when(generation.preview(any(), eq(8), eq(11))).thenReturn(new PreviewResponse("JVBER", List.of()));
-        when(generation.previewDraft(any(), any(), any())).thenReturn(new PreviewResponse("JVBER", List.of()));
+        when(generation.preview(any(), eq(8), eq(11))).thenReturn(new PreviewResponse("JVBER", List.of(), List.of()));
+        when(generation.previewDraft(any(), any(), any(), any()))
+                .thenReturn(new PreviewResponse("JVBER", List.of(), List.of()));
         when(generation.generate(any(), eq(8), eq(11))).thenReturn(FILED);
         when(selfService.offers(any(), eq(11))).thenReturn(List.of());
         when(selfService.generate(any(), eq(8), eq(11))).thenReturn(FILED);
@@ -142,7 +143,7 @@ class DocumentGenerationRoutesTest {
                             .code());
         });
 
-        verify(generation).previewDraft(any(), any(), isNull());
+        verify(generation).previewDraft(any(), any(), isNull(), isNull());
     }
 
     @Test

@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.generator.entity.LetterCell;
 import dev.chojo.ember.feature.generator.entity.LetterCellKind;
 import dev.chojo.ember.feature.generator.entity.LetterContent;
 import dev.chojo.ember.feature.generator.entity.PlaceholderTokens;
+import dev.chojo.ember.feature.generator.service.pdf.SignatureFields;
 import dev.chojo.ember.feature.knowledgebase.service.KbPdfPictures;
 import dev.chojo.ember.feature.media.entity.MediaContent;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
@@ -50,6 +51,10 @@ import java.util.Optional;
  * filled in here, its pictures (from the media library, or the station logo) placed next to the
  * document as files. A picture that cannot be read leaves its cell empty rather than stopping the
  * document.
+ *
+ * <p>A signature field the body names ({@code {{signature.issuer}}}) is drawn by {@code letter.typ} as an
+ * empty box on a line, and {@link SignatureFields#replaceMarkers} turns it into a real, empty PDF
+ * signature field afterwards.
  */
 @Singleton
 public class LetterRenderer {
@@ -151,13 +156,13 @@ public class LetterRenderer {
         String language =
                 StationFormat.languageOf(stations.findById(job.stationId()).orElse(null));
         try {
-            return TypstCompiler.compileTemplate(
+            return SignatureFields.replaceMarkers(TypstCompiler.compileTemplate(
                     data,
                     language + "/letter.typ",
                     null,
                     Map.of("body.typ", body.typst()),
                     files,
-                    TypstCompiler.Output.PDF_A_3B);
+                    TypstCompiler.Output.PDF_A_3B));
         } catch (IOException e) {
             log.error("A letter of station {} could not be rendered", job.stationId(), e);
             throw DocumentRefusal.DOCUMENT_RENDER_FAILED.raise();

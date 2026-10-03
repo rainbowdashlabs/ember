@@ -10,14 +10,16 @@ import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.api.refusal.Refusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.generator.entity.LetterCell;
-import dev.chojo.ember.feature.generator.entity.LetterCellAlign;
 import dev.chojo.ember.feature.generator.entity.LetterCellKind;
 import dev.chojo.ember.feature.generator.entity.LetterPage;
 import dev.chojo.ember.feature.generator.entity.Letterhead;
 import dev.chojo.ember.feature.generator.entity.Placeholder;
+import dev.chojo.ember.feature.generator.entity.PlaceholderGroup;
 import dev.chojo.ember.feature.generator.entity.PronounForm;
 import dev.chojo.ember.feature.generator.entity.PronounSource;
+import dev.chojo.ember.feature.generator.entity.TextAlign;
 import dev.chojo.ember.feature.generator.repository.DocumentTemplateRepository;
+import dev.chojo.ember.feature.generator.repository.PdfTemplateRepository;
 import dev.chojo.ember.feature.media.entity.StationFile;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
@@ -100,9 +102,11 @@ class DocumentTemplateServiceTest extends RepositoryTestBase {
                 .thenReturn(Optional.of(file(DOCUMENT, "application/pdf")));
         var catalogue = new PlaceholderCatalogue(profileFieldRepo, stationRepo);
         var templates = new DocumentTemplateRepository();
+        var pdfTemplates = new PdfTemplateRepository();
         service = new DocumentTemplateService(
                 templates,
-                new TemplateChecks(templates, media, profileFieldRepo, catalogue),
+                pdfTemplates,
+                new TemplateChecks(templates, pdfTemplates, media, profileFieldRepo, catalogue),
                 restrictionService,
                 catalogue);
     }
@@ -113,11 +117,13 @@ class DocumentTemplateServiceTest extends RepositoryTestBase {
 
     private static DocumentTemplateRequest request(String name, String body) {
         return new DocumentTemplateRequest(
-                name, null, null, null, false, null, false, false, null, null, null, null, body, null);
+                null, name, null, null, null, false, null, false, false, null, null, null, null, body, null, null,
+                null);
     }
 
     private static DocumentTemplateRequest letterhead(Letterhead letterhead) {
         return new DocumentTemplateRequest(
+                null,
                 "Briefkopf " + letterheads.incrementAndGet(),
                 null,
                 null,
@@ -131,6 +137,8 @@ class DocumentTemplateServiceTest extends RepositoryTestBase {
                 null,
                 letterhead,
                 "",
+                null,
+                null,
                 null);
     }
 
@@ -154,6 +162,7 @@ class DocumentTemplateServiceTest extends RepositoryTestBase {
     @Test
     void aLegalTemplateKeepsItsDocumentsPastTheMembershipUnlessToldOtherwise() {
         var legal = new DocumentTemplateRequest(
+                null,
                 "Einverständnis",
                 null,
                 null,
@@ -167,6 +176,8 @@ class DocumentTemplateServiceTest extends RepositoryTestBase {
                 null,
                 null,
                 "",
+                null,
+                null,
                 null);
 
         var created = service.create(owner, legal, authorId);
@@ -182,6 +193,7 @@ class DocumentTemplateServiceTest extends RepositoryTestBase {
         var audience = new RestrictionAudience(
                 List.of(StationUserType.MEMBER), List.of(), List.of(), List.of(), RestrictionMode.OR);
         var change = new DocumentTemplateRequest(
+                null,
                 "Teilnahme",
                 "Teilnahme {{member.fullName}}",
                 "teilnahme",
@@ -195,6 +207,8 @@ class DocumentTemplateServiceTest extends RepositoryTestBase {
                 new PronounSource(choiceField, Map.of("w", PronounForm.SIE), PronounForm.NAME),
                 null,
                 "Neu",
+                null,
+                null,
                 null);
 
         var changed = service.update(owner, created.id(), change, authorId);
@@ -270,6 +284,7 @@ class DocumentTemplateServiceTest extends RepositoryTestBase {
     @Test
     void aLegalTemplateRefusesTheCalledName() {
         var legal = new DocumentTemplateRequest(
+                null,
                 "Rechtlich",
                 null,
                 null,
@@ -283,6 +298,8 @@ class DocumentTemplateServiceTest extends RepositoryTestBase {
                 null,
                 null,
                 "{{member.calledName}}",
+                null,
+                null,
                 null);
 
         refused(DocumentRefusal.DOCUMENT_TEMPLATE_CALLED_NAME_IN_LEGAL, () -> service.create(owner, legal, authorId));
@@ -292,19 +309,57 @@ class DocumentTemplateServiceTest extends RepositoryTestBase {
                         .bodyMarkdown());
     }
 
+    /** The issuer's signature field stands once, in the body of a letter, and nowhere else. */
+    @Test
+    void aSignatureFieldStandsOnceInTheBody() {
+        var signed = service.create(owner, request("Signiert", "Gruß\n\n{{signature.issuer}}"), authorId);
+        var inTheTitle = new DocumentTemplateRequest(
+                null,
+                "Titel",
+                "{{signature.issuer}}",
+                null,
+                null,
+                false,
+                null,
+                false,
+                false,
+                null,
+                null,
+                null,
+                null,
+                "",
+                null,
+                null,
+                null);
+        var inACell = letterhead(new Letterhead(
+                List.of(new LetterCell(LetterCellKind.TEXT, null, "{{signature.issuer}}", TextAlign.LEFT, 0)),
+                List.of()));
+
+        assertEquals("Gruß\n\n{{signature.issuer}}", signed.bodyMarkdown());
+        refused(
+                DocumentRefusal.DOCUMENT_TEMPLATE_SIGNER_TWICE,
+                () -> service.create(owner, request("Zweimal", "{{signature.issuer}} {{signature.issuer}}"), authorId));
+        refused(
+                DocumentRefusal.DOCUMENT_TEMPLATE_PLACEHOLDER_UNKNOWN,
+                () -> service.create(owner, request("Teilnehmer", "{{signature.participant}}"), authorId));
+        refused(DocumentRefusal.DOCUMENT_TEMPLATE_SIGNATURE_IN_TEXT, () -> service.create(owner, inTheTitle, authorId));
+        refused(DocumentRefusal.DOCUMENT_TEMPLATE_SIGNATURE_IN_TEXT, () -> service.create(owner, inACell, authorId));
+        assertTrue(service.catalogue(owner).placeholders().stream()
+                .anyMatch(placeholder -> placeholder.key().equals("signature.issuer")
+                        && placeholder.group() == PlaceholderGroup.SIGNATURE));
+    }
+
     @Test
     void theLetterheadHoldsThreeCellsOfPicturesFromTheLibrary() {
-        var text = new LetterCell(LetterCellKind.TEXT, PICTURE, "{{station.name}}", LetterCellAlign.RIGHT, 0);
+        var text = new LetterCell(LetterCellKind.TEXT, PICTURE, "{{station.name}}", TextAlign.RIGHT, 0);
         var picture = new LetterCell(LetterCellKind.IMAGE, PICTURE, "ignored", null, 25);
 
         var created = service.create(
                 owner, letterhead(new Letterhead(List.of(picture, LetterCell.empty(), text), List.of())), authorId);
 
         var header = created.letterhead().header();
-        assertEquals(new LetterCell(LetterCellKind.IMAGE, PICTURE, null, LetterCellAlign.LEFT, 25), header.get(0));
-        assertEquals(
-                new LetterCell(LetterCellKind.TEXT, null, "{{station.name}}", LetterCellAlign.RIGHT, 18),
-                header.get(2));
+        assertEquals(new LetterCell(LetterCellKind.IMAGE, PICTURE, null, TextAlign.LEFT, 25), header.get(0));
+        assertEquals(new LetterCell(LetterCellKind.TEXT, null, "{{station.name}}", TextAlign.RIGHT, 18), header.get(2));
         refused(
                 DocumentRefusal.DOCUMENT_TEMPLATE_TOO_MANY_CELLS,
                 () -> service.create(
@@ -314,7 +369,7 @@ class DocumentTemplateServiceTest extends RepositoryTestBase {
                 () -> service.create(
                         owner,
                         letterhead(new Letterhead(
-                                List.of(new LetterCell(LetterCellKind.IMAGE, DOCUMENT, null, LetterCellAlign.LEFT, 0)),
+                                List.of(new LetterCell(LetterCellKind.IMAGE, DOCUMENT, null, TextAlign.LEFT, 0)),
                                 List.of())),
                         authorId));
         refused(
@@ -322,7 +377,7 @@ class DocumentTemplateServiceTest extends RepositoryTestBase {
                 () -> service.create(
                         owner,
                         letterhead(new Letterhead(
-                                List.of(new LetterCell(LetterCellKind.IMAGE, null, null, LetterCellAlign.LEFT, 0)),
+                                List.of(new LetterCell(LetterCellKind.IMAGE, null, null, TextAlign.LEFT, 0)),
                                 List.of())),
                         authorId));
     }
@@ -330,6 +385,7 @@ class DocumentTemplateServiceTest extends RepositoryTestBase {
     @Test
     void thePageAndTheSettingsStayWithinBounds() {
         var narrow = new DocumentTemplateRequest(
+                null,
                 "Rand",
                 null,
                 null,
@@ -343,10 +399,13 @@ class DocumentTemplateServiceTest extends RepositoryTestBase {
                 null,
                 null,
                 "",
-                new LetterPage(2, 30, 20, 20, 10));
+                new LetterPage(2, 30, 20, 20, 10),
+                null,
+                null);
         var negative = new DocumentTemplateRequest(
-                "Warten", null, null, null, false, null, false, true, -1, null, null, null, "", null);
+                null, "Warten", null, null, null, false, null, false, true, -1, null, null, null, "", null, null, null);
         var notAChoice = new DocumentTemplateRequest(
+                null,
                 "Pronomen",
                 null,
                 null,
@@ -360,6 +419,8 @@ class DocumentTemplateServiceTest extends RepositoryTestBase {
                 new PronounSource(textField, Map.of(), PronounForm.NAME),
                 null,
                 "",
+                null,
+                null,
                 null);
 
         refused(DocumentRefusal.DOCUMENT_TEMPLATE_PAGE_OUT_OF_BOUNDS, () -> service.create(owner, narrow, authorId));

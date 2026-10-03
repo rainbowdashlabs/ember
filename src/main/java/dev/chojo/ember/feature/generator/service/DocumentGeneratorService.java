@@ -10,10 +10,14 @@ import dev.chojo.ember.feature.generator.entity.DocumentTemplateDraft;
 import dev.chojo.ember.feature.generator.entity.GenerationContext;
 import dev.chojo.ember.feature.generator.entity.LetterContent;
 import dev.chojo.ember.feature.generator.entity.MissingValue;
+import dev.chojo.ember.feature.generator.entity.PdfContent;
 import dev.chojo.ember.feature.generator.entity.Placeholder;
 import dev.chojo.ember.feature.generator.entity.PlaceholderTokens;
 import dev.chojo.ember.feature.generator.entity.PronounSource;
 import dev.chojo.ember.feature.generator.entity.ResolvedValues;
+import dev.chojo.ember.feature.generator.entity.SignatureRole;
+import dev.chojo.ember.feature.generator.entity.TemplateContent;
+import dev.chojo.ember.feature.generator.service.pdf.PdfStamper;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
@@ -24,6 +28,7 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.util.Base64;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -36,6 +41,11 @@ import java.util.regex.Pattern;
  * <p>It works in two steps so a caller can refuse before anything is drawn: {@link #prepare} reads the
  * values of every placeholder the template names and reports the ones that are missing, and
  * {@link #render} draws the document from them. Filing the result is {@link DocumentGenerationService}'s.
+ *
+ * <p>A letter is drawn by {@link LetterRenderer}, where a placeholder without a value becomes a line to
+ * fill in by hand. A PDF template fills its uploaded PDF through {@link PdfTemplateRenderer}, where the
+ * form already has its own lines and a placeholder without a value stays empty. A signature field is no
+ * value and is never missing.
  *
  * <p>A legal template is checked again here, not only when it is saved: a document that names a member
  * by the name they are called by is refused, whatever state the template got into.
@@ -53,7 +63,8 @@ public class DocumentGeneratorService {
     private final DocumentTemplateService templates;
     private final PlaceholderResolver resolver;
     private final PlaceholderCatalogue catalogue;
-    private final LetterRenderer renderer;
+    private final LetterRenderer letters;
+    private final PdfTemplateRenderer pdfs;
     private final StationRepository stations;
     private final Clock clock;
 
@@ -62,9 +73,10 @@ public class DocumentGeneratorService {
             DocumentTemplateService templates,
             PlaceholderResolver resolver,
             PlaceholderCatalogue catalogue,
-            LetterRenderer renderer,
+            LetterRenderer letters,
+            PdfTemplateRenderer pdfs,
             StationRepository stations) {
-        this(templates, resolver, catalogue, renderer, stations, Clock.systemUTC());
+        this(templates, resolver, catalogue, letters, pdfs, stations, Clock.systemUTC());
     }
 
     /**
@@ -74,13 +86,15 @@ public class DocumentGeneratorService {
             DocumentTemplateService templates,
             PlaceholderResolver resolver,
             PlaceholderCatalogue catalogue,
-            LetterRenderer renderer,
+            LetterRenderer letters,
+            PdfTemplateRenderer pdfs,
             StationRepository stations,
             Clock clock) {
         this.templates = templates;
         this.resolver = resolver;
         this.catalogue = catalogue;
-        this.renderer = renderer;
+        this.letters = letters;
+        this.pdfs = pdfs;
         this.stations = stations;
         this.clock = clock;
     }
@@ -100,44 +114,61 @@ public class DocumentGeneratorService {
      * @param name            what it is called, which a document without a title is called after
      * @param titlePattern    the title, with placeholders
      * @param fileNamePattern the file name, with placeholders
-     * @param letter          the letter
+     * @param content         the letter, or the PDF with what is laid over it
      * @param pronouns        the field the pronouns follow, or null
      * @param legal           whether it makes a legal document
-     * @param cacheKey        the template and version its body is kept under, or null for a draft
+     * @param cacheKey        the template and version a letter's body is kept under, or null for a draft
      */
     public record Source(
             int stationId,
             String name,
             String titlePattern,
             String fileNamePattern,
-            LetterContent letter,
+            TemplateContent content,
             @Nullable PronounSource pronouns,
             boolean legal,
             LetterRenderer.@Nullable BodyKey cacheKey) {
 
         /** The keys the template names anywhere. */
         public Set<String> keys() {
-            return PlaceholderCatalogue.keysOf(titlePattern, fileNamePattern, letter);
+            return PlaceholderCatalogue.keysOf(titlePattern, fileNamePattern, content);
+        }
+
+        /** The keys that stand for values, which leaves out the signature fields of a letter. */
+        public Set<String> valueKeys() {
+            var keys = new LinkedHashSet<>(keys());
+            keys.removeIf(SignatureRole::isToken);
+            return keys;
+        }
+
+        /** @return the uploaded PDF the document is filled from, or null for a letter */
+        public @Nullable Integer pdfOriginalId() {
+            if (!(content instanceof PdfContent pdf)) return null;
+            var original = pdf.original();
+            return original == null ? null : original.id();
         }
     }
 
     /**
      * A drawn document.
      *
-     * @param pdf      the PDF/A-3b
-     * @param title    the title it is filed under
-     * @param fileName the file name it is filed under, ending in {@code .pdf}
-     * @param resolved the values it was drawn from
+     * @param pdf         the file
+     * @param title       the title it is filed under
+     * @param fileName    the file name it is filed under, ending in {@code .pdf}
+     * @param resolved    the values it was drawn from
+     * @param unprintable the characters of the values no font could print, which the file leaves out
      */
-    public record Rendered(byte[] pdf, String title, String fileName, ResolvedValues resolved) {}
+    public record Rendered(
+            byte[] pdf, String title, String fileName, ResolvedValues resolved, List<String> unprintable) {}
 
     /**
      * A document drawn for a look before it is generated.
      *
-     * @param pdfBase64 the PDF, Base64 encoded
-     * @param missing   the placeholders without a value
+     * @param pdfBase64   the PDF, Base64 encoded
+     * @param missing     the placeholders without a value
+     * @param unprintable the characters no font could print, which the document leaves out
      */
-    public record PreviewResponse(String pdfBase64, List<MissingValue> missing) {}
+    public record PreviewResponse(String pdfBase64, List<MissingValue> missing, List<String> unprintable) {}
 
     /**
      * @param template a saved template
@@ -149,7 +180,7 @@ public class DocumentGeneratorService {
                 template.name(),
                 template.titlePattern(),
                 template.fileNamePattern(),
-                templates.letterOf(template),
+                templates.contentOf(template),
                 template.pronounSource(),
                 template.legal(),
                 new LetterRenderer.BodyKey(template.id(), template.version()));
@@ -166,7 +197,7 @@ public class DocumentGeneratorService {
                 draft.name(),
                 draft.titlePattern(),
                 draft.fileNamePattern(),
-                draft.letter(),
+                draft.content(),
                 draft.pronounSource(),
                 draft.legal(),
                 null);
@@ -181,7 +212,7 @@ public class DocumentGeneratorService {
      * @return the values and what is missing
      */
     public Prepared prepare(Source source, int memberId, GenerationContext context) {
-        var keys = source.keys();
+        var keys = source.valueKeys();
         if (source.legal()) PlaceholderCatalogue.requireOfficial(keys);
         return new Prepared(source, resolver.resolve(source.stationId(), memberId, keys, source.pronouns(), context));
     }
@@ -200,7 +231,7 @@ public class DocumentGeneratorService {
     }
 
     /**
-     * Draws the document of one member. A placeholder without a value becomes a line to fill in by hand.
+     * Draws the document of one member.
      *
      * @param prepared the template and the member's values
      * @return the document
@@ -209,11 +240,9 @@ public class DocumentGeneratorService {
         var source = prepared.source();
         var values = prepared.resolved().values();
         String title = title(source, values);
-        String fileName = fileName(source, values);
         var labels = labels(source.stationId(), prepared.resolved().missing());
-        byte[] pdf = renderer.render(new LetterRenderer.LetterJob(
-                source.stationId(), title, source.letter(), source.cacheKey(), values, labels, false, today(source)));
-        return new Rendered(pdf, title, fileName, prepared.resolved());
+        var drawn = draw(source, title, values, labels, false);
+        return new Rendered(drawn.pdf(), title, fileName(source, values), prepared.resolved(), drawn.unprintable());
     }
 
     /**
@@ -228,23 +257,43 @@ public class DocumentGeneratorService {
     public PreviewResponse preview(Source source, @Nullable Integer memberId, GenerationContext context) {
         if (memberId != null) {
             var prepared = prepare(source, memberId, context);
-            return new PreviewResponse(encode(render(prepared).pdf()), missing(prepared));
+            var rendered = render(prepared);
+            return new PreviewResponse(encode(rendered.pdf()), missing(prepared), rendered.unprintable());
         }
         var values = resolver.withoutMember(source.stationId());
         var labels = new LinkedHashMap<String, String>();
         catalogue
                 .forStation(source.stationId())
                 .forEach(placeholder -> labels.put(placeholder.key(), placeholder.label()));
-        byte[] pdf = renderer.render(new LetterRenderer.LetterJob(
-                source.stationId(),
-                title(source, values),
-                source.letter(),
-                source.cacheKey(),
-                values,
-                labels,
-                true,
-                today(source)));
-        return new PreviewResponse(encode(pdf), List.of());
+        var drawn = draw(source, title(source, values), values, labels, true);
+        return new PreviewResponse(encode(drawn.pdf()), List.of(), drawn.unprintable());
+    }
+
+    private PdfStamper.Stamped draw(
+            Source source, String title, Map<String, String> values, Map<String, String> labels, boolean showLabels) {
+        return switch (source.content()) {
+            case LetterContent letter ->
+                new PdfStamper.Stamped(
+                        letters.render(new LetterRenderer.LetterJob(
+                                source.stationId(),
+                                title,
+                                letter,
+                                source.cacheKey(),
+                                values,
+                                labels,
+                                showLabels,
+                                today(source))),
+                        List.of());
+            case PdfContent pdf ->
+                pdfs.render(
+                        source.stationId(),
+                        pdf,
+                        text -> PlaceholderTokens.replace(text, key -> {
+                            String value = values.get(key);
+                            if (value != null) return value;
+                            return showLabels ? "[" + labels.getOrDefault(key, key) + "]" : "";
+                        }));
+        };
     }
 
     private static String encode(byte[] pdf) {

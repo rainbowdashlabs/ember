@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {
-    LetterCellAlign,
+    TextAlign,
     LetterCellKind,
     type DocumentTemplateRequest,
     type DocumentTemplateResponse,
@@ -42,7 +42,7 @@ export const DEFAULT_PAGE: LetterPage = {marginTopMm: 40, marginBottomMm: 30, ma
 
 /** A cell holding nothing, which is what a new cell starts as. */
 export function emptyCell(): LetterCell {
-    return {kind: LetterCellKind.EMPTY, mediaHash: null, text: null, align: LetterCellAlign.LEFT, imageHeightMm: 18}
+    return {kind: LetterCellKind.EMPTY, mediaHash: null, text: null, align: TextAlign.LEFT, imageHeightMm: 18}
 }
 
 /** A new template: nothing written yet, a wait of 30 days, every member as the audience. */
