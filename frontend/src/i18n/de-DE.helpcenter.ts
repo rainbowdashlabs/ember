@@ -1702,6 +1702,21 @@ volumes:
             associationSelfServiceText: 'Ob Mitglieder eine Vorlage des Verbands selbst erstellen, entscheidet die '
                 + 'Wache: Ein Klick auf die Vorlage öffnet die Einstellung, dort schaltet sie das Selbst-Erstellen ein '
                 + 'und wählt, für wen. Das geht nur, wenn der Verband die Vorlage dafür anbietet.',
+            listTitle: 'Die Liste der Vorlagen',
+            listText: 'Die Liste beginnt mit den Vorlagen, aus denen an dieser Wache zuletzt ein Dokument erstellt '
+                + 'wurde. Vorlagen, die noch nie verwendet wurden, stehen am Ende. Über die Spalten sortierst du '
+                + 'stattdessen nach Name, „Erstellt", „Geändert" oder „Zuletzt verwendet" und filterst nach Tagen.',
+            listPickerText: 'Auch beim Erstellen für ein Mitglied, für viele Mitglieder und bei den mitzubringenden '
+                + 'Dokumenten eines Termins stehen die zuletzt verwendeten Vorlagen oben. Unter Meine Dokumente stehen '
+                + 'die Vorlagen oben, die zuletzt für dieses Mitglied selbst erstellt wurden.',
+            duplicateTitle: 'Vorlage duplizieren',
+            duplicateText: '„Duplizieren" in der Zeile einer Vorlage oder im Editor legt eine Kopie mit dem Namen '
+                + '„Kopie von …" an und öffnet sie im Editor. Die Kopie übernimmt alles, was gespeichert ist: Brief '
+                + 'oder PDF mit Feldern, Ablage, Selbst-Erstellen mit Wartezeit und Zielgruppe. Sie beginnt bei '
+                + 'Version 1. Erstellte Dokumente und Termine bleiben bei der alten Vorlage.',
+            duplicateAssociationText: 'Auch eine Vorlage des Verbands lässt sich duplizieren. Die Kopie gehört dann '
+                + 'der Wache, die sie frei ändern kann. Bilder aus den Medien des Verbands fehlen in der Kopie, bis du '
+                + 'sie ersetzt. Ember weist nach dem Duplizieren darauf hin.',
             archiveTitle: 'Archivieren statt löschen',
             archiveText: 'Vorlagen werden nicht gelöscht, sondern archiviert. Eine archivierte Vorlage erstellt '
                 + 'nichts mehr, bleibt aber für die Dokumente erhalten, die aus ihr entstanden sind. Mit „Wieder '
@@ -4153,6 +4168,13 @@ volumes:
                 + 'Vorlage verwendet wird, bleibt erhalten.',
             fontsText: 'Vorlagen des Verbands verwenden die Schriften des Verbands und der Instanz, aber keine '
                 + 'Schrift einer einzelnen Wache.',
+            listTitle: 'Liste und Kopien',
+            listText: 'Die Liste beginnt mit den Vorlagen, aus denen zuletzt an einer der Wachen ein Dokument '
+                + 'erstellt wurde. Über die Spalten sortierst du stattdessen nach Name, „Erstellt", „Geändert" oder '
+                + '„Zuletzt verwendet".',
+            duplicateText: '„Duplizieren" legt eine Kopie einer Vorlage des Verbands an, mit allem, was gespeichert '
+                + 'ist, und öffnet sie im Editor. Auch jede Wache kann eine Vorlage des Verbands duplizieren und '
+                + 'erhält damit eine eigene, die sie frei ändert.',
             rightsTitle: 'Wer was darf',
             rightsText: 'Vorlagen, Schriften und Medien des Verbands bearbeitet, wer im Verband „Dokumentvorlagen" '
                 + 'hat.',

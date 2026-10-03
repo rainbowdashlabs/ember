@@ -33,6 +33,11 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.clusterDocumentTemplates.fontsText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.clusterDocumentTemplates.listTitle')">
+      <p>{{ t('helpCenter.clusterDocumentTemplates.listText') }}</p>
+      <p>{{ t('helpCenter.clusterDocumentTemplates.duplicateText') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.clusterDocumentTemplates.rightsTitle')">
       <p>{{ t('helpCenter.clusterDocumentTemplates.rightsText') }}</p>
     </HelpSection>

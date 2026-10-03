@@ -45,6 +45,16 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.documentTemplates.associationSelfServiceText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.documentTemplates.listTitle')">
+      <p>{{ t('helpCenter.documentTemplates.listText') }}</p>
+      <p>{{ t('helpCenter.documentTemplates.listPickerText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.documentTemplates.duplicateTitle')">
+      <p>{{ t('helpCenter.documentTemplates.duplicateText') }}</p>
+      <p>{{ t('helpCenter.documentTemplates.duplicateAssociationText') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.documentTemplates.archiveTitle')">
       <p>{{ t('helpCenter.documentTemplates.archiveText') }}</p>
     </HelpSection>
