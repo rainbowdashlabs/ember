@@ -38,8 +38,13 @@ import java.util.stream.Stream;
  * The values a template of one station can name, with the words the editor shows for them.
  *
  * <p>Keys are English and never change; labels are in the station's language. The built-in keys are
- * the same everywhere ({@link BuiltInPlaceholder}), and every profile question of the station that
- * holds an answer adds one key for the member and one for each of the two guardians.
+ * the same everywhere ({@link BuiltInPlaceholder}). A profile question that holds an answer adds a key for
+ * the member where it is put to the member, and one for each of the two guardians where it is put to
+ * guardians ({@link OfferedFields}). A key the catalogue does not hold is refused when a template is saved,
+ * so a template names only answers somebody is asked for.
+ *
+ * <p>The questions of an association are not offered: a template is the station's and names the
+ * station's questions only.
  */
 @Singleton
 public class PlaceholderCatalogue {
@@ -77,14 +82,14 @@ public class PlaceholderCatalogue {
                 PlaceholderGroup.SIGNATURE,
                 false,
                 false));
-        var fields = answerable(stationId);
-        for (var field : fields) {
+        var offered = offered(stationId);
+        for (var field : fieldsOf(offered.member())) {
             out.add(new Placeholder(PROFILE + field.id(), field.name(), PlaceholderGroup.PROFILE, false, false));
         }
         for (int index = 0; index < GUARDIANS.size(); index++) {
             String prefix = GUARDIANS.get(index);
             String who = guardianWord(language, index + 1);
-            for (var field : fields) {
+            for (var field : fieldsOf(offered.guardians())) {
                 out.add(new Placeholder(
                         prefix + PROFILE + field.id(),
                         who + ": " + field.name(),
@@ -109,15 +114,29 @@ public class PlaceholderCatalogue {
     }
 
     /**
-     * The profile questions of the station that hold an answer, which is every one a template can name.
+     * The profile questions of the station a template can name, for the member and for a guardian: those
+     * that hold an answer and are put to the member or to guardians.
      *
      * @param stationId the station
-     * @return the questions
+     * @return the questions by whom they are put to
+     */
+    public OfferedFields offered(int stationId) {
+        return OfferedFields.of(
+                profileFields.findByStation(stationId), profileFields.findAssignmentsByStation(stationId));
+    }
+
+    /**
+     * The profile questions a template can name for the member.
+     *
+     * @param stationId the station
+     * @return the questions in the order of the member's form
      */
     public List<ProfileField> answerable(int stationId) {
-        return profileFields.findByStation(stationId).stream()
-                .filter(field -> field.fieldType().holdsValue())
-                .toList();
+        return fieldsOf(offered(stationId).member());
+    }
+
+    private static List<ProfileField> fieldsOf(List<OfferedFields.SectionedField> sectioned) {
+        return sectioned.stream().map(OfferedFields.SectionedField::field).toList();
     }
 
     /**

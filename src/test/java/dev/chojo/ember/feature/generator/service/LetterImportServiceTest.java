@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.generator.entity.LetterContent;
 import dev.chojo.ember.feature.media.entity.StationFile;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
+import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.BeforeAll;
@@ -66,6 +67,7 @@ class LetterImportServiceTest extends RepositoryTestBase {
         schoolField = profileFieldRepo
                 .create(station.id(), "Schule", FieldType.TEXT, ProfileFieldConfig.empty(), false, false, null)
                 .id();
+        profileFieldRepo.assignToRole(schoolField, ProfileFieldScope.MEMBER, 0, null, null, null);
         media = mock(MediaLibraryService.class);
         when(media.upload(eq(station.id()), any(), any(), anyString(), anyString(), any()))
                 .thenReturn(new StationFile(

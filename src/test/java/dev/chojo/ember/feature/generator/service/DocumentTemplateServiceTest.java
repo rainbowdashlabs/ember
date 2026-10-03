@@ -24,6 +24,7 @@ import dev.chojo.ember.feature.generator.repository.PdfTemplateRepository;
 import dev.chojo.ember.feature.media.entity.StationFile;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
+import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
@@ -68,6 +69,9 @@ class DocumentTemplateServiceTest extends RepositoryTestBase {
     private static Owner.Station owner;
     private static int authorId;
     private static int textField;
+    private static int guardianField;
+    private static int trialField;
+    private static int unaskedField;
 
     @BeforeAll
     static void setup() {
@@ -75,9 +79,10 @@ class DocumentTemplateServiceTest extends RepositoryTestBase {
         owner = new Owner.Station(station.id());
         var account = accountRepo.create("template-service@test.com", "Tara", "Vorlage");
         authorId = stationMemberRepo.create(station.id(), account.id()).id();
-        textField = profileFieldRepo
-                .create(station.id(), "Schule", FieldType.TEXT, ProfileFieldConfig.empty(), false, false, null)
-                .id();
+        textField = field("Schule", ProfileFieldScope.MEMBER, ProfileFieldScope.GUARDIAN);
+        guardianField = field("Arbeitgeber", ProfileFieldScope.GUARDIAN);
+        trialField = field("Schnupperwunsch", ProfileFieldScope.TRIAL);
+        unaskedField = field("Ungefragt");
 
         var media = mock(MediaLibraryService.class);
         when(media.findByHash(any(), anyString())).thenReturn(Optional.empty());
@@ -98,6 +103,15 @@ class DocumentTemplateServiceTest extends RepositoryTestBase {
 
     private static StationFile file(String hash, String mime) {
         return new StationFile(1, 0, station.id(), hash, "f", mime, 1, Instant.EPOCH, null, null, null);
+    }
+
+    /** A text question of the station, put to the given kinds of member. */
+    private static int field(String name, ProfileFieldScope... roles) {
+        int id = profileFieldRepo
+                .create(station.id(), name, FieldType.TEXT, ProfileFieldConfig.empty(), false, false, null)
+                .id();
+        for (var role : roles) profileFieldRepo.assignToRole(id, role, 0, null, null, null);
+        return id;
     }
 
     private static void refused(Refusal refusal, Executable action) {
@@ -397,5 +411,48 @@ class DocumentTemplateServiceTest extends RepositoryTestBase {
         assertTrue(catalogue.placeholders().stream()
                 .filter(placeholder -> placeholder.key().equals("member.calledName"))
                 .allMatch(Placeholder::informal));
+    }
+
+    @Test
+    void theCatalogueOffersAQuestionOnlyForWhomItIsPutTo() {
+        var keys = service.catalogue(owner).placeholders().stream()
+                .map(Placeholder::key)
+                .toList();
+
+        assertTrue(keys.contains("guardian1.profile." + guardianField));
+        assertFalse(keys.contains("profile." + guardianField));
+        assertTrue(keys.contains("profile." + trialField));
+        assertFalse(keys.contains("guardian1.profile." + trialField));
+        assertFalse(keys.contains("guardian2.profile." + trialField));
+        assertFalse(keys.contains("profile." + unaskedField));
+        assertFalse(keys.contains("guardian1.profile." + unaskedField));
+    }
+
+    @Test
+    void aTemplateNamesAQuestionOnlyForWhomItIsPutTo() {
+        assertNotNull(service.create(
+                owner,
+                letter("Arbeitgeber", "{{guardian1.profile." + guardianField + "}}", "{{profile." + trialField + "}}")
+                        .build(),
+                authorId));
+        refused(
+                DocumentRefusal.DOCUMENT_TEMPLATE_PLACEHOLDER_UNKNOWN,
+                () -> service.create(
+                        owner,
+                        letter("Mitglied", "{{profile." + guardianField + "}}").build(),
+                        authorId));
+        refused(
+                DocumentRefusal.DOCUMENT_TEMPLATE_PLACEHOLDER_UNKNOWN,
+                () -> service.create(
+                        owner,
+                        letter("Elternteil", "{{guardian2.profile." + trialField + "}}")
+                                .build(),
+                        authorId));
+        refused(
+                DocumentRefusal.DOCUMENT_TEMPLATE_PLACEHOLDER_UNKNOWN,
+                () -> service.create(
+                        owner,
+                        letter("Ungefragt", "{{profile." + unaskedField + "}}").build(),
+                        authorId));
     }
 }

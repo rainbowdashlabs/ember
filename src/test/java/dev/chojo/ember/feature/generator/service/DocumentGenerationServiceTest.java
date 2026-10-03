@@ -34,6 +34,7 @@ import dev.chojo.ember.feature.media.entity.MediaContent;
 import dev.chojo.ember.feature.media.entity.StationFile;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
+import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.members.entity.PronounSet;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.GenderFields;
@@ -152,6 +153,7 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
         schoolField = profileFieldRepo
                 .create(station.id(), "Schule", FieldType.TEXT, ProfileFieldConfig.empty(), false, false, null)
                 .id();
+        profileFieldRepo.assignToRole(schoolField, ProfileFieldScope.MEMBER, 0, null, null, null);
         profileFieldRepo.setValue(lena.id(), genderField, StringNode.valueOf("weiblich"));
         profileFieldRepo.setValue(lena.id(), schoolField, StringNode.valueOf("Schule *am* See"));
 
