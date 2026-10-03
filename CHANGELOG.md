@@ -2,7 +2,7 @@
 
 ## v26.21.0
 
-Stations turn templates into documents for their members. A letter template is written in blocks like the station's pages, with placeholders for member data, guardians and the station, and blocks some members get and others do not. A PDF template fills an uploaded form, such as a consent form, in place and leaves an empty signature field for each signer. Documents name people by their official names. Pronouns follow the new gender profile field or use the first name. Managers generate a document on the member page after a preview that names missing data. Members and guardians generate documents marked for self service on the profile page, with a waiting time between two documents. Every generated document is filed in the member's documents and recorded with the version of its template. A Word or OpenDocument text fills the body of a template. The guardians of a member have an order, which documents follow.
+Stations turn templates into documents for their members. A letter template is written in blocks like the station's pages, with placeholders for member data, guardians and the station, and blocks some members get and others do not. A PDF template fills an uploaded form, such as a consent form, in place and leaves an empty signature field for each signer. Documents name people by their official names. Pronouns follow the new gender profile field or use the first name. Managers generate a document on the member page after a preview that names missing data. Members and guardians generate documents marked for self service on the profile page, with a waiting time between two documents. Every generated document is filed in the member's documents and recorded with the version of its template. Templates take their body from a Word or OpenDocument text and print in fonts that the instance, an association or the station uploaded. The guardians of a member have an order, which documents follow.
 
 ### New Features
 
@@ -13,6 +13,7 @@ Stations turn templates into documents for their members. A letter template is w
 - **Documents generated for a member.** On a member's page, a document is generated from a template after a preview that names any missing data, and filed in the member's documents. Letters are filed as PDF/A, and every document is recorded with the template version and the SHA-256 of the file.
 - **Members generate their own documents.** Templates marked for self service appear on the profile page, for oneself and for each child. A document is generated once the profile holds the data it needs, and the same document again only after a waiting time of 30 days by default.
 - **Word and OpenDocument texts fill a template.** A .docx or .odt file fills the body of a letter template as a text block, and a picture on a line of its own becomes a picture block. Gaps written in brackets for a name or a date of birth become placeholders where their words are recognised.
+- **Own fonts for documents.** The instance, an association and a station each upload fonts for documents, one TrueType or OpenType file per style, and a font whose licence forbids embedding is refused. Letters print their body, header and footer in them and PDF templates each text field, with a station's own font taking the place of the association's or the instance's of the same name.
 
 ### Improvements
 
@@ -22,6 +23,7 @@ Stations turn templates into documents for their members. A letter template is w
 ### Changes
 
 - **Station administrators manage document templates.** The station administrator permission now includes the new permission for document templates, which is also part of the documents permission.
+- **Association administrators manage fonts.** The association administrator permission includes the new association permission for document templates and fonts.
 
 ## v26.20.1
 
