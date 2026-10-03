@@ -13,12 +13,14 @@ import dev.chojo.ember.feature.content.entity.ContentCell;
 import dev.chojo.ember.feature.generator.entity.DocumentLanguage;
 import dev.chojo.ember.feature.generator.entity.LetterContent;
 import dev.chojo.ember.feature.generator.entity.PlaceholderTokens;
+import dev.chojo.ember.feature.generator.service.font.FontLibrary;
 import dev.chojo.ember.feature.generator.service.pdf.SignatureFields;
 import dev.chojo.ember.feature.knowledgebase.service.KbPdfPictures;
 import dev.chojo.ember.feature.media.entity.MediaContent;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
 import dev.chojo.ember.feature.station.service.StationLogoService;
+import dev.chojo.ember.owner.Owner;
 import dev.chojo.ember.util.PandocConverter;
 import dev.chojo.ember.util.TypstCompiler;
 import jakarta.inject.Inject;
@@ -51,7 +53,9 @@ import java.util.function.Predicate;
  * a block the member is not meant to see is left out. {@code letter.typ} draws the rows as grids from
  * {@code data.json}, the texts from their converted files and the pictures (from the media library, or
  * the station logo) placed next to the document as files. A picture that cannot be read is left out
- * rather than stopping the document. The template's language picks the {@code letter.typ} it is set in.
+ * rather than stopping the document. The template's language picks the {@code letter.typ} it is set in,
+ * and its page the fonts of the body, the header and the footer ({@link LetterFonts}), whose files go
+ * along to Typst in a font directory of their own.
  *
  * <p>A signature field a text names ({@code {{signature.issuer}}}) is drawn by {@code letter.typ} as an
  * empty box on a line, and {@link SignatureFields#replaceMarkers} turns it into a real, empty PDF
@@ -77,14 +81,17 @@ public class LetterRenderer {
     private final KbPdfPictures pictures;
     private final MediaLibraryService mediaLibrary;
     private final StationLogoService logos;
+    private final FontLibrary fonts;
     private final Cache<BodyKey, PreparedTexts> converted =
             Caffeine.newBuilder().maximumSize(128).build();
 
     @Inject
-    public LetterRenderer(KbPdfPictures pictures, MediaLibraryService mediaLibrary, StationLogoService logos) {
+    public LetterRenderer(
+            KbPdfPictures pictures, MediaLibraryService mediaLibrary, StationLogoService logos, FontLibrary fonts) {
         this.pictures = pictures;
         this.mediaLibrary = mediaLibrary;
         this.logos = logos;
+        this.fonts = fonts;
     }
 
     /**
@@ -176,6 +183,11 @@ public class LetterRenderer {
         data.put("values", job.values());
         data.put("labels", job.labels());
         data.put("showLabels", job.showLabels());
+        var typeset = LetterFonts.of(
+                fonts.reachable(new Owner.Station(job.stationId())),
+                job.letter().page(),
+                fonts::read);
+        data.put("fonts", typeset.families());
         try {
             return SignatureFields.replaceMarkers(TypstCompiler.compileTemplate(
                     data,
@@ -183,7 +195,8 @@ public class LetterRenderer {
                     null,
                     resources,
                     files,
-                    TypstCompiler.Output.PDF_A_3B));
+                    TypstCompiler.Output.PDF_A_3B,
+                    typeset.files()));
         } catch (IOException e) {
             log.error("A letter of station {} could not be rendered", job.stationId(), e);
             throw DocumentRefusal.DOCUMENT_RENDER_FAILED.raise();

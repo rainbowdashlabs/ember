@@ -5,35 +5,126 @@
  */
 package dev.chojo.ember.feature.generator.service.pdf;
 
+import dev.chojo.ember.feature.generator.entity.FontStyle;
+import dev.chojo.ember.feature.generator.service.font.BundledFont;
+import dev.chojo.ember.feature.generator.service.font.FontFiles;
 import jakarta.inject.Singleton;
 import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.font.PDFont;
 import org.apache.pdfbox.pdmodel.font.PDType0Font;
+import org.jspecify.annotations.Nullable;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.UncheckedIOException;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Objects;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
 
 /**
  * The fonts text is stamped onto a PDF in.
  *
- * <p>Liberation Sans ships with the application ({@code fonts/LiberationSans-Regular.ttf}, under the SIL
- * Open Font License beside it), so the text reads the same on every installation, whatever fonts the
- * system has. It is embedded as a subset, which is what keeps a filled PDF/A a PDF/A, and it is the
- * last font every chain falls back to.
+ * <p>Every chain ends in Liberation Sans ({@link BundledFont}). A text field may name a family of
+ * uploaded fonts to draw in first; that file is embedded as a subset where its licence allows, and in
+ * full where it allows embedding but not subsetting. Embedding is what keeps a filled PDF/A a PDF/A.
+ * Each file is loaded into a document once, however many fields draw in it.
  */
 @Singleton
 public class StampFonts {
-    private static final String LIBERATION_SANS = "fonts/LiberationSans-Regular.ttf";
-
-    private final byte[] liberationSans = read(LIBERATION_SANS);
+    private final byte[] liberationSans = BundledFont.data();
 
     /**
-     * The fonts for text on one document, loaded into it.
+     * Where the file of a family and style comes from.
+     */
+    @FunctionalInterface
+    public interface FieldFonts {
+        /** Fields that only ever print in the default font. */
+        FieldFonts NONE = (family, style) -> Optional.empty();
+
+        /**
+         * @param family the family a field names
+         * @param style  the style it asks for
+         * @return the TrueType file to draw in, or empty where there is none to have
+         */
+        Optional<byte[]> file(String family, FontStyle style);
+    }
+
+    /**
+     * The fonts for the text on one document, loaded into it as they are first asked for.
+     */
+    public final class Loaded {
+        private final PDDocument document;
+        private final FieldFonts source;
+        private final Map<String, Optional<PDFont>> custom = new HashMap<>();
+        private @Nullable PDFont fallback;
+
+        private Loaded(PDDocument document, FieldFonts source) {
+            this.document = document;
+            this.source = source;
+        }
+
+        /**
+         * The chain a text is drawn in.
+         *
+         * @param family the family the text names, or null for the default font
+         * @param style  the style it asks for
+         * @return the chain, Liberation Sans last
+         * @throws IOException where Liberation Sans cannot be embedded
+         */
+        public FontChain chain(@Nullable String family, FontStyle style) throws IOException {
+            var fonts = new ArrayList<PDFont>();
+            if (family != null) custom(family, style).ifPresent(fonts::add);
+            fonts.add(fallback());
+            return new FontChain(fonts);
+        }
+
+        private Optional<PDFont> custom(String family, FontStyle style) {
+            String key = family.toLowerCase(Locale.ROOT) + "/" + style;
+            return custom.computeIfAbsent(
+                    key, ignored -> source.file(family, style).flatMap(this::load));
+        }
+
+        /**
+         * Embeds an uploaded file. One that PDFBox cannot embed after all is left out of the chain, so
+         * its text falls back rather than stopping the document.
+         */
+        private Optional<PDFont> load(byte[] file) {
+            try {
+                return Optional.of(
+                        PDType0Font.load(document, new ByteArrayInputStream(file), FontFiles.subsettable(file)));
+            } catch (IOException | RuntimeException unusable) {
+                return Optional.empty();
+            }
+        }
+
+        private PDFont fallback() throws IOException {
+            var loaded = fallback;
+            if (loaded == null) {
+                loaded = liberationSans(document);
+                fallback = loaded;
+            }
+            return loaded;
+        }
+    }
+
+    /**
+     * The fonts for the text on one document.
      *
      * @param document the document the text is drawn into
-     * @return the chain, Liberation Sans last
+     * @param source   where the files of uploaded families come from
+     * @return the fonts, loaded as they are asked for
+     */
+    public Loaded load(PDDocument document, FieldFonts source) {
+        return new Loaded(document, source);
+    }
+
+    /**
+     * The fonts for text on one document that names no family, loaded into it.
+     *
+     * @param document the document the text is drawn into
+     * @return the chain, Liberation Sans alone
      * @throws IOException where the font cannot be embedded
      */
     public FontChain chainFor(PDDocument document) throws IOException {
@@ -49,14 +140,5 @@ public class StampFonts {
      */
     public PDType0Font liberationSans(PDDocument document) throws IOException {
         return PDType0Font.load(document, new ByteArrayInputStream(liberationSans), true);
-    }
-
-    private static byte[] read(String resource) {
-        try (var in = Objects.requireNonNull(
-                StampFonts.class.getClassLoader().getResourceAsStream(resource), "The application ships " + resource)) {
-            return in.readAllBytes();
-        } catch (IOException e) {
-            throw new UncheckedIOException("The font " + resource + " could not be read", e);
-        }
     }
 }

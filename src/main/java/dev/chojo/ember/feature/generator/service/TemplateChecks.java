@@ -14,9 +14,11 @@ import dev.chojo.ember.feature.generator.entity.DocumentTemplateKind;
 import dev.chojo.ember.feature.generator.entity.TemplateContent;
 import dev.chojo.ember.feature.generator.repository.DocumentTemplateRepository;
 import dev.chojo.ember.feature.generator.repository.PdfTemplateRepository;
+import dev.chojo.ember.feature.generator.service.font.FontLibrary;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.owner.Owner;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -30,7 +32,8 @@ import java.util.Objects;
  * <p>Every check names its own refusal, so the editor can say which part of the template is wrong.
  * Placeholders are checked against the catalogue of the station by {@link PlaceholderCatalogue}: a
  * placeholder the catalogue does not know would only ever print as a gap. A letter's rows are checked
- * by {@link LetterChecks}, a PDF template's fields by {@link PdfLayoutChecks}.
+ * by {@link LetterChecks}, a PDF template's fields by {@link PdfLayoutChecks}. A font family the template
+ * names has to be one the station reaches ({@link FontLibrary}).
  */
 @Singleton
 public class TemplateChecks {
@@ -57,6 +60,7 @@ public class TemplateChecks {
     private final LetterChecks letters;
     private final StationRepository stations;
     private final PlaceholderCatalogue catalogue;
+    private final FontLibrary fonts;
 
     @Inject
     public TemplateChecks(
@@ -64,12 +68,14 @@ public class TemplateChecks {
             PdfTemplateRepository pdfTemplates,
             LetterChecks letters,
             StationRepository stations,
-            PlaceholderCatalogue catalogue) {
+            PlaceholderCatalogue catalogue,
+            FontLibrary fonts) {
         this.templates = templates;
         this.pdfTemplates = pdfTemplates;
         this.letters = letters;
         this.stations = stations;
         this.catalogue = catalogue;
+        this.fonts = fonts;
     }
 
     /**
@@ -125,6 +131,7 @@ public class TemplateChecks {
                 language(stationId, request.language()),
                 content);
         catalogue.requireKnown(stationId, draft);
+        fonts.requireReachable(new Owner.Station(stationId), content);
         return draft;
     }
 

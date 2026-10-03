@@ -2663,6 +2663,87 @@
         }
       }
     },
+    "/api/v1/admin/document-fonts" : {
+      "post" : {
+        "summary" : "Upload one style of a font family for the documents of every station",
+        "tags" : [ "Admin" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DocumentFontsResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get" : {
+        "summary" : "The fonts the instance offers every station",
+        "tags" : [ "Admin" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DocumentFontsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/document-fonts/{id}" : {
+      "delete" : {
+        "summary" : "Delete a font of the instance that no template in use prints with",
+        "tags" : [ "Admin" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DocumentFontsResponse"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
     "/api/v1/admin/feed-metrics" : {
       "get" : {
         "summary" : "Get the personal feed render histogram per day",
@@ -10496,6 +10577,87 @@
         }
       }
     },
+    "/api/v1/cluster/document-fonts" : {
+      "post" : {
+        "summary" : "Upload one style of a font family for the documents of the association and its stations",
+        "tags" : [ "Cluster" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DocumentFontsResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get" : {
+        "summary" : "The association's fonts, and every font family its templates can print in",
+        "tags" : [ "Cluster" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DocumentFontsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cluster/document-fonts/{id}" : {
+      "delete" : {
+        "summary" : "Delete a font of the association that no template in use prints with",
+        "tags" : [ "Cluster" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DocumentFontsResponse"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
     "/api/v1/cluster/fields" : {
       "post" : {
         "summary" : "Add a question",
@@ -13265,6 +13427,87 @@
             }
           }
         }
+      }
+    },
+    "/api/v1/document-fonts" : {
+      "post" : {
+        "summary" : "Upload one style of a font family for the station's documents",
+        "tags" : [ "Documents" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DocumentFontsResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get" : {
+        "summary" : "The station's fonts, and every font family its templates can print in",
+        "tags" : [ "Documents" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DocumentFontsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/document-fonts/{id}" : {
+      "delete" : {
+        "summary" : "Delete a font of the station that no template in use prints with",
+        "tags" : [ "Documents" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DocumentFontsResponse"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
       }
     },
     "/api/v1/document-generation/templates" : {
@@ -48765,6 +49008,53 @@
           }
         }
       },
+      "DocumentFontView" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "family" : {
+            "type" : "string"
+          },
+          "style" : {
+            "$ref" : "#/components/schemas/FontStyle"
+          },
+          "fileName" : {
+            "type" : "string"
+          },
+          "outline" : {
+            "$ref" : "#/components/schemas/FontOutline"
+          },
+          "sizeBytes" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "uploadedAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          }
+        },
+        "required" : [ "id", "family", "style", "fileName", "outline", "sizeBytes", "uploadedAt" ]
+      },
+      "DocumentFontsResponse" : {
+        "type" : "object",
+        "properties" : {
+          "own" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/DocumentFontView"
+            }
+          },
+          "reachable" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/FontFamilyOption"
+            }
+          }
+        },
+        "required" : [ "own", "reachable" ]
+      },
       "DocumentLanguage" : {
         "type" : "string",
         "enum" : [ "DE", "EN" ]
@@ -51773,6 +52063,39 @@
           }
         },
         "required" : [ "id", "parentId", "name", "level" ]
+      },
+      "FontFamilyOption" : {
+        "type" : "object",
+        "properties" : {
+          "family" : {
+            "type" : "string"
+          },
+          "origin" : {
+            "$ref" : "#/components/schemas/FontOrigin"
+          },
+          "styles" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/FontStyle"
+            }
+          },
+          "printsOnPdf" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "family", "origin", "styles", "printsOnPdf" ]
+      },
+      "FontOrigin" : {
+        "type" : "string",
+        "enum" : [ "STATION", "ASSOCIATION", "INSTANCE" ]
+      },
+      "FontOutline" : {
+        "type" : "string",
+        "enum" : [ "TRUETYPE", "CFF" ]
+      },
+      "FontStyle" : {
+        "type" : "string",
+        "enum" : [ "REGULAR", "BOLD", "ITALIC", "BOLD_ITALIC" ]
       },
       "ForeignKey" : {
         "type" : "object",
@@ -55847,9 +56170,18 @@
           "fontSizePt" : {
             "type" : "integer",
             "format" : "int32"
+          },
+          "bodyFont" : {
+            "type" : [ "string", "null" ]
+          },
+          "headerFont" : {
+            "type" : [ "string", "null" ]
+          },
+          "footerFont" : {
+            "type" : [ "string", "null" ]
           }
         },
-        "required" : [ "marginTopMm", "marginBottomMm", "marginLeftMm", "marginRightMm", "fontSizePt" ]
+        "required" : [ "marginTopMm", "marginBottomMm", "marginLeftMm", "marginRightMm", "fontSizePt", "bodyFont", "headerFont", "footerFont" ]
       },
       "Likert" : {
         "type" : "object",
@@ -60779,9 +61111,19 @@
             }, {
               "type" : "null"
             } ]
+          },
+          "fontFamily" : {
+            "type" : [ "string", "null" ]
+          },
+          "fontStyle" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/FontStyle"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
-        "required" : [ "kind", "rect", "text", "fontSize", "align", "wrap", "role" ]
+        "required" : [ "kind", "rect", "text", "fontSize", "align", "wrap", "role", "fontFamily", "fontStyle" ]
       },
       "PdfFieldKind" : {
         "type" : "string",
@@ -69289,7 +69631,7 @@
       },
       "StorageCategory" : {
         "type" : "string",
-        "enum" : [ "MEDIA_FILES", "INSTANCE_MEDIA_FILES", "MEDIA_IMAGES", "KB_FILES", "MEMBER_DOCUMENTS", "DOCUMENT_TEMPLATES", "MOVEMENT_DOCUMENTS", "BOARD_ATTACHMENTS", "IMAGE_AVATAR", "IMAGE_LOST_AND_FOUND", "IMAGE_LOGO_FRAGMENT", "IMAGE_STATION_LOGO", "IMAGE_QUIZ_QUESTION", "IMAGE_KB_ICON", "IMAGE_KB_IMAGE", "IMAGE_KB_FILE_PICTURE", "DOCUMENT", "DISCOVERY_KEY", "MAP_TILE_CACHE", "DEMO_AVATAR", "IMAGE_DISCOVERY_LOGO" ]
+        "enum" : [ "MEDIA_FILES", "INSTANCE_MEDIA_FILES", "MEDIA_IMAGES", "KB_FILES", "MEMBER_DOCUMENTS", "DOCUMENT_TEMPLATES", "FONTS", "ASSOCIATION_FONTS", "INSTANCE_FONTS", "MOVEMENT_DOCUMENTS", "BOARD_ATTACHMENTS", "IMAGE_AVATAR", "IMAGE_LOST_AND_FOUND", "IMAGE_LOGO_FRAGMENT", "IMAGE_STATION_LOGO", "IMAGE_QUIZ_QUESTION", "IMAGE_KB_ICON", "IMAGE_KB_IMAGE", "IMAGE_KB_FILE_PICTURE", "DOCUMENT", "DISCOVERY_KEY", "MAP_TILE_CACHE", "DEMO_AVATAR", "IMAGE_DISCOVERY_LOGO" ]
       },
       "StorageQuotaPreset" : {
         "type" : "object",

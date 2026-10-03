@@ -148,7 +148,7 @@ COMMENT ON COLUMN ember_schema.document_template_letter.footer IS
 COMMENT ON COLUMN ember_schema.document_template_letter.body IS
     'The rows of the letter itself, shaped like the header. A block whose restriction does not match the member is left out, and a row left with nothing is dropped.';
 COMMENT ON COLUMN ember_schema.document_template_letter.page IS
-    'The page margins in millimetres and the body font size in points. The paper is always A4.';
+    'The page margins in millimetres, the body font size in points, and the family names of the uploaded fonts the body, the header and the footer are set in (absent for the default font, Liberation Sans). The paper is always A4.';
 
 CREATE TABLE IF NOT EXISTS ember_schema.document_template_pdf_original
 (
@@ -201,6 +201,9 @@ CREATE TABLE IF NOT EXISTS ember_schema.document_template_field
     height      DOUBLE PRECISION NOT NULL CHECK (height > 0),
     text        TEXT             NULL,
     font_size   DOUBLE PRECISION NOT NULL,
+    font_family TEXT             NULL,
+    font_style  TEXT             NOT NULL DEFAULT 'REGULAR'
+        CHECK (font_style IN ('REGULAR', 'BOLD', 'ITALIC', 'BOLD_ITALIC')),
     align       TEXT             NOT NULL CHECK (align IN ('LEFT', 'CENTER', 'RIGHT')),
     wrap        BOOLEAN          NOT NULL DEFAULT FALSE,
     role        TEXT             NULL CHECK (role IN ('PARTICIPANT', 'GUARDIAN_1', 'GUARDIAN_2', 'ISSUER')),
@@ -227,6 +230,10 @@ COMMENT ON COLUMN ember_schema.document_template_field.height IS 'The height in 
 COMMENT ON COLUMN ember_schema.document_template_field.text IS
     'The text with placeholders written as {{key}}, for TEXT and CHECK. NULL for SIGNATURE.';
 COMMENT ON COLUMN ember_schema.document_template_field.font_size IS 'The size of the text in points, the largest it is drawn at.';
+COMMENT ON COLUMN ember_schema.document_template_field.font_family IS
+    'The family name of the uploaded font the text is drawn in, as document_font names it, looked up among the fonts the station reaches. NULL for the default font, Liberation Sans.';
+COMMENT ON COLUMN ember_schema.document_template_field.font_style IS
+    'REGULAR, BOLD, ITALIC or BOLD_ITALIC: the style of the family the text is drawn in. A style the family lacks falls back to its regular one.';
 COMMENT ON COLUMN ember_schema.document_template_field.align IS 'LEFT, CENTER or RIGHT: where the text sits across the field.';
 COMMENT ON COLUMN ember_schema.document_template_field.wrap IS
     'Whether a long text runs onto further lines. Otherwise it stays on one line and shrinks to fit.';
@@ -305,3 +312,50 @@ COMMENT ON COLUMN ember_schema.document_generation_subject.generation_id IS 'Ref
 COMMENT ON COLUMN ember_schema.document_generation_subject.member_id IS 'A person whose data went into the document.';
 COMMENT ON COLUMN ember_schema.document_generation_subject.role IS
     'MEMBER for the member the document is about, GUARDIAN for a guardian whose data it holds.';
+
+INSERT INTO ember_schema.cluster_permission (name)
+VALUES ('CLUSTER_DOCUMENT_TEMPLATE_EDIT')
+ON CONFLICT (name) DO NOTHING;
+
+CREATE TABLE IF NOT EXISTS ember_schema.document_font
+(
+    id              SERIAL PRIMARY KEY,
+    station_id      INTEGER     NULL REFERENCES ember_schema.station (id) ON DELETE CASCADE,
+    cluster_id      INTEGER     NULL REFERENCES ember_schema.cluster (id) ON DELETE CASCADE,
+    family          TEXT        NOT NULL CHECK (length(btrim(family)) BETWEEN 1 AND 60),
+    style           TEXT        NOT NULL CHECK (style IN ('REGULAR', 'BOLD', 'ITALIC', 'BOLD_ITALIC')),
+    file_name       TEXT        NOT NULL,
+    outline         TEXT        NOT NULL CHECK (outline IN ('TRUETYPE', 'CFF')),
+    internal_family TEXT        NOT NULL,
+    size_bytes      BIGINT      NOT NULL,
+    sha256          TEXT        NOT NULL,
+    uploaded_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+    uploaded_by     INTEGER     NULL REFERENCES ember_schema.account (id) ON DELETE SET NULL,
+    CHECK (num_nonnulls(station_id, cluster_id) <= 1)
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_document_font_station
+    ON ember_schema.document_font (station_id, lower(family), style) WHERE station_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS uq_document_font_cluster
+    ON ember_schema.document_font (cluster_id, lower(family), style) WHERE cluster_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS uq_document_font_instance
+    ON ember_schema.document_font (lower(family), style) WHERE station_id IS NULL AND cluster_id IS NULL;
+
+COMMENT ON TABLE ember_schema.document_font IS
+    'A font uploaded for documents, one file per family and style. Owned by the instance (station_id and cluster_id both NULL), an association (cluster_id) or a station (station_id). A station reaches its own fonts, its association''s and the instance''s; on a family name found at several, the nearest owner wins. The file is kept in the owner''s storage under fonts/<id> and never sent to a browser.';
+COMMENT ON COLUMN ember_schema.document_font.id IS 'Auto-generated primary key, also the storage key of the file.';
+COMMENT ON COLUMN ember_schema.document_font.station_id IS 'The station that owns the font. NULL for a font of an association or of the instance.';
+COMMENT ON COLUMN ember_schema.document_font.cluster_id IS 'The association that owns the font. NULL for a font of a station or of the instance.';
+COMMENT ON COLUMN ember_schema.document_font.family IS
+    'The family name templates pick the font by, as the uploader gave it. Unique per owner and style, ignoring case.';
+COMMENT ON COLUMN ember_schema.document_font.style IS 'REGULAR, BOLD, ITALIC or BOLD_ITALIC: which style of the family the file is.';
+COMMENT ON COLUMN ember_schema.document_font.file_name IS 'The name the file was uploaded under.';
+COMMENT ON COLUMN ember_schema.document_font.outline IS
+    'TRUETYPE for a font with TrueType outlines (every .ttf and some .otf), CFF for an OpenType font with PostScript outlines. Letters print both; fields on uploaded PDFs print TrueType outlines only.';
+COMMENT ON COLUMN ember_schema.document_font.internal_family IS
+    'The family name the file itself carries, read at upload, which is the name the letter renderer asks for.';
+COMMENT ON COLUMN ember_schema.document_font.size_bytes IS 'The size of the file in bytes.';
+COMMENT ON COLUMN ember_schema.document_font.sha256 IS 'The SHA-256 of the file as lowercase hex.';
+COMMENT ON COLUMN ember_schema.document_font.uploaded_at IS 'When the file was uploaded.';
+COMMENT ON COLUMN ember_schema.document_font.uploaded_by IS
+    'The account that uploaded the file, who confirmed that the owner may use the font. NULL once the account is gone.';

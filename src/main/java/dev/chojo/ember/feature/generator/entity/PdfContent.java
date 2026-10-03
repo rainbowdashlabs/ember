@@ -26,4 +26,9 @@ public record PdfContent(@Nullable PdfOriginal original, PdfLayout layout) imple
     public Stream<String> texts() {
         return layout.texts();
     }
+
+    @Override
+    public Stream<String> fontFamilies() {
+        return layout.fontFamilies();
+    }
 }

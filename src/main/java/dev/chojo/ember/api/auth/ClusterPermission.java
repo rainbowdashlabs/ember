@@ -93,6 +93,11 @@ public enum ClusterPermission implements RouteRole {
     CLUSTER_EVENT_MANAGER(CLUSTER_EVENT_EDIT),
 
     /**
+     * The association's document templates and the fonts they print with.
+     */
+    CLUSTER_DOCUMENT_TEMPLATE_EDIT,
+
+    /**
      * Everything about how the cluster governs itself and its stations.
      */
     CLUSTER_MANAGER(
@@ -114,6 +119,7 @@ public enum ClusterPermission implements RouteRole {
             CLUSTER_KNOWLEDGE_MANAGER,
             CLUSTER_NEWS_MANAGER,
             CLUSTER_EVENT_MANAGER,
+            CLUSTER_DOCUMENT_TEMPLATE_EDIT,
             LOGIN);
 
     private final ClusterPermission[] children;

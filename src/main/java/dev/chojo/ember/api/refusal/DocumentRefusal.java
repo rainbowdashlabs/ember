@@ -196,7 +196,46 @@ public enum DocumentRefusal implements Refusal {
 
     /** A block a letter does not print, such as a video or a map. */
     DOCUMENT_TEMPLATE_BLOCK_NOT_TAKEN(
-            55, HttpStatus.BAD_REQUEST, "A letter holds texts, pictures and blocks stacked in a column only");
+            55, HttpStatus.BAD_REQUEST, "A letter holds texts, pictures and blocks stacked in a column only"),
+
+    /** A font upload that arrived with no file in it. */
+    DOCUMENT_FONT_MISSING_FILE(56, HttpStatus.BAD_REQUEST, Sentences.UPLOAD_MISSING_FILE),
+
+    /** A font file heavier than a font may be. */
+    DOCUMENT_FONT_TOO_LARGE(57, HttpStatus.BAD_REQUEST, "A font file may be at most 10 MB"),
+
+    /** A file that is no TrueType or OpenType font, or one that cannot be read. */
+    DOCUMENT_FONT_NOT_A_FONT(
+            58, HttpStatus.BAD_REQUEST, "Only TrueType (.ttf) and OpenType (.otf) fonts can be uploaded"),
+
+    /** A font whose licence bits forbid embedding it in a document. */
+    DOCUMENT_FONT_EMBEDDING_FORBIDDEN(
+            59, HttpStatus.BAD_REQUEST, "The licence of this font does not allow embedding it in documents"),
+
+    /** A second font for a family and style the owner already has. */
+    DOCUMENT_FONT_TAKEN(60, HttpStatus.CONFLICT, "This family already has a font in that style"),
+
+    /** A font uploaded without a family name, or with one too long. */
+    DOCUMENT_FONT_FAMILY_INVALID(61, HttpStatus.BAD_REQUEST, "A font needs a family name of at most 60 characters"),
+
+    /** A font uploaded without the confirmation that it may be used. */
+    DOCUMENT_FONT_LICENCE_NOT_CONFIRMED(
+            62, HttpStatus.BAD_REQUEST, "Confirm that the font may be used for these documents"),
+
+    /** A font that does not exist at the owner asking for it. */
+    DOCUMENT_FONT_NOT_HERE(63, HttpStatus.NOT_FOUND, "There is no such font"),
+
+    /** A font a template in use still prints with. */
+    DOCUMENT_FONT_IN_USE(64, HttpStatus.CONFLICT, "The font is used by these templates and cannot be deleted"),
+
+    /** A font the owner has no room left for. */
+    DOCUMENT_FONT_NO_ROOM(65, HttpStatus.BAD_REQUEST, "There is no room left for that font, so it was not uploaded"),
+
+    /** A template naming a font family it cannot reach. */
+    DOCUMENT_TEMPLATE_FONT_UNKNOWN(66, HttpStatus.BAD_REQUEST, "The template uses a font that is not available"),
+
+    /** A font uploaded as a style there is none of. */
+    DOCUMENT_FONT_STYLE_UNKNOWN(67, HttpStatus.BAD_REQUEST, "A font is regular, bold, italic or bold italic");
 
     private final Definition definition;
 

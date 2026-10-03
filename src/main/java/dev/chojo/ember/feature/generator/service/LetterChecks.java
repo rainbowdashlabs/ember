@@ -63,7 +63,8 @@ public class LetterChecks {
      * @return the letter as it is to be written
      */
     public LetterContent letter(int stationId, DocumentTemplateRequest request) {
-        var page = Objects.requireNonNullElse(request.page(), LetterPage.defaults());
+        var page = Objects.requireNonNullElse(request.page(), LetterPage.defaults())
+                .tidied();
         if (!page.withinBounds()) throw DocumentRefusal.DOCUMENT_TEMPLATE_PAGE_OUT_OF_BOUNDS.raise();
         var letter = new LetterContent(
                 rows(stationId, request.header(), MAX_LETTERHEAD_TEXT),

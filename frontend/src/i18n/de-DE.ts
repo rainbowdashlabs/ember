@@ -3875,6 +3875,10 @@ export default {
             label: 'Termine anlegen',
             desc: 'Termine des Verbands anlegen und absagen.',
         },
+        CLUSTER_DOCUMENT_TEMPLATE_EDIT: {
+            label: 'Vorlagen und Schriften',
+            desc: 'Die Dokumentvorlagen des Verbands und ihre Schriften verwalten.',
+        },
         STATION_MANAGER: {
             label: 'Stationseinstellungen',
             desc: 'Vollzugriff auf alle Stationseinstellungen.',

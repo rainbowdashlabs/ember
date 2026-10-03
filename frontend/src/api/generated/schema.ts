@@ -4053,6 +4053,118 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/document-fonts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The fonts the instance offers every station */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DocumentFontsResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Upload one style of a font family for the documents of every station */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DocumentFontsResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/document-fonts/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete a font of the instance that no template in use prints with */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DocumentFontsResponse"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/feed-metrics": {
         parameters: {
             query?: never;
@@ -13466,6 +13578,118 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/cluster/document-fonts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The association's fonts, and every font family its templates can print in */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DocumentFontsResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Upload one style of a font family for the documents of the association and its stations */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DocumentFontsResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cluster/document-fonts/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete a font of the association that no template in use prints with */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DocumentFontsResponse"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/cluster/fields": {
         parameters: {
             query?: never;
@@ -17384,6 +17608,118 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/document-fonts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The station's fonts, and every font family its templates can print in */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DocumentFontsResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Upload one style of a font family for the station's documents */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DocumentFontsResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/document-fonts/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete a font of the station that no template in use prints with */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DocumentFontsResponse"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
         options?: never;
         head?: never;
         patch?: never;
@@ -57740,6 +58076,21 @@ export interface components {
         DividerConfig: {
             label?: string;
         };
+        DocumentFontsResponse: {
+            own: components["schemas"]["DocumentFontView"][];
+            reachable: components["schemas"]["FontFamilyOption"][];
+        };
+        DocumentFontView: {
+            family: string;
+            fileName: string;
+            /** Format: int32 */
+            id: number;
+            outline: components["schemas"]["FontOutline"];
+            /** Format: int64 */
+            sizeBytes: number;
+            style: components["schemas"]["FontStyle"];
+            uploadedAt: components["schemas"]["Instant"];
+        };
         /** @enum {string} */
         DocumentLanguage: "DE" | "EN";
         DocumentPage: {
@@ -58773,6 +59124,18 @@ export interface components {
             /** Format: int32 */
             parentId: number | null;
         };
+        FontFamilyOption: {
+            family: string;
+            origin: components["schemas"]["FontOrigin"];
+            printsOnPdf: boolean;
+            styles: components["schemas"]["FontStyle"][];
+        };
+        /** @enum {string} */
+        FontOrigin: "STATION" | "ASSOCIATION" | "INSTANCE";
+        /** @enum {string} */
+        FontOutline: "TRUETYPE" | "CFF";
+        /** @enum {string} */
+        FontStyle: "REGULAR" | "BOLD" | "ITALIC" | "BOLD_ITALIC";
         ForeignKey: {
             column: string;
             onDelete: string;
@@ -60216,8 +60579,11 @@ export interface components {
             unrecognised: string[];
         };
         LetterPage: {
+            bodyFont: string | null;
             /** Format: int32 */
             fontSizePt: number;
+            footerFont: string | null;
+            headerFont: string | null;
             /** Format: int32 */
             marginBottomMm: number;
             /** Format: int32 */
@@ -61929,7 +62295,9 @@ export interface components {
         };
         PdfField: {
             align: components["schemas"]["TextAlign"];
+            fontFamily: string | null;
             fontSize: number;
+            fontStyle: components["schemas"]["FontStyle"] | null;
             kind: components["schemas"]["PdfFieldKind"];
             rect: components["schemas"]["FieldRect"];
             role: components["schemas"]["SignatureRole"] | null;
@@ -64862,7 +65230,7 @@ export interface components {
         /** @enum {string} */
         StorageBackendType: "LOCAL" | "SMB" | "SFTP" | "S3";
         /** @enum {string} */
-        StorageCategory: "MEDIA_FILES" | "INSTANCE_MEDIA_FILES" | "MEDIA_IMAGES" | "KB_FILES" | "MEMBER_DOCUMENTS" | "DOCUMENT_TEMPLATES" | "MOVEMENT_DOCUMENTS" | "BOARD_ATTACHMENTS" | "IMAGE_AVATAR" | "IMAGE_LOST_AND_FOUND" | "IMAGE_LOGO_FRAGMENT" | "IMAGE_STATION_LOGO" | "IMAGE_QUIZ_QUESTION" | "IMAGE_KB_ICON" | "IMAGE_KB_IMAGE" | "IMAGE_KB_FILE_PICTURE" | "DOCUMENT" | "DISCOVERY_KEY" | "MAP_TILE_CACHE" | "DEMO_AVATAR" | "IMAGE_DISCOVERY_LOGO";
+        StorageCategory: "MEDIA_FILES" | "INSTANCE_MEDIA_FILES" | "MEDIA_IMAGES" | "KB_FILES" | "MEMBER_DOCUMENTS" | "DOCUMENT_TEMPLATES" | "FONTS" | "ASSOCIATION_FONTS" | "INSTANCE_FONTS" | "MOVEMENT_DOCUMENTS" | "BOARD_ATTACHMENTS" | "IMAGE_AVATAR" | "IMAGE_LOST_AND_FOUND" | "IMAGE_LOGO_FRAGMENT" | "IMAGE_STATION_LOGO" | "IMAGE_QUIZ_QUESTION" | "IMAGE_KB_ICON" | "IMAGE_KB_IMAGE" | "IMAGE_KB_FILE_PICTURE" | "DOCUMENT" | "DISCOVERY_KEY" | "MAP_TILE_CACHE" | "DEMO_AVATAR" | "IMAGE_DISCOVERY_LOGO";
         StorageQuotaPreset: {
             /** Format: int64 */
             board: number;
@@ -66408,6 +66776,8 @@ export type DiscoveryVisibility = components['schemas']['DiscoveryVisibility'];
 export type DispatchRequest = components['schemas']['DispatchRequest'];
 export type DisplayTag = components['schemas']['DisplayTag'];
 export type DividerConfig = components['schemas']['DividerConfig'];
+export type DocumentFontsResponse = components['schemas']['DocumentFontsResponse'];
+export type DocumentFontView = components['schemas']['DocumentFontView'];
 export type DocumentLanguage = components['schemas']['DocumentLanguage'];
 export type DocumentPage = components['schemas']['DocumentPage'];
 export type DocumentPlaceholder = components['schemas']['DocumentPlaceholder'];
@@ -66541,6 +66911,10 @@ export type FlowRequest = components['schemas']['FlowRequest'];
 export type FlowResponse = components['schemas']['FlowResponse'];
 export type FolderRequest = components['schemas']['FolderRequest'];
 export type FolderTreeEntry = components['schemas']['FolderTreeEntry'];
+export type FontFamilyOption = components['schemas']['FontFamilyOption'];
+export type FontOrigin = components['schemas']['FontOrigin'];
+export type FontOutline = components['schemas']['FontOutline'];
+export type FontStyle = components['schemas']['FontStyle'];
 export type ForeignKey = components['schemas']['ForeignKey'];
 export type Form = components['schemas']['Form'];
 export type FormAnalytics = components['schemas']['FormAnalytics'];
@@ -67890,6 +68264,24 @@ export const FilterTableType = {
     QUIZ: "QUIZ",
 } as const;
 
+export const FontOrigin = {
+    ASSOCIATION: "ASSOCIATION",
+    INSTANCE: "INSTANCE",
+    STATION: "STATION",
+} as const;
+
+export const FontOutline = {
+    CFF: "CFF",
+    TRUETYPE: "TRUETYPE",
+} as const;
+
+export const FontStyle = {
+    BOLD: "BOLD",
+    BOLD_ITALIC: "BOLD_ITALIC",
+    ITALIC: "ITALIC",
+    REGULAR: "REGULAR",
+} as const;
+
 export const FormFieldKind = {
     CHECK: "CHECK",
     OTHER: "OTHER",
@@ -68722,11 +69114,13 @@ export const StorageBackendType = {
 } as const;
 
 export const StorageCategory = {
+    ASSOCIATION_FONTS: "ASSOCIATION_FONTS",
     BOARD_ATTACHMENTS: "BOARD_ATTACHMENTS",
     DEMO_AVATAR: "DEMO_AVATAR",
     DISCOVERY_KEY: "DISCOVERY_KEY",
     DOCUMENT: "DOCUMENT",
     DOCUMENT_TEMPLATES: "DOCUMENT_TEMPLATES",
+    FONTS: "FONTS",
     IMAGE_AVATAR: "IMAGE_AVATAR",
     IMAGE_DISCOVERY_LOGO: "IMAGE_DISCOVERY_LOGO",
     IMAGE_KB_FILE_PICTURE: "IMAGE_KB_FILE_PICTURE",
@@ -68736,6 +69130,7 @@ export const StorageCategory = {
     IMAGE_LOST_AND_FOUND: "IMAGE_LOST_AND_FOUND",
     IMAGE_QUIZ_QUESTION: "IMAGE_QUIZ_QUESTION",
     IMAGE_STATION_LOGO: "IMAGE_STATION_LOGO",
+    INSTANCE_FONTS: "INSTANCE_FONTS",
     INSTANCE_MEDIA_FILES: "INSTANCE_MEDIA_FILES",
     KB_FILES: "KB_FILES",
     MAP_TILE_CACHE: "MAP_TILE_CACHE",

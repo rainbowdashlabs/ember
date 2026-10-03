@@ -102,8 +102,14 @@ class PdfTemplateServiceTest extends RepositoryTestBase {
         var templateRepository = new DocumentTemplateRepository();
         var pdfTemplates = new PdfTemplateRepository();
         var media = mock(MediaLibraryService.class);
+        var fonts = newFontLibrary(storage);
         var checks = new TemplateChecks(
-                templateRepository, pdfTemplates, new LetterChecks(contentBlocks(), media), stationRepo, catalogue);
+                templateRepository,
+                pdfTemplates,
+                new LetterChecks(contentBlocks(), media),
+                stationRepo,
+                catalogue,
+                fonts);
         templates =
                 new DocumentTemplateService(templateRepository, pdfTemplates, checks, restrictionService, catalogue);
         pdfs = new PdfTemplateService(
@@ -118,8 +124,8 @@ class PdfTemplateServiceTest extends RepositoryTestBase {
                         new GenderFields(profileFieldCore, stationRepo),
                         clock),
                 catalogue,
-                new LetterRenderer(mock(KbPdfPictures.class), media, newStationLogoService()),
-                new PdfTemplateRenderer(pdfs, new PdfStamper(new StampFonts())),
+                new LetterRenderer(mock(KbPdfPictures.class), media, newStationLogoService(), fonts),
+                new PdfTemplateRenderer(pdfs, new PdfStamper(new StampFonts()), fonts),
                 stationRepo,
                 restrictionService,
                 clock);

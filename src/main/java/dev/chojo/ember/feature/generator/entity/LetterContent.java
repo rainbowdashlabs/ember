@@ -49,6 +49,11 @@ public record LetterContent(List<ContentRow> header, List<ContentRow> footer, Li
         return Stream.of(header, footer, body).flatMap(LetterContent::textsOf);
     }
 
+    @Override
+    public Stream<String> fontFamilies() {
+        return page.fontFamilies();
+    }
+
     /**
      * @return the texts of the header and the footer, where a signature field has no place
      */

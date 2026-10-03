@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.generator.service.pdf;
 import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.generator.entity.FieldRect;
+import dev.chojo.ember.feature.generator.entity.FontStyle;
 import dev.chojo.ember.feature.generator.entity.FormBinding;
 import dev.chojo.ember.feature.generator.entity.PdfField;
 import dev.chojo.ember.feature.generator.entity.PdfFieldKind;
@@ -15,6 +16,7 @@ import dev.chojo.ember.feature.generator.entity.PdfLayout;
 import dev.chojo.ember.feature.generator.entity.PlaceholderTokens;
 import dev.chojo.ember.feature.generator.entity.SignatureRole;
 import dev.chojo.ember.feature.generator.entity.TextAlign;
+import dev.chojo.ember.feature.generator.service.font.TestFonts;
 import dev.chojo.ember.util.PdfText;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
@@ -23,9 +25,11 @@ import org.apache.pdfbox.text.TextPosition;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.UnaryOperator;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -316,5 +320,70 @@ class PdfStamperTest {
                 DocumentRefusal.DOCUMENT_TEMPLATE_PDF_UNREADABLE,
                 assertThrows(RefusalResponse.class, () -> PdfFiles.open("no pdf".getBytes()))
                         .refusal());
+    }
+
+    private static PdfField inFamily(FieldRect rect, String text, String family, FontStyle style) {
+        return new PdfField(PdfFieldKind.TEXT, rect, text, 12, TextAlign.LEFT, false, null, family, style);
+    }
+
+    /**
+     * A field naming a family draws in its file, embedded as a subset; what the family lacks falls back
+     * to Liberation Sans, and only what neither prints is reported.
+     */
+    @Test
+    void aFieldDrawsInTheFamilyItNamesAsASubset() throws IOException {
+        var asked = new ArrayList<String>();
+        StampFonts.FieldFonts fonts = (family, style) -> {
+            asked.add(family + "/" + style);
+            return family.equals("Lisu") ? Optional.of(TestFonts.lisu()) : Optional.empty();
+        };
+        var layout = new PdfLayout(
+                List.of(
+                        inFamily(
+                                new FieldRect(1, 100, 700, 300, 20),
+                                TestFonts.LISU_TEXT + " Lena 漢",
+                                "Lisu",
+                                FontStyle.BOLD),
+                        inFamily(new FieldRect(1, 100, 650, 300, 20), TestFonts.LISU_TEXT, "Lisu", FontStyle.BOLD),
+                        inFamily(new FieldRect(1, 100, 600, 300, 20), "Lena", "Weg", FontStyle.REGULAR)),
+                List.of());
+
+        var stamped = stamper.stamp(TestPdfs.plain(1), layout, FILL, fonts);
+
+        assertEquals(List.of("漢"), stamped.unprintable());
+        assertEquals(List.of("Lisu/BOLD", "Weg/REGULAR"), asked);
+        var names = PdfFonts.namesIn(stamped.pdf());
+        var lisu = names.stream()
+                .filter(name -> name.endsWith("+" + TestFonts.LISU_POSTSCRIPT))
+                .findFirst();
+        assertTrue(lisu.isPresent(), names::toString);
+        assertEquals(7, lisu.get().indexOf('+') + 1, "a six letter subset tag");
+        assertTrue(names.stream().anyMatch(name -> name.contains("LiberationSans")), names::toString);
+    }
+
+    /** In the default font the same letters cannot be printed, which is what the preview lists. */
+    @Test
+    void theUnprintableListFollowsTheChosenFont() throws IOException {
+        var stamped = stamp(
+                TestPdfs.plain(1),
+                text(new FieldRect(1, 100, 700, 300, 20), TestFonts.LISU_TEXT, TextAlign.LEFT, false));
+        assertEquals(
+                TestFonts.LISU_TEXT.codePoints().mapToObj(Character::toString).toList(), stamped.unprintable());
+    }
+
+    /** A file whose licence forbids subsetting is embedded whole rather than left out. */
+    @Test
+    void aFontThatMayNotBeSubsetIsEmbeddedWhole() throws IOException {
+        byte[] whole = TestFonts.withFsType(TestFonts.lisu(), 0x0100);
+        var stamped = stamper.stamp(
+                TestPdfs.plain(1),
+                new PdfLayout(
+                        List.of(inFamily(
+                                new FieldRect(1, 100, 700, 300, 20), TestFonts.LISU_TEXT, "Lisu", FontStyle.REGULAR)),
+                        List.of()),
+                FILL,
+                (family, style) -> Optional.of(whole));
+        assertTrue(stamped.unprintable().isEmpty());
+        assertTrue(PdfFonts.namesIn(stamped.pdf()).contains(TestFonts.LISU_POSTSCRIPT));
     }
 }
