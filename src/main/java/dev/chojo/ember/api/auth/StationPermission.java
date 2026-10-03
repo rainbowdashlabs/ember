@@ -532,6 +532,7 @@ public enum StationPermission implements RouteRole {
             ATTENDANCE_MANAGER,
             BOARD_MANAGER,
             CHECKLIST_MANAGER,
+            DOCUMENT_MANAGER,
             EVENT_MANAGER,
             INVENTORY_MANAGER,
             KNOWLEDGE_MANAGER,
