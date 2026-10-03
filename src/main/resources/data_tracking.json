@@ -1,7 +1,7 @@
 {
   "version": 1,
   "schemaHash": "sha256:a15512a1137ec7b4968fc0373e2d53d9a172fc092db8f635c179c831bbae7008",
-  "generatedAt": "2026-10-03T16:55:00Z",
+  "generatedAt": "2026-10-03T17:20:23Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -6408,14 +6408,14 @@
           "name": "event_id",
           "type": "int4",
           "nullable": true,
-          "verified": false,
+          "verified": true,
           "description": "The appointment that requires the document and whose values it holds. NULL for a document generated on its own, and once the appointment was deleted."
         },
         {
           "name": "event_date",
           "type": "date",
           "nullable": true,
-          "verified": false,
+          "verified": true,
           "description": "The day of the appointment the document was generated for, which tells the dates of a repeating appointment apart. NULL where event_id never was set."
         }
       ],
@@ -6503,49 +6503,49 @@
           "name": "id",
           "type": "int4",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "Auto-generated primary key."
         },
         {
           "name": "station_id",
           "type": "int4",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "The station the documents are filed at."
         },
         {
           "name": "template_id",
           "type": "int4",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "The template generated for every member of the run."
         },
         {
           "name": "started_by",
           "type": "int4",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "The manager who started the run, who is the uploader of every document it files."
         },
         {
           "name": "accept_missing",
           "type": "bool",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "Whether a member whose data the template needs is incomplete still gets a document, the gaps left to fill in by hand. Without it, such a member is listed as failed."
         },
         {
           "name": "started_at",
           "type": "timestamptz",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "When the run was started."
         },
         {
           "name": "finished_at",
           "type": "timestamptz",
           "nullable": true,
-          "verified": false,
+          "verified": true,
           "description": "When the last member of the run was done. NULL while it runs."
         }
       ],
@@ -6570,13 +6570,22 @@
         }
       ],
       "stationTransfer": {
-        "status": "UNVERIFIED"
+        "status": "IGNORED",
+        "reason": "Work state of a background run; the documents it filed and the generation log go with the station"
       },
       "gdprExport": {
-        "status": "UNVERIFIED"
+        "status": "IGNORED",
+        "reason": "Work state of a background run; the documents it filed and the generation log are exported"
       },
       "gdprDeletion": {
-        "status": "UNVERIFIED"
+        "status": "TRACKED",
+        "strategies": [
+          {
+            "column": "started_by",
+            "strategy": "CASCADE",
+            "reason": "FK ON DELETE CASCADE removes the runs a deleted member started; their documents stay"
+          }
+        ]
       },
       "description": "A run that generates one template for many members in the background and files each document with its member. Kept in the database so the run carries on after a restart and its progress survives a reload of the page."
     },
@@ -6587,56 +6596,56 @@
           "name": "job_id",
           "type": "int4",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "References the run."
         },
         {
           "name": "member_id",
           "type": "int4",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "The member a document is generated for."
         },
         {
           "name": "position",
           "type": "int4",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "Where the member stands in the run, counted from 0. Members are generated in this order."
         },
         {
           "name": "status",
           "type": "text",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "WAITING until the member is done, then FILED where the document was filed or FAILED where it could not be."
         },
         {
           "name": "generation_id",
           "type": "int4",
           "nullable": true,
-          "verified": false,
+          "verified": true,
           "description": "The entry in the generation log of the filed document. NULL while waiting, for a failure, and once the entry is gone."
         },
         {
           "name": "refusal_code",
           "type": "text",
           "nullable": true,
-          "verified": false,
+          "verified": true,
           "description": "The code of the refusal that kept the document from being filed, such as D-091 for missing data. NULL unless FAILED."
         },
         {
           "name": "refusal_detail",
           "type": "text",
           "nullable": true,
-          "verified": false,
+          "verified": true,
           "description": "What the refusal was about, such as the names of the missing values. NULL where it named nothing."
         },
         {
           "name": "done_at",
           "type": "timestamptz",
           "nullable": true,
-          "verified": false,
+          "verified": true,
           "description": "When the member was done. NULL while waiting."
         }
       ],
@@ -6661,13 +6670,22 @@
         }
       ],
       "stationTransfer": {
-        "status": "UNVERIFIED"
+        "status": "IGNORED",
+        "reason": "Work state of a background run; the documents it filed and the generation log go with the station"
       },
       "gdprExport": {
-        "status": "UNVERIFIED"
+        "status": "IGNORED",
+        "reason": "Work state of a background run; the documents it filed and the generation log are exported"
       },
       "gdprDeletion": {
-        "status": "UNVERIFIED"
+        "status": "TRACKED",
+        "strategies": [
+          {
+            "column": "member_id",
+            "strategy": "CASCADE",
+            "reason": "FK ON DELETE CASCADE on member delete"
+          }
+        ]
       },
       "description": "One member of a generation run and how it went for them."
     },
@@ -6818,7 +6836,7 @@
           "name": "for_appointments",
           "type": "bool",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "Whether appointments may require the template as a document to bring. Only such a template names the values of an appointment, and it is always legal."
         },
         {
@@ -8354,35 +8372,35 @@
           "name": "id",
           "type": "int4",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "Auto-generated primary key."
         },
         {
           "name": "event_id",
           "type": "int4",
           "nullable": true,
-          "verified": false,
+          "verified": true,
           "description": "The appointment that requires the document. Exactly one of event_id and event_template_id is set."
         },
         {
           "name": "event_template_id",
           "type": "int4",
           "nullable": true,
-          "verified": false,
+          "verified": true,
           "description": "The appointment template that hands the requirement to every appointment made from it."
         },
         {
           "name": "template_id",
           "type": "int4",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "The document template required, one marked for appointments."
         },
         {
           "name": "position",
           "type": "int4",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "Where the document stands in the list, counted from 0."
         }
       ],
@@ -8407,13 +8425,15 @@
         }
       ],
       "stationTransfer": {
-        "status": "UNVERIFIED"
+        "status": "TRACKED"
       },
       "gdprExport": {
-        "status": "UNVERIFIED"
+        "status": "IGNORED",
+        "reason": "Event structure/template data, not per-member"
       },
       "gdprDeletion": {
-        "status": "UNVERIFIED"
+        "status": "IGNORED",
+        "reason": "Event structure/template data, not per-member"
       },
       "description": "A document template an appointment or an appointment template names as a document to bring. Every registered participant gets a copy filled with their data. An appointment made from a template starts with the template's list."
     },
