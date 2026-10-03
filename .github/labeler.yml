@@ -59,17 +59,9 @@
 "a:federation":
   - changed-files:
       - any-glob-to-any-file:
-          - "**/federation/**"
-          - "**/federate/**"
-          - "**/discovery/**"
-          - "**/*Federat*"
-          - "**/*federat*"
-          - "**/*Discovery*"
-          - "**/*discovery*"
-          - "**/*PairRequest*"
-          - "**/*pairRequest*"
-          - "**/Remote*"
-          - "src/main/java/dev/chojo/ember/auth/signing/**"
+          - "src/main/resources/federation_version.json"
+          - "src/main/resources/federation_versions.json"
+          - "frontend/src/federation_versions.json"
 "a:tests":
   - changed-files:
       - any-glob-to-any-file:
