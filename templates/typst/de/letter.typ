@@ -105,8 +105,8 @@
   )
 }
 
-#let letterhead(list, size) = if list.len() == 0 { none } else {
-  set text(size: size)
+#let letterhead(list, size, font) = if list.len() == 0 { none } else {
+  set text(font: font, size: size)
   set par(leading: 0.45em, spacing: 0.6em)
   rows(list, 18mm, 0.4em)
 }
@@ -123,12 +123,12 @@
     left: data.page.marginLeftMm * 1mm,
     right: data.page.marginRightMm * 1mm,
   ),
-  header: letterhead(data.header, 8.5pt),
+  header: letterhead(data.header, 8.5pt, data.fonts.header),
   header-ascent: 12%,
-  footer: letterhead(data.footer, 7.5pt),
+  footer: letterhead(data.footer, 7.5pt, data.fonts.footer),
   footer-descent: 12%,
 )
-#set text(font: "Liberation Sans", size: data.page.fontSizePt * 1pt, lang: "de")
+#set text(font: data.fonts.body, size: data.page.fontSizePt * 1pt, lang: "de")
 #set par(justify: false, leading: 0.65em)
 #show link: set text(fill: rgb("#c71100"))
 

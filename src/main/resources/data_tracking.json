@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:1c28af9639b7c563ba448e2c056d24990ef2e2a4754195b67c3715c8c4a05806",
-  "generatedAt": "2026-10-03T15:04:02Z",
+  "schemaHash": "sha256:4e4e8434064e7bce523e60a4bc6da2a10a0c26d804c8be3c2a790d1a3f9e428e",
+  "generatedAt": "2026-10-03T15:13:52Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -6191,6 +6191,139 @@
         "reason": "Cache of publicly-exposed remote station cards, not personal data"
       }
     },
+    "document_font": {
+      "tableHash": "sha256:ce481dff41b12828a00914aae6e5f08b5ce9836563543b1f5d8dd1fdc481b064",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Auto-generated primary key, also the storage key of the file."
+        },
+        {
+          "name": "station_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The station that owns the font. NULL for a font of an association or of the instance."
+        },
+        {
+          "name": "cluster_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The association that owns the font. NULL for a font of a station or of the instance."
+        },
+        {
+          "name": "family",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The family name templates pick the font by, as the uploader gave it. Unique per owner and style, ignoring case."
+        },
+        {
+          "name": "style",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "REGULAR, BOLD, ITALIC or BOLD_ITALIC: which style of the family the file is."
+        },
+        {
+          "name": "file_name",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The name the file was uploaded under."
+        },
+        {
+          "name": "outline",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "TRUETYPE for a font with TrueType outlines (every .ttf and some .otf), CFF for an OpenType font with PostScript outlines. Letters print both; fields on uploaded PDFs print TrueType outlines only."
+        },
+        {
+          "name": "internal_family",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The family name the file itself carries, read at upload, which is the name the letter renderer asks for."
+        },
+        {
+          "name": "size_bytes",
+          "type": "int8",
+          "nullable": false,
+          "verified": true,
+          "description": "The size of the file in bytes."
+        },
+        {
+          "name": "sha256",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The SHA-256 of the file as lowercase hex."
+        },
+        {
+          "name": "uploaded_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When the file was uploaded."
+        },
+        {
+          "name": "uploaded_by",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The account that uploaded the file, who confirmed that the owner may use the font. NULL once the account is gone."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "cluster_id",
+          "refTable": "cluster",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "station_id",
+          "refTable": "station",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "uploaded_by",
+          "refTable": "account",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED",
+        "rationale": "A station's own fonts (station_id) and their files go with it. Fonts of an association or of the instance stay where they are; a template naming one prints in the default font until a font of that name is reachable again."
+      },
+      "gdprExport": {
+        "status": "TRACKED",
+        "identityColumns": [
+          {
+            "type": "ACCOUNT_ID",
+            "column": "uploaded_by"
+          }
+        ]
+      },
+      "gdprDeletion": {
+        "status": "TRACKED",
+        "strategies": [
+          {
+            "column": "uploaded_by",
+            "strategy": "NULL",
+            "reason": "FK ON DELETE SET NULL keeps the font, who uploaded it unlinked"
+          }
+        ]
+      },
+      "description": "A font uploaded for documents, one file per family and style. Owned by the instance (station_id and cluster_id both NULL), an association (cluster_id) or a station (station_id). A station reaches its own fonts, its association's and the instance's; on a family name found at several, the nearest owner wins. The file is kept in the owner's storage under fonts/<id> and never sent to a browser."
+    },
     "document_generation": {
       "tableHash": "sha256:d16baf399c70ae80e6114992b118f83386832999a059057a5bc0f5877b2f16ae",
       "columns": [
@@ -6605,7 +6738,7 @@
       "description": "A template a station turns into a PDF for one member at a time. Never deleted, only archived, so every generated document keeps pointing at the template it came from."
     },
     "document_template_field": {
-      "tableHash": "sha256:e9fe7d9a743426100f342499d5be98427c4633cf60ef9e53e5caf9af5fe3caf8",
+      "tableHash": "sha256:de740bdeb471e4ba8c5733167b8500f01762cd28aa131d06adc9d1131f6935c0",
       "columns": [
         {
           "name": "id",
@@ -6683,6 +6816,20 @@
           "nullable": false,
           "verified": true,
           "description": "The size of the text in points, the largest it is drawn at."
+        },
+        {
+          "name": "font_family",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "The family name of the uploaded font the text is drawn in, as document_font names it, looked up among the fonts the station reaches. NULL for the default font, Liberation Sans."
+        },
+        {
+          "name": "font_style",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "REGULAR, BOLD, ITALIC or BOLD_ITALIC: the style of the family the text is drawn in. A style the family lacks falls back to its regular one."
         },
         {
           "name": "align",
@@ -6809,7 +6956,7 @@
           "type": "jsonb",
           "nullable": false,
           "verified": true,
-          "description": "The page margins in millimetres and the body font size in points. The paper is always A4."
+          "description": "The page margins in millimetres, the body font size in points, and the family names of the uploaded fonts the body, the header and the footer are set in (absent for the default font, Liberation Sans). The paper is always A4."
         }
       ],
       "foreignKeys": [

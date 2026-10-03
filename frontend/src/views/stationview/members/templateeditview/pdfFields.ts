@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {PdfFieldKind, TextAlign, type PdfField, type SignatureRole} from '@/api/generated/schema'
+import {FontStyle, PdfFieldKind, TextAlign, type PdfField, type SignatureRole} from '@/api/generated/schema'
 import {freeSignerOf} from '@/components/documents/signers'
 import {fieldRectOf, keptOnCanvas, scaleOf, screenBoxOf, type PageGeometry, type ScreenBox} from './pdfViewport'
 
@@ -44,6 +44,8 @@ export function newField(kind: PdfFieldKind, page: number, geometry: PageGeometr
         align: TextAlign.LEFT,
         wrap: false,
         role: signature ? freeSigner(fields) : null,
+        fontFamily: null,
+        fontStyle: FontStyle.REGULAR,
     }
 }
 

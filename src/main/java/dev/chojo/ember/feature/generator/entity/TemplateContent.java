@@ -18,4 +18,7 @@ public sealed interface TemplateContent permits LetterContent, PdfContent {
 
     /** @return every text of the content that can name placeholders */
     Stream<String> texts();
+
+    /** @return the family name of every uploaded font the content prints in */
+    Stream<String> fontFamilies();
 }

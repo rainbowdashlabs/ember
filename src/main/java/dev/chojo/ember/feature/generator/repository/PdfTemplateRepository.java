@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.generator.repository;
 
+import dev.chojo.ember.feature.generator.entity.FontStyle;
 import dev.chojo.ember.feature.generator.entity.FormBinding;
 import dev.chojo.ember.feature.generator.entity.PdfField;
 import dev.chojo.ember.feature.generator.entity.PdfInspection;
@@ -13,6 +14,7 @@ import dev.chojo.ember.feature.generator.entity.PdfOriginal;
 import jakarta.inject.Singleton;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
@@ -110,9 +112,9 @@ public class PdfTemplateRepository {
         var role = field.role();
         query("""
                 INSERT INTO document_template_field(template_id, position, kind, page, x, y, width, height, text,
-                                                    font_size, align, wrap, role)
+                                                    font_size, align, wrap, role, font_family, font_style)
                 VALUES (:template_id, :position, :kind, :page, :x, :y, :width, :height, :text,
-                        :font_size, :align, :wrap, :role);""")
+                        :font_size, :align, :wrap, :role, :font_family, :font_style);""")
                 .single(call().bind("template_id", templateId)
                         .bind("position", position)
                         .bind("kind", field.kind())
@@ -125,7 +127,9 @@ public class PdfTemplateRepository {
                         .bind("font_size", field.fontSize())
                         .bind("align", field.align())
                         .bind("wrap", field.wrap())
-                        .bind("role", role == null ? null : role.name()))
+                        .bind("role", role == null ? null : role.name())
+                        .bind("font_family", field.fontFamily())
+                        .bind("font_style", Objects.requireNonNullElse(field.fontStyle(), FontStyle.REGULAR)))
                 .insert();
     }
 

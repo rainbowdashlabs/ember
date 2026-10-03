@@ -696,7 +696,10 @@ public enum ClusterRefusal implements Refusal {
     CLUSTER_PROFILE_GENDER_NOT_FROM_CHOICE(176, HttpStatus.BAD_REQUEST, Sentences.GENDER_NOT_FROM_CHOICE),
 
     /** A pronoun of an association's gender field longer than a pronoun may be. */
-    CLUSTER_PROFILE_PRONOUN_TOO_LONG(177, HttpStatus.BAD_REQUEST, Sentences.PRONOUN_TOO_LONG);
+    CLUSTER_PROFILE_PRONOUN_TOO_LONG(177, HttpStatus.BAD_REQUEST, Sentences.PRONOUN_TOO_LONG),
+
+    /** The fonts of a cluster, asked for without saying which cluster. */
+    NO_CLUSTER_CHOSEN_FOR_FONTS(178, HttpStatus.BAD_REQUEST, Sentences.NO_CLUSTER_CHOSEN);
 
     private final Definition definition;
 

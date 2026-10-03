@@ -70,6 +70,10 @@ const {t} = useI18n()
                    to="/helpcenter/station/members/template-editor" @navigate="close">
         {{ t('sidebar.edit') }}
       </SidebarLink>
+      <SidebarLink :icon="['fas', 'font']" name="help-member-document-fonts"
+                   to="/helpcenter/station/members/fonts" @navigate="close">
+        {{ t('sidebar.documentFonts') }}
+      </SidebarLink>
     </SidebarExpandableLink>
     <SidebarLink :icon="['fas', 'user-slash']" name="help-members-former"
                  to="/helpcenter/station/members/former" @navigate="close">

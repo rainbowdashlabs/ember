@@ -2,7 +2,7 @@
 
 ## v26.21.0
 
-Wachen erstellen aus Vorlagen Dokumente für ihre Mitglieder. Eine Briefvorlage entsteht aus Bausteinen wie die Seiten der Wache, mit Platzhaltern für Mitgliederdaten, Erziehungsberechtigte und die Wache und mit Bausteinen, die nur manche Mitglieder bekommen. Eine PDF-Vorlage füllt ein hochgeladenes Formular wie eine Einverständniserklärung direkt aus. Briefe und Formulare lassen für jede Person, die unterschreibt, ein leeres Unterschriftsfeld. Dokumente nennen Personen mit ihrem amtlichen Namen. Pronomen folgen dem neuen Profilfeld für das Geschlecht oder verwenden den Vornamen. Die Verwaltung erstellt ein Dokument auf der Seite eines Mitglieds, nach einer Vorschau, die fehlende Angaben nennt. Mitglieder und Erziehungsberechtigte erstellen freigegebene Dokumente selbst im Profil, mit einer Wartezeit zwischen zwei Dokumenten. Jedes erstellte Dokument liegt bei den Dokumenten des Mitglieds und ist mit der Fassung seiner Vorlage vermerkt. Ein Word- oder OpenDocument-Text füllt den Text einer Vorlage. Die Erziehungsberechtigten eines Mitglieds haben eine Reihenfolge, der Dokumente folgen.
+Wachen erstellen aus Vorlagen Dokumente für ihre Mitglieder. Eine Briefvorlage entsteht aus Bausteinen wie die Seiten der Wache, mit Platzhaltern für Mitgliederdaten, Erziehungsberechtigte und die Wache und mit Bausteinen, die nur manche Mitglieder bekommen. Eine PDF-Vorlage füllt ein hochgeladenes Formular wie eine Einverständniserklärung direkt aus. Briefe und Formulare lassen für jede Person, die unterschreibt, ein leeres Unterschriftsfeld. Dokumente nennen Personen mit ihrem amtlichen Namen, und Pronomen folgen dem neuen Profilfeld für das Geschlecht oder verwenden den Vornamen. Die Verwaltung erstellt ein Dokument auf der Seite eines Mitglieds, nach einer Vorschau, die fehlende Angaben nennt. Mitglieder und Erziehungsberechtigte erstellen freigegebene Dokumente selbst im Profil, mit einer Wartezeit zwischen zwei Dokumenten. Jedes erstellte Dokument liegt bei den Dokumenten des Mitglieds und ist mit der Fassung seiner Vorlage vermerkt. Vorlagen übernehmen ihren Text aus einem Word- oder OpenDocument-Dokument und drucken in Schriften, die die Instanz, ein Verband oder die Wache hochgeladen hat. Die Erziehungsberechtigten eines Mitglieds haben eine Reihenfolge, der Dokumente folgen.
 
 ### Neue Funktionen
 
@@ -13,6 +13,7 @@ Wachen erstellen aus Vorlagen Dokumente für ihre Mitglieder. Eine Briefvorlage 
 - **Dokumente für ein Mitglied erstellen.** Auf der Seite eines Mitglieds entsteht aus einer Vorlage ein Dokument, nach einer Vorschau, die fehlende Angaben nennt, und es liegt bei den Dokumenten des Mitglieds. Briefe liegen als PDF/A vor, und jedes Dokument ist mit der Fassung der Vorlage und dem SHA-256 der Datei vermerkt.
 - **Mitglieder erstellen Dokumente selbst.** Freigegebene Vorlagen erscheinen im Profil, für sich selbst und für jedes Kind. Erstellt wird, sobald das Profil die nötigen Angaben enthält, und dasselbe Dokument erst wieder nach einer Wartezeit, normal 30 Tage.
 - **Word- und OpenDocument-Texte füllen eine Vorlage.** Eine .docx- oder .odt-Datei füllt den Text einer Briefvorlage als Textbaustein, und ein Bild auf eigener Zeile wird zum Bildbaustein. Lücken in eckigen Klammern für einen Namen oder ein Geburtsdatum werden zu Platzhaltern, wo ihre Wörter bekannt sind.
+- **Eigene Schriften für Dokumente.** Die Instanz, ein Verband und eine Wache laden eigene Schriften hoch, eine TrueType- oder OpenType-Datei pro Schnitt, und eine Schrift, deren Lizenz das Einbetten verbietet, wird abgelehnt. Briefe drucken Text, Kopf- und Fußzeile darin und PDF-Vorlagen jedes Textfeld, wobei die eigene Schrift der Wache die gleichnamige des Verbands oder der Instanz ersetzt.
 
 ### Verbesserungen
 
@@ -22,6 +23,7 @@ Wachen erstellen aus Vorlagen Dokumente für ihre Mitglieder. Eine Briefvorlage 
 ### Änderungen
 
 - **Wachadministration verwaltet Dokumentvorlagen.** Das Recht der Wachadministration umfasst jetzt das neue Recht für Dokumentvorlagen, das auch Teil des Rechts für Dokumente ist.
+- **Verbandsadministration verwaltet Schriften.** Das Recht der Verbandsadministration umfasst das neue Verbandsrecht für Dokumentvorlagen und Schriften.
 
 ## v26.20.1
 

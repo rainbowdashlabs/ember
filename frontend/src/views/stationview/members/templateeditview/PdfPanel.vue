@@ -11,7 +11,13 @@ import Alert from '@/components/feedback/Alert.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import type {DocumentTemplateResponse, PdfField, PdfFieldKind, Placeholder} from '@/api/generated/schema'
+import type {
+  DocumentTemplateResponse,
+  FontFamilyOption,
+  PdfField,
+  PdfFieldKind,
+  Placeholder,
+} from '@/api/generated/schema'
 import FormBindingsPanel from './FormBindingsPanel.vue'
 import PdfFieldCanvas from './PdfFieldCanvas.vue'
 import PdfFieldSettings from './PdfFieldSettings.vue'
@@ -36,6 +42,7 @@ const props = defineProps<{
   source: Blob | null
   placeholders: Placeholder[]
   labels: ReadonlyMap<string, string>
+  fonts: readonly FontFamilyOption[]
 }>()
 
 const emit = defineEmits<{
@@ -109,7 +116,7 @@ function removeChosen() {
                         @loaded="count => pageCount = count" @drawn="drawn => geometry = drawn"
                         @select="index => selected = index" @change="change"/>
         <PdfFieldSettings v-if="chosen" :model-value="chosen" :placeholders="placeholders" :legal="draft.legal"
-                          @update:model-value="changeChosen" @remove="removeChosen"/>
+                          :fonts="fonts" @update:model-value="changeChosen" @remove="removeChosen"/>
         <MutedText v-else size="sm" tag="p">{{ t('documentTemplates.chooseField') }}</MutedText>
       </div>
       <FormBindingsPanel v-if="pdf && pdf.inspection.formFields.length > 0" v-model="draft.formBindings"

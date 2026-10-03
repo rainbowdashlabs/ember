@@ -50,6 +50,11 @@ public record LetterContent(List<ContentRow> header, List<ContentRow> footer, Li
         return Stream.of(header, footer, body).flatMap(LetterContent::textsOf);
     }
 
+    @Override
+    public Stream<String> fontFamilies() {
+        return page.fontFamilies();
+    }
+
     /**
      * Every block of some rows that is no stack of others, the blocks stacked in a column included.
      *

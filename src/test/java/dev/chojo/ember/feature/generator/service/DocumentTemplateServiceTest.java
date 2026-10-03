@@ -30,6 +30,8 @@ import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
+import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.owner.Owner;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.BeforeAll;
@@ -104,7 +106,12 @@ class DocumentTemplateServiceTest extends RepositoryTestBase {
                 templates,
                 pdfTemplates,
                 new TemplateChecks(
-                        templates, pdfTemplates, new LetterChecks(contentBlocks(), media), stationRepo, catalogue),
+                        templates,
+                        pdfTemplates,
+                        new LetterChecks(contentBlocks(), media),
+                        stationRepo,
+                        catalogue,
+                        newFontLibrary(new StorageService(new StorageBackendResolver(localStorage()), localStorage()))),
                 restrictionService,
                 catalogue);
     }
@@ -512,7 +519,9 @@ class DocumentTemplateServiceTest extends RepositoryTestBase {
                 DocumentRefusal.DOCUMENT_TEMPLATE_PAGE_OUT_OF_BOUNDS,
                 () -> service.create(
                         owner,
-                        letter("Rand").page(new LetterPage(2, 30, 20, 20, 10)).build(),
+                        letter("Rand")
+                                .page(new LetterPage(2, 30, 20, 20, 10, null, null, null))
+                                .build(),
                         authorId));
         refused(
                 DocumentRefusal.DOCUMENT_TEMPLATE_COOLDOWN_NEGATIVE,

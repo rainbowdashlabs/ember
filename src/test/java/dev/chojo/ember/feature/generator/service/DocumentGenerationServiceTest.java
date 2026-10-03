@@ -29,6 +29,7 @@ import dev.chojo.ember.feature.generator.entity.SubjectRole;
 import dev.chojo.ember.feature.generator.repository.DocumentGenerationRepository;
 import dev.chojo.ember.feature.generator.repository.DocumentTemplateRepository;
 import dev.chojo.ember.feature.generator.repository.PdfTemplateRepository;
+import dev.chojo.ember.feature.generator.service.font.FontLibrary;
 import dev.chojo.ember.feature.generator.service.pdf.PdfStamper;
 import dev.chojo.ember.feature.generator.service.pdf.StampFonts;
 import dev.chojo.ember.feature.generator.service.pdf.TestPdfs;
@@ -111,6 +112,7 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
     private static DocumentTemplateService templates;
     private static DocumentGenerationService generation;
     private static PdfTemplateRenderer pdfRenderer;
+    private static FontLibrary fonts;
     private static SelfServiceDocumentService selfService;
     private static DocumentService documents;
     private static DocumentGenerationRepository log;
@@ -183,19 +185,26 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
         var catalogue = new PlaceholderCatalogue(profileFieldRepo, stationRepo);
         var templateRepository = new DocumentTemplateRepository();
         var pdfTemplates = new PdfTemplateRepository();
+        fonts = newFontLibrary(storage);
         var checks = new TemplateChecks(
-                templateRepository, pdfTemplates, new LetterChecks(contentBlocks(), media), stationRepo, catalogue);
+                templateRepository,
+                pdfTemplates,
+                new LetterChecks(contentBlocks(), media),
+                stationRepo,
+                catalogue,
+                fonts);
         templates =
                 new DocumentTemplateService(templateRepository, pdfTemplates, checks, restrictionService, catalogue);
         pdfRenderer = new PdfTemplateRenderer(
                 new PdfTemplateService(
                         templates, templateRepository, pdfTemplates, newDocumentIntake(), storage, stationRepo),
-                new PdfStamper(new StampFonts()));
+                new PdfStamper(new StampFonts()),
+                fonts);
         var generator = new DocumentGeneratorService(
                 templates,
                 resolver(),
                 catalogue,
-                new LetterRenderer(pictures, media, logos),
+                new LetterRenderer(pictures, media, logos, fonts),
                 pdfRenderer,
                 stationRepo,
                 restrictionService,
@@ -670,7 +679,7 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
                 templates,
                 resolver(),
                 catalogue,
-                new LetterRenderer(pictures, mock(MediaLibraryService.class), newStationLogoService()),
+                new LetterRenderer(pictures, mock(MediaLibraryService.class), newStationLogoService(), fonts),
                 pdfRenderer,
                 stationRepo,
                 restrictionService,

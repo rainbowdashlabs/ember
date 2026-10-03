@@ -60,6 +60,22 @@ public enum StorageCategory {
             false,
             Optional.empty()),
     /**
+     * The fonts a station uploaded for its documents. Measured against the same room as the documents
+     * they print.
+     */
+    FONTS("fonts", StorageScope.Kind.STATION, true, QuotaMode.ENFORCED, MimeLists.FONTS, false, Optional.empty()),
+    /**
+     * The fonts an association uploaded for its own documents and those of its stations, kept and
+     * counted in its home station.
+     */
+    ASSOCIATION_FONTS(
+            "fonts", StorageScope.Kind.ASSOCIATION, true, QuotaMode.ENFORCED, MimeLists.FONTS, false, Optional.empty()),
+    /**
+     * The fonts the instance offers every station. Untracked, like the instance's media library.
+     */
+    INSTANCE_FONTS(
+            "fonts", StorageScope.Kind.INSTANCE, true, QuotaMode.UNTRACKED, MimeLists.FONTS, false, Optional.empty()),
+    /**
      * Evidence attached to one movement, kept by the station that raised it and read by the owner it went to.
      */
     MOVEMENT_DOCUMENTS(
@@ -291,5 +307,6 @@ public enum StorageCategory {
     private static final class MimeLists {
         private static final List<String> ANY = List.of("*/*");
         private static final List<String> IMAGES = List.of("image/png", "image/jpeg", "image/webp", "image/gif");
+        private static final List<String> FONTS = List.of("font/ttf", "font/otf");
     }
 }

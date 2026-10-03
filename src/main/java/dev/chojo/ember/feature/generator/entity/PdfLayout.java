@@ -35,4 +35,9 @@ public record PdfLayout(List<PdfField> fields, List<FormBinding> bindings) {
                 fields.stream().map(PdfField::text).filter(Objects::nonNull),
                 bindings.stream().map(FormBinding::text));
     }
+
+    /** @return the family of uploaded fonts every field names that does not print in the default font */
+    public Stream<String> fontFamilies() {
+        return fields.stream().map(PdfField::fontFamily).filter(Objects::nonNull);
+    }
 }

@@ -108,6 +108,8 @@ import dev.chojo.ember.feature.federation.service.LendingService;
 import dev.chojo.ember.feature.feed.repository.FeedMetricsRepository;
 import dev.chojo.ember.feature.feed.repository.FeedTokenRepository;
 import dev.chojo.ember.feature.form.repository.FormRepository;
+import dev.chojo.ember.feature.generator.repository.DocumentFontRepository;
+import dev.chojo.ember.feature.generator.service.font.FontLibrary;
 import dev.chojo.ember.feature.insights.repository.PageHitRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryArtRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryCheckRepository;
@@ -427,6 +429,16 @@ public abstract class RepositoryTestBase {
     protected static DocumentIntake newDocumentIntake() {
         return new DocumentIntake(
                 new StorageQuotaService(new StorageUsageRepository(), new Storage(), new DomainEventBus(Set.of())));
+    }
+
+    /**
+     * The fonts documents print with, over the given storage and the shared repositories.
+     *
+     * @param storage where the font files are
+     * @return the library
+     */
+    protected static FontLibrary newFontLibrary(StorageService storage) {
+        return new FontLibrary(new DocumentFontRepository(), clusterService, stationRepo, storage);
     }
 
     /**

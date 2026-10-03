@@ -7,7 +7,10 @@ package dev.chojo.ember.feature.generator.service;
 
 import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.feature.generator.entity.PdfContent;
+import dev.chojo.ember.feature.generator.service.font.FontLibrary;
 import dev.chojo.ember.feature.generator.service.pdf.PdfStamper;
+import dev.chojo.ember.feature.generator.service.pdf.StampFonts;
+import dev.chojo.ember.owner.Owner;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -21,7 +24,8 @@ import java.util.function.UnaryOperator;
  *
  * <p>The PDF is read from the station's storage as it was uploaded and filled by {@link PdfStamper}. A
  * template no PDF was uploaded for generates nothing; one whose stored file cannot be read or filled
- * fails like a letter Typst could not produce.
+ * fails like a letter Typst could not produce. A text field naming a family of uploaded fonts draws in
+ * the file the station reaches under that name; one that is gone prints in the default font.
  */
 @Singleton
 public class PdfTemplateRenderer {
@@ -29,11 +33,13 @@ public class PdfTemplateRenderer {
 
     private final PdfTemplateService pdfs;
     private final PdfStamper stamper;
+    private final FontLibrary fonts;
 
     @Inject
-    public PdfTemplateRenderer(PdfTemplateService pdfs, PdfStamper stamper) {
+    public PdfTemplateRenderer(PdfTemplateService pdfs, PdfStamper stamper, FontLibrary fonts) {
         this.pdfs = pdfs;
         this.stamper = stamper;
+        this.fonts = fonts;
     }
 
     /**
@@ -49,8 +55,11 @@ public class PdfTemplateRenderer {
         var original = content.original();
         if (original == null) throw DocumentRefusal.DOCUMENT_TEMPLATE_PDF_MISSING.raise();
         byte[] data = pdfs.read(stationId, original).orElseThrow(DocumentRefusal.DOCUMENT_RENDER_FAILED::raise);
+        var reachable = fonts.reachable(new Owner.Station(stationId));
+        StampFonts.FieldFonts fieldFonts = (family, style) ->
+                reachable.find(family).flatMap(found -> found.pdfFile(style)).flatMap(fonts::read);
         try {
-            return stamper.stamp(data, content.layout(), guardians, fill);
+            return stamper.stamp(data, content.layout(), guardians, fill, fieldFonts);
         } catch (IOException e) {
             log.error("The PDF {} of station {} could not be filled", original.id(), stationId, e);
             throw DocumentRefusal.DOCUMENT_RENDER_FAILED.raise();

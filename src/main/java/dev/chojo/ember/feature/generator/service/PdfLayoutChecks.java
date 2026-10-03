@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.generator.service;
 import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.api.refusal.RefusalDetail;
 import dev.chojo.ember.feature.generator.entity.FieldRect;
+import dev.chojo.ember.feature.generator.entity.FontStyle;
 import dev.chojo.ember.feature.generator.entity.FormBinding;
 import dev.chojo.ember.feature.generator.entity.FormField;
 import dev.chojo.ember.feature.generator.entity.FormFieldKind;
@@ -30,7 +31,9 @@ import java.util.Objects;
  *
  * <p>Every field lies on a page the PDF has, inside the part of it that is shown. A text or check
  * field has a text, a text field a size it can be read at, and a signature field a signer, so that no
- * member's document asks one person to sign in two fields. A form field is filled only where the PDF has one of that name that can be filled. A binding
+ * member's document asks one person to sign in two fields. Only a text field keeps a font; whether the
+ * station reaches it is checked with the template. A form field is filled only where the PDF has one
+ * of that name that can be filled. A binding
  * with an empty text is no binding: the form field keeps what it shows.
  *
  * <p>A template without a PDF can have no fields yet, since there are no pages to hold them.
@@ -100,8 +103,22 @@ final class PdfLayoutChecks {
             throw DocumentRefusal.DOCUMENT_TEMPLATE_FIELD_SIZE_OUT_OF_BOUNDS.raise();
         }
         var align = Objects.requireNonNullElse(field.align(), TextAlign.LEFT);
-        boolean wrap = field.kind() == PdfFieldKind.TEXT && field.wrap();
-        return new PdfField(field.kind(), rect, text, size, align, wrap, null);
+        if (field.kind() != PdfFieldKind.TEXT) return new PdfField(field.kind(), rect, text, size, align, false, null);
+        return new PdfField(
+                PdfFieldKind.TEXT,
+                rect,
+                text,
+                size,
+                align,
+                field.wrap(),
+                null,
+                familyOf(field.fontFamily()),
+                Objects.requireNonNullElse(field.fontStyle(), FontStyle.REGULAR));
+    }
+
+    /** The family a text field names, or null for the default font where it names none. */
+    private static @Nullable String familyOf(@Nullable String family) {
+        return family == null || family.isBlank() ? null : family.strip();
     }
 
     private static FieldRect requireOnPage(PdfOriginal original, FieldRect rect) {

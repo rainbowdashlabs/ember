@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.generator.service.pdf;
 
 import dev.chojo.ember.feature.generator.entity.FieldRect;
+import dev.chojo.ember.feature.generator.entity.FontStyle;
 import dev.chojo.ember.feature.generator.entity.PdfField;
 import dev.chojo.ember.feature.generator.entity.PdfLayout;
 import dev.chojo.ember.feature.generator.entity.SignatureRole;
@@ -18,6 +19,7 @@ import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.PDPageContentStream.AppendMode;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.apache.pdfbox.pdmodel.font.PDFont;
+import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -35,7 +37,8 @@ import java.util.function.UnaryOperator;
  * <p>The original is opened and never written back; what comes out is a new file. Everything drawn is
  * appended to the page's content with the page's earlier state wrapped and restored first, so whatever
  * the page left behind (a moved origin, a colour, a clip) cannot shift or hide a field. Text is
- * embedded as a font subset, and a text runs upright on a turned page. Nothing else in the file
+ * embedded as a font subset, in the family of uploaded fonts its field names with Liberation Sans for
+ * every character that family lacks, and a text runs upright on a turned page. Nothing else in the file
  * changes, so a PDF/A comes out as a PDF/A; a PDF that was none is not made one.
  *
  * <p>A field on a page the PDF does not have, as after a new upload with fewer pages, is left out.
@@ -79,13 +82,37 @@ public class PdfStamper {
      */
     public Stamped stamp(byte[] original, PdfLayout layout, int guardians, UnaryOperator<String> fill)
             throws IOException {
+        return stamp(original, layout, guardians, fill, StampFonts.FieldFonts.NONE);
+    }
+
+    /**
+     * Fills a PDF whose text fields may print in families of uploaded fonts.
+     *
+     * @param original   the PDF as it was uploaded
+     * @param layout     the fields and the form fields' values
+     * @param guardians  how many guardians the member has
+     * @param fill       fills the placeholders of a text
+     * @param fieldFonts where the file of a family a field names comes from
+     * @return the filled-in PDF
+     * @throws IOException where the PDF cannot be read or written
+     */
+    public Stamped stamp(
+            byte[] original,
+            PdfLayout layout,
+            int guardians,
+            UnaryOperator<String> fill,
+            StampFonts.FieldFonts fieldFonts)
+            throws IOException {
         try (var document = PdfFiles.open(original)) {
-            var chain = fonts.chainFor(document);
+            var loaded = fonts.load(document, fieldFonts);
             var unprintable = new LinkedHashSet<String>();
             var byPage = new TreeMap<Integer, List<Placed>>();
             var signatures = new ArrayList<SignatureBox>();
             for (var text : FormFiller.fill(document, layout.bindings(), fill)) {
-                place(byPage, text.rect(), new Mark.Text(text.text(), text.size(), text.align(), text.wrap()));
+                place(
+                        byPage,
+                        text.rect(),
+                        new Mark.Text(text.text(), text.size(), text.align(), text.wrap(), null, FontStyle.REGULAR));
             }
             for (var field : layout.fields()) {
                 var role = field.role();
@@ -100,7 +127,7 @@ public class PdfStamper {
             }
             for (var page : byPage.entrySet()) {
                 if (page.getKey() > document.getNumberOfPages()) continue;
-                draw(document, document.getPage(page.getKey() - 1), page.getValue(), chain, unprintable);
+                draw(document, document.getPage(page.getKey() - 1), page.getValue(), loaded, unprintable);
             }
             for (var box : signatures) {
                 addSignatureField(document, box);
@@ -129,8 +156,14 @@ public class PdfStamper {
 
     /** What is drawn into one box. */
     private sealed interface Mark {
-        /** A text, laid out to fit. */
-        record Text(String text, float size, TextAlign align, boolean wrap) implements Mark {}
+        /** A text, laid out to fit, in a family of uploaded fonts or, where it names none, the default font. */
+        record Text(
+                String text,
+                float size,
+                TextAlign align,
+                boolean wrap,
+                @Nullable String family,
+                FontStyle style) implements Mark {}
 
         /** A cross through the box. */
         record Cross() implements Mark {}
@@ -148,7 +181,14 @@ public class PdfStamper {
     private static Mark markOf(PdfField field, UnaryOperator<String> fill) {
         String text = fill.apply(Objects.requireNonNullElse(field.text(), ""));
         return switch (field.kind()) {
-            case TEXT -> new Mark.Text(text, (float) field.fontSize(), field.align(), field.wrap());
+            case TEXT ->
+                new Mark.Text(
+                        text,
+                        (float) field.fontSize(),
+                        field.align(),
+                        field.wrap(),
+                        field.fontFamily(),
+                        Objects.requireNonNullElse(field.fontStyle(), FontStyle.REGULAR));
             case CHECK -> YesWords.saysYes(text) ? new Mark.Cross() : new Mark.Nothing();
             case SIGNATURE -> new Mark.Line();
         };
@@ -159,7 +199,7 @@ public class PdfStamper {
     }
 
     private static void draw(
-            PDDocument document, PDPage page, List<Placed> marks, FontChain chain, Set<String> unprintable)
+            PDDocument document, PDPage page, List<Placed> marks, StampFonts.Loaded fonts, Set<String> unprintable)
             throws IOException {
         int rotation = PdfInspector.rotationOf(page);
         try (var content = new PDPageContentStream(document, page, AppendMode.APPEND, true, true)) {
@@ -168,7 +208,8 @@ public class PdfStamper {
                 content.saveGraphicsState();
                 content.transform(frame.toPage());
                 switch (placed.mark()) {
-                    case Mark.Text text -> drawText(content, frame, text, chain, unprintable);
+                    case Mark.Text text ->
+                        drawText(content, frame, text, fonts.chain(text.family(), text.style()), unprintable);
                     case Mark.Cross ignored -> drawCross(content, frame);
                     case Mark.Line ignored -> drawLine(content, frame);
                     case Mark.Nothing ignored -> {}

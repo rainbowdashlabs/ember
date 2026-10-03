@@ -88,6 +88,24 @@ public final class TypstCompiler {
             Map<String, byte[]> files,
             Output output)
             throws IOException, InterruptedException {
+        return compileTemplate(data, templateName, logo, resources, files, output, Map.of());
+    }
+
+    /**
+     * The same, additionally offering Typst the given font files by name. They are written into a
+     * directory of their own that Typst searches before the system's fonts ({@code --font-path}), and it
+     * goes with the rest of the temporary files when the document is done. A template asks for them by
+     * the family names the files carry.
+     */
+    public static byte[] compileTemplate(
+            Map<String, Object> data,
+            String templateName,
+            @Nullable StationLogo logo,
+            Map<String, String> resources,
+            Map<String, byte[]> files,
+            Output output,
+            Map<String, byte[]> fonts)
+            throws IOException, InterruptedException {
         Path tempDir = Files.createTempDirectory("typst-template-");
         try {
             Path templateSource = Path.of("templates", "typst", templateName);
@@ -111,9 +129,10 @@ public final class TypstCompiler {
                 Files.write(templateDir.resolve(entry.getKey()), entry.getValue());
             }
             Files.copy(templateSource, templateFile);
+            Path fontDir = writeFonts(tempDir, fonts);
 
             Path outputFile = tempDir.resolve("output.pdf");
-            return runTypst(tempDir, templateFile, outputFile, output);
+            return runTypst(tempDir, templateFile, outputFile, output, fontDir);
         } finally {
             cleanup(tempDir);
         }
@@ -129,15 +148,31 @@ public final class TypstCompiler {
         };
     }
 
-    private static byte[] runTypst(Path workDir, Path inputFile, Path outputFile)
-            throws IOException, InterruptedException {
-        return runTypst(workDir, inputFile, outputFile, Output.PDF);
+    /**
+     * Writes font files into a directory of their own beside the document, each under its bare file
+     * name.
+     *
+     * @return the directory, or null where there are no fonts
+     */
+    private static @Nullable Path writeFonts(Path tempDir, Map<String, byte[]> fonts) throws IOException {
+        if (fonts.isEmpty()) return null;
+        Path fontDir = Files.createDirectory(tempDir.resolve("fonts"));
+        for (var entry : fonts.entrySet()) {
+            Files.write(fontDir.resolve(FilePaths.nameOf(Path.of(entry.getKey()))), entry.getValue());
+        }
+        return fontDir;
     }
 
-    private static byte[] runTypst(Path workDir, Path inputFile, Path outputFile, Output output)
+    private static byte[] runTypst(Path workDir, Path inputFile, Path outputFile)
+            throws IOException, InterruptedException {
+        return runTypst(workDir, inputFile, outputFile, Output.PDF, null);
+    }
+
+    private static byte[] runTypst(Path workDir, Path inputFile, Path outputFile, Output output, @Nullable Path fontDir)
             throws IOException, InterruptedException {
         var command = new ArrayList<>(List.of(TYPST_BIN, "compile"));
         if (output == Output.PDF_A_3B) command.addAll(List.of("--pdf-standard", "a-3b"));
+        if (fontDir != null) command.addAll(List.of("--font-path", fontDir.toString()));
         command.addAll(List.of(inputFile.toString(), outputFile.toString()));
         var process = new ProcessBuilder(command)
                 .directory(workDir.toFile())

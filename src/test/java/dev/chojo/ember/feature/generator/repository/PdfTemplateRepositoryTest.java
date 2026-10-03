@@ -9,6 +9,7 @@ import dev.chojo.ember.feature.generator.entity.DocumentLanguage;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplateDraft;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplateKind;
 import dev.chojo.ember.feature.generator.entity.FieldRect;
+import dev.chojo.ember.feature.generator.entity.FontStyle;
 import dev.chojo.ember.feature.generator.entity.FormBinding;
 import dev.chojo.ember.feature.generator.entity.FormField;
 import dev.chojo.ember.feature.generator.entity.FormFieldKind;
@@ -101,7 +102,9 @@ class PdfTemplateRepositoryTest extends RepositoryTestBase {
                 9.5,
                 TextAlign.RIGHT,
                 true,
-                null);
+                null,
+                "Hausschrift",
+                FontStyle.BOLD_ITALIC);
         pdfs.writeLayout(templateId, new PdfLayout(List.of(text), List.of(new FormBinding("old", "x"))));
 
         pdfs.writeLayout(

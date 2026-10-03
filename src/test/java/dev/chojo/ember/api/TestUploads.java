@@ -16,6 +16,7 @@ import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.net.http.HttpRequest;
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 import java.util.function.Consumer;
 
 import static org.mockito.Mockito.mock;
@@ -66,8 +67,23 @@ public final class TestUploads {
      * @return what turns a request into the upload
      */
     public static Consumer<Request.Builder> multipart(String fileName, byte[] data) {
+        return multipart(fileName, data, Map.of());
+    }
+
+    /**
+     * The same, with text fields sent beside the file, as a form with inputs next to its file sends them.
+     *
+     * @param fileName the name it is uploaded under
+     * @param data     its bytes
+     * @param fields   the text fields by name
+     * @return what turns a request into the upload
+     */
+    public static Consumer<Request.Builder> multipart(String fileName, byte[] data, Map<String, String> fields) {
         String boundary = "ember-test-boundary";
         var body = new ByteArrayOutputStream();
+        fields.forEach((name, value) -> body.writeBytes(
+                ("--" + boundary + "\r\nContent-Disposition: form-data; name=\"" + name + "\"\r\n\r\n" + value + "\r\n")
+                        .getBytes(StandardCharsets.UTF_8)));
         body.writeBytes(("--" + boundary + "\r\nContent-Disposition: form-data; name=\"file\"; filename=\"" + fileName
                         + "\"\r\nContent-Type: application/octet-stream\r\n\r\n")
                 .getBytes(StandardCharsets.UTF_8));
