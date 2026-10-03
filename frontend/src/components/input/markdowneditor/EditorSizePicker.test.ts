@@ -16,8 +16,8 @@ enableAutoUnmount(afterEach)
  * reset entry.
  */
 describe('EditorSizePicker', () => {
-    async function opened(current: number | null = null) {
-        const wrapper = mount(EditorSizePicker, {attachTo: document.body, props: {current}})
+    async function opened(current: number | null = null, shown = 15) {
+        const wrapper = mount(EditorSizePicker, {attachTo: document.body, props: {current, shown}})
         await wrapper.find('[data-testid="editor-size"]').trigger('click')
         return wrapper
     }
@@ -90,6 +90,29 @@ describe('EditorSizePicker', () => {
 
         expect(wrapper.emitted('pick')).toEqual([[null]])
         expect(panel()).toBeNull()
+    })
+
+    it('opens on the size the words are shown in where they have none of their own', async () => {
+        await opened(null, 28)
+
+        expect(field().element.value).toBe('28')
+    })
+
+    it('counts on from the size the words are shown in', async () => {
+        const wrapper = await opened(null, 15)
+        field().element.stepUp()
+        await field().trigger('input')
+        await field().trigger('keydown', {key: 'Enter'})
+
+        expect(wrapper.emitted('pick')).toEqual([[16]])
+    })
+
+    it('applies nothing for the shown size left as it is', async () => {
+        const wrapper = await opened(null, 15)
+        await field().trigger('blur')
+        await field().trigger('keydown', {key: 'Enter'})
+
+        expect(wrapper.emitted('pick')).toBeUndefined()
     })
 
     it('applies nothing when the size stays as it was', async () => {

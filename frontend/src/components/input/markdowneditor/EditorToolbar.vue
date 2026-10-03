@@ -11,7 +11,8 @@ import type { FontFamilyOption } from '@/api/generated/schema'
 import EditorFontPicker from './EditorFontPicker.vue'
 import EditorColorPicker from './EditorColorPicker.vue'
 import EditorSizePicker from './EditorSizePicker.vue'
-import { sizeAtCursor, TEXT_SIZE } from './textSize'
+import { applyTextSize, shownSizeAtCursor, sizeAtCursor, TEXT_SIZE } from './textSize'
+import { NORMAL_TEXT_SIZE } from '@/util/textSize'
 import { alignBlock, canAlign, isAligned, type BlockAlignment } from './blockAlign'
 
 const props = defineProps<{
@@ -75,8 +76,7 @@ function setTextColor(color: string) {
 }
 
 function setTextSize(size: number | null) {
-  if (size) { cmd()?.setMark(TEXT_SIZE, { size }).run() }
-  else { cmd()?.unsetMark(TEXT_SIZE).run() }
+  if (props.editor) applyTextSize(props.editor, size)
 }
 
 interface ToolbarButton {
@@ -177,7 +177,11 @@ const toolbarButtons: ToolbarButton[][] = [
       @update:open="open => setPickerOpen('textColor', open)"
       @pick="setTextColor"
     />
-    <EditorSizePicker :current="sizeAtCursor(editor?.getAttributes(TEXT_SIZE))" @pick="setTextSize" />
+    <EditorSizePicker
+      :current="sizeAtCursor(editor?.getAttributes(TEXT_SIZE))"
+      :shown="editor ? shownSizeAtCursor(editor) : NORMAL_TEXT_SIZE"
+      @pick="setTextSize"
+    />
 
     <EditorFontPicker v-if="fonts" :editor="editor" :fonts="fonts" />
   </div>

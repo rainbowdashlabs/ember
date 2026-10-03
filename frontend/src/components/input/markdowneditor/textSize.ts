@@ -3,9 +3,11 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {Mark, mergeAttributes} from '@tiptap/vue-3'
+import {type Editor, getMarkRange, Mark, mergeAttributes} from '@tiptap/vue-3'
+import type {ResolvedPos} from '@tiptap/pm/model'
+import type {EditorState} from '@tiptap/pm/state'
 import type TurndownService from 'turndown'
-import {pixelSize} from '@/util/textSize'
+import {NORMAL_TEXT_SIZE, pixelSize} from '@/util/textSize'
 
 /** The name the mark goes by in the editor, for setting, removing and reading it. */
 export const TEXT_SIZE = 'textSize'
@@ -49,6 +51,54 @@ export const TextSize = Mark.create({
 export function sizeAtCursor(attributes: Record<string, unknown> | undefined): number | null {
     const size = attributes?.size
     return typeof size === 'number' ? size : null
+}
+
+/**
+ * Sets the words at the cursor in a size, or gives them their normal size back for null.
+ *
+ * <p>A selection is sized as it stands. A bare cursor sizes the words it stands in: the run sized
+ * together where it stands in one, else the word around it, and stays where it was. Only where there is
+ * no word either, on an empty line or between two spaces, does the size wait for what is typed next. A
+ * size set on a bare cursor alone changed nothing on screen, while the menu already named it as the size
+ * at the cursor.
+ */
+export function applyTextSize(editor: Editor, size: number | null): void {
+    const {selection} = editor.state
+    const range = selection.empty ? rangeAtCursor(editor.state) : null
+    const chain = editor.chain().focus()
+    if (range) chain.setTextSelection(range)
+    if (size) chain.setMark(TEXT_SIZE, {size})
+    else chain.unsetMark(TEXT_SIZE)
+    if (range) chain.setTextSelection(selection.from)
+    chain.run()
+}
+
+/**
+ * The size in whole pixels the words at the cursor are shown in, measured on screen, for a size entry to
+ * start counting from. Where the editor is not on screen yet or measures nothing usable, the normal size.
+ */
+export function shownSizeAtCursor(editor: Editor): number {
+    if (!editor.isInitialized || editor.isDestroyed) return NORMAL_TEXT_SIZE
+    const {node} = editor.view.domAtPos(editor.state.selection.from)
+    const element = node instanceof Element ? node : node.parentElement
+    const measured = element ? Math.round(Number.parseFloat(getComputedStyle(element).fontSize)) : Number.NaN
+    return pixelSize(measured) ?? NORMAL_TEXT_SIZE
+}
+
+const WORD_CHARACTER = /[\p{L}\p{N}_'-]/u
+
+function rangeAtCursor(state: EditorState): {from: number; to: number} | null {
+    const {$from} = state.selection
+    return getMarkRange($from, state.schema.marks[TEXT_SIZE]!) ?? wordAtCursor($from)
+}
+
+function wordAtCursor($from: ResolvedPos): {from: number; to: number} | null {
+    const text = $from.parent.textBetween(0, $from.parent.content.size, undefined, '￼')
+    let start = $from.parentOffset
+    let end = start
+    while (start > 0 && WORD_CHARACTER.test(text[start - 1]!)) start--
+    while (end < text.length && WORD_CHARACTER.test(text[end]!)) end++
+    return start < end ? {from: $from.start() + start, to: $from.start() + end} : null
 }
 
 /** Writes sized words back as the span they are stored as, and nothing but the words for a size out of bounds. */

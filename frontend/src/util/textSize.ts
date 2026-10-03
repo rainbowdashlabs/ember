@@ -9,7 +9,10 @@ export const SMALLEST_TEXT_SIZE = 6
 /** The largest size in pixels selected words can be set in. */
 export const LARGEST_TEXT_SIZE = 96
 
-const SIZED_SPAN = /<span data-size="(\d+)">/g
+/** The size in pixels of rendered text without one of its own, the body size of `.markdown-content`. */
+export const NORMAL_TEXT_SIZE = 15
+
+const SIZED_SPAN =/<span data-size="(\d+)">/g
 
 /**
  * A size in pixels as typed or as stored, when it is one words can be set in.

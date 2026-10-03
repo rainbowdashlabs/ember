@@ -17,10 +17,16 @@ import { LARGEST_TEXT_SIZE, pixelSize, SMALLEST_TEXT_SIZE } from '@/util/textSiz
  * it open. An empty field and the reset entry give the words their normal size back. A size that is no
  * whole number within bounds is refused and the field says so. The panel is rendered at the end of the
  * page, so the edge of the text field cannot cut it off.
+ *
+ * <p>The field opens on the size the words are shown in, their own or the one they inherit, so its
+ * arrows count on from there rather than from the smallest size an empty number field starts at. That
+ * inherited size left as it is applies nothing.
  */
 const props = defineProps<{
   /** The size of the words at the cursor in pixels, or null where they have none of their own. */
   current: number | null
+  /** The size in pixels the words at the cursor are shown in, their own or the one they inherit. */
+  shown: number
 }>()
 
 const emit = defineEmits<{
@@ -36,11 +42,12 @@ const invalid = computed(() => !blank.value && pixelSize(typed.value) === null)
 const label = computed(() => t('markdownEditor.textSize'))
 
 watch(open, isOpen => {
-  if (isOpen) typed.value = props.current ?? undefined
+  if (isOpen) typed.value = props.current ?? props.shown
 })
 
 function pick(size: number | null) {
-  if (size !== props.current) emit('pick', size)
+  const unchanged = size === props.current || (props.current === null && size === props.shown)
+  if (!unchanged) emit('pick', size)
 }
 
 function apply(close: boolean) {
