@@ -17,6 +17,16 @@ public enum FontStyle {
     ITALIC,
     BOLD_ITALIC;
 
+    /** @return whether the style is drawn in a bold weight */
+    public boolean bold() {
+        return this == BOLD || this == BOLD_ITALIC;
+    }
+
+    /** @return whether the style is drawn slanted */
+    public boolean italic() {
+        return this == ITALIC || this == BOLD_ITALIC;
+    }
+
     /**
      * Reads a style as a form sends it.
      *

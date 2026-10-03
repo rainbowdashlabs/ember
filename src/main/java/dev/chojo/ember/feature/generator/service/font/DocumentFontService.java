@@ -43,8 +43,11 @@ import java.util.stream.Collectors;
  * must have room for it: a station in its own room, an association in its home station's, the instance
  * without limit. A family has one file per style at one owner.
  *
- * <p>The files are never sent to a browser. The screens list the families by name and preview text in a
- * font the browser already has; only the server draws with the real file.
+ * <p>The files are never sent to a browser. The screens list the families by name with a picture of
+ * sample text the server draws ({@link FontSampleService}); only the server draws with the real file.
+ *
+ * <p>The families every installation has built in ({@link BuiltInFonts}) are listed among those the
+ * templates reach, but they are nobody's own: they cannot be deleted and take no room.
  *
  * <p>A font cannot be deleted while a template in use prints with it, that is, while a template that
  * reaches it names its family and finds this owner's family under that name. An archived template does
@@ -99,11 +102,13 @@ public class DocumentFontService {
      * A family a template of the owner can print in, as the pickers offer it.
      *
      * @param family      the family name
-     * @param origin      who uploaded it
+     * @param origin      who uploaded it, or that it is built in
      * @param styles      the styles it has
      * @param printsOnPdf whether fields on an uploaded PDF can print in it
+     * @param sample      the version of its sample picture, which changes whenever its files do
      */
-    public record FontFamilyOption(String family, FontOrigin origin, List<FontStyle> styles, boolean printsOnPdf) {}
+    public record FontFamilyOption(
+            String family, FontOrigin origin, List<FontStyle> styles, boolean printsOnPdf, String sample) {}
 
     /**
      * The fonts of an owner and those its templates can print in.
@@ -217,7 +222,8 @@ public class DocumentFontService {
         Map<Owner, Optional<FontFamily>> resolved = new HashMap<>();
         return candidates.stream()
                 .filter(use -> resolved.computeIfAbsent(use.owner(), owner -> library.familyAt(owner, font.family()))
-                        .map(family -> family.file(font.style()).owner().equals(font.owner()))
+                        .map(family -> family.file(font.style()) instanceof DocumentFont found
+                                && found.owner().equals(font.owner()))
                         .orElse(false))
                 .toList();
     }
@@ -261,6 +267,11 @@ public class DocumentFontService {
     }
 
     private static FontFamilyOption option(FontFamily family) {
-        return new FontFamilyOption(family.name(), family.origin(), family.styles(), family.printsOnPdf());
+        return new FontFamilyOption(
+                family.name(),
+                family.origin(),
+                family.styles(),
+                family.printsOnPdf(),
+                FontSampleService.versionOf(family));
     }
 }

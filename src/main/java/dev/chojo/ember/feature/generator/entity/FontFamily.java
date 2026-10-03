@@ -12,31 +12,32 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * The files of one family at one owner, which a template sees as one font.
+ * The files of one family at one owner, or one of the built-in families, which a template sees as one
+ * font.
  *
  * <p>A family is a unit: where several owners have a family of the same name, the nearest one's files
- * are taken, all of them, and the others' are not mixed in.
+ * are taken, all of them, and the others' are not mixed in. A built-in family is the farthest of all.
  *
  * @param name   the family name, as the owner spelled it
- * @param origin who uploaded it
- * @param files  the file of every style the family has
+ * @param origin who uploaded it, or that it is built in
+ * @param files  the face of every style the family has
  */
-public record FontFamily(String name, FontOrigin origin, Map<FontStyle, DocumentFont> files) {
+public record FontFamily(String name, FontOrigin origin, Map<FontStyle, FontFace> files) {
 
     public FontFamily {
-        var copy = new EnumMap<FontStyle, DocumentFont>(FontStyle.class);
+        var copy = new EnumMap<FontStyle, FontFace>(FontStyle.class);
         copy.putAll(files);
         files = Collections.unmodifiableMap(copy);
     }
 
     /**
-     * The file a style is drawn from: that style where the family has it, else its regular one, else
+     * The face a style is drawn from: that style where the family has it, else its regular one, else
      * whichever it has.
      *
      * @param style the style asked for
-     * @return the file
+     * @return the face
      */
-    public DocumentFont file(FontStyle style) {
+    public FontFace file(FontStyle style) {
         var exact = files.get(style);
         if (exact != null) return exact;
         var regular = files.get(FontStyle.REGULAR);
@@ -45,19 +46,19 @@ public record FontFamily(String name, FontOrigin origin, Map<FontStyle, Document
     }
 
     /**
-     * The file a field on an uploaded PDF is drawn from, which has to have TrueType outlines.
+     * The face a field on an uploaded PDF is drawn from, which has to be a file with TrueType outlines.
      *
      * @param style the style asked for
-     * @return the file, or empty where the family cannot print there
+     * @return the face, or empty where the family cannot print there
      */
-    public Optional<DocumentFont> pdfFile(FontStyle style) {
+    public Optional<FontFace> pdfFile(FontStyle style) {
         var file = file(style);
-        return file.outline() == FontOutline.TRUETYPE ? Optional.of(file) : Optional.empty();
+        return file.printsOnPdf() ? Optional.of(file) : Optional.empty();
     }
 
     /** @return whether fields on an uploaded PDF can print in the family */
     public boolean printsOnPdf() {
-        return files.values().stream().allMatch(file -> file.outline() == FontOutline.TRUETYPE);
+        return files.values().stream().allMatch(FontFace::printsOnPdf);
     }
 
     /** @return the styles the family has, in their natural order */
@@ -67,9 +68,6 @@ public record FontFamily(String name, FontOrigin origin, Map<FontStyle, Document
 
     /** @return the family names its files carry themselves, regular first, each once */
     public List<String> internalFamilies() {
-        return files.values().stream()
-                .map(DocumentFont::internalFamily)
-                .distinct()
-                .toList();
+        return files.values().stream().map(FontFace::internalFamily).distinct().toList();
     }
 }

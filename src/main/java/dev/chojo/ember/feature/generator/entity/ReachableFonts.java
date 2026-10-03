@@ -18,7 +18,8 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * Every font family a template can print with, the nearest owner's where a name is found at several.
+ * Every font family a template can print with, the nearest owner's where a name is found at several,
+ * and a built-in family only where no owner uploaded one of its name.
  *
  * <p>Family names are compared without case, so "Roboto" at a station hides "roboto" at the instance.
  */
@@ -41,6 +42,18 @@ public final class ReachableFonts {
      * @return the families
      */
     public static ReachableFonts of(Collection<DocumentFont> fonts) {
+        return of(fonts, List.of());
+    }
+
+    /**
+     * Groups font files into families, the nearest owner winning a name, and adds the built-in
+     * families whose names no owner took.
+     *
+     * @param fonts   the files of every owner reached
+     * @param builtIn the families every installation has
+     * @return the families
+     */
+    public static ReachableFonts of(Collection<DocumentFont> fonts, Collection<FontFamily> builtIn) {
         var byOwner = new EnumMap<FontOrigin, Map<String, List<DocumentFont>>>(FontOrigin.class);
         for (var font : fonts) {
             byOwner.computeIfAbsent(font.origin(), origin -> new LinkedHashMap<>())
@@ -51,12 +64,13 @@ public final class ReachableFonts {
         for (var owner : byOwner.entrySet()) {
             for (var family : owner.getValue().entrySet()) {
                 if (families.containsKey(family.getKey())) continue;
-                var files = new EnumMap<FontStyle, DocumentFont>(FontStyle.class);
+                var files = new EnumMap<FontStyle, FontFace>(FontStyle.class);
                 family.getValue().forEach(file -> files.put(file.style(), file));
                 String name = family.getValue().getFirst().family();
                 families.put(family.getKey(), new FontFamily(name, owner.getKey(), files));
             }
         }
+        builtIn.forEach(family -> families.putIfAbsent(keyOf(family.name()), family));
         return new ReachableFonts(families);
     }
 

@@ -27,18 +27,23 @@ import dev.chojo.ember.feature.generator.entity.PdfContent;
 import dev.chojo.ember.feature.generator.entity.PdfField;
 import dev.chojo.ember.feature.generator.entity.PdfFieldKind;
 import dev.chojo.ember.feature.generator.entity.PdfLayout;
+import dev.chojo.ember.feature.generator.entity.PdfOriginal;
 import dev.chojo.ember.feature.generator.entity.TextAlign;
 import dev.chojo.ember.feature.generator.repository.DocumentFontRepository;
 import dev.chojo.ember.feature.generator.repository.DocumentTemplateRepository;
 import dev.chojo.ember.feature.generator.repository.PdfTemplateRepository;
 import dev.chojo.ember.feature.generator.repository.TemplateStationUseRepository;
 import dev.chojo.ember.feature.generator.service.font.BundledFont;
+import dev.chojo.ember.feature.generator.service.font.DefaultFont;
 import dev.chojo.ember.feature.generator.service.font.DocumentFontService;
 import dev.chojo.ember.feature.generator.service.font.DocumentFontService.DocumentFontsResponse;
 import dev.chojo.ember.feature.generator.service.font.DocumentFontService.FontFamilyOption;
 import dev.chojo.ember.feature.generator.service.font.FontLibrary;
 import dev.chojo.ember.feature.generator.service.font.TestFonts;
 import dev.chojo.ember.feature.generator.service.pdf.PdfFonts;
+import dev.chojo.ember.feature.generator.service.pdf.PdfStamper;
+import dev.chojo.ember.feature.generator.service.pdf.StampFonts;
+import dev.chojo.ember.feature.generator.service.pdf.TestPdfs;
 import dev.chojo.ember.feature.knowledgebase.service.KbPdfPictures;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
@@ -61,7 +66,9 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
+import java.util.function.UnaryOperator;
 
 import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.letter;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -69,6 +76,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -79,6 +87,15 @@ import static org.mockito.Mockito.when;
  * are refused, the room they take, and when one may be deleted.
  */
 class DocumentFontServiceTest extends RepositoryTestBase {
+    /** The built-in families by name, sorted. */
+    private static final List<String> BUILT_IN = List.of(
+            "DejaVu Sans Mono",
+            "Liberation Mono",
+            "Liberation Sans",
+            "Liberation Serif",
+            "Libertinus Serif",
+            "New Computer Modern");
+
     private static DocumentFontService fonts;
     private static FontLibrary library;
     private static StorageService storage;
@@ -397,6 +414,85 @@ class DocumentFontServiceTest extends RepositoryTestBase {
 
     private static PdfContent pdfWith(PdfField field) {
         return new PdfContent(null, new PdfLayout(List.of(field), List.of()));
+    }
+
+    private static PdfField fieldIn(String family, FontStyle style) {
+        return new PdfField(
+                PdfFieldKind.TEXT,
+                new FieldRect(1, 100, 700, 300, 20),
+                "Lena Muster",
+                10,
+                TextAlign.LEFT,
+                false,
+                null,
+                family,
+                style);
+    }
+
+    /**
+     * Every owner reaches the built-in families without uploading anything; they are nobody's own, and
+     * only those that ship as a file are offered to fields on an uploaded PDF.
+     */
+    @Test
+    void everyOwnerReachesTheBuiltInFamilies() {
+        for (var owner : List.<Owner>of(outsider, association, new Owner.Instance())) {
+            var builtIn = fonts.list(owner).reachable().stream()
+                    .filter(option -> option.origin() == FontOrigin.BUILT_IN)
+                    .map(FontFamilyOption::family)
+                    .toList();
+            assertEquals(BUILT_IN, builtIn.stream().sorted().toList());
+            assertTrue(fonts.list(owner).own().stream().noneMatch(font -> BUILT_IN.contains(font.family())));
+        }
+        assertTrue(reached(outsider, "Liberation Serif").printsOnPdf());
+        assertEquals(
+                FontStyle.values().length,
+                reached(outsider, "Liberation Mono").styles().size());
+        assertFalse(reached(outsider, "Libertinus Serif").printsOnPdf());
+        assertFalse(reached(outsider, "DejaVu Sans Mono").printsOnPdf());
+
+        letterIn(outsider, "Brief in Libertinus", "libertinus serif");
+        library.requireReachable(outsider, pdfWith(fieldIn("Liberation Mono", FontStyle.BOLD)));
+        refused(
+                DocumentRefusal.DOCUMENT_TEMPLATE_FONT_UNKNOWN,
+                () -> library.requireReachable(outsider, pdfWith(fieldIn("New Computer Modern", FontStyle.REGULAR))));
+    }
+
+    /** A letter prints in each built-in family: the bundled ones from their files, the rest from Typst itself. */
+    @Test
+    void aLetterPrintsInTheBuiltInFamilies() throws IOException {
+        var page = new LetterPage(40, 30, 20, 20, 10, "Liberation Serif", "Libertinus Serif", "DejaVu Sans Mono");
+        var letter = new LetterContent(
+                List.of(row("Kopf")),
+                List.of(row("Fuß")),
+                List.of(
+                        row("Brief"),
+                        row(inFamily("Liberation Mono", "Nummer 12345")),
+                        row(inFamily("New Computer Modern", "Wort"))),
+                page);
+        byte[] pdf = renderer().render(job(letter));
+
+        var names = PdfFonts.namesIn(pdf);
+        for (var embedded :
+                List.of("LiberationSerif", "LibertinusSerif", "DejaVuSansMono", "LiberationMono", "NewCM")) {
+            assertTrue(names.stream().anyMatch(name -> name.contains(embedded)), embedded + " in " + names);
+        }
+        assertTrue(PdfFonts.isPdfA(pdf));
+    }
+
+    /** A field on an uploaded PDF draws in a bundled built-in family, in the style it asks for. */
+    @Test
+    void aPdfFieldPrintsInABuiltInFamily() throws IOException {
+        var pdfs = mock(PdfTemplateService.class);
+        when(pdfs.read(any(), any())).thenReturn(Optional.of(TestPdfs.plain(1)));
+        var renderer = new PdfTemplateRenderer(pdfs, new PdfStamper(new StampFonts(DefaultFont.absent())), library);
+        var content = new PdfContent(
+                mock(PdfOriginal.class), new PdfLayout(List.of(fieldIn("Liberation Mono", FontStyle.BOLD)), List.of()));
+
+        var stamped = renderer.render(outsider, content, 0, UnaryOperator.identity());
+
+        assertTrue(stamped.unprintable().isEmpty(), stamped.unprintable()::toString);
+        var names = PdfFonts.namesIn(stamped.pdf());
+        assertTrue(names.stream().anyMatch(name -> name.endsWith("+LiberationMono-Bold")), names::toString);
     }
 
     /** A font a template in use prints with stays; once the template is archived, it may go. */

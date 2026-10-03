@@ -5,14 +5,14 @@
  */
 package dev.chojo.ember.feature.generator.service;
 
-import dev.chojo.ember.feature.generator.entity.DocumentFont;
-import dev.chojo.ember.feature.generator.entity.FontOutline;
+import dev.chojo.ember.feature.generator.entity.FontFace;
 import dev.chojo.ember.feature.generator.entity.FontSpans;
 import dev.chojo.ember.feature.generator.entity.FontStyle;
 import dev.chojo.ember.feature.generator.entity.LetterContent;
 import dev.chojo.ember.feature.generator.entity.ReachableFonts;
 import dev.chojo.ember.feature.generator.service.font.BundledFont;
 import dev.chojo.ember.feature.generator.service.font.DefaultFont;
+import dev.chojo.ember.feature.generator.service.font.TypstFaces;
 import org.jspecify.annotations.Nullable;
 
 import java.nio.file.Path;
@@ -33,7 +33,8 @@ import java.util.function.Function;
  * station no longer reaches or whose file is gone, prints in the {@link DefaultFont} before that, where
  * the instance has one; its directory is searched for it. Typst finds the uploaded files by the family
  * names they carry themselves, which is why those, and not the names the uploader gave, are what the
- * letter asks for.
+ * letter asks for. A built-in family goes along as its bundled files, or as nothing where Typst carries
+ * it itself ({@link TypstFaces}).
  *
  * <p>Words a text sets in a family of their own ({@link FontSpans}) are looked up by the family as the text
  * names it, in front of the same fallback as a part of the page. A family the station no longer reaches is
@@ -63,14 +64,14 @@ public record LetterFonts(
      * @param reachable   the families the station reaches
      * @param letter      the letter, whose page names a family for the body, the header and the footer and
      *                    whose texts may set words in others
-     * @param read        reads a font file, empty where it is gone
+     * @param read        reads the file of a face, empty where it is gone or Typst carries the face itself
      * @param defaultFont the font a part naming none prints in
      * @return the fonts
      */
     public static LetterFonts of(
             ReachableFonts reachable,
             LetterContent letter,
-            Function<DocumentFont, Optional<byte[]>> read,
+            Function<FontFace, Optional<byte[]>> read,
             DefaultFont defaultFont) {
         var files = new LinkedHashMap<String, byte[]>();
         files.put(BundledFont.FILE_NAME, BundledFont.data());
@@ -97,27 +98,18 @@ public record LetterFonts(
     private static List<String> namesOf(
             ReachableFonts reachable,
             @Nullable String family,
-            Function<DocumentFont, Optional<byte[]>> read,
+            Function<FontFace, Optional<byte[]>> read,
             Map<String, byte[]> files,
             DefaultFont defaultFont) {
         var names = new ArrayList<String>();
         reachable.find(family).ifPresent(found -> {
-            for (var font : found.files().values()) {
-                String name = fileName(font);
-                if (!files.containsKey(name)) {
-                    var data = read.apply(font);
-                    if (data.isEmpty()) continue;
-                    files.put(name, data.get());
-                }
-                if (!names.contains(font.internalFamily())) names.add(font.internalFamily());
+            for (var face : found.files().values()) {
+                if (!TypstFaces.supply(face, read, files)) continue;
+                if (!names.contains(face.internalFamily())) names.add(face.internalFamily());
             }
         });
         if (names.isEmpty()) defaultFont.family().ifPresent(names::add);
-        names.add(BundledFont.FAMILY);
+        if (!names.contains(BundledFont.FAMILY)) names.add(BundledFont.FAMILY);
         return List.copyOf(names);
-    }
-
-    private static String fileName(DocumentFont font) {
-        return "font-" + font.id() + (font.outline() == FontOutline.CFF ? ".otf" : ".ttf");
     }
 }

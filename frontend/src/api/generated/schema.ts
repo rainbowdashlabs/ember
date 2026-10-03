@@ -4165,6 +4165,55 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/document-fonts/sample": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A picture of sample text in a font family the instance offers, or the default font */
+        get: {
+            parameters: {
+                query?: {
+                    family?: string;
+                    style?: string;
+                    v?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "image/png": string;
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/feed-metrics": {
         parameters: {
             query?: never;
@@ -13690,6 +13739,55 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/cluster/document-fonts/sample": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A picture of sample text in a font family the association's templates reach, or the default font */
+        get: {
+            parameters: {
+                query?: {
+                    family?: string;
+                    style?: string;
+                    v?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "image/png": string;
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/cluster/document-placeholders": {
         parameters: {
             query?: never;
@@ -18197,6 +18295,55 @@ export interface paths {
                 };
             };
         };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/document-fonts/sample": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A picture of sample text in a font family the station's templates reach, or the default font */
+        get: {
+            parameters: {
+                query?: {
+                    family?: string;
+                    style?: string;
+                    v?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "image/png": string;
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -60270,10 +60417,11 @@ export interface components {
             family: string;
             origin: components["schemas"]["FontOrigin"];
             printsOnPdf: boolean;
+            sample: string;
             styles: components["schemas"]["FontStyle"][];
         };
         /** @enum {string} */
-        FontOrigin: "STATION" | "ASSOCIATION" | "INSTANCE";
+        FontOrigin: "STATION" | "ASSOCIATION" | "INSTANCE" | "BUILT_IN";
         /** @enum {string} */
         FontOutline: "TRUETYPE" | "CFF";
         /** @enum {string} */
@@ -69554,6 +69702,7 @@ export const FilterTableType = {
 
 export const FontOrigin = {
     ASSOCIATION: "ASSOCIATION",
+    BUILT_IN: "BUILT_IN",
     INSTANCE: "INSTANCE",
     STATION: "STATION",
 } as const;

@@ -36,11 +36,23 @@ public record DocumentFont(
         String internalFamily,
         long sizeBytes,
         String sha256,
-        Instant uploadedAt) {
+        Instant uploadedAt)
+        implements FontFace {
 
     /** The columns {@link #map()} reads, in a form a query can splice in. */
     public static final String COLUMNS =
             "id, station_id, cluster_id, family, style, file_name, outline, internal_family, size_bytes, sha256, uploaded_at";
+
+    /** Fields on an uploaded PDF are embedded by PDFBox, which takes TrueType outlines only. */
+    @Override
+    public boolean printsOnPdf() {
+        return outline == FontOutline.TRUETYPE;
+    }
+
+    @Override
+    public String identity() {
+        return "uploaded:" + sha256;
+    }
 
     /** @return who uploaded it */
     public FontOrigin origin() {

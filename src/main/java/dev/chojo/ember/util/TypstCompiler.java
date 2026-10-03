@@ -149,13 +149,8 @@ public final class TypstCompiler {
                 Files.write(templateDir.resolve(entry.getKey()), entry.getValue());
             }
             Files.copy(templateSource, templateFile);
-            var fontPath = new ArrayList<Path>();
-            Path fontDir = writeFonts(tempDir, fonts);
-            if (fontDir != null) fontPath.add(fontDir);
-            fontDirectories.forEach(directory -> fontPath.add(directory.toAbsolutePath()));
-
             Path outputFile = tempDir.resolve("output.pdf");
-            return runTypst(tempDir, templateFile, outputFile, output, fontPath);
+            return runTypst(tempDir, templateFile, outputFile, output, fontPath(tempDir, fonts, fontDirectories));
         } finally {
             cleanup(tempDir);
         }
@@ -169,6 +164,19 @@ public final class TypstCompiler {
             case "image/gif" -> "gif";
             default -> "png";
         };
+    }
+
+    /**
+     * The directories Typst searches for fonts: the files handed over first, written beside the
+     * document, then the directories named.
+     */
+    private static List<Path> fontPath(Path tempDir, Map<String, byte[]> fonts, List<Path> fontDirectories)
+            throws IOException {
+        var fontPath = new ArrayList<Path>();
+        Path fontDir = writeFonts(tempDir, fonts);
+        if (fontDir != null) fontPath.add(fontDir);
+        fontDirectories.forEach(directory -> fontPath.add(directory.toAbsolutePath()));
+        return fontPath;
     }
 
     /**
@@ -186,6 +194,43 @@ public final class TypstCompiler {
         return fontDir;
     }
 
+    /**
+     * Draws a one-page document as a PNG picture, its background left transparent where the page has
+     * no fill. The source reads {@code resources} written next to it; the font files are written into
+     * a directory of their own and searched, then {@code fontDirectories}, before the system's fonts.
+     *
+     * @param source          the document
+     * @param resources       text files written next to it, by name
+     * @param fonts           font files, by name
+     * @param fontDirectories further directories of fonts
+     * @param ppi             how many pixels an inch of the page is drawn in
+     * @return the picture
+     */
+    public static byte[] compilePng(
+            String source,
+            Map<String, String> resources,
+            Map<String, byte[]> fonts,
+            List<Path> fontDirectories,
+            int ppi)
+            throws IOException, InterruptedException {
+        Path tempDir = Files.createTempDirectory("typst-png-");
+        try {
+            Path typFile = tempDir.resolve("document.typ");
+            Files.writeString(typFile, source);
+            for (var entry : resources.entrySet()) {
+                Files.writeString(tempDir.resolve(entry.getKey()), entry.getValue());
+            }
+            return runTypst(
+                    tempDir,
+                    typFile,
+                    tempDir.resolve("document.png"),
+                    List.of("--format", "png", "--ppi", String.valueOf(ppi)),
+                    fontPath(tempDir, fonts, fontDirectories));
+        } finally {
+            cleanup(tempDir);
+        }
+    }
+
     private static byte[] runTypst(Path workDir, Path inputFile, Path outputFile)
             throws IOException, InterruptedException {
         return runTypst(workDir, inputFile, outputFile, Output.PDF, List.of());
@@ -193,8 +238,15 @@ public final class TypstCompiler {
 
     private static byte[] runTypst(Path workDir, Path inputFile, Path outputFile, Output output, List<Path> fontPath)
             throws IOException, InterruptedException {
+        var options = output == Output.PDF_A_3B ? List.of("--pdf-standard", "a-3b") : List.<String>of();
+        return runTypst(workDir, inputFile, outputFile, options, fontPath);
+    }
+
+    private static byte[] runTypst(
+            Path workDir, Path inputFile, Path outputFile, List<String> options, List<Path> fontPath)
+            throws IOException, InterruptedException {
         var command = new ArrayList<>(List.of(TYPST_BIN, "compile"));
-        if (output == Output.PDF_A_3B) command.addAll(List.of("--pdf-standard", "a-3b"));
+        command.addAll(options);
         if (!fontPath.isEmpty()) {
             String joined = fontPath.stream().map(Path::toString).collect(Collectors.joining(File.pathSeparator));
             command.addAll(List.of("--font-path", joined));

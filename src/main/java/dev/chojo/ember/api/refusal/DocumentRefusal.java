@@ -321,7 +321,11 @@ public enum DocumentRefusal implements Refusal {
 
     /** A PDF template being copied whose stored PDF cannot be read. */
     DOCUMENT_TEMPLATE_COPY_PDF_GONE(
-            101, HttpStatus.CONFLICT, "The PDF of this template could not be read, so no copy was made");
+            101, HttpStatus.CONFLICT, "The PDF of this template could not be read, so no copy was made"),
+
+    /** A sample asked for of a font family the owner does not reach. */
+    DOCUMENT_FONT_SAMPLE_UNKNOWN(
+            110, HttpStatus.NOT_FOUND, "This font is not available here, so there is no sample of it");
 
     private final Definition definition;
 
