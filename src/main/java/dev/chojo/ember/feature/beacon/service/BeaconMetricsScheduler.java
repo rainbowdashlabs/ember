@@ -11,6 +11,7 @@ import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -39,8 +40,18 @@ public class BeaconMetricsScheduler {
     /** When the last daily report actually went out. */
     public static final String LAST_SENT_KEY = "beacon_metrics_last_sent";
 
+    /** How often the report is checked for. */
+    public static final Duration CHECK_INTERVAL = Duration.ofMinutes(10);
+
     private static final Logger log = LoggerFactory.getLogger(BeaconMetricsScheduler.class);
     private static final int JITTER_MINUTES = 5;
+
+    /**
+     * The latest minute of the day a slot starts from, so that with its jitter it still falls on its
+     * own day and a check comes after it before midnight.
+     */
+    private static final int LATEST_SLOT_MINUTE =
+            (int) Duration.ofDays(1).minus(CHECK_INTERVAL).toMinutes() - JITTER_MINUTES - 1;
 
     private final ApplicationSettingRepository settings;
     private final BeaconMetricsIdentity identity;
@@ -77,11 +88,16 @@ public class BeaconMetricsScheduler {
      * due, then due again, and the mark it writes could never line up with the slot it was judged
      * against. Per day it varies; within a day it is fixed.
      *
+     * <p>The slot never falls in the last minutes of the day. A minute near midnight with its jitter
+     * would land on the next day, where every check judges against that day's slot instead and the
+     * report never goes; and a slot after the last check before midnight would be missed that day.
+     * An instance whose minute lies past {@link #LATEST_SLOT_MINUTE} wraps round to the morning.
+     *
      * @param day the UTC day
      * @return the moment the report is due that day
      */
     public Instant slotOn(LocalDate day) {
-        int minute = identity.dailySlotMinute();
+        int minute = identity.dailySlotMinute() % (LATEST_SLOT_MINUTE + 1);
         int jitter = BeaconMetricsIdentity.slotFor(identity.instanceMetricsUid() + day) % (JITTER_MINUTES + 1);
         return day.atTime(LocalTime.MIDNIGHT)
                 .plusMinutes((long) minute + jitter)
