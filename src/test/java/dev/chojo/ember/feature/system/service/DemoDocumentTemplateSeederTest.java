@@ -138,6 +138,23 @@ class DemoDocumentTemplateSeederTest extends RepositoryTestBase {
         assertFalse(advanced.contains("dienstags"), advanced);
     }
 
+    /** A child's gender follows the first name, so Lena's certificate says "sie" and Tim's "er". */
+    @Test
+    void thePronounFollowsTheFirstName() {
+        var station = run.primaryStation();
+        for (var member : station.members().anfaenger()) {
+            var account = accountRepo
+                    .findById(Objects.requireNonNull(member.accountId()))
+                    .orElseThrow();
+            String text = certificateFor(station, member);
+            String expected =
+                    "weiblich".equals(DemoMemberSeeder.genderOf(account.firstName())) ? "sie sich" : "er sich";
+            assertTrue(text.contains("engagiert " + expected), account.firstName() + ": " + text);
+        }
+        assertEquals("weiblich", DemoMemberSeeder.genderOf("Lena"));
+        assertEquals("männlich", DemoMemberSeeder.genderOf("Tim"));
+    }
+
     private static String certificateFor(DemoStationContext station, StationMember member) {
         var session = stationSession(station.adminMember(), StationPermission.DOCUMENT_EDIT_MEMBER);
         var generated = wiring.generation()
