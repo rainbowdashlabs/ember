@@ -330,6 +330,32 @@ class DocumentFontServiceTest extends RepositoryTestBase {
                         .bodyFont());
     }
 
+    /** Words a text sets in a family of their own are held to the same reach as the families of the page. */
+    @Test
+    void aTextSetsWordsOnlyInAFamilyItReaches() {
+        upload(association, "Wortschrift", FontStyle.REGULAR);
+        templates.create(
+                station, letter("Wortbrief", inFamily("wortschrift", "Wort")).build(), authorId);
+        refused(
+                DocumentRefusal.DOCUMENT_TEMPLATE_FONT_UNKNOWN,
+                () -> templates.create(
+                        outsider,
+                        letter("Fremder Wortbrief", inFamily("Wortschrift", "Wort"))
+                                .build(),
+                        authorId));
+        refused(
+                DocumentRefusal.DOCUMENT_TEMPLATE_FONT_UNKNOWN,
+                () -> templates.create(
+                        station,
+                        letter("Leerer Wortbrief", inFamily("Gibt es nicht", "Wort"))
+                                .build(),
+                        authorId));
+    }
+
+    private static String inFamily(String family, String words) {
+        return "Ein <span data-font=\"" + family + "\">" + words + "</span> im Brief.";
+    }
+
     /** A field on an uploaded PDF embeds TrueType outlines only, so a family of PostScript outlines is refused there. */
     @Test
     void aPdfFieldNamesOnlyAFamilyItCanEmbed() {
@@ -428,6 +454,43 @@ class DocumentFontServiceTest extends RepositoryTestBase {
         assertTrue(names.stream().anyMatch(name -> name.endsWith(TestFonts.LISU_POSTSCRIPT)), names::toString);
         assertTrue(names.stream().anyMatch(name -> name.contains("LiberationSans")), names::toString);
         assertTrue(PdfFonts.isPdfA(pdf));
+    }
+
+    /** Words set in a family of their own print in it, bold among them, while the rest keeps the default font. */
+    @Test
+    void wordsPrintInTheFamilyTheyAreSetIn() throws IOException {
+        upload(station, "Lisu Worte", FontStyle.REGULAR);
+        var letter = new LetterContent(
+                List.of(),
+                List.of(),
+                List.of(row(inFamily("lisu worte", "**" + TestFonts.LISU_TEXT + "**"))),
+                LetterPage.defaults());
+
+        var names = PdfFonts.namesIn(renderer().render(job(letter)));
+        assertTrue(names.stream().anyMatch(name -> name.endsWith(TestFonts.LISU_POSTSCRIPT)), names::toString);
+        assertTrue(names.stream().anyMatch(name -> name.contains("LiberationSans")), names::toString);
+    }
+
+    /**
+     * Words set in a family the letter no longer reaches print in the font around them, the template's
+     * body font here, rather than failing the letter.
+     */
+    @Test
+    void wordsInAFamilyOutOfReachPrintInTheFontAroundThem() throws IOException {
+        upload(station, "Lisu Umgebung", FontStyle.REGULAR);
+        var letter = new LetterContent(
+                List.of(),
+                List.of(),
+                List.of(row(inFamily("Längst gelöscht", TestFonts.LISU_TEXT))),
+                bodyIn("Lisu Umgebung"));
+
+        var names = PdfFonts.namesIn(renderer().render(job(letter)));
+        assertTrue(names.stream().anyMatch(name -> name.endsWith(TestFonts.LISU_POSTSCRIPT)), names::toString);
+
+        var plain = new LetterContent(
+                List.of(), List.of(), List.of(row(inFamily("Längst gelöscht", "Wort"))), LetterPage.defaults());
+        var defaults = PdfFonts.namesIn(renderer().render(job(plain)));
+        assertTrue(defaults.stream().noneMatch(name -> name.contains("Noto")), defaults::toString);
     }
 
     @Test

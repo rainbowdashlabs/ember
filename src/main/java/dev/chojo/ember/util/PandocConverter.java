@@ -60,6 +60,24 @@ public final class PandocConverter {
      * @throws IOException if conversion fails
      */
     public static String markdownToTypst(String markdown) throws IOException {
+        return toTypst(markdown, List.of());
+    }
+
+    /**
+     * Converts Markdown into a Typst markup fragment like {@link #markdownToTypst}, and turns the words a
+     * text sets in a font family of their own ({@code <span data-font="Family">}) into a call to
+     * {@code font("Family")[...]}. The document the fragment is evaluated in has to define {@code font};
+     * everywhere else such a span is dropped and its words kept.
+     *
+     * @param markdown the markdown source
+     * @return the Typst markup fragment
+     * @throws IOException if conversion fails
+     */
+    public static String markdownToTypstWithFonts(String markdown) throws IOException {
+        return toTypst(markdown, List.of("--variable=font-spans"));
+    }
+
+    private static String toTypst(String markdown, List<String> options) throws IOException {
         Path tempDir = Files.createTempDirectory("pandoc-typst-");
         try {
             Path inputFile = tempDir.resolve("input.md");
@@ -67,6 +85,7 @@ public final class PandocConverter {
             Files.writeString(inputFile, markdown);
 
             var command = new ArrayList<String>(List.of(PANDOC_BIN, "-f", "gfm", "-t", "typst", "--wrap=none"));
+            command.addAll(options);
             if (Files.isRegularFile(PRINT_FILTER)) {
                 command.add("--lua-filter=" + PRINT_FILTER);
             } else {
