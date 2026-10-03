@@ -81,6 +81,7 @@
     --text-muted: #666666;
     --border: #c0c0c0;
     --link: var(--color-primary);
+    --primary: var(--color-primary);
 
     color-scheme: light dark;
     font-family: system-ui, 'Segoe UI', Roboto, sans-serif;

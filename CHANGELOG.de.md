@@ -1,5 +1,13 @@
 # Änderungsprotokoll
 
+## v26.21.0
+
+Akzente in der Themenfarbe erscheinen dort, wo sie fehlten.
+
+### Fehlerbehebungen
+
+- **Manche Akzente in der Themenfarbe fehlten.** Im Editor, im Wiki, in Boards, Protokollen, der Mediathek und manchen Menüs erschienen Links, Hervorhebungen und Markierungen, die in der Themenfarbe stehen sollten, ohne sie. Jetzt erscheinen sie in der Themenfarbe.
+
 ## v26.20.2
 
 Der tägliche Nutzungsbericht geht wieder auf jeder Instanz hinaus.
