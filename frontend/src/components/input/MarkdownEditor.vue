@@ -23,6 +23,7 @@ import { useSession } from '@/composables/useSession'
 import { useEditorFontAreaAttrs, useInjectedEditorFonts } from '@/composables/useEditorFonts'
 import MediaBrowseModal from '@/components/media/MediaBrowseModal.vue'
 import { createMarkdownTurndown } from './markdowneditor/markdownTurndown'
+import { type EditorContentAccess, htmlWithStoredSpaces, keepInlineCodeSpaces, showTypedSpaces } from './markdowneditor/spaceRuns'
 import { ResizableImage } from './markdowneditor/resizableImage'
 import type { EditorTokens } from './markdowneditor/editorTokens'
 import { extendTurndownWithTextFont, TextFont } from './markdowneditor/textFont'
@@ -131,9 +132,14 @@ const editor = useEditor({
   onTransaction: ({ editor: ed }) => { updateState(ed) },
   onUpdate: ({ editor: ed }) => {
     if (isUpdatingFromProp.value) return
-    modelValue.value = turndown.turndown(ed.getHTML())
+    modelValue.value = markdownOf(ed)
   },
 })
+
+/** What the editor holds, as the markdown that is stored, with several spaces in a row kept. */
+function markdownOf(ed: EditorContentAccess): string {
+  return turndown.turndown(htmlWithStoredSpaces(ed))
+}
 
 function updateState(ed: { isActive: (n: string, a?: Record<string, unknown>) => boolean; getAttributes: (n: string) => Record<string, unknown> }) {
   isInTable.value = ed.isActive('table')
@@ -145,8 +151,9 @@ async function setEditorContent(md: string) {
   if (!editor.value) return
   isUpdatingFromProp.value = true
   let html = renderMarkdown(props.tokens ? props.tokens.prepare(md) : md)
-  html = html.replace(/<p>(<img [^>]*>)<\/p>/g, '$1')
+  html = keepInlineCodeSpaces(html.replace(/<p>(<img [^>]*>)<\/p>/g, '$1'))
   editor.value.commands.setContent(html, { emitUpdate: false })
+  showTypedSpaces(editor.value)
   await nextTick()
   isUpdatingFromProp.value = false
 }
@@ -155,7 +162,7 @@ onMounted(async () => { await nextTick(); if (modelValue.value) await setEditorC
 
 watch(modelValue, async (md, oldMd) => {
   if (!editor.value || md === oldMd) return
-  const cur = turndown.turndown(editor.value.getHTML())
+  const cur = markdownOf(editor.value)
   if (cur !== md) await setEditorContent(md)
 })
 

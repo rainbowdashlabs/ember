@@ -409,6 +409,7 @@ a:not(:has(button)):not(.row-link):hover {
     padding: 0.125rem 0.375rem;
     border-radius: 0.25rem;
     font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+    white-space: pre-wrap;
 }
 
 .markdown-content pre {
