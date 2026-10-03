@@ -19,6 +19,12 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.documentTemplateEditor.legalText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.documentTemplateEditor.issuerTitle')">
+      <p>{{ t('helpCenter.documentTemplateEditor.issuerText') }}</p>
+      <p>{{ t('helpCenter.documentTemplateEditor.issuerMissingText') }}</p>
+      <p>{{ t('helpCenter.documentTemplateEditor.issuerAssociationText') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.documentTemplateEditor.letterheadTitle')">
       <p>{{ t('helpCenter.documentTemplateEditor.letterheadText') }}</p>
       <p>{{ t('helpCenter.documentTemplateEditor.pageText') }}</p>
